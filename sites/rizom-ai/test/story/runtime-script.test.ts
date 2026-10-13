@@ -55,6 +55,9 @@ function run(): void {
 
 function scrollTo(next: number[]): void {
   tops = next;
+  // The first chapter starts at the top of the page, so its top says how far
+  // the page has scrolled.
+  Reflect.set(globalThis, "scrollY", Math.max(0, -(next[0] ?? 0)));
   window.dispatchEvent(new window.Event("scroll"));
 }
 
@@ -120,28 +123,28 @@ describe("the opening listens to the network's answer", () => {
   const brains = ["becca.rizom.ai", "jo.rizom.ai", "sam.rizom.ai"];
   function opening(): void {
     window.document.body.innerHTML = `
-      <div class="story">
+      <div class="story" data-ask-room="">
         <div class="chapters">
-          <section class="chapter chapter--opening" id="hero">
-            <div class="ask"><div data-ask-box="">
-              <ul class="brain-box-sources">
-                <li data-ask-source="network-piece:becca/post/handoffs"><a href="#">Handoffs</a></li>
-                <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
-              </ul>
-            </div></div>
-            <div class="net-layer">
+          <div class="net-layer" data-ask-drawing="">
               <svg class="net-svg">
                 ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
                 ${brains.map((b) => `<g class="net-reply" data-brain="${b}"></g>`).join("")}
                 <circle class="net-lantern"></circle>
               </svg>
               <ul class="net-marks">
-                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+                ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
               </ul>
               <ol class="net-names">
                 ${brains.map((b) => `<li class="net-name" data-brain="${b}">${b.split(".")[0]}</li>`).join("")}
               </ol>
-            </div>
+          </div>
+          <section class="chapter chapter--opening" id="hero">
+            <div class="ask"><div data-ask-box="">
+              <ul class="brain-box-sources">
+                <li data-ask-source="post:handoffs"><a href="#">Handoffs</a></li>
+                <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
+              </ul>
+            </div></div>
           </section>
         </div>
         <figure class="figure" data-stage="0" data-stages="6"></figure>
@@ -153,6 +156,7 @@ describe("the opening listens to the network's answer", () => {
       scrollY: 0,
       addEventListener: window.addEventListener.bind(window),
       getComputedStyle: window.getComputedStyle.bind(window),
+      CustomEvent: window.CustomEvent,
     });
     new Function(storyRuntimeScript)();
   }
@@ -180,11 +184,11 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },
       },
       {
-        id: "network-piece:jo/note/x",
+        id: "note:x",
         brain: { name: "Jo", url: "https://jo.rizom.ai/" },
       },
     ]);
@@ -212,7 +216,7 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       { id: "post:what-a-brain-is" },
-      { id: "network-piece:sam/note/y", brain: { name: "sam" } },
+      { id: "note:y", brain: { name: "sam" } },
     ]);
     expect(layer().contains("is-rizom")).toBe(true);
     expect(lit()).toEqual(["sam.rizom.ai"]);
@@ -222,7 +226,7 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },
       },
     ]);
@@ -231,7 +235,7 @@ describe("the opening listens to the network's answer", () => {
     expect(layer().contains("has-replies")).toBe(false);
     answer([
       {
-        id: "network-piece:jo/note/x",
+        id: "note:x",
         brain: { name: "Jo", url: "https://jo.rizom.ai" },
       },
     ]);
@@ -242,12 +246,12 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },
       },
     ]);
     const row = window.document.querySelector(
-      '[data-ask-source="network-piece:becca/post/handoffs"]',
+      '[data-ask-source="post:handoffs"]',
     );
     if (!row) throw new Error("Missing source row");
     row.dispatchEvent(new window.Event("mouseover", { bubbles: true }));
@@ -271,38 +275,37 @@ describe("the Asked-before chapter lights the network", () => {
   const brains = ["becca.rizom.ai", "jo.rizom.ai"];
   const kept = JSON.stringify([
     {
-      id: "network-piece:plc-peer--post--3kabc",
+      id: "post:handoffs",
       title: "Handoffs",
       brain: { name: "Becca", url: "https://becca.rizom.ai/" },
     },
   ]);
   function home(): void {
     window.document.body.innerHTML = `
-      <div class="story">
+      <div class="story" data-ask-room="">
         <div class="chapters">
-          <section class="chapter chapter--opening" id="hero">
-            <div class="net-layer">
-              <svg class="net-svg">
-                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
-              </svg>
-              <ul class="net-marks">
-                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
-              </ul>
-            </div>
-          </section>
+          <div class="net-layer" data-ask-drawing="">
+            <svg class="net-svg">
+              ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+            </svg>
+            <ul class="net-marks">
+              ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+            </ul>
+          </div>
+          <section class="chapter chapter--opening" id="hero"></section>
           <section class="chapter" id="arc"><p class="eyebrow">Arc</p></section>
           <section class="chapter asked" id="asked" data-lights-network="">
             <p class="eyebrow">Asked before</p>
             <div class="net-layer net-layer--asked">
               <ul class="net-marks">
-                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+                ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
               </ul>
             </div>
             <div class="asked__list">
               <details name="asked" data-ask-answer='${kept}'>
                 <summary>How do brains hand work over?</summary>
                 <ul class="asked__sources">
-                  <li data-ask-source="network-piece:plc-peer--post--3kabc" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
+                  <li data-ask-source="post:handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
                 </ul>
               </details>
               <details name="asked" data-ask-answer="[]">
@@ -410,40 +413,35 @@ describe("the drawing belongs to the page while an answer is open", () => {
     watchers = [];
     scrolledTo = [];
     window.document.body.innerHTML = `
-      <div class="story">
+      <div class="story" data-ask-room="">
         <div class="chapters">
+          <svg class="net-leads" data-ask-leads="" aria-hidden="true"></svg>
+          <div class="net-layer" data-ask-drawing="">
+            <svg class="net-svg">
+              ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+            </svg>
+            <ul class="net-marks">
+              ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+            </ul>
+          </div>
           <section class="chapter chapter--opening" id="hero">
             <div class="ask"><div class="opening__ask" data-ask-box="">
               <div class="brain-box-scroll">
                 <div class="brain-box-dock" data-ask-dock=""></div>
                 <ul class="brain-box-sources">
-                  <li data-ask-source="network-piece:becca/post/handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
+                  <li data-ask-source="post:handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
                   <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
                 </ul>
               </div>
             </div></div>
-            <svg class="net-leads" data-net-leads="" aria-hidden="true"></svg>
-            <div class="net-layer">
-              <svg class="net-svg">
-                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
-              </svg>
-              <ul class="net-marks">
-                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
-              </ul>
-            </div>
           </section>
         </div>
         <figure class="figure" data-stage="0" data-stages="7"></figure>
       </div>`;
-    // The viewport is the frame for leads; the layer's own box, like the
-    // chapter's, grows with the words and says nothing about where they are.
-    const hero = window.document.querySelector("#hero");
-    Object.assign(hero ?? {}, {
-      getBoundingClientRect: () => rect(40, 20, 544, 2600),
-    });
-    const leadLayer = window.document.querySelector("[data-net-leads]");
+    // The lead layer is fixed to the viewport, so its own box is the frame.
+    const leadLayer = window.document.querySelector("[data-ask-leads]");
     Object.assign(leadLayer ?? {}, {
-      getBoundingClientRect: () => rect(40, -300, 544, 2600),
+      getBoundingClientRect: () => rect(0, 0, 1440, 900),
     });
     window.document.querySelectorAll("[data-ask-source]").forEach((row, i) => {
       Object.assign(row, {
@@ -472,24 +470,32 @@ describe("the drawing belongs to the page while an answer is open", () => {
       }
       observe(): void {}
     }
-    restoreGlobals = installGlobals({
-      window,
-      document: window.document,
-      innerWidth: 1440,
+    const matchMedia = (
+      query: string,
+    ): { matches: boolean; addEventListener: () => void } => ({
+      matches: media[query] ?? false,
+      addEventListener: (): void => undefined,
+    });
+    // The room reads the page's window: its size, media, observers and frames.
+    Object.assign(window, {
       innerHeight: 900,
-      scrollY: 0,
-      addEventListener: window.addEventListener.bind(window),
-      getComputedStyle: window.getComputedStyle.bind(window),
-      CustomEvent: window.CustomEvent,
-      matchMedia: (query: string) => ({
-        matches: media[query] ?? false,
-        addEventListener: (): void => undefined,
-      }),
+      matchMedia,
       MutationObserver: Watcher,
       requestAnimationFrame: (fn: () => void): number => {
         fn();
         return 1;
       },
+    });
+    restoreGlobals = installGlobals({
+      window,
+      document: window.document,
+      innerHeight: 900,
+      scrollY: 0,
+      addEventListener: window.addEventListener.bind(window),
+      getComputedStyle: window.getComputedStyle.bind(window),
+      CustomEvent: window.CustomEvent,
+      matchMedia,
+      MutationObserver: Watcher,
     });
     new Function(storyRuntimeScript)();
   }
@@ -505,120 +511,46 @@ describe("the drawing belongs to the page while an answer is open", () => {
   }
   const leads = (): Array<[string | null, string | null]> =>
     Array.from(
-      window.document.querySelectorAll("[data-net-leads] path"),
+      window.document.querySelectorAll("[data-ask-leads] path"),
       (path) => [path.getAttribute("data-lead"), path.getAttribute("d")],
     );
   const becca = {
-    id: "network-piece:becca/post/handoffs",
+    id: "post:handoffs",
     brain: { name: "Becca", url: "https://becca.rizom.ai" },
   };
 
-  test("on desktop, a dotted lead runs from each listed source to its brain", () => {
+  test("runs the Ask room: a lead from each listed source to its brain's dot, in the layer's frame", () => {
     opening({ narrow: false });
     answer([becca, { id: "post:what-a-brain-is" }]);
-    // From just right of Becca's row to just short of her dot, in viewport
-    // coordinates; Rizom's own piece has no dot to lead to.
+    // From just right of Becca's row to just short of her dot; Rizom's own
+    // piece has no dot to lead to. The room's own tests cover the rest.
     expect(
       window.document
-        .querySelector("[data-net-leads]")
+        .querySelector("[data-ask-leads]")
         ?.getAttribute("viewBox"),
     ).toBe("0 0 1440 900");
     expect(leads()).toEqual([
-      [
-        "network-piece:becca/post/handoffs",
-        "M386 412 C645 412 645 213 904 213",
-      ],
+      ["post:handoffs", "M386 412 C645 412 645 213 904 213"],
     ]);
     answer([]);
     expect(leads()).toEqual([]);
   });
 
-  test("draws no lead to a source scrolled out of its conversation", () => {
-    opening({ narrow: false });
-    const scroller = window.document.querySelector(".brain-box-scroll");
-    if (!(scroller instanceof window.HTMLElement)) throw new Error("fixture");
-    scroller.style.overflowY = "auto";
-    // Becca's row sits below the conversation's visible 100–700 band.
-    const row = window.document.querySelector(
-      `[data-ask-source="${becca.id}"]`,
-    );
-    Object.assign(row ?? {}, {
-      getBoundingClientRect: () => rect(80, 760, 300, 24),
-    });
-    answer([becca]);
-    expect(leads()).toEqual([]);
-    scroller.style.overflowY = "visible";
-    answer([becca]);
-    expect(leads()).toEqual([
-      [
-        "network-piece:becca/post/handoffs",
-        "M386 772 C645 772 645 213 904 213",
-      ],
-    ]);
-  });
-
-  test("draws no lead to a source or a dot outside the viewport", () => {
-    opening({ narrow: false });
-    const row = window.document.querySelector(
-      `[data-ask-source="${becca.id}"]`,
-    );
-    Object.assign(row ?? {}, {
-      getBoundingClientRect: () => rect(80, -40, 300, 24),
-    });
-    answer([becca]);
-    expect(leads()).toEqual([]);
-    Object.assign(row ?? {}, {
-      getBoundingClientRect: () => rect(80, 400, 300, 24),
-    });
-    window.document.querySelectorAll(".net-mark").forEach((mark, i) => {
-      Object.assign(mark, {
-        getBoundingClientRect: () => rect(900 + i * 100, 920, 26, 26),
-      });
-    });
-    answer([becca]);
-    expect(leads()).toEqual([]);
-  });
-
-  test("draws no leads on a phone, where the drawing sits above the words", () => {
-    opening({ narrow: true });
-    answer([becca]);
-    expect(leads()).toEqual([]);
-  });
-
   test("on a phone the drawing joins the open conversation, and comes back when it closes", () => {
     opening({ narrow: true });
-    const host = window.document.querySelector("[data-ask-box]");
-    host?.setAttribute("data-ask-sheet", "");
+    const home = window.document.querySelector(".net-layer");
+    const parent = home?.parentElement;
+    window.document
+      .querySelector("[data-ask-box]")
+      ?.setAttribute("data-ask-sheet", "");
     mutate();
-    const dock = window.document.querySelector("[data-ask-dock]");
-    expect(dock?.querySelector(".net-layer")).not.toBe(null);
-    expect(window.document.querySelector("#hero > .net-slot")).not.toBe(null);
-    host?.removeAttribute("data-ask-sheet");
+    expect(home?.parentElement?.hasAttribute("data-ask-dock")).toBe(true);
+    expect(parent?.querySelector("[data-ask-slot]")).not.toBe(null);
+    window.document
+      .querySelector("[data-ask-box]")
+      ?.removeAttribute("data-ask-sheet");
     mutate();
-    expect(dock?.querySelector(".net-layer")).toBe(null);
-    expect(window.document.querySelector("#hero > .net-layer")).not.toBe(null);
-    expect(window.document.querySelector(".net-slot")).toBe(null);
-  });
-
-  test("in the open conversation, a tap on a lit dot brings its source into view", () => {
-    opening({ narrow: true });
-    const host = window.document.querySelector("[data-ask-box]");
-    host?.setAttribute("data-ask-sheet", "");
-    mutate();
-    answer([becca]);
-    const dot = window.document.querySelector(
-      '.net-mark[data-brain="becca.rizom.ai"] a',
-    );
-    const followed = dot?.dispatchEvent(
-      new window.MouseEvent("click", { bubbles: true, cancelable: true }),
-    );
-    expect(followed).toBe(false);
-    // The row's middle to the conversation's middle: 412 - 100 - 300 + 12.
-    expect(scrolledTo).toEqual([12]);
-    expect(
-      window.document
-        .querySelector('[data-ask-source="network-piece:becca/post/handoffs"]')
-        ?.hasAttribute("data-ask-flash"),
-    ).toBe(true);
+    expect(home?.parentElement).toBe(parent);
+    expect(parent?.querySelector("[data-ask-slot]")).toBe(null);
   });
 });

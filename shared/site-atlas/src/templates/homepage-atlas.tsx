@@ -4,7 +4,15 @@ import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { atlasLeft, atlasTop, buildAtlasTerrain } from "../lib/atlas-terrain";
 import { layoutZoneLabels, type LabelPlacement } from "../lib/atlas-labels";
-import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
+import {
+  ASK_AIM_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_COLUMN_ATTRIBUTE,
+  ASK_DRAWING_ATTRIBUTE,
+  ASK_LEADS_ATTRIBUTE,
+  ASK_MARK_ATTRIBUTE,
+  ASK_ROOM_ATTRIBUTE,
+} from "@brains/contracts";
 import { AskBoxHost } from "./ask-box-host";
 import { homepageAtlasStyles } from "./homepage-atlas-styles";
 
@@ -81,6 +89,7 @@ function AtlasMap({
     <div
       className="atlas__map"
       data-atlas-map=""
+      {...{ [ASK_DRAWING_ATTRIBUTE]: "" }}
       role="group"
       aria-label={caption ?? "Map of published work"}
     >
@@ -136,6 +145,7 @@ function AtlasMap({
                 {...(item.typeLabel
                   ? { "data-atlas-type": item.typeLabel }
                   : {})}
+                {...{ [ASK_MARK_ATTRIBUTE]: `${item.entityType}:${item.id}` }}
                 className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x, atlasTop(item.y))}${item === latest ? " atlas__mark--latest" : ""}`}
                 style={{
                   left: `${atlasLeft(item.x)}%`,
@@ -160,7 +170,7 @@ function AtlasMap({
                   <button
                     type="button"
                     className="atlas__cited"
-                    data-atlas-cited=""
+                    {...{ [ASK_AIM_ATTRIBUTE]: "" }}
                   >
                     Where it’s cited ↓
                   </button>
@@ -277,10 +287,14 @@ export function HomepageAtlas({
         .filter(Boolean)
         .join(" ")}
       data-atlas=""
+      {...(askBox ? { [ASK_ROOM_ATTRIBUTE]: "" } : {})}
       aria-label="Introduction"
     >
       <style>{homepageAtlasStyles}</style>
-      <div className="atlas__talk">
+      <div
+        className="atlas__talk"
+        {...(askBox ? { [ASK_COLUMN_ATTRIBUTE]: "" } : {})}
+      >
         {opening.title && (
           <h1>{renderHighlightedText(opening.title, "atlas__emphasis")}</h1>
         )}
@@ -323,7 +337,11 @@ export function HomepageAtlas({
       ) : null}
       {atlas && askBox && (
         // Leads from an answer's listed sources to their marks, drawn by the atlas script.
-        <svg className="atlas__leads" data-atlas-leads="" aria-hidden="true" />
+        <svg
+          className="atlas__leads"
+          {...{ [ASK_LEADS_ATTRIBUTE]: "" }}
+          aria-hidden="true"
+        />
       )}
       {askBox && <script src={ASK_BOX_SCRIPT_PATH} defer />}
     </section>

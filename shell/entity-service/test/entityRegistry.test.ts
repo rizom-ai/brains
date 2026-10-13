@@ -433,6 +433,94 @@ This note has frontmatter metadata.`;
     });
   });
 
+  describe("containment", () => {
+    const sectionAdapter = new NoteAdapter("section");
+    const sectionSchema = noteSchema.extend({
+      entityType: z.literal("section"),
+    });
+
+    test("records the type a contained type lives in", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+
+      expect(freshRegistry.getEntityTypeConfig("section").containedIn).toBe(
+        "note",
+      );
+      expect(freshRegistry.getContainment()).toEqual(
+        new Map([["section", "note"]]),
+      );
+    });
+
+    test("refuses a container that is not registered", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "section",
+          sectionSchema,
+          sectionAdapter,
+          { containedIn: "note" },
+        ),
+      ).toThrow("not registered");
+      expect(freshRegistry.hasEntityType("section")).toBe(false);
+    });
+
+    test("refuses a second type contained in the same container", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+      const lineSchema = noteSchema.extend({ entityType: z.literal("line") });
+
+      // A path inside the container must name one type.
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "line",
+          lineSchema,
+          new NoteAdapter("line"),
+          { containedIn: "note" },
+        ),
+      ).toThrow("already contains");
+    });
+
+    test("refuses a container that is itself contained", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+      const lineSchema = noteSchema.extend({ entityType: z.literal("line") });
+
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "line",
+          lineSchema,
+          new NoteAdapter("line"),
+          { containedIn: "section" },
+        ),
+      ).toThrow("one level");
+    });
+  });
+
   describe("extendFrontmatterSchema", () => {
     const baseFrontmatterSchema = z.object({
       name: z.string(),

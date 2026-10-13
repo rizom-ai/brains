@@ -108,7 +108,7 @@ const growthSchema = z.object({
 const ROOMS: Record<string, string> = {
   You: "/brain",
   Team: "/work",
-  Network: "#hero",
+  Network: "/ask",
 };
 function GrowthSection({
   cap,

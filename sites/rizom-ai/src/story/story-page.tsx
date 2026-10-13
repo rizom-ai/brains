@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
+import { ASK_ROOM_ATTRIBUTE } from "@brains/contracts";
 import type { Organism } from "./organism";
 
 /**
@@ -49,23 +50,29 @@ export function StoryPage({
   figure,
   children,
 }: {
-  figure: StoryFigure;
+  /** The drawing beside the chapters; null for a page that brings its own (the Ask room). */
+  figure: StoryFigure | null;
   children: ReactNode;
 }): JSX.Element {
   return (
     <>
       <link rel="stylesheet" href="/styles/story.css" precedence="page" />
       <ReadingThread />
-      <div className="story">
+      <div
+        className={figure ? "story" : "story story--room"}
+        {...{ [ASK_ROOM_ATTRIBUTE]: "" }}
+      >
         <div className="chapters">{children}</div>
-        <figure
-          className={`figure ${figure.className}`}
-          data-stage="0"
-          data-stages={figure.organism.stageCount}
-          aria-hidden="true"
-        >
-          {figure.organism.svg()}
-        </figure>
+        {figure && (
+          <figure
+            className={`figure ${figure.className}`}
+            data-stage="0"
+            data-stages={figure.organism.stageCount}
+            aria-hidden="true"
+          >
+            {figure.organism.svg()}
+          </figure>
+        )}
       </div>
     </>
   );

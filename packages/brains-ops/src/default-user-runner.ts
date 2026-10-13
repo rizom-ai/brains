@@ -1,4 +1,5 @@
 import { deepMerge } from "@brains/utils/config-merge";
+import { runtimeImageTag, sitePackagesFor } from "./images";
 import { toYaml } from "@brains/utils/yaml";
 import { renderContentRepoRef as renderRepoRef } from "./content-repo-ref";
 import type { ResolvedUser } from "./load-registry";
@@ -19,7 +20,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     ...(user.setup?.delivery === "email"
       ? {
           "auth-service": {
-            setupEmail: createSetupEmailConfig(user.setup.email),
+            setupEmail: user.setup.email,
           },
           notifications: {
             defaultRecipient: { type: "email", address: user.setup.email },
@@ -85,41 +86,6 @@ function renderContentRepoRef(user: ResolvedUser, githubOrg: string): string {
   return renderRepoRef(user.contentRepo, githubOrg);
 }
 
-function createSetupEmailConfig(email: string): {
-  to: string;
-  subject: string;
-  body: string;
-} {
-  return {
-    to: email,
-    subject: "Welcome to Rover — set up your passkey",
-    body: [
-      "Hi,",
-      "",
-      "Your Rover is ready.",
-      "",
-      "Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.",
-      "",
-      "Set up your passkey:",
-      "{{setupUrl}}",
-      "",
-      "This link is single-use. Do not forward it.",
-      "It expires at {{expiresAt}}.",
-      "",
-      "After setup, open your chat and say hello:",
-      "{{origin}}/chat",
-      "",
-      "Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.",
-      "",
-      "The onboarding guide shows the way of working — capture, ask back, shape:",
-      "https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md",
-      "",
-      "If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.",
-      "",
-    ].join("\n"),
-  };
-}
-
 function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
   return [
     {
@@ -150,8 +116,15 @@ function renderAnchorProfile(user: ResolvedUser): string {
 }
 
 function renderUserEnv(user: ResolvedUser, githubOrg: string): string {
+  const sitePackages = sitePackagesFor(user.siteOverride);
   return [
     `BRAIN_VERSION=${user.brainVersion}`,
+    // An instance with site pins names the image it runs, so a pin change is
+    // a changed config, and so a deploy; a plain instance runs the plain
+    // image and its env says only its version.
+    ...(sitePackages.length > 0
+      ? [`IMAGE_TAG=${runtimeImageTag(user.brainVersion, sitePackages)}`]
+      : []),
     `CONTENT_REPO=${renderContentRepoRef(user, githubOrg)}`,
     "",
   ].join("\n");

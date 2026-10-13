@@ -36,6 +36,10 @@ import {
   type FetchFn,
 } from "./client";
 import { registerA2ACallMessageHandlers } from "./message-handlers";
+import {
+  RuntimePublicAskAllowance,
+  type PublicAskAllowance,
+} from "./public-asks";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
@@ -68,7 +72,7 @@ export interface A2AInterfaceDeps {
 export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   declare protected config: A2AConfig;
   private readonly deps: A2AInterfaceDeps;
-  private agentCard: AgentCard | undefined;
+  private cardReady = false;
   private taskManager = new TaskManager();
   private readonly turnSupervisor = new A2ATurnSupervisor();
   private agentService: AgentNamespace | undefined;
@@ -99,7 +103,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
-    registerA2ACallMessageHandlers(context, this.createClientDeps(context));
+    registerA2ACallMessageHandlers(context, this.createClientDeps(context), {
+      networkAskTimeoutMs: this.config.networkAskTimeoutMs,
+    });
 
     if (this.hasWebserver) {
       context.endpoints.register({
@@ -125,48 +131,34 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     }
   }
 
-  protected override async onReady(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    await this.rebuildAgentCard(context);
+  protected override async onReady(): Promise<void> {
+    this.cardReady = true;
   }
 
   /**
-   * Rebuild the Agent Card from current brain identity and registered tools
+   * Build the Agent Card from the brain's current identity, tools and skills.
+   *
+   * Built per request: identity and skills can land after startup (a seeded
+   * anchor profile, a generated character, derived skills), and the card
+   * must not keep serving the defaults it saw at ready.
    */
-  private async rebuildAgentCard(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    const character = context.identity.get();
-    const profile = context.identity.getProfile();
-    const tools = context.tools.listForPermissionLevel("public");
+  async getAgentCard(): Promise<AgentCard | undefined> {
+    if (!this.cardReady) return undefined;
+    const context = this.getContext();
 
-    const skills = await context.publicSkills.list();
-
-    this.agentCard = buildAgentCard({
-      character,
-      profile,
+    return buildAgentCard({
+      character: context.identity.get(),
+      profile: context.identity.getProfile(),
       version: packageJson.version,
       ...(context.domain ? { domain: context.domain } : {}),
       ...(this.config.organization
         ? { organization: this.config.organization }
         : {}),
       profileKind: context.profileKinds.getResolved(),
-      tools,
-      skills,
+      tools: context.tools.listForPermissionLevel("public"),
+      skills: await context.publicSkills.list(),
       authEnabled: false,
     });
-
-    this.logger.debug("Agent Card rebuilt", {
-      skills: this.agentCard.skills.length,
-    });
-  }
-
-  /**
-   * Get the current Agent Card
-   */
-  getAgentCard(): AgentCard | undefined {
-    return this.agentCard;
   }
 
   /**
@@ -238,16 +230,17 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     const app = new Hono();
 
-    app.get("/.well-known/agent-card.json", (c) => {
-      if (!this.agentCard) {
+    app.get("/.well-known/agent-card.json", async (c) => {
+      const agentCard = await this.getAgentCard();
+      if (!agentCard) {
         return this.withCors(c.json({ error: "Agent Card not ready" }, 503));
       }
-      return this.withCors(c.json(this.agentCard));
+      return this.withCors(c.json(agentCard));
     });
 
     app.get("/.well-known/agent-directory.json", async (c) => {
       // Built per request: the directory must reflect approvals and
-      // archivals live, unlike the identity-shaped cached Agent Card.
+      // archivals live.
       const directory = await buildAgentDirectory(
         this.getContext().entityService,
       );
@@ -348,6 +341,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
             callerPermissionLevel: caller.permissionLevel,
             callerIsAnchor: caller.isAnchor,
             callerDomain: caller.callerDomain,
+            publicAsks: this.publicAsks(),
           },
         );
 
@@ -375,6 +369,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         callerPermissionLevel: caller.permissionLevel,
         callerIsAnchor: caller.isAnchor,
         callerDomain: caller.callerDomain,
+        publicAsks: this.publicAsks(),
       });
 
       return this.withCors(c.json(response));
@@ -440,6 +435,17 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       const signingKey = await authService.getA2ASigningKey();
       await signRequest(request, signingKey.privateJwk, signingKey.keyId);
     };
+  }
+
+  private publicAskAllowance: PublicAskAllowance | undefined;
+
+  /** The public callers' daily allowance, kept in this brain's runtime state. */
+  private publicAsks(): PublicAskAllowance {
+    this.publicAskAllowance ??= new RuntimePublicAskAllowance(
+      this.config.publicAsks,
+      this.getContext().runtimeState,
+    );
+    return this.publicAskAllowance;
   }
 
   private createClientDeps(context: InterfacePluginContext): A2AClientDeps {

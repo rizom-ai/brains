@@ -1,6 +1,4 @@
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import { SYSTEM_CHANNELS } from "@brains/plugins/system-channels";
 import type {
   RizomPluginCapabilities,
   RizomRuntimeConfig,
@@ -15,6 +13,7 @@ import { foundationOrganism } from "../../story/foundation-organism";
 import { livingOrganism } from "../../story/living-organism";
 import { workOrganism } from "../../story/work-organism";
 import { storyRuntimeScript } from "../../story/runtime";
+import { ASK_ROOM_STYLES } from "@brains/site-atlas";
 
 export type { RizomRuntimeConfig } from "../contracts";
 
@@ -61,6 +60,7 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
   // The story pages: the page shape, the drawings and the reading thread.
   "/styles/story.css":
     storyStyles +
+    ASK_ROOM_STYLES +
     livingOrganism.css() +
     brainOrganism.css() +
     workOrganism.css() +
@@ -90,21 +90,9 @@ export class RizomRuntimePlugin {
     return { tools: [], resources: [] };
   }
 
+  // The head scripts reach every build through the site package's
+  // `headScripts` (see create-site.ts), which the worker reads from config.
   protected async onRegister(shell: RizomSiteShell): Promise<void> {
-    const messaging = shell.getMessageBus();
-
-    messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await messaging.send({
-        type: SITE_BUILDER_CHANNELS.headScriptRegister,
-        sender: this.id,
-        payload: {
-          pluginId: this.id,
-          script: buildRizomHeadScript(),
-        },
-      });
-      return { success: true };
-    });
-
     shell.getLogger().info("Rizom runtime plugin registered");
   }
 }

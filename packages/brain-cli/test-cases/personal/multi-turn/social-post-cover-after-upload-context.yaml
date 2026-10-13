@@ -23,7 +23,7 @@ turns:
       - kind: file
         filename: house-capitalism.png
         mediaType: image/png
-        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAABsklEQVR42u3aPW7DMAyGYZ7Ec+bOnn2IzJk75ySZc5LOmXOIzpkzNUCBoD+2LMeURNIv8I20YT6AIVG2nC43kohAABBAAKnkfu3/B6CUTo6RbFxn1kjQSRsBBBBAAAEEEEDsg9hJM4sxzTPNAwQQQAABBBABCKAQQB9vu0cASunYN5LmOsaNxIKOZSMxomPWSOzo2DQSUzoGjcQUjUEmsaljx0jM6hgxmgTqjrufeaFmvY4FI5lte5RgtkZLp7mR5Os8+5+t0dVpaySLdPITxkhK6EQyKgh0OR0U0/4VAwgggHwBfd7uf5IDMXUVQOaBdI0SrToG0tpJp1v1DaQyiwUHWj/NbwLokfeh+87SGt0FHiCAfufQd6MByCfQ/jxM5dn80poSQIlnSKQ/XkeTfweANgy0XgegDQOp6IQF0tKJCaSoExBIV2cG6OW0AlLXCQVUQqcUUP0U0gkCVE4nAlBRHfdApXV8A1XQcQxUR8crUDUdl0A1dQAKB1RZByCAAAIIIFYxgNhJM4thxHkQJ4qcKHImzVcNh0ZxgDx9WY1kFA2o6t8dGIUFqvSHGUb78/AFhXOKPP+AGVkAAAAASUVORK5CYII=
         source:
           kind: upload
           id: upload-00000000-0000-4000-8000-000000000912
@@ -37,8 +37,8 @@ turns:
     successCriteria:
       toolCountRange:
         max: 0
-      responseContains:
-        - "ecosystem"
+      responseCriteria:
+        - "Describes the uploaded image and relates it to ecosystems."
 
   - userMessage: "can you generate a social post about this for me?"
     successCriteria:
@@ -88,4 +88,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 6
-  maxTokens: 60000
+  maxTokens: 52000

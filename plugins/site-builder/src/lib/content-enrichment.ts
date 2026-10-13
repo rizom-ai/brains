@@ -69,7 +69,6 @@ export interface EnrichedEntity extends EntityWithSlug {
 export interface ContentEnrichmentOptions {
   pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
-  urlGenerator?: EntityUrlGenerator | undefined;
   siteUrl?: string | undefined;
 }
 
@@ -81,15 +80,25 @@ export async function enrichWithUrls(
   data: unknown,
   options: ContentEnrichmentOptions,
 ): Promise<unknown> {
-  const urlGenerator = options.urlGenerator ?? EntityUrlGenerator.getInstance();
+  return enrichValue(
+    data,
+    options,
+    new EntityUrlGenerator(options.pipelineContext.entityDisplay),
+  );
+}
 
+async function enrichValue(
+  data: unknown,
+  options: ContentEnrichmentOptions,
+  urlGenerator: EntityUrlGenerator,
+): Promise<unknown> {
   if (data === null || data === undefined) {
     return data;
   }
 
   if (Array.isArray(data)) {
     return Promise.all(
-      data.map((item) => enrichWithUrls(item, { ...options, urlGenerator })),
+      data.map((item) => enrichValue(item, options, urlGenerator)),
     );
   }
 
@@ -101,9 +110,7 @@ export async function enrichWithUrls(
   const enriched: Record<string, unknown> = {};
   const entries = Object.entries(data);
   const enrichedValues = await Promise.all(
-    entries.map(([, value]) =>
-      enrichWithUrls(value, { ...options, urlGenerator }),
-    ),
+    entries.map(([, value]) => enrichValue(value, options, urlGenerator)),
   );
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];

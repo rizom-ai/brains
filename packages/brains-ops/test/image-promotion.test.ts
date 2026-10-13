@@ -33,27 +33,30 @@ const promoted = users.map((user) => ({
   brainVersion: "0.2.0-alpha.371",
 }));
 
+const DOCS =
+  "rizom-site-docs-0.2.0-alpha.239--rizom-theme-rizom-ai-0.2.0-alpha.235";
+const CANARY =
+  "rizom-site-smoke-canary-0.2.0-alpha.236--rizom-theme-signal-0.2.0-alpha.233";
+
 function canaryImage(): RequiredImage {
   const image = requiredImages(users).find(
-    (image) => image.brainVersion === "0.2.0-alpha.371",
+    (image) => image.tag === `brain-0.2.0-alpha.371--${CANARY}`,
   );
   if (!image) throw new Error("Missing canary image");
   return image;
 }
 
 describe("smoke-to-fleet promotion", () => {
-  it("builds the same fleet-complete image before and after promotion", () => {
-    expect(requiredImages(promoted)).toEqual([canaryImage()]);
+  it("keeps the smoke-tested image, tag and pins, through promotion", () => {
+    expect(requiredImages(promoted)).toContainEqual(canaryImage());
     expect(canaryImage().sitePackages).toEqual([
-      "@rizom/site-docs@0.2.0-alpha.239",
       "@rizom/site-smoke-canary@0.2.0-alpha.236",
-      "@rizom/theme-rizom-ai@0.2.0-alpha.235",
       "@rizom/theme-signal@0.2.0-alpha.233",
     ]);
     expect(requiredImages([...users].reverse())).toEqual(requiredImages(users));
   });
 
-  it("reuses the smoke-tested complete image without building or changing its tag", async () => {
+  it("reuses the smoke-tested image unchanged and builds only the other pin sets on the new version", async () => {
     const image = canaryImage();
     const verified: RequiredImage[] = [];
     const builds = await resolveImageBuilds({
@@ -63,11 +66,14 @@ describe("smoke-to-fleet promotion", () => {
         verified.push(candidate);
       },
     });
-    expect(builds).toEqual([]);
+    expect(builds.map((build) => build.tag)).toEqual([
+      "brain-0.2.0-alpha.371",
+      `brain-0.2.0-alpha.371--${DOCS}`,
+    ]);
     expect(verified).toEqual([image]);
   });
 
-  it("rejects promotion onto an existing smoke-only image", () => {
+  it("rejects reuse of an existing image that lacks its own packages", () => {
     void expect(
       resolveImageBuilds({
         users: promoted,
@@ -85,7 +91,7 @@ describe("smoke-to-fleet promotion", () => {
     ).rejects.toThrow("Missing docs package");
   });
 
-  it("checks older images against their adopters, not packages from other cohorts", async () => {
+  it("checks an existing image against its own pins, never another site's", async () => {
     const verified: RequiredImage[] = [];
     const builds = await resolveImageBuilds({
       users,
@@ -94,26 +100,40 @@ describe("smoke-to-fleet promotion", () => {
         verified.push(image);
       },
     });
-    expect(builds).toEqual([canaryImage()]);
-    expect(verified[0]?.sitePackages).toEqual([
-      "@rizom/site-docs@0.2.0-alpha.239",
-      "@rizom/theme-rizom-ai@0.2.0-alpha.235",
+    expect(builds.map((build) => build.tag)).toEqual([
+      `brain-0.2.0-alpha.368--${DOCS}`,
+      `brain-0.2.0-alpha.371--${CANARY}`,
+    ]);
+    expect(verified).toEqual([
+      {
+        tag: "brain-0.2.0-alpha.368",
+        brainVersion: "0.2.0-alpha.368",
+        sitePackages: [],
+      },
     ]);
   });
 
-  it("rejects conflicting pins even when their owners run different Brain versions", () => {
-    expect(() =>
-      requiredImages([
-        ...users,
-        {
-          brainVersion: "0.2.0-alpha.369",
-          siteOverride: {
-            package: "@rizom/site-docs",
-            version: "0.2.0-alpha.240",
-          },
-        },
-      ]),
-    ).toThrow("conflicting pins");
+  it("lets a site move its pins on its own version without touching any other image", () => {
+    const before = requiredImages(users);
+    const after = requiredImages(
+      users.map((user) =>
+        user.siteOverride?.package === "@rizom/site-docs"
+          ? {
+              ...user,
+              siteOverride: {
+                ...user.siteOverride,
+                version: "0.2.0-alpha.240",
+              },
+            }
+          : user,
+      ),
+    );
+    const untouched = (images: RequiredImage[]): RequiredImage[] =>
+      images.filter((image) => !image.tag.includes("site-docs"));
+    expect(untouched(after)).toEqual(untouched(before));
+    expect(after.find((image) => image.tag.includes("site-docs"))?.tag).toBe(
+      "brain-0.2.0-alpha.368--rizom-site-docs-0.2.0-alpha.240--rizom-theme-rizom-ai-0.2.0-alpha.235",
+    );
   });
 });
 

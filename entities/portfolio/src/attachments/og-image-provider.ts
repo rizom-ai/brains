@@ -8,16 +8,16 @@ import type { Project } from "../schemas/project";
 import { projectFrontmatterSchema, projectSchema } from "../schemas/project";
 import {
   PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
-  projectOgImageTemplate,
-  type ProjectOgImageTemplateData,
+  PROJECT_OG_IMAGE_TEMPLATE_NAME,
+  type ProjectOgImageTemplateInput,
 } from "./og-image-template";
 
 export const createProjectOgImageProvider: OgImageProviderFactory =
-  createOgImageProvider<Project, ProjectOgImageTemplateData>({
+  createOgImageProvider<Project, ProjectOgImageTemplateInput>({
     sourceEntityType: "project",
     entitySchema: projectSchema,
     attachmentType: PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
-    template: projectOgImageTemplate,
+    templateName: PROJECT_OG_IMAGE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (project, helpers) => {
       const { frontmatter } = parseMarkdown(project.content);

@@ -5,19 +5,21 @@ import type {
   BaseEntity,
   EntityPluginContext,
   EntitySchema,
+  IViewsNamespace,
+  MediaFormat,
+  ViewTemplate,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import { readArtifactContent } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import { renderOgImagePng, type ScreenshotPng } from "./og-image";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
-import type { MediaPageTemplate } from "./types";
 
 /** The slice of the entity plugin context media attachment providers need. */
 export type MediaAttachmentContext = Pick<
   EntityPluginContext,
   "entityService" | "themeCSS" | "identity" | "domain"
->;
+> & { views: Pick<IViewsNamespace, "get"> };
 
 /** Context-derived values every template content builder ends up needing. */
 export interface MediaContentHelpers {
@@ -43,7 +45,8 @@ export interface MediaAttachmentProviderConfig<
   entitySchema: EntitySchema<TEntity>;
   /** Semantic attachment type this provider answers to. */
   attachmentType: string;
-  template: MediaPageTemplate;
+  /** Registered view template the artifact is rendered from, e.g. `blog:printable`. */
+  templateName: string;
   /** Rendering theme; defaults to light. */
   themeMode?: "light" | "dark" | undefined;
   /** Build the template's content model from the resolved entity. */
@@ -134,6 +137,8 @@ function createMediaAttachmentProvider<
   config: MediaAttachmentProviderConfig<TEntity, TContent>,
   output: {
     metadata: AttachmentProviderMetadata;
+    /** The template format the artifact is rendered in. */
+    format: MediaFormat;
     /** Media route segment, e.g. `og` in `/_media/og/post/<id>`. */
     routeSegment: string;
     /** Filename suffix, e.g. `-og.png`. */
@@ -143,7 +148,7 @@ function createMediaAttachmentProvider<
     render: (
       renderOptions: {
         mediaPath: string;
-        template: MediaPageTemplate;
+        template: ViewTemplate;
         content: unknown;
         title: string;
         themeMode: "light" | "dark" | undefined;
@@ -175,6 +180,13 @@ function createMediaAttachmentProvider<
       );
       if (!entity) return undefined;
 
+      const template = context.views.get(config.templateName);
+      if (!template?.renderers[output.format]) {
+        throw new Error(
+          `${config.templateName} has no ${output.format} renderer`,
+        );
+      }
+
       const content = await config.buildContent(
         entity,
         createMediaContentHelpers(context),
@@ -183,7 +195,7 @@ function createMediaAttachmentProvider<
       const data = await output.render(
         {
           mediaPath: `/_media/${output.routeSegment}/${config.sourceEntityType}/${entity.id}`,
-          template: config.template,
+          template,
           content,
           title: config.pageTitle(content),
           themeMode: config.themeMode,
@@ -212,6 +224,7 @@ export function createOgImageProvider<TEntity extends BaseEntity, TContent>(
     config,
     {
       metadata: { outputEntityType: "image", targetField: "ogImageId" },
+      format: "image",
       routeSegment: "og",
       filenameSuffix: "-og.png",
       envelope: (data, filename) => ({
@@ -241,6 +254,7 @@ export function createPrintableProvider<TEntity extends BaseEntity, TContent>(
     PrintableProviderDeps
   >(config, {
     metadata: { outputEntityType: "document" },
+    format: "pdf",
     routeSegment: "printable",
     filenameSuffix: "-printable.pdf",
     envelope: (data, filename) => ({

@@ -1,6 +1,5 @@
 import type { SectionDefinition } from "@brains/site-composition";
 import { normalizeJsonValue, type SiteImageLookup } from "@brains/site-engine";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import type { ContentVisibility } from "@brains/plugins";
 import { enrichWithUrls } from "./content-enrichment";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
@@ -60,6 +59,5 @@ export async function resolveSiteSectionContent(
     pipelineContext: options.pipelineContext,
     imageBuildService: options.imageBuildService,
     siteUrl: options.siteUrl,
-    urlGenerator: EntityUrlGenerator.getInstance(),
   });
 }

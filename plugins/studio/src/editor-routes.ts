@@ -1,16 +1,22 @@
 import { join } from "node:path";
 import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
+  issuerFromRequest,
   requireSameOriginJson,
   requireSameOriginRequest,
 } from "@brains/auth-service";
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  UserPermissionLevel,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import {
+  PermissionService,
   canWriteVisibility,
   entityTypeClassificationSchema,
   permissionToVisibilityScope,
 } from "@brains/plugins";
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
 import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import {
@@ -277,6 +283,11 @@ export function createEditorRoutes(
       .map((route) => route.fullPath)
       .sort((left, right) => left.length - right.length)[0];
     const profileName = context.identity.getProfile().name.trim();
+    const mcpUrl = await resolveMcpUrl(
+      context,
+      request,
+      resolution.access.principal.role,
+    );
     let manifest: z.output<typeof studioAssetManifestSchema>;
     try {
       manifest = await readStudioAssetManifest();
@@ -300,6 +311,7 @@ export function createEditorRoutes(
           displayName: resolution.access.principal.displayName,
           role: resolution.access.principal.role,
         },
+        mcpUrl,
       }),
       {
         headers: {
@@ -625,7 +637,15 @@ async function handleListTypes(
         (entry) => [entry.entityType, entry.count],
       ),
     );
-    for (const entityType of context.entityService.getEntityTypes()) {
+    const registered = context.entityService.getEntityTypes();
+    const containers = new Set(
+      registered.flatMap((type) => {
+        const container =
+          context.entityService.getEntityTypeConfig(type).containedIn;
+        return container === undefined ? [] : [container];
+      }),
+    );
+    for (const entityType of registered) {
       const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
       if (!schema) continue;
       const count = counts.get(entityType) ?? 0;
@@ -637,6 +657,8 @@ async function handleListTypes(
       );
       if (!capabilities) continue;
       const adapter = context.entities.getAdapter(entityType);
+      const containedIn =
+        context.entityService.getEntityTypeConfig(entityType).containedIn;
       types.push({
         entityType,
         classification: entityTypeClassificationSchema.parse(
@@ -648,7 +670,11 @@ async function handleListTypes(
         hasBody: adapter?.hasBody !== false,
         count,
         capabilities,
-        hierarchy: studioTypeHierarchy(entityType),
+        // A container's ids are flat; its folders hold its contents.
+        hierarchy: containers.has(entityType)
+          ? { ...studioTypeHierarchy(entityType), nested: false }
+          : studioTypeHierarchy(entityType),
+        ...(containedIn !== undefined && { containedIn }),
       });
     }
   }
@@ -712,11 +738,13 @@ async function handleGetWorkspace(
       },
     });
   } catch (error) {
+    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
+    // origin 502 with its own page, and the reason never reaches the caller.
     return jsonResponse(
       {
         error: getErrorMessage(error, "Studio workspace data provider failed"),
       },
-      502,
+      500,
     );
   }
 }
@@ -875,4 +903,25 @@ async function handleGetSchema(
     hasBody: raw || adapter?.hasBody !== false,
     fields,
   });
+}
+
+/**
+ * The address AI tools connect to, when this brain serves MCP over HTTP and the
+ * person's role can use it. Built from the request's public origin, the same
+ * one OAuth issues tokens for.
+ */
+async function resolveMcpUrl(
+  context: ServicePluginContext,
+  request: Request,
+  role: UserPermissionLevel,
+): Promise<string | undefined> {
+  const appInfo = await context.identity.getAppInfo().catch(() => undefined);
+  const mcp = appInfo?.interactions.find(
+    (interaction) =>
+      interaction.id === MCP_INTERACTION_ID && interaction.href.startsWith("/"),
+  );
+  if (!mcp || !PermissionService.hasPermission(role, mcp.visibility)) {
+    return undefined;
+  }
+  return `${issuerFromRequest(request)}${mcp.href}`;
 }

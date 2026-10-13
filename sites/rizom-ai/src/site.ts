@@ -5,13 +5,13 @@ import { brainSections } from "./brain";
 import { openingTemplate } from "./opening";
 import { openingDataSource } from "./opening-datasource";
 import { askedTemplate } from "./asked";
+import { askRoomTemplate } from "./ask-room";
 import { askedDataSource } from "./asked-datasource";
 import { writingTemplate } from "./writing";
 import { writingDataSource } from "./writing-datasource";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
-import { publicAskSections } from "./public-ask";
 
 export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
@@ -25,6 +25,7 @@ export const rizomAiSite: SitePackage = createRizomSite({
       opening: openingTemplate,
       writing: writingTemplate,
       asked: askedTemplate,
+      "ask-room": askRoomTemplate,
     },
     dataSourceFactories: [
       openingDataSource,
@@ -37,7 +38,6 @@ export const rizomAiSite: SitePackage = createRizomSite({
   sections: [
     livingMemorySections,
     brainSections,
-    publicAskSections,
     workSections,
     foundationSections,
   ],
@@ -45,17 +45,11 @@ export const rizomAiSite: SitePackage = createRizomSite({
   // datasource (see ./writing-datasource); entityDisplay supplies the labels
   // and detail-page paths the site builder links each piece by. Navigation is hidden — the layout's bar owns the nav, so the
   // auto-generated per-type indexes stay unlinked.
-  // What a visitor's answer may cite: the site's own pieces and the
-  // network's, which live on their brains' sites and have no route here.
+  // What a visitor's answer may cite: the site's own pieces.
   entityDisplay: {
     post: { label: "Essay", citable: true, navigation: { show: false } },
     deck: { label: "Talk", citable: true, navigation: { show: false } },
     agent: { label: "Agent", citable: true, navigation: { show: false } },
-    "network-piece": {
-      label: "From the network",
-      citable: true,
-      navigation: { show: false },
-    },
   },
 });
 

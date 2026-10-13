@@ -301,6 +301,49 @@ export type OperatorProgressBlock = z.output<
   typeof operatorProgressBlockSchema
 >;
 
+export const operatorSeriesPointSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    label: z.ZodString;
+    value: z.ZodNullable<z.ZodNumber>;
+    marker: z.ZodOptional<z.ZodString>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    /** None when there is no reading for the point, unlike a zero. */
+    value: z.number().finite().nonnegative().nullable(),
+    /** An event at the point, e.g. what was published that day. */
+    marker: operatorLabelSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorSeriesPoint = z.output<typeof operatorSeriesPointSchema>;
+
+/** Values over ordered points, drawn as bars: a day per bar for a year. */
+export const operatorSeriesBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"series">;
+    id: z.ZodString;
+    label: z.ZodString;
+    unit: z.ZodOptional<z.ZodString>;
+    points: z.ZodReadonly<z.ZodArray<typeof operatorSeriesPointSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("series"),
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    unit: operatorLabelSchema.optional(),
+    points: z.array(operatorSeriesPointSchema).min(1).max(370).readonly(),
+  })
+  .strict();
+export type OperatorSeriesBlock = z.output<typeof operatorSeriesBlockSchema>;
+
 export interface OperatorQueryOption {
   readonly value: string;
   readonly label: string;
@@ -373,6 +416,7 @@ export type OperatorLaunchIntent =
     }
   | { readonly target: "publishing" }
   | { readonly target: "site" }
+  | { readonly target: "traffic" }
   | {
       readonly target: "inbox-open-entity";
       readonly entityType: string;
@@ -781,6 +825,7 @@ export type OperatorPanelBlock<
   | OperatorFlowBlock
   | OperatorMeterBlock
   | OperatorProgressBlock
+  | OperatorSeriesBlock
   | OperatorQueryBlock
   | OperatorLinksBlock
   | OperatorActionBlock<TAction>
@@ -989,6 +1034,7 @@ export type DashboardOperatorPanelBlock =
   | OperatorFlowBlock
   | OperatorMeterBlock
   | OperatorProgressBlock
+  | OperatorSeriesBlock
   | DashboardOperatorLinksBlock
   | DashboardOperatorListBlock
   | DashboardOperatorTableBlock

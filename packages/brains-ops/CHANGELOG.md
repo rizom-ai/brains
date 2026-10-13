@@ -1,5 +1,139 @@
 # @brains/ops
 
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- [#580](https://github.com/rizom-ai/brains/pull/580) [`dbaa3b1`](https://github.com/rizom-ai/brains/commit/dbaa3b11b0f4888bea6956e2cd7efa26e388617d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy snapshot's refusal "job queue is not idle" now names the queue it saw (pending, processing and abandoned counts) and says to rerun once it drains, so a deploy that stops on a busy brain explains itself in the workflow log.
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+## 0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+## 0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Minor Changes
+
+- [#508](https://github.com/rizom-ai/brains/pull/508) [`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: `auth-service.setupEmail` now takes only the recipient address. The `{ to, subject, body }` form and its `{{setupUrl}}`, `{{expiresAt}}` and `{{origin}}` placeholders are removed; a brain.yaml that still uses them fails config validation. Regenerate pilot brain.yaml files with `brains-ops reconcile` before pinning this release.
+
+  The anchor setup email and the invitation now share one onboarding body after their own opening: a first save-and-ask in chat, Studio, and how to connect AI tools over MCP (the brain's `/mcp` address, the Claude Code command, Claude Desktop custom connectors, OAuth sign-in with the passkey). Both have text and HTML parts. brains-ops no longer writes Rover-specific setup email copy.
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [#506](https://github.com/rizom-ai/brains/pull/506) [`baca6ba`](https://github.com/rizom-ai/brains/commit/baca6ba4b29f8c768ff1fad1935573e34800f455) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fleet images are named by their Brain version and their site pins: an instance without a site override runs `brain-<version>`, an instance with one runs `brain-<version>--<pins>` (or a digest of the pins when too long to spell out), and every instance with the same version and pins shares one image. A site's pin change builds that site's image and no other, and deploys on its own, because the generated `users/<handle>/.env` now names the image (`IMAGE_TAG`). Promotion reuses a smoke-tested image unchanged, as its name already carries its pins; an existing image is verified against what its name says it holds. Explicit dispatch builds install exactly the dispatched pins. The scaffolded fleet scripts derive the tag from the instance's own pins.
+
+## 0.2.0-alpha.483
+
 ## 0.2.0-alpha.482
 
 ## 0.2.0-alpha.481

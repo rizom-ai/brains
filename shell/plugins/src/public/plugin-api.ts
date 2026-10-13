@@ -12,3 +12,4 @@ export {
   inboxSourceMetadataSchema,
 } from "../inbox-registry";
 export { defineProjectionRule } from "../entity/projection-rule";
+export { defineAnalyticsReport } from "../contracts/analytics";

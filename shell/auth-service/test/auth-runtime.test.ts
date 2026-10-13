@@ -16,6 +16,8 @@ async function createRuntime(
   tempDirs.push(storageDir);
   const runtime = new AuthRuntime({
     storageDir,
+    // These low-level tests drive the runtime directly, without a facade owner.
+    runBackgroundOperation: (operation): Promise<void> => operation(),
     issuer: "https://brain.example.com",
     trustedIssuers: new Set(["https://brain.example.com"]),
     allowLocalhostIssuers: false,

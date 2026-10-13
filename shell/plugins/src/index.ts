@@ -63,7 +63,7 @@ export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   readPromptOverride,
-  resetPromptCache,
+  resetPromptMaterialization,
   materializePrompts,
 } from "./entity/prompt-resolver";
 export {
@@ -153,7 +153,12 @@ export {
   type InboxSourceMetadata,
 } from "./inbox-registry";
 
-export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
+export {
+  SYSTEM_CHANNELS,
+  pluginsRegisteredAnswerSchema,
+  type PluginsRegisteredAnswer,
+  type SystemChannelName,
+} from "./system-channels";
 export { defineChannel, type Channel } from "./utils/channels";
 export {
   createAdminListTool,
@@ -167,8 +172,8 @@ export type {
   ServicePluginContext,
   ServiceEntityService,
   IServiceTemplatesNamespace,
-  IViewsNamespace,
 } from "./service/context";
+export type { IViewsNamespace } from "./entity/namespaces";
 export {
   AttachmentRegistry,
   createAttachmentsNamespace,
@@ -203,7 +208,7 @@ export type {
   IIdentityNamespace,
   IConversationsNamespace,
   IEvalNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IProfileKindsNamespace,
   IChannelsNamespace,
   IInboxNamespace,
@@ -372,8 +377,6 @@ export type {
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
-  IInsightsRegistry,
-  InsightHandler,
   QueryContext,
   JudgeInput,
   IMCPTransport,
@@ -441,6 +444,7 @@ export type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -480,6 +484,7 @@ export {
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,
@@ -501,6 +506,12 @@ export {
   type NavigationResult,
   type SortField,
 } from "./service/base-entity-datasource";
+export {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+  type RelatedEntityReader,
+} from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
 
 // Durable binary assets
@@ -552,11 +563,14 @@ export type {
   ComponentType,
   ViewTemplate,
   OutputFormat,
+  MediaFormat,
+  FormatComponents,
   UserPermissionLevel,
   PermissionLookupContext,
 } from "@brains/templates";
 export {
   createTemplate,
+  toViewTemplate,
   OutputFormatSchema,
   PermissionService,
   UserPermissionLevelSchema,
@@ -643,6 +657,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
@@ -665,6 +680,7 @@ export {
 export type { ConversationMessageActor } from "@brains/conversation-service";
 
 export type { IAgentService } from "@brains/ai-service";
+export { resolveTextProvider } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
@@ -1002,3 +1018,14 @@ export {
   type ConsoleSurface,
   type SurfacePermissionLevel,
 } from "./console-surfaces";
+
+export { AnalyticsRegistry } from "./analytics-registry";
+export type {
+  IAnalyticsRegistry,
+  RunAnalyticsReportRequest,
+} from "./analytics-registry";
+export { defineAnalyticsReport } from "./contracts/analytics";
+export type {
+  AnalyticsReportContext,
+  AnalyticsReportDefinition,
+} from "./contracts/analytics";

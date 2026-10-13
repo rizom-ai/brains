@@ -4,6 +4,7 @@ import type {
   EvaluationResult,
   EvaluationSummary,
   QualityScores,
+  ToolCallRecord,
   TotalMetrics,
   TurnResult,
 } from "./schemas";
@@ -97,6 +98,19 @@ export interface ITestRunner {
 /**
  * Interface for the LLM judge (agent-based evaluations only)
  */
+export interface RequirementJudgeInput {
+  userMessage: string;
+  response: string;
+  toolCalls: ToolCallRecord[];
+  requirements: string[];
+}
+
+export interface RequirementVerdict {
+  requirement: string;
+  met: boolean;
+  reason: string;
+}
+
 export interface ILLMJudge {
   /**
    * Score a conversation for quality
@@ -105,6 +119,13 @@ export interface ILLMJudge {
     testCase: AgentTestCase,
     turnResults: TurnResult[],
   ): Promise<QualityScores | null>;
+  /**
+   * Judge whether one reply meets each requirement, by meaning rather than
+   * wording. Null when no complete verdict is available.
+   */
+  judgeRequirements(
+    input: RequirementJudgeInput,
+  ): Promise<RequirementVerdict[] | null>;
 }
 
 /**

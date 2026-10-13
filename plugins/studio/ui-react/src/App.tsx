@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import type { AccountBootstrap } from "./account/account-view";
 import { StudioStatus } from "./studio-status";
 import { StudioGroupingView } from "./studio-groupings";
 import {
@@ -111,19 +112,25 @@ const ACCOUNT_ROLES: readonly AuthAccountRole[] = [
 function accountBootstrap(
   routePath: string,
   studioPath: string,
-): {
-  displayName: string;
-  role: AuthAccountRole;
-  routePath: string;
-  studioPath: string;
-} {
+  rawSearch: string,
+): AccountBootstrap {
   const root = document.querySelector("[data-studio-root]");
   const displayName =
     root?.getAttribute("data-studio-principal-name") ?? "Your account";
   const rawRole = root?.getAttribute("data-studio-principal-role");
   const role =
     ACCOUNT_ROLES.find((candidate) => candidate === rawRole) ?? "public";
-  return { displayName, role, routePath, studioPath };
+  const mcpUrl = root?.getAttribute("data-studio-mcp-url") ?? undefined;
+  const initialSection =
+    new URLSearchParams(rawSearch).get("section") ?? undefined;
+  return {
+    displayName,
+    role,
+    routePath,
+    studioPath,
+    ...(mcpUrl ? { mcpUrl } : {}),
+    ...(initialSection ? { initialSection } : {}),
+  };
 }
 
 export function App(): ReactElement {
@@ -208,6 +215,7 @@ export function App(): ReactElement {
     types,
     groupings,
     activeType,
+    collectionType,
     activeCapabilities,
     entityCollectionQuery,
     entityListOffset,
@@ -278,6 +286,7 @@ export function App(): ReactElement {
     currentStudioPathname,
     createMode,
     entityType,
+    collectionType,
     activeType,
     entityCollectionQuery,
     preferredMobilePane,
@@ -327,6 +336,7 @@ export function App(): ReactElement {
     studioBasePath,
     routeSearch,
     entityType,
+    collectionType,
     entityCollectionQuery,
     groupReturnPath,
     workspaces,
@@ -344,6 +354,7 @@ export function App(): ReactElement {
       history: router.history,
       studioBasePath,
       entityType,
+      collectionType,
       entityCollectionQuery,
       groupReturnPath,
       activeCapabilities,
@@ -411,7 +422,11 @@ export function App(): ReactElement {
       >
         <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
           <LazyAccountApp
-            bootstrap={accountBootstrap(accountPath, studioBasePath)}
+            bootstrap={accountBootstrap(
+              accountPath,
+              studioBasePath,
+              routeSearch,
+            )}
           />
         </Suspense>
       </StudioAccountWorkspaceView>
@@ -532,9 +547,10 @@ export function App(): ReactElement {
       entityType={entityType}
       entities={entities}
       folders={entityListQuery.data?.folders ?? []}
+      collectionTrail={entityListQuery.data?.trail}
       collectionPath={
-        entityType
-          ? studioCollectionPath(studioBasePath, entityType)
+        collectionType
+          ? studioCollectionPath(studioBasePath, collectionType)
           : studioBasePath
       }
       selectFolder={selectFolder}
@@ -548,9 +564,9 @@ export function App(): ReactElement {
       entityTotal={entityListTotal ?? 0}
       collectionQuery={entityCollectionQuery}
       onCollectionQueryChange={(query: StudioCollectionQuery): void => {
-        if (!entityType) return;
+        if (!collectionType) return;
         router.history.push(
-          `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...query, offset: 0 })}`,
+          `${studioCollectionPath(studioBasePath, collectionType)}${collectionSearch({ ...query, offset: 0 })}`,
         );
         window.scrollTo({ top: 0, left: 0 });
       }}
@@ -580,7 +596,7 @@ export function App(): ReactElement {
       performDeclarativeAction={performDeclarativeAction}
       onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}
-      openEntity={openEntity}
+      openEntity={(id, type) => openEntity(id, undefined, type)}
       runFieldAssist={runFieldAssist}
       applyFieldAssist={applyFieldAssist}
       save={save}

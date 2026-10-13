@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
@@ -6,6 +6,7 @@ import { createTestDirectory } from "@brains/test-utils";
 import { deferred } from "@brains/utils/deferred";
 import type { Daemon, Plugin } from "@brains/plugins";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { internalFullScope } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
@@ -308,6 +309,216 @@ describe("Shell initialization order", () => {
     expect(initOrder.indexOf("sync-completed-handler-completed")).toBeLessThan(
       initOrder.indexOf("ready"),
     );
+  });
+
+  describe("startup content", () => {
+    /** Answers plugins-registered the way directory-sync does with a queued import. */
+    function initialSyncPlugin(
+      onRegistered: (
+        bus: ReturnType<Shell["getMessageBus"]>,
+      ) => void = () => {},
+    ): Plugin {
+      const plugin: Plugin = {
+        id: "initial-sync-plugin",
+        version: "1.0.0",
+        type: "service",
+        description: "Reports a pending initial sync",
+        packageName: "@test/initial-sync",
+        register: async (shellInstance) => {
+          const bus = shellInstance.getMessageBus();
+          bus.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+            onRegistered(bus);
+            return { success: true, data: { initialSyncPending: true } };
+          });
+          return { tools: [], resources: [] };
+        },
+      };
+      return plugin;
+    }
+
+    function completeInitialSync(success: boolean): Promise<unknown> {
+      return shell.getMessageBus().send({
+        type: SYSTEM_CHANNELS.initialSyncCompleted,
+        payload: success ? { success } : { success, error: "import failed" },
+        sender: "test",
+        broadcast: true,
+      });
+    }
+
+    async function hasDefaultCharacter(): Promise<boolean> {
+      const entity = await shell.getEntityService().getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+        visibilityScope: internalFullScope("test reads the default character"),
+      });
+      return entity !== null;
+    }
+
+    function recordSettled(): { settled: boolean; withDefaults: boolean } {
+      const record = { settled: false, withDefaults: false };
+      shell
+        .getMessageBus()
+        .subscribe(SYSTEM_CHANNELS.startupContentSettled, async () => {
+          record.withDefaults = await hasDefaultCharacter();
+          record.settled = true;
+          return { success: true };
+        });
+      return record;
+    }
+
+    it("reports ready while a pending initial sync imports and creates defaults after it", async () => {
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      const record = recordSettled();
+
+      await shell.initialize();
+
+      expect(shell.isInitialized()).toBe(true);
+      expect(await hasDefaultCharacter()).toBe(false);
+      expect(record.settled).toBe(false);
+
+      await completeInitialSync(true);
+      await waitUntil(() => record.settled, "startup content to settle");
+
+      expect(record.withDefaults).toBe(true);
+    });
+
+    it("keeps the knowledge base gated until a pending initial sync completes", async () => {
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      const record = recordSettled();
+      // An empty index reads as ready, so the monitor must not start while
+      // the import has yet to fill it.
+      const monitor = spyOn(shell.getEntityService(), "awaitIndexReady");
+      await shell.initialize();
+
+      expect(monitor).not.toHaveBeenCalled();
+      expect(shell.getEntityService().isIndexReady()).toBe(false);
+
+      await completeInitialSync(true);
+      await waitUntil(() => record.settled, "startup content to settle");
+      await waitUntil(
+        () => shell.getEntityService().isIndexReady(),
+        "the knowledge base to open after the import",
+      );
+    });
+
+    it("creates no defaults after a failed initial sync, and opens the knowledge base", async () => {
+      // Content the sync never imported may still be on disk; a default
+      // would be exported over it.
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      const record = recordSettled();
+      await shell.initialize();
+
+      await completeInitialSync(false);
+      await waitUntil(
+        () => shell.getEntityService().isIndexReady(),
+        "the knowledge base to open after the failed sync",
+      );
+
+      expect(record.settled).toBe(false);
+      expect(await hasDefaultCharacter()).toBe(false);
+    });
+
+    it("creates defaults when the initial sync completes while plugins-registered is answered", async () => {
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [
+        initialSyncPlugin((bus) => {
+          void Promise.resolve().then(() =>
+            bus.send({
+              type: SYSTEM_CHANNELS.initialSyncCompleted,
+              payload: { success: true },
+              sender: "test",
+              broadcast: true,
+            }),
+          );
+        }),
+      ];
+      shell = Shell.createFresh(config, deps);
+      const record = recordSettled();
+      await shell.initialize();
+
+      await waitUntil(() => record.settled, "startup content to settle");
+
+      expect(record.withDefaults).toBe(true);
+    });
+
+    /** Store an identity the way an earlier run's import left it. */
+    async function storeIdentityFromEarlierRun(): Promise<void> {
+      const config = createTestShellConfig(testDir.dir);
+      // A pending sync keeps this boot from creating defaults to update.
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      await shell.initialize();
+      const entityService = shell.getEntityService();
+      const scope = internalFullScope("test stores an earlier identity");
+      const stored = {
+        "brain-character":
+          "---\nname: Dynamic Sage\nrole: Knowledge Synthesis Agent\npurpose: Synthesize knowledge\nvalues:\n  - clarity\n---\n",
+        "anchor-profile": "---\nname: Becca\n---\n",
+      };
+      for (const [entityType, content] of Object.entries(stored)) {
+        await entityService.createEntity({
+          entity: { id: entityType, entityType, content, metadata: {} },
+        });
+      }
+      await waitUntil(async () => {
+        const entities = await Promise.all(
+          Object.keys(stored).map((entityType) =>
+            entityService.getEntity({
+              entityType,
+              id: entityType,
+              visibilityScope: scope,
+            }),
+          ),
+        );
+        return entities.every((entity) => entity !== null);
+      }, "the earlier identity to be stored");
+      await shell.shutdown();
+    }
+
+    it("serves the stored identity while a pending initial sync imports", async () => {
+      await storeIdentityFromEarlierRun();
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+
+      await shell.initialize();
+
+      expect(shell.getIdentity().name).toBe("Dynamic Sage");
+      expect(shell.getProfile().name).toBe("Becca");
+    });
+
+    it("serves the stored identity after a failed initial sync", async () => {
+      await storeIdentityFromEarlierRun();
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      await shell.initialize();
+
+      await completeInitialSync(false);
+      await waitUntil(
+        () => shell.getEntityService().isIndexReady(),
+        "the knowledge base to open after the failed sync",
+      );
+
+      expect(shell.getIdentity().name).toBe("Dynamic Sage");
+      expect(shell.getProfile().name).toBe("Becca");
+    });
+
+    it("creates defaults at boot when no initial sync is pending", async () => {
+      shell = Shell.createFresh(createTestShellConfig(testDir.dir), deps);
+      const record = recordSettled();
+
+      await shell.initialize();
+
+      expect(record.settled).toBe(true);
+      expect(record.withDefaults).toBe(true);
+    });
   });
 
   it("should emit shell-ready only after ready hooks and guarded APIs are available", async () => {

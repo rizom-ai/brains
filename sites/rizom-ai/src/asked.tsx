@@ -6,17 +6,14 @@ import { StructuredContentFormatter } from "@brains/content-formatters";
 import { createTemplate, type Template } from "@brains/templates";
 import { MarkdownContent } from "@brains/ui-library";
 import { z } from "@rizom/site";
-import { NetworkLayer } from "./opening";
-import { placeNetwork } from "./story/network";
 
 /**
  * "Asked before": visitors' questions the owner kept and published, most
  * asked first, each opening on the answer, who answered, and the sources in
- * their owners' words. The chapter follows "Where this goes" and precedes the
- * doors: the reader has seen the argument and has their own doubts before
- * being asked to choose. Opening a question lights the brains its answer
- * drew on in the live drawing (see ./story/runtime); counts sort the list
- * and are never shown.
+ * their owners' words. The chapter follows the Ask room on /ask: the questions others
+ * asked, under the box for your own. Opening a question lights the brains
+ * its answer drew on in the page's live drawing (see ./story/runtime);
+ * counts sort the list and are never shown.
  */
 type AskedSourceSchema = z.ZodObject<{
   id: z.ZodString;
@@ -72,7 +69,7 @@ const DEFAULT_COPY = {
   body: "Questions visitors put to Rizom, answered from the connected brains and kept by the owner. Open one: the brains that answered light up.",
 };
 
-/** The published FAQs over the live network, which the chapter draws beside them. */
+/** The published FAQs, with the live network's data for the brains they name. */
 export const askedSchema: z.ZodObject<
   (typeof proximityMapDataSchema)["shape"] &
     AskedCopySchema["shape"] & {
@@ -155,7 +152,6 @@ export function Asked(data: AskedData): JSX.Element {
       <p className="eyebrow">{data.cap ?? DEFAULT_COPY.cap}</p>
       <h2>{data.claim ?? DEFAULT_COPY.claim}</h2>
       <p>{data.body ?? DEFAULT_COPY.body}</p>
-      <NetworkLayer {...placeNetwork(data)} />
       <div className="asked__list">
         {faqs.map((faq) => (
           <details

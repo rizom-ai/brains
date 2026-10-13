@@ -8,6 +8,7 @@ export const chatLayout: Record<
   | "composerBar"
   | "userTurn"
   | "source"
+  | "sourceType"
   | "uploadStrip"
   | "uploadPreview"
   | "uploadName"
@@ -111,6 +112,12 @@ export const chatLayout: Record<
     fontSize: 12,
     lineHeight: 1.6,
     backgroundColor: "var(--console-card-soft)",
+  },
+  /** A retrieved source's kind, beside its linked name. */
+  sourceType: {
+    fontFamily: "var(--console-mono)",
+    fontSize: 12,
+    color: "var(--console-text-muted)",
   },
   uploadStrip: {
     display: "flex",

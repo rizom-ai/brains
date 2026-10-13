@@ -546,6 +546,13 @@ export interface EntityAdapter<
   getCoverImageId?(entity: TEntity): string | undefined;
 
   /**
+   * Optional: titles for the folders a nested id stands in, one per segment
+   * above its own, outermost first; undefined where the entity does not know
+   * a folder's title. A book section names its parts by its headings.
+   */
+  getFolderTitles?(entity: Pick<TEntity, "content">): Array<string | undefined>;
+
+  /**
    * Optional: build the markdown content and metadata for a queued-generation stub.
    * When undefined, this entity type does not support prompt-based queued creation
    * via system_create; the tool will reject the call rather than silently degrade.
@@ -677,6 +684,13 @@ export interface EntityTypeConfig {
   /** Default source authority role for derived projections. Entity types own
    *  their durable/source character; consumers may map roles to local policy. */
   projectionSourceRole?: ProjectionSourceRole;
+  /**
+   * The type this one is contained in, as a book's sections are in their
+   * book: a contained entity's id starts with its container's id, it is
+   * stored in its container's folder, shown under it, and deleted with it.
+   * One level only; a container's own ids are flat.
+   */
+  containedIn?: string;
   /** Publish semantics for status-bearing entity types. Statuses listed here
    *  represent publication commitment/execution states and require the
    *  `publish` entity action when entered or modified. */
@@ -824,9 +838,26 @@ export interface SemanticEntityReference {
   entityType: string;
 }
 
+export interface NearestToEntityRequest {
+  /** The entity whose stored embedding the others are measured from. */
+  origin: SemanticEntityReference;
+  /** Entity types to consider; the origin itself is never returned. */
+  types: string[];
+  /** Only entries at most this cosine distance from the origin. */
+  maxDistance?: number | undefined;
+  limit?: number | undefined;
+  /** Undefined fails closed to public-only visibility, origin included. */
+  visibilityScope?: ContentVisibility | undefined;
+}
+
 export interface ProjectSemanticSpaceRequest {
   /** Entity types to include as projected points. Empty or omitted includes all types. */
   types?: string[];
+  /**
+   * Only these entities, when given: a bounded map reads a few hundred
+   * vectors instead of the whole corpus. Unknown or invisible ones are skipped.
+   */
+  entities?: SemanticEntityReference[];
   /** Optional entity used as the semantic origin. Missing origins fall back to the point centroid. */
   origin?: SemanticEntityReference;
   /** Include pairwise neighbors at or below this cosine distance. */
@@ -1028,6 +1059,15 @@ export interface ICoreEntityService {
     request: SearchWithDistancesRequest,
   ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
 
+  /**
+   * Visible entities of the given types nearest an entity's stored embedding,
+   * closest first, by raw cosine distance. It reads one vector and asks the
+   * store for the rest, so it costs no API call and stays linear.
+   */
+  nearestToEntity(
+    request: NearestToEntityRequest,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+
   /** Project visible entities into a provider-independent semantic space. */
   projectSemanticSpace(
     request: ProjectSemanticSpaceRequest,
@@ -1041,7 +1081,7 @@ export interface ICoreEntityService {
   countEntities(request: CountEntitiesRequest): Promise<number>;
   /**
    * Group counts by entity type. Fails closed: undefined visibilityScope
-   * filters to public-only counts so aggregate insights cannot reveal
+   * filters to public-only counts so aggregate reports cannot reveal
    * non-public entity existence.
    */
   getEntityCounts(
@@ -1196,6 +1236,10 @@ export interface EntityServiceClient extends ICoreEntityService {
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
   ): Promise<boolean>;
+  /** Release a retired rule's entity ownership without deleting its content. */
+  releaseProjectionOwnership(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<void>;
 
   // Durable entity-to-directory export coordination
   listPendingEntityExports(): Promise<EntityExportIntent[]>;
@@ -1229,6 +1273,11 @@ export interface EntityServiceClient extends ICoreEntityService {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
+  /**
+   * Delete every stored row of a type no plugin registers any more, with its
+   * search index, embeddings and files. Refuses a registered type.
+   */
+  purgeEntityType(entityType: string): Promise<number>;
   foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
   getEntityMutationReceipt(
     key: EntityMutationReceiptKey,
@@ -1341,6 +1390,8 @@ export interface EntityRegistry {
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;
+  /** Each contained type with the type it is contained in. */
+  getContainment(): ReadonlyMap<string, string>;
 
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
@@ -1424,7 +1475,7 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
 /**
  * The read-only projection of the entity service.
  *
- * What a plugin is handed when it has no business writing: insight handlers
+ * What a plugin is handed when it has no business writing: analytics reports
  * compute over entities and return a summary. A projection of
  * `ICoreEntityService` rather than a hand-written parallel interface, so a
  * method that changes shape fails to compile here instead of drifting.

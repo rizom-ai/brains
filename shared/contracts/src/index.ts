@@ -25,6 +25,19 @@ export {
   ASK_SHEET_MEDIA,
   ASK_SOURCE_ATTRIBUTE,
   ASK_SOURCES_EVENT,
+  ASK_ROOM_ATTRIBUTE,
+  ASK_COLUMN_ATTRIBUTE,
+  ASK_MARK_ATTRIBUTE,
+  ASK_DRAWING_ATTRIBUTE,
+  ASK_LEADS_ATTRIBUTE,
+  ASK_SLOT_ATTRIBUTE,
+  ASK_AIM_ATTRIBUTE,
+  ASK_CITED_ATTRIBUTE,
+  ASK_FLASH_ATTRIBUTE,
+  ASK_CITED_EVENT,
+  ASK_LENT_EVENT,
+  ASK_RETURNED_EVENT,
+  ASK_AIMED_EVENT,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
   askBoxAvailabilitySchema,
@@ -98,6 +111,11 @@ export {
   type AgentContextItem,
   type AgentContextResponse,
 } from "./agent-context";
+export {
+  ASSISTANT_TURN_METADATA_KEY,
+  assistantTurnSchema,
+  type AssistantTurn,
+} from "./assistant-turn";
 export {
   actorRefFromLegacy,
   actorRefKey,
@@ -273,3 +291,17 @@ export type {
   RenderedImageRef,
 } from "./render";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export { MCP_INTERACTION_ID } from "./mcp";
+export {
+  CHAT_INTERACTION_ID,
+  STUDIO_ACCOUNT_WORKSPACE_ID,
+  STUDIO_AI_TOOLS_SECTION,
+  STUDIO_INTERACTION_ID,
+  studioAiToolsHref,
+} from "./studio-links";
+
+export {
+  DEFAULT_FAVICON_HREF,
+  DEFAULT_FAVICON_PATH,
+  DEFAULT_FAVICON_SVG,
+} from "./favicon";

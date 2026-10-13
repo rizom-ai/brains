@@ -53,13 +53,13 @@ The boundary is intentionally narrow:
 
 - Public shell, plugin, daemon, and job APIs remain Promise-based.
 - Cancellation crosses public boundaries as standard `AbortSignal`, not Effect types.
-- Zod remains the schema and external contract system; Effect Schema is not used in parallel.
+- Zod remains the schema and external contract system. The private Git broker RPC wire contract is the sole Effect Schema exception: declarations adapt authoritative Zod operation validation, without parallel domain models or public Effect types.
 - Simple CRUD, validation, and synchronous registry operations should not be wrapped mechanically in Effect.
 - Long-running work must be attached to an owning scope or supervised fiber; detached fibers require an explicit reason.
 - Wrapping a Promise does not make its underlying operation cancellable. Cancellation-sensitive adapters must consume the signal supplied by Effect.
 - Persistent jobs drain gracefully by default so interruption cannot abandon a claimed queue row.
 
-This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Workspace packages import the curated private `@brains/utils/effect` subpath rather than depending on Effect independently; deterministic test services use `@brains/utils/effect/test`.
+This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Workspace packages import the curated private `@brains/utils/effect` subpath rather than depending on Effect independently; deterministic test services use `@brains/utils/effect/test`. Private Git broker transport code uses the curated `/effect/rpc` and `/effect/bun` subpaths; these are not authoring APIs.
 
 The A2A interface applies the same boundary locally: its private turn supervisor owns streaming and polling fibers plus scoped SSE heartbeat schedules. Stream disconnect, explicit task cancellation, and daemon shutdown propagate through `AbortSignal`; no Effect type appears in the interface contract. Its outbound client uses a package-private Effect timeout adapter so tool cancellation reaches Agent Card requests, message POSTs, and stalled SSE reads with the caller's original reason; stream cancellation settles before the call returns. MCP HTTP similarly owns idle-session eviction through a private scoped schedule, validates before acquisition, and drains transport closes admitted by a sweep before shutdown returns.
 
@@ -73,7 +73,7 @@ Conversation actor registries close terminally: queued operations receive the li
 
 ### Layer adoption
 
-Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only four deliberate ambient registries keep a singleton accessor — `Logger`, `AtprotoProjectionRegistry`, `EntityUrlGenerator`, and `EvalHandlerRegistry` — and they are allow-listed there by name.
+Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only three deliberate ambient registries keep a singleton accessor — `Logger`, `AtprotoProjectionRegistry`, and `EvalHandlerRegistry` — and they are allow-listed there by name. Entity URLs and citability are a plain value built from the one entity display the shell resolves.
 
 The first layer-owned slice is the job-service stack. The private `@brains/job-queue/effect` subpath owns its `Context.Tag` contracts and scoped queue/runtime layers; core composes those layers across the package boundary instead of rebuilding job-queue lifecycle ownership locally. Separate runtime and database scopes preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public authoring boundary.
 
@@ -169,7 +169,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 | Package                    | Purpose                                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `plugins/analytics`        | Analytics integration and insights                                                                 |
+| `plugins/analytics`        | Analytics integration and reports                                                                  |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
@@ -307,7 +307,7 @@ Service plugins provide the system's operational surface area:
 - external integrations
 - background job handlers
 - publishing pipelines
-- specialized tools such as sync, stock photo search, or analytics insights
+- specialized tools such as sync, stock photo search, or analytics reports
 
 ### InterfacePlugin behavior
 

@@ -2,6 +2,7 @@ import { createTestEntity } from "../src/test/index";
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
+  entityTitle,
   extractMetadata,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
@@ -10,6 +11,7 @@ import {
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
   type FrontmatterConfig,
+  markdownBody,
 } from "../src/frontmatter";
 import type { BaseEntity } from "../src/types";
 
@@ -396,5 +398,50 @@ describe("visibility frontmatter", () => {
 
       expect(hasVisibilityFrontmatter(demoted)).toBe(false);
     });
+  });
+});
+
+describe("entityTitle", () => {
+  it("names an entity by its metadata title first", () => {
+    const entity = createTestEntity("note", {
+      content: "---\ntitle: Aus dem Text\n---\n\nText.",
+      metadata: { title: "Aus den Metadaten" },
+    });
+
+    expect(entityTitle(entity)).toBe("Aus den Metadaten");
+  });
+
+  it("falls back to the title in its frontmatter", () => {
+    const entity = createTestEntity("topic", {
+      content: "---\ntitle: Mitleid\n---\n\nText.",
+      metadata: {},
+    });
+
+    expect(entityTitle(entity)).toBe("Mitleid");
+  });
+
+  it("has no title where neither names one", () => {
+    const entity = createTestEntity("note", { content: "Text.", metadata: {} });
+
+    expect(entityTitle(entity)).toBeNull();
+  });
+});
+
+describe("markdownBody", () => {
+  it("drops the frontmatter block and keeps the text", () => {
+    expect(markdownBody("---\ntitle: A\n---\nThe text.\n")).toBe("The text.");
+    expect(markdownBody("---\r\ntitle: A\r\n---\r\nThe text.")).toBe(
+      "The text.",
+    );
+  });
+
+  it("returns a document without frontmatter as it is", () => {
+    expect(markdownBody("Just text.")).toBe("Just text.");
+  });
+
+  it("leaves an unclosed block in place rather than guessing", () => {
+    expect(markdownBody("---\ntitle: A\nThe text.")).toBe(
+      "---\ntitle: A\nThe text.",
+    );
   });
 });

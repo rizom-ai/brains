@@ -1,3 +1,8 @@
+import {
+  CHAT_INTERACTION_ID,
+  MCP_INTERACTION_ID,
+  STUDIO_INTERACTION_ID,
+} from "@brains/contracts";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { createClient } from "@libsql/client";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
@@ -86,6 +91,65 @@ afterEach(async () => {
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );
 });
+
+const ONBOARDING_INTERACTIONS = {
+  chat: { id: CHAT_INTERACTION_ID, href: "/chat", visibility: "trusted" },
+  studio: { id: STUDIO_INTERACTION_ID, href: "/studio", visibility: "public" },
+  mcp: { id: MCP_INTERACTION_ID, href: "/mcp", visibility: "trusted" },
+} as const;
+
+async function sendAnchorSetupEmail(
+  options: {
+    anchor?: "person" | "team" | "organization";
+    interactions?: readonly (keyof typeof ONBOARDING_INTERACTIONS)[];
+  } = {},
+): Promise<{
+  notification: {
+    recipient: { type: "email"; address: string };
+    title: string;
+    body: string;
+    html: string;
+  };
+}> {
+  const storageDir = await tempStorageDir();
+  const harness = new PluginTestHarness<AuthServicePlugin>({
+    domain: "brain.example.com",
+    logContext: "auth-service-test",
+  });
+  for (const key of options.interactions ?? []) {
+    const interaction = ONBOARDING_INTERACTIONS[key];
+    harness.getMockShell().registerInteraction({
+      ...interaction,
+      pluginId: key,
+      label: key,
+      kind: "human",
+    });
+  }
+  const notifications: unknown[] = [];
+  harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    notifications.push(message.payload);
+    return { success: true, data: { status: "sent" } };
+  });
+  await harness.installPlugin(
+    authServicePlugin({
+      storageDir,
+      issuer: "https://brain.example.com",
+      setupEmail: "user@example.com",
+      ...(options.anchor ? { anchor: options.anchor } : {}),
+    }),
+  );
+  await readyAuthPlugin(harness);
+  const notification = z
+    .object({
+      recipient: z.object({ type: z.literal("email"), address: z.string() }),
+      title: z.string(),
+      body: z.string(),
+      html: z.string(),
+      sensitivity: z.literal("secret"),
+    })
+    .parse(notifications[0]);
+  return { notification };
+}
 
 describe("AuthService", () => {
   it("normalizes issuer origins", () => {
@@ -435,6 +499,31 @@ describe("AuthService", () => {
 
     expect(setup?.expiresAt).toBeGreaterThanOrEqual(before + 24 * 60 * 60);
     expect(setup?.expiresAt).toBeLessThanOrEqual(after + 24 * 60 * 60);
+  });
+
+  it("issues no first-passkey setup link from the worker process", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    const plugin = authServicePlugin({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+
+    await plugin.register(harness.getMockShell(), { executionOnly: true });
+
+    const database = createClient({
+      url: `file:${join(storageDir, "auth.db")}`,
+    });
+    try {
+      const rows = await database.execute(
+        "SELECT count(*) AS active FROM setup_tokens WHERE consumed_at IS NULL",
+      );
+      expect(Number(rows.rows[0]?.["active"])).toBe(0);
+    } finally {
+      database.close();
+    }
   });
 
   it("allows configuring the first-passkey setup token lifetime", async () => {
@@ -912,113 +1001,75 @@ describe("AuthService", () => {
     });
   });
 
-  it("requests a setup email notification when setup email is configured", async () => {
-    const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
-      domain: "brain.example.com",
-      logContext: "auth-service-test",
-    });
-    const notifications: unknown[] = [];
+  it("rejects the removed subject and body form of setup email", () => {
+    const legacyConfig: unknown = {
+      setupEmail: {
+        to: "user@example.com",
+        subject: "Welcome",
+        body: "Set up your passkey: {{setupUrl}}",
+      },
+    };
 
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
-      notifications.push(message.payload);
-      return { success: true, data: { status: "sent" } };
-    });
+    expect(() => {
+      Reflect.construct(AuthServicePlugin, [legacyConfig]);
+    }).toThrow();
+  });
 
-    await harness.installPlugin(
-      authServicePlugin({
-        storageDir,
-        issuer: "https://brain.example.com",
-        setupEmail: {
-          to: "user@example.com",
-          subject: "Welcome to Rover — set up your passkey",
-          body: [
-            "Hi,",
-            "",
-            "Your Rover is ready.",
-            "",
-            "Set up your passkey:",
-            "{{setupUrl}}",
-            "",
-            "This link is single-use and expires at {{expiresAt}}.",
-            "Dashboard: {{origin}}/",
-            "MCP endpoint: {{origin}}/mcp",
-          ].join("\n"),
-        },
-      }),
-    );
-    await readyAuthPlugin(harness);
+  it("sends the rendered anchor setup email with text and HTML parts", async () => {
+    const { notification } = await sendAnchorSetupEmail();
+    const setupUrl = notification.body.match(
+      /https:\/\/brain\.example\.com\/setup\?token=setup_\S+/,
+    )?.[0];
+    if (!setupUrl) throw new Error("Expected a setup link in the body");
 
-    expect(notifications).toHaveLength(1);
-    const notification = z
-      .object({
-        recipient: z.object({
-          type: z.literal("email"),
-          address: z.literal("user@example.com"),
-        }),
-        title: z.string(),
-        body: z.string(),
-        sensitivity: z.literal("secret"),
-      })
-      .parse(notifications[0]);
-
-    expect(notification.title).toBe("Welcome to Rover — set up your passkey");
     expect(notification.recipient).toEqual({
       type: "email",
       address: "user@example.com",
     });
-    expect(notification.body).toContain("Your Rover is ready.");
-    expect(notification.body).toContain(
-      "https://brain.example.com/setup?token=setup_",
-    );
-    expect(notification.body).toContain("single-use");
-    expect(notification.body).toContain("expires at");
-    expect(notification.body).toContain(
-      "Dashboard: https://brain.example.com/",
-    );
-    expect(notification.body).toContain(
-      "MCP endpoint: https://brain.example.com/mcp",
-    );
-    expect(notification.body).not.toContain("{{setupUrl}}");
-    expect(notification.body).not.toContain("{{expiresAt}}");
-    expect(notification.body).not.toContain("{{origin}}");
+    expect(notification.html).toContain(`href="${setupUrl}"`);
+    expect(notification.body).not.toContain("Rover");
   });
 
-  it("keeps setup email copy generic when only a recipient is configured", async () => {
-    const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
-      domain: "brain.example.com",
-      logContext: "auth-service-test",
-    });
-    const notifications: unknown[] = [];
+  it("greets a person anchor by the anchor profile's name", async () => {
+    const { notification } = await sendAnchorSetupEmail();
 
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
-      notifications.push(message.payload);
-      return { success: true, data: { status: "sent" } };
-    });
-
-    await harness.installPlugin(
-      authServicePlugin({
-        storageDir,
-        issuer: "https://brain.example.com",
-        setupEmail: "user@example.com",
-      }),
+    expect(notification.title).toBe("Test Owner, your brain is ready");
+    expect(notification.body).toStartWith(
+      "Hi Test Owner, your brain is ready\n",
     );
-    await readyAuthPlugin(harness);
+  });
 
-    const notification = z
-      .object({ title: z.string(), body: z.string() })
-      .parse(notifications[0]);
+  it("keeps the plain opening for a team anchor", async () => {
+    const { notification } = await sendAnchorSetupEmail({ anchor: "team" });
 
-    expect(notification.title).toBe("Set up your brain passkey");
-    expect(notification.body).toContain("Set up your brain passkey");
+    expect(notification.title).toBe(
+      "Your brain is ready — here’s how to start",
+    );
+  });
+
+  it("links the setup email to the chat, Studio and AI tools the brain serves", async () => {
+    const { notification } = await sendAnchorSetupEmail({
+      interactions: ["chat", "studio", "mcp"],
+    });
+
     expect(notification.body).toContain(
-      "Dashboard: https://brain.example.com/",
+      "chat (https://brain.example.com/chat)",
     );
     expect(notification.body).toContain(
-      "MCP endpoint: https://brain.example.com/mcp",
+      "Studio (https://brain.example.com/studio)",
     );
-    expect(notification.body).not.toContain("Rover");
+    expect(notification.body).toContain(
+      "Account → AI tools (https://brain.example.com/studio/workspaces/studio%3Aaccount?section=ai-tools)",
+    );
+  });
+
+  it("leaves out AI tools when the brain does not serve MCP", async () => {
+    const { notification } = await sendAnchorSetupEmail({
+      interactions: ["chat", "studio"],
+    });
+
+    expect(notification.body).toContain("Your first five minutes");
+    expect(notification.body).not.toContain("AI tools");
   });
 
   it("waits until ready hooks to request setup email so notification routing is registered", async () => {

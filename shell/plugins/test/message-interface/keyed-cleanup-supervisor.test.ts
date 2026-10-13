@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { KeyedCleanupSupervisor } from "../../src/message-interface/keyed-cleanup-supervisor";
 
 function withSupervisor(
@@ -8,14 +8,14 @@ function withSupervisor(
 ): Promise<void> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const clock = yield* TestClock.testClock();
+      const clock = yield* TestClock.testClockWith(Effect.succeed);
       const supervisor = new KeyedCleanupSupervisor(500, { clock });
       yield* Effect.acquireUseRelease(
         Effect.succeed(supervisor),
         run,
         (ownedSupervisor) => Effect.promise(() => ownedSupervisor.close()),
       );
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(TestClock.layer())),
   );
 }
 
@@ -62,7 +62,7 @@ describe("KeyedCleanupSupervisor", () => {
   test("interrupts pending cleanup when closed", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const supervisor = new KeyedCleanupSupervisor(500, { clock });
         let cleanupCalls = 0;
         supervisor.schedule("job-1", () => {
@@ -73,7 +73,7 @@ describe("KeyedCleanupSupervisor", () => {
         yield* TestClock.adjust(500);
 
         expect(cleanupCalls).toBe(0);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

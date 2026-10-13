@@ -1,5 +1,6 @@
 import { contentVisibilitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { renderedLinkFields } from "@brains/templates";
 import { projectStatusSchema } from "../schemas/project";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
@@ -102,3 +103,10 @@ export type ProjectView = Omit<ProjectSchemaData, "url" | "typeLabel"> & {
   url: string;
   typeLabel: string;
 };
+
+/** A project once site-builder has filled the link fields it renders. */
+export const projectRenderSchema: z.ZodType<ProjectView> =
+  projectViewSchema.extend({
+    url: renderedLinkFields.url,
+    typeLabel: renderedLinkFields.typeLabel,
+  });

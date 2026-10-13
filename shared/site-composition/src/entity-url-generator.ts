@@ -14,35 +14,15 @@ export interface EntityDisplayMap {
 }
 
 /**
- * Generates URLs for entity detail pages based on entity display metadata.
- * Singleton pattern - configured once by site-builder, used by all plugins.
+ * Entity detail URLs and citability, read from one site's entity display.
+ * A plain value over the display the shell resolves: every reader builds its
+ * own from that same map, so there is no shared state to configure.
  */
 export class EntityUrlGenerator {
-  private static instance: EntityUrlGenerator | null = null;
-  private entityDisplay: EntityDisplayMap | undefined;
+  private readonly entityDisplay: EntityDisplayMap | undefined;
 
-  private constructor() {}
-
-  /**
-   * Get the singleton instance
-   */
-  static getInstance(): EntityUrlGenerator {
-    EntityUrlGenerator.instance ??= new EntityUrlGenerator();
-    return EntityUrlGenerator.instance;
-  }
-
-  /**
-   * Configure the URL generator (called by site-builder plugin)
-   */
-  configure(entityDisplay?: EntityDisplayMap): void {
+  constructor(entityDisplay?: EntityDisplayMap) {
     this.entityDisplay = entityDisplay;
-  }
-
-  /**
-   * Reset the instance (for testing)
-   */
-  static resetInstance(): void {
-    EntityUrlGenerator.instance = null;
   }
 
   /**

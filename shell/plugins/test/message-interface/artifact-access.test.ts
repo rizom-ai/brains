@@ -5,6 +5,7 @@ import {
   type MessageArtifactEntity,
 } from "../../src/message-interface/artifact-access";
 import type { ArtifactEntityRef } from "../../src/message-interface/artifact-entity";
+import type { ContentVisibility } from "@brains/entity-service";
 
 describe("resolveMessageArtifactAccess", () => {
   const entityRef: ArtifactEntityRef = {
@@ -16,41 +17,67 @@ describe("resolveMessageArtifactAccess", () => {
     metadata: { filename: "doc.pdf" },
   };
 
+  /** An entity visible at `visibleFrom` and above; records the scopes asked. */
+  function lookup(visibleFrom: ContentVisibility | null): {
+    asked: ContentVisibility[];
+    getEntity: (
+      ref: ArtifactEntityRef,
+      scope: ContentVisibility,
+    ) => Promise<MessageArtifactEntity | undefined>;
+  } {
+    const order: ContentVisibility[] = ["public", "shared", "restricted"];
+    const asked: ContentVisibility[] = [];
+    return {
+      asked,
+      getEntity: async (
+        ref,
+        scope,
+      ): Promise<MessageArtifactEntity | undefined> => {
+        expect(ref).toEqual(entityRef);
+        asked.push(scope);
+        return visibleFrom !== null &&
+          order.indexOf(scope) >= order.indexOf(visibleFrom)
+          ? entity
+          : undefined;
+      },
+    };
+  }
+
   it("returns visible entities within the caller visibility scope", async () => {
+    const { asked, getEntity } = lookup("shared");
+
     const result = await resolveMessageArtifactAccess({
       entityRef,
       userLevel: "trusted",
-      getEntity: async (): Promise<MessageArtifactEntity | undefined> => entity,
-      getVisibleEntity: async (
-        ref,
-        visibilityScope,
-      ): Promise<MessageArtifactEntity | undefined> => {
-        expect(ref).toEqual(entityRef);
-        expect(visibilityScope).toBe("shared");
-        return entity;
-      },
+      getEntity,
     });
 
     expect(result).toEqual({ status: "visible", entity });
+    expect(asked).toEqual(["shared"]);
   });
 
-  it("returns denied when the entity exists but is not visible at caller scope", async () => {
+  // An unscoped read sees public entities only, so the existence check has to
+  // ask at full scope or a restricted artifact reads as missing, not denied.
+  it("returns denied when the entity exists only above the caller's scope", async () => {
+    const { asked, getEntity } = lookup("restricted");
+
     const result = await resolveMessageArtifactAccess({
       entityRef,
       userLevel: "public",
-      getEntity: async (): Promise<MessageArtifactEntity | undefined> => entity,
-      getVisibleEntity: async (): Promise<undefined> => undefined,
+      getEntity,
     });
 
     expect(result).toEqual({ status: "denied" });
+    expect(asked).toEqual(["public", "restricted"]);
   });
 
   it("returns missing when the entity cannot be found at any scope", async () => {
+    const { getEntity } = lookup(null);
+
     const result = await resolveMessageArtifactAccess({
       entityRef,
       userLevel: "public",
-      getEntity: async (): Promise<undefined> => undefined,
-      getVisibleEntity: async (): Promise<undefined> => undefined,
+      getEntity,
     });
 
     expect(result).toEqual({ status: "missing" });

@@ -23,10 +23,7 @@ export type {
   PrintableProviderFactory,
 } from "./attachment-provider";
 export type {
-  MediaPageRenderer,
-  MediaPageTemplate,
   MediaSiteConfig,
-  MediaTemplateFormat,
   RenderMediaTemplateHtmlOptions,
   StartStaticRenderServerOptions,
   StaticRenderServer,

@@ -17,7 +17,7 @@ import type {
   JobRequest,
   SyncResult,
 } from "../types";
-import type { FileWatcher } from "./file-watcher";
+import type { FileWatcher, MatchesHead } from "./file-watcher";
 import type { FileOperations } from "./file-operations";
 import type { ProgressOperations } from "./progress-operations";
 import {
@@ -355,6 +355,10 @@ export class DirectorySync implements IDirectorySync {
 
   suppressWatchPaths(paths: string[]): void {
     this.fileWatcher?.suppressPaths(paths);
+  }
+
+  ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void {
+    this.fileWatcher?.ignorePulledPaths(paths, matchesHead);
   }
 
   async recordPendingPullDeletes(paths: string[]): Promise<void> {

@@ -1,5 +1,5 @@
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -16,9 +16,11 @@ import {
 } from "./document-file-utils";
 import {
   buildEntityFilePath,
+  containmentOf,
   getEntityFileExtension,
   parseEntityPath,
   resolveEntityPlacement,
+  type Containment,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
 import {
@@ -27,10 +29,10 @@ import {
   readFile,
   rename,
   unlink,
-  writeFile,
   stat,
   utimes,
 } from "fs/promises";
+import { atomicWriteTempPath, writeFileAtomic } from "./atomic-write";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import {
@@ -64,7 +66,11 @@ export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   EntityServiceClient,
-  "serializeEntity" | "hasEntityType" | "openAsset"
+  | "serializeEntity"
+  | "hasEntityType"
+  | "getEntityTypes"
+  | "getEntityTypeConfig"
+  | "openAsset"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -82,7 +88,12 @@ export class FileOperations {
   }
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
-    return parseEntityPath(this.syncPath, filePath);
+    return parseEntityPath(this.syncPath, filePath, this.containment());
+  }
+
+  /** Where contained types live, as the registry holds it now. */
+  private containment(): Containment {
+    return containmentOf(this.entityService);
   }
 
   getPendingDeleteTarget(filePath: string): PendingDeleteTarget | undefined {
@@ -214,6 +225,7 @@ export class FileOperations {
       entityType,
       entityId,
       extension,
+      this.containment(),
     );
     if (!placement.writable) {
       throw new EntityPlacementError(
@@ -311,7 +323,7 @@ export class FileOperations {
 
       if (!binaryUnchanged) {
         await this.ensureEntityDirectory(filePath);
-        await writeFile(filePath, contentToWrite);
+        await writeFileAtomic(filePath, contentToWrite);
       }
 
       if (isDocument) {
@@ -335,7 +347,7 @@ export class FileOperations {
       }
 
       await this.ensureEntityDirectory(filePath);
-      await writeFile(filePath, contentToWrite, "utf-8");
+      await writeFileAtomic(filePath, contentToWrite);
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
@@ -376,7 +388,7 @@ export class FileOperations {
     }
 
     await this.ensureEntityDirectory(sidecarPath);
-    await writeFile(sidecarPath, serialized, "utf-8");
+    await writeFileAtomic(sidecarPath, serialized);
   }
 
   getFilePath(
@@ -384,7 +396,13 @@ export class FileOperations {
     entityType: string,
     extension: string = ".md",
   ): string {
-    return buildEntityFilePath(this.syncPath, entityId, entityType, extension);
+    return buildEntityFilePath(
+      this.syncPath,
+      entityId,
+      entityType,
+      extension,
+      this.containment(),
+    );
   }
 
   getEntityFilePath(entity: BaseEntity): string {
@@ -465,7 +483,12 @@ export class FileOperations {
    * Ensure directory structure exists
    */
   async ensureDirectoryStructure(entityTypes: string[]): Promise<void> {
-    await ensureSyncDirectoryStructure(this.syncPath, entityTypes);
+    // A contained type lives in its container's folder, not one of its own.
+    const containment = this.containment();
+    await ensureSyncDirectoryStructure(
+      this.syncPath,
+      entityTypes.filter((type) => !containment.has(type)),
+    );
   }
 
   /**
@@ -496,7 +519,11 @@ export class FileOperations {
     files: DirectorySyncStatus["files"];
     stats: DirectorySyncStatus["stats"];
   }> {
-    return gatherSyncFileStatus(this.syncPath, this.entityService);
+    return gatherSyncFileStatus(
+      this.syncPath,
+      this.entityService,
+      this.containment(),
+    );
   }
 
   async syncDirectoryExists(): Promise<boolean> {
@@ -518,13 +545,14 @@ export async function fileDigest(filePath: string): Promise<string> {
 /**
  * Stream chunks into a hidden temporary file beside the target, then rename
  * it over the target: a failed stream or a crash never leaves a truncated
- * file for the next import to take as new bytes. Sync ignores dotfiles.
+ * file for the next import to take as new bytes. The temporary file is the
+ * one `writeFileAtomic` uses, so sync and the Git exclude both skip it.
  */
 async function writeChunks(
   filePath: string,
   chunks: AsyncIterable<Uint8Array>,
 ): Promise<void> {
-  const temporary = `${dirname(filePath)}/.${basename(filePath)}.${randomUUID()}.tmp`;
+  const temporary = atomicWriteTempPath(filePath);
   try {
     const handle = await open(temporary, "w");
     try {

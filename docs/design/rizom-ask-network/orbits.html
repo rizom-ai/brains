@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the network — orbits (study B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Study B, orbits: three rings read as "how close": kin, near, far. Brains sit
+   on their ring, spaced along it, and each ring turns at its own slow pace, so
+   the drawing is never the same twice and no spoke points at anything. Names
+   stay upright, mono, outward. An answer makes the cited lights flare and dims
+   the rest. */
+:root {
+  --night: #14132b; --night-deep: #0e0d20; --cream: #faf8f3; --brass: #d4af37; --brass-soft: #e8cc6a;
+  --text: var(--cream); --muted: rgb(250 248 243 / 0.72); --light: rgb(250 248 243 / 0.46); --border: rgb(250 248 243 / 0.14);
+  --display: "Fraunces", Georgia, serif; --body: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --bar: 4.6rem; --words: 36rem; --gap: 4rem;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--night); color: var(--text); font-family: var(--body); -webkit-font-smoothing: antialiased; }
+.bar { position: sticky; top: 0; z-index: 5; height: var(--bar); display: flex; align-items: center; gap: 2.2rem; padding: 0 clamp(1rem, 5vw, 5rem); background: rgb(20 19 43 / 0.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+.wordmark { font-family: var(--display); font-weight: 600; font-size: 1.55rem; font-variation-settings: "SOFT" 70, "opsz" 24; }
+.wordmark b { color: var(--brass); }
+.bar nav { display: flex; gap: 1.6rem; font-size: 0.98rem; color: var(--light); }
+.bar nav a { color: inherit; text-decoration: none; } .bar nav a.is-current { color: var(--text); }
+.bar .cta { margin-left: auto; background: var(--brass); color: #1b1a0e; padding: 0.85rem 1.4rem; border-radius: 0.35rem; font-weight: 500; text-decoration: none; }
+.story { position: relative; min-height: calc(100svh - var(--bar)); max-width: 80rem; margin: 0 auto; padding: 0 clamp(1rem, 6vw, 7rem) 0 clamp(1rem, 5vw, 5rem); }
+.words { max-width: var(--words); min-height: calc(100svh - var(--bar)); display: flex; flex-direction: column; justify-content: center; padding: 4rem 0; }
+.eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); margin: 0 0 1.4rem; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2.6rem, 5.4vw, 4.6rem); line-height: 1.02; letter-spacing: -0.01em; margin: 0; font-variation-settings: "SOFT" 70, "opsz" 144; }
+.lede { font-family: var(--display); font-size: 1.32rem; line-height: 1.5; color: var(--muted); margin: 1.6rem 0 0; font-variation-settings: "SOFT" 70, "opsz" 24; }
+.composer { margin-top: 2.2rem; display: flex; align-items: center; border: 1px solid rgb(from var(--brass) r g b / 0.55); border-radius: 999px; padding: 0.35rem 0.35rem 0.35rem 1.4rem; background: rgb(14 13 32 / 0.7); }
+.composer input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: inherit; font-size: 1.05rem; }
+.composer button { width: 3rem; height: 3rem; border-radius: 50%; border: 0; background: var(--brass); color: #1b1a0e; font-size: 1.2rem; cursor: pointer; }
+.hint { margin: 1rem 0 0; font-size: 0.85rem; color: var(--light); }
+.hint button { font: inherit; color: var(--brass); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
+
+.sky { position: absolute; top: var(--bar); bottom: 0; left: calc(clamp(1rem, 5vw, 5rem) + var(--words) + var(--gap)); right: clamp(1rem, 6vw, 7rem); pointer-events: none; }
+.sky-stage { position: sticky; top: calc(var(--bar) + (100svh - var(--bar)) / 2); height: 0; display: grid; place-items: center; }
+.sky-stage > * { grid-area: 1 / 1; translate: 0 -50%; width: min(100%, calc(100svh - var(--bar) - 2rem)); aspect-ratio: 1; }
+.sky svg { overflow: visible; }
+
+/* The rings: thin, solid, quiet. Each turns at its own pace; the far ring slowest. */
+.ring { fill: none; stroke: var(--cream); stroke-opacity: 0.1; vector-effect: non-scaling-stroke; }
+.orbit { transform-origin: 50px 50px; animation: turn var(--turn, 300s) linear infinite; }
+.orbit--reverse { animation-direction: reverse; }
+@keyframes turn { to { transform: rotate(360deg); } }
+/* Each light turns back as its ring turns, so it never tilts. */
+.light { transform-box: fill-box; transform-origin: center; animation: turn var(--turn, 300s) linear infinite reverse; transition: opacity 0.7s ease; }
+.orbit--reverse .light { animation-direction: normal; }
+.light .halo { fill: url(#halo); animation: breathe var(--breath, 7s) ease-in-out var(--phase, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes breathe { 50% { transform: scale(1.2); opacity: 0.7; } }
+.light .core { fill: var(--cream); stroke: var(--night); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
+.light .core--team { fill: none; stroke: var(--cream); stroke-width: 1.1; }
+.light .core--org { fill: none; stroke: var(--cream); stroke-width: 1.1; stroke-dasharray: 1 1; }
+/* The name rides with its light: an HTML label can't follow a turning SVG
+   cheaply, so names are SVG text here, kept upright by the same counter-turn. */
+.name { font-family: var(--mono); font-size: 2.4px; fill: var(--light); letter-spacing: 0.04px; transition: fill 0.6s ease, opacity 0.6s ease; }
+.name tspan.g { fill: var(--brass); }
+
+.wash { fill: url(#wash); animation: breathe-wash 9s ease-in-out infinite; transform-origin: 50px 50px; }
+@keyframes breathe-wash { 50% { transform: scale(1.08); opacity: 0.85; } }
+.lantern { fill: #fff3cf; filter: drop-shadow(0 0 2.4px var(--brass)) drop-shadow(0 0 7px rgb(from var(--brass) r g b / 0.7)); animation: lantern 4.5s ease-in-out infinite; transform-origin: 50px 50px; }
+@keyframes lantern { 50% { transform: scale(1.12); } }
+.kin { stroke: var(--brass); stroke-width: 1; stroke-opacity: 0.35; vector-effect: non-scaling-stroke; }
+
+.sky.has-replies .light:not(.is-lit) { opacity: 0.28; }
+.sky.has-replies .light.is-lit .name { fill: var(--cream); }
+.light.is-lit .halo { animation: flare 2.4s ease-out 1 both, breathe 5s ease-in-out 2.4s infinite; }
+@keyframes flare { 0% { transform: scale(0.8); } 35% { transform: scale(2.2); } 100% { transform: scale(1.45); } }
+.light.is-lit .core { fill: #fff3cf; filter: drop-shadow(0 0 3px var(--brass)); }
+.sky.has-replies .ring { stroke-opacity: 0.05; }
+.sky.has-replies .orbit, .sky.has-replies .light { animation-play-state: paused; }
+.lead { fill: none; stroke: var(--brass-soft); stroke-width: 0.22; stroke-opacity: 0.8; stroke-dasharray: 1; stroke-dashoffset: 1; animation: lead 1.4s ease-out forwards; filter: drop-shadow(0 0 4px rgb(from var(--brass) r g b / 0.6)); }
+@keyframes lead { to { stroke-dashoffset: 0; } }
+
+.legend { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 1.6rem; justify-content: flex-end; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--light); padding: 0 0 1.4rem; }
+.legend b { color: var(--brass); font-weight: 400; margin-right: 0.45em; }
+
+@media (max-width: 60rem) {
+  :root { --strip: 34svh; }
+  .bar nav { display: none; }
+  .story { padding-top: var(--strip); }
+  .sky { position: fixed; top: var(--bar); left: 0; right: 0; bottom: auto; height: var(--strip); background: var(--night); border-bottom: 1px solid var(--border); z-index: 4; }
+  .sky-stage { position: static; height: 100%; }
+  .sky-stage > * { translate: none; width: auto; height: calc(var(--strip) - 1.5rem); }
+  .words { min-height: calc(100svh - var(--bar) - var(--strip)); padding: 2.5rem 0 3rem; }
+  .name { font-size: 3px; }
+  .legend { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .orbit, .light, .wash, .lantern, .halo { animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="bar"><span class="wordmark">rizom<b>.</b></span><nav><a href="#">Brain</a><a href="#">Work</a><a href="#">Foundation</a><a href="#">Writing</a><a class="is-current" href="#">Ask</a></nav><a class="cta" href="#">Book an audit</a></header>
+<main class="story">
+  <div class="sky" id="sky" aria-hidden="true">
+    <div class="sky-stage">
+      <svg viewBox="0 0 100 100" id="svg">
+        <defs>
+          <radialGradient id="wash"><stop offset="0" stop-color="#d4af37" stop-opacity="0.22"/><stop offset="0.45" stop-color="#d4af37" stop-opacity="0.05"/><stop offset="1" stop-color="#d4af37" stop-opacity="0"/></radialGradient>
+          <radialGradient id="halo"><stop offset="0" stop-color="#e8cc6a" stop-opacity="0.55"/><stop offset="0.4" stop-color="#d4af37" stop-opacity="0.18"/><stop offset="1" stop-color="#d4af37" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle class="wash" cx="50" cy="50" r="20"/>
+        <g id="orbits"></g>
+        <g id="leads"></g>
+        <circle class="lantern" cx="50" cy="50" r="2.1"/>
+      </svg>
+    </div>
+    <p class="legend"><span><b>●</b>person</span><span><b>○</b>team</span><span><b>◌</b>organization</span></p>
+  </div>
+  <section class="words">
+    <p class="eyebrow">Ask</p>
+    <h1>Ask the network</h1>
+    <p class="lede">Put a question to Rizom. It answers from what the connected brains have published, and the brains it drew on light up.</p>
+    <form class="composer" onsubmit="return false"><input placeholder="" aria-label="Your question"><button id="send" aria-label="Ask">↑</button></form>
+    <p class="hint">Study: <button id="demo">show an answer citing three brains</button> · <button id="reset">reset</button></p>
+  </section>
+</main>
+<script>
+const brains = [
+  { id: "team.rizom.ai",      name: "rizom core team",             kind: "team",   reach: 0.51, bearing: 200 },
+  { id: "docs.rizom.ai",      name: "rizom brain docs",            kind: "team",   reach: 0.56, bearing: 184 },
+  { id: "jo.rizom.ai",        name: "jo",                          kind: "person", reach: 0.81, bearing: -10 },
+  { id: "sam.rizom.ai",       name: "sam",                         kind: "person", reach: 0.91, bearing: -35 },
+  { id: "yeehaa.io",          name: "yeehaa",                      kind: "person", reach: 0.95, bearing: 55 },
+  { id: "gg-brain.mindinn.com", name: "green generation foundation", kind: "org",  reach: 0.96, bearing: -28 },
+  { id: "becca.rizom.ai",     name: "becca",                       kind: "person", reach: 0.97, bearing: -59 },
+  { id: "mindinn.rizom.ai",   name: "mindinn",                     kind: "org",    reach: 0.97, bearing: 186 },
+  { id: "natalie.rizom.ai",   name: "natalie",                     kind: "person", reach: 0.98, bearing: -44 },
+];
+const kin = [["docs.rizom.ai", "team.rizom.ai"]];
+// Three orbits by reach: kin (< 0.7), near (< 0.93), far. Brains are spaced
+// evenly along their orbit in bearing order; the orbits turn at their own pace.
+const orbits = [
+  { r: 16, turn: 240, reverse: false, brains: [] },
+  { r: 30, turn: 420, reverse: true, brains: [] },
+  { r: 43, turn: 600, reverse: false, brains: [] },
+];
+for (const b of [...brains].sort((a, c) => a.bearing - c.bearing)) orbits[b.reach < 0.7 ? 0 : b.reach < 0.93 ? 1 : 2].brains.push(b);
+const glyph = { person: "●", team: "∴", org: "◌" };
+const svgNS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs) => { const n = document.createElementNS(svgNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+const root = document.getElementById("orbits");
+const placed = [];
+orbits.forEach((o, oi) => {
+  const g = el("g", { class: `orbit${o.reverse ? " orbit--reverse" : ""}` });
+  g.style.setProperty("--turn", `${o.turn}s`);
+  g.append(el("circle", { class: "ring", cx: 50, cy: 50, r: o.r }));
+  const n = o.brains.length, step = 360 / Math.max(n, 1), start = o.brains.length ? o.brains[0].bearing : 0;
+  o.brains.forEach((b, i) => {
+    const angle = start + i * step, rad = (angle * Math.PI) / 180;
+    const x = 50 + o.r * Math.cos(rad), y = 50 + o.r * Math.sin(rad);
+    placed.push({ ...b, x, y, orbit: oi });
+    const near = 1 - b.reach, halo = 3 + near * 7, core = 0.85 + near * 1.1;
+    const light = el("g", { class: "light", "data-brain": b.id });
+    light.style.setProperty("--turn", `${o.turn}s`);
+    light.style.setProperty("--breath", `${6 + (i % 4) * 1.3}s`);
+    light.style.setProperty("--phase", `${-(i * 1.7 + oi)}s`);
+    light.append(el("circle", { class: "halo", cx: x, cy: y, r: halo, opacity: 0.55 + near * 0.9 }));
+    light.append(el("circle", { class: `core core--${b.kind}`, cx: x, cy: y, r: core }));
+    const t = el("text", { class: "name", x: x + (x >= 50 ? 2.4 : -2.4), y: y + 0.9, "text-anchor": x >= 50 ? "start" : "end" });
+    t.textContent = b.name;
+    light.append(t);
+    g.append(light);
+  });
+  root.append(g);
+});
+const sky = document.getElementById("sky"), leads = document.getElementById("leads");
+const lightOf = (id) => document.querySelector(`[data-brain="${id}"] .core`);
+const answer = (ids) => {
+  sky.classList.add("has-replies"); leads.replaceChildren();
+  for (const n of document.querySelectorAll("[data-brain]")) n.classList.toggle("is-lit", ids.includes(n.dataset.brain));
+  // The leads are drawn where each light is at this moment, in the drawing's frame.
+  const svg = document.getElementById("svg");
+  const inv = svg.getScreenCTM().inverse();
+  ids.forEach((id, i) => {
+    const r = lightOf(id).getBoundingClientRect(); const p = svg.createSVGPoint(); p.x = r.left + r.width / 2; p.y = r.top + r.height / 2;
+    const q = p.matrixTransform(inv); const k = { x: (50 + q.x) / 2 + (q.y - 50) * 0.18, y: (50 + q.y) / 2 - (q.x - 50) * 0.18 };
+    const path = el("path", { class: "lead", d: `M50 50 Q${k.x} ${k.y} ${q.x} ${q.y}`, pathLength: 1 }); path.style.animationDelay = `${i * 0.25}s`; leads.append(path);
+  });
+};
+const reset = () => { sky.classList.remove("has-replies"); leads.replaceChildren(); for (const n of document.querySelectorAll(".is-lit")) n.classList.remove("is-lit"); };
+document.getElementById("demo").addEventListener("click", () => answer(["docs.rizom.ai", "yeehaa.io", "jo.rizom.ai"]));
+document.getElementById("send").addEventListener("click", () => answer(["team.rizom.ai", "mindinn.rizom.ai", "natalie.rizom.ai"]));
+document.getElementById("reset").addEventListener("click", reset);
+</script>
+</body>
+</html>

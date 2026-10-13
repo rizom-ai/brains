@@ -5,6 +5,7 @@ import type {
   ChannelDescriptor,
 } from "@brains/plugins";
 import { InvitationChannels } from "../src/invitation-channels";
+import { renderOnboardingEmail } from "../src/onboarding-emails";
 
 const issuer = "https://brain.test";
 
@@ -183,6 +184,8 @@ describe("InvitationChannels", () => {
         setupToken: "setup_abc",
         expiresAtSeconds: 1_800_000_000,
         idempotencyKey: "attempt-1",
+        brainName: "Rizom",
+        role: "trusted",
       });
 
       expect(result).toEqual({
@@ -191,7 +194,7 @@ describe("InvitationChannels", () => {
       });
     });
 
-    it("sends the setup link, the expiry and the attempt's idempotency key", async () => {
+    it("sends the rendered invitation with the attempt's idempotency key", async () => {
       let sent: { [key: string]: unknown } | undefined;
       const subject = channels({
         providers: {
@@ -213,15 +216,27 @@ describe("InvitationChannels", () => {
         setupToken: "setup_abc",
         expiresAtSeconds: 1_800_000_000,
         idempotencyKey: "attempt-1",
+        brainName: "Rizom",
+        role: "trusted",
+        inviterName: "Sam Jansen",
       });
 
-      expect(sent?.["recipient"]).toBe("person@example.test");
-      expect(sent?.["idempotencyKey"]).toBe("attempt-1");
-      expect(String(sent?.["text"])).toContain("setup_abc");
-      expect(String(sent?.["text"])).toContain(
-        new Date(1_800_000_000 * 1000).toISOString(),
-      );
-      expect(String(sent?.["subject"])).toContain("brain.test");
+      const rendered = renderOnboardingEmail({
+        kind: "invitation",
+        setupUrl: `${issuer}/setup?token=setup_abc`,
+        expiresAt: 1_800_000_000,
+        brainName: "Rizom",
+        role: "trusted",
+        inviterName: "Sam Jansen",
+      });
+      expect(sent).toEqual({
+        recipient: "person@example.test",
+        subject: rendered.subject,
+        text: rendered.text,
+        html: rendered.html,
+        sensitivity: "secret",
+        idempotencyKey: "attempt-1",
+      });
     });
   });
 });

@@ -1,9 +1,22 @@
-import { chmod, mkdir, unlink } from "fs/promises";
+import { chmod, link, lstat, mkdir, mkdtemp, rm, unlink } from "fs/promises";
 import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { createId } from "@brains/utils/id";
 import { sha256Hex } from "@brains/utils/hash";
 import { getErrorMessage } from "@brains/utils/error";
+import { deferred } from "@brains/utils/deferred";
+import { Effect, Exit, Layer, Scope } from "@brains/utils/effect";
+import { BunSocketServer } from "@brains/utils/effect/bun";
+import { Queue, RpcServer, Stream } from "@brains/utils/effect/rpc";
+import { BrokerRpcs } from "./rpc-contract";
+import type {
+  BrokerRpcEvent,
+  BrokerRpcFailure,
+  BrokerRpcStatus,
+  ExecuteOperationPayload,
+  RegisterCheckoutPayload,
+} from "./rpc-contract";
+import { brokerRpcServerProtocol } from "./rpc-server-protocol";
 import { ActiveRequests } from "./active-requests";
 import { canonicalCheckoutPath } from "./checkout-identity";
 import type { ActivitySnapshot } from "./active-requests";
@@ -11,21 +24,9 @@ import { CheckoutOperationExecutor } from "./checkout-executor";
 import { isMutatingOperation } from "./operations";
 import type { GitOperationName } from "./operations";
 import type { CheckoutExecutorOptions } from "./checkout-executor";
-import {
-  BROKER_PROTOCOL_VERSION,
-  FrameDecoder,
-  MAX_PAYLOAD_BYTES,
-  encodeFrame,
-} from "./protocol";
-import type {
-  BrokerMessage,
-  ExecuteOperationMessage,
-  RegisterCheckoutMessage,
-} from "./protocol";
+import { MAX_PAYLOAD_BYTES } from "./protocol";
 import { BrokerJournal } from "./journal";
 import type { AmbiguousRequest, JournalStart } from "./journal";
-import { SocketWriter } from "./socket-writer";
-import type { WritableSocket } from "./socket-writer";
 
 /**
  * The Git broker: one owner for every checkout it registers.
@@ -115,9 +116,11 @@ interface LedgerEntry {
   /** Mutations are never forgotten while this generation lives. */
   mutating: boolean;
   settled: Promise<Settled>;
+  observers: Set<(event: BrokerRpcEvent) => void>;
+  result?: Extract<BrokerRpcEvent, { _tag: "Result" }>;
 }
 
-function operationIdentity(message: ExecuteOperationMessage): string {
+function operationIdentity(message: ExecuteOperationPayload): string {
   return JSON.stringify(message.operation);
 }
 
@@ -172,7 +175,9 @@ export class GitBrokerServer {
   #admitsMutations: boolean;
   #recoveryPending: boolean;
   readonly #journal: GitBrokerJournal | null;
-  #server: { stop(closeActiveConnections?: boolean): void } | null = null;
+  readonly #scope = Effect.runSync(Scope.make());
+  #socketIdentity: { dev: number; ino: number } | undefined;
+  #stopping: Promise<void> | undefined;
 
   private constructor(
     socketPath: string,
@@ -246,12 +251,24 @@ export class GitBrokerServer {
     // A stale socket is only stale if nothing answers. Unlinking without
     // probing would let a second broker evict a live owner, which is exactly
     // the one-owner invariant this design exists to hold.
+    const staleSocket = await lstat(socketPath).catch(() => undefined);
     if (await socketIsLive(socketPath)) {
       throw new BrokerStartupError(
         `A live Git broker already owns ${socketPath}`,
       );
     }
-    await unlink(socketPath).catch(() => undefined);
+    if (staleSocket) {
+      const current = await lstat(socketPath).catch(() => undefined);
+      if (
+        current &&
+        (current.dev !== staleSocket.dev || current.ino !== staleSocket.ino)
+      ) {
+        throw new BrokerStartupError(
+          `Git broker socket ownership changed at ${socketPath}`,
+        );
+      }
+      if (current) await unlink(socketPath);
+    }
 
     const broker = new GitBrokerServer(
       socketPath,
@@ -264,14 +281,34 @@ export class GitBrokerServer {
         })),
       options.answeredWindow ?? ANSWERED_WINDOW,
     );
-    await broker.#listen();
-    return broker;
+    try {
+      await broker.#listen();
+      return broker;
+    } catch (error) {
+      await broker.stop();
+      throw error;
+    }
   }
 
-  async stop(): Promise<void> {
-    this.#server?.stop(true);
-    this.#server = null;
-    await unlink(this.socketPath).catch(() => undefined);
+  stop(): Promise<void> {
+    if (this.#stopping) return this.#stopping;
+    this.closeAdmission();
+    this.#stopping = this.#stopTransport();
+    return this.#stopping;
+  }
+
+  async #stopTransport(): Promise<void> {
+    // RPC observation ends here. Git/journal Promises remain owned by this
+    // process; safe replacement still requires the process group to exit.
+    await Effect.runPromise(Scope.close(this.#scope, Exit.void));
+    const current = await lstat(this.socketPath).catch(() => undefined);
+    if (
+      current &&
+      this.#socketIdentity?.dev === current.dev &&
+      this.#socketIdentity.ino === current.ino
+    ) {
+      await unlink(this.socketPath);
+    }
   }
 
   get registeredCheckouts(): string[] {
@@ -279,69 +316,58 @@ export class GitBrokerServer {
   }
 
   async #listen(): Promise<void> {
-    const decoders = new WeakMap<object, FrameDecoder>();
-    const writers = new WeakMap<object, SocketWriter>();
-
-    const writerFor = (socket: WritableSocket & object): SocketWriter => {
-      const existing = writers.get(socket);
-      if (existing) return existing;
-      const created = new SocketWriter(socket);
-      writers.set(socket, created);
-      return created;
-    };
-
-    this.#server = Bun.listen({
-      unix: this.socketPath,
-      socket: {
-        open: (socket): void => {
-          decoders.set(socket, new FrameDecoder());
-          writerFor(socket);
-        },
-        drain: (socket): void => {
-          writerFor(socket).flush();
-        },
-        data: (socket, chunk): void => {
-          const decoder = decoders.get(socket) ?? new FrameDecoder();
-          decoders.set(socket, decoder);
-          const writer = writerFor(socket);
-          const messages = ((): BrokerMessage[] => {
-            try {
-              return decoder.push(chunk);
-            } catch (error) {
-              this.#fail(writer, "req_undecodable0", error);
-              return [];
-            }
-          })();
-          messages.forEach((message) => {
-            void this.#handle(writer, message);
-          });
-        },
-      },
+    // Node's socket finalizer unlinks its bind path without checking identity.
+    // Bind a private generation, then atomically publish a hard link. Native
+    // cleanup cannot delete a later owner's public socket. The short private
+    // path also fits whenever the canonical Unix socket address fits.
+    const privateDirectory = await Effect.runPromise(
+      Effect.acquireRelease(
+        Effect.promise(() => mkdtemp(join(dirname(this.socketPath), ".g"))),
+        (directory) =>
+          Effect.promise(() => rm(directory, { recursive: true, force: true })),
+      ).pipe(Scope.provide(this.#scope)),
+    );
+    const privateSocket = join(privateDirectory, "s");
+    const handlers = BrokerRpcs.toLayer({
+      RegisterCheckout: (payload) =>
+        Effect.tryPromise({
+          try: async () => {
+            await this.#register(payload);
+            return this.#status();
+          },
+          catch: (error): BrokerRpcFailure => ({
+            _tag: "BrokerError",
+            message: getErrorMessage(error),
+          }),
+        }),
+      QueryStatus: () => Effect.sync(() => this.#status()),
+      OpenAdmission: () =>
+        Effect.sync(() => {
+          this.openAdmission();
+          return this.#status();
+        }),
+      ExecuteOperation: (payload) => this.#observe(payload),
     });
-
-    await chmod(this.socketPath, 0o600);
+    const transport = brokerRpcServerProtocol.pipe(
+      Layer.provide(BunSocketServer.layer({ path: privateSocket })),
+    );
+    await Effect.runPromise(
+      Layer.buildWithScope(
+        RpcServer.layer(BrokerRpcs, { disableTracing: true }).pipe(
+          Layer.provide(handlers),
+          Layer.provide(transport),
+        ),
+        this.#scope,
+      ),
+    );
+    await chmod(privateSocket, 0o600);
+    const identity = await lstat(privateSocket);
+    await link(privateSocket, this.socketPath);
+    this.#socketIdentity = identity;
   }
 
-  #send(writer: SocketWriter, message: BrokerMessage): void {
-    writer.send(encodeFrame(message));
-  }
-
-  #fail(writer: SocketWriter, requestId: string, error: unknown): void {
-    this.#send(writer, {
-      type: "result",
-      version: BROKER_PROTOCOL_VERSION,
-      requestId,
-      outcome: "error",
-      value: null,
-      error: getErrorMessage(error),
-    });
-  }
-
-  #status(writer: SocketWriter, requestId: string): void {
-    this.#send(writer, {
-      type: "status",
-      version: BROKER_PROTOCOL_VERSION,
-      requestId,
+  #status(): BrokerRpcStatus {
+    return {
       brokerId: this.brokerId,
       checkouts: this.registeredCheckouts,
       ...this.activity,
@@ -351,10 +377,10 @@ export class GitBrokerServer {
       evidenceComplete: this.#journal?.evidenceComplete ?? true,
       recoveryPending: this.#recoveryPending,
       admitsMutations: this.#admitsMutations,
-    });
+    };
   }
 
-  async #register(message: RegisterCheckoutMessage): Promise<void> {
+  async #register(message: RegisterCheckoutPayload): Promise<void> {
     // Physical identity: a role reaching this checkout through a symlink
     // means the same working tree, and refusing it would leave that role
     // with no owner for a checkout that already has one.
@@ -383,114 +409,127 @@ export class GitBrokerServer {
     );
   }
 
-  async #handle(writer: SocketWriter, message: BrokerMessage): Promise<void> {
-    if (message.type === "register-checkout") {
-      try {
-        await this.#register(message);
-      } catch (error) {
-        // Correlated by request id: an uncorrelated failure would leave the
-        // caller waiting on a reply that never arrives, which is the silent
-        // wedge this design exists to remove.
-        this.#fail(writer, message.requestId, error);
-        return;
-      }
-      this.#status(writer, message.requestId);
-      return;
-    }
-
-    if (message.type === "query") {
-      this.#status(writer, message.requestId);
-      return;
-    }
-
-    if (message.type === "open-admission") {
-      this.openAdmission();
-      this.#status(writer, message.requestId);
-      return;
-    }
-
-    if (message.type === "execute-operation") {
-      await this.#execute(writer, message);
-    }
+  #observe(
+    message: ExecuteOperationPayload,
+  ): Stream.Stream<BrokerRpcEvent, BrokerRpcFailure> {
+    return Stream.callback<BrokerRpcEvent, BrokerRpcFailure>(
+      (queue) =>
+        Effect.gen({ self: this }, function* () {
+          const entry = yield* Effect.try({
+            try: () => this.#admit(message),
+            catch: (error): BrokerRpcFailure => ({
+              _tag: "BrokerError",
+              message: getErrorMessage(error),
+            }),
+          });
+          const observe = (event: BrokerRpcEvent): void => {
+            if (!Queue.offerUnsafe(queue, event)) {
+              entry.observers.delete(observe);
+              // A sliding queue only refuses after observation is closed.
+              return;
+            }
+            if (event._tag === "Result") Queue.endUnsafe(queue);
+          };
+          if (entry.result) observe(entry.result);
+          else entry.observers.add(observe);
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => {
+              entry.observers.delete(observe);
+            }),
+          );
+        }).pipe(
+          Effect.catchCause((cause) =>
+            Effect.sync(() => {
+              // Stream.callback does not forward producer failures into its queue.
+              Queue.failCauseUnsafe(queue, cause);
+            }),
+          ),
+        ),
+      // Progress is a heartbeat, not an event log. Coalesce old progress
+      // under backpressure so a healthy burst cannot hide its terminal result.
+      { bufferSize: 2, strategy: "sliding" },
+    );
   }
 
-  async #execute(
-    writer: SocketWriter,
-    message: ExecuteOperationMessage,
-  ): Promise<void> {
-    const existing = this.#ledger.get(message.requestId);
+  #admit(message: ExecuteOperationPayload): LedgerEntry {
+    const existing = this.#ledger.get(message.operationId);
     if (existing) {
       if (
         existing.checkoutPath !== message.checkoutPath ||
         existing.operationIdentity !== operationIdentity(message)
       ) {
-        // Answers are indistinguishable across operations — a commit and a
-        // push both answer with nothing — so replaying one for the other
-        // would report a push that never reached the remote.
-        this.#fail(
-          writer,
-          message.requestId,
-          new Error(
-            `Request ${message.requestId} is already used for ${existing.operation} on ${existing.checkoutPath}`,
-          ),
+        throw new Error(
+          `Request ${message.operationId} is already used for ${existing.operation} on ${existing.checkoutPath}`,
         );
-        return;
       }
-      // Either already answered, or still running and about to be.
-      this.#reply(writer, message.requestId, await existing.settled);
-      return;
+      return existing;
     }
-
+    if (this.#stopping) throw new Error("Git broker is stopping");
     if (!this.#admitsMutations && isMutatingOperation(message.operation)) {
-      // Reads stay open: reconciliation is made of reads, and refusing
-      // them would leave the checkout closed forever.
-      this.#fail(
-        writer,
-        message.requestId,
-        new Error(
-          "Git admission is closed while the previous owner's work is reconciled",
-        ),
+      throw new Error(
+        "Git admission is closed while the previous owner's work is reconciled",
       );
-      return;
     }
-
-    const executor = this.#executors.get(
-      await canonicalCheckoutPath(message.checkoutPath),
-    );
-    if (!executor) {
-      this.#fail(
-        writer,
-        message.requestId,
-        new Error(`Checkout ${message.checkoutPath} is not registered`),
-      );
-      return;
-    }
-
-    const settled = this.#run(writer, message, executor);
-    this.#ledger.set(message.requestId, {
+    const completion = deferred<Settled>();
+    const entry: LedgerEntry = {
       checkoutPath: message.checkoutPath,
       operation: message.operation.name,
       operationIdentity: operationIdentity(message),
       mutating: isMutatingOperation(message.operation),
-      settled,
+      settled: completion.promise,
+      observers: new Set(),
+    };
+    // Publish before canonicalization, adapter invocation, or any async yield.
+    // Neither an RPC request fiber nor its observer owns this Promise.
+    this.#ledger.set(message.operationId, entry);
+    void this.#runOwned(message, entry).then((settled) => {
+      entry.result = settled.ok
+        ? { _tag: "Result", outcome: "ok", value: settled.value, error: null }
+        : {
+            _tag: "Result",
+            outcome: "error",
+            value: null,
+            error: getErrorMessage(settled.error),
+          };
+      for (const observe of entry.observers) observe(entry.result);
+      entry.observers.clear();
+      completion.resolve(settled);
+      this.#forget();
     });
-    this.#forget();
-    this.#reply(writer, message.requestId, await settled);
+    return entry;
+  }
+
+  async #runOwned(
+    message: ExecuteOperationPayload,
+    entry: LedgerEntry,
+  ): Promise<Settled> {
+    try {
+      const executor = this.#executors.get(
+        await canonicalCheckoutPath(message.checkoutPath),
+      );
+      if (!executor)
+        throw new Error(`Checkout ${message.checkoutPath} is not registered`);
+      return await this.#run(message, executor, (event) => {
+        for (const observe of entry.observers) observe(event);
+      });
+    } catch (error) {
+      return { ok: false, error };
+    }
   }
 
   async #run(
-    writer: SocketWriter,
-    message: ExecuteOperationMessage,
+    message: ExecuteOperationPayload,
     executor: CheckoutOperationExecutor,
+    progress: (event: BrokerRpcEvent) => void,
   ): Promise<Settled> {
     // Accepted, not started: it may sit behind another operation, and that
     // wait must not read as this broker failing to make progress.
-    this.#active.accept(message.requestId, message.checkoutPath, this.#now());
+    this.#active.accept(message.operationId, message.checkoutPath, this.#now());
 
     try {
       try {
         await this.#journal?.recordStart({
-          requestId: message.requestId,
+          requestId: message.operationId,
           checkoutPath: message.checkoutPath,
           operation: message.operation.name,
         });
@@ -511,16 +550,19 @@ export class GitBrokerServer {
       try {
         const value = await executor.execute(message.operation, {
           onStart: (): void => {
-            this.#active.start(message.requestId, this.#now());
+            this.#active.start(message.operationId, this.#now());
+            progress({
+              _tag: "Progress",
+              phase: "running",
+              observedAt: new Date().toISOString(),
+            });
           },
           // Keeps the caller's operation-status heartbeat fresh through a long
           // clone or pull; without it a healthy slow operation looks stalled.
           onProgress: (): void => {
-            this.#active.progress(message.requestId, this.#now());
-            this.#send(writer, {
-              type: "progress",
-              version: BROKER_PROTOCOL_VERSION,
-              requestId: message.requestId,
+            this.#active.progress(message.operationId, this.#now());
+            progress({
+              _tag: "Progress",
               phase: "running",
               observedAt: new Date().toISOString(),
             });
@@ -529,13 +571,17 @@ export class GitBrokerServer {
         // Checked before it is recorded. An oversized answer used to be
         // remembered first and found unsendable second, which left a stored
         // value that every retry re-derived and re-failed on.
-        const encoded = Buffer.byteLength(JSON.stringify(value ?? null));
+        const json = JSON.stringify(value ?? null);
+        const encoded = Buffer.byteLength(json);
         if (encoded > MAX_PAYLOAD_BYTES) {
           throw new Error(
             `Operation ${message.operation.name} produced ${encoded} bytes; the limit is ${MAX_PAYLOAD_BYTES}`,
           );
         }
-        settled = { ok: true, value: value ?? null };
+        // Match the actual JSON wire value before Effect's JSON codec sees it;
+        // adapter objects may contain optional properties set to undefined.
+        const wireValue: unknown = JSON.parse(json);
+        settled = { ok: true, value: wireValue };
       } catch (error) {
         // Terminal for this id. A caller that wants another attempt asks with
         // a new one: whether this attempt mutated is not knowable from here.
@@ -544,7 +590,7 @@ export class GitBrokerServer {
 
       try {
         await this.#journal?.recordSettled(
-          message.requestId,
+          message.operationId,
           settled.ok ? "ok" : "error",
         );
       } catch (error) {
@@ -562,23 +608,8 @@ export class GitBrokerServer {
 
       return settled;
     } finally {
-      this.#active.finish(message.requestId);
+      this.#active.finish(message.operationId);
     }
-  }
-
-  #reply(writer: SocketWriter, requestId: string, settled: Settled): void {
-    if (!settled.ok) {
-      this.#fail(writer, requestId, settled.error);
-      return;
-    }
-    this.#send(writer, {
-      type: "result",
-      version: BROKER_PROTOCOL_VERSION,
-      requestId,
-      outcome: "ok",
-      value: settled.value,
-      error: null,
-    });
   }
 
   /**
@@ -590,7 +621,7 @@ export class GitBrokerServer {
    */
   #forget(): void {
     const forgettable = [...this.#ledger.entries()].filter(
-      ([, entry]) => !entry.mutating,
+      ([, entry]) => !entry.mutating && entry.result !== undefined,
     );
     for (const [requestId] of forgettable.slice(
       0,

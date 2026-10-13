@@ -1,0 +1,33 @@
+id: tool-invocation-traffic-overview
+name: Site traffic via traffic-overview
+description: Verifies that a traffic question uses the system_analytics traffic-overview report, owner only.
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+tags:
+  - system
+  - analytics
+  - traffic
+  - recipe-professional
+
+turns:
+  - userMessage: "How was my site traffic over the last week compared with the week before?"
+
+successCriteria: {}
+
+permissions:
+  public:
+    responseCriteria:
+      - "Does not report pageview or visit numbers for the site."
+  admin:
+    expectedTools:
+      - toolName: system_analytics
+        shouldBeCalled: true
+        argsContain:
+          type: traffic-overview
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
+
+efficiency:
+  maxToolCalls: 4

@@ -1,4 +1,10 @@
-import type { Tool, ToolContext, ServicePluginContext } from "@brains/plugins";
+import {
+  findEntityByIdentifier,
+  permissionToVisibilityScope,
+  type ServicePluginContext,
+  type Tool,
+  type ToolContext,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 import type { PublicationQueueService } from "../publication-queue-service";
@@ -162,7 +168,16 @@ export async function handleQueueAction(
   input: QueueInput,
   toolContext: ToolContext,
 ): Promise<QueueOutput> {
-  const { action, entityType, entityId, position } = input;
+  const { action, entityType, position } = input;
+  const entityId =
+    action !== "list" && entityType && input.entityId
+      ? await canonicalEntityId(
+          context,
+          entityType,
+          input.entityId,
+          toolContext,
+        )
+      : input.entityId;
 
   switch (action) {
     case "list":
@@ -193,6 +208,27 @@ export async function handleQueueAction(
         toolContext,
       );
   }
+}
+
+/**
+ * A title or slug names the same entity as its id, as in the system tools.
+ * An identifier that matches nothing passes through unchanged, so a queue
+ * entry whose entity is gone stays removable.
+ */
+async function canonicalEntityId(
+  context: ServicePluginContext,
+  entityType: string,
+  identifier: string,
+  toolContext: ToolContext,
+): Promise<string> {
+  const entity = await findEntityByIdentifier(
+    context.entityService,
+    entityType,
+    identifier,
+    undefined,
+    permissionToVisibilityScope(toolContext.userPermissionLevel),
+  );
+  return entity?.id ?? identifier;
 }
 
 /**

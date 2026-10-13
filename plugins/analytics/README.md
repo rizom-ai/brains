@@ -1,12 +1,11 @@
 # Analytics Plugin
 
-Query website analytics directly from Cloudflare Web Analytics.
+Keeps the brain's site traffic from Cloudflare Web Analytics and answers traffic questions through `system_analytics`.
 
 ## Features
 
-- **Real-time Queries**: Fetch metrics directly from Cloudflare (no local storage)
-- **Flexible Date Ranges**: Single day, last N days, or custom date ranges
-- **Comprehensive Data**: Pageviews, visitors, top pages, referrers, devices, countries
+- **Daily snapshots**: a daily check stores each day's traffic in weekly `traffic-snapshot` entities (restricted, read-only system records) while Cloudflare's counts are still exact, and backfills every earlier day Cloudflare still returns
+- **Traffic reports**: `traffic-overview`, `traffic-series` and `traffic-by-entity` in `system_analytics`, read from the snapshots
 - **Privacy-Focused**: Uses Cloudflare Web Analytics (no cookies, GDPR compliant)
 
 ## Configuration
@@ -19,6 +18,8 @@ analyticsPlugin({
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
     apiToken: process.env.CLOUDFLARE_API_TOKEN,
     siteTag: process.env.CLOUDFLARE_ANALYTICS_SITE_TAG,
+    // Only for a site without Cloudflare automatic setup
+    beaconToken: process.env.CLOUDFLARE_ANALYTICS_BEACON_TOKEN,
   },
 });
 ```
@@ -29,64 +30,60 @@ analyticsPlugin({
 CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_API_TOKEN=your_api_token  # Needs Analytics:Read permission
 CLOUDFLARE_ANALYTICS_SITE_TAG=your_site_tag
+CLOUDFLARE_ANALYTICS_BEACON_TOKEN=your_site_token  # Optional, see below
 ```
 
-## MCP Tools
+## Reports
 
-### `analytics_query`
+Both reports answer admin callers only: traffic is operational data. They read the stored snapshots; a range that reaches today adds today's numbers so far from Cloudflare when it is configured.
 
-Query website analytics from Cloudflare.
+**Range params** (both reports): `days` (last N days ending yesterday, default 7), or `startDate` and `endDate` together (`YYYY-MM-DD`).
 
-**Date range options** (use only one):
+### `traffic-overview`
 
-- No params: yesterday only
-- `date`: single specific day (YYYY-MM-DD)
-- `days`: last N days from yesterday (e.g., 7 for last week, 30 for last month)
-- `startDate` + `endDate`: custom date range
-
-**Parameters:**
-
-- `date` (optional): Single date in YYYY-MM-DD format
-- `days` (optional): Number of days back from yesterday (1-365)
-- `startDate` (optional): Start date for custom range
-- `endDate` (optional): End date for custom range
-- `limit` (optional): Max items for breakdowns (default: 20, max: 100)
-
-**Returns:**
+Pageviews and visits for the range against the period before it, top pages, referrers and countries. The owner's own pages (`/studio`, `/login`, `/api`, `/dashboard`, …) are left out of the top pages and counted in `ownerPageviews`. `missingDays` names days without a snapshot; `estimated` says some days were sampled by Cloudflare. Extra param: `limit` (entries per top list, default 10).
 
 ```typescript
-{
-  range: { startDate: string, endDate: string },
-  summary: { pageviews: number, visitors: number },
-  topPages: Array<{ path: string, views: number }>,
-  topReferrers: Array<{ host: string, visits: number }>,
-  devices: { desktop: number, mobile: number, tablet: number },
-  topCountries: Array<{ country: string, visits: number }>,
-}
+system_analytics({ type: "traffic-overview", params: { days: 30 } });
 ```
 
-**Examples:**
+### `traffic-series`
+
+Pageviews and visits per day (missing days without numbers) or per ISO week. Extra param: `interval` (`day` or `week`, default `day`).
 
 ```typescript
-// Yesterday's stats
-analytics_query({});
-
-// Specific day
-analytics_query({ date: "2025-01-15" });
-
-// Last 7 days
-analytics_query({ days: 7 });
-
-// Last 30 days with more results
-analytics_query({ days: 30, limit: 50 });
-
-// Custom date range
-analytics_query({ startDate: "2025-01-01", endDate: "2025-01-31" });
+system_analytics({
+  type: "traffic-series",
+  params: { startDate: "2026-09-01", endDate: "2026-09-30", interval: "week" },
+});
 ```
+
+### `traffic-by-entity`
+
+Pageviews per published piece over the range, busiest first, with each piece's top referrers. Pieces are the public, published entities of every type the site has pages for, each matched to its page through the site's entity display (the same routes the site builds). Extra params: `entityType` (one type), `limit` (default 10), `firstDays` (also count views in the first N days after `publishedAt`). Counts come from each day's top 25 pages, so a quiet page can read low.
+
+```typescript
+system_analytics({
+  type: "traffic-by-entity",
+  params: { entityType: "post", days: 30, firstDays: 7 },
+});
+```
+
+## Studio
+
+- **Traffic workspace** (admin): the last 7, 30 or 90 days — pageviews and visits against the period before, the busiest day, the owner's own pageviews counted apart, a daily chart with publish dates marked, the most-read published pieces (opening their entities), top pages, referrers and countries.
+- **Traffic widget** (dashboard, admin): the last 7 days against the 7 before, with a link into the workspace.
 
 ## Infrastructure Setup
 
-Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics), then provide its site tag to the brain via the `CLOUDFLARE_ANALYTICS_SITE_TAG` environment variable. The site tag is used both for the tracking script injected into the site and for the GraphQL metrics queries.
+Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics) and give the brain its **site tag** in `CLOUDFLARE_ANALYTICS_SITE_TAG`; the metrics queries filter on it.
+
+The tracking beacon carries a different value, the **site token**:
+
+- **Automatic setup** (the domain is proxied through Cloudflare): Cloudflare injects the beacon itself. Leave `CLOUDFLARE_ANALYTICS_BEACON_TOKEN` unset.
+- **Manual setup**: set `CLOUDFLARE_ANALYTICS_BEACON_TOKEN` to the site token (the `token` in the JS snippet), and the brain adds the beacon to every page it builds.
+
+Both values are listed by `GET /accounts/{account_id}/rum/site_info/list` as `site_tag` and `site_token`.
 
 ## Dependencies
 

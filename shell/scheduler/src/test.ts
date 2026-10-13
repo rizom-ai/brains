@@ -53,7 +53,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
   constructor(options: TestSchedulerBackendOptions = {}) {
     this.clock = options.clock;
     const initialTime = options.clock
-      ? new Date(options.clock.unsafeCurrentTimeMillis())
+      ? new Date(options.clock.currentTimeMillisUnsafe())
       : (options.now ?? new Date(0));
     assertValidDate(initialTime);
     this.initialTime = new Date(initialTime);
@@ -123,7 +123,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
     if (!this.clock) {
       throw new Error("runDue requires an injected Effect clock");
     }
-    await this.processTo(new Date(this.clock.unsafeCurrentTimeMillis()));
+    await this.processTo(new Date(this.clock.currentTimeMillisUnsafe()));
   }
 
   /** Advance the standalone clock and run every callback that becomes due. */

@@ -25,6 +25,7 @@ export interface MockEntityServiceReturns {
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
+  purgeEntityType?: number;
   foldEntity?: EntityMutationResult;
   getEntityMutationReceipt?: EntityMutationReceipt | null;
   applyEntityMutationOnce?: EntityMutationReceipt;
@@ -196,6 +197,7 @@ export function createMockEntityService(
     stageAsset: mock(assetStore.stageAsset),
     discardStagedAsset: mock(assetStore.discardStagedAsset),
     openAsset: mock(assetStore.openAsset),
+    purgeEntityType: mock(() => Promise.resolve(returns.purgeEntityType ?? 0)),
     foldEntity: mock(async (request) => {
       await request.options?.beforeWrite?.(request.entity);
       return mutationResult(returns.foldEntity);
@@ -206,6 +208,7 @@ export function createMockEntityService(
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
     isProjectionOwnedEntity: mock(() => Promise.resolve(false)),
+    releaseProjectionOwnership: mock(() => Promise.resolve()),
     listPendingEntityExports: mock(() => Promise.resolve([])),
     hasPendingEntityExports: mock(() => Promise.resolve(false)),
     acknowledgeEntityExports: mock(() => Promise.resolve(0)),
@@ -221,6 +224,7 @@ export function createMockEntityService(
     countEmbeddings: mock(() => Promise.resolve(0)),
     storeEmbedding: mock(() => Promise.resolve()),
     searchWithDistances: mock(() => Promise.resolve([])),
+    nearestToEntity: mock(() => Promise.resolve([])),
     projectSemanticSpace: mock(() =>
       Promise.resolve({
         origin: { kind: "centroid" as const },

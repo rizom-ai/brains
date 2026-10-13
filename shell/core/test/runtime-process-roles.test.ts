@@ -19,7 +19,9 @@ import {
   type Tool,
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
+import { internalFullScope } from "@brains/entity-service";
+import { BrainCharacterAdapter } from "@brains/identity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { DaemonRegistry } from "../src/daemon-registry";
@@ -317,6 +319,59 @@ describe("supervised runtime process roles", () => {
     expect(interfaceRegistered).toBe(false);
     expect(executionPlugin.readyCalled).toBe(false);
     expect(workerStarted).toBe(true);
+  });
+
+  it("loads identity in the worker without creating defaults the import may still bring", async () => {
+    const testDirectory = await createTestDirectory();
+    cleanups.push(testDirectory.cleanup);
+    await Promise.all([
+      migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDirectory.dir}/test-runtime-state.db`,
+      }),
+    ]);
+    const shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir),
+      {
+        logger: createSilentLogger("worker-identity-test"),
+        jobQueueWorker: createTrackingWorker(() => {}),
+      },
+      { processRole: "worker" },
+    );
+    shells.push(shell);
+    await shell.initialize();
+
+    const entityService = shell.getEntityService();
+    const readScope = internalFullScope("test reads the brain character");
+    expect(
+      await entityService.getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+        visibilityScope: readScope,
+      }),
+    ).toBeNull();
+
+    // The worker imports the content's own character while it runs.
+    await entityService.createEntity({
+      entity: {
+        id: "brain-character",
+        entityType: "brain-character",
+        metadata: {},
+        content: new BrainCharacterAdapter().createCharacterContent({
+          name: "Friedrich",
+          role: "Reader",
+          purpose: "Answer from the collected works",
+          values: ["fidelity"],
+        }),
+      },
+    });
+
+    await waitUntil(
+      () => shell.getIdentity().name === "Friedrich",
+      "the worker's identity to follow the imported character",
+    );
   });
 
   // A background job that sends on a channel runs in the worker, so the

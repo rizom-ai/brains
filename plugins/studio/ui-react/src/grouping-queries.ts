@@ -118,7 +118,15 @@ function groupingReadOptions<T, TQuery>(
           deadline = undefined;
           throw signal.reason;
         }
-        if (budget.aborted) throw timeoutError();
+        // The budget can run out before its timer fires: an initializing
+        // answer past the deadline ends the wait as well.
+        if (
+          budget.aborted ||
+          (isGroupingsInitializing(error) &&
+            deadline !== undefined &&
+            Date.now() >= deadline)
+        )
+          throw timeoutError();
         throw error;
       }
     },

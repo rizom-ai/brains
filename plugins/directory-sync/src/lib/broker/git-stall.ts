@@ -1,5 +1,5 @@
 import { readdir, readFile } from "fs/promises";
-import { Effect, Fiber } from "@brains/utils/effect";
+import { Effect, Fiber, withOptionalClock } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
 /** Identifies the baseDir + stall timeout for a network git operation. */
@@ -43,7 +43,7 @@ export async function runGitCommandWithStallTimeout(
   signal?.throwIfAborted();
 
   const { baseDir, timeoutMs } = net;
-  let timerFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  let timerFiber: Fiber.Fiber<void, never> | null = null;
   let onStall = (): void => {};
   let onAbort = (): void => {};
   let closed = false;
@@ -67,7 +67,7 @@ export async function runGitCommandWithStallTimeout(
   });
   const cancelStallTimer = (): void => {
     if (!timerFiber) return;
-    Effect.runSync(Fiber.interruptFork(timerFiber));
+    timerFiber.interruptUnsafe();
     timerFiber = null;
   };
   const armStall = (): void => {
@@ -76,7 +76,7 @@ export async function runGitCommandWithStallTimeout(
     const delay = Effect.sleep(timeoutMs).pipe(
       Effect.andThen(Effect.sync(() => onStall())),
     );
-    const ownedDelay = net.clock ? Effect.withClock(delay, net.clock) : delay;
+    const ownedDelay = withOptionalClock(delay, net.clock);
     timerFiber = Effect.runFork(ownedDelay);
   };
   const settleStallTimer = async (): Promise<void> => {
@@ -118,20 +118,24 @@ export async function runGitCommandWithStallTimeout(
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let output = "";
+    let truncated = false;
     let doneReading = false;
     const readToEnd = async (): Promise<string> => {
       const chunk = await reader.read();
-      if (chunk.done) return output + decoder.decode();
+      if (chunk.done) return truncated ? output : output + decoder.decode();
       armStall();
       net.onProgress?.();
-      output += decoder.decode(chunk.value, { stream: true });
       // Retained while reading, so the ceiling has to apply while reading:
-      // a command that writes without end would otherwise be held whole in
-      // the one process that must stay alive to own the checkout.
-      if (output.length > MAX_RETAINED_OUTPUT) {
-        output = `${output.slice(0, MAX_RETAINED_OUTPUT)}\n[output truncated at ${MAX_RETAINED_OUTPUT} characters]`;
-        kill();
-        return output;
+      // output past it would otherwise be held whole in the one process that
+      // must stay alive to own the checkout. The command itself keeps
+      // running — a pull bringing in thousands of files prints a line for
+      // each — so the rest is drained and dropped, never a reason to kill.
+      if (!truncated) {
+        output += decoder.decode(chunk.value, { stream: true });
+        if (output.length > MAX_RETAINED_OUTPUT) {
+          output = `${output.slice(0, MAX_RETAINED_OUTPUT)}\n[output truncated at ${MAX_RETAINED_OUTPUT} characters]`;
+          truncated = true;
+        }
       }
       return readToEnd();
     };

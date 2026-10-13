@@ -2,9 +2,36 @@ import {
   internalFullScope,
   type InterfacePluginContext,
 } from "@brains/plugins";
-import { A2A_CHANNELS } from "@brains/contracts";
+import { A2A_CHANNELS, SourceCitationSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { getErrorMessage } from "@brains/utils/error";
 import { executeAgentCall, type A2AClientDeps } from "./client";
+
+const networkAskMessageSchema = z.object({
+  agent: z.string().trim().min(1).max(253),
+  question: z.string().trim().min(1).max(4_000),
+});
+
+/** What a peer's answer gives the asking brain: its text and its citations. */
+const peerAnswerSchema = z.object({
+  state: z.string(),
+  response: z.string(),
+  sources: z.array(SourceCitationSchema),
+});
+
+/** How a peer is asked: the question, then what kind of answer serves a visitor. */
+export function networkAskMessage(question: string): string {
+  return [
+    question,
+    "",
+    "Asked on behalf of a visitor to another brain's site. Answer briefly, from your own public content, and cite what you draw on.",
+  ].join("\n");
+}
+
+export interface A2AMessageHandlerOptions {
+  /** The whole budget for one peer: Agent Card fetch and answer, one attempt. */
+  networkAskTimeoutMs: number;
+}
 
 const askAgentMessageSchema = z.object({
   agent: z.string().trim().min(1).max(253),
@@ -26,7 +53,51 @@ export interface A2ADirectoryAgent {
 export function registerA2ACallMessageHandlers(
   context: InterfacePluginContext,
   deps: A2AClientDeps,
+  options: A2AMessageHandlerOptions = { networkAskTimeoutMs: 30_000 },
 ): void {
+  context.messaging.subscribe(A2A_CHANNELS.askRequest, async (message) => {
+    const parsed = networkAskMessageSchema.safeParse(message.payload);
+    if (!parsed.success) {
+      return { success: false, error: "Invalid network ask request" };
+    }
+    const { agent, question } = parsed.data;
+    const budgetMs = options.networkAskTimeoutMs;
+    const budget = AbortSignal.timeout(budgetMs);
+    const timedOut = {
+      success: false,
+      error: `${agent} did not answer within ${budgetMs} ms`,
+    };
+    try {
+      const result = await executeAgentCall(
+        { agent, message: networkAskMessage(question) },
+        { ...deps, maxNetworkAttempts: 1 },
+        { requireSaved: true, signal: budget },
+      );
+      if (budget.aborted) return timedOut;
+      if ("success" in result && result.success === true) {
+        const answer = peerAnswerSchema.safeParse(result.data);
+        if (!answer.success)
+          return { success: false, error: `${agent} gave no readable answer` };
+        if (answer.data.state !== "completed")
+          return {
+            success: false,
+            error: `${agent} did not answer: ${answer.data.response}`,
+          };
+        return { success: true, data: answer.data };
+      }
+      return {
+        success: false,
+        error: "error" in result ? result.error : `${agent} did not answer`,
+      };
+    } catch (error) {
+      if (budget.aborted) return timedOut;
+      return {
+        success: false,
+        error: getErrorMessage(error, `${agent} did not answer`),
+      };
+    }
+  });
+
   context.messaging.subscribe(A2A_CHANNELS.callRequest, async (message) => {
     const parsed = askAgentMessageSchema.safeParse(message.payload);
     if (!parsed.success) {

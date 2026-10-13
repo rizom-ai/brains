@@ -99,6 +99,27 @@ describe("a visitor's answer's sources", () => {
     });
   });
 
+  it("carry the title an entry gives its page, as a book section's siglum", async () => {
+    const { find } = sources([
+      result("post", "aphorism", 0.6, {
+        title: "57",
+        pageTitle: "AC-57",
+        slug: "der-antichrist/58",
+      }),
+    ]);
+    const [first] = await find({ answer: "Mittelmässigkeit" });
+    expect(first?.title).toBe("AC-57");
+  });
+
+  it("cite by type alone, whatever an entry's metadata says", async () => {
+    const { find } = sources([
+      result("note", "draft", 0.62, { title: "Ein Entwurf" }),
+      result("post", "aphorism", 0.6, { title: "7", citable: false }),
+    ]);
+    const cited = await find({ answer: "Mitleid" });
+    expect(cited.map((source) => source.id)).toEqual(["post:aphorism"]);
+  });
+
   it("reach the site over https whether its domain is written with a scheme or not", async () => {
     for (const baseUrl of [
       "yeehaa.io",
@@ -135,40 +156,5 @@ describe("a visitor's answer's sources", () => {
   it("are none when nothing the site cites is close", async () => {
     const { find } = sources([result("note", "private-ish", 0.9)]);
     expect(await find({ answer: "Storage is not memory." })).toEqual([]);
-  });
-});
-
-describe("a source from another brain", () => {
-  it("is cited at its origin, with the brain it came from", async () => {
-    const piece = result("network-piece", "plc-peer--post--3kabc", 0.6, {
-      title: "Handoffs between teams",
-      origin: "https://becca.rizom.ai/essays/handoffs",
-      brain: {
-        did: "did:plc:peer",
-        name: "Becca",
-        url: "https://becca.rizom.ai",
-      },
-    });
-    const search = mock(async (request: EntitySearchRequest) => {
-      void request;
-      return [piece];
-    });
-    const find = createGuestAnswerSources({
-      entityService: { search },
-      isCitable: (entityType) => entityType === "network-piece",
-      urlFor: () => "/never-used",
-      siteBaseUrl: "rizom.ai",
-    });
-    expect(await find({ answer: "…" })).toEqual([
-      {
-        id: "network-piece:plc-peer--post--3kabc",
-        title: "Handoffs between teams",
-        source: "network-piece",
-        entityType: "network-piece",
-        entityId: "plc-peer--post--3kabc",
-        url: "https://becca.rizom.ai/essays/handoffs",
-        brain: { name: "Becca", url: "https://becca.rizom.ai" },
-      },
-    ]);
   });
 });

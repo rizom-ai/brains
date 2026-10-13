@@ -48,10 +48,18 @@ describe("string-utils", () => {
       expect(slugify("123-456")).toBe("123-456");
     });
 
-    it("should handle unicode characters", () => {
-      expect(slugify("Café")).toBe("caf");
-      expect(slugify("naïve")).toBe("nave");
+    it("transliterates letters instead of dropping them", () => {
+      expect(slugify("Café")).toBe("cafe");
+      expect(slugify("naïve")).toBe("naive");
+      expect(slugify("décadence")).toBe("decadence");
       expect(slugify("emoji 😀 test")).toBe("emoji-test");
+    });
+
+    it("writes German umlauts and ß as German does without them", () => {
+      expect(slugify("Übermensch")).toBe("uebermensch");
+      expect(slugify("Glück")).toBe("glueck");
+      expect(slugify("Modernität")).toBe("modernitaet");
+      expect(slugify("Größe")).toBe("groesse");
     });
 
     it("should preserve word boundaries", () => {

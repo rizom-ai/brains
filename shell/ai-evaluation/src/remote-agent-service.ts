@@ -4,7 +4,7 @@ import type {
   ChatContext,
 } from "@brains/ai-service";
 import { parseAgentResponse as parseSharedAgentResponse } from "@brains/contracts";
-import { Cause, Effect, Exit } from "@brains/utils/effect";
+import { Cause, Effect, Exit, withOptionalClock } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -118,15 +118,15 @@ export class RemoteAgentService implements IAgentService {
       },
       catch: (error) => error,
     }).pipe(
-      Effect.timeoutFail({
+      Effect.timeoutOrElse({
         duration: this.timeoutMs,
-        onTimeout: () =>
-          new Error(`${operation} timed out after ${this.timeoutMs}ms`),
+        orElse: () =>
+          Effect.fail(
+            new Error(`${operation} timed out after ${this.timeoutMs}ms`),
+          ),
       }),
     );
-    const timedRequest = this.clock
-      ? Effect.withClock(request, this.clock)
-      : request;
+    const timedRequest = withOptionalClock(request, this.clock);
     const exit = await Effect.runPromiseExit(timedRequest, {
       ...(signal && { signal }),
     });

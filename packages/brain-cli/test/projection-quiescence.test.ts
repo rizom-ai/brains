@@ -57,7 +57,6 @@ describe("full preset projection resilience", () => {
       "skill-derivation",
       "social-post-generation",
       "swot-derivation",
-      "topics-projection",
     ]);
     expect(
       graph.projections.flatMap((projection) => projection.sources),
@@ -71,15 +70,15 @@ describe("full preset projection resilience", () => {
     const edgeCauses = new Map(
       graph.edges.map((edge) => [`${edge.from} -> ${edge.to}`, edge.causes]),
     );
-    expect(edgeCauses.get("topics-projection -> skill-derivation")).toEqual([
-      "entity:topic",
-    ]);
     expect(edgeCauses.get("skill-derivation -> swot-derivation")).toEqual([
       "entity:skill",
     ]);
+    // Topics are maintained by bounded jobs, not a projection rule.
     expect(
-      edgeCauses.get("social-post-generation -> topics-projection"),
-    ).toEqual(["entity:social-post"]);
+      graph.edges.filter(({ from, to }) =>
+        [from, to].includes("topics-projection"),
+      ),
+    ).toEqual([]);
     expect(graph.unknownSourceTypes).toEqual([]);
 
     await pluginManager.shutdownPlugins();

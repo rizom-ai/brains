@@ -59,6 +59,31 @@ test("initialization has a finite wait budget and explicit retry starts a fresh 
   expect((await client.fetchQuery(options)).total).toBe(1);
   client.clear();
 });
+// The budget can run out between an initializing response and the retry
+// decision, before its timer has fired: the caller still gets the
+// not-ready error, never the raw initializing one.
+test("a budget spent while the response arrives still ends as not ready", async () => {
+  const client = createStudioQueryClient();
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: async (): Promise<Response> => {
+      // Holds the event loop past the deadline, so the budget's timer
+      // cannot fire before the response is handled.
+      const until = Date.now() + 30;
+      while (Date.now() < until) {
+        // spin
+      }
+      return response(false);
+    },
+  });
+  const options = groupingQueryOptions(api, "clients", groupingQuery(""), 20);
+  const error = await client
+    .fetchQuery(options)
+    .catch((cause: unknown) => cause);
+  expect(error).toBeInstanceOf(Error);
+  expect(isGroupingsInitializing(error)).toBe(false);
+  client.clear();
+});
 test("unrelated errors never retry and different client sessions never share grouping data", async () => {
   const client = createStudioQueryClient();
   let calls = 0;

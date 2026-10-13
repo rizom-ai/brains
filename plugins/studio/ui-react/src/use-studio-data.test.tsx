@@ -41,7 +41,18 @@ function createApi(requests: string[]): StudioApi {
       const url = new URL(String(input), "http://brain.test");
       requests.push(`${url.pathname}${url.search}`);
       if (url.pathname.endsWith("/types"))
-        return Response.json({ types: [noteType], workspaces: [] });
+        return Response.json({
+          types: [
+            noteType,
+            {
+              ...noteType,
+              entityType: "memo",
+              label: "Memos",
+              containedIn: "note",
+            },
+          ],
+          workspaces: [],
+        });
       if (url.pathname.endsWith("/schema"))
         return Response.json({
           entityType: "note",
@@ -129,6 +140,7 @@ describe("useStudioData", () => {
 
     expect(data.current().types?.map((type) => type.entityType)).toEqual([
       "note",
+      "memo",
     ]);
     expect(requests.some((path) => path.endsWith("/types"))).toBe(true);
     expect(requests.some((path) => path.includes("/schema"))).toBe(false);
@@ -154,6 +166,24 @@ describe("useStudioData", () => {
     expect(data.current().entities).toEqual([]);
     expect(data.current().activeType?.label).toBe("Notes");
     expect(data.current().activeCapabilities?.canAssist).toBe(true);
+  });
+
+  it("lists a contained type's entry within its container's collection", async () => {
+    const requests: string[] = [];
+    const data = await renderData({
+      ...baseInput(requests),
+      entityType: "memo",
+    });
+
+    expect(data.current().collectionType).toBe("note");
+    expect(requests.some((path) => path.includes("/schema?type=memo"))).toBe(
+      true,
+    );
+    expect(
+      requests
+        .filter((path) => path.includes("/hierarchy?"))
+        .every((path) => path.includes("type=note")),
+    ).toBe(true);
   });
 
   it("previews a destination only for a named creation", async () => {

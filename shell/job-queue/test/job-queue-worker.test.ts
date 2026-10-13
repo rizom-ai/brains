@@ -31,7 +31,7 @@ import type {
 } from "@brains/utils/progress";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { OperationContext } from "@brains/operation-context";
 import type { ResettableAmbientScope } from "../src/job-queue-worker";
 
@@ -652,6 +652,94 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Job deadlines", () => {
+    // The deadline catches a stuck job, not a long one: each report that
+    // advances the job's progress renews it.
+    it("renews the deadline while the handler reports advancing progress", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 40;
+      handler.process.mockImplementation(
+        async (_data: unknown, _jobId: string, reporter: ProgressReporter) => {
+          for (const step of Array.from({ length: 8 }, (_, index) => index)) {
+            await Bun.sleep(15);
+            await reporter.report({ progress: step + 1, total: 8 });
+          }
+          return { success: true };
+        },
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      const fail = spyOn(mockService, "fail");
+      let signalCompleted: () => void = () => undefined;
+      const completed = new Promise<void>((resolve) => {
+        signalCompleted = resolve;
+      });
+      spyOn(mockService, "complete").mockImplementation(async () => {
+        signalCompleted();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await completed;
+
+      expect(fail).not.toHaveBeenCalled();
+      expect(worker.getStats().isHealthy).toBe(true);
+    });
+
+    it("does not renew the deadline for a report that repeats the last one", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 40;
+      handler.process.mockImplementation(
+        async (
+          _data: unknown,
+          _jobId: string,
+          reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) => {
+          const repeat = async (): Promise<{ success: true }> => {
+            if (signal.aborted) return { success: true };
+            await reporter.report({ progress: 1, total: 8, message: "busy" });
+            await Bun.sleep(10);
+            return repeat();
+          };
+          return repeat();
+        },
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalFailed: () => void = () => undefined;
+      const failed = new Promise<void>((resolve) => {
+        signalFailed = resolve;
+      });
+      const fail = spyOn(mockService, "fail").mockImplementation(async () => {
+        signalFailed();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await failed;
+
+      expect(fail).toHaveBeenCalledWith(
+        testJob.id,
+        expect.objectContaining({
+          message: expect.stringContaining("deadline"),
+        }),
+        testJob.attemptId,
+      );
+      expect(mockService.complete).not.toHaveBeenCalled();
+    });
+
     it("passes an AbortSignal and fails a cooperative timed-out attempt only after it settles", async () => {
       const handler = createMockHandler();
       handler.executionTimeoutMs = 15;
@@ -895,7 +983,7 @@ describe("JobQueueWorker", () => {
   describe("Job processing integration", () => {
     it("should poll on schedule and stop polling when stopped", async () => {
       const program = Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         worker = createWorkerWithClock(
           mockService,
           mockProgressMonitor,
@@ -905,25 +993,25 @@ describe("JobQueueWorker", () => {
 
         try {
           yield* Effect.promise(() => worker.start());
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(49);
           expect(mockService.dequeue).not.toHaveBeenCalled();
 
           yield* TestClock.adjust(1);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(mockService.dequeue).toHaveBeenCalledTimes(1);
 
           yield* Effect.promise(() => worker.stop());
           yield* TestClock.adjust(500);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(mockService.dequeue).toHaveBeenCalledTimes(1);
         } finally {
           if (worker.isWorkerRunning()) {
             yield* Effect.promise(() => worker.stop());
           }
         }
-      }).pipe(Effect.provide(TestContext.TestContext));
+      }).pipe(Effect.provide(TestClock.layer()));
 
       await Effect.runPromise(program);
     });

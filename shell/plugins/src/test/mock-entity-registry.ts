@@ -60,6 +60,13 @@ export function createMockEntityRegistry(
     getAllEntityTypes: () => Array.from(store.types),
     getEntityTypeConfig: store.typeConfig,
     getWeightMap: () => ({}),
+    getContainment: () =>
+      new Map(
+        [...store.typeConfigs].flatMap(([type, config]) => {
+          const container = config?.containedIn;
+          return container === undefined ? [] : [[type, container] as const];
+        }),
+      ),
     registerCreateInterceptor: (type, interceptor) => {
       createInterceptors.set(type, interceptor);
     },

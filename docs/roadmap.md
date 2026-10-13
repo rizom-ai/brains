@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-10-02
+Last updated: 2026-10-08
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
@@ -79,6 +79,7 @@ The personal-publishing posture remains the public reference. Product improvemen
 Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
+- [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
@@ -103,6 +104,7 @@ Plans:
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the shared subject, channel, provenance, and trust model.
 - [connected-channels.md](./plans/connected-channels.md) — finish registry-driven attach/detach and prove Slack end to end without schema or console changes.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — the broader private durable operator/security tier beyond shipped auth state.
+- [onboarding-ai-tools.md](./plans/onboarding-ai-tools.md) — an Account → AI tools tab with the MCP address and per-client steps, and shorter onboarding emails that greet the person, say what the brain is for, and link there.
 
 ### 4. Hosting and operations
 
@@ -112,6 +114,7 @@ Plans:
 
 - [bootstrap-secrets-bitwarden.md](./plans/bootstrap-secrets-bitwarden.md) — make `--push-to bitwarden` on the bootstrap commands store the secret in Bitwarden and map it in `.env.schema`, instead of pushing to GitHub.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit, recoverable hosted-user offboarding.
+- [artifacts-content-repos.md](./plans/artifacts-content-repos.md) — move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
 
@@ -158,13 +161,14 @@ Active cleanup and infrastructure plans:
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
-- [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
+- [topics-ranked-selection.md](./plans/topics-ranked-selection.md) — topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
+- [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.
+- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):
 
 - [alternative-site-renderer-spike.md](./plans/alternative-site-renderer-spike.md) — whether a renderer other than React earns its place at the prepared-build boundary.
-- [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
 
 ## Product direction
 

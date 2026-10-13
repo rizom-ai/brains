@@ -57,6 +57,7 @@ import type {
   ApplyEntityMutationOnceRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
   CreateEntityRequest,
@@ -470,6 +471,13 @@ export class EntityService implements IEntityService {
     return this.projectionStore.isProjectionOwnedEntity(request);
   }
 
+  public async releaseProjectionOwnership(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<void> {
+    await this.initialize();
+    await this.projectionStore.releaseProjectionOwnership(request);
+  }
+
   public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
     return this.entityMutations.setProjectionWakeup(wakeup);
   }
@@ -645,6 +653,22 @@ export class EntityService implements IEntityService {
     const result = await this.entityMutations.deleteEntity(request);
     if (result) await this.afterGroupingSourceMutation(request.entityType);
     return result;
+  }
+
+  public async purgeEntityType(entityType: string): Promise<number> {
+    await this.initialize();
+    if (this.entityRegistry.hasEntityType(entityType)) {
+      throw new Error(
+        `${entityType} is a registered entity type; delete its entities instead`,
+      );
+    }
+    const ids = await this.entityQueries.listStoredIds(entityType);
+    return ids.reduce<Promise<number>>(
+      async (count, id) =>
+        (await count) +
+        ((await this.entityMutations.deleteEntity({ entityType, id })) ? 1 : 0),
+      Promise.resolve(0),
+    );
   }
 
   public async upsertEntity<T extends BaseEntity>(
@@ -1204,6 +1228,15 @@ export class EntityService implements IEntityService {
       types: request.types,
       maxDistance: request.maxDistance,
     });
+  }
+
+  public async nearestToEntity(
+    request: NearestToEntityRequest,
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    await this.initialize();
+    return this.entitySearch.nearestToEntity(request);
   }
 
   public async projectSemanticSpace(

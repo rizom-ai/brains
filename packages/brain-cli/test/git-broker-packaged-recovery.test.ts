@@ -13,6 +13,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { RuntimeUploadRegistry } from "@brains/plugins";
 import {
   BrokerConnection,
   GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
@@ -475,9 +476,26 @@ interface DurableJobState {
   completedAt: number | null;
 }
 
-function enqueueWorkerWish(root: string): string {
-  const database = new Database(join(root, "data", "brain-jobs.db"));
+async function enqueueWorkerNote(root: string): Promise<string> {
   const id = "worker-created-export-regression";
+  // Exercise worker-owned creation/export without semantic search or AI,
+  // which this embedding-disabled fixture intentionally cannot provide.
+  const upload = await RuntimeUploadRegistry.createFresh({
+    dataDir: join(root, "brain-data"),
+  })
+    .scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+    })
+    .save({
+      filename: `${id}.md`,
+      mediaType: "text/markdown",
+      content: Buffer.from(
+        "# Worker Created Export Regression\n\nCreated by the execution-only worker after web readiness.\n",
+      ),
+    });
+  const database = new Database(join(root, "data", "brain-jobs.db"));
   const now = Date.now();
   try {
     database
@@ -486,15 +504,15 @@ function enqueueWorkerWish(root: string): string {
            id, type, data, source, metadata, status, priority,
            retryCount, maxRetries, createdAt, scheduledFor
          ) VALUES (
-           $id, 'wish:create', $data, 'packaged-regression', $metadata,
+           $id, 'note:upload-import', $data, 'packaged-regression', $metadata,
            'pending', 10, 0, 3, $now, $now
          )`,
       )
       .run({
         $id: id,
         $data: JSON.stringify({
-          title: "Worker Created Export Regression",
-          content: "Created by the execution-only worker after web readiness.",
+          uploadId: upload.id,
+          entityId: id,
         }),
         $metadata: JSON.stringify({
           rootJobId: id,
@@ -617,7 +635,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
         throw new Error("Expected packaged web and worker children");
       }
 
-      const jobId = enqueueWorkerWish(app.root);
+      const jobId = await enqueueWorkerNote(app.root);
       await until("the worker mutation", async () => {
         const state = durableJobState(app.root, jobId);
         if (state?.status === "failed") {
@@ -632,14 +650,15 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
 
       const entityPath = join(
         app.checkout,
-        "wish",
         "worker-created-export-regression.md",
       );
       await until("confirmed worker entity export", async () => {
         if (pendingEntityExportCount(app.root) !== 0) return undefined;
         return (await pathExists(entityPath)) ? true : undefined;
       });
-      expect(await pathExists(entityPath)).toBe(true);
+      expect(await readFile(entityPath, "utf8")).toContain(
+        "Created by the execution-only worker after web readiness.",
+      );
       expect(pendingEntityExportCount(app.root)).toBe(0);
       const remotePath = await run(
         [
@@ -650,13 +669,11 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
           "--name-only",
           "main",
           "--",
-          "wish/worker-created-export-regression.md",
+          "worker-created-export-regression.md",
         ],
         app.root,
       );
-      expect(remotePath.trim()).toBe(
-        "wish/worker-created-export-regression.md",
-      );
+      expect(remotePath.trim()).toBe("worker-created-export-regression.md");
       expect(recurringDigestCounts(app.root)).toEqual({
         completed: 1,
         failed: 0,

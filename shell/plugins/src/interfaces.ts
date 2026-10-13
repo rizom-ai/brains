@@ -18,12 +18,7 @@ import type { Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
-import type {
-  ContentVisibility,
-  IEntityService,
-  IEntityRegistry,
-  ReadOnlyEntityService,
-} from "@brains/entity-service";
+import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
 import type {
   Tool,
   Resource,
@@ -64,6 +59,7 @@ import type {
   IProfileKindRegistry,
 } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
+import type { IAnalyticsRegistry } from "./analytics-registry";
 import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
@@ -102,7 +98,7 @@ import type {
   InteractionInfoInput,
   RuntimeAppInfo,
 } from "./contracts/runtime-app-info";
-import type { EvalHandler, InsightHandler } from "./contracts/handlers";
+import type { EvalHandler } from "./contracts/handlers";
 import type {
   ContentGenerationConfig,
   GenerateContentFunction,
@@ -127,7 +123,6 @@ export type {
   EvalHandler,
   GenerateContentFunction,
   GenerationStyleGuide,
-  InsightHandler,
   InteractionInfo,
   InteractionInfoInput,
   RuntimeAppInfo,
@@ -197,20 +192,6 @@ export interface JudgeInput<T> {
  * Shell interface that plugins use to access core services
  * This avoids circular dependencies between core and plugin-context
  */
-/**
- * Registry for insight types.
- * Core registers generic insights; plugins register domain-specific ones.
- */
-export interface IInsightsRegistry {
-  register(type: string, handler: InsightHandler): void;
-  unregister(type: string): void;
-  getTypes(): string[];
-  get(
-    type: string,
-    entityService: ReadOnlyEntityService,
-    visibilityScope: ContentVisibility,
-  ): Promise<Record<string, unknown>>;
-}
 
 export interface PluginRegistrationContext {
   /** Site/entity display metadata derived from the active site package. */
@@ -272,7 +253,10 @@ export interface IShell {
   getRuntimeReadiness(): Promise<RuntimeReadiness>;
 
   // High-level operations
-  generateContent(config: ContentGenerationConfig): Promise<unknown>;
+  generateContent(
+    config: ContentGenerationConfig,
+    signal?: AbortSignal,
+  ): Promise<unknown>;
   generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,
@@ -338,8 +322,8 @@ export interface IShell {
     handler: EvalHandler,
   ): void;
 
-  // Insights registry for plugin-contributed insights
-  getInsightsRegistry(): IInsightsRegistry;
+  // The system_analytics reports, core's and plugins'
+  getAnalyticsRegistry(): IAnalyticsRegistry;
 
   // API routes from plugins
   getPluginApiRoutes(): RegisteredApiRoute[];

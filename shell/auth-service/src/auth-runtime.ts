@@ -36,6 +36,8 @@ import {
 } from "./passkey-setup-coordinator";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
 import { resolveProfileDisplayNameSafely } from "./profile-display-name";
+import type { OnboardingContext } from "./invitation-service";
+import type { OnboardingDetails } from "./onboarding-emails";
 import { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 import { AuthPrincipalService } from "./principal-service";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
@@ -58,6 +60,7 @@ import { WebAuthnEndpoints } from "./webauthn-endpoints";
 
 export interface AuthRuntimeOptions {
   storageDir: string;
+  runBackgroundOperation: (operation: () => Promise<void>) => Promise<void>;
   replica?: AuthRuntimeReplicaOptions;
   issuer: string;
   trustedIssuers: Set<string>;
@@ -68,10 +71,18 @@ export interface AuthRuntimeOptions {
     profileEntityId: string,
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
+  /**
+   * Whether this process issues and logs the first-passkey setup link at
+   * startup. Only a process that serves `/setup` should: a token issued by
+   * another process replaces the one whose link was already logged.
+   */
+  issuesSetupLinks?: boolean;
   getInvitationDeliveryProvider?: (
     channelType: string,
   ) => ChannelDeliveryProvider | undefined;
   getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
+  /** The brain's purpose and links for onboarding emails. */
+  getOnboardingDetails?: () => Promise<OnboardingDetails>;
   isChannelTypeRegistered?: (channelType: string) => boolean;
   autoStartInvitationDeliveryRecovery?: boolean;
   invitationDeliveryRecoveryIntervalMs?: number;
@@ -96,6 +107,7 @@ export class AuthRuntime {
   readonly webauthnEndpoints: WebAuthnEndpoints;
 
   private readonly runtimeDatabase: AuthRuntimeDatabase;
+  private readonly runBackgroundOperation: AuthRuntimeOptions["runBackgroundOperation"];
   private readonly refreshTokenStore: RuntimeRefreshTokenStore;
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
@@ -103,6 +115,9 @@ export class AuthRuntime {
   private readonly anchor: AuthBrainAnchorConfigKind;
   private readonly anchorProfileEntityId: string;
   private readonly setupTokenTtlSeconds: number;
+  private readonly issuesSetupLinks: boolean;
+  private readonly getOnboardingDetails:
+    (() => Promise<OnboardingDetails>) | undefined;
   private readonly getInvitationDeliveryProvider:
     ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
   private readonly getChannelDescriptor:
@@ -137,6 +152,7 @@ export class AuthRuntime {
   private closePromise: Promise<void> | undefined;
 
   constructor(options: AuthRuntimeOptions) {
+    this.runBackgroundOperation = options.runBackgroundOperation;
     this.issuer = options.issuer;
     this.trustedIssuers = options.trustedIssuers;
     this.allowLocalhostIssuers = options.allowLocalhostIssuers;
@@ -144,7 +160,9 @@ export class AuthRuntime {
     this.anchorProfileEntityId = options.anchorProfileEntityId;
     this.setupTokenTtlSeconds =
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
+    this.issuesSetupLinks = options.issuesSetupLinks ?? true;
     this.getInvitationDeliveryProvider = options.getInvitationDeliveryProvider;
+    this.getOnboardingDetails = options.getOnboardingDetails;
     this.getChannelDescriptor = options.getChannelDescriptor;
     this.isChannelTypeRegistered = options.isChannelTypeRegistered;
     this.autoStartInvitationDeliveryRecovery =
@@ -206,6 +224,7 @@ export class AuthRuntime {
               options.oauthClientMaintenanceIntervalMs,
           }
         : {}),
+      runClientMaintenance: this.runBackgroundOperation,
       onClientMaintenanceError: (error): void => {
         this.logger?.warn("Failed to prune stale OAuth clients", { error });
       },
@@ -345,12 +364,24 @@ export class AuthRuntime {
       ...(this.getChannelDescriptor
         ? { getChannelDescriptor: this.getChannelDescriptor }
         : {}),
+      getOnboardingContext: async (): Promise<OnboardingContext> => {
+        const [brainName, details] = await Promise.all([
+          this.profileDisplayName(this.anchorProfileEntityId),
+          this.getOnboardingDetails?.(),
+        ]);
+        return {
+          links: details?.links ?? {},
+          ...(details?.purpose ? { purpose: details.purpose } : {}),
+          ...(brainName ? { brainName } : {}),
+        };
+      },
     });
     this.invitationDeliverySupervisor = new InvitationDeliverySupervisor(
       this.invitationDeliveryRecoveryIntervalMs,
-      async (now): Promise<void> => {
-        await this.getInvitationService().recoverInterruptedDeliveries(now);
-      },
+      (now): Promise<void> =>
+        this.runBackgroundOperation(async () => {
+          await this.getInvitationService().recoverInterruptedDeliveries(now);
+        }),
       {
         onError: (error): void => {
           this.logger?.warn("Failed to recover invitation delivery", {
@@ -535,7 +566,10 @@ export class AuthRuntime {
     await this.loadSigningKeys();
     this.logger?.debug("Auth service signing keys loaded");
 
-    if (!(await this.passkeyService.hasCredentials())) {
+    if (
+      this.issuesSetupLinks &&
+      !(await this.passkeyService.hasCredentials())
+    ) {
       await this.setupFlow.ensureSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {

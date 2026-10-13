@@ -19,9 +19,15 @@ import {
   FiberMap,
   Schedule,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { OperationContext } from "@brains/operation-context";
+import {
+  createRenewableDeadline,
+  renewOnAdvance,
+  type RenewableDeadline,
+} from "./progress-deadline";
 
 /**
  * Anything that can force its own ambient async context to empty for the
@@ -80,9 +86,9 @@ export class JobQueueWorker {
   private activeJobs: Set<string> = new Set();
   private stats: JobQueueWorkerStats;
   private startTime: number = 0;
-  private pollFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private pollFiber: Fiber.Fiber<void, never> | null = null;
   private currentPoll: Promise<void> | null = null;
-  private workerScope: Scope.CloseableScope | null = null;
+  private workerScope: Scope.Closeable | null = null;
   private jobFibers: FiberMap.FiberMap<string, void, never> | null = null;
   private activeTransition: WorkerTransition | null = null;
   private readonly transitionQueue: WorkerTransition[] = [];
@@ -203,7 +209,7 @@ export class JobQueueWorker {
 
     this.workerScope = Effect.runSync(Scope.make());
     this.jobFibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.workerScope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.workerScope),
     );
 
     // Start the supervised polling fiber.
@@ -445,9 +451,7 @@ export class JobQueueWorker {
       Effect.schedule(Schedule.spaced(this.config.pollInterval)),
       Effect.asVoid,
     );
-    const loop = this.clock
-      ? Effect.withClock(scheduledPolling, this.clock)
-      : scheduledPolling;
+    const loop = withOptionalClock(scheduledPolling, this.clock);
 
     return loop.pipe(
       Effect.ensuring(
@@ -652,11 +656,17 @@ export class JobQueueWorker {
     }
   }
 
+  /**
+   * Run `operation` until it settles or its deadline passes. A renewable
+   * deadline is pushed back by the job's progress, so it catches a stuck job
+   * rather than a long one.
+   */
   private async executeWithDeadline<T>(
     jobType: string,
     timeoutMs: number,
     controller: AbortController,
     operation: () => Promise<T>,
+    deadline: RenewableDeadline = createRenewableDeadline(timeoutMs),
   ): Promise<T> {
     const outcome: Promise<OperationOutcome<T>> = Promise.resolve()
       .then(operation)
@@ -668,7 +678,9 @@ export class JobQueueWorker {
         }),
       );
 
-    const first = await this.raceOutcome(outcome, timeoutMs);
+    const first = await Promise.race([outcome, deadline.expired]).finally(() =>
+      deadline.cancel(),
+    );
     if (first.kind !== "timeout") {
       if (first.kind === "failure") throw first.error;
       return first.value;
@@ -768,6 +780,7 @@ export class JobQueueWorker {
       );
       const timeoutMs =
         handler.executionTimeoutMs ?? this.config.defaultExecutionTimeoutMs;
+      const deadline = createRenewableDeadline(timeoutMs);
       const result = await this.executeWithDeadline(
         job.type,
         timeoutMs,
@@ -776,9 +789,10 @@ export class JobQueueWorker {
           handler.process(
             parsedData,
             job.id,
-            progressReporter,
+            renewOnAdvance(progressReporter, deadline.renew),
             controller.signal,
           ),
+        deadline,
       );
 
       await stopHeartbeat();

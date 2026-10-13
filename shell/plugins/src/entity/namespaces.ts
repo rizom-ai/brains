@@ -10,6 +10,8 @@ import type {
   IEntitiesNamespace,
   IEntityService,
 } from "@brains/entity-service";
+import type { JsonObject } from "@brains/contracts";
+import type { OutputFormat, Renderer, ViewTemplate } from "@brains/templates";
 import type { IShell } from "../interfaces";
 import { resolvePrompt } from "./prompt-resolver";
 
@@ -19,6 +21,29 @@ import { resolvePrompt } from "./prompt-resolver";
 export interface IPromptsNamespace {
   /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
   resolve: (target: string, fallback: string) => Promise<string>;
+}
+
+/**
+ * Views namespace — view template access and rendering utilities
+ */
+export interface IViewsNamespace {
+  /** Get a view template by name */
+  get: (name: string) => ViewTemplate | undefined;
+
+  /** List all registered view templates */
+  list: () => ViewTemplate[];
+
+  /** Check if a template has a renderer for the requested format (defaults to web). */
+  hasRenderer: (templateName: string, format?: OutputFormat) => boolean;
+
+  /** Get the renderer for a template and format (defaults to web). */
+  getRenderer: (
+    templateName: string,
+    format?: OutputFormat,
+  ) => Renderer<JsonObject> | undefined;
+
+  /** Validate content against a template's schema */
+  validate: (templateName: string, content: unknown) => boolean;
 }
 
 type EntitySchema<TEntity extends BaseEntity> =
@@ -117,5 +142,25 @@ export function createPromptsNamespace(
     resolve: (target: string, fallback: string): Promise<string> => {
       return resolvePrompt(entityService, target, fallback);
     },
+  };
+}
+
+/** Create the shared view-template namespace. */
+export function createViewsNamespace(shell: IShell): IViewsNamespace {
+  const renderService = shell.getRenderService();
+  return {
+    get: (name: string): ViewTemplate | undefined => renderService.get(name),
+    list: (): ViewTemplate[] => renderService.list(),
+    hasRenderer: (
+      templateName: string,
+      format: OutputFormat = "web",
+    ): boolean => renderService.hasRenderer(templateName, format),
+    getRenderer: (
+      templateName: string,
+      format: OutputFormat = "web",
+    ): Renderer<JsonObject> | undefined =>
+      renderService.getRenderer(templateName, format),
+    validate: (templateName: string, content: unknown): boolean =>
+      renderService.validate(templateName, content),
   };
 }

@@ -4,6 +4,7 @@
  * function is exported for tests and inlined into the shipped script, so
  * there is one source for the reading line.
  */
+import { ASK_ROOM_SCRIPT } from "@brains/site-atlas";
 
 /** The index of the last chapter whose top has passed the reading line, clamped to the stages a drawing has. */
 export function currentChapter(
@@ -33,7 +34,9 @@ export function readingLine(
   return stripBottom === null ? viewportHeight * beside : stripBottom + 1;
 }
 
-export const storyRuntimeScript: string = `(function () {
+export const storyRuntimeScript: string =
+  ASK_ROOM_SCRIPT +
+  `(function () {
   ${currentChapter.toString()}
   ${readingLine.toString()}
   function init() {
@@ -109,11 +112,14 @@ export const storyRuntimeScript: string = `(function () {
     addEventListener("resize", function () { placeRail(); read(); });
     addEventListener("load", function () { placeRail(); read(); });
   }
-  // The homepage's drawing listens to the Ask box: an answer's sources name
-  // the brains whose published memory they came from (the box's ask:sources
-  // event), and those brains light while the rest dim. A source without a
-  // brain is this brain's own and lights the center. Pointing works both
-  // ways: a listed source lights its brain, a brain flags its listed sources.
+  // The homepage's drawings listen to the Ask room: an answer's sources name
+  // the brains whose published memory they came from (the room matches them
+  // to the opening's dots, keyed by brain, and tells the page), and those
+  // brains light in every drawing while the rest dim. A source the room
+  // matched to no brain is this brain's own and lights the center. Pointing
+  // works both ways: a listed source lights its brain, a brain flags its
+  // listed sources. Leads, the lending of the drawing to a phone's open
+  // conversation and the tap on a lit dot are the room's.
   function listen() {
     // The opening draws the network, and a chapter may draw it again beside
     // its own words: every drawing answers the same events.
@@ -127,20 +133,6 @@ export const storyRuntimeScript: string = `(function () {
     var replies = all(".net-reply[data-brain]");
     var names = all(".net-name[data-brain]");
     var sourceBrain = {};
-    function brainOf(source) {
-      var brain = source && source.brain;
-      if (!brain) return "";
-      var host = "";
-      if (brain.url) { try { host = new URL(brain.url).host; } catch (e) { host = ""; } }
-      var byHost = host && marks.filter(function (m) { return m.getAttribute("data-brain") === host; })[0];
-      if (byHost) return host;
-      var name = String(brain.name || "").toLowerCase();
-      var byName = marks.filter(function (m) {
-        var a = m.querySelector("[aria-label]");
-        return (a ? a.getAttribute("aria-label") : "").toLowerCase() === name;
-      })[0];
-      return byName ? byName.getAttribute("data-brain") : "";
-    }
     function light(id, on) {
       [marks, threads, replies, names].forEach(function (list) {
         list.forEach(function (el) { if (el.getAttribute("data-brain") === id) el.classList.toggle("is-lit", on); });
@@ -149,20 +141,19 @@ export const storyRuntimeScript: string = `(function () {
     function hot(id, on) {
       marks.concat(threads).forEach(function (el) { if (el.getAttribute("data-brain") === id) el.classList.toggle("is-hot", on); });
     }
-    document.addEventListener("ask:sources", function (event) {
+    document.addEventListener("ask:cited", function (event) {
       var detail = event.detail || {};
-      var sources = Array.isArray(detail.sources) ? detail.sources : [];
       var lit = {};
-      var rizom = false;
       sourceBrain = {};
-      sources.forEach(function (source) {
-        var id = brainOf(source);
-        if (id) { lit[id] = true; sourceBrain[source.id] = id; } else rizom = true;
+      (detail.cited || []).forEach(function (entry) {
+        lit[entry.key] = true;
+        sourceBrain[entry.source.id] = entry.key;
       });
       marks.forEach(function (m) { light(m.getAttribute("data-brain"), !!lit[m.getAttribute("data-brain")]); });
+      var rizom = (detail.unmatched || []).length > 0 && (detail.sources || []).length > 0;
       layers.forEach(function (layer) {
         layer.classList.toggle("has-replies", Object.keys(lit).length > 0);
-        layer.classList.toggle("is-rizom", rizom && sources.length > 0);
+        layer.classList.toggle("is-rizom", rizom);
       });
     });
     function listed(target) {
@@ -195,118 +186,6 @@ export const storyRuntimeScript: string = `(function () {
       var target = event.target;
       if (!target || !target.hasAttribute || !target.hasAttribute("data-ask-answer")) return;
       document.dispatchEvent(new CustomEvent("ask:sources", { detail: { sources: askedSources() } }));
-    }, true);
-    // The drawing belongs to the page while an answer is open. On desktop a
-    // dotted lead runs from each listed source to its brain in the opening's
-    // drawing; on a phone the drawing joins the open conversation as the
-    // first item of its scroll, and a tap on a lit dot brings its source
-    // into view. Only the opening's drawing is lent; a chapter's stays put.
-    var home = layers[0];
-    var homeMarks = marks.filter(function (m) { return home.contains(m); });
-    var leadsLayer = document.querySelector("[data-net-leads]");
-    var narrow = typeof matchMedia === "function" ? matchMedia("(max-width: 60rem)") : { matches: false };
-    var askHost = document.querySelector("[data-ask-box]");
-    var SVG = "http://www.w3.org/2000/svg", GAP = 6, GLYPH = 9;
-    function listedRow(scope, key) {
-      if (!scope) return null;
-      var rows = Array.prototype.filter.call(scope.querySelectorAll("[data-ask-source]"), function (row) {
-        return row.getAttribute("data-ask-source") === key;
-      });
-      return rows.length ? rows[rows.length - 1] : null;
-    }
-    // A point is in view when no scrolling ancestor hides it and it is on screen.
-    function inView(element, middle) {
-      if (middle < 0 || middle > innerHeight) return false;
-      var parent = element.parentElement;
-      while (parent && parent !== document.body) {
-        var overflow = getComputedStyle(parent).overflowY;
-        if (overflow === "auto" || overflow === "scroll") {
-          var area = parent.getBoundingClientRect();
-          if (middle < area.top || middle > area.bottom) return false;
-        }
-        parent = parent.parentElement;
-      }
-      return true;
-    }
-    function drawLeads() {
-      if (!leadsLayer) return;
-      while (leadsLayer.firstChild) leadsLayer.removeChild(leadsLayer.firstChild);
-      if (narrow.matches || !askHost) return;
-      // The layer is fixed to the viewport, so viewport coordinates are its own.
-      leadsLayer.setAttribute("viewBox", "0 0 " + innerWidth + " " + innerHeight);
-      Object.keys(sourceBrain).forEach(function (key) {
-        var mark = homeMarks.filter(function (m) { return m.getAttribute("data-brain") === sourceBrain[key]; })[0];
-        var row = listedRow(askHost, key);
-        if (!mark || !row) return;
-        var from = row.getBoundingClientRect();
-        if (!from.height) return;
-        var to = mark.getBoundingClientRect();
-        var y1 = from.top + from.height / 2;
-        var y2 = to.top + to.height / 2;
-        if (!inView(row, y1) || !inView(mark, y2)) return;
-        var x1 = from.right + GAP;
-        var toward = to.left + to.width / 2;
-        var x2 = toward > x1 ? toward - GLYPH : toward + GLYPH;
-        var bend = Math.max(40, Math.abs(x2 - x1) / 2);
-        var lead = document.createElementNS(SVG, "path");
-        lead.setAttribute("data-lead", key);
-        lead.setAttribute("d", "M" + x1 + " " + y1 + " C" + (x1 + bend) + " " + y1 + " " + (x2 - bend) + " " + y2 + " " + x2 + " " + y2);
-        leadsLayer.appendChild(lead);
-      });
-    }
-    var leadsPending = false;
-    function scheduleLeads() {
-      if (leadsPending || !leadsLayer) return;
-      leadsPending = true;
-      requestAnimationFrame(function () { leadsPending = false; drawLeads(); });
-    }
-    if (leadsLayer) {
-      addEventListener("resize", scheduleLeads);
-      // Scrolling the page or the conversation moves the listed sources.
-      document.addEventListener("scroll", scheduleLeads, true);
-      document.addEventListener("toggle", scheduleLeads, true);
-      if (askHost && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(askHost);
-    }
-    document.addEventListener("ask:sources", function () { drawLeads(); });
-    function sheetOpen() { return !!askHost && askHost.hasAttribute("data-ask-sheet"); }
-    var slot = null;
-    function lend() {
-      var dock = askHost.querySelector("[data-ask-dock]");
-      if (!home || !dock || home.parentElement === dock) return;
-      slot = document.createElement("div");
-      slot.className = "net-slot";
-      slot.setAttribute("aria-hidden", "true");
-      home.parentNode.insertBefore(slot, home);
-      dock.appendChild(home);
-    }
-    function giveBack() {
-      if (!slot) return;
-      slot.parentNode.insertBefore(home, slot);
-      slot.parentNode.removeChild(slot);
-      slot = null;
-    }
-    if (askHost && home && typeof MutationObserver === "function") {
-      // The box mounts, and so its dock appears, after the sheet has opened.
-      new MutationObserver(function () { if (sheetOpen()) lend(); else giveBack(); })
-        .observe(askHost, { attributes: true, attributeFilter: ["data-ask-sheet"], childList: true, subtree: true });
-    }
-    document.addEventListener("click", function (event) {
-      if (!sheetOpen() || !home) return;
-      var mark = event.target && event.target.closest ? event.target.closest(".net-mark[data-brain]") : null;
-      if (!mark || !home.contains(mark)) return;
-      var brain = mark.getAttribute("data-brain");
-      var key = Object.keys(sourceBrain).filter(function (k) { return sourceBrain[k] === brain; })[0];
-      var area = askHost.querySelector(".brain-box-scroll");
-      var row = key ? listedRow(area, key) : null;
-      if (!row || !area) return;
-      event.preventDefault();
-      var at = row.getBoundingClientRect(), box = area.getBoundingClientRect();
-      var top = area.scrollTop + at.top - box.top - area.clientHeight / 2 + at.height / 2;
-      if (area.scrollTo) area.scrollTo({ top: top, behavior: "smooth" }); else area.scrollTop = top;
-      row.removeAttribute("data-ask-flash");
-      void row.offsetWidth;
-      row.setAttribute("data-ask-flash", "");
-      setTimeout(function () { row.removeAttribute("data-ask-flash"); }, 1500);
     }, true);
     document.addEventListener("mouseover", function (e) { point(e, true); });
     document.addEventListener("mouseout", function (e) { point(e, false); });

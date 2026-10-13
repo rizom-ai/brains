@@ -17,6 +17,7 @@ import {
 } from "./invitation-schema";
 import { absoluteUrl } from "./issuer";
 import { InvitationChannels } from "./invitation-channels";
+import type { OnboardingDetails } from "./onboarding-emails";
 import { invitationIdempotencyKeyHash } from "./invitation-keys";
 import {
   listDeliveryAttempts,
@@ -68,7 +69,14 @@ export interface AuthInvitationServiceOptions {
     channelType: string,
   ) => ChannelDeliveryProvider | undefined;
   getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
+  /** What invitations say about the brain; the issuer host stands in for a missing name. */
+  getOnboardingContext?: () => Promise<OnboardingContext>;
 }
+
+/** The brain's name plus its onboarding details, read when an invitation is sent. */
+export type OnboardingContext = OnboardingDetails & {
+  brainName?: string | undefined;
+};
 
 export class AuthInvitationService {
   private readonly db: AuthRuntimeDB;
@@ -77,6 +85,8 @@ export class AuthInvitationService {
   private readonly audit: AuthAuditStore;
   private readonly deliveryRecoveryStaleMs: number;
   private readonly channels: InvitationChannels;
+  private readonly getOnboardingContext:
+    (() => Promise<OnboardingContext>) | undefined;
   private readonly creations = new KeyedSingleFlight<CreateInvitationResult>();
   private readonly manualConfirmations =
     new KeyedSingleFlight<AuthInvitation>();
@@ -87,6 +97,7 @@ export class AuthInvitationService {
     this.issuer = options.issuer;
     this.setupTokenTtlSeconds = options.setupTokenTtlSeconds;
     this.audit = options.audit;
+    this.getOnboardingContext = options.getOnboardingContext;
     this.deliveryRecoveryStaleMs = Math.max(
       1,
       options.deliveryRecoveryStaleMs ??
@@ -763,6 +774,40 @@ export class AuthInvitationService {
     });
   }
 
+  /**
+   * Who and what the invitation names, read at send time so a resend or a
+   * recovered delivery says the same as the first one.
+   */
+  private async invitationNames(created: CreatedInvitation): Promise<{
+    brainName: string;
+    role: "admin" | "trusted";
+    inviterName?: string;
+    purpose?: OnboardingDetails["purpose"];
+    links?: OnboardingDetails["links"];
+  }> {
+    const role = created.user.role;
+    if (role === "public") {
+      throw new Error("An invitation cannot grant the public role");
+    }
+    const onboarding = await this.getOnboardingContext?.();
+    const brainName = onboarding?.brainName ?? new URL(this.issuer).hostname;
+    const inviterId = created.invitation.createdByUserId;
+    const [inviter] = inviterId
+      ? await this.db
+          .select({ displayName: authUsers.displayName })
+          .from(authUsers)
+          .where(eq(authUsers.id, inviterId))
+          .limit(1)
+      : [];
+    return {
+      brainName,
+      role,
+      ...(inviter ? { inviterName: inviter.displayName } : {}),
+      ...(onboarding?.purpose ? { purpose: onboarding.purpose } : {}),
+      ...(onboarding?.links ? { links: onboarding.links } : {}),
+    };
+  }
+
   private async deliver(created: CreatedInvitation): Promise<AuthInvitation> {
     const startedAt = Date.now();
     const started = await this.db.transaction(async (tx) => {
@@ -812,6 +857,7 @@ export class AuthInvitationService {
       setupToken: created.setupToken,
       expiresAtSeconds: created.expiresAt,
       idempotencyKey: created.attempt.id,
+      ...(await this.invitationNames(created)),
     });
     const completedAt = Date.now();
 

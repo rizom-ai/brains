@@ -333,12 +333,19 @@ plugins:
       const tools = await client.listTools();
       expect(tools.tools.map(({ name }) => name)).toContain("system_list");
 
-      const listed = await client.callTool({
-        name: "system_list",
-        arguments: { entityType: "note" },
-      });
-      expect(listed.isError).not.toBe(true);
-      expect(textContent(listed)).toContain('"id": "headless-proof"');
+      // The vault is imported by queued jobs after the app reports ready.
+      await waitUntil(
+        async () => {
+          const listed = await client.callTool({
+            name: "system_list",
+            arguments: { entityType: "note" },
+          });
+          expect(listed.isError).not.toBe(true);
+          return textContent(listed).includes('"id": "headless-proof"');
+        },
+        "the seeded vault to be imported",
+        { timeoutMs: 20_000, intervalMs: 100 },
+      );
 
       const detail = await client.callTool({
         name: "system_get",

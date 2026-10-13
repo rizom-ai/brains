@@ -81,7 +81,7 @@ until the repository owns a corresponding format.
 ### AI Models
 
 - **Configurable** — single `AI_API_KEY` env var, provider auto-detected from model name
-  - Default text model: **`gpt-5.6-luna`** with `low` reasoning (OpenAI)
+  - Default text model: **`gpt-6-luna`** with `low` reasoning (OpenAI)
   - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini)
   - Default embedding model: **`text-embedding-3-small`** (OpenAI)
   - Optional separate `AI_IMAGE_KEY` for image generation

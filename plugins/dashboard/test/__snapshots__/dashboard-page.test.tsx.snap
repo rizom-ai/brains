@@ -72,6 +72,26 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
               "attributes": [
                 [
                   "href",
+                  "/favicon.svg?v=lantern",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "href",
                   "https://fonts.googleapis.com",
                 ],
                 [
@@ -699,6 +719,7 @@ html {
 .x1a2a7pz:not(#\\#):not(#\\#){outline:none}
 .xysyzu8:not(#\\#):not(#\\#){overflow:auto}
 .xb3r6kr:not(#\\#):not(#\\#){overflow:hidden}
+.x1rea2x4:not(#\\#):not(#\\#){overflow:visible}
 .xp59q4u:not(#\\#):not(#\\#){padding-block:10px}
 .xrii95j:not(#\\#):not(#\\#){padding-block:11px}
 .x1b9wmvo:not(#\\#):not(#\\#){padding-block:15px}
@@ -721,6 +742,7 @@ html {
 .x5gjymy:not(#\\#):not(#\\#){transition:background-color .12s ease,border-color .12s ease,color .12s ease,opacity .12s ease,transform .12s ease}
 .x1oagamk:not(#\\#):not(#\\#){transition:background-color .12s ease,border-color .12s ease}
 .x1p5amsn:not(#\\#):not(#\\#){transition:border-color .12s ease,box-shadow .12s ease}
+.xzjk7dm:not(#\\#):not(#\\#){transition:fill .12s ease}
 .x1gt6r2q:not(#\\#):not(#\\#){transition:transform .12s ease,background-color .12s ease}
 .x16yjenj:is([data-state='checked']):not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .x1iom3s4:focus-visible:not(#\\#):not(#\\#){border-color:var(--console-accent)}
@@ -888,11 +910,15 @@ html {
 .x1s85apg:not(#\\#):not(#\\#):not(#\\#){display:none}
 .xf5m44m:not(#\\#):not(#\\#):not(#\\#){display:table-row}
 .x63ly0w:not(#\\#):not(#\\#):not(#\\#){fill:color-mix(in srgb,var(--console-accent) 5%,transparent)}
+.x1rw6qo9:not(#\\#):not(#\\#):not(#\\#){fill:color-mix(in srgb,var(--console-accent) 72%,transparent)}
 .x6p09lz:not(#\\#):not(#\\#):not(#\\#){fill:color-mix(in srgb,var(--console-secondary) 2.5%,transparent)}
 .xjo5mhf:not(#\\#):not(#\\#):not(#\\#){fill:color-mix(in srgb,var(--console-secondary) 4%,transparent)}
 .x1sgapc2:not(#\\#):not(#\\#):not(#\\#){fill:color-mix(in srgb,var(--console-secondary) 6%,transparent)}
 .xbh8q5q:not(#\\#):not(#\\#):not(#\\#){fill:none}
+.xy6m8k3:not(#\\#):not(#\\#):not(#\\#){fill:transparent}
+.xgeoyvb:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-accent-soft)}
 .x8eu9n:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-accent)}
+.xp8jjoe:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-err)}
 .x1s7eawt:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-ok)}
 .x1gohjtw:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-secondary)}
 .x1r5g2pm:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-text-dim)}
@@ -1084,6 +1110,7 @@ html {
 .xosa0jh:not(#\\#):not(#\\#):not(#\\#){scrollbar-width:auto}
 .x1rohswg:not(#\\#):not(#\\#):not(#\\#){scrollbar-width:none}
 .xnq1ati:not(#\\#):not(#\\#):not(#\\#){stroke-dasharray:1}
+.xbw2l0c:not(#\\#):not(#\\#):not(#\\#){stroke-dasharray:2 2}
 .x1gjz8bi:not(#\\#):not(#\\#):not(#\\#){stroke-dasharray:2 7}
 .x10ozs9j:not(#\\#):not(#\\#):not(#\\#){stroke-dasharray:3 7}
 .xl9zam1:not(#\\#):not(#\\#):not(#\\#){stroke-dasharray:4 6}
@@ -1246,6 +1273,7 @@ html {
 .xhwcb5i:hover:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text-dim)}
 .x18m2ztq:hover:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text)}
 .xzavvr5:hover:not(#\\#):not(#\\#):not(#\\#){color:var(--console-warn)}
+.xg7jwtm:hover:not(#\\#):not(#\\#):not(#\\#){fill:var(--console-accent)}
 .xcdb3qq:hover:not(#\\#):not(#\\#):not(#\\#){outline-width:1px}
 .x1sur9pj:hover:not(#\\#):not(#\\#):not(#\\#){text-decoration-line:underline}
 .x14ow2ja:hover:not(#\\#):not(#\\#):not(#\\#){transform:translateY(-1px)}
@@ -1380,6 +1408,7 @@ html {
 .x178xt8z:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:1px}
 .xamhcws:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:2px}
 .x5yr21d:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:100%}
+.xhjk10j:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:140px}
 .xmix8c7:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:18px}
 .xjm9jq1:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:1px}
 .xxk0z11:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:24px}

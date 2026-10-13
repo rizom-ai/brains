@@ -38,6 +38,8 @@ async function fixture(): Promise<{
     serializeEntity: (e): string => e.content,
     hasEntityType: (): boolean => true,
     openAsset: createMockAssetStore().openAsset,
+    getEntityTypes: (): string[] => [],
+    getEntityTypeConfig: (): { containedIn?: string } => ({}),
   });
   let pending: DurableEntityExportIntent[] = [];
   const dispatcher = new DurableEntityExportDispatcher({

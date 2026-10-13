@@ -18,7 +18,10 @@ export type PlaybookRunStatus = z.output<typeof playbookRunStatusSchema>;
 export const playbookRunEvidenceSchema: z.ZodObject<
   {
     id: z.ZodString;
-    kind: z.ZodEnum<{ entity_event: "entity_event" }>;
+    kind: z.ZodEnum<{
+      entity_event: "entity_event";
+      assistant_reply: "assistant_reply";
+    }>;
     stateId: z.ZodOptional<z.ZodString>;
     observedAt: z.ZodString;
     data: z.ZodRecord<z.ZodString, z.ZodUnknown>;
@@ -27,7 +30,7 @@ export const playbookRunEvidenceSchema: z.ZodObject<
 > = z
   .object({
     id: z.string().min(1),
-    kind: z.enum(["entity_event"]),
+    kind: z.enum(["entity_event", "assistant_reply"]),
     stateId: z.string().min(1).optional(),
     observedAt: z.string().datetime(),
     data: z.record(z.string(), z.unknown()),
@@ -66,6 +69,7 @@ export const playbookRunSchema: z.ZodObject<
     status: typeof playbookRunStatusSchema;
     conversationId: z.ZodOptional<z.ZodString>;
     currentState: z.ZodString;
+    stateEnteredAt: z.ZodOptional<z.ZodString>;
     completedStates: z.ZodDefault<z.ZodArray<z.ZodString>>;
     snapshot: z.ZodOptional<z.ZodUnknown>;
     context: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -85,6 +89,8 @@ export const playbookRunSchema: z.ZodObject<
     status: playbookRunStatusSchema,
     conversationId: z.string().min(1).optional(),
     currentState: z.string().min(1),
+    /** When the run entered its current state; absent on runs stored before it was tracked. */
+    stateEnteredAt: z.string().datetime().optional(),
     completedStates: z.array(z.string().min(1)).default([]),
     /** Legacy XState snapshot. No longer read or written; kept so stored runs still parse. */
     snapshot: z.unknown().optional(),
@@ -156,14 +162,21 @@ export class PlaybookRunStore {
   async upsert(run: PlaybookRun): Promise<PlaybookRun> {
     return this.enqueueMutation(async () => {
       const existing = await this.store.get(run.id);
+      const now = new Date().toISOString();
+      const enteredState =
+        existing?.currentState !== run.currentState ||
+        (existing.status !== "active" && run.status === "active");
       const nextRun = playbookRunSchema.parse({
         ...run,
+        stateEnteredAt: enteredState
+          ? now
+          : (existing.stateEnteredAt ?? run.stateEnteredAt),
         evidence: mergeEvidence(existing?.evidence ?? [], run.evidence),
         gateVerdicts: mergeGateVerdicts(
           existing?.gateVerdicts ?? [],
           run.gateVerdicts,
         ),
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       });
       await this.store.set(nextRun.id, nextRun);
       return nextRun;
@@ -225,6 +238,7 @@ export function createPlaybookRun(input: {
     status: input.status ?? "active",
     ...(input.conversationId ? { conversationId: input.conversationId } : {}),
     currentState: input.initialState,
+    stateEnteredAt: now,
     completedStates: [],
     context: {},
     evidence: [],

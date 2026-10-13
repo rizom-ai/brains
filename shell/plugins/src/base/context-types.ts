@@ -4,6 +4,7 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
+import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
 import type {
   GetMessagesOptions,
@@ -16,7 +17,9 @@ import type {
   ProfileKindDefinition,
   ResolvedProfileSelection,
 } from "@brains/identity-service";
-import type { EvalHandler, InsightHandler } from "../contracts/handlers";
+import type { EvalHandler } from "../contracts/handlers";
+import type { z } from "@brains/utils/zod";
+import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type {
   ChannelDeliveryProvider,
@@ -46,6 +49,13 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 export interface IMessagingNamespace {
   /** Send a message to other plugins */
   send: MessageSender;
+
+  /**
+   * Send a message and gather one answer from every subscriber. For
+   * contributions read when they are used, such as the head scripts a site
+   * build asks for: it works in every process and in any registration order.
+   */
+  collect: MessageCollector;
 
   /**
    * Subscribe to messages on a channel
@@ -183,11 +193,13 @@ export interface IEvalNamespace {
 }
 
 /**
- * Insights namespace — register domain-specific insight handlers
+ * Analytics namespace — add reports to `system_analytics`
  */
-export interface IInsightsNamespace {
-  /** Register a named insight handler */
-  register: (type: string, handler: InsightHandler) => void;
+export interface IAnalyticsNamespace {
+  /** Register a report; one with the same type replaces it */
+  register: <TParams extends z.ZodObject>(
+    definition: AnalyticsReportDefinition<TParams>,
+  ) => void;
 }
 
 export interface IPermissionsNamespace {

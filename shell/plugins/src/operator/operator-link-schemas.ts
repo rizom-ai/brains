@@ -99,6 +99,7 @@ const launchIntentSchema = z.union([
     .strict(),
   z.object({ target: z.literal("publishing") }).strict(),
   z.object({ target: z.literal("site") }).strict(),
+  z.object({ target: z.literal("traffic") }).strict(),
   z
     .object({
       target: z.literal("inbox-open-entity"),

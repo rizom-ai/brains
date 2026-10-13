@@ -1,5 +1,6 @@
 import { contentVisibilitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { renderedLinkFields } from "@brains/templates";
 import {
   platformSchema,
   socialPostStatusSchema,
@@ -141,22 +142,5 @@ export type SocialPostView = Omit<
  * link slots site-builder fills required, so the render path can prove the
  * enrichment ran instead of assuming it.
  */
-export const socialPostRenderSchema: z.ZodType<SocialPostView> = z.object({
-  id: z.string(),
-  entityType: z.literal("social-post"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: metadataSchema,
-  contentHash: z.string(),
-  frontmatter: frontmatterSchema,
-  body: z.string(),
-  url: z.string(),
-  listUrl: z.string(),
-  listLabel: z.string(),
-  typeLabel: z.string(),
-  coverImageUrl: nullableString,
-  coverImageWidth: nullableNumber,
-  coverImageHeight: nullableNumber,
-});
+export const socialPostRenderSchema: z.ZodType<SocialPostView> =
+  socialPostViewSchema.extend(renderedLinkFields);

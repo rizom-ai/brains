@@ -1,5 +1,104 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- [#621](https://github.com/rizom-ai/brains/pull/621) [`3429f82`](https://github.com/rizom-ai/brains/commit/3429f82c112f6b236b7c732a32203a88cdcc264f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site no longer declares a display for `network-piece`: brains stopped copying other brains' published pieces, so there is nothing "From the network" to cite.
+
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- [#540](https://github.com/rizom-ai/brains/pull/540) [`574b94b`](https://github.com/rizom-ai/brains/commit/574b94b1fa4c63d10eb4363fae3d219407a3330f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky in daylight: on paper it is lights, not night. The grain, the purple boundary and the ember rims only read against the dark and go; the wash and the corona go faint; the lantern and the beads are brass; the tendrils hold a little more.
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#539](https://github.com/rizom-ai/brains/pull/539) [`860ba1b`](https://github.com/rizom-ai/brains/commit/860ba1b7b769a1619daecd3efc0965cc1ba0f69b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves more with the scroll and keeps its names level: the sky wheels ten degrees either way while the dust and the boundary turn against it, each name turns back to stay upright, and a brain's bead is bigger and brighter, lighting its tendril as it passes and flashing the core as it arrives.
+
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- Updated dependencies [[`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c)]:
+  - @rizom/site@0.2.0-alpha.239
+
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- [#529](https://github.com/rizom-ai/brains/pull/529) [`34bb01e`](https://github.com/rizom-ai/brains/commit/34bb01eae026663aa7a7476932b9b3a4309b4486) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves with the scroll where the browser can drive it: the page wheels the sky a few degrees, the dust and the boundary turn slower for depth, and each brain's bead travels its tendril over its own slice of the page. Time keeps the breathing, the seep, the embers and the answer; elsewhere the clocks stand.
+
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- [#528](https://github.com/rizom-ai/brains/pull/528) [`fb497e9`](https://github.com/rizom-ai/brains/commit/fb497e9dda80e21721cbfbde7b8077f74fad7620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the un-lit brains' names hidden in the phone strip while an answer is shown.
+
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- [#526](https://github.com/rizom-ai/brains/pull/526) [`f4accd8`](https://github.com/rizom-ai/brains/commit/f4accd8f1ce52331b8d94a971ece2a00dd3c605b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the brains' names out of the phone strip until an answer lights them.
+
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- [#524](https://github.com/rizom-ai/brains/pull/524) [`6c58043`](https://github.com/rizom-ai/brains/commit/6c580434e630f4156da2c691ec6da9ddd2cbd177) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sets the brains' names as one quiet layer under the sky: lowercase, below every light, aligned inward at the drawing's edges.
+
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- [#522](https://github.com/rizom-ai/brains/pull/522) [`93621cf`](https://github.com/rizom-ai/brains/commit/93621cf7f4655381479fe399f9311ff380e9084a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask draws the live network as a night sky: Rizom the densest light, tendrils forking outward toward the brains and thinning as they reach, every brain a layered light that breathes on its own clock, energy travelling a tendril to a brain now and then, the brains not yet in reach as dust at the edge, grain in the substrate. An answer flares the cited brains while the rest withdraw. The rings, spokes, pulse and sparks are gone.
+
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`abeaf35`](https://github.com/rizom-ai/brains/commit/abeaf350dc738b4d030e93210a7fb913f5311cf1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's science chapter lists its three dimensions in the same form as the organism's parts, a left accent rule, display-face titles and muted text; a part that is one of the site's rooms shows as a door, underlined in the accent. A stray closing brace at the end of the story stylesheet is gone.
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`ead43fa`](https://github.com/rizom-ai/brains/commit/ead43fa3798715dfa709f7dd692aeb64ddffd671) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's figure opens on the whole organism at rest, the brain, the practice and the network joined, beside the opening's words; the science then pulls the team's pyramid out of it and every stage follows from the last, back and forth with the reading. The opening carries no separate picture.
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#515](https://github.com/rizom-ai/brains/pull/515) [`428dcd1`](https://github.com/rizom-ai/brains/commit/428dcd1701affddf5f81ca3f352ccea6e9d2026a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening shows the organism again, one brain becoming a team and a network in the rooms' lights, in the drawing's place beside the words; the live network is drawn on /ask, where the growth section's "network" now leads.
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [#513](https://github.com/rizom-ai/brains/pull/513) [`b1ed5d1`](https://github.com/rizom-ai/brains/commit/b1ed5d13be681f07146fe0fdb3c33833fb24a401) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's homepage opens as it did before the Ask box moved in: the words, the door and the live network drawing, which leaves with the opening; the figure runs its stages without a handover. The Ask room is its own page, /ask, linked from the bar: the box beside the live network, which an answer's sources light and lead to, and under it the questions visitors asked before.
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [#511](https://github.com/rizom-ai/brains/pull/511) [`a3d6d0a`](https://github.com/rizom-ai/brains/commit/a3d6d0ac994b8e0a7bb99b7e4abab541f858a053) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's Asked-before chapter takes the figure's place by scroll, through the centre point: the figure draws into the point as the chapter arrives, the chapter's network opens out of it and holds the centre line while the questions are read, and as the next chapter arrives the network draws back in and the figure's lantern opens again; scrolling back runs it backwards.
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- [#509](https://github.com/rizom-ai/brains/pull/509) [`019094f`](https://github.com/rizom-ai/brains/commit/019094f45128e967a72c3cd1a269614c9c5cae10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure by scroll: as the science comes up the screen the network draws into its centre point, and past the reading line the first team's pyramid opens out of that same point; scrolling back runs it backwards. No timers.
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [#505](https://github.com/rizom-ai/brains/pull/505) [`7553962`](https://github.com/rizom-ai/brains/commit/75539623ba98972c474fb91058c3ba8f84966bbd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure through the centre point: once the reading moves the figure on, the network draws into its centre and the first team's pyramid opens out of that point; back up the page, the pyramid closes into the point and the network opens out again.
+
+## 0.2.0-alpha.263
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening is an Ask room, as yeehaa.io's atlas is: on a wide screen the words scroll within the screen beside the drawing, the composer stays on the first screen through a long answer, and the leads from an answer's sources to their brains, the lending of the drawing to a phone's conversation and the tap on a lit dot come from the shared room.
+
 ## 0.2.0-alpha.262
 
 ### Patch Changes

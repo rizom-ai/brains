@@ -137,6 +137,61 @@ describe("projectSemanticSpace", () => {
     ]);
   });
 
+  test("projects only the listed entities", async () => {
+    await seedEmbedding({ id: "a", values: [1, 0] });
+    await seedEmbedding({ id: "b", values: [0, 1] });
+    await seedEmbedding({ id: "c", values: [1, 1] });
+    await seedEmbedding({ id: "img", entityType: "image", values: [0, 1] });
+
+    const result = await ctx.entityService.projectSemanticSpace({
+      entities: [
+        { entityType: "test", entityId: "a" },
+        { entityType: "image", entityId: "img" },
+        { entityType: "test", entityId: "missing" },
+      ],
+    });
+
+    expect(
+      result.points
+        .map(({ entityType, entityId }) => `${entityType}:${entityId}`)
+        .sort(),
+    ).toEqual(["image:img", "test:a"]);
+  });
+
+  test("measures points from an origin of another type, within the scope", async () => {
+    await seedEmbedding({ id: "origin", values: [1, 0] });
+    await seedEmbedding({ id: "other", values: [0, 1] });
+    await seedEmbedding({ id: "near", entityType: "image", values: [1, 0] });
+    await seedEmbedding({ id: "far", entityType: "image", values: [0, 1] });
+    await seedEmbedding({
+      id: "hidden",
+      visibility: "restricted",
+      values: [1, 0],
+    });
+
+    const result = await ctx.entityService.projectSemanticSpace({
+      types: ["image"],
+      origin: { entityId: "origin", entityType: "test" },
+    });
+    const distance = (id: string): number | undefined =>
+      result.points.find(({ entityId }) => entityId === id)?.distanceToOrigin;
+
+    expect(result.origin).toEqual({
+      kind: "entity",
+      entityId: "origin",
+      entityType: "test",
+    });
+    expect(distance("near")).toBeCloseTo(0);
+    expect(distance("far")).toBeCloseTo(1);
+
+    // An origin outside the caller's scope is not used.
+    const hidden = await ctx.entityService.projectSemanticSpace({
+      types: ["image"],
+      origin: { entityId: "hidden", entityType: "test" },
+    });
+    expect(hidden.origin).toEqual({ kind: "centroid" });
+  });
+
   test("fails closed to public visibility and allows explicit scope widening", async () => {
     await seedEmbedding({ id: "public-entity", values: [1, 0] });
     await seedEmbedding({

@@ -21,6 +21,7 @@ import { parseCliOptions } from "./cli-options";
 import { loadEvalConfig } from "./eval-config-loader";
 import { buildEvalDatabase } from "./eval-db-builder";
 import { runMultiModelEvaluation } from "./multi-model-runner";
+import { resolveSampling } from "./multi-model";
 import { runSingleModelEvaluation } from "./single-model-runner";
 import { printHelp } from "./cli-help";
 import { bootstrapCliEnvironment } from "./cli-bootstrap";
@@ -62,6 +63,8 @@ export async function main(): Promise<void> {
     authToken,
     compareAgainst,
     saveBaseline,
+    samples: cliSamples,
+    minPassRate: cliMinPassRate,
   } = parseCliOptions(args);
 
   try {
@@ -80,8 +83,15 @@ export async function main(): Promise<void> {
       brainModelPath,
       models,
       judge,
+      samples: yamlSamples,
       resolveConfig: freshResolve,
     } = evalConfigResult;
+    const { samples, minPassRate } = resolveSampling({
+      multiModel: models.length > 0,
+      cliSamples,
+      yamlSamples,
+      minPassRate: cliMinPassRate,
+    });
     const effectiveTags = evalConfigResult.tags ?? tags;
 
     // Shared eval environment setup
@@ -145,6 +155,8 @@ export async function main(): Promise<void> {
         remoteUrl,
         authToken,
         mcpBasic,
+        samples,
+        minPassRate,
         resolveConfig: freshResolve,
         runEvaluationsCollect,
       });

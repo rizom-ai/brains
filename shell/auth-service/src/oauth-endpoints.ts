@@ -72,6 +72,8 @@ export interface OAuthEndpointsOptions {
   /** Package-private deterministic clock for maintenance lifecycle tests. */
   clientMaintenanceClock?: Clock.Clock | undefined;
   onClientMaintenanceError?: (error: unknown) => void;
+  /** Attach scheduled maintenance to the owning service's admission scope. */
+  runClientMaintenance?: (operation: () => Promise<void>) => Promise<void>;
 }
 
 function clientRegistrationSource(request: Request): string {
@@ -105,6 +107,9 @@ export class OAuthEndpoints {
   private readonly clientMaintenanceIntervalMs: number;
   private readonly clientMaintenanceClock: Clock.Clock | undefined;
   private readonly onClientMaintenanceError: (error: unknown) => void;
+  private readonly runClientMaintenance: (
+    operation: () => Promise<void>,
+  ) => Promise<void>;
   private readonly authorizationApprovalTokens = new Map<
     string,
     AuthorizationApprovalTokenState
@@ -133,6 +138,9 @@ export class OAuthEndpoints {
     this.clientMaintenanceClock = options.clientMaintenanceClock;
     this.onClientMaintenanceError =
       options.onClientMaintenanceError ?? ((): void => undefined);
+    this.runClientMaintenance =
+      options.runClientMaintenance ??
+      ((operation): Promise<void> => operation());
   }
 
   async handleAuthorizePage(
@@ -427,11 +435,12 @@ export class OAuthEndpoints {
 
     this.clientMaintenanceSupervisor ??= new OAuthClientMaintenanceSupervisor(
       this.clientMaintenanceIntervalMs,
-      async (now) => {
-        await pruneStaleClients(
-          Math.floor(now / 1000) - UNCONSENTED_CLIENT_RETENTION_SECONDS,
-        );
-      },
+      (now) =>
+        this.runClientMaintenance(async () => {
+          await pruneStaleClients(
+            Math.floor(now / 1000) - UNCONSENTED_CLIENT_RETENTION_SECONDS,
+          );
+        }),
       {
         ...(this.clientMaintenanceClock
           ? { clock: this.clientMaintenanceClock }

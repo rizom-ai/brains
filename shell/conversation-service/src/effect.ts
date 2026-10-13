@@ -11,10 +11,10 @@ import type {
 
 export type ConversationServiceTag =
   "@brains/conversation-service/ConversationService";
-export const ConversationServiceTag: Context.Tag<
+export const ConversationServiceTag: Context.Service<
   ConversationServiceTag,
   IConversationService
-> = Context.GenericTag<ConversationServiceTag, IConversationService>(
+> = Context.Service<ConversationServiceTag, IConversationService>(
   "@brains/conversation-service/ConversationService",
 );
 

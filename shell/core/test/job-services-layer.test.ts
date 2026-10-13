@@ -174,6 +174,55 @@ describe("job service layers", () => {
     expect(order).toEqual(["database"]);
   });
 
+  it("joins failed runtime cleanup before releasing remaining services", async () => {
+    const workerFailure = new Error("worker stop failed");
+    const progressEntered = Promise.withResolvers<void>();
+    const releaseProgress = Promise.withResolvers<void>();
+    const order: string[] = [];
+    const dependencies = createInjectedDependencies({ order, workerFailure });
+    const progressMonitor = dependencies.jobProgressMonitor;
+    if (!progressMonitor) throw new Error("Missing injected progress monitor");
+    progressMonitor.stop = async (): Promise<void> => {
+      order.push("progress");
+      progressEntered.resolve();
+      await releaseProgress.promise;
+    };
+    const services = initializeJobServices({
+      dependencies,
+      jobQueueConfig: { url: "file::memory:" },
+      workerConcurrency,
+      messageBus: MessageBus.createFresh(logger),
+      logger,
+    });
+
+    const firstClose = services.closeRuntime();
+    let firstSettled = false;
+    const firstOutcome = firstClose.then(
+      () => ({ error: undefined }),
+      (error: unknown) => ({ error }),
+    );
+    void firstOutcome.then(() => {
+      firstSettled = true;
+    });
+    await progressEntered.promise;
+    const secondClose = services.closeRuntime();
+    const secondOutcome = secondClose.then(
+      () => ({ error: undefined }),
+      (error: unknown) => ({ error }),
+    );
+
+    expect(secondClose).toBe(firstClose);
+    expect(firstSettled).toBe(false);
+    expect(order).toEqual(["worker", "progress"]);
+    releaseProgress.resolve();
+    const [first, second] = await Promise.all([firstOutcome, secondOutcome]);
+    expect(first.error).toBe(workerFailure);
+    expect(second.error).toBe(workerFailure);
+    expect(services.closeRuntime()).toBe(firstClose);
+    services.closeDatabase();
+    expect(order).toEqual(["worker", "progress", "batch", "database"]);
+  });
+
   it("settles runtime cleanup and preserves the first failure", async () => {
     const order: string[] = [];
     const workerFailure = new Error("worker stop failed");

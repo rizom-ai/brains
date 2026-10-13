@@ -433,6 +433,7 @@ export const entityDisplaySchema: Strict<{
   label: z.ZodString;
   pluralName: z.ZodOptional<z.ZodString>;
   layout: z.ZodOptional<z.ZodString>;
+  detailTemplate: z.ZodOptional<z.ZodString>;
   paginate: z.ZodOptional<z.ZodBoolean>;
   pageSize: z.ZodOptional<z.ZodNumber>;
   citable: z.ZodOptional<z.ZodBoolean>;
@@ -450,6 +451,11 @@ export const entityDisplaySchema: Strict<{
   pluralName: z.string().min(1).optional(),
   /** Layout name for this entity type's generated routes (defaults to "default"). */
   layout: z.string().min(1).optional(),
+  /**
+   * Template that renders this entity type's detail pages, in place of the
+   * plugin's own `<type>-detail` template (e.g. "book:theme" for topics).
+   */
+  detailTemplate: z.string().min(1).optional(),
   /** Enable pagination for list pages. */
   paginate: z.boolean().optional(),
   /** Items per page (default: 10). */

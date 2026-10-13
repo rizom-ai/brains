@@ -50,6 +50,7 @@ describe("Deck OG image attachment provider", () => {
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("deck", "og-image")).toBe(true);
+    expect(context.views.hasRenderer("decks:og-image", "image")).toBe(true);
   });
 
   it("resolves a deck into a PNG OG image attachment", async () => {
@@ -71,6 +72,7 @@ describe("Deck OG image attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: "example.com",
       },
       { screenshotPng },

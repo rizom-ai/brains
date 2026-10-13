@@ -4,8 +4,11 @@ import type {
   Resource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
   SiteBuildProfile,
@@ -36,6 +39,19 @@ import { siteBuilderConfigSchema } from "./config";
 
 import packageJson from "../package.json";
 
+/** One plugin's answer on SITE_BUILDER_CHANNELS.slots. */
+const slotContributionsSchema = z.array(
+  z.object({
+    pluginId: z.string(),
+    slotName: z.string(),
+    // A render function cannot be validated beyond being one.
+    render: z.custom<SlotRegistration["render"]>(
+      (value) => typeof value === "function",
+    ),
+    priority: z.number().optional(),
+  }),
+);
+
 /**
  * Site Builder Plugin
  * Provides static site generation capabilities
@@ -47,13 +63,11 @@ export class SiteBuilderPlugin extends ServicePlugin<
   private siteBuilder?: SiteBuilder;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
-  private _slotRegistry?: UISlotRegistry;
   private profileService?: SiteBuildProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
   private buildStatusService?: SiteBuildStatusService;
   private siteWorkspaceProvider?: SiteWorkspaceProvider;
-  private headScripts = new Map<string, string>();
 
   private get routeRegistry(): RouteRegistry {
     if (!this._routeRegistry) {
@@ -74,9 +88,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
       siteBuilderConfigSchema,
     );
     this.layouts = layouts;
-    for (const [index, script] of this.config.headScripts.entries()) {
-      this.headScripts.set(`site-package:${index}`, script);
-    }
   }
 
   protected override async onRegister(
@@ -86,32 +97,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
     // Initialize registries
     this._routeRegistry = new RouteRegistry(context.logger);
-    this._slotRegistry = new UISlotRegistry();
-
-    // Subscribe to slot registration messages from other plugins
-    context.messaging.subscribe<
-      SlotRegistration & { slotName: string },
-      { success: boolean }
-    >(SITE_BUILDER_CHANNELS.slotRegister, async (message) => {
-      const { slotName, pluginId, render, priority } = message.payload;
-      this._slotRegistry?.register(slotName, {
-        pluginId,
-        render,
-        ...(priority !== undefined && { priority }),
-      });
-      return { success: true };
-    });
-
-    // Subscribe to head script registration messages from other plugins
-    context.messaging.subscribe<
-      { pluginId: string; script: string },
-      { success: boolean }
-    >(SITE_BUILDER_CHANNELS.headScriptRegister, async (message) => {
-      const { pluginId, script } = message.payload;
-      // Use pluginId as key so re-registration replaces (no duplicates)
-      this.headScripts.set(pluginId, script);
-      return { success: true };
-    });
 
     // Register data sources
     context.entities.registerDataSource(
@@ -157,7 +142,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
       this.routeRegistry,
       this.profileService,
       undefined,
-      this.config.entityDisplay,
+      context.entityDisplay,
     );
 
     // Register site-build job handler
@@ -168,6 +153,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
         context.messaging.send,
         {
           siteBuilder: this.siteBuilder,
+          entityDisplay: context.entityDisplay,
           layouts: this.layouts,
           defaultSiteConfig: this.config.siteInfo,
           sharedImagesDir: this.config.sharedImagesDir,
@@ -176,29 +162,12 @@ export class SiteBuilderPlugin extends ServicePlugin<
           localSiteUrl: context.localSiteUrl,
           preferLocalUrls: context.preferLocalUrls,
           themeCSS: this.config.themeCSS,
-          slots: this._slotRegistry,
-          getHeadScripts: (): string[] => this.getRegisteredHeadScripts(),
+          getSlots: (): Promise<UISlotRegistry> => this.getSlots(),
+          getHeadScripts: (): Promise<string[]> => this.getHeadScripts(),
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
           statusService: this.buildStatusService,
-          onBuildStarted: (environment, jobId, inputGeneration): void => {
-            this.rebuildManager?.markBuildStarted(
-              environment,
-              jobId,
-              inputGeneration,
-            );
-          },
-          onBuildFinished: (
-            environment,
-            jobId,
-            inputGeneration,
-          ): Promise<void> =>
-            this.rebuildManager?.markBuildFinished(
-              environment,
-              jobId,
-              inputGeneration,
-            ) ?? Promise.resolve(),
         },
       ),
     );
@@ -227,6 +196,16 @@ export class SiteBuilderPlugin extends ServicePlugin<
       this.rebuildManager.setupAutoRebuild();
     }
 
+    // Rebuilt once startup content has settled, so a queued startup import
+    // is in the site before it renders.
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.startupContentSettled,
+      async () => {
+        await this.rebuildOutputsAfterStart();
+        return { success: true };
+      },
+    );
+
     // Re-register instructions when site metadata changes so the prompt stays fresh.
     context.messaging.subscribe<SiteMetadata, { success: boolean }>(
       SITE_METADATA_UPDATED_CHANNEL,
@@ -249,11 +228,76 @@ export class SiteBuilderPlugin extends ServicePlugin<
   }
 
   /**
-   * Get all head scripts registered by other plugins.
-   * Used by the build pipeline to inject scripts into the HTML <head>.
+   * A start, an upgrade included, may bring new renderer code that the input
+   * fingerprint cannot see; the renderer identity is fresh per process, so a
+   * requested build renders again. Every environment that already has an
+   * output is built again; one never built stays untouched.
    */
-  public getRegisteredHeadScripts(): string[] {
-    return Array.from(this.headScripts.values());
+  private async rebuildOutputsAfterStart(): Promise<void> {
+    const outputs = [
+      ["production", this.config.productionOutputDir],
+      ["preview", this.config.previewOutputDir],
+    ] as const;
+    const built = await Promise.all(
+      outputs.map(async ([environment, dir]) => ({
+        environment,
+        exists: await access(join(dir, "index.html")).then(
+          () => true,
+          () => false,
+        ),
+      })),
+    );
+    for (const { environment, exists } of built) {
+      if (exists) this.rebuildManager?.requestBuild(environment);
+    }
+  }
+
+  /**
+   * The scripts for every page's head: the site package's own, then each
+   * plugin's answer, asked for at build time so it works in the worker and
+   * whatever order plugins registered in.
+   */
+  public async getHeadScripts(): Promise<string[]> {
+    const answers = await this.getContext().messaging.collect({
+      type: SITE_BUILDER_CHANNELS.headScripts,
+      payload: {},
+    });
+    const contributed = answers.flatMap((answer) => {
+      const script =
+        "data" in answer ? z.string().safeParse(answer.data) : null;
+      return script?.success ? [script.data] : [];
+    });
+    return [...this.config.headScripts, ...contributed];
+  }
+
+  /**
+   * The layout slots for one build, from each plugin's answer: asked for at
+   * build time, like the head scripts, so they reach the worker.
+   */
+  public async getSlots(): Promise<UISlotRegistry> {
+    const answers = await this.getContext().messaging.collect({
+      type: SITE_BUILDER_CHANNELS.slots,
+      payload: {},
+    });
+    const slots = new UISlotRegistry();
+    for (const answer of answers) {
+      const contributions =
+        "data" in answer
+          ? slotContributionsSchema.safeParse(answer.data)
+          : null;
+      for (const {
+        slotName,
+        pluginId,
+        render,
+        priority,
+      } of contributions?.success ? contributions.data : [])
+        slots.register(slotName, {
+          pluginId,
+          render,
+          ...(priority !== undefined && { priority }),
+        });
+    }
+    return slots;
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -368,10 +412,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   public getSiteBuilder(): SiteBuilder | undefined {
     return this.siteBuilder;
-  }
-
-  public getSlotRegistry(): UISlotRegistry | undefined {
-    return this._slotRegistry;
   }
 
   protected override async getInstructions(): Promise<string | undefined> {

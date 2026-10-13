@@ -10,7 +10,6 @@ import { createReactBuilder } from "./react-builder";
 import type { RouteRegistry } from "@brains/site-engine";
 
 import type { EntityDisplayMap } from "../config";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { runSiteBuild } from "./run-site-build";
@@ -22,6 +21,13 @@ export type { SiteBuilderServices } from "./site-builder-services";
 interface ActiveSiteBuild {
   controller: AbortController;
   promise: Promise<BuildResult>;
+}
+
+/** The reason a build is aborted when a newer one of its environment starts. */
+class SupersededBuildError extends Error {
+  constructor(environment: string) {
+    super(`Superseded by a newer ${environment} site build`);
+  }
 }
 
 export class SiteBuilder implements ISiteBuilder {
@@ -79,9 +85,6 @@ export class SiteBuilder implements ISiteBuilder {
     };
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
     this.outputLifecycle = outputLifecycle;
-
-    // Configure the shared EntityUrlGenerator singleton
-    EntityUrlGenerator.getInstance().configure(entityDisplay);
   }
 
   async build(
@@ -90,9 +93,7 @@ export class SiteBuilder implements ISiteBuilder {
   ): Promise<BuildResult> {
     const environment = options.environment;
     const previousBuild = this.activeBuilds.get(environment);
-    previousBuild?.controller.abort(
-      new Error(`Superseded by a newer ${environment} site build`),
-    );
+    previousBuild?.controller.abort(new SupersededBuildError(environment));
 
     const controller = new AbortController();
     const signal = options.signal
@@ -110,7 +111,11 @@ export class SiteBuilder implements ISiteBuilder {
     this.activeBuilds.set(environment, activeBuild);
 
     try {
-      return await promise;
+      const result = await promise;
+      return result.cancelled &&
+        controller.signal.reason instanceof SupersededBuildError
+        ? { ...result, superseded: true }
+        : result;
     } finally {
       if (this.activeBuilds.get(environment) === activeBuild) {
         this.activeBuilds.delete(environment);

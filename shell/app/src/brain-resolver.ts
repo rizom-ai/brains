@@ -101,7 +101,6 @@ function applyPluginDefaults(
       ...(theme !== undefined && { themeCSS: theme }),
       ...(site && {
         routes: site.routes,
-        entityDisplay: site.entityDisplay,
         layouts: site.layouts,
         ...(site.headScripts && { headScripts: site.headScripts }),
       }),

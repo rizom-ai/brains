@@ -12,14 +12,11 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
   let testRoot: string;
   let syncPath: string;
-  let seedContentPath: string;
 
   beforeEach(async () => {
     testRoot = mkdtempSync(join(tmpdir(), "test-directory-sync-"));
     syncPath = join(testRoot, "brain-data");
-    seedContentPath = join(testRoot, "seed-content");
     mkdirSync(syncPath, { recursive: true });
-    mkdirSync(join(seedContentPath, "note"), { recursive: true });
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
@@ -40,11 +37,13 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
   /**
    * Subscribe to sync:initial:completed, install plugin, send the internal
-   * all-plugins-registered signal, and return the collected events array.
+   * all-plugins-registered signal, and return the plugin and the collected
+   * events array. The harness's batches report as completed when asked.
    */
-  async function installAndTriggerInitialSync(config: {
-    seedContent: boolean;
-  }): Promise<string[]> {
+  async function installAndTriggerInitialSync(): Promise<{
+    plugin: DirectorySyncPlugin;
+    events: string[];
+  }> {
     const events: string[] = [];
 
     harness.subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
@@ -54,7 +53,6 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
     const plugin = new DirectorySyncPlugin({
       syncPath,
-      seedContent: config.seedContent,
       initialSync: true,
       autoSync: false,
     });
@@ -65,28 +63,32 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
       timestamp: new Date().toISOString(),
       pluginCount: 1,
     });
+    await Bun.sleep(0);
 
-    return events;
+    return { plugin, events };
   }
 
-  it("should emit completion after importing seed content", async () => {
-    writeFileSync(
-      join(seedContentPath, "note", "test.md"),
-      "# Test\n\nTest content",
-    );
+  it("queues the content's import instead of importing it, and completes with its batch", async () => {
+    mkdirSync(join(syncPath, "note"), { recursive: true });
+    writeFileSync(join(syncPath, "note", "test.md"), "# Test\n\nTest content");
 
-    const events = await installAndTriggerInitialSync({ seedContent: true });
+    const { events } = await installAndTriggerInitialSync();
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
+    expect(
+      await harness
+        .getEntityService()
+        .getEntity({ entityType: "note", id: "test" }),
+    ).toBeNull();
   });
 
   it("should handle empty sync (no seed content)", async () => {
-    const events = await installAndTriggerInitialSync({ seedContent: false });
+    const { events } = await installAndTriggerInitialSync();
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
   });
 
-  it("exports a service-created entity whose lifecycle event was previously lost before cleanup", async () => {
+  it("exports a service-created entity whose lifecycle event was previously lost", async () => {
     const entityService = harness.getEntityService();
     const entity = createTestEntity("note", {
       id: "service-created-before-directory-sync",
@@ -95,15 +97,10 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     await entityService.createEntity({ entity });
     expect(await entityService.listPendingEntityExports()).toHaveLength(1);
 
-    const events = await installAndTriggerInitialSync({ seedContent: false });
+    const { plugin, events } = await installAndTriggerInitialSync();
+    await plugin.ready();
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
-    expect(
-      await entityService.getEntity({
-        entityType: "note",
-        id: entity.id,
-      }),
-    ).not.toBeNull();
     expect(existsSync(join(syncPath, `${entity.id}.md`))).toBe(true);
     expect(await entityService.listPendingEntityExports()).toEqual([]);
   });

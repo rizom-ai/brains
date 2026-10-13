@@ -177,12 +177,7 @@ export abstract class MessageInterfacePlugin<
         entityRef,
         userLevel: input.userPermissionLevel,
         // Access checks read references; bytes load only for delivery.
-        getEntity: (ref) =>
-          context.entityService.getEntity({
-            ...ref,
-            binaryContent: "reference",
-          }),
-        getVisibleEntity: (ref, visibilityScope) =>
+        getEntity: (ref, visibilityScope) =>
           context.entityService.getEntity({
             ...ref,
             visibilityScope,

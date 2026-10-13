@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { A2ATurnSupervisor } from "../src/turn-supervisor";
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
@@ -15,7 +15,7 @@ describe("A2ATurnSupervisor", () => {
   it("runs heartbeats on the injected Effect clock and stops them on close", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const supervisor = new A2ATurnSupervisor({ clock });
         let heartbeats = 0;
 
@@ -39,14 +39,14 @@ describe("A2ATurnSupervisor", () => {
         yield* Effect.promise(() => supervisor.close());
         yield* TestClock.adjust(10_000);
         expect(heartbeats).toBe(2);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("stops a task heartbeat when the operation completes", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const supervisor = new A2ATurnSupervisor({ clock });
         const release = deferred();
         let heartbeats = 0;
@@ -64,13 +64,13 @@ describe("A2ATurnSupervisor", () => {
         yield* TestClock.adjust(100);
         expect(heartbeats).toBe(1);
         release.resolve();
-        yield* Effect.yieldNow();
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
+        yield* Effect.yieldNow;
         yield* TestClock.adjust(1_000);
         expect(heartbeats).toBe(1);
 
         yield* Effect.promise(() => supervisor.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
@@ -96,8 +96,12 @@ describe("A2ATurnSupervisor", () => {
 
     expect(supervisor.cancel("task-1", reason)).toBe(true);
     expect(receivedSignal?.reason).toBe(reason);
-    expect(supervisor.cancel("task-1", new Error("second"))).toBe(true);
+    // Interruption may finalize synchronously. Repeated cancellation must
+    // preserve the original reason and release once, regardless of timing.
+    supervisor.cancel("task-1", new Error("second"));
+    expect(receivedSignal?.reason).toBe(reason);
     await supervisor.close();
     expect(releases).toBe(1);
+    expect(supervisor.cancel("task-1", new Error("after close"))).toBe(false);
   });
 });

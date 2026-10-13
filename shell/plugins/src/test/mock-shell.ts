@@ -35,7 +35,11 @@ import type {
 } from "../index";
 import type { RegisteredHttpRoute } from "../types/http-routes";
 import type { Template } from "@brains/templates";
-import { PermissionService } from "@brains/templates";
+import {
+  InMemoryTemplateRegistry,
+  PermissionService,
+  RenderService,
+} from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import { defaultQueryResponseSchema } from "@brains/contracts";
@@ -46,7 +50,7 @@ import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockJobQueue } from "./mock-job-queue";
 import { createMockContentServices } from "./mock-content";
 import { createMockDaemonRegistry } from "./mock-daemon-registry";
-import { createMockInsightsRegistry } from "./mock-insights-registry";
+import { createMockAnalyticsRegistry } from "./mock-analytics-registry";
 import { createMockEntityService } from "./mock-entity-service";
 import type {
   IRuntimeStateNamespace,
@@ -262,7 +266,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // entities.
   const entityStore = createMockEntityStore();
   const { entities, types: entityTypes } = entityStore;
-  const templates = new Map<string, Template>();
+  const templates = InMemoryTemplateRegistry.createFresh();
   const plugins = new Map<string, Plugin>();
 
   let agentService: IAgentService =
@@ -294,9 +298,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   });
 
   // --- Daemon Registry ---
-  // --- Insights Registry ---
-  // --- Daemon and Insights registries ---
-  const insightsRegistry = createMockInsightsRegistry();
+  // --- Analytics Registry ---
+  // --- Daemon and Analytics registries ---
+  const analyticsRegistry = createMockAnalyticsRegistry();
   const daemonRegistry = createMockDaemonRegistry();
 
   // Advertised by the shell itself, not by either registry.
@@ -334,15 +338,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     return routes;
   };
 
-  const renderService: ViewTemplateRegistry = {
-    get: () => undefined,
-    list: () => [],
-    validate: () => true,
-    findViewTemplate: () => undefined,
-    getRenderer: () => undefined,
-    hasRenderer: () => false,
-    listFormats: () => [],
-  };
+  // Views over the registered templates, as the shell serves them.
+  const renderService: ViewTemplateRegistry =
+    RenderService.createFresh(templates);
 
   const mcpTransport: IMCPTransport = {
     getMcpServer: (): never => {
@@ -551,7 +549,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerTemplates: (tmpls: Record<string, Template>, pluginId?: string) => {
       for (const [name, template] of Object.entries(tmpls)) {
         const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
-        templates.set(scopedName, template);
+        templates.register(scopedName, template);
       }
     },
     getTemplate: (name: string) => templates.get(name),
@@ -611,8 +609,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _handler: EvalHandler,
     ) => {},
 
-    // Insights registry
-    getInsightsRegistry: () => insightsRegistry,
+    // Analytics registry
+    getAnalyticsRegistry: () => analyticsRegistry,
 
     // API routes
     getPluginApiRoutes: (): RegisteredApiRoute[] => {
@@ -670,7 +668,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       plugins.set(plugin.id, plugin);
     },
     getPlugin: (pluginId: string) => plugins.get(pluginId),
-    getTemplates: () => new Map(templates),
+    getTemplates: () => templates.getAll(),
     setAgentService: (svc: IAgentService) => {
       agentService = svc;
     },

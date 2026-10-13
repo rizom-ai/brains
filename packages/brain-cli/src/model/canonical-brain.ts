@@ -22,6 +22,7 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import { docsPlugin } from "@brains/doc";
+import { bookPlugin } from "@brains/book";
 import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
@@ -101,7 +102,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
   version: packageJson.version,
   bundleContract: CANONICAL_BUNDLE_CONTRACT,
-  model: "gpt-5.6-luna",
+  model: "gpt-6-luna",
   reasoningEffort: "low",
   capabilities: [
     ["prompt", promptPlugin, undefined],
@@ -162,6 +163,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["conversation-memory", conversationMemoryPlugin, undefined],
     ["faq", faqPlugin, undefined],
     ["docs", docsPlugin, undefined],
+    ["book", bookPlugin, undefined],
 
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["email-workflows", emailWorkflows, undefined],

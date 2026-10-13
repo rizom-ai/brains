@@ -223,7 +223,7 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
     isStaleResolveDeployHandlesScript(current),
   "deploy/scripts/helpers.ts": hasOpsScriptFingerprint('"@rizom/ops/deploy"'),
   "deploy/scripts/resolve-user-config.ts":
-    hasOpsScriptFingerprint("loadPilotRegistry"),
+    hasOpsScriptFingerprint("sitePackagesFor"),
   "deploy/scripts/resolve-missing-images.ts": hasOpsScriptFingerprint(
     "runResolveMissingImages",
   ),

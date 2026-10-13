@@ -13,6 +13,7 @@ import type {
   IGitSync,
 } from "../types";
 import { gitReconciliationCheckpointSchema } from "../types/results";
+import type { MatchesHead } from "./file-watcher";
 
 const storedCheckpointSchema = z.object({
   checkpoint: gitReconciliationCheckpointSchema.optional(),
@@ -33,6 +34,8 @@ interface QueueReconciliationOptions {
   directorySync: IDirectorySync;
   context: ServicePluginContext;
   source: string;
+  /** Queue every file rather than the delta since the durable checkpoint. */
+  full?: boolean | undefined;
   metadata?: BatchMetadata | undefined;
   signal?: AbortSignal | undefined;
   onGitProgress?: (() => void) | undefined;
@@ -45,6 +48,16 @@ const CHECKPOINT_KEY = "current";
  * Owns the durable handoff from a serialized Git HEAD transition to queued
  * directory work. The checkpoint advances only after the batch is durable.
  */
+/** The paths whose working-tree state is what HEAD holds. */
+function matchingHead(gitSync: IGitSync): MatchesHead {
+  return async (paths) => {
+    const status = await gitSync.getStatus();
+    if (!status.isRepo) return [];
+    const differing = new Set(status.files.map((file) => file.path));
+    return paths.filter((path) => !differing.has(path));
+  };
+}
+
 export class GitReconciliationService {
   private readonly store: SerializedStatusStore<StoredCheckpoint>;
 
@@ -66,12 +79,6 @@ export class GitReconciliationService {
     return this.store.mutate((state) => {
       state.checkpoint = checkpoint;
     });
-  }
-
-  /** Capture HEAD after a synchronous full initial sync has completed. */
-  async captureCurrent(gitSync: IGitSync): Promise<void> {
-    const delta = await gitSync.getReconciliationDelta(undefined);
-    await this.saveCheckpoint(delta.checkpoint);
   }
 
   /** Pull, derive all work since the durable checkpoint, queue, then advance. */
@@ -100,7 +107,7 @@ export class GitReconciliationService {
     // gone, so refusing is this method's job: nothing below is worth starting
     // once the caller has given up on it.
     options.signal?.throwIfAborted();
-    const previous = await this.getCheckpoint();
+    const previous = options.full ? undefined : await this.getCheckpoint();
     const delta = await options.gitSync.getReconciliationDelta(previous);
 
     if (delta.mode === "full") {
@@ -140,7 +147,12 @@ export class GitReconciliationService {
       delta.deletedFiles,
     );
     if (batch) {
-      options.directorySync.suppressWatchPaths(delta.files);
+      // The batch imports and deletes what the pull changed; the watcher
+      // seeing the same files, however late, is an echo while they match HEAD.
+      options.directorySync.ignorePulledWatchPaths(
+        delta.files,
+        matchingHead(options.gitSync),
+      );
       await this.saveCheckpoint(delta.checkpoint);
     }
 

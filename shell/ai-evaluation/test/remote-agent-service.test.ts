@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { caughtError } from "@brains/test-utils";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 
 import { RemoteAgentService } from "../src/remote-agent-service";
 
@@ -136,7 +136,7 @@ describe("RemoteAgentService", () => {
 
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const service = new RemoteAgentService(
           { baseUrl: "http://brain.test", timeoutMs: 100 },
           { clock, fetchImpl: fetchMock },
@@ -145,7 +145,7 @@ describe("RemoteAgentService", () => {
           .chat("hello", "conversation-1")
           .catch((error: unknown) => error);
 
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
         yield* TestClock.adjust(99);
         yield* TestClock.adjust(1);
         const error = yield* Effect.promise(() => request);
@@ -153,7 +153,7 @@ describe("RemoteAgentService", () => {
         expect(caughtError(error).message).toBe(
           "Remote agent request timed out after 100ms",
         );
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 

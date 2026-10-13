@@ -6,6 +6,7 @@ import {
   type AgentResponse,
   type SourceCitation,
 } from "@brains/contracts";
+import type { EntityLinks } from "./entity-citation";
 export type {
   ActionsCard,
   AgentResponse,
@@ -114,6 +115,16 @@ export interface BrainAgentResult {
       toolCallId: string;
       toolName: string;
       input: unknown;
+      invalid?: boolean | undefined;
+      error?: unknown;
+    }>;
+    /** SDK execution errors live in content, not in toolResults. */
+    content?: Array<{
+      type: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      error?: unknown;
     }>;
     toolResults: Array<{
       toolCallId: string;
@@ -196,6 +207,8 @@ export interface AgentConfig {
   guestAnswerSources?: (request: {
     answer: string;
   }) => Promise<SourceCitation[]>;
+  /** Where the site shows entities, so a turn's sources link to their pages. */
+  entityLinks?: EntityLinks;
   /**
    * Optional finder of a published FAQ that already answers a visitor's
    * question. A hit answers the turn in the model's place, with the FAQ's

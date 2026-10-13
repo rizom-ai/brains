@@ -4,19 +4,11 @@ import {
   createMockEntityService,
   createTestEntity,
 } from "@brains/entity-service/test";
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  mock,
-  spyOn,
-} from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/plugins";
-import { resetPromptCache } from "@brains/plugins";
+import { resetPromptMaterialization } from "@brains/plugins";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
@@ -88,9 +80,16 @@ function createDataSourceWithSearch(
     templateRegistry,
     getIdentityContent,
     getProfileContent,
+    entityUrls,
     siteBaseUrl,
   );
 }
+
+const entityUrls = new EntityUrlGenerator({
+  post: { label: "Post" },
+  deck: { label: "Deck" },
+  note: { label: "Note" },
+});
 
 describe("AIContentDataSource", () => {
   let aiContentDataSource: AIContentDataSource;
@@ -190,13 +189,7 @@ describe("AIContentDataSource", () => {
   }
 
   beforeEach(() => {
-    resetPromptCache();
-    EntityUrlGenerator.resetInstance();
-    EntityUrlGenerator.getInstance().configure({
-      post: { label: "Post" },
-      deck: { label: "Deck" },
-      note: { label: "Note" },
-    });
+    resetPromptMaterialization();
 
     mockAIService = createMockAIService({
       returns: { generateObject: { message: "Test response" } },
@@ -221,11 +214,8 @@ describe("AIContentDataSource", () => {
       mockTemplateRegistry,
       mockGetIdentityContent,
       mockGetProfileContent,
+      entityUrls,
     );
-  });
-
-  afterEach(() => {
-    EntityUrlGenerator.resetInstance();
   });
 
   describe("metadata", () => {

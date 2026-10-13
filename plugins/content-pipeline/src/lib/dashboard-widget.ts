@@ -110,13 +110,14 @@ export async function registerDashboardWidget(
   await registerBuiltInDashboardWidget({
     context,
     definition: publicationPipelineWidget,
-    load: ({ signal }) => {
+    load: ({ visibilityScope, signal }) => {
       signal.throwIfAborted();
       return getPublicationPipelineSnapshot(
         context,
         deps.providerRegistry,
         deps.queueManager,
         deps.retryTracker,
+        { visibilityScope },
       );
     },
   });

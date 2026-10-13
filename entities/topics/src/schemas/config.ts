@@ -99,6 +99,7 @@ export const topicsPluginConfigSchema: z.ZodObject<{
   reconciliationMaxPairs: z.ZodDefault<z.ZodNumber>;
   autoMerge: z.ZodDefault<z.ZodBoolean>;
   extractableStatuses: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  excludeTitleTerms: z.ZodDefault<z.ZodArray<z.ZodString>>;
   enableAutoExtraction: z.ZodDefault<z.ZodBoolean>;
   extractionVisibility: z.ZodDefault<typeof extractionVisibilitySchema>;
   sourceChangeBatchDelayMs: z.ZodDefault<z.ZodNumber>;
@@ -200,6 +201,13 @@ export const topicsPluginConfigSchema: z.ZodObject<{
    * Entities without a status field are always eligible.
    */
   extractableStatuses: z.array(z.string()).default(["published"]),
+
+  /**
+   * Terms a topic title may not be built on, matched as a word prefix: a
+   * book brain excludes its author, so "Nietzschean Philosophy" names the
+   * brain rather than a concept other brains can match.
+   */
+  excludeTitleTerms: z.array(z.string().min(1)).default([]),
 
   /**
    * Enable automatic topic extraction from entity events

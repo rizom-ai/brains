@@ -30,8 +30,8 @@ The repo also checks in its deploy contract:
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 Use separate GitHub tokens: `CONTENT_REPO_ADMIN_TOKEN` for operator-side content repo creation/checks, and `GIT_SYNC_TOKEN` for runtime directory-sync git access.
-The fleet publishes one immutable `brain-${brainVersion}` image per effective Brain version. New images install the exact site/theme package union across the entire fleet, so smoke-to-fleet promotion reuses the tested image. Build and Deploy verify installed package versions before reusing existing images.
-When an effective brain version (`pilot.yaml.brainVersion`, or a cohort override) changes and you push, CI builds every missing version image, refreshes generated user env files, and redeploys affected users. Every external site and theme package keeps its own exact version pin; change that package set only together with a fresh Brain version so published tags remain immutable.
+The fleet publishes one immutable image per effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>` for instances with one (the pins spelled out and sorted, or a digest of them when too long). Instances with the same version and pins share an image; a site's pin change builds that site's image and no other, and smoke-to-fleet promotion reuses the tested image because its name already carries its pins. Build and Deploy verify installed package versions against an image's name before reusing it.
+When an effective brain version (`pilot.yaml.brainVersion`, or a cohort override) or a site pin changes and you push, CI builds every missing image, refreshes generated user env files (an instance with site pins names its image there as `IMAGE_TAG`), and redeploys affected users. Every external site and theme package keeps its own exact version pin. Published tags remain immutable: a new pin set is a new tag.
 When a push changes only deploy contract files, CI prints `No affected user configs; skipping deploy.` and stops before Kamal.
 
 ## Commands

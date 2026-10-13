@@ -63,8 +63,8 @@ describe("the homepage opening", () => {
     expect(openingTemplate.overlayFormatter).toBeDefined();
   });
 
-  test("opens the story with the authored words over the live network", () => {
-    const html = render({ ...map, topics: [], askBox: false });
+  test("opens the story with the authored words over the live network, and a door", () => {
+    const html = render(map);
     expect(html).toMatch(
       /^<section id="hero" class="chapter chapter--opening" data-title="Top">/,
     );
@@ -78,38 +78,21 @@ describe("the homepage opening", () => {
     expect(html).toContain(
       '<a class="opening__door" href="https://rizom.ai/work">Book a knowledge session</a>',
     );
-    expect(html.match(/class="net-mark"/g)).toHaveLength(2);
-    expect(html).toContain('<li class="net-name net-name--right"');
-    expect(html).toContain(">Becca<");
-    expect(html).toContain('class="net-pulse"');
+    // The opening has no picture of its own: the figure beside the chapters
+    // opens on the whole organism and the stages take it apart (see
+    // ./story/living-organism). The live network is drawn on /ask.
+    expect(html).not.toContain("opening__art");
+    expect(html).not.toContain("organism-map");
+    expect(html).not.toContain("net-layer");
+    // The Ask room lives on /ask (see ./ask-room); the opening carries none of it.
     expect(html).not.toContain("data-ask-box");
-  });
-
-  test("docks the Ask box, disabled, with the drafted questions as topics", () => {
-    const html = render({
-      ...map,
-      topics: ["What changes when a brain is yours?"],
-      askBox: true,
-      prompt: "What’s on your mind?",
-    });
-    expect(html).toContain('data-ask-box=""');
-    expect(html).toContain(
-      '<textarea rows="1" disabled="" aria-label="Your question" placeholder="What’s on your mind?">',
-    );
-    expect(html).toContain('data-ask-send=""');
-    expect(html).toContain(
-      '<button type="button" data-atlas-fill="What changes when a brain is yours?">What changes when a brain is yours?</button>',
-    );
-    expect(html).toContain(
-      '<script src="/ask/assets/box.js" defer=""></script>',
-    );
-    expect(html).not.toContain('class="opening__door"');
+    expect(html).not.toContain("data-ask-column");
+    expect(html).not.toContain("data-ask-leads");
+    expect(html).not.toContain("data-ask-drawing");
   });
 
   test("keeps the words when the network is empty", () => {
-    const html = render({ ...map, nodes: [], topics: [], askBox: false });
+    const html = render({ ...map, nodes: [] });
     expect(html).toContain("<h1>AI didn&#x27;t break");
-    expect(html).not.toContain("net-mark");
-    expect(html).not.toContain("net-pulse");
   });
 });

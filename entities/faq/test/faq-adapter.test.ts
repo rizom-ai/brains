@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { faqAdapter } from "../src";
+import { faqBodyCodec } from "../src/adapters/faq-adapter";
+import type { FaqBody } from "../src/schemas/faq";
 
 const frontmatter = {
   question: "How do I publish a draft?",
@@ -128,5 +132,40 @@ describe("FaqAdapter", () => {
     expect(faqAdapter.parseFaqContent(markdown).alternatives).toEqual([
       { answer: `Run:\n\n${code}` },
     ]);
+  });
+});
+
+describe("faqBodyCodec", () => {
+  const formatter = {
+    format: (body: FaqBody): string => z.encode(faqBodyCodec, body),
+    parse: (markdown: string): FaqBody => z.decode(faqBodyCodec, markdown),
+  };
+
+  it("round-trips an answer and its alternatives", () => {
+    expectBodyRoundTrip(formatter, {
+      answer: "Open it in Studio and choose Publish.",
+      alternatives: [
+        { answer: "Ask the brain to publish it." },
+        { answer: "#### From the CLI\n\nRun the publish command." },
+      ],
+    });
+  });
+
+  it("round-trips an answer with no alternatives", () => {
+    expectBodyRoundTrip(formatter, {
+      answer: "Open it in Studio and choose Publish.",
+      alternatives: [],
+    });
+  });
+
+  it("rejects a body that violates the schema when writing", () => {
+    const untyped: z.ZodType<unknown, string> = faqBodyCodec;
+
+    expect(() =>
+      z.encode(untyped, {
+        answer: "Open it in Studio.",
+        alternatives: [{ text: "Ask the brain." }],
+      }),
+    ).toThrow(z.ZodError);
   });
 });

@@ -14,15 +14,27 @@ import { setCoverImageId, setOgImageId } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { SystemServices } from "./types";
+import { FRONTMATTER_BLOCK } from "./markdown-body";
+import type { UpdateOperationInput } from "./schemas";
 
 /**
- * What an update asks for, once edits are applied and input normalized: a
+ * What an update asks for once edits are applied and a source is resolved: a
  * full content replacement or a set of field changes, never both.
  */
-export interface UpdateOperation {
-  fields?: Record<string, unknown>;
-  content?: string;
-}
+export type UpdateOperation = Extract<
+  UpdateOperationInput,
+  { kind: "fields" | "content" }
+>;
+
+/**
+ * Changed lines a replacement preview still lists. Beyond it the preview says
+ * the content is replaced wholesale. A count of edits, not a clock, so the
+ * same replacement previews the same way on a loaded machine; and a small
+ * one, because the diff's work grows with the document's length times this
+ * bound (two unrelated 3000-line documents took 8 s to reach 4000 on a CI
+ * runner), and a preview of more changed lines than this is not read anyway.
+ */
+const MAX_PREVIEW_DIFF_EDITS = 400;
 
 interface UpdateError {
   success: false;
@@ -201,8 +213,8 @@ function validateFieldUpdatePersistence(
   entityRegistry: SystemServices["entityRegistry"],
   entityService: SystemServices["entityService"],
 ): UpdateError | undefined {
+  if (operation.kind !== "fields") return undefined;
   const fields = operation.fields;
-  if (!fields) return undefined;
 
   const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
     entity.entityType,
@@ -312,8 +324,6 @@ function validateFieldUpdatePersistence(
   };
 }
 
-const FRONTMATTER_BLOCK = /^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/;
-
 /**
  * Turns replacement text into the full document it stands for. Text with its
  * own frontmatter replaces the whole document. Body-only text replaces the body
@@ -346,7 +356,7 @@ function validateContentReplacement(
   operation: UpdateOperation,
   entityRegistry: SystemServices["entityRegistry"],
 ): UpdateError | undefined {
-  if (operation.content === undefined) return undefined;
+  if (operation.kind !== "content") return undefined;
 
   const trimmedContent = operation.content.trim();
   const frontmatterSchema =
@@ -381,7 +391,7 @@ function validateCoverImageFieldUpdate(
   operation: UpdateOperation,
   entityRegistry: SystemServices["entityRegistry"],
 ): UpdateError | undefined {
-  if (!operation.fields || !("coverImageId" in operation.fields)) {
+  if (operation.kind !== "fields" || !("coverImageId" in operation.fields)) {
     return undefined;
   }
 
@@ -420,11 +430,11 @@ function getUpdatedStatus(
   operation: UpdateOperation,
   entityRegistry: SystemServices["entityRegistry"],
 ): unknown {
-  if (operation.fields && "status" in operation.fields) {
+  if (operation.kind === "fields" && "status" in operation.fields) {
     return operation.fields["status"];
   }
 
-  if (operation.content !== undefined) {
+  if (operation.kind === "content") {
     const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
       entity.entityType,
     );
@@ -447,7 +457,7 @@ export function buildUpdateDiff(
   registry: SystemServices["entityRegistry"],
 ): string {
   const sourceFields = sourceFieldKeys(entity.entityType, registry);
-  if (operation.fields) {
+  if (operation.kind === "fields") {
     return Object.entries(operation.fields)
       .map(([key, val]) => {
         const previous = currentFieldValue(entity, key, sourceFields);
@@ -470,12 +480,14 @@ export function buildUpdateDiff(
   }
 
   const oldLines = entity.content.split("\n");
-  const newLines = (operation.content ?? "").split("\n");
+  const newLines = operation.content.split("\n");
   // Align unchanged lines so insertions do not make the entire suffix look
   // rewritten. Bound diff work for large, completely different documents.
-  const changes = diffArrays(oldLines, newLines, { timeout: 100 });
+  const changes = diffArrays(oldLines, newLines, {
+    maxEditLength: MAX_PREVIEW_DIFF_EDITS,
+  });
   if (!changes) {
-    return "Full content replacement (line diff omitted: comparison exceeded its time limit).";
+    return `Full content replacement (line diff omitted: more than ${MAX_PREVIEW_DIFF_EDITS} changed lines).`;
   }
   return changes
     .filter((change) => change.added || change.removed)
@@ -525,7 +537,7 @@ export function applyUpdateOperation(
   operation: UpdateOperation,
   entityRegistry: SystemServices["entityRegistry"],
 ): BaseEntity {
-  return operation.content !== undefined
+  return operation.kind === "content"
     ? applyContentUpdate(entity, operation.content, entityRegistry)
-    : applyFieldUpdates(entity, operation.fields ?? {}, entityRegistry);
+    : applyFieldUpdates(entity, operation.fields, entityRegistry);
 }

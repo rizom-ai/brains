@@ -75,6 +75,9 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // Brains no longer copy what other brains publish; delete the pieces a
+    // brain kept before, with their files.
+    await context.entityService.purgeEntityType("network-piece");
     registerAtprotoBrainCardHandlers(context);
     context.recurringChecks.register({
       id: "agent-card-refresh",

@@ -29,6 +29,7 @@ const BAR_LINKS: BarLink[] = [
   { label: "Work", href: "/work", room: "work" },
   { label: "Foundation", href: "/foundation", room: "foundation" },
   { label: "Writing", href: "/writing" },
+  { label: "Ask", href: "/ask" },
 ];
 
 const AUDIT = { label: "Book an audit", href: "/work#audit" };
@@ -186,12 +187,14 @@ function SiteFooter({
   );
 }
 
-// The pages told as a story, and the drawing each one scrolls beside.
-const STORY_FIGURES: Record<string, StoryFigure> = {
+// The pages told as a story, and the drawing each one scrolls beside; the
+// Ask room brings its own drawing and has no figure.
+const STORY_FIGURES: Record<string, StoryFigure | null> = {
   "/": { className: "living-org", organism: livingOrganism },
   "/brain": { className: "brain-org", organism: brainOrganism },
   "/work": { className: "work-org", organism: workOrganism },
   "/foundation": { className: "foundation-org", organism: foundationOrganism },
+  "/ask": null,
 };
 
 function RizomAiChrome({
@@ -210,7 +213,7 @@ function RizomAiChrome({
       <div data-room={room} className="relative">
         <Bar path={path} />
         <main>
-          {figure ? (
+          {figure !== undefined ? (
             <StoryPage figure={figure}>{children}</StoryPage>
           ) : (
             children

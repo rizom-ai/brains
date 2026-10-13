@@ -14,7 +14,6 @@ import {
   type SiteImageLookup,
 } from "@brains/site-engine";
 import { markdownToHtml } from "@brains/ui-library";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 
 describe("SiteBuilder - URL Enrichment", () => {
@@ -45,12 +44,10 @@ describe("SiteBuilder - URL Enrichment", () => {
         services: createSiteBuilderServices(mockContext),
         entityDisplay: display,
       },
-      urlGenerator: EntityUrlGenerator.getInstance(),
     });
 
   beforeEach(() => {
     mockContext = createMockServicePluginContext({ logger });
-    EntityUrlGenerator.getInstance().configure(entityDisplay);
   });
 
   it("prepares markdown image references as well as cover/OG references, excluding code examples", async () => {
@@ -325,7 +322,6 @@ describe("SiteBuilder - URL Enrichment", () => {
             services: createSiteBuilderServices(mockContext),
             entityDisplay: undefined,
           },
-          urlGenerator: EntityUrlGenerator.getInstance(),
         }),
       );
 
@@ -467,7 +463,6 @@ ogImageId: og-image
             },
             imageBuildService,
             siteUrl: "https://example.com",
-            urlGenerator: EntityUrlGenerator.getInstance(),
           }),
         );
 
@@ -510,7 +505,6 @@ coverImageId: cover-image
           },
           imageBuildService,
           siteUrl: "https://example.com/",
-          urlGenerator: EntityUrlGenerator.getInstance(),
         }),
       );
 

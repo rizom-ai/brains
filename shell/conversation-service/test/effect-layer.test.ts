@@ -15,7 +15,7 @@ import { ConversationService } from "../src/conversation-service";
 const logger = createSilentLogger("conversation-effect-layer");
 const messageBus = MessageBus.createFresh(logger);
 
-function closeScope(scope: Scope.CloseableScope): void {
+function closeScope(scope: Scope.Closeable): void {
   Effect.runSync(Scope.close(scope, Exit.void));
 }
 

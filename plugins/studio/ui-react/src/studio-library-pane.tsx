@@ -104,6 +104,7 @@ export function StudioLibraryPane(
         collectionLabel={collectionLabel}
         collectionPath={props.collectionPath}
         query={props.collectionQuery}
+        trail={props.collectionTrail}
         onNavigate={props.selectFolder}
       />
       {!entitySchema.isSingleton && (
@@ -161,7 +162,7 @@ export function StudioLibraryPane(
               systemDesign && systemFieldStyles.collectionRow,
             )}
             data-studio-record=""
-            onClick={() => openEntity(entity.id)}
+            onClick={() => openEntity(entity.id, entity.entityType)}
           >
             {!systemDesign && (
               <span className={editorClass("", library.index)}>

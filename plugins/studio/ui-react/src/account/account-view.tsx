@@ -15,6 +15,7 @@ import type {
   AuthAccountRole,
   AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
+import { STUDIO_AI_TOOLS_SECTION } from "@brains/contracts";
 import { useMemo, useState } from "react";
 import { AccountClient } from "./account-api";
 import {
@@ -23,6 +24,7 @@ import {
   AccountSecurityTab,
   AccountSettingsTab,
 } from "./account-tabs";
+import { AccountAiToolsTab } from "./account-ai-tools";
 import { useAccountActions } from "./use-account-actions";
 import { useStudioApi } from "../studio-api-context";
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
@@ -32,6 +34,31 @@ export interface AccountBootstrap {
   role: AuthAccountRole;
   routePath: string;
   studioPath: string;
+  /** This brain's MCP address, present when the person can connect AI tools. */
+  mcpUrl?: string | undefined;
+  /** Tab to open first, from the `section` query parameter. */
+  initialSection?: string | undefined;
+}
+
+const ACCOUNT_SECTIONS = [
+  "profile",
+  "security",
+  "identities",
+  "settings",
+  STUDIO_AI_TOOLS_SECTION,
+] as const;
+
+function openingSection(bootstrap: AccountBootstrap): string {
+  const requested = ACCOUNT_SECTIONS.find(
+    (section) => section === bootstrap.initialSection,
+  );
+  if (
+    !requested ||
+    (requested === STUDIO_AI_TOOLS_SECTION && !bootstrap.mcpUrl)
+  ) {
+    return "profile";
+  }
+  return requested;
 }
 
 export interface AccountAppProps {
@@ -58,7 +85,7 @@ export function AccountApp({
     routePath: bootstrap.routePath,
   });
   const { account: current, status, error, busy, confirmation } = actions;
-  const [section, setSection] = useState("profile");
+  const [section, setSection] = useState(() => openingSection(bootstrap));
   const title = current?.displayName ?? bootstrap.displayName;
 
   return (
@@ -78,9 +105,9 @@ export function AccountApp({
           }}
         />
         <p className={accountClass("account-scope", accountLayout.description)}>
-          Your account on this brain. Manage your profile, sign-in security,
-          linked identities, and personal settings here—not shared services or
-          other people’s access.
+          {bootstrap.mcpUrl
+            ? "Your account on this brain. Manage your profile, sign-in security, linked identities, personal settings and AI tools here—not shared services or other people’s access."
+            : "Your account on this brain. Manage your profile, sign-in security, linked identities, and personal settings here—not shared services or other people’s access."}
         </p>
         <p
           className={accountClass(
@@ -120,6 +147,11 @@ export function AccountApp({
               {current.pluginSettings.length > 0 && (
                 <TabsTrigger value="settings" disabled={busy}>
                   Personal settings
+                </TabsTrigger>
+              )}
+              {bootstrap.mcpUrl && (
+                <TabsTrigger value={STUDIO_AI_TOOLS_SECTION} disabled={busy}>
+                  AI tools
                 </TabsTrigger>
               )}
             </TabsList>
@@ -165,6 +197,16 @@ export function AccountApp({
             >
               <AccountSecurityTab account={current} actions={actions} />
             </TabsContent>
+            {bootstrap.mcpUrl && (
+              <TabsContent
+                value={STUDIO_AI_TOOLS_SECTION}
+                forceMount
+                hidden={section !== STUDIO_AI_TOOLS_SECTION}
+                className={accountClass("", accountLayout.tabPanel)}
+              >
+                <AccountAiToolsTab mcpUrl={bootstrap.mcpUrl} />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>

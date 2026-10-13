@@ -11,6 +11,7 @@ import {
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";
+import type { BlogPost, BlogPostStatus } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
 describe("blog ATProto projection", () => {
@@ -50,6 +51,22 @@ describe("blog ATProto projection", () => {
       sourceEntityId: "post-1",
       publishedAt: "2026-05-28T12:00:00.000Z",
     });
+  });
+
+  it("only treats published posts as publishable", () => {
+    const projection = createBlogAtprotoProjection();
+    const postWithStatus = (status: BlogPostStatus): BlogPost =>
+      createMockPost(
+        "post-1",
+        "Distributed Brains",
+        "distributed-brains",
+        status,
+      );
+
+    expect(projection.isPublishable?.(postWithStatus("published"))).toBe(true);
+    for (const status of ["generating", "draft", "queued", "failed"] as const) {
+      expect(projection.isPublishable?.(postWithStatus(status))).toBe(false);
+    }
   });
 
   it("names its page on this site, unless the essay was first published elsewhere", async () => {

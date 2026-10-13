@@ -24,13 +24,18 @@ export class ProximityMapDataSource implements DataSource {
     outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const data = await buildProximityMapData({
-      entityService: context.entityService,
-      semantic: {
-        project: (request) =>
-          context.entityService.projectSemanticSpace(request),
+    // The public site: public agents only, made explicit rather than left to
+    // the entity service default.
+    const data = await buildProximityMapData(
+      {
+        entityService: context.entityService,
+        semantic: {
+          project: (request) =>
+            context.entityService.projectSemanticSpace(request),
+        },
       },
-    });
+      "public",
+    );
 
     return outputSchema.parse(data);
   }

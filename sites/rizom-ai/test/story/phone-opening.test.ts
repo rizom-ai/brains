@@ -9,6 +9,14 @@ const css = readFileSync(join(import.meta.dir, "../../src/story.css"), "utf8");
 const phone = css.split("@media (max-width: 60rem)").slice(1).join("\n");
 
 describe("the story on a phone", () => {
+  test("keeps the Ask room's words clear of the strip, which no figure holds open there", () => {
+    // The drawing is fixed in the strip; on the room page nothing else takes
+    // that height in the flow, so the chapters start under it.
+    expect(phone).toMatch(
+      /\.story--room \.chapters \{[^}]*padding-top: var\(--strip-h\);/,
+    );
+  });
+
   test("gives the drawing's strip about a third of the screen, from one variable", () => {
     expect(phone).toMatch(/\.story \{[^}]*--strip-h: 34svh;/);
     expect(phone).toMatch(/\.figure \{[^}]*height: var\(--strip-h\);/);

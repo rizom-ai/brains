@@ -46,6 +46,8 @@ export interface StudioAppViewProps {
   entityType: string | null;
   entities: EntitySummary[] | null;
   folders: EntityFolder[];
+  /** Titles for the open prefix's segments, where a segment names a container. */
+  collectionTrail?: ReadonlyArray<string | null> | undefined;
   collectionPath: string;
   selectFolder: (prefix: EntityIdPath | null) => void;
   creationDestination: {
@@ -92,7 +94,8 @@ export interface StudioAppViewProps {
     canonicalUrlQuery?: StudioWorkspaceQuery,
   ) => void;
   startCreate: () => void;
-  openEntity: (entityId: string) => void;
+  /** Open a listed entry; a collection can list its contents' type too. */
+  openEntity: (entityId: string, entityType: string) => void;
   runFieldAssist: (variant: FieldAssistVariant, field: string) => void;
   applyFieldAssist: (field: string, suggestion: string | string[]) => void;
   save: () => void;

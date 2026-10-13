@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { publicAsksConfigSchema } from "./public-asks";
 
 type A2AConfigSchema = z.ZodObject<
   {
@@ -7,6 +8,8 @@ type A2AConfigSchema = z.ZodObject<
     requestTimeoutMs: z.ZodDefault<z.ZodNumber>;
     streamIdleTimeoutMs: z.ZodDefault<z.ZodNumber>;
     maxNetworkAttempts: z.ZodDefault<z.ZodNumber>;
+    networkAskTimeoutMs: z.ZodDefault<z.ZodNumber>;
+    publicAsks: z.ZodPrefault<typeof publicAsksConfigSchema>;
   },
   z.core.$strict
 >;
@@ -30,6 +33,16 @@ export const a2aConfigSchema: A2AConfigSchema = z
 
     /** Network attempts for transient outbound A2A failures. */
     maxNetworkAttempts: z.number().int().positive().default(2),
+
+    /**
+     * The whole budget for one peer when the network is asked: Agent Card
+     * fetch and answer. A brain's answer is a model turn with retrieval, which
+     * takes 15–25 s on the fleet, so a short budget asks nobody in effect.
+     */
+    networkAskTimeoutMs: z.number().positive().default(30_000),
+
+    /** How much this brain answers public A2A callers per day, and whether at all. */
+    publicAsks: publicAsksConfigSchema.prefault({}),
   })
   .strict();
 

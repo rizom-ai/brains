@@ -95,9 +95,7 @@ async function resolveVisibleArtifactEntity(input: {
     entityRef,
     userLevel: input.permissionLevel,
     // Access checks read references; bytes load only for the response.
-    getEntity: (ref) =>
-      input.entityService.getEntity({ ...ref, binaryContent: "reference" }),
-    getVisibleEntity: (ref, visibilityScope) =>
+    getEntity: (ref, visibilityScope) =>
       input.entityService.getEntity({
         ...ref,
         visibilityScope,
