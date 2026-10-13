@@ -258,6 +258,11 @@ function displayTitle(
 interface ProjectedCorpus {
   projection: ProjectionResult;
   titleById: Map<string, string>;
+  /**
+   * The topic each source was found near, keyed by type and id. Without it,
+   * a source joins the topic it lands beside on the plane.
+   */
+  topicBySource?: Map<string, string>;
 }
 
 /** Every embedded entity, titled from one list call per type present. */
@@ -311,6 +316,18 @@ async function projectAroundTopics(
       }),
     ),
   );
+  // A source near several topics joins the one it ranks highest under.
+  const topicBySource = new Map<string, { topicId: string; rank: number }>();
+  nearest.forEach((references, topicIndex) => {
+    const topicId = topics[topicIndex]?.id;
+    if (!topicId) return;
+    references.forEach(({ entityType, entityId }, rank) => {
+      const key = `${entityType}:${entityId}`;
+      const current = topicBySource.get(key);
+      if (!current || rank < current.rank)
+        topicBySource.set(key, { topicId, rank });
+    });
+  });
   const references = [
     ...topics.map((topic) => ({ entityType: TOPIC_TYPE, entityId: topic.id })),
     ...nearest.flat(),
@@ -353,7 +370,31 @@ async function projectAroundTopics(
         }
       }),
   );
-  return { projection, titleById };
+  return {
+    projection,
+    titleById,
+    topicBySource: new Map(
+      [...topicBySource].map(([key, { topicId }]) => [key, topicId]),
+    ),
+  };
+}
+
+/** The topic a point lands beside on the plane, within the zone radius. */
+function nearestZone(
+  zones: KnowledgeMapZone[],
+  x: number,
+  y: number,
+): string | null {
+  let zoneId: string | null = null;
+  let best = ZONE_RADIUS;
+  for (const zone of zones) {
+    const distance = Math.hypot(zone.x - x, zone.y - y);
+    if (distance <= best) {
+      best = distance;
+      zoneId = zone.id;
+    }
+  }
+  return zoneId;
 }
 
 export async function buildKnowledgeMapData(
@@ -377,7 +418,7 @@ export async function buildKnowledgeMapData(
       ),
     )
   ).reduce((sum, count) => sum + count, 0);
-  const { projection, titleById } =
+  const { projection, titleById, topicBySource } =
     sources <= FULL_MAP_SOURCES
       ? await projectWholeCorpus(context, visibilityScope)
       : await projectAroundTopics(
@@ -420,15 +461,9 @@ export async function buildKnowledgeMapData(
     .filter(({ point }) => point.entityType !== TOPIC_TYPE)
     .map(({ point, index }) => {
       const { x, y } = norm(index);
-      let zoneId: string | null = null;
-      let best = ZONE_RADIUS;
-      for (const zone of zones) {
-        const distance = Math.hypot(zone.x - x, zone.y - y);
-        if (distance <= best) {
-          best = distance;
-          zoneId = zone.id;
-        }
-      }
+      const zoneId = topicBySource
+        ? (topicBySource.get(`${point.entityType}:${point.entityId}`) ?? null)
+        : nearestZone(zones, x, y);
       return {
         id: point.entityId,
         entityType: point.entityType,
