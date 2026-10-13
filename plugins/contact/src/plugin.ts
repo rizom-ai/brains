@@ -23,6 +23,7 @@ import { ContactIntake, type ContactMaintenanceReport } from "./intake";
 import { ContactHttpHandlers } from "./http";
 import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
+import { registerContactWriteAdmission } from "./write-admission";
 import { contactRequestSchema } from "./entity/schema";
 import { contactPluginConfigSchema, type ContactPluginConfig } from "./config";
 
@@ -123,6 +124,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       context.runtimeState,
       config.storage,
       Date.now,
+    );
+    this.unregister.push(
+      registerContactWriteAdmission(context.entities, this.slots),
     );
     const admission = new ContactAdmission(
       context.runtimeState,

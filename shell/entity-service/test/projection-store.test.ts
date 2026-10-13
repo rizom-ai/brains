@@ -830,6 +830,101 @@ describe("ProjectionStore", () => {
     expect(await store.listPendingInputs()).toEqual(pending);
   });
 
+  it("reads a large pending journal without an oversized SQL result and coalesces latest revisions", async () => {
+    for (let index = 0; index < 350; index++) {
+      await store.markDirty({
+        sourceType: "document",
+        sourceId: `source-${index}`,
+        revision: "a".repeat(128),
+        operation: "upsert",
+        markedAt: index,
+      });
+    }
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "source-0",
+      revision: "latest",
+      operation: "delete",
+      markedAt: 351,
+    });
+    const inputs = await store.listPendingInputs();
+    expect(inputs).toHaveLength(350);
+    expect(inputs.at(-1)).toMatchObject({
+      sourceId: "source-0",
+      revision: "latest",
+      operation: "delete",
+    });
+    expect(new Set(inputs.map((input) => input.sourceId)).size).toBe(350);
+    expect(
+      (
+        await store.claimPendingWave({
+          waveId: "large-journal",
+          graphFingerprint: "graph",
+          startedAt: 352,
+        })
+      )?.id,
+    ).toBe("large-journal");
+    expect(await store.listPendingInputs()).toEqual([]);
+    expect(
+      (await store.listWaveInputs("large-journal")).map(
+        (input) => input.sourceId,
+      ),
+    ).toEqual(inputs.map((input) => input.sourceId));
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "source-0",
+      revision: "post-claim",
+      operation: "upsert",
+      markedAt: 400,
+    });
+    await connection.db.run(
+      sql`CREATE UNIQUE INDEX fail_late_requeue ON projection_dirty_inputs(source_type) WHERE source_id IN ('source-1', 'source-40')`,
+    );
+    await assert.rejects(
+      store.failWave("large-journal", 401),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.cause instanceof Error &&
+        /UNIQUE constraint failed/.test(error.cause.message),
+    );
+    expect((await store.getWave("large-journal"))?.status).toBe("running");
+    expect(
+      (await store.listPendingInputs()).map((input) => input.sourceId),
+    ).toEqual(["source-0"]);
+    await connection.db.run(sql`DROP INDEX fail_late_requeue`);
+    expect((await store.failWave("large-journal", 401)).status).toBe("failed");
+    const recovered = await store.listPendingInputs();
+    expect(recovered).toHaveLength(350);
+    expect(
+      recovered.find((input) => input.sourceId === "source-0"),
+    ).toMatchObject({ revision: "post-claim", operation: "upsert" });
+  });
+
+  it("bounds pending pages by encoded text risk, including NUL and multibyte revisions", async () => {
+    const revisions = [
+      "\u0000".repeat(6000),
+      "😀".repeat(2000),
+      "x".repeat(12000),
+    ];
+    for (let index = 0; index < 6; index++) {
+      await store.markDirty({
+        sourceType: "document",
+        sourceId: `wide-${index}`,
+        revision: revisions[index % revisions.length] ?? "",
+        operation: "upsert",
+        markedAt: index,
+      });
+    }
+    const pending = await store.listPendingInputs();
+    expect(pending.map((input) => input.revision)).toEqual([
+      ...revisions,
+      ...revisions,
+    ]);
+    expect(pending.map((input) => input.sourceId)).toEqual(
+      Array.from({ length: 6 }, (_, index) => `wide-${index}`),
+    );
+  });
+
   it("claims large input sets in bounded batches with atomic rollback", async () => {
     for (let index = 0; index < 65; index++) {
       await store.markDirty({

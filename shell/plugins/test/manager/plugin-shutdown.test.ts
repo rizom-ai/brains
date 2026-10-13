@@ -1,7 +1,16 @@
-import { createTestEntityAdapter } from "@brains/entity-service/test";
+import {
+  createTestEntityAdapter,
+  createTestEntity,
+} from "@brains/entity-service/test";
+import assert from "node:assert/strict";
+import { z } from "@brains/utils/zod";
 import { createMockShell } from "../../src/test/mock-shell";
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { Plugin, PluginCapabilities } from "@brains/plugins";
+import {
+  createServicePluginContext,
+  type Plugin,
+  type PluginCapabilities,
+} from "@brains/plugins";
 import { PluginStatus } from "../../src/manager/types";
 import { baseEntitySchema } from "@brains/entity-service";
 import type { IShell } from "@brains/plugins";
@@ -28,6 +37,120 @@ describe("Plugin shutdown lifecycle", () => {
       mockShell.getDaemonRegistry(),
     );
     pluginManager.setShell(mockShell);
+  });
+
+  test.each([false, true])(
+    "retires owner write admissions on disable or failed registration (failure=%s)",
+    async (fail) => {
+      const admissions = mockShell.getEntityRegistry().writeAdmissions;
+      const options = {
+        writeAdmission: { name: "fixture:guard", payload: null },
+      };
+      let prepared: ReturnType<typeof admissions.prepare>;
+      let retainedRegister: typeof admissions.register | undefined;
+      let checks = 0;
+      const plugin: Plugin = {
+        id: "guard-fixture",
+        version: "1.0.0",
+        type: "service",
+        description: "Guard fixture",
+        packageName: "@test/guard-fixture",
+        register: async (shell): Promise<PluginCapabilities> => {
+          retainedRegister = createServicePluginContext(shell, "guard-fixture")
+            .entities.registerWriteAdmission;
+          retainedRegister(
+            "fixture:guard",
+            z.null(),
+            async (): Promise<void> => {
+              checks++;
+            },
+          );
+          prepared = admissions.prepare(options, "create");
+          if (fail)
+            throw new Error("Registration failed after guard installation");
+          return { tools: [], resources: [] };
+        },
+      };
+      pluginManager.registerPlugin(plugin);
+      await pluginManager.initializePlugins();
+      assert(prepared);
+      const entity = createTestEntity("note");
+      if (!fail) {
+        await prepared(entity);
+        await pluginManager.disablePlugin(plugin.id);
+      }
+      expect(() => admissions.prepare(options, "create")).toThrow(
+        "Unknown write admission",
+      );
+      await assert.rejects(prepared(entity), /removed/);
+      expect(checks).toBe(fail ? 0 : 1);
+      const register = retainedRegister;
+      assert(register);
+      expect(() =>
+        register("fixture:late", z.null(), async (): Promise<void> => {}),
+      ).toThrow("Cannot register ingress after plugin teardown");
+      expect(() =>
+        admissions.prepare(
+          { writeAdmission: { name: "fixture:late", payload: null } },
+          "create",
+        ),
+      ).toThrow("Unknown write admission");
+    },
+  );
+
+  test("stops and drains an owner authorization before plugin shutdown", async () => {
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    let finished = false;
+    let shutdownCalled = false;
+    const plugin: Plugin = {
+      id: "draining-guard",
+      version: "1.0.0",
+      type: "service",
+      description: "Guard drain",
+      packageName: "@test/draining-guard",
+      register: async (shell): Promise<PluginCapabilities> => {
+        createServicePluginContext(
+          shell,
+          "draining-guard",
+        ).entities.registerWriteAdmission(
+          "fixture:drain",
+          z.null(),
+          async (): Promise<void> => {
+            entered.resolve();
+            await release.promise;
+            finished = true;
+          },
+        );
+        return { tools: [], resources: [] };
+      },
+      shutdown: async (): Promise<void> => {
+        expect(finished).toBe(true);
+        shutdownCalled = true;
+      },
+    };
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+    const admissions = mockShell.getEntityRegistry().writeAdmissions;
+    const options = {
+      writeAdmission: { name: "fixture:drain", payload: null },
+    };
+    const guard = admissions.prepare(options, "create");
+    assert(guard);
+    const rejected = assert.rejects(guard(createTestEntity("note")), /removed/);
+    await entered.promise;
+    const closing = pluginManager.disablePlugin(plugin.id);
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(() => admissions.prepare(options, "create")).toThrow(
+        "Unknown write admission",
+      );
+      expect(shutdownCalled).toBe(false);
+    } finally {
+      release.resolve();
+      await Promise.all([closing, rejected]);
+    }
+    expect(shutdownCalled).toBe(true);
   });
 
   test("rejects follow-up registration from a ready hook", async () => {

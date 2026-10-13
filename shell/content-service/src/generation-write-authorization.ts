@@ -7,6 +7,15 @@ import {
 } from "./generation-authorization";
 import type { ContentGenerationJobData } from "./generation-contracts";
 
+export type GenerationWriteAuthorizationData = Pick<
+  ContentGenerationJobData,
+  "authority" | "templateName" | "expectedRevision"
+> & {
+  destination: Omit<ContentGenerationJobData["destination"], "metadata"> & {
+    metadata: Record<string, unknown>;
+  };
+};
+
 export interface GenerationWriteAuthorizationDependencies {
   authorizer: GenerationAuthorizer;
   templateRegistry: Pick<TemplateRegistry, "get">;
@@ -23,7 +32,7 @@ export interface GenerationWriteAuthorizationDependencies {
  */
 export async function authorizeGenerationWrite(
   dependencies: GenerationWriteAuthorizationDependencies,
-  data: ContentGenerationJobData,
+  data: GenerationWriteAuthorizationData,
   persisted?: Readonly<BaseEntity>,
 ): Promise<GenerationAccess> {
   if (

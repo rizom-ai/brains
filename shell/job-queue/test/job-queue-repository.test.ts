@@ -802,6 +802,63 @@ describe("JobQueueRepository fenced attempts", () => {
     expect(updates.map((update) => update.job.id)).toEqual(["c-job"]);
   });
 
+  it("pages full job payloads without combining them into an oversized SQL result", async () => {
+    const ids = Array.from(
+      { length: 24 },
+      (_, index) => `large-${String(index).padStart(2, "0")}`,
+    );
+    const data = JSON.stringify({ content: "x".repeat(8192) });
+    for (const id of ids)
+      await repository.insert(
+        createTestJob({
+          id,
+          data,
+          createdAt: 100,
+          metadata: {
+            rootJobId: "large-root",
+            operationType: "data_processing",
+          },
+        }),
+      );
+    await client.execute("UPDATE job_queue SET runtimeUpdatedAt = 100");
+    const updates = await repository.getRuntimeUpdates(
+      { updatedAt: 0, jobId: "" },
+      24,
+    );
+    expect(updates.map((update) => update.job.id)).toEqual(ids);
+    expect(updates.every((update) => update.job.data === data)).toBe(true);
+    await repository.insert(
+      createTestJob({
+        id: "unrelated",
+        metadata: { rootJobId: "other-root", operationType: "data_processing" },
+      }),
+    );
+    const children = await repository.getJobsByRootJobId("large-root");
+    expect(children.map((job) => job.id)).toEqual(ids);
+    expect(children.every((job) => job.data === data)).toBe(true);
+    expect(
+      await repository.getRuntimeUpdates(
+        { updatedAt: 100, jobId: ids.at(-1) ?? "" },
+        24,
+      ),
+    ).toEqual([]);
+  });
+
+  it("sizes escaped and multibyte job results, not just job data", async () => {
+    const result = { text: "\u0000".repeat(1000) + "😀".repeat(2000) };
+    for (let index = 0; index < 10; index++)
+      await repository.insert(
+        createTestJob({ id: `escaped-${index}`, result }),
+      );
+    await client.execute("UPDATE job_queue SET runtimeUpdatedAt = 100");
+    const updates = await repository.getRuntimeUpdates(
+      { updatedAt: 0, jobId: "" },
+      10,
+    );
+    expect(updates).toHaveLength(10);
+    for (const update of updates) expect(update.job.result).toEqual(result);
+  });
+
   it("bounds cursor pages across timestamp boundaries", async () => {
     const jobs = ["a-job", "b-job", "c-job", "d-job", "e-job"].map((id) =>
       createTestJob({ id }),

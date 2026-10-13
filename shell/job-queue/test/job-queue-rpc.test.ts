@@ -191,6 +191,199 @@ describe("job queue owner RPC", () => {
     await expectFileMissing(workerDatabasePath);
   });
 
+  it("holds only imports across borrowers without rewriting schedules or blocking deletes", async () => {
+    const database = await createTestJobQueueDatabase();
+    cleanups.push(database.cleanup);
+    const logger = createSilentLogger();
+    const owner = JobQueueService.createFresh(database.config, logger, {
+      handlerRegistrationMode: "validation-only",
+    });
+    services.push(owner);
+    await owner.initialize();
+    const types = [
+      "directory-sync:directory-import",
+      "directory-sync:directory-delete",
+      "directory-sync:directory-sync",
+    ];
+    const handler = new TestHandler();
+    for (const type of types)
+      owner.registerHandler(type, handler, "directory-sync");
+    const workers = [];
+    for (let index = 0; index < 2; index++) {
+      const path = join(dirname(database.dbPath), `borrower-${index}.db`);
+      const worker = JobQueueService.createFresh(
+        { url: `file:${path}` },
+        logger,
+        {
+          handlerRegistrationMode: "execution-only",
+          remoteTransport: new DirectJsonTransport(owner),
+        },
+      );
+      services.unshift(worker);
+      await worker.initialize();
+      for (const type of types)
+        worker.registerHandler(type, handler, "directory-sync");
+      const claim = {
+        workerSlotId: `slot-${index}`,
+        workerSessionId: `session-${index}`,
+        leaseDurationMs: 30_000,
+      };
+      await worker.startWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+        60_000,
+      );
+      // Quiesce earlier claims before acknowledging the hold to a producer.
+      expect(await worker.dequeue(claim)).toBeNull();
+      worker.unregisterHandler("directory-sync:directory-import");
+      workers.push({ worker, claim, path });
+    }
+    const importIds: string[] = [];
+    for (let value = 0; value < 2; value++)
+      importIds.push(
+        await owner.enqueue({
+          type: "directory-sync:directory-import",
+          data: { value },
+        }),
+      );
+    const before = await Promise.all(
+      importIds.map((id) => owner.getStatus(id)),
+    );
+    for (const job of before)
+      expect(job).toMatchObject({
+        status: "pending",
+        retryCount: 0,
+        scheduledFor: expect.any(Number),
+      });
+    const executableIds = new Set<string>();
+    for (const type of types.slice(1))
+      executableIds.add(await owner.enqueue({ type, data: { value: 9 } }));
+    for (const { worker, claim } of workers) {
+      const job = await worker.dequeue(claim);
+      if (!job?.attemptId)
+        throw new Error("Expected non-import work while imports are held");
+      expect(executableIds.delete(job.id)).toBe(true);
+      expect(await worker.complete(job.id, undefined, job.attemptId)).toBe(
+        true,
+      );
+    }
+    expect(executableIds.size).toBe(0);
+    for (const { worker, claim } of workers)
+      expect(await worker.dequeue(claim)).toBeNull();
+    // Exact snapshots retain schedule, payload, status, retry count and ownership.
+    expect(
+      await Promise.all(importIds.map((id) => owner.getStatus(id))),
+    ).toEqual(before);
+    expect(await owner.getStats()).toMatchObject({
+      pending: 2,
+      completed: 2,
+      failed: 0,
+      processing: 0,
+    });
+    expect(await owner.getDiagnostics(Date.now())).toMatchObject({
+      duePending: 2,
+    });
+    for (const { worker } of workers)
+      worker.registerHandler(
+        "directory-sync:directory-import",
+        handler,
+        "directory-sync",
+      );
+    const drained = new Set<string>();
+    for (const { worker, claim, path } of workers) {
+      const job = await worker.dequeue(claim);
+      if (!job?.attemptId)
+        throw new Error("Expected held import after release");
+      expect(importIds).toContain(job.id);
+      expect(job.retryCount).toBe(0);
+      expect(drained.has(job.id)).toBe(false);
+      drained.add(job.id);
+      expect(await worker.complete(job.id, undefined, job.attemptId)).toBe(
+        true,
+      );
+      await expectFileMissing(path);
+    }
+    expect(drained.size).toBe(2);
+    expect(await owner.getStats()).toMatchObject({
+      pending: 0,
+      processing: 0,
+      completed: 4,
+      failed: 0,
+    });
+  });
+
+  it("cannot acknowledge an import hold until a previously advertised claim settles", async () => {
+    const database = await createTestJobQueueDatabase();
+    cleanups.push(database.cleanup);
+    const logger = createSilentLogger();
+    const owner = JobQueueService.createFresh(database.config, logger, {
+      handlerRegistrationMode: "validation-only",
+    });
+    services.push(owner);
+    await owner.initialize();
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const direct = new DirectJsonTransport(owner);
+    const worker = JobQueueService.createFresh(
+      { url: `file:${join(dirname(database.dbPath), "never-opened.db")}` },
+      logger,
+      {
+        handlerRegistrationMode: "execution-only",
+        remoteTransport: {
+          initialize: (): Promise<void> => direct.initialize(),
+          close: (): void => direct.close(),
+          request: async (payload): Promise<unknown> => {
+            if (payload.operation === "dequeue") {
+              entered.resolve();
+              await release.promise;
+            }
+            return direct.request(payload);
+          },
+        },
+      },
+    );
+    services.unshift(worker);
+    const type = "directory-sync:directory-import";
+    const handler = new TestHandler();
+    owner.registerHandler(type, handler, "directory-sync");
+    worker.registerHandler(type, handler, "directory-sync");
+    await worker.initialize();
+    const claim = {
+      workerSlotId: "slot-held",
+      workerSessionId: "session-held",
+      leaseDurationMs: 30_000,
+    };
+    await worker.startWorkerSession(
+      claim.workerSlotId,
+      claim.workerSessionId,
+      60_000,
+    );
+    const pending = worker.dequeue(claim);
+    let id: string;
+    try {
+      await entered.promise;
+      worker.unregisterHandler(type);
+      // Deliberately violate the required quiescence: an old request still
+      // advertises imports even though the local registry has removed them.
+      id = await owner.enqueue({ type, data: { value: 1 } });
+    } finally {
+      release.resolve();
+      await pending;
+    }
+    const job = await pending;
+    expect(job?.id).toBe(id);
+    if (!job?.attemptId)
+      throw new Error(
+        "Expected the already-advertised claim to remain executable",
+      );
+    expect(await worker.complete(job.id, undefined, job.attemptId)).toBe(true);
+    expect(await worker.dequeue(claim)).toBeNull();
+    expect(await owner.getStatus(id)).toMatchObject({
+      status: "completed",
+      retryCount: 0,
+    });
+  });
+
   it("rejects malformed operations before owner dispatch", async () => {
     const testDatabase = await createTestJobQueueDatabase();
     cleanups.push(testDatabase.cleanup);

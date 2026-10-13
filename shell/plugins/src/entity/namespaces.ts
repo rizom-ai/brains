@@ -37,6 +37,9 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
   const dataSourceRegistry = shell.getDataSourceRegistry();
 
   return {
+    registerWriteAdmission: entityRegistry.writeAdmissions.register.bind(
+      entityRegistry.writeAdmissions,
+    ),
     registerGroupingSource: (source): void =>
       entityRegistry.registerGroupingSource(source),
     ensureGroupingsCurrent: (): Promise<void> =>

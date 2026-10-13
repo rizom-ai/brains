@@ -1,4 +1,10 @@
 export {
+  EntityWriteAdmissions,
+  entityWriteAdmissionSchema,
+  type EntityWriteAdmission,
+  type EntityWriteAdmissionContext,
+} from "./entity-write-admissions";
+export {
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
   MAX_ASSET_BYTES,

@@ -11,6 +11,8 @@ import {
   createMockProgressReporter,
 } from "@brains/test-utils";
 import { ContentService } from "../src/content-service";
+import { EntityWriteAdmissions } from "@brains/entity-service";
+import { registerGenerationWriteAdmission } from "../src/generation-write-admission";
 import { ContentGenerationJobHandler } from "../src/handlers/contentGenerationJobHandler";
 import {
   GenerationAuthorizer,
@@ -65,7 +67,11 @@ function fixture(): {
   }));
   const authorizer = new GenerationAuthorizer(permissions, principal);
   const logger = createSilentLogger();
-  const entities = createMockEntityService({ entityTypes: ["book-section"] });
+  const admissions = new EntityWriteAdmissions();
+  const entities = createMockEntityService({
+    entityTypes: ["book-section"],
+    writeAdmissions: admissions,
+  });
   const templates = InMemoryTemplateRegistry.createFresh(logger);
   templates.register(target.templateName, {
     name: target.templateName,
@@ -87,6 +93,7 @@ function fixture(): {
     aiService: createMockAIService(),
     generationAuthorizer: authorizer,
   });
+  registerGenerationWriteAdmission(admissions, service);
   return { permissions, principal, authorizer, entities, templates, service };
 }
 

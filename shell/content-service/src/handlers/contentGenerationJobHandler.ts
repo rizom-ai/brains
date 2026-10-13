@@ -8,10 +8,10 @@ import type { JobHandler } from "@brains/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   EntityWriteConflictError,
-  type BaseEntity,
   type IEntityService,
 } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
+import { generationWriteAdmission } from "../generation-write-admission";
 
 interface GeneratedOutput {
   entityType: string;
@@ -61,6 +61,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
       // First of two authority resolutions; the second guards the entity write.
       await this.contentService.authorizeGenerationWrite(data);
       signal?.throwIfAborted();
+      const writeAdmission = generationWriteAdmission(data);
       const snapshot = await this.entityService.getEntityWriteSnapshot({
         entityType: destination.entityType,
         id: destination.entityId,
@@ -117,11 +118,8 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
       }
       signal?.throwIfAborted();
       const options = {
-        // Second and final resolution: revocation here must block persistence.
-        beforeWrite: async (entity: Readonly<BaseEntity>): Promise<void> => {
-          signal?.throwIfAborted();
-          await this.contentService.authorizeGenerationWrite(data, entity);
-        },
+        // The owner resolves current authority at the final write boundary.
+        writeAdmission,
         ...(signal && { signal }),
         conditionalWrite: { expectedRevision: data.expectedRevision },
       };

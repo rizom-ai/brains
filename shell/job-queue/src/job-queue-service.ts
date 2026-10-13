@@ -1,4 +1,6 @@
 import { PermanentJobEnqueueError } from "./errors";
+import { z } from "@brains/utils/zod";
+
 import type { JobContextInput } from "./schema/types";
 import { createId } from "@brains/utils/id";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
@@ -62,6 +64,8 @@ export interface JobQueueServiceRuntimeOptions {
   handlerRegistrationMode?: JobHandlerRegistrationMode | undefined;
   remoteTransport?: JobQueueRpcTransport | undefined;
 }
+
+const dequeueExclusionsSchema = z.array(z.string().min(1)).max(256);
 
 /**
  * Service for managing the generic job queue
@@ -515,8 +519,14 @@ export class JobQueueService implements IJobQueueService {
    * direct administrative callers receive one service-local fallback session.
    * Jobs without a local execution handler remain pending.
    */
-  public async dequeue(claim?: JobClaimOptions): Promise<JobInfo | null> {
-    const executableTypes = this.handlerRegistry.getRegisteredTypes();
+  public async dequeue(
+    claim?: JobClaimOptions,
+    excludeTypes: readonly string[] = [],
+  ): Promise<JobInfo | null> {
+    const excluded = new Set(dequeueExclusionsSchema.parse(excludeTypes));
+    const executableTypes = this.handlerRegistry
+      .getRegisteredTypes()
+      .filter((type) => !excluded.has(type));
     if (executableTypes.length === 0) return null;
     return this.dequeueForExecutableTypes(executableTypes, claim);
   }

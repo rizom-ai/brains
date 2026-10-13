@@ -1,4 +1,6 @@
 import { createPluginHarness } from "@brains/plugins/test";
+import { registerContactWriteAdmission } from "../src/write-admission";
+import { ContactStorageSlots } from "../src/storage-slots";
 import {
   ContactAdmission,
   ContactIntake,
@@ -47,15 +49,21 @@ export async function intakeFixture(
   await harness.installPlugin(new ContactRequestPlugin());
   const state = harness.getMockShell().getRuntimeState();
   const admission = new ContactAdmission(state, admissionPolicy, () => now);
+  const policy = {
+    retentionSeconds: 86400,
+    maxRecords: options.maxRecords ?? 10,
+    maxBytes: options.maxBytes ?? 100000,
+  };
+  const admissions = harness.getMockShell().getEntityRegistry().writeAdmissions;
+  registerContactWriteAdmission(
+    { registerWriteAdmission: admissions.register.bind(admissions) },
+    new ContactStorageSlots(state, policy, () => now),
+  );
   const intake = new ContactIntake({
     admission,
     entities: harness.getEntityService(),
     state,
-    policy: {
-      retentionSeconds: 86400,
-      maxRecords: options.maxRecords ?? 10,
-      maxBytes: options.maxBytes ?? 100000,
-    },
+    policy,
     enqueueNotification: async (id): Promise<void> => {
       if (enqueueFails) throw new Error("PRIVATE delivery failure");
       queued.add(id);

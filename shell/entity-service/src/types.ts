@@ -91,6 +91,10 @@ export type {
 } from "./mutation-admission";
 
 import type { EntityWriteCondition } from "./entity-write-contracts";
+import type {
+  EntityWriteAdmission,
+  EntityWriteAdmissions,
+} from "./entity-write-admissions";
 
 export interface EntityWriteSnapshot {
   entity: BaseEntity;
@@ -129,6 +133,8 @@ export interface CreateEntityOptions extends EntityJobOptions {
   signal?: AbortSignal;
   /** Runtime-only guard over the final persisted fields, immediately before writing. */
   beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
+  /** Named, schema-validated owner guard; never combined with beforeWrite. */
+  writeAdmission?: EntityWriteAdmission | undefined;
   deduplicateId?: boolean | undefined;
   /** Atomic create-if-absent. Cannot deduplicate. */
   conditionalWrite?: EntityWriteCondition | undefined;
@@ -140,6 +146,8 @@ export interface UpdateEntityOptions extends EntityJobOptions {
   signal?: AbortSignal;
   /** Runtime-only guard over the final persisted fields, immediately before writing. */
   beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
+  /** Named, schema-validated owner guard; never combined with beforeWrite. */
+  writeAdmission?: EntityWriteAdmission | undefined;
   /** Apply only while the stored entity still has this content hash. */
   expectedContentHash?: string | undefined;
   /** Atomic full-revision replace. */
@@ -1015,6 +1023,8 @@ export interface EntityGroupingSource {
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  /** Register an owner-local write guard; dispose it with the plugin. */
+  registerWriteAdmission: EntityWriteAdmissions["register"];
   registerGroupingSource(source: EntityGroupingSource): void;
   ensureGroupingsCurrent(): Promise<void>;
   /** Preflight a complete replacement set without modifying active schemas. */
@@ -1238,6 +1248,7 @@ export interface EntityService extends EntityServiceClient {
  * Entity Registry interface for managing entity types and their schemas/adapters
  */
 export interface EntityRegistry {
+  readonly writeAdmissions: EntityWriteAdmissions;
   registerEntityType<
     TEntity extends BaseEntity<TMetadata>,
     TMetadata extends Record<string, unknown> = Record<string, unknown>,

@@ -9,6 +9,7 @@ import {
   type AssetVerification,
 } from "@brains/assets";
 import { actorRefSchema } from "@brains/contracts";
+import { entityWriteAdmissionSchema } from "./entity-write-admissions";
 import {
   throwEntityRpcValidationFailure,
   withEntityRpcValidation,
@@ -202,11 +203,13 @@ const jobOptionsShape = {
 const createOptionsSchema = z.strictObject({
   ...jobOptionsShape,
   deduplicateId: z.boolean().optional(),
+  writeAdmission: entityWriteAdmissionSchema.optional(),
   conditionalWrite: entityWriteConditionSchema.optional(),
 });
 const updateOptionsSchema = z.strictObject({
   ...jobOptionsShape,
   expectedContentHash: z.string().optional(),
+  writeAdmission: entityWriteAdmissionSchema.optional(),
   conditionalWrite: entityWriteConditionSchema.optional(),
 });
 const jobOptionsSchema = z.strictObject(jobOptionsShape);

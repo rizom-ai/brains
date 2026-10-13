@@ -37,8 +37,12 @@ import type {
   UnknownEntitySchema,
 } from "./types";
 
+import { EntityWriteAdmissions } from "./entity-write-admissions";
+
 /** Registry for entity types. */
 export class EntityRegistry implements IEntityRegistry {
+  public readonly writeAdmissions: EntityWriteAdmissions =
+    new EntityWriteAdmissions();
   private entitySchemas = new Map<string, UnknownEntitySchema>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();

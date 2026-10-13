@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { SourceMap } from "node:module";
+import { ok } from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -28,6 +30,108 @@ describe("@rizom/brain package metadata", () => {
     expect(packageJson.bin).toEqual({
       brain: "./dist/brain.js",
     });
+  });
+
+  it("loads shared CLI/model chunks beside provisioned runtime resources", () => {
+    const cli = readPackageFile("dist/brain.js");
+    const model = readPackageFile("dist/model.js");
+    const chunks = (source: string): string[] =>
+      [
+        ...source.matchAll(/["'](\.\/brain-runtime-[A-Za-z0-9_-]+\.js)["']/g),
+      ].map((match) => match[1] ?? "");
+    const cliChunks = chunks(cli);
+    expect(cli.startsWith("#!/usr/bin/env bun\n")).toBe(true);
+    expect(cliChunks.length).toBeGreaterThan(0);
+    expect(chunks(model).some((chunk) => cliChunks.includes(chunk))).toBe(true);
+    for (const chunk of new Set([...cliChunks, ...chunks(model)])) {
+      expect(existsSync(join(packageDir, "dist", chunk))).toBe(true);
+    }
+    for (const name of [
+      "auth-service",
+      "entity-service",
+      "conversation-service",
+      "job-queue",
+      "runtime-state",
+    ]) {
+      expect(
+        existsSync(
+          join(packageDir, "dist", "migrations", name, "meta", "_journal.json"),
+        ),
+      ).toBe(true);
+    }
+    expect(
+      existsSync(join(packageDir, "dist", "turso-worker", "worker.ts")),
+    ).toBe(true);
+    expect(existsSync(join(packageDir, "dist", "ui", "app.js"))).toBe(true);
+    expect(
+      existsSync(join(packageDir, "dist", "onboarding", "onboarding.md")),
+    ).toBe(true);
+  });
+
+  it("retains usable server maps outside automatic runtime lookup and keeps browser maps linked", () => {
+    const maps = readdirSync(
+      join(packageDir, "dist", "server-source-maps"),
+    ).filter((name) => name.endsWith(".js.map"));
+    expect(maps).toContain("brain.js.map");
+    expect(maps).toContain("model.js.map");
+    expect(maps.some((name) => name.startsWith("brain-runtime-"))).toBe(true);
+    for (const name of maps) {
+      const generated = name.slice(0, -4);
+      expect(existsSync(join(packageDir, "dist", generated))).toBe(true);
+      expect(existsSync(join(packageDir, "dist", name))).toBe(false);
+      expect(readPackageFile(`dist/${generated}`)).not.toContain(
+        "//# sourceMappingURL=",
+      );
+      const map = z
+        .object({
+          version: z.literal(3),
+          file: z.string(),
+          sourceRoot: z.string(),
+          sources: z.array(z.string()),
+          sourcesContent: z.array(z.string().nullable()),
+          names: z.array(z.string()),
+          mappings: z.string(),
+        })
+        .passthrough()
+        .parse(JSON.parse(readPackageFile(`dist/server-source-maps/${name}`)));
+      expect(map.file).toBe(`../${generated}`);
+      expect(map.sourceRoot).toBe("../");
+      expect(map.sourcesContent).toHaveLength(map.sources.length);
+      for (const source of map.sources) {
+        const oldBase = new URL(
+          "./",
+          new URL(`../dist/${name}`, import.meta.url),
+        );
+        const newBase = new URL(
+          map.sourceRoot,
+          new URL(`../dist/server-source-maps/${name}`, import.meta.url),
+        );
+        expect(new URL(source, newBase).href).toBe(
+          new URL(source, oldBase).href,
+        );
+      }
+      const line = map.mappings
+        .split(";")
+        .findIndex((value) => value.length > 0);
+      if (line >= 0) {
+        // Node's type omits v3's null source-content entries; position lookup
+        // uses mappings, not source text. The retained map itself is unchanged.
+        const entry = new SourceMap({
+          ...map,
+          sourcesContent: map.sourcesContent.map((content) => content ?? ""),
+        }).findEntry(
+          line,
+          readPackageFile(`dist/${generated}`).split("\n")[line]?.length ?? 0,
+        );
+        ok("originalSource" in entry && "originalLine" in entry);
+        expect(entry.originalSource).toBeString();
+        expect(entry.originalLine).toBeGreaterThanOrEqual(0);
+      }
+    }
+    expect(readPackageFile("dist/chat.js")).toContain(
+      "//# sourceMappingURL=chat.js.map",
+    );
+    expect(existsSync(join(packageDir, "dist", "chat.js.map"))).toBe(true);
   });
 
   it("declares the Turso engine as a native optional dependency", () => {

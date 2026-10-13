@@ -1,4 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { z } from "@brains/utils/zod";
+import { createMockEntityRegistry } from "../src/test/mock-entity-registry";
 import {
   createMockEntityStore,
   type MockEntityStore,
@@ -49,6 +52,44 @@ function noteAdapter(
 function noteInput(content: string): EntityInput<BaseEntity> {
   return { entityType: "note", content, metadata: {} };
 }
+
+it("shares owner admission policy between registry and service doubles without recording denied writes", async () => {
+  const store = createMockEntityStore();
+  const registry = createMockEntityRegistry(store);
+  const service = createMockEntityService(store);
+  let allowed = false;
+  let checks = 0;
+  registry.writeAdmissions.register(
+    "fixture:guard",
+    z.null(),
+    async (): Promise<void> => {
+      checks++;
+      if (!allowed) throw new Error("Permission revoked");
+    },
+  );
+  const options = { writeAdmission: { name: "fixture:guard", payload: null } };
+  await assert.rejects(
+    service.createEntity({ entity: noteEntity(), options }),
+    /Permission revoked/,
+  );
+  expect(store.entities.size).toBe(0);
+  expect(store.assets.size).toBe(0);
+  expect(store.exportIntents.size).toBe(0);
+  expect(store.types.size).toBe(0);
+  allowed = true;
+  await service.createEntity({ entity: noteEntity(), options });
+  const before = store.entities.get("note-1");
+  assert(before);
+  const exports = [...store.exportIntents.entries()];
+  allowed = false;
+  await assert.rejects(
+    service.updateEntity({ entity: before, options }),
+    /Permission revoked/,
+  );
+  expect(store.entities.get("note-1")).toEqual(before);
+  expect([...store.exportIntents.entries()]).toEqual(exports);
+  expect(checks).toBe(3);
+});
 
 describe("createMockEntityStore", () => {
   it("serializes verbatim when no adapter is registered", () => {

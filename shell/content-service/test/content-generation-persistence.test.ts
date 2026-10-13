@@ -35,6 +35,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import { ContentGenerationJobHandler } from "../src/handlers/contentGenerationJobHandler";
+import { registerGenerationWriteAdmission } from "../src/generation-write-admission";
 import type { ContentGenerationJobData } from "../src/generation-contracts";
 
 const caller: GenerationCaller = {
@@ -61,7 +62,9 @@ describe("generation persistence and recovery (owned Turso, mocked AI)", () => {
   const logger = createSilentLogger();
   const generate = mock(async (): Promise<string> => "# Generated chapter");
 
+  let unregisterAdmission: (() => void) | undefined;
   function openServices(): void {
+    unregisterAdmission?.();
     entities = EntityService.createFresh({
       dbConfig: { url: database.url },
       entityRegistry: registry,
@@ -109,6 +112,10 @@ describe("generation persistence and recovery (owned Turso, mocked AI)", () => {
         async () => null,
       ),
     });
+    unregisterAdmission = registerGenerationWriteAdmission(
+      registry.writeAdmissions,
+      service,
+    );
     handler = ContentGenerationJobHandler.createFresh(service, entities);
   }
 
@@ -139,6 +146,7 @@ describe("generation persistence and recovery (owned Turso, mocked AI)", () => {
     openServices();
   });
   afterEach(async () => {
+    unregisterAdmission?.();
     await entities.closeAsync();
     await database.cleanup();
   });

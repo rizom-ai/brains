@@ -2,24 +2,26 @@
 /**
  * Build @rizom/brain — single package with CLI + runtime + all brain models.
  *
- * Produces dist/brain.js (~7MB, Bun target) containing:
+ * Produces dist/brain.js and shared server chunks (Bun target) containing:
  * - CLI commands (init, start, list, eval, --remote)
  * - The canonical brain definition
  * - Full runtime (shell, plugins, entities, sites, themes)
  *
- * The entrypoint (src/entrypoint.ts) registers models and the boot function,
+ * The entrypoint (scripts/entrypoint.ts) registers models and the boot function,
  * then runs the CLI. In the monorepo, src/index.ts runs instead (no models).
  */
 import {
   writeFileSync,
   readFileSync,
+  readdirSync,
   mkdirSync,
   cpSync,
   existsSync,
   mkdtempSync,
   rmSync,
 } from "fs";
-import { join } from "path";
+import { basename, isAbsolute, join } from "path";
+import { z } from "@brains/utils/zod";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
 import { fileActorSources } from "@brains/app";
@@ -148,10 +150,8 @@ if (envSchemaResult !== 0) {
 
 // ─── Bundle CLI + library exports ─────────────────────────────────────────
 //
-// The CLI bundle (brain.js) and one bundle per library subpath export are built
-// in parallel — they're independent and write to different filenames in the
-// same outdir. Public declarations are emitted from the matching source entries
-// instead of copied from hand-written stubs.
+// CLI and server subpaths share one graph; browser contracts, broker and native
+// workers stay separate. Public declarations come from matching source entries.
 
 console.log("Building @rizom/brain...");
 
@@ -289,27 +289,46 @@ const libraryEntries = [
   },
 ] as const;
 
+const serverSourceMapSchema = z
+  .object({
+    version: z.literal(3),
+    sources: z.array(z.string()),
+    sourcesContent: z.array(z.string().nullable()),
+    mappings: z.string(),
+    names: z.array(z.string()),
+    sourceRoot: z.string().optional(),
+  })
+  .passthrough();
+
 async function bundleLibraries(): Promise<void> {
   // Share server runtime code (including Effect) across server subpaths.
   // Chat is a browser contract: sharing its chunks with server entrypoints can
   // leak Node-only imports into consumers even when its own source is pure.
   rmSync(join(outdir, "chunks"), { recursive: true, force: true });
+  // Only remove this build's reserved server-chunk names, not worker artifacts.
+  for (const file of readdirSync(outdir)) {
+    if (/^brain-runtime-[A-Za-z0-9_-]+\.js(?:\.map)?$/.test(file))
+      rmSync(join(outdir, file));
+  }
   const result = await Bun.build({
-    entrypoints: libraryEntries
-      .filter((entry) => entry.name !== "chat")
-      .map((entry) => entry.source),
+    entrypoints: [
+      join(import.meta.dir, "brain.ts"),
+      ...libraryEntries
+        .filter((entry) => entry.name !== "chat")
+        .map((entry) => entry.source),
+    ],
     outdir,
     target: "bun",
     format: "esm",
     minify: true,
     splitting: true,
-    sourcemap: "linked",
+    sourcemap: "external",
     jsx: productionReactJsx,
     external: sharedExternals,
     naming: {
       entry: "[name].js",
-      chunk: "chunks/[name]-[hash].js",
-      asset: "chunks/[name]-[hash].[ext]",
+      chunk: "brain-runtime-[name]-[hash].js",
+      asset: "brain-runtime-[name]-[hash].[ext]",
     },
   });
   if (!result.success) {
@@ -319,6 +338,40 @@ async function bundleLibraries(): Promise<void> {
     }
     process.exit(1);
   }
+  // Bun also discovers adjacent maps without sourceMappingURL comments.
+  // Retain server symbols away from runtime lookup, keeping paths meaningful
+  // relative to the map's new directory for explicit offline symbolication.
+  const serverMaps = join(outdir, "server-source-maps");
+  rmSync(serverMaps, { recursive: true, force: true });
+  mkdirSync(serverMaps, { recursive: true });
+  for (const output of result.outputs) {
+    if (!output.path.endsWith(".js.map")) continue;
+    const map = serverSourceMapSchema.parse(JSON.parse(await output.text()));
+    const sourceRoot = map.sourceRoot ?? "";
+    writeFileSync(
+      join(serverMaps, basename(output.path)),
+      JSON.stringify({
+        ...map,
+        file: `../${basename(output.path).slice(0, -4)}`,
+        sourceRoot:
+          isAbsolute(sourceRoot) || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(sourceRoot)
+            ? sourceRoot
+            : `../${sourceRoot}`,
+      }),
+    );
+    rmSync(output.path);
+  }
+  writeFileSync(
+    join(serverMaps, "README.txt"),
+    "Server source maps for explicit debugger/offline symbolication use.\nPaths are relative to this directory; sourcesContent and debug identifiers are retained.\nNormal execution intentionally does not auto-load these maps. Browser maps remain linked.\n",
+  );
+  // Keep the CLI executable while sharing its canonical model/runtime graph
+  // with public authoring imports instead of loading a second bundled copy.
+  const cliPath = join(outdir, "brain.js");
+  writeFileSync(
+    cliPath,
+    `#!/usr/bin/env bun\n${readFileSync(cliPath, "utf8").replace(/^#!.*\n/gm, "")}`,
+  );
   const browserResult = await Bun.build({
     entrypoints: libraryEntries
       .filter((entry) => entry.name === "chat")
@@ -431,25 +484,10 @@ const brokerBuild = bundleExecutable(
   "git-broker",
   join(import.meta.dir, "..", "src", "git-broker-entrypoint.ts"),
 );
-const cliBuild = bundleExecutable(
-  "brain",
-  join(import.meta.dir, "entrypoint.ts"),
-);
 const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.
-await Promise.all([
-  brokerBuild,
-  cliBuild,
-  libraryBuild,
-  emitLibraryDeclarations(),
-]);
-
-// Library bundling clears stale chunks. Install their sibling workers only
-// after that cleanup, otherwise auth's independently bundled factory loses them.
-cpSync(databaseWorkerDir, join(outdir, "chunks", "turso-worker"), {
-  recursive: true,
-});
+await Promise.all([brokerBuild, libraryBuild, emitLibraryDeclarations()]);
 
 // ─── Copy package-owned onboarding assets ────────────────────────────────
 

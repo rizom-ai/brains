@@ -1,4 +1,5 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { readPendingProjectionInputs } from "./projection-input-reads";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
 import { EntityExportStore } from "./entity-export-store";
@@ -385,11 +386,15 @@ export class ProjectionStore implements IProjectionStore {
   }
 
   public async listPendingInputs(): Promise<ProjectionDirtyInput[]> {
-    const inputs = await this.db
-      .select()
-      .from(projectionDirtyInputs)
-      .orderBy(asc(projectionDirtyInputs.generation));
-    return coalesceLatestInputs(inputs);
+    // Preserve a single journal snapshot while bounding each native result.
+    // Use the transaction client throughout; never re-enter the root client.
+    return this.transactions.runDatabaseOperation((database) =>
+      database.transaction(async (transaction) => {
+        return coalesceLatestInputs(
+          await readPendingProjectionInputs(transaction),
+        );
+      }),
+    );
   }
 
   public hasActiveProjectionBatch(): Promise<boolean> {

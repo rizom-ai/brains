@@ -21,6 +21,7 @@ export function createMockEntityRegistry(
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
 
   const registry: IEntityRegistry = {
+    writeAdmissions: store.writeAdmissions,
     registerEntityType: (type, _schema, adapter, config) => {
       store.types.add(type);
       store.adapters.set(type, adapter);

@@ -5,6 +5,7 @@ import {
   createMockEntityService,
 } from "@brains/entity-service/test";
 import {
+  EntityWriteAdmissions,
   EntityWriteConflictError,
   EntityValidationError,
   type BaseEntity,
@@ -30,6 +31,10 @@ const caller: GenerationCaller = {
 import { describe, expect, mock, spyOn, test } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
+import {
+  generationWriteAdmission,
+  registerGenerationWriteAdmission,
+} from "../src/generation-write-admission";
 import {
   assertGenerationRequestLimits,
   GenerationLimitError,
@@ -65,7 +70,9 @@ function createFixture(): {
   dataSourceRegistry: ReturnType<typeof createMockDataSourceRegistry>;
 } {
   const logger = createSilentLogger();
+  const admissions = new EntityWriteAdmissions();
   const entityService = createMockEntityService({
+    writeAdmissions: admissions,
     entityTypes: ["book-section"],
   });
   const templateRegistry = InMemoryTemplateRegistry.createFresh(logger);
@@ -81,6 +88,7 @@ function createFixture(): {
       async () => null,
     ),
   });
+  registerGenerationWriteAdmission(admissions, service);
   templateRegistry.register("books:chapter", generationTemplate());
   return { service, entityService, templateRegistry, dataSourceRegistry };
 }
@@ -492,7 +500,7 @@ describe("ContentGenerationJobHandler", () => {
         visibility: "public",
       },
       options: {
-        beforeWrite: expect.any(Function),
+        writeAdmission: generationWriteAdmission(jobData),
         conditionalWrite: { expectedRevision: null },
       },
     });
@@ -519,7 +527,10 @@ describe("ContentGenerationJobHandler", () => {
     expect(update).toHaveBeenCalledWith({
       entity: { ...existingEntity, content: "New chapter" },
       options: {
-        beforeWrite: expect.any(Function),
+        writeAdmission: generationWriteAdmission({
+          ...jobData,
+          expectedRevision: "observed",
+        }),
         conditionalWrite: { expectedRevision: "observed" },
       },
     });

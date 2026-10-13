@@ -1,4 +1,7 @@
 import { createMockJobQueueService } from "@brains/job-queue/test";
+import assert from "node:assert/strict";
+import { generationWriteAdmission } from "@brains/content-service";
+import { createTestEntity } from "@brains/entity-service/test";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import type {
@@ -29,6 +32,60 @@ function createTestConfig(dir: string): ShellConfigInput {
 }
 
 describe("Shell service construction", () => {
+  it("registers generation admission against its content service and revokes it on shutdown", async () => {
+    const directory = await createTestDirectory();
+    try {
+      const shell = Shell.createFresh(createTestConfig(directory.dir), {
+        logger: createSilentLogger(),
+      });
+      try {
+        const admissions = shell.getEntityRegistry().writeAdmissions;
+        const authorize = spyOn(
+          shell.getContentService(),
+          "authorizeGenerationWrite",
+        ).mockResolvedValue({
+          permissionLevel: "trusted",
+          visibilityScope: "shared",
+        });
+        const options = {
+          writeAdmission: generationWriteAdmission({
+            authority: {
+              actor: { kind: "service", serviceId: "fixture" },
+              permissionCeiling: "trusted",
+            },
+            templateName: "fixture:note",
+            context: {},
+            expectedRevision: null,
+            destination: {
+              entityType: "note",
+              entityId: "target",
+              metadata: {},
+              visibility: "shared",
+            },
+          }),
+        };
+        const guard = admissions.prepare(options, "create");
+        assert(guard);
+        const target = createTestEntity("note", {
+          id: "target",
+          visibility: "shared",
+        });
+        await guard(target);
+        expect(authorize).toHaveBeenCalledTimes(1);
+        expect(authorize.mock.calls[0]?.[1]).toEqual(target);
+        await shell.shutdown();
+        expect(() => admissions.prepare(options, "create")).toThrow(
+          "Unknown write admission",
+        );
+        await assert.rejects(guard(target), /removed/);
+        expect(authorize).toHaveBeenCalledTimes(1);
+      } finally {
+        await shell.shutdown();
+      }
+    } finally {
+      await directory.cleanup();
+    }
+  });
   it.each([
     { model: "gpt-5.6-luna", embeddings: false },
     { model: "gpt-5.6-luna", embeddings: true },

@@ -1,4 +1,5 @@
 import {
+  EntityWriteAdmissions,
   type BaseEntity,
   type EntityAdapter,
   type EntityExportIntent,
@@ -18,6 +19,7 @@ type EntityTypeConfig = NonNullable<
  * what makes it visible that they are the same store, not copies of it.
  */
 export interface MockEntityStore {
+  readonly writeAdmissions: EntityWriteAdmissions;
   readonly entities: Map<string, BaseEntity>;
   readonly assets: Map<string, Uint8Array>;
   readonly exportIntents: Map<string, EntityExportIntent>;
@@ -59,6 +61,7 @@ export function createMockEntityStore(): MockEntityStore {
     `${entityType}\u0000${entityId}`;
 
   return {
+    writeAdmissions: new EntityWriteAdmissions(),
     entities,
     assets: new Map<string, Uint8Array>(),
     exportIntents,

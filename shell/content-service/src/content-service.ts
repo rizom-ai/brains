@@ -7,7 +7,6 @@ import type {
 import type {
   ContentGenerationPlan,
   ContentGenerationRequestInput,
-  ContentGenerationJobData,
   ContentGenerationBatchResult,
 } from "./generation-contracts";
 import {
@@ -20,7 +19,10 @@ import type {
   GenerationAccess,
   GenerationAuthorizer,
 } from "./generation-authorization";
-import { authorizeGenerationWrite } from "./generation-write-authorization";
+import {
+  authorizeGenerationWrite,
+  type GenerationWriteAuthorizationData,
+} from "./generation-write-authorization";
 import { scopeTemplateName } from "./template-scope";
 import type {
   BaseEntity,
@@ -89,7 +91,7 @@ export class ContentService implements IContentService {
   }
 
   authorizeGenerationWrite(
-    data: ContentGenerationJobData,
+    data: GenerationWriteAuthorizationData,
     persisted?: Readonly<BaseEntity>,
   ): Promise<GenerationAccess> {
     return authorizeGenerationWrite(

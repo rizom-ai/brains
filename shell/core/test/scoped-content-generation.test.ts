@@ -30,6 +30,7 @@ import { PermissionService, InMemoryTemplateRegistry } from "@brains/templates";
 import {
   ContentService,
   ContentGenerationJobHandler,
+  registerGenerationWriteAdmission,
   GenerationAuthorizer,
   GenerationLimitError,
   type ContentGenerationTargetInput,
@@ -43,6 +44,7 @@ describe("scoped durable content generation", () => {
   let database: TestDatabase;
   let entities: EntityService;
   let service: ContentService;
+  let unregisterAdmission: () => void;
   let datasource: AIContentDataSource;
   let permissions: PermissionService;
   let templates: InMemoryTemplateRegistry;
@@ -127,6 +129,10 @@ describe("scoped durable content generation", () => {
         async () => null,
       ),
     });
+    unregisterAdmission = registerGenerationWriteAdmission(
+      registry.writeAdmissions,
+      service,
+    );
     for (const [id, content, visibility] of [
       ["public", "orchard PUBLIC_KNOWLEDGE", "public"],
       ["shared", "orchard SHARED_KNOWLEDGE", "shared"],
@@ -157,6 +163,7 @@ describe("scoped durable content generation", () => {
   });
 
   afterEach(async () => {
+    unregisterAdmission();
     resetPromptCache();
     await entities.closeAsync();
     await database.cleanup();

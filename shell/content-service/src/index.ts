@@ -36,7 +36,12 @@ export {
 export {
   authorizeGenerationWrite,
   type GenerationWriteAuthorizationDependencies,
+  type GenerationWriteAuthorizationData,
 } from "./generation-write-authorization";
+export {
+  generationWriteAdmission,
+  registerGenerationWriteAdmission,
+} from "./generation-write-admission";
 export { scopeTemplateName, unscopeTemplateName } from "./template-scope";
 export type { ContentGenerationPlannerDependencies } from "./generation-planner";
 export type {

@@ -9,11 +9,11 @@ export {
 import type {
   ContentGenerationPlan,
   ContentGenerationRequestInput,
-  ContentGenerationJobData,
   ContentGenerationBatchResult,
 } from "./generation-contracts";
 import type { GenerationQueueBinding } from "./generation-submission";
 import type { GenerationAccess } from "./generation-authorization";
+import type { GenerationWriteAuthorizationData } from "./generation-write-authorization";
 
 export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
 /** @deprecated Use ContentTemplateDataSchema<T>. */
@@ -118,7 +118,7 @@ export interface ContentService {
    * current authority over the final fields when `persisted` is supplied.
    */
   authorizeGenerationWrite(
-    data: ContentGenerationJobData,
+    data: GenerationWriteAuthorizationData,
     persisted?: Readonly<BaseEntity>,
   ): Promise<GenerationAccess>;
 

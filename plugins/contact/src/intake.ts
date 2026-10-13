@@ -3,6 +3,7 @@ import type {
   ServiceEntityService,
 } from "@brains/plugins";
 import type { ContactAdmission, ContactDenialReason } from "./admission";
+import { CONTACT_WRITE_ADMISSION } from "./write-admission";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
   contactMetadataSchema,
@@ -211,10 +212,7 @@ export class ContactIntake {
         options: {
           signal,
           conditionalWrite: { expectedRevision: null },
-          beforeWrite: async (): Promise<void> => {
-            signal.throwIfAborted();
-            await this.slots.assertWritable(id);
-          },
+          writeAdmission: { name: CONTACT_WRITE_ADMISSION, payload: { id } },
         },
       });
     } catch {

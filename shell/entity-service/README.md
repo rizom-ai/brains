@@ -21,6 +21,16 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 
 `getEntity` and `getEntityRaw` preserve durable markdown, including `entity://image/…` references. They do not fetch image entities or expand asset bytes into data URLs. Visibility, read budgets, cancellation and optional schema validation still apply. Rendering consumers resolve images explicitly through scoped file capabilities; site layouts consume the prepared image URLs from site enrichment.
 
+## Owner-side write admissions
+
+For create/update requests, `options.writeAdmission` carries a namespaced `name` and JSON `payload`, bounded together to 16 KiB of serialized UTF-8. Register the corresponding schema and authorization function on the owner's `registry.writeAdmissions`. Borrowers send data, never functions; unknown registrations, malformed payloads and mixing admissions with `beforeWrite` are rejected.
+
+Schemas are parsed before writer admission. Authorization runs inside the transaction over the final serialized entity, including no-op updates that change export authority. The handler must bind the payload to the actual entity, operation and current authority: knowing a registration name is not a grant. Guards must not re-enter the same entity database through its root client while the transaction is held; reads from separate authorization/runtime-state stores are permitted.
+
+Registration returns a disposer. Dispose it during owner-side lifecycle teardown; removal invalidates prepared guards, including authorization already in flight. Cancellation is checked before and after authorization. Once the write has begun, existing acknowledged-publication semantics still apply. Local `beforeWrite` callbacks remain local-only.
+
+Generation uses the shell-owned `content:generation` admission to recheck current authority and final serialized fields without transporting prompts or caller metadata. Shell teardown disposes that registration. Contact uses `contact:intake` to check the actual restricted contact identity and its current writable, unexpired slot. Plugins register through `context.entities.registerWriteAdmission`; plugin scope teardown stops admission, revokes prepared guards and drains active authorizers before plugin shutdown, including failed registration.
+
 ## Basic usage
 
 ```typescript

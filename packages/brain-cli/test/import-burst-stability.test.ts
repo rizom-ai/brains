@@ -1,5 +1,7 @@
 import { expect, it } from "bun:test";
+import { rejects } from "node:assert/strict";
 import { runProcess } from "@brains/utils/run-process";
+import { z } from "@brains/utils/zod";
 import {
   mkdir,
   mkdtemp,
@@ -9,9 +11,16 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { availableParallelism, tmpdir } from "node:os";
-import { join } from "node:path";
-import { Database } from "bun:sqlite";
+import { delimiter, join } from "node:path";
 import { isRecord } from "@brains/utils/is-record";
+import { randomBytes, randomUUID } from "node:crypto";
+import { LocalDatabaseRpcClient } from "@brains/core";
+import { readRuntimeOwner } from "../src/lib/runtime-owner";
+import { ImportBurstOwnerProbe } from "./helpers/import-burst-owner-probe";
+import {
+  ImportHoldController,
+  writeImportHoldPackage,
+} from "./helpers/import-hold-runtime";
 
 const RUN_SOAK =
   process.platform === "linux" && process.env["RUN_IMPORT_BURST_SOAK"] === "1";
@@ -28,8 +37,6 @@ const RESOURCE_SAMPLE_EVERY = 4;
 const PACKAGED_RUNTIME_CPU_LIMIT = 2;
 const HEALTH_ENDPOINTS = ["live", "ready", "operate"] as const;
 const IMPORT_BATCH_SIZE = 50;
-const IMPORT_BARRIER_SCHEDULED_FOR = Date.UTC(2100, 0, 1);
-const IMPORT_BARRIER_TRIGGER = "hold_import_burst_jobs";
 
 interface ProcessInfo {
   pid: number;
@@ -239,6 +246,38 @@ class RoleContinuityTracker {
 type HealthEndpoint = (typeof HEALTH_ENDPOINTS)[number];
 type HealthLatency = Record<HealthEndpoint, number>;
 
+const healthMemorySchema = z.object({
+  resources: z.object({
+    memory: z.object({
+      rssBytes: z.number().int().nonnegative(),
+      heapUsedBytes: z.number().int().nonnegative(),
+      heapTotalBytes: z.number().int().nonnegative(),
+    }),
+  }),
+});
+type HealthMemory = z.infer<typeof healthMemorySchema>["resources"]["memory"];
+type MemoryObservation = HealthMemory & { atMs: number };
+interface PhaseMemory {
+  first: MemoryObservation;
+  last: MemoryObservation;
+  peakRss: MemoryObservation;
+  peakHeapUsed: MemoryObservation;
+}
+
+async function consumeHealthResponse(
+  response: Response,
+  endpoint: HealthEndpoint,
+): Promise<HealthMemory | undefined> {
+  // Finish every response, including successful ones, so the observer does not
+  // leave unread bodies/connections for garbage collection during the soak.
+  const body = await response.text();
+  if (!response.ok)
+    throw new Error(`HTTP ${response.status}: ${describeHealthFailure(body)}`);
+  return endpoint === "ready"
+    ? healthMemorySchema.parse(JSON.parse(body)).resources.memory
+    : undefined;
+}
+
 interface PeakRssProcess {
   label: string;
   rssBytes: number;
@@ -258,6 +297,7 @@ type RuntimeResourceReport = ResourceUsageSnapshot & {
   cpuCapacity: number;
   peakRssSample: PeakRssSample;
   maxHealthLatencyMs: HealthLatency;
+  healthMemoryByPhase: Record<string, PhaseMemory>;
   maxPersistentZombies: number;
   roleContinuityFailures: string[];
   failures: string[];
@@ -600,6 +640,17 @@ async function startHealthMonitor(
           })),
         },
         maxHealthLatencyMs: { ...monitor.maxLatencyByEndpointMs },
+        healthMemoryByPhase: Object.fromEntries(
+          [...healthMemoryByPhase].map(([phase, memory]) => [
+            phase,
+            {
+              first: { ...memory.first },
+              last: { ...memory.last },
+              peakRss: { ...memory.peakRss },
+              peakHeapUsed: { ...memory.peakHeapUsed },
+            },
+          ]),
+        ),
         maxPersistentZombies: monitor.maxPersistentZombies,
         roleContinuityFailures: roleTracker.failures(),
         failures: [...monitor.failures],
@@ -610,17 +661,31 @@ async function startHealthMonitor(
       await monitoring;
     },
   };
+  const healthMemoryByPhase = new Map<string, PhaseMemory>();
   const sampleHealth = async (endpoint: HealthEndpoint): Promise<void> => {
+    const phase = currentPhase();
     const startedAt = performance.now();
     try {
       const response = await fetch(`${baseUrl}/health/${endpoint}`, {
         signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
       });
-      if (!response.ok) {
-        const body = await response.text();
-        recordFailure(
-          `${endpoint}: HTTP ${response.status}: ${describeHealthFailure(body)}`,
-        );
+      const memory = await consumeHealthResponse(response, endpoint);
+      if (memory) {
+        const observation = { ...memory, atMs: Date.now() };
+        const previous = healthMemoryByPhase.get(phase);
+        healthMemoryByPhase.set(phase, {
+          first: previous?.first ?? observation,
+          last: observation,
+          peakRss:
+            previous && previous.peakRss.rssBytes > memory.rssBytes
+              ? previous.peakRss
+              : observation,
+          peakHeapUsed:
+            previous &&
+            previous.peakHeapUsed.heapUsedBytes > memory.heapUsedBytes
+              ? previous.peakHeapUsed
+              : observation,
+        });
       }
     } catch (error) {
       recordFailure(`${endpoint}: ${String(error)}`);
@@ -861,132 +926,11 @@ interface JobBarrierSnapshot {
   itemCount: number;
 }
 
-class DurableImportJobBarrier {
-  private readonly databasePath: string;
-  private armed = false;
-
-  constructor(databasePath: string) {
-    this.databasePath = databasePath;
-  }
-
-  arm(): void {
-    const database = new Database(this.databasePath);
-    try {
-      database.exec("PRAGMA busy_timeout = 5000");
-      database.exec(`
-        DROP TRIGGER IF EXISTS ${IMPORT_BARRIER_TRIGGER};
-        CREATE TRIGGER ${IMPORT_BARRIER_TRIGGER}
-        AFTER INSERT ON job_queue
-        WHEN NEW.type = 'directory-sync:directory-import'
-        BEGIN
-          UPDATE job_queue
-          SET scheduledFor = ${IMPORT_BARRIER_SCHEDULED_FOR}
-          WHERE id = NEW.id;
-        END;
-      `);
-      this.armed = true;
-    } finally {
-      database.close();
-    }
-  }
-
-  readHeldImports(): JobBarrierSnapshot {
-    const database = new Database(this.databasePath, { readonly: true });
-    try {
-      const rows = database
-        .query<{ id: string; itemCount: number }, [number]>(
-          `SELECT id,
-                  coalesce(json_array_length(data, '$.paths'), 0) AS itemCount
-           FROM job_queue
-           WHERE type = 'directory-sync:directory-import'
-             AND status = 'pending'
-             AND scheduledFor = ?
-           ORDER BY createdAt, id`,
-        )
-        .all(IMPORT_BARRIER_SCHEDULED_FOR);
-      return {
-        jobIds: rows.map(({ id }) => id),
-        itemCount: rows.reduce((total, { itemCount }) => total + itemCount, 0),
-      };
-    } finally {
-      database.close();
-    }
-  }
-
-  release(): void {
-    if (!this.armed) return;
-    const database = new Database(this.databasePath);
-    database.exec("PRAGMA busy_timeout = 5000");
-    database.exec("BEGIN IMMEDIATE");
-    try {
-      database.exec(`DROP TRIGGER IF EXISTS ${IMPORT_BARRIER_TRIGGER}`);
-      database
-        .query<void, [number, number]>(
-          `UPDATE job_queue
-           SET scheduledFor = ?
-           WHERE type = 'directory-sync:directory-import' AND scheduledFor = ?`,
-        )
-        .run(Date.now(), IMPORT_BARRIER_SCHEDULED_FOR);
-      database.exec("COMMIT");
-      this.armed = false;
-    } catch (error) {
-      database.exec("ROLLBACK");
-      throw error;
-    } finally {
-      database.close();
-    }
-  }
-}
-
-function readJobSchedule(database: Database, jobId: string): number {
-  const row = database
-    .query<{ scheduledFor: number }, [string]>(
-      "SELECT scheduledFor FROM job_queue WHERE id = ?",
-    )
-    .get(jobId);
-  if (!row) throw new Error(`Missing test job ${jobId}`);
-  return row.scheduledFor;
-}
-
-function countNotes(databasePath: string): number {
-  const database = new Database(databasePath, { readonly: true });
-  try {
-    const row = database
-      .query<{ count: number }, []>(
-        "select count(*) as count from entities where \"entityType\" = 'note'",
-      )
-      .get();
-    return row?.count ?? 0;
-  } finally {
-    database.close();
-  }
-}
-
-function countProbeNotesWithMarker(
-  databasePath: string,
-  marker: string,
-): number {
-  const database = new Database(databasePath, { readonly: true });
-  try {
-    const row = database
-      .query<{ count: number }, [string]>(
-        `SELECT count(*) AS count
-         FROM entities
-         WHERE "entityType" = 'note'
-           AND id LIKE 'directory-sync-stress-%'
-           AND instr(content, ?) > 0`,
-      )
-      .get(marker);
-    return row?.count ?? 0;
-  } finally {
-    database.close();
-  }
-}
-
 async function waitForPersistedProbeMarker(
-  databasePath: string,
+  probe: ImportBurstOwnerProbe,
   marker: string,
   child: Bun.ReadableSubprocess,
+  beforeSuccess?: () => Promise<boolean>,
 ): Promise<void> {
   await pollUntil(
     Date.now() + PULL_TIMEOUT_MS,
@@ -995,12 +939,9 @@ async function waitForPersistedProbeMarker(
       if (child.exitCode !== null) {
         throw new Error(`Brain exited during import (${child.exitCode})`);
       }
-      try {
-        const count = countProbeNotesWithMarker(databasePath, marker);
-        return count === FILE_COUNT ? true : undefined;
-      } catch {
-        return undefined;
-      }
+      const count = await probe.countProbeNotesWithMarker(marker);
+      if (count !== FILE_COUNT) return undefined;
+      return !beforeSuccess || (await beforeSuccess()) ? true : undefined;
     },
     () =>
       new Error(
@@ -1009,39 +950,11 @@ async function waitForPersistedProbeMarker(
   );
 }
 
-function readQueuedDeletes(
-  databasePath: string,
-  createdAfter: number,
-): JobBarrierSnapshot {
-  const database = new Database(databasePath, { readonly: true });
-  try {
-    const rows = database
-      .query<{ id: string; itemCount: number }, [number]>(
-        `SELECT id,
-                CASE
-                  WHEN json_type(data, '$.deletions') = 'array'
-                    THEN json_array_length(data, '$.deletions')
-                  ELSE 1
-                END AS itemCount
-         FROM job_queue
-         WHERE type = 'directory-sync:directory-delete' AND createdAt >= ?
-         ORDER BY createdAt, id`,
-      )
-      .all(createdAfter);
-    return {
-      jobIds: rows.map(({ id }) => id),
-      itemCount: rows.reduce((total, { itemCount }) => total + itemCount, 0),
-    };
-  } finally {
-    database.close();
-  }
-}
-
 async function waitForQueuedJobs(
-  probe: () => JobBarrierSnapshot,
+  probe: () => JobBarrierSnapshot | Promise<JobBarrierSnapshot>,
   expectedJobCount: number,
   expectedItemCount: number,
-  child: Bun.ReadableSubprocess,
+  child: Pick<Bun.ReadableSubprocess, "exitCode">,
   description: string,
 ): Promise<JobBarrierSnapshot> {
   return pollUntil(
@@ -1049,28 +962,23 @@ async function waitForQueuedJobs(
     250,
     async () => {
       if (child.exitCode !== null) {
-        throw new Error(`Brain exited while queueing ${description}`);
+        throw new Error(
+          `Brain exited while queueing ${description} (${child.exitCode})`,
+        );
       }
-      try {
-        const snapshot = probe();
-        if (
-          snapshot.jobIds.length > expectedJobCount ||
-          snapshot.itemCount > expectedItemCount
-        ) {
-          throw new Error(
-            `Unexpected ${description}: ${snapshot.jobIds.length} jobs for ${snapshot.itemCount} items`,
-          );
-        }
-        return snapshot.jobIds.length === expectedJobCount &&
-          snapshot.itemCount === expectedItemCount
-          ? snapshot
-          : undefined;
-      } catch (error) {
-        if (error instanceof Error && error.message.startsWith("Unexpected ")) {
-          throw error;
-        }
-        return undefined;
+      const snapshot = await probe();
+      if (
+        snapshot.jobIds.length > expectedJobCount ||
+        snapshot.itemCount > expectedItemCount
+      ) {
+        throw new Error(
+          `Unexpected ${description}: ${snapshot.jobIds.length} jobs for ${snapshot.itemCount} items`,
+        );
       }
+      return snapshot.jobIds.length === expectedJobCount &&
+        snapshot.itemCount === expectedItemCount
+        ? snapshot
+        : undefined;
     },
     () =>
       new Error(
@@ -1079,23 +987,48 @@ async function waitForQueuedJobs(
   );
 }
 
-function countTerminalJobs(databasePath: string, jobIds: string[]): number {
-  const database = new Database(databasePath, { readonly: true });
-  try {
-    const statusQuery = database.query<{ status: string }, [string]>(
-      "SELECT status FROM job_queue WHERE id = ?",
-    );
-    return jobIds.filter((jobId) => {
-      const status = statusQuery.get(jobId)?.status;
-      return status === "completed" || status === "failed";
-    }).length;
-  } finally {
-    database.close();
-  }
-}
+it("consumes successful health bodies and retains only memory counters", async () => {
+  const memory = { rssBytes: 1000, heapUsedBytes: 200, heapTotalBytes: 400 };
+  const ready = Response.json({
+    resources: { memory: { ...memory, other: "not retained" } },
+  });
+  expect(await consumeHealthResponse(ready, "ready")).toEqual(memory);
+  expect(ready.bodyUsed).toBe(true);
+  const live = Response.json({ status: "alive" });
+  expect(await consumeHealthResponse(live, "live")).toBeUndefined();
+  expect(live.bodyUsed).toBe(true);
+});
+
+it("consumes failed health bodies and refuses malformed memory counters", async () => {
+  const failure = Response.json({ status: "not_ready" }, { status: 503 });
+  await rejects(consumeHealthResponse(failure, "ready"), /HTTP 503/);
+  expect(failure.bodyUsed).toBe(true);
+  const malformed = Response.json({ resources: { memory: { rssBytes: -1 } } });
+  await rejects(consumeHealthResponse(malformed, "ready"));
+  expect(malformed.bodyUsed).toBe(true);
+});
+
+it("propagates owner observation refusal rather than polling it into a timeout", async () => {
+  const refusal = new Error("Owner result allowance exceeded");
+  let attempts = 0;
+  await rejects(
+    waitForQueuedJobs(
+      () => {
+        attempts++;
+        return Promise.reject(refusal);
+      },
+      7,
+      350,
+      { exitCode: null },
+      "targeted delete",
+    ),
+    (error) => error === refusal,
+  );
+  expect(attempts).toBe(1);
+});
 
 async function waitForTerminalJobs(
-  databasePath: string,
+  probe: ImportBurstOwnerProbe,
   jobIds: string[],
   child: Bun.ReadableSubprocess,
 ): Promise<void> {
@@ -1106,13 +1039,9 @@ async function waitForTerminalJobs(
       if (child.exitCode !== null) {
         throw new Error(`Brain exited while draining barrier jobs`);
       }
-      try {
-        return countTerminalJobs(databasePath, jobIds) === jobIds.length
-          ? true
-          : undefined;
-      } catch {
-        return undefined;
-      }
+      return (await probe.countTerminalJobs(jobIds)) === jobIds.length
+        ? true
+        : undefined;
     },
     () => new Error("Timed out waiting for barrier jobs to become terminal"),
   );
@@ -1120,7 +1049,7 @@ async function waitForTerminalJobs(
 
 async function waitForCleanup(
   brainDataDir: string,
-  databasePath: string,
+  probe: ImportBurstOwnerProbe,
   baselineNoteCount: number,
   child: Bun.ReadableSubprocess,
 ): Promise<void> {
@@ -1131,23 +1060,19 @@ async function waitForCleanup(
       if (child.exitCode !== null) {
         throw new Error(`Brain exited during cleanup (${child.exitCode})`);
       }
-      try {
-        const files = await readdir(brainDataDir);
-        if (files.some((file) => file.startsWith("directory-sync-stress-"))) {
-          return undefined;
-        }
-        if (countNotes(databasePath) !== baselineNoteCount) return undefined;
-        const diff = await run(
-          ["git", "diff", "--name-only", "origin/main", "--"],
-          brainDataDir,
-        );
-        const probeDiffs = diff
-          .split("\n")
-          .filter((path) => path.startsWith("directory-sync-stress-"));
-        return probeDiffs.length === 0 ? true : undefined;
-      } catch {
+      const files = await readdir(brainDataDir);
+      if (files.some((file) => file.startsWith("directory-sync-stress-"))) {
         return undefined;
       }
+      if ((await probe.countNotes()) !== baselineNoteCount) return undefined;
+      const diff = await run(
+        ["git", "diff", "--name-only", "origin/main", "--"],
+        brainDataDir,
+      );
+      const probeDiffs = diff
+        .split("\n")
+        .filter((path) => path.startsWith("directory-sync-stress-"));
+      return probeDiffs.length === 0 ? true : undefined;
     },
     () => new Error("Timed out waiting for remote cleanup convergence"),
   );
@@ -1168,16 +1093,27 @@ it.skipIf(!RUN_SOAK)(
     const appDir = join(root, "app");
     const remoteDir = join(root, "remote.git");
     const writerDir = join(root, "writer");
-    const brainEntrypoint = join(import.meta.dir, "..", "dist", "brain.js");
+    // Start the app-local artifact directly, avoiding an extra CLI re-exec
+    // wrapper introduced by the fixture's explicit runtime dependency.
+    const brainEntrypoint = join(
+      appDir,
+      "node_modules",
+      "@rizom",
+      "brain",
+      "dist",
+      "brain.js",
+    );
     await mkdir(appDir);
     await mkdir(writerDir);
+    const controlSecret = randomBytes(32).toString("hex");
+    await writeImportHoldPackage(appDir, join(import.meta.dir, ".."));
 
     let supervisor: Bun.ReadableSubprocess | undefined;
     let stdout: Promise<string> | undefined;
     let stderr: Promise<string> | undefined;
     let monitor: HealthMonitor | undefined;
     let resourceReport: RuntimeResourceReport | undefined;
-    let importBarrier: DurableImportJobBarrier | undefined;
+    let ownerClient: LocalDatabaseRpcClient | undefined;
     let currentPhase = "startup";
     let failure: unknown;
 
@@ -1215,7 +1151,7 @@ it.skipIf(!RUN_SOAK)(
       ]);
       await writeFile(
         join(appDir, "brain.yaml"),
-        `brain: brain
+        `brain: "@test/import-hold"
 bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
@@ -1270,6 +1206,14 @@ plugins:
           ...process.env,
           AI_API_KEY: "import-burst-soak-key",
           NO_COLOR: "1",
+          IMPORT_HOLD_SECRET: controlSecret,
+          // Already invoking the selected app-local artifact. A symlink would
+          // otherwise cause a redundant same-artifact launcher to stay alive.
+          BRAIN_SKIP_LOCAL_REEXEC: "1",
+          NODE_PATH: [
+            join(appDir, "node_modules"),
+            join(import.meta.dir, "..", "..", "..", "node_modules"),
+          ].join(delimiter),
         },
         stdout: "pipe",
         stderr: "pipe",
@@ -1297,16 +1241,29 @@ plugins:
       expect(rolePids.web).not.toBe(rolePids.worker);
       await waitForHealth(`${healthBaseUrl}/health/operate`, supervisor);
 
-      const databasePath = join(appDir, "data", "brain.db");
-      const jobDatabasePath = join(appDir, "data", "brain-jobs.db");
-      const baselineNoteCount = await pollUntil(
+      const importBarrier = new ImportHoldController(
+        join(appDir, ".import-hold"),
+        controlSecret,
+        [rolePids.worker],
+        HEALTH_TIMEOUT_MS,
+      );
+      const { baselineNoteCount, probe } = await pollUntil(
         Date.now() + 30_000,
         250,
         async () => {
           try {
-            const count = countNotes(databasePath);
-            return count > 0 ? count : undefined;
+            const descriptor = readRuntimeOwner(appDir);
+            if (!descriptor) return undefined;
+            ownerClient ??= new LocalDatabaseRpcClient({
+              config: { ...descriptor, sessionId: randomUUID() },
+            });
+            await ownerClient.initialize();
+            const probe = new ImportBurstOwnerProbe(ownerClient);
+            const count = await probe.countNotes();
+            return count > 0 ? { baselineNoteCount: count, probe } : undefined;
           } catch {
+            ownerClient?.close();
+            ownerClient = undefined;
             return undefined;
           }
         },
@@ -1332,7 +1289,7 @@ plugins:
         supervisor,
       );
       await waitForPersistedProbeMarker(
-        databasePath,
+        probe,
         "Deterministic import-burst probe",
         supervisor,
       );
@@ -1344,36 +1301,41 @@ plugins:
         "Update marker: update.",
         supervisor,
       );
+      let holding = false;
       await waitForPersistedProbeMarker(
-        databasePath,
+        probe,
         "Update marker: update.",
         supervisor,
+        async (): Promise<boolean> => {
+          if (!holding) {
+            if (await probe.hasActiveImports()) return false;
+            holding = true;
+          }
+          return importBarrier.arm();
+        },
       );
 
-      // Hold every job from a second update at the durable scheduler boundary.
-      // The worker remains free to pull the later remote deletion and queue its
-      // targeted delete jobs before these older imports can execute.
-      importBarrier = new DurableImportJobBarrier(jobDatabasePath);
-      importBarrier.arm();
+      // All execution borrowers acknowledged the selective hold above, within
+      // the existing update convergence deadline. Other job types remain live.
       currentPhase = "delayed-update";
       await commitBurst(writerDir, "delayed-update");
       const expectedBatchJobs = Math.ceil(FILE_COUNT / IMPORT_BATCH_SIZE);
       const heldImports = await waitForQueuedJobs(
-        () => importBarrier?.readHeldImports() ?? { jobIds: [], itemCount: 0 },
+        () => probe.readHeldImports(),
         expectedBatchJobs,
         FILE_COUNT,
         supervisor,
         "held import",
       );
       expect(
-        countProbeNotesWithMarker(databasePath, "Update marker: delayed."),
+        await probe.countProbeNotesWithMarker("Update marker: delayed."),
       ).toBe(0);
 
       const deletesCreatedAfter = Date.now();
       currentPhase = "delete";
       await commitProbeCleanup(writerDir);
       const queuedDeletes = await waitForQueuedJobs(
-        () => readQueuedDeletes(jobDatabasePath, deletesCreatedAfter),
+        () => probe.readQueuedDeletes(deletesCreatedAfter),
         expectedBatchJobs,
         FILE_COUNT,
         supervisor,
@@ -1383,23 +1345,18 @@ plugins:
       // Releasing only after both durable snapshots exist makes the race
       // deliberate: old imports and authoritative deletes may now interleave.
       currentPhase = "terminal-settlement";
-      importBarrier.release();
+      await importBarrier.release();
       await waitForTerminalJobs(
-        jobDatabasePath,
+        probe,
         [...heldImports.jobIds, ...queuedDeletes.jobIds],
         supervisor,
       );
 
       const brainDataDir = join(appDir, "brain-data");
       currentPhase = "cleanup";
-      await waitForCleanup(
-        brainDataDir,
-        databasePath,
-        baselineNoteCount,
-        supervisor,
-      );
+      await waitForCleanup(brainDataDir, probe, baselineNoteCount, supervisor);
       expect(
-        countProbeNotesWithMarker(databasePath, "Update marker: delayed."),
+        await probe.countProbeNotesWithMarker("Update marker: delayed."),
       ).toBe(0);
       await monitor.stop();
       resourceReport = monitor.report();
@@ -1422,11 +1379,8 @@ plugins:
     } catch (error) {
       failure = error;
     } finally {
-      try {
-        importBarrier?.release();
-      } catch (error) {
-        failure ??= error;
-      }
+      // Do not replay an uncertain release. Process/plugin shutdown retires
+      // the in-memory hold without reviving import execution.
       await monitor?.stop();
       if (monitor) {
         resourceReport ??= monitor.report();
@@ -1434,6 +1388,7 @@ plugins:
           `IMPORT_BURST_RESOURCE_REPORT ${JSON.stringify(resourceReport)}`,
         );
       }
+      ownerClient?.close();
       if (supervisor) await stopProcessGroup(supervisor);
       const logs = [await stdout, await stderr].filter(Boolean).join("\n");
       if (failure) {
@@ -1661,62 +1616,6 @@ it("reports missing and replaced supervised runtime roles once", () => {
     "worker child disappeared (expected pid 11)",
     "web child restarted (expected pid 10, observed pid 12)",
   ]);
-});
-
-it("holds queued imports durably without blocking later job types", async () => {
-  const root = await mkdtemp(join(tmpdir(), "import-job-barrier-"));
-  const databasePath = join(root, "jobs.db");
-  const database = new Database(databasePath);
-  database.exec(`
-    CREATE TABLE job_queue (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      data TEXT NOT NULL,
-      status TEXT NOT NULL,
-      scheduledFor INTEGER NOT NULL,
-      createdAt INTEGER NOT NULL
-    )
-  `);
-  const insert = database.query<void, [string, string, string, number, number]>(
-    "INSERT INTO job_queue (id, type, data, status, scheduledFor, createdAt) VALUES (?, ?, ?, 'pending', ?, ?)",
-  );
-  const barrier = new DurableImportJobBarrier(databasePath);
-
-  try {
-    barrier.arm();
-    insert.run(
-      "import-1",
-      "directory-sync:directory-import",
-      JSON.stringify({ paths: ["one.md", "two.md"] }),
-      1,
-      1,
-    );
-    insert.run("sync-1", "directory-sync:sync-request", "{}", 2, 2);
-
-    expect(barrier.readHeldImports()).toEqual({
-      jobIds: ["import-1"],
-      itemCount: 2,
-    });
-    expect(readJobSchedule(database, "sync-1")).toBe(2);
-
-    barrier.release();
-    expect(readJobSchedule(database, "import-1")).toBeLessThanOrEqual(
-      Date.now(),
-    );
-
-    insert.run(
-      "import-2",
-      "directory-sync:directory-import",
-      JSON.stringify({ paths: ["three.md"] }),
-      3,
-      3,
-    );
-    expect(readJobSchedule(database, "import-2")).toBe(3);
-  } finally {
-    barrier.release();
-    database.close();
-    await rm(root, { recursive: true, force: true });
-  }
 });
 
 it("ignores a transient zombie that is reaped before the next sample", () => {

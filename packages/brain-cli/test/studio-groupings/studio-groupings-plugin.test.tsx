@@ -9,11 +9,14 @@ import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
 import { createAssetRef, type AssetRef } from "@brains/assets";
 import { createFileActorOptions } from "@brains/app";
+import type { BinaryUploadReceipt } from "@brains/db/binary-publication";
 import {
   EntityRegistry,
   EntityService,
   EntityFileRuntime,
   EntityValidationError,
+  type EntityWriteCondition,
+  type EntityWriteAdmission,
 } from "@brains/entity-service";
 import { startEntityOwnerEndpoint } from "../helpers/entity-owner-endpoint";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -46,10 +49,19 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 
-async function fixture(): Promise<{
+async function fixture(afterUpload?: () => Promise<void>): Promise<{
   service: EntityService;
   registry: EntityRegistry;
-  image(id: string): Promise<AssetRef>;
+  image(
+    id: string,
+    options?: {
+      conditionalWrite?: EntityWriteCondition;
+      writeAdmission?: EntityWriteAdmission;
+      operation?: "createEntity" | "updateEntity";
+      title?: string;
+      signal?: AbortSignal;
+    },
+  ): Promise<AssetRef>;
   api(role?: "admin" | "trusted"): StudioApi;
   request(
     method: string,
@@ -93,6 +105,19 @@ async function fixture(): Promise<{
     ...options,
     entityRegistry: EntityRegistry.createFresh(logger),
   });
+  if (afterUpload) {
+    const upload = borrower.service.assetTransfers.upload.bind(
+      borrower.service.assetTransfers,
+    );
+    spyOn(borrower.service.assetTransfers, "upload").mockImplementation(
+      async (ticket, options): Promise<BinaryUploadReceipt> => {
+        const receipt = await upload(ticket, options);
+        // Hold only delivery of the actual native receipt, never fake the transfer.
+        await afterUpload();
+        return receipt;
+      },
+    );
+  }
   const files = new EntityFileRuntime(
     borrower.service.assetTransfers,
     createFileActorOptions(process.execPath),
@@ -158,7 +183,7 @@ async function fixture(): Promise<{
   return {
     service,
     registry,
-    image: async (id): Promise<AssetRef> => {
+    image: async (id, options): Promise<AssetRef> => {
       const sourceFile = join(directory.dir, `${id}.png`);
       await writeFile(sourceFile, imageBytes);
       const inspected = await files.inspect({
@@ -171,20 +196,34 @@ async function fixture(): Promise<{
         digest: inspected.sha256,
         sizeBytes: inspected.sizeBytes,
       });
-      await files.publish({
-        sourceFile,
-        sizeBytes: facts.sizeBytes,
-        publication: {
-          operation: "createEntity",
-          request: {
-            entity: {
-              id,
-              visibility: "public",
-              ...imageAdapter.createImageEntity({ facts, title: id }),
-            },
-          },
+      const request = {
+        entity: {
+          id,
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          contentHash: createHash("sha256").update(facts.ref).digest("hex"),
+          visibility: "public" as const,
+          ...imageAdapter.createImageEntity({
+            facts,
+            title: options?.title ?? id,
+          }),
         },
-      });
+        options: {
+          conditionalWrite: options?.conditionalWrite,
+          writeAdmission: options?.writeAdmission,
+        },
+      };
+      await files.publish(
+        {
+          sourceFile,
+          sizeBytes: facts.sizeBytes,
+          publication:
+            options?.operation === "updateEntity"
+              ? { operation: "updateEntity", request }
+              : { operation: "createEntity", request },
+        },
+        { signal: options?.signal },
+      );
       return facts.ref;
     },
     api: (role = "admin"): StudioApi =>
@@ -347,6 +386,272 @@ test("native publication preserves owner validation diagnostics without fencing 
   const response = await runtime.request(
     "GET",
     "images?id=accepted&format=source",
+  );
+  expect(response.status).toBe(200);
+  expect(Buffer.from(await response.arrayBuffer())).toEqual(imageBytes);
+});
+
+test("native conditional replacement retires its upload without an asset or export when its revision is absent", async () => {
+  const runtime = await fixture();
+  await assert.rejects(
+    runtime.image("missing-revision", {
+      operation: "updateEntity",
+      conditionalWrite: { expectedRevision: "obsolete-incarnation" },
+    }),
+    { name: "EntityWriteConflictError" },
+  );
+  expect(
+    await runtime.service.getEntityRaw({
+      entityType: "image",
+      id: "missing-revision",
+    }),
+  ).toBeNull();
+  expect(
+    await runtime.service.statAsset(
+      createAssetRef(createHash("sha256").update(imageBytes).digest("hex")),
+    ),
+  ).toBeNull();
+  expect(await runtime.service.listPendingEntityExports()).toEqual([]);
+});
+
+test("owner write admission rolls back an already-bound native asset with its entity and export", async () => {
+  const runtime = await fixture();
+  let checks = 0;
+  runtime.registry.writeAdmissions.register(
+    "fixture:publication",
+    z.strictObject({ id: z.string() }),
+    async (context, payload): Promise<void> => {
+      checks++;
+      assert.equal(context.operation, "create");
+      assert.equal(context.entity.id, payload.id);
+      assert.equal(
+        context.entity.content,
+        createAssetRef(createHash("sha256").update(imageBytes).digest("hex")),
+      );
+      throw new Error("Publication permission revoked");
+    },
+  );
+  await assert.rejects(
+    runtime.image("admission-denied", {
+      writeAdmission: {
+        name: "fixture:publication",
+        payload: { id: "admission-denied" },
+      },
+    }),
+    /Publication permission revoked/,
+  );
+  expect(checks).toBe(1);
+  expect(
+    await runtime.service.getEntityRaw({
+      entityType: "image",
+      id: "admission-denied",
+      visibilityScope: "shared",
+    }),
+  ).toBeNull();
+  expect(
+    await runtime.service.statAsset(
+      createAssetRef(createHash("sha256").update(imageBytes).digest("hex")),
+    ),
+  ).toBeNull();
+  expect(await runtime.service.listPendingEntityExports()).toEqual([]);
+});
+
+test("native create-only publication preserves an existing incarnation on conflict", async () => {
+  const runtime = await fixture();
+  const options = { conditionalWrite: { expectedRevision: null } };
+  const ref = await runtime.image("create-only", options);
+  const request = {
+    entityType: "image",
+    id: "create-only",
+    visibilityScope: "shared" as const,
+  };
+  const before = await runtime.service.getEntityWriteSnapshot(request);
+  assert(before);
+  const exports = await runtime.service.listPendingEntityExports();
+  await assert.rejects(runtime.image("create-only", options), {
+    name: "EntityWriteConflictError",
+  });
+  expect(await runtime.service.getEntityWriteSnapshot(request)).toEqual(before);
+  expect(await runtime.service.listPendingEntityExports()).toEqual(exports);
+  expect(await runtime.service.statAsset(ref)).not.toBeNull();
+});
+
+test("native conditional replacement accepts the current revision and rejects a stale overwrite", async () => {
+  const runtime = await fixture();
+  const ref = await runtime.image("revision");
+  const request = {
+    entityType: "image",
+    id: "revision",
+    visibilityScope: "shared" as const,
+  };
+  const initial = await runtime.service.getEntityWriteSnapshot(request);
+  assert(initial);
+  const options = {
+    operation: "updateEntity" as const,
+    conditionalWrite: { expectedRevision: initial.revision },
+  };
+  expect(
+    await runtime.image("revision", { ...options, title: "Current title" }),
+  ).toBe(ref);
+  const current = await runtime.service.getEntityWriteSnapshot(request);
+  assert(current);
+  expect(current.revision).not.toBe(initial.revision);
+  expect(current.entity.metadata["title"]).toBe("Current title");
+  const exports = await runtime.service.listPendingEntityExports();
+  const asset = await runtime.service.statAsset(ref);
+  assert(asset);
+  await assert.rejects(
+    runtime.image("revision", { ...options, title: "Stale overwrite" }),
+    { name: "EntityWriteConflictError" },
+  );
+  expect(await runtime.service.getEntityWriteSnapshot(request)).toEqual(
+    current,
+  );
+  expect(await runtime.service.listPendingEntityExports()).toEqual(exports);
+  expect(await runtime.service.statAsset(ref)).toEqual(asset);
+});
+
+test("pre-aborted native publication creates no entity, asset or export", async () => {
+  const runtime = await fixture();
+  const controller = new AbortController();
+  const reason = new Error("cancel before native publication");
+  controller.abort(reason);
+  await assert.rejects(
+    runtime.image("pre-aborted", { signal: controller.signal }),
+    (error: unknown): boolean => error === reason,
+  );
+  expect(
+    await runtime.service.getEntityRaw({
+      entityType: "image",
+      id: "pre-aborted",
+    }),
+  ).toBeNull();
+  expect(
+    await runtime.service.statAsset(
+      createAssetRef(createHash("sha256").update(imageBytes).digest("hex")),
+    ),
+  ).toBeNull();
+  expect(await runtime.service.listPendingEntityExports()).toEqual([]);
+  // Distinct work, not a replay of the cancelled request.
+  expect(await runtime.image("after-pre-abort")).toBe(
+    createAssetRef(createHash("sha256").update(imageBytes).digest("hex")),
+  );
+});
+
+test("cancellation after native upload retires the unpublished transfer before distinct work", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const runtime = await fixture(async (): Promise<void> => {
+    entered.resolve();
+    await release.promise;
+  });
+  let validations = 0;
+  runtime.registry.registerPersistValidator(
+    "image",
+    async (): Promise<void> => {
+      validations++;
+    },
+  );
+  const controller = new AbortController();
+  const reason = new Error("cancel sealed upload before publication");
+  const publication = runtime.image("cancelled-upload", {
+    signal: controller.signal,
+  });
+  const outcome = publication.then(
+    (ref) => ({ ok: true as const, ref }),
+    (error: unknown) => ({ ok: false as const, error }),
+  );
+  try {
+    await Promise.race([
+      entered.promise,
+      outcome.then((result): void => {
+        if (!result.ok) throw result.error;
+        throw new Error("Publication completed before its upload receipt gate");
+      }),
+    ]);
+    controller.abort(reason);
+  } finally {
+    release.resolve();
+  }
+  const result = await outcome;
+  assert(!result.ok);
+  assert(
+    result.error === reason ||
+      (result.error instanceof AggregateError &&
+        result.error.errors.includes(reason)),
+  );
+  expect(validations).toBe(0);
+  expect(
+    await runtime.service.getEntityRaw({
+      entityType: "image",
+      id: "cancelled-upload",
+    }),
+  ).toBeNull();
+  const ref = createAssetRef(
+    createHash("sha256").update(imageBytes).digest("hex"),
+  );
+  expect(await runtime.service.statAsset(ref)).toBeNull();
+  expect(await runtime.service.listPendingEntityExports()).toEqual([]);
+  expect(await runtime.image("after-upload-cancellation")).toBe(ref);
+  expect(validations).toBe(1);
+  const response = await runtime.request(
+    "GET",
+    "images?id=after-upload-cancellation&format=source",
+  );
+  expect(response.status).toBe(200);
+  expect(Buffer.from(await response.arrayBuffer())).toEqual(imageBytes);
+});
+
+test("cancellation after native publication submission observes the real acknowledgement without replay", async () => {
+  const runtime = await fixture();
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let validations = 0;
+  runtime.registry.registerPersistValidator(
+    "image",
+    async (): Promise<void> => {
+      validations++;
+      entered.resolve();
+      await release.promise;
+    },
+  );
+  const controller = new AbortController();
+  const publication = runtime.image("late-abort", {
+    signal: controller.signal,
+  });
+  // Observe rejection immediately as well, including failure before the gate.
+  const outcome = publication.then(
+    (ref) => ({ ok: true as const, ref }),
+    (error: unknown) => ({ ok: false as const, error }),
+  );
+  try {
+    await Promise.race([
+      entered.promise,
+      outcome.then((result): void => {
+        if (!result.ok) throw result.error;
+        throw new Error("Publication completed before its validation gate");
+      }),
+    ]);
+    controller.abort(new Error("cancel after submission"));
+  } finally {
+    release.resolve();
+  }
+  const result = await outcome;
+  assert(result.ok);
+  expect(validations).toBe(1);
+  expect(
+    (
+      await runtime.service.getEntityRaw({
+        entityType: "image",
+        id: "late-abort",
+      })
+    )?.content,
+  ).toBe(result.ref);
+  expect(await runtime.service.statAsset(result.ref)).not.toBeNull();
+  expect(await runtime.service.listPendingEntityExports()).toHaveLength(1);
+  const response = await runtime.request(
+    "GET",
+    "images?id=late-abort&format=source",
   );
   expect(response.status).toBe(200);
   expect(Buffer.from(await response.arrayBuffer())).toEqual(imageBytes);

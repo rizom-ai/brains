@@ -1,4 +1,8 @@
-import { and, asc, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
+import {
+  readPendingProjectionInputs,
+  readWaveProjectionInputs,
+} from "./projection-input-reads";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
 import type { ProjectionBatchCoordinator } from "./projection-batch-coordinator";
@@ -105,11 +109,10 @@ export class ProjectionWaveCoordinator {
       };
       await transaction.insert(projectionWaves).values(wave);
 
-      const journalRows = await transaction
-        .select()
-        .from(projectionDirtyInputs)
-        .where(lte(projectionDirtyInputs.generation, cutoffGeneration))
-        .orderBy(asc(projectionDirtyInputs.generation));
+      const journalRows = await readPendingProjectionInputs(
+        transaction,
+        cutoffGeneration,
+      );
       const claimed = coalesceLatestInputs(journalRows);
       // Six bindings per row: keep each batch below 256 SQL arguments while
       // sharing the transaction with wave admission and journal retirement.
@@ -135,11 +138,11 @@ export class ProjectionWaveCoordinator {
   }
 
   public listWaveInputs(waveId: string): Promise<ProjectionWaveInput[]> {
-    return this.db
-      .select()
-      .from(projectionWaveInputs)
-      .where(eq(projectionWaveInputs.waveId, waveId))
-      .orderBy(asc(projectionWaveInputs.generation));
+    return this.transactions.runDatabaseOperation((database) =>
+      database.transaction((transaction) =>
+        readWaveProjectionInputs(transaction, waveId),
+      ),
+    );
   }
 
   public async getWave(waveId: string): Promise<ProjectionWave | null> {
@@ -401,27 +404,25 @@ export class ProjectionWaveCoordinator {
     waveId: string,
     markedAt: number,
   ): Promise<void> {
-    const claimedInputs = await transaction
-      .select()
-      .from(projectionWaveInputs)
-      .where(eq(projectionWaveInputs.waveId, waveId));
-    const pendingInputs = await transaction
-      .select()
-      .from(projectionDirtyInputs);
+    const claimedInputs = await readWaveProjectionInputs(transaction, waveId);
+    const pendingInputs = await readPendingProjectionInputs(transaction);
     const pendingKeys = new Set(pendingInputs.map(inputKey));
     const requeued = claimedInputs.filter(
       (input) => !pendingKeys.has(inputKey(input)),
     );
     if (requeued.length === 0) return;
-    await transaction.insert(projectionDirtyInputs).values(
-      requeued.map((input) => ({
-        sourceType: input.sourceType,
-        sourceId: input.sourceId,
-        revision: input.revision,
-        operation: input.operation,
-        markedAt,
-      })),
-    );
+    // Preserve atomic recovery without exceeding the SQL argument allowance.
+    for (let offset = 0; offset < requeued.length; offset += 32) {
+      await transaction.insert(projectionDirtyInputs).values(
+        requeued.slice(offset, offset + 32).map((input) => ({
+          sourceType: input.sourceType,
+          sourceId: input.sourceId,
+          revision: input.revision,
+          operation: input.operation,
+          markedAt,
+        })),
+      );
+    }
   }
 
   public async getRecoveryGeneration(

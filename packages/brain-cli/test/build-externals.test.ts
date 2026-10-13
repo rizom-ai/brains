@@ -55,17 +55,19 @@ describe("brain-cli build config", () => {
     buildScript.indexOf("async function bundleLibraries"),
   );
 
-  it("builds server library entries together with shared chunks", () => {
+  it("shares CLI and server library chunks beside their runtime resources", () => {
     const serverBuild =
       libraryBuilds.match(
         /const result = await Bun\.build\(\{([\s\S]*?)\n {2}\}\);/,
       )?.[1] ?? "";
     expect(serverBuild.replace(/\s+/g, " ")).toContain(
-      'entrypoints: libraryEntries .filter((entry) => entry.name !== "chat") .map((entry) => entry.source)',
+      '...libraryEntries .filter((entry) => entry.name !== "chat") .map((entry) => entry.source)',
     );
     expect(serverBuild).toContain('target: "bun"');
     expect(serverBuild).toContain("splitting: true");
-    expect(serverBuild).toContain('chunk: "chunks/[name]-[hash].js"');
+    expect(serverBuild).toContain('join(import.meta.dir, "brain.ts")');
+    expect(serverBuild).toContain('chunk: "brain-runtime-[name]-[hash].js"');
+    expect(buildScript).not.toContain('bundleExecutable(\n  "brain"');
   });
 
   it("isolates Chat in an unsplit browser bundle", () => {

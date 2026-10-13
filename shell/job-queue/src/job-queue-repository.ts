@@ -5,6 +5,7 @@ import {
   eq,
   exists,
   gt,
+  getTableColumns,
   inArray,
   isNull,
   lte,
@@ -811,13 +812,34 @@ export class JobQueueRepository {
   }
 
   public async getJobsByRootJobId(rootJobId: string): Promise<JobInfo[]> {
-    return this.db
-      .select()
-      .from(jobQueue)
-      .where(
-        sql`json_extract(${jobQueue.metadata}, '$.rootJobId') = ${rootJobId}`,
-      )
-      .orderBy(asc(jobQueue.createdAt), asc(jobQueue.id));
+    return this.db.transaction(async (transaction) => {
+      const jobs: JobInfo[] = [];
+      let after: JobInfo | undefined;
+      for (;;) {
+        const [job] = await transaction
+          .select()
+          .from(jobQueue)
+          .where(
+            and(
+              sql`json_extract(${jobQueue.metadata}, '$.rootJobId') = ${rootJobId}`,
+              after === undefined
+                ? undefined
+                : or(
+                    gt(jobQueue.createdAt, after.createdAt),
+                    and(
+                      eq(jobQueue.createdAt, after.createdAt),
+                      gt(jobQueue.id, after.id),
+                    ),
+                  ),
+            ),
+          )
+          .orderBy(asc(jobQueue.createdAt), asc(jobQueue.id))
+          .limit(1);
+        if (!job) return jobs;
+        jobs.push(job);
+        after = job;
+      }
+    });
   }
 
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
@@ -939,37 +961,64 @@ export class JobQueueRepository {
   ): Promise<JobRuntimeUpdate[]> {
     if (limit <= 0) return [];
 
-    // Row-value cursor predicates don't seek on Turso, so page with two
-    // bounded index seeks: ties at the cursor timestamp, then rows beyond it.
-    const ties = await this.db
-      .select()
-      .from(jobQueue)
-      .where(
-        and(
-          eq(jobQueue.runtimeUpdatedAt, cursor.updatedAt),
-          gt(jobQueue.id, cursor.jobId),
-        ),
-      )
-      .orderBy(asc(jobQueue.id))
-      .limit(limit);
-
-    const beyond =
-      ties.length < limit
-        ? await this.db
-            .select()
+    // Size bounded prefixes before fetching full rows. Reserve half the SQL
+    // allowance for typed-cell/column overhead (at most 16 records per result).
+    // Keep one snapshot so concurrent progress cannot move rows across seeks.
+    const encodedBytes = sql<number>`${sql.join(
+      Object.values(getTableColumns(jobQueue)).map(
+        (column) => sql`length(cast(json_quote(${column}) as blob))`,
+      ),
+      sql` + `,
+    )}`;
+    return this.db.transaction(async (transaction) => {
+      const updates: JobRuntimeUpdate[] = [];
+      let after = cursor;
+      while (updates.length < limit) {
+        // Row-value cursor predicates don't seek on Turso: use ties, then the
+        // next timestamp, preserving the existing composite cursor ordering.
+        let predicate = and(
+          eq(jobQueue.runtimeUpdatedAt, after.updatedAt),
+          gt(jobQueue.id, after.jobId),
+        );
+        let ordering = [asc(jobQueue.id)];
+        const readSizes = async (): Promise<{ bytes: number }[]> =>
+          transaction
+            .select({ bytes: encodedBytes })
             .from(jobQueue)
-            .where(gt(jobQueue.runtimeUpdatedAt, cursor.updatedAt))
-            .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id))
-            .limit(limit - ties.length)
-        : [];
-
-    return [...ties, ...beyond].map((job) => ({
-      job,
-      cursor: {
-        updatedAt: job.runtimeUpdatedAt ?? 0,
-        jobId: job.id,
-      },
-    }));
+            .where(predicate)
+            .orderBy(...ordering)
+            .limit(Math.min(16, limit - updates.length));
+        let candidates = await readSizes();
+        if (candidates.length === 0) {
+          predicate = gt(jobQueue.runtimeUpdatedAt, after.updatedAt);
+          ordering = [asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id)];
+          candidates = await readSizes();
+        }
+        if (candidates.length === 0) break;
+        let count = 0;
+        let bytes = 0;
+        for (const candidate of candidates) {
+          if (count > 0 && bytes + candidate.bytes > 32768) break;
+          count++;
+          bytes += candidate.bytes;
+        }
+        // An individually oversized row is still refused by the native guard;
+        // never retry an oversized result using an alternate/buffered path.
+        const jobs = await transaction
+          .select()
+          .from(jobQueue)
+          .where(predicate)
+          .orderBy(...ordering)
+          .limit(count);
+        if (jobs.length !== count)
+          throw new Error("Job update snapshot lost its selected rows");
+        for (const job of jobs) {
+          after = { updatedAt: job.runtimeUpdatedAt ?? 0, jobId: job.id };
+          updates.push({ job, cursor: after });
+        }
+      }
+      return updates;
+    });
   }
 
   public async cleanup(olderThanMs: number): Promise<number> {

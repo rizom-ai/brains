@@ -162,6 +162,10 @@ export class EntityMutations {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    const beforeWrite = this.entityRegistry.writeAdmissions.prepare(
+      options,
+      "create",
+    );
     options?.signal?.throwIfAborted();
     const condition =
       options?.conditionalWrite &&
@@ -278,7 +282,7 @@ export class EntityMutations {
           markdown,
           stagedAsset,
         );
-        await options?.beforeWrite?.({
+        await beforeWrite?.({
           ...validatedEntity,
           id: finalId,
           content: markdown,
@@ -347,6 +351,10 @@ export class EntityMutations {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    const beforeWrite = this.entityRegistry.writeAdmissions.prepare(
+      options,
+      "update",
+    );
     options?.signal?.throwIfAborted();
     const condition =
       options?.conditionalWrite &&
@@ -466,7 +474,14 @@ export class EntityMutations {
             markdown,
             stagedAsset,
           );
+          await beforeWrite?.({
+            ...validatedEntity,
+            content: markdown,
+            contentHash,
+            metadata,
+          });
           options?.signal?.throwIfAborted();
+          assertGroupingsCurrent();
           return this.persistEntityExport(
             transaction,
             {
@@ -549,7 +564,7 @@ export class EntityMutations {
             markdown,
             stagedAsset,
           );
-          await options?.beforeWrite?.({
+          await beforeWrite?.({
             ...validatedEntity,
             content: markdown,
             contentHash,

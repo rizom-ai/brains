@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RuntimeStateService } from "@brains/runtime-state";
+import {
+  RuntimeStateService,
+  RemoteRuntimeStateService,
+  handleRuntimeStateRpcRequest,
+} from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { createMemoryRuntimeStateNamespace } from "@brains/plugins/test";
 import type {
@@ -48,13 +52,25 @@ function records(state: IRuntimeStateNamespace): IRuntimeStateStore<unknown> {
   });
 }
 
+// Policy-level RPC fixture: independent borrowers, exactly one native owner.
+// Socket authentication is covered separately; no second engine opens the file.
+function borrow(owner: RuntimeStateService): RemoteRuntimeStateService {
+  return new RemoteRuntimeStateService({
+    initialize: (): Promise<void> => owner.initialize(),
+    request: (payload): Promise<unknown> =>
+      handleRuntimeStateRpcRequest(owner, payload),
+    close: (): void => {},
+  });
+}
+
 describe("guest credential issuance", () => {
-  it("bounds parallel cookie resets across replicas and origins, and survives restart", async () => {
+  it("bounds parallel cookie resets across borrowers and origins, and survives joined owner restart", async () => {
     const dir = await mkdtemp(join(tmpdir(), "guest-issuance-"));
     const config = { url: `file:${join(dir, "state.db")}` };
     await migrateRuntimeState(config);
-    const first = RuntimeStateService.createFresh(config);
-    const second = RuntimeStateService.createFresh(config);
+    const owner = RuntimeStateService.createFresh(config);
+    const first = borrow(owner);
+    const second = borrow(owner);
     const preview = { ...policy, origin: "https://preview.brain.test" };
     try {
       await Promise.all([first.initialize(), second.initialize()]);
@@ -91,8 +107,9 @@ describe("guest credential issuance", () => {
         .get("deployment");
       expect(ledger?.attempts).toHaveLength(2);
       expect(Object.keys(ledger?.slots ?? {})).toHaveLength(2);
-      await first.closeAsync();
-      await second.closeAsync();
+      first.close();
+      second.close();
+      await owner.closeAsync();
       const restarted = RuntimeStateService.createFresh(config);
       try {
         await restarted.initialize();
@@ -106,8 +123,9 @@ describe("guest credential issuance", () => {
         await restarted.closeAsync();
       }
     } finally {
-      await first.closeAsync();
-      await second.closeAsync();
+      first.close();
+      second.close();
+      await owner.closeAsync();
       await rm(dir, { recursive: true, force: true });
     }
   });

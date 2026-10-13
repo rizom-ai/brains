@@ -282,7 +282,11 @@ export interface IJobQueueService {
   enqueue(request: JobQueueEnqueueRequest): Promise<string>;
 
   /** Dequeue and attach explicit attempt ownership. */
-  dequeue(claim?: JobClaimOptions): Promise<JobInfo | null>;
+  /** Exclusions narrow this call's registered execution types without changing declarations. */
+  dequeue(
+    claim?: JobClaimOptions,
+    excludeTypes?: readonly string[],
+  ): Promise<JobInfo | null>;
 
   /** Register or supersede the live session for a stable worker slot. */
   startWorkerSession(

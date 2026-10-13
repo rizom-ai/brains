@@ -183,8 +183,18 @@ export function createMockEntityService(
         entityType: input.entityType,
         contentHash: "",
       };
-      store.types.add(entity.entityType);
       const { content, metadata } = store.serialize(entity);
+      await store.writeAdmissions.prepare(
+        request.options,
+        "create",
+      )?.({
+        ...entity,
+        content,
+        metadata,
+        contentHash: computeContentHash(content),
+      });
+      request.options?.signal?.throwIfAborted();
+      store.types.add(entity.entityType);
       storePreparedAsset(content, request.preparedAsset);
       store.entities.set(id, {
         ...entity,
@@ -238,6 +248,10 @@ export function createMockEntityService(
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = store.serialize(entity);
       const contentHash = computeContentHash(content);
+      const beforeWrite = store.writeAdmissions.prepare(
+        request.options,
+        "update",
+      );
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = store.entities.get(entity.id);
@@ -252,6 +266,8 @@ export function createMockEntityService(
           skipReason: "content-conflict" as const,
         };
       }
+      await beforeWrite?.({ ...entity, content, metadata, contentHash });
+      request.options?.signal?.throwIfAborted();
       if (
         existing?.contentHash === contentHash &&
         existing.visibility === entity.visibility &&

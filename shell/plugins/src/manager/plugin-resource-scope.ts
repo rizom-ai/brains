@@ -238,8 +238,56 @@ export function createPluginScopedShell(
   };
 
   const entityRegistry = shell.getEntityRegistry();
+  const registerWriteAdmission: typeof entityRegistry.writeAdmissions.register =
+    (name, schema, authorize): (() => void) => {
+      let accepting = true;
+      const inFlight = new Set<Promise<void>>();
+      const unregister = entityRegistry.writeAdmissions.register(
+        name,
+        schema,
+        (context, payload): Promise<void> => {
+          if (!accepting)
+            return Promise.reject(
+              new Error("Plugin write admission is closed"),
+            );
+          const admitted = Promise.withResolvers<void>();
+          inFlight.add(admitted.promise);
+          return Promise.resolve()
+            .then(() => authorize(context, payload))
+            .finally((): void => {
+              inFlight.delete(admitted.promise);
+              admitted.resolve();
+            });
+        },
+      );
+      const stopAdmission = (): void => {
+        if (!accepting) return;
+        accepting = false;
+        unregister();
+      };
+      try {
+        resources.addIngress({
+          stopAdmission,
+          drain: async (): Promise<void> => {
+            await Promise.all(inFlight);
+          },
+        });
+      } catch (error) {
+        stopAdmission();
+        throw error;
+      }
+      return stopAdmission;
+    };
+  const scopedWriteAdmissions = new Proxy(entityRegistry.writeAdmissions, {
+    get(target, property): unknown {
+      if (property === "register") return registerWriteAdmission;
+      const value = reflectGet(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
   const scopedEntityRegistry = new Proxy(entityRegistry, {
     get(target, property): unknown {
+      if (property === "writeAdmissions") return scopedWriteAdmissions;
       const value = reflectGet(target, property);
       if (property === "registerEntityType" && typeof value === "function") {
         return (...args: unknown[]): unknown => {

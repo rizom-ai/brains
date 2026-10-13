@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { fileActorSources } from "@brains/app";
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { verifyInstalledFileRuntime } from "./helpers/installed-file-runtime";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -71,25 +71,35 @@ describe("canonical packed consumer", () => {
         "brain",
         "dist",
       );
-      const entryHashes: string[] = [];
-      for (const directory of [join(packageDirectory, "dist"), installedDist]) {
-        entryHashes.push(
-          new Bun.CryptoHasher("sha256")
-            .update(await Bun.file(join(directory, "brain.js")).bytes())
-            .digest("hex"),
-        );
-      }
-      expect(entryHashes[1]).toBe(entryHashes[0]);
-      for (const owner of [installedDist, join(installedDist, "chunks")]) {
-        for (const worker of [
-          "worker",
-          "network-ingress-worker",
-          "network-read-worker",
-        ]) {
-          expect(existsSync(join(owner, "turso-worker", `${worker}.ts`))).toBe(
-            true,
+      const sourceDist = join(packageDirectory, "dist");
+      const runtimeChunks = (await readdir(sourceDist)).filter((file) =>
+        /^brain-runtime-.*\.js$/.test(file),
+      );
+      expect(runtimeChunks.length).toBeGreaterThan(0);
+      const serverMaps = (
+        await readdir(join(sourceDist, "server-source-maps"))
+      ).map((name) => join("server-source-maps", name));
+      expect(serverMaps).toContain(join("server-source-maps", "brain.js.map"));
+      for (const artifact of ["brain.js", ...runtimeChunks, ...serverMaps]) {
+        const hashes: string[] = [];
+        for (const directory of [sourceDist, installedDist]) {
+          hashes.push(
+            new Bun.CryptoHasher("sha256")
+              .update(await Bun.file(join(directory, artifact)).bytes())
+              .digest("hex"),
           );
         }
+        expect(hashes[1]).toBe(hashes[0]);
+      }
+      // Both CLI and shared server chunks now resolve workers from this root.
+      for (const worker of [
+        "worker",
+        "network-ingress-worker",
+        "network-read-worker",
+      ]) {
+        expect(
+          existsSync(join(installedDist, "turso-worker", `${worker}.ts`)),
+        ).toBe(true);
       }
       for (const actor of Object.keys(fileActorSources)) {
         expect(

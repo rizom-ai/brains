@@ -1,6 +1,7 @@
 import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
 import { createTestEntity } from "./fixtures";
+import { EntityWriteAdmissions } from "../entity-write-admissions";
 import type {
   AssetStat,
   AssetVerification,
@@ -66,6 +67,7 @@ function writtenEntity(entity: {
  * Options for creating a mock entity service
  */
 export interface MockEntityServiceOptions {
+  writeAdmissions?: EntityWriteAdmissions;
   /** Entity types to return from getEntityTypes */
   entityTypes?: string[];
   /** Pre-configured return values for methods */
@@ -111,6 +113,7 @@ export function createMockEntityService(
 ): IEntityService {
   const {
     entityTypes = [],
+    writeAdmissions = new EntityWriteAdmissions(),
     returns = {},
     listEntitiesImpl,
     getEntityImpl,
@@ -188,14 +191,20 @@ export function createMockEntityService(
     // The real mutations run beforeWrite inside the write transaction, so a
     // guard that throws there must also prevent a mocked write from recording.
     createEntity: mock(async (request) => {
-      await request.options?.beforeWrite?.(writtenEntity(request.entity));
+      await writeAdmissions.prepare(
+        request.options,
+        "create",
+      )?.(writtenEntity(request.entity));
       return mutationResult(returns.createEntity);
     }),
     createEntityFromMarkdown: mock(() =>
       Promise.resolve(mutationResult(undefined)),
     ),
     updateEntity: mock(async (request) => {
-      await request.options?.beforeWrite?.(writtenEntity(request.entity));
+      await writeAdmissions.prepare(
+        request.options,
+        "update",
+      )?.(writtenEntity(request.entity));
       return mutationResult(returns.updateEntity);
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),

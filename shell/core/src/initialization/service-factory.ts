@@ -1,6 +1,9 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { registerAuthWorkerBridge } from "../auth-worker-bridge";
-import { ContentService as ContentServiceClass } from "@brains/content-service";
+import {
+  ContentService as ContentServiceClass,
+  registerGenerationWriteAdmission,
+} from "@brains/content-service";
 import { createGenerationAuthorizer } from "./generation-authorization";
 import {
   CONVERSATION_RPC_SERVICE,
@@ -558,6 +561,13 @@ export function createShellServices(options: {
         messageBus,
       ),
     });
+
+  disposables.push(
+    registerGenerationWriteAdmission(
+      entityRegistry.writeAdmissions,
+      contentService,
+    ),
+  );
 
   const {
     identityService,
