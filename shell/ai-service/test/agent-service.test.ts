@@ -1,6 +1,8 @@
 import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
+import { deferred } from "@brains/utils/deferred";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { AgentService } from "../src/agent-service";
 import type { AgentResponse } from "../src";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
@@ -405,6 +407,51 @@ describe("AgentService", () => {
           .chat("after", "test-conversation")
           .catch((error: unknown) => error),
       ).toBe(activeError);
+    });
+
+    it("drains a cancellation-ignoring model call before shutdown settles", async () => {
+      const entered = deferred();
+      const release = deferred();
+      const addMessage = mock(mockConversationService.addMessage);
+      mockConversationService.addMessage = addMessage;
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(async (params) => {
+        modelSignal = params.abortSignal;
+        entered.resolve();
+        await release.promise;
+        return mockAgentGenerateResult;
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const turn = service
+        .chat("hello", "test-conversation")
+        .catch((error: unknown) => error);
+      await entered.promise;
+      const messagesBeforeShutdown = addMessage.mock.calls.length;
+      const shuttingDown = service.shutdown();
+      let settled = false;
+      const observedShutdown = shuttingDown.then(() => {
+        settled = true;
+      });
+      try {
+        expect(service.shutdown()).toBe(shuttingDown);
+        const error = await turn;
+        expect(error).toEqual(new Error("Agent service has been shut down"));
+        await nextTurn();
+        expect(modelSignal?.aborted).toBe(true);
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+        await Promise.allSettled([turn, observedShutdown]);
+      }
+      expect(settled).toBe(true);
+      expect(addMessage.mock.calls.length).toBe(messagesBeforeShutdown);
     });
 
     it("rejects messages beyond the bounded per-conversation queue", async () => {
@@ -4305,6 +4352,130 @@ describe("AgentService", () => {
       expect(createCallArgs?.agentInstructions).toEqual([
         "Prefer team synthesis over publishing.",
       ]);
+    });
+  });
+
+  describe("assistant turn facts", () => {
+    const readSeed = (): BrainAgentResult => ({
+      text: "Here is the outline.",
+      steps: [
+        {
+          toolCalls: [
+            {
+              toolName: "system_get",
+              toolCallId: "read-1",
+              input: { entityType: "note", id: "seed" },
+            },
+          ],
+          toolResults: [
+            {
+              toolName: "system_get",
+              toolCallId: "read-1",
+              output: {
+                success: true,
+                data: {
+                  entity: { id: "seed", entityType: "note", content: "Seed" },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
+    });
+
+    it("records when a completed turn started and what it read", async () => {
+      mockAgentGenerateResult = readSeed();
+      const savedMessages: unknown[] = [];
+      mockConversationService.addMessage = mock(async (request) => {
+        savedMessages.push(request);
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const before = new Date().toISOString();
+      await service.chat("Outline my seed note", "test-conversation");
+      const after = new Date().toISOString();
+
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: "Here is the outline.",
+          metadata: expect.objectContaining({
+            assistantTurn: {
+              startedAt: expect.any(String),
+              retrieved: [{ entityType: "note", entityId: "seed" }],
+            },
+          }),
+        }),
+      );
+      const saved = z
+        .object({
+          role: z.string(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
+        })
+        .parse(savedMessages.at(-1));
+      const startedAt = z
+        .object({ assistantTurn: z.object({ startedAt: z.string() }) })
+        .parse(saved.metadata).assistantTurn.startedAt;
+      expect(startedAt >= before && startedAt <= after).toBe(true);
+    });
+
+    it("records no turn facts on a reply that awaits confirmation", async () => {
+      mockAgentGenerateResult = {
+        ...readSeed(),
+        steps: [
+          ...readSeed().steps,
+          {
+            toolCalls: [
+              {
+                toolName: "system_update",
+                toolCallId: "update-1",
+                input: { entityType: "note", id: "seed" },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "system_update",
+                toolCallId: "update-1",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_update",
+                  summary: "Update seed?",
+                  args: { entityType: "note", id: "seed", confirmed: true },
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const savedMessages: unknown[] = [];
+      mockConversationService.addMessage = mock(async (request) => {
+        savedMessages.push(request);
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      await service.chat("Update my seed note", "test-conversation");
+
+      const saved = z
+        .object({
+          role: z.string(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
+        })
+        .parse(savedMessages.at(-1));
+      expect(saved.role).toBe("assistant");
+      expect(saved.metadata ?? {}).not.toHaveProperty("assistantTurn");
     });
   });
 

@@ -16,7 +16,7 @@ import { AgentService } from "../src/agent-service";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
 import {
   openAiEmbeddingPricingRevision,
-  openAiGuestPricingRevision,
+  noModelCallPricing,
 } from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
@@ -489,10 +489,10 @@ describe("guest runtime boundary", () => {
       answer: "Rizom keeps memory in the brains of the people who hold it.",
       sources: [
         {
-          id: "network-piece:plc-peer--post--3kabc",
-          source: "network-piece",
-          entityType: "network-piece",
-          entityId: "plc-peer--post--3kabc",
+          id: "post:handoffs",
+          source: "post",
+          entityType: "post",
+          entityId: "handoffs",
           title: "Handoffs between teams",
           url: "https://becca.rizom.ai/essays/handoffs",
           brain: { name: "Becca", url: "https://becca.rizom.ai" },
@@ -526,23 +526,21 @@ describe("guest runtime boundary", () => {
         cost: {
           state: "known",
           microUsd: 0,
-          pricing: openAiGuestPricingRevision,
+          pricing: noModelCallPricing,
         },
       });
       expect(response.text).toBe(askedBefore.answer);
       expect(response.askedBefore).toEqual({
         faqId: "how-does-rizom-keep-memory",
       });
-      expect(citedIds(response.cards)).toEqual([
-        "network-piece:plc-peer--post--3kabc",
-      ]);
+      expect(citedIds(response.cards)).toEqual(["post:handoffs"]);
       // The question and the answer are the conversation's, as any turn's.
       const roles = h.conversations.addMessage.mock.calls.map(
         ([message]) => message.role,
       );
       expect(roles).toEqual(["user", "assistant"]);
       const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
-      expect(stored).toContain("network-piece:plc-peer--post--3kabc");
+      expect(stored).toContain("post:handoffs");
       expect(stored).toContain("Becca");
       // History knows a FAQ answered, as the live box does.
       const [, reply] = h.conversations.addMessage.mock.calls;
@@ -566,7 +564,7 @@ describe("guest runtime boundary", () => {
       expect(response.guestSettlement?.usage.embeddingTokens).toBe(12);
       expect(response.guestSettlement?.cost).toMatchObject({
         state: "known",
-        pricing: `${openAiGuestPricingRevision}+${openAiEmbeddingPricingRevision}`,
+        pricing: `${noModelCallPricing}+${openAiEmbeddingPricingRevision}`,
       });
     });
 
@@ -794,18 +792,20 @@ describe("guest tool dispatch", () => {
       tool("system_search"),
       tool("system_get"),
       tool("system_list"),
+      tool("network_ask"),
       tool("system_create"),
       tool("new_plugin_read"),
       tool("remote-agent_ask"),
       tool("system_search", { sideEffects: "writes" }),
       tool("system_get", { visibility: "admin" }),
       tool("system_list", { agentTool: false }),
+      tool("network_ask", { sideEffects: "external" }),
     ];
     expect(
       filterToolsForCallOptions(tools, {
         interfaceType: guestInterfaceType,
       }).map((entry) => entry.name),
-    ).toEqual(["system_search", "system_get", "system_list"]);
+    ).toEqual(["system_search", "system_get", "system_list", "network_ask"]);
   });
 
   it("filters at SDK conversion too and does not broadcast guest queries", async () => {

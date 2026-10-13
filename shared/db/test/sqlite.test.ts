@@ -179,18 +179,28 @@ describe("applySqlitePragmas under contention", () => {
     const dir = await mkdtemp(join(tmpdir(), "sqlite-pragma-contention-"));
     const url = `file:${join(dir, "db.sqlite")}`;
     const holder = createSqliteClient({ url });
-    const opener = createSqliteClient({ url });
+    // The client owns the one retry budget; a short one here, since what is
+    // under test is giving up, not how long production waits, which real
+    // timers on a loaded machine stretch past any test timeout.
+    const opener = createSqliteClient(
+      { url },
+      { contentionRetryBudgetMs: 200 },
+    );
     try {
       await holder.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY)");
       const held = await holder.transaction("write");
       try {
         await held.execute("INSERT INTO probe VALUES (1)");
+        const started = Date.now();
         await rejects(applySqlitePragmas(opener, url), (error: unknown) => {
           expect(error instanceof LibsqlError && error.code).toMatch(
             /^SQLITE_(BUSY|LOCKED)$/u,
           );
           return true;
         });
+        // One budget for every pragma, not one each: two full budgets ran
+        // into this test's own timeout.
+        expect(Date.now() - started).toBeLessThan(7_000);
       } finally {
         held.close();
       }
@@ -199,7 +209,7 @@ describe("applySqlitePragmas under contention", () => {
       holder.close();
       await rm(dir, { recursive: true, force: true });
     }
-  }, 10_000);
+  });
 });
 
 describe("local client contention contract", () => {
@@ -468,21 +478,30 @@ describe("local client contention contract", () => {
   }
 
   it("still reports a standalone write refused past the retry budget", async () => {
-    await withConnections(async (holder, contender) => {
-      const held = await holder.client.transaction("write");
-      try {
-        await held.execute("INSERT INTO probe VALUES (1)");
-        await rejects(
-          contender.client.execute("INSERT INTO probe VALUES (2)"),
-          (error: unknown) =>
-            error instanceof LibsqlError &&
-            /^SQLITE_(BUSY|LOCKED)$/u.test(error.code),
-        );
-      } finally {
-        held.close();
-      }
-    });
-  }, 10_000);
+    // A short budget: what is under test is giving up, not how long
+    // production waits, which real timers on a loaded machine stretch past
+    // any test timeout.
+    await withConnections(
+      async (holder, contender) => {
+        const held = await holder.client.transaction("write");
+        try {
+          await held.execute("INSERT INTO probe VALUES (1)");
+          await rejects(
+            contender.client.execute("INSERT INTO probe VALUES (2)"),
+            (error: unknown) => {
+              expect(error instanceof LibsqlError && error.code).toMatch(
+                /^SQLITE_(BUSY|LOCKED)$/u,
+              );
+              return true;
+            },
+          );
+        } finally {
+          held.close();
+        }
+      },
+      { contentionRetryBudgetMs: 200 },
+    );
+  });
 });
 
 describe("shared transaction acquisition", () => {

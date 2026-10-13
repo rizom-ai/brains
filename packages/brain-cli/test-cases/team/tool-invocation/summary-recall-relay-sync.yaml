@@ -33,7 +33,6 @@ successCriteria:
     - "core"
     - "default"
     - "full"
-    - "does not include"
   responseNotContains:
     - "meeting-notes"
     - "decision-record"
@@ -43,7 +42,9 @@ successCriteria:
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "States that the saved summary does not include a remaining action item, without inventing one."
 
 efficiency:
   maxToolCalls: 4
-  maxTokens: 30000
+  maxTokens: 31000

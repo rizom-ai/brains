@@ -36,6 +36,7 @@ interface TopicsPluginConfig {
   mergeSimilarityThreshold?: number; // Default: 0.85
   autoMerge?: boolean; // Default: true
   extractableStatuses?: string[]; // Default: ["published"]
+  excludeTitleTerms?: string[]; // Default: []; e.g. a book brain's author
   enableAutoExtraction?: boolean; // Default: true
 }
 
@@ -67,7 +68,7 @@ Default role policies:
 - Legacy `sourceWeights` and `mintableEntityTypes` remain supported for compatibility, but role-based policy is preferred.
 - Topic entities themselves are never reprocessed as sources.
 - Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
-- `autoMerge` and `reinforceRelevanceThreshold` apply to legacy batch/eval extraction, not automatic ranked selection.
+- `reinforceRelevanceThreshold` applies to legacy batch/eval extraction, not automatic ranked selection.
 - `maxEntitiesPerBatch` defaults to four; automatic extraction clamps it to four.
 - `topicSoftCeilingSourceRatio` defaults to five; the topic cap is `min(24, max(5, ceil(eligibleSources / ratio)))`.
 - `extractionVisibility` defaults to `public` and bounds both source reads and derived topic visibility.
@@ -94,7 +95,7 @@ Use the shared read and mutation tools for direct topic access:
 
 ## Merge behavior
 
-Legacy batch/eval extraction uses embedding distance to find merge candidates when `autoMerge` is enabled. AI synthesis then merges a candidate or judges it distinct. Automatic ranked extraction does not run semantic merges: votes canonicalize against listed titles, and support drives selection.
+When `autoMerge` is enabled, embedding distance finds merge candidates within `semanticMergeDistance` and AI synthesis merges a candidate or judges it distinct. Automatic ranked extraction does this once every source is read: a merged topic leaves, its slug becomes an alias whose votes count for the topic it duplicates, and distinct verdicts are remembered.
 
 ## Topic entity shape
 

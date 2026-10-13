@@ -247,6 +247,31 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
+  // Brains no longer copy what other brains publish: the pieces a brain kept
+  // before are deleted, with their files, when it starts.
+  it("deletes the network pieces a brain kept before", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "plc-peer--post--a",
+        entityType: "network-piece",
+        content: "Another brain's post",
+        metadata: {},
+      },
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+
+    expect(
+      await harness.getEntityService().listEntities({
+        entityType: "network-piece",
+        options: { filter: { visibilityScope: "restricted" } },
+      }),
+    ).toEqual([]);
+
+    await harness.reset();
+  });
+
   it("does not register system_create URL interception for agent contacts", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();

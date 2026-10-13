@@ -3,7 +3,7 @@ import { mkdir, readdir, stat } from "fs/promises";
 import type { DirectorySyncStatus } from "../types";
 import { isImageFile } from "./image-file-utils";
 import { isDocumentFile, isDocumentSidecarFile } from "./document-file-utils";
-import { parseEntityPath } from "./entity-paths";
+import { parseEntityPath, type Containment } from "./entity-paths";
 import { pathExists } from "./fs-utils";
 
 export interface EntityTypeRegistry {
@@ -95,6 +95,7 @@ export async function ensureDirectoryStructure(
 export async function gatherFileStatus(
   syncPath: string,
   entityRegistry: EntityTypeRegistry,
+  containment: Containment,
 ): Promise<{
   files: DirectorySyncStatus["files"];
   stats: DirectorySyncStatus["stats"];
@@ -115,7 +116,7 @@ export async function gatherFileStatus(
     try {
       const fullPath = join(syncPath, filePath);
       const fileStat = await stat(fullPath);
-      const { entityType } = parseEntityPath(syncPath, filePath);
+      const { entityType } = parseEntityPath(syncPath, filePath, containment);
 
       files.push({
         path: filePath,

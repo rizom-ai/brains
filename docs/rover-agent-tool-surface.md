@@ -41,7 +41,7 @@ system_create
 system_delete
 system_generate
 system_get
-system_insights
+system_analytics
 system_job_status
 system_list
 system_search
@@ -69,7 +69,7 @@ system_create
 system_delete
 system_generate
 system_get
-system_insights
+system_analytics
 system_job_status
 system_list
 system_search
@@ -98,7 +98,7 @@ system_create
 system_delete
 system_generate
 system_get
-system_insights
+system_analytics
 system_job_status
 system_list
 system_search

@@ -3,11 +3,13 @@ import { slugify } from "@brains/utils/string-utils";
 import { playbookBodyFormatter } from "../formatters/playbook-formatter";
 import {
   playbookFrontmatterSchema,
+  playbookProofSourceSchema,
   playbookSchema,
   type PlaybookBody,
   type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
+  type PlaybookProofSource,
 } from "../schemas/playbook";
 import { assertValidPlaybookBody } from "../validation";
 
@@ -86,6 +88,7 @@ interface AuthoredStep {
   requiredDetails: string[];
   instructions: string[];
   doneWhen: string[];
+  provenBy?: PlaybookProofSource[] | undefined;
   choices: Array<{ label: string; target: string }>;
   skip?: { label: string; target: string } | undefined;
 }
@@ -120,6 +123,7 @@ function parseAuthoredStepsBody(markdown: string): PlaybookBody {
       requiredDetails: step.requiredDetails,
       instructions: step.instructions,
       doneWhen: step.doneWhen,
+      ...(step.provenBy ? { provenBy: step.provenBy } : {}),
       transitions: [
         ...(step.doneWhen.length > 0 && !isTerminal
           ? [{ event: "NEXT", target: steps[index + 1]?.id ?? step.id }]
@@ -170,6 +174,10 @@ function parseAuthoredSteps(stepsMarkdown: string): AuthoredStep[] {
 
   return blocks.map((block) => {
     const content = block.content.join("\n");
+    const provenBy = parseProvenBy(
+      block.title,
+      prefixedLine(content, "Proven by"),
+    );
     return {
       title: block.title,
       id: slugify(block.title),
@@ -179,10 +187,30 @@ function parseAuthoredSteps(stepsMarkdown: string): AuthoredStep[] {
       requiredDetails: labelledList(content, "Required details"),
       instructions: labelledList(content, "To do"),
       doneWhen: labelledList(content, "Done when"),
+      ...(provenBy ? { provenBy } : {}),
       choices: labelledChoices(content, "Choices"),
       ...(parseSkip(content) ? { skip: parseSkip(content) } : {}),
     };
   });
+}
+
+function parseProvenBy(
+  stepTitle: string,
+  line: string | undefined,
+): PlaybookProofSource[] | undefined {
+  if (line === undefined) return undefined;
+  return line
+    .split(",")
+    .map((source) => source.trim())
+    .filter((source) => source.length > 0)
+    .map((source) => {
+      const parsed = playbookProofSourceSchema.safeParse(source);
+      if (!parsed.success)
+        throw new Error(
+          `Playbook step '${stepTitle}' has an unknown Proven by source: ${source}.`,
+        );
+      return parsed.data;
+    });
 }
 
 function extractHeadingSection(markdown: string, label: string): string {

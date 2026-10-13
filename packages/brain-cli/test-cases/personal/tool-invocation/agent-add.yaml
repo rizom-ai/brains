@@ -21,8 +21,8 @@ permissions:
     expectedTools:
       - toolName: agent_connect
         shouldBeCalled: false
-    responseNotContains:
-      - "created"
+    responseCriteria:
+      - "Does not claim that anything was created."
   trusted:
     expectedTools:
       - toolName: agent_connect
@@ -30,8 +30,8 @@ permissions:
         argsContain:
           source.kind: "url"
           source.url: "yeehaa.io"
-    responseNotContains:
-      - "created"
+    responseCriteria:
+      - "Does not claim that anything was created."
   admin:
     expectedTools:
       - toolName: agent_connect

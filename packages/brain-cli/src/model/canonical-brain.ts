@@ -102,7 +102,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
   version: packageJson.version,
   bundleContract: CANONICAL_BUNDLE_CONTRACT,
-  model: "gpt-5.6-luna",
+  model: "gpt-6-luna",
   reasoningEffort: "low",
   capabilities: [
     ["prompt", promptPlugin, undefined],

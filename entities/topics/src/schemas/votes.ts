@@ -34,11 +34,14 @@ const topicProposalSchema: z.ZodObject<{
 
 export const topicVoteSchema: z.ZodObject<{
   contentHash: z.ZodString;
+  promptVersion: z.ZodOptional<z.ZodString>;
   visibility: VisibilitySchema;
   supported: z.ZodArray<typeof topicSupportVoteSchema>;
   proposal: z.ZodNullable<typeof topicProposalSchema>;
 }> = z.object({
   contentHash: z.string(),
+  /** The votes prompt this vote was cast under; a vote without one is stale. */
+  promptVersion: z.string().optional(),
   visibility: z.enum(["public", "shared", "restricted"]),
   supported: z.array(topicSupportVoteSchema),
   proposal: topicProposalSchema.nullable(),
@@ -94,3 +97,14 @@ export const topicDescriptionResponseSchema: z.ZodObject<{
 export type TopicDescriptionResponse = z.output<
   typeof topicDescriptionResponseSchema
 >;
+
+/** Which topics were chosen under an earlier votes prompt. */
+export const topicSelectionSchema: z.ZodObject<{
+  promptVersion: z.ZodString;
+  earlier: z.ZodArray<z.ZodString>;
+}> = z.object({
+  promptVersion: z.string(),
+  earlier: z.array(z.string()),
+});
+
+export type TopicSelection = z.output<typeof topicSelectionSchema>;

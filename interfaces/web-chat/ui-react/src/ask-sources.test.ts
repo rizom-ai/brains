@@ -51,10 +51,10 @@ describe("Ask sources detail, with the brain a source came from", () => {
       card([
         source("post", "hiding", "Hiding"),
         {
-          id: "network-piece:becca/post/handoffs",
-          entityType: "network-piece",
-          entityId: "becca/post/handoffs",
-          source: "network-piece",
+          id: "post:handoffs",
+          entityType: "post",
+          entityId: "handoffs",
+          source: "post",
           title: "Handoffs",
           brain,
         },
@@ -63,7 +63,7 @@ describe("Ask sources detail, with the brain a source came from", () => {
     expect(askSourcesDetailSchema.parse(detail).sources).toEqual([
       { id: "post:hiding", title: "Hiding" },
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         title: "Handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai/" },
       },

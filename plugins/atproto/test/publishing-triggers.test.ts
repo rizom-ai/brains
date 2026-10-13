@@ -241,29 +241,108 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
   });
 
-  it("republishes the brain card when identity or skill inputs change", async () => {
+  function countCardWrites(
+    client: ReturnType<typeof createClientMocks>,
+  ): number {
+    return client.putRecord.mock.calls.filter(
+      ([input]) =>
+        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    ).length;
+  }
+
+  /** Card writes after the boot publish has landed and `messages` arrive. */
+  async function countCardWritesAfter(
+    messages: Array<{ type: string; payload: Record<string, unknown> }>,
+    options: { concurrent?: boolean } = {},
+  ): Promise<number> {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client);
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
     await armFullBoot(shell);
     await plugin.ready();
+    await waitUntil(
+      () => countCardWrites(client) === 1,
+      "the boot card publish",
+    );
 
-    for (const entityType of ["brain-character", "anchor-profile", "skill"]) {
-      await shell.getMessageBus().send({
-        type: "entity:updated",
-        payload: { entityType, entityId: entityType },
-        sender: "entity-service",
+    const send = (message: (typeof messages)[number]): Promise<unknown> =>
+      shell.getMessageBus().send({
+        ...message,
+        sender: "test",
         broadcast: true,
       });
+    if (options.concurrent) {
+      await Promise.all(messages.map(send));
+    } else {
+      for (const message of messages) await send(message);
     }
     await plugin.shutdown();
 
-    const cardWrites = client.putRecord.mock.calls.filter(
-      ([input]) =>
-        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    return countCardWrites(client);
+  }
+
+  it("republishes the brain card once the shell signals an identity change", async () => {
+    const writes = await countCardWritesAfter([
+      {
+        type: SYSTEM_CHANNELS.identityChanged,
+        payload: { entityType: "anchor-profile" },
+      },
+    ]);
+
+    expect(writes).toBe(2);
+  });
+
+  for (const type of ["entity:created", "entity:updated", "entity:deleted"]) {
+    it(`republishes the brain card on skill ${type}`, async () => {
+      const writes = await countCardWritesAfter([
+        { type, payload: { entityType: "skill", entityId: "skill-1" } },
+      ]);
+
+      expect(writes).toBe(2);
+    });
+  }
+
+  it("coalesces a burst of skill changes into one pending republish", async () => {
+    const writes = await countCardWritesAfter(
+      Array.from({ length: 5 }, (_, index) => ({
+        type: "entity:created",
+        payload: { entityType: "skill", entityId: `skill-${index}` },
+      })),
+      { concurrent: true },
     );
-    expect(cardWrites).toHaveLength(4);
+
+    expect(writes).toBe(2);
+  });
+
+  it("covers changes before the boot publish with the boot publish", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    await armFullBoot(shell);
+
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.identityChanged,
+      payload: { entityType: "anchor-profile" },
+      sender: "test",
+      broadcast: true,
+    });
+    await plugin.ready();
+    await plugin.shutdown();
+
+    expect(countCardWrites(client)).toBe(1);
+  });
+
+  it("leaves identity entity events to the shell's refreshed identity signal", async () => {
+    const writes = await countCardWritesAfter(
+      ["brain-character", "anchor-profile"].map((entityType) => ({
+        type: "entity:updated",
+        payload: { entityType, entityId: entityType },
+      })),
+    );
+
+    expect(writes).toBe(1);
   });
 
   it("upserts every canonical lexicon schema when this repo is the authority", async () => {

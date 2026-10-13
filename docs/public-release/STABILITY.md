@@ -43,7 +43,7 @@ The system-level tools registered by `shell/core/src/system/` form the canonical
 - `system_list` — list by type with filters
 - `system_search` — semantic search across entities
 - `system_status` — runtime status snapshot
-- `system_insights` — aggregate insights
+- `system_analytics` — aggregate metrics and reports
 
 Old plugin-specific tool names (`blog_generate`, `note_create`, `deck_generate`, etc.) are gone and not coming back. Use the system tools.
 

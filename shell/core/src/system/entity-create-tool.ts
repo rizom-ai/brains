@@ -431,15 +431,15 @@ function resolveCreateVisibility(
  * change that entity (status/title/fields) and misrouted to create.
  * Refuse with a self-documenting error pointing to system_update rather
  * than silently minting a deduplicated copy. `replace: true` is the
- * explicit opt-in for intentionally creating a new copy. Interceptor-
- * backed types own their own id/existence handling, so skip them.
+ * explicit opt-in for intentionally creating a new copy. This holds for
+ * interceptor-backed types too: a note import or a portfolio project takes
+ * its id from the title just like a direct create.
  */
 async function assertCreateTargetIsNew(
   services: SystemServices,
   createInput: CreateInput,
-  interceptor: PreparedCreate["interceptor"],
 ): Promise<ToolResponse | undefined> {
-  if (interceptor || createInput.replace) return undefined;
+  if (createInput.replace) return undefined;
   const candidateId = createInput.title
     ? slugify(createInput.title)
     : undefined;
@@ -540,11 +540,7 @@ async function prepareCreate(
     );
   }
 
-  const existingError = await assertCreateTargetIsNew(
-    services,
-    createInput,
-    interceptor,
-  );
+  const existingError = await assertCreateTargetIsNew(services, createInput);
   if (existingError) return { kind: "error", result: existingError };
 
   return {

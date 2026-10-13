@@ -706,6 +706,15 @@ export class EntityQueries {
     return result.length > 0;
   }
 
+  /** The ids of a type's stored rows, whether or not the type is registered. */
+  public async listStoredIds(entityType: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: entities.id })
+      .from(entities)
+      .where(eq(entities.entityType, entityType));
+    return rows.map((row) => row.id);
+  }
+
   /**
    * Delete an entity by type and ID
    */

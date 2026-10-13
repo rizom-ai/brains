@@ -262,8 +262,11 @@ export interface IJobQueueService {
   /** Freeze handler declarations before runtime services can admit work. */
   finalizeHandlerRegistrations(): readonly JobExecutionRegistration[];
 
-  /** Read the immutable handler declarations derived during boot. */
-  getExecutionRegistrations(): readonly JobExecutionRegistration[];
+  /**
+   * Read the immutable handler declarations derived during boot; undefined
+   * while plugins are still registering.
+   */
+  getExecutionRegistrations(): readonly JobExecutionRegistration[] | undefined;
 
   /**
    * Enqueue a job for processing

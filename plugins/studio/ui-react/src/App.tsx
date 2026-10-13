@@ -215,6 +215,7 @@ export function App(): ReactElement {
     types,
     groupings,
     activeType,
+    collectionType,
     activeCapabilities,
     entityCollectionQuery,
     entityListOffset,
@@ -285,6 +286,7 @@ export function App(): ReactElement {
     currentStudioPathname,
     createMode,
     entityType,
+    collectionType,
     activeType,
     entityCollectionQuery,
     preferredMobilePane,
@@ -334,6 +336,7 @@ export function App(): ReactElement {
     studioBasePath,
     routeSearch,
     entityType,
+    collectionType,
     entityCollectionQuery,
     groupReturnPath,
     workspaces,
@@ -351,6 +354,7 @@ export function App(): ReactElement {
       history: router.history,
       studioBasePath,
       entityType,
+      collectionType,
       entityCollectionQuery,
       groupReturnPath,
       activeCapabilities,
@@ -543,9 +547,10 @@ export function App(): ReactElement {
       entityType={entityType}
       entities={entities}
       folders={entityListQuery.data?.folders ?? []}
+      collectionTrail={entityListQuery.data?.trail}
       collectionPath={
-        entityType
-          ? studioCollectionPath(studioBasePath, entityType)
+        collectionType
+          ? studioCollectionPath(studioBasePath, collectionType)
           : studioBasePath
       }
       selectFolder={selectFolder}
@@ -559,9 +564,9 @@ export function App(): ReactElement {
       entityTotal={entityListTotal ?? 0}
       collectionQuery={entityCollectionQuery}
       onCollectionQueryChange={(query: StudioCollectionQuery): void => {
-        if (!entityType) return;
+        if (!collectionType) return;
         router.history.push(
-          `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...query, offset: 0 })}`,
+          `${studioCollectionPath(studioBasePath, collectionType)}${collectionSearch({ ...query, offset: 0 })}`,
         );
         window.scrollTo({ top: 0, left: 0 });
       }}
@@ -591,7 +596,7 @@ export function App(): ReactElement {
       performDeclarativeAction={performDeclarativeAction}
       onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}
-      openEntity={openEntity}
+      openEntity={(id, type) => openEntity(id, undefined, type)}
       runFieldAssist={runFieldAssist}
       applyFieldAssist={applyFieldAssist}
       save={save}

@@ -47,7 +47,7 @@ The canonical entity/runtime tools are stable:
 - `system_list`
 - `system_search`
 - `system_status`
-- `system_insights`
+- `system_analytics`
 
 If these tools change in a breaking way, the release notes should call it out explicitly.
 

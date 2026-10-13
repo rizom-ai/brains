@@ -207,10 +207,11 @@ export function createSqliteDatabase(
 /**
  * Enable WAL and fail fast on lock contention. Native busy waiting blocks the
  * application thread, preventing an in-process lock holder from continuing.
- * Entering WAL needs an exclusive lock, so a refusal is retried here
- * asynchronously, like a refused BEGIN; libSQL's reopened connections also
- * default to 0. Only meaningful for local files — remote libSQL manages its
- * own concurrency.
+ * Entering WAL needs an exclusive lock; a refusal is retried asynchronously by
+ * the client from {@link createSqliteClient}, like a refused BEGIN, and
+ * libSQL's reopened connections also default to 0. Retrying here as well ran
+ * a second full budget on top of the client's. Only meaningful for local
+ * files — remote libSQL manages its own concurrency.
  */
 export async function applySqlitePragmas(
   client: PragmaClient,
@@ -218,7 +219,6 @@ export async function applySqlitePragmas(
 ): Promise<void> {
   if (!url.startsWith("file:")) return;
 
-  const isClosed = (): boolean => client.closed === true;
   for (const pragma of ["PRAGMA busy_timeout = 0", "PRAGMA journal_mode = WAL"])
-    await retryContention(() => client.execute(pragma), { isClosed });
+    await client.execute(pragma);
 }

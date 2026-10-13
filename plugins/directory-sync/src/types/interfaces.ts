@@ -1,6 +1,7 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
+import type { MatchesHead } from "../lib/file-watcher";
 import type {
   CleanupResult,
   DirectorySyncStatus,
@@ -87,6 +88,8 @@ export interface IDirectorySync {
   startWatching(): Promise<void>;
   stopWatching(): Promise<void>;
   suppressWatchPaths(paths: string[]): void;
+  /** Ignore the watcher's echoes of a pull while each path matches HEAD. */
+  ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void;
   recordPendingPullDeletes(paths: string[]): Promise<void>;
   isPendingDelete(entityType: string, entityId: string): boolean;
   completePendingDelete(

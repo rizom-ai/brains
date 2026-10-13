@@ -35,11 +35,11 @@ turns:
       toolCountRange:
         max: 0
       responseNotContains:
-        - "Created"
         - "generating"
-        - "Saved"
         - "I created"
         - "I generated"
+      responseCriteria:
+        - "Does not claim that anything was created or saved."
 
 successCriteria:
   expectedTools:
@@ -50,12 +50,12 @@ successCriteria:
     - toolName: system_delete
       shouldBeCalled: false
   responseNotContains:
-    - "Created"
     - "generating"
-    - "Saved"
     - "I created"
     - "I generated"
+  responseCriteria:
+    - "Does not claim that anything was created or saved."
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 40000
+  maxTokens: 14000

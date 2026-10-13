@@ -1,4 +1,5 @@
 import {
+  SemanticIndexingDisabledError,
   type BaseEntity,
   type EntityPluginContext,
   type JobHandler,
@@ -7,10 +8,12 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { createId } from "@brains/utils/id";
+import { computeContentHash } from "@brains/utils/hash";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { TopicsPluginConfig } from "../schemas/config";
 import {
+  topicSelectionSchema,
   topicVoteSchema,
   topicVoteResponseSchema,
   topicDescriptionResponseSchema,
@@ -25,6 +28,8 @@ import {
 } from "./topic-source-policy";
 import {
   chooseTopicChallenger,
+  foldTopicAliases,
+  isTopicTitleAllowed,
   rankedTopicChallengers,
   tallyTopicVotes,
   topicSoftCeiling,
@@ -34,7 +39,14 @@ import {
 } from "./topic-selection";
 import { TopicAdapter } from "./topic-adapter";
 import { TopicService } from "./topic-service";
+import { TopicMergeSynthesizer } from "./topic-merge-synthesizer";
+import {
+  SOURCES_PER_TOPIC,
+  ownerlessTopics,
+  type TopicNeighbourhood,
+} from "./topic-ownership";
 import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
+import { topicVoteTemplate } from "../templates/vote-template";
 
 const MAX_AI_CALLS = 10;
 const EXECUTION_TIMEOUT_MS = 180_000;
@@ -175,6 +187,7 @@ async function loadSources(
 
 function normalizeVote(
   source: BaseEntity,
+  promptVersion: string,
   result: TopicVoteResponse["sources"][number],
   listedTitles: ReadonlySet<string>,
   context: EntityPluginContext,
@@ -200,6 +213,7 @@ function normalizeVote(
   const slug = proposal ? generateIdFromText(proposal.title) : "";
   return {
     contentHash: source.contentHash,
+    promptVersion,
     visibility: config.extractionVisibility,
     supported: [...supported.values()].sort((left, right) =>
       left.slug.localeCompare(right.slug),
@@ -235,6 +249,20 @@ export function createRankedTopicJobHandler(
   const leases = context.runtimeState.scoped({
     namespace: "topics.extraction",
     schema: leaseSchema,
+  });
+  // A slug merged into another topic, and pairs judged distinct, by slug.
+  const aliases = context.runtimeState.scoped({
+    namespace: "topics.aliases",
+    schema: z.string(),
+  });
+  const distinctPairs = context.runtimeState.scoped({
+    namespace: "topics.distinct",
+    schema: z.literal(true),
+  });
+  const synthesizer = new TopicMergeSynthesizer(context, logger);
+  const selections = context.runtimeState.scoped({
+    namespace: "topics.selection",
+    schema: topicSelectionSchema,
   });
   const topics = new TopicService(context.entityService, logger);
   const adapter = new TopicAdapter();
@@ -272,6 +300,13 @@ export function createRankedTopicJobHandler(
       let calls = 0;
       let changed = 0;
       try {
+        // Votes are cast under the votes prompt; an edited prompt re-reads all.
+        const promptVersion = computeContentHash(
+          await context.prompts.resolve(
+            topicVoteTemplate.name,
+            topicVoteTemplate.basePrompt ?? "",
+          ),
+        );
         let sources = await readSources(context, config, signal);
         const saved = new Map(
           (await votes.list()).map(({ key, value }) => [key, value]),
@@ -299,6 +334,7 @@ export function createRankedTopicJobHandler(
           const vote = saved.get(source.key);
           return (
             vote?.contentHash === source.contentHash &&
+            vote.promptVersion === promptVersion &&
             vote.visibility === config.extractionVisibility
           );
         };
@@ -312,25 +348,34 @@ export function createRankedTopicJobHandler(
         // may only be displaced once every source has been read at least once.
         const allRead = (): boolean =>
           sources.every((source) => isFresh(source) || attempts(source) > 0);
+        const merged = new Map(
+          (await aliases.list()).map(({ key, value }) => [key, value]),
+        );
+        const distinct = new Set(
+          (await distinctPairs.list()).map(({ key }) => key),
+        );
         const tally = (): Map<string, TopicTally> =>
-          tallyTopicVotes(
-            sources.flatMap((source) => {
-              const vote = saved.get(source.key);
-              if (!vote || !isFresh(source)) return [];
-              return [
-                {
-                  vote,
-                  ...topicSourcePolicy(
-                    source.entityType,
-                    config,
-                    context.entityService.getEntityTypeConfig(
+          foldTopicAliases(
+            tallyTopicVotes(
+              sources.flatMap((source) => {
+                const vote = saved.get(source.key);
+                if (!vote || !isFresh(source)) return [];
+                return [
+                  {
+                    vote,
+                    ...topicSourcePolicy(
                       source.entityType,
+                      config,
+                      context.entityService.getEntityTypeConfig(
+                        source.entityType,
+                      ),
                     ),
-                  ),
-                },
-              ];
-            }),
-            config,
+                  },
+                ];
+              }),
+              config,
+            ),
+            merged,
           );
         const readActive = async (): Promise<ActiveTopic[]> =>
           (
@@ -340,6 +385,25 @@ export function createRankedTopicJobHandler(
             return { id: topic.id, title, slug: generateIdFromText(title) };
           });
         let active = await readActive();
+        // Topics chosen under an earlier prompt no longer steer the votes; once
+        // every source is read again they stay only if the new votes support them.
+        const selection = await selections.get("current");
+        let earlier = new Set(
+          selection?.promptVersion === promptVersion
+            ? selection.earlier
+            : selection
+              ? active.map(({ id }) => id)
+              : [],
+        );
+        const recordSelection = async (): Promise<void> => {
+          const ids = new Set(active.map(({ id }) => id));
+          earlier = new Set([...earlier].filter((id) => ids.has(id)));
+          await selections.set("current", {
+            promptVersion,
+            earlier: [...earlier].sort(),
+          });
+        };
+        if (selection?.promptVersion !== promptVersion) await recordSelection();
         const ceiling = (): number =>
           topicSoftCeiling(sources.length, config.topicSoftCeilingSourceRatio);
         const choose = (): ReturnType<typeof chooseTopicChallenger> => {
@@ -357,8 +421,142 @@ export function createRankedTopicJobHandler(
           return choice?.replace && !allRead() ? null : choice;
         };
 
+        // Topics whose stored embeddings sit within the merge distance are
+        // judged once; a duplicate leaves and its votes count for the topic it
+        // duplicates. Strongest topics are kept first.
+        const strongestFirst = (): ActiveTopic[] => {
+          const support = tally();
+          const strength = (topic: ActiveTopic): number =>
+            support.get(topic.slug)?.support ?? 0;
+          return [...active].sort(
+            (left, right) =>
+              strength(right) - strength(left) ||
+              left.id.localeCompare(right.id),
+          );
+        };
+        const mergeNearDuplicates = async (): Promise<void> => {
+          for (const topic of strongestFirst()) {
+            if (!active.some(({ id }) => id === topic.id)) continue;
+            signal.throwIfAborted();
+            let near: Awaited<
+              ReturnType<typeof context.entityService.nearestToEntity>
+            >;
+            try {
+              near = await context.entityService.nearestToEntity({
+                origin: { entityType: "topic", entityId: topic.id },
+                types: ["topic"],
+                maxDistance: config.semanticMergeDistance,
+                visibilityScope: config.extractionVisibility,
+              });
+            } catch (error) {
+              // Without embeddings nothing is near anything: keep every topic.
+              if (error instanceof SemanticIndexingDisabledError) return;
+              throw error;
+            }
+            for (const { entityId } of near) {
+              const other = active.find(({ id }) => id === entityId);
+              if (!other) continue;
+              const pair = [topic.slug, other.slug].sort().join("|");
+              if (distinct.has(pair)) continue;
+              if (calls >= MAX_AI_CALLS) return;
+              const [kept, absorbed] = await Promise.all([
+                topics.getTopic(topic.id, config.extractionVisibility),
+                topics.getTopic(other.id, config.extractionVisibility),
+              ]);
+              if (!kept || !absorbed) continue;
+              const verdict = await synthesizer.synthesize(
+                {
+                  existingTopic: kept,
+                  incomingTopic: {
+                    title: other.title,
+                    content: adapter.parseTopicBody(absorbed.content).content,
+                    relevanceScore: 1,
+                  },
+                },
+                signal,
+              );
+              calls++;
+              signal.throwIfAborted();
+              if (verdict.verdict === "distinct") {
+                await distinctPairs.set(pair, true);
+                distinct.add(pair);
+                continue;
+              }
+              await topics.deleteTopic(other.id);
+              await aliases.set(other.slug, topic.slug);
+              merged.set(other.slug, topic.slug);
+              active = active.filter(({ id }) => id !== other.id);
+              changed++;
+            }
+          }
+        };
+
+        // A topic that owns none of its nearest sources covers no ground of
+        // its own: it joins the topic owning most of them, its votes with it.
+        const mergeOwnerless = async (): Promise<void> => {
+          const types = [
+            ...new Set(sources.map(({ entityType }) => entityType)),
+          ];
+          if (types.length === 0) return;
+          let neighbourhoods: TopicNeighbourhood[];
+          try {
+            neighbourhoods = await Promise.all(
+              strongestFirst().map(async (topic) => ({
+                topicId: topic.id,
+                sources: await context.entityService.nearestToEntity({
+                  origin: { entityType: "topic", entityId: topic.id },
+                  types,
+                  limit: SOURCES_PER_TOPIC,
+                  visibilityScope: config.extractionVisibility,
+                }),
+              })),
+            );
+          } catch (error) {
+            // Without embeddings no topic is measured against its sources.
+            if (error instanceof SemanticIndexingDisabledError) return;
+            throw error;
+          }
+          for (const { topicId, into } of ownerlessTopics(neighbourhoods)) {
+            signal.throwIfAborted();
+            const topic = active.find(({ id }) => id === topicId);
+            const owner = active.find(({ id }) => id === into);
+            if (!topic || !owner) continue;
+            await topics.deleteTopic(topic.id);
+            await aliases.set(topic.slug, owner.slug);
+            merged.set(topic.slug, owner.slug);
+            active = active.filter(({ id }) => id !== topic.id);
+            changed++;
+          }
+        };
+
         const select = async (): Promise<void> => {
           const support = tally();
+          if (allRead() && earlier.size > 0) {
+            for (const topic of active.filter(({ id }) => earlier.has(id))) {
+              signal.throwIfAborted();
+              if ((support.get(topic.slug)?.support ?? 0) > 0) continue;
+              await topics.deleteTopic(topic.id);
+              active = active.filter(({ id }) => id !== topic.id);
+              changed++;
+            }
+            earlier = new Set();
+            await recordSelection();
+          }
+          // A topic whose title breaks the title rules cannot be chosen again.
+          if (allRead()) {
+            for (const topic of active.filter(
+              ({ title }) => !isTopicTitleAllowed(title, config),
+            )) {
+              signal.throwIfAborted();
+              await topics.deleteTopic(topic.id);
+              active = active.filter(({ id }) => id !== topic.id);
+              changed++;
+            }
+          }
+          if (config.autoMerge && allRead()) {
+            await mergeNearDuplicates();
+            await mergeOwnerless();
+          }
           while (allRead() && active.length > ceiling()) {
             signal.throwIfAborted();
             const weakest = weakestTopic(active, support);
@@ -454,10 +652,15 @@ export function createRankedTopicJobHandler(
           const batch = await loadSources(context, config, refs);
           if (batch.length === 0) continue;
           const currentTitles = active
+            .filter(
+              ({ id, title }) =>
+                !earlier.has(id) && isTopicTitleAllowed(title, config),
+            )
             .map(({ title }) => title)
             .sort()
             .slice(0, ceiling());
           const challengerTitles = rankedTopicChallengers(active, tally())
+            .filter(({ title }) => isTopicTitleAllowed(title, config))
             .slice(0, ceiling())
             .map(({ title }) => title);
           const listedTitles = new Set([...currentTitles, ...challengerTitles]);
@@ -509,7 +712,14 @@ export function createRankedTopicJobHandler(
             signal.throwIfAborted();
             await checkpoint(
               sourceKey(source),
-              normalizeVote(source, result, listedTitles, context, config),
+              normalizeVote(
+                source,
+                promptVersion,
+                result,
+                listedTitles,
+                context,
+                config,
+              ),
             );
           }
         }
@@ -535,6 +745,7 @@ export function createRankedTopicJobHandler(
             );
             await checkpoint(key, {
               contentHash: source.contentHash,
+              promptVersion,
               visibility: config.extractionVisibility,
               supported: [],
               proposal: null,

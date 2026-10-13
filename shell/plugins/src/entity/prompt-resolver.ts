@@ -35,8 +35,8 @@ export async function readPromptOverride(
   return entity?.content ? promptBody(entity.content) : fallback;
 }
 
-/** Caches resolved prompt bodies and tracks materialization */
-const promptCache = new Map<string, string>();
+/** Targets whose default has been materialized once; bodies are never cached. */
+const materialized = new Set<string>();
 
 /**
  * Resolve a prompt by target name.
@@ -46,7 +46,7 @@ const promptCache = new Map<string, string>();
  * entity from the fallback default (materializing it in DB + on disk via
  * directory-sync auto-export), then returns the fallback.
  *
- * Results are cached — subsequent calls for the same target skip the DB.
+ * Every call reads the entity, so an edited prompt applies to the next call.
  */
 /** The entity reads and writes prompt resolution performs. */
 export type PromptEntityStore = Pick<
@@ -59,9 +59,6 @@ export async function resolvePrompt(
   target: string,
   fallback: string,
 ): Promise<string> {
-  const cached = promptCache.get(target);
-  if (cached !== undefined) return cached;
-
   const entityId = targetToEntityId(target);
 
   let entity;
@@ -71,15 +68,12 @@ export async function resolvePrompt(
       id: entityId,
     });
   } catch {
-    // DB error — return fallback without caching so next call retries
+    // DB error — answer the fallback; the next call reads again
     return fallback;
   }
 
-  if (entity?.content) {
-    const body = promptBody(entity.content);
-    promptCache.set(target, body);
-    return body;
-  }
+  if (entity?.content) return promptBody(entity.content);
+  if (materialized.has(target)) return fallback;
 
   // Entity doesn't exist — materialize the default prompt
   const title = targetToTitle(target);
@@ -105,15 +99,15 @@ export async function resolvePrompt(
     // Entity type not registered yet — the fallback below still answers.
   }
 
-  promptCache.set(target, fallback);
+  materialized.add(target);
   return fallback;
 }
 
 /**
- * Reset the prompt cache (for testing).
+ * Forget which defaults were materialized (for testing).
  */
-export function resetPromptCache(): void {
-  promptCache.clear();
+export function resetPromptMaterialization(): void {
+  materialized.clear();
 }
 
 /**

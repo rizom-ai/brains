@@ -1,9 +1,19 @@
 import {
   StructuredChatCardSchema,
   type AgentContextItem,
+  type AssistantTurn,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { markdownBody } from "@brains/entity-service";
+import {
+  entitySourceCitation,
+  entityTitle,
+  metadataString,
+  type EntityLinks,
+} from "./entity-citation";
 import { definedFields } from "@brains/utils/strip-undefined";
+import { getErrorMessage } from "@brains/utils/error";
+import { SourceCitationSchema } from "@brains/contracts";
 import {
   toolConfirmationSchema,
   toolErrorSchema,
@@ -19,6 +29,13 @@ import type {
 } from "./agent-types";
 
 const toolCallArgsSchema = z.record(z.string(), z.unknown());
+const sdkToolErrorSchema = z.object({
+  type: z.literal("tool-error"),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  input: z.unknown(),
+  error: z.unknown(),
+});
 const jobIdSchema = z.looseObject({ jobId: z.string() });
 const sourceEntitySchema = z.looseObject({
   id: z.string().min(1),
@@ -36,6 +53,10 @@ const searchToolDataSchema = z.object({
 });
 const getToolDataSchema = z.object({
   entity: sourceEntitySchema,
+});
+/** A tool that attributes its own sources, such as the network's answers. */
+const toolSourcesDataSchema = z.object({
+  sources: z.array(z.unknown()),
 });
 const structuredChatCardParserSchema = z.custom<StructuredChatCard>(
   (value) => StructuredChatCardSchema.safeParse(value).success,
@@ -197,57 +218,23 @@ export function buildSourcesCardFromContextItems(
   };
 }
 
-function getMetadataString(
-  metadata: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = metadata[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function getEntityTitle(entity: z.infer<typeof sourceEntitySchema>): string {
-  return (
-    getMetadataString(entity.metadata, "title") ??
-    getMetadataString(entity.metadata, "name") ??
-    getMetadataString(entity.metadata, "slug") ??
-    entity.id
-  );
-}
-
-function getEntityUrl(
-  entity: z.infer<typeof sourceEntitySchema>,
-): string | undefined {
-  return (
-    getMetadataString(entity.metadata, "url") ??
-    getMetadataString(entity.metadata, "permalink") ??
-    getMetadataString(entity.metadata, "canonicalUrl")
-  );
-}
-
 function buildSourceCitationFromEntity(params: {
   toolName: string;
   entity: z.infer<typeof sourceEntitySchema>;
   excerpt?: string | undefined;
   score?: number | undefined;
+  links: EntityLinks | undefined;
 }): SourceCitation {
   const { entity, toolName, score } = params;
   const excerpt =
     params.excerpt !== undefined
       ? truncateSourceExcerpt(params.excerpt)
       : entity.content !== undefined
-        ? truncateSourceExcerpt(entity.content)
+        ? truncateSourceExcerpt(markdownBody(entity.content))
         : undefined;
-  const url = getEntityUrl(entity);
-
   return {
-    id: `${entity.entityType}:${entity.id}`,
-    title: getEntityTitle(entity),
-    source: entity.entityType,
-    entityType: entity.entityType,
-    entityId: entity.id,
-    ...definedFields({ url, excerpt }),
+    ...entitySourceCitation(entity, params.links),
+    ...definedFields({ excerpt }),
     provenance: {
       toolName,
       ...definedFields({ score }),
@@ -264,6 +251,7 @@ interface SourceCandidate {
 function buildToolSourceCitations(params: {
   toolName: string;
   data: unknown;
+  links: EntityLinks | undefined;
 }): SourceCandidate[] {
   if (params.toolName === "system_search") {
     const parsed = searchToolDataSchema.safeParse(params.data);
@@ -281,6 +269,7 @@ function buildToolSourceCitations(params: {
           entity: result.entity,
           excerpt: result.excerpt,
           score: result.score,
+          links: params.links,
         }),
       }));
   }
@@ -293,9 +282,19 @@ function buildToolSourceCitations(params: {
         citation: buildSourceCitationFromEntity({
           toolName: params.toolName,
           entity: parsed.data.entity,
+          links: params.links,
         }),
       },
     ];
+  }
+
+  // A tool's own citations count like a direct read: kept whatever the answer names.
+  const own = toolSourcesDataSchema.safeParse(params.data);
+  if (own.success) {
+    return own.data.sources.flatMap((source) => {
+      const citation = SourceCitationSchema.safeParse(source);
+      return citation.success ? [{ citation: citation.data }] : [];
+    });
   }
 
   return [];
@@ -390,6 +389,8 @@ export function extractToolResults(
   steps: BrainAgentResult["steps"],
   /** The answer, when known: its sources are the results it names. */
   answer?: string,
+  /** Where the site shows entities, so a source links to its page. */
+  links?: EntityLinks,
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
   const cards: StructuredChatCard[] = [];
@@ -409,10 +410,48 @@ export function extractToolResults(
       }
     }
 
+    // SDK validation can reject a call before our handler runs; execution
+    // exceptions likewise appear in content rather than toolResults. Keep
+    // both as attempted calls so retries cannot turn failures invisible.
+    const failedCallIds = new Set<string>();
+    for (const call of step.toolCalls) {
+      if (!call.invalid && call.error === undefined) continue;
+      failedCallIds.add(call.toolCallId);
+      toolResults.push({
+        toolName: call.toolName,
+        ...definedFields({ args: toolCallArgsMap.get(call.toolCallId) }),
+        error: {
+          code: "invalid_tool_call",
+          message: getErrorMessage(call.error, "SDK rejected the tool call"),
+        },
+      });
+    }
+    for (const part of step.content ?? []) {
+      const parsedError = sdkToolErrorSchema.safeParse(part);
+      if (!parsedError.success) continue;
+      const error = parsedError.data;
+      if (failedCallIds.has(error.toolCallId)) continue;
+      failedCallIds.add(error.toolCallId);
+      const args = toolCallArgsSchema.safeParse(error.input);
+      toolResults.push({
+        toolName: error.toolName,
+        ...definedFields({
+          args: args.success
+            ? args.data
+            : toolCallArgsMap.get(error.toolCallId),
+        }),
+        error: {
+          code: "tool_execution_failed",
+          message: getErrorMessage(error.error, "Tool execution failed"),
+        },
+      });
+    }
+
     let stepRequestedConfirmation = false;
     const confirmedToolNames = new Set<string>();
 
     for (const tr of step.toolResults) {
+      if (failedCallIds.has(tr.toolCallId)) continue;
       if (tr.output === null) continue;
 
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
@@ -501,6 +540,7 @@ export function extractToolResults(
           ...buildToolSourceCitations({
             toolName: tr.toolName,
             data: successParsed.data.data,
+            links,
           }),
         );
       }
@@ -670,8 +710,8 @@ export function buildEntityMemoryRefs(
     for (const entity of listData.data.entities) {
       if (seen.has(entity.id)) continue;
       seen.add(entity.id);
-      const title = getEntityTitle(entity);
-      const status = getMetadataString(entity.metadata, "status");
+      const title = entityTitle(entity);
+      const status = metadataString(entity.metadata, "status");
       refs.push({
         entityType: entity.entityType,
         entityId: entity.id,
@@ -705,4 +745,38 @@ export function buildEntityMemoryContext(refs: EntityMemoryRef[]): string {
     return `- ${details.join("; ")}`;
   });
   return `\n\nInternal entity refs from previous assistant turns for follow-up resolution. These are typed runtime references, not visible user text. Use the canonical entityId when a follow-up refers to the same item (for example “it”, “that”, “that post”, “the draft”, “publish it”, or “a cover image to go with that”). Do not derive or rewrite IDs from titles; copy the exact entityId value from the matching ref. A ref with operation created and status generating/draft is already a valid target for follow-up operations such as cover-image generation; do not ask the user for its slug again.\n${lines.join("\n")}`;
+}
+
+const readEntitySchema = z.object({
+  id: z.string().min(1),
+  entityType: z.string().min(1),
+});
+const getReadSchema = z.object({ entity: readEntitySchema });
+const searchReadSchema = z.object({
+  results: z.array(z.object({ entity: readEntitySchema })),
+});
+
+/** Entities a turn's reads actually returned, once each, in read order. */
+export function buildRetrievedEntityRefs(
+  toolResults: ToolResultData[],
+): AssistantTurn["retrieved"] {
+  const entities = toolResults.flatMap((result) => {
+    if (result.error) return [];
+    if (result.toolName === "system_get") {
+      const read = getReadSchema.safeParse(result.data);
+      return read.success ? [read.data.entity] : [];
+    }
+    if (result.toolName === "system_search") {
+      const read = searchReadSchema.safeParse(result.data);
+      return read.success ? read.data.results.map((hit) => hit.entity) : [];
+    }
+    return [];
+  });
+  const refs = new Map(
+    entities.map((entity) => [
+      `${entity.entityType}/${entity.id}`,
+      { entityType: entity.entityType, entityId: entity.id },
+    ]),
+  );
+  return [...refs.values()].slice(0, 50);
 }

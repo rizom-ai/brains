@@ -174,7 +174,7 @@ describe("predeploy readiness gate", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain(
-      "pre-deploy snapshot: job queue is not idle",
+      "pre-deploy snapshot: job queue is not idle (1 pending, 0 processing, 0 abandoned); rerun once it drains",
     );
   });
 
@@ -190,7 +190,7 @@ describe("predeploy readiness gate", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain(
-      "pre-deploy snapshot: job queue is not idle",
+      "pre-deploy snapshot: job queue is not idle (0 pending, 2 processing, 1 abandoned); rerun once it drains",
     );
   });
 

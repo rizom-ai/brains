@@ -1,9 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { corpusReader } from "../src/corpus-source";
-import { renderBook, type BookFile, type BookSource } from "../src/render-book";
+import {
+  importBooks,
+  parseManifest,
+  type BookRead,
+  type BookReader,
+} from "../src/import-books";
+import {
+  renderBook,
+  type BookFile,
+  type BookSource,
+  type BookUnit,
+} from "../src/render-book";
 import { writeBook } from "../src/write-book";
 
 const longParagraph = Array.from(
@@ -69,6 +80,30 @@ function failureOf(promise: Promise<unknown>): Promise<unknown> {
   );
 }
 
+function unit(siglum: string, title: string, parents: string[]): BookUnit {
+  return {
+    parents,
+    title,
+    section: siglum,
+    page: null,
+    source: `http://www.nietzschesource.org/eKGWB/${siglum}`,
+    paragraphs: [`Text von ${siglum}.`],
+  };
+}
+
+/** Every file below a directory, by path, with its content. */
+async function treeOf(dir: string): Promise<Record<string, string>> {
+  const files = (await readdir(dir, { recursive: true })).filter((file) =>
+    file.endsWith(".md"),
+  );
+  const entries = await Promise.all(
+    files.map(async (file) => [file, await readFile(join(dir, file), "utf8")]),
+  );
+  return Object.fromEntries(
+    entries.sort(([a], [b]) => String(a).localeCompare(String(b))),
+  );
+}
+
 function sorted(files: BookFile[]): BookFile[] {
   return [...files].sort((left, right) => left.path.localeCompare(right.path));
 }
@@ -107,23 +142,50 @@ describe("corpusReader", () => {
     });
     expect(String(await failureOf(reader.read("XY")))).toContain("XY");
   });
+  it("reads back each part of a book printed in parts, under its own siglum", async () => {
+    // EB-I and EB-II: one siglum is a prefix of the other, as Za-I and Za-II.
+    const parts: Record<string, BookRead> = {
+      "EB-I": {
+        title: "Erfundenes Werk. Erster Theil",
+        units: [
+          unit("EB-I-1", "Eins", []),
+          unit("EB-I-2", "Zwei", ["Ein Kapitel"]),
+        ],
+      },
+      "EB-II": {
+        title: "Erfundenes Werk. Zweiter Theil",
+        units: [unit("EB-II-1", "Drei", [])],
+      },
+    };
+    const fromSource: BookReader = {
+      read: async (siglum) => {
+        const part = parts[siglum];
+        if (!part) throw new Error(siglum);
+        return part;
+      },
+    };
+    const manifest = parseManifest(`
+source: ekgwb
+books:
+  - slug: erfundenes-werk
+    title: Erfundenes Werk
+    author: Erfundener Autor
+    year: 1888
+    kind: work
+    parts:
+      - siglum: EB-I
+        title: Erster Theil
+      - siglum: EB-II
+        title: Zweiter Theil
+`);
+    await importBooks(manifest, brainData, fromSource);
+    const again = await mkdtemp(join(tmpdir(), "book-import-again-"));
+    try {
+      await importBooks(manifest, again, await corpusReader(brainData));
 
-  it("reads a corpus that records only each section's part", async () => {
-    const dir = join(brainData, "book/erfundenes-buch");
-    await mkdir(join(dir, "00001-erstes-hauptstueck"), { recursive: true });
-    await writeFile(
-      join(dir, "00000-titel.md"),
-      "---\ntitle: Erfundenes Buch\nbook: erfundenes-buch\norder: 0\nsource: http://www.nietzschesource.org/eKGWB/EB\n---\n## Contents\n",
-    );
-    await writeFile(
-      join(dir, "00001-erstes-hauptstueck/00001-1.md"),
-      "---\ntitle: '1'\nbook: erfundenes-buch\norder: 1\nsection: EB-I-1\npart: Erstes Hauptstück\nsource: http://www.nietzschesource.org/eKGWB/EB-I-1\n---\nErster Absatz.\n",
-    );
-
-    const read = await (await corpusReader(brainData)).read("EB");
-
-    expect(read.units.map((unit) => unit.parents)).toEqual([
-      ["Erstes Hauptstück"],
-    ]);
+      expect(await treeOf(again)).toEqual(await treeOf(brainData));
+    } finally {
+      await rm(again, { recursive: true, force: true });
+    }
   });
 });

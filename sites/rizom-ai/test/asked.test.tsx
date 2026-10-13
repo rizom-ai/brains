@@ -15,7 +15,7 @@ const faqs = [
     asked: 23,
     sources: [
       {
-        id: "network-piece:plc-peer--post--3kabc",
+        id: "post:handoffs",
         title: "Handoffs between teams",
         url: "https://becca.rizom.ai/essays/handoffs",
         excerpt: "Before anyone leaves a task we write three things down.",
@@ -101,7 +101,7 @@ describe("the Asked-before chapter", () => {
     const [first, second] = Array.from(document.querySelectorAll("details"));
     expect(JSON.parse(first?.getAttribute("data-ask-answer") ?? "[]")).toEqual([
       {
-        id: "network-piece:plc-peer--post--3kabc",
+        id: "post:handoffs",
         title: "Handoffs between teams",
         brain: { name: "Becca", url: "https://becca.rizom.ai/" },
       },
@@ -110,9 +110,7 @@ describe("the Asked-before chapter", () => {
     expect(first?.querySelector(".asked__by")?.textContent).toBe(
       "Rizom, with Becca",
     );
-    const row = first?.querySelector(
-      '[data-ask-source="network-piece:plc-peer--post--3kabc"]',
-    );
+    const row = first?.querySelector('[data-ask-source="post:handoffs"]');
     expect(row?.getAttribute("data-ask-brain")).toBe("Becca");
     expect(row?.querySelector("a")?.getAttribute("href")).toBe(
       "https://becca.rizom.ai/essays/handoffs",

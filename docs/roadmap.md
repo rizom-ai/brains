@@ -79,8 +79,6 @@ The personal-publishing posture remains the public reference. Product improvemen
 Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
-- [initial-import-off-boot.md](./plans/initial-import-off-boot.md) — the initial content import runs on the worker as durable, batched work, so a brain's boot time does not depend on its content size.
-- [books-parts-and-sections.md](./plans/books-parts-and-sections.md) — one book per title as printed with its parts, and books and their sections as two entity types, so book brains count and show their works correctly.
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
@@ -166,7 +164,6 @@ Active cleanup and infrastructure plans:
 - [topics-ranked-selection.md](./plans/topics-ranked-selection.md) — topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.
-- [structured-body-codecs.md](./plans/structured-body-codecs.md) — make every structured body a Zod codec so writes validate like reads, with one shared round-trip contract.
 - [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):

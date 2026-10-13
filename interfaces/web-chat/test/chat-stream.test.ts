@@ -209,14 +209,11 @@ describe("chat stream", () => {
       {
         getEntity: async (ref) => {
           const restricted = ref.id === "q3-financials";
-          // Visibility-scoped query: the restricted artifact is invisible to
-          // a public caller, but it still exists (unscoped lookup finds it).
-          if (ref.visibilityScope !== undefined) {
-            return restricted
-              ? null
-              : { content: "data:application/pdf;base64,AA==", metadata: {} };
-          }
-          return { content: "data:application/pdf;base64,AA==", metadata: {} };
+          // Like the entity service: the restricted artifact is seen only at
+          // full scope; an unscoped read is public-only.
+          return restricted && ref.visibilityScope !== "restricted"
+            ? null
+            : { content: "data:application/pdf;base64,AA==", metadata: {} };
         },
       },
     );

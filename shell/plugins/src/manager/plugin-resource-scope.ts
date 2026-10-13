@@ -364,15 +364,20 @@ export function createPluginScopedShell(
       }
     },
   );
-  const insightsRegistry = shell.getInsightsRegistry();
-  const scopedInsightsRegistry = scopeRegistry(
-    insightsRegistry,
+  const analyticsRegistry = shell.getAnalyticsRegistry();
+  const scopedAnalyticsRegistry = scopeRegistry(
+    analyticsRegistry,
     ["register"],
     resources,
     (args): void => {
-      const insightType = args[0];
-      if (typeof insightType === "string")
-        insightsRegistry.unregister(insightType);
+      const definition = args[0];
+      if (
+        typeof definition === "object" &&
+        definition !== null &&
+        "type" in definition &&
+        typeof definition.type === "string"
+      )
+        analyticsRegistry.unregister(definition.type);
     },
   );
 
@@ -408,8 +413,8 @@ export function createPluginScopedShell(
       if (property === "getAccountSettingsRegistry") {
         return () => scopedAccountSettingsRegistry;
       }
-      if (property === "getInsightsRegistry") {
-        return () => scopedInsightsRegistry;
+      if (property === "getAnalyticsRegistry") {
+        return () => scopedAnalyticsRegistry;
       }
       const value = reflectGet(target, property);
       return typeof value === "function" ? value.bind(target) : value;

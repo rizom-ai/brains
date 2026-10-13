@@ -72,6 +72,39 @@ describe("Studio folder presentation", () => {
     expect(html).toContain("complete");
     expect(html).not.toContain("data-studio-record");
   });
+  test("a container's folder and crumb read as the container's title", () => {
+    const query = studioCollectionQuerySchema.parse({
+      prefix: ["zara", "00002-erster-theil"],
+    });
+    const trail = renderToStaticMarkup(
+      <StudioFolderTrail
+        collectionLabel="Books"
+        collectionPath="/studio/entities/book"
+        query={query}
+        trail={["Also sprach Zarathustra", null]}
+        onNavigate={() => {}}
+      />,
+    );
+    expect(trail).toContain("Also sprach Zarathustra");
+    expect(trail).toContain("00002 erster theil");
+    const rows = renderToStaticMarkup(
+      <StudioFolderRows
+        folders={[
+          {
+            path: ["zara"],
+            name: "zara",
+            title: "Also sprach Zarathustra",
+            descendantCount: 80,
+          },
+        ]}
+        collectionPath="/studio/entities/book"
+        query={studioCollectionQuerySchema.parse({})}
+        onNavigate={() => {}}
+      />,
+    );
+    expect(rows).toContain("Also sprach Zarathustra");
+    expect(rows).not.toContain(">Zara<");
+  });
   test("creation shows server-returned identity and placement, never inventing a file path", () => {
     const html = renderToStaticMarkup(
       <StudioDestination

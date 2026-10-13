@@ -47,22 +47,19 @@ export class BookAskDataSource implements DataSource {
     outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const [titles, askBox] = await Promise.all([
+    const [entities, askBox] = await Promise.all([
       context.entityService.listEntities(
-        {
-          entityType: "book",
-          options: { filter: { metadata: { order: 0 } }, limit: BOOK_LIMIT },
-        },
+        { entityType: "book", options: { limit: BOOK_LIMIT } },
         bookSchema,
       ),
       this.sources.chatAvailable(context),
     ]);
-    const books = titles
+    const books = entities
       .map(parseBookData)
-      .map((entry) => ({
-        book: entry.metadata.book,
-        title: entry.metadata.title,
-        year: entry.frontmatter.year,
+      .map((book) => ({
+        book: book.id,
+        title: book.metadata.title,
+        year: book.frontmatter.year,
       }))
       .sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
     this.logger.debug("Ask page", { books: books.length, askBox });

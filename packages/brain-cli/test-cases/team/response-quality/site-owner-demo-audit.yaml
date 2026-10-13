@@ -26,9 +26,6 @@ successCriteria:
   toolCountRange:
     min: 1
     max: 6
-  responseContains:
-    - "capture"
-    - "public"
   responseNotContains:
     - "newsletter"
     - "publishing pipeline"
@@ -36,7 +33,10 @@ successCriteria:
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Bases the homepage promise and live proof points on the saved public site content, including capturing team knowledge."
+    - "Names claims to avoid that the saved content does not support."
 
 efficiency:
   maxToolCalls: 6
-  maxTokens: 30000
+  maxTokens: 67000

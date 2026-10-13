@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
 import {
   createTestEntity,
   createMockEntityService,
@@ -9,6 +9,7 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { SemanticIndexingDisabledError } from "@brains/plugins";
 import type {
   BaseEntity,
   EntityPluginContext,
@@ -49,6 +50,7 @@ function fixture(
   options: {
     config?: z.input<typeof topicsPluginConfigSchema>;
     propose?: boolean;
+    mergeVerdict?: "merge" | "distinct";
   } = {},
 ): Fixture {
   const entities = new Map<string, BaseEntity>();
@@ -111,6 +113,12 @@ function fixture(
         });
         if (config.templateName === "topics:description")
           return schema.parse({ content: "A durable knowledge domain." });
+        if (config.templateName === "topics:merge-synthesis")
+          return schema.parse({
+            verdict: options.mergeVerdict ?? "distinct",
+            title: "Merged",
+            content: "Merged description.",
+          });
         const keys = [...config.prompt.matchAll(/Source key: ([^\n]+)/g)].map(
           (match) => match[1],
         );
@@ -395,6 +403,7 @@ describe("bounded ranked topic extraction", () => {
     await f.run("abstained");
     expect(await f.store.get("note:note-002")).toEqual({
       contentHash: "hash-2",
+      promptVersion: expect.any(String),
       visibility: "public",
       supported: [],
       proposal: null,
@@ -439,6 +448,156 @@ describe("bounded ranked topic extraction", () => {
     expect(await failures.list()).toHaveLength(0);
   });
 
+  /** An owner's edit to the votes prompt, as directory-sync would import it. */
+  const editVotesPrompt = (f: Fixture, body: string): void => {
+    f.entities.set(
+      "prompt:topics-votes",
+      createTestEntity("prompt", {
+        id: "topics-votes",
+        content: `---\ntitle: Topics Votes\ntarget: 'topics:votes'\n---\n${body}`,
+      }),
+    );
+  };
+
+  it("re-reads every source when the votes prompt changes", async () => {
+    const f = fixture(8);
+    await f.run();
+    expect(f.calls).toHaveLength(2);
+    await f.run("unchanged");
+    expect(f.calls).toHaveLength(2);
+
+    editVotesPrompt(f, "Name each topic in the author's own terms.");
+    await f.run("edited");
+    expect(f.calls).toHaveLength(4);
+    await f.run("settled");
+    expect(f.calls).toHaveLength(4);
+  });
+
+  it("lets a topic whose title breaks the title rules go once every source is read", async () => {
+    const f = fixture(8, { propose: true });
+    f.addTopic("Design and Craft", "design-and-craft");
+    await f.run();
+    expect(f.calls[0]?.prompt).not.toContain("Design and Craft");
+    expect(f.entities.has("topic:design-and-craft")).toBe(false);
+    expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
+  /** Two topics whose stored embeddings sit within the merge distance. */
+  const neighbours = (f: Fixture, left: string, right: string): void => {
+    f.service.nearestToEntity = mock(async ({ origin, types }) => {
+      if (!types.includes("topic")) return [];
+      const other =
+        origin.entityId === left
+          ? right
+          : origin.entityId === right
+            ? left
+            : null;
+      return other
+        ? [{ entityId: other, entityType: "topic", distance: 0.1 }]
+        : [];
+    });
+  };
+  const mergeCalls = (f: Fixture): number =>
+    f.calls.filter(
+      ({ templateName }) => templateName === "topics:merge-synthesis",
+    ).length;
+
+  it("merges a near-duplicate topic into the one it duplicates, once", async () => {
+    const f = fixture(8, { mergeVerdict: "merge" });
+    f.addTopic("Bildung");
+    f.addTopic("Education");
+    neighbours(f, "bildung", "education");
+    await f.run();
+    expect(mergeCalls(f)).toBe(1);
+    expect(f.entities.has("topic:bildung")).toBe(true);
+    expect(f.entities.has("topic:education")).toBe(false);
+    await f.run("again");
+    expect(mergeCalls(f)).toBe(1);
+  });
+
+  it("skips merging on a brain that keeps no embeddings", async () => {
+    const f = fixture(8, { propose: true, mergeVerdict: "merge" });
+    f.addTopic("Bildung");
+    f.service.nearestToEntity = mock(async () => {
+      throw new SemanticIndexingDisabledError();
+    });
+    await f.run();
+    expect(mergeCalls(f)).toBe(0);
+    expect(f.entities.has("topic:bildung")).toBe(true);
+    expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
+  it("remembers that two near topics are distinct", async () => {
+    const f = fixture(8, { mergeVerdict: "distinct" });
+    f.addTopic("Pity");
+    f.addTopic("Compassion");
+    neighbours(f, "pity", "compassion");
+    await f.run();
+    await f.run("again");
+    expect(mergeCalls(f)).toBe(1);
+    expect(f.entities.has("topic:pity")).toBe(true);
+    expect(f.entities.has("topic:compassion")).toBe(true);
+  });
+
+  it("joins a topic that owns none of its sources to the one owning most, without asking", async () => {
+    const f = fixture(8);
+    f.addTopic("Bildung");
+    f.addTopic("Greek Agon", "greek-agon");
+    f.addTopic("Cultural Formation", "cultural-formation");
+    const nearestSources: Record<string, [string, number][]> = {
+      bildung: [
+        ["note-000", 0.1],
+        ["note-001", 0.1],
+      ],
+      "greek-agon": [["note-002", 0.1]],
+      "cultural-formation": [
+        ["note-002", 0.15],
+        ["note-000", 0.2],
+        ["note-001", 0.3],
+      ],
+    };
+    f.service.nearestToEntity = mock(async ({ origin, types }) =>
+      types.includes("topic")
+        ? []
+        : (nearestSources[origin.entityId] ?? []).map(
+            ([entityId, distance]) => ({
+              entityType: "note",
+              entityId,
+              distance,
+            }),
+          ),
+    );
+    await f.run();
+    const aliases = f.context.runtimeState.scoped({
+      namespace: "topics.aliases",
+      schema: z.string(),
+    });
+
+    expect(mergeCalls(f)).toBe(0);
+    expect(f.entities.has("topic:cultural-formation")).toBe(false);
+    expect(f.entities.has("topic:bildung")).toBe(true);
+    expect(f.entities.has("topic:greek-agon")).toBe(true);
+    expect(await aliases.get("cultural-formation")).toBe("bildung");
+  });
+
+  it("lets topics chosen under an earlier prompt go once the corpus is re-read", async () => {
+    const f = fixture(8, { propose: true });
+    f.addTopic("Legacy");
+    await f.run();
+    expect(f.calls[0]?.prompt).toContain("Current topics:\nLegacy");
+
+    editVotesPrompt(f, "Name each topic in the author's own terms.");
+    await f.run("edited");
+    // The earlier prompt's topics no longer steer the votes...
+    const votes = f.calls.filter(
+      ({ templateName }) => templateName === "topics:votes",
+    );
+    expect(votes.at(-1)?.prompt).not.toContain("Legacy");
+    // ...and without support under the current prompt, they leave.
+    expect(f.entities.has("topic:legacy")).toBe(false);
+    expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
   it("defers replacing topics until every source has a current vote", async () => {
     const f = fixture(45, { propose: true });
     for (const title of [
@@ -466,10 +625,14 @@ describe("bounded ranked topic extraction", () => {
 
   it("reads sources in pages and loads full content only for prompted sources", async () => {
     const f = fixture(45);
+    const reads = spyOn(f.service, "getEntity");
     await f.run();
     expect(f.sourceListLimits.length).toBeGreaterThan(0);
     expect(f.sourceListLimits.every((limit) => limit !== undefined)).toBe(true);
-    expect(f.service.getEntity).toHaveBeenCalledTimes(40);
+    const sourceReads = reads.mock.calls.filter(
+      ([request]) => request.entityType === "note",
+    );
+    expect(sourceReads).toHaveLength(40);
   });
 
   it("does not publish evidence that became private during description generation", async () => {

@@ -1,5 +1,6 @@
 import { contentVisibilitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { renderedLinkFields } from "@brains/templates";
 import { deckStatusSchema } from "../schemas/deck";
 
 const frontmatterSchema: z.ZodObject<{
@@ -93,3 +94,10 @@ export type DeckView = Omit<
   listUrl: string;
   listLabel: string;
 };
+
+/**
+ * A deck once site-builder has filled its link fields; components read them
+ * as required, so the render path parses against this.
+ */
+export const deckRenderSchema: z.ZodType<DeckView> =
+  deckViewSchema.extend(renderedLinkFields);

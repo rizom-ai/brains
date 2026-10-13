@@ -29,17 +29,16 @@ successCriteria:
         id: "topic-extraction-team"
     - toolName: system_update
       shouldBeCalled: false
-  responseContains:
-    - "topics"
-    - "invent"
   responseNotContains:
-    - "updated"
     - "blog"
     - "newsletter"
     - "I cannot"
     - "I don't have access"
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Summarizes the prompt's guidance: extract concise team-knowledge topics, prefer concrete collaboration concepts, and do not invent future plugin entities."
+    - "Does not claim that anything was updated."
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 20000
+  maxTokens: 31000

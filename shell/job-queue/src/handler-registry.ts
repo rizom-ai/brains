@@ -88,10 +88,9 @@ export class HandlerRegistry {
     return this.finalizedRegistrations;
   }
 
-  public getExecutionRegistrations(): readonly JobExecutionRegistration[] {
-    if (!this.finalizedRegistrations) {
-      throw new Error("Job handler registrations are not finalized");
-    }
+  /** Undefined until boot finalizes the declarations. */
+  public getExecutionRegistrations():
+    readonly JobExecutionRegistration[] | undefined {
     return this.finalizedRegistrations;
   }
 

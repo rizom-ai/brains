@@ -8,6 +8,8 @@
         "src/**",
         "test/**",
         "scripts/**",
+        "test-cases/**",
+        "eval-content/**",
         "package.json",
         "turbo.json"
       ]

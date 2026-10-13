@@ -22,12 +22,12 @@ turns:
             agent: "save-first-followup.example"
         - toolName: agent_connect
           shouldBeCalled: false
-      responseContainsAny:
-        - ["verify", "verified", "Agent Card", "contact", "reach"]
-        - ["save", "connect", "add"]
       responseNotContains:
         - "I called"
         - "Calling save-first-followup.example"
+      responseCriteria:
+        - "Says it could not verify or contact the agent at save-first-followup.example."
+        - "Offers to save or connect that agent."
 
   - userMessage: "Yes please"
     successCriteria:

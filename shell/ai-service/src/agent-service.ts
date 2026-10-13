@@ -166,6 +166,7 @@ export class AgentService implements IAgentService {
       uploadAttachmentResolver: config.uploadAttachmentResolver,
       guestAnswerSources: config.guestAnswerSources,
       guestAskedBefore: config.guestAskedBefore,
+      entityLinks: config.entityLinks,
       embeddingUsage: config.embeddingUsage,
     });
     this.conversationActors = new ConversationActorRegistry({

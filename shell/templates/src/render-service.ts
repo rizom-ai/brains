@@ -5,6 +5,7 @@ import type {
   Renderer,
 } from "./render-types";
 import type { TemplateRegistry } from "./registry";
+import type { JsonObject } from "@brains/contracts";
 
 export class RenderService implements IViewTemplateRegistry {
   private templateRegistry: TemplateRegistry;
@@ -98,7 +99,7 @@ export class RenderService implements IViewTemplateRegistry {
   getRenderer(
     templateName: string,
     format: OutputFormat,
-  ): Renderer | undefined {
+  ): Renderer<JsonObject> | undefined {
     const template = this.get(templateName);
     if (!template) {
       return undefined;
