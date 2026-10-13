@@ -2430,17 +2430,21 @@ mehring-nachlass-2:
     from: I. Die Union ouvrière der Flora Cristan. *
     to: 1. Die Union ouvrière der Flora Tristan.
     by: scan
+  - page: 113
+    from: die ein Wan sind
+    to: die ein Greuel sind
+    by: scan
   - page: 115
     from: 3. Die Liebe. .
     to: 3. Die Liebe.
     by: scan
+  - page: 116
+    from: ö ab nicht allein vermauert im Gehirn.
+    to: Lebt nicht allein vermauert im Gehirn.
+    by: scan
   - page: 119
     from: pas de systéme; je demande
     to: pas de système; je demande
-    by: scan
-  - page: 119
-    from: doit-il étre éternellement
-    to: doit-il être éternellement
     by: scan
   - page: 119
     from: la lacheté et
@@ -2453,6 +2457,14 @@ mehring-nachlass-2:
   - page: 119
     from: générale, ete.
     to: générale, etc.
+    by: scan
+  - page: 119
+    from: keit, ein Müssen ist. (L'homme doit-il étre éternellement malheureux2)
+    to: keit, ein Müssen ist. (L'homme doit-il être éternellement malheureux?)
+    by: scan
+  - page: 123
+    from: subjiektiver
+    to: subjektiver
     by: scan
   - page: 124
     from: des massenhaften Prondhon, so feine
@@ -2498,6 +2510,10 @@ mehring-nachlass-2:
     from: ete.) Er
     to: etc.) Er
     by: scan
+  - page: 148
+    from: erwerben kann. ö
+    to: erwerben kann.
+    by: scan
   - page: 149
     from: bourgeois juste-milien) in „unsere
     to: bourgeois juste-milieu) in „unsere
@@ -2538,6 +2554,10 @@ mehring-nachlass-2:
     from: konstruirt. ö
     to: konstruirt.
     by: scan
+  - page: 162
+    from: befinden.“ (II1)
+    to: befinden.“ (!!!)
+    by: scan
   - page: 165
     from: de chose, cest-à-dire
     to: de chose, c'est-à-dire
@@ -2546,13 +2566,25 @@ mehring-nachlass-2:
     from: les mystéères, les
     to: les mystères, les
     by: scan
+  - page: 165
+    from: Hélas, jy ai
+    to: Hélas, j'y ai
+    by: scan
   - page: 166
     from: weil sie troz des Augenscheins
     to: weil sie trotz des Augenscheins
     by: reference
+  - page: 167
+    from: 2c. etc. nicht um [2] auch
+    to: etc. etc. nicht um [?] auch
+    by: scan
   - page: 168
     from: doux commeree
     to: doux commerce
+    by: scan
+  - page: 168
+    from: „lLeidenschaftlich“
+    to: „leidenschaftlich“
     by: scan
   - page: 169
     from: 4. Das Geheimniss der Kechtschaffenheit und Frömmigkeit.
@@ -2609,6 +2641,14 @@ mehring-nachlass-2:
   - page: 197
     from: Jurisprudenz und Politik (nationalität). +
     to: ""
+    by: scan
+  - page: 198
+    from: müssen. ö
+    to: müssen.
+    by: scan
+  - page: 200
+    from: sellschaftlich S Za, so
+    to: sellschaftlich = 3a, so
     by: scan
   - page: 213
     from: aus. den
@@ -2674,6 +2714,10 @@ mehring-nachlass-2:
     from: d'étre un
     to: d'être un
     by: scan
+  - page: 241
+    from: De Pesprit, Paris 1822, I, p. 117, 240, 291, 299, 351, 369 et 389.) —
+    to: (De l'esprit, Paris 1822, I, p. 117, 240, 291, 299, 351, 369 et 339.) —
+    by: scan
   - page: 242
     from: intéréèt public,
     to: intérêt public,
@@ -2689,6 +2733,10 @@ mehring-nachlass-2:
   - page: 242
     from: récompenses, ete.
     to: récompenses, etc.
+    by: scan
+  - page: 242
+    from: Ze éd.
+    to: 3e éd.
     by: scan
   - page: 253
     from: Die RKorrespondenz der kritischen Kritik.
@@ -2733,6 +2781,10 @@ mehring-nachlass-2:
   - page: 273
     from: oder der Chourineur.
     to: ""
+    by: scan
+  - page: 273
+    from: Ziel (J).“
+    to: Ziel (!).“
     by: scan
   - page: 276
     from: 2. Enthüllung des Geheimnisses der kritischen Keligion
@@ -2827,12 +2879,20 @@ mehring-nachlass-2:
     to: va être affreux
     by: scan
   - page: 293
-    from: que d'étre seul.
-    to: que d'être seul.
-    by: scan
-  - page: 293
     from: m'enträinant iei dans
     to: m'enträinant ici dans
+    by: scan
+  - page: 293
+    from: reflexions . . . Ohl tu ne sais pas ce que c'est que d'étre seul.
+    to: reflexions . . . Oh! tu ne sais pas ce que c'est que d'être seul.
+    by: scan
+  - page: 293
+    from: Lisolement m'a purifié. Je ne Laurais pas crũ
+    to: l'isolement m'a purifié. Je ne l'aurais pas crû
+    by: scan
+  - page: 295
+    from: tenir läa me fait boudir le sang. . . aurai
+    to: tenir là me fait boudir le sang. . . j'aurai
     by: scan
   - page: 296
     from: mais cçe serait
@@ -3065,8 +3125,8 @@ mehring-nachlass-2:
     to: den modèle d'un
     by: scan
   - page: 315
-    from: im téte à
-    to: im tête à
+    from: Eugen Sue berichtet, den Rudolf im téte à tte mit Monseigneur an-
+    to: Eugen Sue berichtet, den Rudolf im tête à tête mit Monseigneur an-
     by: scan
   - page: 317
     from: le cóté théatral
