@@ -14,6 +14,7 @@ import {
 /** The projection plus the build's scoped entity reads; nothing else. */
 export interface AtlasSource {
   semantic: KnowledgeMapDataContext["semantic"];
+  sourceTypes: KnowledgeMapDataContext["sourceTypes"];
   entityService: Omit<
     KnowledgeMapDataContext["entityService"],
     "listEntities"

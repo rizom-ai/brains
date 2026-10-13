@@ -15,6 +15,7 @@ import {
   loadHomepageOpening,
 } from "@brains/site-atlas";
 import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { loadTopicSourceTypes } from "./datasources/topic-source-types";
 import { loadPublicFaqs } from "@brains/faq";
 
 /** The most asked published FAQs the homepage shows under the atlas. */
@@ -106,6 +107,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
             loadAtlas: (buildContext): ReturnType<typeof loadHomepageAtlas> =>
               loadHomepageAtlas({
                 entityService: buildContext.entityService,
+                sourceTypes: () => loadTopicSourceTypes(context.messaging),
                 semantic: {
                   project: (request) =>
                     buildContext.entityService.projectSemanticSpace(request),

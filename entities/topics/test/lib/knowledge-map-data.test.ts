@@ -88,6 +88,10 @@ function makeContext(): KnowledgeMapDataContext {
           distanceRange: { min: 0.2, max: 0.7 },
         }),
     },
+    sourceTypes: () =>
+      Promise.resolve(
+        Object.keys(entitiesByType).filter((type) => type !== "topic"),
+      ),
     entityService: {
       listEntities: (request: { entityType: string }) =>
         Promise.resolve(
@@ -97,7 +101,6 @@ function makeContext(): KnowledgeMapDataContext {
             content: entity.content,
           })),
         ),
-      getEntityTypes: () => Object.keys(entitiesByType),
       countEntities: (request) =>
         Promise.resolve((entitiesByType[request.entityType] ?? []).length),
       nearestToEntity: (request) =>
@@ -294,12 +297,12 @@ describe("buildKnowledgeMapData scope", () => {
             return base.semantic.project(request);
           },
         },
+        sourceTypes: base.sourceTypes,
         entityService: {
           listEntities: (request) => {
             listed.push(request);
             return base.entityService.listEntities(request);
           },
-          getEntityTypes: () => base.entityService.getEntityTypes(),
           countEntities: (request) => {
             looked.push(request);
             return base.entityService.countEntities(request);
@@ -361,6 +364,7 @@ describe("buildKnowledgeMapData at corpus scale", () => {
           });
         },
       },
+      sourceTypes: () => Promise.resolve(["book-section"]),
       entityService: {
         listEntities: () =>
           Promise.resolve(
@@ -370,7 +374,6 @@ describe("buildKnowledgeMapData at corpus scale", () => {
               content: `# ${id}`,
             })),
           ),
-        getEntityTypes: () => ["topic", "book-section"],
         countEntities: () => Promise.resolve(3000),
         nearestToEntity: (request) =>
           Promise.resolve(
@@ -433,6 +436,7 @@ describe("buildKnowledgeMapData at corpus scale", () => {
             })),
           }),
       },
+      sourceTypes: () => Promise.resolve(["book-section"]),
       entityService: {
         listEntities: () =>
           Promise.resolve(
@@ -442,7 +446,6 @@ describe("buildKnowledgeMapData at corpus scale", () => {
               content: `# ${id}`,
             })),
           ),
-        getEntityTypes: () => ["topic", "book-section"],
         countEntities: () => Promise.resolve(3000),
         nearestToEntity: (request) =>
           Promise.resolve(
@@ -477,5 +480,44 @@ describe("buildKnowledgeMapData at corpus scale", () => {
     expect(
       data.points.find(({ id }) => id === "far-from-every-topic")?.zoneId,
     ).toBeNull();
+  });
+
+  test("measures topics against the sources topics are drawn from", async () => {
+    const counted: string[] = [];
+    const measured: string[][] = [];
+    const context: KnowledgeMapDataContext = {
+      semantic: {
+        project: (request) =>
+          Promise.resolve({
+            points: (request.entities ?? []).map((reference) => ({
+              ...reference,
+              coordinates: [0, 0],
+              distanceToOrigin: 0.5,
+            })),
+          }),
+      },
+      // Prompts are entities too, but no topic is drawn from them.
+      sourceTypes: () => Promise.resolve(["book-section"]),
+      entityService: {
+        listEntities: () =>
+          Promise.resolve([
+            { id: "will-to-power", entityType: "topic", content: "# W" },
+          ]),
+        countEntities: (request) => {
+          counted.push(request.entityType);
+          return Promise.resolve(3000);
+        },
+        nearestToEntity: (request) => {
+          measured.push(request.types);
+          return Promise.resolve([]);
+        },
+        getEntity: () => Promise.resolve(null),
+      },
+    };
+
+    await buildKnowledgeMapData(context, "public");
+
+    expect(counted).toEqual(["book-section"]);
+    expect(measured).toEqual([["book-section"]]);
   });
 });
