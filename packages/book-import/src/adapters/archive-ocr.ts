@@ -933,6 +933,8 @@ function normalised(text: string): string {
         (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
       )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
+      // A double hyphen inside a word is its hyphen, the Fraktur one.
+      .replace(/(?<=\S)-?⸗+-?(?=\S)/gu, "-")
       // A double hyphen between spaces before a figure is an equals sign; before
       // a word it is a ditto mark, and at the line's end a break.
       .replace(/(?<=\S) ⸗ (?=[\d½¼¾⅓⅔⅛⅕])/gu, " = ")

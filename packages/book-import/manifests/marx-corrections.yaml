@@ -8998,7 +8998,7 @@ p2theorienberd02marx:
     to: Klasse | Kapital £ | Tonnen | Marktwert pro Tonne £ | Individueller Wert pro Tonne £ | Gesamt-[markt-]wert £ | Profit £ | Rente absolute £ | Rente differentiale £
     by: scan
   - page: 32
-    from: Klasse Kapital Tonnen wer Wert [markt⸗] Profit aßh- differen-
+    from: Klasse Kapital Tonnen wer Wert [markt-] Profit aßh- differen-
     to: I | 100 | 60 | 2 | 2 | 120 | 10 | 10 | 0
     by: scan
   - page: 32
@@ -11803,7 +11803,7 @@ p2theorienberd02marx:
     to: Die Tonnenzahl, die II produziert, ist = 67⁴⁄₆₃ Tonnen.
     by: scan
   - page: 186
-    from: 4 — Anzahl Zusammen⸗2
+    from: 4 — Anzahl Zusammen-2
     to: Klasse | Kapital £ | Tonnen | G. W. £ | M. W. £ | I. W. £ | D. W. £ | Mehrwert Proz. | Profitrate Proz. | Anzahl der Arbeiter | Zusammensetzung des Kapitals | Rente £
     by: scan
   - page: 186
@@ -17704,6 +17704,10 @@ gesammelteschrif02marxuoft:
     from: übereinkommens,
     to: Übereinkommens,
     by: scan
+  - page: 18
+    from: hors dé com-
+    to: hors de com-
+    by: scan
   - page: 20
     from: Verkrag zwischen OÖsterreich und der Türkei. — Die Moldau
     to: Vertrag zwischen Österreich und der Türkei. — Die Moldau
@@ -17748,9 +17752,17 @@ gesammelteschrif02marxuoft:
     from: Die Türkei und Österreich. — Kriegsdebalte im Unkerhaus.
     to: Die Türkei und Österreich. — Kriegsdebatte im Unterhaus.
     by: scan
+  - page: 43
+    from: setzte es durch. ö
+    to: setzte es durch.
+    by: scan
   - page: 46
     from: übergewicht
     to: Übergewicht
+    by: scan
+  - page: 54
+    from: revolutionäre Ara wird
+    to: revolutionäre Ära wird
     by: scan
   - page: 55
     from: Die Räumung der Donaufürstenkümer.
@@ -17835,6 +17847,10 @@ gesammelteschrif02marxuoft:
   - page: 92
     from: des doméèstic trade,
     to: des domestic trade,
+    by: scan
+  - page: 97
+    from: Ernte ein.“ ö
+    to: Ernte ein.“
     by: scan
   - page: 100
     from: post féstum
@@ -17996,6 +18012,10 @@ gesammelteschrif02marxuoft:
     from: Kollege Neweastle befreit.
     to: Kollege Newcastle befreit.
     by: scan
+  - page: 133
+    from: von seinen ö
+    to: von seinen
+    by: scan
   - page: 135
     from: von Neweastle eben
     to: von Newcastle eben
@@ -18044,6 +18064,14 @@ gesammelteschrif02marxuoft:
     from: Justand der Armeen.
     to: Zustand der Armeen.
     by: scan
+  - page: 155
+    from: (N. O.-Z3.,
+    to: (N. O.-Z.,
+    by: scan
+  - page: 155
+    from: 100 — 1auf jedes
+    to: 100 — 1 auf jedes
+    by: scan
   - page: 156
     from: übersicht
     to: Übersicht
@@ -18055,6 +18083,10 @@ gesammelteschrif02marxuoft:
   - page: 161
     from: seien. über
     to: seien. Über
+    by: scan
+  - page: 162
+    from: (N. O.-Z3.,
+    to: (N. O.-Z.,
     by: scan
   - page: 163
     from: er „eléver“ ist.
@@ -18172,6 +18204,10 @@ gesammelteschrif02marxuoft:
     from: Corps Leégislatif
     to: Corps Legislatif
     by: scan
+  - page: 215
+    from: "redigierte: J4e roi dés droles)"
+    to: "redigierte: le roi des droles)"
+    by: scan
   - page: 217
     from: Die Aussichlen in Frankreich und England.
     to: Die Aussichten in Frankreich und England.
@@ -18192,6 +18228,10 @@ gesammelteschrif02marxuoft:
     from: Krikik des Napoleonischen Moniteurarlikels.
     to: Kritik des Napoleonischen Moniteurartikels.
     by: scan
+  - page: 226
+    from: à l4a Louis
+    to: à la Louis
+    by: scan
   - page: 227
     from: Deulschland und der Panslawismus.
     to: Deutschland und der Panslawismus.
@@ -18199,6 +18239,30 @@ gesammelteschrif02marxuoft:
   - page: 236
     from: Morning Post gegen Preußen. — Charahter der Whigs
     to: Morning Post gegen Preußen. — Charakter der Whigs
+    by: scan
+  - page: 237
+    from: 18⁵³ 18⁵⁴
+    to: "[Ware] | 1853 Zentner | 1854 Zentner"
+    by: scan
+  - page: 237
+    from: Zentner Zentner
+    to: ""
+    by: scan
+  - page: 237
+    from: Talgsz ũ 54 259955
+    to: Talg | 54 | 253955
+    by: scan
+  - page: 237
+    from: Banft z; 3447 366220
+    to: Hanf | 3447 | 366220
+    by: scan
+  - page: 237
+    from: Flactchh...... 2423838 667879
+    to: Flachs | 242383 | 667879
+    by: scan
+  - page: 237
+    from: Flachs-Leinsameen. 57848 116267
+    to: Flachs-Leinsamen | 57848 | 116267
     by: scan
   - page: 238
     from: überläufer
@@ -18252,6 +18316,10 @@ gesammelteschrif02marxuoft:
     from: übergang
     to: Übergang
     by: scan
+  - page: 251
+    from: die zJum Behuf
+    to: die zum Behuf
+    by: scan
   - page: 252
     from: ferocious monstér) zusammen
     to: ferocious monster) zusammen
@@ -18271,6 +18339,10 @@ gesammelteschrif02marxuoft:
   - page: 256
     from: Changarnier, Lamoricièêre oder
     to: Changarnier, Lamoricière oder
+    by: scan
+  - page: 257
+    from: (NXB. Auf
+    to: (N. B. Auf
     by: scan
   - page: 264
     from: quéstiones und
@@ -18352,6 +18424,18 @@ gesammelteschrif02marxuoft:
     from: the geéese?
     to: the geese?
     by: scan
+  - page: 302
+    from: „6o to the church!“
+    to: „Go to the church!“
+    by: scan
+  - page: 302
+    from: „Hé is a wordeatcher, à parliamentary man!
+    to: „He is a wordcatcher, a parliamentary man!
+    by: scan
+  - page: 303
+    from: „Vou rascals!“
+    to: „You rascals!“
+    by: scan
   - page: 308
     from: Roebuchks Antrag.
     to: Roebucks Antrag.
@@ -18400,6 +18484,10 @@ gesammelteschrif02marxuoft:
     from: W.
     to: IV.
     by: scan
+  - page: 333
+    from: (N. O.-Z3.,
+    to: (N. O.-Z.,
+    by: scan
   - page: 334
     from: überschrift „Peel-Laib“,
     to: Überschrift „Peel-Laib“,
@@ -18444,9 +18532,17 @@ gesammelteschrif02marxuoft:
     from: überbleibsel
     to: Überbleibsel
     by: scan
+  - page: 373
+    from: Jch muß
+    to: Ich muß
+    by: scan
   - page: 375
     from: übergang
     to: Übergang
+    by: scan
+  - page: 382
+    from: lage Lzu Nr.
+    to: lage I zu Nr.
     by: scan
   - page: 387
     from: in People's Paper, 19. April 1856.
@@ -18456,9 +18552,17 @@ gesammelteschrif02marxuoft:
     from: People's Paper, 26. April 1856.
     to: IV. People's Paper, 26. April 1856.
     by: scan
+  - page: 399
+    from: Expedition ́ Omer-Paschas
+    to: Expedition Omer-Paschas
+    by: scan
   - page: 404
     from: Esparkero.
     to: Espartero.
+    by: scan
+  - page: 404
+    from: Ara beginnen will
+    to: Ära beginnen will
     by: scan
   - page: 411
     from: "1."
@@ -24615,7 +24719,7 @@ ldpd_13048930_000:
     to: Ordnungsparteiblätter in
     by: scan
   - page: 32
-    from: die ungläubige Kom⸗.—
+    from: die ungläubige Kom-.—
     to: die ungläubige Kom-
     by: scan
   - page: 32

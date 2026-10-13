@@ -448,6 +448,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 4)).toContain("Jones, 5 + 10 = 15; ½ ⸗ Thee; Ver⸗");
   });
 
+  it("reads a double hyphen inside a word as a hyphen, at the line's end as its break", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, (N. O.⸗Z., 1855), 10⸗, 20fache, (Netto-⸗) Ver⸗",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, (N. O.-Z., 1855), 10-, 20fache, (Netto-) Ver⸗",
+    );
+  });
+
   it("reads loco citato the OCR set in capitals as l. c., not a name's initials", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
