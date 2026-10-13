@@ -8,10 +8,17 @@
  * and stays a thin orchestration façade.
  */
 
-import type { AgentContextItem } from "@brains/contracts";
+import type { EmbeddingUsage } from "./embedding-usage-meter";
+import { noModelCallPricing, withEmbeddingUsage } from "./openai-guest-pricing";
+import type {
+  AgentContextItem,
+  AskedBefore,
+  AssistantTurn,
+} from "@brains/contracts";
 import {
   guestInterfaceType,
   getGuestSourceCards,
+  type GuestExecutionPolicy,
 } from "@brains/contracts/chat";
 import {
   assertGuestPermission,
@@ -34,6 +41,7 @@ import type {
   ChatAttachment,
   ChatContext,
   StructuredChatCard,
+  AskedBeforeAnswer,
 } from "./agent-types";
 import {
   emptyUsage,
@@ -59,7 +67,9 @@ import {
   extractToolResults,
   buildAgentContactCandidates,
   buildEntityMemoryRefs,
+  buildRetrievedEntityRefs,
   buildToolResultPromptFallback,
+  withAnswerSources,
   type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
@@ -92,6 +102,32 @@ export interface TurnProcessorDeps {
   canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
+  guestAnswerSources: AgentConfig["guestAnswerSources"];
+  entityLinks: AgentConfig["entityLinks"];
+  guestAskedBefore: AgentConfig["guestAskedBefore"];
+  embeddingUsage: AgentConfig["embeddingUsage"];
+}
+
+/** A turn that passed admission: who is asking, and under which limits. */
+interface AdmittedTurn {
+  input: ProcessMessageInput;
+  guest: boolean;
+  guestExecution: GuestExecutionPolicy | undefined;
+  /** The caller, canonically attributed; always null for a guest. */
+  attributedActor: ConversationMessageActor | null;
+  /** When the turn was admitted, before any of its tools ran. */
+  startedAt: string;
+}
+
+/** What the model is given for a turn, and what the response needs back. */
+interface PreparedTurn {
+  effectiveMessage: string;
+  effectiveAttachments: ChatAttachment[];
+  uploadRefs: Awaited<ReturnType<typeof filterLiveUploadRefs>>;
+  hasPriorResponseCandidate: boolean;
+  contextItems: AgentContextItem[] | undefined;
+  messages: ReturnType<typeof buildModelMessages>;
+  agentContextInstructions: ReturnType<typeof buildAgentContextInstructions>;
 }
 
 export class TurnProcessor {
@@ -106,18 +142,76 @@ export class TurnProcessor {
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
     signal?.throwIfAborted();
+    const turn = await this.admitTurn(input);
+    if (input.message.trim().length === 0 && input.attachments.length > 0)
+      return this.answerAttachmentsOnly(turn);
+
+    const meter = this.deps.embeddingUsage;
+    // A visitor's question a published FAQ already answers is answered before
+    // anything is prepared for a model that will not be asked; the check's
+    // own embedding is the turn's whole cost.
+    if (turn.guest) {
+      const check = (): Promise<AskedBeforeAnswer | undefined> =>
+        this.findAskedBefore(turn, input.message);
+      const found = meter
+        ? await meter.measure(check)
+        : { value: await check(), usage: [] };
+      if (found.value)
+        return this.recordAskedBefore(
+          turn,
+          input.message,
+          found.value,
+          found.usage,
+        );
+    }
+
+    const prepared = await this.prepareModelTurn(turn, signal);
+    this.logAvailableTools(turn);
+    await this.recordQuestion(
+      turn,
+      prepared.effectiveMessage,
+      prepared.effectiveAttachments,
+    );
+
+    const answer = async (): Promise<AgentResponse> => {
+      const result = await this.deps.getAgent(input.interfaceType).generate({
+        messages: prepared.messages,
+        options: this.callOptions(turn, prepared),
+        ...(signal ? { abortSignal: signal } : {}),
+      });
+      signal?.throwIfAborted();
+      return this.recordResponse(turn, prepared, result);
+    };
+    if (!turn.guest || !meter) return answer();
+    // A visitor's answer is charged for its embeddings too: its searches and
+    // the search that found its sources.
+    const { value: response, usage } = await meter.measure(answer);
+    return response.guestSettlement
+      ? {
+          ...response,
+          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+        }
+      : response;
+  }
+
+  /**
+   * Every check a turn passes before anything is written. A guest turn is
+   * held to its execution limits, arrives in a conversation its admission
+   * created, and carries no actor, source or attachments; other turns get
+   * their conversation opened and their actor attributed.
+   */
+  private async admitTurn(input: ProcessMessageInput): Promise<AdmittedTurn> {
     const {
       conversationId,
       message,
       interfaceType,
       channelId,
       channelName,
-      userPermissionLevel,
-      isAnchor,
       actor,
       source,
       attachments,
     } = input;
+    const startedAt = new Date().toISOString();
     const guest = interfaceType === guestInterfaceType;
     assertGuestPermission(input);
     const guestExecution = requireGuestExecutionPolicy(input);
@@ -154,45 +248,71 @@ export class TurnProcessor {
           channelId: storageChannelId,
         },
       });
+    return { input, guest, guestExecution, attributedActor, startedAt };
+  }
 
-    if (message.trim().length === 0 && attachments.length > 0) {
-      await this.deps.conversationService.addMessage({
-        conversationId,
-        role: "user",
-        content: message,
-        ...(await this.messageMetadata({
-          actor: attributedActor,
-          source,
-          userPermissionLevel,
-          attachments,
-          actorAlreadyEnriched: true,
-        })),
-      });
+  private async answerAttachmentsOnly(
+    turn: AdmittedTurn,
+  ): Promise<AgentResponse> {
+    const {
+      conversationId,
+      message,
+      channelId,
+      channelName,
+      userPermissionLevel,
+      source,
+      attachments,
+    } = turn.input;
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "user",
+      content: message,
+      ...(await this.messageMetadata({
+        actor: turn.attributedActor,
+        source,
+        userPermissionLevel,
+        attachments,
+        actorAlreadyEnriched: true,
+      })),
+    });
 
-      const responseText = buildAttachmentOnlyResponse(attachments);
-      const actionsCard = buildAttachmentOnlyActionsCard(attachments);
-      const responseCards = actionsCard ? [actionsCard] : [];
-      await this.deps.conversationService.addMessage({
-        conversationId,
-        role: "assistant",
-        content: responseText,
-        ...(await this.messageMetadata({
-          actor: this.getAssistantActor(),
-          source: this.buildAssistantSource(channelId, channelName),
-          userPermissionLevel,
-          cards: responseCards,
-        })),
-      });
+    const responseText = buildAttachmentOnlyResponse(attachments);
+    const actionsCard = buildAttachmentOnlyActionsCard(attachments);
+    const responseCards = actionsCard ? [actionsCard] : [];
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content: responseText,
+      ...(await this.messageMetadata({
+        actor: this.getAssistantActor(),
+        source: this.buildAssistantSource(channelId, channelName),
+        userPermissionLevel,
+        cards: responseCards,
+      })),
+    });
 
-      return {
-        text: responseText,
-        toolResults: [],
-        ...(responseCards.length > 0 ? { cards: responseCards } : {}),
-        usage: emptyUsage,
-      };
-    }
+    return {
+      text: responseText,
+      toolResults: [],
+      ...(responseCards.length > 0 ? { cards: responseCards } : {}),
+      usage: emptyUsage,
+    };
+  }
 
-    // Load conversation history
+  /** History, upload continuity and agent context, shaped for the model. */
+  private async prepareModelTurn(
+    turn: AdmittedTurn,
+    signal: AbortSignal | undefined,
+  ): Promise<PreparedTurn> {
+    const {
+      conversationId,
+      message,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+      attachments,
+    } = turn.input;
     const storedHistoryMessages =
       await this.deps.conversationService.getMessages(conversationId, {
         limit: 50,
@@ -200,24 +320,23 @@ export class TurnProcessor {
     const historyMessages = filterConversationHistoryForPermission(
       storedHistoryMessages,
       userPermissionLevel,
-    ).map((entry) => (guest ? { ...entry, metadata: null } : entry));
+    ).map((entry) => (turn.guest ? { ...entry, metadata: null } : entry));
 
     const uploadContinuity = resolveConversationUploadContinuity({
       message,
       currentAttachments: attachments,
       historyMessages,
     });
-    const liveUploadRefs = await filterLiveUploadRefs({
+    const uploadRefs = await filterLiveUploadRefs({
       refs: uploadContinuity.refs,
       resolver: this.deps.uploadAttachmentResolver,
       logger: this.deps.logger,
     });
-    const modelUploadRefs = liveUploadRefs;
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = await hydrateUploadAttachments({
       currentAttachments: uploadContinuity.attachments,
-      uploadRefs: modelUploadRefs,
+      uploadRefs,
       resolver: this.deps.uploadAttachmentResolver,
       logger: this.deps.logger,
     });
@@ -235,74 +354,204 @@ export class TurnProcessor {
       effectiveMessage,
       effectiveAttachments,
       {
-        uploadRefs: modelUploadRefs,
+        uploadRefs,
         ...(uploadContinuity.priorResponseRef
           ? { priorResponseRef: uploadContinuity.priorResponseRef }
           : {}),
       },
     );
-    const messages = buildModelMessages(historyMessages, modelMessage);
-    const agentContextInstructions =
-      buildAgentContextInstructions(contextItems);
+    return {
+      effectiveMessage,
+      effectiveAttachments,
+      uploadRefs,
+      hasPriorResponseCandidate:
+        uploadContinuity.priorResponseRef !== undefined,
+      contextItems,
+      messages: buildModelMessages(historyMessages, modelMessage),
+      agentContextInstructions: buildAgentContextInstructions(contextItems),
+    };
+  }
 
-    // Log available tools
+  private logAvailableTools(turn: AdmittedTurn): void {
     const tools = this.deps.mcpService
-      .listAgentToolsForPermissionLevel(userPermissionLevel)
-      .filter(({ tool }) => !guest || isGuestToolAllowed(tool))
+      .listAgentToolsForPermissionLevel(turn.input.userPermissionLevel)
+      .filter(({ tool }) => !turn.guest || isGuestToolAllowed(tool))
       .map((t) => t.tool.name);
     this.deps.logger.debug("Available tools for this call", {
       toolCount: tools.length,
       tools,
     });
+  }
 
-    // Save user message
+  private async recordQuestion(
+    turn: AdmittedTurn,
+    message: string,
+    attachments: ChatAttachment[],
+  ): Promise<void> {
+    const { conversationId, source, userPermissionLevel } = turn.input;
     await this.deps.conversationService.addMessage({
       conversationId,
       role: "user",
-      content: effectiveMessage,
+      content: message,
       ...(await this.messageMetadata({
-        actor: attributedActor,
+        actor: turn.attributedActor,
         source,
         userPermissionLevel,
-        attachments: effectiveAttachments,
+        attachments,
         actorAlreadyEnriched: true,
-        guest,
+        guest: turn.guest,
       })),
     });
+  }
 
-    // Call agent
-    const hasCurrentUploadAttachments = effectiveAttachments.some(
+  private callOptions(
+    turn: AdmittedTurn,
+    prepared: PreparedTurn,
+  ): ReturnType<typeof buildBrainCallOptions> {
+    const {
+      conversationId,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+      isAnchor,
+    } = turn.input;
+    const hasCurrentUploadAttachments = prepared.effectiveAttachments.some(
       (attachment) => attachment.source !== undefined,
     );
-    const hasAccessibleUploads =
-      hasCurrentUploadAttachments || modelUploadRefs.length > 0;
-    const callOptions = buildBrainCallOptions({
-      hasAccessibleUploads,
-      guestExecution,
+    return buildBrainCallOptions({
+      hasAccessibleUploads:
+        hasCurrentUploadAttachments || prepared.uploadRefs.length > 0,
+      guestExecution: turn.guestExecution,
+      ...(turn.guest && turn.input.guestScreening
+        ? { guestScreening: turn.input.guestScreening }
+        : {}),
       userPermissionLevel,
       isAnchor,
       conversationId,
       channelId,
       channelName,
       interfaceType,
-      ...(attributedActor ? { actor: attributedActor } : {}),
-      hasPriorResponseCandidate:
-        uploadContinuity.priorResponseRef !== undefined,
-      ...(agentContextInstructions ? { agentContextInstructions } : {}),
+      ...(turn.attributedActor ? { actor: turn.attributedActor } : {}),
+      hasPriorResponseCandidate: prepared.hasPriorResponseCandidate,
+      ...(prepared.agentContextInstructions
+        ? { agentContextInstructions: prepared.agentContextInstructions }
+        : {}),
     });
+  }
 
-    const result = await this.deps.getAgent(interfaceType).generate({
-      messages,
-      options: callOptions,
-      ...(signal ? { abortSignal: signal } : {}),
+  /** A visitor's question a published FAQ already answers, when one does. */
+  private async findAskedBefore(
+    turn: AdmittedTurn,
+    question: string,
+  ): Promise<AskedBeforeAnswer | undefined> {
+    const find = this.deps.guestAskedBefore;
+    if (!turn.guest || !find || question.trim().length === 0) return undefined;
+    try {
+      return await find({ question });
+    } catch (error) {
+      // The model answers as it would have.
+      this.deps.logger.warn("Asked-before check unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  /** The FAQ's answer stands as the turn's reply, with the sources it kept. */
+  private async recordAskedBefore(
+    turn: AdmittedTurn,
+    question: string,
+    hit: AskedBeforeAnswer,
+    embeddings: readonly EmbeddingUsage[],
+  ): Promise<AgentResponse> {
+    const { conversationId, channelId, channelName, userPermissionLevel } =
+      turn.input;
+    await this.recordQuestion(turn, question, []);
+    const cards = withAnswerSources([], hit.sources);
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content: hit.answer,
+      ...(await this.messageMetadata({
+        actor: null,
+        source: this.buildAssistantSource(channelId, channelName),
+        userPermissionLevel,
+        cards,
+        entityMemoryRefs: [],
+        agentContactCandidates: [],
+        guest: true,
+        askedBefore: { faqId: hit.faqId },
+      })),
     });
-    signal?.throwIfAborted();
+    return {
+      text: hit.answer,
+      toolResults: [],
+      ...(cards.length > 0 ? { cards } : {}),
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      // No model call: a known cost of nothing, plus the check's embedding.
+      guestSettlement: withEmbeddingUsage(
+        {
+          usage: {
+            modelCalls: 0,
+            inputTokens: 0,
+            cachedInputTokens: 0,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            embeddingTokens: 0,
+          },
+          cost: {
+            state: "known",
+            microUsd: 0,
+            pricing: noModelCallPricing,
+          },
+        },
+        embeddings,
+      ),
+      askedBefore: { faqId: hit.faqId },
+    };
+  }
 
-    const { toolResults, pendingConfirmations, cards, totalToolCalls } =
-      extractToolResults(result.steps);
+  /** A visitor's sources are the public pages closest to the answer, when found. */
+  private async withGuestAnswerSources(
+    cards: StructuredChatCard[],
+    answer: string,
+  ): Promise<StructuredChatCard[]> {
+    const find = this.deps.guestAnswerSources;
+    if (!find || answer.trim().length === 0) return cards;
+    try {
+      return withAnswerSources(cards, await find({ answer }));
+    } catch (error) {
+      // The answer stands without them; its lookups' sources remain.
+      this.deps.logger.warn("Guest answer sources unavailable", {
+        error: getErrorMessage(error),
+      });
+      return cards;
+    }
+  }
+
+  private async recordResponse(
+    turn: AdmittedTurn,
+    prepared: PreparedTurn,
+    result: Awaited<ReturnType<BrainAgent["generate"]>>,
+  ): Promise<AgentResponse> {
+    const { conversationId, channelId, channelName, userPermissionLevel } =
+      turn.input;
+    const { guest } = turn;
+    const extracted = extractToolResults(
+      result.steps,
+      result.text,
+      this.deps.entityLinks,
+    );
+    const { toolResults, pendingConfirmations, totalToolCalls } = extracted;
     if (guest && pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
-    const sourcesCard = buildSourcesCardFromContextItems(contextItems);
+    // A refusal is not an answer, so it has no sources to find.
+    const cards =
+      guest && result.guestScreening?.outcome !== "refused"
+        ? await this.withGuestAnswerSources(extracted.cards, result.text)
+        : extracted.cards;
+    const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
     const responseText =
@@ -319,6 +568,15 @@ export class TurnProcessor {
       guest || pendingConfirmations.length > 0
         ? []
         : buildAgentContactCandidates(toolResults);
+    // Only a completed, non-guest reply carries turn facts; a reply awaiting
+    // confirmation has not done what it proposes.
+    const assistantTurn =
+      guest || pendingConfirmations.length > 0
+        ? undefined
+        : {
+            startedAt: turn.startedAt,
+            retrieved: buildRetrievedEntityRefs(toolResults),
+          };
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
@@ -339,6 +597,7 @@ export class TurnProcessor {
           cards: responseCards,
           entityMemoryRefs,
           agentContactCandidates,
+          assistantTurn,
           guest,
         })),
       });
@@ -353,18 +612,19 @@ export class TurnProcessor {
         usage: result.usage,
       });
 
-    const response: AgentResponse = {
+    return {
       text: responseText,
       toolResults,
       ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),
+      ...(guest && result.guestSettlement
+        ? { guestSettlement: result.guestSettlement }
+        : {}),
+      ...(guest && result.guestScreening
+        ? { guestScreening: result.guestScreening }
+        : {}),
+      ...(pendingConfirmations.length > 0 ? { pendingConfirmations } : {}),
     };
-
-    if (pendingConfirmations.length > 0) {
-      response.pendingConfirmations = pendingConfirmations;
-    }
-
-    return response;
   }
 
   public async persistCancelledAction(
@@ -595,6 +855,8 @@ export class TurnProcessor {
 
     const { toolResults, pendingConfirmations, cards } = extractToolResults(
       result.steps,
+      result.text,
+      this.deps.entityLinks,
     );
     return {
       text:
@@ -616,8 +878,11 @@ export class TurnProcessor {
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];
     agentContactCandidates?: AgentContactCandidate[];
+    assistantTurn?: AssistantTurn | undefined;
     actorAlreadyEnriched?: boolean;
     guest?: boolean;
+    /** The FAQ that gave a visitor's reply in the model's place. */
+    askedBefore?: AskedBefore;
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
     if (params.guest) {
       const cards = getGuestSourceCards(params.cards);
@@ -625,6 +890,7 @@ export class TurnProcessor {
         metadata: {
           userPermissionLevel: "public",
           ...(cards.length ? { cards } : {}),
+          ...(params.askedBefore ? { askedBefore: params.askedBefore } : {}),
         },
       };
     }

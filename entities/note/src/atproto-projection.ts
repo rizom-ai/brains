@@ -10,6 +10,7 @@ import { noteFrontmatterSchema, noteSchema } from "./schemas/note";
 export async function buildNoteAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainNoteRecord> {
   const note = noteSchema.parse(entity);
   const parsed = parseMarkdownWithFrontmatter(
@@ -24,6 +25,7 @@ export async function buildNoteAtprotoRecord({
     format: "text/markdown",
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "note",
     sourceEntityId: note.id,
     createdAt: note.created,

@@ -79,6 +79,11 @@ describe("directory-sync Studio workspace", () => {
       path: "note/another.md",
       message: "Required title is missing",
     });
+    await operationStatus.recordIssue({
+      kind: "placement",
+      path: "note/book:intro",
+      message: "Nested note cannot export",
+    });
     const directorySync = createMockDirectorySync({
       getStatus: mock(async () => ({
         syncPath: "/private/runtime/brain-data",
@@ -193,6 +198,10 @@ describe("directory-sync Studio workspace", () => {
       JSON.stringify(rendered).match(/Content import needs attention/g),
     ).toHaveLength(1);
     expect(JSON.stringify(rendered)).toContain("2 recorded issues");
+    expect(JSON.stringify(rendered)).toContain(
+      "1 recorded issue · note/book:intro",
+    );
+    expect(JSON.stringify(rendered)).toContain("Content placement");
     expect(JSON.stringify(rendered)).toContain("Frontmatter is invalid");
     expect(JSON.stringify(rendered)).toContain("Required title is missing");
     expect(JSON.stringify(snapshot)).not.toContain("secret");

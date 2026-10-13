@@ -20,6 +20,7 @@ export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 
 // Online embedding provider
 export { OnlineEmbeddingProvider } from "./online-embedding-provider";
+export { EmbeddingUsageMeter } from "./embedding-usage-meter";
 export type { OnlineEmbeddingConfig } from "./online-embedding-provider";
 
 // AI service types
@@ -37,22 +38,15 @@ export type {
 
 // Agent service (merged from @brains/agent-service)
 export { AgentService } from "./agent-service";
+export {
+  entitySourceCitation,
+  type CitableEntity,
+  type EntityLinks,
+} from "./entity-citation";
 export { buildAssistantActor, createBrainAgentId } from "./assistant-actor";
 export { createBrainAgentFactory } from "./brain-agent";
-export {
-  createOpenAiGuestProfile,
-  openAiGuestContextTokens,
-  openAiGuestEmbeddingModel,
-  openAiGuestEmbeddingDimensions,
-} from "./openai-guest-profile";
-export type {
-  GuestModelProfile,
-  OpenAiGuestProfileOptions,
-} from "./openai-guest-profile";
-export type {
-  GuestExecutionAccounting,
-  GuestModelCall,
-} from "./guest-turn-budget";
+export { openAiGuestPricing } from "./openai-guest-pricing";
+export type { GuestPricing } from "./openai-guest-pricing";
 export { aiServiceEnvSchema } from "./env-schema";
 export {
   createToolExecuteWrapper,

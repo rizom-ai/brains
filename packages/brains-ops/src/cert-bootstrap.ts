@@ -1,19 +1,22 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   readLocalEnvValues,
   resolveLocalEnvValue,
 } from "@brains/deploy-support";
 import {
-  createOriginCertificateRequest,
-  generateOriginKeyPair,
-  issueCloudflareOriginCertificate,
+  issueOriginCertificate,
   setCloudflareZoneSslStrict,
+  writeOriginCertificateFiles,
 } from "@brains/deploy-support/origin-ca";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { loadPilotRegistry, type PilotRegistry } from "./load-registry";
-import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import { pushSecretsToGitHub } from "@brains/deploy-support/push-secrets";
+import { normalizePushTarget } from "@brains/deploy-support/push-target";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface CertBootstrapOptions {
@@ -78,56 +81,31 @@ export async function bootstrapPilotOriginCertificate(
   const fetchImpl = options.fetchImpl ?? fetch;
   const logger = options.logger ?? console.log;
 
-  const keyPair = generateOriginKeyPair();
-  const { csrPem } = createOriginCertificateRequest(domain, keyPair);
-
-  const certResult = await issueCloudflareOriginCertificate(
+  const certResult = await issueOriginCertificate(
     fetchImpl,
     cfApiToken,
-    csrPem,
     domain,
   );
-
-  const certificatePath = join(
-    rootDir,
-    ".brains-ops",
-    "certs",
-    target.id,
-    "origin.pem",
+  const certificateDir = join(rootDir, ".brains-ops", "certs", target.id);
+  const { certificatePath, privateKeyPath } = await writeOriginCertificateFiles(
+    certificateDir,
+    certResult,
   );
-  const privateKeyPath = join(
-    rootDir,
-    ".brains-ops",
-    "certs",
-    target.id,
-    "origin.key",
+  const secretsSnippetPath = join(certificateDir, "secrets.yaml");
+  await writeFile(
+    secretsSnippetPath,
+    formatSecretsSnippet(certResult.certificatePem, certResult.privateKeyPem),
+    "utf-8",
   );
-
-  const secretsSnippetPath = join(dirname(certificatePath), "secrets.yaml");
-
-  await mkdir(dirname(certificatePath), { recursive: true });
-  await Promise.all([
-    writeFile(certificatePath, certResult.certificatePem, "utf-8"),
-    writeFile(privateKeyPath, keyPair.privateKeyPem, {
-      encoding: "utf-8",
-      mode: 0o600,
-    }),
-    writeFile(
-      secretsSnippetPath,
-      formatSecretsSnippet(certResult.certificatePem, keyPair.privateKeyPem),
-      "utf-8",
-    ),
-  ]);
 
   await setCloudflareZoneSslStrict(fetchImpl, cfApiToken, cfZoneId);
 
   const pushTarget = normalizePushTarget(options.pushTo);
   if (pushTarget) {
-    await pushSecretsToBackend(
-      pushTarget,
+    await pushSecretsToGitHub(
       [
         ["CERTIFICATE_PEM", certResult.certificatePem],
-        ["PRIVATE_KEY_PEM", keyPair.privateKeyPem],
+        ["PRIVATE_KEY_PEM", certResult.privateKeyPem],
       ],
       {
         logger,

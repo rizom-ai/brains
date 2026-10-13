@@ -1,5 +1,197 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- [#621](https://github.com/rizom-ai/brains/pull/621) [`3429f82`](https://github.com/rizom-ai/brains/commit/3429f82c112f6b236b7c732a32203a88cdcc264f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site no longer declares a display for `network-piece`: brains stopped copying other brains' published pieces, so there is nothing "From the network" to cite.
+
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- [#540](https://github.com/rizom-ai/brains/pull/540) [`574b94b`](https://github.com/rizom-ai/brains/commit/574b94b1fa4c63d10eb4363fae3d219407a3330f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky in daylight: on paper it is lights, not night. The grain, the purple boundary and the ember rims only read against the dark and go; the wash and the corona go faint; the lantern and the beads are brass; the tendrils hold a little more.
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#539](https://github.com/rizom-ai/brains/pull/539) [`860ba1b`](https://github.com/rizom-ai/brains/commit/860ba1b7b769a1619daecd3efc0965cc1ba0f69b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves more with the scroll and keeps its names level: the sky wheels ten degrees either way while the dust and the boundary turn against it, each name turns back to stay upright, and a brain's bead is bigger and brighter, lighting its tendril as it passes and flashing the core as it arrives.
+
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- Updated dependencies [[`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c)]:
+  - @rizom/site@0.2.0-alpha.239
+
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- [#529](https://github.com/rizom-ai/brains/pull/529) [`34bb01e`](https://github.com/rizom-ai/brains/commit/34bb01eae026663aa7a7476932b9b3a4309b4486) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves with the scroll where the browser can drive it: the page wheels the sky a few degrees, the dust and the boundary turn slower for depth, and each brain's bead travels its tendril over its own slice of the page. Time keeps the breathing, the seep, the embers and the answer; elsewhere the clocks stand.
+
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- [#528](https://github.com/rizom-ai/brains/pull/528) [`fb497e9`](https://github.com/rizom-ai/brains/commit/fb497e9dda80e21721cbfbde7b8077f74fad7620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the un-lit brains' names hidden in the phone strip while an answer is shown.
+
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- [#526](https://github.com/rizom-ai/brains/pull/526) [`f4accd8`](https://github.com/rizom-ai/brains/commit/f4accd8f1ce52331b8d94a971ece2a00dd3c605b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the brains' names out of the phone strip until an answer lights them.
+
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- [#524](https://github.com/rizom-ai/brains/pull/524) [`6c58043`](https://github.com/rizom-ai/brains/commit/6c580434e630f4156da2c691ec6da9ddd2cbd177) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sets the brains' names as one quiet layer under the sky: lowercase, below every light, aligned inward at the drawing's edges.
+
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- [#522](https://github.com/rizom-ai/brains/pull/522) [`93621cf`](https://github.com/rizom-ai/brains/commit/93621cf7f4655381479fe399f9311ff380e9084a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask draws the live network as a night sky: Rizom the densest light, tendrils forking outward toward the brains and thinning as they reach, every brain a layered light that breathes on its own clock, energy travelling a tendril to a brain now and then, the brains not yet in reach as dust at the edge, grain in the substrate. An answer flares the cited brains while the rest withdraw. The rings, spokes, pulse and sparks are gone.
+
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`abeaf35`](https://github.com/rizom-ai/brains/commit/abeaf350dc738b4d030e93210a7fb913f5311cf1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's science chapter lists its three dimensions in the same form as the organism's parts, a left accent rule, display-face titles and muted text; a part that is one of the site's rooms shows as a door, underlined in the accent. A stray closing brace at the end of the story stylesheet is gone.
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`ead43fa`](https://github.com/rizom-ai/brains/commit/ead43fa3798715dfa709f7dd692aeb64ddffd671) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's figure opens on the whole organism at rest, the brain, the practice and the network joined, beside the opening's words; the science then pulls the team's pyramid out of it and every stage follows from the last, back and forth with the reading. The opening carries no separate picture.
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#515](https://github.com/rizom-ai/brains/pull/515) [`428dcd1`](https://github.com/rizom-ai/brains/commit/428dcd1701affddf5f81ca3f352ccea6e9d2026a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening shows the organism again, one brain becoming a team and a network in the rooms' lights, in the drawing's place beside the words; the live network is drawn on /ask, where the growth section's "network" now leads.
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [#513](https://github.com/rizom-ai/brains/pull/513) [`b1ed5d1`](https://github.com/rizom-ai/brains/commit/b1ed5d13be681f07146fe0fdb3c33833fb24a401) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's homepage opens as it did before the Ask box moved in: the words, the door and the live network drawing, which leaves with the opening; the figure runs its stages without a handover. The Ask room is its own page, /ask, linked from the bar: the box beside the live network, which an answer's sources light and lead to, and under it the questions visitors asked before.
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [#511](https://github.com/rizom-ai/brains/pull/511) [`a3d6d0a`](https://github.com/rizom-ai/brains/commit/a3d6d0ac994b8e0a7bb99b7e4abab541f858a053) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's Asked-before chapter takes the figure's place by scroll, through the centre point: the figure draws into the point as the chapter arrives, the chapter's network opens out of it and holds the centre line while the questions are read, and as the next chapter arrives the network draws back in and the figure's lantern opens again; scrolling back runs it backwards.
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- [#509](https://github.com/rizom-ai/brains/pull/509) [`019094f`](https://github.com/rizom-ai/brains/commit/019094f45128e967a72c3cd1a269614c9c5cae10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure by scroll: as the science comes up the screen the network draws into its centre point, and past the reading line the first team's pyramid opens out of that same point; scrolling back runs it backwards. No timers.
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [#505](https://github.com/rizom-ai/brains/pull/505) [`7553962`](https://github.com/rizom-ai/brains/commit/75539623ba98972c474fb91058c3ba8f84966bbd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure through the centre point: once the reading moves the figure on, the network draws into its centre and the first team's pyramid opens out of that point; back up the page, the pyramid closes into the point and the network opens out again.
+
+## 0.2.0-alpha.263
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening is an Ask room, as yeehaa.io's atlas is: on a wide screen the words scroll within the screen beside the drawing, the composer stays on the first screen through a long answer, and the leads from an answer's sources to their brains, the lending of the drawing to a phone's conversation and the tap on a lit dot come from the shared room.
+
+## 0.2.0-alpha.262
+
+### Patch Changes
+
+- [#503](https://github.com/rizom-ai/brains/pull/503) [`cbcb741`](https://github.com/rizom-ai/brains/commit/cbcb7418446cdda8c80135c8d02c398ec949cb84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a wide screen an answer grows in rizom.ai's opening instead of scrolling inside a band, the drawing keeps its place beside the words while the opening is read, and the leads from an answer's sources to their brains are drawn in the viewport, only between a row and a dot that are both in view.
+
+## 0.2.0-alpha.261
+
+### Minor Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`760a0bb`](https://github.com/rizom-ai/brains/commit/760a0bb09722929829ebb8db17fd30fc19026a23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage drawing listens to the Ask box: the brains an answer's sources came from light with their own echo and spark while the rest dim, Rizom's center stays lit for its own pieces, and pointing at a listed source or a brain lights the other.
+
+### Patch Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`934ebe5`](https://github.com/rizom-ai/brains/commit/934ebe5cc8707c8a0c2569c57dcc560aea198776) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage gains "Asked before" after "Where this goes": the visitors' questions the owner kept and published, most asked first, each opening on its answer, who answered, and the sources in their owners' words. The chapter draws the live network beside the questions; opening one lights the brains its answer drew on, and the organism steps aside while the chapter is read. No count is shown.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`867ad44`](https://github.com/rizom-ai/brains/commit/867ad44544889e6707e0d2a27aeb188035f185a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage drawing belongs to the page while an answer is open: on desktop a dotted lead runs from each listed source to its brain in the drawing; on a phone the drawing joins the open conversation above the answer and a tap on a lit dot brings its source into view. Reduced motion keeps the lit states and drops the leads and flashes.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`eecbdea`](https://github.com/rizom-ai/brains/commit/eecbdea7dc0467b0df76f0c9ecb2a6e4265c284e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai names what a visitor's answer may cite: its essays, talks and agents, and the network's pieces, which live on their brains' sites.
+
+## 0.2.0-alpha.260
+
+### Patch Changes
+
+- [#449](https://github.com/rizom-ai/brains/pull/449) [`773c39b`](https://github.com/rizom-ai/brains/commit/773c39b3074175b098a92400034bef714287af17) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a phone the story's drawing takes about a third of the screen and the opening's title and lede come at phone sizes, so the Ask box lands on the first screen.
+
+## 0.2.0-alpha.259
+
+### Patch Changes
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`3bd0a1c`](https://github.com/rizom-ai/brains/commit/3bd0a1cc9deab7582349128b3e808a8841ce901c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The story pages' buttons ("Book an audit" on Work and the homepage door) keep their own width instead of stretching across the chapter column, and the homepage's Ask box prompts in its field with the shared Ask note's title.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`dc021d0`](https://github.com/rizom-ai/brains/commit/dc021d03f832c9ec259099f98b5306757bf8b4ac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The previous homepage's leftovers are gone: the unrouted `home` section group and its growth diagram, the `homeSections` export, the homepage's unrouted problem and system sections, and the shared presentational pieces only they used. The story homepage, Brain, Work, Foundation and Writing are unchanged.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`e1edce0`](https://github.com/rizom-ai/brains/commit/e1edce0f707f656530717ab5cc65f2305d34988e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai has an icon, the brass lantern its drawings use for a brain, and its footer no longer links to a Team Type quiz that does not exist; the Work drawing's last label no longer asks which type is yours.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`4ba3a91`](https://github.com/rizom-ai/brains/commit/4ba3a91460daadf8c3eecd5614d50d02554cd2f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The story pages' headings settle: chapter eyebrows are the site's mono label in the room's accent, the rooms' titles keep to three or four lines while the homepage title stays larger, and every story page's opening keeps a measured column of words with its drawing in the room to their right, measured against the page frame so it holds from phones to wide screens.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`d468310`](https://github.com/rizom-ai/brains/commit/d46831011f1aa959e434213b55cdeb0e01083044) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The rizom.ai homepage is told as one story: it opens on the live network, drawn from the agent-discovery proximity map with each brain named as page text, with the guest Ask box docked when Web Chat serves it and the door otherwise; the science, the shift, the organism, where this goes and the two ways in follow as chapters beside one drawing that grows from a team to an economy. `/network` is gone; the Brain page's network keeps its own template. The hero's authored copy is unchanged and spliced over the data, so the section's content file still applies.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`beb628f`](https://github.com/rizom-ai/brains/commit/beb628fab871457873bf6784e5b4ce0b68ed2e05) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Brain and Work rooms of rizom.ai are told as stories beside one drawing each: the Brain grows from a lantern through the files that gather into it, the places you talk to it, you, your team and the network, the collective and what stays yours; Work takes a team from AI outside it, through the same work done three times, the Knowledge Audit and the teams this sounds like, to a mapped team and the three types of team. The Work chapter that tells the audit carries the bar's `#audit` anchor and a booking door when the content gives one; anchored chapters land below the bar, and below the drawing's strip on narrow screens. The Brain page loses its chat box, screenshot captures and network template, and the retired room stylesheets and the old homepage's stylesheets are gone. Every section keeps its id and its content file.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`67232ed`](https://github.com/rizom-ai/brains/commit/67232edf4da46b26e21ddc248748e5ebf5f971c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai gets one bar (Brain, Work, Foundation, Writing, the theme toggle and "Book an audit") in place of the room strip and masthead, a footer that names the Knowledge Audit and drops the Network link, and the story page shape: chapters beside one drawing that changes stage as the chapter under the reading line changes, with the reading thread on the live rail's root filling as a visitor reads. Foundation is the first page told this way; its section ids and content are unchanged.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`a85837b`](https://github.com/rizom-ai/brains/commit/a85837bd1a8d9889796a5ef4b4cc4ffdb4dfb370) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's Writing page is an archive on one thread: every essay and presentation, newest first, essays as lanterns with their excerpt and presentations as plain nodes, beside the heading with a filter (everything, essays, presentations) that needs no script. The site reads the blog's and the decks' lists through their own datasources, so drafts stay out of production as before and each piece keeps its link.
+
+## 0.2.0-alpha.258
+
+### Patch Changes
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`467f476`](https://github.com/rizom-ai/brains/commit/467f476a1c089ae0f46b8e65938f87675f489c37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drops the styles for the Ask box's About panel, which the box no longer has.
+
+- Updated dependencies [[`170627a`](https://github.com/rizom-ai/brains/commit/170627a74751e592f1818776a8209aa2ef2b21f6)]:
+  - @rizom/site@0.2.0-alpha.238
+
+## 0.2.0-alpha.257
+
+### Patch Changes
+
+- Updated dependencies [[`3d40351`](https://github.com/rizom-ai/brains/commit/3d40351fa5b05ab04d1e7a196a3287a4fda5bf57)]:
+  - @rizom/site@0.2.0-alpha.237
+
+## 0.2.0-alpha.256
+
+### Patch Changes
+
+- Updated dependencies [[`8df97bf`](https://github.com/rizom-ai/brains/commit/8df97bf413df6bc4d5d0d20e06366b2720a591c6)]:
+  - @rizom/site@0.2.0-alpha.236
+
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask section loads Web Chat's guest page bundle (`/ask/assets/ask.js` and `ask.css`) instead of the signed-in chat app. It needs a Brain release that serves the guest page bundle; on an older Brain the section stays on its "Connecting" line.
+
+## 0.2.0-alpha.254
+
+### Patch Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`9204df2`](https://github.com/rizom-ai/brains/commit/9204df219fee7f726a38ba60281f780373110403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hero chat uses Web Chat's shared Ask box boot (`/ask/assets/box.js`) instead of the site's own `/brain-chat.js`, which is removed. The box needs a Brain release that serves the shared boot; on an older Brain the hero composer stays disabled and nothing is sent.
+
+## 0.2.0-alpha.253
+
+### Patch Changes
+
+- [#269](https://github.com/rizom-ai/brains/pull/269) [`54d112a`](https://github.com/rizom-ai/brains/commit/54d112a5335806940e1a8fba23c85e6f929fc3fa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the shared authored Ask presentation in the Brain-page chat instead of reading chat copy from the page hero. Keep the site frame and existing guest enhancement behavior.
+
+## 0.2.0-alpha.252
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose public Ask inside the existing Rizom layout, including its navigation, theme control and footer. Mount the shared guest UI rather than introducing separate page chrome or a second conversation runtime.
+
 ## 0.2.0-alpha.251
 
 ### Patch Changes

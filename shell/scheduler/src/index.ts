@@ -1,4 +1,11 @@
-import { Effect, Exit, Fiber, FiberMap, Scope } from "@brains/utils/effect";
+import {
+  Effect,
+  Exit,
+  Fiber,
+  FiberMap,
+  Scope,
+  withOptionalClock,
+} from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { nextCronOccurrence, validateCronExpression } from "./cron";
 
@@ -92,9 +99,9 @@ class SupervisedScheduledJob implements ScheduledJob {
   private readonly callback: SchedulerCallback;
   private readonly options: BunSchedulerBackendOptions;
   private readonly stopTrigger: () => void;
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private readonly cycles: FiberMap.FiberMap<string, void, never>;
-  private intervalFiber: Fiber.RuntimeFiber<unknown, never> | null = null;
+  private intervalFiber: Fiber.Fiber<unknown, never> | null = null;
   private stopPromise: Promise<void> | null = null;
   private stopped = false;
 
@@ -110,7 +117,7 @@ class SupervisedScheduledJob implements ScheduledJob {
     this.stopTrigger = stopTrigger;
     this.scope = Effect.runSync(Scope.make());
     this.cycles = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.scope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.scope),
     );
   }
 
@@ -123,15 +130,13 @@ class SupervisedScheduledJob implements ScheduledJob {
       ),
       Effect.forever,
     );
-    const ownedSchedule = this.options.clock
-      ? Effect.withClock(schedule, this.options.clock)
-      : schedule;
+    const ownedSchedule = withOptionalClock(schedule, this.options.clock);
     this.intervalFiber = Effect.runFork(ownedSchedule);
   }
 
   trigger(): void {
     if (this.stopped) return;
-    if (FiberMap.unsafeHas(this.cycles, this.key)) {
+    if (FiberMap.hasUnsafe(this.cycles, this.key)) {
       this.options.onOverlapSkipped?.(this.key);
       return;
     }
@@ -142,14 +147,14 @@ class SupervisedScheduledJob implements ScheduledJob {
       },
       catch: (error) => error,
     }).pipe(
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         Effect.sync(() => {
           this.options.onCallbackError?.(this.key, error);
         }),
       ),
     );
     const fiber = Effect.runFork(callbackEffect);
-    FiberMap.unsafeSet(this.cycles, this.key, fiber, { onlyIfMissing: true });
+    FiberMap.setUnsafe(this.cycles, this.key, fiber, { onlyIfMissing: true });
   }
 
   stop(): Promise<void> {
@@ -159,16 +164,34 @@ class SupervisedScheduledJob implements ScheduledJob {
 
   private async stopScheduledJob(): Promise<void> {
     this.stopped = true;
-    this.stopTrigger();
+    const errors: unknown[] = [];
+    try {
+      this.stopTrigger();
+    } catch (error) {
+      // A failed native trigger stop must not bypass admitted callback drains
+      // or scope finalizers. Preserve its failure until cleanup has settled.
+      errors.push(error);
+    }
 
     const intervalFiber = this.intervalFiber;
     this.intervalFiber = null;
-    if (intervalFiber) {
-      await Effect.runPromise(Fiber.interrupt(intervalFiber));
+    const cleanups: Effect.Effect<unknown>[] = [
+      ...(intervalFiber ? [Fiber.interrupt(intervalFiber)] : []),
+      FiberMap.awaitEmpty(this.cycles),
+      Scope.close(this.scope, Exit.void),
+    ];
+    for (const cleanup of cleanups) {
+      try {
+        await Effect.runPromise(cleanup);
+      } catch (error) {
+        // Continue through every dependency barrier before surfacing failures.
+        errors.push(error);
+      }
     }
-
-    await Effect.runPromise(FiberMap.awaitEmpty(this.cycles));
-    await Effect.runPromise(Scope.close(this.scope, Exit.void));
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) {
+      throw new AggregateError(errors, "Scheduled job cleanup failed");
+    }
   }
 }
 

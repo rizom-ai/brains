@@ -371,7 +371,7 @@ blocks for authenticated Studio operations. Studio-only capabilities include:
 - typed `defineWorkspaceAction()` inputs/outputs and permission floors;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
-- closed external, entity, Account, Admin, Inbox, Publishing, and Site launch
+- closed external, entity, Account, Admin, Inbox, Publishing, Site, and Traffic launch
   intents resolved by the host, including Inbox detail, Chat discussion, and
   note-capture handoffs without author-supplied URLs.
 

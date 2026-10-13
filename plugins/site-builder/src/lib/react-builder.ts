@@ -4,6 +4,7 @@ import type {
   StaticSiteBuilderOptions,
   BuildContext,
 } from "./static-site-builder";
+import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -18,6 +19,7 @@ import { dirname, join } from "path";
 import { promises as fs } from "fs";
 import {
   createHTMLShell,
+  iconHeadPaths,
   createSiteImageRenderer,
   HeadCollector,
   TailwindCSSProcessor,
@@ -85,10 +87,6 @@ export class ReactBuilder implements StaticSiteBuilder {
     );
     if (rejectedRoute) throw rejectedRoute.reason;
 
-    // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
-    reportProgress("Processing Tailwind CSS");
-    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
-
     // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
     await this.writePublicAssets(preparedBuild.publicAssets, signal);
@@ -99,6 +97,12 @@ export class ReactBuilder implements StaticSiteBuilder {
     // keyed by output path, values are file contents as strings. On a path
     // collision the SitePackage wins.
     await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
+    signal.throwIfAborted();
+
+    // Styles come last: Tailwind scans the emitted pages and the runtime
+    // scripts that toggle classes on them, so both must be on disk.
+    reportProgress("Processing Tailwind CSS");
+    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
     signal.throwIfAborted();
 
     reportProgress("React build complete");
@@ -144,8 +148,21 @@ export class ReactBuilder implements StaticSiteBuilder {
     );
     const siteLayoutInfo = preparedBuild.site;
 
-    // Create head collector for SSR
-    const headCollector = new HeadCollector(preparedBuild.site.title);
+    // Create head collector for SSR, linking only the icons the build has.
+    const icon =
+      preparedBuild.staticAssets["/favicon.svg"] ??
+      preparedBuild.staticAssets["/favicon.png"];
+    const headPaths = iconHeadPaths(
+      [
+        ...Object.keys(preparedBuild.staticAssets),
+        ...Object.keys(preparedBuild.publicAssets),
+      ],
+      icon === undefined ? undefined : sha256Hex(icon).slice(0, 12),
+    );
+    const headCollector = new HeadCollector(
+      preparedBuild.site.title,
+      headPaths,
+    );
 
     // Get image renderer for markdown content (if ImageBuildService is available)
     const imageRenderer = createSiteImageRenderer(preparedBuild.images);
@@ -223,6 +240,7 @@ export class ReactBuilder implements StaticSiteBuilder {
       preparedBuild.site.themeMode,
       preparedBuild.site.analyticsScript,
       allHeadScripts,
+      headPaths,
     );
 
     // Determine output path

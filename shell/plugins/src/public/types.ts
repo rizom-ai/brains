@@ -13,6 +13,7 @@ import type {
   GetEntityRequest,
   ICoreEntityService,
   IEntitiesNamespace,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -267,6 +268,7 @@ export type {
   SearchWithDistancesRequest,
   GetEntityRequest,
   IEntitiesNamespace,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -315,17 +317,34 @@ export type EvalHandler<TInput = unknown, TOutput = unknown> = (
   input: TInput,
 ) => Promise<TOutput>;
 
-export type InsightHandler = (
-  entityService: IEntityService,
-  visibilityScope: ContentVisibility,
-) => Promise<Record<string, unknown>>;
+/** What a report reads with: the caller's view, already derived. */
+export interface AnalyticsReportContext {
+  entityService: IEntityService;
+  visibilityScope: ContentVisibility;
+}
+
+/** One `system_analytics` report, with the params a caller may pass. */
+export interface AnalyticsReportDefinition<
+  TParams extends z.ZodObject = z.ZodObject,
+> {
+  type: string;
+  description: string;
+  params: TParams;
+  minVisibility?: UserPermissionLevel;
+  handler: (
+    params: z.output<TParams>,
+    context: AnalyticsReportContext,
+  ) => Promise<Record<string, unknown>>;
+}
 
 export interface IEvalNamespace {
   registerHandler(handlerId: string, handler: EvalHandler): void;
 }
 
-export interface IInsightsNamespace {
-  register(type: string, handler: InsightHandler): void;
+export interface IAnalyticsNamespace {
+  register<TParams extends z.ZodObject>(
+    definition: AnalyticsReportDefinition<TParams>,
+  ): void;
 }
 
 export interface ISemanticNamespace {
@@ -453,7 +472,7 @@ export interface BasePluginContext {
   readonly messaging: IMessagingNamespace;
   readonly conversations: IConversationsNamespace;
   readonly eval: IEvalNamespace;
-  readonly insights: IInsightsNamespace;
+  readonly analytics: IAnalyticsNamespace;
   readonly permissions: IPermissionsNamespace;
   readonly uploads: IRuntimeUploadsNamespace;
 }

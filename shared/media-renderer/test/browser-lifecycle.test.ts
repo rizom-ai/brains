@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { withBrowser } from "../src/browser-lifecycle";
 import type {
   BrowserFactory,
@@ -40,7 +40,7 @@ describe("browser lifecycle", () => {
   it("waits for release before returning the render timeout", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const closeStarted = deferred<void>();
         const releaseClose = deferred<void>();
         const timeoutError = new Error("render timed out");
@@ -85,14 +85,14 @@ describe("browser lifecycle", () => {
         expect(rejection).toBe(timeoutError);
         expect(closeCalls).toBe(1);
         expect(killCalls).toBe(0);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("bounds a hung close and kills the browser process", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const closeStarted = deferred<void>();
         let closeCalls = 0;
         let killCalls = 0;
@@ -134,14 +134,14 @@ describe("browser lifecycle", () => {
         expect(closeCalls).toBe(1);
         expect(killCalls).toBe(1);
         expect(killedWith).toBe("SIGKILL");
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("preserves caller abort reasons after releasing the browser", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const operationStarted = deferred<void>();
         const closeStarted = deferred<void>();
         const releaseClose = deferred<void>();
@@ -183,14 +183,14 @@ describe("browser lifecycle", () => {
         expect(settled).toBe(true);
         expect(rejection).toBe(abortReason);
         expect(closeCalls).toBe(1);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("releases a browser that arrives after acquisition times out", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const launch = deferred<MediaBrowser>();
         const launchStarted = deferred<void>();
         const closeStarted = deferred<void>();
@@ -232,7 +232,7 @@ describe("browser lifecycle", () => {
         yield* Effect.promise(() => closeStarted.promise);
         yield* Effect.promise(() => closeFinished.promise);
         expect(closeCalls).toBe(1);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 

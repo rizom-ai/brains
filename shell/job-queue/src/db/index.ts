@@ -20,6 +20,9 @@ export function createJobQueueDatabase(
     schema: { jobQueue, jobWorkerSessions },
     authToken: config.authToken,
     authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
+    // JobQueueRepository owns contention: it retries whole transactions within
+    // its own bounded budget, so the client surfaces each refusal at once.
+    contentionRetryBudgetMs: 0,
   });
 }
 

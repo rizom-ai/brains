@@ -460,9 +460,7 @@ export async function getRuntimeReadiness(
       internalFullScope("runtime readiness database probe"),
     ),
     options.jobQueueService.getDiagnostics(now),
-    Promise.resolve().then(() =>
-      options.jobQueueService.getExecutionRegistrations(),
-    ),
+    Promise.resolve(options.jobQueueService.getExecutionRegistrations()),
     options.daemonRegistry.getStatuses(),
     (options.readProcessSignals ?? readLinuxProcessSignals)(),
     options.projectionRuntimeSupervisor.getDiagnostics(),
@@ -474,7 +472,7 @@ export async function getRuntimeReadiness(
     queueResult.status === "fulfilled" ? queueResult.value : null;
   const executionRegistrations =
     executionRegistrationsResult.status === "fulfilled"
-      ? executionRegistrationsResult.value
+      ? (executionRegistrationsResult.value ?? null)
       : null;
   const daemonStatuses =
     daemonResult.status === "fulfilled" ? daemonResult.value : [];

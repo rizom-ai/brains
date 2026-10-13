@@ -3,6 +3,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
+import type { CheckoutExecutorOptions } from "../../../src/lib/broker/checkout-executor";
 import { BrokerConnection } from "../../../src/lib/broker/client";
 import { GitBrokerServer } from "../../../src/lib/broker/server";
 import { getGitRemoteFingerprint } from "../../../src/lib/git-options";
@@ -30,7 +32,10 @@ interface Owned {
 }
 
 async function ownedCheckout(
-  options: { answeredWindow?: number } = {},
+  options: {
+    answeredWindow?: number;
+    afterOperation?: CheckoutExecutorOptions["afterOperation"];
+  } = {},
 ): Promise<Owned> {
   scratch = await mkdtemp(join(tmpdir(), "request-ledger-"));
   const checkout = join(scratch, "checkout");
@@ -54,6 +59,9 @@ async function ownedCheckout(
             timeoutMs: 30_000,
             authorName: "Test",
             authorEmail: "test@example.com",
+            ...(options.afterOperation
+              ? { afterOperation: options.afterOperation }
+              : {}),
           }
         : undefined,
   });
@@ -84,6 +92,84 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LINUX)("one request id", () => {
+  it("joins a mutation across independent RPC clients before it settles", async () => {
+    const entered = deferred();
+    const release = deferred();
+    let commits = 0;
+    const { checkout, connect } = await ownedCheckout({
+      afterOperation: async (operation): Promise<void> => {
+        if (operation.name !== "commit") return;
+        commits++;
+        entered.resolve();
+        await release.promise;
+      },
+    });
+    const first = await connect();
+    const second = await connect();
+    const admitted: Promise<unknown>[] = [];
+    try {
+      await first.execute(checkout, { name: "initialize" });
+      await writeFile(join(checkout, "note.md"), "note\n");
+      const id = "req_independent_rpc";
+      const a = first.executeWithId(id, checkout, { name: "commit" });
+      const b = second.executeWithId(id, checkout, { name: "commit" });
+      admitted.push(a, b);
+      await entered.promise;
+      await second.status();
+      expect(commits).toBe(1);
+      release.resolve();
+      expect(await b).toEqual(await a);
+      expect(commits).toBe(1);
+    } finally {
+      release.resolve();
+      await Promise.allSettled(admitted);
+      first.close();
+      second.close();
+    }
+  }, 60_000);
+
+  it("does not evict an admitted read when answered sibling reads roll over", async () => {
+    const entered = deferred();
+    const release = deferred();
+    let held = false;
+    let reads = 0;
+    const { checkout, sibling, connect } = await ownedCheckout({
+      answeredWindow: 1,
+      afterOperation: async (operation): Promise<void> => {
+        if (!held || operation.name !== "get-status") return;
+        reads++;
+        entered.resolve();
+        await release.promise;
+      },
+    });
+    const first = await connect();
+    const second = await connect();
+    const admitted: Promise<unknown>[] = [];
+    try {
+      await first.execute(checkout, { name: "initialize" });
+      await first.execute(sibling, { name: "initialize" });
+      held = true;
+      const id = "req_held_read_rpc";
+      const a = first.executeWithId(id, checkout, { name: "get-status" });
+      admitted.push(a);
+      await entered.promise;
+      // A different operation is a read too, but does not use the held seam.
+      for (let i = 0; i < 3; i++)
+        await second.execute(sibling, { name: "has-local-changes" });
+      const b = second.executeWithId(id, checkout, { name: "get-status" });
+      admitted.push(b);
+      await second.status();
+      release.resolve();
+      expect(await b).toEqual(await a);
+      expect(reads).toBe(1);
+    } finally {
+      release.resolve();
+      await Promise.allSettled(admitted);
+      first.close();
+      second.close();
+    }
+  }, 60_000);
+
   it("commits once when it arrives twice at the same moment", async () => {
     const { checkout, connect } = await ownedCheckout();
     const connection = await connect();

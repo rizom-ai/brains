@@ -73,7 +73,6 @@
         "ChatProtocolEvent",
         "ChatSession",
         "ChatSessionsResponse",
-        "ChatSourceContext",
         "ChatTextPart",
         "ChatToolStatusEvent",
         "ChatToolStatusValue",
@@ -106,7 +105,6 @@
         "chatProtocolEventSchema",
         "chatSessionSchema",
         "chatSessionsResponseSchema",
-        "chatSourceContextSchema",
         "chatTextPartSchema",
         "chatToolStatusEventSchema",
         "chatUploadPartSchema",
@@ -152,6 +150,7 @@
         "ExtensionMetadataSchema",
         "JobProgressEvent",
         "Message",
+        "MessageCollector",
         "MessageContext",
         "MessageResponse",
         "MessageResponseSchema",
@@ -195,7 +194,7 @@
         "IEntityService",
         "IEvalNamespace",
         "IIdentityNamespace",
-        "IInsightsNamespace",
+        "IAnalyticsNamespace",
         "IMessageInterfaceChannelsNamespace",
         "IMessagingNamespace",
         "IPromptsNamespace",
@@ -241,6 +240,7 @@
         "EntityMarkdownDocument",
         "EntityOf",
         "EntityPackageDefinition",
+        "EntityTypeClassification",
         "ProjectionDefinition",
         "defineEntity",
         "defineEntityPackage",
@@ -479,7 +479,10 @@
         "siteDefinitionSchema",
         "z"
       ],
-      "advanced-with-consumer": ["siteDefinitionOverridesSchema"],
+      "advanced-with-consumer": [
+        "entityDisplaySchema",
+        "siteDefinitionOverridesSchema"
+      ],
       "internal/removable": [
         "RizomBrandSuffix",
         "RizomFooterTagline",

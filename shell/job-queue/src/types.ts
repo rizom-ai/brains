@@ -262,8 +262,11 @@ export interface IJobQueueService {
   /** Freeze handler declarations before runtime services can admit work. */
   finalizeHandlerRegistrations(): readonly JobExecutionRegistration[];
 
-  /** Read the immutable handler declarations derived during boot. */
-  getExecutionRegistrations(): readonly JobExecutionRegistration[];
+  /**
+   * Read the immutable handler declarations derived during boot; undefined
+   * while plugins are still registering.
+   */
+  getExecutionRegistrations(): readonly JobExecutionRegistration[] | undefined;
 
   /**
    * Enqueue a job for processing
@@ -344,7 +347,10 @@ export interface IJobQueueService {
   /** Settle once nothing is in flight and nothing new has arrived. */
   waitForIdle(options?: JobQueueIdleOptions): Promise<void>;
 
-  /** Read durable processing and terminal updates for web-owned publication. */
+  /**
+   * Read one durable update page after the cursor for web-owned publication.
+   * Limit must be an integer from 0 to 1,000 (default 1,000); zero returns no rows.
+   */
   getRuntimeUpdates(
     cursor: JobRuntimeUpdateCursor,
     limit?: number,

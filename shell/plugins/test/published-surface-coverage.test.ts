@@ -10,7 +10,7 @@ import { join } from "node:path";
  * surface arrives unasserted and nothing notices. The two surfaces are
  * independent declarations of the same types — no `extends`, no shared
  * source — so an unasserted pair is free to drift, which is how the published
- * `InsightHandler` came to promise a read-only entity service while the
+ * `AnalyticsReportHandler` came to promise a read-only entity service while the
  * runtime required the full one.
  *
  * A published name is in scope when some package declares the same name — not

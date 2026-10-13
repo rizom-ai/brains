@@ -6,24 +6,13 @@ import {
 } from "@brains/build-tools";
 import { getPackages } from "@manypkg/get-packages";
 import { readPackageManifestFromTarball } from "./lib/package-tarball";
+import { RegistryNotReady, untilPublished } from "./lib/registry-propagation";
 
 interface RegistryVersionMetadata extends PublishedPackageManifest {
   dist?: { tarball?: string };
 }
 
-/**
- * A fetch/propagation failure that is worth retrying. Compatibility violations
- * are NOT transient: retrying them only delays and obscures the failure, which
- * is how a real packument corruption was reported as "metadata is not ready"
- * for eight attempts instead of being named on the first.
- */
-class TransientRegistryError extends Error {}
-
 const repositoryRoot = process.cwd();
-const maxAttempts = parsePositiveInteger(
-  process.env["PUBLISHED_METADATA_ATTEMPTS"],
-  8,
-);
 const packages = await getPackages(repositoryRoot);
 const targets: PublishedCompatibilityTarget[] = [];
 
@@ -60,49 +49,32 @@ console.log(
   `Verified published peer metadata for ${targets.length} site/theme packages.`,
 );
 
+/**
+ * Only propagation/fetch failures are retried, within the registry deadline. A
+ * compatibility violation is a real defect in what was published: it fails at
+ * once and is named, never reported as "metadata is not ready".
+ */
 async function verifyWithRetries(
   target: PublishedCompatibilityTarget,
 ): Promise<void> {
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      const registryManifest = await fetchRegistryManifest(target);
-      assertPublishedCompatibilityMetadata(
-        target,
-        registryManifest,
-        "registry packument",
-      );
-      const tarballManifest = await fetchTarballManifest(
-        target,
-        registryManifest,
-      );
-      assertPublishedCompatibilityMetadata(
-        target,
-        tarballManifest,
-        "tarball manifest",
-      );
-      console.log(`✓ ${target.name}@${target.version}`);
-      return;
-    } catch (error) {
-      lastError = error;
-      // Only propagation/fetch failures are retryable. A compatibility
-      // violation is a real defect in what was published: fail fast and name it.
-      if (!(error instanceof TransientRegistryError)) {
-        throw error;
-      }
-      if (attempt === maxAttempts) {
-        break;
-      }
-      const delayMs = Math.min(2_000 * 2 ** (attempt - 1), 15_000);
-      console.warn(
-        `Registry metadata for ${target.name}@${target.version} is not ready (attempt ${attempt}/${maxAttempts}); retrying in ${delayMs / 1_000}s.`,
-      );
-      await Bun.sleep(delayMs);
-    }
-  }
-
-  throw lastError;
+  await untilPublished(async () => {
+    const registryManifest = await fetchRegistryManifest(target);
+    assertPublishedCompatibilityMetadata(
+      target,
+      registryManifest,
+      "registry packument",
+    );
+    const tarballManifest = await fetchTarballManifest(
+      target,
+      registryManifest,
+    );
+    assertPublishedCompatibilityMetadata(
+      target,
+      tarballManifest,
+      "tarball manifest",
+    );
+    console.log(`✓ ${target.name}@${target.version}`);
+  });
 }
 
 async function fetchRegistryManifest(
@@ -122,7 +94,7 @@ async function fetchRegistryManifest(
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
-    throw new TransientRegistryError(
+    throw new RegistryNotReady(
       `Registry returned ${response.status} for ${target.name}@${target.version}`,
     );
   }
@@ -135,7 +107,7 @@ async function fetchTarballManifest(
 ): Promise<PublishedPackageManifest> {
   const tarballUrl = registryManifest.dist?.tarball;
   if (typeof tarballUrl !== "string") {
-    throw new TransientRegistryError(
+    throw new RegistryNotReady(
       `${target.name}@${target.version} registry metadata has no dist.tarball`,
     );
   }
@@ -144,7 +116,7 @@ async function fetchTarballManifest(
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    throw new TransientRegistryError(
+    throw new RegistryNotReady(
       `Tarball download returned ${response.status} for ${target.name}@${target.version}`,
     );
   }
@@ -153,20 +125,6 @@ async function fetchTarballManifest(
     await response.blob(),
     `${target.name}@${target.version}`,
   );
-}
-
-function parsePositiveInteger(
-  value: string | undefined,
-  fallback: number,
-): number {
-  if (value === undefined) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    throw new Error(`Expected a positive integer, received ${value}`);
-  }
-  return parsed;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

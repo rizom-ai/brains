@@ -71,7 +71,7 @@ describe("ContentPipelinePlugin", () => {
   });
 
   afterEach(async () => {
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   });
 
   describe("initialization", () => {
@@ -204,7 +204,7 @@ describe("ContentPipelinePlugin", () => {
 
       const queue = await localPlugin.getQueueManager().list("social-post");
       expect(queue.length).toBe(0);
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
 
     it("stores queue add authorization context", async () => {
@@ -440,7 +440,7 @@ Post body`,
           }),
         }),
       );
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
 
     it("requires publish permission for direct publish messages", async () => {
@@ -472,7 +472,7 @@ Post body`,
       });
 
       expect(executePayloads).toEqual([]);
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
   });
 
@@ -642,7 +642,7 @@ Body`,
           type: "image:image-render-source",
         }),
       );
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
   });
 

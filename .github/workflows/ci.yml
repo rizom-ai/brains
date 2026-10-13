@@ -243,6 +243,11 @@ jobs:
       - name: Check published surface
         run: bun run surface:check
 
+      # A source build does not prove that the installed tarballs work in browsers.
+      # Keep this in the existing blocking Build check, including pull requests.
+      - name: Run packed compatibility matrix
+        run: bun run test:packed:compat
+
   console-visual:
     name: Console visual regression
     timeout-minutes: 20
@@ -281,6 +286,8 @@ jobs:
       - name: Compare console baselines
         env:
           CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          # Use the same reviewed RGB rendering as local baseline comparisons.
+          FONTCONFIG_FILE: ${{ github.workspace }}/test/visual/console/fontconfig-rgb.conf
         run: bun run visual:console
 
       - name: Upload failed console captures

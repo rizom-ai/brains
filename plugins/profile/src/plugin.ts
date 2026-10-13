@@ -5,7 +5,7 @@ import packageJson from "../package.json";
 import {
   BUILT_IN_PROFILE_KINDS,
   profileBaseFrontmatterExtension,
-  validateProfileContent,
+  validateProfileEntity,
 } from "./schemas";
 import {
   buildStarterCharacterBrief,
@@ -63,6 +63,8 @@ export class ProfilePlugin extends ServicePlugin<
     if (!this.config.starterIdentity.enabled) return;
 
     let initialSyncSucceeded = false;
+    // The shell's identity defaults exist only once startup content settles.
+    let startupContentSettled = false;
     let shellReady = false;
     let generationInFlight: Promise<void> | undefined;
 
@@ -111,7 +113,9 @@ export class ProfilePlugin extends ServicePlugin<
     };
 
     const attemptStarterIdentity = async (): Promise<void> => {
-      if (!initialSyncSucceeded || !shellReady) return;
+      if (!initialSyncSucceeded || !startupContentSettled || !shellReady) {
+        return;
+      }
       if (generationInFlight) {
         await generationInFlight;
         return;
@@ -132,6 +136,15 @@ export class ProfilePlugin extends ServicePlugin<
           initialSyncSucceeded = true;
           await attemptStarterIdentity();
         }
+        return { success: true };
+      },
+    );
+
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.startupContentSettled,
+      async () => {
+        startupContentSettled = true;
+        await attemptStarterIdentity();
         return { success: true };
       },
     );
@@ -168,7 +181,7 @@ export class ProfilePlugin extends ServicePlugin<
     context.entities.registerPersistValidator(
       "anchor-profile",
       async (entity: BaseEntity): Promise<void> => {
-        validateProfileContent(
+        validateProfileEntity(
           entity.content,
           selection && definition
             ? { category: selection.category, fields: definition.fields }

@@ -1,5 +1,6 @@
 export type StudioPathTarget =
   | { kind: "home" }
+  | { kind: "grouping"; grouping: string }
   | { kind: "collection"; entityType: string }
   | { kind: "entity"; entityType: string; id: string }
   | { kind: "workspace"; workspaceId: string }
@@ -18,6 +19,13 @@ export function studioCollectionPath(
   entityType: string,
 ): string {
   return `${normalizeStudioBasePath(routePath)}/entities/${encodeURIComponent(entityType)}`;
+}
+
+export function studioGroupingPath(
+  routePath: string,
+  grouping: string,
+): string {
+  return `${normalizeStudioBasePath(routePath)}/groups/${encodeURIComponent(grouping)}`;
 }
 
 export function studioEntityPath(
@@ -63,6 +71,12 @@ export function parseStudioPath(
   const relative = pathname.slice(prefix.length);
 
   try {
+    const groupingMatch = /^\/groups\/([^/]+)$/.exec(relative);
+    if (groupingMatch?.[1])
+      return {
+        kind: "grouping",
+        grouping: decodeURIComponent(groupingMatch[1]),
+      };
     const collectionMatch = /^\/entities\/([^/]+)$/.exec(relative);
     if (collectionMatch?.[1]) {
       return {

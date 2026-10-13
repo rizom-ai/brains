@@ -1,6 +1,7 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
+import type { MatchesHead } from "../lib/file-watcher";
 import type {
   CleanupResult,
   DirectorySyncStatus,
@@ -13,7 +14,11 @@ import type {
   PullResult,
   RawEntity,
 } from "./results";
-import type { JobRequest } from "./jobs";
+import type {
+  DirectoryImportPlan,
+  DirectoryProjectionBatchRef,
+  JobRequest,
+} from "./jobs";
 
 /**
  * Interface for file operations used by handlers
@@ -23,6 +28,8 @@ export interface IFileOperations {
   readEntity(filePath: string): Promise<RawEntity>;
   parseEntityFromPath(filePath: string): { entityType: string; id: string };
   fileExists(filePath: string): Promise<boolean>;
+  /** Every file an entity can be written to, in preference order. */
+  getEntityDeletePaths(entityType: string, entityId: string): string[];
 }
 
 /**
@@ -48,6 +55,8 @@ export interface IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressReporter,
     batchSize: number,
+    projectionBatch?: DirectoryProjectionBatchRef,
+    plan?: DirectoryImportPlan,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
@@ -55,7 +64,9 @@ export interface IDirectorySync {
     batchSize: number,
   ): Promise<ExportResult>;
   importEntities(paths?: string[]): Promise<ImportResult>;
-  removeOrphanedEntities(): Promise<CleanupResult>;
+  removeOrphanedEntities(
+    projectionBatch?: DirectoryProjectionBatchRef,
+  ): Promise<CleanupResult>;
   readonly fileOps: IFileOperations;
   readonly shouldDeleteOnFileRemoval: boolean;
   getAllMarkdownFiles(): Promise<string[]>;
@@ -77,6 +88,8 @@ export interface IDirectorySync {
   startWatching(): Promise<void>;
   stopWatching(): Promise<void>;
   suppressWatchPaths(paths: string[]): void;
+  /** Ignore the watcher's echoes of a pull while each path matches HEAD. */
+  ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void;
   recordPendingPullDeletes(paths: string[]): Promise<void>;
   isPendingDelete(entityType: string, entityId: string): boolean;
   completePendingDelete(

@@ -1,3 +1,4 @@
+import { studioAssetManifestSchema } from "../src/ui-assets";
 import {
   createMockShell,
   createTempDataDir,
@@ -98,6 +99,36 @@ function apiRouteRequests(): RouteRequest[] {
     {
       routePath: "/studio/api/schema",
       request: (cookie) => request("/studio/api/schema", { cookie }),
+    },
+    {
+      routePath: "/studio/api/images",
+      request: (cookie) => request("/studio/api/images?id=example", { cookie }),
+    },
+    {
+      routePath: "/studio/api/destination",
+      method: "POST",
+      request: (cookie) =>
+        request("/studio/api/destination", {
+          cookie,
+          method: "POST",
+          body: {},
+        }),
+    },
+    {
+      routePath: "/studio/api/groups/catalog",
+      request: (cookie) => request("/studio/api/groups/catalog", { cookie }),
+    },
+    {
+      routePath: "/studio/api/groups/members",
+      request: (cookie) => request("/studio/api/groups/members", { cookie }),
+    },
+    {
+      routePath: "/studio/api/groups/usage",
+      request: (cookie) => request("/studio/api/groups/usage", { cookie }),
+    },
+    {
+      routePath: "/studio/api/hierarchy",
+      request: (cookie) => request("/studio/api/hierarchy", { cookie }),
     },
     {
       routePath: "/studio/api/entities",
@@ -295,6 +326,7 @@ describe("Studio active-session gate inversion", () => {
       if (routeCase.routePath === "/studio/api/types") {
         expect(publicResponse.status).toBe(200);
         expect(await publicResponse.json()).toEqual({
+          groupings: [],
           types: [],
           workspaces: [
             {
@@ -335,10 +367,15 @@ describe("Studio active-session gate inversion", () => {
   it("keeps only static assets and legacy redirects as anonymous non-data exceptions", async () => {
     const { plugin } = await setup();
 
-    const asset = await findRoute(plugin, "/studio/assets").handler(
-      request("/studio/assets/app.js"),
+    const manifest = studioAssetManifestSchema.parse(
+      await Bun.file(
+        new URL("../dist/ui/studio-asset-manifest.json", import.meta.url),
+      ).json(),
     );
-    expect([200, 404]).toContain(asset.status);
+    const asset = await findRoute(plugin, "/studio/assets").handler(
+      request(`/studio/assets/${manifest.entrypoints.script}`),
+    );
+    expect(asset.status).toBe(200);
 
     const redirect = await findRoute(plugin, "/cms").handler(
       request("/cms/entities/note/example?view=edit"),
@@ -356,6 +393,10 @@ describe("Studio active-session gate inversion", () => {
       {
         routePath: "/studio/entities",
         requestPath: "/studio/entities/post/shared-draft",
+      },
+      {
+        routePath: "/studio/groups",
+        requestPath: "/studio/groups/clients?value=Acme",
       },
       {
         routePath: "/studio/workspaces",

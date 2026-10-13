@@ -1,4 +1,5 @@
 import type { ShellConfig } from "./config";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import { AIContentDataSource, EntityDataSource } from "./datasources";
 import type { ShellServices } from "./types/shell-types";
 
@@ -13,6 +14,7 @@ export function registerCoreDataSources(
       services.templateRegistry,
       () => services.identityService.getCharacterContent(),
       () => services.profileService.getProfileContent(),
+      new EntityUrlGenerator(config.entityDisplay),
       config.siteBaseUrl,
     ),
   );

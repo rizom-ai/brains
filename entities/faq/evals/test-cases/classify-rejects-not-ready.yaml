@@ -1,0 +1,16 @@
+id: faq-classify-rejects-not-ready
+name: A not-ready reply is rejected
+description: A reply asking the user to try again later answers nothing.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: what are the main topics you write about?
+  answer: I'm still getting the knowledge base ready. Please try again in a moment.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: false

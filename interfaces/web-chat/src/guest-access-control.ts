@@ -5,7 +5,7 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { createDefaultGuestPolicy } from "./guest-preset";
-import { GuestAdmission } from "./guest-admission";
+import { GuestAdmission, type GuestBudgetStatus } from "./guest-admission";
 import type { EnabledGuestPolicy } from "./guest-policy";
 
 function privateJsonResponse(body: unknown, status = 200): Response {
@@ -16,6 +16,13 @@ function privateJsonResponse(body: unknown, status = 200): Response {
 }
 
 const activationSchema = z.strictObject({ enabled: z.boolean() });
+
+export interface GuestDoorStatus extends GuestBudgetStatus {
+  /** Switched on, with budget left, and able to answer. */
+  enabled: boolean;
+  ready: boolean;
+  origin: string;
+}
 interface BrowserAccess {
   hasChatAccess: boolean;
   permissionLevel: string;
@@ -37,29 +44,23 @@ export class GuestAccessControl {
     resolveAccess: (request: Request) => Promise<BrowserAccess>,
     ready: () => boolean,
     available: boolean,
+    model: string,
     now?: () => number,
   ) {
     this.context = context;
     this.resolveAccess = resolveAccess;
     this.ready = ready;
-    const origin = context.previewUrl;
-    if (
-      !available ||
-      !origin ||
-      !context.siteUrl ||
-      origin === context.siteUrl ||
-      new URL(origin).protocol !== "https:"
-    )
-      return;
-    const defaults = createDefaultGuestPolicy(origin);
+    // The site itself, and its preview when it has its own host.
+    const origin = context.siteUrl;
+    if (!available || !origin || new URL(origin).protocol !== "https:") return;
+    const preview = context.previewUrl;
+    const previewOrigin =
+      preview && preview !== origin && new URL(preview).protocol === "https:"
+        ? preview
+        : undefined;
+    const defaults = createDefaultGuestPolicy(origin, model, previewOrigin);
     if (!defaults.enabled) return;
-    this.policy = {
-      ...defaults,
-      allowance: {
-        requests: defaults.limits.globalRequestsPerDay,
-        maxCostMicroUsd: Math.floor(defaults.budget.dailyUsd * 1_000_000),
-      },
-    };
+    this.policy = { ...defaults, budgeted: true };
     this.admission = new GuestAdmission(context.runtimeState, this.policy, {
       requireAuthorization: true,
       ...(now ? { now } : {}),
@@ -68,6 +69,56 @@ export class GuestAccessControl {
 
   async isAuthorized(): Promise<boolean> {
     return (await this.admission?.accessStatus())?.authorized === true;
+  }
+
+  /** The owner's view of the door: switched on, answering, and this month's budget. */
+  async status(): Promise<GuestDoorStatus | undefined> {
+    if (!this.policy || !this.admission) return undefined;
+    const state = await this.admission.accessStatus();
+    if (!state) return undefined;
+    return {
+      ...state,
+      enabled: state.enabled && this.ready(),
+      ready: this.ready(),
+      origin: this.policy.origin,
+    };
+  }
+
+  /**
+   * Opens guest chat with this monthly budget, or with the budget last set
+   * when none is given. Never returns what the month has charged.
+   */
+  async switchOn(
+    monthlyMicroUsd?: number,
+  ): Promise<"on" | "not-ready" | "no-budget" | "unavailable"> {
+    if (!this.admission) return "unavailable";
+    if (!this.ready()) return "not-ready";
+    const budget =
+      monthlyMicroUsd ?? (await this.admission.accessStatus())?.budgetMicroUsd;
+    if (!budget) return "no-budget";
+    return (await this.admission.authorize(budget)) ? "on" : "unavailable";
+  }
+
+  /** Closes guest chat; admissions stop at once. */
+  async switchOff(): Promise<"off" | "unavailable"> {
+    if (!this.admission) return "unavailable";
+    return (await this.admission.applyPolicy(false)) ? "off" : "unavailable";
+  }
+
+  /**
+   * The owner has guest chat switched on with budget left. Unlike isOpen,
+   * this does not wait for the guest profile, which is not ready while the
+   * search index loads after a restart.
+   */
+  async isSwitchedOn(): Promise<boolean> {
+    return (await this.admission?.accessStatus())?.enabled === true;
+  }
+
+  /** Guest chat can answer: authorized, switched on, budget left, guest profile ready. */
+  async isOpen(): Promise<boolean> {
+    return (
+      (await this.admission?.accessStatus())?.enabled === true && this.ready()
+    );
   }
 
   routes(apiPath: string): WebRouteDefinition[] {
@@ -88,7 +139,7 @@ export class GuestAccessControl {
             return privateJsonResponse({ error: "Forbidden" }, 403);
           if (!this.policy || !this.admission || !this.context.siteUrl)
             return privateJsonResponse(
-              { error: "Preview guest access unavailable" },
+              { error: "Guest access unavailable" },
               503,
             );
           if (request.method !== method)
@@ -132,15 +183,20 @@ export class GuestAccessControl {
                 { error: "Invalid activation request" },
                 400,
               );
-            if (parsed.data.enabled && !this.ready())
+            const switched = parsed.data.enabled
+              ? await this.switchOn()
+              : await this.switchOff();
+            if (switched === "no-budget")
+              return privateJsonResponse(
+                { error: "Set a monthly budget in Studio first" },
+                409,
+              );
+            if (switched === "not-ready")
               return privateJsonResponse(
                 { error: "Guest profile unavailable" },
                 503,
               );
-            const confirmed = parsed.data.enabled
-              ? await this.admission.authorize()
-              : await this.admission.applyPolicy(false);
-            if (!confirmed)
+            if (switched === "unavailable")
               return privateJsonResponse(
                 { error: "Guest authorization unavailable" },
                 503,
@@ -156,10 +212,6 @@ export class GuestAccessControl {
             ...state,
             enabled: state.enabled && this.ready(),
             origin: this.policy.origin,
-            allowance: {
-              requests: this.policy.allowance?.requests,
-              usd: (this.policy.allowance?.maxCostMicroUsd ?? 0) / 1_000_000,
-            },
           });
         } catch {
           // Authentication, runtime-state and provider details must stay private.

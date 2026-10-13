@@ -1,8 +1,9 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import type { ReactElement, ReactNode } from "react";
-import { recordStyles as s } from "./operator-record.styles";
+import { Button } from "@brains/app-ui-react";
 import { OperatorMetadata } from "./operator-metadata";
+import { recordStyles as s } from "./operator-record.styles";
 
 export function OperatorRecordDescription(props: {
   text: string;
@@ -83,36 +84,44 @@ export function OperatorRecordCopy(props: {
 type LinkProps = {
   children: ReactNode;
   stretch?: boolean | undefined;
-  emphasis?: "normal" | "title" | "quiet" | undefined;
+  emphasis?: "normal" | "title" | "quiet" | "action" | undefined;
 } & (
   | { href: string; external: boolean; onClick?: never }
   | { onClick: () => void; href?: never; external?: never }
 );
 export function OperatorTextLink(props: LinkProps): ReactElement {
   const compiled = stylex.props(
-    s.link,
+    props.emphasis !== "action" && s.link,
     props.stretch && s.stretchedLink,
     props.emphasis === "title" && s.titleLink,
     props.emphasis === "quiet" && s.quietLink,
   );
   const className = `declarative-inline-link operator-inline-link ${compiled.className ?? ""}`;
-  return props.href !== undefined ? (
-    <a
-      {...compiled}
-      className={className}
-      href={props.href}
-      {...(props.external ? { target: "_blank", rel: "noreferrer" } : {})}
-    >
-      {props.children}
-    </a>
+  const link =
+    props.href !== undefined ? (
+      <a
+        {...compiled}
+        className={className}
+        href={props.href}
+        {...(props.external ? { target: "_blank", rel: "noreferrer" } : {})}
+      >
+        {props.children}
+      </a>
+    ) : (
+      <button
+        {...compiled}
+        className={className}
+        type="button"
+        onClick={props.onClick}
+      >
+        {props.children}
+      </button>
+    );
+  return props.emphasis === "action" ? (
+    <Button asChild variant="outline">
+      {link}
+    </Button>
   ) : (
-    <button
-      {...compiled}
-      className={className}
-      type="button"
-      onClick={props.onClick}
-    >
-      {props.children}
-    </button>
+    link
   );
 }

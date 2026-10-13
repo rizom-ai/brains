@@ -1,34 +1,15 @@
-import { anchorProfileKindSchema } from "@brains/plugins";
+import {
+  anchorProfileKindSchema,
+  contentVisibilitySchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { renderedLinkFields } from "@brains/templates";
 import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
   .string()
   .nullable()
   .default(null);
-type Visibility = "public" | "shared" | "restricted";
-const visibilitySchema: z.ZodPipe<
-  z.ZodOptional<
-    z.ZodUnion<
-      readonly [
-        z.ZodEnum<{
-          public: "public";
-          shared: "shared";
-          restricted: "restricted";
-        }>,
-        z.ZodLiteral<"private">,
-      ]
-    >
-  >,
-  z.ZodTransform<Visibility, Visibility | "private" | undefined>
-> = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public" as const;
-    if (value === "private") return "restricted" as const;
-    return value;
-  });
 const frontmatterSchema: z.ZodObject<{
   name: z.ZodString;
   kind: typeof anchorProfileKindSchema;
@@ -96,7 +77,7 @@ export const agentViewSchema: z.ZodObject<{
   content: z.ZodString;
   created: z.ZodString;
   updated: z.ZodString;
-  visibility: typeof visibilitySchema;
+  visibility: typeof contentVisibilitySchema;
   metadata: typeof metadataSchema;
   contentHash: z.ZodString;
   frontmatter: typeof frontmatterSchema;
@@ -111,7 +92,7 @@ export const agentViewSchema: z.ZodObject<{
   content: z.string(),
   created: z.string(),
   updated: z.string(),
-  visibility: visibilitySchema,
+  visibility: contentVisibilitySchema,
   metadata: metadataSchema,
   contentHash: z.string(),
   frontmatter: frontmatterSchema,
@@ -128,3 +109,9 @@ export type AgentView = Omit<AgentSchemaData, "url" | "typeLabel"> & {
   url: string;
   typeLabel: string;
 };
+
+/** An agent once site-builder has filled the link fields it renders. */
+export const agentRenderSchema: z.ZodType<AgentView> = agentViewSchema.extend({
+  url: renderedLinkFields.url,
+  typeLabel: renderedLinkFields.typeLabel,
+});

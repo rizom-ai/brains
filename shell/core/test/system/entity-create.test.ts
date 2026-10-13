@@ -14,6 +14,7 @@ import {
 import { createMockSystemServices } from "./mock-services";
 import type {
   BaseEntity,
+  EntityTypeConfig,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -310,7 +311,7 @@ describe("system_create tool", () => {
     );
 
     expect(tool?.description).toContain(
-      "If the user includes content in the same direct save request, use source.kind text with that content",
+      "If the user includes content in the same direct save request, use source.kind user-message",
     );
   });
 
@@ -706,6 +707,37 @@ describe("system_create tool", () => {
     expect(result).toMatchObject({ success: true });
   });
 
+  it("rejects an existing title for interceptor-backed types too", async () => {
+    let interceptorCalled = false;
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
+      interceptorCalled = true;
+      return { kind: "continue", input };
+    });
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "community-launch-plan",
+        entityType: "note",
+        content: "# Community Launch Plan\n\nLaunch day: Monday.",
+        metadata: { title: "Community Launch Plan" },
+        created: now,
+        updated: now,
+      },
+    });
+
+    // An edit of a just-imported note misrouted to system_create: the note
+    // interceptor must not let it mint a deduplicated copy.
+    const result = await execRaw({
+      entityType: "note",
+      title: "Community Launch Plan",
+      content: "# Community Launch Plan\n\nLaunch day: Friday.",
+    });
+
+    expect(expectToolError(result).error).toContain("use system_update");
+    expect(result).not.toHaveProperty("needsConfirmation");
+    expect(interceptorCalled).toBe(false);
+  });
+
   it("should require confirmation before creating durable entities", async () => {
     const result = await execRaw({
       entityType: "note",
@@ -1086,72 +1118,82 @@ status: draft
     });
   });
 
-  it("should pass upload markdown transforms to registered create interceptors", async () => {
-    let capturedInput: CreateInput | undefined;
-    services = createSeededSystemServices({
-      conversationService: {
-        ...services.conversationService,
-        getMessages: async () => [
-          {
-            id: "message-1",
-            conversationId: "web-conversation-1",
-            role: "user",
-            content: "",
-            metadata: JSON.stringify({
-              attachments: [
-                {
-                  kind: "file",
-                  filename: "brief.pdf",
-                  mediaType: "application/pdf",
-                  source: {
-                    kind: "upload",
-                    id: "upload-00000000-0000-4000-8000-000000000304",
+  it.each(["note", "test-markdown"])(
+    "should pass upload markdown transforms to declared %s interceptors",
+    async (entityType) => {
+      let capturedInput: CreateInput | undefined;
+      services = createSeededSystemServices({
+        conversationService: {
+          ...services.conversationService,
+          getMessages: async () => [
+            {
+              id: "message-1",
+              conversationId: "web-conversation-1",
+              role: "user",
+              content: "",
+              metadata: JSON.stringify({
+                attachments: [
+                  {
+                    kind: "file",
+                    filename: "brief.pdf",
+                    mediaType: "application/pdf",
+                    source: {
+                      kind: "upload",
+                      id: "upload-00000000-0000-4000-8000-000000000304",
+                    },
                   },
-                },
-              ],
-            }),
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      },
-    });
-    tools = createSystemTools(services);
-    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
-      capturedInput = input;
-      return {
-        kind: "handled",
-        result: {
-          success: true,
-          data: { status: "created", entityId: "brief-note" },
+                ],
+              }),
+              timestamp: new Date().toISOString(),
+            },
+          ],
         },
-      };
-    });
+      });
+      services.registerEntityTypes([entityType]);
+      services.entityRegistry.getEntityTypeConfig = (): EntityTypeConfig => ({
+        markdownImport: true,
+      });
+      tools = createSystemTools(services);
+      services.entityRegistry.registerCreateInterceptor(
+        entityType,
+        async (input) => {
+          capturedInput = input;
+          return {
+            kind: "handled",
+            result: {
+              success: true,
+              data: { status: "created", entityId: "brief-note" },
+            },
+          };
+        },
+      );
 
-    const result = await exec(
-      {
-        entityType: "note",
-        upload: {
+      const result = await exec(
+        {
+          entityType,
+          upload: {
+            kind: "upload",
+            id: "upload-00000000-0000-4000-8000-000000000304",
+          },
+          transform: "extract-markdown",
+        },
+        { interfaceType: "web-chat", channelId: "web-conversation-1" },
+      );
+
+      expect(result).toEqual({
+        success: true,
+        data: { status: "created", entityId: "brief-note" },
+      });
+      expect(capturedInput).toEqual({
+        entityType,
+        from: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000304",
         },
         transform: "extract-markdown",
-      },
-      { interfaceType: "web-chat", channelId: "web-conversation-1" },
-    );
-
-    expect(result).toEqual({
-      success: true,
-      data: { status: "created", entityId: "brief-note" },
-    });
-    expect(capturedInput).toEqual({
-      entityType: "note",
-      from: {
-        kind: "upload",
-        id: "upload-00000000-0000-4000-8000-000000000304",
-      },
-      transform: "extract-markdown",
-    });
-  });
+      });
+    },
+  );
 
   it("should reject extract-markdown transform without an upload ref", async () => {
     const result = await exec({
@@ -1220,7 +1262,7 @@ status: draft
     expect(result).toEqual({
       success: false,
       error:
-        'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
+        'Transform "extract-markdown" requires an upload ref and a type declaring markdownImport. Available: note. Omit transform for raw file promotion.',
     });
     expect(interceptorCalled).toBe(false);
   });
@@ -2040,12 +2082,28 @@ A saved research link.`;
         },
       },
       { entityType: "note", source: { kind: "prior-response" } },
+      { entityType: "note", source: { kind: "user-message" } },
+      {
+        entityType: "note",
+        source: {
+          kind: "user-message",
+          messageId: "message-1",
+          startAfter: "BEGIN\n",
+          endBefore: "\nEND",
+        },
+      },
     ];
 
     for (const input of validInputs) {
       expect(createInputSchema.safeParse(input).success).toBe(true);
     }
 
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "user-message", content: "Model-copied body" },
+      }).success,
+    ).toBe(false);
     expect(
       createInputSchema.safeParse({
         entityType: "note",

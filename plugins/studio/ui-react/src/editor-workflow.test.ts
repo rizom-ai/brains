@@ -28,6 +28,51 @@ function editingState(): EditorWorkflowState {
 }
 
 describe("hasUnsavedEditorChanges", () => {
+  it("opens missing singletons clean and tracks edits against their initial draft", () => {
+    const initial = editorWorkflowReducer(initialEditorWorkflowState, {
+      type: "creationStarted",
+      singleton: true,
+      draft: { groupings: {} },
+    });
+    expect(hasUnsavedEditorChanges(initial)).toBe(false);
+    const descriptor = {
+      name: "groupings",
+      label: "Groupings",
+      widget: "object",
+    };
+    const changed = editorWorkflowReducer(initial, {
+      type: "fieldChanged",
+      descriptor,
+      raw: { areas: { label: "Areas", types: ["note"], multiple: false } },
+    });
+    expect(hasUnsavedEditorChanges(changed)).toBe(true);
+    const reverted = editorWorkflowReducer(changed, {
+      type: "fieldChanged",
+      descriptor,
+      raw: {},
+    });
+    expect(hasUnsavedEditorChanges(reverted)).toBe(false);
+    expect(
+      hasUnsavedEditorChanges(
+        editorWorkflowReducer(initial, {
+          type: "bodyChanged",
+          body: "new body",
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("snapshots singleton defaults instead of retaining a mutable baseline", () => {
+    const draft = { groupings: { areas: { label: "Areas" } } };
+    const state = editorWorkflowReducer(initialEditorWorkflowState, {
+      type: "creationStarted",
+      singleton: true,
+      draft,
+    });
+    draft.groupings.areas.label = "Changed";
+    expect(hasUnsavedEditorChanges(state)).toBe(true);
+  });
+
   it("distinguishes clean documents from edited and creation drafts", () => {
     const clean = editingState();
     expect(hasUnsavedEditorChanges(clean)).toBe(false);

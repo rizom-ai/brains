@@ -4,8 +4,9 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
+import { deferred } from "@brains/utils/deferred";
 import type { Clock } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
 import type {
   IRuntimeStateNamespace,
@@ -316,7 +317,7 @@ describe("RecurringCheckService", () => {
   it("shares Effect TestClock time with the scheduler and persisted run state", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const { service, scheduler, queue, state } = createService({ clock });
         service.namespace("agent").register({
           id: "directory-scan",
@@ -331,7 +332,7 @@ describe("RecurringCheckService", () => {
           "agent:directory-scan",
           "daily",
         );
-        const start = clock.unsafeCurrentTimeMillis();
+        const start = clock.currentTimeMillisUnsafe();
         const previous = getPreviousOccurrence(new Date(start), schedule);
         const next = previous.getTime() + schedule.periodMs;
         yield* TestClock.adjust(next - start);
@@ -344,7 +345,7 @@ describe("RecurringCheckService", () => {
           checkId: "agent:directory-scan",
           at: new Date(next).toISOString(),
         });
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
@@ -368,6 +369,160 @@ describe("RecurringCheckService", () => {
     scheduler.resolveStop();
     await stopping;
     expect(stopSettled).toBe(true);
+  });
+
+  it.each(["stop", "unregisterPlugin"] as const)(
+    "%s drains sibling schedules before reporting a cleanup failure",
+    async (method) => {
+      const failed = new Error("Schedule shutdown failed");
+      const entered = deferred();
+      const release = deferred();
+      let stopCalls = 0;
+      const scheduler: SchedulerBackend = {
+        scheduleCron: (): ScheduledJob => ({
+          stop: (): Promise<void> => {
+            stopCalls += 1;
+            if (stopCalls === 1) return Promise.reject(failed);
+            entered.resolve();
+            return release.promise;
+          },
+        }),
+        scheduleInterval: (): never => {
+          throw new Error("Unexpected interval schedule");
+        },
+        validateCron: (): void => {},
+      };
+      const { service } = createService({ scheduler });
+      for (const id of ["first", "second"]) {
+        service
+          .namespace("agent")
+          .register({ id, cadence: "daily", run: async () => ({}) });
+      }
+      await service.start();
+      let settled = false;
+      const closing = (
+        method === "stop" ? service.stop() : service.unregisterPlugin("agent")
+      ).catch((error: unknown) => {
+        settled = true;
+        return error;
+      });
+      try {
+        await entered.promise;
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+      }
+      expect(await closing).toBe(failed);
+      expect(stopCalls).toBe(2);
+    },
+  );
+
+  it.each([
+    ["stop", "check"],
+    ["stop", "catch-up"],
+    ["unregisterPlugin", "check"],
+    ["unregisterPlugin", "catch-up"],
+  ] as const)(
+    "%s drains admitted %s work after a synchronous schedule shutdown failure",
+    async (method, work) => {
+      const failed = Object.freeze({ message: "Schedule shutdown threw" });
+      const entered = deferred();
+      const release = deferred();
+      let stopCalls = 0;
+      const scheduler: SchedulerBackend = {
+        scheduleCron: (): ScheduledJob => ({
+          stop: (): Promise<void> => {
+            stopCalls += 1;
+            throw failed;
+          },
+        }),
+        scheduleInterval: (): never => {
+          throw new Error("Unexpected interval schedule");
+        },
+        validateCron: (): void => {},
+      };
+      const { service, queue, state } = createService({ scheduler });
+      let checkSignal: AbortSignal | undefined;
+      service.namespace("agent").register({
+        id: "blocked",
+        cadence: "daily",
+        run: async ({ signal }) => {
+          checkSignal = signal;
+          entered.resolve();
+          await release.promise;
+          return {};
+        },
+      });
+      if (work === "catch-up") {
+        queue.enqueueHook = async (): Promise<string> => {
+          entered.resolve();
+          await release.promise;
+          return "blocked-job";
+        };
+      }
+      const starting = service.start();
+      if (work === "check") await starting;
+      const active =
+        work === "check" ? service.runNow("agent:blocked") : starting;
+      const observed = active.catch((error: unknown) => error);
+      await entered.promise;
+      let settled = false;
+      const closing = (
+        method === "stop" ? service.stop() : service.unregisterPlugin("agent")
+      )
+        .catch((error: unknown) => error)
+        .finally(() => {
+          settled = true;
+        });
+      try {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(settled).toBe(false);
+        if (work === "check") expect(checkSignal?.aborted).toBe(true);
+      } finally {
+        release.resolve();
+        await Promise.allSettled([starting, observed]);
+      }
+      expect(await closing).toBe(failed);
+      if (work === "check") expect(await observed).toBe(checkSignal?.reason);
+      expect(state.snapshot()).toEqual([]);
+      await service.unregisterPlugin("agent");
+      expect(stopCalls).toBe(1);
+    },
+  );
+
+  it("reports synchronous and asynchronous schedule shutdown failures together", async () => {
+    const failures = [
+      new Error("First schedule failed"),
+      new Error("Second schedule failed"),
+    ];
+    let stopCalls = 0;
+    const scheduler: SchedulerBackend = {
+      scheduleCron: (): ScheduledJob => ({
+        stop: (): Promise<void> => {
+          const failure = failures[stopCalls++];
+          if (stopCalls === 1) throw failure;
+          return Promise.reject(failure);
+        },
+      }),
+      scheduleInterval: (): never => {
+        throw new Error("Unexpected interval schedule");
+      },
+      validateCron: (): void => {},
+    };
+    const { service } = createService({ scheduler });
+    for (const id of ["first", "second"]) {
+      service
+        .namespace("agent")
+        .register({ id, cadence: "daily", run: async () => ({}) });
+    }
+    await service.start();
+    const error = await service.stop().catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(AggregateError);
+    if (!(error instanceof AggregateError))
+      throw new Error("Expected aggregate failure");
+    expect(error.errors).toEqual(failures);
+    expect(stopCalls).toBe(2);
   });
 
   it("aborts an active check when the service stops", async () => {
@@ -474,6 +629,131 @@ describe("RecurringCheckService", () => {
     expect(await run).toEqual(
       new Error("Recurring check plugin unregistered: agent"),
     );
+  });
+
+  it.each(["stop", "unregisterPlugin"] as const)(
+    "%s waits for the underlying callback even when it ignores cancellation",
+    async (method) => {
+      const { service, state } = createService();
+      const entered = deferred();
+      const aborted = deferred();
+      const release = deferred();
+      let callbackFinished = false;
+      service.namespace("agent").register({
+        id: "directory-scan",
+        cadence: "daily",
+        run: async ({ signal }) => {
+          signal.addEventListener("abort", () => aborted.resolve(), {
+            once: true,
+          });
+          entered.resolve();
+          await release.promise;
+          callbackFinished = true;
+          return {};
+        },
+      });
+      const running = service
+        .runNow("agent:directory-scan")
+        .catch((error: unknown) => error);
+      await entered.promise;
+      let closed = false;
+      const closing = (
+        method === "stop" ? service.stop() : service.unregisterPlugin("agent")
+      ).then(() => {
+        closed = true;
+      });
+      try {
+        await aborted.promise;
+        // Flush runnable microtasks without using a duration-based sleep.
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(closed).toBe(false);
+      } finally {
+        release.resolve();
+        await closing;
+      }
+      expect(callbackFinished).toBe(true);
+      expect(await running).toEqual(
+        new Error(
+          method === "stop"
+            ? "Recurring check service stopped"
+            : "Recurring check plugin unregistered: agent",
+        ),
+      );
+      expect(state.snapshot()).toEqual([]);
+    },
+  );
+
+  it("owns a run before an injected state adapter can reenter shutdown", async () => {
+    const { service } = createService();
+    const entered = deferred();
+    const release = deferred();
+    const store = service["state"];
+    const list = store.list.bind(store);
+    let closing: Promise<void> | undefined;
+    let closed = false;
+    store.list = async (options): ReturnType<typeof list> => {
+      closing = service.stop().then(() => {
+        closed = true;
+      });
+      entered.resolve();
+      await release.promise;
+      return list(options);
+    };
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({}),
+    });
+    const running = service
+      .runNow("agent:directory-scan")
+      .catch((error: unknown) => error);
+    await entered.promise;
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(closed).toBe(false);
+    } finally {
+      release.resolve();
+      await closing;
+    }
+    expect(await running).toEqual(new Error("Recurring check service stopped"));
+  });
+
+  it("drains admitted alert delivery without recording cancelled checks as successful", async () => {
+    const entered = deferred();
+    const release = deferred();
+    const { service, state } = createService({
+      delivery: async (): Promise<boolean> => {
+        entered.resolve();
+        await release.promise;
+        return true;
+      },
+    });
+    service.namespace("agent").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [{ dedupeKey: "alert", title: "Alert", body: "Body" }],
+      }),
+    });
+    const running = service
+      .runNow("agent:directory-scan")
+      .catch((error: unknown) => error);
+    await entered.promise;
+    let closed = false;
+    const closing = service.stop().then(() => {
+      closed = true;
+    });
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(closed).toBe(false);
+    } finally {
+      release.resolve();
+      await closing;
+    }
+    expect(await running).toEqual(new Error("Recurring check service stopped"));
+    expect(state.snapshot()).toEqual([
+      expect.objectContaining({ kind: "alert", status: "delivered" }),
+    ]);
   });
 
   it("keeps unrelated plugin checks available during unregister", async () => {

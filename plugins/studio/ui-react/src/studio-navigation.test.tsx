@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act } from "react";
@@ -10,7 +11,9 @@ import {
   TypeSwitcher,
 } from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
+import { studioTypeHierarchy } from "../../src/config";
 
+let restoreGlobals: RestoreGlobals;
 let browser: Window;
 let root: Root;
 let selected: string[];
@@ -26,34 +29,42 @@ const capabilities: EntityTypeInfo["capabilities"] = {
 const types: EntityTypeInfo[] = [
   {
     entityType: "note",
+    classification: "content",
     label: "Notes",
     isSingleton: false,
     hasBody: true,
     count: 12,
+    hierarchy: studioTypeHierarchy("note"),
     capabilities,
   },
   {
     entityType: "style-guide",
+    classification: "system",
     label: "Style Guides",
     isSingleton: true,
     hasBody: true,
     count: 1,
+    hierarchy: studioTypeHierarchy("style-guide"),
     capabilities,
   },
   {
     entityType: "prompt",
+    classification: "system",
     label: "Prompts",
     isSingleton: false,
     hasBody: true,
     count: 18,
+    hierarchy: studioTypeHierarchy("prompt"),
     capabilities,
   },
   {
     entityType: "agent",
+    classification: "system",
     label: "Agents",
     isSingleton: false,
     hasBody: true,
     count: 15,
+    hierarchy: studioTypeHierarchy("agent"),
     capabilities,
   },
 ];
@@ -107,14 +118,8 @@ const workspaces: StudioWorkspaceInfo[] = [
 
 beforeEach(() => {
   browser = new Window({ url: "http://brain.test/studio/entities/note" });
-  Object.assign(globalThis, {
-    window: browser,
-    document: browser.document,
-    navigator: browser.navigator,
-    HTMLElement: browser.HTMLElement,
+  restoreGlobals = installDomGlobals(browser, {
     HTMLInputElement: browser.HTMLInputElement,
-    Element: browser.Element,
-    Node: browser.Node,
     Event: browser.Event,
     CustomEvent: browser.CustomEvent,
     // Radix needs these to mount a dialog.
@@ -123,7 +128,6 @@ beforeEach(() => {
     requestAnimationFrame: browser.requestAnimationFrame.bind(browser),
     cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
     getComputedStyle: browser.getComputedStyle.bind(browser),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -134,6 +138,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   await browser.happyDOM.abort();
   browser.close();
+  restoreGlobals();
 });
 async function render(
   active: string | null = "note",
@@ -245,6 +250,17 @@ function browseGroups(): {
       options: [{ value: "type:note", label: "Notes", tally: 12 }],
     },
     {
+      area: "work",
+      label: "Work",
+      options: [
+        {
+          value: "workspace:unified-inbox:inbox",
+          label: "Inbox",
+          attention: 3,
+        },
+      ],
+    },
+    {
       area: "administration",
       label: "Admin",
       options: [
@@ -294,27 +310,48 @@ async function renderBrowse(filter = "", folded: string[] = []): Promise<void> {
   };
   await draw();
 }
+const clean = (text: string): string =>
+  text.replace(/[0-9\u25b8\u25be]/g, "").trim();
 const browseLinks = (): string[] =>
   [...document.querySelectorAll(".studio-mobile-navigation-link")].map((link) =>
     link.textContent.trim(),
   );
 
 describe("phone Browse destinations", () => {
-  it("gathers direct destinations above the groups instead of between them", async () => {
+  it("puts every single destination above the toggles", async () => {
     await renderBrowse();
-    const blocks = [...document.querySelectorAll("section, details")];
-    const direct = blocks.filter((block) => block.tagName === "SECTION");
-    expect(direct).toHaveLength(1);
-    expect(direct[0]?.textContent).toContain("Overview");
-    expect(direct[0]?.textContent).toContain("Chat");
-    expect(direct[0]?.textContent).toContain("Administration");
-    expect(blocks.findIndex((block) => block.tagName === "DETAILS")).toBe(1);
+    const blocks = [...document.querySelectorAll("section, details")].map(
+      (block) =>
+        block.tagName === "SECTION"
+          ? `direct:${clean(block.textContent)}`
+          : `group:${clean(block.querySelector("summary")?.textContent ?? "")}`,
+    );
+    expect(blocks).toEqual([
+      "direct:OverviewChatAdministration",
+      "group:Library",
+      "group:Work",
+      "group:System",
+    ]);
+  });
+
+  it("marks a single destination by treatment as well as position", async () => {
+    await renderBrowse();
+    const admin = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "Administration",
+    );
+    const child = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Inbox"),
+    );
+    // Group children indent; a direct destination sits flush, so Admin cannot
+    // read as the last row of the Work group above it.
+    expect(admin?.closest("details")).toBeNull();
+    expect(child?.closest("details")).not.toBeNull();
   });
 
   it("rests every group open so the sheet shows what it is for", async () => {
     await renderBrowse();
     const groups = [...document.querySelectorAll("details")];
-    expect(groups).toHaveLength(2);
+    expect(groups).toHaveLength(3);
     expect(groups.every((group) => group.open)).toBe(true);
   });
 
@@ -434,6 +471,25 @@ describe("area and leaf navigation", () => {
         ?.getAttribute("aria-expanded"),
     ).toBe("true");
   });
+  it("gives collapsed areas distinct decorative marks without losing names or routing", async () => {
+    await render("style-guide");
+    await click(".studio-navigation-collapse", "⇤");
+    const areas = [...document.querySelectorAll(".studio-area-link")];
+    expect(areas).toHaveLength(6);
+    const paths = new Set<string>();
+    for (const area of areas) {
+      const mark = area.querySelector("svg");
+      expect(mark).not.toBeNull();
+      expect(mark?.getAttribute("aria-hidden")).toBe("true");
+      expect(mark?.getAttribute("viewBox")).toBe("0 0 24 24");
+      expect(area.getAttribute("title")).toBe(area.getAttribute("aria-label"));
+      paths.add(mark?.querySelector("path")?.getAttribute("d") ?? "");
+    }
+    expect(paths.size).toBe(6);
+    await click('.studio-area-link[aria-label="Library"]', "");
+    expect(leafText()).toContain("Content");
+  });
+
   it("keeps B's numbered area items, singular singleton labels and Commands footer", async () => {
     await render("style-guide");
     expect(

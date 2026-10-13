@@ -6,10 +6,10 @@ import type { IRuntimeStateService, RuntimeStateServiceConfig } from "./types";
 
 export type RuntimeStateServiceTag =
   "@brains/runtime-state/RuntimeStateService";
-export const RuntimeStateServiceTag: Context.Tag<
+export const RuntimeStateServiceTag: Context.Service<
   RuntimeStateServiceTag,
   IRuntimeStateService
-> = Context.GenericTag<RuntimeStateServiceTag, IRuntimeStateService>(
+> = Context.Service<RuntimeStateServiceTag, IRuntimeStateService>(
   "@brains/runtime-state/RuntimeStateService",
 );
 

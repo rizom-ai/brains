@@ -15,6 +15,7 @@ import type {
   SharedHostAdmission,
 } from "@brains/plugins/internal/http-routes";
 import { createMockMessageBus } from "@brains/plugins/test";
+import { SitePageResponse } from "@brains/plugins";
 import {
   ServerManager,
   type ServerManagerOptions,
@@ -313,6 +314,42 @@ describe("ServerManager (in-process)", () => {
     expect(status.productionUrl).toBeUndefined();
   });
 
+  it("answers a missing image path with a 404 that no edge may keep", async () => {
+    // An immutable 404 for /favicon.svg would hide the icon for a year once
+    // the site has it; a miss carries no caching.
+    const m = setup();
+    mkdirSync(join(testDir, "dist", "production"), { recursive: true });
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+    const res = await fetch(`${url}/missing.png`);
+    expect(res.status).toBe(404);
+    expect(res.headers.get("cache-control")).toBe("no-cache");
+  });
+
+  it("serves the lantern at /favicon.svg when the output has no icon, and the output's own when it has", async () => {
+    const m = setup();
+    const prodDir = join(testDir, "dist", "production");
+    mkdirSync(prodDir, { recursive: true });
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+    const lantern = await fetch(`${url}/favicon.svg`);
+    expect(lantern.status).toBe(200);
+    expect(lantern.headers.get("content-type")).toBe(
+      "image/svg+xml; charset=utf-8",
+    );
+    expect(lantern.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(await lantern.text()).toContain('stroke="#d4af37"');
+
+    writeFileSync(join(prodDir, "favicon.svg"), "<svg>own</svg>");
+    const own = await fetch(`${url}/favicon.svg`);
+    expect(own.status).toBe(200);
+    expect(await own.text()).toBe("<svg>own</svg>");
+  });
+
   it("should serve 404 for missing pages", async () => {
     const m = setup();
     await m.start();
@@ -607,6 +644,95 @@ describe("ServerManager (in-process)", () => {
         })
       ).status,
     ).toBe(404);
+  });
+
+  it("uses site-owned presentation only after explicit handler admission", async () => {
+    let response: Response = new SitePageResponse("standalone", {
+      headers: { "Cache-Control": "no-store" },
+    });
+    const m = setup({
+      preview: true,
+      getRoutes: () => [
+        handlerRoute("chat", "/ask", () => response, { preview: true }),
+      ],
+    });
+    for (const surface of ["production", "preview"]) {
+      mkdirSync(join(testDir, "dist", surface, "ask"));
+      writeFileSync(
+        join(testDir, "dist", surface, "ask", "index.html"),
+        `${surface} site chrome`,
+      );
+    }
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Missing server URL");
+    const get = (): Promise<Response> =>
+      fetch(`${url}/ask`, {
+        headers: { host: "preview.example.com" },
+        redirect: "manual",
+      });
+    const result = await get();
+    expect(await result.text()).toBe("preview site chrome");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    response = new Response("Authenticated UI");
+    expect(await (await get()).text()).toBe("Authenticated UI");
+    response = new SitePageResponse("Denied", { status: 403 });
+    expect((await get()).status).toBe(403);
+    response = new Response(null, {
+      status: 302,
+      headers: { Location: "/login" },
+    });
+    expect((await get()).status).toBe(302);
+    response = new SitePageResponse("standalone");
+    rmSync(join(testDir, "dist", "preview", "ask"), { recursive: true });
+    expect(await (await get()).text()).toBe("standalone");
+  });
+
+  it("fills a route's markup into the slot of its built site page", async () => {
+    const slotted = (html: string, status = 200): SitePageResponse =>
+      new SitePageResponse(`standalone ${html}`, {
+        status,
+        headers: { "Cache-Control": "no-store" },
+        slot: { name: "contact", html },
+      });
+    let response: Response = slotted("<form>one</form>");
+    const m = setup({
+      getRoutes: () => [
+        handlerRoute("contact", "/contact", () => response),
+        handlerRoute("contact", "/contact", () => response, { method: "POST" }),
+      ],
+    });
+    const page = join(testDir, "dist", "production", "contact", "index.html");
+    mkdirSync(join(testDir, "dist", "production", "contact"));
+    writeFileSync(
+      page,
+      '<header>site</header><main><div data-site-slot="contact"></div></main>',
+    );
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Missing server URL");
+
+    const got = await fetch(`${url}/contact`);
+    expect(await got.text()).toBe(
+      "<header>site</header><main><form>one</form></main>",
+    );
+    expect(got.headers.get("Cache-Control")).toBe("no-store");
+    expect(got.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+
+    // A refused send keeps its status and still wears the site.
+    response = slotted("<p>denied</p>", 403);
+    const denied = await fetch(`${url}/contact`, { method: "POST", body: "x" });
+    expect(denied.status).toBe(403);
+    expect(await denied.text()).toBe(
+      "<header>site</header><main><p>denied</p></main>",
+    );
+
+    // Without the slot in the built page, the route's own page stands.
+    writeFileSync(page, "<main>no slot here</main>");
+    response = slotted("<form>two</form>");
+    expect(await (await fetch(`${url}/contact`)).text()).toBe(
+      "standalone <form>two</form>",
+    );
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {

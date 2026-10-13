@@ -96,8 +96,8 @@ import {
   ShellBootloader,
   type BootMode,
 } from "./initialization/shellBootloader";
-import { createInsightsRegistry } from "./system/insights";
-import type { IInsightsRegistry } from "@brains/plugins";
+import { createAnalyticsRegistry } from "./system/analytics";
+import type { IAnalyticsRegistry } from "@brains/plugins";
 import type { HttpRouteManifestEntry } from "@brains/plugins/internal/http-routes";
 import { EndpointRegistry } from "./endpoint-registry";
 import { InteractionRegistry } from "./interaction-registry";
@@ -128,7 +128,7 @@ export class Shell implements IShell {
   private bootMode: BootMode | undefined;
   private bootPromise: Promise<void> | null = null;
   private shutdownPromise: Promise<void> | null = null;
-  private readonly insightsRegistry: IInsightsRegistry;
+  private readonly analyticsRegistry: IAnalyticsRegistry;
   private readonly bootTime = Date.now();
   private readonly endpointRegistry = new EndpointRegistry();
   private readonly interactionRegistry = new InteractionRegistry();
@@ -171,7 +171,9 @@ export class Shell implements IShell {
         this.services.jobQueueService,
       );
 
-      this.insightsRegistry = createInsightsRegistry();
+      this.analyticsRegistry = createAnalyticsRegistry(
+        this.services.entityRegistry,
+      );
       this.bootloader = new ShellBootloader(
         this.config,
         this.services,
@@ -190,7 +192,7 @@ export class Shell implements IShell {
             registerShellSystemCapabilities({
               services: this.services,
               jobs: this.jobs,
-              insights: this.insightsRegistry,
+              analytics: this.analyticsRegistry,
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
             }),
@@ -244,8 +246,8 @@ export class Shell implements IShell {
 
   // Lifecycle
 
-  public getInsightsRegistry(): IInsightsRegistry {
-    return this.insightsRegistry;
+  public getAnalyticsRegistry(): IAnalyticsRegistry {
+    return this.analyticsRegistry;
   }
 
   /**
@@ -367,9 +369,10 @@ export class Shell implements IShell {
    */
   public async generateContent(
     config: ContentGenerationConfig,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     this.requireInitialized("Shell content generation");
-    return generateShellContent(this.services, config);
+    return generateShellContent(this.services, config, signal);
   }
 
   public async query(
@@ -547,27 +550,13 @@ export class Shell implements IShell {
 
   public registerTools(pluginId: string, tools: Tool[]): void {
     for (const tool of tools) {
-      try {
-        this.services.mcpService.registerTool(pluginId, tool);
-      } catch (error) {
-        this.services.logger.error(
-          `Failed to register tool ${tool.name} from ${pluginId}:`,
-          error,
-        );
-      }
+      this.services.mcpService.registerTool(pluginId, tool);
     }
   }
 
   public registerResources(pluginId: string, resources: Resource[]): void {
     for (const resource of resources) {
-      try {
-        this.services.mcpService.registerResource(pluginId, resource);
-      } catch (error) {
-        this.services.logger.error(
-          `Failed to register resource ${resource.name} from ${pluginId}:`,
-          error,
-        );
-      }
+      this.services.mcpService.registerResource(pluginId, resource);
     }
   }
 

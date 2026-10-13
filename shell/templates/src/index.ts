@@ -4,11 +4,19 @@ export type {
   Template,
   TemplateInput,
   ComponentType,
+  FormatComponents,
+  MediaFormat,
   RuntimeScript,
   TemplateDataSchema,
   TemplateSchemaParser,
 } from "./types";
-export { TemplateSchema, createTypedComponent, createTemplate } from "./types";
+export {
+  TemplateSchema,
+  createTypedComponent,
+  createTemplate,
+  renderedLinkFields,
+  templateRenderers,
+} from "./types";
 export { InMemoryTemplateRegistry } from "./registry";
 export type { TemplateRegistry } from "./registry";
 export { TemplateCapabilities } from "./capabilities";
@@ -44,7 +52,7 @@ export type {
 export { matchSpaceSelector } from "./space-selector";
 
 // Render service (merged from @brains/render-service)
-export { RenderService } from "./render-service";
+export { RenderService, toViewTemplate } from "./render-service";
 export type {
   ViewTemplate,
   ViewTemplateRegistry,

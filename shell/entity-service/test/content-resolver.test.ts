@@ -6,6 +6,7 @@ import {
 } from "../src/lib/content-resolver";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity, ICoreEntityService } from "../src/types";
+import { createMockEntityService } from "../src/test/mock-entity-service";
 
 /**
  * A whole image entity, not `{ content }` asserted into one.
@@ -134,8 +135,13 @@ Some text
         getEntity: mock(() => Promise.resolve(null)),
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
+        queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
+        queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
+        queryGroupingMembers: createMockEntityService().queryGroupingMembers,
+        queryGroupingUsage: createMockEntityService().queryGroupingUsage,
         search: mock(() => Promise.resolve([])),
         searchWithDistances: mock(() => Promise.resolve([])),
+        nearestToEntity: mock(() => Promise.resolve([])),
         projectSemanticSpace: mock(() =>
           Promise.resolve({
             origin: { kind: "centroid" as const },

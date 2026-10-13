@@ -1,3 +1,7 @@
+import {
+  entityTypeClassificationSchema,
+  type EntityTypeClassification,
+} from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type {
@@ -33,6 +37,7 @@ export function defineEntity<
 >(definition: {
   readonly type: TType;
   readonly purpose: string;
+  readonly classification?: EntityTypeClassification;
   readonly metadata: TMetadataSchema;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
@@ -43,6 +48,9 @@ export function defineEntity<
   return Object.freeze({
     kind: "rizom-entity",
     ...definition,
+    classification: entityTypeClassificationSchema.parse(
+      definition.classification,
+    ),
   });
 }
 

@@ -2,6 +2,7 @@ import { createMockServicePluginContext } from "@brains/plugins/test";
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
+  DEFAULT_FAVICON_SVG,
   RouteRegistry,
   type JsonObject,
   type ResolvedSiteImage,
@@ -9,6 +10,8 @@ import {
   type SiteImageMap,
 } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
+import { sha256Hex } from "@brains/utils/hash";
+import type { ProgressNotification } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
 import { promises as fs } from "fs";
@@ -18,6 +21,7 @@ import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context"
 import { prepareSiteBuild } from "../../src/lib/prepare-site-build";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { SiteBuildProfile } from "../../src/lib/site-build-profile-service";
+import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 
 const templateDataSchema = z.custom<JsonObject>(
   (value) =>
@@ -161,7 +165,9 @@ describe("prepareSiteBuild", () => {
         {
           id: "home",
           fullscreen: true,
-          headScripts: ['<script src="/scripts/hero.js" defer></script>'],
+          headScripts: [
+            `<script src="/scripts/hero.js?v=${sha256Hex("site override").slice(0, 12)}" defer></script>`,
+          ],
           sections: [
             {
               id: "hero",
@@ -188,6 +194,98 @@ describe("prepareSiteBuild", () => {
     expect(Object.isFrozen(result.preparedBuild.routes[0]?.sections)).toBe(
       true,
     );
+  });
+
+  it("reports progress as each route is prepared", async () => {
+    // A large site spends minutes here; the job's deadline is renewed by
+    // progress, so preparation has to report it.
+    const routes: RouteDefinition[] = ["one", "two", "three"].map((id) => ({
+      ...createRoute({ heading: id }),
+      id,
+      path: `/${id}`,
+    }));
+    const notifications: ProgressNotification[] = [];
+
+    await prepareSiteBuild({
+      buildId: "progress-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
+      routes,
+      publicDir: missingPublicDir,
+      signal: new AbortController().signal,
+      parsedOptions: {
+        environment: "preview",
+        siteConfig: { title: "Fixture Site", description: "Fixture" },
+      },
+      buildOptions: {},
+      pipelineContext: createPipelineContext(routes),
+      imageBuildService,
+      siteMetadata: { title: "Fixture Site", description: "Fixture" },
+      onProgress: (notification) => notifications.push(notification),
+    });
+
+    expect(
+      notifications.map(({ progress, total }) => [progress, total]),
+    ).toEqual([
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]);
+  });
+
+  it("gives the event loop a turn between sections", async () => {
+    const order: string[] = [];
+    const countedSchema = z.custom<JsonObject>((value) => {
+      order.push("section");
+      setImmediate(() => order.push("tick"));
+      return templateDataSchema.safeParse(value).success;
+    });
+    const routes: RouteDefinition[] = [
+      {
+        ...createRoute({ heading: "One" }),
+        sections: ["one", "two", "three"].map((id) => ({
+          id,
+          template: "fixture:counted",
+          content: { heading: id },
+        })),
+      },
+    ];
+    const pipelineContext = createPipelineContext(routes);
+    pipelineContext.services.getViewTemplate = (
+      name,
+    ): SiteViewTemplate | undefined =>
+      name === "fixture:counted"
+        ? {
+            name,
+            pluginId: "fixture",
+            schema: countedSchema,
+            renderers: { web: (): ReactElement => h("div", {}) },
+          }
+        : undefined;
+
+    await prepareSiteBuild({
+      buildId: "yielding-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
+      routes,
+      publicDir: missingPublicDir,
+      signal: new AbortController().signal,
+      parsedOptions: {
+        environment: "preview",
+        siteConfig: { title: "Fixture Site", description: "Fixture" },
+      },
+      buildOptions: {},
+      pipelineContext,
+      imageBuildService,
+      siteMetadata: { title: "Fixture Site", description: "Fixture" },
+    });
+
+    // Each section's work ends before the next starts, with the loop in between.
+    expect(order.slice(0, 5)).toEqual([
+      "section",
+      "tick",
+      "section",
+      "tick",
+      "section",
+    ]);
   });
 
   it("recursively omits undefined object properties at the JSON boundary", async () => {
@@ -434,5 +532,45 @@ describe("prepareSiteBuild", () => {
         path: publicDir,
       }),
     ]);
+  });
+
+  it("gives a build that brings no icon the lantern, and leaves a site's own icon alone", async () => {
+    const routes = [createRoute({ heading: "Prepared heading" })];
+    const prepare = (
+      staticAssets: Record<string, string>,
+    ): ReturnType<typeof prepareSiteBuild> =>
+      prepareSiteBuild({
+        buildId: "icon-build",
+        preparedAt: "2026-07-22T00:00:00.000Z",
+        routes,
+        publicDir: missingPublicDir,
+        signal: new AbortController().signal,
+        parsedOptions: {
+          environment: "preview",
+          siteConfig: {
+            title: "Fixture Site",
+            description: "Fixture description",
+            themeMode: "dark",
+          },
+        },
+        buildOptions: { staticAssets },
+        pipelineContext: createPipelineContext(routes),
+        imageBuildService,
+        siteMetadata: {
+          title: "Fixture Site",
+          description: "Fixture description",
+          themeMode: "dark",
+        },
+      });
+
+    const bare = await prepare({});
+    expect(bare.preparedBuild.staticAssets["/favicon.svg"]).toBe(
+      DEFAULT_FAVICON_SVG,
+    );
+
+    const own = await prepare({ "/favicon.svg": "<svg>own</svg>" });
+    expect(own.preparedBuild.staticAssets["/favicon.svg"]).toBe(
+      "<svg>own</svg>",
+    );
   });
 });

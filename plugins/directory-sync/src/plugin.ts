@@ -377,40 +377,43 @@ export class DirectorySyncPlugin extends ServicePlugin<
     }
 
     if (!context.executionOnly && this.config.initialSync) {
-      setupInitialSync(
+      setupInitialSync({
         context,
-        () => this.requireDirectorySync(),
-        this.config,
-        this.logger,
-        this.gitSync ? this.gitSyncFacade : undefined,
-        this.gitSync ? this.requireGitReconciliation() : undefined,
-        interruptedPull && this.gitSync
-          ? {
-              onGitProgress:
-                this.requireOperationStatus().createProgressObserver(
-                  interruptedPull.id,
-                ),
-              onGitRecoverySucceeded: (): Promise<void> =>
-                this.requireOperationStatus().finishInterruptedPull(
-                  interruptedPull.id,
-                  {
-                    recovered: true,
-                    message:
-                      "Recovered interrupted Git handoff during initial sync",
-                  },
-                ),
-              onGitRecoveryFailed: (error): Promise<void> =>
-                this.requireOperationStatus().finishInterruptedPull(
-                  interruptedPull.id,
-                  {
-                    recovered: false,
-                    message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
-                  },
-                ),
-            }
+        getDirectorySync: () => this.requireDirectorySync(),
+        config: this.config,
+        logger: this.logger,
+        gitSync: this.gitSync ? this.gitSyncFacade : undefined,
+        reconciliation: this.gitSync
+          ? this.requireGitReconciliation()
           : undefined,
-        this.operationStatus,
-      );
+        recovery:
+          interruptedPull && this.gitSync
+            ? {
+                onGitProgress:
+                  this.requireOperationStatus().createProgressObserver(
+                    interruptedPull.id,
+                  ),
+                onGitRecoverySucceeded: (): Promise<void> =>
+                  this.requireOperationStatus().finishInterruptedPull(
+                    interruptedPull.id,
+                    {
+                      recovered: true,
+                      message:
+                        "Recovered interrupted Git handoff during initial sync",
+                    },
+                  ),
+                onGitRecoveryFailed: (error): Promise<void> =>
+                  this.requireOperationStatus().finishInterruptedPull(
+                    interruptedPull.id,
+                    {
+                      recovered: false,
+                      message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
+                    },
+                  ),
+              }
+            : undefined,
+        operationStatus: this.operationStatus,
+      });
     }
 
     if (!context.executionOnly) {
@@ -725,16 +728,16 @@ export class DirectorySyncPlugin extends ServicePlugin<
 
     const context = this.getContext();
     if (this.config.autoSync) {
-      setupPeriodicGitSync(
+      setupPeriodicGitSync({
         gitSync,
         directorySync,
         context,
-        this.config.syncInterval,
-        this.logger.child("GitPeriodicSync"),
-        this.runtime,
-        this.requireGitReconciliation(),
-        this.operationStatus,
-      );
+        intervalMinutes: this.config.syncInterval,
+        logger: this.logger.child("GitPeriodicSync"),
+        runtime: this.runtime,
+        reconciliation: this.requireGitReconciliation(),
+        operationStatus: this.operationStatus,
+      });
     }
     this.gitBackgroundStarted = true;
   }

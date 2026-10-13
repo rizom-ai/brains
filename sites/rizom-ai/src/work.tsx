@@ -2,258 +2,116 @@
 import type { JSX } from "react";
 import type { SiteSectionGroup } from "@rizom/site";
 import { defineSection, sectionGroup, z } from "@rizom/site";
-import { Section, renderHighlightedText } from "./rizom";
-import {
-  Band,
-  CtaRow,
-  SectCap,
-  ctaSchema,
-  delayClass,
-  ROOM_HIGHLIGHT_CLS,
-} from "./shared";
+import { ctaSchema } from "./shared";
+import { emphasize } from "./story/emphasis";
 
 /**
- * The /work room (previously rizom.work) — coordination consulting: a TMS
- * diagnostic head, the coordination-problem statement, the workshop, personas,
- * testimonials, roster, and a closing quiz band. Each section is authored from
- * one zod schema; copy is content-driven, stored as markdown in
- * site-content/work/<section>.md. Only the section group is exported.
+ * The /work room, told as a story: the knowledge problem AI makes visible,
+ * why coordination is the bottleneck, the Knowledge Audit, the teams this
+ * sounds like, what teams tell us, who we are and the question to end on,
+ * each a chapter beside the drawing the layout supplies (see
+ * ./story/work-organism). Each section is authored from one zod schema; copy
+ * is content-driven, stored as markdown in site-content/work/<section>.md,
+ * and the section ids stay stable.
  */
 
-/* ============ room head + TMS diagnostic ============ */
-
-const diagnosticSchema = z.object({
-  typeLabel: z.string(),
-  teamType: z.string(),
-  actionsLabel: z.string(),
-  scoreDimension: z.string(),
-  scoreValue: z.string(),
-  scoreMax: z.string(),
-  actions: z.array(z.string()),
-  runLabel: z.string(),
-  runHref: z.string(),
-});
-
-/* The TMS radar panel — geometry verbatim from the live rizom.work
-   diagnostic; palette adapted via the theme's .diag classes. */
-function DiagnosticPanel(diag: z.infer<typeof diagnosticSchema>): JSX.Element {
-  return (
-    <div className="diag reveal reveal-delay-1 px-[30px] pt-5 pb-[26px]">
-      <div className="diag-bar" />
-      <svg
-        className="radar block w-full pb-2"
-        viewBox="0 4 360 248"
-        role="img"
-        aria-label="Three-axis TMS radar — Specialization, Credibility, Coordination"
-      >
-        <polygon className="tri-outer" points="180,50 266.60,200 93.40,200" />
-        <polygon className="tri-score" points="180,95 233.69,181 150.56,167" />
-        <circle className="vertex" cx="180" cy="95" r="4" />
-        <circle className="vertex" cx="233.69" cy="181" r="4" />
-        <circle className="vertex" cx="150.56" cy="167" r="4" />
-        <text x="180" y="34" textAnchor="middle">
-          Specialization
-        </text>
-        <text x="252" y="222" textAnchor="start">
-          Credibility
-        </text>
-        <text x="108" y="222" textAnchor="end">
-          Coordination
-        </text>
-      </svg>
-      <div className="flex items-baseline justify-between gap-4 border-t border-theme-light py-4">
-        <span className="whitespace-nowrap font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">
-          {diag.typeLabel}
-        </span>
-        <b className="text-right font-display text-[26px] font-medium italic tracking-[-0.015em] text-theme [font-variation-settings:'SOFT'_70,'opsz'_96]">
-          {diag.teamType}
-        </b>
-      </div>
-      <div className="border-t border-theme-light pt-4">
-        <div className="flex items-baseline justify-between gap-3 font-label text-[10.5px] uppercase tracking-[0.2em] text-theme-light">
-          <span>{diag.actionsLabel}</span>
-          <span>
-            <span className="mr-1.5 opacity-60">→</span>
-            <span className="text-accent">{diag.scoreDimension}</span>{" "}
-            <span className="text-accent [font-variant-numeric:tabular-nums]">
-              {diag.scoreValue}
-              <span className="opacity-60">/{diag.scoreMax}</span>
-            </span>
-          </span>
-        </div>
-        <ul className="mt-3.5 flex list-none flex-col gap-[11px]">
-          {diag.actions.map((action, i) => (
-            <li
-              key={action}
-              className="flex items-baseline gap-3 font-body text-[14px] leading-[1.5] text-theme-muted"
-            >
-              <span className="min-w-[26px] font-label text-[11px] font-semibold tracking-[0.1em] text-accent-bright">
-                [{String(i + 1).padStart(2, "0")}]
-              </span>
-              <span>{action}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <a
-        href={diag.runHref}
-        className="mt-[18px] flex w-full items-center justify-center rounded-[10px] border border-theme px-4 py-3 font-label text-label-xs uppercase tracking-[0.18em] text-theme-muted no-underline transition-colors hover:border-accent hover:text-theme"
-      >
-        {diag.runLabel}
-      </a>
-    </div>
-  );
-}
+/* ============ the opening ============ */
 
 const heroSchema = z.object({
   eyebrow: z.string(),
-  provenance: z.string(),
   headline: z.string(),
   standfirst: z.string(),
   primaryCta: ctaSchema,
   secondaryCta: ctaSchema,
-  diagnostic: diagnosticSchema,
 });
 
 function WorkHeroSection({
   eyebrow,
-  provenance,
   headline,
   standfirst,
   primaryCta,
   secondaryCta,
-  diagnostic,
 }: z.infer<typeof heroSchema>): JSX.Element {
   return (
-    <Section
-      id="work-hero"
-      className="relative overflow-hidden pt-16 pb-[30px] md:pt-20"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-[10%] -inset-y-[30%] bg-[radial-gradient(680px_360px_at_14%_8%,rgb(from_var(--color-accent)_r_g_b_/_0.14),transparent_66%)]"
-      />
-      <div className="relative">
-        <SectCap lead={eyebrow} trail={provenance} />
-        <div className="mt-1 grid items-start gap-14 lg:grid-cols-[1.2fr_1fr]">
-          <div>
-            <h1 className="mt-[18px] max-w-[15.5em] font-display text-[clamp(36px,4.6vw,64px)] font-[448] leading-[1.05] tracking-[-0.018em] text-theme [font-variation-settings:'SOFT'_88,'opsz'_110]">
-              {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
-            </h1>
-            <p className="mt-4 max-w-[50ch] font-body text-[20px] leading-[1.7] text-theme-muted">
-              {standfirst}
-            </p>
-            <CtaRow
-              primaryCta={primaryCta}
-              secondaryCta={secondaryCta}
-              className="mt-[26px] mb-10"
-            />
-          </div>
-          <DiagnosticPanel {...diagnostic} />
-        </div>
-      </div>
-    </Section>
+    <section id="work-hero" className="chapter">
+      <p className="eyebrow">{eyebrow}</p>
+      <h1>{emphasize(headline)}</h1>
+      <p className="lede">{standfirst}</p>
+      <p className="doors-in">
+        <a href={primaryCta.href}>{primaryCta.label}</a>
+        <a href={secondaryCta.href}>{secondaryCta.label}</a>
+      </p>
+    </section>
   );
 }
 
-/* ============ statements: problem + workshop ============ */
+/* ============ the problem ============ */
 
 const statementSchema = z.object({
   cap: z.string(),
-  capNote: z.string().nullable().default(null),
   headline: z.string(),
   intro: z.string(),
 });
 
-/* Shared `.sect` statement: cap → display headline with accent em → intro. */
-function Statement({
+function WorkProblemSection({
   cap,
-  capNote,
   headline,
   intro,
 }: z.infer<typeof statementSchema>): JSX.Element {
   return (
-    <>
-      <SectCap lead={cap} trail={capNote} />
-      <h2 className="reveal reveal-delay-1 mt-3.5 max-w-[21em] font-display text-[clamp(30px,3.2vw,44px)] font-[465] leading-[1.1] tracking-[-0.014em] text-theme [font-variation-settings:'SOFT'_78,'opsz'_84]">
-        {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
-      </h2>
-      <p className="reveal reveal-delay-2 mt-4 max-w-[62ch] font-body text-[17px] leading-[1.7] text-theme-muted">
-        {intro}
-      </p>
-    </>
+    <section id="work-problem" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(headline)}</h2>
+      <p>{intro}</p>
+    </section>
   );
 }
 
-function WorkProblemSection(
-  content: z.infer<typeof statementSchema>,
-): JSX.Element {
-  return (
-    <Section id="work-problem" className="py-14">
-      <Statement {...content} />
-    </Section>
-  );
-}
+/* ============ the audit ============ */
 
 const workshopSchema = z.object({
-  cap: z.string(),
-  capNote: z.string().nullable().default(null),
-  headline: z.string(),
-  intro: z.string(),
-  steps: z.array(
-    z.object({
-      title: z.string(),
-      lead: z.string(),
-      text: z.string(),
-    }),
-  ),
+  ...statementSchema.shape,
+  steps: z.array(z.object({ lead: z.string(), text: z.string() })),
+  /** The door to book it, when the content gives one. */
+  ctas: z.array(ctaSchema).max(1).default([]),
 });
 
-function WorkWorkshopSection({
+// The bar's "Book an audit" lands here.
+function WorkAuditSection({
+  cap,
+  headline,
+  intro,
   steps,
-  ...statement
+  ctas,
 }: z.infer<typeof workshopSchema>): JSX.Element {
   return (
-    <Section id="workshop" className="py-14">
-      <Statement {...statement} />
-      <div className="mt-7">
-        {steps.map((step, i) => (
-          <div
-            key={step.title}
-            className={`reveal ${delayClass(i)} grid items-baseline gap-6 border-t border-theme-light py-6 md:grid-cols-[64px_170px_1fr]`}
-          >
-            <span className="font-display text-[37px] font-light leading-none text-theme-light [font-variation-settings:'SOFT'_30]">
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            <b className="font-display text-[21px] font-[520] text-theme [font-variation-settings:'SOFT'_60]">
-              {step.title}
-            </b>
-            {/* The row spans the column; the copy keeps a reading measure. */}
-            <div className="max-w-[60ch]">
-              <p className="mb-[3px] font-body text-[16.5px] text-theme-muted">
-                {step.lead}
-              </p>
-              <p className="font-body text-[16px] text-theme-light">
-                {step.text}
-              </p>
-            </div>
-          </div>
+    <section id="audit" className="chapter" data-title="The Knowledge Audit">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(headline)}</h2>
+      <p>{intro}</p>
+      <ol className="steps">
+        {steps.map((step) => (
+          <li key={step.lead}>
+            <b>{step.lead}</b>
+            <span>{step.text}</span>
+          </li>
         ))}
-      </div>
-    </Section>
+      </ol>
+      {ctas.map((cta) => (
+        <a key={cta.href} className="cta" href={cta.href}>
+          {cta.label}
+        </a>
+      ))}
+    </section>
   );
 }
 
-/* ============ personas ============ */
+/* ============ the voices: personas and quotes ============ */
 
 const personasSchema = z.object({
   cap: z.string(),
   personas: z.array(
-    z.object({
-      role: z.string(),
-      quote: z.string(),
-      text: z.string(),
-    }),
+    z.object({ role: z.string(), quote: z.string(), text: z.string() }),
   ),
 });
 
@@ -262,120 +120,75 @@ function WorkPersonasSection({
   personas,
 }: z.infer<typeof personasSchema>): JSX.Element {
   return (
-    <Section id="personas" className="py-14">
-      <SectCap lead={cap} />
-      <div className="mt-7 grid gap-11 md:grid-cols-2">
-        {personas.map((persona, i) => (
-          <div key={persona.role} className={`reveal ${delayClass(i + 1)}`}>
-            <span className="font-label text-label-xs uppercase tracking-[0.16em] text-accent">
-              {persona.role}
-            </span>
-            <blockquote className="mt-2.5 font-display text-[24px] font-[450] italic leading-[1.3] tracking-[-0.008em] text-theme [font-variation-settings:'SOFT'_85]">
-              {persona.quote}
-            </blockquote>
-            <p className="mt-2.5 max-w-[52ch] font-body text-[16px] text-theme-light">
-              {persona.text}
-            </p>
-          </div>
+    <section id="personas" className="chapter" data-title={cap}>
+      <p className="eyebrow">{cap}</p>
+      <div className="voices">
+        {personas.map((persona) => (
+          <blockquote key={persona.role}>
+            <small>{persona.role}</small>
+            {persona.quote}
+            <p>{persona.text}</p>
+          </blockquote>
         ))}
       </div>
-    </Section>
+    </section>
   );
 }
 
-/* ============ testimonials ============ */
-
 const quotesSchema = z.object({
   cap: z.string(),
-  capNote: z.string(),
-  quotes: z.array(
-    z.object({
-      text: z.string(),
-      by: z.string(),
-    }),
-  ),
+  quotes: z.array(z.object({ text: z.string(), by: z.string() })),
 });
 
 function WorkQuotesSection({
   cap,
-  capNote,
   quotes,
 }: z.infer<typeof quotesSchema>): JSX.Element {
   return (
-    <Section id="proof" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <div className="mt-7">
-        {quotes.map((quote, i) => (
-          <div
-            key={quote.by}
-            className={`reveal ${delayClass(i)} grid grid-cols-[44px_1fr] gap-[18px] border-t border-theme-light py-[26px] first:border-t-0`}
-          >
-            <span
-              aria-hidden="true"
-              className="font-display text-[48px] leading-[0.7] text-accent opacity-80"
-            >
-              “
-            </span>
-            <div>
-              <p className="max-w-[66ch] font-body text-[18.5px] leading-[1.65] text-theme-muted">
-                {quote.text}
-              </p>
-              <div className="mt-2.5 font-label text-[12px] text-theme-light">
-                — {quote.by}
-              </div>
-            </div>
-          </div>
+    <section id="proof" className="chapter" data-title={cap}>
+      <p className="eyebrow">{cap}</p>
+      <div className="voices">
+        {quotes.map((quote) => (
+          <blockquote key={quote.by}>
+            {quote.text}
+            <cite>{quote.by}</cite>
+          </blockquote>
         ))}
       </div>
-    </Section>
+    </section>
   );
 }
 
-/* ============ roster ============ */
+/* ============ who we are ============ */
 
 const rosterSchema = z.object({
   cap: z.string(),
-  capNote: z.string(),
-  people: z.array(
-    z.object({
-      init: z.string(),
-      name: z.string(),
-      role: z.string(),
-    }),
-  ),
+  people: z.array(z.object({ name: z.string(), role: z.string() })),
 });
 
 function WorkRosterSection({
   cap,
-  capNote,
   people,
 }: z.infer<typeof rosterSchema>): JSX.Element {
   return (
-    <Section id="people" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <div className="reveal reveal-delay-1 mt-6 flex flex-wrap gap-x-[34px] gap-y-2.5">
+    <section id="people" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <ul className="people">
         {people.map((person) => (
-          <span
-            key={person.name}
-            className="flex items-baseline gap-2.5 py-1.5"
-          >
-            <span className="font-label text-[11px] tracking-[0.08em] text-accent">
-              {person.init}
-            </span>
-            <b className="font-body text-[16.5px] font-medium text-theme">
-              {person.name}
-            </b>
-            <span className="font-body text-[13.5px] text-theme-light">
-              {person.role}
-            </span>
-          </span>
+          <li key={person.name}>
+            <b>{person.name}</b>
+            <span>{person.role}</span>
+          </li>
         ))}
-      </div>
-    </Section>
+      </ul>
+      <p className="onward">
+        <a href="/foundation">The research arm, at the Foundation</a>
+      </p>
+    </section>
   );
 }
 
-/* ============ closer band ============ */
+/* ============ the question to end on ============ */
 
 const closerSchema = z.object({
   quote: z.string(),
@@ -389,13 +202,13 @@ function WorkCloserSection({
   secondaryCta,
 }: z.infer<typeof closerSchema>): JSX.Element {
   return (
-    <Band quote={quote}>
-      <CtaRow
-        primaryCta={primaryCta}
-        secondaryCta={secondaryCta}
-        className="reveal reveal-delay-1 mt-7"
-      />
-    </Band>
+    <section id="closer" className="chapter" data-title="Your team type">
+      <h2>{emphasize(quote)}</h2>
+      <p className="doors-in">
+        <a href={primaryCta.href}>{primaryCta.label}</a>
+        <a href={secondaryCta.href}>{secondaryCta.label}</a>
+      </p>
+    </section>
   );
 }
 
@@ -404,30 +217,30 @@ function WorkCloserSection({
 export const workSections: SiteSectionGroup = sectionGroup("work", {
   hero: defineSection(heroSchema, WorkHeroSection, {
     title: "Hero",
-    description: "Work room head with the TMS diagnostic panel",
+    description: "The opening: the knowledge problem AI makes visible",
   }),
   problem: defineSection(statementSchema, WorkProblemSection, {
     title: "Problem",
     description: "The coordination-problem statement",
   }),
-  workshop: defineSection(workshopSchema, WorkWorkshopSection, {
+  workshop: defineSection(workshopSchema, WorkAuditSection, {
     title: "Workshop",
-    description: "The workshop — survey, workshop, playbook",
+    description: "The Knowledge Audit: survey, the room, the playbook",
   }),
   personas: defineSection(personasSchema, WorkPersonasSection, {
     title: "Personas",
-    description: "If this sounds like you — personas",
+    description: "If this sounds like you: the personas, as voices",
   }),
   quotes: defineSection(quotesSchema, WorkQuotesSection, {
     title: "Quotes",
-    description: "Client testimonials",
+    description: "What teams tell us, as voices",
   }),
   roster: defineSection(rosterSchema, WorkRosterSection, {
     title: "Roster",
-    description: "Team roster",
+    description: "Who we are, and the research arm",
   }),
   closer: defineSection(closerSchema, WorkCloserSection, {
     title: "Closer",
-    description: "Closing quiz CTA band",
+    description: "The question to end on, and its two doors",
   }),
 });

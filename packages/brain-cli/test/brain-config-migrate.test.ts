@@ -134,7 +134,7 @@ const recipeExpectations: Record<
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
     add: ["docs"],
     site: {
-      package: "@brains/site-default",
+      package: "@brains/site-organization",
       theme: "@brains/theme-rizom",
     },
     plugins: {
@@ -328,7 +328,7 @@ describe("brain config migration preview", () => {
           ),
           "obsidian-vault",
         ],
-        added: ["conversation-memory", "studio", "unified-inbox"],
+        added: ["conversation-memory", "faq", "studio", "unified-inbox"],
         removed: ["account", "assessment", "cms", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
@@ -339,7 +339,7 @@ describe("brain config migration preview", () => {
           ...(preset === "core" ? [] : legacySiteMembers),
           ...legacyTeamMembers,
         ],
-        added: ["studio", "unified-inbox"],
+        added: ["faq", "studio", "unified-inbox"],
         removed: [
           "account",
           "assessment",
@@ -369,7 +369,7 @@ describe("brain config migration preview", () => {
       expect(
         members.filter((member) => !legacyMembers.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} additions`,
-      ).toEqual(migrationCase.added);
+      ).toEqual(["ask-content", ...migrationCase.added].sort());
       expect(
         legacyMembers.filter((member) => !members.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} removals`,

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yeehaa.io published FAQs</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap");
+/*
+  Where published FAQs appear on yeehaa.io (entities/faq README, "Publishing
+  and sites"). Every picture is the live preview in WebKit with
+  yeehaa-faq/proposal.css and proposal.js injected. The answers are the
+  brain's own captured drafts, shown as if published.
+*/
+:root{--paper:#f4ede0;--ink:#18132a;--ink-muted:#443c54;--ink-subtle:#756c80;--accent:#b8410c;--rule:rgb(24 19 42 / .12);--rule-strong:rgb(24 19 42 / .2)}
+*{box-sizing:border-box}
+body{margin:0;background:#e5ddcd;color:var(--ink);font:15px/1.55 Barlow,system-ui,sans-serif}
+.page{max-width:1240px;margin:0 auto;padding:40px 24px 80px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 10px}
+h2.part{font:600 22px/1.2 Fraunces,Georgia,serif;margin:48px 0 0}
+.lede{color:var(--ink-muted);max-width:70ch;margin:0 0 12px}
+figure{margin:0}
+figcaption{font:500 13px Barlow,sans-serif;color:var(--ink-subtle);margin:0 0 8px}
+.new figcaption{color:var(--accent)}
+.notes h3{font:600 19px/1.25 Fraunces,Georgia,serif;margin:0 0 10px}
+.notes ul{margin:0;padding-left:18px;color:var(--ink-muted)}
+.notes li{margin-bottom:8px}
+.notes b{color:var(--ink)}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.drow{grid-template-columns:1fr}}
+.screens{display:grid;gap:18px}
+.screen{border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--rule-strong),0 10px 24px rgb(0 0 0 / .14)}
+.screen img{display:block;width:100%}
+.row{display:grid;grid-template-columns:auto auto 1fr;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.row{grid-template-columns:auto auto}.row .notes{grid-column:1/-1}}
+@media (max-width:680px){.row{grid-template-columns:1fr;justify-items:center}}
+.phone{width:300px;height:640px;border-radius:26px;overflow:hidden;box-shadow:0 0 0 8px #1d1a26,0 14px 30px rgb(0 0 0 / .22);background:var(--paper)}
+.phone img{display:block;width:100%}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Published FAQs on yeehaa.io</h1>
+  <p class="lede">Visitors' questions are captured as draft FAQs; the owner publishes the good ones. This is where published FAQs appear: a band directly under the atlas, continuing the page's conversation. Every picture is the live preview with the proposal injected; the two answers are real captured drafts.</p>
+
+  <h2 class="part">Desktop</h2>
+  <div class="drow">
+    <div class="screens">
+      <figure><figcaption>Now: the atlas, then the footer</figcaption><div class="screen"><img src="yeehaa-faq/now-desk-full.jpg" alt="Current homepage"></div></figure>
+      <figure class="new"><figcaption>Proposed: the band under the atlas, first question open</figcaption><div class="screen"><img src="yeehaa-faq/desk-light.jpg" alt="FAQ band, first question"></div></figure>
+      <figure class="new"><figcaption>Proposed: another question chosen</figcaption><div class="screen"><img src="yeehaa-faq/desk-second.jpg" alt="FAQ band, second question"></div></figure>
+      <figure class="new"><figcaption>Proposed: dark</figcaption><div class="screen"><img src="yeehaa-faq/desk-dark.jpg" alt="FAQ band in the dark theme"></div></figure>
+    </div>
+    <div class="notes">
+      <h3>The band</h3>
+      <ul>
+        <li><b>Same column, same voice.</b> The questions sit on the opening's left edge, set like the starters above them; the chosen answer reads on the right, where the map is above.</li>
+        <li><b>One answer at a time.</b> The most asked question is open; choosing another swaps the answer. The question list stays in view while a long answer is read.</li>
+        <li><b>Most asked first,</b> up to six questions. Only published, public FAQs; nothing renders while there are none.</li>
+        <li><b>The heading is authored,</b> like every word around the conversation: an optional <code>faqHeading</code> on <code>ask-content</code>. Unwritten, the band has no heading. "Asked before" here is a placeholder.</li>
+        <li><b>Theme tokens only</b> (<code>--color-heading</code>, <code>--color-text</code>, <code>--color-accent</code>, <code>--color-rule</code>, <code>--font-heading</code>), so both themes hold.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="part">Phone</h2>
+  <div class="row">
+    <figure class="new"><figcaption>Proposed: first question open</figcaption><div class="phone"><img src="yeehaa-faq/phone-open.jpg" alt="Phone, first question open"></div></figure>
+    <figure class="new"><figcaption>Proposed: closed</figcaption><div class="phone"><img src="yeehaa-faq/phone-closed.jpg" alt="Phone, questions closed"></div></figure>
+    <div class="notes">
+      <h3>On a phone</h3>
+      <ul>
+        <li><b>The questions stack;</b> the open one shows its answer beneath it, and tapping it again closes it.</li>
+        <li><b>Same sizes as the starters and the opening:</b> nothing grows on a phone.</li>
+      </ul>
+      <h3 style="margin-top:22px">Where it is built</h3>
+      <ul>
+        <li><b>In the professional site,</b> so every professional brain with the FAQ plugin gets it: its homepage route places the FAQ section after the atlas.</li>
+        <li><b>The FAQ section renders this band</b> instead of its plain disclosures, with the open state on the server and a few lines of script to switch answers.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

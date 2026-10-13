@@ -23,7 +23,7 @@ export class StyleGuidePlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
-    return { embeddable: false };
+    return { classification: "system", embeddable: false };
   }
 
   protected override async onRegister(

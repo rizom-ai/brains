@@ -297,6 +297,7 @@ describe("Studio entity mutation policy", () => {
     expect(
       (
         await trusted.shell.getEntityService().getEntity({
+          visibilityScope: "restricted",
           entityType: "post",
           id: allowedEntityId,
         })
@@ -378,6 +379,7 @@ describe("Studio entity mutation policy", () => {
       .object({ entityId: z.string() })
       .parse(await adapterSmuggle.json()).entityId;
     const smuggledEntity = await shell.getEntityService().getEntity({
+      visibilityScope: "restricted",
       entityType: "smuggle",
       id: smuggledId,
     });
@@ -386,6 +388,7 @@ describe("Studio entity mutation policy", () => {
     expect(
       (
         await shell.getEntityService().getEntity({
+          visibilityScope: "restricted",
           entityType: "post",
           id: "shared-draft",
         })
@@ -466,6 +469,7 @@ describe("Studio entity mutation policy", () => {
     expect(
       (
         await fixture.shell.getEntityService().getEntity({
+          visibilityScope: "restricted",
           entityType: "post",
           id: "shared-draft",
         })
@@ -516,6 +520,7 @@ describe("Studio entity mutation policy", () => {
     expect(afterDemotion.status).toBe(403);
     expect(
       await fixture.shell.getEntityService().getEntity({
+        visibilityScope: "restricted",
         entityType: "post",
         id: "shared-draft",
       }),

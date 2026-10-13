@@ -1,0 +1,16 @@
+id: faq-classify-rejects-confirmation
+name: A confirmation is rejected
+description: Approving an action and its completion message is not a FAQ.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: yes, go ahead
+  answer: Done — I created the note "Quarterly goals".
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: false

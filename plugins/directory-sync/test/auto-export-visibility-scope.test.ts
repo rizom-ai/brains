@@ -105,6 +105,7 @@ describe("auto-export visibility scope", () => {
         `the subscriber to export the updated ${visibility} entity`,
       );
 
+      // Exports replace files atomically: once present, the file is complete.
       expect(readFileSync(filePath, "utf-8")).toContain("The new body.");
     });
   }

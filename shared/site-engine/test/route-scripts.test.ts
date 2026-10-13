@@ -44,7 +44,7 @@ describe("collectRouteScripts", () => {
     });
     const route = makeRoute(["hero", "problem"]);
 
-    expect(collectRouteScripts(route, ctx)).toEqual([]);
+    expect(collectRouteScripts(route, ctx, {})).toEqual([]);
   });
 
   it("emits a <script> tag for each runtimeScript on a used template", () => {
@@ -56,7 +56,7 @@ describe("collectRouteScripts", () => {
     });
     const route = makeRoute(["hero", "products"]);
 
-    const scripts = collectRouteScripts(route, ctx);
+    const scripts = collectRouteScripts(route, ctx, {});
     expect(scripts).toHaveLength(1);
     expect(scripts[0]).toBe(
       '<script src="/canvases/products.canvas.js" defer></script>',
@@ -75,7 +75,7 @@ describe("collectRouteScripts", () => {
     });
     const route = makeRoute(["products", "productsAlt"]);
 
-    const scripts = collectRouteScripts(route, ctx);
+    const scripts = collectRouteScripts(route, ctx, {});
     expect(scripts).toHaveLength(1);
   });
 
@@ -88,7 +88,7 @@ describe("collectRouteScripts", () => {
     });
     const route = makeRoute(["widget"]);
 
-    const scripts = collectRouteScripts(route, ctx);
+    const scripts = collectRouteScripts(route, ctx, {});
     expect(scripts).toContain(
       '<script src="/widget.mjs" defer type="module"></script>',
     );
@@ -105,7 +105,24 @@ describe("collectRouteScripts", () => {
     // Route uses ONLY hero, not products
     const route = makeRoute(["hero"]);
 
-    expect(collectRouteScripts(route, ctx)).toEqual([]);
+    expect(collectRouteScripts(route, ctx, {})).toEqual([]);
+  });
+
+  it("fingerprints a script src with the content of the asset served at it", () => {
+    const route = makeRoute(["map"]);
+    const ctx = makeContext({
+      map: makeTemplate([{ src: "/scripts/map.js", defer: true }]),
+    });
+    const render = (content: string): string[] =>
+      collectRouteScripts(route, ctx, { "/scripts/map.js": content });
+
+    const [first] = render("(function(){/* v1 */})();");
+
+    expect(first).toMatch(
+      /^<script src="\/scripts\/map\.js\?v=[0-9a-f]{12}" defer><\/script>$/,
+    );
+    expect(render("(function(){/* v2 */})();")[0]).not.toBe(first);
+    expect(render("(function(){/* v1 */})();")[0]).toBe(first);
   });
 });
 

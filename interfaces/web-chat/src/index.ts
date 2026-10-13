@@ -4,4 +4,3 @@ export {
   type WebChatConfig,
   type WebChatConfigInput,
 } from "./config";
-export { renderChatPage } from "./chat-page";

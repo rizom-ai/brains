@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. Posture—from private personal use to public professional publishing or shared team memory—is configuration, not a separate product.</p>
-      <div class="updated">Last updated: 2026-09-13 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-10-08 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -85,8 +85,24 @@
         <div class="cards">
         <div class="card status-active">
           <div class="card-head">
-            <span class="card-name">Agent tool surface consolidation</span>
+            <span class="card-name">Books — Friedrich, Karl, Sigmund</span>
             <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">a <code>book</code> plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.</div>
+          <div class="card-file">books.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">System analytics tool</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">one extensible typed analytics/reporting surface.</div>
+          <div class="card-file">system-analytics-tool.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Agent tool surface consolidation</span>
+            <span class="badge badge-partial">In progress</span>
           </div>
           <div class="card-desc">keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.</div>
           <div class="card-file">agent-tool-surface-consolidation.md</div>
@@ -99,13 +115,13 @@
           <div class="card-desc">provider-neutral, permission-gated, audited web search.</div>
           <div class="card-file">web-search-tool.md</div>
         </div>
-        <div class="card status-proposed">
+        <div class="card status-done">
           <div class="card-head">
-            <span class="card-name">System analytics tool</span>
-            <span class="badge badge-proposed">Proposed</span>
+            <span class="card-name">Resend as a newsletter provider</span>
+            <span class="badge badge-done">Done</span>
           </div>
-          <div class="card-desc">one extensible typed analytics/reporting surface.</div>
-          <div class="card-file">system-analytics-tool.md</div>
+          <div class="card-desc">add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.</div>
+          <div class="card-file">newsletter-resend-provider.md</div>
         </div>
         </div>
       </details>
@@ -120,11 +136,27 @@
           <div class="card-desc">parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&amp;A, and digest.</div>
           <div class="card-file">team-posture-capabilities.md</div>
         </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Organization site — the agent radar</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.</div>
+          <div class="card-file">organization-site.md</div>
+        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§3</span>Trust and identity</summary>
         <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Onboarding emails and the AI tools page</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">an Account → AI tools tab with the MCP address and per-client steps, and shorter onboarding emails that greet the person, say what the brain is for, and link there.</div>
+          <div class="card-file">onboarding-ai-tools.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Connected channels (extensible channel identity)</span>
@@ -156,11 +188,19 @@
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">explicit user offboarding workflow for rover-pilot</span>
+            <span class="card-name">Bootstrap secrets go where <code>--push-to</code> says</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">explicit, recoverable hosted-user offboarding.</div>
-          <div class="card-file">user-offboarding-plan.md</div>
+          <div class="card-desc">make <code>--push-to bitwarden</code> on the bootstrap commands store the secret in Bitwarden and map it in <code>.env.schema</code>, instead of pushing to GitHub.</div>
+          <div class="card-file">bootstrap-secrets-bitwarden.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Pilot content repositories on Cloudflare Artifacts</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.</div>
+          <div class="card-file">artifacts-content-repos.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -178,6 +218,14 @@
           <div class="card-desc">deliver sustained operational degradation to a human over a path that survives a dead worker.</div>
           <div class="card-file">operational-alert-delivery.md</div>
         </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Explicit pilot user offboarding</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">explicit, recoverable hosted-user offboarding.</div>
+          <div class="card-file">user-offboarding-plan.md</div>
+        </div>
         </div>
       </details>
       <details class="group" open>
@@ -185,10 +233,10 @@
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
-            <span class="card-name">Public <code>/ask</code> and the Brain landing-page chat</span>
+            <span class="card-name">Public Ask — guest chat on a Brain's public pages</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">complete live visitor acceptance and obtain separate production policy/publication approval.</div>
+          <div class="card-desc">the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.</div>
           <div class="card-file">public-ask.md</div>
         </div>
         <div class="card status-partial">
@@ -199,13 +247,29 @@
           <div class="card-desc">the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.</div>
           <div class="card-file">studio-ux-improvements.md</div>
         </div>
-        <div class="card status-proposed">
+        <div class="card status-partial">
           <div class="card-head">
-            <span class="card-name">Studio Hierarchical Entity Navigation</span>
-            <span class="badge badge-proposed">Proposed</span>
+            <span class="card-name">Studio Virtual Collections</span>
+            <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">demand-gated virtual folders over structured entity paths.</div>
-          <div class="card-file">studio-hierarchical-entity-navigation.md</div>
+          <div class="card-desc">source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.</div>
+          <div class="card-file">studio-virtual-collections.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Studio Grouping Vocabularies</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with smoke-only test deployment still pending.</div>
+          <div class="card-file">studio-grouping-vocabularies.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Studio Grouping Definitions</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">implemented and locally validated: one administrator-owned document, runtime replacement/reprojection, independent cardinality and lists, unified controls, and exact source round trips. Authenticated app and unchanged visual gates pass; replacement release and smoke-only test deployment remain pending; no legacy conversion or rehearsal is required.</div>
+          <div class="card-file">studio-grouping-definitions.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -262,6 +326,14 @@
         </div>
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">Durable Binary Asset Storage Plan</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">**P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut <code>yeehaa.io</code> over, soak, and remove the legacy bridge before stable <code>0.2.0</code>.</div>
+          <div class="card-file">durable-binary-assets.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -286,33 +358,33 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Cross-brain entity sharing</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">proposed one-directional entity sharing between brains: visibility picks the transport, A2A carries <code>shared</code>, ATProto signals <code>public</code>.</div>
+          <div class="card-file">cross-brain-entity-sharing.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Lead management — inbound qualification on the opportunity lifecycle</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.</div>
           <div class="card-file">lead-management.md</div>
         </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">rizom.ai as one story</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">rizom.ai as one story: the live network and Ask on the homepage, one drawing language across Brain, Work and Foundation, Writing as an archive, one bar and a reading thread; Network and About dropped.</div>
+          <div class="card-file">rizom-ai-story-site.md</div>
+        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Turso-only database runtime for <code>0.3</code></span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">active <code>0.3</code> Turso-only runtime/migration work; off-thread integration, production recovery, and fleet soak remain open while <code>0.2</code> stays on libSQL.</div>
-          <div class="card-file">turso-database-engine.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Durable Binary Asset Storage Plan</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.</div>
-          <div class="card-file">durable-binary-assets.md</div>
-        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">HTTP route registry hardening</span>
@@ -329,6 +401,22 @@
           <div class="card-desc">retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.</div>
           <div class="card-file">directory-sync-export-stall.md</div>
         </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Topics ranked under the cap</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.</div>
+          <div class="card-file">topics-ranked-selection.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Effect v4 upgrade</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.</div>
+          <div class="card-file">effect-v4-upgrade.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
@@ -339,11 +427,19 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Topic extraction cost and reconciliation</span>
+            <span class="card-name">Salvage the Turso branch onto libSQL</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.</div>
-          <div class="card-file">topic-extraction-and-reconciliation.md</div>
+          <div class="card-desc">carry the engine-independent parts of the frozen Turso branch onto libSQL; <code>0.3</code> stays on libSQL.</div>
+          <div class="card-file">turso-salvage.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Local Model Runtime</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.</div>
+          <div class="card-file">local-model-runtime.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
@@ -352,14 +448,6 @@
           </div>
           <div class="card-desc">whether a renderer other than React earns its place at the prepared-build boundary.</div>
           <div class="card-file">alternative-site-renderer-spike.md</div>
-        </div>
-        <div class="card status-parked">
-          <div class="card-head">
-            <span class="card-name">Local AI Runtime</span>
-            <span class="badge badge-parked">Parked</span>
-          </div>
-          <div class="card-desc">local AI runtime sidecar direction.</div>
-          <div class="card-file">embedding-service.md</div>
         </div>
         </div>
       </details>

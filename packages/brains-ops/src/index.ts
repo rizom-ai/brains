@@ -21,6 +21,19 @@ export {
 export { writeUsersTable } from "./render-users-table";
 export { onboardUser } from "./onboard-user";
 export { addPilotUser } from "./user-add";
+export {
+  assertPilotUsersRemoved,
+  createPilotOffboardDriver,
+  offboardPilotUsers,
+  type OffboardPilotUserPlan,
+  type OffboardPilotUsersOptions,
+  type OffboardPilotUsersResult,
+  type PilotOffboardDnsRecord,
+  type PilotOffboardDriver,
+  type PilotOffboardInspection,
+  type PilotOffboardServer,
+  type PilotOffboardTarget,
+} from "./user-offboard";
 export { reconcileCohort } from "./reconcile-cohort";
 export { reconcileAll } from "./reconcile-all";
 export { parseArgs, type ParsedArgs } from "./parse-args";

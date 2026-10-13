@@ -65,6 +65,18 @@ describe("renderEditorShellHtml", () => {
     );
   });
 
+  it("passes the brain's MCP address to the Account view only when given", () => {
+    expect(
+      renderEditorShellHtml({
+        ...SHELL_OPTIONS,
+        mcpUrl: "https://yeehaa.io/mcp",
+      }),
+    ).toContain('data-studio-mcp-url="https://yeehaa.io/mcp"');
+    expect(renderEditorShellHtml(SHELL_OPTIONS)).not.toContain(
+      "data-studio-mcp-url",
+    );
+  });
+
   it("loads the shared ramp plus the Studio editorial mono face", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 

@@ -280,31 +280,40 @@ interface PreparedGenerate {
   eventContext: GenerateEventContext;
 }
 
-async function prepareGenerate(
+/**
+ * What each kind of generation asks for, as a create input.
+ *
+ * The five operation kinds differ only in where the prompt, the source and
+ * the target come from; everything after this point treats them the same.
+ * Separated so that adding a kind means adding a branch here rather than
+ * reading a hundred lines to find where the last one ended.
+ */
+async function resolveGenerateOperation(
   services: SystemServices,
-  input: GenerateToolInput,
-  toolContext: GenerateToolContext,
+  operation: GenerateToolInput["operation"],
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
 ): Promise<
   | { kind: "error"; result: ToolResponse }
-  | { kind: "ok"; prepared: PreparedGenerate }
+  | {
+      kind: "ok";
+      createInput: CreateInput;
+      sourceAttachment: GenerateSourceAttachment | undefined;
+    }
 > {
-  const operation = input.operation;
-  const visibilityScope = permissionToVisibilityScope(
-    toolContext.userPermissionLevel,
-  );
-
   let createInput: CreateInput;
   let sourceAttachment: GenerateSourceAttachment | undefined;
   const replace = operation.kind === "attachment" && operation.replace === true;
 
   if (operation.kind === "prompt" || operation.kind === "prompt-from-source") {
-    if (operation.entityType === "image") {
+    if (
+      services.entityRegistry.getEntityTypeConfig(operation.entityType)
+        .binaryStorage
+    ) {
       return {
         kind: "error",
         result: {
           success: false,
-          error:
-            "Use operation.kind 'standalone-image' or 'cover-image' for image generation.",
+          error: `Prompt generation does not support binary entity type '${operation.entityType}'. Use operation.kind 'attachment' for source-derived artifacts, or 'standalone-image' or 'cover-image' for generated images.`,
           code: "unsupported-generation",
         },
       };
@@ -404,6 +413,31 @@ async function prepareGenerate(
       }),
     };
   }
+
+  return { kind: "ok", createInput, sourceAttachment };
+}
+
+async function prepareGenerate(
+  services: SystemServices,
+  input: GenerateToolInput,
+  toolContext: GenerateToolContext,
+): Promise<
+  | { kind: "error"; result: ToolResponse }
+  | { kind: "ok"; prepared: PreparedGenerate }
+> {
+  const operation = input.operation;
+  const visibilityScope = permissionToVisibilityScope(
+    toolContext.userPermissionLevel,
+  );
+
+  const resolved = await resolveGenerateOperation(
+    services,
+    operation,
+    visibilityScope,
+  );
+  if (resolved.kind === "error") return resolved;
+  const { createInput, sourceAttachment } = resolved;
+  const replace = operation.kind === "attachment" && operation.replace === true;
 
   const unregisteredError = assertEntityTypeRegistered(
     services,

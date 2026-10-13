@@ -1,13 +1,12 @@
 import type {
   BaseEntity,
   ContentVisibility,
-  GetEntityRequest,
+  GetEntityRawRequest,
   EntityReadOptions,
   ListEntitiesRequest,
 } from "./types";
 import { type Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
-import { entityReadBudgetSchema } from "@brains/contracts";
 
 export type ResolvedEntity =
   { ok: true; entity: BaseEntity } | { ok: false; error: string };
@@ -22,8 +21,17 @@ export type ResolvedEntity =
  * still satisfies this by construction.
  */
 export interface EntityLookupReads {
-  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  /**
+   * Stored content, never resolved: callers set a field and write the entity
+   * back, and a resolved read would persist inlined image bytes.
+   */
+  getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+}
+
+/** How an identifier lookup reads: cancellation, and whether only published work counts. */
+export interface EntityLookupOptions extends EntityReadOptions {
+  publishedOnly?: boolean;
 }
 
 /**
@@ -31,7 +39,8 @@ export interface EntityLookupReads {
  *
  * Propagates the visibility scope to every lookup path so the slug/title
  * fallbacks cannot leak entities the caller is not allowed to see.
- * Defaults to "public" when no scope is provided.
+ * Defaults to "public" when no scope is provided. `publishedOnly` holds on
+ * every path too, so a draft is not reachable by its slug or title either.
  */
 export async function findEntityByIdentifier(
   entityService: EntityLookupReads,
@@ -39,23 +48,15 @@ export async function findEntityByIdentifier(
   identifier: string,
   logger?: Logger,
   visibilityScope: ContentVisibility = "public",
-  options: EntityReadOptions = {},
+  options: EntityLookupOptions = {},
 ): Promise<BaseEntity | null> {
-  const readOptions: EntityReadOptions = {
-    ...(options.readBudget !== undefined && {
-      readBudget: entityReadBudgetSchema.parse(options.readBudget),
-    }),
+  const readOptions: EntityLookupOptions = {
     ...(options.signal && { signal: options.signal }),
+    ...(options.publishedOnly && { publishedOnly: true }),
   };
   try {
     readOptions.signal?.throwIfAborted();
-    if (
-      readOptions.readBudget &&
-      (identifier.length > readOptions.readBudget.queryCharacters ||
-        entityType.length > readOptions.readBudget.queryCharacters)
-    )
-      throw new Error("Entity lookup input limit exceeded");
-    const byId = await entityService.getEntity({
+    const byId = await entityService.getEntityRaw({
       entityType,
       id: identifier,
       visibilityScope,
@@ -97,8 +98,6 @@ export async function findEntityByIdentifier(
     readOptions.signal?.throwIfAborted();
     if (bySlugifiedTitle[0]) return bySlugifiedTitle[0];
 
-    // Bounded reads use exact identifiers only, not a 200-row fuzzy scan.
-    if (readOptions.readBudget) return null;
     const entities = await entityService.listEntities({
       entityType,
       options: { limit: 200, filter: { visibilityScope }, ...readOptions },
@@ -113,7 +112,7 @@ export async function findEntityByIdentifier(
       ) ?? null
     );
   } catch (error) {
-    if (logger && !readOptions.readBudget) {
+    if (logger) {
       logger.error(`Failed to find entity ${entityType}:${identifier}`, {
         error,
       });
@@ -139,7 +138,7 @@ export async function resolveEntityOrError(
   logger?: Logger,
   label = "Entity",
   visibilityScope: ContentVisibility = "public",
-  readOptions: EntityReadOptions = {},
+  readOptions: EntityLookupOptions = {},
 ): Promise<ResolvedEntity> {
   const entity = await findEntityByIdentifier(
     entityService,

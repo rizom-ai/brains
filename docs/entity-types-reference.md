@@ -50,6 +50,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `newsletter`                         | `@brains/newsletter`                 | `publishing` | Newsletter drafts, schedules, and send records.            |
 | `doc`                                | `@brains/doc`                        | `team`       | Team documentation pages.                                  |
 | `summary`, `decision`, `action-item` | `@brains/conversation-memory`        | `team`       | Team memory projections and first-class decisions/actions. |
+| `faq`                                | `@brains/faq`                        | `chat`       | Draft FAQs captured from chats at the turn's visibility.   |
 
 The table describes built-in defaults. `add` and `remove` can adjust individual members; removing a member also removes its attached config and policy contributions.
 
@@ -57,7 +58,7 @@ The table describes built-in defaults. `add` and `remove` can adjust individual 
 
 You can create and update entities through several paths:
 
-- chat or MCP clients using `system_create`, `system_update`, `system_delete`, `system_get`, `system_list`, `system_search`, and `system_insights`
+- chat or MCP clients using `system_create`, `system_update`, `system_delete`, `system_get`, `system_list`, `system_search`, and `system_analytics`
 - the generated Studio when the Studio plugin is active
 - direct edits to markdown files in `brain-data/` when `directory-sync` is active
 - generation jobs owned by entity plugins, for example link capture, image generation, newsletter generation, and social-post generation
@@ -430,7 +431,7 @@ For LinkedIn, social posts support text-only posts, image posts via `coverImageI
 
 ### `newsletter`
 
-Newsletter entities store email drafts and delivery metadata. The entity type is defined by the compound `@brains/newsletter` package (`plugins/newsletter`) alongside the generation and Buttondown send workflows.
+Newsletter entities store email drafts and delivery metadata. The entity type is defined by the compound `@brains/newsletter` package (`plugins/newsletter`) alongside generation and selectable Buttondown or Resend delivery workflows. Resend delivery uses Contacts assigned to a configured Segment and sends through Broadcasts.
 
 Key frontmatter:
 
@@ -440,7 +441,42 @@ Key frontmatter:
 - `scheduledFor`
 - `sentAt`
 - `buttondownId`
+- `resendBroadcastId`
 - `sourceEntityType`
+
+A brain selects at most one delivery provider. Resend configuration requires an API key, a Segment ID, and a verified sender; Buttondown configuration may enable its native double opt-in behavior. With no provider configured, newsletter drafts and generation remain available while subscriber tools, signup UI, and external publishing stay disabled.
+
+```ts
+newsletter({
+  provider: {
+    type: "resend",
+    apiKey: "${RESEND_API_KEY}",
+    segmentId: "${RESEND_NEWSLETTER_SEGMENT_ID}",
+    from: "Newsletter <newsletter@example.com>",
+    replyTo: "hello@example.com", // optional
+    topicId: "${RESEND_NEWSLETTER_TOPIC_ID}", // optional
+  },
+});
+```
+
+Use `type: "buttondown"` with `apiKey` and optional `doubleOptIn` for Buttondown. The previous flat `{ apiKey, doubleOptIn }` newsletter configuration is not accepted.
+
+## Private operational entities
+
+### `contact-request`
+
+`contact-request` records are created only by the explicitly configured, default-off `@brains/contact` capability. They are always `restricted`, excluded from embeddings, full-text search, and projection inputs, and shown only through the Admin-only contact Inbox source. Submitted name, email, and message stay in the Markdown body/frontmatter rather than query metadata.
+
+Key frontmatter:
+
+- `name`
+- `email`
+- `receivedAt`
+- `expiresAt`
+- `status` (`new` or `handled`)
+- `notification` (`pending`, `sent`, or `failed`)
+
+The configured retention period must be finite and no longer than 90 days. Startup and recurring maintenance recover pending notification jobs and delete expired records; deployment-specific retention, backup privacy, proxy policy, limits, publication, and enablement require separate approval.
 
 ## Agent directory entities
 

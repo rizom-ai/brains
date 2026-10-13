@@ -45,6 +45,7 @@ There is no event-owned projection job or manual derive/rebuild tool. Command-ow
 | decks               | `deck`                               |            | Slide decks with markdown directives                     |
 | doc                 | `doc`                                |            | Documentation pages rendered on the site                 |
 | document            | `document`                           |            | Uploaded binary artifacts (PDFs and similar files)       |
+| faq                 | `faq`                                |            | Draft Q&A captured from chats at the turn's visibility   |
 | image               | `image`                              |            | AI image generation                                      |
 | link                | `link`                               |            | Web links with AI-powered content extraction             |
 | note                | `note`                               |            | Personal notes with markdown-first workflow              |

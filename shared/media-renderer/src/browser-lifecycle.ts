@@ -1,4 +1,10 @@
-import { Cause, Effect, Exit, Option } from "@brains/utils/effect";
+import {
+  Cause,
+  Effect,
+  Exit,
+  Option,
+  withOptionalClock,
+} from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import type { BrowserFactory, MediaBrowser } from "./browser-types";
 
@@ -26,9 +32,7 @@ export async function withBrowser<T>(
       if (released) return Effect.void;
       released = true;
       const cleanup = closeBrowser(browser, closeTimeoutMs);
-      const timedCleanup = options.clock
-        ? Effect.withClock(cleanup, options.clock)
-        : cleanup;
+      const timedCleanup = withOptionalClock(cleanup, options.clock);
       // Finalizers are uninterruptible. Run the bounded close in its own
       // interruptible runtime, but await it so release still drains.
       return Effect.promise(() => Effect.runPromise(timedCleanup));
@@ -49,28 +53,28 @@ export async function withBrowser<T>(
   // acquireUseRelease owns the ordinary render and exact-once release path.
   const managed = Effect.scoped(
     Effect.flatMap(
-      Effect.acquireReleaseInterruptible(acquire, () =>
-        acquired ? release(acquired) : Effect.void,
+      Effect.acquireRelease(
+        acquire,
+        () => (acquired ? release(acquired) : Effect.void),
+        { interruptible: true },
       ),
       (browser) =>
         Effect.acquireUseRelease(Effect.succeed(browser), use, release),
     ),
   ).pipe(
-    Effect.timeoutFail({
+    Effect.timeoutOrElse({
       duration: timeoutMs,
-      onTimeout,
+      orElse: () => Effect.fail(onTimeout()),
     }),
   );
-  const timed = options.clock
-    ? Effect.withClock(managed, options.clock)
-    : managed;
+  const timed = withOptionalClock(managed, options.clock);
   const exit = await Effect.runPromiseExit(timed, {
     ...(options.signal && { signal: options.signal }),
   });
 
   if (Exit.isFailure(exit)) {
     if (options.signal?.aborted) throw options.signal.reason;
-    const failure = Cause.failureOption(exit.cause);
+    const failure = Cause.findErrorOption(exit.cause);
     if (Option.isSome(failure)) throw failure.value;
     throw Cause.squash(exit.cause);
   }
@@ -82,7 +86,7 @@ function acquireBrowser(
   onAcquired: (browser: MediaBrowser) => void,
   release: (browser: MediaBrowser) => Effect.Effect<void>,
 ): Effect.Effect<MediaBrowser, unknown> {
-  return Effect.async<MediaBrowser, unknown>((resume) => {
+  return Effect.callback<MediaBrowser, unknown>((resume) => {
     let canceled = false;
     const launch = Promise.resolve().then(() => browserFactory.launch());
 
@@ -119,7 +123,7 @@ function closeBrowser(
     Effect.flatMap((result) =>
       Option.isNone(result) ? killBrowser(browser) : Effect.void,
     ),
-    Effect.catchAll(() => killBrowser(browser)),
+    Effect.catch(() => killBrowser(browser)),
   );
 }
 

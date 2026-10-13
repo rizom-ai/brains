@@ -7,9 +7,16 @@ type MCPConfigSchema = z.ZodObject<{
   authToken: z.ZodOptional<z.ZodString>;
 }>;
 
-export const mcpConfigSchema: MCPConfigSchema = z.object({
-  transport: z.enum(["stdio", "http"]).default("http"),
+export const mcpProtocolConfigSchema: z.ZodObject<{
+  mode: z.ZodDefault<z.ZodEnum<{ basic: "basic"; debug: "debug" }>>;
+}> = z.object({
   mode: z.enum(["basic", "debug"]).default("basic"),
+});
+export type MCPProtocolConfig = z.output<typeof mcpProtocolConfigSchema>;
+export type MCPProtocolConfigInput = z.input<typeof mcpProtocolConfigSchema>;
+
+export const mcpConfigSchema: MCPConfigSchema = mcpProtocolConfigSchema.extend({
+  transport: z.enum(["stdio", "http"]).default("http"),
   httpPort: z
     .number()
     .describe("Port for HTTP transport (only used when transport is 'http')")

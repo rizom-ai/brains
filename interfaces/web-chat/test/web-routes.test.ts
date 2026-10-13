@@ -26,8 +26,6 @@ describe("Web Chat public API routes", () => {
         handleDocumentAttachmentRequest: ok,
         handleImageAttachmentRequest: ok,
         handleJobStatusRequest: ok,
-        handleUiAssetRequest: ok,
-        handleUiStylesheetRequest: ok,
         handleUploadRequest: ok,
         handleUploadDownloadRequest: ok,
       },

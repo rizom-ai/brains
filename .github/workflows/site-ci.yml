@@ -117,3 +117,6 @@ jobs:
 
       - name: Build site and theme packages
         run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'
+
+      - name: Run packed compatibility matrix
+        run: bun run test:packed:compat

@@ -178,6 +178,9 @@ describe("initPilotRepo", () => {
     expect(
       existsSync(join(repo, ".github", "actions", "varlock-env", "action.yml")),
     ).toBe(true);
+    expect(existsSync(join(repo, ".github", "workflows", "offboard.yml"))).toBe(
+      true,
+    );
     expect(
       existsSync(join(repo, ".github", "workflows", "reconcile.yml")),
     ).toBe(true);
@@ -418,7 +421,24 @@ describe("initPilotRepo", () => {
     // A new user's generated config is untracked; without intent-to-add
     // every `git diff` below is blind to it and the finalize step silently
     // drops the directory, so later deploys skip the user forever.
-    expect(deployWorkflow).toContain("git add --intent-to-add -- users views");
+    expect(deployWorkflow).toContain("git add --intent-to-add -- users");
+    // views/users.md is generated: a concurrent deploy rewrites it, so a
+    // patch of it against this run's base conflicts on every retry. Only
+    // users/ is carried across the reset; the view renders on fresh main.
+    expect(deployWorkflow).toContain(
+      'git diff --binary -- users > "$patch_file"',
+    );
+    expect(deployWorkflow).not.toContain("git diff --binary -- users views");
+    const finalizeReset = deployWorkflow.indexOf(
+      'git reset --hard "origin/${{ github.ref_name }}"',
+    );
+    expect(finalizeReset).toBeGreaterThan(
+      deployWorkflow.indexOf("- name: Commit generated config"),
+    );
+    expect(
+      deployWorkflow.indexOf('bunx brains-ops render "$GITHUB_WORKSPACE"'),
+    ).toBeGreaterThan(finalizeReset);
+    expect(deployWorkflow).not.toContain("- name: Regenerate users table");
     expect(deployWorkflow).toContain("merge-multiple: true");
     expect(deployWorkflow).toContain("bun install");
     const inventoryGate = deployWorkflow.indexOf(
@@ -603,8 +623,8 @@ describe("initPilotRepo", () => {
     // Tag derivation goes through the shared @rizom/ops helpers so the build
     // and the deploy can never disagree about a tag.
     expect(resolveScript).toContain("runtimeImageTag");
+    expect(resolveScript).toContain("sitePackagesFor");
     expect(resolveScript).not.toContain("imageContract");
-    expect(resolveScript).not.toContain("sitePackagesFor");
     expect(resolveScript).toContain("derivePreviewDomain");
     expect(resolveScript).toContain(
       "sharedDomain: registry.pilot.domainSuffix",
@@ -747,7 +767,10 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("version: <exact-site-version>");
     expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");
     expect(operatorPlaybook).not.toContain("imageContract");
-    expect(operatorPlaybook).toContain("same image");
+    // Images are named by Brain version and site pins; promotion reuses the
+    // canary image where the pins match.
+    expect(operatorPlaybook).toContain("named by Brain version and site pins");
+    expect(operatorPlaybook).toContain("reuses that image where their");
     expect(operatorPlaybook).toContain(
       "### Custom-package canary and rollback",
     );
@@ -1196,6 +1219,40 @@ describe("initPilotRepo", () => {
 
     const output = await readFile(outputPath, "utf8");
     expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles ignores generated-file deletions for retired users", async () => {
+    const root = await createTempDir("brains-ops-init-");
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(join(repo, "users", "alice", ".env"), "generated\n");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "deployed alice");
+
+    await rm(join(repo, "users", "alice.yaml"));
+    await rm(join(repo, "users", "alice"), { recursive: true });
+    const currentSha = await commitAll(repo, "retire alice");
+    await writeFile(outputPath, "");
+
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: beforeSha,
+          GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+      },
+    );
+
+    expect(await readFile(outputPath, "utf8")).toContain("handles_json=[]");
   });
 
   it("resolve-deploy-handles deploys the reconciled brain.yaml, not the raw registry file", async () => {

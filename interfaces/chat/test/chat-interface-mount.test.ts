@@ -104,6 +104,31 @@ describe("ChatInterface mount", () => {
     ]);
   });
 
+  it("registers only its channels in the worker, without connecting", async () => {
+    const plugin = new ChatInterface({
+      adapters: {
+        discord: baseDiscordConfig,
+        slack: baseSlackConfig,
+      },
+    });
+
+    await plugin.registerChannelsForExecution(suite.harness.getMockShell(), {
+      executionOnly: true,
+    });
+    const channels = suite.harness.getMockShell().getChannelRegistry();
+    channels.finalize();
+
+    expect(
+      channels.listDescriptors().map((descriptor) => descriptor.type),
+    ).toEqual(["discord", "slack"]);
+    expect(createDiscordAdapterMock).not.toHaveBeenCalled();
+    expect(createSlackAdapterMock).not.toHaveBeenCalled();
+    expect(MockChatSdk.instances).toHaveLength(0);
+    expect(
+      suite.harness.getMockShell().getDaemonRegistry().getByPlugin("chat"),
+    ).toHaveLength(0);
+  });
+
   it("creates a Slack-only adapter and daemon", async () => {
     const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
 

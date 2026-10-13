@@ -37,10 +37,12 @@ import packageJson from "../package.json";
 const dashboardConfigSchema: z.ZodObject<{
   version: z.ZodDefault<z.ZodString>;
   routePath: z.ZodDefault<z.ZodString>;
+  ask: z.ZodDefault<z.ZodBoolean>;
   themeCSS: z.ZodOptional<z.ZodString>;
 }> = z.object({
   version: z.string().default("1.0.0"),
   routePath: z.string().default("/dashboard"),
+  ask: z.boolean().default(false),
   themeCSS: z.string().optional(),
 });
 
@@ -329,6 +331,12 @@ export class DashboardPlugin extends ServicePlugin<
             widgetScripts: resolved.widgetScripts,
             assetUrls: this.assetUrls,
             dashboardPath: this.config.routePath,
+            askEnabled:
+              this.config.ask &&
+              registeredRoutes.some(
+                (route) =>
+                  route.pluginId === "web-chat" && route.fullPath === "/ask",
+              ),
             ...(askHref ? { askHref } : {}),
             character,
             profile,

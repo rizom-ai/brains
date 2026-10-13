@@ -381,16 +381,19 @@ describe("guest credential issuance", () => {
     expect(await records(state).list()).toHaveLength(1);
   });
 
-  it("does not adopt changed policy or reset held slots when the operator disables issuance", async () => {
+  it("applies changed limits at once without resetting held slots, and honours the operator's switch", async () => {
     const state = createMemoryRuntimeStateNamespace();
     await new GuestVisitorStore(state, policy, () => start).issue(request());
     const changed = {
       ...policy,
-      issuance: { ...policy.issuance, requestsPerMinute: 3 },
+      issuance: {
+        ...policy.issuance,
+        requestsPerMinute: 3,
+        maxStoredCredentials: 3,
+      },
     };
-    expect(
-      new GuestVisitorStore(state, changed, () => start).issue(request()),
-    ).rejects.toThrow("Guest access unavailable");
+    // A release that changes session limits never locks sessions out.
+    await new GuestVisitorStore(state, changed, () => start).issue(request());
     const book = new GuestIssuance(state, () => start);
     expect(await book.applyPolicy(changed.issuance, false)).toBe(true);
     expect(
@@ -398,7 +401,7 @@ describe("guest credential issuance", () => {
     ).rejects.toThrow("Guest access unavailable");
     expect(await book.applyPolicy(changed.issuance, true)).toBe(true);
     await new GuestVisitorStore(state, changed, () => start).issue(request());
-    expect(await records(state).list()).toHaveLength(2);
+    expect(await records(state).list()).toHaveLength(3);
     expect(
       new GuestVisitorStore(state, changed, () => start - 1).issue(request()),
     ).rejects.toThrow("Guest access unavailable");

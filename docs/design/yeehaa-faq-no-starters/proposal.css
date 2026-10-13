@@ -1,0 +1,40 @@
+/* No starters: the opening ends at the box and the door; the FAQ band under
+   the atlas is the one list of questions, closed until one is tapped. Theme
+   tokens only, so both themes hold. */
+.faqs details {
+  border-left: 2px solid transparent;
+  margin-left: -0.85rem;
+  padding-left: 0.85rem;
+}
+.faqs details[open] {
+  border-left-color: var(--color-accent);
+}
+.faqs details > summary {
+  border-left: 0;
+  margin-left: 0;
+  padding-left: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.faqs details > summary::after {
+  content: "+";
+  font-style: normal;
+  color: var(--color-accent);
+  margin-left: auto;
+  padding-left: 0.5rem;
+  transition: transform 0.2s ease;
+}
+.faqs details[open] > summary::after {
+  transform: rotate(45deg);
+}
+@media (hover: none) {
+  .faqs summary:hover {
+    color: var(--color-heading);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .faqs details > summary::after {
+    transition: none;
+  }
+}

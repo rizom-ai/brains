@@ -48,6 +48,17 @@ describe("Newsletter Schema", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should accept provider delivery IDs", () => {
+      const result = newsletterMetadataSchema.safeParse({
+        subject: "Delivered Newsletter",
+        status: "published",
+        buttondownId: "buttondown-1",
+        resendBroadcastId: "broadcast-1",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data?.resendBroadcastId).toBe("broadcast-1");
+    });
+
     it("should validate status enum", () => {
       const validStatuses = [
         "generating",

@@ -1,0 +1,20 @@
+id: faq-same-question-different-question
+name: A different question on the same subject stays separate
+description: Asking what decision governance is differs from asking which topics are written about.
+type: plugin
+tags: [faq, dedup]
+plugin: faq
+handler: sameQuestion
+
+input:
+  stored:
+    question: What topics do you mostly write about?
+    answer: Mostly decision governance, documentation integrity, green software engineering and research evidence.
+  incoming:
+    question: What is decision governance?
+    answer: Decision governance is the set of principles, roles and processes that make decisions consistent, transparent and accountable.
+
+expectedOutput:
+  validateEach:
+    - path: sameQuestion
+      equals: false

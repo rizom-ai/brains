@@ -29,6 +29,17 @@ describe("runGitCommandWithStallTimeout", () => {
     expect(stdout).toContain("git version");
   });
 
+  it("completes a command whose output passes the retention ceiling", async () => {
+    // A pull bringing in thousands of files prints a line per file. Retained
+    // output is bounded; the command itself must still run to completion.
+    const stdout = await runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 10_000 },
+      ["-c", "alias.loud=!head -c 5000000 /dev/zero | tr '\\0' a", "loud"],
+    );
+    expect(stdout.length).toBeLessThan(300_000);
+    expect(stdout).toContain("[output truncated at");
+  });
+
   it("signals progress on output and successful subprocess completion", async () => {
     let progressSignals = 0;
     await runGitCommandWithStallTimeout(

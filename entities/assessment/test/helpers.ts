@@ -2,21 +2,10 @@ import {
   BaseEntityAdapter,
   anchorProfileKindSchema,
   baseEntitySchema,
+  formatAgentBody,
+  type AgentBody,
 } from "@brains/plugins";
-import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
-
-export const testAgentSkillSchema: z.ZodObject<{
-  name: z.ZodString;
-  description: z.ZodString;
-  tags: z.ZodArray<z.ZodString>;
-}> = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-
-export type TestAgentSkill = z.output<typeof testAgentSkillSchema>;
 
 export const testAgentStatusSchema: z.ZodEnum<{
   discovered: "discovered";
@@ -95,63 +84,6 @@ export const testSkillEntitySchema: ReturnType<
 
 export type TestSkillEntity = z.output<typeof testSkillEntitySchema>;
 
-const testAgentBodySchema: z.ZodObject<{
-  about: z.ZodString;
-  skills: z.ZodArray<typeof testAgentSkillSchema>;
-  notes: z.ZodString;
-}> = z.object({
-  about: z.string(),
-  skills: z.array(testAgentSkillSchema),
-  notes: z.string(),
-});
-
-type TestAgentBody = z.output<typeof testAgentBodySchema>;
-
-function formatSkills(value: unknown): string {
-  const parsed = z.array(testAgentSkillSchema).safeParse(value);
-  if (!parsed.success || parsed.data.length === 0) return "";
-  return parsed.data
-    .map((skill) => {
-      const tags = skill.tags.length > 0 ? ` [${skill.tags.join(", ")}]` : "";
-      return `- ${skill.name}: ${skill.description}${tags}`;
-    })
-    .join("\n");
-}
-
-function parseSkills(text: string): TestAgentSkill[] {
-  if (!text.trim()) return [];
-  return text
-    .split("\n")
-    .map((line) => line.match(/^- (.+?): (.+?)(?:\s+\[(.+?)\])?$/))
-    .filter((match): match is RegExpMatchArray => match !== null)
-    .map((match) => ({
-      name: match[1] ?? "",
-      description: match[2] ?? "",
-      tags: match[3]
-        ? match[3]
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : [],
-    }));
-}
-
-const agentBodyFormatter: StructuredContentFormatter<TestAgentBody> =
-  new StructuredContentFormatter<TestAgentBody>(testAgentBodySchema, {
-    title: "Agent",
-    mappings: [
-      { key: "about", label: "About", type: "string" },
-      {
-        key: "skills",
-        label: "Skills",
-        type: "custom",
-        formatter: formatSkills,
-        parser: parseSkills,
-      },
-      { key: "notes", label: "Notes", type: "string" },
-    ],
-  });
-
 export class AgentAdapter extends BaseEntityAdapter<
   TestAgentEntity,
   TestAgentEntity["metadata"],
@@ -170,11 +102,9 @@ export class AgentAdapter extends BaseEntityAdapter<
     return { content: markdown, entityType: "agent" };
   }
 
-  public createAgentContent(
-    input: TestAgentFrontmatter & TestAgentBody,
-  ): string {
+  public createAgentContent(input: TestAgentFrontmatter & AgentBody): string {
     return this.buildMarkdown(
-      agentBodyFormatter.format({
+      formatAgentBody({
         about: input.about,
         skills: input.skills,
         notes: input.notes,

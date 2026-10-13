@@ -62,6 +62,24 @@ describe("note ATProto projection", () => {
     expect(record.body).toBe("# Networked Knowledge\r\n\r\nA note body.");
   });
 
+  it("names its page when the site gives the note one, and nothing otherwise", async () => {
+    const projection = createNoteAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("note");
+    const placed = await projection.buildRecord({
+      entity: note,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/notes/note-1",
+    });
+    expect(placed.canonicalUrl).toBe("https://brain.example.com/notes/note-1");
+    const unplaced = await projection.buildRecord({
+      entity: note,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the note projection when the note plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-note-atproto" });
     await harness.installPlugin(new NotePlugin({}));

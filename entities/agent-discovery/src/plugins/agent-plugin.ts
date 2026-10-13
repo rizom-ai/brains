@@ -49,7 +49,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    return { classification: "system", projectionSourceRole: "supporting" };
   }
 
   protected override createGenerationHandler(
@@ -75,6 +75,9 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // Brains no longer copy what other brains publish; delete the pieces a
+    // brain kept before, with their files.
+    await context.entityService.purgeEntityType("network-piece");
     registerAtprotoBrainCardHandlers(context);
     context.recurringChecks.register({
       id: "agent-card-refresh",
@@ -95,7 +98,10 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return getAgentDiscoveryInstructions();
+    return [
+      getAgentDiscoveryInstructions(),
+      'Agent approval/archive is a status field update on `entityType: "agent"`.',
+    ].join("\n");
   }
 }
 

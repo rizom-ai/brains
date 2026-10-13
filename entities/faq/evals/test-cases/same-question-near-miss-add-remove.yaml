@@ -1,0 +1,20 @@
+id: faq-same-question-near-miss-add-remove
+name: Adding and removing a person are different questions
+description: Near-identical wording with opposite actions must not merge.
+type: plugin
+tags: [faq, dedup]
+plugin: faq
+handler: sameQuestion
+
+input:
+  stored:
+    question: How do I add a team member to my brain?
+    answer: In Admin, open People, choose Invite, enter their email and pick a role.
+  incoming:
+    question: How do I remove a team member from my brain?
+    answer: In Admin, open People, select the person and choose Remove; their access ends immediately.
+
+expectedOutput:
+  validateEach:
+    - path: sameQuestion
+      equals: false

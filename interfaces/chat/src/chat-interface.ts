@@ -220,11 +220,11 @@ export class ChatInterface extends MessageInterfacePlugin<
     });
   }
 
-  protected override async onRegister(
+  /** One channel per configured platform, in the worker too. */
+  protected override registerChannels(
     context: MessageInterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    if (this.config.adapters.discord) {
+  ): void {
+    if (this.config.adapters.discord)
       context.channels.registerDescriptor({
         type: "discord",
         displayName: "Discord",
@@ -232,11 +232,7 @@ export class ChatInterface extends MessageInterfacePlugin<
         subjectPattern: { source: "^[0-9]{17,20}$" },
         manualDelivery: true,
       });
-      this.discordSubscriptions = createDiscordThreadSubscriptionStore(
-        context.runtimeState,
-      );
-    }
-    if (this.config.adapters.slack) {
+    if (this.config.adapters.slack)
       context.channels.registerDescriptor({
         type: "slack",
         displayName: "Slack",
@@ -244,10 +240,20 @@ export class ChatInterface extends MessageInterfacePlugin<
         subjectPattern: { source: "^[UW][A-Z0-9]+$" },
         manualDelivery: true,
       });
+  }
+
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+    if (this.config.adapters.discord)
+      this.discordSubscriptions = createDiscordThreadSubscriptionStore(
+        context.runtimeState,
+      );
+    if (this.config.adapters.slack)
       this.slackSubscriptions = createSlackThreadSubscriptionStore(
         context.runtimeState,
       );
-    }
     this.turnController.registerHandlers(
       this.chatApp.build(context.runtimeState),
     );

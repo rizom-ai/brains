@@ -1,4 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
+import { createMockProgressReporter } from "@brains/test-utils";
 import {
   createDirectorySyncFacade,
   createGitSyncFacade,
@@ -26,6 +27,44 @@ describe("active sync facades", () => {
     expect((await facade.getStatus()).syncPath).toBe("/first");
     active = directoryAt("/second");
     expect((await facade.getStatus()).syncPath).toBe("/second");
+  });
+
+  it("forwards durable batch identity through the active generation", async () => {
+    const active = directoryAt("/batch");
+    const imported = spyOn(active, "importEntitiesWithProgress");
+    const cleaned = spyOn(active, "removeOrphanedEntities");
+    const facade = createDirectorySyncFacade(() => active);
+    const batch = {
+      operationId: "root",
+      rootJobId: "root",
+      childKey: "child",
+      expectedChildren: 2,
+    };
+    const reporter = createMockProgressReporter();
+    const plan = [
+      {
+        path: "note.md",
+        entityType: "note",
+        id: "note",
+        expectedRevision: "before-sync",
+      },
+    ];
+    await facade.importEntitiesWithProgress(
+      ["note.md"],
+      reporter,
+      10,
+      batch,
+      plan,
+    );
+    await facade.removeOrphanedEntities(batch);
+    expect(imported).toHaveBeenCalledWith(
+      ["note.md"],
+      reporter,
+      10,
+      batch,
+      plan,
+    );
+    expect(cleaned).toHaveBeenCalledWith(batch);
   });
 
   it("resolves the active Git generation and forwards cancellation", async () => {

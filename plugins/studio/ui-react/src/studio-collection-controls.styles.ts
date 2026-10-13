@@ -1,8 +1,42 @@
 import * as stylex from "@stylexjs/stylex";
 export const collectionControlStyles: Record<
-  "controls" | "row" | "filters" | "summary" | "open" | "panel" | "state",
+  | "controls"
+  | "row"
+  | "filters"
+  | "summary"
+  | "open"
+  | "panel"
+  | "state"
+  | "scope"
+  | "scopeChoice",
   stylex.StyleXStyles
 > = stylex.create({
+  scope: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 12,
+    fontFamily: "var(--console-mono)",
+    fontSize: 10,
+  },
+  scopeChoice: {
+    padding: "6px 0",
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderLeftWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomStyle: "solid",
+    borderBottomColor: "transparent",
+    backgroundColor: "transparent",
+    font: "inherit",
+    color: "inherit",
+    cursor: "pointer",
+    ":is([aria-pressed=true])": {
+      borderBottomColor: "var(--console-text)",
+      color: "var(--console-text)",
+    },
+    "@media (max-width: 640px)": { minHeight: 44 },
+  },
   controls: {
     paddingBlock: 14,
     borderBottom: "1px solid var(--console-rule)",
@@ -12,12 +46,19 @@ export const collectionControlStyles: Record<
   },
   // One instrument row: the query, its filters, and what it matched.
   row: {
+    position: "relative",
     display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
     gap: 10,
   },
-  filters: { position: "relative" },
+  filters: {
+    position: "static",
+    flexBasis: {
+      default: null,
+      ":is([open])": { default: null, "@media (max-width: 640px)": "100%" },
+    },
+  },
   summary: {
     display: "inline-flex",
     alignItems: "center",

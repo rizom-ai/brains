@@ -1,0 +1,135 @@
+/* Published FAQs under the atlas on yeehaa.io; see proposal.js. It uses the
+   atlas's own theme tokens, so both themes hold. */
+.faq-band {
+  border-top: 1px solid var(--color-rule);
+  padding: 4.5rem 0 5rem;
+}
+.faq-band__inner {
+  margin-inline: auto;
+  max-width: 1152px;
+  padding-inline: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 496px) minmax(0, 1fr);
+  column-gap: 96px;
+  align-items: start;
+}
+/* The questions stay in view while a long answer is read. */
+.faq-band__inner > div:first-child {
+  position: sticky;
+  top: 104px;
+}
+.faq-band h2 {
+  font: 500 23.2px/1.2 var(--font-heading);
+  color: var(--color-heading);
+  margin: 0 0 14px;
+}
+.faq-band__questions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.faq-band__questions button {
+  all: unset;
+  display: block;
+  cursor: pointer;
+  font: italic 400 17.6px/1.3 var(--font-heading);
+  color: var(--color-heading);
+  padding: 7px 0 7px 14px;
+  margin-left: -14px;
+  border-left: 2px solid transparent;
+}
+.faq-band__questions button[aria-expanded="true"] {
+  border-left-color: var(--color-accent);
+}
+.faq-band__questions button:hover {
+  color: var(--color-accent);
+}
+.faq-band__answer {
+  font: 400 17px/1.65 var(--font-heading);
+  color: var(--color-text);
+  max-width: 62ch;
+  padding-top: 41px;
+}
+.faq-band__answer h3 {
+  font: 500 19px/1.3 var(--font-heading);
+  color: var(--color-heading);
+  margin: 1.4em 0 0.4em;
+}
+.faq-band__answer strong {
+  color: var(--color-heading);
+  font-weight: 600;
+}
+.faq-band__answer p {
+  margin: 0 0 0.9em;
+}
+.faq-band__answer ol,
+.faq-band__answer ul {
+  margin: 0 0 0.9em;
+  padding-left: 1.3em;
+}
+.faq-band__answer ul,
+.faq-band__answer-in ul {
+  list-style: disc;
+}
+.faq-band__answer ol,
+.faq-band__answer-in ol {
+  list-style: decimal;
+}
+.faq-band__answer li::marker,
+.faq-band__answer-in li::marker {
+  color: var(--color-accent);
+}
+.faq-band__answer li {
+  margin-bottom: 0.35em;
+}
+.faq-band__answer-in {
+  display: none;
+}
+
+/* Phone: the questions stack; the open one shows its answer beneath it. */
+@media (max-width: 47.99rem) {
+  .faq-band {
+    padding: 2.75rem 16px 3rem;
+  }
+  .faq-band__inner {
+    grid-template-columns: 1fr;
+  }
+  .faq-band__inner > div:first-child {
+    position: static;
+  }
+  .faq-band__questions button {
+    margin-left: 0;
+    padding-left: 12px;
+  }
+  .faq-band__answer-in {
+    padding-left: 14px !important;
+  }
+  .faq-band__answer {
+    display: none;
+  }
+  .faq-band__answer-in {
+    font: 400 16px/1.6 var(--font-heading);
+    color: var(--color-text);
+    padding: 4px 0 14px;
+  }
+  .faq-band__answer-in h3 {
+    font: 500 17px/1.3 var(--font-heading);
+    color: var(--color-heading);
+    margin: 1.2em 0 0.35em;
+  }
+  .faq-band__answer-in strong {
+    color: var(--color-heading);
+    font-weight: 600;
+  }
+  .faq-band__answer-in p {
+    margin: 0 0 0.8em;
+  }
+  .faq-band__answer-in ol,
+  .faq-band__answer-in ul {
+    margin: 0 0 0.8em;
+    padding-left: 1.25em;
+  }
+  li.open .faq-band__answer-in {
+    display: block;
+  }
+}

@@ -75,7 +75,11 @@ export function registerBrainCharacterSupport(
     SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
     characterAdapter.schema,
     characterAdapter,
-    { projectionSource: false, projectionSourceRole: "excluded" },
+    {
+      classification: "system",
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    },
   );
   logger.debug("Brain character entity support registered");
 }
@@ -89,7 +93,7 @@ export function registerAnchorProfileSupport(
     SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
     profileAdapter.schema,
     profileAdapter,
-    { projectionSourceRole: "canonical" },
+    { classification: "system", projectionSourceRole: "canonical" },
   );
   logger.debug("Anchor profile entity support registered");
 }
@@ -102,7 +106,9 @@ export async function initializeConfiguredPlugins(options: {
 }): Promise<void> {
   const { plugins, pluginManager, logger, initOptions } = options;
 
-  const configuredPlugins = initOptions?.registrationContext?.executionOnly
+  // The worker runs no interfaces; it gets only their channels and senders.
+  const executionOnly = initOptions?.registrationContext?.executionOnly;
+  const configuredPlugins = executionOnly
     ? plugins.filter((plugin) => plugin.type !== "interface")
     : plugins;
   logger.debug(`Found ${configuredPlugins.length} plugins to register`);
@@ -113,6 +119,11 @@ export async function initializeConfiguredPlugins(options: {
   }
 
   await pluginManager.initializePlugins(initOptions?.registrationContext);
+  if (executionOnly)
+    await pluginManager.registerInterfaceChannels(
+      plugins.filter((plugin) => plugin.type === "interface"),
+      initOptions.registrationContext,
+    );
 
   if (!initOptions?.registerOnly) {
     for (const { id, error } of pluginManager.getFailedPlugins()) {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   createMcpHandler,
   InMemoryTransport,
@@ -162,6 +162,167 @@ describe("MCPService", () => {
     mcpService = MCPService.createFresh(mockMessageBus, createSilentLogger());
   });
 
+  describe("registration ownership", () => {
+    it.each(["admin", "public"] as const)(
+      "rejects duplicate capabilities even at %s permission without changing ownership",
+      (permission) => {
+        mcpService.setProtocolMode("debug");
+        mcpService.setPermissionLevel(permission);
+        const tool: Tool = {
+          name: "owned_tool",
+          description: "Original tool",
+          inputSchema: {},
+          handler: async () => ({ success: true }),
+        };
+        const resource: Resource = {
+          name: "owned-resource",
+          uri: "test://owned",
+          description: "Original resource",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const template: ResourceTemplate = {
+          name: "owned-template",
+          uriTemplate: "test://template/{id}",
+          description: "Original template",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const prompt: Prompt = {
+          name: "owned-prompt",
+          args: {},
+          handler: async () => ({ messages: [] }),
+        };
+        mcpService.registerTool("owner", tool);
+        mcpService.registerResource("owner", resource);
+        mcpService.registerResourceTemplate("owner", template);
+        mcpService.registerPrompt("owner", prompt);
+
+        expect(() => mcpService.registerTool("other", tool)).toThrow(
+          "already registered",
+        );
+        expect(() => mcpService.registerResource("other", resource)).toThrow(
+          "already registered",
+        );
+        expect(() =>
+          mcpService.registerResourceTemplate("other", template),
+        ).toThrow("already registered");
+        expect(() => mcpService.registerPrompt("other", prompt)).toThrow(
+          "already registered",
+        );
+        mcpService.unregisterPlugin("other");
+
+        expect(mcpService.listTools().map((entry) => entry.pluginId)).toEqual([
+          "owner",
+        ]);
+        expect(mcpService.listResources()).toEqual([
+          { pluginId: "owner", resource },
+        ]);
+        const server = mcpService.createMcpServer("admin");
+        expect(listProtocolToolNames(server)).toEqual([tool.name]);
+        expect(listProtocolResourceUris(server)).toEqual([resource.uri]);
+        expect(listProtocolResourceTemplateNames(server)).toEqual([
+          template.name,
+        ]);
+        expect(listProtocolPromptNames(server)).toEqual([prompt.name]);
+      },
+    );
+
+    it.each(["resource", "template", "prompt"] as const)(
+      "does not retain a %s after SDK registration fails",
+      (kind) => {
+        const resource: Resource = {
+          name: "retry-resource",
+          uri: "test://retry",
+          description: "Retry resource",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const template: ResourceTemplate = {
+          name: "retry-template",
+          uriTemplate: "test://retry/{id}",
+          description: "Retry template",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const prompt: Prompt = {
+          name: "retry-prompt",
+          args: {},
+          handler: async () => ({ messages: [] }),
+        };
+        const register = (): void => {
+          switch (kind) {
+            case "resource":
+              return mcpService.registerResource("owner", resource);
+            case "template":
+              return mcpService.registerResourceTemplate("owner", template);
+            case "prompt":
+              return mcpService.registerPrompt("owner", prompt);
+          }
+        };
+        const failure = new Error("SDK registration failed");
+        const sdkRegistration = spyOn(
+          mcpService.getMcpServer(),
+          kind === "prompt" ? "registerPrompt" : "registerResource",
+        ).mockImplementationOnce(() => {
+          throw failure;
+        });
+        try {
+          expect(register).toThrow(failure);
+          const server = mcpService.createMcpServer("admin");
+          expect(listProtocolResourceUris(server)).toEqual([]);
+          expect(listProtocolResourceTemplateNames(server)).toEqual([]);
+          expect(listProtocolPromptNames(server)).toEqual([]);
+        } finally {
+          sdkRegistration.mockRestore();
+        }
+        register();
+        const server = mcpService.createMcpServer("admin");
+        const names =
+          kind === "resource"
+            ? listProtocolResourceUris(server)
+            : kind === "template"
+              ? listProtocolResourceTemplateNames(server)
+              : listProtocolPromptNames(server);
+        expect(names).toEqual([
+          kind === "resource"
+            ? resource.uri
+            : kind === "template"
+              ? template.name
+              : prompt.name,
+        ]);
+      },
+    );
+
+    it("does not retain a tool when SDK registration fails and permits a retry", () => {
+      mcpService.setProtocolMode("debug");
+      const tool: Tool = {
+        name: "retry_tool",
+        description: "Retry tool",
+        inputSchema: {},
+        handler: async () => ({ success: true }),
+      };
+      const failure = new Error("SDK registration failed");
+      const register = spyOn(
+        mcpService.getMcpServer(),
+        "registerTool",
+      ).mockImplementationOnce(() => {
+        throw failure;
+      });
+      try {
+        expect(() => mcpService.registerTool("owner", tool)).toThrow(failure);
+        expect(mcpService.listTools()).toEqual([]);
+      } finally {
+        register.mockRestore();
+      }
+      mcpService.registerTool("owner", tool);
+      expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
+        tool.name,
+      ]);
+      expect(mcpService.listTools()[0]?.pluginId).toBe("owner");
+    });
+  });
+
   describe("plugin instructions", () => {
     it("returns no instructions before any plugin registers", () => {
       expect(mcpService.getInstructions()).toEqual([]);
@@ -282,6 +443,7 @@ describe("MCPService", () => {
         },
         visibility: "admin",
         sideEffects: "none",
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -336,6 +498,7 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "admin",
         sideEffects: "none",
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -742,22 +905,33 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: {} }),
       };
 
+      const optInTool: Tool = {
+        name: "surface_opt_in",
+        description: "Explicitly basic-exposed adapter",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        directMcpExposure: "basic",
+        handler: async () => ({ success: true, data: {} }),
+      };
+
       mcpService.registerTool("plugin", readTool);
       mcpService.registerTool("plugin", writeTool);
       mcpService.registerTool("plugin", agentOnlyTool);
+      mcpService.registerTool("plugin", optInTool);
 
       expect(
         mcpService
           .listProtocolToolsForPermissionLevel("trusted", "basic")
           .map((entry) => entry.tool.name),
-      ).toEqual(["surface_search"]);
+      ).toEqual(["surface_opt_in"]);
       expect(
         mcpService
           .listProtocolToolsForPermissionLevel("trusted", "debug")
           .map((entry) => entry.tool.name),
-      ).toEqual(["surface_search", "surface_create"]);
+      ).toEqual(["surface_search", "surface_create", "surface_opt_in"]);
       expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
-        "surface_search",
+        "surface_opt_in",
       ]);
     });
 
@@ -804,7 +978,7 @@ describe("MCPService", () => {
   });
 
   describe("createMcpServer", () => {
-    it("should expose only read-only tools plus chat and confirm in basic mode", () => {
+    it("should expose only chat and confirm in basic mode at every permission level", () => {
       const readTool: Tool = {
         name: "search",
         description: "Search entities",
@@ -851,23 +1025,33 @@ describe("MCPService", () => {
       mcpService.registerTool("mcp", chatTool);
       mcpService.registerTool("mcp", confirmTool);
 
-      expect(
-        listProtocolToolNames(mcpService.createMcpServer("admin")),
-      ).toEqual(["search", "chat", "confirm"]);
-      expect(
-        getProtocolToolAnnotations(mcpService.getMcpServer(), "search"),
-      ).toEqual({
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      });
+      for (const permissionLevel of ["public", "trusted", "admin"] as const) {
+        expect(
+          listProtocolToolNames(mcpService.createMcpServer(permissionLevel)),
+        ).toEqual(["chat", "confirm"]);
+      }
       expect(
         getProtocolToolAnnotations(mcpService.getMcpServer(), "chat"),
       ).toEqual({
         readOnlyHint: false,
         destructiveHint: true,
         idempotentHint: false,
+        openWorldHint: false,
+      });
+
+      mcpService.setProtocolMode("debug");
+      expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
+        "search",
+        "entity_create",
+        "chat",
+        "confirm",
+      ]);
+      expect(
+        getProtocolToolAnnotations(mcpService.getMcpServer(), "search"),
+      ).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: false,
       });
     });
@@ -929,19 +1113,9 @@ describe("MCPService", () => {
       try {
         const tools = await client.listTools();
         expect(tools.tools.map((tool) => tool.name)).toEqual([
-          "client_search",
           "chat",
           "confirm",
         ]);
-        expect(
-          tools.tools.find((tool) => tool.name === "client_search")
-            ?.annotations,
-        ).toEqual({
-          readOnlyHint: true,
-          destructiveHint: false,
-          idempotentHint: true,
-          openWorldHint: false,
-        });
         expect(
           tools.tools.find((tool) => tool.name === "chat")?.annotations,
         ).toEqual({
@@ -956,6 +1130,98 @@ describe("MCPService", () => {
       }
     });
 
+    it("enforces strict operation branches and root fields over the real protocol", async () => {
+      mcpService.registerTool("test", {
+        name: "typed_update",
+        description: "Typed update",
+        visibility: "public",
+        directMcpExposure: "basic",
+        inputSchema: {
+          id: z.string(),
+          operation: z.discriminatedUnion("kind", [
+            z
+              .object({
+                kind: z.literal("fields"),
+                fields: z.record(z.string(), z.unknown()),
+              })
+              .strict(),
+            z
+              .object({ kind: z.literal("content"), content: z.string() })
+              .strict(),
+          ]),
+        },
+        handler: async () => ({ success: true, data: { updated: "plan" } }),
+      });
+      const client = new Client({ name: "schema-test", version: "1.0.0" });
+      const server = mcpService.createMcpServer("public");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        const listed = await client.listTools();
+        expect(listed.tools[0]?.inputSchema).toMatchObject({
+          additionalProperties: false,
+          properties: {
+            operation: {
+              oneOf: [
+                {
+                  additionalProperties: false,
+                  properties: { fields: { additionalProperties: {} } },
+                },
+                { additionalProperties: false },
+              ],
+            },
+          },
+        });
+        for (const args of [
+          {
+            id: "plan",
+            operation: { kind: "fields", fields: {}, content: "mixed" },
+          },
+          {
+            id: "plan",
+            operation: { kind: "fields", fields: {} },
+            content: "flat",
+          },
+        ]) {
+          const rejected = await client
+            .callTool({ name: "typed_update", arguments: args })
+            .then(
+              (result) => result.isError === true,
+              () => true,
+            );
+          expect(rejected).toBe(true);
+          expect(mockMessageBus.send).not.toHaveBeenCalled();
+        }
+        const result = await client.callTool({
+          name: "typed_update",
+          arguments: {
+            id: "plan",
+            operation: { kind: "fields", fields: { customExtension: "value" } },
+          },
+        });
+        expect(result.isError).not.toBe(true);
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(1);
+        expect(mockMessageBus.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              args: {
+                id: "plan",
+                operation: {
+                  kind: "fields",
+                  fields: { customExtension: "value" },
+                },
+              },
+            }),
+          }),
+        );
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    });
+
     it("forwards request _meta through a protocol client call", async () => {
       const tool: Tool = {
         name: "client_metadata",
@@ -963,6 +1229,7 @@ describe("MCPService", () => {
         inputSchema: { input: z.string() },
         visibility: "public",
         sideEffects: "none",
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -1016,6 +1283,7 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
+        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: [] }),
       };
       const resource: Resource = {

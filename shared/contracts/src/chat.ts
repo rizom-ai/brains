@@ -1,10 +1,27 @@
 import { z } from "@brains/utils/zod";
+import { sourceBrainSchema } from "./ask-box";
+import { askedBeforeSchema } from "./agent-response";
+import { askContentSchema } from "./ask-content";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
 export {
   guestExecutionLimitsSchema,
   guestExecutionPolicySchema,
+  guestRefusalCategorySchema,
+  guestScreeningCategorySchema,
+  guestScreeningOutcomeSchema,
+  guestScreeningSchema,
+  guestTurnCostSchema,
+  guestTurnSettlementSchema,
+  guestTurnUsageSchema,
   type GuestExecutionPolicy,
+  type GuestRefusalCategory,
+  type GuestScreening,
+  type GuestScreeningCategory,
+  type GuestScreeningOutcome,
+  type GuestTurnCost,
+  type GuestTurnSettlement,
+  type GuestTurnUsage,
 } from "./guest-execution";
 
 export const CHAT_API_VERSION = 1 as const;
@@ -60,6 +77,7 @@ export const guestChatSessionResponseSchema: Strict<{
   retention: typeof guestRetentionSchema;
   messageCharacters: z.ZodNumber;
   canSend: z.ZodBoolean;
+  presentation: z.ZodOptional<typeof askContentSchema>;
 }> = z.strictObject({
   expiresAt: z.number().int().positive(),
   provider: z.string().min(1),
@@ -68,6 +86,7 @@ export const guestChatSessionResponseSchema: Strict<{
   retention: guestRetentionSchema,
   messageCharacters: z.number().int().positive(),
   canSend: z.boolean(),
+  presentation: askContentSchema.optional(),
 });
 export type GuestChatSessionResponse = z.output<
   typeof guestChatSessionResponseSchema
@@ -188,7 +207,7 @@ const chatAttachmentCardSchema: Loose<{
   attachment: chatAttachmentCardDataSchema,
 });
 
-const chatSourceCitationSchema: Loose<{
+export const chatSourceCitationSchema: Loose<{
   id: z.ZodString;
   title: z.ZodOptional<z.ZodString>;
   source: z.ZodString;
@@ -197,6 +216,7 @@ const chatSourceCitationSchema: Loose<{
   entityId: z.ZodOptional<z.ZodString>;
   excerpt: z.ZodOptional<z.ZodString>;
   provenance: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  brain: z.ZodOptional<typeof sourceBrainSchema>;
 }> = z.looseObject({
   id: chatIdSchema,
   title: z.string().max(4_096).optional(),
@@ -206,6 +226,7 @@ const chatSourceCitationSchema: Loose<{
   entityId: chatIdSchema.optional(),
   excerpt: z.string().max(20_000).optional(),
   provenance: z.record(z.string(), z.unknown()).optional(),
+  brain: sourceBrainSchema.optional(),
 });
 
 const chatSourcesCardSchema: Loose<{
@@ -288,6 +309,25 @@ export type ChatCard = z.output<typeof chatCardSchema>;
 
 /** Presentation projection, not authorization: callers must use guest-scoped
  * runtime results or owned guest history. Never pass arbitrary operator cards. */
+/** An https address of bounded length without credentials, or nothing: an
+ * untrusted URL must not turn a citation into navigation authority. */
+function vettedCitationUrl(value: string | undefined): string | undefined {
+  if (!value || value.length > 512) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    // Not a URL at all: the citation gets no address rather than a bad one.
+    return undefined;
+  }
+  return parsed.protocol === "https:" &&
+    !parsed.username &&
+    !parsed.password &&
+    parsed.href.length <= 512
+    ? parsed.href
+    : undefined;
+}
+
 export function getGuestSourceCards(
   value: unknown,
 ): Extract<ChatCard, { kind: "sources" }>[] {
@@ -309,21 +349,9 @@ export function getGuestSourceCards(
       )
         continue;
       seen.add(source.id);
-      let url: string | undefined;
-      if (source.url && source.url.length <= 512) {
-        try {
-          const parsedUrl = new URL(source.url);
-          if (
-            parsedUrl.protocol === "https:" &&
-            !parsedUrl.username &&
-            !parsedUrl.password &&
-            parsedUrl.href.length <= 512
-          )
-            url = parsedUrl.href;
-        } catch {
-          // An untrusted URL must not turn a citation into navigation authority.
-        }
-      }
+      const url = vettedCitationUrl(source.url);
+      // The brain the source came from keeps its name and a vetted address.
+      const brainUrl = vettedCitationUrl(source.brain?.url);
       sources.push({
         id: source.id,
         source: source.entityType,
@@ -332,6 +360,14 @@ export function getGuestSourceCards(
         title: (source.title ?? source.entityId).slice(0, 160),
         ...(source.excerpt ? { excerpt: source.excerpt.slice(0, 280) } : {}),
         ...(url ? { url } : {}),
+        ...(source.brain
+          ? {
+              brain: {
+                name: source.brain.name.slice(0, 120),
+                ...(brainUrl ? { url: brainUrl } : {}),
+              },
+            }
+          : {}),
       });
     }
   }
@@ -579,12 +615,15 @@ export const chatHistoryMessageSchema: Loose<{
   content: z.ZodString;
   attachments: z.ZodOptional<z.ZodArray<typeof chatHistoryAttachmentSchema>>;
   cards: z.ZodOptional<z.ZodArray<typeof chatCardSchema>>;
+  askedBefore: z.ZodOptional<typeof askedBeforeSchema>;
 }> = z.looseObject({
   id: chatIdSchema,
   role: z.enum(["user", "assistant"]),
   content: z.string().max(1_000_000),
   attachments: z.array(chatHistoryAttachmentSchema).max(100).optional(),
   cards: z.array(chatCardSchema).max(100).optional(),
+  /** A published FAQ gave this reply in the model's place. */
+  askedBefore: askedBeforeSchema.optional(),
 });
 
 export type ChatHistoryMessage = z.output<typeof chatHistoryMessageSchema>;
@@ -712,41 +751,15 @@ export const chatMessageSchema: z.ZodObject<{
 export type ChatMessage = z.output<typeof chatMessageSchema>;
 export type ChatMessageRole = ChatMessage["role"];
 
-const chatSafeText = (max: number): z.ZodString =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(max)
-    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
-
-export const chatSourceContextSchema: Strict<{
-  sourceId: z.ZodString;
-  itemId: z.ZodString;
-  label: z.ZodString;
-}> = z.strictObject({
-  sourceId: z
-    .string()
-    .trim()
-    .regex(/^[a-z][a-z0-9-]*$/)
-    .max(64),
-  itemId: z.string().trim().min(1).max(300),
-  label: chatSafeText(160),
-});
-
-export type ChatSourceContext = z.output<typeof chatSourceContextSchema>;
-
 export const chatMessageRequestSchema: Strict<{
   id: z.ZodOptional<z.ZodString>;
   messages: z.ZodArray<typeof chatMessageSchema>;
   trigger: z.ZodOptional<z.ZodString>;
-  inboxContext: z.ZodOptional<typeof chatSourceContextSchema>;
 }> = z
   .object({
     id: chatIdSchema.optional(),
     messages: z.array(chatMessageSchema).min(1).max(200),
     trigger: z.string().trim().min(1).max(64).optional(),
-    inboxContext: chatSourceContextSchema.optional(),
   })
   .strict();
 
@@ -991,6 +1004,12 @@ export const chatProtocolEventSchema: z.ZodDiscriminatedUnion<
       transient: z.ZodOptional<z.ZodBoolean>;
     }>,
     Loose<{
+      type: z.ZodLiteral<"data-asked-before">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof askedBeforeSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
       type: z.ZodLiteral<"data-attachment">;
       id: z.ZodOptional<z.ZodString>;
       data: typeof chatAttachmentCardSchema;
@@ -1138,6 +1157,13 @@ export const chatProtocolEventSchema: z.ZodDiscriminatedUnion<
     type: z.literal("data-sources"),
     id: chatIdSchema.optional(),
     data: chatSourcesCardSchema,
+    transient: z.boolean().optional(),
+  }),
+  // A published FAQ answered the visitor's question in the model's place.
+  z.looseObject({
+    type: z.literal("data-asked-before"),
+    id: chatIdSchema.optional(),
+    data: askedBeforeSchema,
     transient: z.boolean().optional(),
   }),
   z.looseObject({
@@ -1358,22 +1384,24 @@ export async function* readChatProtocolEvents(
     throw new ChatApiError("read stream", 502, "invalid-response");
   }
 
+  // Read through the reader rather than iterating the body: this contract also
+  // runs in browsers that do not async-iterate a ReadableStream.
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
+  let finished = false;
   try {
-    for (;;) {
+    while (!finished) {
       const { value, done } = await reader.read();
+      finished = done;
       buffered += decoder.decode(value, { stream: !done });
-      let newline = buffered.indexOf("\n");
-      while (newline >= 0) {
-        const line = buffered.slice(0, newline);
-        buffered = buffered.slice(newline + 1);
+      // Everything before the last newline is a complete line; the tail is not.
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
+      for (const line of lines) {
         const event = parseChatProtocolLine(line);
         if (event) yield event;
-        newline = buffered.indexOf("\n");
       }
-      if (done) break;
     }
     if (buffered.length > 0) {
       const event = parseChatProtocolLine(buffered);
@@ -1609,3 +1637,31 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
     },
   };
 }
+
+export {
+  ASK_BOX_ATTRIBUTE,
+  ASK_COVER_ATTRIBUTE,
+  ASK_COVER_STYLE,
+  ASK_CLOSING_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_NAME_ATTRIBUTE,
+  ASK_PAGE_LOCK_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
+  ASK_READY_ATTRIBUTE,
+  ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_MEDIA,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+  askBoxAvailabilitySchema,
+  askSourcesDetailSchema,
+  type AskBoxAvailability,
+  type AskSourcesDetail,
+} from "./ask-box";

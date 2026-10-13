@@ -1,0 +1,18 @@
+.dashboard-ask {
+  color: var(--console-text);
+  font: 15px/1.6 var(--console-ui);
+}
+/* The dashboard themes Web Chat's shared box presentation with console tokens. */
+.dashboard-ask [data-ask-styled] {
+  --ask-bg: var(--console-bg);
+  --ask-text: var(--console-text);
+  --ask-muted: var(--console-text-muted);
+  --ask-rule: var(--console-rule-strong);
+  --ask-rule-soft: var(--console-rule);
+  --ask-accent: var(--console-accent);
+  --ask-on-accent: var(--console-on-accent);
+  --ask-wash: var(--console-card-soft);
+  --ask-display: var(--console-display);
+  --ask-label: var(--console-mono);
+  --ask-body: var(--console-ui);
+}

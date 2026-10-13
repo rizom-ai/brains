@@ -79,9 +79,11 @@ export class EntityExportStore {
         eq(entityExportIntents.revision, intent.revision),
       ),
     );
-    const result = await this.db
-      .delete(entityExportIntents)
-      .where(or(...conditions));
+    // Acquire the write lock before this statement: retrying a refused implicit
+    // write on libSQL can retain a stale read snapshot after another writer commits.
+    const result = await this.db.transaction(async (transaction) =>
+      transaction.delete(entityExportIntents).where(or(...conditions)),
+    );
     return Number(result.rowsAffected);
   }
 

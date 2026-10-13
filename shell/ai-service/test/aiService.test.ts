@@ -352,7 +352,7 @@ describe("AIService", () => {
 
     it("should omit temperature for OpenAI reasoning models", async () => {
       const service = AIService.createFresh(
-        { model: "gpt-5.4-mini", temperature: 0.3 },
+        { model: "gpt-6-luna", temperature: 0.3 },
         logger,
       );
 
@@ -376,7 +376,9 @@ describe("AIService", () => {
 
       expect(generateTextSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          providerOptions: { openai: { reasoningEffort: "low" } },
+          providerOptions: {
+            openai: { reasoningEffort: "low", forceReasoning: true },
+          },
         }),
       );
     });
@@ -599,7 +601,7 @@ describe("AIService", () => {
     it("should omit temperature for reasoning models during object generation", async () => {
       const service = AIService.createFresh(
         {
-          model: "gpt-5.4-mini",
+          model: "gpt-6-luna",
           temperature: 0.2,
         },
         logger,
@@ -626,7 +628,7 @@ describe("AIService", () => {
       expect(generateObjectSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           providerOptions: {
-            openai: { reasoningEffort: "low" },
+            openai: { reasoningEffort: "low", forceReasoning: true },
             anthropic: { structuredOutputMode: "jsonTool" },
           },
         }),

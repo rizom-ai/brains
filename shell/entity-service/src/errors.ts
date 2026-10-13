@@ -9,18 +9,42 @@ const validationIssuesErrorSchema = z.looseObject({
   ),
 });
 
+// Source runners and packed plugins can carry separate class copies.
+const entityValidationErrorSchema = z.object({
+  name: z.literal("EntityValidationError"),
+  entityType: z.string(),
+  originalError: z.unknown(),
+});
+
 export class EntityValidationError extends Error {
   public readonly entityType: string;
   public readonly originalError: unknown;
+  public readonly phase: "schema" | "persist";
 
-  constructor(entityType: string, originalError: unknown) {
+  constructor(
+    entityType: string,
+    originalError: unknown,
+    phase: "schema" | "persist" = "schema",
+  ) {
     super(
       `Invalid entity data for ${entityType}: ${getErrorMessage(originalError)}`,
     );
     this.name = "EntityValidationError";
     this.entityType = entityType;
     this.originalError = originalError;
+    this.phase = phase;
   }
+}
+
+// Read by shape, as a validator's error can come from another class copy.
+const schemaPhaseErrorSchema = z.object({
+  name: z.literal("EntityValidationError"),
+  phase: z.literal("schema"),
+});
+
+/** A validation error that finds the content itself invalid, not a live policy refusing it. */
+export function isSchemaPhaseValidationError(error: unknown): boolean {
+  return schemaPhaseErrorSchema.safeParse(error).success;
 }
 
 export function hasValidationIssues(error: unknown): boolean {
@@ -28,17 +52,39 @@ export function hasValidationIssues(error: unknown): boolean {
 }
 
 export function isEntityValidationError(error: unknown): boolean {
-  return error instanceof EntityValidationError || hasValidationIssues(error);
+  return (
+    error instanceof EntityValidationError ||
+    entityValidationErrorSchema.safeParse(error).success ||
+    hasValidationIssues(error)
+  );
 }
 
 export function toEntityValidationError(
   entityType: string,
   error: unknown,
+  phase: "schema" | "persist" = "schema",
 ): EntityValidationError | undefined {
   if (error instanceof EntityValidationError) {
-    return error;
+    return error.phase === phase
+      ? error
+      : new EntityValidationError(entityType, error.originalError, phase);
   }
+  const wrapped = entityValidationErrorSchema.safeParse(error);
+  if (wrapped.success)
+    return new EntityValidationError(
+      entityType,
+      wrapped.data.originalError,
+      phase,
+    );
   return hasValidationIssues(error)
-    ? new EntityValidationError(entityType, error)
+    ? new EntityValidationError(entityType, error, phase)
     : undefined;
+}
+
+/** The brain keeps no embeddings, so nothing is semantically near anything. */
+export class SemanticIndexingDisabledError extends Error {
+  constructor() {
+    super("Semantic indexing is disabled for this Brain instance");
+    this.name = "SemanticIndexingDisabledError";
+  }
 }

@@ -61,7 +61,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
     add: ["docs"],
     site: {
-      package: "@brains/site-default",
+      package: "@brains/site-organization",
       theme: "@brains/theme-rizom",
     },
     plugins: {

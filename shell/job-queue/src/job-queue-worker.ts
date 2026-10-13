@@ -19,15 +19,37 @@ import {
   FiberMap,
   Schedule,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { OperationContext } from "@brains/operation-context";
+import {
+  createRenewableDeadline,
+  renewOnAdvance,
+  type RenewableDeadline,
+} from "./progress-deadline";
+
+/**
+ * Anything that can force its own ambient async context to empty for the
+ * duration of a callback. Jobs are dispatched as Effect fibers, which have
+ * no relationship to Node's AsyncLocalStorage tracking, so a job handler's
+ * ambient context (e.g. entity-service's projection-batch scope) can appear
+ * to carry over from an unrelated, previously-processed job. The worker
+ * resets every registered scope before running each job so that can't
+ * happen; see ProjectionBatchCoordinator.runFreshBatchScope for the concrete
+ * case this exists for.
+ */
+export interface ResettableAmbientScope {
+  runFreshBatchScope<T>(fn: () => T): T;
+}
 
 export interface JobQueueWorkerRuntimeOptions {
   /** Internal clock boundary used for deterministic polling tests. */
   clock?: Clock.Clock;
   /** Shared app-scoped causal context. */
   operationContext?: OperationContext;
+  /** Ambient async context(s) to reset to empty before each job runs. */
+  projectionBatchScope?: ResettableAmbientScope;
 }
 
 class JobDeadlineExceededError extends Error {
@@ -64,14 +86,15 @@ export class JobQueueWorker {
   private activeJobs: Set<string> = new Set();
   private stats: JobQueueWorkerStats;
   private startTime: number = 0;
-  private pollFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private pollFiber: Fiber.Fiber<void, never> | null = null;
   private currentPoll: Promise<void> | null = null;
-  private workerScope: Scope.CloseableScope | null = null;
+  private workerScope: Scope.Closeable | null = null;
   private jobFibers: FiberMap.FiberMap<string, void, never> | null = null;
   private activeTransition: WorkerTransition | null = null;
   private readonly transitionQueue: WorkerTransition[] = [];
   private readonly clock: Clock.Clock | undefined;
   private readonly operationContext: OperationContext;
+  private readonly projectionBatchScope: ResettableAmbientScope | undefined;
   private workerSessionId: string | null = null;
   private workerHeartbeatStop: (() => Promise<void>) | null = null;
 
@@ -111,6 +134,7 @@ export class JobQueueWorker {
     this.clock = runtimeOptions?.clock;
     this.operationContext =
       runtimeOptions?.operationContext ?? OperationContext.createFresh();
+    this.projectionBatchScope = runtimeOptions?.projectionBatchScope;
     this.config = {
       concurrency: config?.concurrency ?? 1,
       pollInterval: config?.pollInterval ?? 1000,
@@ -185,7 +209,7 @@ export class JobQueueWorker {
 
     this.workerScope = Effect.runSync(Scope.make());
     this.jobFibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.workerScope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.workerScope),
     );
 
     // Start the supervised polling fiber.
@@ -314,8 +338,14 @@ export class JobQueueWorker {
         availableSlots = Math.min(availableSlots, remainingJobs);
       }
 
-      // Get jobs from the queue
-      const jobs: JobInfo[] = [];
+      // Establish supervision before acquiring any durable attempt ownership.
+      const jobFibers = this.jobFibers;
+      if (!jobFibers) {
+        throw new Error("Worker job fiber scope is not available");
+      }
+
+      // Hand off each claim before requesting another. A later dequeue can
+      // fail or stall; it must not strand an earlier claim without a heartbeat.
       for (let i = 0; i < availableSlots; i++) {
         // Re-check on every iteration — stop() may have been requested
         // while awaiting a previous dequeue
@@ -331,22 +361,8 @@ export class JobQueueWorker {
           workerSessionId,
           leaseDurationMs: this.config.leaseDurationMs,
         });
-        if (job) {
-          jobs.push(job);
-        } else {
-          break; // No more jobs available
-        }
-      }
+        if (!job) break;
 
-      // Process jobs concurrently under the worker's supervised fiber map.
-      const jobFibers = this.jobFibers;
-      if (!jobFibers) {
-        if (jobs.length > 0) {
-          throw new Error("Worker job fiber scope is not available");
-        }
-        return;
-      }
-      for (const job of jobs) {
         this.activeJobs.add(job.id);
         await Effect.runPromise(
           FiberMap.run(
@@ -435,9 +451,7 @@ export class JobQueueWorker {
       Effect.schedule(Schedule.spaced(this.config.pollInterval)),
       Effect.asVoid,
     );
-    const loop = this.clock
-      ? Effect.withClock(scheduledPolling, this.clock)
-      : scheduledPolling;
+    const loop = withOptionalClock(scheduledPolling, this.clock);
 
     return loop.pipe(
       Effect.ensuring(
@@ -642,11 +656,17 @@ export class JobQueueWorker {
     }
   }
 
+  /**
+   * Run `operation` until it settles or its deadline passes. A renewable
+   * deadline is pushed back by the job's progress, so it catches a stuck job
+   * rather than a long one.
+   */
   private async executeWithDeadline<T>(
     jobType: string,
     timeoutMs: number,
     controller: AbortController,
     operation: () => Promise<T>,
+    deadline: RenewableDeadline = createRenewableDeadline(timeoutMs),
   ): Promise<T> {
     const outcome: Promise<OperationOutcome<T>> = Promise.resolve()
       .then(operation)
@@ -658,7 +678,9 @@ export class JobQueueWorker {
         }),
       );
 
-    const first = await this.raceOutcome(outcome, timeoutMs);
+    const first = await Promise.race([outcome, deadline.expired]).finally(() =>
+      deadline.cancel(),
+    );
     if (first.kind !== "timeout") {
       if (first.kind === "failure") throw first.error;
       return first.value;
@@ -693,9 +715,12 @@ export class JobQueueWorker {
       projectionLineage: [],
       derivationDepth: 0,
     };
-    return this.operationContext.run(provenance, job.id, () =>
-      this.processJobWithinContext(job),
-    );
+    return this.operationContext.run(provenance, job.id, () => {
+      const scope = this.projectionBatchScope;
+      return scope
+        ? scope.runFreshBatchScope(() => this.processJobWithinContext(job))
+        : this.processJobWithinContext(job);
+    });
   }
 
   private async processJobWithinContext(job: JobInfo): Promise<JobResult> {
@@ -755,6 +780,7 @@ export class JobQueueWorker {
       );
       const timeoutMs =
         handler.executionTimeoutMs ?? this.config.defaultExecutionTimeoutMs;
+      const deadline = createRenewableDeadline(timeoutMs);
       const result = await this.executeWithDeadline(
         job.type,
         timeoutMs,
@@ -763,9 +789,10 @@ export class JobQueueWorker {
           handler.process(
             parsedData,
             job.id,
-            progressReporter,
+            renewOnAdvance(progressReporter, deadline.renew),
             controller.signal,
           ),
+        deadline,
       );
 
       await stopHeartbeat();

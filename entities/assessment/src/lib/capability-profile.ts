@@ -1,4 +1,5 @@
 import type {
+  AgentBody,
   AnchorProfileKind,
   BaseEntity,
   ProfileCategory,
@@ -9,9 +10,9 @@ import {
   BaseEntityAdapter,
   anchorProfileKindSchema,
   baseEntitySchema,
+  parseAgentBody,
   skillDataSchema,
 } from "@brains/plugins";
-import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 
 export interface CapabilityProfileSkill {
@@ -54,12 +55,6 @@ export function normalizeTags(raw: string[]): string[] {
   return normalized;
 }
 
-const capabilityAgentSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-
 const capabilityAgentFrontmatterSchema = z.object({
   name: z.string(),
   kind: anchorProfileKindSchema,
@@ -74,73 +69,11 @@ const capabilityAgentFrontmatterSchema = z.object({
 type CapabilityAgentFrontmatter = z.infer<
   typeof capabilityAgentFrontmatterSchema
 >;
-type CapabilityAgentSkill = z.infer<typeof capabilityAgentSkillSchema>;
 
 const capabilityAgentEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("agent"),
   metadata: z.record(z.string(), z.unknown()),
 });
-
-const capabilityAgentBodySchema = z.object({
-  about: z.string(),
-  skills: z.array(capabilityAgentSkillSchema),
-  notes: z.string(),
-});
-
-type CapabilityAgentBody = z.infer<typeof capabilityAgentBodySchema>;
-
-function formatSkills(value: unknown): string {
-  const parsed = z.array(capabilityAgentSkillSchema).safeParse(value);
-  if (!parsed.success || parsed.data.length === 0) return "";
-
-  return parsed.data
-    .map((skill) => {
-      const tags = skill.tags.length > 0 ? ` [${skill.tags.join(", ")}]` : "";
-      return `- ${skill.name}: ${skill.description}${tags}`;
-    })
-    .join("\n");
-}
-
-function parseSkills(text: string): CapabilityAgentSkill[] {
-  if (!text.trim()) return [];
-
-  const skills: CapabilityAgentSkill[] = [];
-  for (const line of text.split("\n")) {
-    const match = line.match(/^- (.+?): (.+?)(?:\s+\[(.+?)\])?$/);
-    if (!match) continue;
-
-    const name = match[1] ?? "";
-    const description = match[2] ?? "";
-    const tagsStr = match[3];
-    const tags = tagsStr
-      ? tagsStr
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-      : [];
-
-    skills.push({ name, description, tags });
-  }
-  return skills;
-}
-
-const agentBodyFormatter = new StructuredContentFormatter<CapabilityAgentBody>(
-  capabilityAgentBodySchema,
-  {
-    title: "Agent",
-    mappings: [
-      { key: "about", label: "About", type: "string" },
-      {
-        key: "skills",
-        label: "Skills",
-        type: "custom",
-        formatter: formatSkills,
-        parser: parseSkills,
-      },
-      { key: "notes", label: "Notes", type: "string" },
-    ],
-  },
-);
 
 class CapabilityAgentAdapter extends BaseEntityAdapter<
   BaseEntity,
@@ -161,32 +94,17 @@ class CapabilityAgentAdapter extends BaseEntityAdapter<
 
   public parseAgent(entity: BaseEntity): {
     frontmatter: CapabilityAgentFrontmatter;
-    body: CapabilityAgentBody;
+    body: AgentBody;
   } | null {
     const frontmatterResult = capabilityAgentFrontmatterSchema.safeParse(
       this.parseFrontMatter(entity.content, capabilityAgentFrontmatterSchema),
     );
     if (!frontmatterResult.success) return null;
 
-    const body = this.extractBody(entity.content);
-    if (!body.trim()) {
-      return {
-        frontmatter: frontmatterResult.data,
-        body: { about: "", skills: [], notes: "" },
-      };
-    }
-
-    try {
-      return {
-        frontmatter: frontmatterResult.data,
-        body: agentBodyFormatter.parse(body),
-      };
-    } catch {
-      return {
-        frontmatter: frontmatterResult.data,
-        body: { about: "", skills: [], notes: "" },
-      };
-    }
+    return {
+      frontmatter: frontmatterResult.data,
+      body: parseAgentBody(this.extractBody(entity.content)),
+    };
   }
 }
 

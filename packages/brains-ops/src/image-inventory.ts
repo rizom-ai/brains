@@ -1,5 +1,8 @@
 import type { RequiredImage } from "./image-types";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 
 // Read manifests, never import package code or start the Brain. Check actual
 // installed versions rather than trusting build arguments or image labels.

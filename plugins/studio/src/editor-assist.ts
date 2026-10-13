@@ -85,7 +85,7 @@ async function resolveStudioAssistEntity(
   }
   const denied = requireEntityAction(context, entityType, "update", access);
   if (denied) return denied;
-  const content = splitEntityContent(entityType, entity.content);
+  const content = splitEntityContent(entityType, entity.content, context);
   return { entity, ...content };
 }
 
@@ -324,7 +324,9 @@ export async function handleAskAgent(
   }
   const parsed = a2aCallResultSchema.safeParse(result.data);
   if (!parsed.success) {
-    return jsonResponse({ error: "Invalid response from agent" }, 502);
+    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
+    // origin 502 with its own page, and the reason never reaches the caller.
+    return jsonResponse({ error: "Invalid response from agent" }, 500);
   }
 
   return jsonResponse({

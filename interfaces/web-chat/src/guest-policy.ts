@@ -33,7 +33,6 @@ const limitsSchema: Strict<
     globalRequestsPerMinute: z.ZodNumber;
     globalRequestsPerDay: z.ZodNumber;
     globalConcurrency: z.ZodNumber;
-    streamIdleTimeoutSeconds: z.ZodNumber;
   }
 > = z
   .strictObject({
@@ -44,15 +43,12 @@ const limitsSchema: Strict<
     globalRequestsPerMinute: positiveInteger,
     globalRequestsPerDay: positiveInteger,
     globalConcurrency: positiveInteger,
-    streamIdleTimeoutSeconds: positiveInteger,
   })
   .refine(
     (limits) =>
-      limits.outputTokens < limits.contextTokens &&
       limits.requestsPerMinute <= limits.requestsPerDay &&
-      limits.globalRequestsPerMinute <= limits.globalRequestsPerDay &&
-      limits.streamIdleTimeoutSeconds <= limits.requestTimeoutSeconds,
-    "Guest limits must have consistent token, rate and timeout bounds",
+      limits.globalRequestsPerMinute <= limits.globalRequestsPerDay,
+    "Guest rate limits must fit their daily limits",
   );
 
 const budgetSchema: Strict<{
@@ -84,25 +80,37 @@ export function isGuestOrigin(value: string): boolean {
   }
 }
 
-/** Optional lifetime bounds, independent of the origin's name or environment. */
-const allowanceSchema: Strict<{
-  requests: z.ZodNumber;
-  maxCostMicroUsd: z.ZodNumber;
+/** Finite bounds of the owner's usage record; set before anything is recorded. */
+export const guestUsageBoundsSchema: Strict<{
+  maxRecords: z.ZodNumber;
+  maxDenialRecords: z.ZodNumber;
+  retentionSeconds: z.ZodNumber;
+  questionBytes: z.ZodNumber;
+  maxStoredBytes: z.ZodNumber;
 }> = z.strictObject({
-  requests: positiveInteger,
-  maxCostMicroUsd: positiveInteger,
+  maxRecords: positiveInteger.max(10_000),
+  /** Detailed denials kept; beyond this, only daily counts by reason. */
+  maxDenialRecords: positiveInteger.max(10_000),
+  retentionSeconds: positiveInteger.max(366 * 86_400),
+  /** UTF-8 bytes of a question kept; longer questions are cut and marked. */
+  questionBytes: positiveInteger.max(65_536),
+  /** Total question text kept; a request that could exceed it is refused. */
+  maxStoredBytes: positiveInteger.max(64 * 1024 * 1024),
 });
+export type GuestUsageBounds = z.output<typeof guestUsageBoundsSchema>;
 
 const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
   z.strictObject({ enabled: z.literal(false) });
 const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
-  allowance: z.ZodOptional<typeof allowanceSchema>;
+  previewOrigin: z.ZodOptional<z.ZodString>;
+  budgeted: z.ZodOptional<z.ZodLiteral<true>>;
   issuance: typeof guestIssuanceLimitsSchema;
   limits: typeof limitsSchema;
   retention: typeof guestRetentionSchema;
   budget: typeof budgetSchema;
+  usageRecord: typeof guestUsageBoundsSchema;
   disclosure: Strict<{
     provider: z.ZodString;
     notice: z.ZodString;
@@ -116,11 +124,21 @@ const enabledPolicySchema: Strict<{
       isGuestOrigin,
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
-  allowance: allowanceSchema.optional(),
+  /** The site's preview, served under the same switch, budget and limits. */
+  previewOrigin: z
+    .string()
+    .refine(
+      (value) => isGuestOrigin(value) && value.startsWith("https://"),
+      "Guest preview origin must be canonical HTTPS",
+    )
+    .optional(),
+  /** The owner authorizes it with a monthly budget; admission needs that authorization. */
+  budgeted: z.literal(true).optional(),
   issuance: guestIssuanceLimitsSchema,
   limits: limitsSchema,
   retention: guestRetentionSchema,
   budget: budgetSchema,
+  usageRecord: guestUsageBoundsSchema,
   disclosure: z.strictObject({
     provider: z.string().trim().min(1),
     notice: z.string().trim().min(1),
@@ -141,20 +159,32 @@ export type GuestPolicy = z.output<typeof guestPolicySchema>;
 export type EnabledGuestPolicy = Extract<GuestPolicy, { enabled: true }>;
 
 /** Deployment TLS terminates at the HTTPS proxy. For bounded guest access,
- * accept its backend HTTP scheme only for the exact configured HTTPS host.
+ * accept its backend HTTP scheme only for an exact configured HTTPS host.
  * Never infer the public host or protocol from Forwarded/X-Forwarded-* claims.
  * Loopback policies retain exact-origin and socket-peer checks.
+ * Returns the configured origin the request arrived on, if any.
  */
+export function guestRequestOrigin(
+  request: Request,
+  policy: EnabledGuestPolicy,
+): string | undefined {
+  const url = new URL(request.url);
+  const origins = [policy.origin, policy.previewOrigin].filter(
+    (origin): origin is string => origin !== undefined,
+  );
+  return origins.find(
+    (origin) =>
+      url.origin === origin ||
+      (policy.budgeted === true &&
+        new URL(origin).protocol === "https:" &&
+        url.protocol === "http:" &&
+        url.host === new URL(origin).host),
+  );
+}
+
 export function matchesGuestOrigin(
   request: Request,
   policy: EnabledGuestPolicy,
 ): boolean {
-  const url = new URL(request.url);
-  if (url.origin === policy.origin) return true;
-  return Boolean(
-    policy.allowance &&
-    new URL(policy.origin).protocol === "https:" &&
-    url.protocol === "http:" &&
-    url.host === new URL(policy.origin).host,
-  );
+  return guestRequestOrigin(request, policy) !== undefined;
 }

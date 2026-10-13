@@ -256,7 +256,6 @@ export class TopicService {
     incoming: Pick<ExtractedTopicData, "title"> &
       Partial<Pick<ExtractedTopicData, "content">>;
     threshold: number;
-    searchLimit?: number;
     additionalCandidates?: TopicEntity[];
     targetVisibility?: ContentVisibility;
   }): Promise<TopicMergeCandidate | null> {
@@ -297,6 +296,7 @@ export class TopicService {
       .join("\n\n");
     const distanceResults = await this.entityService.searchWithDistances({
       query,
+      types: [TOPIC_ENTITY_TYPE],
     });
 
     for (const result of distanceResults) {

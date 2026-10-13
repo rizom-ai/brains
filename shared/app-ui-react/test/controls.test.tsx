@@ -1,31 +1,29 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act } from "react";
+import { readFileSync } from "node:fs";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-// Radix chooses its browser layout-effect implementation at module load.
-const bootstrapWindow = new Window();
-Object.assign(globalThis, {
-  window: bootstrapWindow,
-  document: bootstrapWindow.document,
-});
-const { Button, ConfirmDialog, DisclosureSheet, Input, NativeSelect, Switch } =
-  await import("../src");
-await bootstrapWindow.happyDOM.close();
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
+// The browser Radix needs at module load comes from test/browser-preload.ts,
+// so this is an ordinary import.
+import {
+  Button,
+  ConfirmDialog,
+  DisclosureSheet,
+  Input,
+  NativeSelect,
+  Switch,
+} from "../src";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
+  restoreGlobals = installDomGlobals(windowInstance, {
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     PointerEvent: windowInstance.PointerEvent,
@@ -35,7 +33,6 @@ beforeEach(() => {
     HTMLInputElement: windowInstance.HTMLInputElement,
     ResizeObserver: windowInstance.ResizeObserver,
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -44,7 +41,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 
 describe("app control vocabulary", () => {
@@ -65,6 +64,70 @@ describe("app control vocabulary", () => {
     expect(html).toContain('data-slot="switch"');
     expect(html).toContain('data-slot="button"');
     expect(html).not.toContain("@stylexjs");
+  });
+
+  it("retains the accent/on-accent paint pair on primary hover", () => {
+    const source = readFileSync(
+      new URL("../src/controls.tsx", import.meta.url),
+      "utf8",
+    );
+    const primary = source.slice(
+      source.indexOf("  primary: {"),
+      source.indexOf("  secondary: {"),
+    );
+    // The dim accent blends toward the page, dropping paper hover contrast
+    // below 4.5:1. Browser acceptance exercises the actual hovered control.
+    expect(primary).not.toMatch(
+      /backgroundColor: "var\(--console-accent-dim\)"/,
+    );
+    expect(primary).not.toMatch(/borderColor: "var\(--console-accent-dim\)"/);
+    expect(primary).toContain('color: "var(--console-on-accent)"');
+  });
+
+  it("keeps a hover cue when motion is reduced and the lift is disabled", () => {
+    const source = readFileSync(
+      new URL("../src/controls.tsx", import.meta.url),
+      "utf8",
+    );
+    const primary = source.slice(
+      source.indexOf("  primary: {"),
+      source.indexOf("  secondary: {"),
+    );
+    // With the paint pair fixed and the lift removed under reduced motion,
+    // hover needs a cue that is neither colour-on-text nor movement.
+    const reducedMotion = "@media (prefers-reduced-motion: reduce)";
+    const outline = primary.slice(primary.indexOf("outline: {"));
+    expect(outline).toContain(':hover:not(:disabled)"');
+    expect(outline.slice(0, outline.indexOf("},\n    },"))).toContain(
+      reducedMotion,
+    );
+  });
+
+  it("keeps disabled primary actions inert until the caller enables them", async () => {
+    let calls = 0;
+    const render = (disabled: boolean): void =>
+      root.render(
+        <Button
+          variant="primary"
+          disabled={disabled}
+          onClick={() => {
+            calls += 1;
+          }}
+        >
+          Save
+        </Button>,
+      );
+    await act(async () => render(true));
+    const button = document.querySelector("button");
+    if (!button) throw Error("Missing primary control");
+    await act(async () => button.click());
+    expect(calls).toBe(0);
+    expect(button.disabled).toBe(true);
+    await act(async () => render(false));
+    expect(document.querySelector("button")).toBe(button);
+    expect(button.disabled).toBe(false);
+    await act(async () => button.click());
+    expect(calls).toBe(1);
   });
 
   it("uses lightweight grouped-action triggers without changing dialog or action behavior", async () => {

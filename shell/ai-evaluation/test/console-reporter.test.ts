@@ -89,6 +89,18 @@ function createSummary(
 }
 
 describe("ConsoleReporter", () => {
+  it("names requirements that were not judged, even on a passing test", async () => {
+    const requirement = "Lists the knowledge sources, including decks.";
+    const output = await captureReport(
+      ConsoleReporter.createFresh(),
+      createSummary({
+        results: [createResult({ unjudgedRequirements: [requirement] })],
+      }),
+    );
+    expect(output).toContain(`not judged: ${requirement}`);
+    expect(output).toContain("Requirements not judged: 1");
+  });
+
   it("marks each test as passed or failed by name", async () => {
     const output = await captureReport(
       ConsoleReporter.createFresh(),

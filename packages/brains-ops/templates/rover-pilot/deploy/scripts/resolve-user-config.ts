@@ -6,6 +6,7 @@ import {
   parseEnvFile,
   requireEnv,
   runtimeImageTag,
+  sitePackagesFor,
   writeGitHubOutput,
 } from "./helpers";
 
@@ -42,9 +43,19 @@ const wwwDomain = isFleetDomain(
 
 const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
 
-// Build and Deploy share one tag function: every instance on a Brain version
-// runs the same immutable fleet image.
-const imageTag = runtimeImageTag(brainVersion);
+// Build and Deploy share one tag function: an instance runs the immutable
+// image named by its Brain version and its own site pins. The generated env
+// names the same image; a disagreement means the registry moved under it.
+const imageTag = runtimeImageTag(
+  brainVersion,
+  sitePackagesFor(user.siteOverride),
+);
+const generatedTag = envEntries["IMAGE_TAG"];
+if (generatedTag && generatedTag !== imageTag) {
+  throw new Error(
+    `${envPath} names ${generatedTag} but the registry resolves ${imageTag}; reconcile first`,
+  );
+}
 
 const outputs: Record<string, string> = {
   brain_version: brainVersion,

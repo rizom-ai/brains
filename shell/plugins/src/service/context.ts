@@ -7,6 +7,10 @@ import type {
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IWebRoutesNamespace } from "../interface/context";
 import { createAINamespace } from "../entity/context";
+import {
+  createViewsNamespace,
+  type IViewsNamespace,
+} from "../entity/namespaces";
 import type {
   IEntitiesNamespace,
   IEntityAINamespace,
@@ -34,13 +38,7 @@ import {
 import { createEnqueueJobFn } from "@brains/job-queue";
 import type { ToolContext } from "@brains/mcp-service";
 import { TemplateCapabilities } from "@brains/templates";
-import type {
-  ConfiguredPrincipalSeeds,
-  OutputFormat,
-  Renderer,
-  Template,
-  ViewTemplate,
-} from "@brains/templates";
+import type { ConfiguredPrincipalSeeds, Template } from "@brains/templates";
 
 /**
  * Template operations namespace for ServicePluginContext
@@ -73,29 +71,6 @@ export interface IServiceTemplatesNamespace {
     canRender: boolean;
     isStaticOnly: boolean;
   } | null;
-}
-
-/**
- * Views namespace — view template access and rendering utilities
- */
-export interface IViewsNamespace {
-  /** Get a view template by name */
-  get: (name: string) => ViewTemplate | undefined;
-
-  /** List all registered view templates */
-  list: () => ViewTemplate[];
-
-  /** Check if a template has a renderer for the requested format (defaults to web). */
-  hasRenderer: (templateName: string, format?: OutputFormat) => boolean;
-
-  /** Get the renderer for a template and format (defaults to web). */
-  getRenderer: (
-    templateName: string,
-    format?: OutputFormat,
-  ) => Renderer | undefined;
-
-  /** Validate content against a template's schema */
-  validate: (templateName: string, content: unknown) => boolean;
 }
 
 /**
@@ -192,7 +167,6 @@ export function createServicePluginContext(
     registrationContext,
   );
   const entityService = shell.getEntityService();
-  const renderService = shell.getRenderService();
   const contentService = shell.getContentService();
   const permissionService = shell.getPermissionService();
 
@@ -316,29 +290,7 @@ export function createServicePluginContext(
       },
     },
 
-    views: {
-      get: (name: string): ViewTemplate | undefined => {
-        return renderService.get(name) ?? undefined;
-      },
-      list: (): ViewTemplate[] => {
-        return renderService.list();
-      },
-      hasRenderer: (
-        templateName: string,
-        format: OutputFormat = "web",
-      ): boolean => {
-        return renderService.hasRenderer(templateName, format);
-      },
-      getRenderer: (
-        templateName: string,
-        format: OutputFormat = "web",
-      ): Renderer | undefined => {
-        return renderService.getRenderer(templateName, format);
-      },
-      validate: (templateName: string, content: unknown): boolean => {
-        return renderService.validate(templateName, content);
-      },
-    },
+    views: createViewsNamespace(shell),
 
     prompts: createPromptsNamespace(entityService),
 

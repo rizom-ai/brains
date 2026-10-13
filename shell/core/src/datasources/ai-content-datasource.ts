@@ -7,7 +7,7 @@ import { SHELL_ENTITY_TYPES } from "../constants";
 import type { AIGenerationSchema, IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { EntityUrlGenerator } from "@brains/site-composition";
+import type { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import { resolvePrompt, readPromptOverride } from "@brains/plugins";
 
@@ -62,6 +62,7 @@ export class AIContentDataSource implements DataSource {
   private readonly templateRegistry: TemplateRegistry;
   private readonly getIdentityContent: () => string;
   private readonly getProfileContent: () => string;
+  private readonly entityUrls: EntityUrlGenerator;
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
   readonly description =
@@ -73,6 +74,7 @@ export class AIContentDataSource implements DataSource {
     templateRegistry: TemplateRegistry,
     getIdentityContent: () => string,
     getProfileContent: () => string,
+    entityUrls: EntityUrlGenerator,
     siteBaseUrl?: string,
   ) {
     this.aiService = aiService;
@@ -80,6 +82,7 @@ export class AIContentDataSource implements DataSource {
     this.templateRegistry = templateRegistry;
     this.getIdentityContent = getIdentityContent;
     this.getProfileContent = getProfileContent;
+    this.entityUrls = entityUrls;
     this.siteBaseUrl = normalizeSiteBaseUrl(siteBaseUrl);
   }
 
@@ -272,9 +275,8 @@ export class AIContentDataSource implements DataSource {
     }
 
     if (relevantEntities.length > 0) {
-      const urlGenerator = EntityUrlGenerator.getInstance();
       const entityContext = relevantEntities
-        .map((result) => this.formatRelevantEntity(result, urlGenerator))
+        .map((result) => this.formatRelevantEntity(result, this.entityUrls))
         .join("\n");
       prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
     }

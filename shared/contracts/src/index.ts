@@ -1,8 +1,53 @@
 export {
-  entityReadBudgetSchema,
-  type EntityReadBudget,
-  type QueryEmbedding,
-} from "./entity-read";
+  askContentSchema,
+  askContentFrontmatterSchema,
+  type AskContent,
+  type AskContentFrontmatter,
+} from "./ask-content";
+export { parseAskContent } from "./ask-content-markdown";
+export {
+  ASK_BOX_ATTRIBUTE,
+  ASK_COVER_ATTRIBUTE,
+  ASK_COVER_STYLE,
+  ASK_CLOSING_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_NAME_ATTRIBUTE,
+  ASK_PAGE_LOCK_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
+  ASK_READY_ATTRIBUTE,
+  ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_MEDIA,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+  ASK_ROOM_ATTRIBUTE,
+  ASK_COLUMN_ATTRIBUTE,
+  ASK_MARK_ATTRIBUTE,
+  ASK_DRAWING_ATTRIBUTE,
+  ASK_LEADS_ATTRIBUTE,
+  ASK_SLOT_ATTRIBUTE,
+  ASK_AIM_ATTRIBUTE,
+  ASK_CITED_ATTRIBUTE,
+  ASK_FLASH_ATTRIBUTE,
+  ASK_CITED_EVENT,
+  ASK_LENT_EVENT,
+  ASK_RETURNED_EVENT,
+  ASK_AIMED_EVENT,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+  askBoxAvailabilitySchema,
+  answeredBy,
+  askSourcesDetailSchema,
+  sourceBrainSchema,
+  type AskBoxAvailability,
+  type AskSourcesDetail,
+  type SourceBrain,
+} from "./ask-box";
 export {
   AGENT_ACTION_REQUEST_CHANNEL,
   agentActionRequestSchema,
@@ -33,6 +78,8 @@ export {
   type AttachmentCardSource,
   type AttachmentCardData,
   type AttachmentCard,
+  askedBeforeSchema,
+  type AskedBefore,
   type SourceCitation,
   type SourcesCard,
   type PromptChatAction,
@@ -44,6 +91,16 @@ export {
   type ToolResultData,
 } from "./agent-response";
 export {
+  GUEST_ASKED_BEFORE_CHANNEL,
+  askedBeforeRequestSchema,
+  askedBeforeHitSchema,
+  askedBeforeResponseSchema,
+  firstAskedBeforeHit,
+  type AskedBeforeRequest,
+  type AskedBeforeHit,
+  type AskedBeforeResponse,
+} from "./asked-before";
+export {
   AGENT_CONTEXT_REQUEST_CHANNEL,
   agentContextPermissionLevelSchema,
   agentContextRequestSchema,
@@ -54,6 +111,11 @@ export {
   type AgentContextItem,
   type AgentContextResponse,
 } from "./agent-context";
+export {
+  ASSISTANT_TURN_METADATA_KEY,
+  assistantTurnSchema,
+  type AssistantTurn,
+} from "./assistant-turn";
 export {
   actorRefFromLegacy,
   actorRefKey,
@@ -139,6 +201,11 @@ export {
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
+export {
+  directorySyncPathRequestSchema,
+  directorySyncPathResponseSchema,
+  type DirectorySyncPathRequest,
+} from "./directory-sync-path";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,
@@ -193,6 +260,8 @@ export {
 } from "./response-types";
 export {
   NOTIFICATIONS_SEND,
+  NOTIFICATION_FAILURES,
+  notificationFailureCode,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,
@@ -203,6 +272,18 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export {
+  TOPIC_TITLES_MESSAGE,
+  topicTitlesResponseSchema,
+  type TopicTitlesResponse,
+} from "./topic-titles";
+export {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "./note-capture";
 export type {
   HeadCollectorInterface,
   HeadProps,
@@ -210,3 +291,17 @@ export type {
   RenderedImageRef,
 } from "./render";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export { MCP_INTERACTION_ID } from "./mcp";
+export {
+  CHAT_INTERACTION_ID,
+  STUDIO_ACCOUNT_WORKSPACE_ID,
+  STUDIO_AI_TOOLS_SECTION,
+  STUDIO_INTERACTION_ID,
+  studioAiToolsHref,
+} from "./studio-links";
+
+export {
+  DEFAULT_FAVICON_HREF,
+  DEFAULT_FAVICON_PATH,
+  DEFAULT_FAVICON_SVG,
+} from "./favicon";

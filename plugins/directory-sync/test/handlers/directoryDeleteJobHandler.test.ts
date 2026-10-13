@@ -60,6 +60,115 @@ describe("DirectoryDeleteJobHandler", () => {
       );
     });
 
+    it("keeps an entity another of its files still holds, importing that file", async () => {
+      const mockContext = createMockServicePluginContext({
+        returns: { entityService: { deleteEntity: true } },
+      });
+      const importEntities = mock(async () => ({
+        imported: 1,
+        skipped: 0,
+        failed: 0,
+        quarantined: 0,
+        quarantinedFiles: [],
+        errors: [],
+        jobIds: [],
+      }));
+      const completePendingDelete = mock(() => {});
+      const base = createMockDirectorySync();
+      const directorySync = createMockDirectorySync({
+        importEntities,
+        completePendingDelete,
+        fileOps: {
+          ...base.fileOps,
+          getEntityDeletePaths: (): string[] => [
+            "/sync/image/cover.png",
+            "/sync/image/cover.jpg",
+            "/sync/image/cover.md",
+          ],
+          fileExists: mock(
+            async (path: string) => path === "/sync/image/cover.png",
+          ),
+        },
+      });
+      const handler = new DirectoryDeleteJobHandler(
+        logger,
+        mockContext,
+        directorySync,
+      );
+
+      const result = await handler.process(
+        {
+          entityId: "cover",
+          entityType: "image",
+          filePath: "/sync/image/cover.jpg",
+        },
+        jobId,
+        createMockProgressReporter(),
+      );
+
+      expect(mockContext.entityService.deleteEntity).not.toHaveBeenCalled();
+      expect(importEntities).toHaveBeenCalledWith(["/sync/image/cover.png"]);
+      expect(completePendingDelete).toHaveBeenCalledWith(
+        "image",
+        "cover",
+        "/sync/image/cover.jpg",
+      );
+      expect(result).toEqual({
+        deleted: false,
+        entityId: "cover",
+        entityType: "image",
+        filePath: "/sync/image/cover.jpg",
+      });
+    });
+
+    it("keeps an entity whose removed file is back, importing that file", async () => {
+      // Git rewrites a pulled file by removing and recreating it; a watcher
+      // that saw the removal must not delete what is on disk again.
+      const mockContext = createMockServicePluginContext({
+        returns: { entityService: { deleteEntity: true } },
+      });
+      const importEntities = mock(async () => ({
+        imported: 1,
+        skipped: 0,
+        failed: 0,
+        quarantined: 0,
+        quarantinedFiles: [],
+        errors: [],
+        jobIds: [],
+      }));
+      const completePendingDelete = mock(() => {});
+      const base = createMockDirectorySync();
+      const directorySync = createMockDirectorySync({
+        importEntities,
+        completePendingDelete,
+        fileOps: {
+          ...base.fileOps,
+          getEntityDeletePaths: (): string[] => [validData.filePath],
+          fileExists: mock(async (path: string) => path === validData.filePath),
+        },
+      });
+      const handler = new DirectoryDeleteJobHandler(
+        logger,
+        mockContext,
+        directorySync,
+      );
+
+      const result = await handler.process(
+        validData,
+        jobId,
+        createMockProgressReporter(),
+      );
+
+      expect(mockContext.entityService.deleteEntity).not.toHaveBeenCalled();
+      expect(importEntities).toHaveBeenCalledWith([validData.filePath]);
+      expect(completePendingDelete).toHaveBeenCalledWith(
+        validData.entityType,
+        validData.entityId,
+        validData.filePath,
+      );
+      expect(result).toEqual({ deleted: false, ...validData });
+    });
+
     it("deletes a targeted batch in one job", async () => {
       const mockContext = createMockServicePluginContext({
         returns: { entityService: { deleteEntity: true } },

@@ -1,0 +1,5 @@
+---
+"@rizom/brain": patch
+---
+
+The Ask box reads as one conversation. There are no "You" and owner labels over each turn (screen readers still hear who speaks), one rule parts the turns, and an answer's lists and headings keep the text's rhythm and size. Sources are a list of rows instead of pills. The note under the composer is the same in every state, "Answers use published work only. Leave private details out.", with "About this chat" beside it in place of the About link above the conversation. The waiting line names the work, not the person. "↓ Rest of the answer" takes the note's line while there is more to read, instead of a round button over the text, and text fades out toward the composer instead of being cut. The send button is quiet until there is something to send. On a phone the open sheet has no title row: its close button floats over the top corner, the starting questions are a list, and answers read at 15px. `ASK_SHEET_HEADER_HEIGHT` is removed from the Ask box contract.

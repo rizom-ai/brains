@@ -44,6 +44,7 @@ export interface AtprotoBrainCardRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainDeckRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.deck";
+  canonicalUrl?: string;
   title: string;
   slug?: string;
   description?: string;
@@ -62,6 +63,7 @@ export interface AtprotoBrainDeckRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainLinkRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.link";
+  canonicalUrl?: string;
   title: string;
   url: string;
   description?: string;
@@ -79,6 +81,7 @@ export interface AtprotoBrainLinkRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainNoteRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.note";
+  canonicalUrl?: string;
   title: string;
   body: string;
   format?: "text/markdown";
@@ -116,6 +119,7 @@ export interface AtprotoBrainPostRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainProjectRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.project";
+  canonicalUrl?: string;
   title: string;
   slug?: string;
   description?: string;
@@ -134,6 +138,7 @@ export interface AtprotoBrainProjectRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainSeriesRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.series";
+  canonicalUrl?: string;
   title: string;
   slug?: string;
   description?: string;
@@ -147,6 +152,7 @@ export interface AtprotoBrainSeriesRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainSocialPostRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.socialPost";
+  canonicalUrl?: string;
   title: string;
   platform: string;
   body: string;
@@ -166,6 +172,7 @@ export interface AtprotoBrainSocialPostRecord extends Record<string, unknown> {
 
 export interface AtprotoBrainTopicRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.topic";
+  canonicalUrl?: string;
   title: string;
   body: string;
   format?: "text/markdown";

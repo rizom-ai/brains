@@ -12,6 +12,13 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
+import {
+  invitationChannelSchema,
+  invitationDeliveryFields,
+  invitationDeliveryModes,
+  invitationRoleField,
+  setupResultPresentation as setupResultPresentationFor,
+} from "./setup-forms";
 import { z } from "@brains/utils/zod";
 import { randomUUID } from "node:crypto";
 import {
@@ -107,13 +114,6 @@ const confirmManualDelivery = defineWorkspaceAction({
   permission: "admin",
   input: manualConfirmationInputSchema,
   output: invitationMutationResultSchema,
-});
-
-const invitationChannelSchema = z.strictObject({
-  type: z.string(),
-  displayName: z.string(),
-  subjectLabel: z.string(),
-  deliveryModes: z.array(z.enum(["automatic", "manual"])),
 });
 
 const invitationRowSchema = z.strictObject({
@@ -221,18 +221,7 @@ export function composeInvitationTabSections(
   };
 }
 
-const setupResultPresentation = {
-  title: "Invitation setup",
-  fields: {
-    status: { label: "Status" },
-    setupUrl: {
-      label: "Single-use setup URL",
-      copyable: true,
-      sensitive: true,
-    },
-    expiresAt: { label: "Expires" },
-  },
-};
+const setupResultPresentation = setupResultPresentationFor("Invitation setup");
 
 function invitationActions(
   invitation: z.output<typeof invitationRowSchema>,
@@ -311,9 +300,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
         ],
       },
     ];
-    const deliveryModes = Array.from(
-      new Set(data.channels.flatMap((channel) => channel.deliveryModes)),
-    );
+    const deliveryModes = invitationDeliveryModes(data.channels);
     let primaryAction: InvitationPrimaryAction | undefined;
     if (data.channels.length > 0 && deliveryModes.length > 0) {
       primaryAction = {
@@ -324,45 +311,8 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           submitLabel: "Create invitation",
           fields: {
             displayName: { label: "Display name", control: "text" },
-            role: {
-              label: "Role",
-              control: "select",
-              options: [
-                { value: "trusted", label: "Trusted" },
-                { value: "admin", label: "Admin" },
-              ],
-            },
-            deliveryType: {
-              label: "Delivery channel",
-              control: "select",
-              options: data.channels.map((channel) => ({
-                value: channel.type,
-                label: channel.displayName,
-              })),
-            },
-            deliverySubject: {
-              label: "Delivery destination",
-              labelBy: {
-                field: "deliveryType",
-                values: data.channels.map((channel) => ({
-                  value: channel.type,
-                  label: channel.subjectLabel,
-                })),
-              },
-              control: "text",
-            },
-            deliveryLabel: {
-              label: "Delivery label (optional)",
-              control: "text",
-            },
-            deliveryMode: {
-              label: "Delivery mode",
-              control: "select",
-              options: deliveryModes.map((mode) => ({
-                value: mode,
-                label: mode === "automatic" ? "Automatic" : "Manual",
-              })),
-            },
+            role: invitationRoleField("Role"),
+            ...invitationDeliveryFields(data.channels, deliveryModes),
           },
         },
         result: setupResultPresentation,

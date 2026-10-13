@@ -1,10 +1,12 @@
 # Plan: Agent tool surface consolidation
 
-Last updated: 2026-09-13
+Last updated: 2026-09-20
 
 ## Status
 
-**Implementation substantially complete; analytics and final eval closeout remain.**
+**Implementation substantially complete; the MCP reintroduction gate is green and final release closeout remains.**
+
+The chat-only MCP basic surface has met its deterministic and live-model reintroduction gates. Canonical protocol acceptance proves the replacement path, focused basic-MCP evals prove live routing and exact note fidelity, and clean personal/team release-candidate runs prove the broader regression boundary.
 
 The canonical brain now distinguishes `agentTool` exposure from `directMcpExposure`, reports its effective tool surface through the eval CLI, and filters coverage by the agent-visible set. Maintenance adapters no longer occupy model context. Playbook, directory-sync, publishing, and configured Buttondown operations use their canonical typed tools. Cloudflare query is direct-MCP-only, passkey setup is exposed to the agent only when contextually relevant, and stale registered-name references have been audited from active tests and runtime shutdown paths.
 
@@ -14,7 +16,6 @@ This plan remains open for:
 
 - completing [system-analytics-tool.md](./system-analytics-tool.md) so analytics has one typed agent surface;
 - recording final tool-count/schema-size evidence on the nominated composition;
-- rerunning affected behavioral evals and the full release-candidate eval without a routing regression; and
 - deciding case by case whether any old direct-MCP registered name is retained or removed.
 
 ## Goal
@@ -37,7 +38,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 - Publication queueing and direct publication use `publishing_manage`, retaining confirmation and target-reuse rules.
 - Configured Buttondown subscriber actions use `newsletter_subscribers`.
 - Stock-photo search and selection remain separate because selection must bind prior provider metadata.
-- Cloudflare's raw query remains available only to direct MCP clients.
+- Cloudflare's raw query remains available only to Admin debug-MCP clients.
 - Passkey setup URL retrieval is agent-visible only while setup is incomplete.
 
 ## Remaining work
@@ -82,6 +83,31 @@ For every old registered name:
 
 Do not guarantee replay of predeploy pending confirmations across a tool-name change. Fail clearly and request fresh approval.
 
+### 5. Gate chat-only MCP basic mode on evidence
+
+Before removing raw read tools from MCP basic mode:
+
+- [x] snapshot the actual canonical basic and debug protocol surfaces at Public, Trusted, and Admin permissions;
+- [x] boot a canonical brain through basic stdio MCP and prove a seeded read succeeds through `chat` while raw tools are absent;
+- [x] prove the MCP `chat` payload preserves the retrieved note body exactly in both agent text and structured `toolResults`;
+- [x] exercise a write, confirmation, and read-back entirely through `chat` and `confirm`;
+- [x] cover authenticated HTTP permission propagation alongside the canonical basic-mode surface checks; and
+- [x] run the affected read, verbatim-note, write, confirmation, and follow-up behavioral evals plus the nominated full release-candidate suite with release credentials.
+
+The eval runner now supports `--mcp-basic`, which restores the eval-disabled MCP interface, rejects any surface beyond `chat` and `confirm`, and routes every selected case through the real protocol adapter. The canonical protocol cases are `mcp-basic-verbatim-note` and `mcp-basic-write-confirm-read-back`; the verbatim case uses a byte-for-byte response criterion rather than a case-insensitive substring check.
+
+### MCP reintroduction evidence
+
+Live evidence was recorded on source `48b8e93aff57c56f3b4ff181aa6ab0b3676f60eb` with `gpt-5.6-luna`; full-suite quality scoring used `gpt-5.4-mini`.
+
+| Run                                                                | Result | Saved result                    |
+| ------------------------------------------------------------------ | -----: | ------------------------------- |
+| Focused `--mcp-basic` read, verbatim note, write/confirm/read-back |    4/4 | `2026-09-20T17-19-20-882Z.json` |
+| Personal release-candidate suite, clean full rerun                 |  22/22 | `2026-09-20T17-30-02-781Z.json` |
+| Team release-candidate suite, clean full rerun                     |  40/40 | `2026-09-20T17-47-08-024Z.json` |
+
+The first personal run had one nonpersistent update-routing miss; its focused rerun passed before the clean 22/22 full rerun. The first team run had one nonpersistent judge-only helpfulness miss; its focused rerun passed before the clean 40/40 full rerun. The final runs have zero accepted failures, so this gate no longer blocks merging the staged chat-only default.
+
 ## Invariants
 
 - Permission and agent/protocol exposure are separate checks.
@@ -95,7 +121,7 @@ Do not guarantee replay of predeploy pending confirmations across a tool-name ch
 
 - registry enumeration and permission/exposure filtering;
 - agent construction from agent-visible tools only;
-- MCP basic/debug protocol snapshots;
+- canonical MCP basic/debug protocol snapshots at every permission level;
 - strict action-union validation and side-effect annotations;
 - confirmation mismatch, expiry, replay, and stale-content tests;
 - conditional directory/provider schemas;

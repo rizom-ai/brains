@@ -150,11 +150,18 @@ function convertDatesToStrings(obj: unknown): unknown {
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
   schema: FrontmatterValidationSchema<T>,
+  options?: { cache?: boolean },
 ): {
   content: string;
   metadata: T;
 } {
-  const { content, data } = matter(markdown);
+  // gray-matter keeps every distinct input forever when called without
+  // options. Bulk passes see each document once, so caching them only grows
+  // the process; `cache: false` opts those callers out.
+  const { content, data } = matter(
+    markdown,
+    options?.cache === false ? {} : undefined,
+  );
 
   // Convert all Date objects to strings before parsing with Zod
   const normalizedData = convertDatesToStrings(data);
@@ -163,6 +170,23 @@ export function parseMarkdownWithFrontmatter<T>(
     content: content.trim(),
     metadata: schema.parse(normalizedData),
   };
+}
+
+const titledFrontmatterSchema = z.object({ title: z.string().optional() });
+
+/**
+ * An entity's own name: its metadata title, else the title in its
+ * frontmatter, as on types that keep metadata empty; null when neither names it.
+ */
+export function entityTitle(
+  entity: Pick<BaseEntity, "metadata" | "content">,
+): string | null {
+  const metadataTitle = entity.metadata["title"];
+  if (typeof metadataTitle === "string") return metadataTitle;
+  return (
+    parseMarkdownWithFrontmatter(entity.content, titledFrontmatterSchema)
+      .metadata.title ?? null
+  );
 }
 
 /**
@@ -222,6 +246,16 @@ export function extractVisibilityFromMarkdown(
 ): ContentVisibility | undefined {
   const parsed = matter(markdown);
   return visibilityFrontmatterSchema.parse(parsed.data).visibility;
+}
+
+/**
+ * The text of a markdown document without its frontmatter block. It never
+ * throws: a block it cannot recognise is left in place.
+ */
+export function markdownBody(markdown: string): string {
+  return markdown
+    .replace(/^---\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, "")
+    .trim();
 }
 
 export function hasVisibilityFrontmatter(markdown: string): boolean {

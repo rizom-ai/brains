@@ -77,10 +77,7 @@ export function canExposeTool(
 }
 
 function getDirectMcpExposure(tool: Tool): DirectMcpExposure {
-  if (tool.directMcpExposure !== undefined) {
-    return tool.directMcpExposure;
-  }
-  return isReadOnlyTool(tool) ? "basic" : "debug";
+  return tool.directMcpExposure ?? "debug";
 }
 
 export function canExposeToolToAgent(
@@ -187,10 +184,6 @@ export function getToolAnnotations(tool: Tool): ToolAnnotations | undefined {
   return undefined;
 }
 
-export function isReadOnlyTool(tool: Tool): boolean {
-  return getToolAnnotations(tool)?.readOnlyHint === true;
-}
-
 export function serializeMessageResponse(response: MessageResponse): string {
   if ("success" in response && !response.success) {
     throw new Error(response.error ?? "Operation failed");
@@ -211,7 +204,7 @@ export function registerToolOnServer(
     tool.name,
     {
       description: tool.description,
-      inputSchema: z.object(tool.inputSchema),
+      inputSchema: z.strictObject(tool.inputSchema),
       annotations: getToolAnnotations(tool) ?? {},
     },
     async (params, ctx) => {

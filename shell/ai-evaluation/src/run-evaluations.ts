@@ -21,6 +21,7 @@ import { parseCliOptions } from "./cli-options";
 import { loadEvalConfig } from "./eval-config-loader";
 import { buildEvalDatabase } from "./eval-db-builder";
 import { runMultiModelEvaluation } from "./multi-model-runner";
+import { resolveSampling } from "./multi-model";
 import { runSingleModelEvaluation } from "./single-model-runner";
 import { printHelp } from "./cli-help";
 import { bootstrapCliEnvironment } from "./cli-bootstrap";
@@ -57,22 +58,40 @@ export async function main(): Promise<void> {
     testType,
     toolCoverage,
     toolSurface,
+    mcpBasic,
     remoteUrl,
     authToken,
     compareAgainst,
     saveBaseline,
+    samples: cliSamples,
+    minPassRate: cliMinPassRate,
   } = parseCliOptions(args);
 
   try {
-    const evalConfigResult = await loadEvalConfig({ suite, tags });
+    if (mcpBasic && remoteUrl) {
+      throw new Error("--mcp-basic cannot be combined with --url");
+    }
+
+    const evalConfigResult = await loadEvalConfig({
+      suite,
+      tags,
+      mcpBasic,
+    });
     const {
       config,
       testCasesDirs,
       brainModelPath,
       models,
       judge,
+      samples: yamlSamples,
       resolveConfig: freshResolve,
     } = evalConfigResult;
+    const { samples, minPassRate } = resolveSampling({
+      multiModel: models.length > 0,
+      cliSamples,
+      yamlSamples,
+      minPassRate: cliMinPassRate,
+    });
     const effectiveTags = evalConfigResult.tags ?? tags;
 
     // Shared eval environment setup
@@ -135,6 +154,9 @@ export async function main(): Promise<void> {
         testType,
         remoteUrl,
         authToken,
+        mcpBasic,
+        samples,
+        minPassRate,
         resolveConfig: freshResolve,
         runEvaluationsCollect,
       });
@@ -156,6 +178,7 @@ export async function main(): Promise<void> {
       testType,
       remoteUrl,
       authToken,
+      mcpBasic,
       compareAgainst,
       saveBaseline,
       runEvaluations,

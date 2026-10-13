@@ -81,7 +81,7 @@ exports[`Blog printable attachment provider resolves a blog post into a printabl
               "attributes": [
                 [
                   "href",
-                  "/favicon.svg",
+                  "/favicon.png",
                 ],
                 [
                   "rel",
@@ -89,7 +89,7 @@ exports[`Blog printable attachment provider resolves a blog post into a printabl
                 ],
                 [
                   "type",
-                  "image/svg+xml",
+                  "image/png",
                 ],
               ],
               "children": [],
@@ -108,7 +108,7 @@ exports[`Blog printable attachment provider resolves a blog post into a printabl
               "attributes": [
                 [
                   "href",
-                  "/favicon.png",
+                  "/favicon.svg",
                 ],
                 [
                   "rel",
@@ -116,7 +116,7 @@ exports[`Blog printable attachment provider resolves a blog post into a printabl
                 ],
                 [
                   "type",
-                  "image/png",
+                  "image/svg+xml",
                 ],
               ],
               "children": [],

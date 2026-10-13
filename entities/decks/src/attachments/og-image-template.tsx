@@ -1,42 +1,46 @@
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { OgCard } from "@brains/ui-library";
-import type { MediaPageTemplate } from "@brains/media-page-composer";
+import { createTemplate, type Template } from "@brains/plugins";
 
 export const DECK_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const DECK_OG_IMAGE_TEMPLATE_NAME = "decks:og-image";
 
 export const deckOgImageTemplateSchema: z.ZodObject<{
   title: z.ZodString;
-  description: z.ZodOptional<z.ZodString>;
-  event: z.ZodOptional<z.ZodString>;
-  brandLabel: z.ZodOptional<z.ZodString>;
-  slideCount: z.ZodOptional<z.ZodNumber>;
-  coverImageUrl: z.ZodOptional<z.ZodString>;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  event: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  brandLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  slideCount: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   title: z.string().min(1),
-  description: z.string().optional(),
-  event: z.string().optional(),
-  brandLabel: z.string().optional(),
-  slideCount: z.number().int().positive().optional(),
-  coverImageUrl: z.string().optional(),
+  description: z.string().nullable().default(null),
+  event: z.string().nullable().default(null),
+  brandLabel: z.string().nullable().default(null),
+  slideCount: z.number().int().positive().nullable().default(null),
+  coverImageUrl: z.string().nullable().default(null),
 });
 
 export type DeckOgImageTemplateData = z.output<
   typeof deckOgImageTemplateSchema
 >;
 
-export const deckOgImageTemplate: MediaPageTemplate = {
-  name: DECK_OG_IMAGE_TEMPLATE_NAME,
-  pluginId: "decks",
-  schema: deckOgImageTemplateSchema,
-  renderers: {
-    image: renderDeckOgImage,
-  },
-};
+/** What a provider builds; absent fields render as null. */
+export type DeckOgImageTemplateInput = z.input<
+  typeof deckOgImageTemplateSchema
+>;
 
-function renderDeckOgImage(props: Record<string, unknown>): JSX.Element {
-  const data = deckOgImageTemplateSchema.parse(props);
+export const deckOgImageTemplate: Template =
+  createTemplate<DeckOgImageTemplateData>({
+    name: "og-image",
+    description: "Open Graph image for a deck",
+    schema: deckOgImageTemplateSchema,
+    requiredPermission: "public",
+    layout: { formats: { image: renderDeckOgImage } },
+  });
+
+function renderDeckOgImage(data: DeckOgImageTemplateData): JSX.Element {
   const countLabel = data.slideCount
     ? `${data.slideCount} slide${data.slideCount === 1 ? "" : "s"}`
     : undefined;
@@ -46,8 +50,8 @@ function renderDeckOgImage(props: Record<string, unknown>): JSX.Element {
       brandLabel={data.brandLabel ?? data.title}
       eyebrow="Deck"
       title={data.title}
-      subtitle={data.description}
-      meta={[data.event]}
+      subtitle={data.description ?? undefined}
+      meta={[data.event ?? undefined]}
       tag={countLabel}
     />
   );

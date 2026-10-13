@@ -3,6 +3,7 @@ import type { AppConfig } from "@brains/app";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
+import { MCPProtocolAgentService } from "./mcp-protocol-agent-service";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
 
@@ -21,6 +22,7 @@ export interface SingleModelRunOptions {
   testType?: "agent" | "plugin" | undefined;
   remoteUrl?: string | undefined;
   authToken?: string | undefined;
+  mcpBasic: boolean;
   compareAgainst?: string | undefined;
   saveBaseline?: string | undefined;
   runEvaluations: (options: RunEvaluationsOptions) => Promise<void>;
@@ -50,18 +52,25 @@ export async function runSingleModelEvaluation(
     await waitForJobsToDrain(shell.getJobQueueService());
   }
   const aiService = shell.getAIService();
-  const agentService = options.remoteUrl
-    ? RemoteAgentService.createFresh({
-        baseUrl: options.remoteUrl,
-        authToken: options.authToken,
-      })
-    : shell.getAgentService();
-
-  if (options.remoteUrl) {
-    console.log(`\nConnecting to remote brain: ${options.remoteUrl}`);
-  }
+  let mcpAgentService: MCPProtocolAgentService | undefined;
 
   try {
+    mcpAgentService = options.mcpBasic
+      ? await MCPProtocolAgentService.connect(shell.getMCPService())
+      : undefined;
+    const agentService = options.remoteUrl
+      ? RemoteAgentService.createFresh({
+          baseUrl: options.remoteUrl,
+          authToken: options.authToken,
+        })
+      : (mcpAgentService ?? shell.getAgentService());
+
+    if (options.remoteUrl) {
+      console.log(`\nConnecting to remote brain: ${options.remoteUrl}`);
+    } else if (mcpAgentService) {
+      console.log("\nEvaluating through basic MCP chat/confirm");
+    }
+
     await options.runEvaluations({
       agentService,
       aiService,
@@ -86,6 +95,7 @@ export async function runSingleModelEvaluation(
       await waitForJobsToDrain(shell.getJobQueueService());
     }
   } finally {
+    await mcpAgentService?.close();
     await shell.shutdown();
   }
 }

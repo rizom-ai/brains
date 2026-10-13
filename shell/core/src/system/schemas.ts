@@ -63,9 +63,16 @@ export const searchInputSchema: z.ZodObject<{
 export const getInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
+  part: z.ZodOptional<z.ZodEnum<{ full: "full"; body: "body" }>>;
 }> = z.object({
   entityType: z.string().describe("Entity type"),
   id: z.string().describe("Entity ID, slug, or title"),
+  part: z
+    .enum(["full", "body"])
+    .optional()
+    .describe(
+      "full (default) returns the stored Markdown including frontmatter; body returns only the Markdown body, without frontmatter, for requests to show or copy the body verbatim.",
+    ),
 });
 
 export const listInputSchema: z.ZodObject<{
@@ -94,12 +101,66 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
+export const userMessageSourceInputSchema: StrictObjectSchema<{
+  kind: z.ZodLiteral<"user-message">;
+  messageId: z.ZodOptional<z.ZodString>;
+  boundaryMode: z.ZodOptional<
+    z.ZodEnum<{ literal: "literal"; lines: "lines" }>
+  >;
+  startAfter: z.ZodOptional<z.ZodString>;
+  endBefore: z.ZodOptional<z.ZodString>;
+  contentHash: z.ZodOptional<z.ZodString>;
+}> = z
+  .object({
+    kind: z
+      .literal("user-message")
+      .describe(
+        "Use verbatim text already supplied by the user. The server reads the stored message; do not copy its body into tool arguments.",
+      ),
+    messageId: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Stored user message ID in this conversation; omit for the latest user message.",
+      ),
+    boundaryMode: z
+      .enum(["literal", "lines"])
+      .optional()
+      .describe(
+        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries.",
+      ),
+    startAfter: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Exact unique opening boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
+      ),
+    endBefore: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Exact unique closing boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude. Omit to end at the end of the message.",
+      ),
+    contentHash: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Internal source hash returned with the confirmation; omit on the initial request.",
+      ),
+  })
+  .strict();
+
 export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
   [
     StrictObjectSchema<{
       kind: z.ZodLiteral<"text">;
       content: z.ZodString;
     }>,
+    typeof userMessageSourceInputSchema,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"url">;
       url: z.ZodString;
@@ -130,10 +191,11 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         .string()
         .min(1)
         .describe(
-          "Exact markdown/text/content to persist as provided. For direct save requests where the user includes the content in the same message, use that provided content directly.",
+          "Literal content for a direct save request without a stored user-message source. For pasted text already in this conversation, prefer source.kind user-message with exact boundaries instead of reproducing the body here.",
         ),
     })
     .strict(),
+  userMessageSourceInputSchema,
   z
     .object({
       kind: z
@@ -431,39 +493,126 @@ export const generateInputSchema: StrictObjectSchema<{
   })
   .strict();
 
-export const updateInputSchema: z.ZodObject<{
+export const contentEditSchema: z.ZodObject<{
+  oldText: z.ZodString;
+  newText: z.ZodString;
+}> = z
+  .object({
+    oldText: z
+      .string()
+      .min(1)
+      .describe(
+        "Exact text occurring once in the original stored Markdown. Include enough context to be unique.",
+      ),
+    newText: z
+      .string()
+      .describe("Literal replacement text; empty string deletes oldText."),
+  })
+  .strict();
+
+export type ContentEdit = z.output<typeof contentEditSchema>;
+
+type UpdateOperationInputSchema = z.ZodDiscriminatedUnion<
+  [
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"fields">;
+      fields: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"content">;
+      content: z.ZodString;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"edits">;
+      edits: z.ZodArray<typeof contentEditSchema>;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"source">;
+      source: typeof userMessageSourceInputSchema;
+    }>,
+  ],
+  "kind"
+>;
+
+export const updateOperationInputSchema: UpdateOperationInputSchema =
+  z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z
+          .literal("fields")
+          .describe("Update partial frontmatter or metadata fields"),
+        fields: z
+          .record(z.string(), z.unknown())
+          .describe(
+            "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("content").describe("Replace the stored Markdown"),
+        content: z
+          .string()
+          .describe(
+            "Full replacement text you wrote yourself, stored literally. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use the source operation instead of copying it here. For small changes, use the edits operation instead of regenerating the whole document.",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z
+          .literal("edits")
+          .describe("Apply exact text replacements to the stored Markdown"),
+        edits: z
+          .array(contentEditSchema)
+          .min(1)
+          .max(50)
+          .describe(
+            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z
+          .literal("source")
+          .describe("Replace the stored Markdown with user-supplied text"),
+        source: userMessageSourceInputSchema.describe(
+          "Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
+        ),
+      })
+      .strict(),
+  ]);
+
+export type UpdateOperationInput = z.output<typeof updateOperationInputSchema>;
+
+export const updateInputSchema: StrictObjectSchema<{
   entityType: z.ZodString;
   id: z.ZodString;
-  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-  content: z.ZodOptional<z.ZodString>;
+  operation: typeof updateOperationInputSchema;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  entityType: z.string().describe("Entity type"),
-  id: z.string().describe("Entity ID, slug, or title"),
-  fields: z
-    .record(z.string(), z.unknown())
-    .optional()
-    .describe(
-      "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, update fields.coverImageId to that image id. To remove or clear a cover image, set fields.coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
+}> = z
+  .object({
+    entityType: z.string().describe("Entity type"),
+    id: z.string().describe("Entity ID, slug, or title"),
+    operation: updateOperationInputSchema.describe(
+      "Exactly one update operation",
     ),
-  content: z
-    .string()
-    .optional()
-    .describe(
-      "Full markdown content replacement only. Do not use this for status/title/frontmatter updates; use fields instead.",
-    ),
-  confirmed: z.literal(true).optional().describe("Confirm the update"),
-  confirmationToken: z
-    .string()
-    .optional()
-    .describe("Internal confirmation token returned by the confirmation flow"),
-  contentHash: z
-    .string()
-    .optional()
-    .describe("Content hash for optimistic concurrency"),
-});
+    confirmed: z.literal(true).optional().describe("Confirm the update"),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe(
+        "Internal confirmation token returned by the confirmation flow",
+      ),
+    contentHash: z
+      .string()
+      .optional()
+      .describe("Content hash for optimistic concurrency"),
+  })
+  .strict();
 
 export const deleteInputSchema: z.ZodObject<{
   entityType: z.ZodString;
@@ -506,16 +655,6 @@ export const jobStatusInputSchema: z.ZodObject<{
 }> = z.object({
   batchId: z.string().optional().describe("Specific batch ID to check"),
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
-});
-
-export const insightsInputSchema: z.ZodObject<{
-  type: z.ZodString;
-}> = z.object({
-  type: z
-    .string()
-    .describe(
-      "Type of insight to retrieve. Built-in: overview, publishing-cadence, content-health. Plugins may register additional types.",
-    ),
 });
 
 // ── Output schemas ──

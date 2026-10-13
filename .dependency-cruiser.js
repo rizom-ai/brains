@@ -37,6 +37,7 @@ module.exports = {
           "/test/fixtures/", // Test fixture files
           "hydration\\.js$", // Client-side hydration entry points
           "^docs/design/", // Design mockups; scripts are loaded by the sibling .html files
+          "^docs/studio-workspaces/", // Studio workspace mockups; preview.ts is run directly and study.js is loaded by the sibling .html pages
           "^scripts/dependency-cruiser-typescript-loader\\.mjs$", // Loaded through node:module.register by the compatibility preload
           "/test-apps/", // Dev fixture apps; src/site.ts is convention-loaded by shell/app
         ],

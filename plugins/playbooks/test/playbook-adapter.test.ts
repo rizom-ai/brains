@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
+import { getKind, unwrapField } from "@brains/utils/zod-introspect";
 import {
   playbookAdapter,
   playbookBodyFormatter,
+  playbookBodySchema,
+  playbookFrontmatterSchema,
   validatePlaybookBody,
 } from "../src";
 
@@ -214,6 +218,41 @@ Say: Done.
     });
   });
 
+  it("parses an authored step that a reply can prove", () => {
+    const markdown =
+      "---\ntitle: Reply Proof Playbook\nstatus: active\naudience: admin\ncompletionMode: agent-confirmed\n---\n\n# Playbook\n\n## Purpose\n\nTeach by doing.\n\n## Steps\n\n### Transform\n\nSay: Pick a format.\n\nTo do:\n- Transform the note in chat.\n\nProven by: reply\n\nDone when:\n- The note has been transformed in chat.\n\n### Done\n\nSay: Done.\n";
+    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+    expect(parsed.states[0]).toMatchObject({
+      id: "transform",
+      provenBy: ["reply"],
+      doneWhen: ["The note has been transformed in chat."],
+      instructions: ["Transform the note in chat."],
+    });
+    expect(parsed.states[1]).not.toHaveProperty("provenBy");
+  });
+
+  it("rejects an unknown proof source", () => {
+    const markdown =
+      "---\ntitle: Reply Proof Playbook\nstatus: active\naudience: admin\ncompletionMode: agent-confirmed\n---\n\n# Playbook\n\n## Purpose\n\nTeach by doing.\n\n## Steps\n\n### Transform\n\nSay: Pick a format.\n\nTo do:\n- Transform the note in chat.\n\nProven by: claim\n\nDone when:\n- The note has been transformed in chat.\n\n### Done\n\nSay: Done.\n";
+    expect(() => playbookAdapter.parsePlaybookContent(markdown)).toThrow(
+      "Playbook step 'Transform' has an unknown Proven by source: claim.",
+    );
+  });
+
+  it("round-trips a structured state a reply can prove", () => {
+    const proven = {
+      ...body,
+      states: body.states.map((state) =>
+        state.id === "welcome"
+          ? { ...state, provenBy: ["reply" as const] }
+          : state,
+      ),
+    };
+    expect(
+      playbookBodyFormatter.parse(playbookBodyFormatter.format(proven)),
+    ).toEqual(proven);
+  });
+
   it("rejects authored non-terminal steps without a done goal or choices", () => {
     const markdown = `---
 title: Broken
@@ -271,8 +310,33 @@ Say: Done.
   });
 
   it("round-trips structured playbook bodies", () => {
-    const markdown = playbookBodyFormatter.format(body);
-    expect(playbookBodyFormatter.parse(markdown)).toEqual(body);
+    expectBodyRoundTrip(playbookBodyFormatter, body);
+  });
+
+  it("drops blank optional body text and writes the decoded body back", () => {
+    const decoded = playbookBodySchema.parse({
+      ...body,
+      states: body.states.map((state) => ({ ...state, prompt: "   " })),
+    });
+
+    expect(decoded.states.every((state) => state.prompt === undefined)).toBe(
+      true,
+    );
+    expectBodyRoundTrip(playbookBodyFormatter, decoded);
+  });
+
+  it("keeps frontmatter blank-text parsing and its editable string field", () => {
+    const frontmatter = playbookFrontmatterSchema.parse({
+      title: "Onboarding",
+      trigger: "  ",
+      description: "Welcome new operators.",
+    });
+
+    expect(frontmatter.trigger).toBeUndefined();
+    expect(frontmatter.description).toBe("Welcome new operators.");
+    expect(
+      getKind(unwrapField(playbookFrontmatterSchema.shape.trigger).inner),
+    ).toBe("string");
   });
 
   it("reports structural validation errors", () => {

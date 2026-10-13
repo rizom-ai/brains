@@ -1,10 +1,34 @@
+import type { EntityTypeClassification } from "./entity-type-classification";
+import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type { PreparedAsset } from "@brains/assets";
 import type {
-  ActorRef,
-  EntityReadBudget,
-  QueryEmbedding,
-} from "@brains/contracts";
+  EntityGrouping,
+  EntityGroupingCatalog,
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
+} from "./entity-grouping";
+import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
+import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
+import type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
+export type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchOwnedJob,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   AcknowledgeEntityExportsRequest,
@@ -61,6 +85,23 @@ export type {
 } from "./mutation-admission";
 
 import type { EntityWriteCondition } from "./entity-write-contracts";
+import type {
+  EntityMutationReceipt,
+  EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+
+/** First committed result wins, even if retries choose a different destination.
+ * Receipts survive destination edits, folds and deletion. Transaction retries
+ * never replay callbacks; validation can still run in separate attempts.
+ * A content conflict does not consume the identity. This is not an author SDK API.
+ */
+export type ApplyEntityMutationOnceRequest = {
+  receipt: EntityMutationReceiptKey;
+} & (
+  | { operation: "none" }
+  | { operation: "create"; request: CreateEntityRequest<BaseEntity> }
+  | { operation: "update"; request: UpdateEntityRequest<BaseEntity> }
+);
 
 export interface EntityWriteSnapshot {
   entity: BaseEntity;
@@ -407,7 +448,9 @@ export interface UploadSaveHandlerRegistration {
 /**
  * Called before an entity is persisted (on create or update). Throws to reject
  * the write with an operator-facing error. Use this for cross-entity invariants
- * the per-entity Zod schema cannot express.
+ * the per-entity Zod schema cannot express. Includes projection upserts, which
+ * validate inside their transaction. Read-only lookups are allowed; mutations
+ * and external effects are not.
  */
 export type PersistValidator<T extends BaseEntity = BaseEntity> = (
   entity: T,
@@ -498,6 +541,13 @@ export interface EntityAdapter<
   getCoverImageId?(entity: TEntity): string | undefined;
 
   /**
+   * Optional: titles for the folders a nested id stands in, one per segment
+   * above its own, outermost first; undefined where the entity does not know
+   * a folder's title. A book section names its parts by its headings.
+   */
+  getFolderTitles?(entity: Pick<TEntity, "content">): Array<string | undefined>;
+
+  /**
    * Optional: build the markdown content and metadata for a queued-generation stub.
    * When undefined, this entity type does not support prompt-based queued creation
    * via system_create; the tool will reject the call rather than silently degrade.
@@ -520,6 +570,8 @@ export interface SortField {
   direction: "asc" | "desc";
   /** Sort NULL values before non-NULL values (default: false / SQLite default) */
   nullsFirst?: boolean;
+  /** Sort NULL values after non-NULL values, whatever the direction */
+  nullsLast?: boolean;
 }
 
 /**
@@ -527,12 +579,6 @@ export interface SortField {
  * Generic over metadata type for type-safe filtering
  */
 export interface EntityReadOptions {
-  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
-   * image references unexpanded. Not a bound on database or adapter execution.
-   */
-  readBudget?: EntityReadBudget;
-  /** Request-owned embedding capability, e.g. a prepaid guest search. */
-  queryEmbedding?: QueryEmbedding;
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
 }
@@ -572,6 +618,8 @@ export interface SearchOptions extends EntityReadOptions {
   visibilityScope?: ContentVisibility | undefined;
   /** Include queued/failed generation stubs in search results (default: false) */
   includeUngenerated?: boolean;
+  /** Only entities their type counts as published, as for published-only listings (default: false) */
+  publishedOnly?: boolean;
   /** Minimum relevance score to return. Omit for no score cutoff. */
   minScore?: number;
 }
@@ -583,6 +631,8 @@ export type ProjectionSourceRole =
  * Configuration for entity type registration
  */
 export interface EntityTypeConfig {
+  /** Plugin-owned semantic role, defaulting to content. System types cannot contribute to groupings. */
+  classification?: EntityTypeClassification;
   /** Score multiplier for search results (default: 1.0) */
   weight?: number;
   /** Whether to generate embeddings for this entity type (default: true).
@@ -591,14 +641,42 @@ export interface EntityTypeConfig {
   /** Whether to index serialized content in full-text search (default: true).
    *  Set to false for binary entity types. Mutations remove stale FTS rows. */
   fullTextSearchable?: boolean;
-  /** Durable binary storage policy. Absence means inline/text storage. */
-  binaryStorage?: "asset";
+  /** Whether a search that names no entity types includes this type (default: true).
+   *  Set to false for entities derived from the brain's own answers, so they are
+   *  not retrieved as sources; a search naming the type still finds them, and
+   *  raw-distance search is unaffected. */
+  includeInBroadSearch?: boolean;
+  /** Binary storage policy. Absence means text content. */
+  binaryStorage?: "data-url" | "asset";
+  /** Default system_list order, applied by the entity service before pagination. */
+  defaultSort?: SortField[];
+  /** Accepts upload text extraction through system_create extract-markdown. */
+  markdownImport?: boolean;
+  /**
+   * The type's own minimum action policy, from whoever registers it. It
+   * tightens wildcard defaults without relaxing stricter rules, including
+   * `never`, so an admin-only type stays protected without its bundle's rule.
+   * An explicit per-type instance entry still overrides, action by action.
+   */
+  actionPolicy?: Partial<
+    Record<
+      "create" | "update" | "delete" | "extract" | "publish",
+      "never" | "admin" | "trusted" | "public"
+    >
+  >;
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
   /** Default source authority role for derived projections. Entity types own
    *  their durable/source character; consumers may map roles to local policy. */
   projectionSourceRole?: ProjectionSourceRole;
+  /**
+   * The type this one is contained in, as a book's sections are in their
+   * book: a contained entity's id starts with its container's id, it is
+   * stored in its container's folder, shown under it, and deleted with it.
+   * One level only; a container's own ids are flat.
+   */
+  containedIn?: string;
   /** Publish semantics for status-bearing entity types. Statuses listed here
    *  represent publication commitment/execution states and require the
    *  `publish` entity action when entered or modified. */
@@ -619,6 +697,8 @@ export interface GetEntityRequest extends EntityReadOptions {
    * with elevated access must opt up explicitly.
    */
   visibilityScope?: ContentVisibility | undefined;
+  /** Only an entity its type counts as published, as for published-only listings. */
+  publishedOnly?: boolean | undefined;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -631,6 +711,40 @@ export interface ProjectionOwnedEntityRequest {
 export interface ListEntitiesRequest {
   entityType: string;
   options?: ListOptions | undefined;
+}
+
+export interface QueryEntityHierarchyRequest {
+  entityType: string;
+  /** Null/omitted means the collection root; segments identify stored identity. */
+  prefix?: EntityIdPathInput | null | undefined;
+  /** Search matching entries throughout the prefix; no folder rows in this mode. */
+  includeDescendants?: boolean | undefined;
+  /** Omitted fails closed to public, including folder names and counts. */
+  visibilityScope?: ContentVisibility | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  sortFields?: SortField[] | undefined;
+  filter?:
+    | {
+        metadata?: Record<string, unknown> | undefined;
+        contentContains?: string | undefined;
+        visibility?: ContentVisibility | undefined;
+      }
+    | undefined;
+  signal?: AbortSignal | undefined;
+}
+
+export interface EntityHierarchyPage {
+  prefix: EntityIdPath | null;
+  folders: Array<{
+    path: EntityIdPath;
+    name: string;
+    descendantCount: number;
+  }>;
+  /** Only direct children, with derived paths kept outside durable entity data. */
+  entities: Array<{ entity: BaseEntity; path: EntityIdPath }>;
+  offset: number;
+  totalEntities: number;
 }
 
 export interface CountEntitiesRequest {
@@ -657,18 +771,39 @@ export interface UpdateEntityRequest<T extends BaseEntity> {
   options?: UpdateEntityOptions | undefined;
 }
 
+/** Native-only atomic same-type, same-visibility update and removal.
+ * Both revisions must come from admitted write snapshots. The source is
+ * removed only when the destination and both journals commit with it.
+ */
+export interface FoldEntityRequest<T extends BaseEntity = BaseEntity> {
+  source: { entityType: string; id: string; expectedRevision: string };
+  targetRevision: string;
+  entity: T;
+  options?: Omit<
+    UpdateEntityOptions,
+    "conditionalWrite" | "expectedContentHash"
+  >;
+}
+
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
   options?:
-    Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> | undefined;
+    | (Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> & {
+        /** Delete only while the stored entity still has this content hash; false otherwise. */
+        expectedContentHash?: string | undefined;
+      })
+    | undefined;
 }
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
   /** Prepared bytes committed in the same transaction as their entity reference. */
   preparedAsset?: PreparedAsset | undefined;
-  options?: EntityJobOptions | undefined;
+  /** Conditional upserts never fall through from a raced create to update. */
+  options?:
+    | (EntityJobOptions & { conditionalWrite?: EntityWriteCondition })
+    | undefined;
 }
 
 export interface EntitySearchRequest {
@@ -678,6 +813,10 @@ export interface EntitySearchRequest {
 
 export interface SearchWithDistancesRequest {
   query: string;
+  /** Only these entity types; empty or omitted includes all types. */
+  types?: string[] | undefined;
+  /** Only results at most this cosine distance from the query. */
+  maxDistance?: number | undefined;
 }
 
 export interface SemanticEntityReference {
@@ -685,9 +824,26 @@ export interface SemanticEntityReference {
   entityType: string;
 }
 
+export interface NearestToEntityRequest {
+  /** The entity whose stored embedding the others are measured from. */
+  origin: SemanticEntityReference;
+  /** Entity types to consider; the origin itself is never returned. */
+  types: string[];
+  /** Only entries at most this cosine distance from the origin. */
+  maxDistance?: number | undefined;
+  limit?: number | undefined;
+  /** Undefined fails closed to public-only visibility, origin included. */
+  visibilityScope?: ContentVisibility | undefined;
+}
+
 export interface ProjectSemanticSpaceRequest {
   /** Entity types to include as projected points. Empty or omitted includes all types. */
   types?: string[];
+  /**
+   * Only these entities, when given: a bounded map reads a few hundred
+   * vectors instead of the whole corpus. Unknown or invisible ones are skipped.
+   */
+  entities?: SemanticEntityReference[];
   /** Optional entity used as the semantic origin. Missing origins fall back to the point centroid. */
   origin?: SemanticEntityReference;
   /** Include pairwise neighbors at or below this cosine distance. */
@@ -860,6 +1016,21 @@ export interface ICoreEntityService {
     schema: EntitySchema<T>,
   ): Promise<T[]>;
 
+  /** Immediate folders and paginated direct children; no filesystem interpretation. */
+  queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage>;
+
+  queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog>;
+  queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers>;
+  queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage>;
+
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(
     request: EntitySearchRequest,
@@ -869,6 +1040,15 @@ export interface ICoreEntityService {
   /** Return embedded entities with raw cosine distance to a query. */
   searchWithDistances(
     request: SearchWithDistancesRequest,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+
+  /**
+   * Visible entities of the given types nearest an entity's stored embedding,
+   * closest first, by raw cosine distance. It reads one vector and asks the
+   * store for the rest, so it costs no API call and stays linear.
+   */
+  nearestToEntity(
+    request: NearestToEntityRequest,
   ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
 
   /** Project visible entities into a provider-independent semantic space. */
@@ -884,7 +1064,7 @@ export interface ICoreEntityService {
   countEntities(request: CountEntitiesRequest): Promise<number>;
   /**
    * Group counts by entity type. Fails closed: undefined visibilityScope
-   * filters to public-only counts so aggregate insights cannot reveal
+   * filters to public-only counts so aggregate reports cannot reveal
    * non-public entity existence.
    */
   getEntityCounts(
@@ -898,10 +1078,36 @@ export interface ICoreEntityService {
   getWeightMap(): Record<string, number>;
 }
 
+/** One visibility-scoped, mixed-type member page. */
+export interface EntityGroupingMembers {
+  entities: BaseEntity[];
+  total: number;
+}
+
+/** A single document owner refreshes in-memory grouping contracts before use. */
+export interface EntityGroupingSource {
+  readonly entityType: string;
+  /** Read-only with respect to persistence: never mutate entities or reproject. */
+  ensureCurrent(options?: { afterWrite?: boolean }): Promise<void>;
+}
+
 /**
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  registerGroupingSource(source: EntityGroupingSource): void;
+  ensureGroupingsCurrent(): Promise<void>;
+  /** Preflight a complete replacement set without modifying active schemas. */
+  validateGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace declarations; observers may recheck retained fields. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
+  registerGrouping(grouping: EntityGrouping): void;
+  getGroupings(): EntityGrouping[];
+  /** Whether this type participates in any declared grouping. */
+  isGroupingContributor(type: string): boolean;
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
@@ -995,55 +1201,28 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
   activeEmbeddingJobs: number;
 }
 
-export interface BulkMutationInput {
-  source: string;
-  operationId: string;
-}
-
-export interface DurableBulkMutationRootInput extends BulkMutationInput {
-  rootJobId: string;
-  expectedChildren: number;
-}
-
-export interface DurableBulkMutationChildInput extends DurableBulkMutationRootInput {
-  childKey: string;
-  jobId: string;
-}
-
-export interface ProjectionBatchOwnedJob {
-  jobId: string;
-  childKey: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  terminalAt: number | null;
-}
-
-export type ProjectionBatchRootReader = (
-  rootJobId: string,
-  operationId: string,
-) => Promise<readonly ProjectionBatchOwnedJob[]>;
-
-export interface ProjectionBatchRecoveryResult {
-  fencedCallbacks: number;
-  releasedDurableRoots: number;
-}
-
-export interface SettleDurableBulkMutationChildInput {
-  operationId: string;
-  childKey: string;
-  jobId: string;
-  outcome: "completed" | "failed";
-}
-
 /**
  * The entity-service surface ordinary plugins receive. A real interface
  * rather than Omit<EntityService, ...>: mapped types collapse overloaded
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Visibility-scoped read and revision for atomic conditional writes. */
+  getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null>;
+  /** Local admission state; grouping endpoints must not serve partial bootstrap results. */
+  areGroupingsReady(): boolean;
+  /** Refresh definitions and start missing scans outside write transactions. */
+  ensureGroupingsReady(): Promise<boolean>;
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
   ): Promise<boolean>;
+  /** Release a retired rule's entity ownership without deleting its content. */
+  releaseProjectionOwnership(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<void>;
 
   // Durable entity-to-directory export coordination
   listPendingEntityExports(): Promise<EntityExportIntent[]>;
@@ -1069,6 +1248,18 @@ export interface EntityServiceClient extends ICoreEntityService {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
+  /**
+   * Delete every stored row of a type no plugin registers any more, with its
+   * search index, embeddings and files. Refuses a registered type.
+   */
+  purgeEntityType(entityType: string): Promise<number>;
+  foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
+  getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null>;
+  applyEntityMutationOnce(
+    request: ApplyEntityMutationOnceRequest,
+  ): Promise<EntityMutationReceipt>;
   upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
@@ -1118,10 +1309,8 @@ export type DurableBulkMutationCoordinator = Pick<
 >;
 
 export interface EntityService extends EntityServiceClient {
-  /** Visibility-scoped entity and the revision derived from its stored row. */
-  getEntityWriteSnapshot(
-    request: GetEntityRequest,
-  ): Promise<EntityWriteSnapshot | null>;
+  /** Normal web/combined boot only, after initial sync; not an ordinary mutation. */
+  reprojectRegisteredGroupings(): Promise<void>;
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
@@ -1176,6 +1365,8 @@ export interface EntityRegistry {
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;
+  /** Each contained type with the type it is contained in. */
+  getContainment(): ReadonlyMap<string, string>;
 
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
@@ -1201,6 +1392,46 @@ export interface EntityRegistry {
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
 
+  registerGroupingSource(source: EntityGroupingSource): void;
+  /** Capture preparation state; invoke the guard inside the write transaction. */
+  captureGroupingWriteGuard(entityType: string): () => Promise<void>;
+  getGroupingSourceType(): string | undefined;
+  getPendingGroupingProjections(): GroupingProjectionTarget[];
+  completeGroupingProjections(
+    targets: readonly GroupingProjectionTarget[],
+  ): void;
+  /** The source's own entity reads skip refresh to avoid recursion. */
+  ensureGroupingsCurrent(
+    entityType?: string,
+    options?: { afterWrite?: boolean },
+  ): Promise<void>;
+  /** Preflight a complete replacement set without modifying active schemas. */
+  validateGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace declarations; observers may recheck retained fields. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
+  registerGrouping(grouping: EntityGrouping): void;
+  getGrouping(key: string): EntityGrouping;
+  getGroupings(): EntityGrouping[];
+  projectMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown>;
+  /** Bootstrap projection: an invalid stored value is omitted, never fatal. */
+  projectStoredMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown>;
+  groupingFields(type: string): string[];
+  isGroupingContributor(type: string): boolean;
+
+  /** Registered extension contracts, including their refinements. */
+  getFrontmatterExtensions(type: string): readonly FrontmatterSchema[];
+
   /**
    * Get the effective frontmatter schema for an entity type,
    * with all registered extensions merged in.
@@ -1219,7 +1450,7 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
 /**
  * The read-only projection of the entity service.
  *
- * What a plugin is handed when it has no business writing: insight handlers
+ * What a plugin is handed when it has no business writing: analytics reports
  * compute over entities and return a summary. A projection of
  * `ICoreEntityService` rather than a hand-written parallel interface, so a
  * method that changes shape fails to compile here instead of drifting.

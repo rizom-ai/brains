@@ -10,8 +10,13 @@ import {
 } from "@brains/app";
 import { fromYaml, toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
+import type { Plugin, ProtocolPluginProvider } from "@brains/plugins";
 
-import { parseModelsField, parseJudgeField } from "./multi-model";
+import {
+  parseModelsField,
+  parseJudgeField,
+  parseSamplesField,
+} from "./multi-model";
 import { getErrorMessage } from "@brains/utils/error";
 
 const rawYamlSchema = z.record(z.string(), z.unknown());
@@ -33,6 +38,8 @@ export interface EvalConfigResult {
   models: string[];
   /** Judge model for LLM scoring (from `judge:` field) */
   judge?: string;
+  /** Independent runs per model (from `samples:` field) */
+  samples?: number;
   /** Effective tags from the selected eval suite or CLI `--tags`. */
   tags?: string[];
   /** Brain definition for re-resolution per model (multi-model only) */
@@ -46,6 +53,8 @@ export interface LoadEvalConfigOptions {
   suite?: string | undefined;
   /** CLI tag override; takes precedence over selected suite `tags:`. */
   tags?: string[] | undefined;
+  /** Register the selected MCP protocol without its production transport host. */
+  mcpBasic?: boolean | undefined;
 }
 
 export async function loadEvalConfig(
@@ -98,6 +107,7 @@ async function loadBrainEvalConfigIfPresent(
   );
   const models = parseModelsField(rawYaml);
   const judge = parseJudgeField(rawYaml);
+  const samples = parseSamplesField(rawYaml);
 
   const brainPackage = resolveBrainPackageName(overrides.brain);
   const brainModule = await import(brainPackage);
@@ -123,7 +133,12 @@ async function loadBrainEvalConfigIfPresent(
       parseBrainEvalOverrides(content),
       evalSelection,
     );
-    return resolveConfig(brainModule.default, process.env, freshOverrides);
+    return resolveEvalConfig(
+      brainModule.default,
+      process.env,
+      freshOverrides,
+      options.mcpBasic ?? false,
+    );
   };
 
   return {
@@ -132,9 +147,67 @@ async function loadBrainEvalConfigIfPresent(
     brainModelPath: brainModulePath,
     models,
     ...(judge ? { judge } : {}),
+    ...(samples !== undefined ? { samples } : {}),
     ...(evalSelection.tags?.length ? { tags: evalSelection.tags } : {}),
     resolveConfig: freshResolve,
   };
+}
+
+export function resolveEvalConfig(
+  brainDefinition: Parameters<typeof resolveConfig>[0],
+  env: NodeJS.ProcessEnv,
+  overrides: InstanceOverrides,
+  includeMcp: boolean,
+): AppConfig {
+  const evalConfig = resolveConfig(brainDefinition, env, overrides);
+  if (!includeMcp) return evalConfig;
+
+  let mcpPlugin = evalConfig.plugins?.find(({ id }) => id === "mcp");
+  if (!mcpPlugin) {
+    // Consult the selected composition for its protocol provider, not for a
+    // hosted interface to transplant with its dependencies missing.
+    const regularOverrides = { ...overrides };
+    delete regularOverrides.mode;
+    mcpPlugin = resolveConfig(
+      brainDefinition,
+      env,
+      regularOverrides,
+    ).plugins?.find(({ id }) => id === "mcp");
+  }
+  if (!mcpPlugin) {
+    throw new Error(
+      "--mcp-basic requires an MCP interface in the selected brain composition.",
+    );
+  }
+
+  if (!providesProtocolPlugin(mcpPlugin)) {
+    throw new Error(
+      "--mcp-basic requires the selected MCP interface to support protocol-only registration.",
+    );
+  }
+  const protocolPlugin = mcpPlugin.createProtocolPlugin();
+  if (protocolPlugin.id !== mcpPlugin.id) {
+    throw new Error(
+      "MCP protocol-only registration must preserve its plugin identity.",
+    );
+  }
+
+  return {
+    ...evalConfig,
+    plugins: [
+      ...(evalConfig.plugins ?? []).filter(({ id }) => id !== "mcp"),
+      protocolPlugin,
+    ],
+  };
+}
+
+function providesProtocolPlugin(
+  plugin: Plugin,
+): plugin is Plugin & ProtocolPluginProvider {
+  return (
+    "createProtocolPlugin" in plugin &&
+    typeof plugin.createProtocolPlugin === "function"
+  );
 }
 
 export interface EvalSelection {

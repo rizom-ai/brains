@@ -65,6 +65,24 @@ describe("link ATProto projection", () => {
     });
   });
 
+  it("names its page when the site gives the link one, and nothing otherwise", async () => {
+    const projection = createLinkAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("link");
+    const placed = await projection.buildRecord({
+      entity: link,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/links/link-1",
+    });
+    expect(placed.canonicalUrl).toBe("https://brain.example.com/links/link-1");
+    const unplaced = await projection.buildRecord({
+      entity: link,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the link projection when the link plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-link-atproto" });
     await harness.installPlugin(new LinkPlugin({}));

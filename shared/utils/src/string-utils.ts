@@ -22,7 +22,8 @@ export function interpolateEnvVar(
   for (const match of matches) {
     const varName = match.slice(2, -1); // strip ${ and }
     const envValue = env[varName];
-    if (envValue === undefined) return undefined;
+    // An empty variable is how deploy tooling passes an unset secret.
+    if (envValue === undefined || envValue === "") return undefined;
     result = result.replace(match, envValue);
   }
   return result;
@@ -32,7 +33,7 @@ export function interpolateEnvVar(
  * Recursively interpolate ${ENV_VAR} references in a parsed object.
  * - String values: "${VAR}" → process.env.VAR
  * - Object keys: "${VAR}" → process.env.VAR
- * - Removes entries where env vars are not set
+ * - Removes entries where env vars are not set or empty
  */
 export function interpolateEnv(
   data: unknown,
@@ -65,13 +66,25 @@ export function interpolateEnv(
   return data;
 }
 
+/** German letters as German writes them without umlauts or ß. */
+const GERMAN_LETTERS: Record<string, string> = {
+  ä: "ae",
+  ö: "oe",
+  ü: "ue",
+  ß: "ss",
+};
+
 /**
- * Convert a string to a URL-safe slug
+ * Convert a string to a URL-safe slug. Letters are transliterated, not
+ * dropped: German umlauts and ß as German writes them, other accents bare.
  */
 export function slugify(text: string): string {
   return text
     .toLowerCase()
     .trim()
+    .replace(/[äöüß]/g, (letter) => GERMAN_LETTERS[letter] ?? letter)
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "") // Drop accents left by decomposition
     .replace(/[^\w\s-]/g, "") // Remove non-word chars
     .replace(/[\s_-]+/g, "-") // Replace spaces, underscores, hyphens with single hyphen
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens

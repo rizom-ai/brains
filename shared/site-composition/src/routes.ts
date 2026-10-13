@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+export { entityDisplaySchema } from "@rizom/site";
 import type {
   NavigationItem,
   NavigationMetadata,

@@ -15,11 +15,14 @@ import { blogPlugin } from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
+import { contactPlugin } from "@brains/contact";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
+import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import { docsPlugin } from "@brains/doc";
+import { bookPlugin } from "@brains/book";
 import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
@@ -42,6 +45,7 @@ import { siteInfoPlugin } from "@brains/site-info";
 import { socialMediaPlugin } from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import { styleGuidePlugin } from "@brains/style-guide";
+import { askContentPlugin } from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
@@ -98,12 +102,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
   version: packageJson.version,
   bundleContract: CANONICAL_BUNDLE_CONTRACT,
-  model: "gpt-5.6-luna",
+  model: "gpt-6-luna",
   reasoningEffort: "low",
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
+    ["ask-content", askContentPlugin, undefined],
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],
@@ -125,6 +130,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
+    ["contact", contactPlugin, undefined],
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],
     ["onboarding", onboardingPlugin, undefined],
@@ -155,7 +161,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
 
     ["conversation-memory", conversationMemoryPlugin, undefined],
+    ["faq", faqPlugin, undefined],
     ["docs", docsPlugin, undefined],
+    ["book", bookPlugin, undefined],
 
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["email-workflows", emailWorkflows, undefined],

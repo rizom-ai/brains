@@ -6,9 +6,10 @@ import {
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { ButtondownPlugin } from "../src/provider/plugin";
-import { createButtondownTools } from "../src/provider/tools";
+import { ButtondownNewsletterProvider } from "../src/provider/buttondown-provider";
 import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
+import { ButtondownPlugin } from "../src/provider/plugin";
+import { createNewsletterSubscriberTools } from "../src/provider/tools";
 
 // The client is built with a delegate to this, so a test can stub before or
 // after construction. Unstubbed calls fail loudly rather than reaching the
@@ -24,19 +25,34 @@ function stubFetch(handler: ButtondownFetch): void {
 describe("Buttondown Tools", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
-  it("registers one canonical newsletter subscriber tool", () => {
-    const tools = createButtondownTools(
-      { apiKey: "test-key", doubleOptIn: true },
-      createSilentLogger("buttondown-tools-test"),
+  it("registers one agent tool and one route-only signup tool", () => {
+    const tools = createNewsletterSubscriberTools(
+      new ButtondownNewsletterProvider(
+        { apiKey: "test-key", doubleOptIn: true },
+        createSilentLogger("buttondown-tools-test"),
+      ),
     );
 
-    expect(tools.map((tool) => tool.name)).toEqual(["newsletter_subscribers"]);
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "newsletter_subscribers",
+      "newsletter_signup",
+    ]);
+    expect(
+      tools.filter((tool) => tool.agentTool !== false).map((tool) => tool.name),
+    ).toEqual(["newsletter_subscribers"]);
+    expect(tools[1]).toMatchObject({
+      visibility: "public",
+      agentTool: false,
+      directMcpExposure: "none",
+    });
   });
 
   it("uses OpenAI-compatible email patterns in model-visible tool schemas", () => {
-    const tools = createButtondownTools(
-      { apiKey: "test-key", doubleOptIn: true },
-      createSilentLogger("buttondown-tools-test"),
+    const tools = createNewsletterSubscriberTools(
+      new ButtondownNewsletterProvider(
+        { apiKey: "test-key", doubleOptIn: true },
+        createSilentLogger("buttondown-tools-test"),
+      ),
     );
 
     for (const tool of tools) {

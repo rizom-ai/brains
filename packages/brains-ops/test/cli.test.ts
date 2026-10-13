@@ -1,4 +1,5 @@
 import { createTempDir } from "@brains/test-utils";
+import { fromYaml } from "@brains/utils/yaml";
 import { describe, expect, it } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -47,6 +48,24 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
     expect(result.flags["cohort"]).toBe("cohort-1");
     expect(result.flags["anchor-id"]).toBe("1234567890");
+  });
+
+  it("parses batch user offboarding with explicit apply confirmation", () => {
+    const result = parseArgs([
+      "user:offboard",
+      "/tmp/rover-pilot",
+      "bob",
+      "alice",
+      "--apply",
+      "--confirm",
+      "sunset:alice,bob",
+    ]);
+    expect(result.command).toBe("user:offboard");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "bob", "alice"]);
+    expect(result.flags).toMatchObject({
+      apply: true,
+      confirm: "sunset:alice,bob",
+    });
   });
 
   it("parses init command with repo path", () => {
@@ -511,6 +530,19 @@ discord:
     expect(result.success).toBe(false);
     expect(result.message).toContain(
       "Usage: brains-ops user:add <repo> <handle> --cohort <cohort>",
+    );
+  });
+
+  it("returns usage error when user:offboard is missing handles", async () => {
+    const result = await runCommand({
+      command: "user:offboard",
+      args: ["/tmp/rover-pilot"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops user:offboard <repo> <handle>...",
     );
   });
 
@@ -1082,8 +1114,12 @@ members:
     });
 
     expect(result.success).toBe(true);
-    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toEqual(
+      fromYaml(
+        "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      ),
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -1104,8 +1140,8 @@ members:
 
     expect(result.success).toBe(true);
     expect(
-      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
-    ).toContain('anchors: ["discord:123456789"]');
+      fromYaml(await readFile(join(root, "users/bob/brain.yaml"), "utf8")),
+    ).toMatchObject({ anchors: ["discord:123456789"] });
   });
 
   it("uses injected operator runner for onboard", async () => {
@@ -1221,6 +1257,7 @@ members:
     expect(result.message).toContain(
       "user:add <repo> <handle> --cohort <cohort>",
     );
+    expect(result.message).toContain("user:offboard <repo> <handle>...");
     expect(result.message).toContain("age-key:bootstrap <repo>");
     expect(result.message).toContain("ssh-key:bootstrap <repo>");
     expect(result.message).toContain("cert:bootstrap <repo>");

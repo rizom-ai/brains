@@ -1,4 +1,8 @@
-import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
+import {
+  AIService,
+  EmbeddingUsageMeter,
+  OnlineEmbeddingProvider,
+} from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { createGenerationAuthorizer } from "./generation-authorization";
 import {
@@ -8,12 +12,14 @@ import {
 import {
   InMemoryDataSourceRegistry,
   EntityRegistry,
+  type EntityTypeConfig,
 } from "@brains/entity-service";
 import {
   EntityServiceTag,
   createEntityServiceLayer,
 } from "@brains/entity-service/effect";
 import { ProfileKindRegistry } from "@brains/identity-service";
+import type { ResettableAmbientScope } from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -38,7 +44,7 @@ import {
   RenderService,
   InMemoryTemplateRegistry,
 } from "@brains/templates";
-import { Clock, Context } from "@brains/utils/effect";
+import { Clock, Context, Effect } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import { OperationContext } from "@brains/operation-context";
 
@@ -47,7 +53,10 @@ import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
-import type { RuntimeProcessRole } from "../runtime-process-role";
+import {
+  runtimeRoleProfile,
+  type RuntimeProcessRole,
+} from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import { createRecurringCheckDelivery } from "./recurring-check-delivery";
@@ -68,17 +77,22 @@ export function createShellServices(options: {
   const { config, dependencies, initializerLogger, lifecycle, processRole } =
     options;
   initializerLogger.debug("Initializing Shell services");
+  const role = runtimeRoleProfile(processRole);
 
   const logger = createServiceLogger(config, dependencies?.logger);
   const operationContext =
     dependencies?.operationContext ?? OperationContext.createFresh();
   const disposables: Array<() => void> = [];
 
+  // Tells a guest turn what its embeddings cost: the provider reports each
+  // call, the agent measures each turn.
+  const embeddingUsage = EmbeddingUsageMeter.createFresh();
   const embeddingService =
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
       apiKey: config.ai.apiKey,
       logger,
+      usage: embeddingUsage,
     });
   const aiService =
     dependencies?.aiService ??
@@ -103,7 +117,15 @@ export function createShellServices(options: {
     PluginManager.createFresh(logger, daemonRegistry);
   const permissionService =
     dependencies?.permissionService ??
-    new PermissionService(config.permissions, { spaces: config.spaces });
+    new PermissionService(config.permissions, {
+      spaces: config.spaces,
+      // A registered type's own minimum, so an admin-only type stays admin-only
+      // in a brain assembled without the bundle that carries its rule.
+      entityActionFloor: (
+        entityType: string,
+      ): EntityTypeConfig["actionPolicy"] =>
+        entityRegistry.getEntityTypeConfig(entityType).actionPolicy,
+    });
   const profileKindRegistry =
     dependencies?.profileKindRegistry ??
     new ProfileKindRegistry(config.profileKind);
@@ -143,25 +165,29 @@ export function createShellServices(options: {
   const mcpService =
     dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);
 
+  // entityService (and its projection-batch scope) is constructed below,
+  // after job services, but the worker needs to reset that scope before
+  // every job runs regardless of construction order. This box's `current`
+  // is filled in once entityService exists; job processing only begins
+  // once the whole shell has finished booting, well after that happens.
+  const projectionBatchScopeBox: { current?: ResettableAmbientScope } = {};
+  const lateProjectionBatchScope: ResettableAmbientScope = {
+    runFreshBatchScope: (fn) =>
+      projectionBatchScopeBox.current
+        ? projectionBatchScopeBox.current.runFreshBatchScope(fn)
+        : fn(),
+  };
+
   const jobServices = initializeJobServices({
     dependencies,
     jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
     workerConcurrency: config.jobQueue.workerConcurrency,
     messageBus,
     operationContext,
+    projectionBatchScope: lateProjectionBatchScope,
     projectionAdmission: projectionRuntimeSupervisor,
-    handlerRegistrationMode:
-      processRole === "web"
-        ? "validation-only"
-        : processRole === "worker"
-          ? "execution-only"
-          : "combined",
-    progressMonitorMode:
-      processRole === "web"
-        ? "durable-reader"
-        : processRole === "worker"
-          ? "durable-writer"
-          : "combined",
+    handlerRegistrationMode: role.handlerRegistrationMode,
+    progressMonitorMode: role.progressMonitorMode,
     logger,
   });
   const {
@@ -179,7 +205,7 @@ export function createShellServices(options: {
       brainId: config.siteBaseUrl ?? config.dataDir,
       scheduler: new BunSchedulerBackend(),
       runtimeState: runtimeStateService,
-      clock: Clock.make(),
+      clock: Effect.runSync(Clock.Clock),
       jobQueue: jobQueueService,
       logger,
       delivery: createRecurringCheckDelivery(messageBus),
@@ -193,20 +219,21 @@ export function createShellServices(options: {
     inboxRegistry.unregisterPlugin("shell.recurring-checks"),
   );
 
-  if (processRole !== "worker") {
-    const recurringDaemonName = "shell:recurring-checks";
-    daemonRegistry.register(
-      recurringDaemonName,
-      {
-        start: () => recurringCheckService.start(),
-        stop: () => recurringCheckService.stop(),
-      },
-      "shell",
-    );
-    lifecycle.addSyncFinalizer(() =>
-      daemonRegistry.abandon(recurringDaemonName),
-    );
-  }
+  // Shell daemons serve requests, so only a serving process registers them.
+  // Construction is synchronous and has not started a daemon; runtime
+  // finalizers separately drain each before the databases it uses close.
+  const registerShellDaemon = (
+    name: string,
+    daemon: Parameters<typeof daemonRegistry.register>[1],
+  ): void => {
+    if (!role.serves) return;
+    daemonRegistry.register(name, daemon, "shell");
+    lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(name));
+  };
+  registerShellDaemon("shell:recurring-checks", {
+    start: () => recurringCheckService.start(),
+    stop: () => recurringCheckService.stop(),
+  });
 
   const entityContext = lifecycle.buildLayer(
     createEntityServiceLayer({
@@ -228,6 +255,7 @@ export function createShellServices(options: {
     }),
   );
   const entityService = Context.get(entityContext, EntityServiceTag);
+  projectionBatchScopeBox.current = entityService.getProjectionStore();
 
   const conversationContext = lifecycle.buildLayer(
     createConversationServiceLayer({
@@ -243,23 +271,16 @@ export function createShellServices(options: {
     conversationContext,
     ConversationServiceTag,
   );
-  if (processRole !== "worker") {
-    const name = "shell:guest-retention";
-    daemonRegistry.register(
-      name,
-      createScheduledMaintenanceDaemon({
-        intervalMs: 60_000,
-        logger,
-        run: async (): Promise<void> => {
-          await conversationService.deleteExpiredGuestConversations(100);
-        },
-      }),
-      "shell",
-    );
-    // Construction is synchronous and has not started the daemon. Runtime
-    // finalizers separately drain it before the conversation database closes.
-    lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(name));
-  }
+  registerShellDaemon(
+    "shell:guest-retention",
+    createScheduledMaintenanceDaemon({
+      intervalMs: 60_000,
+      logger,
+      run: async (): Promise<void> => {
+        await conversationService.deleteExpiredGuestConversations(100);
+      },
+    }),
+  );
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {
@@ -294,6 +315,7 @@ export function createShellServices(options: {
     config,
     entityService,
     embeddingService,
+    embeddingUsage,
     entityRegistry,
     logger,
     messageBus,
@@ -302,7 +324,7 @@ export function createShellServices(options: {
     conversationService,
     runtimeUploadRegistry,
     disposables,
-    executionOnly: processRole === "worker",
+    executionOnly: !role.serves,
   });
 
   return {

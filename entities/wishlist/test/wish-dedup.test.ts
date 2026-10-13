@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { beforeEach, describe, it, expect } from "bun:test";
 import { findExistingWish, type WishSearchDeps } from "../src/lib/wish-dedup";
 import type { WishEntity } from "../src/schemas/wish";
 
@@ -22,66 +22,85 @@ function createMockWish(overrides: Partial<WishEntity> = {}): WishEntity {
   };
 }
 
-function createDeps(overrides: Partial<WishSearchDeps> = {}): WishSearchDeps {
+function near(
+  wish: WishEntity,
+  distance: number,
+): Array<{ entityId: string; entityType: string; distance: number }> {
+  return [{ entityId: wish.id, entityType: "wish", distance }];
+}
+
+function createDeps(
+  wishes: WishEntity[],
+  overrides: Partial<WishSearchDeps> = {},
+): WishSearchDeps {
   return {
-    search: async () => [],
-    getEntity: async () => null,
-    similarityThreshold: 0.85,
+    searchWithDistances: async () => [],
+    getEntity: async (request) =>
+      wishes.find((wish) => wish.id === request.id) ?? null,
+    maxDistance: 0.3,
+    ai: {
+      generateObject: async <T>(
+        prompt: string,
+        schema: { parse(value: unknown): T },
+      ): Promise<{ object: T }> => {
+        checks.push(prompt);
+        return { object: schema.parse({ same: sameVerdict }) };
+      },
+    },
     ...overrides,
   };
 }
 
+let checks: string[] = [];
+let sameVerdict = true;
+
+const incoming = {
+  title: "Google Calendar sync",
+  content:
+    "---\ntitle: Google Calendar sync\n---\nIntegrate with Google Calendar",
+};
+
 describe("findExistingWish", () => {
+  beforeEach(() => {
+    checks = [];
+    sameVerdict = true;
+  });
+
   it("should return null when no similar wishes exist", async () => {
-    const deps = createDeps();
-
-    const result = await findExistingWish(deps, {
-      title: "Calendar integration",
-      description: "Sync Google Calendar events",
-    });
+    const result = await findExistingWish(createDeps([]), incoming);
 
     expect(result).toBeNull();
   });
 
-  it("should return match when search finds a wish above threshold", async () => {
+  it("should return a wish within the distance", async () => {
     const existing = createMockWish();
-    const deps = createDeps({
-      search: async () => [{ entity: existing, score: 0.92, excerpt: "" }],
+    const deps = createDeps([existing], {
+      searchWithDistances: async () => near(existing, 0.19),
     });
 
-    const result = await findExistingWish(deps, {
-      title: "Google Calendar sync",
-      description: "Integrate with Google Calendar",
-    });
-
-    expect(result).toBe(existing);
+    expect(await findExistingWish(deps, incoming)).toBe(existing);
   });
 
-  it("should ignore search results below threshold", async () => {
+  it("should ignore a wish beyond the distance", async () => {
     const existing = createMockWish();
-    const deps = createDeps({
-      search: async () => [{ entity: existing, score: 0.5, excerpt: "" }],
+    const deps = createDeps([existing], {
+      searchWithDistances: async () => near(existing, 0.36),
     });
 
-    const result = await findExistingWish(deps, {
-      title: "Email digest",
-      description: "Weekly email summary",
-    });
-
-    expect(result).toBeNull();
+    expect(
+      await findExistingWish(deps, {
+        title: "Email digest",
+        content: "---\ntitle: Email digest\n---\nWeekly email summary",
+      }),
+    ).toBeNull();
   });
 
-  it("should fall back to slug match when search returns nothing", async () => {
+  it("should fall back to slug match when nothing is near", async () => {
     const existing = createMockWish();
-    const deps = createDeps({
-      search: async () => [],
-      getEntity: async (request) =>
-        request.id === "calendar-integration" ? existing : null,
-    });
 
-    const result = await findExistingWish(deps, {
+    const result = await findExistingWish(createDeps([existing]), {
       title: "Calendar integration",
-      description: "Different description but same title",
+      content: "---\ntitle: Calendar integration\n---\nDifferent description",
     });
 
     expect(result).toBe(existing);
@@ -90,51 +109,58 @@ describe("findExistingWish", () => {
   it("should prefer semantic match over slug fallback", async () => {
     const semanticMatch = createMockWish({ id: "gcal-sync" });
     const slugMatch = createMockWish({ id: "calendar-integration" });
-    const deps = createDeps({
-      search: async () => [{ entity: semanticMatch, score: 0.95, excerpt: "" }],
-      getEntity: async (request) =>
-        request.id === "calendar-integration" ? slugMatch : null,
+    const deps = createDeps([semanticMatch, slugMatch], {
+      searchWithDistances: async () => near(semanticMatch, 0.1),
     });
 
     const result = await findExistingWish(deps, {
       title: "Calendar integration",
-      description: "Sync events",
+      content: "---\ntitle: Calendar integration\n---\nSync events",
     });
 
     expect(result).toBe(semanticMatch);
   });
 
-  it("should use custom similarity threshold", async () => {
+  it("should use a custom distance", async () => {
     const existing = createMockWish();
-    const deps = createDeps({
-      search: async () => [{ entity: existing, score: 0.7, excerpt: "" }],
-      similarityThreshold: 0.6,
+    const deps = createDeps([existing], {
+      searchWithDistances: async () => near(existing, 0.4),
+      maxDistance: 0.45,
     });
 
-    const result = await findExistingWish(deps, {
-      title: "Calendar sync",
-      description: "Sync calendar events",
-    });
-
-    expect(result).toBe(existing);
+    expect(await findExistingWish(deps, incoming)).toBe(existing);
   });
 
-  it("should search with title and description combined", async () => {
-    let capturedQuery = "";
-    const deps = createDeps({
-      search: async ({ query }) => {
-        capturedQuery = query;
+  it("should measure the new wish's markdown, the form wishes are embedded in", async () => {
+    const queries: string[] = [];
+    const deps = createDeps([], {
+      searchWithDistances: async ({ query }) => {
+        queries.push(query);
         return [];
       },
     });
 
-    await findExistingWish(deps, {
-      title: "Calendar integration",
-      description: "Sync Google Calendar events",
+    await findExistingWish(deps, incoming);
+
+    expect(queries).toEqual([incoming.content]);
+  });
+
+  it("skips a close wish the check says asks for something else", async () => {
+    const existing = createMockWish({ id: "send-emails" });
+    const deps = createDeps([existing], {
+      searchWithDistances: async () => near(existing, 0.2),
+    });
+    sameVerdict = false;
+
+    const result = await findExistingWish(deps, {
+      title: "Stop sending emails",
+      content:
+        "---\ntitle: Stop sending emails\n---\nUser wants email sending off",
     });
 
-    expect(capturedQuery).toBe(
-      "Calendar integration: Sync Google Calendar events",
-    );
+    expect(result).toBeNull();
+    expect(checks).toHaveLength(1);
+    expect(checks[0]).toContain("Stop sending emails");
+    expect(checks[0]).toContain("Calendar integration");
   });
 });

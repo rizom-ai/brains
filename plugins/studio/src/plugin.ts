@@ -1,3 +1,4 @@
+import { CHAT_INTERACTION_ID, STUDIO_INTERACTION_ID } from "@brains/contracts";
 import { getActiveAuthService } from "@brains/auth-service";
 import type {
   StudioOverviewContributionRegistration,
@@ -26,11 +27,17 @@ import {
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
+import { createStudioChatHandoffState } from "./chat-handoff-contract";
+import { registerGroupingDefinitions } from "./grouping-definitions";
+import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
-import { STUDIO_CHAT_WORKSPACE_ID } from "./chat-workspace";
+import {
+  STUDIO_CHAT_ROUTE_PATH,
+  STUDIO_CHAT_WORKSPACE_ID,
+} from "./chat-workspace";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -41,12 +48,10 @@ import {
 const entityDisplayEntrySchema: z.ZodObject<
   {
     label: z.ZodOptional<z.ZodString>;
-    pluralName: z.ZodOptional<z.ZodString>;
   },
   z.core.$loose
 > = z.looseObject({
   label: z.string().optional(),
-  pluralName: z.string().optional(),
 });
 
 const entityDisplaySchema: z.ZodRecord<
@@ -54,10 +59,13 @@ const entityDisplaySchema: z.ZodRecord<
   typeof entityDisplayEntrySchema
 > = z.record(z.string(), entityDisplayEntrySchema);
 
-const studioPluginConfigSchema: z.ZodObject<{
-  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
-  routePath: z.ZodDefault<z.ZodString>;
-}> = z.object({
+const studioPluginConfigSchema: z.ZodObject<
+  {
+    entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+    routePath: z.ZodDefault<z.ZodString>;
+  },
+  z.core.$strict
+> = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
   routePath: z
     .string()
@@ -135,15 +143,72 @@ export class StudioPlugin extends ServicePlugin<
 > {
   private readonly workspaceRegistry = new StudioWorkspaceRegistry();
   private readonly overviewRegistry = new StudioOverviewRegistry();
+  private definitionSource: GroupingDefinitionSource | undefined;
 
   constructor(config: StudioPluginConfigInput = {}) {
     super("studio", packageJson, config, studioPluginConfigSchema);
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (context.entities.getGroupings().length > 0)
+      throw new Error(
+        "Studio groupings must be defined in the Groupings document, not registered by another owner.",
+      );
+    this.definitionSource = registerGroupingDefinitions(context);
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    // The shell catalogs plugins before registration, but HTTP routes are
+    // readable only after finalization. Use the same presence gate as the
+    // Chat shell; it resolves the configured API path when handling requests.
+    if (context.plugins.has("web-chat")) {
+      context.endpoints.register({
+        label: "Chat",
+        url: STUDIO_CHAT_ROUTE_PATH,
+        priority: 15,
+        visibility: "trusted",
+        requiresActiveSession: true,
+      });
+      context.interactions.register({
+        id: CHAT_INTERACTION_ID,
+        label: "Chat",
+        description: "Chat with this brain in the browser.",
+        href: STUDIO_CHAT_ROUTE_PATH,
+        kind: "human",
+        priority: 15,
+        visibility: "trusted",
+        requiresActiveSession: true,
+      });
+      context.inboxFollowUps.registerKind({
+        kind: "discuss-in-chat",
+        label: "Discuss in chat",
+        priority: 10,
+        mode: "universal",
+        permissionLevel: "trusted",
+        applies: () => true,
+        resolve: ({ sourceId, item }) => {
+          if (!context.inbox.getSource(sourceId)?.resolveDetail)
+            return undefined;
+          const label = item.title
+            .replace(/[\p{Cc}\p{Cf}]/gu, " ")
+            .trim()
+            .slice(0, 160);
+          return {
+            href: STUDIO_CHAT_ROUTE_PATH,
+            state: createStudioChatHandoffState(
+              sourceId,
+              item.id,
+              label || "Inbox item",
+            ),
+          };
+        },
+      });
+    }
     context.endpoints.register({
       label: "Studio",
       url: this.config.routePath,
@@ -152,7 +217,7 @@ export class StudioPlugin extends ServicePlugin<
       requiresActiveSession: true,
     });
     context.interactions.register({
-      id: "studio",
+      id: STUDIO_INTERACTION_ID,
       label: "Studio",
       description: "Edit and manage content through the browser Studio.",
       href: this.config.routePath,
@@ -289,6 +354,12 @@ export class StudioPlugin extends ServicePlugin<
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),
       workspaceRegistry: this.workspaceRegistry,
+      getGroupingDefinitions: () =>
+        this.definitionSource?.getSnapshot() ?? {
+          groupings: {},
+          issues: [],
+          excludedTypes: [],
+        },
       recordAuditEvent: async (event) => {
         const authService = getActiveAuthService();
         if (authService) await authService.recordAuditEvent(event);

@@ -1,7 +1,7 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import {
   CallbackProgressReporter,
   type ProgressReporter,
@@ -32,14 +32,14 @@ function createReporter(
 }
 
 function yieldToFibers(): Effect.Effect<void> {
-  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+  return Effect.yieldNow.pipe(Effect.andThen(Effect.yieldNow));
 }
 
 describe("waitForImportJobs", () => {
   it("polls immediately, preserves cadence, and reports 50-55% progress", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const entityService = createMockEntityService();
         let round = 0;
         const status = mock(async (id: string) => {
@@ -78,14 +78,14 @@ describe("waitForImportJobs", () => {
           { progress: 50, message: "Processing 0/2 entities" },
           { progress: 53, message: "Processing 1/2 entities" },
         ]);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("does not overlap status attempts", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const entityService = createMockEntityService();
         const firstStarted = deferred();
         const releaseFirst = deferred();
@@ -118,14 +118,14 @@ describe("waitForImportJobs", () => {
         yield* TestClock.adjust(500);
         yield* Effect.promise(() => waiting);
         expect(status).toHaveBeenCalledTimes(2);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("preserves the five-minute timeout boundary", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const entityService = createMockEntityService();
         const status = mock(async () => ({ status: "pending" as const }));
         entityService.getAsyncJobStatus = status;
@@ -152,7 +152,7 @@ describe("waitForImportJobs", () => {
         expect(settled).toBe(true);
         // Immediate attempt + three ticks through five minutes + timeout check.
         expect(status).toHaveBeenCalledTimes(5);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 

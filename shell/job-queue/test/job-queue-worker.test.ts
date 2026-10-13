@@ -9,6 +9,9 @@ import {
   spyOn,
 } from "bun:test";
 import { JobQueueWorker } from "../src/job-queue-worker";
+import { JobQueueService } from "../src/job-queue-service";
+import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
+import { createClient } from "@libsql/client";
 import type {
   IJobQueueService,
   JobClaimOptions,
@@ -28,14 +31,15 @@ import type {
 } from "@brains/utils/progress";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { OperationContext } from "@brains/operation-context";
+import type { ResettableAmbientScope } from "../src/job-queue-worker";
 
 const mockProgressReporter = createMockProgressReporter();
 
 class MockProgressMonitor implements IJobProgressMonitor {
   start(): void {}
-  stop(): void {}
+  async stop(): Promise<void> {}
 
   createProgressReporter(): ProgressReporter {
     return mockProgressReporter;
@@ -230,6 +234,252 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Fenced worker lifecycle", () => {
+    it("processes an earlier claim even when the next dequeue fails", async () => {
+      const handler = createMockHandler();
+      mockService = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      let calls = 0;
+      spyOn(mockService, "dequeue").mockImplementation(async () => {
+        calls++;
+        if (calls === 1) return testJob;
+        if (calls === 2) throw new Error("SQLITE_BUSY: database is locked");
+        return null;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          concurrency: 2,
+          pollInterval: 10,
+        },
+      );
+      await worker.start();
+      await waitUntil(
+        () => worker.getStats().processedJobs === 1,
+        "the already-claimed job to finish despite the next claim failing",
+      );
+      expect(handler.process).toHaveBeenCalledTimes(1);
+      expect(mockService.complete).toHaveBeenCalledWith(
+        testJob.id,
+        { success: true },
+        testJob.attemptId,
+      );
+      expect(mockService.fail).not.toHaveBeenCalled();
+      expect(worker.getStats().isHealthy).toBe(true);
+    });
+
+    it("does not leave a durable processing row behind after a later claim error", async () => {
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      const handler = createMockHandler();
+      service.registerHandler("shell:embedding", handler);
+      const dequeue = service.dequeue.bind(service);
+      let calls = 0;
+      spyOn(service, "dequeue").mockImplementation(async (claim) => {
+        if (++calls === 2) throw new Error("SQLITE_BUSY: database is locked");
+        return dequeue(claim);
+      });
+      worker = JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          concurrency: 2,
+          pollInterval: 10,
+        },
+      );
+      try {
+        const id = await service.enqueue({
+          type: "shell:embedding",
+          data: { id: "entity-123", content: "test" },
+          options: {
+            source: "test",
+            metadata: { operationType: "data_processing" },
+          },
+        });
+        await worker.start();
+        await waitUntil(
+          async () => (await service.getStatus(id))?.status === "completed",
+          "the persisted claim to reach completion",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(1);
+        expect((await service.getStatus(id))?.retryCount).toBe(0);
+        expect((await service.getDiagnostics()).totals.processing).toBe(0);
+      } finally {
+        await worker.stop();
+        service.close();
+        await database.cleanup();
+      }
+    });
+
+    it("resets the provided projection-batch scope around every job", async () => {
+      // Jobs are dispatched as Effect fibers, which AsyncLocalStorage has no
+      // notion of, so an unrelated job's leftover ambient scope (e.g.
+      // entity-service's projection-batch coordinator) can appear current to
+      // a later one. The worker must force any registered scope back to
+      // empty before running each job so that can't happen.
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      const handler = createMockHandler();
+      service.registerHandler("shell:embedding", handler);
+      const resetCalls: string[] = [];
+      const projectionBatchScope: ResettableAmbientScope = {
+        runFreshBatchScope: (fn) => {
+          resetCalls.push("start");
+          try {
+            return fn();
+          } finally {
+            resetCalls.push("end");
+          }
+        },
+      };
+      worker = JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { concurrency: 1, pollInterval: 10 },
+        { projectionBatchScope },
+      );
+      try {
+        const id = await service.enqueue({
+          type: "shell:embedding",
+          data: { id: "entity-reset", content: "test" },
+          options: {
+            source: "test",
+            metadata: { operationType: "data_processing" },
+          },
+        });
+        await worker.start();
+        await waitUntil(
+          async () => (await service.getStatus(id))?.status === "completed",
+          "the job to reach completion",
+        );
+        expect(resetCalls).toEqual(["start", "end"]);
+      } finally {
+        await worker.stop();
+        service.close();
+        await database.cleanup();
+      }
+    });
+
+    it("retries a contended completion write without replaying the handler", async () => {
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      const writer = createClient({ url: database.url });
+      const handler = createMockHandler();
+      service.registerHandler("shell:embedding", handler);
+      const complete = service.complete.bind(service);
+      const fail = spyOn(service, "fail");
+      spyOn(service, "complete").mockImplementation(async (...args) => {
+        const transaction = await writer.transaction("write");
+        const release = Bun.sleep(40).then(async () => {
+          await transaction.commit();
+          transaction.close();
+        });
+        try {
+          return await complete(...args);
+        } finally {
+          await release;
+        }
+      });
+      worker = JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { concurrency: 1, pollInterval: 10 },
+      );
+      try {
+        const id = await service.enqueue({
+          type: "shell:embedding",
+          data: { id: "entity-123", content: "test" },
+          options: {
+            source: "test",
+            metadata: { operationType: "data_processing" },
+          },
+        });
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().processedJobs === 1,
+          "a contended completion to persist",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(1);
+        expect(handler.onTerminalSuccess).toHaveBeenCalledTimes(1);
+        expect(handler.onError).not.toHaveBeenCalled();
+        expect(fail).not.toHaveBeenCalled();
+        expect(await service.getStatus(id)).toMatchObject({
+          status: "completed",
+          retryCount: 0,
+        });
+        expect((await service.getDiagnostics()).totals.processing).toBe(0);
+      } finally {
+        await worker.stop();
+        writer.close();
+        service.close();
+        await database.cleanup();
+      }
+    });
+
+    it("starts attempt heartbeats before a later dequeue settles", async () => {
+      const handler = createMockHandler();
+      let releaseHandler: () => void = () => undefined;
+      const handling = new Promise<void>((resolve) => {
+        releaseHandler = resolve;
+      });
+      handler.process.mockImplementation(async () => {
+        await handling;
+        return { success: true };
+      });
+      mockService = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      let releaseClaim: (job: JobInfo | null) => void = () => undefined;
+      const claiming = new Promise<JobInfo | null>((resolve) => {
+        releaseClaim = resolve;
+      });
+      let calls = 0;
+      spyOn(mockService, "dequeue").mockImplementation(async () => {
+        calls++;
+        if (calls === 1) return testJob;
+        if (calls === 2) return claiming;
+        return null;
+      });
+      const renew = spyOn(mockService, "renewAttemptLease");
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          concurrency: 2,
+          pollInterval: 10,
+          attemptHeartbeatIntervalMs: 5,
+        },
+      );
+      try {
+        await worker.start();
+        await waitUntil(
+          () => renew.mock.calls.length > 0,
+          "the first claim to renew while the next claim is suspended",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(1);
+        expect(worker.getStats().activeJobs).toBe(1);
+      } finally {
+        releaseClaim(null);
+        releaseHandler();
+        await worker.stop();
+      }
+    });
+
     it("registers a fresh session before claiming and ends it after a clean stop", async () => {
       const startWorkerSession = spyOn(mockService, "startWorkerSession");
       let observeClaim: (claim: JobClaimOptions) => void = () => undefined;
@@ -402,6 +652,94 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Job deadlines", () => {
+    // The deadline catches a stuck job, not a long one: each report that
+    // advances the job's progress renews it.
+    it("renews the deadline while the handler reports advancing progress", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 40;
+      handler.process.mockImplementation(
+        async (_data: unknown, _jobId: string, reporter: ProgressReporter) => {
+          for (const step of Array.from({ length: 8 }, (_, index) => index)) {
+            await Bun.sleep(15);
+            await reporter.report({ progress: step + 1, total: 8 });
+          }
+          return { success: true };
+        },
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      const fail = spyOn(mockService, "fail");
+      let signalCompleted: () => void = () => undefined;
+      const completed = new Promise<void>((resolve) => {
+        signalCompleted = resolve;
+      });
+      spyOn(mockService, "complete").mockImplementation(async () => {
+        signalCompleted();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await completed;
+
+      expect(fail).not.toHaveBeenCalled();
+      expect(worker.getStats().isHealthy).toBe(true);
+    });
+
+    it("does not renew the deadline for a report that repeats the last one", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 40;
+      handler.process.mockImplementation(
+        async (
+          _data: unknown,
+          _jobId: string,
+          reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) => {
+          const repeat = async (): Promise<{ success: true }> => {
+            if (signal.aborted) return { success: true };
+            await reporter.report({ progress: 1, total: 8, message: "busy" });
+            await Bun.sleep(10);
+            return repeat();
+          };
+          return repeat();
+        },
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalFailed: () => void = () => undefined;
+      const failed = new Promise<void>((resolve) => {
+        signalFailed = resolve;
+      });
+      const fail = spyOn(mockService, "fail").mockImplementation(async () => {
+        signalFailed();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await failed;
+
+      expect(fail).toHaveBeenCalledWith(
+        testJob.id,
+        expect.objectContaining({
+          message: expect.stringContaining("deadline"),
+        }),
+        testJob.attemptId,
+      );
+      expect(mockService.complete).not.toHaveBeenCalled();
+    });
+
     it("passes an AbortSignal and fails a cooperative timed-out attempt only after it settles", async () => {
       const handler = createMockHandler();
       handler.executionTimeoutMs = 15;
@@ -645,7 +983,7 @@ describe("JobQueueWorker", () => {
   describe("Job processing integration", () => {
     it("should poll on schedule and stop polling when stopped", async () => {
       const program = Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         worker = createWorkerWithClock(
           mockService,
           mockProgressMonitor,
@@ -655,25 +993,25 @@ describe("JobQueueWorker", () => {
 
         try {
           yield* Effect.promise(() => worker.start());
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(49);
           expect(mockService.dequeue).not.toHaveBeenCalled();
 
           yield* TestClock.adjust(1);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(mockService.dequeue).toHaveBeenCalledTimes(1);
 
           yield* Effect.promise(() => worker.stop());
           yield* TestClock.adjust(500);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(mockService.dequeue).toHaveBeenCalledTimes(1);
         } finally {
           if (worker.isWorkerRunning()) {
             yield* Effect.promise(() => worker.stop());
           }
         }
-      }).pipe(Effect.provide(TestContext.TestContext));
+      }).pipe(Effect.provide(TestClock.layer()));
 
       await Effect.runPromise(program);
     });

@@ -1,3 +1,4 @@
+import type { IShell } from "@brains/plugins";
 import { extendSite } from "@brains/site-composition";
 import type {
   EntityDisplayEntry,
@@ -22,25 +23,31 @@ export interface RizomRuntimeHooks {
   contentNamespace: string;
   templates?: Record<string, unknown>;
   dataSources?: unknown[];
+  /** Datasources that need the plugin's runtime, built when it registers. */
+  dataSourceFactories?: Array<(shell: IShell) => unknown>;
 }
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
   private readonly templateGroups: TemplateGroup[];
   private readonly dataSources: unknown[];
+  private readonly dataSourceFactories: Array<(shell: IShell) => unknown>;
 
   constructor(
     packageName: string,
     config: Record<string, unknown>,
     templateGroups: TemplateGroup[],
     dataSources: unknown[] = [],
+    dataSourceFactories: Array<(shell: IShell) => unknown> = [],
   ) {
     super(packageName, config);
     this.templateGroups = templateGroups;
     this.dataSources = dataSources;
+    this.dataSourceFactories = dataSourceFactories;
   }
 
+  // The shell a plugin registers with is the brain's, scoped to the plugin.
   override async register(
-    shell: RizomSiteShell,
+    shell: RizomSiteShell & IShell,
     _context?: unknown,
   ): Promise<RizomPluginCapabilities> {
     for (const group of this.templateGroups) {
@@ -48,6 +55,9 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
     }
     for (const dataSource of this.dataSources) {
       shell.getDataSourceRegistry().register(dataSource);
+    }
+    for (const factory of this.dataSourceFactories) {
+      shell.getDataSourceRegistry().register(factory(shell));
     }
     return { tools: [], resources: [] };
   }
@@ -91,7 +101,11 @@ function buildTemplateGroups(options: CreateRizomSiteOptions): TemplateGroup[] {
 function createRuntimePlugin(
   options: CreateRizomSiteOptions,
 ): SitePackage["plugin"] {
-  if (!options.runtime?.templates && !options.runtime?.dataSources?.length) {
+  if (
+    !options.runtime?.templates &&
+    !options.runtime?.dataSources?.length &&
+    !options.runtime?.dataSourceFactories?.length
+  ) {
     return undefined;
   }
 
@@ -101,6 +115,7 @@ function createRuntimePlugin(
       config ?? {},
       buildTemplateGroups(options),
       options.runtime?.dataSources,
+      options.runtime?.dataSourceFactories,
     );
 }
 

@@ -26,7 +26,11 @@ import type {
   ToolContext,
   ToolResponse,
 } from "@brains/plugins";
-import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
+import {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  ServicePlugin,
+  permissionToVisibilityScope,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import packageJson from "../package.json";
@@ -43,10 +47,16 @@ import {
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
-  type LifecyclePlaybookConfig,
   type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
+
+import {
+  playbookManageOutputSchema,
+  playbookStatusResponseSchema,
+  type PlaybookStatusResponse,
+  type PlaybookSummary,
+} from "./lib/status";
 
 import {
   RunEngine,
@@ -219,19 +229,7 @@ export interface ParsedPlaybook {
   version: string;
 }
 
-export interface PlaybookStatusResponse {
-  runs: PlaybookRun[];
-  activeRun?: PlaybookRun | undefined;
-  playbook?: PlaybookEntity | undefined;
-  body?: PlaybookBody | undefined;
-  currentState?: PlaybookState | undefined;
-  validEvents?: PlaybookTransition[] | undefined;
-  operatorActions?: PlaybookTransition[] | undefined;
-  blockedEvents?: PlaybookTransition[] | undefined;
-  guidance?: string | undefined;
-  cards?: ActionsCard[] | undefined;
-  lifecycle: Record<string, LifecyclePlaybookConfig>;
-}
+export type { PlaybookStatusResponse } from "./lib/status";
 
 const goalCheckResultSchema = z
   .object({
@@ -407,6 +405,16 @@ export class PlaybooksPlugin extends ServicePlugin<
       },
     );
 
+    context.messaging.subscribe<unknown, { recorded: boolean }>(
+      CONVERSATION_MESSAGE_ADDED_CHANNEL,
+      async (message) => ({
+        success: true,
+        data: await this.runs.recordAssistantReplyEvidence(
+          message.source,
+          message.payload,
+        ),
+      }),
+    );
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
       ENTITY_CHANNELS.created,
       async (message) => ({
@@ -434,8 +442,9 @@ export class PlaybooksPlugin extends ServicePlugin<
       {
         name: "playbook_manage",
         description:
-          "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+          "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on. For the full authored workflow, use system_get with entityType=playbook and the returned playbook.id.",
         inputSchema: manageInputSchema,
+        outputSchema: playbookManageOutputSchema,
         visibility: "admin",
         sideEffects: "writes",
         handler: async (
@@ -800,13 +809,14 @@ export class PlaybooksPlugin extends ServicePlugin<
           })
         : undefined;
 
-    return {
+    return playbookStatusResponseSchema.parse({
       runs: (input.conversationId ? conversationRuns : runs).map(
         sanitizeRunForModelOutput,
       ),
       ...(activeRun ? { activeRun: sanitizeRunForModelOutput(activeRun) } : {}),
-      ...(parsedPlaybook ? { playbook: parsedPlaybook.entity } : {}),
-      ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),
+      ...(parsedPlaybook
+        ? { playbook: summarizePlaybook(parsedPlaybook) }
+        : {}),
       ...(currentState ? { currentState } : {}),
       ...(validEvents.length > 0 ? { validEvents } : {}),
       ...(operatorActions.length > 0 ? { operatorActions } : {}),
@@ -814,7 +824,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       ...(guidance ? { guidance } : {}),
       ...(actionsCard ? { cards: [actionsCard] } : {}),
       lifecycle: this.config.lifecycle,
-    };
+    });
   }
 
   /**
@@ -973,6 +983,22 @@ export class PlaybooksPlugin extends ServicePlugin<
   }
 }
 
+/** A reference to the definition; the engine keeps the full source. */
+function summarizePlaybook(playbook: ParsedPlaybook): PlaybookSummary {
+  const initialState = getState(playbook.body, playbook.body.initialState);
+  return {
+    id: playbook.entity.id,
+    entityType: "playbook",
+    title: playbook.entity.metadata.title,
+    status: playbook.entity.metadata.status,
+    audience: playbook.entity.metadata.audience,
+    version: playbook.version,
+    ...(initialState
+      ? { initialState: { id: initialState.id, title: initialState.title } }
+      : {}),
+  };
+}
+
 function withOperatorActionGuidance(
   status: PlaybookStatusResponse,
   sourceState: PlaybookState,
@@ -1010,7 +1036,7 @@ function sanitizeEvidenceData(
   data: Record<string, unknown>,
 ): Record<string, unknown> {
   return Object.fromEntries(
-    ["entityType", "entityId", "operation"].flatMap((key) =>
+    ["entityType", "entityId", "operation", "messageId"].flatMap((key) =>
       data[key] !== undefined ? [[key, data[key]]] : [],
     ),
   );
@@ -1138,6 +1164,19 @@ function buildGoalCheckMaterial(
 }
 
 function formatEvidence(index: number, evidence: PlaybookRunEvidence): string {
+  if (evidence.kind === "assistant_reply") {
+    const retrieved = Array.isArray(evidence.data["retrieved"])
+      ? safeJson(evidence.data["retrieved"])
+      : "[]";
+    const reply =
+      typeof evidence.data["reply"] === "string" ? evidence.data["reply"] : "";
+    return [
+      `${index}. assistant_reply at ${evidence.observedAt}: the saved reply of a turn in this step. It proves only what its text shows; saved changes need entity_event evidence.`,
+      `Entities this turn read: ${retrieved}`,
+      "Reply:",
+      reply,
+    ].join("\n");
+  }
   return `${index}. ${evidence.kind} at ${evidence.observedAt}: ${safeJson(evidence.data)}`;
 }
 

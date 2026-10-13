@@ -1,17 +1,19 @@
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import { SYSTEM_CHANNELS } from "@brains/plugins/system-channels";
 import type {
   RizomPluginCapabilities,
   RizomRuntimeConfig,
   RizomSiteShell,
 } from "../contracts";
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
-import brainChatScript from "./boot/brain-chat.boot.js" with { type: "text" };
-import brainStyles from "../../brain.css" with { type: "text" };
-import { brainCaptureAssets } from "../../brain-assets";
-import livingMemoryStyles from "../../living-memory.css" with { type: "text" };
-import livingMemoryMapStyles from "../../living-memory-maps.css" with { type: "text" };
+import storyStyles from "../../story.css" with { type: "text" };
+import writingStyles from "../../writing.css" with { type: "text" };
+import favicon from "../../favicon.svg" with { type: "text" };
+import { brainOrganism } from "../../story/brain-organism";
+import { foundationOrganism } from "../../story/foundation-organism";
+import { livingOrganism } from "../../story/living-organism";
+import { workOrganism } from "../../story/work-organism";
+import { storyRuntimeScript } from "../../story/runtime";
+import { ASK_ROOM_STYLES } from "@brains/site-atlas";
 
 export type { RizomRuntimeConfig } from "../contracts";
 
@@ -32,7 +34,7 @@ function parseRuntimeConfig(
 }
 
 export function buildRizomHeadScript(): string {
-  return `<script src="/boot.js" defer></script>`;
+  return `<script src="/boot.js" defer></script><script src="/story.js" defer></script>`;
 }
 
 export const RIZOM_ATPROTO_LEXICON_BASE_PATH = "/atproto/lexicons";
@@ -51,13 +53,19 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,
-  ...brainCaptureAssets,
+  // The site's icon: the lantern the drawings use for a brain.
+  "/favicon.svg": favicon,
   "/boot.js": bootScript,
-  "/brain-chat.js": brainChatScript,
-  "/styles/brain.css": brainStyles,
-  // An emitted asset makes CSS edits part of the site build fingerprint.
-  // Only /living-memory links this route-scoped stylesheet.
-  "/styles/living-memory.css": livingMemoryStyles + livingMemoryMapStyles,
+  "/story.js": storyRuntimeScript,
+  // The story pages: the page shape, the drawings and the reading thread.
+  "/styles/story.css":
+    storyStyles +
+    ASK_ROOM_STYLES +
+    livingOrganism.css() +
+    brainOrganism.css() +
+    workOrganism.css() +
+    foundationOrganism.css(),
+  "/styles/writing.css": writingStyles,
 };
 
 export class RizomRuntimePlugin {
@@ -82,21 +90,9 @@ export class RizomRuntimePlugin {
     return { tools: [], resources: [] };
   }
 
+  // The head scripts reach every build through the site package's
+  // `headScripts` (see create-site.ts), which the worker reads from config.
   protected async onRegister(shell: RizomSiteShell): Promise<void> {
-    const messaging = shell.getMessageBus();
-
-    messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await messaging.send({
-        type: SITE_BUILDER_CHANNELS.headScriptRegister,
-        sender: this.id,
-        payload: {
-          pluginId: this.id,
-          script: buildRizomHeadScript(),
-        },
-      });
-      return { success: true };
-    });
-
     shell.getLogger().info("Rizom runtime plugin registered");
   }
 }

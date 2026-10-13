@@ -25,6 +25,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "profile",
     "prompt",
     "style-guide",
+    "ask-content",
     "directory-sync",
     "note",
     "link",
@@ -56,6 +57,19 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
       member: "mcp",
       config: { rules: [{ pattern: "mcp:http", level: "public" }] },
     },
+    {
+      member: "studio",
+      config: {
+        entityActions: {
+          "grouping-definitions": {
+            create: "admin",
+            update: "admin",
+            delete: "admin",
+            publish: "never",
+          },
+        },
+      },
+    },
   ],
   evalDisable: ["webserver", "dashboard"],
 });
@@ -68,6 +82,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
     "email",
     "notifications",
     "conversation-memory",
+    "faq",
   ],
   permissions: [
     {
@@ -79,7 +94,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
       config: { rules: [{ pattern: "web-chat:*", level: "admin" }] },
     },
   ],
-  evalDisable: ["chat", "web-chat", "email"],
+  evalDisable: ["chat", "web-chat", "email", "faq"],
 });
 
 export const siteBundle: CapabilityBundleDefinition = defineBundle({
@@ -92,7 +107,6 @@ export const siteBundle: CapabilityBundleDefinition = defineBundle({
       overrides: WEB_BUNDLE_ID,
     },
   ],
-  evalDisable: ["analytics"],
 });
 
 export const publishingBundle: CapabilityBundleDefinition = defineBundle({

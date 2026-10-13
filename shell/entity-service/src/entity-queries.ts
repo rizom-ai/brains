@@ -1,7 +1,29 @@
 import type { EntityDB } from "./db";
-import { entityReadBudgetSchema } from "@brains/contracts";
-import { entityRowBudgetCondition } from "./bounded-reads";
-import type { EntityReadOptions } from "./types";
+import { publishedStatusCondition } from "./published-condition";
+import type {
+  EntityReadOptions,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
+  EntityGroupingMembers,
+  EntityRegistry,
+} from "./types";
+import type {
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
+} from "./entity-grouping";
+import {
+  queryGroupingCatalogSchema,
+  queryGroupingMembersSchema,
+  queryGroupingUsageSchema,
+} from "./entity-grouping";
+import {
+  decodeEntityIdPath,
+  entityIdHierarchyExpressions,
+  storedEntityIdPathSchema,
+} from "./entity-id-path";
 import type { EmbeddingDB } from "./db/embedding-db";
 import {
   getVisibleContentVisibilities,
@@ -21,6 +43,8 @@ import {
   sql,
   isNotNull,
   inArray,
+  not,
+  getTableColumns,
   type SQL,
 } from "drizzle-orm";
 import { type Logger } from "@brains/utils/logger";
@@ -35,10 +59,12 @@ const sortFieldSchema: z.ZodObject<{
   field: z.ZodString;
   direction: z.ZodEnum<{ asc: "asc"; desc: "desc" }>;
   nullsFirst: z.ZodOptional<z.ZodBoolean>;
+  nullsLast: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   field: z.string(),
   direction: z.enum(["asc", "desc"]),
   nullsFirst: z.boolean().optional(),
+  nullsLast: z.boolean().optional(),
 });
 
 /**
@@ -69,7 +95,6 @@ const listOptionsSchema: z.ZodObject<{
     }>
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
-  readBudget: z.ZodOptional<typeof entityReadBudgetSchema>;
   signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
@@ -85,11 +110,32 @@ const listOptionsSchema: z.ZodObject<{
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
-  readBudget: entityReadBudgetSchema.optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
+
+const hierarchyRequestSchema = z.object({
+  entityType: z.string().min(1),
+  prefix: storedEntityIdPathSchema.nullable().optional(),
+  includeDescendants: z.boolean().default(false),
+  visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+  offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  sortFields: listOptionsSchema.shape.sortFields,
+  filter: listOptionsSchema.shape.filter
+    .unwrap()
+    .omit({ visibilityScope: true })
+    .optional(),
+  signal: z.instanceof(AbortSignal).optional(),
+});
+
+const MAX_HIERARCHY_FOLDERS = 1000;
+
+/** Case-insensitive substring match over stored content, used by every read. */
+function contentContainsCondition(term: string): SQL {
+  return sql`instr(lower(${entities.content}), lower(${term.trim()})) > 0`;
+}
 
 /**
  * EntityQueries handles database query operations for entities
@@ -97,6 +143,7 @@ type ListOptions = z.input<typeof listOptionsSchema>;
  */
 export interface EntityQueryDeps {
   db: EntityDB;
+  entityRegistry: EntityRegistry;
   serializer: EntitySerializer;
   logger: Logger;
   /** Embedding DB for delete cascading (separate from entity DB). */
@@ -108,9 +155,11 @@ export class EntityQueries {
   private embeddingDb: EmbeddingDB;
   private serializer: EntitySerializer;
   private logger: Logger;
+  private entityRegistry: EntityRegistry;
 
   constructor(deps: EntityQueryDeps) {
     this.db = deps.db;
+    this.entityRegistry = deps.entityRegistry;
     this.embeddingDb = deps.embeddingDb;
     this.serializer = deps.serializer;
     this.logger = deps.logger.child("EntityQueries");
@@ -125,20 +174,10 @@ export class EntityQueries {
     id: string,
     visibilityScope?: ContentVisibility,
     options: EntityReadOptions = {},
+    publishGate?: { publishedStatuses: string[] | undefined },
   ): Promise<EntityData | null> {
     options.signal?.throwIfAborted();
-    const readBudget =
-      options.readBudget === undefined
-        ? undefined
-        : entityReadBudgetSchema.parse(options.readBudget);
-    if (
-      readBudget &&
-      (id.length > readBudget.queryCharacters ||
-        entityType.length > readBudget.queryCharacters)
-    )
-      throw new Error("Entity lookup input limit exceeded");
-    if (!readBudget)
-      this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
+    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     const scope: ContentVisibility = visibilityScope ?? "public";
     const conditions: SQL[] = [
@@ -150,20 +189,22 @@ export class EntityQueries {
         inArray(entities.visibility, getVisibleContentVisibilities(scope)),
       );
     }
+    if (publishGate) {
+      conditions.push(publishedStatusCondition(publishGate.publishedStatuses));
+    }
 
-    if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
-      .select()
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
       .from(entities)
       .where(and(...conditions))
       .limit(1);
     options.signal?.throwIfAborted();
 
     if (result.length === 0) {
-      if (!readBudget)
-        this.logger.debug(
-          `Entity of type ${entityType} with ID ${id} not found`,
-        );
+      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
       return null;
     }
 
@@ -172,7 +213,10 @@ export class EntityQueries {
       return null;
     }
 
-    return normalizeEntityRow(row);
+    // As in hierarchy reads, bypass the driver's NUL-truncating text decoding.
+    // Preserve a leading BOM too: the stored ID is opaque identity, not a text file.
+    const idDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    return normalizeEntityRow({ ...row, id: idDecoder.decode(row.id) });
   }
 
   /** The stored row and the revision derived from it, from one scoped read. */
@@ -200,16 +244,12 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { offset, sortFields, filter, publishedOnly, readBudget, signal } =
+    const { limit, offset, sortFields, filter, publishedOnly, signal } =
       validatedOptions;
-    const limit = readBudget
-      ? Math.min(validatedOptions.limit ?? readBudget.rows, readBudget.rows)
-      : validatedOptions.limit;
     signal?.throwIfAborted();
-    if (!readBudget)
-      this.logger.debug(
-        `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
-      );
+    this.logger.debug(
+      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
+    );
 
     const whereConditions = this.buildWhereConditions(
       entityType,
@@ -220,7 +260,6 @@ export class EntityQueries {
       filter?.contentContains,
       filter?.visibility,
     );
-    if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
     const query = this.db
@@ -237,21 +276,254 @@ export class EntityQueries {
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
-      readBudget === undefined,
     );
 
     signal?.throwIfAborted();
-    if (!readBudget)
-      this.logger.debug(
-        `Listed ${entityList.length} entities of type ${entityType}`,
-      );
+    this.logger.debug(
+      `Listed ${entityList.length} entities of type ${entityType}`,
+    );
 
     return entityList;
   }
 
+  /** One catalog row per exact value; duplicate array elements never inflate counts. */
+  public async queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog> {
+    const input = queryGroupingCatalogSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    const source = sql`(SELECT DISTINCT ${entities.entityType}, ${entities.id}, j.value AS value
+      FROM ${entities}, json_each(${array}) AS j
+      WHERE ${and(...conditions)} AND j.type = 'text') AS grouping_values`;
+    const counts = await this.db
+      .select({ total: sql<number>`COUNT(DISTINCT grouping_values.value)` })
+      .from(source);
+    input.signal?.throwIfAborted();
+    const rows = await this.db
+      .select({
+        value: sql<ArrayBuffer>`CAST(grouping_values.value AS BLOB)`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(source)
+      .groupBy(sql`grouping_values.value`)
+      // Readers scan this list alphabetically; BINARY would file every
+      // capitalised value ahead of every lowercase one. Membership stays exact.
+      .orderBy(
+        sql`grouping_values.value COLLATE NOCASE ASC`,
+        sql`grouping_values.value COLLATE BINARY ASC`,
+      )
+      .limit(input.limit)
+      .offset(input.offset);
+    input.signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    return {
+      values: rows.map((row) => ({
+        value: decoder.decode(row.value),
+        count: Number(row.count),
+      })),
+      total: Number(counts[0]?.total ?? 0),
+    };
+  }
+
+  public async queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers> {
+    const input = queryGroupingMembersSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text' AND j.value = ${input.value})`,
+    );
+    if (input.q?.trim()) conditions.push(contentContainsCondition(input.q));
+    const where = and(...conditions);
+    const counts = await this.db
+      .select({ total: sql<number>`COUNT(*)` })
+      .from(entities)
+      .where(where);
+    input.signal?.throwIfAborted();
+    const column = input.sort.startsWith("created-")
+      ? entities.created
+      : entities.updated;
+    const order = input.sort.endsWith("-asc") ? asc(column) : desc(column);
+    const rows = await this.db
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
+      .from(entities)
+      .where(where)
+      .orderBy(order, asc(entities.entityType), asc(entities.id))
+      .limit(input.limit)
+      .offset(input.offset);
+    input.signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    const page: BaseEntity[] = [];
+    for (const row of rows) {
+      input.signal?.throwIfAborted();
+      const entity = await this.serializer.convertToEntity(
+        normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
+      );
+      if (entity) page.push(entity);
+    }
+    input.signal?.throwIfAborted();
+    return { entities: page, total: Number(counts[0]?.total ?? 0) };
+  }
+
+  public async queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    const input = queryGroupingUsageSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    // Count entity rows, never joined memberships or concatenated identities.
+    // All aggregates share one statement/snapshot. EXISTS also ignores duplicate
+    // historical values and non-text elements without normalizing stored content.
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text')`,
+    );
+    const columns: Record<string, SQL<number>> = {
+      entries: sql<number>`COUNT(*)`,
+    };
+    for (const [index, value] of input.values.entries()) {
+      columns[`value_${index}`] = sql<number>`COALESCE(SUM(CASE WHEN EXISTS (
+        SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text' AND j.value = ${value}
+      ) THEN 1 ELSE 0 END), 0)`;
+    }
+    const [row] = await this.db
+      .select(columns)
+      .from(entities)
+      .where(and(...conditions));
+    input.signal?.throwIfAborted();
+    return {
+      entries: Number(row?.["entries"] ?? 0),
+      values: input.values.map(
+        (value, index): { value: string; count: number } => ({
+          value,
+          count: Number(row?.[`value_${index}`] ?? 0),
+        }),
+      ),
+    };
+  }
+
+  private groupingConditions(
+    input: Pick<
+      z.output<typeof queryGroupingCatalogSchema>,
+      "grouping" | "entityTypes" | "visibilityScope"
+    >,
+  ): { conditions: SQL[]; array: SQL } {
+    const grouping = this.entityRegistry.getGrouping(input.grouping);
+    const admitted = new Set(input.entityTypes);
+    const types = grouping.types.filter((type) => admitted.has(type));
+    const conditions = [
+      inArray(entities.entityType, types),
+      inArray(
+        entities.visibility,
+        getVisibleContentVisibilities(input.visibilityScope ?? "public"),
+      ),
+    ];
+    const path = `$.${grouping.field}`;
+    // Protect json_each itself: scalar strings extracted from JSON aren't JSON documents.
+    const array = sql`CASE WHEN json_type(${entities.metadata}, ${path}) = 'array' THEN json_extract(${entities.metadata}, ${path}) ELSE '[]' END`;
+    return { conditions, array };
+  }
+
+  /** Immediate folders are grouped in SQLite; only direct entries are paginated. */
+  public async queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage> {
+    const input = hierarchyRequestSchema.parse(request);
+    const { entityType, filter, limit, offset, signal, sortFields } = input;
+    const prefix = input.prefix ?? null;
+    signal?.throwIfAborted();
+    const path = entityIdHierarchyExpressions(entities.id, prefix);
+    const conditions = this.buildWhereConditions(
+      entityType,
+      undefined,
+      filter?.metadata,
+      input.visibilityScope,
+      undefined,
+      filter?.contentContains,
+      filter?.visibility,
+    );
+    conditions.push(path.withinPrefix);
+
+    const folders = input.includeDescendants
+      ? []
+      : await this.db
+          .select({
+            name: path.childName,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(entities)
+          .where(and(...conditions, not(path.directChild)))
+          .groupBy(path.childName)
+          .orderBy(asc(path.childName))
+          .limit(MAX_HIERARCHY_FOLDERS + 1);
+    signal?.throwIfAborted();
+    if (folders.length > MAX_HIERARCHY_FOLDERS) {
+      throw new Error(
+        `Entity hierarchy exceeds ${MAX_HIERARCHY_FOLDERS} immediate folders`,
+      );
+    }
+
+    const direct = and(
+      ...conditions,
+      ...(input.includeDescendants ? [] : [path.directChild]),
+    );
+    const counts = await this.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(entities)
+      .where(direct);
+    signal?.throwIfAborted();
+    // The driver truncates NUL-containing text results. Identity fields travel
+    // as bytes and are decoded here; this does not modify stored rows.
+    const rows = await this.db
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
+      .from(entities)
+      .where(direct)
+      .orderBy(
+        ...this.buildOrderByClauses(
+          sortFields ?? [{ field: "id", direction: "asc" }],
+        ),
+        asc(entities.id),
+      )
+      .limit(limit)
+      .offset(offset);
+    signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    const page = await this.serializer.convertToEntities(
+      rows.map((row) =>
+        normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
+      ),
+      entityType,
+    );
+    signal?.throwIfAborted();
+    return {
+      prefix,
+      folders: folders.map((folder) => {
+        const name = decoder.decode(folder.name);
+        return {
+          path: prefix ? [prefix[0], ...prefix.slice(1), name] : [name],
+          name,
+          descendantCount: Number(folder.count),
+        };
+      }),
+      entities: page.map((entity) => ({
+        entity,
+        path: decodeEntityIdPath(entity.id),
+      })),
+      offset,
+      totalEntities: Number(counts[0]?.count ?? 0),
+    };
+  }
+
   /**
    * Build WHERE conditions for entity queries.
-   * Shared by listEntities and countEntities.
+   * Shared by listEntities, countEntities and hierarchy queries.
    */
   private buildWhereConditions(
     entityType: string,
@@ -265,22 +537,7 @@ export class EntityQueries {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
     if (publishedOnly) {
-      const statusExpr = sql`json_extract(${entities.metadata}, '$.status')`;
-      if (publishedStatuses && publishedStatuses.length > 0) {
-        // The adapter declared its own publish gate; the list is exact —
-        // entities without a status are not published.
-        conditions.push(
-          sql`${statusExpr} IN (${sql.join(
-            publishedStatuses.map((status) => sql`${status}`),
-            sql`, `,
-          )})`,
-        );
-      } else {
-        // Default lifecycle semantics for types with no declaration.
-        conditions.push(
-          sql`(${statusExpr} = 'published' OR ${statusExpr} = 'active' OR ${statusExpr} IS NULL)`,
-        );
-      }
+      conditions.push(publishedStatusCondition(publishedStatuses));
     }
 
     // Fail closed: undefined scope filters to public-only.
@@ -293,9 +550,7 @@ export class EntityQueries {
 
     if (visibility) conditions.push(eq(entities.visibility, visibility));
     if (contentContains?.trim()) {
-      conditions.push(
-        sql`instr(lower(${entities.content}), lower(${contentContains.trim()})) > 0`,
-      );
+      conditions.push(contentContainsCondition(contentContains));
     }
 
     if (metadataFilter) {
@@ -322,7 +577,7 @@ export class EntityQueries {
       return [desc(entities.updated)];
     }
 
-    return sortFields.flatMap(({ field, direction, nullsFirst }) => {
+    return sortFields.flatMap(({ field, direction, nullsFirst, nullsLast }) => {
       const orderFn = direction === "desc" ? desc : asc;
 
       // System fields
@@ -355,6 +610,9 @@ export class EntityQueries {
           asc(isNotNull(fieldExpression)), // Always ASC: false (NULL) before true (NOT NULL)
           orderFn(fieldExpression),
         ];
+      }
+      if (nullsLast) {
+        return [desc(isNotNull(fieldExpression)), orderFn(fieldExpression)];
       }
 
       return [orderFn(fieldExpression)];
@@ -446,6 +704,15 @@ export class EntityQueries {
       .limit(1);
 
     return result.length > 0;
+  }
+
+  /** The ids of a type's stored rows, whether or not the type is registered. */
+  public async listStoredIds(entityType: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: entities.id })
+      .from(entities)
+      .where(eq(entities.entityType, entityType));
+    return rows.map((row) => row.id);
   }
 
   /**

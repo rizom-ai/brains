@@ -85,6 +85,8 @@ function launchHref(
       return workspaceHref(paths.studioPath, "content-pipeline:publishing");
     case "site":
       return workspaceHref(paths.studioPath, "site-builder:site");
+    case "traffic":
+      return workspaceHref(paths.studioPath, "analytics:traffic");
     case "inbox-open-entity":
     case "inbox-discuss-in-chat":
     case "inbox-capture-note":

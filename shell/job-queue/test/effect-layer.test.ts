@@ -2,7 +2,8 @@ import {
   createMockBatchJobManager,
   createMockJobQueueService,
 } from "../src/test/index";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
+import { deferred } from "@brains/utils/deferred";
 import {
   BatchJobManagerTag,
   JobProgressMonitorTag,
@@ -34,7 +35,7 @@ class TrackingProgressMonitor implements IJobProgressMonitor {
 
   public start(): void {}
 
-  public stop(): void {
+  public async stop(): Promise<void> {
     this.order.push("progress");
   }
 
@@ -67,6 +68,13 @@ describe("job queue Effect layers", () => {
     };
 
     const jobProgressMonitor = new TrackingProgressMonitor(order);
+    const progressStopEntered = deferred();
+    const releaseProgressStop = deferred();
+    spyOn(jobProgressMonitor, "stop").mockImplementation(async () => {
+      progressStopEntered.resolve();
+      await releaseProgressStop.promise;
+      order.push("progress");
+    });
     const jobQueueWorker = {
       start: async (): Promise<void> => {},
       stop: async (): Promise<void> => {
@@ -122,8 +130,15 @@ describe("job queue Effect layers", () => {
     );
     expect(Context.get(runtimeContext, JobQueueWorkerTag)).toBe(jobQueueWorker);
 
-    await Effect.runPromise(Scope.close(runtimeScope, Exit.void));
-    Effect.runSync(Scope.close(databaseScope, Exit.void));
+    const closing = Effect.runPromise(Scope.close(runtimeScope, Exit.void));
+    await progressStopEntered.promise;
+    try {
+      expect(order).toEqual(["worker"]);
+    } finally {
+      releaseProgressStop.resolve();
+      await closing;
+      Effect.runSync(Scope.close(databaseScope, Exit.void));
+    }
 
     expect(order).toEqual(["worker", "progress", "batch", "database"]);
   });

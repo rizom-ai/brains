@@ -6,6 +6,7 @@ export interface EntityDisplayItem {
 }
 
 export interface ProfessionalSiteConfig {
+  homepageOpening: boolean;
   entityDisplay: {
     post: EntityDisplayItem;
     deck: EntityDisplayItem;
@@ -13,6 +14,7 @@ export interface ProfessionalSiteConfig {
 }
 
 export interface ProfessionalSiteConfigInput {
+  homepageOpening?: boolean | undefined;
   entityDisplay?:
     | {
         post: EntityDisplayItem;
@@ -40,6 +42,12 @@ export const professionalSiteConfigSchema: z.ZodType<
   ProfessionalSiteConfig,
   ProfessionalSiteConfigInput
 > = z.object({
+  homepageOpening: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Opt in to the atlas homepage: the authored opening and contact door over a map of published work; requires public Ask content and a matching contact endpoint",
+    ),
   entityDisplay: z
     .object({
       post: entityDisplayItemSchema,

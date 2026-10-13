@@ -3,7 +3,7 @@ import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { NewsletterPlugin } from "../src/entity/plugin";
 
-describe("NewsletterPlugin - Publish Pipeline Integration", () => {
+describe("NewsletterPlugin registration", () => {
   it("declares newsletter publish statuses and secondary topic authority", async () => {
     const harness = createPluginHarness<NewsletterPlugin>({
       dataDir: "/tmp/test-newsletter-policy",
@@ -21,13 +21,13 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
     expect(capabilities.projectionRules).toBeUndefined();
   });
 
-  it("registers provider-mode publishing config", async () => {
+  it("does not register a delivery provider itself", async () => {
     const harness = createPluginHarness<NewsletterPlugin>({
       dataDir: "/tmp/test-newsletter-publish-registration",
     });
-    const messages: Array<{ type: string; payload: unknown }> = [];
+    const messages: unknown[] = [];
     harness.subscribe("publish:register", async (msg) => {
-      messages.push({ type: "publish:register", payload: msg.payload });
+      messages.push(msg.payload);
       return { success: true };
     });
     await harness.installPlugin(new NewsletterPlugin({}));
@@ -39,13 +39,6 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
       true,
     );
 
-    expect(messages[0]?.payload).toMatchObject({
-      entityType: "newsletter",
-      provider: { name: "internal" },
-      config: {
-        publishResultIdField: "buttondownId",
-        publishTimestampField: "sentAt",
-      },
-    });
+    expect(messages).toEqual([]);
   });
 });

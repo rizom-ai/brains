@@ -1,16 +1,16 @@
 # brains roadmap
 
-Last updated: 2026-09-13
+Last updated: 2026-10-08
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
 ## Current status
 
-`brains` is late in the `v0.2.0` alpha cycle. The latest published core release is `@rizom/brain@0.2.0-alpha.373`. The canonical one-brain runtime, capability-bundle contract, React renderer, multi-user identity boundary, independent site/theme release lanes, native Studio Chat, and the main Studio UX consolidation have shipped. Changesets remains in prerelease mode and no final alpha has been nominated.
+`brains` is late in the `v0.2.0` alpha cycle. The latest published core release is `@rizom/brain@0.2.0-alpha.474`. The canonical one-brain runtime, capability-bundle contract, React renderer, multi-user identity boundary, independent site/theme release lanes, native Studio Chat, and the main Studio UX consolidation have shipped. Changesets remains in prerelease mode and no final alpha has been nominated.
 
-The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
+The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, land durable binary asset storage and migrate `yeehaa.io` to it, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
 
-Public `/ask` is a separate product rollout, not a stable-release gate. Its guest runtime and Brain-page integration are published and deployed to the Rizom preview path with admission default-off. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved.
+Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, budget or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
 
 What exists today:
 
@@ -28,7 +28,7 @@ What exists today:
 
 `v0.2.0` is a packaging and compatibility milestone. The structural migrations that previously gated it are complete. A release candidate is ready when:
 
-- the intended stable source, including the public authoring boundary, is merged and published as one exact final alpha;
+- the intended stable source, including the public authoring boundary and durable binary asset storage for images and PDFs, is merged and published as one exact final alpha;
 - all eight external authoring fixtures pass declaration, package-boundary, packed-runtime, and exact-registry checks against that alpha and its compatible Site SDK;
 - the credentialed live authoring harness and the personal/team eval suites complete with recorded, secret-safe evidence and zero accepted failures;
 - the `public` / `shared` / `restricted` visibility contract and documented authoring exports receive final compatibility sign-off;
@@ -41,13 +41,14 @@ Collective-posture field validation, Public Ask launch, opportunity prioritizati
 
 An existing worktree does not automatically outrank release work.
 
-| Priority | Outcome                              | Current execution                                                                                                                                                                          |
-| -------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                       |
-| **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                             |
-| **P1**   | Prove Public Ask                     | Rebuild and inspect the deployed preview, then—only with fresh approval—verify a real public-source question, follow-up, history, and owned deletion. Keep production guest admission off. |
-| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio folders remain a demand-gated follow-up.                            |
-| **P2**   | Opportunity-prioritization dogfood   | Finish the single-entity opportunity rework, composition, eval hardening, and focused operator surface without adding it to a default bundle.                                              |
+| Priority | Outcome                              | Current execution                                                                                                                                                                               |
+| -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                            |
+| **P0**   | Durable binary assets                | Land the staged asset stack (#447–#476), migrate `yeehaa.io`, soak, remove the legacy bridge, then move PDFs. Gates stable `v0.2.0` so its persisted format is final.                           |
+| **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                                  |
+| **P1**   | Make Public Ask observable           | Record guest requests, denials and settled spend durably, then surface them in an admin Studio workspace with a reachable kill switch. Keep production guest admission off on every deployment. |
+| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio hierarchy shipped separately in PR #267 (Brain 0.2.0-alpha.388).         |
+| **P2**   | Opportunity-prioritization dogfood   | Finish the single-entity opportunity rework, composition, eval hardening, and focused operator surface without adding it to a default bundle.                                                   |
 
 Everything marked parked, proposed, or exploratory below is demand-gated. New work should not preempt P0 without an explicit roadmap change.
 
@@ -78,6 +79,8 @@ The personal-publishing posture remains the public reference. Product improvemen
 Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
+- [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
+- [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
 
@@ -90,6 +93,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 Plans:
 
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
+- [organization-site.md](./plans/organization-site.md) — a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.
 
 ### 3. Trust and identity
 
@@ -100,6 +104,7 @@ Plans:
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the shared subject, channel, provenance, and trust model.
 - [connected-channels.md](./plans/connected-channels.md) — finish registry-driven attach/detach and prove Slack end to end without schema or console changes.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — the broader private durable operator/security tier beyond shipped auth state.
+- [onboarding-ai-tools.md](./plans/onboarding-ai-tools.md) — an Account → AI tools tab with the MCP address and per-client steps, and shorter onboarding emails that greet the person, say what the brain is for, and link there.
 
 ### 4. Hosting and operations
 
@@ -107,7 +112,9 @@ Brains should be installable, maintainable, observable, and recoverable by an op
 
 Plans:
 
+- [bootstrap-secrets-bitwarden.md](./plans/bootstrap-secrets-bitwarden.md) — make `--push-to bitwarden` on the bootstrap commands store the secret in Bitwarden and map it in `.env.schema`, instead of pushing to GitHub.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit, recoverable hosted-user offboarding.
+- [artifacts-content-repos.md](./plans/artifacts-content-repos.md) — move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
 
@@ -117,9 +124,11 @@ Discord, Slack, standalone `/ask`, native Studio Chat, and the shared Chat proto
 
 Plans:
 
-- [public-ask.md](./plans/public-ask.md) — complete live visitor acceptance and obtain separate production policy/publication approval.
+- [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
-- [studio-hierarchical-entity-navigation.md](./plans/studio-hierarchical-entity-navigation.md) — demand-gated virtual folders over structured entity paths.
+- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.
+- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with smoke-only test deployment still pending.
+- [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — implemented and locally validated: one administrator-owned document, runtime replacement/reprojection, independent cardinality and lists, unified controls, and exact source round trips. Authenticated app and unchanged visual gates pass; replacement release and smoke-only test deployment remain pending; no legacy conversion or rehearsal is required.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
@@ -134,11 +143,14 @@ Site and theme packages already publish independently with standard peer metadat
 Plans:
 
 - [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 release gate**, including integration of the completed declarative-boundary/DX branch, final-alpha evidence, release authorization, stable publication, and baseline freezing.
+- [durable-binary-assets.md](./plans/durable-binary-assets.md) — **P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut `yeehaa.io` over, soak, and remove the legacy bridge before stable `0.2.0`.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official package dependencies and prove an official package through public-only imports.
 - [atproto-integration.md](./plans/atproto-integration.md) — finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.
 - [trustflow-federation-integration.md](./plans/trustflow-federation-integration.md) — proposed asset-catalogue federation, gated on a real external catalogue endpoint.
+- [cross-brain-entity-sharing.md](./plans/cross-brain-entity-sharing.md) — proposed one-directional entity sharing between brains: visibility picks the transport, A2A carries `shared`, ATProto signals `public`.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — in-flight opportunity capture, ranking, focus, and state suggestions.
 - [lead-management.md](./plans/lead-management.md) — inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.
+- [rizom-ai-story-site.md](./plans/rizom-ai-story-site.md) — rizom.ai as one story: the live network and Ask on the homepage, one drawing language across Brain, Work and Foundation, Writing as an archive, one bar and a reading thread; Network and About dropped.
 
 ### 7. Keep the framework sustainable
 
@@ -146,17 +158,17 @@ These reduce drag or preserve future options; they are not product bets and do n
 
 Active cleanup and infrastructure plans:
 
-- [durable-binary-assets.md](./plans/durable-binary-assets.md) — move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
-- [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
-- [turso-database-engine.md](./plans/turso-database-engine.md) — active `0.3` Turso-only runtime/migration work; off-thread integration, production recovery, and fleet soak remain open while `0.2` stays on libSQL.
+- [topics-ranked-selection.md](./plans/topics-ranked-selection.md) — topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.
+- [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
+- [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.
+- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):
 
 - [alternative-site-renderer-spike.md](./plans/alternative-site-renderer-spike.md) — whether a renderer other than React earns its place at the prepared-build boundary.
-- [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
 
 ## Product direction
 

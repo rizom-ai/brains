@@ -5,6 +5,7 @@ import {
   GIT_BROKER_SOCKET_ENV,
 } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
+import { supervisorConclusion } from "./shutdown-sequence";
 import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
 import {
   runtimeSignalProcess,
@@ -13,6 +14,15 @@ import {
   type SpawnedProcess,
   type SpawnImpl,
 } from "./spawn-bun-runner";
+import {
+  brokerReplacementStep,
+  isProcessGroupAbsent,
+} from "./broker-group-policy";
+import {
+  attemptsWithinWindow,
+  isRestartBudgetExhausted,
+  restartDelayMs,
+} from "./worker-restart-policy";
 
 export type BrainChildRole = "web" | "worker";
 
@@ -141,15 +151,6 @@ function readHeartbeat(value: unknown): Heartbeat | undefined {
 }
 
 /** ESRCH is the only answer that means "gone". */
-function isNoSuchProcess(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ESRCH"
-  );
-}
-
 function hasMessageType(value: unknown, type: string): boolean {
   return (
     typeof value === "object" &&
@@ -461,15 +462,6 @@ function runRuntimeSupervisor(
      * "gone" — is not proof, and the absence of proof is what forbids a
      * replacement rather than merely delaying one.
      */
-    const groupIsAbsent = (pid: number): boolean => {
-      try {
-        options.processImpl.kill(-pid, 0);
-        return false;
-      } catch (error) {
-        return isNoSuchProcess(error);
-      }
-    };
-
     /**
      * Replace the owner only after proving the old group absent.
      *
@@ -481,7 +473,16 @@ function runRuntimeSupervisor(
     const replaceBrokerWhenGroupIsGone = (pid: number, attempt = 1): void => {
       if (settled || parentShutdownRequested || finalResult) return;
 
-      if (groupIsAbsent(pid)) {
+      const step = brokerReplacementStep(
+        isProcessGroupAbsent(
+          (target, signal) => options.processImpl.kill(target, signal),
+          pid,
+        ),
+        attempt,
+        options.brokerGroupProbeAttempts,
+      );
+
+      if (step.kind === "replace") {
         options.reportIncident({
           type: "git-broker-group-absent",
           attempts: attempt,
@@ -492,7 +493,7 @@ function runRuntimeSupervisor(
         return;
       }
 
-      if (attempt >= options.brokerGroupProbeAttempts) {
+      if (step.kind === "give-up") {
         options.reportIncident({
           type: "git-broker-group-absence-unproven",
           attempts: attempt,
@@ -503,8 +504,7 @@ function runRuntimeSupervisor(
             "Brain git broker process group could not be proven gone; the runtime is exiting for external cleanup",
           exitCode: 1,
         };
-        stopEverything();
-        maybeFinish();
+        requestParentShutdown("SIGTERM");
         return;
       }
 
@@ -514,12 +514,25 @@ function runRuntimeSupervisor(
     };
 
     const maybeFinish = (): void => {
-      if (activeChildren().length > 0) return;
-      if (finalResult) {
-        finish(finalResult);
-      } else if (parentShutdownRequested) {
-        finish({ success: true });
-      }
+      const conclusion = supervisorConclusion(
+        activeChildren().length,
+        finalResult,
+        parentShutdownRequested,
+      );
+      if (conclusion.kind === "resolve") finish(conclusion.result);
+    };
+
+    /**
+     * A child the runtime needs exited without being asked to.
+     *
+     * The first such exit names the outcome; later ones are consequences of
+     * the shutdown it started, which is why an already-requested shutdown
+     * leaves the recorded result alone.
+     */
+    const failRuntime = (result: CommandResult): void => {
+      if (parentShutdownRequested) return;
+      finalResult ??= result;
+      requestParentShutdown("SIGTERM");
     };
 
     /**
@@ -579,35 +592,37 @@ function runRuntimeSupervisor(
       }
 
       const now = options.clock.now();
-      while (
-        workerAttempts.length > 0 &&
-        now - (workerAttempts[0] ?? now) >= options.workerRestartWindowMs
-      ) {
-        workerAttempts.shift();
-      }
+      const recent = attemptsWithinWindow(
+        workerAttempts,
+        now,
+        options.workerRestartWindowMs,
+      );
+      workerAttempts.length = 0;
+      workerAttempts.push(...recent);
 
-      if (workerAttempts.length >= options.workerRestartBudget) {
+      if (
+        isRestartBudgetExhausted(
+          workerAttempts.length,
+          options.workerRestartBudget,
+        )
+      ) {
         options.reportIncident({
           type: "worker-supervision-exhausted",
           attempts: workerAttempts.length,
           windowMs: options.workerRestartWindowMs,
         });
-        finalResult = {
+        failRuntime({
           success: false,
           message: `Brain worker restart budget exhausted after ${workerAttempts.length} attempts`,
           exitCode: 1,
-        };
-        parentShutdownRequested = true;
-        requestChildrenShutdown("SIGTERM");
-        maybeFinish();
+        });
         return;
       }
 
-      const delayMs =
-        consecutiveWorkerFailures === 0
-          ? 0
-          : options.workerRestartBaseMs *
-            2 ** Math.min(consecutiveWorkerFailures - 1, 10);
+      const delayMs = restartDelayMs(
+        consecutiveWorkerFailures,
+        options.workerRestartBaseMs,
+      );
       if (delayMs === 0) {
         spawnChild("worker");
         return;
@@ -616,15 +631,6 @@ function runRuntimeSupervisor(
         workerRestartTimer = undefined;
         spawnChild("worker");
       }, delayMs);
-    };
-
-    const stopEverything = (): void => {
-      parentShutdownRequested = true;
-      if (workerRestartTimer !== undefined) {
-        options.clock.clearTimeout(workerRestartTimer);
-        workerRestartTimer = undefined;
-      }
-      requestChildrenShutdown("SIGTERM");
     };
 
     const handleChildClose = (
@@ -661,19 +667,13 @@ function runRuntimeSupervisor(
           replaceBrokerWhenGroupIsGone(pid);
           return;
         }
-        if (!parentShutdownRequested) {
-          finalResult ??= brokerExitResult(child, code);
-          stopEverything();
-        }
+        failRuntime(brokerExitResult(child, code));
         maybeFinish();
         return;
       }
 
       if (child.role === "web") {
-        if (!parentShutdownRequested) {
-          finalResult ??= webExitResult(child, code);
-          stopEverything();
-        }
+        failRuntime(webExitResult(child, code));
         maybeFinish();
         return;
       }

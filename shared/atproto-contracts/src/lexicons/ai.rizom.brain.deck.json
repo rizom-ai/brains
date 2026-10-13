@@ -18,6 +18,7 @@
           "author": { "type": "string" },
           "event": { "type": "string" },
           "publishedAt": { "type": "string", "format": "datetime" },
+          "canonicalUrl": { "type": "string", "format": "uri" },
           "brainDid": { "type": "string" },
           "anchorDid": { "type": "string" },
           "sourceEntityType": { "type": "string" },

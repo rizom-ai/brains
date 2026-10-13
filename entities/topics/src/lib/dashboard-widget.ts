@@ -63,7 +63,7 @@ export function registerTopicsDashboardWidget(params: {
       await registerBuiltInDashboardWidget({
         context,
         definition: topicsWidget,
-        load: async ({ signal }) => {
+        load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
           const topics = await context.entityService.listEntities(
             {
@@ -71,6 +71,7 @@ export function registerTopicsDashboardWidget(params: {
               options: {
                 limit: 10,
                 sortFields: [{ field: "updated", direction: "desc" }],
+                filter: { visibilityScope },
               },
             },
             topicEntitySchema,

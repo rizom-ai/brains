@@ -1,5 +1,2375 @@
 # @brains/studio
 
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.542
+  - @brains/console-theme@0.2.0-alpha.542
+  - @brains/contracts@0.2.0-alpha.542
+  - @brains/operator-view-react@0.2.0-alpha.542
+  - @brains/utils@0.2.0-alpha.542
+  - @brains/auth-service@0.2.0-alpha.542
+  - @brains/entity-service@0.2.0-alpha.542
+  - @brains/plugins@0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.541
+  - @brains/console-theme@0.2.0-alpha.541
+  - @brains/contracts@0.2.0-alpha.541
+  - @brains/operator-view-react@0.2.0-alpha.541
+  - @brains/utils@0.2.0-alpha.541
+  - @brains/auth-service@0.2.0-alpha.541
+  - @brains/entity-service@0.2.0-alpha.541
+  - @brains/plugins@0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.540
+  - @brains/console-theme@0.2.0-alpha.540
+  - @brains/contracts@0.2.0-alpha.540
+  - @brains/operator-view-react@0.2.0-alpha.540
+  - @brains/utils@0.2.0-alpha.540
+  - @brains/auth-service@0.2.0-alpha.540
+  - @brains/entity-service@0.2.0-alpha.540
+  - @brains/plugins@0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.539
+  - @brains/console-theme@0.2.0-alpha.539
+  - @brains/contracts@0.2.0-alpha.539
+  - @brains/operator-view-react@0.2.0-alpha.539
+  - @brains/utils@0.2.0-alpha.539
+  - @brains/auth-service@0.2.0-alpha.539
+  - @brains/entity-service@0.2.0-alpha.539
+  - @brains/plugins@0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.538
+  - @brains/console-theme@0.2.0-alpha.538
+  - @brains/contracts@0.2.0-alpha.538
+  - @brains/operator-view-react@0.2.0-alpha.538
+  - @brains/utils@0.2.0-alpha.538
+  - @brains/auth-service@0.2.0-alpha.538
+  - @brains/entity-service@0.2.0-alpha.538
+  - @brains/plugins@0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.537
+  - @brains/console-theme@0.2.0-alpha.537
+  - @brains/contracts@0.2.0-alpha.537
+  - @brains/operator-view-react@0.2.0-alpha.537
+  - @brains/utils@0.2.0-alpha.537
+  - @brains/auth-service@0.2.0-alpha.537
+  - @brains/entity-service@0.2.0-alpha.537
+  - @brains/plugins@0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.536
+  - @brains/console-theme@0.2.0-alpha.536
+  - @brains/contracts@0.2.0-alpha.536
+  - @brains/operator-view-react@0.2.0-alpha.536
+  - @brains/utils@0.2.0-alpha.536
+  - @brains/auth-service@0.2.0-alpha.536
+  - @brains/entity-service@0.2.0-alpha.536
+  - @brains/plugins@0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.535
+  - @brains/console-theme@0.2.0-alpha.535
+  - @brains/contracts@0.2.0-alpha.535
+  - @brains/operator-view-react@0.2.0-alpha.535
+  - @brains/utils@0.2.0-alpha.535
+  - @brains/auth-service@0.2.0-alpha.535
+  - @brains/entity-service@0.2.0-alpha.535
+  - @brains/plugins@0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.534
+  - @brains/console-theme@0.2.0-alpha.534
+  - @brains/contracts@0.2.0-alpha.534
+  - @brains/operator-view-react@0.2.0-alpha.534
+  - @brains/utils@0.2.0-alpha.534
+  - @brains/auth-service@0.2.0-alpha.534
+  - @brains/entity-service@0.2.0-alpha.534
+  - @brains/plugins@0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.533
+  - @brains/console-theme@0.2.0-alpha.533
+  - @brains/contracts@0.2.0-alpha.533
+  - @brains/operator-view-react@0.2.0-alpha.533
+  - @brains/utils@0.2.0-alpha.533
+  - @brains/auth-service@0.2.0-alpha.533
+  - @brains/entity-service@0.2.0-alpha.533
+  - @brains/plugins@0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.532
+  - @brains/console-theme@0.2.0-alpha.532
+  - @brains/contracts@0.2.0-alpha.532
+  - @brains/operator-view-react@0.2.0-alpha.532
+  - @brains/utils@0.2.0-alpha.532
+  - @brains/auth-service@0.2.0-alpha.532
+  - @brains/entity-service@0.2.0-alpha.532
+  - @brains/plugins@0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.531
+  - @brains/console-theme@0.2.0-alpha.531
+  - @brains/contracts@0.2.0-alpha.531
+  - @brains/operator-view-react@0.2.0-alpha.531
+  - @brains/utils@0.2.0-alpha.531
+  - @brains/auth-service@0.2.0-alpha.531
+  - @brains/entity-service@0.2.0-alpha.531
+  - @brains/plugins@0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.530
+  - @brains/console-theme@0.2.0-alpha.530
+  - @brains/contracts@0.2.0-alpha.530
+  - @brains/operator-view-react@0.2.0-alpha.530
+  - @brains/utils@0.2.0-alpha.530
+  - @brains/auth-service@0.2.0-alpha.530
+  - @brains/entity-service@0.2.0-alpha.530
+  - @brains/plugins@0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.529
+  - @brains/console-theme@0.2.0-alpha.529
+  - @brains/contracts@0.2.0-alpha.529
+  - @brains/operator-view-react@0.2.0-alpha.529
+  - @brains/utils@0.2.0-alpha.529
+  - @brains/auth-service@0.2.0-alpha.529
+  - @brains/entity-service@0.2.0-alpha.529
+  - @brains/plugins@0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.528
+  - @brains/console-theme@0.2.0-alpha.528
+  - @brains/contracts@0.2.0-alpha.528
+  - @brains/operator-view-react@0.2.0-alpha.528
+  - @brains/utils@0.2.0-alpha.528
+  - @brains/auth-service@0.2.0-alpha.528
+  - @brains/entity-service@0.2.0-alpha.528
+  - @brains/plugins@0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.527
+  - @brains/console-theme@0.2.0-alpha.527
+  - @brains/contracts@0.2.0-alpha.527
+  - @brains/operator-view-react@0.2.0-alpha.527
+  - @brains/utils@0.2.0-alpha.527
+  - @brains/auth-service@0.2.0-alpha.527
+  - @brains/entity-service@0.2.0-alpha.527
+  - @brains/plugins@0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.526
+  - @brains/console-theme@0.2.0-alpha.526
+  - @brains/contracts@0.2.0-alpha.526
+  - @brains/operator-view-react@0.2.0-alpha.526
+  - @brains/utils@0.2.0-alpha.526
+  - @brains/auth-service@0.2.0-alpha.526
+  - @brains/entity-service@0.2.0-alpha.526
+  - @brains/plugins@0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.525
+  - @brains/console-theme@0.2.0-alpha.525
+  - @brains/contracts@0.2.0-alpha.525
+  - @brains/operator-view-react@0.2.0-alpha.525
+  - @brains/utils@0.2.0-alpha.525
+  - @brains/auth-service@0.2.0-alpha.525
+  - @brains/entity-service@0.2.0-alpha.525
+  - @brains/plugins@0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.524
+  - @brains/console-theme@0.2.0-alpha.524
+  - @brains/contracts@0.2.0-alpha.524
+  - @brains/operator-view-react@0.2.0-alpha.524
+  - @brains/utils@0.2.0-alpha.524
+  - @brains/auth-service@0.2.0-alpha.524
+  - @brains/entity-service@0.2.0-alpha.524
+  - @brains/plugins@0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.523
+  - @brains/console-theme@0.2.0-alpha.523
+  - @brains/contracts@0.2.0-alpha.523
+  - @brains/operator-view-react@0.2.0-alpha.523
+  - @brains/utils@0.2.0-alpha.523
+  - @brains/auth-service@0.2.0-alpha.523
+  - @brains/entity-service@0.2.0-alpha.523
+  - @brains/plugins@0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+### Patch Changes
+
+- [#590](https://github.com/rizom-ai/brains/pull/590) [`9e06319`](https://github.com/rizom-ai/brains/commit/9e0631976c2df90463eaae4db62d6f65ea7c8e11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild math-rendering UI assets with KaTeX 0.18.2, which ignores inherited renderer settings such as `trust`. Use reviewed repository overrides for postcss-selector-parser 7.1.6 and only the legacy esbuild-kit loader's esbuild 0.25.12 dependency, leaving other esbuild copies and AI/Chat SDK, model, Effect and database dependencies unchanged.
+
+  Check actual installed dependency paths and rendering/loader behavior during dependency validation; a patched lockfile alone does not prove an existing installation was replaced.
+
+  Repository overrides are not inherited by downstream applications. The published Tailwind typography package still pins the vulnerable CSS parser, so consumers need their own parser override or a fixed parent package. This release does not claim a clean dependency audit: braces and sprintf-js findings remain.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.522
+  - @brains/console-theme@0.2.0-alpha.522
+  - @brains/contracts@0.2.0-alpha.522
+  - @brains/operator-view-react@0.2.0-alpha.522
+  - @brains/utils@0.2.0-alpha.522
+  - @brains/auth-service@0.2.0-alpha.522
+  - @brains/entity-service@0.2.0-alpha.522
+  - @brains/plugins@0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.521
+  - @brains/console-theme@0.2.0-alpha.521
+  - @brains/contracts@0.2.0-alpha.521
+  - @brains/operator-view-react@0.2.0-alpha.521
+  - @brains/utils@0.2.0-alpha.521
+  - @brains/auth-service@0.2.0-alpha.521
+  - @brains/entity-service@0.2.0-alpha.521
+  - @brains/plugins@0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.520
+  - @brains/console-theme@0.2.0-alpha.520
+  - @brains/contracts@0.2.0-alpha.520
+  - @brains/operator-view-react@0.2.0-alpha.520
+  - @brains/utils@0.2.0-alpha.520
+  - @brains/auth-service@0.2.0-alpha.520
+  - @brains/entity-service@0.2.0-alpha.520
+  - @brains/plugins@0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.519
+  - @brains/console-theme@0.2.0-alpha.519
+  - @brains/contracts@0.2.0-alpha.519
+  - @brains/operator-view-react@0.2.0-alpha.519
+  - @brains/utils@0.2.0-alpha.519
+  - @brains/auth-service@0.2.0-alpha.519
+  - @brains/entity-service@0.2.0-alpha.519
+  - @brains/plugins@0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.518
+  - @brains/console-theme@0.2.0-alpha.518
+  - @brains/contracts@0.2.0-alpha.518
+  - @brains/operator-view-react@0.2.0-alpha.518
+  - @brains/utils@0.2.0-alpha.518
+  - @brains/auth-service@0.2.0-alpha.518
+  - @brains/entity-service@0.2.0-alpha.518
+  - @brains/plugins@0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+### Patch Changes
+
+- Updated dependencies [[`3e65a69`](https://github.com/rizom-ai/brains/commit/3e65a693af743469a11a12e493f8ee5e3f8092fb)]:
+  - @brains/contracts@0.2.0-alpha.517
+  - @brains/auth-service@0.2.0-alpha.517
+  - @brains/entity-service@0.2.0-alpha.517
+  - @brains/plugins@0.2.0-alpha.517
+  - @brains/operator-view-react@0.2.0-alpha.517
+  - @brains/app-ui-react@0.2.0-alpha.517
+  - @brains/console-theme@0.2.0-alpha.517
+  - @brains/utils@0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/operator-view-react@0.2.0-alpha.516
+  - @brains/auth-service@0.2.0-alpha.516
+  - @brains/entity-service@0.2.0-alpha.516
+  - @brains/app-ui-react@0.2.0-alpha.516
+  - @brains/console-theme@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.515
+  - @brains/console-theme@0.2.0-alpha.515
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/operator-view-react@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/auth-service@0.2.0-alpha.515
+  - @brains/entity-service@0.2.0-alpha.515
+  - @brains/plugins@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.514
+  - @brains/console-theme@0.2.0-alpha.514
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/operator-view-react@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/auth-service@0.2.0-alpha.514
+  - @brains/entity-service@0.2.0-alpha.514
+  - @brains/plugins@0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.513
+  - @brains/console-theme@0.2.0-alpha.513
+  - @brains/contracts@0.2.0-alpha.513
+  - @brains/operator-view-react@0.2.0-alpha.513
+  - @brains/utils@0.2.0-alpha.513
+  - @brains/auth-service@0.2.0-alpha.513
+  - @brains/entity-service@0.2.0-alpha.513
+  - @brains/plugins@0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.512
+  - @brains/console-theme@0.2.0-alpha.512
+  - @brains/contracts@0.2.0-alpha.512
+  - @brains/operator-view-react@0.2.0-alpha.512
+  - @brains/utils@0.2.0-alpha.512
+  - @brains/auth-service@0.2.0-alpha.512
+  - @brains/entity-service@0.2.0-alpha.512
+  - @brains/plugins@0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.511
+  - @brains/operator-view-react@0.2.0-alpha.511
+  - @brains/auth-service@0.2.0-alpha.511
+  - @brains/app-ui-react@0.2.0-alpha.511
+  - @brains/console-theme@0.2.0-alpha.511
+  - @brains/contracts@0.2.0-alpha.511
+  - @brains/utils@0.2.0-alpha.511
+  - @brains/entity-service@0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.510
+  - @brains/console-theme@0.2.0-alpha.510
+  - @brains/contracts@0.2.0-alpha.510
+  - @brains/operator-view-react@0.2.0-alpha.510
+  - @brains/utils@0.2.0-alpha.510
+  - @brains/auth-service@0.2.0-alpha.510
+  - @brains/entity-service@0.2.0-alpha.510
+  - @brains/plugins@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- Updated dependencies [[`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c)]:
+  - @brains/utils@0.2.0-alpha.509
+  - @brains/entity-service@0.2.0-alpha.509
+  - @brains/plugins@0.2.0-alpha.509
+  - @brains/contracts@0.2.0-alpha.509
+  - @brains/operator-view-react@0.2.0-alpha.509
+  - @brains/auth-service@0.2.0-alpha.509
+  - @brains/app-ui-react@0.2.0-alpha.509
+  - @brains/console-theme@0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.508
+  - @brains/console-theme@0.2.0-alpha.508
+  - @brains/contracts@0.2.0-alpha.508
+  - @brains/operator-view-react@0.2.0-alpha.508
+  - @brains/utils@0.2.0-alpha.508
+  - @brains/auth-service@0.2.0-alpha.508
+  - @brains/entity-service@0.2.0-alpha.508
+  - @brains/plugins@0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.507
+  - @brains/console-theme@0.2.0-alpha.507
+  - @brains/contracts@0.2.0-alpha.507
+  - @brains/operator-view-react@0.2.0-alpha.507
+  - @brains/utils@0.2.0-alpha.507
+  - @brains/auth-service@0.2.0-alpha.507
+  - @brains/entity-service@0.2.0-alpha.507
+  - @brains/plugins@0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.506
+  - @brains/console-theme@0.2.0-alpha.506
+  - @brains/contracts@0.2.0-alpha.506
+  - @brains/operator-view-react@0.2.0-alpha.506
+  - @brains/utils@0.2.0-alpha.506
+  - @brains/auth-service@0.2.0-alpha.506
+  - @brains/entity-service@0.2.0-alpha.506
+  - @brains/plugins@0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/plugins@0.2.0-alpha.505
+  - @brains/auth-service@0.2.0-alpha.505
+  - @brains/entity-service@0.2.0-alpha.505
+  - @brains/operator-view-react@0.2.0-alpha.505
+  - @brains/app-ui-react@0.2.0-alpha.505
+  - @brains/console-theme@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.504
+  - @brains/console-theme@0.2.0-alpha.504
+  - @brains/contracts@0.2.0-alpha.504
+  - @brains/operator-view-react@0.2.0-alpha.504
+  - @brains/utils@0.2.0-alpha.504
+  - @brains/auth-service@0.2.0-alpha.504
+  - @brains/entity-service@0.2.0-alpha.504
+  - @brains/plugins@0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.503
+  - @brains/console-theme@0.2.0-alpha.503
+  - @brains/contracts@0.2.0-alpha.503
+  - @brains/operator-view-react@0.2.0-alpha.503
+  - @brains/utils@0.2.0-alpha.503
+  - @brains/auth-service@0.2.0-alpha.503
+  - @brains/entity-service@0.2.0-alpha.503
+  - @brains/plugins@0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.502
+  - @brains/console-theme@0.2.0-alpha.502
+  - @brains/contracts@0.2.0-alpha.502
+  - @brains/operator-view-react@0.2.0-alpha.502
+  - @brains/utils@0.2.0-alpha.502
+  - @brains/auth-service@0.2.0-alpha.502
+  - @brains/entity-service@0.2.0-alpha.502
+  - @brains/plugins@0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.501
+  - @brains/operator-view-react@0.2.0-alpha.501
+  - @brains/auth-service@0.2.0-alpha.501
+  - @brains/app-ui-react@0.2.0-alpha.501
+  - @brains/console-theme@0.2.0-alpha.501
+  - @brains/contracts@0.2.0-alpha.501
+  - @brains/utils@0.2.0-alpha.501
+  - @brains/entity-service@0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.500
+  - @brains/operator-view-react@0.2.0-alpha.500
+  - @brains/auth-service@0.2.0-alpha.500
+  - @brains/app-ui-react@0.2.0-alpha.500
+  - @brains/console-theme@0.2.0-alpha.500
+  - @brains/contracts@0.2.0-alpha.500
+  - @brains/utils@0.2.0-alpha.500
+  - @brains/entity-service@0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.499
+  - @brains/console-theme@0.2.0-alpha.499
+  - @brains/contracts@0.2.0-alpha.499
+  - @brains/operator-view-react@0.2.0-alpha.499
+  - @brains/utils@0.2.0-alpha.499
+  - @brains/auth-service@0.2.0-alpha.499
+  - @brains/entity-service@0.2.0-alpha.499
+  - @brains/plugins@0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.498
+  - @brains/console-theme@0.2.0-alpha.498
+  - @brains/contracts@0.2.0-alpha.498
+  - @brains/operator-view-react@0.2.0-alpha.498
+  - @brains/utils@0.2.0-alpha.498
+  - @brains/auth-service@0.2.0-alpha.498
+  - @brains/entity-service@0.2.0-alpha.498
+  - @brains/plugins@0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- Updated dependencies [[`769c063`](https://github.com/rizom-ai/brains/commit/769c063b4f2fa550a6f63548df8bbfe8e98630f5)]:
+  - @brains/plugins@0.2.0-alpha.497
+  - @brains/entity-service@0.2.0-alpha.497
+  - @brains/operator-view-react@0.2.0-alpha.497
+  - @brains/auth-service@0.2.0-alpha.497
+  - @brains/app-ui-react@0.2.0-alpha.497
+  - @brains/console-theme@0.2.0-alpha.497
+  - @brains/contracts@0.2.0-alpha.497
+  - @brains/utils@0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.496
+  - @brains/console-theme@0.2.0-alpha.496
+  - @brains/contracts@0.2.0-alpha.496
+  - @brains/operator-view-react@0.2.0-alpha.496
+  - @brains/utils@0.2.0-alpha.496
+  - @brains/auth-service@0.2.0-alpha.496
+  - @brains/entity-service@0.2.0-alpha.496
+  - @brains/plugins@0.2.0-alpha.496
+
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/operator-view-react@0.2.0-alpha.495
+  - @brains/auth-service@0.2.0-alpha.495
+  - @brains/entity-service@0.2.0-alpha.495
+  - @brains/plugins@0.2.0-alpha.495
+  - @brains/app-ui-react@0.2.0-alpha.495
+  - @brains/console-theme@0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.494
+  - @brains/console-theme@0.2.0-alpha.494
+  - @brains/contracts@0.2.0-alpha.494
+  - @brains/operator-view-react@0.2.0-alpha.494
+  - @brains/utils@0.2.0-alpha.494
+  - @brains/auth-service@0.2.0-alpha.494
+  - @brains/entity-service@0.2.0-alpha.494
+  - @brains/plugins@0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.493
+  - @brains/plugins@0.2.0-alpha.493
+  - @brains/operator-view-react@0.2.0-alpha.493
+  - @brains/auth-service@0.2.0-alpha.493
+  - @brains/app-ui-react@0.2.0-alpha.493
+  - @brains/console-theme@0.2.0-alpha.493
+  - @brains/contracts@0.2.0-alpha.493
+  - @brains/utils@0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- Updated dependencies [[`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a)]:
+  - @brains/contracts@0.2.0-alpha.492
+  - @brains/auth-service@0.2.0-alpha.492
+  - @brains/entity-service@0.2.0-alpha.492
+  - @brains/plugins@0.2.0-alpha.492
+  - @brains/operator-view-react@0.2.0-alpha.492
+  - @brains/app-ui-react@0.2.0-alpha.492
+  - @brains/console-theme@0.2.0-alpha.492
+  - @brains/utils@0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.491
+  - @brains/console-theme@0.2.0-alpha.491
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/operator-view-react@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/auth-service@0.2.0-alpha.491
+  - @brains/entity-service@0.2.0-alpha.491
+  - @brains/plugins@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.490
+  - @brains/console-theme@0.2.0-alpha.490
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/operator-view-react@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/auth-service@0.2.0-alpha.490
+  - @brains/entity-service@0.2.0-alpha.490
+  - @brains/plugins@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.489
+  - @brains/console-theme@0.2.0-alpha.489
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/operator-view-react@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/auth-service@0.2.0-alpha.489
+  - @brains/entity-service@0.2.0-alpha.489
+  - @brains/plugins@0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.488
+  - @brains/console-theme@0.2.0-alpha.488
+  - @brains/contracts@0.2.0-alpha.488
+  - @brains/operator-view-react@0.2.0-alpha.488
+  - @brains/utils@0.2.0-alpha.488
+  - @brains/auth-service@0.2.0-alpha.488
+  - @brains/entity-service@0.2.0-alpha.488
+  - @brains/plugins@0.2.0-alpha.488
+
+## 0.2.0-alpha.487
+
+### Patch Changes
+
+- Updated dependencies [[`a7d655f`](https://github.com/rizom-ai/brains/commit/a7d655f9e2aed518961bed39ff84c2110f41b8fe)]:
+  - @brains/auth-service@0.2.0-alpha.487
+  - @brains/app-ui-react@0.2.0-alpha.487
+  - @brains/console-theme@0.2.0-alpha.487
+  - @brains/contracts@0.2.0-alpha.487
+  - @brains/operator-view-react@0.2.0-alpha.487
+  - @brains/utils@0.2.0-alpha.487
+  - @brains/entity-service@0.2.0-alpha.487
+  - @brains/plugins@0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- [#516](https://github.com/rizom-ai/brains/pull/516) [`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Onboarding emails are shorter and personal. The anchor setup email greets a person anchor by name, and invitations say what the brain is for. Instead of listing MCP connection steps, both point to Studio → Account → AI tools. Chat, Studio and AI tools links come from the interactions the brain registers, and a sentence is left out when its page is not served. The chat, Studio and Account AI tools ids and link builder are shared contracts.
+
+- [#514](https://github.com/rizom-ai/brains/pull/514) [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's Account workspace gains an AI tools tab when the brain serves MCP over HTTP and the person's role can use it. It shows the brain's MCP address and how to connect Claude and ChatGPT, with Claude Code, Cursor, VS Code and any other OAuth MCP client in a collapsed developer section. Commands and configuration snippets name the server after the brain's host and copy exactly as shown. `?section=ai-tools` opens the tab directly.
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/auth-service@0.2.0-alpha.486
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/entity-service@0.2.0-alpha.486
+  - @brains/plugins@0.2.0-alpha.486
+  - @brains/operator-view-react@0.2.0-alpha.486
+  - @brains/app-ui-react@0.2.0-alpha.486
+  - @brains/console-theme@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies [[`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74), [`46c7739`](https://github.com/rizom-ai/brains/commit/46c773981cdd998539a0ef65b71339b5978ac136)]:
+  - @brains/auth-service@0.2.0-alpha.485
+  - @brains/app-ui-react@0.2.0-alpha.485
+  - @brains/console-theme@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/operator-view-react@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/entity-service@0.2.0-alpha.485
+  - @brains/plugins@0.2.0-alpha.485
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- Updated dependencies [[`fdca4f8`](https://github.com/rizom-ai/brains/commit/fdca4f8d5e98f222fed1743ab55a74b6acc52169)]:
+  - @brains/auth-service@0.2.0-alpha.484
+  - @brains/app-ui-react@0.2.0-alpha.484
+  - @brains/console-theme@0.2.0-alpha.484
+  - @brains/contracts@0.2.0-alpha.484
+  - @brains/operator-view-react@0.2.0-alpha.484
+  - @brains/utils@0.2.0-alpha.484
+  - @brains/entity-service@0.2.0-alpha.484
+  - @brains/plugins@0.2.0-alpha.484
+
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.483
+  - @brains/console-theme@0.2.0-alpha.483
+  - @brains/contracts@0.2.0-alpha.483
+  - @brains/operator-view-react@0.2.0-alpha.483
+  - @brains/utils@0.2.0-alpha.483
+  - @brains/auth-service@0.2.0-alpha.483
+  - @brains/entity-service@0.2.0-alpha.483
+  - @brains/plugins@0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.482
+  - @brains/console-theme@0.2.0-alpha.482
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/operator-view-react@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/auth-service@0.2.0-alpha.482
+  - @brains/entity-service@0.2.0-alpha.482
+  - @brains/plugins@0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.481
+  - @brains/operator-view-react@0.2.0-alpha.481
+  - @brains/auth-service@0.2.0-alpha.481
+  - @brains/app-ui-react@0.2.0-alpha.481
+  - @brains/console-theme@0.2.0-alpha.481
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+  - @brains/entity-service@0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/entity-service@0.2.0-alpha.480
+  - @brains/auth-service@0.2.0-alpha.480
+  - @brains/plugins@0.2.0-alpha.480
+  - @brains/operator-view-react@0.2.0-alpha.480
+  - @brains/app-ui-react@0.2.0-alpha.480
+  - @brains/console-theme@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies [[`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a)]:
+  - @brains/entity-service@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/auth-service@0.2.0-alpha.479
+  - @brains/operator-view-react@0.2.0-alpha.479
+  - @brains/app-ui-react@0.2.0-alpha.479
+  - @brains/console-theme@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.478
+  - @brains/console-theme@0.2.0-alpha.478
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/operator-view-react@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/auth-service@0.2.0-alpha.478
+  - @brains/entity-service@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- Updated dependencies [[`aa0b1a6`](https://github.com/rizom-ai/brains/commit/aa0b1a65c0da59cbbbc597d6ed4b4e10153f1f8b), [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/entity-service@0.2.0-alpha.477
+  - @brains/auth-service@0.2.0-alpha.477
+  - @brains/plugins@0.2.0-alpha.477
+  - @brains/operator-view-react@0.2.0-alpha.477
+  - @brains/app-ui-react@0.2.0-alpha.477
+  - @brains/console-theme@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.476
+  - @brains/console-theme@0.2.0-alpha.476
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/operator-view-react@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/auth-service@0.2.0-alpha.476
+  - @brains/entity-service@0.2.0-alpha.476
+  - @brains/plugins@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.475
+  - @brains/console-theme@0.2.0-alpha.475
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/operator-view-react@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/auth-service@0.2.0-alpha.475
+  - @brains/entity-service@0.2.0-alpha.475
+  - @brains/plugins@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.474
+  - @brains/console-theme@0.2.0-alpha.474
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/operator-view-react@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/auth-service@0.2.0-alpha.474
+  - @brains/entity-service@0.2.0-alpha.474
+  - @brains/plugins@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.473
+  - @brains/console-theme@0.2.0-alpha.473
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/operator-view-react@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/auth-service@0.2.0-alpha.473
+  - @brains/entity-service@0.2.0-alpha.473
+  - @brains/plugins@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.472
+  - @brains/console-theme@0.2.0-alpha.472
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/operator-view-react@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/auth-service@0.2.0-alpha.472
+  - @brains/entity-service@0.2.0-alpha.472
+  - @brains/plugins@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.471
+  - @brains/console-theme@0.2.0-alpha.471
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/operator-view-react@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/auth-service@0.2.0-alpha.471
+  - @brains/entity-service@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.470
+  - @brains/console-theme@0.2.0-alpha.470
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/operator-view-react@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/auth-service@0.2.0-alpha.470
+  - @brains/entity-service@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.469
+  - @brains/console-theme@0.2.0-alpha.469
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/operator-view-react@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/auth-service@0.2.0-alpha.469
+  - @brains/entity-service@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.468
+  - @brains/console-theme@0.2.0-alpha.468
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/operator-view-react@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/auth-service@0.2.0-alpha.468
+  - @brains/entity-service@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.467
+  - @brains/console-theme@0.2.0-alpha.467
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/operator-view-react@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/auth-service@0.2.0-alpha.467
+  - @brains/entity-service@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.466
+  - @brains/console-theme@0.2.0-alpha.466
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/operator-view-react@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/auth-service@0.2.0-alpha.466
+  - @brains/entity-service@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.465
+  - @brains/console-theme@0.2.0-alpha.465
+  - @brains/contracts@0.2.0-alpha.465
+  - @brains/operator-view-react@0.2.0-alpha.465
+  - @brains/utils@0.2.0-alpha.465
+  - @brains/auth-service@0.2.0-alpha.465
+  - @brains/entity-service@0.2.0-alpha.465
+  - @brains/plugins@0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.464
+  - @brains/console-theme@0.2.0-alpha.464
+  - @brains/contracts@0.2.0-alpha.464
+  - @brains/operator-view-react@0.2.0-alpha.464
+  - @brains/utils@0.2.0-alpha.464
+  - @brains/auth-service@0.2.0-alpha.464
+  - @brains/entity-service@0.2.0-alpha.464
+  - @brains/plugins@0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.463
+  - @brains/console-theme@0.2.0-alpha.463
+  - @brains/contracts@0.2.0-alpha.463
+  - @brains/operator-view-react@0.2.0-alpha.463
+  - @brains/utils@0.2.0-alpha.463
+  - @brains/auth-service@0.2.0-alpha.463
+  - @brains/entity-service@0.2.0-alpha.463
+  - @brains/plugins@0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.462
+  - @brains/console-theme@0.2.0-alpha.462
+  - @brains/contracts@0.2.0-alpha.462
+  - @brains/operator-view-react@0.2.0-alpha.462
+  - @brains/utils@0.2.0-alpha.462
+  - @brains/auth-service@0.2.0-alpha.462
+  - @brains/entity-service@0.2.0-alpha.462
+  - @brains/plugins@0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- Updated dependencies [[`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c), [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f), [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/auth-service@0.2.0-alpha.461
+  - @brains/plugins@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/operator-view-react@0.2.0-alpha.461
+  - @brains/entity-service@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+  - @brains/app-ui-react@0.2.0-alpha.461
+  - @brains/console-theme@0.2.0-alpha.461
+
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.460
+  - @brains/console-theme@0.2.0-alpha.460
+  - @brains/contracts@0.2.0-alpha.460
+  - @brains/operator-view-react@0.2.0-alpha.460
+  - @brains/utils@0.2.0-alpha.460
+  - @brains/auth-service@0.2.0-alpha.460
+  - @brains/entity-service@0.2.0-alpha.460
+  - @brains/plugins@0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.459
+  - @brains/console-theme@0.2.0-alpha.459
+  - @brains/contracts@0.2.0-alpha.459
+  - @brains/operator-view-react@0.2.0-alpha.459
+  - @brains/utils@0.2.0-alpha.459
+  - @brains/auth-service@0.2.0-alpha.459
+  - @brains/entity-service@0.2.0-alpha.459
+  - @brains/plugins@0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.458
+  - @brains/console-theme@0.2.0-alpha.458
+  - @brains/contracts@0.2.0-alpha.458
+  - @brains/operator-view-react@0.2.0-alpha.458
+  - @brains/utils@0.2.0-alpha.458
+  - @brains/auth-service@0.2.0-alpha.458
+  - @brains/entity-service@0.2.0-alpha.458
+  - @brains/plugins@0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.457
+  - @brains/console-theme@0.2.0-alpha.457
+  - @brains/contracts@0.2.0-alpha.457
+  - @brains/operator-view-react@0.2.0-alpha.457
+  - @brains/utils@0.2.0-alpha.457
+  - @brains/auth-service@0.2.0-alpha.457
+  - @brains/entity-service@0.2.0-alpha.457
+  - @brains/plugins@0.2.0-alpha.457
+
+## 0.2.0-alpha.456
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.456
+  - @brains/console-theme@0.2.0-alpha.456
+  - @brains/contracts@0.2.0-alpha.456
+  - @brains/operator-view-react@0.2.0-alpha.456
+  - @brains/utils@0.2.0-alpha.456
+  - @brains/auth-service@0.2.0-alpha.456
+  - @brains/entity-service@0.2.0-alpha.456
+  - @brains/plugins@0.2.0-alpha.456
+
+## 0.2.0-alpha.455
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.455
+  - @brains/console-theme@0.2.0-alpha.455
+  - @brains/contracts@0.2.0-alpha.455
+  - @brains/operator-view-react@0.2.0-alpha.455
+  - @brains/utils@0.2.0-alpha.455
+  - @brains/auth-service@0.2.0-alpha.455
+  - @brains/entity-service@0.2.0-alpha.455
+  - @brains/plugins@0.2.0-alpha.455
+
+## 0.2.0-alpha.454
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.454
+  - @brains/console-theme@0.2.0-alpha.454
+  - @brains/contracts@0.2.0-alpha.454
+  - @brains/operator-view-react@0.2.0-alpha.454
+  - @brains/utils@0.2.0-alpha.454
+  - @brains/auth-service@0.2.0-alpha.454
+  - @brains/entity-service@0.2.0-alpha.454
+  - @brains/plugins@0.2.0-alpha.454
+
+## 0.2.0-alpha.453
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.453
+  - @brains/console-theme@0.2.0-alpha.453
+  - @brains/contracts@0.2.0-alpha.453
+  - @brains/operator-view-react@0.2.0-alpha.453
+  - @brains/utils@0.2.0-alpha.453
+  - @brains/auth-service@0.2.0-alpha.453
+  - @brains/entity-service@0.2.0-alpha.453
+  - @brains/plugins@0.2.0-alpha.453
+
+## 0.2.0-alpha.452
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.452
+  - @brains/console-theme@0.2.0-alpha.452
+  - @brains/contracts@0.2.0-alpha.452
+  - @brains/operator-view-react@0.2.0-alpha.452
+  - @brains/utils@0.2.0-alpha.452
+  - @brains/auth-service@0.2.0-alpha.452
+  - @brains/entity-service@0.2.0-alpha.452
+  - @brains/plugins@0.2.0-alpha.452
+
+## 0.2.0-alpha.451
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.451
+  - @brains/console-theme@0.2.0-alpha.451
+  - @brains/contracts@0.2.0-alpha.451
+  - @brains/operator-view-react@0.2.0-alpha.451
+  - @brains/utils@0.2.0-alpha.451
+  - @brains/auth-service@0.2.0-alpha.451
+  - @brains/entity-service@0.2.0-alpha.451
+  - @brains/plugins@0.2.0-alpha.451
+
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.450
+  - @brains/console-theme@0.2.0-alpha.450
+  - @brains/contracts@0.2.0-alpha.450
+  - @brains/operator-view-react@0.2.0-alpha.450
+  - @brains/utils@0.2.0-alpha.450
+  - @brains/auth-service@0.2.0-alpha.450
+  - @brains/entity-service@0.2.0-alpha.450
+  - @brains/plugins@0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.449
+  - @brains/console-theme@0.2.0-alpha.449
+  - @brains/contracts@0.2.0-alpha.449
+  - @brains/operator-view-react@0.2.0-alpha.449
+  - @brains/utils@0.2.0-alpha.449
+  - @brains/auth-service@0.2.0-alpha.449
+  - @brains/entity-service@0.2.0-alpha.449
+  - @brains/plugins@0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.448
+  - @brains/console-theme@0.2.0-alpha.448
+  - @brains/contracts@0.2.0-alpha.448
+  - @brains/operator-view-react@0.2.0-alpha.448
+  - @brains/utils@0.2.0-alpha.448
+  - @brains/auth-service@0.2.0-alpha.448
+  - @brains/entity-service@0.2.0-alpha.448
+  - @brains/plugins@0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.447
+  - @brains/console-theme@0.2.0-alpha.447
+  - @brains/contracts@0.2.0-alpha.447
+  - @brains/operator-view-react@0.2.0-alpha.447
+  - @brains/utils@0.2.0-alpha.447
+  - @brains/auth-service@0.2.0-alpha.447
+  - @brains/entity-service@0.2.0-alpha.447
+  - @brains/plugins@0.2.0-alpha.447
+
+## 0.2.0-alpha.446
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.446
+  - @brains/console-theme@0.2.0-alpha.446
+  - @brains/contracts@0.2.0-alpha.446
+  - @brains/operator-view-react@0.2.0-alpha.446
+  - @brains/utils@0.2.0-alpha.446
+  - @brains/auth-service@0.2.0-alpha.446
+  - @brains/entity-service@0.2.0-alpha.446
+  - @brains/plugins@0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.445
+  - @brains/console-theme@0.2.0-alpha.445
+  - @brains/contracts@0.2.0-alpha.445
+  - @brains/operator-view-react@0.2.0-alpha.445
+  - @brains/utils@0.2.0-alpha.445
+  - @brains/auth-service@0.2.0-alpha.445
+  - @brains/entity-service@0.2.0-alpha.445
+  - @brains/plugins@0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.444
+  - @brains/console-theme@0.2.0-alpha.444
+  - @brains/contracts@0.2.0-alpha.444
+  - @brains/operator-view-react@0.2.0-alpha.444
+  - @brains/utils@0.2.0-alpha.444
+  - @brains/auth-service@0.2.0-alpha.444
+  - @brains/entity-service@0.2.0-alpha.444
+  - @brains/plugins@0.2.0-alpha.444
+
+## 0.2.0-alpha.443
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.443
+  - @brains/console-theme@0.2.0-alpha.443
+  - @brains/contracts@0.2.0-alpha.443
+  - @brains/operator-view-react@0.2.0-alpha.443
+  - @brains/utils@0.2.0-alpha.443
+  - @brains/auth-service@0.2.0-alpha.443
+  - @brains/entity-service@0.2.0-alpha.443
+  - @brains/plugins@0.2.0-alpha.443
+
+## 0.2.0-alpha.442
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.442
+  - @brains/console-theme@0.2.0-alpha.442
+  - @brains/contracts@0.2.0-alpha.442
+  - @brains/operator-view-react@0.2.0-alpha.442
+  - @brains/utils@0.2.0-alpha.442
+  - @brains/auth-service@0.2.0-alpha.442
+  - @brains/entity-service@0.2.0-alpha.442
+  - @brains/plugins@0.2.0-alpha.442
+
+## 0.2.0-alpha.441
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.441
+  - @brains/console-theme@0.2.0-alpha.441
+  - @brains/contracts@0.2.0-alpha.441
+  - @brains/operator-view-react@0.2.0-alpha.441
+  - @brains/utils@0.2.0-alpha.441
+  - @brains/auth-service@0.2.0-alpha.441
+  - @brains/entity-service@0.2.0-alpha.441
+  - @brains/plugins@0.2.0-alpha.441
+
+## 0.2.0-alpha.440
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.440
+  - @brains/console-theme@0.2.0-alpha.440
+  - @brains/contracts@0.2.0-alpha.440
+  - @brains/operator-view-react@0.2.0-alpha.440
+  - @brains/utils@0.2.0-alpha.440
+  - @brains/auth-service@0.2.0-alpha.440
+  - @brains/entity-service@0.2.0-alpha.440
+  - @brains/plugins@0.2.0-alpha.440
+
+## 0.2.0-alpha.439
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.439
+  - @brains/console-theme@0.2.0-alpha.439
+  - @brains/contracts@0.2.0-alpha.439
+  - @brains/operator-view-react@0.2.0-alpha.439
+  - @brains/utils@0.2.0-alpha.439
+  - @brains/auth-service@0.2.0-alpha.439
+  - @brains/entity-service@0.2.0-alpha.439
+  - @brains/plugins@0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.438
+  - @brains/console-theme@0.2.0-alpha.438
+  - @brains/contracts@0.2.0-alpha.438
+  - @brains/operator-view-react@0.2.0-alpha.438
+  - @brains/utils@0.2.0-alpha.438
+  - @brains/auth-service@0.2.0-alpha.438
+  - @brains/entity-service@0.2.0-alpha.438
+  - @brains/plugins@0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.437
+  - @brains/console-theme@0.2.0-alpha.437
+  - @brains/contracts@0.2.0-alpha.437
+  - @brains/operator-view-react@0.2.0-alpha.437
+  - @brains/utils@0.2.0-alpha.437
+  - @brains/auth-service@0.2.0-alpha.437
+  - @brains/entity-service@0.2.0-alpha.437
+  - @brains/plugins@0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.436
+  - @brains/console-theme@0.2.0-alpha.436
+  - @brains/contracts@0.2.0-alpha.436
+  - @brains/operator-view-react@0.2.0-alpha.436
+  - @brains/utils@0.2.0-alpha.436
+  - @brains/auth-service@0.2.0-alpha.436
+  - @brains/entity-service@0.2.0-alpha.436
+  - @brains/plugins@0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.435
+  - @brains/console-theme@0.2.0-alpha.435
+  - @brains/contracts@0.2.0-alpha.435
+  - @brains/operator-view-react@0.2.0-alpha.435
+  - @brains/utils@0.2.0-alpha.435
+  - @brains/auth-service@0.2.0-alpha.435
+  - @brains/entity-service@0.2.0-alpha.435
+  - @brains/plugins@0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.434
+  - @brains/console-theme@0.2.0-alpha.434
+  - @brains/contracts@0.2.0-alpha.434
+  - @brains/operator-view-react@0.2.0-alpha.434
+  - @brains/utils@0.2.0-alpha.434
+  - @brains/auth-service@0.2.0-alpha.434
+  - @brains/entity-service@0.2.0-alpha.434
+  - @brains/plugins@0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.433
+  - @brains/console-theme@0.2.0-alpha.433
+  - @brains/contracts@0.2.0-alpha.433
+  - @brains/operator-view-react@0.2.0-alpha.433
+  - @brains/utils@0.2.0-alpha.433
+  - @brains/auth-service@0.2.0-alpha.433
+  - @brains/entity-service@0.2.0-alpha.433
+  - @brains/plugins@0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.432
+  - @brains/console-theme@0.2.0-alpha.432
+  - @brains/contracts@0.2.0-alpha.432
+  - @brains/operator-view-react@0.2.0-alpha.432
+  - @brains/utils@0.2.0-alpha.432
+  - @brains/auth-service@0.2.0-alpha.432
+  - @brains/entity-service@0.2.0-alpha.432
+  - @brains/plugins@0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.431
+  - @brains/console-theme@0.2.0-alpha.431
+  - @brains/contracts@0.2.0-alpha.431
+  - @brains/operator-view-react@0.2.0-alpha.431
+  - @brains/utils@0.2.0-alpha.431
+  - @brains/auth-service@0.2.0-alpha.431
+  - @brains/entity-service@0.2.0-alpha.431
+  - @brains/plugins@0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.430
+  - @brains/console-theme@0.2.0-alpha.430
+  - @brains/contracts@0.2.0-alpha.430
+  - @brains/operator-view-react@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/auth-service@0.2.0-alpha.430
+  - @brains/entity-service@0.2.0-alpha.430
+  - @brains/plugins@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.429
+  - @brains/console-theme@0.2.0-alpha.429
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/operator-view-react@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/auth-service@0.2.0-alpha.429
+  - @brains/entity-service@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.428
+  - @brains/console-theme@0.2.0-alpha.428
+  - @brains/contracts@0.2.0-alpha.428
+  - @brains/operator-view-react@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/auth-service@0.2.0-alpha.428
+  - @brains/entity-service@0.2.0-alpha.428
+  - @brains/plugins@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.427
+  - @brains/console-theme@0.2.0-alpha.427
+  - @brains/contracts@0.2.0-alpha.427
+  - @brains/operator-view-react@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/auth-service@0.2.0-alpha.427
+  - @brains/entity-service@0.2.0-alpha.427
+  - @brains/plugins@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.426
+  - @brains/console-theme@0.2.0-alpha.426
+  - @brains/contracts@0.2.0-alpha.426
+  - @brains/operator-view-react@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/auth-service@0.2.0-alpha.426
+  - @brains/entity-service@0.2.0-alpha.426
+  - @brains/plugins@0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`a0d561f`](https://github.com/rizom-ai/brains/commit/a0d561fe3e73f08d4a21eb85b89103ae38bba39f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refuse the grouping definitions control document as a contributor, with a section-level validation issue and repairable handling of invalid stored definitions.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`0ce2ac5`](https://github.com/rizom-ai/brains/commit/0ce2ac5b2b8ab789ec21628db66c3c9f3fc0533f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep automatically opened singleton creation drafts clean until edited, and disable pristine singleton creation saves through the button, form and keyboard paths.
+
+  Implement the approved Groupings editor and unified membership control, with independent cardinality/list rules, exact literal values, explicit removals, immutable saved keys, lossless duplicate-key drafts and read-only views. Ordinary editor integration uses document-owned descriptors and visibility-scoped usage reads.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add grouping usage reads with distinct entry totals and bounded, exact-value counts, including zero counts for unused values. One SQL statement applies admitted contributor types and visibility to every aggregate; duplicate and overlapping memberships do not inflate entry totals.
+
+  Expose the read through Studio's trusted-session API and typed client, retaining cancellation, source refresh and initializing/retry behavior. No durable state or content changes are introduced. Mounting usage data in the reviewed Groupings page and activating the replacement document source remain pending.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reproject added grouping type/field pairs after definition writes, using the existing bounded metadata-only scan. Keep pending work and readiness entirely in memory: Studio returns initializing during scans, failed scans remain retryable without misreporting saved definitions, and startup reconstructs progress from source.
+
+  Guard ordinary entity commits against a definition change after preparation. Stale writes, including no-op updates, are refused for retry before committing source or exports, using an in-memory publication revision and the existing write transaction.
+
+  Independent processes conservatively verify their own projections on observed definition changes, including remove/re-add cycles detected through existing document timestamps. No database tables, migrations or persistent status records are added. The new definitions registration module remains an internal implementation checkpoint, not yet activated by StudioPlugin.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`cf1b1f5`](https://github.com/rizom-ai/brains/commit/cf1b1f515330ba07f179da997876fbb1ebe88d37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connect the reviewed grouping definition editor to ordinary draft, save, conflict, and navigation handling. Supply eligible contributor types and repair issues, batch visibility-scoped usage without adding repeated entry totals, and show initialization, unavailable counts, and retry states. Reuse the unified membership control in ordinary fields.
+
+  Preserve invalid local drafts and literal definition values. Expose unparseable source for explicit repair rather than silently replacing it. Production definition-source activation and removal of the legacy configuration/vocabulary ownership path remain separate work; no migration is performed.
+
+  Apply the documented Bun/StyleX DFG workaround to Studio UI builds as well as tests. Production runtime settings are unchanged; this is not an underlying Bun fix.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`d9925ab`](https://github.com/rizom-ai/brains/commit/d9925ab9386021c377b7ef8c5f138c75938ee549) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read raw source for Studio editing and mutation preparation so image-like grouping values, unclaimed frontmatter and body references cannot be rewritten by presentation-time image expansion.
+
+  Resolve Markdown preview images separately through an authenticated, visibility-scoped image read. Use the injected client, cancel superseded requests and discard previously authorized image data when the client/session changes. Preserve literal code examples and existing Markdown sanitization. Cover exact Note/Post source round trips, mounted preview-and-save behavior, opaque image IDs and restricted-image non-disclosure.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add atomic replacement of an entity registry's complete grouping set through `replaceGroupings`. Grouping-owned schema extensions are kept separate from permanent plugin extensions, so removing a grouping preserves owner/plugin fields and their refinements. Invalid replacements leave the active set unchanged; authored memberships and file identities are never rewritten.
+
+  `validateGroupings` now preflights a complete replacement set. Studio's existing registration path includes already-registered declarations in that preflight. These registry primitives do not load a definitions document, coordinate readiness or automatically reproject stored content; their caller still owns those steps.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`86e8937`](https://github.com/rizom-ai/brains/commit/86e89377bb1c1dfe98d752a791469597c737b8b6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore ordinary no-op saves for existing System documents without weakening Groupings draft guards. Pristine singleton creation and unchanged Groupings remain blocked, including direct save actions as well as form and button submission.
+
+- Updated dependencies [[`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937), [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c), [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2), [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f), [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f)]:
+  - @brains/entity-service@0.2.0-alpha.425
+  - @brains/plugins@0.2.0-alpha.425
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/operator-view-react@0.2.0-alpha.425
+  - @brains/auth-service@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+  - @brains/app-ui-react@0.2.0-alpha.425
+  - @brains/console-theme@0.2.0-alpha.425
+
+## 0.2.0-alpha.424
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.424
+  - @brains/console-theme@0.2.0-alpha.424
+  - @brains/contracts@0.2.0-alpha.424
+  - @brains/operator-view-react@0.2.0-alpha.424
+  - @brains/utils@0.2.0-alpha.424
+  - @brains/auth-service@0.2.0-alpha.424
+  - @brains/entity-service@0.2.0-alpha.424
+  - @brains/plugins@0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.423
+  - @brains/console-theme@0.2.0-alpha.423
+  - @brains/contracts@0.2.0-alpha.423
+  - @brains/operator-view-react@0.2.0-alpha.423
+  - @brains/utils@0.2.0-alpha.423
+  - @brains/auth-service@0.2.0-alpha.423
+  - @brains/entity-service@0.2.0-alpha.423
+  - @brains/plugins@0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- Updated dependencies [[`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319)]:
+  - @brains/plugins@0.2.0-alpha.422
+  - @brains/operator-view-react@0.2.0-alpha.422
+  - @brains/auth-service@0.2.0-alpha.422
+  - @brains/app-ui-react@0.2.0-alpha.422
+  - @brains/console-theme@0.2.0-alpha.422
+  - @brains/contracts@0.2.0-alpha.422
+  - @brains/utils@0.2.0-alpha.422
+  - @brains/entity-service@0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.421
+  - @brains/console-theme@0.2.0-alpha.421
+  - @brains/contracts@0.2.0-alpha.421
+  - @brains/operator-view-react@0.2.0-alpha.421
+  - @brains/utils@0.2.0-alpha.421
+  - @brains/auth-service@0.2.0-alpha.421
+  - @brains/entity-service@0.2.0-alpha.421
+  - @brains/plugins@0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.420
+  - @brains/console-theme@0.2.0-alpha.420
+  - @brains/contracts@0.2.0-alpha.420
+  - @brains/operator-view-react@0.2.0-alpha.420
+  - @brains/utils@0.2.0-alpha.420
+  - @brains/auth-service@0.2.0-alpha.420
+  - @brains/entity-service@0.2.0-alpha.420
+  - @brains/plugins@0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.419
+  - @brains/console-theme@0.2.0-alpha.419
+  - @brains/contracts@0.2.0-alpha.419
+  - @brains/operator-view-react@0.2.0-alpha.419
+  - @brains/utils@0.2.0-alpha.419
+  - @brains/auth-service@0.2.0-alpha.419
+  - @brains/entity-service@0.2.0-alpha.419
+  - @brains/plugins@0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.418
+  - @brains/console-theme@0.2.0-alpha.418
+  - @brains/contracts@0.2.0-alpha.418
+  - @brains/operator-view-react@0.2.0-alpha.418
+  - @brains/utils@0.2.0-alpha.418
+  - @brains/auth-service@0.2.0-alpha.418
+  - @brains/entity-service@0.2.0-alpha.418
+  - @brains/plugins@0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.417
+  - @brains/console-theme@0.2.0-alpha.417
+  - @brains/contracts@0.2.0-alpha.417
+  - @brains/operator-view-react@0.2.0-alpha.417
+  - @brains/utils@0.2.0-alpha.417
+  - @brains/auth-service@0.2.0-alpha.417
+  - @brains/entity-service@0.2.0-alpha.417
+  - @brains/plugins@0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.416
+  - @brains/console-theme@0.2.0-alpha.416
+  - @brains/contracts@0.2.0-alpha.416
+  - @brains/operator-view-react@0.2.0-alpha.416
+  - @brains/utils@0.2.0-alpha.416
+  - @brains/auth-service@0.2.0-alpha.416
+  - @brains/entity-service@0.2.0-alpha.416
+  - @brains/plugins@0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.415
+  - @brains/console-theme@0.2.0-alpha.415
+  - @brains/contracts@0.2.0-alpha.415
+  - @brains/operator-view-react@0.2.0-alpha.415
+  - @brains/utils@0.2.0-alpha.415
+  - @brains/auth-service@0.2.0-alpha.415
+  - @brains/entity-service@0.2.0-alpha.415
+  - @brains/plugins@0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.414
+  - @brains/console-theme@0.2.0-alpha.414
+  - @brains/contracts@0.2.0-alpha.414
+  - @brains/operator-view-react@0.2.0-alpha.414
+  - @brains/utils@0.2.0-alpha.414
+  - @brains/auth-service@0.2.0-alpha.414
+  - @brains/entity-service@0.2.0-alpha.414
+  - @brains/plugins@0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.413
+  - @brains/console-theme@0.2.0-alpha.413
+  - @brains/contracts@0.2.0-alpha.413
+  - @brains/operator-view-react@0.2.0-alpha.413
+  - @brains/utils@0.2.0-alpha.413
+  - @brains/auth-service@0.2.0-alpha.413
+  - @brains/entity-service@0.2.0-alpha.413
+  - @brains/plugins@0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.412
+  - @brains/console-theme@0.2.0-alpha.412
+  - @brains/contracts@0.2.0-alpha.412
+  - @brains/operator-view-react@0.2.0-alpha.412
+  - @brains/utils@0.2.0-alpha.412
+  - @brains/auth-service@0.2.0-alpha.412
+  - @brains/entity-service@0.2.0-alpha.412
+  - @brains/plugins@0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.411
+  - @brains/console-theme@0.2.0-alpha.411
+  - @brains/contracts@0.2.0-alpha.411
+  - @brains/operator-view-react@0.2.0-alpha.411
+  - @brains/utils@0.2.0-alpha.411
+  - @brains/auth-service@0.2.0-alpha.411
+  - @brains/entity-service@0.2.0-alpha.411
+  - @brains/plugins@0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.410
+  - @brains/console-theme@0.2.0-alpha.410
+  - @brains/contracts@0.2.0-alpha.410
+  - @brains/operator-view-react@0.2.0-alpha.410
+  - @brains/utils@0.2.0-alpha.410
+  - @brains/auth-service@0.2.0-alpha.410
+  - @brains/entity-service@0.2.0-alpha.410
+  - @brains/plugins@0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.409
+  - @brains/console-theme@0.2.0-alpha.409
+  - @brains/contracts@0.2.0-alpha.409
+  - @brains/operator-view-react@0.2.0-alpha.409
+  - @brains/utils@0.2.0-alpha.409
+  - @brains/auth-service@0.2.0-alpha.409
+  - @brains/entity-service@0.2.0-alpha.409
+  - @brains/plugins@0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.408
+  - @brains/console-theme@0.2.0-alpha.408
+  - @brains/contracts@0.2.0-alpha.408
+  - @brains/operator-view-react@0.2.0-alpha.408
+  - @brains/utils@0.2.0-alpha.408
+  - @brains/auth-service@0.2.0-alpha.408
+  - @brains/entity-service@0.2.0-alpha.408
+  - @brains/plugins@0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.407
+  - @brains/console-theme@0.2.0-alpha.407
+  - @brains/contracts@0.2.0-alpha.407
+  - @brains/operator-view-react@0.2.0-alpha.407
+  - @brains/utils@0.2.0-alpha.407
+  - @brains/auth-service@0.2.0-alpha.407
+  - @brains/entity-service@0.2.0-alpha.407
+  - @brains/plugins@0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.406
+  - @brains/console-theme@0.2.0-alpha.406
+  - @brains/contracts@0.2.0-alpha.406
+  - @brains/operator-view-react@0.2.0-alpha.406
+  - @brains/utils@0.2.0-alpha.406
+  - @brains/auth-service@0.2.0-alpha.406
+  - @brains/entity-service@0.2.0-alpha.406
+  - @brains/plugins@0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.405
+  - @brains/plugins@0.2.0-alpha.405
+  - @brains/operator-view-react@0.2.0-alpha.405
+  - @brains/auth-service@0.2.0-alpha.405
+  - @brains/app-ui-react@0.2.0-alpha.405
+  - @brains/console-theme@0.2.0-alpha.405
+  - @brains/contracts@0.2.0-alpha.405
+  - @brains/utils@0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Keep the Chat API path out of Studio's entry bundle. The Studio container holds the chat draft store so it can block navigation away from an unsent draft, which pulled the whole draft module, and with it the Chat API path, into a chunk the entry loads at startup. The draft key now lives in its own chat-only module, so it ships in the lazily loaded Chat chunk again and the split-asset contract holds.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A registered entity type can now carry its own `actionPolicy` floor, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule. Each action preserves the stricter of the type's minimum and the wildcard policy, including `never`; an explicit per-type entry still overrides the result. Primary buttons keep a visible hover cue when motion is reduced. System forms omit empty field sections, including the Groupings reader's empty Access section.
+
+  Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. The vocabulary is always shared so the editors it constrains can read it. Create/update persistence enforces closed lists across Studio, tools, MCP and imports.
+
+  **Derived projection upserts are now validated.** They previously wrote without owner validation or persist validators; they now reconstruct the adapter's fields, project membership from the full source, and run both inside the admitted rule transaction. A rule can no longer write an entity its own type would reject, and supplied metadata cannot invent membership the source does not carry. A refusal rolls back the entire rule result, including export intents and ownership claims, and completed rule reports stay idempotent. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
+
+  Add configurable, visibility-scoped virtual collections across entity types, with source-authoritative frontmatter membership, startup reprojection, and Studio browsing and editor return navigation. Multiple grouping fields and multiple values per field are supported without copying entities or changing file placement.
+
+  Notes use the normal frontmatter/Properties editor while their type participates in any registered grouping, including Notes with no membership. Notes without a grouping retain whole-document Markdown editing. Removing configuration preserves authored fields. Grouping inputs preserve literal commas and whitespace with explicit Enter/Add submission, mark spaces a reader could not otherwise see, and offer the values that already exist so exact matching does not fragment one group into several. Ordinary tag inputs and stored memberships are unchanged.
+
+  **Behaviour change for every frontmatter entity type:** ordinary frontmatter-form saves and entity exports now preserve existing unclaimed, non-policy frontmatter keys instead of dropping them, including inactive grouping fields. Preservation does not authorize arbitrary new form fields, and explicit full-source replacement remains authoritative. Field-update tools author registered extension fields in Markdown and show their actual previous source values in confirmation previews.
+
+  Each registered field is validated against its own schema entry, so frontmatter the entity owner rejects elsewhere in the document no longer removes an entity from its collections. The bounded startup pass runs on each serving start, including after register-only writes with grouping disabled or changed field constraints. It commits metadata updates in bounded 200-row pages instead of one transaction per entity, retaining per-row source/revision checks, bounded conflict retries, and no-resurrection guarantees. Reusable owner fields are compared conservatively without dropping runtime checks. Failed suggestion refetches discard previously readable values, and the empty-value display marker cannot collide with a literal authored name.
+
+- Updated dependencies [[`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b)]:
+  - @brains/utils@0.2.0-alpha.404
+  - @brains/contracts@0.2.0-alpha.404
+  - @brains/entity-service@0.2.0-alpha.404
+  - @brains/plugins@0.2.0-alpha.404
+  - @brains/app-ui-react@0.2.0-alpha.404
+  - @brains/operator-view-react@0.2.0-alpha.404
+  - @brains/auth-service@0.2.0-alpha.404
+  - @brains/console-theme@0.2.0-alpha.404
+
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.403
+  - @brains/console-theme@0.2.0-alpha.403
+  - @brains/contracts@0.2.0-alpha.403
+  - @brains/operator-view-react@0.2.0-alpha.403
+  - @brains/utils@0.2.0-alpha.403
+  - @brains/auth-service@0.2.0-alpha.403
+  - @brains/entity-service@0.2.0-alpha.403
+  - @brains/plugins@0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.402
+  - @brains/console-theme@0.2.0-alpha.402
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/operator-view-react@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/auth-service@0.2.0-alpha.402
+  - @brains/entity-service@0.2.0-alpha.402
+  - @brains/plugins@0.2.0-alpha.402
+
+## 0.2.0-alpha.401
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.401
+  - @brains/console-theme@0.2.0-alpha.401
+  - @brains/contracts@0.2.0-alpha.401
+  - @brains/operator-view-react@0.2.0-alpha.401
+  - @brains/utils@0.2.0-alpha.401
+  - @brains/auth-service@0.2.0-alpha.401
+  - @brains/entity-service@0.2.0-alpha.401
+  - @brains/plugins@0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.400
+  - @brains/entity-service@0.2.0-alpha.400
+  - @brains/operator-view-react@0.2.0-alpha.400
+  - @brains/auth-service@0.2.0-alpha.400
+  - @brains/app-ui-react@0.2.0-alpha.400
+  - @brains/console-theme@0.2.0-alpha.400
+  - @brains/contracts@0.2.0-alpha.400
+  - @brains/utils@0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/entity-service@0.2.0-alpha.399
+  - @brains/operator-view-react@0.2.0-alpha.399
+  - @brains/auth-service@0.2.0-alpha.399
+  - @brains/app-ui-react@0.2.0-alpha.399
+  - @brains/console-theme@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.398
+  - @brains/console-theme@0.2.0-alpha.398
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/operator-view-react@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/auth-service@0.2.0-alpha.398
+  - @brains/entity-service@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/entity-service@0.2.0-alpha.397
+  - @brains/operator-view-react@0.2.0-alpha.397
+  - @brains/auth-service@0.2.0-alpha.397
+  - @brains/app-ui-react@0.2.0-alpha.397
+  - @brains/console-theme@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.396
+  - @brains/console-theme@0.2.0-alpha.396
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/operator-view-react@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/auth-service@0.2.0-alpha.396
+  - @brains/entity-service@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#304](https://github.com/rizom-ai/brains/pull/304) [`18aec18`](https://github.com/rizom-ai/brains/commit/18aec1819582a18a5e4c7b5bb19393186e5a0d11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use manifest-selected, content-hashed Studio JavaScript and CSS entry URLs so browser caching cannot mask new releases. Keep authenticated shells uncached, serve immutable public assets only from the validated manifest, and offer explicit draft-loss confirmation rather than automatically reloading when an Account or Chat chunk cannot load.
+
+- Updated dependencies [[`5d0a6fa`](https://github.com/rizom-ai/brains/commit/5d0a6faf3dfc5b5adbda3038862e2c665194b762)]:
+  - @brains/entity-service@0.2.0-alpha.395
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/operator-view-react@0.2.0-alpha.395
+  - @brains/auth-service@0.2.0-alpha.395
+  - @brains/app-ui-react@0.2.0-alpha.395
+  - @brains/console-theme@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- [#274](https://github.com/rizom-ai/brains/pull/274) [`46d8477`](https://github.com/rizom-ai/brains/commit/46d847799d564a8b71302b0cb4faaa70b95632fc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate Account into accessible Profile, Sign-in & sessions, Linked identities, and capability-driven Personal settings sections. Preserve unsaved values while switching sections, clarify that settings belong to the current account on this brain, and link administrators to separate access management.
+
+  Preserve the account client binding when starting Add passkey so the existing authenticated WebAuthn registration ceremony can run.
+
+  Use consistent linked-identity terminology in Administration and label its existing audit tab Access activity. Preserve access checks, account-recovery controls, passkey protection, System navigation, and existing mutation contracts; do not expose proposed app-grant or shared-integration management features.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.394
+  - @brains/console-theme@0.2.0-alpha.394
+  - @brains/contracts@0.2.0-alpha.394
+  - @brains/operator-view-react@0.2.0-alpha.394
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/auth-service@0.2.0-alpha.394
+  - @brains/entity-service@0.2.0-alpha.394
+  - @brains/plugins@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- Updated dependencies [[`0010eb2`](https://github.com/rizom-ai/brains/commit/0010eb2834335a8a0a88a66a96c2c6267b29d2df)]:
+  - @brains/entity-service@0.2.0-alpha.393
+  - @brains/plugins@0.2.0-alpha.393
+  - @brains/operator-view-react@0.2.0-alpha.393
+  - @brains/auth-service@0.2.0-alpha.393
+  - @brains/app-ui-react@0.2.0-alpha.393
+  - @brains/console-theme@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- Updated dependencies [[`384bac5`](https://github.com/rizom-ai/brains/commit/384bac51f68f6f11d255d61f1a78dacd78fc9abe)]:
+  - @brains/entity-service@0.2.0-alpha.392
+  - @brains/plugins@0.2.0-alpha.392
+  - @brains/operator-view-react@0.2.0-alpha.392
+  - @brains/auth-service@0.2.0-alpha.392
+  - @brains/app-ui-react@0.2.0-alpha.392
+  - @brains/console-theme@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.391
+  - @brains/console-theme@0.2.0-alpha.391
+  - @brains/contracts@0.2.0-alpha.391
+  - @brains/operator-view-react@0.2.0-alpha.391
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/auth-service@0.2.0-alpha.391
+  - @brains/entity-service@0.2.0-alpha.391
+  - @brains/plugins@0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.390
+  - @brains/console-theme@0.2.0-alpha.390
+  - @brains/contracts@0.2.0-alpha.390
+  - @brains/operator-view-react@0.2.0-alpha.390
+  - @brains/utils@0.2.0-alpha.390
+  - @brains/auth-service@0.2.0-alpha.390
+  - @brains/entity-service@0.2.0-alpha.390
+  - @brains/plugins@0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.389
+  - @brains/console-theme@0.2.0-alpha.389
+  - @brains/contracts@0.2.0-alpha.389
+  - @brains/operator-view-react@0.2.0-alpha.389
+  - @brains/utils@0.2.0-alpha.389
+  - @brains/auth-service@0.2.0-alpha.389
+  - @brains/entity-service@0.2.0-alpha.389
+  - @brains/plugins@0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+### Minor Changes
+
+- Add Studio virtual-folder navigation, explicit folder/collection search, and folder-aware creation with server-encoded IDs and conditional writes. Preserve direct entity links, history, permissions, and ordinary singleton/capture flows.
+
+  Directory-sync supplies read-only destination previews and creates missing parent directories for nested notes without changing placement. No folder entities, ID rewrites, file moves, or database migrations are introduced.
+
+### Patch Changes
+
+- Make valid entity export paths injective: retain type-prefixed ID segments and limit exported notes to one segment at the sync root. Refuse historical invalid placements before file writes, deletion, or cleanup, and retain placement diagnostics independently of successful exports. Studio previews the placement verdict, refuses explicitly invalid destinations, and keeps note creation flat. Collection rows without an authored title display their structured leaf segment while preserving full stored IDs for links and identity details.
+
+  Existing IDs are not rewritten and existing files are not moved or migrated. Files created under the previous prefix-stripping or nested-note conventions require operator review.
+
+- Use page terminology for site-content hierarchy headings, trails, search scope, and creation guidance. Move the return-to-collection action into the visible editor header, including read-only records, while preserving collection filters and folder context.
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.388
+  - @brains/plugins@0.2.0-alpha.388
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/app-ui-react@0.2.0-alpha.388
+  - @brains/console-theme@0.2.0-alpha.388
+  - @brains/operator-view-react@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/auth-service@0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.387
+  - @brains/console-theme@0.2.0-alpha.387
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/operator-view-react@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/auth-service@0.2.0-alpha.387
+  - @brains/plugins@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.386
+  - @brains/console-theme@0.2.0-alpha.386
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/operator-view-react@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/auth-service@0.2.0-alpha.386
+  - @brains/plugins@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.385
+  - @brains/console-theme@0.2.0-alpha.385
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/operator-view-react@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/auth-service@0.2.0-alpha.385
+  - @brains/plugins@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- [#263](https://github.com/rizom-ai/brains/pull/263) [`3ec2b73`](https://github.com/rizom-ai/brains/commit/3ec2b73902389be86ff5e1fe358841ce05504a90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Put every single destination above the toggles in phone Browse. Overview, Chat and Admin share one block at the top, separated by a rule from the Library, Work and System groups below. A lone destination placed between two group headers reads as the tail of the group above it whichever slot it holds, so position alone cannot carry that distinction.
+
+- [#261](https://github.com/rizom-ai/brains/pull/261) [`ae8890d`](https://github.com/rizom-ai/brains/commit/ae8890d25c353582ada6bf94e042350a224d3d6f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Studio Chat conversation-first on desktop and phones: compact toolbar, independently scrolling dialogue, bounded composer and draft attachments, and on-demand history and conversation details. Keep approvals and complete tool records inline, and add accessible image enlargement without changing chat permissions or transport semantics.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.384
+  - @brains/console-theme@0.2.0-alpha.384
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/operator-view-react@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/auth-service@0.2.0-alpha.384
+  - @brains/plugins@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.383
+  - @brains/console-theme@0.2.0-alpha.383
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/operator-view-react@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/auth-service@0.2.0-alpha.383
+  - @brains/plugins@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`3fde4a0`](https://github.com/rizom-ai/brains/commit/3fde4a0421c787fe7c58fc7902bfc81ab7f85a04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the rail's Overview/Chat/Library/Work/Admin/System order in phone Browse. Admin is area 04 and now stays between Work and System instead of being hoisted into the top block, so the phone and the desktop rail agree on where a destination lives. A direct destination is marked by its treatment rather than its position: group children indent under their header while a direct destination sits flush and rule-separated, so Admin cannot read as the last row of the group above it.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.382
+  - @brains/console-theme@0.2.0-alpha.382
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/operator-view-react@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/auth-service@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.381
+  - @brains/console-theme@0.2.0-alpha.381
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/operator-view-react@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/auth-service@0.2.0-alpha.381
+  - @brains/plugins@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- [#254](https://github.com/rizom-ai/brains/pull/254) [`9fbd8ad`](https://github.com/rizom-ai/brains/commit/9fbd8ad73d1d2f5fca58a4dcc73b92ad6daa97ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the phone Browse sheet around its hierarchy. Overview, Chat and Admin gather into one block above the groups instead of sitting between them, group headers become section-heading rows with the chevron leading rather than muted captions with a `+` at the far edge, and groups rest open so the sheet fills with destinations. A filter over every destination replaces the display line that named the sheet, the way out becomes a quiet round control, and a count that needs the operator is set in the accent while an item tally stays quiet. A folded group still names the destination you are in.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.380
+  - @brains/console-theme@0.2.0-alpha.380
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/operator-view-react@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/auth-service@0.2.0-alpha.380
+  - @brains/plugins@0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes

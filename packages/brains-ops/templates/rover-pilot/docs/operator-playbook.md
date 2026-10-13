@@ -11,6 +11,7 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 - `.github/workflows/deploy.yml`
 - `.github/workflows/directory-sync-stress.yml`
 - `.github/workflows/health-watchdog-smoke.yml`
+- `.github/workflows/offboard.yml`
 - `.github/workflows/reconcile.yml`
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
@@ -18,17 +19,16 @@ The deploy scripts and workflows should read from that contract instead of inven
 
 The fleet has one image topology:
 
-- one immutable `brain-${brainVersion}` image is published for each effective Brain version
-- every new image contains the union of exact site/theme package pins across the whole fleet, regardless of current Brain versions
-- conflicting versions of one package fail image resolution before build
-- generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`
+- one immutable image is published for each effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>` for instances with one (pins spelled out and sorted, or a digest when too long)
+- instances with the same version and pins share an image; a site's pin change builds that site's image and no other
+- generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`, and `IMAGE_TAG=<tag>` for an instance with site pins
 - build and deploy derive the same effective image tag from the resolved registry
 
 ## Version bump flow
 
 When `pilot.yaml.brainVersion` changes and you push:
 
-1. build publishes each missing version image with the full fleet package union, and verifies existing images against their assigned instances
+1. build publishes each missing image, named by Brain version and site pins, and verifies existing images against what their names say they hold
 2. reconcile refreshes generated `users/<handle>/.env`
 3. deploy runs for handles whose generated config changed
 4. generated file commits happen once in a final aggregation step after the deploy matrix finishes
@@ -37,10 +37,10 @@ Every external site and theme package has its own exact version pin. A cohort or
 pilot brain-version bump never changes those package versions implicitly; update each
 pin deliberately from reviewed package and image evidence.
 
-Smoke-first upgrades build the full fleet package union before promotion. Moving
-other cohorts onto the tested Brain version then reuses that same immutable image.
-Explicit Build dispatches also include the fleet union; `site_packages` only adds
-extra pins and cannot replace or conflict with declared pins.
+Smoke-first upgrades build the canary's image, named by its pins, before promotion.
+Moving other instances onto the tested Brain version reuses that image where their
+pins match it and builds their own where they do not. Explicit Build dispatches build
+exactly the dispatched version and `site_packages` pins.
 
 Deploy verifies the actual installed Brain and selected instance's site/theme
 versions on the CI runner after image readiness and before provisioning or
@@ -56,7 +56,7 @@ They are scaffolded from `@rizom/ops`, then versioned in this repo like any othe
 
 ## Verified pre-deploy rollback snapshots
 
-Deploy creates and verifies one target-scoped rollback snapshot after SSH and image readiness, immediately before optional stale-lock release and `kamal setup`. A snapshot failure stops the workflow before container replacement. A genuinely new server with no runtime or persistent state reports `not applicable`; persistent state without an identifiable runtime fails closed.
+Deploy creates and verifies one target-scoped rollback snapshot after SSH and image readiness, immediately before optional stale-lock release and `kamal setup`. A snapshot failure stops the workflow before container replacement. The current runtime must be ready with an idle job queue; degradation a plugin reports is named in the log and backed up, not refused, because a deploy is often its fix. A genuinely new server with no runtime or persistent state reports `not applicable`; persistent state without an identifiable runtime fails closed.
 
 Each snapshot contains transaction-consistent online captures of the six canonical SQLite databases, database hashes and `quick_check` results, the deployed `brain.yaml`, sanitized container and mount metadata, and the Directory Sync checkout. Git capture includes all refs, an observed remote head, staged and unstaged binary patches, and mode-preserving archives of untracked and ignored files. Capture performs no checkout mutation or remote write.
 
@@ -180,6 +180,38 @@ The shared cert bootstrap writes local cert artifacts under `.brains-ops/certs/s
 
 Preview hosts use the shape `<handle>-preview.rizom.ai`, so one wildcard origin cert for `*.rizom.ai` covers both the primary and preview hosts for every pilot user.
 
+## Pilot user offboarding
+
+Use the manual **Offboard** workflow for explicit pilot retirement. It is the only
+supported path that removes both checked-in desired state and provider resources.
+Normal reconcile/deploy changes never imply destruction.
+
+1. Enter a comma-separated handle list. The command sorts and deduplicates it.
+2. Run with `apply: false` and review the exact servers, DNS records, and content
+   repositories in the plan.
+3. Enter the canonical confirmation printed by the dry run, for example
+   `sunset:alice,bob`.
+4. Rerun with `apply: true`.
+5. Verify the workflow's bot commit removes user YAML, encrypted secrets, generated
+   user directories, cohort membership, and rows from `views/users.md`.
+
+The apply path archives each private content repository, deletes the user's main and
+preview DNS records, destroys the dedicated Hetzner server, and removes desired state.
+Custom-domain users also lose their managed `www` record. The operation is idempotent,
+but it deliberately creates **no runtime backup**; obtain separate owner approval and
+backup state before apply when retention is required.
+
+The equivalent operator-local commands are:
+
+```sh
+bunx brains-ops user:offboard . alice bob
+bunx brains-ops user:offboard . alice bob \
+  --apply --confirm sunset:alice,bob
+```
+
+The deploy handle resolver ignores deleted users, so the generated-file deletions in
+the offboarding commit cannot route those handles back through onboarding/deploy.
+
 ## Upgrading operator behavior
 
 The pilot repository pins `@rizom/ops` in `package.json`. The scheduled and manually dispatched Upgrade workflow owns routine upgrades to that pin. It refreshes the scaffold on a branch and opens a reviewable PR; it does not change runtime desired state or authorize a deployment.
@@ -274,24 +306,22 @@ siteOverride:
   themeVersion: <exact-theme-version>
 ```
 
-Missing external package versions fail desired-state validation. Every instance on one
-Brain version uses the same image and exact package union. Change a site/theme package
-pin only together with a fresh Brain version; published `brain-${brainVersion}` tags
-remain immutable. Conflicting pins for one package on the same Brain version fail before
-build. Bundled `@brains/*` themes omit `themeVersion` because they are not installed as
-separate packages.
+Missing external package versions fail desired-state validation. An instance runs the
+image named by its Brain version and its own pins, so a site/theme pin can change on its
+own: the push builds that image and redeploys that instance. Published tags remain
+immutable; a new pin set is a new tag. Bundled `@brains/*` themes omit `themeVersion`
+because they are not installed as separate packages.
 
 ### Custom-package canary and rollback
 
 1. Confirm the exact site/theme versions are public-installable without npm credentials.
-2. Apply the exact package names and versions to one healthy canonical site canary and select a fresh Brain version for that package set.
-3. Push desired state and let the normal Build → Reconcile → Deploy chain create the shared version image and update the canary.
+2. Apply the exact package names and versions to one healthy canonical site canary.
+3. Push desired state and let the normal Build → Reconcile → Deploy chain create the canary's image and update the canary.
 4. Run `bunx brains-ops verify-user . <handle>`.
 5. Manually verify the site, theme, Studio, content sync, and passkey sign-in before adding more users.
 
-To roll back, remove or change `siteOverride` while selecting a fresh Brain version,
-then reconcile and redeploy that user. Never mutate an existing image tag; coordinate any
-other users intentionally sharing the selected version.
+To roll back, remove or change `siteOverride`, then reconcile and redeploy that user.
+Never mutate an existing image tag.
 
 ## Setup email checklist
 
@@ -313,7 +343,7 @@ Use this for browser/Studio-first users who should receive their own first-passk
    - `bunx brains-ops onboard . <handle>`
    - or `bunx brains-ops reconcile-cohort . <cohort>`
 
-4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` and `email` interface config.
+4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` set to the user's address and `email` interface config.
 5. Ask the user to complete passkey setup from the email link, then use:
    - Dashboard: `https://<handle>.rizom.ai/`
    - Studio: `https://<handle>.rizom.ai/studio`

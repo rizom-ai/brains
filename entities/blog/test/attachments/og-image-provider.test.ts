@@ -1,15 +1,17 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
+import { toViewTemplate } from "@brains/plugins";
+import type { MediaAttachmentContext } from "@brains/media-page-composer";
 import { createBlogOgImageProvider } from "../../src/attachments/og-image-provider";
-import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "../../src/attachments/og-image-template";
+import {
+  BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+  BLOG_OG_IMAGE_TEMPLATE_NAME,
+  blogOgImageTemplate,
+} from "../../src/attachments/og-image-template";
 
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-function createContext(): Pick<
-  EntityPluginContext,
-  "entityService" | "themeCSS" | "identity" | "domain"
-> {
+function createContext(): MediaAttachmentContext {
   return {
     entityService: createMockEntityService({
       entityTypes: ["post", "image"],
@@ -39,6 +41,12 @@ Body`,
         },
       },
     }),
+    views: {
+      get: (name) =>
+        name === BLOG_OG_IMAGE_TEMPLATE_NAME
+          ? toViewTemplate(name, blogOgImageTemplate)
+          : undefined,
+    },
     themeCSS: "",
     identity: {
       get: () => ({

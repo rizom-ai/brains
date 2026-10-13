@@ -27,12 +27,7 @@ export type { JobProgressEvent } from "./schemas";
 export type JobProgressMonitorMode =
   "combined" | "durable-reader" | "durable-writer";
 
-/**
- * Simplified service that emits job and batch progress events
- *
- * This service provides a simple event-driven approach to progress monitoring
- * without complex polling or state tracking.
- */
+/** Emits local progress events or reads worker updates from the durable queue. */
 export class JobProgressMonitor implements IJobProgressMonitor {
   private jobQueueService: IJobQueueService;
   private messageBus: IMessageBus;
@@ -41,7 +36,9 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private readonly mode: JobProgressMonitorMode;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
   private pollCursor = { updatedAt: 0, jobId: "" };
-  private polling = false;
+  private activePoll: Promise<void> | undefined;
+  private stopPromise: Promise<void> | undefined;
+  private stopped = false;
   public static createFresh(
     jobQueueService: IJobQueueService,
     messageBus: IMessageBus,
@@ -73,6 +70,8 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   }
 
   public start(): void {
+    if (this.stopped)
+      throw new Error("Cannot start a stopped job progress monitor");
     if (this.mode === "durable-reader" && !this.pollTimer) {
       this.pollCursor = { updatedAt: Date.now(), jobId: "" };
       this.pollTimer = setInterval(() => {
@@ -85,16 +84,36 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     this.logger.debug("Job progress monitor ready (event-driven mode)");
   }
 
-  public stop(): void {
+  /** Terminally close polling admission and drain the page already admitted. */
+  public stop(): Promise<void> {
+    this.stopPromise ??= this.stopMonitor();
+    return this.stopPromise;
+  }
+
+  private async stopMonitor(): Promise<void> {
+    this.stopped = true;
     if (this.pollTimer) clearInterval(this.pollTimer);
     this.pollTimer = undefined;
+    await this.activePoll;
     this.logger.debug("Job progress monitor stopped");
   }
 
-  /** Flush one bounded durable update page sequence. */
-  public async pollDurableUpdates(): Promise<void> {
-    if (this.polling) return;
-    this.polling = true;
+  /** Flush one bounded durable update page; concurrent callers join its drain. */
+  public pollDurableUpdates(): Promise<void> {
+    if (this.stopped) return Promise.resolve();
+    if (this.activePoll) return this.activePoll;
+    // Attach ownership before invoking an injected queue, which may re-enter
+    // stop() synchronously while beginning its read.
+    const operation = Promise.resolve().then(() => this.pollPage());
+    this.activePoll = operation;
+    const clear = (): void => {
+      this.activePoll = undefined;
+    };
+    void operation.then(clear, clear);
+    return operation;
+  }
+
+  private async pollPage(): Promise<void> {
     try {
       const updates = await this.jobQueueService.getRuntimeUpdates(
         this.pollCursor,
@@ -117,8 +136,6 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       }
     } catch (error) {
       this.logger.error("Failed to poll durable job progress", { error });
-    } finally {
-      this.polling = false;
     }
   }
 
@@ -365,7 +382,9 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     isRunning: boolean;
   } {
     return {
-      isRunning: true, // Always running in event-driven mode
+      isRunning:
+        !this.stopped &&
+        (this.mode !== "durable-reader" || this.pollTimer !== undefined),
     };
   }
 

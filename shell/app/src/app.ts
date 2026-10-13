@@ -216,8 +216,8 @@ function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
 export class App {
   private shell: Shell | null = null;
   private config: AppConfig;
-  private signalScope: Scope.CloseableScope | null = null;
-  private signalShutdownFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private signalScope: Scope.Closeable | null = null;
+  private signalShutdownFiber: Fiber.Fiber<void, never> | null = null;
   private stopPromise: Promise<void> | null = null;
   private hasCLI = false;
 

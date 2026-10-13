@@ -66,6 +66,20 @@ describe("defineSite", () => {
     expect(site.staticAssets?.["robots.txt"]).toContain("Allow");
   });
 
+  test("lets a site name the entity types an answer may cite", () => {
+    const site = defineSite({
+      ...readingSite(),
+      entityDisplay: {
+        bookmark: { label: "Bookmark", citable: true },
+        tag: { label: "Tag" },
+        note: { label: "Note", citable: false },
+      },
+    });
+    expect(site.entityDisplay["bookmark"]?.citable).toBe(true);
+    expect(site.entityDisplay["tag"]?.citable).toBeUndefined();
+    expect(site.entityDisplay["note"]?.citable).toBe(false);
+  });
+
   test("rejects content that diverges from its section schema", () => {
     expect(() =>
       defineSite({

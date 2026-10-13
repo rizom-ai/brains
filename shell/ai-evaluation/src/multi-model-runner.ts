@@ -8,6 +8,7 @@ import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
+import { MCPProtocolAgentService } from "./mcp-protocol-agent-service";
 import { resolveProviderKey } from "./multi-model";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
@@ -15,6 +16,7 @@ import {
   renderModelComparison,
   writeModelComparisonReport,
 } from "./reporters/model-comparison-reporter";
+import { mergeSampleSummaries, testsBelowPassRate } from "./sample-aggregation";
 
 export interface MultiModelRunOptions {
   models: string[];
@@ -33,6 +35,11 @@ export interface MultiModelRunOptions {
   testType?: "agent" | "plugin" | undefined;
   remoteUrl?: string | undefined;
   authToken?: string | undefined;
+  mcpBasic: boolean;
+  /** Independent runs per model, each in a fresh environment. */
+  samples: number;
+  /** The share of a test's runs that must pass. */
+  minPassRate: number;
   resolveConfig?: (() => AppConfig) | undefined;
   runEvaluationsCollect: (
     options: RunEvaluationsOptions,
@@ -75,6 +82,28 @@ export async function collectModelRuns(
   return outcomes;
 }
 
+/**
+ * Run one model's suite `samples` times, in order, and merge the runs. Each
+ * sample is independent: tests mutate the brain they run against, so reusing
+ * one environment would make later samples measure earlier ones.
+ */
+export async function collectModelSamples(
+  samples: number,
+  runSample: (sampleIndex: number) => Promise<EvaluationSummary>,
+): Promise<EvaluationSummary> {
+  const summaries = await Array.from(
+    { length: samples },
+    (_, sampleIndex) => sampleIndex,
+  ).reduce<Promise<EvaluationSummary[]>>(
+    async (done, sampleIndex) => [
+      ...(await done),
+      await runSample(sampleIndex),
+    ],
+    Promise.resolve([]),
+  );
+  return mergeSampleSummaries(summaries);
+}
+
 /** The runs the comparison report can actually describe. */
 export function succeededRuns(
   outcomes: readonly ModelRunOutcome[],
@@ -93,10 +122,17 @@ export function succeededRuns(
  */
 export function exitCodeForModelRuns(
   outcomes: readonly ModelRunOutcome[],
+  minPassRate = 1,
 ): number {
   if (outcomes.length === 0) return 1;
   if (outcomes.some((outcome) => outcome.error !== undefined)) return 1;
-  return outcomes.some((outcome) => (outcome.summary?.failedTests ?? 0) > 0)
+  // A model that ran no tests verified nothing, as on the single-model path.
+  if (outcomes.some((outcome) => outcome.summary?.totalTests === 0)) return 1;
+  return outcomes.some(
+    (outcome) =>
+      outcome.summary !== undefined &&
+      testsBelowPassRate(outcome.summary, minPassRate).length > 0,
+  )
     ? 1
     : 0;
 }
@@ -111,8 +147,10 @@ export async function runMultiModelEvaluation(
   );
 
   const outcomes = await collectModelRuns(options.models, (model) =>
-    runSingleModelIteration(model, options, judgeAiService).then(
-      (result) => result.summary,
+    collectModelSamples(options.samples, (sampleIndex) =>
+      runSingleModelIteration(model, sampleIndex, options, judgeAiService).then(
+        (result) => result.summary,
+      ),
     ),
   );
 
@@ -132,7 +170,18 @@ export async function runMultiModelEvaluation(
     );
   }
 
-  process.exit(exitCodeForModelRuns(outcomes));
+  const belowThreshold = completed.flatMap(({ model, summary }) =>
+    testsBelowPassRate(summary, options.minPassRate).map(
+      (testCaseId) => `${model}: ${testCaseId}`,
+    ),
+  );
+  if (options.samples > 1 && belowThreshold.length > 0) {
+    process.stdout.write(
+      `\n${belowThreshold.length} tests below a ${options.minPassRate} pass rate:\n${belowThreshold.join("\n")}\n`,
+    );
+  }
+
+  process.exit(exitCodeForModelRuns(outcomes, options.minPassRate));
 }
 
 function createJudgeAiService(judge: string | undefined): IAIService {
@@ -150,10 +199,15 @@ function createJudgeAiService(judge: string | undefined): IAIService {
 
 async function runSingleModelIteration(
   model: string,
+  sampleIndex: number,
   options: MultiModelRunOptions,
   judgeAiService: IAIService,
 ): Promise<{ model: string; summary: EvaluationSummary }> {
-  console.log(`\n▶ Model: ${model}\n${"─".repeat(40)}`);
+  const sampleLabel =
+    options.samples > 1
+      ? ` (sample ${sampleIndex + 1}/${options.samples})`
+      : "";
+  console.log(`\n▶ Model: ${model}${sampleLabel}\n${"─".repeat(40)}`);
 
   const providerKey = resolveProviderKey(model, process.env);
   if (providerKey) {
@@ -164,7 +218,7 @@ async function runSingleModelIteration(
     brainModelPath: options.brainModelPath,
     config: options.config,
     cloneData: options.cloneData,
-    suffix: model.replace(/[^a-z0-9-]/gi, "-"),
+    suffix: `${model.replace(/[^a-z0-9-]/gi, "-")}${options.samples > 1 ? `-s${sampleIndex + 1}` : ""}`,
   });
 
   const modelConfig = options.resolveConfig
@@ -184,14 +238,19 @@ async function runSingleModelIteration(
     // seed content; settle the brain instead of racing the ingestion jobs.
     await waitForJobsToDrain(shell.getJobQueueService());
   }
-  const agentService = options.remoteUrl
-    ? RemoteAgentService.createFresh({
-        baseUrl: options.remoteUrl,
-        authToken: options.authToken,
-      })
-    : shell.getAgentService();
+  let mcpAgentService: MCPProtocolAgentService | undefined;
 
   try {
+    mcpAgentService = options.mcpBasic
+      ? await MCPProtocolAgentService.connect(shell.getMCPService())
+      : undefined;
+    const agentService = options.remoteUrl
+      ? RemoteAgentService.createFresh({
+          baseUrl: options.remoteUrl,
+          authToken: options.authToken,
+        })
+      : (mcpAgentService ?? shell.getAgentService());
+
     const summary = await options.runEvaluationsCollect({
       agentService,
       aiService: judgeAiService,
@@ -217,6 +276,7 @@ async function runSingleModelIteration(
     }
     return { model, summary };
   } finally {
+    await mcpAgentService?.close();
     // Stop background services and close DB connections. The next
     // bootEvalApp() → Shell.createFresh() resets singleton references.
     await shell.shutdown();

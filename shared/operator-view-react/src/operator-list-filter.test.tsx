@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Window } from "happy-dom";
+import { installDomGlobals } from "@brains/test-utils";
 import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
 import {
   OperatorViewRenderer,
@@ -33,16 +34,9 @@ const block: Extract<RuntimeStudioOperatorPanelBlock, { type: "list" }> = {
 test("list filters preserve source counts, custom all-values, gap emphasis and empty states", async () => {
   for (const width of [1440, 390]) {
     const window = new Window({ width });
-    Object.assign(globalThis, {
-      window,
+    const restoreGlobals = installDomGlobals(window, {
       getComputedStyle: window.getComputedStyle.bind(window),
-      document: window.document,
-      navigator: window.navigator,
-      HTMLElement: window.HTMLElement,
-      Element: window.Element,
-      Node: window.Node,
       Event: window.Event,
-      IS_REACT_ACT_ENVIRONMENT: true,
     });
     document.head.innerHTML = `<style>:root{--console-warn:rgb(200,100,0)}${operatorViewStylexCSS}</style>`;
     const container = document.createElement("div");
@@ -100,6 +94,7 @@ test("list filters preserve source counts, custom all-values, gap emphasis and e
     } finally {
       await act(async () => root.unmount());
       await window.happyDOM.close();
+      restoreGlobals();
     }
   }
   expect(operatorViewStylexCSS).not.toContain(".declarative-filter");

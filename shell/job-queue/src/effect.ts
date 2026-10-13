@@ -19,7 +19,10 @@ import {
   JobQueueService,
   type ProjectionJobAdmission,
 } from "./job-queue-service";
-import { JobQueueWorker } from "./job-queue-worker";
+import {
+  JobQueueWorker,
+  type ResettableAmbientScope,
+} from "./job-queue-worker";
 import type {
   IBatchJobManager,
   IJobQueueService,
@@ -29,34 +32,34 @@ import type {
 } from "./types";
 
 export type JobQueueServiceTag = "@brains/job-queue/JobQueueService";
-export const JobQueueServiceTag: Context.Tag<
+export const JobQueueServiceTag: Context.Service<
   JobQueueServiceTag,
   IJobQueueService
-> = Context.GenericTag<JobQueueServiceTag, IJobQueueService>(
+> = Context.Service<JobQueueServiceTag, IJobQueueService>(
   "@brains/job-queue/JobQueueService",
 );
 
 export type BatchJobManagerTag = "@brains/job-queue/BatchJobManager";
-export const BatchJobManagerTag: Context.Tag<
+export const BatchJobManagerTag: Context.Service<
   BatchJobManagerTag,
   IBatchJobManager
-> = Context.GenericTag<BatchJobManagerTag, IBatchJobManager>(
+> = Context.Service<BatchJobManagerTag, IBatchJobManager>(
   "@brains/job-queue/BatchJobManager",
 );
 
 export type JobProgressMonitorTag = "@brains/job-queue/JobProgressMonitor";
-export const JobProgressMonitorTag: Context.Tag<
+export const JobProgressMonitorTag: Context.Service<
   JobProgressMonitorTag,
   IJobProgressMonitor
-> = Context.GenericTag<JobProgressMonitorTag, IJobProgressMonitor>(
+> = Context.Service<JobProgressMonitorTag, IJobProgressMonitor>(
   "@brains/job-queue/JobProgressMonitor",
 );
 
 export type JobQueueWorkerTag = "@brains/job-queue/JobQueueWorker";
-export const JobQueueWorkerTag: Context.Tag<
+export const JobQueueWorkerTag: Context.Service<
   JobQueueWorkerTag,
   IJobQueueWorker
-> = Context.GenericTag<JobQueueWorkerTag, IJobQueueWorker>(
+> = Context.Service<JobQueueWorkerTag, IJobQueueWorker>(
   "@brains/job-queue/JobQueueWorker",
 );
 
@@ -81,6 +84,8 @@ export interface JobQueueRuntimeLayerOptions {
   onWorkerUnhealthy?: (reason: string) => void;
   workerConcurrency: number;
   operationContext?: OperationContext;
+  /** Ambient async context(s) to reset to empty before each job runs. */
+  projectionBatchScope?: ResettableAmbientScope;
   progressMonitorMode?: JobProgressMonitorMode;
 }
 
@@ -154,6 +159,9 @@ export function createJobQueueRuntimeLayer(
           ...(options.operationContext && {
             operationContext: options.operationContext,
           }),
+          ...(options.projectionBatchScope && {
+            projectionBatchScope: options.projectionBatchScope,
+          }),
         },
       );
 
@@ -164,7 +172,7 @@ export function createJobQueueRuntimeLayer(
   });
 
   return {
-    layer: Layer.scopedContext(
+    layer: Layer.effectContext(
       Effect.acquireRelease(acquire, (context) =>
         skipRelease ? Effect.void : releaseJobQueueRuntime(context),
       ),
@@ -190,7 +198,7 @@ function releaseJobQueueRuntime(
       }),
     );
     const progressExit = yield* Effect.exit(
-      Effect.try({
+      Effect.tryPromise({
         try: () => jobProgressMonitor.stop(),
         catch: (error) => error,
       }),

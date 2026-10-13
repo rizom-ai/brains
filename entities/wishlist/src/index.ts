@@ -5,6 +5,7 @@ import type {
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
+  ContentVisibility,
 } from "@brains/plugins";
 import {
   EntityPlugin,
@@ -21,7 +22,19 @@ import {
   type WishEntity,
 } from "./schemas/wish";
 
-const wishWidgetDataSchema = z.object({
+type WishWidgetDataSchema = z.ZodObject<{
+  items: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      name: z.ZodString;
+      count: z.ZodNumber;
+      priority: typeof wishPrioritySchema;
+      status: typeof wishStatusSchema;
+    }>
+  >;
+}>;
+
+const wishWidgetDataSchema: WishWidgetDataSchema = z.object({
   items: z.array(
     z.object({
       id: z.string(),
@@ -39,6 +52,30 @@ function priorityTone(
   if (priority === "critical") return "error";
   if (priority === "high") return "warn";
   return "neutral";
+}
+
+/** The most requested wishes the caller may see, for the dashboard. */
+export async function buildTopWishesWidgetData(
+  context: Pick<EntityPluginContext, "entityService">,
+  visibilityScope: ContentVisibility,
+): Promise<z.input<typeof wishWidgetDataSchema>> {
+  const wishes = await context.entityService.listEntities(
+    {
+      entityType: "wish",
+      options: { limit: 10, filter: { visibilityScope } },
+    },
+    wishSchema,
+  );
+  sortWishesByDemand(wishes);
+  return {
+    items: wishes.map((wish) => ({
+      id: wish.id,
+      name: wish.metadata.title,
+      count: wish.metadata.requested,
+      priority: wish.metadata.priority,
+      status: wish.metadata.status,
+    })),
+  };
 }
 
 const topWishesWidget = defineDashboardWidget({
@@ -87,6 +124,7 @@ import {
 import { WishAdapter, wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
+import { registerWishlistEvalHandlers } from "./lib/eval-handlers";
 import packageJson from "../package.json";
 
 const wishEntityType = "wish";
@@ -124,7 +162,11 @@ export class WishlistPlugin extends EntityPlugin<
       };
     }
 
-    const result = await new WishCreateHandler(this.logger, context).process(
+    const result = await new WishCreateHandler(
+      this.logger,
+      context,
+      this.config.sameWishDistance,
+    ).process(
       {
         ...(input.title ? { title: input.title } : {}),
         ...(input.prompt ? { prompt: input.prompt } : {}),
@@ -159,38 +201,30 @@ export class WishlistPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    registerWishlistEvalHandlers({
+      context,
+      sameWishDistance: this.config.sameWishDistance,
+    });
+
     // Dashboard widget
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await registerBuiltInDashboardWidget({
         context,
         definition: topWishesWidget,
-        load: async ({ signal }) => {
+        load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const wishes = await context.entityService.listEntities(
-            {
-              entityType: "wish",
-              options: { limit: 10 },
-            },
-            wishSchema,
-          );
-          signal.throwIfAborted();
-          sortWishesByDemand(wishes);
-          return {
-            items: wishes.map((wish) => ({
-              id: wish.id,
-              name: wish.metadata.title,
-              count: wish.metadata.requested,
-              priority: wish.metadata.priority,
-              status: wish.metadata.status,
-            })),
-          };
+          return buildTopWishesWidgetData(context, visibilityScope);
         },
       });
       return { success: true };
     });
 
     // Custom create handler with semantic dedup
-    const handler = new WishCreateHandler(this.logger, context);
+    const handler = new WishCreateHandler(
+      this.logger,
+      context,
+      this.config.sameWishDistance,
+    );
     context.jobs.registerHandler("wish:create", {
       process: handler.process.bind(handler),
       validateAndParse: (data: unknown) => data,

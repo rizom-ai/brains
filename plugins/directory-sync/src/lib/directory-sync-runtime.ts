@@ -5,6 +5,7 @@ import {
   FiberMap,
   FiberSet,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
@@ -23,10 +24,10 @@ export interface DirectorySyncScheduler {
 
 /** Owns directory-sync resources and supervised background work. @internal */
 export class DirectorySyncRuntime {
-  private readonly resourceScope: Scope.CloseableScope;
-  private readonly scheduleScope: Scope.CloseableScope;
-  private readonly periodicScope: Scope.CloseableScope;
-  private readonly delayScope: Scope.CloseableScope;
+  private readonly resourceScope: Scope.Closeable;
+  private readonly scheduleScope: Scope.Closeable;
+  private readonly periodicScope: Scope.Closeable;
+  private readonly delayScope: Scope.Closeable;
   private readonly scheduleFibers: FiberSet.FiberSet<void, never>;
   private readonly periodicFibers: FiberMap.FiberMap<number, void, unknown>;
   private readonly delayedFibers: FiberMap.FiberMap<string, void, never>;
@@ -43,13 +44,13 @@ export class DirectorySyncRuntime {
     this.periodicScope = Effect.runSync(Scope.make());
     this.delayScope = Effect.runSync(Scope.make());
     this.scheduleFibers = Effect.runSync(
-      Scope.extend(FiberSet.make<void, never>(), this.scheduleScope),
+      Scope.provide(FiberSet.make<void, never>(), this.scheduleScope),
     );
     this.periodicFibers = Effect.runSync(
-      Scope.extend(FiberMap.make<number, void, unknown>(), this.periodicScope),
+      Scope.provide(FiberMap.make<number, void, unknown>(), this.periodicScope),
     );
     this.delayedFibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.delayScope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.delayScope),
     );
     this.clock = options.clock;
   }
@@ -66,7 +67,7 @@ export class DirectorySyncRuntime {
       Effect.promise(() => release(value)),
     );
     const result = await Effect.runPromiseExit(
-      Scope.extend(resource, this.resourceScope),
+      Scope.provide(resource, this.resourceScope),
     );
     if (Exit.isFailure(result)) throw Cause.squash(result.cause);
     return result.value;
@@ -84,19 +85,19 @@ export class DirectorySyncRuntime {
 
     const key = this.nextPeriodicId++;
     const trigger = (): void => {
-      if (this.closed || FiberMap.unsafeHas(this.periodicFibers, key)) return;
+      if (this.closed || FiberMap.hasUnsafe(this.periodicFibers, key)) return;
 
       const active = Effect.tryPromise({
         try: operation,
         catch: (error) => error,
       }).pipe(
-        Effect.catchAll((error) =>
+        Effect.catch((error) =>
           Effect.sync(() => {
             this.activeFailures.push(error);
           }),
         ),
       );
-      FiberMap.unsafeSet(this.periodicFibers, key, Effect.runFork(active), {
+      FiberMap.setUnsafe(this.periodicFibers, key, Effect.runFork(active), {
         onlyIfMissing: true,
       });
     };
@@ -104,10 +105,8 @@ export class DirectorySyncRuntime {
       Effect.andThen(Effect.sync(trigger)),
       Effect.forever,
     );
-    const ownedSchedule = this.clock
-      ? Effect.withClock(schedule, this.clock)
-      : schedule;
-    FiberSet.unsafeAdd(this.scheduleFibers, Effect.runFork(ownedSchedule));
+    const ownedSchedule = withOptionalClock(schedule, this.clock);
+    FiberSet.addUnsafe(this.scheduleFibers, Effect.runFork(ownedSchedule));
   }
 
   /** Replace a pending trailing delay without interrupting work already started. */
@@ -125,11 +124,9 @@ export class DirectorySyncRuntime {
         }),
       ),
     );
-    const ownedDelay = this.clock
-      ? Effect.withClock(delayedStart, this.clock)
-      : delayedStart;
+    const ownedDelay = withOptionalClock(delayedStart, this.clock);
     const fiber = Effect.runFork(ownedDelay);
-    FiberMap.unsafeSet(this.delayedFibers, key, fiber);
+    FiberMap.setUnsafe(this.delayedFibers, key, fiber);
   }
 
   close(): Promise<void> {
@@ -181,7 +178,7 @@ export class DirectorySyncRuntime {
     if (failures.length > 0) throw failures[0];
   }
 
-  private async closeScope(scope: Scope.CloseableScope): Promise<void> {
+  private async closeScope(scope: Scope.Closeable): Promise<void> {
     const result = await Effect.runPromiseExit(Scope.close(scope, Exit.void));
     if (Exit.isFailure(result)) throw Cause.squash(result.cause);
   }

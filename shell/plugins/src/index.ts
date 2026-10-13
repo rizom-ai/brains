@@ -2,6 +2,12 @@
 // Plugin Framework Core
 // ============================================================================
 
+export {
+  entityTypeClassificationSchema,
+  isGroupingContributor,
+  type EntityTypeClassification,
+} from "@brains/entity-service";
+
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export {
@@ -9,6 +15,13 @@ export {
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
+export { findNearestEntity } from "./entity/nearest-entity";
+export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
+export type { EmbeddingDrainOptions } from "./entity/embedding-drain";
+export type {
+  NearestEntityDeps,
+  NearestEntityQuery,
+} from "./entity/nearest-entity";
 export {
   reconcileEntities,
   type ReconcileEntitiesOptions,
@@ -50,7 +63,7 @@ export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   readPromptOverride,
-  resetPromptCache,
+  resetPromptMaterialization,
   materializePrompts,
 } from "./entity/prompt-resolver";
 export {
@@ -140,7 +153,12 @@ export {
   type InboxSourceMetadata,
 } from "./inbox-registry";
 
-export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
+export {
+  SYSTEM_CHANNELS,
+  pluginsRegisteredAnswerSchema,
+  type PluginsRegisteredAnswer,
+  type SystemChannelName,
+} from "./system-channels";
 export { defineChannel, type Channel } from "./utils/channels";
 export {
   createAdminListTool,
@@ -154,8 +172,8 @@ export type {
   ServicePluginContext,
   ServiceEntityService,
   IServiceTemplatesNamespace,
-  IViewsNamespace,
 } from "./service/context";
+export type { IViewsNamespace } from "./entity/namespaces";
 export {
   AttachmentRegistry,
   createAttachmentsNamespace,
@@ -190,7 +208,7 @@ export type {
   IIdentityNamespace,
   IConversationsNamespace,
   IEvalNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IProfileKindsNamespace,
   IChannelsNamespace,
   IInboxNamespace,
@@ -336,6 +354,7 @@ export {
 
 export type {
   Plugin,
+  ProtocolPluginProvider,
   PluginRegistrationContext,
   PluginCapabilities,
   Tool,
@@ -358,8 +377,6 @@ export type {
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
-  IInsightsRegistry,
-  InsightHandler,
   QueryContext,
   JudgeInput,
   IMCPTransport,
@@ -409,6 +426,8 @@ export type {
   EntitySearchRequest,
   GetEntityRequest,
   ListEntitiesRequest,
+  EntityIdPath,
+  EntityIdPathInput,
   BaseEntityFrontmatterSchema,
   EntityMutationResult,
   EntityTypeConfig,
@@ -416,7 +435,16 @@ export type {
   ICoreEntityService,
   IEntityService,
   EntityServiceClient,
+  EntityGrouping,
+  EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
+  EntityGroupingMembers,
+  GroupingSort,
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -432,6 +460,16 @@ export {
   BaseEntityAdapter,
   baseEntityParserSchema,
   baseEntitySchema,
+  entityIdPathSchema,
+  entityGroupingSchema,
+  groupingSortSchema,
+  groupingKeySchema,
+  queryGroupingUsageSchema,
+  groupingValueSchema,
+  groupingSearchSchema,
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
+  EntityWriteConflictError,
   canWriteVisibility,
   contentVisibilitySchema,
   emptyFrontmatterSchema,
@@ -442,9 +480,11 @@ export {
   findEntityByIdentifier,
   resolveEntityOrError,
   generateMarkdownWithFrontmatter,
+  preserveSourceFrontmatter,
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,
@@ -466,6 +506,12 @@ export {
   type NavigationResult,
   type SortField,
 } from "./service/base-entity-datasource";
+export {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+  type RelatedEntityReader,
+} from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
 
 // ============================================================================
@@ -500,11 +546,14 @@ export type {
   ComponentType,
   ViewTemplate,
   OutputFormat,
+  MediaFormat,
+  FormatComponents,
   UserPermissionLevel,
   PermissionLookupContext,
 } from "@brains/templates";
 export {
   createTemplate,
+  toViewTemplate,
   OutputFormatSchema,
   PermissionService,
   UserPermissionLevelSchema,
@@ -591,6 +640,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
@@ -601,6 +651,7 @@ export type {
   IConversationService,
 } from "@brains/conversation-service";
 export {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,
@@ -612,6 +663,7 @@ export {
 export type { ConversationMessageActor } from "@brains/conversation-service";
 
 export type { IAgentService } from "@brains/ai-service";
+export { resolveTextProvider } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
@@ -791,7 +843,13 @@ export type {
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";
-export { jsonResponse, jsonError } from "./types/web-routes";
+export {
+  jsonResponse,
+  jsonError,
+  SitePageResponse,
+  SITE_SLOT_ATTRIBUTE,
+  type SitePageSlot,
+} from "./types/web-routes";
 export {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
@@ -867,6 +925,7 @@ export type {
 export {
   basePluginConfigSchema,
   isPluginConfigValidationError,
+  isMissingPluginConfig,
   PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,
@@ -903,6 +962,14 @@ export {
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
+export {
+  agentBodySchema,
+  agentBodySkillSchema,
+  formatAgentBody,
+  parseAgentBody,
+  type AgentBody,
+  type AgentBodySkill,
+} from "./a2a/agent-body";
 export type { IPublicSkillsNamespace, PublicSkill } from "./a2a/public-skills";
 
 // ============================================================================
@@ -930,3 +997,14 @@ export {
   type ConsoleSurface,
   type SurfacePermissionLevel,
 } from "./console-surfaces";
+
+export { AnalyticsRegistry } from "./analytics-registry";
+export type {
+  IAnalyticsRegistry,
+  RunAnalyticsReportRequest,
+} from "./analytics-registry";
+export { defineAnalyticsReport } from "./contracts/analytics";
+export type {
+  AnalyticsReportContext,
+  AnalyticsReportDefinition,
+} from "./contracts/analytics";

@@ -108,6 +108,11 @@ const agentService = AgentService.getInstance(
 );
 ```
 
+Caller cancellation remains prompt and retains its original reason.
+`AgentService.shutdown()` closes turn admission, interrupts observations, and
+waits for admitted model/tool operation Promises to settle, including operations
+that ignore their abort signal.
+
 ## Test utilities
 
 ```typescript

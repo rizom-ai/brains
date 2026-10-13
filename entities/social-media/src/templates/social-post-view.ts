@@ -1,4 +1,6 @@
+import { contentVisibilitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { renderedLinkFields } from "@brains/templates";
 import {
   platformSchema,
   socialPostStatusSchema,
@@ -14,30 +16,6 @@ const nullableNumber: z.ZodDefault<z.ZodNullable<z.ZodNumber>> = z
   .number()
   .nullable()
   .default(null);
-
-type Visibility = "public" | "shared" | "restricted";
-const visibilitySchema: z.ZodPipe<
-  z.ZodOptional<
-    z.ZodUnion<
-      readonly [
-        z.ZodEnum<{
-          public: "public";
-          shared: "shared";
-          restricted: "restricted";
-        }>,
-        z.ZodLiteral<"private">,
-      ]
-    >
-  >,
-  z.ZodTransform<Visibility, Visibility | "private" | undefined>
-> = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public" as const;
-    if (value === "private") return "restricted" as const;
-    return value;
-  });
 
 const documentAttachmentSchema: z.ZodObject<{ id: z.ZodString }> = z.object({
   id: z.string().min(1),
@@ -100,7 +78,7 @@ export const socialPostViewSchema: z.ZodObject<{
   content: z.ZodString;
   created: z.ZodString;
   updated: z.ZodString;
-  visibility: typeof visibilitySchema;
+  visibility: typeof contentVisibilitySchema;
   metadata: typeof metadataSchema;
   contentHash: z.ZodString;
   frontmatter: typeof frontmatterSchema;
@@ -118,7 +96,7 @@ export const socialPostViewSchema: z.ZodObject<{
   content: z.string(),
   created: z.string(),
   updated: z.string(),
-  visibility: visibilitySchema,
+  visibility: contentVisibilitySchema,
   metadata: metadataSchema,
   contentHash: z.string(),
   frontmatter: frontmatterSchema,
@@ -164,22 +142,5 @@ export type SocialPostView = Omit<
  * link slots site-builder fills required, so the render path can prove the
  * enrichment ran instead of assuming it.
  */
-export const socialPostRenderSchema: z.ZodType<SocialPostView> = z.object({
-  id: z.string(),
-  entityType: z.literal("social-post"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: visibilitySchema,
-  metadata: metadataSchema,
-  contentHash: z.string(),
-  frontmatter: frontmatterSchema,
-  body: z.string(),
-  url: z.string(),
-  listUrl: z.string(),
-  listLabel: z.string(),
-  typeLabel: z.string(),
-  coverImageUrl: nullableString,
-  coverImageWidth: nullableNumber,
-  coverImageHeight: nullableNumber,
-});
+export const socialPostRenderSchema: z.ZodType<SocialPostView> =
+  socialPostViewSchema.extend(renderedLinkFields);

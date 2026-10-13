@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { requireEnv, writeGitHubOutput } from "./helpers";
 
 const eventName = requireEnv("GITHUB_EVENT_NAME");
@@ -47,6 +48,9 @@ const handles = [
         return match?.[1] ?? null;
       })
       .filter((handle): handle is string => handle !== null)
+      // Deleted generated files belong to retired users and must not be sent
+      // through the onboarding/deploy path after an offboarding commit.
+      .filter((handle) => existsSync(`users/${handle}.yaml`))
       .sort((left, right) => left.localeCompare(right)),
   ),
 ];

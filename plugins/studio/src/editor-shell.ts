@@ -36,6 +36,8 @@ export interface EditorShellOptions {
   /** Runtime-resolved brain theme; the shared default is used when absent. */
   themeCSS?: string | undefined;
   principal?: EditorShellPrincipal | undefined;
+  /** This brain's MCP address, for the Account view's AI tools tab. */
+  mcpUrl?: string | undefined;
 }
 
 /**
@@ -79,6 +81,10 @@ ${CONSOLE_THEME_CSS}
     <div id="root" class="${classes.mount}" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeAttribute(options.sessionHref)}" data-studio-dashboard-href="${escapeAttribute(options.dashboardHref)}" data-studio-brand-name="${escapeAttribute(options.brandName)}"${
       options.principal
         ? ` data-studio-principal-name="${escapeAttribute(options.principal.displayName)}" data-studio-principal-role="${escapeAttribute(options.principal.role)}"`
+        : ""
+    }${
+      options.mcpUrl
+        ? ` data-studio-mcp-url="${escapeAttribute(options.mcpUrl)}"`
         : ""
     }><p class="${classes.boot}">Opening the content studio…</p></div>
     <script type="module" src="${options.assetPath}"></script>

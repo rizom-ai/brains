@@ -1,25 +1,23 @@
 import type { EntitySearchDB } from "./db";
 import {
-  entityReadBudgetSchema,
-  type EntityReadBudget,
-  type QueryEmbedding,
-} from "@brains/contracts";
-import { entityRowBudgetCondition } from "./bounded-reads";
-import {
   getVisibleContentVisibilities,
   type BaseEntity,
   type ContentVisibility,
   type SearchResult,
   type SearchOptions,
+  type NearestToEntityRequest,
   type ProjectSemanticSpaceRequest,
   type SemanticSpaceProjection,
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
+import { markdownBody } from "./frontmatter";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
+import { SemanticIndexingDisabledError } from "./errors";
+import { publishedAcrossTypesCondition } from "./published-condition";
 import {
   buildSemanticSpaceProjection,
   type SemanticEmbedding,
@@ -67,11 +65,8 @@ const searchOptionsSchema = z.object({
   weight: z.record(z.string(), z.number()).optional(),
   visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
   includeUngenerated: z.boolean().optional().default(false),
+  publishedOnly: z.boolean().optional().default(false),
   minScore: z.number().min(0).optional(),
-  readBudget: entityReadBudgetSchema.optional(),
-  queryEmbedding: z
-    .custom<QueryEmbedding>((value) => typeof value === "function")
-    .optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
 
@@ -93,6 +88,8 @@ export class EntitySearch {
   private serializer: EntitySerializer;
   private logger: Logger;
   private readonly embeddingsEnabled: boolean;
+  /** Published statuses by entity type, for the types that declare them. */
+  private readonly publishGates: () => Record<string, string[]>;
 
   constructor(
     db: EntitySearchDB,
@@ -100,12 +97,14 @@ export class EntitySearch {
     serializer: EntitySerializer,
     logger: Logger,
     embeddingsEnabled = true,
+    publishGates: () => Record<string, string[]> = () => ({}),
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
+    this.publishGates = publishGates;
   }
 
   /**
@@ -123,24 +122,16 @@ export class EntitySearch {
       weight,
       visibilityScope,
       includeUngenerated,
+      publishedOnly,
       minScore,
-      readBudget,
-      queryEmbedding,
       signal,
+      limit,
     } = validatedOptions;
-    const limit = readBudget
-      ? Math.min(validatedOptions.limit, readBudget.rows)
-      : validatedOptions.limit;
     signal?.throwIfAborted();
-    if (readBudget && query.length > readBudget.queryCharacters)
-      throw new Error("Entity search input limit exceeded");
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
-    const preparedQuery = prepareSearchQuery(
-      query,
-      readBudget ? undefined : this.logger,
-    );
+    const preparedQuery = prepareSearchQuery(query, this.logger);
 
     this.logger.debug(
       `Searching entities with query (${preparedQuery.length} chars)`,
@@ -155,23 +146,18 @@ export class EntitySearch {
         weight,
         visibilityScope,
         includeUngenerated,
+        publishedOnly,
         minScore,
-        readBudget,
         signal,
       });
     }
 
     // Generate embedding for the query
-    if (queryEmbedding && !signal)
-      throw new Error("Query embedding signal required");
-    const vector =
-      queryEmbedding && signal
-        ? await queryEmbedding(preparedQuery, signal)
-        : (
-            await (signal
-              ? this.embeddingService.generateEmbedding(preparedQuery, signal)
-              : this.embeddingService.generateEmbedding(preparedQuery))
-          ).embedding;
+    const vector = (
+      await (signal
+        ? this.embeddingService.generateEmbedding(preparedQuery, signal)
+        : this.embeddingService.generateEmbedding(preparedQuery))
+    ).embedding;
     signal?.throwIfAborted();
 
     // Convert Float32Array to JSON array for SQL
@@ -207,13 +193,12 @@ export class EntitySearch {
         ...typeConditions,
         ...this.buildVisibilityConditions(visibilityScope),
         ...this.buildGenerationStatusConditions(includeUngenerated),
-        ...(readBudget ? [entityRowBudgetCondition(readBudget)] : []),
+        ...this.buildPublishedConditions(publishedOnly),
       ],
       limit,
       offset,
       preparedQuery,
       minScore,
-      readBudget,
       signal,
     );
   }
@@ -228,16 +213,14 @@ export class EntitySearch {
       readonly weight: Record<string, number> | undefined;
       readonly visibilityScope: ContentVisibility | undefined;
       readonly includeUngenerated: boolean;
+      readonly publishedOnly: boolean;
       readonly minScore: number | undefined;
-      readonly readBudget: EntityReadBudget | undefined;
       readonly signal: AbortSignal | undefined;
     },
   ): Promise<SearchResult<BaseEntity>[]> {
     if (!query) return [];
     const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
     const conditions: SQL[] = [sql`entity_fts MATCH ${ftsQuery}`];
-    if (options.readBudget)
-      conditions.push(entityRowBudgetCondition(options.readBudget));
     if (options.types.length > 0) {
       conditions.push(inArray(entities.entityType, options.types));
     }
@@ -252,6 +235,7 @@ export class EntitySearch {
     conditions.push(
       ...this.buildVisibilityConditions(options.visibilityScope),
       ...this.buildGenerationStatusConditions(options.includeUngenerated),
+      ...this.buildPublishedConditions(options.publishedOnly),
     );
 
     // bm25() returns lower-is-better negative relevance. Map it to (0.5, 1)
@@ -284,11 +268,7 @@ export class EntitySearch {
       .limit(options.limit)
       .offset(options.offset);
     options.signal?.throwIfAborted();
-    return this.mapSearchResults(
-      results,
-      query,
-      options.readBudget !== undefined,
-    );
+    return this.mapSearchResults(results, query);
   }
 
   private buildVisibilityConditions(
@@ -307,6 +287,12 @@ export class EntitySearch {
     return [
       sql`(json_extract(${entities.metadata}, '$.status') IS NULL OR json_extract(${entities.metadata}, '$.status') NOT IN ('generating', 'failed'))`,
     ];
+  }
+
+  private buildPublishedConditions(publishedOnly: boolean): SQL[] {
+    return publishedOnly
+      ? [publishedAcrossTypesCondition(this.publishGates())]
+      : [];
   }
 
   /**
@@ -348,7 +334,6 @@ export class EntitySearch {
     offset: number,
     query: string,
     minScore: number | undefined,
-    readBudget?: EntityReadBudget,
     signal?: AbortSignal,
   ): Promise<SearchResult<BaseEntity>[]> {
     const alpha = EntitySearch.FTS_ALPHA;
@@ -400,7 +385,7 @@ export class EntitySearch {
       .limit(limit)
       .offset(offset);
     signal?.throwIfAborted();
-    return this.mapSearchResults(results, query, readBudget !== undefined);
+    return this.mapSearchResults(results, query);
   }
 
   /**
@@ -431,28 +416,42 @@ export class EntitySearch {
     request: ProjectSemanticSpaceRequest,
   ): Promise<SemanticSpaceProjection> {
     if (!this.embeddingsEnabled) {
-      throw new Error("Semantic indexing is disabled for this Brain instance");
+      throw new SemanticIndexingDisabledError();
     }
-    const pointTypes =
-      request.types && request.types.length > 0
+    const listed = request.entities
+      ? new Set(request.entities.map(referenceKey))
+      : undefined;
+    const pointTypes = request.entities
+      ? new Set(request.entities.map(({ entityType }) => entityType))
+      : request.types && request.types.length > 0
         ? new Set(request.types)
         : undefined;
-    const queryTypes = pointTypes ? new Set(pointTypes) : undefined;
-    if (queryTypes && request.origin) {
-      queryTypes.add(request.origin.entityType);
-    }
 
-    const embeddings = await this.readEmbeddings(
-      queryTypes ? Array.from(queryTypes) : undefined,
-      request.visibilityScope,
-    );
+    const embeddings = (
+      await this.readEmbeddings(
+        pointTypes ? Array.from(pointTypes) : undefined,
+        request.visibilityScope,
+        request.entities?.map(({ entityId }) => entityId),
+      )
+    ).filter((embedding) => !listed || listed.has(referenceKey(embedding)));
     const originReference = request.origin;
+    // An origin of a type outside the points is read alone: reading its whole
+    // type to find one vector makes a page per entry quadratic.
     const origin = originReference
-      ? embeddings.find(
+      ? (embeddings.find(
           (embedding) =>
             embedding.entityId === originReference.entityId &&
             embedding.entityType === originReference.entityType,
-        )
+        ) ??
+        (pointTypes?.has(originReference.entityType) === false
+          ? (
+              await this.readEmbeddings(
+                [originReference.entityType],
+                request.visibilityScope,
+                [originReference.entityId],
+              )
+            )[0]
+          : undefined))
       : undefined;
     const points = embeddings.filter((embedding) => {
       const matchesPointType = pointTypes?.has(embedding.entityType) ?? true;
@@ -474,10 +473,14 @@ export class EntitySearch {
   private async readEmbeddings(
     types?: string[],
     visibilityScope?: ContentVisibility,
+    entityIds?: readonly string[],
   ): Promise<SemanticEmbedding[]> {
     const conditions = this.buildVisibilityConditions(visibilityScope);
     if (types && types.length > 0) {
       conditions.push(inArray(entities.entityType, types));
+    }
+    if (entityIds !== undefined) {
+      conditions.push(inArray(entities.id, [...entityIds]));
     }
 
     const embeddingExpr = sql<Float32Array>`emb_e.embedding`.mapWith({
@@ -521,17 +524,69 @@ export class EntitySearch {
   }
 
   /**
-   * Return all embedded entities with their raw cosine distance to the query.
-   * No threshold filter — used for diagnostics and threshold tuning.
-   * Results sorted by distance ascending (closest first).
+   * Visible entities of the given types nearest an entity's stored embedding,
+   * closest first. The origin is read alone and within the same scope; an
+   * origin out of scope or without an embedding has no neighbours.
    */
-  public async searchWithDistances(
-    query: string,
+  public async nearestToEntity(
+    request: NearestToEntityRequest,
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     if (!this.embeddingsEnabled) {
-      throw new Error("Semantic indexing is disabled for this Brain instance");
+      throw new SemanticIndexingDisabledError();
+    }
+    const [origin] = await this.readEmbeddings(
+      [request.origin.entityType],
+      request.visibilityScope,
+      [request.origin.entityId],
+    );
+    if (!origin || request.types.length === 0) return [];
+
+    const originVector = JSON.stringify(Array.from(origin.embedding));
+    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${originVector}))`;
+    const query = this.db
+      .select({
+        entityId: entities.id,
+        entityType: entities.entityType,
+        distance: distanceExpr,
+      })
+      .from(entities)
+      .innerJoin(
+        sql`emb.embeddings AS emb_e`,
+        sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .where(
+        and(
+          ...this.buildVisibilityConditions(request.visibilityScope),
+          inArray(entities.entityType, request.types),
+          sql`NOT (${entities.id} = ${request.origin.entityId} AND ${entities.entityType} = ${request.origin.entityType})`,
+          request.maxDistance !== undefined
+            ? sql`${distanceExpr} <= ${request.maxDistance}`
+            : undefined,
+        ),
+      )
+      .orderBy(sql`${distanceExpr} ASC`);
+    return request.limit !== undefined ? query.limit(request.limit) : query;
+  }
+
+  /**
+   * Return embedded entities with their raw cosine distance to the query,
+   * sorted closest first. Without filters every embedded entity is returned,
+   * for diagnostics and threshold tuning; `types` and `maxDistance` narrow it
+   * in the query for callers that look for one close match.
+   */
+  public async searchWithDistances(
+    query: string,
+    filters: {
+      readonly types?: string[] | undefined;
+      readonly maxDistance?: number | undefined;
+    } = {},
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    if (!this.embeddingsEnabled) {
+      throw new SemanticIndexingDisabledError();
     }
     const preparedQuery = prepareSearchQuery(query, this.logger);
     const { embedding: queryEmbedding } =
@@ -550,6 +605,16 @@ export class EntitySearch {
       .innerJoin(
         sql`emb.embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .where(
+        and(
+          filters.types && filters.types.length > 0
+            ? inArray(entities.entityType, filters.types)
+            : undefined,
+          filters.maxDistance !== undefined
+            ? sql`${distanceExpr} <= ${filters.maxDistance}`
+            : undefined,
+        ),
       )
       .orderBy(sql`${distanceExpr} ASC`);
 
@@ -572,7 +637,6 @@ export class EntitySearch {
       weighted_score: number;
     }>,
     query: string,
-    privateQuery: boolean = false,
   ): SearchResult<BaseEntity>[] {
     const searchResults: SearchResult<BaseEntity>[] = [];
 
@@ -597,19 +661,15 @@ export class EntitySearch {
           excerpt: this.createExcerpt(row.content, query),
         });
       } catch (error) {
-        // Bounded visitor reads must not log parser payloads or query text.
-        if (!privateQuery)
-          this.logger.error(`Failed to parse entity during search: ${error}`);
+        this.logger.error(`Failed to parse entity during search: ${error}`);
       }
     }
 
-    if (!privateQuery) {
-      const queryPreview =
-        query.length > 50 ? query.substring(0, 50) + "..." : query;
-      this.logger.debug(
-        `Found ${searchResults.length} results for query "${queryPreview}"`,
-      );
-    }
+    const queryPreview =
+      query.length > 50 ? query.substring(0, 50) + "..." : query;
+    this.logger.debug(
+      `Found ${searchResults.length} results for query "${queryPreview}"`,
+    );
 
     return searchResults;
   }
@@ -617,7 +677,9 @@ export class EntitySearch {
   /**
    * Create an excerpt from content based on query
    */
-  private createExcerpt(content: string, query: string): string {
+  private createExcerpt(markdown: string, query: string): string {
+    // A reader of the result sees its text, not its frontmatter.
+    const content = markdownBody(markdown);
     const maxLength = 200;
     const queryLower = query.toLowerCase();
     const contentLower = content.toLowerCase();
@@ -643,4 +705,12 @@ export class EntitySearch {
       content.slice(0, maxLength) + (content.length > maxLength ? "..." : "")
     );
   }
+}
+
+/** One key for an entity reference: type and id. */
+function referenceKey(reference: {
+  entityType: string;
+  entityId: string;
+}): string {
+  return `${reference.entityType}:${reference.entityId}`;
 }

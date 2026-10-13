@@ -1,0 +1,20 @@
+id: faq-same-question-near-miss
+name: Publish and unpublish are different questions
+description: Near-identical wording with opposite meaning must not merge, or one answer is lost.
+type: plugin
+tags: [faq, dedup]
+plugin: faq
+handler: sameQuestion
+
+input:
+  stored:
+    question: How do I publish a blog post?
+    answer: Open the post in Studio, set its status to published and save.
+  incoming:
+    question: How do I unpublish a blog post?
+    answer: Open the post in Studio, set its status back to draft and save; it disappears from the site on the next build.
+
+expectedOutput:
+  validateEach:
+    - path: sameQuestion
+      equals: false

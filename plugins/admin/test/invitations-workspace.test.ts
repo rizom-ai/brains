@@ -17,7 +17,7 @@ const authPlugins: AuthServicePlugin[] = [];
 
 afterEach(async () => {
   setSystemTime();
-  for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
+  for (const plugin of authPlugins.splice(0)) await plugin.shutdown();
 });
 
 function actorFor(
@@ -185,6 +185,105 @@ describe("Administration Invitations tab", () => {
       },
     });
     expect(formFieldNames(create)).not.toContain("peerId");
+    // Adding a person and inviting a peer deliver the invitation the same way.
+    const roleOptions = [
+      { value: "trusted", label: "Trusted" },
+      { value: "admin", label: "Admin" },
+    ];
+    const deliveryFields = [
+      {
+        name: "deliveryType",
+        label: "Delivery channel",
+        control: "select",
+        required: true,
+        options: [
+          { value: "failing-auto", label: "Failing automatic test" },
+          { value: "manual-test", label: "Manual test" },
+        ],
+      },
+      {
+        name: "deliverySubject",
+        label: "Delivery destination",
+        control: "text",
+        required: true,
+        labelBy: {
+          field: "deliveryType",
+          values: [
+            { value: "failing-auto", label: "Automatic address" },
+            { value: "manual-test", label: "Manual address" },
+          ],
+        },
+      },
+      {
+        name: "deliveryLabel",
+        label: "Delivery label (optional)",
+        control: "text",
+        required: false,
+      },
+      {
+        name: "deliveryMode",
+        label: "Delivery mode",
+        control: "select",
+        required: true,
+        options: [
+          { value: "automatic", label: "Automatic" },
+          { value: "manual", label: "Manual" },
+        ],
+      },
+    ];
+    expect(formFields(create)).toEqual([
+      {
+        name: "displayName",
+        label: "Display name",
+        control: "text",
+        required: true,
+      },
+      {
+        name: "role",
+        label: "Role",
+        control: "select",
+        required: true,
+        options: roleOptions,
+      },
+      ...deliveryFields,
+    ]);
+    expect(formFields(findAction(initial, "Invite peer person"))).toEqual([
+      {
+        name: "peerId",
+        label: "External peer ID",
+        control: "text",
+        required: true,
+      },
+      {
+        name: "displayName",
+        label: "Display name",
+        control: "text",
+        required: true,
+      },
+      {
+        name: "role",
+        label: "Local role",
+        control: "select",
+        required: true,
+        options: roleOptions,
+      },
+      ...deliveryFields,
+    ]);
+    expect(create).toMatchObject({
+      result: {
+        title: "Invitation setup",
+        fields: [
+          { name: "status", label: "Status" },
+          {
+            name: "setupUrl",
+            label: "Single-use setup URL",
+            copyable: true,
+            sensitive: true,
+          },
+          { name: "expiresAt", label: "Expires" },
+        ],
+      },
+    });
     expect(formField(create, "deliverySubject")).toMatchObject({
       label: "Delivery destination",
       labelBy: {

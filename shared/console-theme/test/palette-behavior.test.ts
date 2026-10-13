@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
+import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import type { Element } from "happy-dom";
 import { CONSOLE_PALETTE_SCRIPT } from "../src";
 
@@ -52,6 +53,7 @@ function requireInput(
   return element;
 }
 
+let restoreGlobals: RestoreGlobals;
 let window: Window;
 let fetchCalls: string[];
 let fetchResponse: () => { status: number; body: JumpGroups };
@@ -152,24 +154,22 @@ beforeEach(() => {
     preconnect: (): void => {},
   });
 
-  Object.assign(globalThis, {
+  // Only the global fetch: the script is eval'd in this realm, so its bare
+  // fetch resolves here. Assigning window.fetch as well would need a second
+  // stub, since happy-dom declares its own Request type.
+  restoreGlobals = installGlobals({
     window,
     document: window.document,
     KeyboardEvent: window.KeyboardEvent,
+    fetch: fetchStub,
   });
-  // Only the global: the script is eval'd in this realm, so its bare fetch
-  // resolves here. Assigning window.fetch as well would need a second stub,
-  // since happy-dom declares its own Request type.
-  globalThis.fetch = fetchStub;
 
   eval(CONSOLE_PALETTE_SCRIPT);
 });
 
 afterEach(() => {
   window.close();
-  Reflect.deleteProperty(globalThis, "window");
-  Reflect.deleteProperty(globalThis, "document");
-  Reflect.deleteProperty(globalThis, "KeyboardEvent");
+  restoreGlobals();
 });
 
 describe("console palette behavior", () => {

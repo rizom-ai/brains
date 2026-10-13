@@ -1,5 +1,365 @@
 # @brains/ops
 
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- [#580](https://github.com/rizom-ai/brains/pull/580) [`dbaa3b1`](https://github.com/rizom-ai/brains/commit/dbaa3b11b0f4888bea6956e2cd7efa26e388617d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy snapshot's refusal "job queue is not idle" now names the queue it saw (pending, processing and abandoned counts) and says to rerun once it drains, so a deploy that stops on a busy brain explains itself in the workflow log.
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+## 0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+## 0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Minor Changes
+
+- [#508](https://github.com/rizom-ai/brains/pull/508) [`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: `auth-service.setupEmail` now takes only the recipient address. The `{ to, subject, body }` form and its `{{setupUrl}}`, `{{expiresAt}}` and `{{origin}}` placeholders are removed; a brain.yaml that still uses them fails config validation. Regenerate pilot brain.yaml files with `brains-ops reconcile` before pinning this release.
+
+  The anchor setup email and the invitation now share one onboarding body after their own opening: a first save-and-ask in chat, Studio, and how to connect AI tools over MCP (the brain's `/mcp` address, the Claude Code command, Claude Desktop custom connectors, OAuth sign-in with the passkey). Both have text and HTML parts. brains-ops no longer writes Rover-specific setup email copy.
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [#506](https://github.com/rizom-ai/brains/pull/506) [`baca6ba`](https://github.com/rizom-ai/brains/commit/baca6ba4b29f8c768ff1fad1935573e34800f455) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fleet images are named by their Brain version and their site pins: an instance without a site override runs `brain-<version>`, an instance with one runs `brain-<version>--<pins>` (or a digest of the pins when too long to spell out), and every instance with the same version and pins shares one image. A site's pin change builds that site's image and no other, and deploys on its own, because the generated `users/<handle>/.env` now names the image (`IMAGE_TAG`). Promotion reuses a smoke-tested image unchanged, as its name already carries its pins; an existing image is verified against what its name says it holds. Explicit dispatch builds install exactly the dispatched pins. The scaffolded fleet scripts derive the tag from the instance's own pins.
+
+## 0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`99f6c6b`](https://github.com/rizom-ai/brains/commit/99f6c6b28bef79a39b083142d4c7717f3452fdf9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup verifies embedding databases whether or not they still carry the retired libSQL vector index. Before, it read the index's shadow table unconditionally and failed once the index was dropped. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+## 0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+## 0.2.0-alpha.456
+
+## 0.2.0-alpha.455
+
+## 0.2.0-alpha.454
+
+## 0.2.0-alpha.453
+
+## 0.2.0-alpha.452
+
+## 0.2.0-alpha.451
+
+## 0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+## 0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+## 0.2.0-alpha.443
+
+## 0.2.0-alpha.442
+
+## 0.2.0-alpha.441
+
+## 0.2.0-alpha.440
+
+## 0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+## 0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`5a70a6f`](https://github.com/rizom-ai/brains/commit/5a70a6f918644186ee01cfbffe7c23b64c97c479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A successful pre-deploy backup now shows the runtime's own notices, such as the degraded checks it backed up anyway, as workflow warnings. Before, the remote output of a successful capture was discarded. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- [#372](https://github.com/rizom-ai/brains/pull/372) [`e3d947f`](https://github.com/rizom-ai/brains/commit/e3d947fcb7aaa67b9ff6a8478e975ef32f816c66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup no longer refuses a runtime whose plugins report degraded health. It still requires a ready runtime with an idle job queue, names the degraded checks in the deploy log and backs the runtime up, because a deploy is often the fix for what a plugin reports. A refusal now states its reason (runtime not ready, job queue not idle) instead of exiting silently. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+## 0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+## 0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Minor Changes
+
+- [#323](https://github.com/rizom-ai/brains/pull/323) [`972e900`](https://github.com/rizom-ai/brains/commit/972e900adedb251ee22e3d6b1184ebd822e42234) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit, dry-run-first `user:offboard` command and scaffolded Offboard workflow that archive pilot content repositories, remove managed DNS, destroy dedicated servers, and commit desired-state removal with exact batch confirmation.
+
+## 0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- [#285](https://github.com/rizom-ai/brains/pull/285) [`6fa0d8e`](https://github.com/rizom-ai/brains/commit/6fa0d8edbfc3f3e3363e7ed7ba5c101eba57587c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose operator-generated brain configuration as an object and serialize once. Carry per-user canonical plugin configuration through reconciliation, using the runtime's shared merge implementation with explicit preservation of null deletion markers until runtime resolution. Plugin schemas remain authoritative; no dashboard-specific operator switch is introduced.
+
+## 0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ## 0.2.0-alpha.378

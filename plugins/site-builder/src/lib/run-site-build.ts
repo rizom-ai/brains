@@ -20,7 +20,10 @@ import { generateSiteRoutes } from "./generate-site-routes";
 import { prepareSiteBuild } from "./prepare-site-build";
 import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
-import { computeSiteInputFingerprint } from "./site-input-fingerprint";
+import {
+  computeSiteInputFingerprint,
+  RENDERER_PROCESS_IDENTITY,
+} from "./site-input-fingerprint";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import {
   createCancelledBuildResult,
@@ -46,6 +49,8 @@ export interface RunSiteBuildOptions {
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   outputLifecycle?: SiteBuildOutputLifecycle | undefined;
   signal: AbortSignal;
+  /** The running renderer code; each process has its own by default. */
+  rendererIdentity?: string | undefined;
 }
 
 export async function runSiteBuild(
@@ -133,6 +138,9 @@ export async function runSiteBuild(
       sharedImagesDir: parsedOptions.sharedImagesDir,
       signal: options.signal,
     });
+    const preparationReporter = reporter?.createSub({
+      scale: { start: 25, end: 50 },
+    });
     const preparation = await prepareSiteBuild({
       buildId: randomUUID(),
       preparedAt: new Date().toISOString(),
@@ -144,6 +152,11 @@ export async function runSiteBuild(
       siteMetadata: parsedOptions.siteConfig,
       publicDir: join(process.cwd(), "public"),
       signal: options.signal,
+      onProgress: (notification) => {
+        preparationReporter?.report(notification).catch(() => {
+          // Ignore progress reporting errors
+        });
+      },
     });
     diagnostics.push(...preparation.diagnostics);
     const preparationWarnings = preparation.diagnostics.filter(
@@ -168,6 +181,7 @@ export async function runSiteBuild(
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
       sendMessage: options.pipelineContext.services.sendMessage,
+      rendererIdentity: options.rendererIdentity ?? RENDERER_PROCESS_IDENTITY,
     });
     const currentManifest = await outputLifecycle.getCurrentManifest?.(
       parsedOptions.outputDir,
@@ -234,7 +248,9 @@ export async function runSiteBuild(
         url: baseUrl,
       },
       generateEntityUrl: (entityType, slug) =>
-        EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+        new EntityUrlGenerator(
+          options.pipelineContext.entityDisplay,
+        ).generateUrl(entityType, slug),
       reportFailure: (detail) => {
         stagingFailures.push(detail);
       },

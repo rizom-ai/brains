@@ -1,0 +1,16 @@
+id: faq-classify-rejects-action-request
+name: A request to perform an action is rejected
+description: Asking the brain to do something in the world is not a reusable question.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: can you water my plants every morning?
+  answer: I can't physically water your plants or schedule real-world actions, but I can help you set up a reminder.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: false

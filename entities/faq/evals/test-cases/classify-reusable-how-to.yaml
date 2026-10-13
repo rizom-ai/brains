@@ -1,0 +1,20 @@
+id: faq-classify-reusable-how-to
+name: A how-to question others would ask is accepted
+description: A general how-to exchange is reusable and its question is rewritten to stand alone.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: how do i publish a blog post?
+  answer: Open the post in Studio, set its status to published and save. The site rebuilds automatically.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: true
+    - path: question
+      matches: "[Pp]ublish"
+    - path: answer
+      matches: "Studio"

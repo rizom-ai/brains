@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { resolveTextProvider } from "@brains/plugins";
 import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
 
 const localOriginSchema: z.ZodString = z.string().refine((value) => {
@@ -26,41 +27,62 @@ const localPresetSchema: z.ZodObject<
   origin: localOriginSchema.default("http://127.0.0.1:8080"),
 });
 
-/** Shared execution defaults. A hosted policy still needs explicit authorization. */
-export function createDefaultGuestPolicy(origin: string): GuestPolicy {
+const providerNames: Readonly<Record<string, string>> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google",
+  ollama: "Ollama",
+};
+
+/**
+ * Shared execution defaults. A hosted policy still needs explicit authorization,
+ * and its owner's budget is the ceiling: these counts only stop floods, sized
+ * well above what one site's visitors ask.
+ */
+export function createDefaultGuestPolicy(
+  origin: string,
+  model: string,
+  previewOrigin?: string,
+): GuestPolicy {
+  // Guests are told where their text goes: the provider this runtime uses.
+  const resolved = resolveTextProvider(model);
+  const provider = providerNames[resolved.provider] ?? resolved.provider;
   return guestPolicySchema.parse({
     enabled: true,
     origin,
+    ...(previewOrigin ? { previewOrigin } : {}),
     issuance: {
-      requestsPerMinute: 2,
-      requestsPerDay: 4,
-      maxStoredCredentials: 4,
+      requestsPerMinute: 30,
+      requestsPerDay: 1000,
+      maxStoredCredentials: 300,
     },
     limits: {
       messageCharacters: 4000,
-      outputTokens: 1200,
-      contextTokens: 1_050_000,
-      contextBytes: 32000,
-      toolCalls: 3,
-      userTurns: 2,
-      toolSteps: 3,
-      toolResultCharacters: 12000,
-      retrieval: { rows: 5, rowBytes: 12000, queryCharacters: 4000 },
-      requestsPerMinute: 2,
-      requestsPerDay: 2,
-      globalRequestsPerMinute: 2,
-      globalRequestsPerDay: 2,
-      globalConcurrency: 1,
-      requestTimeoutSeconds: 90,
-      streamIdleTimeoutSeconds: 30,
+      userTurns: 10,
+      requestsPerMinute: 6,
+      requestsPerDay: 30,
+      globalRequestsPerMinute: 30,
+      globalRequestsPerDay: 300,
+      globalConcurrency: 3,
+      // One answer, with its lookups, well within three minutes.
+      requestTimeoutSeconds: 180,
     },
     retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
-    budget: { dailyUsd: 4, maxTurnUsd: 2 },
+    // An answer whose cost cannot be measured is charged maxTurnUsd. The daily
+    // budget bounds a configured policy only.
+    budget: { dailyUsd: 4, maxTurnUsd: 0.05 },
+    usageRecord: {
+      maxRecords: 1000,
+      maxDenialRecords: 1000,
+      retentionSeconds: 30 * 86_400,
+      questionBytes: 16_000,
+      maxStoredBytes: 4_000_000,
+    },
     disclosure: {
-      provider: "OpenAI (gpt-5.6-luna)",
+      provider: `${provider} (${resolved.modelId})`,
       notice:
         (origin.startsWith("http://") ? "Local test only. " : "") +
-        "Messages and retrieved public text reach this Brain and OpenAI. Do not send sensitive information. AI answers can be wrong. Conversations are not added to public knowledge. This session expires after one hour without renewal.",
+        `Messages and retrieved public text reach this Brain and ${provider}. Do not send sensitive information. AI answers can be wrong. Conversations are not added to public knowledge. This session expires after one hour without renewal.`,
       deletionLimitations:
         "Local deletion does not guarantee erasure from journals, backups, test artifacts, or provider and security logs. Usage reservations can remain.",
     },
@@ -74,10 +96,12 @@ export const guestPresetSchema: z.ZodUnion<
 
 export function resolveGuestPreset(
   input: z.output<typeof guestPresetSchema>,
+  model: string,
 ): GuestPolicy {
   if (input === false) return { enabled: false };
   return createDefaultGuestPolicy(
     localPresetSchema.parse(input === "local-test" ? { preset: input } : input)
       .origin,
+    model,
   );
 }

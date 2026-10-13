@@ -8,8 +8,14 @@ import {
   type EnvSchemaEntry,
 } from "@brains/deploy-support";
 
-import { logMissingSecrets, pushSecretsToBackend } from "./push-secrets";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import {
+  logMissingSecrets,
+  pushSecretsToGitHub,
+} from "@brains/deploy-support/push-secrets";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -73,7 +79,7 @@ export async function pushPilotSecrets(
     };
   }
 
-  await pushSecretsToBackend("gh", pushedKeys, {
+  await pushSecretsToGitHub(pushedKeys, {
     logger,
     runCommand: options.runCommand ?? runSubprocess,
   });

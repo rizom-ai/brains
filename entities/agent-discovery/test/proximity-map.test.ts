@@ -3,7 +3,11 @@ import type { SemanticSpaceNeighbor } from "@brains/plugins";
 import {
   bearingFromCoordinates,
   buildProximityClusters,
+  mostCommonTag,
   normalizeCosineDistance,
+  proximityMaxDistance,
+  proximityPoint,
+  proximityReach,
 } from "../src/lib/proximity-map";
 import type { ProximityMapNode } from "../src/lib/proximity-map-schema";
 
@@ -97,5 +101,84 @@ describe("proximity map math", () => {
         links: [{ sourceId: "alpha", targetId: "beta" }],
       },
     ]);
+  });
+});
+
+describe("proximity placement", () => {
+  test("reaches out in proportion to distance, never past the outer ring", () => {
+    expect(proximityReach(0.3, 0.6)).toBeCloseTo(0.5);
+    expect(proximityReach(0.9, 0.6)).toBe(1);
+    expect(proximityReach(-0.1, 0.6)).toBe(0);
+  });
+
+  test("places a bearing around the centre, with north up", () => {
+    const disc = { x: 50, y: 50, radius: 40 };
+    const east = proximityPoint(0.3, 0, 0.6, disc);
+    expect(east.x).toBeCloseTo(70);
+    expect(east.y).toBeCloseTo(50);
+    const north = proximityPoint(0.6, 90, 0.6, disc);
+    expect(north.x).toBeCloseTo(50);
+    expect(north.y).toBeCloseTo(10);
+    const west = proximityPoint(0.6, 180, 0.6, { x: 0.5, y: 0.5, radius: 0.5 });
+    expect(west.x).toBeCloseTo(0);
+    expect(west.y).toBeCloseTo(0.5);
+  });
+
+  test("scales to the farthest charted agent, the projection's range, or a floor", () => {
+    const range = (max: number): { min: number; max: number } => ({
+      min: 0,
+      max,
+    });
+    expect(
+      proximityMaxDistance({
+        distanceRange: range(0.4),
+        nodes: [node("alpha", [])],
+        sightings: [],
+      }),
+    ).toBe(0.4);
+    expect(
+      proximityMaxDistance({
+        distanceRange: range(0.2),
+        nodes: [{ ...node("alpha", []), distance: 0.55 }],
+        sightings: [
+          {
+            id: "far",
+            name: "Far",
+            viaIds: ["alpha"],
+            tags: [],
+            distance: 0.7,
+            bearing: 0,
+          },
+        ],
+      }),
+    ).toBe(0.7);
+    expect(
+      proximityMaxDistance({
+        distanceRange: range(0),
+        nodes: [],
+        sightings: [],
+      }),
+    ).toBe(0.1);
+  });
+});
+
+describe("most common tag", () => {
+  test("counts each member's tags once and names the most shared", () => {
+    expect(
+      mostCommonTag([
+        ["research", "research", "writing"],
+        ["writing"],
+        ["writing", "editing"],
+      ]),
+    ).toBe("writing");
+  });
+
+  test("breaks ties alphabetically", () => {
+    expect(mostCommonTag([["operations"], ["automation"]])).toBe("automation");
+  });
+
+  test("has no answer when nobody carries a tag", () => {
+    expect(mostCommonTag([[], []])).toBeNull();
+    expect(mostCommonTag([])).toBeNull();
   });
 });

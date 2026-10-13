@@ -1,16 +1,17 @@
-import type { AttachmentProvider, EntityPluginContext } from "@brains/plugins";
+import type { AttachmentProvider } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import {
   createMediaContentHelpers,
   preferredSlug,
   renderPrintablePdf,
+  type MediaAttachmentContext,
   type RenderPdf,
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { deckSchema, type DeckEntity } from "../schemas/deck";
 import {
-  deckCarouselTemplate,
-  type DeckCarouselTemplateData,
+  DECK_CAROUSEL_TEMPLATE_NAME,
+  type DeckCarouselTemplateInput,
 } from "./carousel-template";
 
 const DEFAULT_MAX_SLIDES = 20;
@@ -33,18 +34,12 @@ export interface DeckCarouselAttachmentProviderDeps {
 export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   readonly metadata = { outputEntityType: "document" } as const;
 
-  private readonly context: Pick<
-    EntityPluginContext,
-    "entityService" | "themeCSS" | "identity" | "domain"
-  >;
+  private readonly context: MediaAttachmentContext;
   private readonly renderPdf: RenderPdf | undefined;
   private readonly getThemeMode: GetThemeMode;
 
   constructor(
-    context: Pick<
-      EntityPluginContext,
-      "entityService" | "themeCSS" | "identity" | "domain"
-    >,
+    context: MediaAttachmentContext,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
     this.context = context;
@@ -81,9 +76,14 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
       );
     }
 
+    const template = this.context.views.get(DECK_CAROUSEL_TEMPLATE_NAME);
+    if (!template?.renderers.pdf) {
+      throw new Error(`${DECK_CAROUSEL_TEMPLATE_NAME} has no pdf renderer`);
+    }
+
     const pdf = await renderPrintablePdf({
       mediaPath: `/_media/carousel/${deck.id}`,
-      template: deckCarouselTemplate,
+      template,
       content: carouselContent,
       title: carouselContent.title,
       themeMode: await this.getThemeMode(),
@@ -104,7 +104,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
 function buildCarouselContent(
   deck: DeckEntity,
   options: { brandLabel?: string | undefined } = {},
-): DeckCarouselTemplateData {
+): DeckCarouselTemplateInput {
   const { frontmatter, content } = parseMarkdown(deck.content);
   const title =
     typeof frontmatter["title"] === "string"

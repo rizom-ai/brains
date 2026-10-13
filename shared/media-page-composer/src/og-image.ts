@@ -4,7 +4,7 @@ import {
   type ViewportOptions,
 } from "@brains/media-renderer";
 import { captureMediaPage } from "./capture";
-import type { MediaPageTemplate } from "./types";
+import type { ViewTemplate } from "@brains/plugins";
 
 /** Standard Open Graph image dimensions. */
 const OG_VIEWPORT: ViewportOptions = { width: 1200, height: 630 };
@@ -19,7 +19,7 @@ export type ScreenshotPng = (
 export interface RenderOgImagePngOptions {
   /** Route the throwaway page is written under, e.g. `/_media/og/project/<id>`. */
   mediaPath: string;
-  template: MediaPageTemplate;
+  template: ViewTemplate;
   content: unknown;
   /** Used as the rendered page's title. */
   title: string;

@@ -14,8 +14,10 @@ import {
   type PreparedSiteBuild,
   type SiteImageLookup,
   type SiteImageMap,
+  withDefaultIcon,
 } from "@brains/site-engine";
 import { getErrorMessage } from "@brains/utils/error";
+import type { ProgressNotification } from "@brains/utils/progress";
 import { pLimit } from "@brains/utils/p-limit";
 import { z } from "@brains/utils/zod";
 import type {
@@ -44,6 +46,8 @@ export interface PrepareSiteBuildOptions {
   siteMetadata: SiteMetadata;
   publicDir: string;
   signal: AbortSignal;
+  /** Called as each route is prepared; a build job's deadline follows it. */
+  onProgress?: ((notification: ProgressNotification) => void) | undefined;
 }
 
 export interface PrepareSiteBuildResult {
@@ -83,21 +87,39 @@ export async function prepareSiteBuild(
     diagnostics.push(diagnostic);
   }
 
+  // Every brain is a light: a build that brings no icon gets the lantern.
+  const staticAssets = withDefaultIcon(
+    {
+      ...collectRouteAssets(options.routes, { getViewTemplate }),
+      ...options.buildOptions.staticAssets,
+    },
+    Object.keys(publicAssets),
+  );
   const limit = pLimit(4);
+  const total = options.routes.length;
+  let prepared = 0;
   const settledRouteResults = await Promise.allSettled(
     options.routes.map((route) =>
-      limit(() => {
+      limit(async () => {
         options.signal.throwIfAborted();
-        return prepareRoute({
+        const result = await prepareRoute({
           route,
           siteTitle: options.siteMetadata.title,
           publishedOnly,
           getViewTemplate,
+          staticAssets,
           pipelineContext: options.pipelineContext,
           imageBuildService: options.imageBuildService,
           siteUrl: options.siteMetadata.url,
           signal: options.signal,
         });
+        prepared++;
+        options.onProgress?.({
+          message: `Prepared ${prepared} of ${total} routes`,
+          progress: prepared,
+          total,
+        });
+        return result;
       }),
     ),
   );
@@ -118,10 +140,6 @@ export async function prepareSiteBuild(
     options.pipelineContext.profileService,
     options.pipelineContext.routeRegistry,
   );
-  const staticAssets = {
-    ...collectRouteAssets(options.routes, { getViewTemplate }),
-    ...options.buildOptions.staticAssets,
-  };
   const publicAssetPaths = new Set(Object.keys(publicAssets));
   for (const staticAssetPath of Object.keys(staticAssets)) {
     const path = staticAssetPath.startsWith("/")
@@ -165,6 +183,7 @@ interface PrepareRouteOptions {
   siteTitle: string;
   publishedOnly: boolean;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
+  staticAssets: Record<string, string>;
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup;
   siteUrl: string | undefined;
@@ -182,6 +201,9 @@ async function prepareRoute(
     options.signal.throwIfAborted();
     if (section.template === "footer") continue;
 
+    // Local libSQL answers queries synchronously, so resolving sections is one
+    // unbroken chain of microtasks; yield so requests are served between them.
+    await new Promise<void>((resolve) => setImmediate(resolve));
     const result = await prepareSection(options, section);
     if (result.section) sections.push(result.section);
     if (result.diagnostic) diagnostics.push(result.diagnostic);
@@ -202,9 +224,11 @@ async function prepareRoute(
           options.getViewTemplate(section.template)?.fullscreen === true,
       ),
       sections,
-      headScripts: collectRouteScripts(options.route, {
-        getViewTemplate: options.getViewTemplate,
-      }),
+      headScripts: collectRouteScripts(
+        options.route,
+        { getViewTemplate: options.getViewTemplate },
+        options.staticAssets,
+      ),
     },
     diagnostics,
   };

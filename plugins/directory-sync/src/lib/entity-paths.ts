@@ -1,13 +1,42 @@
-import type { BaseEntity } from "@brains/plugins";
+import { entityIdPathSchema, type BaseEntity } from "@brains/plugins";
+import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
 import { extname, join } from "path";
 import { readString } from "@brains/utils/record-fields";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";
 import { DOCUMENT_EXTENSIONS } from "./document-file-utils";
 import { toSyncRelativePath } from "./path-utils";
 
+/**
+ * Each contained type with the type it is contained in: book-section → book.
+ * A contained entity lives inside its container's folder.
+ */
+export type Containment = ReadonlyMap<string, string>;
+
+/** The containment the registry holds, read off each type's config. */
+export function containmentOf(registry: {
+  getEntityTypes(): string[];
+  getEntityTypeConfig(type: string): { containedIn?: string | undefined };
+}): Containment {
+  return new Map(
+    registry.getEntityTypes().flatMap((type) => {
+      const container = registry.getEntityTypeConfig(type).containedIn;
+      return container === undefined ? [] : [[type, container] as const];
+    }),
+  );
+}
+
+/** The type contained in a container, if any; the registry allows one. */
+function containedIn(
+  container: string,
+  containment: Containment,
+): string | undefined {
+  return [...containment].find(([, owner]) => owner === container)?.[0];
+}
+
 export function parseEntityPath(
   syncPath: string,
   filePath: string,
+  containment: Containment,
 ): { entityType: string; id: string } {
   const relativePath = toSyncRelativePath(syncPath, filePath);
   const pathParts = relativePath.split("/");
@@ -20,8 +49,13 @@ export function parseEntityPath(
     entityType = "note";
     idPathParts = pathParts;
   } else if (pathParts.length > 1 && pathParts[0]) {
-    entityType = pathParts[0];
     idPathParts = pathParts.slice(1);
+    // Inside a container's folder, a nested path is its contained type.
+    const contained =
+      idPathParts.length > 1
+        ? containedIn(pathParts[0], containment)
+        : undefined;
+    entityType = contained ?? pathParts[0];
   } else {
     entityType = "note";
     idPathParts = pathParts;
@@ -35,7 +69,7 @@ export function parseEntityPath(
     if (lastPart) {
       idPathParts[idPathParts.length - 1] = stripEntityExtension(lastPart);
     }
-    id = idPathParts.join(":");
+    id = encodeEntityIdPath([idPathParts[0] ?? "", ...idPathParts.slice(1)]);
   } else {
     id = stripEntityExtension(idPathParts[0] ?? "");
   }
@@ -47,34 +81,69 @@ export function buildEntityFilePath(
   syncPath: string,
   entityId: string,
   entityType: string,
-  extension: string = ".md",
+  extension: string,
+  containment: Containment,
 ): string {
-  const cleanParts = entityId.split(":").filter((part) => part.length > 0);
+  // A contained entity lives in its container's folder.
+  const folder = containment.get(entityType) ?? entityType;
+  // Empty components are omitted only for filesystem placement, not identity.
+  const cleanParts = decodeEntityIdPath(entityId).filter(
+    (part) => part.length > 0,
+  );
   const isRootNote = entityType === "note";
 
   if (cleanParts.length === 1) {
     return isRootNote
       ? join(syncPath, `${cleanParts[0]}${extension}`)
-      : join(syncPath, entityType, `${cleanParts[0]}${extension}`);
+      : join(syncPath, folder, `${cleanParts[0]}${extension}`);
   }
 
-  // Skip first part if it duplicates the entity type (e.g., "summary/summary/...")
-  let pathParts = cleanParts;
-  if (cleanParts[0] === entityType) {
-    pathParts = cleanParts.slice(1);
-  }
-
-  const filename = pathParts[pathParts.length - 1];
-  const directories = pathParts.slice(0, -1);
+  // Every segment is identity, including one equal to the entity type.
+  const filename = cleanParts[cleanParts.length - 1];
+  const directories = cleanParts.slice(0, -1);
 
   if (isRootNote) {
     return join(syncPath, ...directories, `${filename}${extension}`);
   }
 
-  return join(syncPath, entityType, ...directories, `${filename}${extension}`);
+  return join(syncPath, folder, ...directories, `${filename}${extension}`);
 }
 
-export function getEntityFileExtension(entity: BaseEntity): string {
+/** Pure placement admission. Historical paths remain available for diagnostics. */
+export function resolveEntityPlacement(
+  syncPath: string,
+  entityType: string,
+  entityId: string,
+  extension: string,
+  containment: Containment,
+): {
+  relativePath: string;
+  owner: { entityType: string; id: string };
+  writable: boolean;
+} {
+  const filePath = buildEntityFilePath(
+    syncPath,
+    entityId,
+    entityType,
+    extension,
+    containment,
+  );
+  const owner = parseEntityPath(syncPath, filePath, containment);
+  const segments = decodeEntityIdPath(entityId);
+  return {
+    relativePath: toSyncRelativePath(syncPath, filePath),
+    owner,
+    writable:
+      entityIdPathSchema.safeParse(segments).success &&
+      (entityType !== "note" || segments.length === 1) &&
+      owner.entityType === entityType &&
+      owner.id === entityId,
+  };
+}
+
+export function getEntityFileExtension(
+  entity: Pick<BaseEntity, "entityType" | "metadata" | "content">,
+): string {
   if (entity.entityType === "document") {
     return ".pdf";
   }

@@ -13,7 +13,7 @@ import {
   readLocalEnvValues,
   resolveLocalEnvValue,
   resolveLocalPath,
-} from "../lib/local-env";
+} from "@brains/deploy-support";
 import {
   BitwardenSecretsManagerClient,
   inferBitwardenProjectName,
@@ -23,10 +23,13 @@ import {
 import {
   logKeyGroup,
   logMissingSecrets,
-  pushSecretsToBackend,
-} from "../lib/push-secrets";
-import { normalizePushTarget, type PushTarget } from "../lib/push-target";
-import { type RunCommand } from "../lib/run-subprocess";
+  pushSecretsToGitHub,
+} from "@brains/deploy-support/push-secrets";
+import {
+  normalizePushTarget,
+  type PushTarget,
+} from "@brains/deploy-support/push-target";
+import { type RunCommand } from "@brains/deploy-support/run-subprocess";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface SecretsPushOptions {
@@ -167,7 +170,7 @@ export async function pushSecrets(
     };
   }
 
-  await pushSecretsToBackend(target, pushedKeys, {
+  await pushSecretsToGitHub(pushedKeys, {
     runCommand: options.runCommand,
     logger,
   });

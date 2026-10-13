@@ -63,18 +63,22 @@ export function findRunner(cwd: string): { path: string } | undefined {
 }
 
 /**
- * Determine runner type for a directory.
+ * Determine runner type for a directory. A process that carries the bundled
+ * definition boots it, inside the monorepo too, so a running brain is always
+ * one module graph, the one production runs; the source runner serves only a
+ * CLI run from source.
  */
 export function resolveRunnerType(
   cwd: string,
 ): "monorepo" | "builtin" | undefined {
-  const runner = findRunner(cwd);
-  if (runner) return "monorepo";
-
-  // Bundled mode — canonical definition registered in-process
   if (hasCanonicalDefinition()) return "builtin";
-
+  if (findRunner(cwd)) return "monorepo";
   return undefined;
+}
+
+/** The source runner, when this process runs from source in the monorepo. */
+export function sourceRunner(cwd: string): { path: string } | undefined {
+  return resolveRunnerType(cwd) === "monorepo" ? findRunner(cwd) : undefined;
 }
 
 export async function start(
@@ -106,7 +110,7 @@ export async function start(
     return runGitBrokerChild(cwd, config, dependencies);
   }
 
-  const runner = findRunner(cwd);
+  const runner = sourceRunner(cwd);
 
   if (runner) {
     const args = ["run", runner.path];

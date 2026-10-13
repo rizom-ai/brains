@@ -9,6 +9,7 @@ export {
 export type {
   EncodedEntityMarkdown,
   EntityDefinition,
+  EntityTypeClassification,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityOf,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
@@ -10,6 +10,8 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { MessageBus } from "@brains/messaging-service";
 import {
   type Daemon,
+  MessageInterfacePlugin,
+  type MessageInterfacePluginContext,
   type Plugin,
   type PluginCapabilities,
   type ServicePluginContext,
@@ -17,7 +19,9 @@ import {
   type Tool,
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
+import { internalFullScope } from "@brains/entity-service";
+import { BrainCharacterAdapter } from "@brains/identity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { DaemonRegistry } from "../src/daemon-registry";
@@ -105,6 +109,55 @@ function createInterfacePlugin(onRegister: () => void): Plugin {
   };
 }
 
+/** An interface that owns a channel, and also listens and serves. */
+class ChannelInterface extends MessageInterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
+  public registered = false;
+
+  public constructor() {
+    super(
+      "channel-interface",
+      { name: "@test/channel-interface", version: "1.0.0" },
+      {},
+      z.object({}),
+    );
+  }
+
+  protected override createDaemon(): Daemon {
+    return {
+      start: async (): Promise<void> => {},
+      stop: async (): Promise<void> => {},
+    };
+  }
+
+  protected override registerChannels(
+    context: MessageInterfacePluginContext,
+  ): void {
+    context.channels.registerDescriptor({
+      type: "test-channel",
+      displayName: "Test channel",
+      subjectLabel: "Handle",
+    });
+    context.channels.registerDeliveryProvider({
+      channelType: "test-channel",
+      isAvailable: async () => true,
+      send: async () => ({ status: "sent" }),
+    });
+  }
+
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+    this.registered = true;
+    context.messaging.subscribe("test:channel-ingress", async () => ({
+      success: true,
+    }));
+  }
+}
+
 function createTrackingWorker(onStart: () => void): IJobQueueWorker {
   return {
     start: async (): Promise<void> => {
@@ -159,9 +212,28 @@ describe("supervised runtime process roles", () => {
       { processRole: "web" },
     );
     shells.push(shell);
-
+    const order: string[] = [];
+    spyOn(
+      shell.getEntityService(),
+      "backfillMissingEmbeddings",
+    ).mockImplementation(async () => {
+      order.push("embeddings");
+      return { queued: 0, skipped: 0 };
+    });
+    const original = shell
+      .getEntityService()
+      .reprojectRegisteredGroupings.bind(shell.getEntityService());
+    spyOn(
+      shell.getEntityService(),
+      "reprojectRegisteredGroupings",
+    ).mockImplementation(async () => {
+      order.push("groupings");
+      await original();
+    });
     await shell.initialize();
 
+    expect(order).toEqual(["embeddings", "groupings"]);
+    expect(shell.getEntityService().areGroupingsReady()).toBe(true);
     expect(shell.isInitialized()).toBe(true);
     expect(workerStarted).toBe(false);
     expect(
@@ -223,8 +295,12 @@ describe("supervised runtime process roles", () => {
       { processRole: "worker" },
     );
     shells.push(shell);
-
+    const reproject = spyOn(
+      shell.getEntityService(),
+      "reprojectRegisteredGroupings",
+    );
     await shell.initialize();
+    expect(reproject).not.toHaveBeenCalled();
 
     const registrations = shell
       .getJobQueueService()
@@ -244,4 +320,149 @@ describe("supervised runtime process roles", () => {
     expect(executionPlugin.readyCalled).toBe(false);
     expect(workerStarted).toBe(true);
   });
+
+  it("loads identity in the worker without creating defaults the import may still bring", async () => {
+    const testDirectory = await createTestDirectory();
+    cleanups.push(testDirectory.cleanup);
+    await Promise.all([
+      migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDirectory.dir}/test-runtime-state.db`,
+      }),
+    ]);
+    const shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir),
+      {
+        logger: createSilentLogger("worker-identity-test"),
+        jobQueueWorker: createTrackingWorker(() => {}),
+      },
+      { processRole: "worker" },
+    );
+    shells.push(shell);
+    await shell.initialize();
+
+    const entityService = shell.getEntityService();
+    const readScope = internalFullScope("test reads the brain character");
+    expect(
+      await entityService.getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+        visibilityScope: readScope,
+      }),
+    ).toBeNull();
+
+    // The worker imports the content's own character while it runs.
+    await entityService.createEntity({
+      entity: {
+        id: "brain-character",
+        entityType: "brain-character",
+        metadata: {},
+        content: new BrainCharacterAdapter().createCharacterContent({
+          name: "Friedrich",
+          role: "Reader",
+          purpose: "Answer from the collected works",
+          values: ["fidelity"],
+        }),
+      },
+    });
+
+    await waitUntil(
+      () => shell.getIdentity().name === "Friedrich",
+      "the worker's identity to follow the imported character",
+    );
+  });
+
+  // A background job that sends on a channel runs in the worker, so the
+  // worker must know every channel's sender: an interface's channels, and
+  // nothing else of it.
+  it.each([
+    { name: "worker", processRole: "worker", fullyRegistered: false },
+    { name: "combined", processRole: undefined, fullyRegistered: true },
+  ] as const)(
+    "registers each interface's channels and senders: $name",
+    async ({ processRole, fullyRegistered }) => {
+      const directory = await createTestDirectory();
+      cleanups.push(directory.cleanup);
+      await Promise.all([
+        migrateEntities({ url: `file:${directory.dir}/test.db` }),
+        migrateJobQueue({ url: `file:${directory.dir}/test-jobs.db` }),
+        migrateConversations({ url: `file:${directory.dir}/test-conv.db` }),
+        migrateRuntimeState({
+          url: `file:${directory.dir}/test-runtime-state.db`,
+        }),
+      ]);
+      const logger = createSilentLogger();
+      const messageBus = MessageBus.createFresh(logger);
+      const daemonRegistry = DaemonRegistry.createFresh(logger);
+      const channelInterface = new ChannelInterface();
+      const shell = Shell.createFresh(
+        createTestShellConfig(directory.dir, { plugins: [channelInterface] }),
+        {
+          logger,
+          messageBus,
+          daemonRegistry,
+          jobQueueWorker: createTrackingWorker(() => {}),
+        },
+        processRole ? { processRole } : undefined,
+      );
+      shells.push(shell);
+      await shell.initialize({ mode: "register-only" });
+
+      const channels = shell.getChannelRegistry();
+      expect(channels.getDescriptor("test-channel")?.displayName).toBe(
+        "Test channel",
+      );
+      expect(
+        await channels.getDeliveryProvider("test-channel")?.send({
+          recipient: "someone",
+          subject: "Alert",
+          text: "A note arrived.",
+          idempotencyKey: "alert-1",
+          sensitivity: "normal",
+        }),
+      ).toEqual({ status: "sent" });
+      expect(channelInterface.registered).toBe(fullyRegistered);
+      expect(messageBus.getHandlerCount("test:channel-ingress")).toBe(
+        fullyRegistered ? 1 : 0,
+      );
+      expect(daemonRegistry.getAll().length > 0).toBe(fullyRegistered);
+    },
+  );
+
+  it.each([
+    { name: "combined", mode: undefined, expected: 1 },
+    { name: "registration only", mode: "register-only", expected: 0 },
+    { name: "startup check", mode: "startup-check", expected: 0 },
+  ] as const)(
+    "runs grouping initialization only in normal serving boots: $name",
+    async ({ mode, expected }) => {
+      const directory = await createTestDirectory();
+      cleanups.push(directory.cleanup);
+      await Promise.all([
+        migrateEntities({ url: `file:${directory.dir}/test.db` }),
+        migrateJobQueue({ url: `file:${directory.dir}/test-jobs.db` }),
+        migrateConversations({ url: `file:${directory.dir}/test-conv.db` }),
+        migrateRuntimeState({
+          url: `file:${directory.dir}/test-runtime-state.db`,
+        }),
+      ]);
+      const shell = Shell.createFresh(
+        createTestShellConfig(directory.dir, { plugins: [] }),
+        {
+          logger: createSilentLogger(),
+          jobQueueWorker: createTrackingWorker(() => {}),
+        },
+      );
+      shells.push(shell);
+      const reproject = spyOn(
+        shell.getEntityService(),
+        "reprojectRegisteredGroupings",
+      );
+      await shell.initialize(mode ? { mode } : undefined);
+      expect(reproject).toHaveBeenCalledTimes(expected);
+      expect(shell.getEntityService().areGroupingsReady()).toBe(expected === 1);
+    },
+  );
 });

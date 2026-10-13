@@ -67,6 +67,12 @@ export interface AtprotoProjectionBuildInput {
   client?: AtprotoPdsClientLike;
   topics?: string[];
   dryRun?: boolean;
+  /**
+   * The entity's page on this brain's site, when the site gives it one, so
+   * the record can name where it lives (`canonicalUrl`) and another brain
+   * that keeps the record can send a reader there.
+   */
+  pageUrl?: string;
 }
 
 export type AtprotoProjectedPostRecord = AtprotoBrainPostRecord;
@@ -88,6 +94,13 @@ export interface AtprotoProjection<
   collection: string;
   lexicon: AtprotoLexicon;
   validate?: boolean;
+  /**
+   * Whether a public entity is ready to be projected to the PDS (e.g. a post
+   * must be published, not a draft). Unpublishable entities are not upserted,
+   * and any previously projected record is deleted. Omitted means every public
+   * entity is publishable.
+   */
+  isPublishable?(entity: BaseEntity): boolean;
   buildRecord(input: AtprotoProjectionBuildInput): Promise<TRecord>;
   onPublished?(input: AtprotoProjectionPublishedInput<TRecord>): Promise<void>;
 }

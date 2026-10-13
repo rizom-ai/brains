@@ -11,6 +11,21 @@ export CONSOLE_CHROMIUM_PATH=/path/to/chromium
 bun run visual:console
 ```
 
+Use CI's pinned Chrome **142.0.7444.59** for baseline comparisons. On Linux hosts with different Fontconfig subpixel settings (for example NixOS), text rasterization can differ despite identical layouts and web fonts. Match the reviewed Linux RGB rendering for this test process only:
+
+```bash
+export FONTCONFIG_FILE="$PWD/test/visual/console/fontconfig-rgb.conf"
+bun run visual:console --surface-prefix=studio- --a11y
+```
+
+CI uses this same Fontconfig file. It keeps the host font discovery/configuration and overrides only `rgba`; it does not change application CSS, screenshot baselines, or comparison tolerances. Do not regenerate baselines to compensate for a local rasterization mismatch.
+
+The web fonts are pinned too. The harness serves the Google stylesheets console pages load, and every face they name, from `test/visual/console/fonts` instead of the network, and fails a page that would still fetch fonts from Google: different builds of a face served to different runs shifted glyphs by a subpixel. When a console page's fonts change, re-pin them, then review and regenerate the baselines:
+
+```bash
+bun scripts/vendor-console-visual-fonts.ts
+```
+
 Additional matched-state checks use disposable source fixtures through the production workspace providers (not handwritten operator views):
 
 ```bash

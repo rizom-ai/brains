@@ -10,7 +10,11 @@ import {
   resolveGitCredential,
   resolveGitRemoteUrl,
 } from "../git-options";
-import { BrokerStartupError, GitBrokerServer } from "./server";
+import {
+  BrokerStartupError,
+  GitBrokerServer,
+  gitBrokerSocketPath,
+} from "./server";
 
 /**
  * What the broker child process runs.
@@ -24,6 +28,12 @@ import { BrokerStartupError, GitBrokerServer } from "./server";
 export interface GitBrokerHostOptions {
   /** Handed down by the supervisor; every role connects to this path. */
   socketPath: string;
+  /**
+   * Instance-owned runtime directory holding the journal. Defaults to the
+   * socket's directory, which is right whenever the socket fits inside it;
+   * a supervisor that had to place the socket elsewhere must say so.
+   */
+  runtimeDir?: string | undefined;
   /** Instance root. Relative configuration paths resolve against it. */
   cwd: string;
   /** The Brain's data dir, with the shell default already applied. */
@@ -92,8 +102,19 @@ export async function startGitBrokerHost(
         }),
   };
 
+  // The broker binds the address its runtime dir derives. A handed socket
+  // that does not match would leave the owner and its clients on different
+  // addresses, which is two owners; refuse rather than bind the wrong one.
+  const runtimeDir = options.runtimeDir ?? dirname(options.socketPath);
+  const derivedSocketPath = gitBrokerSocketPath(runtimeDir);
+  if (derivedSocketPath !== options.socketPath) {
+    throw new BrokerStartupError(
+      `Git broker runtime dir ${runtimeDir} derives socket ${derivedSocketPath}, not the supervisor-assigned ${options.socketPath}`,
+    );
+  }
+
   return GitBrokerServer.start({
-    runtimeDir: dirname(options.socketPath),
+    runtimeDir,
     resolveCheckout: (path): CheckoutExecutorOptions | undefined =>
       path === checkoutPath ? checkout : undefined,
   });

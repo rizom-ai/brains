@@ -20,6 +20,7 @@ import type {
   UpdateConversationMetadataRequest,
 } from "./types";
 import {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_STARTED_CHANNEL,
 } from "./types";
@@ -310,6 +311,19 @@ export class ConversationService implements IConversationService {
         // SQL errors can contain bound transcript text. Never expose or log them.
         throw new Error("Guest conversation write unavailable");
       }
+      // Where the message is, never what it says; its position is its
+      // place in the conversation once written.
+      await this.messageBus.send({
+        type: CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+        payload: {
+          conversationId,
+          messageId,
+          role,
+          position: await this.countMessages(conversationId),
+        },
+        sender: "conversation-service",
+        broadcast: true,
+      });
       return;
     } else {
       await this.db.insert(messages).values(newMessage);

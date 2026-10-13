@@ -1,13 +1,19 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { enrichWithUrls } from "../../src/lib/content-enrichment";
+import {
+  collectAllImageIds,
+  enrichWithUrls,
+} from "../../src/lib/content-enrichment";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { EntityDisplayMap } from "../../src/config";
 import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { SiteImageLookup } from "@brains/site-engine";
-import { EntityUrlGenerator } from "@brains/site-composition";
+import {
+  createSiteImageRenderer,
+  type SiteImageLookup,
+} from "@brains/site-engine";
+import { markdownToHtml } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
 
 describe("SiteBuilder - URL Enrichment", () => {
@@ -38,12 +44,82 @@ describe("SiteBuilder - URL Enrichment", () => {
         services: createSiteBuilderServices(mockContext),
         entityDisplay: display,
       },
-      urlGenerator: EntityUrlGenerator.getInstance(),
     });
 
   beforeEach(() => {
     mockContext = createMockServicePluginContext({ logger });
-    EntityUrlGenerator.getInstance().configure(entityDisplay);
+  });
+
+  it("prepares markdown image references as well as cover/OG references, excluding code examples", async () => {
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "post",
+      "image",
+    ]);
+    spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
+      createTestEntity("post", {
+        content:
+          "---\ncoverImageId: cover\nogImageId: og\n---\n![Inline](entity://image/inline)\n![Duplicate](entity://image/cover)\n\n```md\n![Example](entity://image/not-rendered)\n```",
+      }),
+    ]);
+    expect(
+      (await collectAllImageIds(mockContext.entityService, logger)).sort(),
+    ).toEqual(["cover", "inline", "og"]);
+    expect(mockContext.entityService.listEntities).toHaveBeenCalledTimes(1);
+    expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
+  });
+
+  it("discovers full, collapsed and shortcut image references, not unused definitions or ordinary links", async () => {
+    const content = [
+      "![Full][PICTURE] ![Collapsed][] ![Shortcut]",
+      "![Duplicate][picture]",
+      "[Ordinary][link]",
+      "`![Code][code]`",
+      "```md\n![Example][fenced]\n```",
+      '<img src="entity://image/raw-html">',
+      '[picture]: <entity://image/full> "Title"',
+      "[picture]: entity://image/ignored-duplicate",
+      "[collapsed]: entity://image/collapsed",
+      "[shortcut]: entity://image/shortcut",
+      "[link]: entity://image/link-only",
+      "[unused]: entity://image/unused",
+      "[code]: entity://image/code-only",
+      "[fenced]: entity://image/fenced-only",
+    ].join("\n\n");
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "post",
+    ]);
+    spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
+      createTestEntity("post", { content }),
+    ]);
+    expect(
+      (await collectAllImageIds(mockContext.entityService, logger)).sort(),
+    ).toEqual(["collapsed", "full", "shortcut"]);
+    expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
+  });
+
+  it("passes discovered reference images to the existing prepared-image renderer without changing durable markdown", async () => {
+    const content =
+      '![Diagram][picture]\n\n[picture]: entity://image/diagram "Caption"\n';
+    const entity = createTestEntity("post", { content });
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "post",
+    ]);
+    spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
+      entity,
+    ]);
+    const ids = await collectAllImageIds(mockContext.entityService, logger);
+    // Substitute prepared metadata, not a controller-side image loader.
+    const prepared: Parameters<typeof createSiteImageRenderer>[0] = {};
+    for (const id of ids)
+      prepared[id] = { src: `/images/${id}.png`, width: 640, height: 480 };
+    const html = markdownToHtml(content, {
+      imageRenderer: createSiteImageRenderer(prepared),
+    });
+    expect(html).toContain('src="/images/diagram.png"');
+    expect(html).toContain('alt="Diagram"');
+    expect(html).toContain('title="Caption"');
+    expect(entity.content).toBe(content);
+    expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
   });
 
   describe("enrichWithUrls", () => {
@@ -246,7 +322,6 @@ describe("SiteBuilder - URL Enrichment", () => {
             services: createSiteBuilderServices(mockContext),
             entityDisplay: undefined,
           },
-          urlGenerator: EntityUrlGenerator.getInstance(),
         }),
       );
 
@@ -349,7 +424,6 @@ ogImageId: og-image
             },
             imageBuildService,
             siteUrl: "https://example.com",
-            urlGenerator: EntityUrlGenerator.getInstance(),
           }),
         );
 
@@ -392,7 +466,6 @@ coverImageId: cover-image
           },
           imageBuildService,
           siteUrl: "https://example.com/",
-          urlGenerator: EntityUrlGenerator.getInstance(),
         }),
       );
 

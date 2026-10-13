@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="en" data-climate="instrument">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio Mobile Navigation — Design Pass</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Palette sampled from the committed console captures. */
+      :root {
+        --display: "Fraunces", Georgia, "Times New Roman", serif;
+        --ui: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --deck: #24201b;
+        --deck-deep: #151310;
+        --deck-ink: #f6efe3;
+        --deck-dim: rgba(246, 239, 227, 0.58);
+        --deck-rule: rgba(246, 239, 227, 0.15);
+        --touch: 44px;
+      }
+
+      [data-climate="instrument"] {
+        --bg: #15122c;
+        --frame: #15122c;
+        --card: #181433;
+        --card-soft: #1c1739;
+        --ink: #ffffff;
+        --dim: rgba(255, 255, 255, 0.66);
+        --muted: rgba(255, 255, 255, 0.45);
+        --faint: rgba(255, 255, 255, 0.24);
+        --rule: rgba(255, 255, 255, 0.09);
+        --rule-strong: rgba(255, 255, 255, 0.16);
+        --accent: #fe8b3e;
+        --accent-soft: rgba(254, 139, 62, 0.14);
+        --accent-line: rgba(254, 139, 62, 0.48);
+        --on-accent: #1a1024;
+        color-scheme: dark;
+      }
+
+      [data-climate="paper"] {
+        --bg: #faf4e6;
+        --frame: #faf4e6;
+        --card: #f6efdd;
+        --card-soft: #f0e8d4;
+        --ink: #393446;
+        --dim: rgba(57, 52, 70, 0.72);
+        --muted: rgba(57, 52, 70, 0.5);
+        --faint: rgba(57, 52, 70, 0.26);
+        --rule: rgba(57, 52, 70, 0.12);
+        --rule-strong: rgba(57, 52, 70, 0.2);
+        --accent: #b8420d;
+        --accent-soft: rgba(184, 66, 13, 0.1);
+        --accent-line: rgba(184, 66, 13, 0.42);
+        --on-accent: #f9f3e5;
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        min-width: 320px;
+        min-height: 100%;
+        background: var(--deck-deep);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--deck-ink);
+        font-family: var(--ui);
+        background:
+          radial-gradient(
+            circle at 17% 0%,
+            rgba(232, 93, 41, 0.13),
+            transparent 32rem
+          ),
+          linear-gradient(145deg, var(--deck), var(--deck-deep) 68%);
+      }
+
+      button {
+        color: inherit;
+        font: inherit;
+      }
+
+      /* ---- page scaffolding ------------------------------------------- */
+
+      .presentation {
+        width: min(1400px, 100%);
+        margin: 0 auto;
+        padding: 54px 32px 96px;
+      }
+
+      .presentation-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 28px;
+        padding-bottom: 26px;
+        border-bottom: 1px solid var(--deck-rule);
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: rgba(255, 168, 112, 0.9);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .presentation-head h1 {
+        margin: 0;
+        max-width: 20ch;
+        font-family: var(--display);
+        font-size: clamp(30px, 3.2vw, 42px);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.08;
+      }
+
+      .lede {
+        margin: 16px 0 0;
+        max-width: 58ch;
+        color: var(--deck-dim);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+        justify-items: end;
+      }
+
+      .control-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 5px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.22);
+      }
+
+      .control-group button {
+        min-height: 32px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+
+      .control-group button[aria-pressed="true"] {
+        background: rgba(246, 239, 227, 0.1);
+        color: var(--deck-ink);
+      }
+
+      .stage-wrap {
+        margin-top: 34px;
+      }
+
+      .stage-label {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 0 16px;
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .stage-label b {
+        color: var(--deck-ink);
+        font-weight: 500;
+      }
+
+      .stage {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 28px;
+        padding: 26px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.26);
+      }
+
+      .phone-wrap {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+      }
+
+      .phone-caption {
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      /* ---- the phone ---------------------------------------------------- */
+
+      .phone {
+        width: 390px;
+        height: 844px;
+        display: grid;
+        grid-template-rows: 56px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--rule-strong);
+        border-radius: 26px;
+        background: var(--bg);
+        color: var(--ink);
+        box-shadow: 0 40px 110px rgba(0, 0, 0, 0.5);
+      }
+
+      .chrome {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--rule);
+        background: var(--frame);
+      }
+
+      .browse {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .chrome-location {
+        color: var(--dim);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: center;
+      }
+
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 50%;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .sheet {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        background: var(--frame);
+      }
+
+      .sheet-scroll {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 16px 24px;
+      }
+
+      /* ---- today ------------------------------------------------------- */
+
+      .today-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 20px 16px 16px;
+      }
+
+      .today-head h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 25px;
+        font-weight: 500;
+      }
+
+      .today-close {
+        min-height: 44px;
+        padding: 0 6px;
+        border: 0;
+        background: transparent;
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 650;
+      }
+
+      .today-group {
+        margin-bottom: 20px;
+      }
+
+      .today-summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        margin-bottom: 7px;
+        border-bottom: 1px solid var(--rule-strong);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 650;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .today-summary .mark {
+        margin-left: auto;
+        color: var(--accent);
+        font-size: 12px;
+      }
+
+      .today-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: var(--touch);
+        padding: 0 11px;
+        border: 0;
+        border-bottom: 1px solid var(--rule);
+        background: transparent;
+        color: var(--dim);
+        font-size: 16px;
+        text-align: left;
+      }
+
+      .today-link .count {
+        margin-left: auto;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .today-link[aria-current="page"] {
+        border-bottom-color: transparent;
+        border-radius: 7px;
+        background: var(--accent-soft);
+        color: var(--ink);
+        font-weight: 550;
+      }
+
+      /* ---- proposed ----------------------------------------------------- */
+
+      /* The chrome line just above already says where you are, so the header
+         is about going: the filter, and the way out. */
+      .sheet-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .sheet-close {
+        display: grid;
+        place-items: center;
+        width: var(--touch);
+        height: var(--touch);
+        border: 1px solid var(--rule-strong);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--dim);
+        font-size: 15px;
+        cursor: pointer;
+      }
+
+      .filter {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .filter svg {
+        position: absolute;
+        left: 11px;
+        width: 14px;
+        height: 14px;
+        color: var(--muted);
+        pointer-events: none;
+      }
+
+      .filter input {
+        width: 100%;
+        min-height: var(--touch);
+        padding: 8px 12px 8px 33px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 8px;
+        background: var(--card);
+        color: var(--ink);
+        font-family: var(--ui);
+        font-size: 16px;
+      }
+
+      .filter input::placeholder {
+        color: var(--muted);
+      }
+
+      .filter input.has-value {
+        padding-right: 44px;
+      }
+
+      .filter-clear {
+        position: absolute;
+        right: 4px;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .filter-clear:hover {
+        background: var(--rule);
+        color: var(--ink);
+      }
+
+      /* one rhythm for every destination */
+
+      .block {
+        margin-top: 16px;
+      }
+
+      .block + .block {
+        padding-top: 12px;
+        border-top: 1px solid var(--rule);
+      }
+
+      .group-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: var(--touch);
+        padding: 0 10px 0 8px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--dim);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .group-head:hover {
+        background: var(--card);
+      }
+
+      .group-head .chev {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        color: var(--muted);
+        font-size: 10px;
+        transition: transform 120ms ease;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .group-head .chev {
+          transition: none;
+        }
+      }
+
+      /* Keyboard focus is visible, the way the product draws it. */
+      .dest:focus-visible,
+      .group-head:focus-visible,
+      .sheet-close:focus-visible,
+      .filter-clear:focus-visible,
+      .filter input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+
+      .group-head[aria-expanded="false"] .chev {
+        transform: rotate(-90deg);
+      }
+
+      .group-head .name {
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      .group-head .tally {
+        margin-left: auto;
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .group-head .resting {
+        margin-left: auto;
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .dest {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: var(--touch);
+        padding: 0 10px 0 36px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--dim);
+        font-size: 16px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .dest.flush {
+        padding-left: 8px;
+      }
+
+      .dest:hover {
+        background: var(--card);
+      }
+
+      .dest[aria-current="page"] {
+        background: var(--accent-soft);
+        color: var(--ink);
+        font-weight: 550;
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+
+      /* Two meanings, two treatments: a plain tally, or attention. */
+      .dest .tally {
+        margin-left: auto;
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .dest .attention {
+        margin-left: auto;
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .empty-filter {
+        padding: 24px 8px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      /* ---- notes -------------------------------------------------------- */
+
+      .notes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 18px;
+        margin-top: 44px;
+      }
+
+      .note-card {
+        padding: 22px 24px 24px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.24);
+      }
+
+      .note-card h3 {
+        margin: 0 0 10px;
+        font-family: var(--display);
+        font-size: 19px;
+        font-weight: 500;
+      }
+
+      .note-card p {
+        margin: 0 0 10px;
+        color: var(--deck-dim);
+        font-size: 13.5px;
+        line-height: 1.62;
+      }
+
+      .note-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .note-card code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(246, 239, 227, 0.09);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+
+      @media (max-width: 900px) {
+        .presentation {
+          padding: 34px 16px 64px;
+        }
+
+        .stage {
+          padding: 12px;
+        }
+
+        .controls {
+          justify-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="presentation">
+      <header class="presentation-head">
+        <div>
+          <p class="eyebrow">Studio · mobile navigation</p>
+          <h1>Browse should answer where you are, then where you can go.</h1>
+          <p class="lede">
+            The sheet keeps its shape — single destinations above independently
+            collapsible groups — and fixes what that shape currently costs: a
+            header that spends the display face naming the sheet, a single
+            destination that reads as the tail of the group above it, a control
+            that reads as a caption, and half a screen of nothing.
+          </p>
+        </div>
+        <div class="controls" aria-label="Mockup controls">
+          <div class="control-group" data-control="state">
+            <button data-value="compare" aria-pressed="true">Compare</button>
+            <button data-value="resting" aria-pressed="false">Resting</button>
+            <button data-value="filtered" aria-pressed="false">Filtered</button>
+            <button data-value="collapsed" aria-pressed="false">
+              Collapsed
+            </button>
+          </div>
+          <div class="control-group" data-control="climate">
+            <button data-value="instrument" aria-pressed="true">
+              Instrument
+            </button>
+            <button data-value="paper" aria-pressed="false">Paper</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="stage-wrap">
+        <p class="stage-label">
+          <b id="stateLabel">Today and proposed</b>
+          <span id="stateNote"></span>
+        </p>
+        <div class="stage">
+          <div class="phone-wrap" id="todayWrap">
+            <div class="phone">
+              <header class="chrome">
+                <span class="browse"
+                  ><span aria-hidden="true">≡</span> Browse</span
+                >
+                <span class="chrome-location">Library · Field notes</span>
+                <span class="avatar">MR</span>
+              </header>
+              <div class="sheet">
+                <div class="today-head">
+                  <h2>Browse Studio</h2>
+                  <button class="today-close" type="button">Close</button>
+                </div>
+                <div class="sheet-scroll">
+                  <section class="today-group">
+                    <button class="today-link" type="button">
+                      Overview <span class="count">2</span>
+                    </button>
+                  </section>
+                  <section class="today-group">
+                    <button class="today-link" type="button">Chat</button>
+                  </section>
+                  <section class="today-group">
+                    <div class="today-summary">
+                      Library <span class="mark" aria-hidden="true">−</span>
+                    </div>
+                    <button
+                      class="today-link"
+                      type="button"
+                      aria-current="page"
+                    >
+                      Field notes <span class="count">54</span>
+                    </button>
+                    <button class="today-link" type="button">
+                      Documentation <span class="count">7</span>
+                    </button>
+                  </section>
+                  <section class="today-group">
+                    <div class="today-summary">
+                      Work <span class="mark" aria-hidden="true">+</span>
+                    </div>
+                  </section>
+                  <section class="today-group">
+                    <button class="today-link" type="button">
+                      Admin <span class="count">1</span>
+                    </button>
+                  </section>
+                  <section class="today-group">
+                    <div class="today-summary">
+                      System <span class="mark" aria-hidden="true">+</span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+            <p class="phone-caption">Today</p>
+          </div>
+
+          <div class="phone-wrap" id="proposedWrap">
+            <div class="phone">
+              <header class="chrome">
+                <span class="browse"
+                  ><span aria-hidden="true">≡</span> Browse</span
+                >
+                <span class="chrome-location">Library · Field notes</span>
+                <span class="avatar">MR</span>
+              </header>
+              <div class="sheet">
+                <div>
+                  <div class="sheet-head">
+                    <div class="filter">
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <circle
+                          cx="6.8"
+                          cy="6.8"
+                          r="4.4"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                        />
+                        <line
+                          x1="10.2"
+                          y1="10.2"
+                          x2="14"
+                          y2="14"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                      <input
+                        id="filterInput"
+                        type="search"
+                        aria-label="Filter destinations"
+                        placeholder="Filter destinations"
+                      />
+                      <button
+                        class="filter-clear"
+                        id="filterClear"
+                        type="button"
+                        aria-label="Clear filter"
+                        hidden
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <button
+                      class="sheet-close"
+                      type="button"
+                      aria-label="Close browse"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <div class="sheet-scroll">
+                  <div id="destinations"></div>
+                  <p class="empty-filter" id="emptyFilter" hidden></p>
+                </div>
+              </div>
+            </div>
+            <p class="phone-caption">Proposed</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes" aria-label="Design notes">
+        <article class="note-card">
+          <h3>The header is for going, not for naming</h3>
+          <p>
+            <b>Browse Studio</b> spends the display face saying what the screen
+            already is, and the chrome line 25px above it already names where
+            you are. The header now holds the one thing you came for — a filter
+            over every destination — and the way out.
+          </p>
+          <p>
+            <b>Close</b> was accent-coloured mono text, the loudest element on
+            the screen. It becomes a quiet 44px ✕, matching the Conversations
+            sheet, because leaving is not the thing you came here to do.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>Single destinations come before the toggles</h3>
+          <p>
+            Today the order is Overview, Chat, <code>LIBRARY</code>,
+            <code>WORK</code>, Admin, <code>SYSTEM</code> — so <b>Admin</b>, a
+            direct destination, sits directly beneath a collapsed
+            <code>WORK</code> and reads as its only child.
+          </p>
+          <p>
+            Every single destination sits above the toggles, in one block
+            separated by a rule. A lone row wedged between two group headers
+            reads as the tail of the group above it, whichever slot it holds, so
+            position alone cannot carry the distinction.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>A group header looks like a control</h3>
+          <p>
+            The header is an 8px muted uppercase caption with a 10px
+            <code>+</code> at the far edge, yet it is the primary control of the
+            sheet. Tracked capitals are the product’s caption grammar — right
+            for the desktop leaf labels nobody taps, wrong for a control. It
+            becomes a full-width 44px row set in sentence case like the rows it
+            opens, chevron leading.
+          </p>
+          <p>
+            Groups rest open. Collapsing is explicit, and a collapsed group
+            shows the destination you are in so the trail survives the fold.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>One slot, two meanings, two treatments</h3>
+          <p>
+            <b>Overview 2</b> and <b>Admin 1</b> are attention counts;
+            <b>Field notes 54</b> and <b>Documentation 7</b> are item tallies.
+            Today they share a position and a type treatment.
+          </p>
+          <p>
+            Attention is set in the accent; a tally stays in the faint tone.
+            Same slot, but the two no longer read alike — and no filled pill
+            competes with the current-destination mark.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>The empty half earns its keep</h3>
+          <p>
+            With three of four groups folded, content ends around 600px of an
+            844px screen and you still cannot see Work or System without two
+            taps.
+          </p>
+          <p>
+            Groups rest open, so the sheet fills with what it is for. The filter
+            narrows destinations as you type — the phone equivalent of ⌘K, which
+            the phone chrome does not carry — and a folded group still names the
+            destination you are in, so the trail survives the fold.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>What this keeps</h3>
+          <p>
+            The decided grammar is unchanged: Browse replaces both rail levels
+            at phone width, direct destinations sit above independently
+            collapsible groups, there is no second dock, and Account stays with
+            the profile menu rather than gaining an entry here. This is the same
+            sheet with its hierarchy made visible.
+          </p>
+          <p>
+            Entering a destination still closes the sheet and never discards a
+            draft, and admitted workspace attention counts stay available.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const DESTINATIONS = [
+        {
+          block: "direct",
+          items: [
+            { label: "Overview", attention: 2 },
+            { label: "Chat" },
+            { label: "Admin", attention: 1 },
+          ],
+        },
+        {
+          block: "group",
+          name: "Library",
+          open: true,
+          items: [
+            { label: "Field notes", tally: 54, current: true },
+            { label: "Documentation", tally: 7 },
+          ],
+        },
+        {
+          block: "group",
+          name: "Work",
+          open: true,
+          items: [
+            { label: "Inbox", attention: 3 },
+            { label: "Publishing" },
+            { label: "Site" },
+            { label: "Content sync" },
+          ],
+        },
+        {
+          block: "group",
+          name: "System",
+          open: true,
+          items: [
+            { label: "Anchor Profile" },
+            { label: "Brain Character" },
+            { label: "Style Guide" },
+            { label: "Prompts", tally: 18 },
+            { label: "Skills", tally: 3 },
+            { label: "Agents", tally: 15 },
+            { label: "Site settings" },
+          ],
+        },
+      ];
+
+      const collapsed = new Set();
+      let filter = "";
+
+      function marker(item) {
+        if (item.attention)
+          return `<span class="attention">${item.attention}</span>`;
+        if (item.tally) return `<span class="tally">${item.tally}</span>`;
+        return "";
+      }
+
+      function destination(item, flush) {
+        return `<button class="dest${flush ? " flush" : ""}" type="button"${
+          item.current ? ' aria-current="page"' : ""
+        }>${item.label}${marker(item)}</button>`;
+      }
+
+      function render() {
+        const query = filter.trim().toLowerCase();
+        const matches = (item) =>
+          query === "" || item.label.toLowerCase().includes(query);
+        const html = DESTINATIONS.map((block) => {
+          const items = block.items.filter(matches);
+          if (block.block === "direct") {
+            if (items.length === 0) return "";
+            return `<div class="block">${items
+              .map((item) => destination(item, true))
+              .join("")}</div>`;
+          }
+          // A filter opens every group that still has something in it.
+          const open = query !== "" || !collapsed.has(block.name);
+          if (items.length === 0) return "";
+          // An open group needs no trailing number — the items are right
+          // there — and a bare count beside an item tally would restate the
+          // ambiguity this pass removes. A folded group names where you are.
+          const resting = block.items.find((item) => item.current);
+          const trailing =
+            !open && resting
+              ? `<span class="resting">${resting.label}</span>`
+              : "";
+          return `<div class="block">
+            <button class="group-head" type="button" aria-expanded="${open}" data-group="${block.name}">
+              <span class="chev" aria-hidden="true">▾</span>
+              <span class="name">${block.name}</span>
+              ${trailing}
+            </button>
+            ${open ? items.map((item) => destination(item, false)).join("") : ""}
+          </div>`;
+        }).join("");
+        document.getElementById("destinations").innerHTML = html;
+        const input = document.getElementById("filterInput");
+        input.classList.toggle("has-value", filter.length > 0);
+        document.getElementById("filterClear").hidden = filter.length === 0;
+        const empty = document.getElementById("emptyFilter");
+        empty.hidden = html !== "";
+        if (html === "")
+          empty.textContent = `Nothing matches “${filter.trim()}”. Clear the filter to see every destination.`;
+        document.querySelectorAll("[data-group]").forEach((button) =>
+          button.addEventListener("click", () => {
+            const name = button.dataset.group;
+            if (collapsed.has(name)) collapsed.delete(name);
+            else collapsed.add(name);
+            render();
+          }),
+        );
+      }
+
+      const STATES = {
+        compare: {
+          label: "Today and proposed",
+          note: "same sheet, same grammar",
+          both: true,
+        },
+        resting: {
+          label: "Resting",
+          note: "groups open · one rhythm · attention against tallies",
+        },
+        filtered: {
+          label: "Filtered",
+          note: "the phone equivalent of ⌘K",
+          filter: "s",
+        },
+        collapsed: {
+          label: "Library collapsed",
+          note: "a folded group still names where you are",
+          collapse: ["Library"],
+        },
+      };
+
+      function setState(name) {
+        const state = STATES[name] ?? STATES.compare;
+        document.getElementById("stateLabel").textContent = state.label;
+        document.getElementById("stateNote").textContent = state.note;
+        document.getElementById("todayWrap").hidden = state.both !== true;
+        collapsed.clear();
+        (state.collapse ?? []).forEach((group) => collapsed.add(group));
+        filter = state.filter ?? "";
+        document.getElementById("filterInput").value = filter;
+        render();
+        document.querySelector("#proposedWrap .sheet-scroll").scrollTop = 0;
+      }
+
+      document
+        .getElementById("filterInput")
+        .addEventListener("input", (event) => {
+          filter = event.target.value;
+          render();
+        });
+      document.getElementById("filterClear").addEventListener("click", () => {
+        filter = "";
+        document.getElementById("filterInput").value = "";
+        render();
+        document.getElementById("filterInput").focus();
+      });
+
+      document.querySelectorAll(".control-group").forEach((group) => {
+        group.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-value]");
+          if (!button) return;
+          group
+            .querySelectorAll("button")
+            .forEach((candidate) =>
+              candidate.setAttribute(
+                "aria-pressed",
+                String(candidate === button),
+              ),
+            );
+          if (group.dataset.control === "state") setState(button.dataset.value);
+          if (group.dataset.control === "climate")
+            document.documentElement.dataset.climate = button.dataset.value;
+        });
+      });
+
+      // Deep-linkable as #state/climate, e.g. #filtered/paper.
+      function applyHash() {
+        const parts = location.hash.replace("#", "").split("/").filter(Boolean);
+        const name = parts.find((part) => part in STATES) ?? "compare";
+        const climate = parts.includes("paper") ? "paper" : "instrument";
+        document.documentElement.dataset.climate = climate;
+        const select = (control, value) =>
+          document
+            .querySelectorAll(`[data-control="${control}"] button`)
+            .forEach((button) =>
+              button.setAttribute(
+                "aria-pressed",
+                String(button.dataset.value === value),
+              ),
+            );
+        select("state", name);
+        select("climate", climate);
+        setState(name);
+      }
+
+      window.addEventListener("hashchange", applyHash);
+      applyHash();
+    </script>
+  </body>
+</html>

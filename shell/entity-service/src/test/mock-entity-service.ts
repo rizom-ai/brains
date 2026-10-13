@@ -4,7 +4,13 @@ import { createTestEntity } from "./fixtures";
 import type {
   BaseEntity,
   EntityMutationResult,
+  EntityMutationReceipt,
   EntityWriteSnapshot,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
+  EntityGroupingCatalog,
+  EntityGroupingUsage,
+  EntityGroupingMembers,
   IEntityService,
   SearchResult,
 } from "../index";
@@ -18,7 +24,15 @@ export interface MockEntityServiceReturns {
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
+  purgeEntityType?: number;
+  foldEntity?: EntityMutationResult;
+  getEntityMutationReceipt?: EntityMutationReceipt | null;
+  applyEntityMutationOnce?: EntityMutationReceipt;
   listEntities?: BaseEntity[];
+  queryEntityHierarchy?: EntityHierarchyPage;
+  queryGroupingCatalog?: EntityGroupingCatalog;
+  queryGroupingMembers?: EntityGroupingMembers;
+  queryGroupingUsage?: EntityGroupingUsage;
   search?: SearchResult[];
   countEntities?: number;
 }
@@ -123,13 +137,45 @@ export function createMockEntityService(
     Promise.resolve(returns.search ?? []),
   );
 
-  return {
+  const service: IEntityService = {
+    getEntityMutationReceipt: mock(
+      async () => returns.getEntityMutationReceipt ?? null,
+    ),
+    applyEntityMutationOnce: mock(async () => {
+      if (!returns.applyEntityMutationOnce)
+        throw new Error("Configure the mutation receipt result on this stub");
+      return returns.applyEntityMutationOnce;
+    }),
     getEntityWriteSnapshot: mock(
       async () => returns.getEntityWriteSnapshot ?? null,
     ),
+    areGroupingsReady: mock(() => true),
+    ensureGroupingsReady: mock(async () => service.areGroupingsReady()),
+    reprojectRegisteredGroupings: mock(async () => {}),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
+    queryEntityHierarchy: mock(
+      async (
+        request: QueryEntityHierarchyRequest,
+      ): Promise<EntityHierarchyPage> =>
+        returns.queryEntityHierarchy ?? {
+          prefix: request.prefix ? [...request.prefix] : null,
+          folders: [],
+          entities: [],
+          offset: request.offset ?? 0,
+          totalEntities: 0,
+        },
+    ),
+    queryGroupingCatalog: mock(
+      async () => returns.queryGroupingCatalog ?? { values: [], total: 0 },
+    ),
+    queryGroupingMembers: mock(
+      async () => returns.queryGroupingMembers ?? { entities: [], total: 0 },
+    ),
+    queryGroupingUsage: mock(
+      async () => returns.queryGroupingUsage ?? { entries: 0, values: [] },
+    ),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
     // The real mutations run beforeWrite inside the write transaction, so a
@@ -146,12 +192,18 @@ export function createMockEntityService(
       return mutationResult(returns.updateEntity);
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
+    purgeEntityType: mock(() => Promise.resolve(returns.purgeEntityType ?? 0)),
+    foldEntity: mock(async (request) => {
+      await request.options?.beforeWrite?.(request.entity);
+      return mutationResult(returns.foldEntity);
+    }),
     upsertEntity: mock(() =>
       Promise.resolve({ ...mutationResult(undefined), created: false }),
     ),
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
     isProjectionOwnedEntity: mock(() => Promise.resolve(false)),
+    releaseProjectionOwnership: mock(() => Promise.resolve()),
     listPendingEntityExports: mock(() => Promise.resolve([])),
     hasPendingEntityExports: mock(() => Promise.resolve(false)),
     acknowledgeEntityExports: mock(() => Promise.resolve(0)),
@@ -167,6 +219,7 @@ export function createMockEntityService(
     countEmbeddings: mock(() => Promise.resolve(0)),
     storeEmbedding: mock(() => Promise.resolve()),
     searchWithDistances: mock(() => Promise.resolve([])),
+    nearestToEntity: mock(() => Promise.resolve([])),
     projectSemanticSpace: mock(() =>
       Promise.resolve({
         origin: { kind: "centroid" as const },
@@ -226,4 +279,5 @@ export function createMockEntityService(
     },
     initialize: mock(() => Promise.resolve()),
   } satisfies IEntityService;
+  return service;
 }

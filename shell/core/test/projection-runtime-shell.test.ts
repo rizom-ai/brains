@@ -232,7 +232,7 @@ describe("Shell projection runtime lifecycle", () => {
     if (!reporter) throw new Error("Failed to create progress reporter");
     const progressMonitor: IJobProgressMonitor = {
       start: () => {},
-      stop: () => {},
+      stop: async () => {},
       createProgressReporter: () => reporter,
       emitJobCompletion: async () => {},
       emitJobFailure: async () => {},

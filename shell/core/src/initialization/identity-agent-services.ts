@@ -3,16 +3,17 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
-  createOpenAiGuestProfile,
-  openAiGuestEmbeddingModel,
-  openAiGuestEmbeddingDimensions,
+  openAiGuestPricing,
   type ChatAttachment,
+  type EmbeddingUsageMeter,
   type ChatAttachmentSource,
   type IAgentService,
   type IAIService,
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  GUEST_ASKED_BEFORE_CHANNEL,
+  firstAskedBeforeHit,
   ENTITY_CHANNELS,
   parseAgentContextItems,
   type AgentContextRequest,
@@ -29,15 +30,18 @@ import {
   CanonicalIdentityService,
 } from "@brains/identity-service";
 import type { IMCPService } from "@brains/mcp-service";
-import type {
-  ResolvedRuntimeUpload,
-  RuntimeUploadRegistry,
+import {
+  SYSTEM_CHANNELS,
+  type ResolvedRuntimeUpload,
+  type RuntimeUploadRegistry,
 } from "@brains/plugins";
 import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
 import { getErrorMessage } from "@brains/utils/error";
+import { EntityUrlGenerator } from "@brains/site-composition";
+import { createGuestAnswerSources } from "./guest-answer-sources";
 
 export interface IdentityAndAgentServices {
   identityService: BrainCharacterService;
@@ -50,6 +54,8 @@ export interface IdentityAndAgentServiceOptions {
   config: ShellConfig;
   entityService: IEntityService;
   embeddingService: IEmbeddingService;
+  /** Where the embedding provider reports usage; guest turns are measured. */
+  embeddingUsage?: EmbeddingUsageMeter;
   entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
@@ -94,6 +100,34 @@ function subscribeToEntityCacheInvalidation(
         return { success: true };
       },
     ),
+  );
+}
+
+/**
+ * Refresh an identity cache on its entity's lifecycle events, then broadcast
+ * identityChanged. Consumers react to the signal rather than to the entity
+ * events, so they never read the identity before its cache holds it.
+ */
+export function subscribeToIdentityRefresh(
+  messageBus: IMessageBus,
+  entityType: string,
+  refreshCache: () => Promise<void>,
+  logger: Logger,
+): (() => void)[] {
+  return subscribeToEntityCacheInvalidation(
+    messageBus,
+    entityType,
+    entityType,
+    async () => {
+      await refreshCache();
+      await messageBus.send({
+        type: SYSTEM_CHANNELS.identityChanged,
+        payload: { entityType },
+        sender: "shell",
+        broadcast: true,
+      });
+    },
+    logger,
   );
 }
 
@@ -181,17 +215,15 @@ export function initializeIdentityAndAgentServices(
     config.identity,
   );
 
-  if (!executionOnly) {
-    disposables.push(
-      ...subscribeToEntityCacheInvalidation(
-        messageBus,
-        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-        () => identityService.refreshCache(),
-        logger,
-      ),
-    );
-  }
+  // Both roles follow the stored character: the worker imports it at startup.
+  disposables.push(
+    ...subscribeToIdentityRefresh(
+      messageBus,
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      () => identityService.refreshCache(),
+      logger,
+    ),
+  );
 
   const profileService = AnchorProfileService.createFresh(
     entityService,
@@ -217,23 +249,10 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
-  const aiConfig = aiService.getConfig();
-  // Query embeddings are prepaid by guest search tools; indexing remains separate.
-  // Only the reviewed model/dimension pair can query this index safely.
-  const guestProfile =
-    config.embedding.enabled &&
-    "model" in options.embeddingService &&
-    options.embeddingService.model === openAiGuestEmbeddingModel &&
-    options.embeddingService.dimensions === openAiGuestEmbeddingDimensions &&
-    aiConfig.model === "gpt-5.6-luna" &&
-    aiConfig.apiKey?.trim()
-      ? createOpenAiGuestProfile({
-          apiKey: aiConfig.apiKey,
-          embeddingsEnabled: true,
-        })
-      : undefined;
   const agentFactory = createBrainAgentFactory({
-    ...(guestProfile ? { guestProfile } : {}),
+    // Guest turns are priced where the model's published rates are known;
+    // otherwise their cost is unknown and charged the answer cap.
+    guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
@@ -244,6 +263,16 @@ export function initializeIdentityAndAgentServices(
   });
   const assistantAgentId = createBrainAgentId(config.name);
 
+  // Entity links and citability, read from the site display the shell resolved.
+  const entityUrls = new EntityUrlGenerator(config.entityDisplay);
+  const entityLinks = {
+    isCitable: (entityType: string): boolean =>
+      entityUrls.isCitable(entityType),
+    urlFor: (entityType: string, slug: string): string =>
+      entityUrls.generateUrl(entityType, slug),
+    siteBaseUrl: config.siteBaseUrl,
+  };
+
   const agentService = AgentService.createFresh(
     mcpService,
     conversationService,
@@ -253,10 +282,38 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      // A turn's sources link to the pages the site shows them on.
+      entityLinks,
+      ...(options.embeddingUsage
+        ? { embeddingUsage: options.embeddingUsage }
+        : {}),
       // Lexical retrieval does not need a semantic index to be built.
-      ...(config.embedding.enabled ? { indexReadiness: entityService } : {}),
+      ...(config.embedding.enabled
+        ? {
+            indexReadiness: entityService,
+            // A visitor's sources are found by meaning, so only with embeddings.
+            guestAnswerSources: createGuestAnswerSources({
+              entityService,
+              ...entityLinks,
+            }),
+          }
+        : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
+      // A visitor's question a published FAQ already answers, asked of the
+      // plugins that keep FAQs; the hit's data is an answer only when it parses.
+      guestAskedBefore: async (request) => {
+        const responses = await messageBus.collect({
+          type: GUEST_ASKED_BEFORE_CHANNEL,
+          sender: "shell:agent-service",
+          payload: request,
+        });
+        return firstAskedBeforeHit(
+          responses.flatMap((response) =>
+            "noop" in response || !response.success ? [] : [response.data],
+          ),
+        );
+      },
       agentContextProvider: async (request: AgentContextRequest) => {
         const responses = await messageBus.collect({
           type: AGENT_CONTEXT_REQUEST_CHANNEL,
@@ -275,33 +332,24 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
-  if (!executionOnly) {
-    disposables.push(
-      ...subscribeToEntityCacheInvalidation(
-        messageBus,
-        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-        () => profileService.refreshCache(),
-        logger,
-      ),
-    );
-
-    // Invalidate cached agent when identity or profile changes.
-    // Next conversation will rebuild with fresh data.
-    for (const entityType of [
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+  disposables.push(
+    ...subscribeToIdentityRefresh(
+      messageBus,
       SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-    ]) {
-      disposables.push(
-        ...subscribeToEntityCacheInvalidation(
-          messageBus,
-          entityType,
-          entityType,
-          async () => agentService.invalidateAgent(),
-          logger,
-        ),
-      );
-    }
+      () => profileService.refreshCache(),
+      logger,
+    ),
+  );
+
+  if (!executionOnly) {
+    // Invalidate the cached agent once the identity caches hold the change,
+    // so the next conversation cannot rebuild it from the old identity.
+    disposables.push(
+      messageBus.subscribe(SYSTEM_CHANNELS.identityChanged, async () => {
+        agentService.invalidateAgent();
+        return { success: true };
+      }),
+    );
   }
 
   return {

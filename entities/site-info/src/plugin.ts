@@ -49,6 +49,7 @@ export class SiteInfoPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
+      classification: "system",
       embeddable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",

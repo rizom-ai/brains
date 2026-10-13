@@ -1,9 +1,12 @@
+import type { EmbeddingUsageMeter } from "./embedding-usage-meter";
 import {
   actorRefSchema,
   type AgentContextItem,
   type AgentContextRequest,
   type AgentResponse,
+  type SourceCitation,
 } from "@brains/contracts";
+import type { EntityLinks } from "./entity-citation";
 export type {
   ActionsCard,
   AgentResponse,
@@ -32,10 +35,14 @@ import type {
   AnchorProfile,
 } from "@brains/identity-service";
 import type { Tool } from "@brains/mcp-service";
-import type { ModelMessage } from "ai";
+import type { LanguageModelUsage, ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
 import {
   guestExecutionPolicySchema,
+  guestScreeningSchema,
+  type GuestScreening,
+  type GuestScreeningOutcome,
+  type GuestTurnSettlement,
   type GuestExecutionPolicy,
 } from "@brains/contracts/chat";
 
@@ -62,6 +69,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
   hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
   guestExecution: z.ZodOptional<typeof guestExecutionPolicySchema>;
+  guestScreening: z.ZodOptional<typeof guestScreeningSchema>;
 }> = z.object({
   userPermissionLevel: z.enum(["admin", "trusted", "public"]),
   isAnchor: z.boolean().optional(),
@@ -77,6 +85,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateTransform: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
   guestExecution: guestExecutionPolicySchema.optional(),
+  guestScreening: guestScreeningSchema.optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -106,18 +115,34 @@ export interface BrainAgentResult {
       toolCallId: string;
       toolName: string;
       input: unknown;
+      invalid?: boolean | undefined;
+      error?: unknown;
+    }>;
+    /** SDK execution errors live in content, not in toolResults. */
+    content?: Array<{
+      type: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      error?: unknown;
     }>;
     toolResults: Array<{
       toolCallId: string;
       toolName: string;
       output: unknown;
     }>;
+    /** What the provider reported for this step's model call. */
+    usage?: LanguageModelUsage;
   }>;
   usage: {
     inputTokens: number | undefined;
     outputTokens: number | undefined;
     totalTokens: number | undefined;
   };
+  /** A guest turn's reported usage and settled cost; never set for owners. */
+  guestSettlement?: GuestTurnSettlement;
+  /** What screening did with a guest turn's question; never set for owners. */
+  guestScreening?: GuestScreeningOutcome;
 }
 
 /**
@@ -135,10 +160,7 @@ export interface BrainAgent {
 /**
  * Factory function type for creating brain agents
  */
-export type BrainAgentFactory = ((config: BrainAgentConfig) => BrainAgent) & {
-  /** A paired guest model/accounting profile is installed; not transport admission. */
-  readonly guestProfileAvailable?: boolean;
-};
+export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
 
 /**
  * The part of the canonical identity service that fills in an actor.
@@ -177,8 +199,39 @@ export interface AgentConfig {
   ) => Promise<AgentContextItem[]>;
   /** Optional resolver for prior uploads stored in conversation metadata. */
   uploadAttachmentResolver?: UploadAttachmentResolver;
+  /**
+   * Optional finder of the public pages closest to a visitor's answer, which
+   * become its sources. Guest turns only; without it, or when it fails, an
+   * answer's sources are what its lookups returned.
+   */
+  guestAnswerSources?: (request: {
+    answer: string;
+  }) => Promise<SourceCitation[]>;
+  /** Where the site shows entities, so a turn's sources link to their pages. */
+  entityLinks?: EntityLinks;
+  /**
+   * Optional finder of a published FAQ that already answers a visitor's
+   * question. A hit answers the turn in the model's place, with the FAQ's
+   * stored sources. Guest turns only; without it, or when it fails, the
+   * turn goes to the model.
+   */
+  guestAskedBefore?: (request: {
+    question: string;
+  }) => Promise<AskedBeforeAnswer | undefined>;
+  /**
+   * Optional meter the embedding provider reports to. A guest turn is
+   * measured, and the embeddings it made join its settlement.
+   */
+  embeddingUsage?: EmbeddingUsageMeter;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
+}
+
+/** A published FAQ's answer to a question asked before, with what it drew on. */
+export interface AskedBeforeAnswer {
+  faqId: string;
+  answer: string;
+  sources: SourceCitation[];
 }
 
 /**
@@ -213,6 +266,8 @@ export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 export interface ChatContext {
   /** Server-owned limits bound to the already-reserved guest execution. */
   guestExecution?: GuestExecutionPolicy;
+  /** The site's scope and refusal copy a guest question is screened against. */
+  guestScreening?: GuestScreening;
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   /** Whether the authenticated caller is the brain's configured Anchor. */
   isAnchor?: boolean;
@@ -228,7 +283,8 @@ export interface ChatContext {
  * Agent service interface
  */
 export interface IAgentService {
-  readonly guestProfileAvailable?: boolean;
+  /** Guest turns can run: the search index they read is ready. */
+  readonly guestReady?: boolean;
   /**
    * Send a message to the agent and get a response
    * @param message - The user's message

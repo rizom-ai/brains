@@ -15,7 +15,7 @@ import {
 } from "./templates/subscribe-result";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
-import { ProfessionalLayout } from "./layouts/ProfessionalLayout";
+import { SiteLayout } from "@brains/site-atlas";
 
 export {
   ProfessionalSitePlugin,
@@ -30,19 +30,18 @@ export {
   SubscribeErrorLayout,
   HomepageListDataSource,
   AboutDataSource,
-  ProfessionalLayout,
 };
 
 const site: SitePackage<ProfessionalSiteConfigInput, Plugin> = {
   layouts: {
-    default: ProfessionalLayout,
+    default: SiteLayout,
   },
   routes,
   plugin: professionalSitePlugin,
   entityDisplay: {
-    post: { label: "Post" },
-    deck: { label: "Deck" },
-    project: { label: "Project" },
+    post: { label: "Post", citable: true },
+    deck: { label: "Deck", citable: true },
+    project: { label: "Project", citable: true },
     series: {
       label: "Series",
       navigation: { slot: "secondary" },

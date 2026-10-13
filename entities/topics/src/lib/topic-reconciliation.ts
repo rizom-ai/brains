@@ -72,6 +72,8 @@ export async function reconcileTopics(
       const distanceResults =
         await options.context.entityService.searchWithDistances({
           query: `${parsed.title}\n\n${parsed.content}`,
+          types: [TOPIC_ENTITY_TYPE],
+          maxDistance: options.semanticMergeDistance,
         });
 
       for (const distanceResult of distanceResults) {

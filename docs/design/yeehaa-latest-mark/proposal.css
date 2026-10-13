@@ -1,0 +1,46 @@
+/* The newest piece on the map: its mark keeps its shape and colour, an
+   accent ring draws once around it, and a quiet label names it with its
+   month. Hovering or opening the mark swaps the label for the usual card. */
+.atlas__mark--latest > a { position: relative; }
+.atlas__mark--latest > a::after {
+  content: ""; position: absolute; inset: -.2rem; border-radius: 50%;
+  border: 1.5px solid var(--color-accent);
+  animation: atlas-latest-ring 1.4s cubic-bezier(.3, .7, .2, 1) .6s both;
+}
+@keyframes atlas-latest-ring {
+  from { opacity: 0; transform: scale(.35); }
+  to { opacity: 1; transform: scale(1); }
+}
+.atlas__latest {
+  /* Above its mark, where the usual card opens, so it never meets the legend. */
+  position: absolute; z-index: 1; bottom: calc(100% + .25rem); left: 50%;
+  transform: translateX(-50%); width: max-content; max-width: 13rem;
+  text-align: center; pointer-events: none;
+  padding: .15rem .35rem; border-radius: .35rem;
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+  animation: atlas-latest-label .6s ease-out 1.4s both;
+}
+@keyframes atlas-latest-label { from { opacity: 0; } to { opacity: 1; } }
+/* Upright and small: the map's italic names are its topics. */
+.atlas__latest b {
+  display: block; font: 500 .8rem/1.2 var(--font-body);
+  color: var(--color-heading);
+}
+.atlas__latest span { display: block; font: 400 .72rem/1.25 var(--font-body); color: var(--color-accent); }
+.atlas__mark--latest:is(:hover, :focus-within, [data-open]) .atlas__latest { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .atlas__mark--latest > a::after, .atlas__latest { animation: none; }
+}
+
+/* Variant B: no label on the map; the legend names the ringed piece. */
+.atlas__legend .atlas__key--latest { color: var(--color-heading); text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; }
+.atlas__legend .atlas__key--latest i {
+  width: 9px; height: 9px; background: none; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+.atlas__legend .atlas__key--latest em { font-style: normal; color: var(--color-text-light); }
+@media (hover: hover) { .atlas__legend .atlas__key--latest:hover { color: var(--color-accent); } }
+.atlas__legend .atlas__key--latest span { display: inline; }
+
+/* Variant C: the legend says "Latest"; hover or tap opens the ringed mark's card. */
+.atlas__legend button.atlas__key--latest { font: inherit; color: var(--color-text-light); background: none; border: 0; padding: 0; cursor: pointer; }

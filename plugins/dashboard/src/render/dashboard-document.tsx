@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { DEFAULT_FAVICON_HREF } from "@brains/contracts";
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
@@ -14,6 +15,7 @@ import {
   OperatorSections,
 } from "@brains/operator-view-react";
 import { Colophon } from "./colophon";
+import { AskPanel } from "./ask-panel";
 import { TabBar } from "./dashboard-tabs";
 import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
@@ -57,6 +59,7 @@ export function DashboardDocument({
           content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
         <title>{input.title}</title>
+        <link rel="icon" type="image/svg+xml" href={DEFAULT_FAVICON_HREF} />
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -118,11 +121,13 @@ export function DashboardDocument({
             <TabBar
               knowledgeCount={input.appInfo.entities}
               networkCount={networkCount}
+              askEnabled={input.askEnabled ?? false}
             />
 
             <OperatorCanvas className="canvas">
               <OperatorSections className="dashboard-tab-panels">
                 <OverviewPanel input={input} />
+                {input.askEnabled && <AskPanel />}
                 <KnowledgeMapPanel
                   block={knowledgeMap}
                   entityTotal={input.appInfo.entities}

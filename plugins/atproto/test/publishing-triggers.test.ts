@@ -47,6 +47,7 @@ function createEntity(
   input: {
     entityType?: string;
     visibility?: "public" | "restricted";
+    status?: string;
   } = {},
 ): BaseEntity {
   return {
@@ -57,7 +58,10 @@ function createEntity(
     updated: "2026-07-20T10:00:00.000Z",
     visibility: input.visibility ?? "public",
     contentHash: "note-hash",
-    metadata: { title: "Public note" },
+    metadata: {
+      title: "Public note",
+      ...(input.status && { status: input.status }),
+    },
   };
 }
 
@@ -82,9 +86,12 @@ function createLexicon(id: string): AtprotoLexicon {
   };
 }
 
-function createRegistry(): AtprotoProjectionRegistry {
+function createRegistry(
+  input: { isPublishable?: (entity: BaseEntity) => boolean } = {},
+): AtprotoProjectionRegistry {
   const registry = AtprotoProjectionRegistry.createFresh();
   registry.register({
+    ...(input.isPublishable && { isPublishable: input.isPublishable }),
     entityType: "note",
     collection: "ai.rizom.brain.note",
     lexicon: createLexicon("ai.rizom.brain.note"),
@@ -180,7 +187,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "test",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.putRecord).not.toHaveBeenCalled();
   });
@@ -203,7 +210,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.putRecord).toHaveBeenCalledTimes(1);
     expect(client.putRecord).toHaveBeenCalledWith(
@@ -234,29 +241,108 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
   });
 
-  it("republishes the brain card when identity or skill inputs change", async () => {
+  function countCardWrites(
+    client: ReturnType<typeof createClientMocks>,
+  ): number {
+    return client.putRecord.mock.calls.filter(
+      ([input]) =>
+        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    ).length;
+  }
+
+  /** Card writes after the boot publish has landed and `messages` arrive. */
+  async function countCardWritesAfter(
+    messages: Array<{ type: string; payload: Record<string, unknown> }>,
+    options: { concurrent?: boolean } = {},
+  ): Promise<number> {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client);
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
     await armFullBoot(shell);
     await plugin.ready();
+    await waitUntil(
+      () => countCardWrites(client) === 1,
+      "the boot card publish",
+    );
 
-    for (const entityType of ["brain-character", "anchor-profile", "skill"]) {
-      await shell.getMessageBus().send({
-        type: "entity:updated",
-        payload: { entityType, entityId: entityType },
-        sender: "entity-service",
+    const send = (message: (typeof messages)[number]): Promise<unknown> =>
+      shell.getMessageBus().send({
+        ...message,
+        sender: "test",
         broadcast: true,
       });
+    if (options.concurrent) {
+      await Promise.all(messages.map(send));
+    } else {
+      for (const message of messages) await send(message);
     }
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
-    const cardWrites = client.putRecord.mock.calls.filter(
-      ([input]) =>
-        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    return countCardWrites(client);
+  }
+
+  it("republishes the brain card once the shell signals an identity change", async () => {
+    const writes = await countCardWritesAfter([
+      {
+        type: SYSTEM_CHANNELS.identityChanged,
+        payload: { entityType: "anchor-profile" },
+      },
+    ]);
+
+    expect(writes).toBe(2);
+  });
+
+  for (const type of ["entity:created", "entity:updated", "entity:deleted"]) {
+    it(`republishes the brain card on skill ${type}`, async () => {
+      const writes = await countCardWritesAfter([
+        { type, payload: { entityType: "skill", entityId: "skill-1" } },
+      ]);
+
+      expect(writes).toBe(2);
+    });
+  }
+
+  it("coalesces a burst of skill changes into one pending republish", async () => {
+    const writes = await countCardWritesAfter(
+      Array.from({ length: 5 }, (_, index) => ({
+        type: "entity:created",
+        payload: { entityType: "skill", entityId: `skill-${index}` },
+      })),
+      { concurrent: true },
     );
-    expect(cardWrites).toHaveLength(4);
+
+    expect(writes).toBe(2);
+  });
+
+  it("covers changes before the boot publish with the boot publish", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    await armFullBoot(shell);
+
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.identityChanged,
+      payload: { entityType: "anchor-profile" },
+      sender: "test",
+      broadcast: true,
+    });
+    await plugin.ready();
+    await plugin.shutdown();
+
+    expect(countCardWrites(client)).toBe(1);
+  });
+
+  it("leaves identity entity events to the shell's refreshed identity signal", async () => {
+    const writes = await countCardWritesAfter(
+      ["brain-character", "anchor-profile"].map((entityType) => ({
+        type: "entity:updated",
+        payload: { entityType, entityId: entityType },
+      })),
+    );
+
+    expect(writes).toBe(1);
   });
 
   it("upserts every canonical lexicon schema when this repo is the authority", async () => {
@@ -269,7 +355,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     const lexicons = listCanonicalAtprotoLexicons();
     expect(client.createSession).toHaveBeenCalledTimes(2);
@@ -299,7 +385,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     for (let index = 0; index < 2; index += 1) {
       await plugin.ready();
     }
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     for (const lexicon of listCanonicalAtprotoLexicons()) {
       const matchingCalls = client.putRecord.mock.calls.filter(
@@ -340,7 +426,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(putRecord).toHaveBeenCalledTimes(
       listCanonicalAtprotoLexicons().length + 1,
@@ -373,7 +459,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(createPdsClient).not.toHaveBeenCalled();
   });
@@ -397,7 +483,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await armFullBoot(shell);
     await plugin.ready();
     await settleTicks();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(failures).toEqual([]);
   });
@@ -413,7 +499,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.createSession).not.toHaveBeenCalled();
     expect(client.putRecord).not.toHaveBeenCalled();
@@ -452,7 +538,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.ready();
 
     releasePut();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(putRecord).toHaveBeenCalledTimes(1);
   });
 
@@ -469,7 +555,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.putRecord).toHaveBeenCalledTimes(1);
     expect(client.putRecord).toHaveBeenCalledWith({
@@ -498,7 +584,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "entity-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.deleteRecord).toHaveBeenCalledWith({
       repo: "did:plc:repo",
@@ -522,7 +608,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "entity-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.deleteRecord).toHaveBeenCalledWith({
       repo: "did:plc:repo",
@@ -530,6 +616,120 @@ describe("AT Protocol ambient publishing triggers", () => {
       rkey: "note-123",
     });
     expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("deletes instead of upserting a public entity its projection does not deem publishable", async () => {
+    // A public draft must never reach the PDS; deleting on update also cleans
+    // up a draft record projected before this guard existed.
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry({
+        isPublishable: (entity) => entity.metadata["status"] === "published",
+      }),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const entity = createEntity({ status: "draft" });
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+
+    await shell.getMessageBus().send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+
+    expect(client.deleteRecord).toHaveBeenCalledWith({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.note",
+      rkey: "note-123",
+    });
+    expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("upserts a public entity once its projection deems it publishable", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry({
+        isPublishable: (entity) => entity.metadata["status"] === "published",
+      }),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const entity = createEntity({ status: "published" });
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+
+    await shell.getMessageBus().send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+
+    expect(client.putRecord).toHaveBeenCalledTimes(1);
+    expect(client.putRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: "ai.rizom.brain.note",
+        rkey: "note-123",
+      }),
+    );
+    expect(client.deleteRecord).not.toHaveBeenCalled();
+  });
+
+  it("upserts a draft once the publish pipeline marks it published", async () => {
+    // The pipeline persists status: "published" before broadcasting
+    // publish:completed, so the re-fetched entity must reach the PDS.
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry({
+        isPublishable: (entity) => entity.metadata["status"] === "published",
+      }),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const draft = createEntity({ status: "draft" });
+    shell.addEntities([draft]);
+    await plugin.register(shell);
+    const bus = shell.getMessageBus();
+
+    await bus.send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity: draft },
+      sender: "entity-service",
+      broadcast: true,
+    });
+
+    const published = createEntity({ status: "published" });
+    shell.addEntities([published]);
+    await bus.send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity: published },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await bus.send({
+      type: "publish:completed",
+      payload: { entityType: "note", entityId: "note-123" },
+      sender: "publish-service",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+
+    expect(client.deleteRecord).toHaveBeenCalledTimes(1);
+    expect(client.putRecord).toHaveBeenCalledTimes(2);
+    expect(client.putRecord).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        collection: "ai.rizom.brain.note",
+        rkey: "note-123",
+      }),
+    );
+    const [deleteOrder] = client.deleteRecord.mock.invocationCallOrder;
+    const [, lastPutOrder] = client.putRecord.mock.invocationCallOrder;
+    expect(lastPutOrder).toBeGreaterThan(deleteOrder ?? Infinity);
   });
 
   it("ignores entity types without a registered projection", async () => {
@@ -545,7 +745,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.createSession).not.toHaveBeenCalled();
     expect(client.putRecord).not.toHaveBeenCalled();
@@ -606,7 +806,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     expect(calls).toEqual(["put:start"]);
 
     releaseUpsert();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(calls).toEqual(["put:start", "put:end", "delete"]);
     expect(deleteRecord).toHaveBeenCalledTimes(1);
@@ -656,7 +856,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
 
     releaseUpserts();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(putRecord).toHaveBeenCalledTimes(2);
   });
 
@@ -680,7 +880,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(response).toEqual({ success: true });
     expect(failures).toEqual([

@@ -1,0 +1,16 @@
+id: faq-classify-rejects-greeting
+name: Small talk is rejected
+description: A greeting and its reply are not a FAQ.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: hi there
+  answer: Hello! How can I help you today?
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: false

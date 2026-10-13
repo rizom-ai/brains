@@ -26,6 +26,7 @@ import {
 } from "./identity-resolver";
 import { PublishingTaskQueue } from "./publishing-tasks";
 import { buildAtprotoWebRoutes } from "./web-routes";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import {
   type DiscoverBrainCardResult,
   type DiscoverBrainCardsOptions,
@@ -99,11 +100,9 @@ const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
 const PUBLISH_COMPLETED = PUBLISH_CHANNELS.completed;
 const MAX_DISCOVERY_REPOS = 50;
-const BRAIN_CARD_INPUT_ENTITY_TYPES = new Set([
-  "brain-character",
-  "anchor-profile",
-  "skill",
-]);
+// Identity inputs arrive through SYSTEM_CHANNELS.identityChanged, after the
+// shell's identity caches hold them.
+const BRAIN_CARD_SKILL_ENTITY_TYPE = "skill";
 
 export class AtprotoPlugin extends ServicePlugin<
   AtprotoConfig,
@@ -116,6 +115,13 @@ export class AtprotoPlugin extends ServicePlugin<
   private readonly identity: AtprotoIdentityResolver;
   private jetstreamConsumer: JetstreamConsumer | undefined;
   private fullBootObserved = false;
+  /** A card publish is queued and has not yet read the brain's state. */
+  private brainCardPublishPending = false;
+  /**
+   * Set once ready has scheduled the boot publish. Changes before that are
+   * covered by it; changes after it (a pending initial import) republish.
+   */
+  private brainCardTriggersArmed = false;
 
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
@@ -173,25 +179,6 @@ export class AtprotoPlugin extends ServicePlugin<
         void this.publishingTasks.run(entityTaskKey(payload.data), () =>
           this.reconcileProjectedEntity(context, payload.data),
         );
-        if (
-          this.fullBootObserved &&
-          BRAIN_CARD_INPUT_ENTITY_TYPES.has(payload.data.entityType)
-        ) {
-          void this.publishingTasks.run(
-            `${BRAIN_CARD_COLLECTION}/${BRAIN_CARD_RKEY}`,
-            () =>
-              this.publishingTasks.runTrigger(
-                context,
-                {
-                  operation: "publish-card",
-                  entityType: "brain-card",
-                  entityId: BRAIN_CARD_RKEY,
-                  collection: BRAIN_CARD_COLLECTION,
-                },
-                () => this.publishBrainCard(context),
-              ),
-          );
-        }
       }
       return { success: true };
     });
@@ -205,6 +192,56 @@ export class AtprotoPlugin extends ServicePlugin<
       }
       return { success: true };
     });
+
+    // Skills are read from storage when the card is built, so their entity
+    // events are safe triggers; every lifecycle change alters the card.
+    for (const channel of [
+      ENTITY_CHANNELS.created,
+      ENTITY_CHANNELS.updated,
+      ENTITY_CHANNELS.deleted,
+    ]) {
+      context.messaging.subscribe(channel, async (message) => {
+        const payload = entityTriggerPayloadSchema.safeParse(message.payload);
+        if (
+          this.brainCardTriggersArmed &&
+          payload.success &&
+          payload.data.entityType === BRAIN_CARD_SKILL_ENTITY_TYPE
+        ) {
+          this.scheduleBrainCardPublish(context);
+        }
+        return { success: true };
+      });
+    }
+
+    context.messaging.subscribe(SYSTEM_CHANNELS.identityChanged, async () => {
+      if (this.brainCardTriggersArmed) this.scheduleBrainCardPublish(context);
+      return { success: true };
+    });
+  }
+
+  /**
+   * Queue a card publish unless one is already waiting: a queued publish has
+   * not read the brain's state yet, so it already covers this change.
+   */
+  private scheduleBrainCardPublish(context: ServicePluginContext): void {
+    if (this.brainCardPublishPending) return;
+    this.brainCardPublishPending = true;
+    void this.publishingTasks.run(
+      `${BRAIN_CARD_COLLECTION}/${BRAIN_CARD_RKEY}`,
+      () => {
+        this.brainCardPublishPending = false;
+        return this.publishingTasks.runTrigger(
+          context,
+          {
+            operation: "publish-card",
+            entityType: "brain-card",
+            entityId: BRAIN_CARD_RKEY,
+            collection: BRAIN_CARD_COLLECTION,
+          },
+          () => this.publishBrainCard(context),
+        );
+      },
+    );
   }
 
   protected override async onReady(
@@ -214,20 +251,8 @@ export class AtprotoPlugin extends ServicePlugin<
 
     // Scheduled, not awaited: readyPlugins() is on the boot path, and an
     // unresponsive PDS must not stall startup. Shutdown drains the tasks.
-    void this.publishingTasks.run(
-      BRAIN_CARD_COLLECTION + "/" + BRAIN_CARD_RKEY,
-      () =>
-        this.publishingTasks.runTrigger(
-          context,
-          {
-            operation: "publish-card",
-            entityType: "brain-card",
-            entityId: BRAIN_CARD_RKEY,
-            collection: BRAIN_CARD_COLLECTION,
-          },
-          () => this.publishBrainCard(context),
-        ),
-    );
+    this.scheduleBrainCardPublish(context);
+    this.brainCardTriggersArmed = true;
 
     if (this.config.lexiconAuthority) {
       void this.publishingTasks.run(LEXICON_SCHEMA_COLLECTION, () =>
@@ -550,6 +575,28 @@ export class AtprotoPlugin extends ServicePlugin<
     }
   }
 
+  /**
+   * The entity's page on this brain's site: the site's route for its type at
+   * the public domain, when the site gives the type a page at all.
+   */
+  private pageUrlOf(
+    context: ServicePluginContext,
+    entity: BaseEntity,
+  ): string | undefined {
+    const routes = new EntityUrlGenerator(context.entityDisplay);
+    if (!context.siteUrl || !routes.hasRoute(entity.entityType)) {
+      return undefined;
+    }
+    const slug = entity.metadata["slug"];
+    return new URL(
+      routes.generateUrl(
+        entity.entityType,
+        typeof slug === "string" && slug ? slug : entity.id,
+      ),
+      context.siteUrl,
+    ).href;
+  }
+
   private async publishProjectedEntity<TRecord extends Record<string, unknown>>(
     context: ServicePluginContext,
     options: PublishEntityOptions,
@@ -570,8 +617,14 @@ export class AtprotoPlugin extends ServicePlugin<
         `Cannot publish non-public ${options.entityType}: ${identifier}`,
       );
     }
+    if (!isProjectionPublishable(projection, entity)) {
+      throw new Error(
+        `Cannot publish non-publishable ${options.entityType}: ${identifier}`,
+      );
+    }
 
     const repo = this.config.repoDid;
+    const pageUrl = this.pageUrlOf(context, entity);
 
     if (options.dryRun) {
       const record = await projection.buildRecord({
@@ -579,6 +632,7 @@ export class AtprotoPlugin extends ServicePlugin<
         context,
         config: this.config,
         ...(options.topics && { topics: options.topics }),
+        ...(pageUrl && { pageUrl }),
         dryRun: true,
       });
       validateAtprotoRecord(projection.lexicon, record);
@@ -605,6 +659,7 @@ export class AtprotoPlugin extends ServicePlugin<
       config: this.config,
       client,
       ...(options.topics && { topics: options.topics }),
+      ...(pageUrl && { pageUrl }),
     });
     validateAtprotoRecord(projection.lexicon, record);
     if (!client.putRecord) {
@@ -719,7 +774,10 @@ export class AtprotoPlugin extends ServicePlugin<
       return;
     }
 
-    if (entity?.visibility === "public") {
+    if (
+      entity?.visibility === "public" &&
+      isProjectionPublishable(projection, entity)
+    ) {
       await this.publishingTasks.runTrigger(
         context,
         {
@@ -808,6 +866,8 @@ export class AtprotoPlugin extends ServicePlugin<
     );
   }
 
+  // Full scope: the publish gate names why a non-public entity is refused;
+  // an unscoped read sees public entities only and reports it as missing.
   private async findPublishEntity(
     context: ServicePluginContext,
     options: PublishEntityOptions,
@@ -816,6 +876,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return context.entityService.getEntity({
         entityType: options.entityType,
         id: options.entityId,
+        visibilityScope: "restricted",
       });
     }
 
@@ -824,7 +885,12 @@ export class AtprotoPlugin extends ServicePlugin<
         (
           await context.entityService.listEntities({
             entityType: options.entityType,
-            options: { filter: { metadata: { slug: options.slug } } },
+            options: {
+              filter: {
+                metadata: { slug: options.slug },
+                visibilityScope: "restricted",
+              },
+            },
           })
         )[0] ?? null
       );
@@ -875,6 +941,7 @@ export class AtprotoPlugin extends ServicePlugin<
 
     const agents = await context.entityService.listEntities({
       entityType: "agent",
+      options: { filter: { visibilityScope: "restricted" } },
     });
     const existingByDomain = agents.find((agent) => agent.id === domain);
     const existingByRepo = agents.find(
@@ -957,6 +1024,13 @@ export class AtprotoPlugin extends ServicePlugin<
 function deriveAtprotoRecordKey(entityId: string): string {
   const sanitized = entityId.replace(/[^A-Za-z0-9._~:-]/g, "_").slice(0, 512);
   return sanitized.length > 0 ? sanitized : "self";
+}
+
+function isProjectionPublishable(
+  projection: Pick<AtprotoProjection, "isPublishable">,
+  entity: BaseEntity,
+): boolean {
+  return projection.isPublishable?.(entity) ?? true;
 }
 
 function parseAtUriRepo(uri: string): string | undefined {

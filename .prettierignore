@@ -41,6 +41,10 @@ brain-data/
 coverage/
 *.lcov
 
+# Exact-byte Markdown eval fixtures (size, backslashes, and line endings are assertions)
+packages/brain-cli/eval-content/recipes/personal/long-note-update-*.md
+packages/brain-cli/eval-content/recipes/personal/mcp-long-note-update.md
+
 # Matrix storage
 .matrix-storage/
 

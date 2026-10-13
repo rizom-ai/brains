@@ -285,6 +285,12 @@ const playbooksSchema: z.ZodObject<{
   onboarding: z.boolean().optional(),
 });
 
+/** Config transport shape; plugin-owned schemas validate fields in the app. */
+const userPluginsSchema: z.ZodRecord<
+  z.ZodString,
+  z.ZodRecord<z.ZodString, z.ZodUnknown>
+> = z.record(z.string().min(1), z.record(z.string(), z.unknown()));
+
 export const userSchema: z.ZodObject<{
   handle: z.ZodString;
   discord: z.ZodObject<{
@@ -297,6 +303,7 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
   contentRepoOverride: z.ZodOptional<z.ZodString>;
   profileKind: z.ZodOptional<typeof profileKindSchema>;
+  plugins: z.ZodOptional<typeof userPluginsSchema>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
   skillDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -320,6 +327,7 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.string().min(1).optional(),
   contentRepoOverride: z.string().min(1).optional(),
   profileKind: profileKindSchema.optional(),
+  plugins: userPluginsSchema.optional(),
   embeddingEnabled: z.boolean().optional(),
   topicExtractionEnabled: z.boolean().optional(),
   skillDerivationEnabled: z.boolean().optional(),

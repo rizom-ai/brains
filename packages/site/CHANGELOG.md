@@ -1,5 +1,29 @@
 # @rizom/site
 
+## 0.2.0-alpha.239
+
+### Patch Changes
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site can render an entity type's pages with a template of its choosing through `entityDisplay.<type>.detailTemplate`. The books site renders topics as theme pages: the theme's summary, a strand showing how many sections of each book stand close to it by year, and its closest passages, all found by stored embeddings without API calls. A section split across several entries counts once. Plugins share one related-entries lookup over stored embeddings, `findRelatedEntities`. Detail pages fall back to the title in an entry's frontmatter before naming it by type and slug. Book pages count one book or section in the singular.
+
+## 0.2.0-alpha.238
+
+### Patch Changes
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`170627a`](https://github.com/rizom-ai/brains/commit/170627a74751e592f1818776a8209aa2ef2b21f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Exports `entityDisplaySchema`, the one definition of a site's entity display settings; `EntityDisplayEntry` is derived from it.
+
+## 0.2.0-alpha.237
+
+### Patch Changes
+
+- [#439](https://github.com/rizom-ai/brains/pull/439) [`3d40351`](https://github.com/rizom-ai/brains/commit/3d40351fa5b05ab04d1e7a196a3287a4fda5bf57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clarify and test entityDisplay.citable semantics: false always excludes a type from answer citations; any true entries form an explicit selection, otherwise page-bearing entries remain candidates unless excluded. Citation selection does not remove routes or grant access permissions.
+
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`8df97bf`](https://github.com/rizom-ai/brains/commit/8df97bf413df6bc4d5d0d20e06366b2720a591c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity display entries accept `citable: true`, marking a type as a piece of work a visitor's answer may cite as a source.
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

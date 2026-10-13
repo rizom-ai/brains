@@ -2,28 +2,21 @@
 import type { JSX } from "react";
 import type { SiteSectionGroup } from "@rizom/site";
 import { defineSection, sectionGroup, z } from "@rizom/site";
-import { Section, renderHighlightedText } from "./rizom";
-import {
-  AliveLine,
-  Band,
-  CtaRow,
-  IndexRow,
-  SectCap,
-  ctaSchema,
-  delayClass,
-  ROOM_HIGHLIGHT_CLS,
-} from "./shared";
+import { renderHighlightedText } from "./rizom";
+import { ctaSchema } from "./shared";
 
 /**
- * The /foundation room (previously rizom.foundation) — the research journal: a
- * masthead, essay + city-chapter index sections, a pull-quote band, support
- * options, and a follow line (the shared colophon). Each section is authored
- * from one zod schema; copy is content-driven, stored as markdown in
- * site-content/foundation/<section>.md. The essay/event indexes are static rows
- * here — the live entity-backed list lives at /writing.
+ * The /foundation room, told as a story: the institutions built for a
+ * different century, the research, the pattern, the series and how it is
+ * funded, each a chapter beside the drawing the layout supplies (see
+ * ./story/foundation-organism). Each section is authored from one zod schema;
+ * copy is content-driven, stored as markdown in
+ * site-content/foundation/<section>.md, and the section ids stay stable.
  */
 
-/* ============ journal masthead ============ */
+const EMPHASIS_CLS = "italic font-[400] text-accent";
+
+/* ============ the opening ============ */
 
 const heroSchema = z.object({
   volume: z.string(),
@@ -35,41 +28,25 @@ const heroSchema = z.object({
 });
 
 function FoundationHeroSection({
-  volume,
-  meta,
   headline,
   standfirst,
   primaryCta,
   secondaryCta,
 }: z.infer<typeof heroSchema>): JSX.Element {
   return (
-    <Section
-      id="foundation-hero"
-      className="relative overflow-hidden pt-16 pb-[30px] md:pt-20"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-[10%] -inset-y-[30%] bg-[radial-gradient(680px_360px_at_14%_8%,rgb(from_var(--color-accent)_r_g_b_/_0.14),transparent_66%)]"
-      />
-      <div className="relative">
-        <SectCap lead={volume} trail={meta} />
-        <h1 className="mt-[18px] max-w-[15.5em] font-display text-[clamp(36px,4.6vw,64px)] font-[448] leading-[1.05] tracking-[-0.018em] text-theme [font-variation-settings:'SOFT'_88,'opsz'_110]">
-          {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
-        </h1>
-        <p className="mt-4 max-w-[50ch] font-body text-[20px] leading-[1.7] text-theme-muted">
-          {standfirst}
-        </p>
-        <CtaRow
-          primaryCta={primaryCta}
-          secondaryCta={secondaryCta}
-          className="mt-[26px] mb-11"
-        />
-      </div>
-    </Section>
+    <section id="foundation-hero" className="chapter">
+      <p className="eyebrow">Foundation</p>
+      <h1>{renderHighlightedText(headline, EMPHASIS_CLS)}</h1>
+      <p className="lede">{standfirst}</p>
+      <p className="doors-in">
+        <a href={primaryCta.href}>{primaryCta.label}</a>
+        <a href={secondaryCta.href}>{secondaryCta.label}</a>
+      </p>
+    </section>
   );
 }
 
-/* ============ index sections: research + chapters ============ */
+/* ============ the research and the series: entries on a thread ============ */
 
 const indexRowSchema = z.object({
   no: z.string(),
@@ -87,37 +64,72 @@ const indexSchema = z.object({
   items: z.array(indexRowSchema),
 });
 
-function IndexSection({
-  id,
-  cap,
-  capNote,
-  items,
-}: z.infer<typeof indexSchema> & { id: string }): JSX.Element {
+function Entry({ row }: { row: z.infer<typeof indexRowSchema> }): JSX.Element {
+  const body = (
+    <>
+      <small>{row.kicker}</small>
+      <b>{row.title}</b>
+      <span>{[row.text, row.metaSub].filter(Boolean).join(" ")}</span>
+    </>
+  );
   return (
-    <Section id={id} className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <div className="mt-2">
-        {items.map((row, i) => (
-          <IndexRow key={row.title} row={row} delayClass={delayClass(i)} />
-        ))}
-      </div>
-    </Section>
+    <li>{row.href ? <a href={row.href}>{body}</a> : <div>{body}</div>}</li>
   );
 }
 
-function FoundationResearchSection(
-  content: z.infer<typeof indexSchema>,
-): JSX.Element {
-  return <IndexSection id="research" {...content} />;
+function EntriesChapter({
+  id,
+  cap,
+  title,
+  items,
+}: {
+  id: string;
+  cap: string;
+  title: string;
+  items: z.infer<typeof indexRowSchema>[];
+}): JSX.Element {
+  return (
+    <section id={id} className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{title}</h2>
+      <ul className="entries">
+        {items.map((row) => (
+          <Entry key={row.title} row={row} />
+        ))}
+      </ul>
+    </section>
+  );
 }
 
-function FoundationChaptersSection(
-  content: z.infer<typeof indexSchema>,
-): JSX.Element {
-  return <IndexSection id="events" {...content} />;
+function FoundationResearchSection({
+  cap,
+  items,
+}: z.infer<typeof indexSchema>): JSX.Element {
+  return (
+    <EntriesChapter
+      id="research"
+      cap={cap}
+      title="A working bibliography."
+      items={items}
+    />
+  );
 }
 
-/* ============ pull-quote band ============ */
+function FoundationChaptersSection({
+  cap,
+  items,
+}: z.infer<typeof indexSchema>): JSX.Element {
+  return (
+    <EntriesChapter
+      id="events"
+      cap={cap}
+      title="Twenty to forty people, city by city."
+      items={items}
+    />
+  );
+}
+
+/* ============ the pull quote ============ */
 
 const pullquoteSchema = z.object({
   quote: z.string(),
@@ -129,15 +141,14 @@ function FoundationPullquoteSection({
   attribution,
 }: z.infer<typeof pullquoteSchema>): JSX.Element {
   return (
-    <Band quote={quote}>
-      <p className="reveal reveal-delay-1 mt-[18px] font-label text-[12px] text-theme-light">
-        {attribution}
-      </p>
-    </Band>
+    <section id="pullquote" className="chapter" data-title="The pattern">
+      <p className="pull">{renderHighlightedText(quote, EMPHASIS_CLS)}</p>
+      <p>{attribution}</p>
+    </section>
   );
 }
 
-/* ============ support ============ */
+/* ============ how it is funded ============ */
 
 const supportSchema = z.object({
   cap: z.string(),
@@ -153,64 +164,78 @@ const supportSchema = z.object({
 
 function FoundationSupportSection({
   cap,
-  capNote,
   options,
 }: z.infer<typeof supportSchema>): JSX.Element {
   return (
-    <Section id="support" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <div className="mt-[26px] grid gap-13 md:grid-cols-2">
-        {options.map((option, i) => (
-          <div key={option.kicker} className={`reveal ${delayClass(i + 1)}`}>
-            <span className="font-label text-label-xs uppercase tracking-[0.16em] text-accent">
-              {option.kicker}
-            </span>
-            <div className="mt-2 font-display text-[30px] font-[480] text-theme [font-variation-settings:'SOFT'_40]">
-              {option.amount}
-            </div>
-            <p className="mt-2 max-w-[52ch] font-body text-[15.5px] text-theme-light">
-              {option.text}
-            </p>
+    <section id="support" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>Two ways the work gets funded.</h2>
+      <dl className="parts">
+        {options.map((option) => (
+          <div key={option.kicker}>
+            <dt>
+              {option.kicker} <span className="status">{option.amount}</span>
+            </dt>
+            <dd>{option.text}</dd>
           </div>
         ))}
-      </div>
-    </Section>
+      </dl>
+    </section>
   );
 }
 
-/* ============ follow line ============ */
+/* ============ the follow line ============ */
 
-// Reuses the shared colophon (AliveLine) — an italic claim plus proof links.
 const followSchema = z.object({
   claim: z.string(),
   links: z.array(ctaSchema),
 });
+
+function FoundationFollowSection({
+  claim,
+  links,
+}: z.infer<typeof followSchema>): JSX.Element {
+  return (
+    <section id="follow" className="chapter" data-title="Follow the research">
+      <p className="pull">
+        {renderHighlightedText(claim, "not-italic font-medium text-theme")}
+      </p>
+      <p className="follow">
+        {links.map((link) => (
+          <a key={link.href + link.label} href={link.href}>
+            {link.label}
+          </a>
+        ))}
+      </p>
+    </section>
+  );
+}
 
 /* ============ the foundation section group ============ */
 
 export const foundationSections: SiteSectionGroup = sectionGroup("foundation", {
   hero: defineSection(heroSchema, FoundationHeroSection, {
     title: "Hero",
-    description: "Foundation journal masthead",
+    description: "The opening: headline, standfirst and two doors",
   }),
   research: defineSection(indexSchema, FoundationResearchSection, {
     title: "Research",
-    description: "Essay index rows",
+    description: "The essays, as entries on a thread",
   }),
   pullquote: defineSection(pullquoteSchema, FoundationPullquoteSection, {
     title: "Pullquote",
-    description: "Pull-quote band",
+    description: "The pull quote, as a chapter of its own",
   }),
   chapters: defineSection(indexSchema, FoundationChaptersSection, {
     title: "Chapters",
-    description: "City chapter index rows",
+    description: "The city chapters, as entries on a thread",
   }),
   support: defineSection(supportSchema, FoundationSupportSection, {
     title: "Support",
-    description: "Funding options",
+    description: "The two ways the work is funded",
   }),
-  follow: defineSection(followSchema, AliveLine, {
+  follow: defineSection(followSchema, FoundationFollowSection, {
     title: "Follow",
-    description: "Follow-the-research line (shared colophon component)",
+    description: "The follow line that closes the page",
   }),
 });

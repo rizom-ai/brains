@@ -19,6 +19,8 @@ export type { PluginRunnerOptions } from "./plugin-runner";
 export { PluginLLMJudge } from "./plugin-llm-judge";
 export type { IPluginLLMJudge } from "./plugin-llm-judge";
 export { OutputValidator } from "./output-validator";
+export { evaluateCriteria } from "./criteria-evaluator";
+export type { CriteriaEvaluationResult } from "./criteria-evaluator";
 
 // Remote agent service for connecting to running instances
 export { RemoteAgentService } from "./remote-agent-service";
@@ -27,7 +29,7 @@ export type { RemoteAgentServiceConfig } from "./remote-agent-service";
 // Loaders
 export { YAMLLoader } from "./loaders";
 export type { YAMLLoaderOptions } from "./loaders/yaml-loader";
-export { resolveEvalSelection } from "./eval-config-loader";
+export { resolveEvalSelection, resolveEvalConfig } from "./eval-config-loader";
 export type {
   EvalSelection,
   LoadEvalConfigOptions,

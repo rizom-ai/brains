@@ -422,16 +422,14 @@ describe("Invalid Entity Handling", () => {
       expect(result.errors[0]?.error).toContain("Transient error");
     });
 
-    it("should NOT quarantine files when getEntity fails with database error", async () => {
+    it("should NOT quarantine files when the admission recheck fails with database error", async () => {
       mkdirSync(join(testDir, "note"), { recursive: true });
       const validFile = join(testDir, "note", "valid-but-get-fails.md");
       writeFileSync(validFile, "# Valid Note\n\nValid content");
 
-      // Make getEntity fail with a database error
-      mockEntityService.getEntity = async <T extends BaseEntity>(_request: {
-        entityType: string;
-        id: string;
-      }): Promise<T | null> => {
+      let reads = 0;
+      mockEntityService.getEntityWriteSnapshot = async (): Promise<null> => {
+        if (++reads === 1) return null;
         throw new Error("SQLITE_BUSY: database is locked");
       };
 

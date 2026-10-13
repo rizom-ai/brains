@@ -41,12 +41,11 @@ const staticSiteBuilderFactory = (): never => {
 };
 const sendMessage = async (): Promise<{ noop: true }> => ({ noop: true });
 
-function fingerprint(renderVersion?: string): string {
+function fingerprint(rendererIdentity: string): string {
   const template: SiteViewTemplate = {
     name: "docs:doc-list",
     pluginId: "docs",
     schema: z.object({}),
-    ...(renderVersion ? { renderVersion } : {}),
     renderers: { web: renderer },
   };
 
@@ -56,15 +55,16 @@ function fingerprint(renderVersion?: string): string {
     getViewTemplate: () => template,
     staticSiteBuilderFactory,
     sendMessage,
+    rendererIdentity,
   });
 }
 
 describe("computeSiteInputFingerprint", () => {
-  test("invalidates retained output when a template gains a render version", () => {
-    expect(fingerprint()).not.toBe(fingerprint("latest-update-v1"));
+  test("renders again under another renderer process, whose code may differ", () => {
+    expect(fingerprint("process-a")).not.toBe(fingerprint("process-b"));
   });
 
-  test("is stable for the same template render version", () => {
-    expect(fingerprint("doc-list-v2")).toBe(fingerprint("doc-list-v2"));
+  test("is stable within one renderer process", () => {
+    expect(fingerprint("process-a")).toBe(fingerprint("process-a"));
   });
 });

@@ -19,6 +19,7 @@ export const headStyles: Record<
   | "totalLabel"
   | "totalValue"
   | "action"
+  | "navigation"
   | "good"
   | "warn"
   | "error",
@@ -50,6 +51,7 @@ export const headStyles: Record<
     borderBottomColor: "var(--console-text)",
     "@media (max-width: 640px)": { paddingBottom: 16 },
   },
+  navigation: { gridColumn: "1 / -1" },
   hasAction: { gridTemplateColumns: "minmax(0, 1fr) auto" },
   row: {
     display: "grid",

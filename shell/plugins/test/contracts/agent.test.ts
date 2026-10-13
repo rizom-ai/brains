@@ -160,18 +160,18 @@ describe("public agent contracts", () => {
         maxCostMicroUsd: 100,
         limits: {
           messageCharacters: 100,
-          outputTokens: 10,
-          contextTokens: 100,
-          contextBytes: 1024,
-          toolSteps: 1,
-          toolCalls: 1,
-          toolResultCharacters: 100,
-          retrieval: { rows: 1, rowBytes: 100, queryCharacters: 100 },
           requestTimeoutSeconds: 1,
         },
       },
+      guestScreening: {
+        topics: ["Memory institutions"],
+        refusal: "I only talk about my work.",
+      },
     });
     expect(guestContext.guestExecution?.maxCostMicroUsd).toBe(100);
+    expect(guestContext.guestScreening?.topics).toEqual([
+      "Memory institutions",
+    ]);
     await agent.chat(
       "Public question",
       "guest-conversation",

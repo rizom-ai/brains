@@ -13,6 +13,8 @@ export {
   createShellConfig,
   createStandardConfig,
   getStandardConfig,
+  logLevelSchema,
+  reasoningEffortSchema,
   shellConfigSchema,
   STANDARD_PATHS,
 } from "./config";

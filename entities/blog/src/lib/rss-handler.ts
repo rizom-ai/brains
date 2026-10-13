@@ -8,8 +8,7 @@ import {
   blogPostFrontmatterSchema,
   blogPostSchema,
 } from "../schemas/blog-post";
-import type { BlogPostWithData } from "../datasources/blog-datasource";
-import { generateRSSFeed } from "../rss/feed-generator";
+import { generateRSSFeed, type RSSFeedPost } from "../rss/feed-generator";
 import { promises as fs } from "fs";
 import { join } from "path";
 
@@ -56,7 +55,7 @@ async function generateRSSAfterBuild(
     blogPostSchema,
   );
 
-  const filteredPosts: BlogPostWithData[] = allPosts
+  const filteredPosts: RSSFeedPost[] = allPosts
     .filter(
       (p) =>
         isPreview ||

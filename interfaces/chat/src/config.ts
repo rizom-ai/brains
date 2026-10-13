@@ -131,13 +131,14 @@ export const chatConfigSchema: ChatConfigSchema = z
   })
   .superRefine((config, context) => {
     // An adapterless interface would register webhook routes that only ever
-    // 404. The resolver reads this as "missing required config" and skips the
-    // interface, which is what a brain with no chat credentials wants.
+    // 404. Marked missing, the resolver skips the interface, which is what a
+    // brain with no chat credentials wants.
     if (!config.adapters.discord && !config.adapters.slack) {
       context.addIssue({
         code: "custom",
         message: "At least one chat adapter must be configured",
         path: ["adapters"],
+        params: { missing: true },
       });
     }
   });

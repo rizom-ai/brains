@@ -12,16 +12,12 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import { isRecord } from "@brains/utils/is-record";
 
 const PLUGIN_ID = "system";
-const updateFieldsSchema = z.record(z.string(), z.unknown());
-const wrappedUpdateFieldsSchema = z.looseObject({
-  fields: updateFieldsSchema,
-});
 
 const ROLE_LABELS: Record<UserPermissionLevel, string> = {
   admin: "Admin",
@@ -200,11 +196,14 @@ export function buildEntityMutationEventContext(
   return Object.keys(eventContext).length > 0 ? eventContext : undefined;
 }
 
-export function sanitizeEntity<T extends BaseEntity>(entity: T): T {
-  if (entity.entityType === "image" && entity.content.startsWith("data:")) {
+export function sanitizeEntity<T extends BaseEntity>(
+  entity: T,
+  registry: SystemServices["entityRegistry"],
+): T {
+  if (registry.getEntityTypeConfig(entity.entityType).binaryStorage) {
     return {
       ...entity,
-      content: "[binary image data — use metadata for image info]",
+      content: `[binary ${entity.entityType} data — use metadata for ${entity.entityType} info]`,
     };
   }
   return entity;
@@ -219,39 +218,6 @@ export function normalizeOptionalString(
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
-}
-
-export function normalizeUpdateInput(input: {
-  fields?: Record<string, unknown>;
-  content?: string;
-}): {
-  fields?: Record<string, unknown>;
-  content?: string;
-} {
-  if (input.fields) {
-    return { fields: input.fields };
-  }
-
-  if (!input.content) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(input.content);
-    const wrapped = wrappedUpdateFieldsSchema.safeParse(parsed);
-    if (wrapped.success) {
-      return { fields: wrapped.data.fields };
-    }
-
-    const fields = updateFieldsSchema.safeParse(parsed);
-    if (fields.success) {
-      return { fields: fields.data };
-    }
-  } catch {
-    // Not JSON — treat as full content replacement.
-  }
-
-  return { content: input.content };
 }
 
 const ENTITY_TYPE_DISPLAY_NAMES: Record<string, string> = {

@@ -4,11 +4,7 @@ import type {
   IAnchorProfileService,
 } from "@brains/identity-service";
 import { guestInterfaceType } from "@brains/contracts/chat";
-import {
-  testGuestExecution,
-  testGuestAccounting,
-} from "./fixtures/guest-execution";
-import { GuestTurnBudget } from "../src/guest-turn-budget";
+import { testGuestExecution } from "./fixtures/guest-execution";
 import { createMockMCPService } from "@brains/mcp-service/test";
 import type { Tool, IMCPService } from "@brains/mcp-service";
 import type {
@@ -17,6 +13,11 @@ import type {
 } from "@brains/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
+import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
+import {
+  openAiEmbeddingPricingRevision,
+  noModelCallPricing,
+} from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
 import type { AgentConversationStore } from "../src/turn-processor";
@@ -64,14 +65,7 @@ function tool(name: string, overrides: Partial<Tool> = {}): Tool {
 }
 
 const services: AgentService[] = [];
-const budgets: GuestTurnBudget[] = [];
-function toolBudget(): GuestTurnBudget {
-  const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
-  budgets.push(budget);
-  return budget;
-}
 afterEach(async () => {
-  for (const budget of budgets.splice(0)) budget.dispose();
   await Promise.all(services.splice(0).map((service) => service.shutdown()));
 });
 
@@ -97,6 +91,7 @@ interface GuestRuntimeHarness {
 function harness(
   stored: Conversation | null = conversation,
   history: Message[] = [],
+  config: Partial<AgentConfig> = {},
 ): GuestRuntimeHarness {
   const generate = mock<BrainAgent["generate"]>(async () => ({
     text: "Public answer",
@@ -144,6 +139,7 @@ function harness(
       agentContextProvider,
       uploadAttachmentResolver,
       canonicalIdentityResolver,
+      ...config,
     },
   );
   services.push(service);
@@ -258,7 +254,7 @@ describe("guest runtime boundary", () => {
     expect(h.generate).not.toHaveBeenCalled();
   });
 
-  it("excludes private configuration, enrichment, uploads and history metadata from guest context", async () => {
+  it("gives the guest the brain's identity and public profile, but no email, enrichment, uploads or private history", async () => {
     const history: Message[] = [
       {
         id: "public-message",
@@ -301,13 +297,15 @@ describe("guest runtime boundary", () => {
       testGuestExecution,
     );
     expect(h.conversations.startConversation).not.toHaveBeenCalled();
-    expect(h.getCharacter).not.toHaveBeenCalled();
-    expect(h.getProfile).not.toHaveBeenCalled();
-    expect(h.getInstructions).not.toHaveBeenCalled();
     expect(h.agentContextProvider).not.toHaveBeenCalled();
     expect(h.uploadAttachmentResolver).not.toHaveBeenCalled();
     expect(h.canonicalIdentityResolver.enrichActor).not.toHaveBeenCalled();
-    expect(JSON.stringify(h.factory.mock.calls)).not.toContain("PRIVATE");
+    const [guestConfig] = h.factory.mock.calls[0] ?? [];
+    expect(guestConfig?.identity.name).toBe("PRIVATE CHARACTER");
+    expect(guestConfig?.profile?.name).toBe("PRIVATE ANCHOR");
+    expect(JSON.stringify(h.factory.mock.calls)).not.toContain(
+      "private@example.test",
+    );
     expect(JSON.stringify(h.generate.mock.calls)).not.toContain("PRIVATE");
     expect(JSON.stringify(h.generate.mock.calls)).toContain(
       "Previous public answer",
@@ -361,6 +359,391 @@ describe("guest runtime boundary", () => {
     expect(stored).not.toContain("PRIVATE");
   });
 
+  describe("gives an answer the public pages closest to it as its sources", () => {
+    // The lookup found a social post about an essay; the answer is about the essay.
+    const lookupSteps = [
+      {
+        toolCalls: [
+          {
+            toolName: "system_search",
+            toolCallId: "search",
+            input: { query: "memory" },
+          },
+        ],
+        toolResults: [
+          {
+            toolName: "system_search",
+            toolCallId: "search",
+            output: {
+              success: true,
+              data: {
+                results: [
+                  {
+                    entity: {
+                      id: "announcement",
+                      entityType: "social-post",
+                      content: "I published an essay",
+                      metadata: { title: "Announcement" },
+                    },
+                    score: 0.9,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ];
+    const essay = {
+      id: "post:hiding-in-plain-sight",
+      title: "Hiding in Plain Sight",
+      source: "post",
+      entityType: "post",
+      entityId: "hiding-in-plain-sight",
+      url: "/essays/hiding-in-plain-sight",
+    };
+    function sourceIds(cards: unknown): string[] {
+      return (Array.isArray(cards) ? cards : []).flatMap((card: unknown) =>
+        typeof card === "object" &&
+        card !== null &&
+        "kind" in card &&
+        card.kind === "sources" &&
+        "sources" in card &&
+        Array.isArray(card.sources)
+          ? card.sources.map((source: { id: string }) => source.id)
+          : [],
+      );
+    }
+
+    it("instead of what the lookups happened to return", async () => {
+      const guestAnswerSources = mock(async () => [essay]);
+      const h = harness(conversation, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: "Storage is not memory.",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      const response = await h.service.chat(
+        "What is memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(guestAnswerSources).toHaveBeenCalledWith({
+        answer: "Storage is not memory.",
+      });
+      expect(sourceIds(response.cards)).toEqual(["post:hiding-in-plain-sight"]);
+      const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
+      expect(stored).toContain("post:hiding-in-plain-sight");
+      expect(stored).not.toContain("social-post:announcement");
+    });
+
+    it("keeps the lookups' sources when the closest pages cannot be found", async () => {
+      const guestAnswerSources = mock(async () => {
+        throw new Error("index unavailable");
+      });
+      const h = harness(conversation, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: "Storage is not memory.",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      const response = await h.service.chat(
+        "What is memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(sourceIds(response.cards)).toEqual(["social-post:announcement"]);
+    });
+
+    it("only for a visitor's answer", async () => {
+      const guestAnswerSources = mock(async () => [essay]);
+      const h = harness(null, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: "Storage is not memory.",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      await h.service.chat("What is memory?", "operator-conversation", {
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+      });
+      expect(guestAnswerSources).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a question asked before", () => {
+    const citedIds = (cards: unknown): string[] =>
+      (Array.isArray(cards) ? cards : []).flatMap((card: unknown) =>
+        typeof card === "object" &&
+        card !== null &&
+        "kind" in card &&
+        card.kind === "sources" &&
+        "sources" in card &&
+        Array.isArray(card.sources)
+          ? card.sources.map((source: { id: string }) => source.id)
+          : [],
+      );
+    const askedBefore = {
+      faqId: "how-does-rizom-keep-memory",
+      answer: "Rizom keeps memory in the brains of the people who hold it.",
+      sources: [
+        {
+          id: "post:handoffs",
+          source: "post",
+          entityType: "post",
+          entityId: "handoffs",
+          title: "Handoffs between teams",
+          url: "https://becca.rizom.ai/essays/handoffs",
+          brain: { name: "Becca", url: "https://becca.rizom.ai" },
+        },
+      ],
+    };
+    it("is answered from the FAQ, with its sources, before the model", async () => {
+      const guestAskedBefore = mock(async () => askedBefore);
+      const h = harness(conversation, [], { guestAskedBefore });
+      const response = await h.service.chat(
+        "How does Rizom keep memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(guestAskedBefore).toHaveBeenCalledWith({
+        question: "How does Rizom keep memory?",
+      });
+      expect(h.generate).not.toHaveBeenCalled();
+      // Nothing was prepared for a model that was never asked.
+      expect(h.agentContextProvider).not.toHaveBeenCalled();
+      // The turn cost nothing but its own check, and says so.
+      expect(response.guestSettlement).toEqual({
+        usage: {
+          modelCalls: 0,
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          embeddingTokens: 0,
+        },
+        cost: {
+          state: "known",
+          microUsd: 0,
+          pricing: noModelCallPricing,
+        },
+      });
+      expect(response.text).toBe(askedBefore.answer);
+      expect(response.askedBefore).toEqual({
+        faqId: "how-does-rizom-keep-memory",
+      });
+      expect(citedIds(response.cards)).toEqual(["post:handoffs"]);
+      // The question and the answer are the conversation's, as any turn's.
+      const roles = h.conversations.addMessage.mock.calls.map(
+        ([message]) => message.role,
+      );
+      expect(roles).toEqual(["user", "assistant"]);
+      const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
+      expect(stored).toContain("post:handoffs");
+      expect(stored).toContain("Becca");
+      // History knows a FAQ answered, as the live box does.
+      const [, reply] = h.conversations.addMessage.mock.calls;
+      expect(reply?.[0].metadata).toMatchObject({
+        askedBefore: { faqId: "how-does-rizom-keep-memory" },
+      });
+    });
+    it("charges the check's own embedding to the turn", async () => {
+      const embeddingUsage = EmbeddingUsageMeter.createFresh();
+      const guestAskedBefore = mock(async () => {
+        // Finding the FAQ embeds the question.
+        embeddingUsage.record("text-embedding-3-small", 12);
+        return askedBefore;
+      });
+      const h = harness(conversation, [], { guestAskedBefore, embeddingUsage });
+      const response = await h.service.chat(
+        "How does Rizom keep memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(response.guestSettlement?.usage.embeddingTokens).toBe(12);
+      expect(response.guestSettlement?.cost).toMatchObject({
+        state: "known",
+        pricing: `${noModelCallPricing}+${openAiEmbeddingPricingRevision}`,
+      });
+    });
+
+    it("goes to the model when no FAQ asks it, or the check fails", async () => {
+      const h = harness(conversation, [], {
+        guestAskedBefore: mock(async () => undefined),
+      });
+      await h.service.chat("Something new?", conversation.id, guestContext);
+      expect(h.generate).toHaveBeenCalledTimes(1);
+      const failing = harness(conversation, [], {
+        guestAskedBefore: mock(async () => {
+          throw new Error("faq index unavailable");
+        }),
+      });
+      const response = await failing.service.chat(
+        "Something new?",
+        conversation.id,
+        guestContext,
+      );
+      expect(failing.generate).toHaveBeenCalledTimes(1);
+      expect(response.askedBefore).toBeUndefined();
+    });
+    it("is never consulted for an owner's turn", async () => {
+      const guestAskedBefore = mock(async () => askedBefore);
+      const h = harness(null, [], { guestAskedBefore });
+      await h.service.chat(
+        "How does Rizom keep memory?",
+        "operator-conversation",
+        {
+          interfaceType: "cli",
+          userPermissionLevel: "admin",
+          isAnchor: true,
+        },
+      );
+      expect(guestAskedBefore).not.toHaveBeenCalled();
+      expect(h.generate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("carries a guest turn's settled usage to its transport", async () => {
+    const h = harness();
+    const guestSettlement = {
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10,
+        cachedInputTokens: 3,
+        outputTokens: 4,
+        reasoningTokens: 1,
+        embeddingTokens: 0,
+      },
+      cost: { state: "known" as const, microUsd: 9, pricing: "test-revision" },
+    };
+    h.generate.mockResolvedValue({
+      text: "Public answer",
+      steps: [],
+      usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+      guestSettlement,
+    });
+    const response = await h.service.chat(
+      "What is public?",
+      conversation.id,
+      guestContext,
+    );
+    expect(response.guestSettlement).toEqual(guestSettlement);
+  });
+
+  it("adds the embeddings a guest turn made, in its searches and in finding its sources, to its settlement", async () => {
+    const embeddingUsage = EmbeddingUsageMeter.createFresh();
+    const guestAnswerSources = mock(async () => {
+      // Finding the answer's sources embeds the answer.
+      embeddingUsage.record("text-embedding-3-small", 40);
+      return [];
+    });
+    const h = harness(conversation, [], { guestAnswerSources, embeddingUsage });
+    h.generate.mockImplementation(async () => {
+      // The model's own search embeds its query.
+      embeddingUsage.record("text-embedding-3-small", 10);
+      return {
+        text: "Public answer",
+        steps: [],
+        usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+        guestSettlement: {
+          usage: {
+            modelCalls: 1,
+            inputTokens: 10,
+            cachedInputTokens: 3,
+            outputTokens: 4,
+            reasoningTokens: 1,
+            embeddingTokens: 0,
+          },
+          cost: { state: "known", microUsd: 9, pricing: "test-revision" },
+        },
+      };
+    });
+    // Embeddings outside the turn are not its cost.
+    embeddingUsage.record("text-embedding-3-small", 1_000);
+    const response = await h.service.chat(
+      "What is public?",
+      conversation.id,
+      guestContext,
+    );
+    expect(response.guestSettlement?.usage.embeddingTokens).toBe(50);
+    expect(response.guestSettlement?.cost).toEqual({
+      state: "known",
+      microUsd: 10,
+      pricing: `test-revision+${openAiEmbeddingPricingRevision}`,
+    });
+  });
+
+  describe("screens a visitor's question", () => {
+    const guestScreening = {
+      topics: ["essays on memory"],
+      refusal: "I only talk about my essays.",
+    };
+
+    it("with the site's topics and refusal", async () => {
+      const h = harness();
+      await h.service.chat("What is memory?", conversation.id, {
+        ...guestContext,
+        guestScreening,
+      });
+      expect(h.generate.mock.calls[0]?.[0].options.guestScreening).toEqual(
+        guestScreening,
+      );
+    });
+
+    it("and carries a refusal out without finding sources for it", async () => {
+      const guestAnswerSources = mock(async () => []);
+      const h = harness(conversation, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: guestScreening.refusal,
+        steps: [],
+        usage: { inputTokens: 5, outputTokens: 1, totalTokens: 6 },
+        guestScreening: { outcome: "refused", category: "off-topic" },
+      });
+      const response = await h.service.chat(
+        "Write my homework",
+        conversation.id,
+        { ...guestContext, guestScreening },
+      );
+      expect(response.text).toBe(guestScreening.refusal);
+      expect(response.guestScreening).toEqual({
+        outcome: "refused",
+        category: "off-topic",
+      });
+      expect(response.cards).toBeUndefined();
+      expect(guestAnswerSources).not.toHaveBeenCalled();
+    });
+
+    it("and carries an answered outcome with the answer", async () => {
+      const h = harness();
+      h.generate.mockResolvedValue({
+        text: "Public answer",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        guestScreening: { outcome: "answered" },
+      });
+      const response = await h.service.chat(
+        "What is memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(response.guestScreening).toEqual({ outcome: "answered" });
+    });
+
+    it("never for the owner", async () => {
+      const h = harness(null);
+      await h.service.chat("What is memory?", "operator-conversation", {
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+        guestScreening,
+      });
+      expect(
+        h.generate.mock.calls[0]?.[0].options.guestScreening,
+      ).toBeUndefined();
+    });
+  });
+
   it("keeps operator and guest agent caches separate and invalidates both", async () => {
     const h = harness();
     h.conversations.getConversation.mockImplementation(async (id) =>
@@ -373,8 +756,12 @@ describe("guest runtime boundary", () => {
     await h.service.chat("hello", "operator", operatorContext);
     await h.service.chat("hello", conversation.id, guestContext);
     expect(h.factory).toHaveBeenCalledTimes(2);
-    expect(JSON.stringify(h.factory.mock.calls[0])).toContain("PRIVATE");
-    expect(JSON.stringify(h.factory.mock.calls[1])).not.toContain("PRIVATE");
+    expect(JSON.stringify(h.factory.mock.calls[0])).toContain(
+      "private@example.test",
+    );
+    expect(JSON.stringify(h.factory.mock.calls[1])).not.toContain(
+      "private@example.test",
+    );
     await h.service.chat("again", "operator", operatorContext);
     await h.service.chat("again", conversation.id, guestContext);
     expect(h.factory).toHaveBeenCalledTimes(2);
@@ -405,18 +792,20 @@ describe("guest tool dispatch", () => {
       tool("system_search"),
       tool("system_get"),
       tool("system_list"),
+      tool("network_ask"),
       tool("system_create"),
       tool("new_plugin_read"),
       tool("remote-agent_ask"),
       tool("system_search", { sideEffects: "writes" }),
       tool("system_get", { visibility: "admin" }),
       tool("system_list", { agentTool: false }),
+      tool("network_ask", { sideEffects: "external" }),
     ];
     expect(
       filterToolsForCallOptions(tools, {
         interfaceType: guestInterfaceType,
       }).map((entry) => entry.name),
-    ).toEqual(["system_search", "system_get", "system_list"]);
+    ).toEqual(["system_search", "system_get", "system_list", "network_ask"]);
   });
 
   it("filters at SDK conversion too and does not broadcast guest queries", async () => {
@@ -431,7 +820,6 @@ describe("guest tool dispatch", () => {
         isAnchor: false,
       },
       { emit },
-      toolBudget(),
     );
     expect(Object.keys(tools)).toEqual(["system_search"]);
     const execute = tools["system_search"]?.execute;
@@ -442,39 +830,75 @@ describe("guest tool dispatch", () => {
       expect.objectContaining({
         userPermissionLevel: "public",
         isAnchor: false,
-        guestExecution: testGuestExecution,
-        signal: expect.any(AbortSignal),
       }),
     );
     expect(emit).not.toHaveBeenCalled();
   });
 
-  it("does not lend handlers a mutable reference to the turn policy", async () => {
-    const budget = toolBudget();
-    const read = tool("system_get", {
-      handler: async (_input, context) => {
-        if (!context.guestExecution)
-          throw new Error("Expected execution policy");
-        expect(context.guestExecution).not.toBe(budget.policy);
-        context.guestExecution.limits.retrieval.rows = 100000;
-        context.guestExecution.limits.toolCalls = 100000;
-        return { success: true };
-      },
+  // The model relays these outcomes to the visitor, so each says what happened
+  // without the handler's own words.
+  describe("tells the model what a guest lookup found", () => {
+    async function lookup(read: Tool): Promise<unknown> {
+      const tools = convertToSDKTools(
+        [read],
+        {
+          conversationId: conversation.id,
+          interfaceType: guestInterfaceType,
+          userPermissionLevel: "public",
+        },
+        { emit: mock(() => {}) },
+      );
+      const execute = tools[read.name]?.execute;
+      if (!execute) throw new Error("Expected guest read tool");
+      return execute({}, { toolCallId: "read", messages: [] });
+    }
+
+    it("passes a lookup's own answer to the model, so it can correct its request", async () => {
+      const read = tool("system_list", {
+        handler: mock(async () => ({
+          success: false,
+          error: "Unknown entity type: projects. Available: post, project",
+        })),
+      });
+      expect(await lookup(read)).toEqual({
+        success: false,
+        error: "Unknown entity type: projects. Available: post, project",
+      });
     });
-    const tools = convertToSDKTools(
-      [read],
-      {
-        conversationId: conversation.id,
-        interfaceType: guestInterfaceType,
-        userPermissionLevel: "public",
-      },
-      { emit: mock(() => {}) },
-      budget,
-    );
-    const execute = tools["system_get"]?.execute;
-    if (!execute) throw new Error("Expected getter");
-    await execute({}, { toolCallId: "read", messages: [] });
-    expect(budget.policy).toEqual(testGuestExecution);
+
+    it("bounds a lookup's own answer", async () => {
+      const read = tool("system_get", {
+        handler: mock(async () => ({
+          success: false,
+          error: "x".repeat(2000),
+        })),
+      });
+      const result = await lookup(read);
+      expect(result).toMatchObject({ success: false });
+      expect(JSON.stringify(result).length).toBeLessThan(600);
+    });
+
+    it("reports a lookup that fails with an empty answer as no match", async () => {
+      const read = tool("system_get", {
+        handler: mock(async () => ({ success: false, error: " " })),
+      });
+      expect(await lookup(read)).toEqual({
+        success: false,
+        error: "Nothing public matches that request.",
+      });
+    });
+
+    it("keeps a failing lookup's details private and reports it unavailable", async () => {
+      const read = tool("system_search", {
+        handler: mock(async () => {
+          throw new Error("PRIVATE storage failure");
+        }),
+      });
+      expect(await lookup(read)).toEqual({
+        success: false,
+        error: "Public retrieval unavailable",
+      });
+    });
   });
 
   it("rechecks tool declarations at dispatch rather than relying only on initial filtering", () => {

@@ -1,36 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
-import { renderChatPage } from "../src/chat-page";
+import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
+import { renderGuestChatPage } from "../src/chat-page";
 import {
   createWebChatClient,
   getWebChatApiPath,
   getWebChatApiPaths,
 } from "../ui-react/src/web-chat-client";
 
-const originalDocument = globalThis.document;
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 
 beforeEach(() => {
   windowInstance = new Window();
-  Object.assign(globalThis, { document: windowInstance.document });
+  restoreGlobals = installGlobals({ document: windowInstance.document });
 });
 
 afterEach(() => {
   windowInstance.close();
-  Object.assign(globalThis, { document: originalDocument });
+  restoreGlobals();
 });
 
 describe("standalone Web Chat transport bootstrap", () => {
   it("publishes the configured API path without executable configuration", () => {
-    const html = renderChatPage({
+    const html = renderGuestChatPage({
       apiPath: "/custom/chat-api",
-      dashboardHref: "/dashboard",
-      sessionHref: "/logout",
     });
 
-    expect(html).toContain(
-      'data-web-chat-root data-chat-api-path="/custom/chat-api"',
-    );
+    expect(html).toContain('data-chat-api-path="/custom/chat-api"');
     expect(html).not.toContain("window.__chatConfig");
   });
 

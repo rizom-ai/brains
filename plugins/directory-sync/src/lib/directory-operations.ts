@@ -8,6 +8,7 @@ import {
   processEntityExport as runProcessEntityExport,
 } from "./export-pipeline";
 import { importEntities as runImport } from "./import-pipeline";
+import type { DirectoryImportPlan } from "../types/jobs";
 
 export async function processDirectoryEntityExport(
   operationDeps: DirectoryOperationDeps,
@@ -41,8 +42,9 @@ export async function importDirectoryEntities(
   operationDeps: DirectoryOperationDeps,
   entityTypes: string[] | undefined,
   paths?: string[],
+  plan?: DirectoryImportPlan,
 ): Promise<ImportResult> {
-  return runImport(operationDeps.createImportDeps(entityTypes), paths);
+  return runImport(operationDeps.createImportDeps(entityTypes), paths, plan);
 }
 
 export async function removeOrphanedDirectoryEntities(

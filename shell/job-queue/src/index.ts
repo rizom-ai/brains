@@ -1,6 +1,9 @@
 // With moduleResolution: "bundler", we can export implementations safely
 export { JobQueueService } from "./job-queue-service";
-export { JobQueueWorker } from "./job-queue-worker";
+export {
+  JobQueueWorker,
+  type ResettableAmbientScope,
+} from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
 export { JobProgressMonitor } from "./job-progress-monitor";
 export type { JobProgressMonitorMode } from "./job-progress-monitor";

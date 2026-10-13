@@ -1,0 +1,1926 @@
+id: mcp-verbatim-create
+name: MCP chat/confirm saves a 17 KB pasted note without model copying
+description: Verify a compact source reference and exact source hash, cancellation leaves no note, and approval persists the complete original Markdown. Canonical visibility frontmatter is accounted for explicitly.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: mcp
+tags:
+  - recipe-personal
+  - mcp-protocol
+  - regression
+  - confirmation
+  - verbatim-create
+successCriteria: {}
+turns:
+  - &a1
+    userMessage: |-
+      Create a restricted note titled 'MCP verbatim create'. Save only the complete Markdown between the following boundary lines, excluding the boundary lines themselves, verbatim. Do not summarize, rewrite, or omit repeated paragraphs. Request confirmation before saving.
+
+      BEGIN EXACT CONTENT
+      # MCP verbatim create
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Exact source paragraph
+
+      Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\draft.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+
+      Final padding: ............................................................................................................................................................................................................
+      END EXACT CONTENT
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          argsContain:
+            entityType: note
+            title: MCP verbatim create
+            visibility: restricted
+            source.kind: user-message
+            source.boundaryMode: lines
+            source.startAfter: BEGIN EXACT CONTENT
+            source.endBefore: END EXACT CONTENT
+            source.contentHash: f255abd6b81558d5dcb5e08ca8c7557e52775209125d915932503d0854e8b28e
+          argsAbsent:
+            - source.content
+            - confirmed
+          resultContains:
+            needsConfirmation: true
+  - userMessage: Cancel that proposal.
+    confirmPendingAction: false
+  - userMessage: Read note 'mcp-verbatim-create' from storage now. Do not create or modify anything.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: mcp-verbatim-create
+          resultErrorContains: "not found: note/mcp-verbatim-create"
+  - *a1
+  - userMessage: Approve the creation.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          resultContains:
+            success: true
+            data.entityId: mcp-verbatim-create
+            data.status: created
+  - userMessage: Read note 'mcp-verbatim-create' from storage again. Do not change anything. Briefly report its title.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: mcp-verbatim-create
+          resultContains:
+            entity.content: |
+              ---
+              visibility: restricted
+              ---
+              # MCP verbatim create
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Exact source paragraph
+
+              Preserve every repeated paragraph, punctuation mark, backslash, and blank line. Do not shorten this source.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+
+              Final padding: ............................................................................................................................................................................................................
+            entity.visibility: restricted
+            entity.metadata.title: MCP verbatim create

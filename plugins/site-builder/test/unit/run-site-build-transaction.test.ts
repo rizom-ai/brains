@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { SITE_CHANNELS } from "@brains/contracts";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { dirname, join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
+import type { SiteBuildContext } from "@brains/site-engine";
 import {
   createTestSiteBuildOutputLifecycle,
   TestLayout,
@@ -14,6 +15,22 @@ import {
 
 function createPipelineContext(): BuildPipelineContext {
   return createTestPipelineContext().pipeline;
+}
+
+// The real builder writes the prepared static assets (the default icon among
+// them) before anything can fail late; the mocks do the same, so the output
+// commit finds every asset the build declared.
+async function writeStaticAssets(
+  context: SiteBuildContext,
+  outputDir: string,
+): Promise<void> {
+  for (const [path, content] of Object.entries(
+    context.preparedBuild.staticAssets,
+  )) {
+    const file = join(outputDir, path.replace(/^\//, ""));
+    await fs.mkdir(dirname(file), { recursive: true });
+    await fs.writeFile(file, content);
+  }
 }
 
 describe("runSiteBuild transactional output", () => {
@@ -32,7 +49,8 @@ describe("runSiteBuild transactional output", () => {
   it("keeps the last successful output active after a late renderer failure", async () => {
     const successfulFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
         await fs.writeFile(
           join(options.outputDir, "index.html"),
@@ -79,7 +97,8 @@ describe("runSiteBuild transactional output", () => {
 
     const failingFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.writeFile(
           join(options.outputDir, "index.html"),
           "partial replacement",
@@ -107,7 +126,8 @@ describe("runSiteBuild transactional output", () => {
 
     const invalidFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.writeFile(
           join(options.outputDir, "index.html"),
           "unvalidated replacement",
@@ -143,7 +163,8 @@ describe("runSiteBuild transactional output", () => {
     let renderCount = 0;
     const factory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         renderCount += 1;
         await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
         await fs.writeFile(join(options.outputDir, "index.html"), "stable");
@@ -190,6 +211,55 @@ describe("runSiteBuild transactional output", () => {
         await fs.readFile(join(outputDir, ".site-build-manifest.json"), "utf8"),
       ).inputFingerprint,
     ).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("renders again after a restart, which may bring new renderer code", async () => {
+    let renderCount = 0;
+    const factory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
+        renderCount += 1;
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: {
+        title: "Upgraded Site",
+        description: "Upgrade fixture",
+      },
+      siteUrl: "https://upgrade.example",
+      layouts: { default: TestLayout },
+    };
+    const buildIn = (
+      rendererIdentity: string,
+    ): ReturnType<typeof runSiteBuild> =>
+      runSiteBuild({
+        buildOptions,
+        progress: undefined,
+        pipelineContext: createPipelineContext(),
+        staticSiteBuilderFactory: factory,
+        signal: new AbortController().signal,
+        rendererIdentity,
+      });
+
+    const beforeUpgrade = await buildIn("process-before-upgrade");
+    const afterUpgrade = await buildIn("process-after-upgrade");
+
+    expect(beforeUpgrade.success).toBe(true);
+    expect(afterUpgrade.success).toBe(true);
+    expect(afterUpgrade.skipped).not.toBe(true);
+    expect(renderCount).toBe(2);
   });
 
   it("treats the bounded output commit section as non-interruptible", async () => {
@@ -244,7 +314,8 @@ describe("runSiteBuild transactional output", () => {
     };
     const successfulFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
         await fs.writeFile(join(options.outputDir, "index.html"), "stable");
         await fs.writeFile(
@@ -316,7 +387,8 @@ describe("runSiteBuild transactional output", () => {
     };
     const successfulFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
         await fs.writeFile(join(options.outputDir, "index.html"), "stable");
         await fs.writeFile(
@@ -342,7 +414,8 @@ describe("runSiteBuild transactional output", () => {
     // fail with EISDIR through the real code path.
     const blockingFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
         await fs.writeFile(join(options.outputDir, "index.html"), "blocked");
         await fs.writeFile(
@@ -393,7 +466,8 @@ describe("runSiteBuild transactional output", () => {
     };
     const successfulFactory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
-      build: mock(async () => {
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
         await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
         await fs.writeFile(join(options.outputDir, "index.html"), "stable");
         await fs.writeFile(

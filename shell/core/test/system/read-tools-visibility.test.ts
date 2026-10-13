@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
-import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityTypeConfig,
+} from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { listInputSchema, searchInputSchema } from "../../src/system/schemas";
@@ -299,7 +303,11 @@ describe("read tools enforce caller visibility scope", () => {
       ]);
     });
 
-    it("sorts posts by publishedAt descending", async () => {
+    it("sorts posts by publishedAt before applying the limit", async () => {
+      services.entityRegistry.getEntityTypeConfig = (): EntityTypeConfig => ({
+        defaultSort: [{ field: "publishedAt", direction: "desc" as const }],
+      });
+      const list = spyOn(services.entityService, "listEntities");
       services.addEntities([
         {
           id: "older-post",
@@ -331,19 +339,79 @@ describe("read tools enforce caller visibility scope", () => {
         },
       ]);
 
-      const raw = await getTool("system_list").handler(
-        { entityType: "post" },
+      await getTool("system_list").handler(
+        { entityType: "post", limit: 1 },
         baseContext("admin"),
       );
-      const data = expectSuccess(raw, listDataSchema);
-      expect(data.entities.map((entity) => entity.id)).toEqual([
-        "newer-post",
-        "older-post",
-      ]);
+      expect(list).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 1,
+          filter: { visibilityScope: "restricted" },
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
+      });
+    });
+
+    it("keeps the service default order for undeclared types", async () => {
+      const list = spyOn(services.entityService, "listEntities");
+      await getTool("system_list").handler(
+        { entityType: "doc" },
+        baseContext("admin"),
+      );
+      expect(list).toHaveBeenCalledWith({
+        entityType: "doc",
+        options: { limit: 20, filter: { visibilityScope: "restricted" } },
+      });
     });
   });
 
   describe("system_get", () => {
+    const contentOf = (raw: unknown): string =>
+      expectSuccess(
+        raw,
+        z.object({ entity: z.object({ content: z.string() }) }),
+      ).entity.content;
+    const withFrontmatter =
+      "---\ntitle: Plan\nstatus: draft\n---\n# Plan\n\nBody line.\n";
+
+    it("returns only the Markdown body when asked for the body part", async () => {
+      services.addEntities([
+        {
+          ...makeEntity("doc-with-frontmatter", "public"),
+          content: withFrontmatter,
+        },
+      ]);
+      const get = getTool("system_get");
+      expect(
+        contentOf(
+          await get.handler(
+            { entityType: "doc", id: "doc-with-frontmatter", part: "body" },
+            baseContext("public"),
+          ),
+        ),
+      ).toBe("# Plan\n\nBody line.\n");
+      expect(
+        contentOf(
+          await get.handler(
+            { entityType: "doc", id: "doc-with-frontmatter" },
+            baseContext("public"),
+          ),
+        ),
+      ).toBe(withFrontmatter);
+    });
+
+    it("returns content without frontmatter unchanged as the body", async () => {
+      expect(
+        contentOf(
+          await getTool("system_get").handler(
+            { entityType: "doc", id: "doc-public", part: "body" },
+            baseContext("public"),
+          ),
+        ),
+      ).toBe("body of doc-public");
+    });
+
     it("refuses to return a restricted entity to a public caller", async () => {
       const error = expectError(await runGet("doc-restricted", "public"));
       expect(error).toMatch(/not found|denied|restricted/i);
@@ -373,4 +441,70 @@ describe("read tools enforce caller visibility scope", () => {
       expect(data.entity.id).toBe("doc-restricted");
     });
   });
+});
+
+// A public reader is a site's visitor: drafts are not theirs to read, whatever
+// their visibility. Trusted and admin callers still see work in progress.
+describe("read tools give public callers published work only", () => {
+  const contexts: Array<[ToolContext["userPermissionLevel"], boolean]> = [
+    ["public", true],
+    [undefined, true],
+    ["trusted", false],
+    ["admin", false],
+  ];
+
+  function servicesWithADoc(): ReturnType<typeof createMockSystemServices> {
+    const services = createMockSystemServices();
+    services.addEntities([makeEntity("doc-public", "public")]);
+    return services;
+  }
+
+  function toolNamed(
+    services: ReturnType<typeof createMockSystemServices>,
+    name: string,
+  ): Tool {
+    const tool = createSystemTools(services).find((t) => t.name === name);
+    if (!tool) throw new Error(`${name} not found`);
+    return tool;
+  }
+
+  for (const [level, publishedOnly] of contexts) {
+    const who = level ?? "unset";
+
+    it(`system_search for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
+      const services = servicesWithADoc();
+      const search = spyOn(services.entityService, "search");
+      await toolNamed(services, "system_search").handler(
+        { query: "body", scope: { kind: "all" } },
+        baseContext(level),
+      );
+      expect(search.mock.calls[0]?.[0].options?.publishedOnly).toBe(
+        publishedOnly ? true : undefined,
+      );
+    });
+
+    it(`system_list for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
+      const services = servicesWithADoc();
+      const list = spyOn(services.entityService, "listEntities");
+      await toolNamed(services, "system_list").handler(
+        { entityType: "doc" },
+        baseContext(level),
+      );
+      expect(list.mock.calls[0]?.[0].options?.publishedOnly).toBe(
+        publishedOnly ? true : undefined,
+      );
+    });
+
+    it(`system_get for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
+      const services = servicesWithADoc();
+      const get = spyOn(services.entityService, "getEntityRaw");
+      await toolNamed(services, "system_get").handler(
+        { entityType: "doc", id: "doc-public" },
+        baseContext(level),
+      );
+      expect(get.mock.calls[0]?.[0].publishedOnly).toBe(
+        publishedOnly ? true : undefined,
+      );
+    });
+  }
 });

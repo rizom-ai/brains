@@ -18,8 +18,8 @@ import {
 import {
   createOriginCertificateRequest,
   generateOriginKeyPair,
-  type FetchLike,
-} from "../src/origin-ca";
+} from "@brains/deploy-support/origin-ca";
+import { type FetchLike } from "@brains/utils/fetch-like";
 
 const originCertificateRequestBodySchema = z.strictObject({
   hostnames: z.array(z.string()),

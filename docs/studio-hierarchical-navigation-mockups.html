@@ -566,7 +566,7 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        margin: 16px 0 0;
+        margin: 12px 0 0;
         padding: 0;
         list-style: none;
         overflow-x: auto;
@@ -613,28 +613,38 @@
 
       /* collection query controls — the shipped library grammar */
 
-      .query {
-        margin: 20px 0 0;
-      }
-
-      .query label {
-        display: block;
-        margin-bottom: 7px;
-        color: var(--dim);
-        font-size: 12px;
-      }
-
-      .query-row {
+      /* One control row, as the library ships it: the field, the filter
+         chip, the folder scope, and what the query matched. */
+      .controls-row {
         display: flex;
+        flex-wrap: wrap;
+        align-items: center;
         gap: 10px;
-        align-items: stretch;
+        margin: 16px 0 0;
       }
 
-      .query input {
-        flex: 1;
-        min-width: 0;
-        min-height: 40px;
-        padding: 8px 11px;
+      .search-field {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        min-width: 220px;
+        max-width: 360px;
+      }
+
+      .search-field svg {
+        position: absolute;
+        left: 10px;
+        width: 14px;
+        height: 14px;
+        color: var(--muted);
+        pointer-events: none;
+      }
+
+      .search-field input {
+        width: 100%;
+        min-height: 38px;
+        padding: 8px 12px 8px 31px;
         border: 1px solid var(--rule-strong);
         border-radius: 7px;
         background: var(--card);
@@ -643,15 +653,47 @@
         font-size: 13px;
       }
 
-      .query input::placeholder {
+      .search-field input.has-value {
+        padding-right: 34px;
+      }
+
+      .search-field input::placeholder {
         color: var(--muted);
       }
 
+      .search-clear {
+        position: absolute;
+        right: 4px;
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        padding: 0 11px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--dim);
+        font-size: 13px;
+        cursor: pointer;
+      }
+
       .scope {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 14px;
-        margin-top: 12px;
         color: var(--dim);
         font-size: 12px;
       }
@@ -682,17 +724,19 @@
         font-size: 7px;
       }
 
-      .disclosure {
-        margin-top: 12px;
-        color: var(--dim);
-        font-family: var(--ui);
-        font-size: 12px;
+      .state {
+        margin-left: auto;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        white-space: nowrap;
       }
 
-      .disclosure::before {
-        margin-right: 6px;
-        color: var(--muted);
-        content: "▸";
+      .search-field input:focus-visible,
+      .chip:focus-visible,
+      .search-clear:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
       }
 
       /* list sections: folders complete, entries paginated */
@@ -702,8 +746,8 @@
         align-items: baseline;
         justify-content: space-between;
         gap: 12px;
-        margin: 28px 0 0;
-        padding-bottom: 9px;
+        margin: 24px 0 0;
+        padding-bottom: 8px;
         border-bottom: 1px solid var(--rule);
       }
 
@@ -715,12 +759,6 @@
         font-weight: 600;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-      }
-
-      .list-head .state {
-        color: var(--muted);
-        font-family: var(--mono);
-        font-size: 11px;
       }
 
       .pager {
@@ -835,8 +873,8 @@
       }
 
       .empty {
-        margin: 26px 0 0;
-        padding: 30px 0;
+        margin: 24px 0 0;
+        padding: 24px 0;
         color: var(--dim);
         font-size: 13px;
         line-height: 1.6;
@@ -907,7 +945,7 @@
       }
 
       .properties-label {
-        margin: 0 0 18px;
+        margin: 0 0 16px;
         color: var(--muted);
         font-family: var(--mono);
         font-size: 9px;
@@ -979,8 +1017,8 @@
       }
 
       .destination {
-        margin: 0 0 18px;
-        padding: 13px 14px;
+        margin: 0 0 16px;
+        padding: 12px 14px;
         border: 1px solid var(--rule-strong);
         border-radius: 8px;
         background: var(--card);
@@ -1006,7 +1044,7 @@
 
       .destination dl > div {
         display: grid;
-        grid-template-columns: 58px minmax(0, 1fr);
+        grid-template-columns: 64px minmax(0, 1fr);
         gap: 10px;
       }
 
@@ -1017,7 +1055,7 @@
       .destination dd {
         margin: 0;
         color: var(--dim);
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
       }
 
       .destination dd b {
@@ -1123,8 +1161,9 @@
         font-size: 11.5px;
       }
 
-      [data-viewport="phone"] .query-row {
-        flex-direction: column;
+      [data-viewport="phone"] .search-field {
+        flex-basis: 100%;
+        max-width: none;
       }
 
       [data-viewport="phone"] .doc-body {
@@ -1366,42 +1405,73 @@
 
                 <ol class="trail" id="trail" aria-label="Folder trail"></ol>
 
-                <div class="query">
-                  <label for="collectionSearch" id="searchLabel">
-                    Search title or content
-                  </label>
-                  <div class="query-row">
+                <div class="controls-row">
+                  <div class="search-field">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <circle
+                        cx="6.8"
+                        cy="6.8"
+                        r="4.4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                      />
+                      <line
+                        x1="10.2"
+                        y1="10.2"
+                        x2="14"
+                        y2="14"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                      />
+                    </svg>
                     <input
                       id="collectionSearch"
                       type="search"
-                      placeholder="Titles or content"
+                      aria-label="Search title or content"
+                      placeholder="Search title or content"
                     />
-                    <button class="btn btn-quiet" type="button">Search</button>
+                    <button
+                      class="search-clear"
+                      id="searchClear"
+                      type="button"
+                      aria-label="Clear search"
+                      hidden
+                    >
+                      ×
+                    </button>
                   </div>
-                  <div class="scope" id="searchScope" hidden>
+                  <button class="chip" type="button">Filter and sort</button>
+                  <span class="scope" id="searchScope" hidden>
                     <span data-on="true"
                       ><i aria-hidden="true"></i> This folder</span
                     >
                     <span data-on="false"
                       ><i aria-hidden="true"></i> Whole collection</span
                     >
-                  </div>
-                  <p class="disclosure">Filter and sort</p>
+                  </span>
+                  <span class="state" id="searchState" hidden></span>
+                  <button
+                    class="btn btn-ghost"
+                    id="searchReset"
+                    type="button"
+                    hidden
+                  >
+                    Clear
+                  </button>
                 </div>
 
                 <section id="foldersSection">
                   <div class="list-head">
                     <h2 id="foldersHeading">Folders</h2>
-                    <span class="state" id="foldersState">
-                      complete · not paged
-                    </span>
                   </div>
                   <div id="folderRows"></div>
                 </section>
 
                 <section id="entriesSection">
                   <div class="list-head">
-                    <h2 id="entriesHeading">Entries here</h2>
+                    <h2 id="entriesHeading">Entries</h2>
                     <span class="pager">
                       <span class="range" id="entriesRange">1–9 of 9</span>
                       <button type="button" disabled>Previous</button>
@@ -1443,13 +1513,15 @@
                           </dd>
                         </div>
                         <div>
-                          <dt>Entity ID</dt>
+                          <dt>Stored ID</dt>
                           <dd id="previewId">book-1:part-1:<b>chapter-3</b></dd>
                         </div>
                         <div>
                           <dt>File</dt>
                           <dd id="previewFile">
-                            book-section/book-1/part-1/<b>chapter-3</b>.md
+                            book-section/<wbr />book-1/<wbr />part-1/<wbr /><b
+                              >chapter-3</b
+                            >.md
                           </dd>
                         </div>
                       </dl>
@@ -1467,8 +1539,7 @@
                         data-invalid="false"
                       />
                       <p class="hint" id="segmentHint">
-                        Lowercase letters, digits and dashes. The folder trail
-                        above is fixed by where you pressed New.
+                        Lowercase letters, digits and dashes.
                       </p>
                       <p class="error" id="segmentError" hidden>
                         <span aria-hidden="true">×</span>
@@ -1506,7 +1577,7 @@
             <div class="action-bar phone-only" id="phoneActionBar">
               <span class="where" id="phoneWhere">Book sections</span>
               <button class="btn" type="button" id="phoneAction">
-                New section
+                New book section
               </button>
             </div>
           </div>
@@ -1525,10 +1596,10 @@
             its date.
           </p>
           <p>
-            Folders sort above entries and are labelled
-            <b>complete · not paged</b>. Entries keep the existing pager. That
-            split is deliberate and visible: the plan derives the full folder
-            list server-side per prefix, while direct children stay a page.
+            Folders sort above entries and carry no label of their own: the
+            server returns the whole folder list for a prefix, and the pager
+            sits with the entries because only they page. The interface shows
+            that split instead of announcing it.
           </p>
         </article>
         <article class="note-card">
@@ -1549,10 +1620,11 @@
         <article class="note-card">
           <h3>Search says which scope it searched</h3>
           <p>
-            Inside a folder the search control gains one explicit scope choice —
-            <b>This folder</b> or <b>Whole collection</b> — because a query that
-            silently changed scope on descent would be unreadable. Filter and
-            sort stay in their existing disclosure.
+            Inside a folder the library’s search row gains one explicit scope
+            choice — <b>This folder</b> or <b>Whole collection</b> — because a
+            query that silently changed scope on descent would be unreadable.
+            The field, the filter chip and the match count are the ones the
+            library already has.
           </p>
           <p>
             An empty result distinguishes an empty folder from a filtered one
@@ -1632,7 +1704,7 @@
           note: "nested paths exist → folders appear",
           title: "Book sections",
           location: "Library · Book sections",
-          meta: ["2 folders", "2 entries here", "37 in total"],
+          meta: ["37 entities"],
           // No trail at the root: a single unclickable crumb would only repeat
           // the title. The trail earns its space from the first descent.
           trail: [],
@@ -1652,7 +1724,7 @@
           note: "leaf folder — entries only, trail is walkable",
           title: "Book sections",
           location: "Library · Book sections / Book 1 / Part 1",
-          meta: ["9 entries here"],
+          meta: ["9 entities in Part 1"],
           trail: [
             { name: "Book sections" },
             { name: "Book 1" },
@@ -1668,13 +1740,14 @@
           ],
           range: "1–5 of 9",
           scope: true,
+          entriesHeading: "Entries in Part 1",
         },
         search: {
           label: "Search scoped to a folder",
           note: "scope is explicit; counts describe the searched set",
           title: "Book sections",
           location: "Library · Book sections / Book 1 / Part 1",
-          meta: ["3 matches in this folder"],
+          meta: ["3 matching entities"],
           trail: [
             { name: "Book sections" },
             { name: "Book 1" },
@@ -1689,14 +1762,14 @@
           range: "1–3 of 3",
           scope: true,
           query: "shared",
-          entriesHeading: "Matches",
+          entriesHeading: "Entries in Part 1",
         },
         empty: {
           label: "Filtered to nothing",
           note: "an empty folder and a filtered folder read differently",
           title: "Book sections",
           location: "Library · Book sections / Book 1 / Part 2",
-          meta: ["No matches in this folder"],
+          meta: ["No matching entities"],
           trail: [
             { name: "Book sections" },
             { name: "Book 1" },
@@ -1707,9 +1780,9 @@
           scope: true,
           query: "rhizome",
           empty: {
-            title: "No entries in Part 2 match “rhizome”.",
-            body: "Part 2 holds 8 entries. The query matched none of them.",
-            actions: ["Clear search", "Search whole collection"],
+            title: "Nothing in Part 2 matches “rhizome”.",
+            body: "Part 2 has 8 entries. Clear the search, or look beyond this folder.",
+            actions: ["Search whole collection"],
           },
         },
         create: {
@@ -1737,7 +1810,6 @@
           scope: false,
           leaf: "Field notes",
           newLabel: "New field note",
-          entriesHeading: "Entries",
         },
       };
 
@@ -1794,7 +1866,7 @@
         document.getElementById("newAction").textContent =
           state.newLabel ?? "New book section";
         document.getElementById("phoneAction").textContent =
-          state.newLabel ?? "New section";
+          state.newLabel ?? "New book section";
         // The leaf rail keeps listing entity types, never folders, so the
         // shell stays put while the trail moves.
         const active = state.leaf ?? "Book sections";
@@ -1816,8 +1888,20 @@
           : state.title;
 
         renderTrail(state.trail);
-        document.getElementById("collectionSearch").value = state.query ?? "";
+        const query = state.query ?? "";
+        const search = document.getElementById("collectionSearch");
+        search.value = query;
+        search.classList.toggle("has-value", query.length > 0);
+        document.getElementById("searchClear").hidden = query.length === 0;
         document.getElementById("searchScope").hidden = !state.scope;
+        // The row reports what the query matched and offers the way back,
+        // as the library does; the empty state below keeps only the
+        // folder-specific escape.
+        const matched = state.entries.length;
+        const searchState = document.getElementById("searchState");
+        searchState.hidden = query.length === 0;
+        searchState.textContent = `${matched} ${matched === 1 ? "match" : "matches"}`;
+        document.getElementById("searchReset").hidden = query.length === 0;
 
         const folders = document.getElementById("foldersSection");
         folders.hidden = state.folders.length === 0;
@@ -1826,7 +1910,7 @@
         const entries = document.getElementById("entriesSection");
         entries.hidden = state.entries.length === 0;
         document.getElementById("entriesHeading").textContent =
-          state.entriesHeading ?? "Entries here";
+          state.entriesHeading ?? "Entries";
         document.getElementById("entriesRange").textContent = state.range ?? "";
         document.getElementById("nextPage").disabled =
           (state.range ?? "").startsWith("1–2 of 2") ||
@@ -1886,7 +1970,7 @@
         document.getElementById("previewId").innerHTML =
           `book-1:part-1:<b>${shown}</b>`;
         document.getElementById("previewFile").innerHTML =
-          `book-section/book-1/part-1/<b>${shown}</b>.md`;
+          `book-section/<wbr>book-1/<wbr>part-1/<wbr><b>${shown}</b>.md`;
       }
 
       segment.addEventListener("input", validateSegment);

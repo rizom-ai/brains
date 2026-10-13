@@ -22,13 +22,18 @@ export class KnowledgeMapDataSource implements DataSource {
     outputSchema: DataSourceSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const data = await buildKnowledgeMapData({
-      entityService: context.entityService,
-      semantic: {
-        project: (request) =>
-          context.entityService.projectSemanticSpace(request),
+    // The public site: public entities only, made explicit rather than left
+    // to the entity service default.
+    const data = await buildKnowledgeMapData(
+      {
+        entityService: context.entityService,
+        semantic: {
+          project: (request) =>
+            context.entityService.projectSemanticSpace(request),
+        },
       },
-    });
+      "public",
+    );
 
     return outputSchema.parse(data);
   }

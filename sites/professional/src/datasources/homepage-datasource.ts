@@ -1,3 +1,8 @@
+import type {
+  HomepageAtlasData,
+  HomepageFaq,
+  HomepageOpeningData,
+} from "@brains/site-atlas";
 import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
@@ -42,6 +47,61 @@ interface HomepageDataSourceOutput {
   decksListUrl: string;
   cta: SiteInfoCTA;
   sections: HomepageSections;
+  opening?: HomepageOpeningData | null;
+  atlas?: HomepageAtlasData | null;
+  askBox?: boolean;
+  homepageOpening?: boolean;
+  faqs?: HomepageFaq[];
+}
+
+/**
+ * The professional homepage opens on the atlas only with a door to the
+ * contact form; without one it keeps its list homepage.
+ */
+export function requireDoor(
+  opening: HomepageOpeningData | null,
+): HomepageOpeningData | null {
+  return opening?.contactUrl ? opening : null;
+}
+
+/** The authored-homepage placement, only when the site opts in. */
+export interface HomepagePlacementLoaders {
+  loadOpening?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
+    | undefined;
+  loadAtlas?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
+    | undefined;
+  chatAvailable?:
+    ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
+  /** The owner's published FAQs, most asked first, shown under the atlas. */
+  loadFaqs?:
+    ((context: BaseDataSourceContext) => Promise<HomepageFaq[]>) | undefined;
+}
+
+type HomepagePlacement = Pick<
+  HomepageDataSourceOutput,
+  "homepageOpening" | "opening" | "atlas" | "askBox" | "faqs"
+>;
+
+/**
+ * The authored homepage: the atlas, the box and the FAQs are only worth
+ * loading when the authored opening renders.
+ */
+export async function loadHomepagePlacement(
+  placement: HomepagePlacementLoaders,
+  context: BaseDataSourceContext,
+): Promise<HomepagePlacement> {
+  const { loadOpening, loadAtlas, chatAvailable, loadFaqs } = placement;
+  if (!loadOpening) return {};
+  const opening = requireDoor(await loadOpening(context));
+  if (!opening) return { homepageOpening: true, opening, atlas: null };
+  const [atlas, askBox, faqs] = await Promise.all([
+    loadAtlas ? loadAtlas(context) : null,
+    chatAvailable?.(context) ?? false,
+    loadFaqs?.(context) ?? [],
+  ]);
+  return { homepageOpening: true, opening, atlas, askBox, faqs };
 }
 
 /**
@@ -56,7 +116,14 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  constructor(postsListUrl: string, decksListUrl: string) {
+  private readonly placement: HomepagePlacementLoaders;
+
+  constructor(
+    postsListUrl: string,
+    decksListUrl: string,
+    placement: HomepagePlacementLoaders = {},
+  ) {
+    this.placement = placement;
     this.postsListUrl = postsListUrl;
     this.decksListUrl = decksListUrl;
   }
@@ -97,6 +164,7 @@ export class HomepageListDataSource implements DataSource {
       decksListUrl: this.decksListUrl,
       cta: requireCta(siteInfo.cta),
       sections: siteInfo.sections ?? {},
+      ...(await loadHomepagePlacement(this.placement, context)),
     };
 
     return outputSchema.parse(data);

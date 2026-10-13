@@ -1,4 +1,8 @@
-import { extractCoverImageId, extractOgImageId } from "@brains/image";
+import {
+  extractCoverImageId,
+  extractOgImageId,
+  mapMarkdownImageUrls,
+} from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
@@ -64,7 +68,6 @@ export interface EnrichedEntity extends EntityWithSlug {
 export interface ContentEnrichmentOptions {
   pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
-  urlGenerator?: EntityUrlGenerator | undefined;
   siteUrl?: string | undefined;
 }
 
@@ -76,15 +79,25 @@ export async function enrichWithUrls(
   data: unknown,
   options: ContentEnrichmentOptions,
 ): Promise<unknown> {
-  const urlGenerator = options.urlGenerator ?? EntityUrlGenerator.getInstance();
+  return enrichValue(
+    data,
+    options,
+    new EntityUrlGenerator(options.pipelineContext.entityDisplay),
+  );
+}
 
+async function enrichValue(
+  data: unknown,
+  options: ContentEnrichmentOptions,
+  urlGenerator: EntityUrlGenerator,
+): Promise<unknown> {
   if (data === null || data === undefined) {
     return data;
   }
 
   if (Array.isArray(data)) {
     return Promise.all(
-      data.map((item) => enrichWithUrls(item, { ...options, urlGenerator })),
+      data.map((item) => enrichValue(item, options, urlGenerator)),
     );
   }
 
@@ -96,9 +109,7 @@ export async function enrichWithUrls(
   const enriched: Record<string, unknown> = {};
   const entries = Object.entries(data);
   const enrichedValues = await Promise.all(
-    entries.map(([, value]) =>
-      enrichWithUrls(value, { ...options, urlGenerator }),
-    ),
+    entries.map(([, value]) => enrichValue(value, options, urlGenerator)),
   );
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
@@ -240,7 +251,10 @@ async function resolveCoverImage(
 }
 
 /**
- * Scan all entities for coverImageId references to pre-resolve before rendering.
+ * Discover rendered Markdown images (inline and reference-style) and
+ * cover/OG references to prepare before rendering, without loading image
+ * entities. Images in code and ordinary links are not rendered, so not
+ * prepared.
  */
 export async function collectAllImageIds(
   entityService: ServiceEntityService,
@@ -265,6 +279,13 @@ export async function collectAllImageIds(
         const ogImageId = extractOgImageId(entity);
         if (ogImageId) {
           imageIds.add(ogImageId);
+        }
+        if (entity.content.includes("entity://image/")) {
+          mapMarkdownImageUrls(entity.content, (url) => {
+            const match = /^entity:\/\/image\/(.+)$/.exec(url);
+            if (match?.[1]) imageIds.add(match[1]);
+            return url;
+          });
         }
       }
     }

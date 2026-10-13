@@ -29,6 +29,43 @@ describe("NoteAdapter", () => {
   });
 
   describe("fromMarkdown", () => {
+    it.each([
+      ["a".repeat(80), "a".repeat(80)],
+      ["a".repeat(81), `${"a".repeat(79)}…`],
+      [`${"word ".repeat(20)}ending`, `${"word ".repeat(15)}word…`],
+      [`${"a".repeat(75)} longword`, `${"a".repeat(75)}…`],
+      [`${"a".repeat(79)} next word`, `${"a".repeat(79)}…`],
+      ["😀".repeat(81), `${"😀".repeat(79)}…`],
+    ])("caps only first-line fallbacks: %s", (line, expected) => {
+      const content = `---\nstatus: generating\n---\n\n${line}\nSecond line`;
+      const result = adapter.fromMarkdown(content);
+      expect(result.metadata?.title).toBe(expected);
+      expect(
+        Array.from(result.metadata?.title ?? "").length,
+      ).toBeLessThanOrEqual(80);
+      expect(result.content).toBe(content);
+      const stored = createMockNote({
+        content,
+        metadata: { title: "Untitled" },
+      });
+      expect(adapter.extractMetadata(stored).title).toBe(expected);
+      expect(stored.metadata.title).toBe("Untitled");
+      expect(stored.content).toBe(content);
+    });
+
+    it("preserves long authored titles and H1 headings", () => {
+      const title = "Authored title ".repeat(10).trim();
+      expect(
+        adapter.fromMarkdown(`---\ntitle: ${title}\n---\nBody`).metadata?.title,
+      ).toBe(title);
+      expect(adapter.fromMarkdown(`# ${title}\nBody`).metadata?.title).toBe(
+        title,
+      );
+      expect(
+        adapter.extractMetadata(createMockNote({ metadata: { title } })).title,
+      ).toBe(title);
+    });
+
     it("should extract title from frontmatter", () => {
       const markdown = `---
 title: My Note Title
@@ -68,13 +105,26 @@ Content`;
       expect(result.metadata?.title).toBe("Heading Title");
     });
 
-    it("should use 'Untitled' when no title or H1", () => {
-      const markdown = `Just some content without any title or heading.`;
+    it.each([
+      ["Just some content.\n\nMore content", "Just some content."],
+      [
+        "---\nstatus: generating\n# Not a body heading\n---\n\nFirst body line\nSecond line",
+        "First body line",
+      ],
+      ["---\ntitle: ''\n---\n\nFirst body line", "First body line"],
+      ["\n\n## A smaller heading\n\nBody", "A smaller heading"],
+      ["---\ntitle: Untitled\n---\nAuthored title must win", "Untitled"],
+      ["---\nstatus: generating\n---\n\n", "Untitled"],
+      ["\n \n", "Untitled"],
+    ])(
+      "derives a body fallback without rewriting source: %s",
+      (markdown, title) => {
+        const result = adapter.fromMarkdown(markdown);
 
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.title).toBe("Untitled");
-    });
+        expect(result.metadata?.title).toBe(title);
+        expect(result.content).toBe(markdown);
+      },
+    );
 
     it("should prefer frontmatter title over H1", () => {
       const markdown = `---
@@ -159,6 +209,28 @@ Body content`;
   });
 
   describe("extractMetadata", () => {
+    it.each([
+      ["\nFirst body line\nSecond line", "First body line"],
+      ["---\nstatus: failed\n---\nFirst body line", "First body line"],
+      ["---\ntitle: Untitled\n---\nFirst body line", "Untitled"],
+      ["", "Untitled"],
+    ])(
+      "projects stored placeholder titles without mutating notes: %s",
+      (content, title) => {
+        const entity = createMockNote({
+          content,
+          metadata: { title: "Untitled", status: "failed", error: "Keep this" },
+        });
+        const before = structuredClone(entity);
+        expect(adapter.extractMetadata(entity)).toEqual({
+          title,
+          status: "failed",
+          error: "Keep this",
+        });
+        expect(entity).toEqual(before);
+      },
+    );
+
     it("should return entity metadata", () => {
       const entity = createMockNote({
         metadata: { title: "Extracted Title" },

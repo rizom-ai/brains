@@ -38,16 +38,17 @@ async function parseJudgeSchema<T>(
   return result.value;
 }
 
-function createAIServiceWithJudge(): TestAIService {
-  const judgeCalls: JudgeCall[] = [];
-  const usage: Usage = { promptTokens: 1, completionTokens: 1, totalTokens: 2 };
-  const verdict = {
+function createAIServiceWithJudge(
+  verdict: unknown = {
     helpfulness: 4,
     accuracy: 5,
     instructionFollowing: 4,
     appropriateToolUse: 3,
     reasoning: "Good answer with acceptable tool use.",
-  };
+  },
+): TestAIService {
+  const judgeCalls: JudgeCall[] = [];
+  const usage: Usage = { promptTokens: 1, completionTokens: 1, totalTokens: 2 };
 
   return {
     judgeCalls,
@@ -83,6 +84,53 @@ function createAIServiceWithJudge(): TestAIService {
 }
 
 describe("LLMJudge", () => {
+  describe("judgeRequirements", () => {
+    const sources =
+      "Lists the team's knowledge sources, including decks and docs.";
+    const owners = "Labels owners nobody captured as unassigned.";
+    const requirements = [sources, owners];
+    const input = {
+      userMessage: "What can I find in team memory?",
+      response: "Notes, decks and documents. Owner: nobody yet.",
+      toolCalls: [],
+      requirements,
+    };
+
+    it("judges each requirement against the turn's reply", async () => {
+      const aiService = createAIServiceWithJudge({
+        results: [
+          { index: 0, met: true, reason: "Lists decks and documents." },
+          { index: 1, met: false, reason: "Says nobody yet, not unassigned." },
+        ],
+      });
+      const verdicts = await new LLMJudge(aiService).judgeRequirements(input);
+
+      expect(verdicts).toEqual([
+        {
+          requirement: sources,
+          met: true,
+          reason: "Lists decks and documents.",
+        },
+        {
+          requirement: owners,
+          met: false,
+          reason: "Says nobody yet, not unassigned.",
+        },
+      ]);
+      expect(aiService.judgeCalls[0]?.material).toContain(input.response);
+      expect(aiService.judgeCalls[0]?.material).toContain(
+        "1. Labels owners nobody captured as unassigned.",
+      );
+    });
+
+    it("treats an incomplete verdict as unjudged, not as met", async () => {
+      const aiService = createAIServiceWithJudge({
+        results: [{ index: 0, met: true, reason: "Lists both." }],
+      });
+      expect(await new LLMJudge(aiService).judgeRequirements(input)).toBeNull();
+    });
+  });
+
   it("uses the generic judge capability for quality scoring", async () => {
     const aiService = createAIServiceWithJudge();
     const llmJudge = new LLMJudge(aiService);

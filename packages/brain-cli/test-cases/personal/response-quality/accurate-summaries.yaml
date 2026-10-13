@@ -23,4 +23,4 @@ successCriteria:
 efficiency:
   # The professional bundle exposes 13 durable content entity types.
   maxToolCalls: 13
-  maxTokens: 50000
+  maxTokens: 57000

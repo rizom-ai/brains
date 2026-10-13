@@ -36,10 +36,16 @@ function formatRFC822Date(isoDate: string): string {
 }
 
 /**
+ * A post for the feed. `url` is the site's root-relative route for the post
+ * (e.g. "/essays/my-post"); without it the feed falls back to "/posts/<slug>".
+ */
+export type RSSFeedPost = BlogPostWithData & { url?: string };
+
+/**
  * Generate RSS 2.0 feed XML from blog posts
  */
 export function generateRSSFeed(
-  posts: BlogPostWithData[],
+  posts: RSSFeedPost[],
   config: RSSFeedConfig,
 ): string {
   // Filter posts based on config
@@ -69,7 +75,8 @@ export function generateRSSFeed(
   // Generate XML
   const items = filteredPosts
     .map((post) => {
-      const postUrl = `${config.link}/posts/${post.metadata.slug}`;
+      const postPath = post.url ?? `/posts/${post.metadata.slug}`;
+      const postUrl = `${config.link.replace(/\/+$/, "")}/${postPath.replace(/^\/+/, "")}`;
       const pubDate = post.frontmatter.publishedAt ?? post.created;
       const excerpt = post.frontmatter.excerpt;
       const author = post.frontmatter.author;

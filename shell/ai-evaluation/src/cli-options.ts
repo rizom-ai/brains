@@ -1,3 +1,9 @@
+import { z } from "@brains/utils/zod";
+import { sampleCountSchema } from "./multi-model";
+
+/** The share of a test's sampled runs that must pass; 1 means every run. */
+export const minPassRateSchema: z.ZodNumber = z.number().gt(0).max(1);
+
 export interface CliOptions {
   skipLLMJudge: boolean;
   parallel: boolean;
@@ -5,6 +11,7 @@ export interface CliOptions {
   verbose: boolean;
   toolCoverage: boolean;
   toolSurface: boolean;
+  mcpBasic: boolean;
   suite?: string;
   tags?: string[];
   testCaseIds?: string[];
@@ -13,6 +20,8 @@ export interface CliOptions {
   authToken?: string;
   compareAgainst?: string;
   saveBaseline?: string;
+  samples?: number;
+  minPassRate?: number;
 }
 
 /**
@@ -48,6 +57,8 @@ export function parseCliOptions(args: string[]): CliOptions {
   const remoteUrl = parseSingleFlag(args, "--url");
   const authToken = parseSingleFlag(args, "--token");
   const saveBaseline = parseSingleFlag(args, "--baseline");
+  const samples = parseSingleFlag(args, "--samples");
+  const minPassRate = parseSingleFlag(args, "--min-pass-rate");
 
   const options: CliOptions = {
     skipLLMJudge: args.includes("--skip-llm-judge"),
@@ -56,6 +67,7 @@ export function parseCliOptions(args: string[]): CliOptions {
     verbose: args.includes("--verbose") || args.includes("-v"),
     toolCoverage: args.includes("--tool-coverage"),
     toolSurface: args.includes("--tool-surface"),
+    mcpBasic: args.includes("--mcp-basic"),
   };
 
   if (suite) options.suite = suite;
@@ -70,6 +82,10 @@ export function parseCliOptions(args: string[]): CliOptions {
     options.compareAgainst = parseSingleFlag(args, "--compare") ?? "";
   }
   if (saveBaseline) options.saveBaseline = saveBaseline;
+  if (samples !== undefined)
+    options.samples = sampleCountSchema.parse(Number(samples));
+  if (minPassRate !== undefined)
+    options.minPassRate = minPassRateSchema.parse(Number(minPassRate));
 
   return options;
 }

@@ -21,6 +21,8 @@ export function collectionQuery(rawSearch: string): StudioCollectionQuery {
 
 export function collectionSearch(query: StudioCollectionQuery): string {
   const params = new URLSearchParams();
+  if (query.prefix) params.set("prefix", JSON.stringify(query.prefix));
+  if (query.scope !== "folder") params.set("scope", query.scope);
   if (query.offset > 0) params.set("offset", String(query.offset));
   if (query.limit !== STUDIO_ENTITY_PAGE_LIMIT)
     params.set("limit", String(query.limit));

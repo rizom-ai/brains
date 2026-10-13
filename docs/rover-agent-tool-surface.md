@@ -18,7 +18,7 @@ Canonical replacements for removed legacy registered tool names:
 | Playbook lifecycle/status/event tools | `playbook_manage`        |
 | Directory sync/status/history tools   | `directory_sync`         |
 | Publishing queue/publish tools        | `publishing_manage`      |
-| Buttondown subscriber tools           | `newsletter_subscribers` |
+| Newsletter provider subscriber tools  | `newsletter_subscribers` |
 
 Maintenance operations `content-pipeline_ensure-assets` and `obsidian-vault_sync-templates` now run through lifecycle/direct service paths instead of the agent or direct-MCP tool registry.
 
@@ -41,7 +41,7 @@ system_create
 system_delete
 system_generate
 system_get
-system_insights
+system_analytics
 system_job_status
 system_list
 system_search
@@ -69,7 +69,7 @@ system_create
 system_delete
 system_generate
 system_get
-system_insights
+system_analytics
 system_job_status
 system_list
 system_search
@@ -98,7 +98,7 @@ system_create
 system_delete
 system_generate
 system_get
-system_insights
+system_analytics
 system_job_status
 system_list
 system_search

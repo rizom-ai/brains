@@ -8,6 +8,7 @@ import { z } from "@brains/utils/zod";
 import type { WebChatConversation } from "./conversation-access";
 import {
   guestPolicySchema,
+  guestRequestOrigin,
   matchesGuestOrigin,
   type EnabledGuestPolicy,
   type GuestPolicy,
@@ -254,10 +255,11 @@ export class GuestVisitorStore {
       ?.split(";")[0]
       ?.trim()
       .toLowerCase();
+    const served = guestRequestOrigin(request, this.policy);
     if (
       request.method !== "POST" ||
-      !matchesGuestOrigin(request, this.policy) ||
-      request.headers.get("origin") !== this.policy.origin ||
+      served === undefined ||
+      request.headers.get("origin") !== served ||
       contentType !== "application/json" ||
       request.headers.get("sec-fetch-site") === "cross-site"
     ) {

@@ -4,7 +4,9 @@ import type { ShellServices } from "./types/shell-types";
 export async function generateShellContent(
   services: ShellServices,
   config: ContentGenerationConfig,
+  signal?: AbortSignal,
 ): Promise<unknown> {
+  signal?.throwIfAborted();
   const template = services.contentService.getTemplate(config.templateName);
   if (!template) {
     throw new Error(`Template not found: ${config.templateName}`);
@@ -34,5 +36,7 @@ export async function generateShellContent(
     ...(config.styleGuide && { styleGuide: config.styleGuide }),
   };
 
-  return services.contentService.generateContent(config.templateName, context);
+  return services.contentService.generateContent(config.templateName, context, {
+    signal,
+  });
 }

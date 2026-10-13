@@ -12,7 +12,7 @@ import {
 } from "../templates/agent-detail";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { AgentProximityMapTemplate } from "../templates/proximity-map-template";
-import { agentViewSchema } from "../templates/agent-view";
+import { agentRenderSchema, agentViewSchema } from "../templates/agent-view";
 import {
   proximityMapCopySchema,
   proximityMapDataSchema,
@@ -29,6 +29,21 @@ import {
 const agentStatusSchema = z.enum(["discovered", "approved", "archived"]);
 
 const enrichedAgentViewSchema = agentViewSchema;
+
+/** The pages once site-builder has filled their agents' link fields. */
+const agentListRenderSchema = z.object({
+  agents: z.array(agentRenderSchema),
+  pageTitle: z.string().nullable().default(null),
+  pagination: paginationInfoSchema.nullable(),
+  baseUrl: z.string().nullable().default(null),
+  selectedStatus: z.union([z.literal("all"), agentStatusSchema]),
+});
+
+const agentDetailRenderSchema = z.object({
+  agent: agentRenderSchema,
+  prevAgent: agentRenderSchema.nullable(),
+  nextAgent: agentRenderSchema.nullable(),
+});
 
 const agentListSchema = z.object({
   agents: z.array(enrichedAgentViewSchema),
@@ -89,6 +104,7 @@ export function getTemplates(): Record<string, Template> {
       requiredPermission: "public",
       layout: {
         component: AgentListTemplate,
+        renderSchema: agentListRenderSchema,
       },
     }),
     [AGENT_DETAIL_TEMPLATE_NAME]: createTemplate<
@@ -110,6 +126,7 @@ export function getTemplates(): Record<string, Template> {
       requiredPermission: "public",
       layout: {
         component: AgentDetailTemplate,
+        renderSchema: agentDetailRenderSchema,
       },
     }),
   };

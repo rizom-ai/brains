@@ -25,7 +25,7 @@ import {
   createIdentityNamespace,
   createInboxFollowUpsNamespace,
   createInboxNamespace,
-  createInsightsNamespace,
+  createAnalyticsNamespace,
   createInteractionsNamespace,
   createJobsNamespace,
   createMessagingNamespace,
@@ -48,7 +48,7 @@ import type {
   IConversationsNamespace,
   IEndpointsNamespace,
   IInboxFollowUpsNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
   IPluginsNamespace,
@@ -69,7 +69,7 @@ export type {
   IIdentityNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
@@ -210,14 +210,14 @@ export interface BasePluginContext extends PublicBasePluginContext {
   readonly conversations: IConversationsNamespace;
 
   // ============================================================================
-  // Insights
+  // Analytics
   // ============================================================================
 
   /**
-   * Insights namespace
-   * - `insights.register()` - Register a domain-specific insight handler
+   * Analytics namespace
+   * - `analytics.register()` - Add a report to `system_analytics`
    */
-  readonly insights: IInsightsNamespace;
+  readonly analytics: IAnalyticsNamespace;
 
   /** Read-only resolved plugin capabilities. */
   readonly plugins: IPluginsNamespace;
@@ -334,9 +334,9 @@ export function createBasePluginContext(
       ? { registerHandler: (): void => {} }
       : createEvalNamespace(shell, pluginId),
 
-    insights: executionOnly
+    analytics: executionOnly
       ? { register: (): void => {} }
-      : createInsightsNamespace(shell),
+      : createAnalyticsNamespace(shell),
 
     plugins: createPluginsNamespace(shell),
 

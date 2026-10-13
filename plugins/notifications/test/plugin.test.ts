@@ -86,6 +86,29 @@ describe("NotificationsPlugin", () => {
     ]);
   });
 
+  it("keeps internal delivery available to execution-only workers", async () => {
+    const harness = createPluginHarness<NotificationsPlugin>();
+    const sent = installEmailProvider(harness, async () => ({
+      status: "sent",
+    }));
+    await new NotificationsPlugin({
+      defaultRecipient: { type: "email", address: "operator@example.com" },
+    }).register(harness.getMockShell(), { executionOnly: true });
+    harness.getMockShell().getChannelRegistry().finalize();
+    const result = await harness.sendMessage<unknown, SendNotificationResult>(
+      NOTIFICATIONS_SEND,
+      {
+        title: "Contact request",
+        body: "Open the authenticated Inbox.",
+        sensitivity: "secret",
+        idempotencyKey: "contact-notification:test",
+      },
+    );
+    expect(result).toEqual({ status: "sent" });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.idempotencyKey).toBe("contact-notification:test");
+  });
+
   it("uses the configured default recipient when the message omits one", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     const sent = installEmailProvider(harness, async () => ({
@@ -140,6 +163,35 @@ describe("NotificationsPlugin", () => {
     expect(sent).toHaveLength(2);
     // Distinct keys, so a provider that dedupes still sends both.
     expect(sent[0]?.idempotencyKey).not.toBe(sent[1]?.idempotencyKey);
+  });
+
+  it("names the transport's failure code when delivery fails, never the message", async () => {
+    const harness = createPluginHarness<NotificationsPlugin>();
+    installEmailProvider(harness, async () => ({
+      status: "failed",
+      failureCode: "resend_validation_error",
+    }));
+    await harness.installPlugin(new NotificationsPlugin());
+    await harness.finalizeRegistration();
+
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: NOTIFICATIONS_SEND,
+        payload: {
+          recipient: { type: "email", address: "user@example.com" },
+          title: "New contact request",
+          body: "A contact request is saved.",
+          sensitivity: "secret",
+        },
+        sender: "contact",
+      });
+
+    expect(response).toEqual({
+      success: false,
+      error: "Notification delivery failed: resend_validation_error",
+    });
   });
 
   it("reports failure when no transport is registered for the recipient", async () => {

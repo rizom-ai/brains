@@ -1,0 +1,1923 @@
+/* The story pages: chapters beside one drawing, under the site's one bar, with
+   the reading thread down the left edge. Tokens come from the theme. */
+
+/* ---- The page shape ------------------------------------------------------ */
+/* The opening's words keep a measure; the opening drawing takes the room right of them. */
+.story {
+  --words: min(34rem, 44vw);
+  --words-gap: clamp(1.5rem, 3vw, 3rem);
+  /* The page frame can be narrower than the viewport: measure against it. */
+  container-type: inline-size;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.chapters {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 5vw, 5rem);
+  box-sizing: border-box;
+  background: linear-gradient(
+    90deg,
+    var(--color-bg) 0 26%,
+    rgb(from var(--color-bg) r g b / 0.7) 40%,
+    rgb(from var(--color-bg) r g b / 0) 56%
+  );
+}
+.chapter {
+  min-height: calc(100svh - 8rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem 0;
+  max-width: 34rem;
+  opacity: 0.32;
+  transition: opacity 0.6s ease;
+}
+.chapter.is-current {
+  opacity: 1;
+}
+.chapter:first-child {
+  min-height: calc(100svh - var(--bar-height, 4.6rem));
+  max-width: var(--words);
+}
+/* The opening (and the Ask room's first chapter, which follows its drawing in
+   the column) is the words' width, so the drawing has its room beside it. */
+.chapter--opening {
+  max-width: var(--words);
+}
+/* A chapter's eyebrow is the site's label: mono, small, tracked, in the room's accent. */
+.chapter .eyebrow {
+  margin: 0 0 1.4rem;
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.chapter h1,
+.chapter h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 96;
+  text-wrap: balance;
+  letter-spacing: -0.012em;
+}
+/* A room's title keeps to three or four lines; the homepage's short title reads larger. */
+.chapter h1 {
+  font-size: clamp(2.6rem, 4vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+.chapter--opening h1 {
+  font-size: clamp(3rem, 5.8vw, 5.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+}
+.chapter h2 {
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  line-height: 1.08;
+}
+.chapter .lede {
+  margin: 1.5rem 0 0;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.chapter > p:not(.eyebrow):not(.lede):not(.onward):not(.pull):not(.aside) {
+  margin: 1.4rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+/* An anchored chapter lands below the bar, and below the strip on narrow screens. */
+.chapter {
+  scroll-margin-top: var(--bar-height, 4.6rem);
+}
+.chapter .doors-in {
+  margin-top: 1.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.6rem;
+}
+.chapter .doors-in a {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+}
+/* The chapters' lists: the science's dimensions and the parts of the organism,
+   the arc and the rooms are one kind of list. A part that is a room is a door. */
+.parts,
+.dims {
+  margin: 2rem 0 0;
+  display: grid;
+  gap: 1.2rem;
+}
+.parts div,
+.dims div {
+  padding-left: 1.1rem;
+  border-left: 1px solid rgb(from var(--color-accent) r g b / 0.35);
+}
+.parts dt,
+.dims dt {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.parts dd,
+.dims dd {
+  margin: 0.3rem 0 0;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.parts dt a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgb(from var(--color-accent) r g b / 0.5);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.parts dt a:hover,
+.parts dt a:focus-visible {
+  color: var(--color-accent);
+  text-decoration-color: currentColor;
+}
+.status {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+.pull {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 3.2vw, 2.8rem);
+  line-height: 1.15;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 96;
+  text-wrap: balance;
+}
+.pull + p {
+  font-style: italic;
+}
+.entries {
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.1rem;
+}
+.entries a,
+.entries div {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1.1rem;
+  border-left: 1px solid rgb(from var(--color-accent) r g b / 0.35);
+  color: inherit;
+  text-decoration: none;
+}
+.entries small {
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+.entries b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+  transition: color 0.2s;
+}
+.entries a:hover b {
+  color: var(--color-accent);
+}
+.entries span {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+.onward {
+  margin: 1.8rem 0 0;
+}
+.onward a {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1rem;
+}
+.follow {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+}
+.follow a {
+  font-family: var(--font-label);
+  font-size: 0.78rem;
+  color: var(--color-text-light);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.15rem;
+}
+.follow a:hover {
+  color: var(--color-accent);
+}
+
+.aside {
+  margin: 1.4rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.aside a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.steps {
+  counter-reset: step;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.2rem;
+}
+.steps li {
+  position: relative;
+  padding-left: 2.6rem;
+}
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 500 0.85rem var(--font-body);
+  color: var(--color-accent);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+.steps b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.steps span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.voices {
+  margin: 2rem 0 0;
+  display: grid;
+  gap: 1.4rem;
+}
+.voices blockquote {
+  margin: 0;
+  padding-left: 1.1rem;
+  border-left: 1px solid rgb(from var(--color-accent) r g b / 0.35);
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  line-height: 1.5;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.voices small,
+.voices cite {
+  display: block;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+.voices small {
+  margin-bottom: 0.3rem;
+}
+.voices cite {
+  margin-top: 0.5rem;
+}
+.voices blockquote p {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.people {
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+.people b {
+  font-weight: 500;
+  color: var(--color-heading);
+}
+.people span {
+  margin-left: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+.code {
+  margin: 1.8rem 0 0;
+  padding: 1.1rem 1.3rem;
+  border-radius: 6px;
+  background: rgb(from var(--color-bg-subtle) r g b / 0.8);
+  border: 1px solid rgb(from var(--color-accent) r g b / 0.22);
+  font: 0.92rem/1.9 var(--font-label);
+  color: var(--color-text);
+  overflow-x: auto;
+}
+.code b {
+  color: var(--color-accent);
+  font-weight: 400;
+}
+.code i {
+  color: var(--color-text-light);
+  font-style: normal;
+}
+/* A chapter is a flex column: a button keeps its own width, not the column's. */
+.cta,
+.opening__door {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 2rem;
+  padding: 0.8rem 1.3rem;
+  border-radius: 3px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #0e0d20);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* ---- The drawing ------------------------------------------------------------ */
+.figure {
+  grid-area: 1 / 1;
+  position: sticky;
+  top: var(--bar-height, 4.6rem);
+  height: calc(100svh - var(--bar-height, 4.6rem));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: clamp(1rem, 6vw, 7rem);
+  overflow: hidden;
+  mask-image: linear-gradient(
+    180deg,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+  transition: padding-right 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.figure:not([data-stage="0"]) {
+  padding-right: clamp(0.5rem, 2.5vw, 2.5rem);
+}
+.figure::before {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-wash-a), transparent 68%);
+}
+.o-box {
+  position: relative;
+  flex: none;
+  width: min(
+    calc(100svh - var(--bar-height, 4.6rem) - 2rem),
+    calc(
+      100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
+        var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
+    )
+  );
+  aspect-ratio: 1;
+  transition: width 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.figure:not([data-stage="0"]) .o-box {
+  width: min(calc(100svh - var(--bar-height, 4.6rem) - 7rem), 46vw);
+}
+.o-box svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.o-thread,
+.o-flow,
+.o-node,
+.o-lantern,
+.o-glow {
+  transition:
+    cx 1.2s cubic-bezier(0.3, 0.7, 0.2, 1),
+    cy 1.2s cubic-bezier(0.3, 0.7, 0.2, 1),
+    r 1.2s cubic-bezier(0.3, 0.7, 0.2, 1),
+    opacity 0.9s ease,
+    d 1.2s cubic-bezier(0.3, 0.7, 0.2, 1),
+    stroke-dashoffset 1.6s ease 0.25s,
+    fill 0.9s ease;
+}
+.o-doc {
+  transition:
+    transform 1.2s cubic-bezier(0.3, 0.7, 0.2, 1),
+    opacity 0.9s ease;
+}
+.o-thread {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.4;
+  stroke-opacity: 0.7;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+.o-flow {
+  fill: none;
+  stroke: #fff3cf;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.045 0.955;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px var(--color-accent));
+  animation: o-flow 3s linear infinite;
+}
+.o-flow:nth-of-type(3n) {
+  animation-duration: 3.7s;
+  animation-delay: -1.3s;
+}
+.o-flow:nth-of-type(3n + 1) {
+  animation-duration: 3.2s;
+  animation-delay: -2.1s;
+}
+@keyframes o-flow {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.o-node {
+  fill: var(--color-text);
+  stroke: var(--color-bg);
+  stroke-width: 3;
+}
+.o-node.lit {
+  fill: var(--color-accent);
+}
+.o-node.hollow {
+  fill: var(--color-bg);
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+.o-glow {
+  fill: var(--color-accent);
+  opacity: 0.18;
+  filter: blur(16px);
+}
+.o-lantern {
+  fill: #fff3cf;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  animation: o-lantern 4.5s ease-in-out infinite;
+}
+@keyframes o-lantern {
+  50% {
+    stroke-width: 6;
+  }
+}
+.o-doc rect {
+  fill: rgb(from var(--color-bg-subtle) r g b / 0.92);
+  stroke: var(--color-accent);
+  stroke-width: 1;
+}
+.o-doc line {
+  stroke: var(--color-text-light);
+  stroke-width: 1;
+}
+.o-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease 0.5s;
+}
+.o-name {
+  position: absolute;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 14;
+  text-shadow:
+    0 0 0.45rem var(--color-bg),
+    0 0 0.2rem var(--color-bg),
+    0 0 0.1rem var(--color-bg);
+}
+.o-name--middle {
+  transform: translate(-50%, -50%);
+}
+.o-name--start {
+  transform: translate(0, -50%);
+}
+.o-name--end {
+  transform: translate(-100%, -50%);
+}
+
+/* ---- The reading thread ------------------------------------------------------- */
+.rail {
+  position: fixed;
+  z-index: 50;
+  left: max(-0.6rem, calc((100vw - 80rem) / 2 - 0.4rem));
+  top: var(--bar-height, 4.6rem);
+  bottom: 0;
+  width: 70px;
+  pointer-events: none;
+}
+.rail__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.rail__root {
+  fill: none;
+  stroke: rgb(from var(--color-accent) r g b / 0.28);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-dasharray: 5 9;
+  vector-effect: non-scaling-stroke;
+  animation: rail-seep 26s linear infinite;
+}
+@keyframes rail-seep {
+  to {
+    stroke-dashoffset: -320;
+  }
+}
+.rail__fill {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--read, 0));
+  filter: drop-shadow(0 0 3px rgb(from var(--color-accent) r g b / 0.5));
+}
+.rail__twigs path {
+  fill: none;
+  stroke: rgb(from var(--color-text) r g b / 0.16);
+  stroke-width: 1;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.rail__spark {
+  fill: #fff3cf;
+  filter: drop-shadow(0 0 5px var(--color-accent));
+}
+.rail__nodes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  inset: 0;
+}
+.rail__node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+.rail__node a {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  text-decoration: none;
+}
+.rail__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  box-shadow: inset 0 0 0 1.4px rgb(from var(--color-accent) r g b / 0.55);
+  transition:
+    background 0.4s,
+    box-shadow 0.4s,
+    width 0.4s,
+    height 0.4s;
+}
+.rail__node.is-passed .rail__dot {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-bg);
+}
+.rail__node.is-current .rail__dot {
+  width: 12px;
+  height: 12px;
+  background: #fff3cf;
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 0 5px var(--color-bg),
+    0 0 16px 5px rgb(from var(--color-accent) r g b / 0.5);
+}
+.rail__name {
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  top: 50%;
+  transform: translate(-0.3rem, -50%);
+  opacity: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 3px;
+  background: rgb(from var(--color-bg) r g b / 0.9);
+  backdrop-filter: blur(6px);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 14;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.rail__node a:hover .rail__name,
+.rail__node a:focus-visible .rail__name {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.rail__node a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Narrow screens and reduced motion ---------------------------------------- */
+/* Below the full grid the drawing runs under the column; the backing widens so the words stay clear. */
+@media (max-width: 80rem) {
+  .chapters {
+    background: linear-gradient(
+      90deg,
+      var(--color-bg) 0 34%,
+      rgb(from var(--color-bg) r g b / 0.75) 50%,
+      rgb(from var(--color-bg) r g b / 0) 66%
+    );
+  }
+}
+@media (max-width: 64rem) {
+  .rail {
+    display: none;
+  }
+}
+@media (max-width: 60rem) {
+  .chapters {
+    grid-area: auto;
+    background: none;
+  }
+  .figure {
+    --strip: 1;
+    grid-area: auto;
+    grid-row: 1;
+    height: var(--strip-h);
+    z-index: 2;
+    justify-content: center;
+    padding: 0;
+    mask-image: none;
+    background: linear-gradient(var(--color-bg) 82%, transparent);
+  }
+  .o-box,
+  .figure:not([data-stage="0"]) .o-box {
+    width: min(100%, 22rem);
+  }
+  .o-name {
+    font-size: 0.78rem;
+  }
+  .chapter {
+    min-height: 64svh;
+    padding: 2.5rem 0;
+    scroll-margin-top: calc(var(--bar-height, 4.6rem) + var(--strip-h));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter,
+  .figure,
+  .o-box,
+  .o-thread,
+  .o-flow,
+  .o-node,
+  .o-lantern,
+  .o-glow,
+  .o-doc,
+  .o-names,
+  .rail__dot,
+  .rail__name {
+    transition: none !important;
+    animation: none !important;
+  }
+  .o-flow {
+    opacity: 0 !important;
+  }
+  .rail__root {
+    animation: none;
+  }
+}
+
+/* ---- The homepage opening: the live network ---------------------------------- */
+/* The opening's words keep a measure that leaves the network its own room
+   (and outrank the first chapter's wider measure). */
+.chapter.chapter--opening {
+  position: static;
+}
+.chapter em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+/* The network fills the room right of the opening's words, centred in it. */
+.net-layer {
+  position: absolute;
+  top: 0;
+  left: calc(clamp(1rem, 5vw, 5rem) + var(--words) + var(--words-gap));
+  right: calc(clamp(1rem, 6vw, 7rem) - max(0px, (100cqi - 80rem) / 2));
+  height: calc(100svh - var(--bar-height, 4.6rem));
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.net-layer > * {
+  grid-area: 1 / 1;
+  width: min(100%, calc(100svh - var(--bar-height, 4.6rem) - 2rem));
+  aspect-ratio: 1;
+}
+/* The Ask room page (/ask, told as a story without a figure) brings its own
+   drawing: it stands before the words in the chapters column and sticks at
+   the figure's centre line down the page (the story is a size container, so
+   nothing in it can be fixed to the screen), while the words scroll within
+   the screen beside it. The homepage's opening keeps its drawing in the
+   opening (the rule above), which leaves with it. */
+@media not all and (max-width: 60rem) {
+  /* The words are the room's column (the kit scrolls it within the screen);
+     the bar and the chapter's 4rem of padding above and below stay clear, so
+     the composer is on the first screen. */
+  .chapter--opening .opening__words {
+    --ask-column-clear: calc(8rem + var(--bar-height, 4.6rem));
+  }
+  .story--room :where(.chapters) > .net-layer {
+    position: sticky;
+    top: calc(
+      var(--bar-height, 4.6rem) + (100svh - var(--bar-height, 4.6rem)) / 2
+    );
+    left: auto;
+    right: auto;
+    height: 0;
+    margin-left: calc(var(--words) + var(--words-gap));
+    width: calc(
+      100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
+        var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
+    );
+  }
+  .story--room :where(.chapters) > .net-layer > * {
+    translate: 0 -50%;
+  }
+}
+/* The sky (docs/plans/rizom-ask-network.md): the drawing, the marks and the
+   names in one frame, so they drift as one. Its colours beyond the theme's. */
+.net-layer {
+  --net-ember: #ff8b3d;
+  --net-violet: #6b2fa0;
+  --net-violet-deep: #4b2a63;
+  --net-lilac: #8c82c8;
+  --net-glow: #ffe9a8;
+  --net-flame: #fff6d6;
+}
+[data-theme="light"] .net-layer {
+  --net-ember: #b8410c;
+  --net-violet: #4b2a63;
+  --net-violet-deep: #4b2a63;
+  --net-lilac: #6b5fb0;
+  --net-glow: #e8cc6a;
+  --net-flame: #fffaf0;
+}
+.net-sky {
+  position: relative;
+  display: grid;
+  transform-origin: center;
+  animation: net-drift 140s ease-in-out infinite alternate;
+}
+.net-sky > * {
+  grid-area: 1 / 1;
+}
+.net-svg {
+  overflow: visible;
+}
+/* The substrate: the boundary's purple where the network meets the wider
+   directory, Rizom's amber wash, the dust of the brains not yet in reach. */
+.net-boundary {
+  fill: url(#net-boundary);
+  transform-origin: 50px 50px;
+  animation: net-weather 37s ease-in-out infinite alternate;
+}
+.net-wash {
+  fill: url(#net-wash);
+  transform-origin: 50px 50px;
+  animation: net-breathe-wash 9s ease-in-out infinite;
+}
+.net-dust circle {
+  fill: var(--net-lilac);
+  opacity: 0.22;
+  animation: net-dust var(--net-breath, 20s) ease-in-out var(--net-phase, 0s)
+    infinite alternate;
+}
+/* Tendrils: a trunk leaves Rizom and forks toward neighbouring brains, thin
+   and dim where it arrives; a seep of light runs the trunk. */
+.net-trunk {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 0.55;
+  stroke-opacity: 0.28;
+  stroke-linecap: round;
+}
+.net-thread {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 0.28;
+  stroke-opacity: 0.2;
+  stroke-linecap: round;
+  transition:
+    stroke-opacity 0.6s ease,
+    stroke 0.6s ease;
+}
+.net-seep {
+  fill: none;
+  stroke: var(--color-accent-bright);
+  stroke-width: 0.3;
+  stroke-opacity: 0.35;
+  stroke-linecap: round;
+  stroke-dasharray: 0.6 7;
+  animation: net-seep 26s linear infinite;
+}
+/* Kin: brains whose work has drifted together share one faint thread. */
+.net-kin {
+  stroke: var(--color-accent);
+  stroke-width: 0.9;
+  stroke-opacity: 0.35;
+  vector-effect: non-scaling-stroke;
+  animation: net-kin 11s ease-in-out infinite;
+}
+/* A light: a wide amber halo, an ember rim where it meets the dark, a ripple
+   and a bead on its route; the mark above it is the core. */
+.net-reply {
+  transition: opacity 0.7s ease;
+}
+.net-rim {
+  fill: url(#net-rim);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-swell 46.8s ease-out var(--net-turn, 0s) infinite;
+}
+.net-halo {
+  fill: url(#net-halo);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-breathe var(--net-breath, 7s) ease-in-out var(--net-phase, 0s)
+    infinite;
+}
+.net-ripple {
+  fill: none;
+  stroke: var(--color-accent-bright);
+  stroke-width: 0.25;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-ripple 46.8s linear var(--net-turn, 0s) infinite;
+}
+.net-bead {
+  r: 1.1px;
+  fill: var(--net-flame);
+  opacity: 0;
+  filter: drop-shadow(0 0 1.6px var(--color-accent-bright))
+    drop-shadow(0 0 4px var(--net-ember));
+  offset-rotate: 0deg;
+  animation: net-travel 46.8s linear var(--net-turn, 0s) infinite;
+}
+/* Rizom: the densest light. */
+.net-corona {
+  fill: url(#net-corona);
+  transform-origin: 50px 50px;
+  animation: net-breathe-wash 6.5s ease-in-out infinite;
+}
+.net-embers {
+  transform-origin: 50px 50px;
+  animation: net-turn 90s linear infinite;
+}
+.net-embers circle {
+  fill: var(--color-accent-bright);
+  opacity: 0.55;
+  animation: net-ember 5s ease-in-out var(--net-phase, 0s) infinite;
+}
+.net-lantern {
+  fill: var(--net-flame);
+  filter: drop-shadow(0 0 2.4px var(--color-accent-bright))
+    drop-shadow(0 0 7px var(--net-ember));
+  transform-origin: 50px 50px;
+  animation: net-lantern 4.5s ease-in-out infinite;
+}
+.net-grain {
+  fill: url(#net-grain-fill);
+  opacity: 0.045;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+/* Daylight: on paper the sky is lights, not night. The grain, the boundary
+   and the ember rims only read against the dark; the wash and the corona go
+   faint; the lantern and the beads are brass; the tendrils hold a little more. */
+[data-theme="light"] .net-grain,
+[data-theme="light"] .net-boundary,
+[data-theme="light"] .net-rim {
+  display: none;
+}
+[data-theme="light"] .net-wash {
+  opacity: 0.5;
+}
+[data-theme="light"] .net-corona {
+  opacity: 0.45;
+}
+[data-theme="light"] .net-halo {
+  filter: saturate(0.8) opacity(0.55);
+}
+[data-theme="light"] .net-lantern {
+  fill: var(--color-accent);
+  filter: drop-shadow(0 0 2px var(--color-accent-bright));
+}
+[data-theme="light"] .net-bead {
+  fill: var(--color-accent);
+  filter: drop-shadow(0 0 2px var(--color-accent-bright));
+}
+[data-theme="light"] .net-trunk {
+  stroke-opacity: 0.4;
+}
+[data-theme="light"] .net-thread {
+  stroke-opacity: 0.3;
+}
+.net-marks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+/* The network answers: a brain whose published memory an answer drew on
+   lights, its thread carries the light, and the rest withdraw; the center
+   stays lit when Rizom's own pieces are cited. The story runtime sets the
+   classes from the Ask box's ask:sources event. */
+.net-layer .net-mark,
+.net-layer .net-name,
+.net-layer .net-lantern {
+  transition:
+    opacity 0.6s ease,
+    stroke-opacity 0.6s ease;
+}
+.net-layer.has-replies .net-thread:not(.is-lit) {
+  stroke-opacity: 0.07;
+}
+.net-layer.has-replies .net-trunk {
+  stroke-opacity: 0.14;
+}
+.net-layer.has-replies .net-reply:not(.is-lit) {
+  opacity: 0.22;
+}
+.net-layer.has-replies .net-mark:not(.is-lit),
+.net-layer.has-replies .net-name:not(.is-lit) {
+  opacity: 0.3;
+}
+.net-layer.has-replies .net-name.is-lit {
+  color: var(--color-heading);
+}
+.net-layer .net-thread.is-lit {
+  stroke: var(--color-accent-bright);
+  stroke-opacity: 0.9;
+  filter: drop-shadow(0 0 1.2px rgb(from var(--net-ember) r g b / 0.8));
+}
+.net-layer .net-thread.is-hot {
+  stroke-opacity: 1;
+  stroke-width: 0.5;
+}
+.net-layer .net-mark.is-lit i,
+.net-layer .net-mark.is-hot i {
+  background: var(--net-flame);
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 10px 3px var(--color-accent);
+}
+.net-layer .net-mark.is-hot i {
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 16px 5px var(--color-accent);
+}
+.net-layer.has-replies:not(.is-rizom) .net-lantern {
+  opacity: 0.55;
+  filter: none;
+}
+.net-layer.is-rizom .net-lantern {
+  filter: drop-shadow(0 0 12px var(--color-accent))
+    drop-shadow(0 0 4px var(--net-flame));
+}
+/* The sky's motion. Lights come on, they don't pop: every light breathes on
+   its own clock, the sky drifts, light seeps along the trunks, and on a
+   shared cycle of nine slots a bead travels one brain's route (5.1% of the
+   cycle, 2.4 s) and the brain's ripple and rim swell as it arrives. */
+@keyframes net-drift {
+  from {
+    transform: rotate(-1.1deg);
+  }
+  to {
+    transform: rotate(1.1deg);
+  }
+}
+@keyframes net-weather {
+  from {
+    transform: scale(0.96) rotate(0deg);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.04) rotate(6deg);
+    opacity: 1;
+  }
+}
+@keyframes net-breathe-wash {
+  50% {
+    transform: scale(1.07);
+    opacity: 0.88;
+  }
+}
+@keyframes net-breathe {
+  50% {
+    transform: scale(1.18);
+    opacity: 0.75;
+  }
+}
+@keyframes net-dust {
+  to {
+    opacity: 0.5;
+    transform: translate(0.6px, -0.4px);
+  }
+}
+@keyframes net-seep {
+  to {
+    stroke-dashoffset: -152;
+  }
+}
+@keyframes net-kin {
+  50% {
+    stroke-opacity: 0.12;
+  }
+}
+@keyframes net-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  0.6% {
+    opacity: 1;
+  }
+  4.6% {
+    opacity: 1;
+  }
+  5.1%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes net-ripple {
+  0%,
+  5% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  5.3% {
+    opacity: 0.7;
+  }
+  9.8%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes net-swell {
+  0%,
+  5% {
+    transform: scale(1);
+  }
+  7% {
+    transform: scale(1.9);
+  }
+  10.7%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes net-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes net-ember {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes net-lantern {
+  50% {
+    transform: scale(1.1);
+  }
+}
+/* An answer: the cited brains flare and their bead runs once; while the leads
+   hold, the sky holds still under them. */
+.net-layer .net-reply.is-lit .net-halo {
+  animation:
+    net-answer 2.4s ease-out 1 both,
+    net-breathe 5s ease-in-out 2.4s infinite;
+}
+.net-layer .net-reply.is-lit .net-rim {
+  animation:
+    net-answer 2.4s ease-out 0.1s 1 both,
+    net-breathe 5s ease-in-out 2.5s infinite;
+}
+.net-layer .net-reply.is-lit .net-bead {
+  animation: net-travel-once 1.6s ease-out 1 both;
+}
+.net-layer .net-reply.is-lit .net-ripple {
+  animation: net-ripple-once 2.2s ease-out 1.6s 1 both;
+}
+@keyframes net-answer {
+  0% {
+    transform: scale(0.8);
+  }
+  35% {
+    transform: scale(2.3);
+  }
+  100% {
+    transform: scale(1.5);
+  }
+}
+@keyframes net-travel-once {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes net-ripple-once {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.net-layer.has-replies .net-sky,
+.net-layer.has-replies .net-seep,
+.net-layer.has-replies .net-embers,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-bead,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-ripple,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
+  animation-play-state: paused;
+}
+/* Where the browser can drive an animation from the scroll, the scroll is the
+   sky's timeline: scrolling wheels the sky a few degrees, the dust and the
+   boundary turn at a slower rate for depth, and each brain's bead travels its
+   tendril over its own slice of the page, its ripple and rim swelling as it
+   arrives. Time keeps the breathing, the seep, the embers and the answer. The
+   room redraws its leads on every scroll, so nothing needs to pause under
+   them. Elsewhere the clocks above stand. */
+@supports (animation-timeline: scroll()) {
+  .net-sky {
+    animation: net-wheel linear both;
+    animation-timeline: scroll(root);
+  }
+  .net-dust,
+  .net-boundary {
+    transform-origin: 50px 50px;
+    animation: net-wheel-against linear both;
+    animation-timeline: scroll(root);
+  }
+  .net-bead {
+    animation: net-travel-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10%)
+      calc(var(--net-slot, 0) * 10% + 20%);
+  }
+  /* After the base rule in specificity, since it comes before it in the file. */
+  .net-sky .net-name > span {
+    animation: net-upright linear both;
+    animation-timeline: scroll(root);
+  }
+  /* The tendril lights as the bead passes and the core flares as it arrives;
+     no fill, so a lit, hot or hovered brain keeps its own light. */
+  .net-thread {
+    animation: net-thread-scroll linear;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10%)
+      calc(var(--net-slot, 0) * 10% + 24%);
+  }
+  .net-mark i {
+    animation: net-core-scroll linear;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 28%);
+  }
+  .net-layer .net-thread.is-lit,
+  .net-layer .net-thread.is-hot,
+  .net-layer.has-replies .net-thread:not(.is-lit),
+  .net-layer .net-mark.is-lit i,
+  .net-layer .net-mark.is-hot i,
+  .net-layer.has-replies .net-mark:not(.is-lit) i,
+  .net-mark a:hover i,
+  .net-mark a:focus-visible i {
+    animation: none;
+  }
+  .net-ripple {
+    animation: net-ripple-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 26%);
+  }
+  .net-rim {
+    animation: net-swell-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 30%);
+  }
+  /* Scroll-driven motion moves only when the reader does, so neither the
+     leads nor an open Asked-before question need it paused. */
+  .net-layer.has-replies .net-sky,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-bead,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-ripple,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
+    animation-play-state: running;
+  }
+  @keyframes net-wheel {
+    from {
+      transform: rotate(-10deg);
+    }
+    to {
+      transform: rotate(10deg);
+    }
+  }
+  @keyframes net-wheel-against {
+    from {
+      transform: rotate(4deg);
+    }
+    to {
+      transform: rotate(-4deg);
+    }
+  }
+  @keyframes net-upright {
+    from {
+      rotate: 10deg;
+    }
+    to {
+      rotate: -10deg;
+    }
+  }
+  @keyframes net-thread-scroll {
+    0%,
+    100% {
+      stroke: var(--color-accent);
+      stroke-opacity: 0.2;
+      stroke-width: 0.28;
+    }
+    50% {
+      stroke: var(--color-accent-bright);
+      stroke-opacity: 0.95;
+      stroke-width: 0.5;
+    }
+  }
+  @keyframes net-core-scroll {
+    0%,
+    100% {
+      box-shadow: 0 0 0 2px var(--color-bg);
+      transform: none;
+    }
+    45% {
+      box-shadow:
+        0 0 0 2px var(--color-bg),
+        0 0 14px 5px var(--color-accent);
+      transform: scale(1.4);
+    }
+  }
+  @keyframes net-travel-scroll {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    88% {
+      opacity: 1;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+  }
+  @keyframes net-ripple-scroll {
+    0% {
+      opacity: 0.7;
+      transform: scale(0.3);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
+  @keyframes net-swell-scroll {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(2.4);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+[data-ask-source][data-ask-hot] {
+  background: rgb(from var(--color-accent) r g b / 0.12);
+}
+/* The mark: the brain's core, its hit target and the lead anchor. Its kind is
+   its shape: a person filled, a team a ring, an organisation a dotted ring. */
+.net-mark {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+.net-mark a {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+}
+.net-mark i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-bg);
+  transition:
+    background 0.5s ease,
+    box-shadow 0.5s ease;
+}
+.net-mark[data-kind="team"] i {
+  width: 9px;
+  height: 9px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-text);
+}
+.net-mark[data-kind="organization"] i {
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-text);
+  border-style: dotted;
+}
+.net-mark a:hover i,
+.net-mark a:focus-visible i {
+  background: var(--net-flame);
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 10px 3px var(--color-accent);
+}
+.net-mark a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.net-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+/* The names: one quiet layer under the sky, lowercase, each below its light. */
+.net-name {
+  position: absolute;
+  white-space: nowrap;
+  text-transform: lowercase;
+  transform: translate(-50%, 0.9rem);
+  font-family: var(--font-label, var(--font-body));
+  font-size: 0.74rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--color-text-light);
+  text-shadow:
+    0 0 0.45rem var(--color-bg),
+    0 0 0.2rem var(--color-bg),
+    0 0 0.1rem var(--color-bg);
+}
+.net-name--start {
+  transform: translate(-0.5rem, 0.9rem);
+}
+.net-name--end {
+  transform: translate(calc(-100% + 0.5rem), 0.9rem);
+}
+/* The name's text turns back against the sky's drift, so it stays upright. */
+.net-name > span {
+  display: inline-block;
+  animation: net-drift-back 140s ease-in-out infinite alternate;
+}
+@keyframes net-drift-back {
+  from {
+    rotate: 1.1deg;
+  }
+  to {
+    rotate: -1.1deg;
+  }
+}
+
+/* The Ask box, docked under the opening. */
+.ask {
+  margin-top: 2.2rem;
+  max-width: 32rem;
+}
+.opening__ask:not([data-ask-ready]) {
+  display: none;
+}
+.opening__ask-status {
+  margin: 0 0 0.5rem;
+  font-size: 0.84rem;
+  color: var(--color-text-light);
+}
+.opening__ask-status:empty {
+  display: none;
+}
+.opening__composer,
+.opening__ask .prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem 0.35rem 1.1rem;
+  border: 1px solid rgb(from var(--color-accent) r g b / 0.3);
+  border-radius: 1.6rem;
+  background: rgb(from var(--color-bg-subtle) r g b / 0.7);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.2s;
+}
+.opening__composer:focus-within,
+.opening__ask .prompt-row:focus-within {
+  border-color: var(--color-accent);
+}
+.opening__composer textarea,
+.opening__ask .prompt-row textarea {
+  flex: 1;
+  resize: none;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: 1.05rem/1.4 var(--font-body);
+  padding: 0.55rem 0;
+}
+.opening__composer textarea:focus,
+.opening__ask .prompt-row textarea:focus {
+  outline: none;
+}
+.opening__composer textarea::placeholder,
+.opening__ask .prompt-row textarea::placeholder {
+  color: var(--color-text-light);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+.opening__send,
+.opening__ask .send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #0e0d20);
+  cursor: pointer;
+}
+.opening__send:disabled,
+.opening__ask .send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.opening__send svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.opening__send:focus-visible,
+.opening__ask .send:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.opening__ask {
+  --ask-wash: var(--color-bg-subtle);
+  --ask-display: var(--font-display);
+  --ask-muted: var(--color-text-light);
+}
+.ask__topics {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0 0 0 1.1rem;
+  display: grid;
+  gap: 0.15rem;
+}
+.ask__topics button {
+  border: 0;
+  background: none;
+  padding: 0.25rem 0;
+  color: var(--color-text-muted);
+  font: italic 1.02rem/1.35 var(--font-display);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.ask__topics button:hover,
+.ask__topics button:focus-visible {
+  color: var(--color-accent);
+}
+
+/* Two ways in: the doors. */
+.doors {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.door {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.3rem 1.4rem;
+  border: 1px solid rgb(from var(--color-accent) r g b / 0.25);
+  border-radius: 6px;
+  background: rgb(from var(--color-bg-subtle) r g b / 0.55);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+.door:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+.door--work {
+  --door: var(--palette-ruby, #d0453a);
+  border-color: rgb(from var(--door) r g b / 0.35);
+}
+.door--work:hover {
+  border-color: var(--door);
+}
+.door__room {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--door, var(--color-accent));
+}
+.door__title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 36;
+}
+.door__text {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+.door__go {
+  margin-top: 0.4rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--door, var(--color-accent));
+}
+
+@media (max-width: 60rem) {
+  /* The network stands in the figure's strip while the opening is read; the
+     strip is empty and clear at stage 0, and the drawing takes over after. */
+  .net-layer {
+    position: fixed;
+    top: var(--bar-height, 4.6rem);
+    left: 0;
+    right: 0;
+    height: var(--strip-h);
+    width: auto;
+    z-index: 1;
+    background: linear-gradient(var(--color-bg) 82%, transparent);
+    transition: opacity 0.6s ease;
+  }
+  .net-layer > * {
+    width: min(100%, var(--strip-h));
+  }
+  /* The strip is small: the names would collide, so they wait until an
+     answer lights them. */
+  .net-name,
+  .net-layer.has-replies .net-name:not(.is-lit) {
+    opacity: 0;
+  }
+  .net-layer.has-replies .net-name.is-lit {
+    opacity: 1;
+  }
+  /* About a third of the screen for the strip, and the opening's type at
+     phone sizes, so the box lands on the first screen under the title. */
+  .story {
+    --words: 34rem;
+    --strip-h: 34svh;
+  }
+  /* The room page has no figure to hold the strip's height in the flow. */
+  .story--room .chapters {
+    padding-top: var(--strip-h);
+  }
+  .chapter.chapter--opening {
+    min-height: auto;
+    justify-content: flex-start;
+    padding-top: 1rem;
+  }
+  .chapter--opening h1 {
+    font-size: clamp(2.3rem, 9.5vw, 3.6rem);
+  }
+  .chapter--opening .lede {
+    font-size: 1.05rem;
+    margin-top: 1rem;
+  }
+  .story:has(.figure:not([data-stage="0"])) .net-layer {
+    opacity: 0;
+  }
+}
+
+/* Asked before: the visitors' questions the owner kept, one open at a time,
+   beside the live network drawn again for the chapter. The organism steps
+   aside while the chapter is read; the open question lights the brains its
+   answer drew on. Counts sort the list and are never shown. */
+.asked {
+  position: relative;
+}
+.asked .asked__list {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+.asked details {
+  border-bottom: 1px solid var(--color-border);
+}
+.asked summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.9rem 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--color-text);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.asked summary::-webkit-details-marker {
+  display: none;
+}
+.asked summary::after {
+  content: "+";
+  font-family: var(--font-label);
+  font-style: normal;
+  color: var(--color-accent);
+}
+.asked details[open] summary::after {
+  content: "–";
+}
+.asked summary:hover,
+.asked summary:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+.asked .asked__answer {
+  margin: 0 0 1.25rem;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.asked .asked__answer p {
+  margin: 0 0 0.8rem;
+}
+.asked .asked__by {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.asked .asked__sources {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+.asked .asked__sources li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.7rem;
+  row-gap: 0.25rem;
+  align-items: baseline;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+  transition: color 0.3s ease;
+}
+.asked .asked__sources li:last-child {
+  border-bottom: 0;
+}
+.asked .asked__mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  translate: 0 -1px;
+  transition: box-shadow 0.3s ease;
+}
+.asked .asked__sources li[data-ask-hot] .asked__mark {
+  box-shadow: 0 0 0 4px rgb(from var(--color-accent) r g b / 0.25);
+}
+.asked .asked__piece {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  align-items: baseline;
+}
+.asked .asked__piece b {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+.asked .asked__piece a {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid rgb(from var(--color-accent) r g b / 0.45);
+}
+.asked .asked__piece a:hover {
+  color: var(--color-accent);
+}
+.asked .asked__sources q {
+  grid-column: 2;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  quotes: "“" "”";
+}
+/* The Ask room's lead layer (the room script draws into it; the kit styles
+   the leads): leads join words to the drawing across the page, so the
+   viewport is their frame. On a phone the opening's drawing joins the open
+   conversation as the first item of its scroll, a slot holding its place. */
+.net-leads {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: visible;
+  pointer-events: none;
+}
+@media (max-width: 60rem) {
+  [data-ask-slot] {
+    height: var(--strip-h);
+  }
+  .opening__ask[data-ask-sheet] [data-ask-dock]:has(.net-layer) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .opening__ask[data-ask-sheet] [data-ask-dock] .net-layer {
+    position: relative;
+    inset: auto;
+    width: auto;
+    height: var(--strip-h);
+    opacity: 1;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+/* While the Asked-before questions are read, the page's drawing is the
+   network at rest: no pulse travels it and no brain blinks on its own; only
+   the open question's brains answer. */
+.story.is-asked .net-sky,
+.story.is-asked .net-seep,
+.story.is-asked .net-embers,
+.story.is-asked .net-reply:not(.is-lit) .net-bead,
+.story.is-asked .net-reply:not(.is-lit) .net-ripple,
+.story.is-asked .net-reply:not(.is-lit) .net-rim {
+  animation-play-state: paused;
+}
+/* Under the scroll timeline the sky, the beads, the ripples and the rims move
+   only when the reader does, so an open question needs none of them paused;
+   the seep and the embers keep their rest. */
+@supports (animation-timeline: scroll()) {
+  .story.is-asked .net-sky,
+  .story.is-asked .net-reply:not(.is-lit) .net-bead,
+  .story.is-asked .net-reply:not(.is-lit) .net-ripple,
+  .story.is-asked .net-reply:not(.is-lit) .net-rim {
+    animation-play-state: running;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .net-sky,
+  .net-boundary,
+  .net-wash,
+  .net-dust circle,
+  .net-seep,
+  .net-kin,
+  .net-rim,
+  .net-halo,
+  .net-ripple,
+  .net-corona,
+  .net-embers,
+  .net-embers circle,
+  .net-lantern {
+    animation: none !important;
+  }
+  .net-bead {
+    display: none;
+  }
+}

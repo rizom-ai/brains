@@ -1,4 +1,9 @@
 export {
+  entityTypeClassificationSchema,
+  type EntityTypeClassification,
+} from "./entity-type-classification";
+export { isGroupingContributor } from "./grouping-eligibility";
+export {
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
   MAX_ASSET_BYTES,
@@ -29,11 +34,38 @@ export {
 } from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
 export {
+  entityGroupingSchema,
+  groupingSortSchema,
+  groupingKeySchema,
+  groupingValueSchema,
+  groupingSearchSchema,
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
+  type EntityGrouping,
+  type GroupingSort,
+  queryGroupingUsageSchema,
+  type QueryGroupingUsageRequest,
+  type EntityGroupingUsage,
+  type QueryGroupingCatalogRequest,
+  type QueryGroupingMembersRequest,
+  type EntityGroupingCatalog,
+} from "./entity-grouping";
+export type { EntityGroupingMembers } from "./types";
+export {
   entityWriteConditionSchema,
   EntityWriteConflictError,
   type EntityWriteCondition,
 } from "./entity-write-contracts";
 export type { EntityWriteSnapshot } from "./types";
+export { entityRevision } from "./entity-revision";
+export {
+  entityMutationReceiptKeySchema,
+  entityMutationReceiptSchema,
+} from "./entity-mutation-receipt";
+export type {
+  EntityMutationReceipt,
+  EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
@@ -85,6 +117,7 @@ export type {
 } from "./schema/projection-batches";
 export {
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,
@@ -102,7 +135,6 @@ export type {
 export {
   createEmbeddingDatabase,
   migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
   dbUrlToPath,
 } from "./db/embedding-db";
@@ -148,7 +180,10 @@ export type {
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,
   UpdateEntityRequest,
+  FoldEntityRequest,
+  ApplyEntityMutationOnceRequest,
   UpsertEntityRequest,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -157,6 +192,8 @@ export type {
   SemanticSpacePoint,
   SemanticSpaceProjection,
   ListEntitiesRequest,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
   CountEntitiesRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
@@ -200,15 +237,20 @@ export {
 
 export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
+export { scopeEntityReads } from "./scoped-entity-reads";
+export type { EntityReadScope } from "./scoped-entity-reads";
 export { scopedDerivedId } from "./scoped-derived-id";
 export {
   getPublishBoundaryState,
   type PublishBoundaryState,
 } from "./publish-policy";
 
+export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export {
+  entityTitle,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  markdownBody,
   generateFrontmatter,
   extractVisibilityFromMarkdown,
   applyVisibilityToMarkdown,
@@ -238,4 +280,4 @@ export type {
   PaginateResult,
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
-export type { ResolvedEntity } from "./find-entity";
+export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";

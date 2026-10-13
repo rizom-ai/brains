@@ -1,12 +1,22 @@
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import type {
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
+} from "./entity-grouping";
 import { SHELL_CHANNELS } from "@brains/contracts";
+import { reprojectGroupings } from "./grouping-reprojection";
+import { GroupingReprojection } from "./grouping-reprojection-coordinator";
+import type { GroupingProjectionTarget } from "./grouping-projection-state";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
   migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
   dbUrlToPath,
   type EmbeddingDB,
@@ -29,10 +39,16 @@ import type {
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   ListEntitiesRequest,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
+  EntityGroupingMembers,
   CountEntitiesRequest,
   DeleteEntityRequest,
+  FoldEntityRequest,
+  ApplyEntityMutationOnceRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
   CreateEntityRequest,
@@ -62,7 +78,13 @@ import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
-import { EntityMutations } from "./entity-mutations";
+import { EntityMutations, validatePersist } from "./entity-mutations";
+import {
+  entityMutationReceiptKeySchema,
+  type EntityMutationReceipt,
+  type EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+import { snapshotEntityMutation } from "./entity-mutation-request";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
@@ -108,6 +130,8 @@ export class EntityService implements IEntityService {
   // Assigned inside the constructor's try block: null until that succeeds, so
   // initialize() reports the failure instead of awaiting undefined.
   private dbInitPromise: Promise<void> | null = null;
+  private readonly groupingReprojection: GroupingReprojection;
+  private readonly groupingAbort = new AbortController();
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -127,6 +151,7 @@ export class EntityService implements IEntityService {
    * Close the underlying database connections.
    */
   public close(): void {
+    this.groupingAbort.abort(new Error("Entity service is closed"));
     let firstError: unknown;
     let failed = false;
     try {
@@ -179,6 +204,30 @@ export class EntityService implements IEntityService {
       options.projectionNow ?? Date.now,
       {
         assetRepository: this.assetRepository,
+        prepareEntity: async (entity, operation): Promise<BaseEntity> => {
+          await options.entityRegistry.ensureGroupingsCurrent(
+            entity.entityType,
+          );
+          // Projection intents carry stored rows, not the adapter's typed
+          // top-level fields. Restore those for validation but retain the
+          // full persisted source and authoritative row identity/policy.
+          //
+          // Metadata sits between the two: an adapter may declare a required
+          // top-level field its `fromMarkdown` does not reconstruct from
+          // content, such as a note's `tags`, and carry it in metadata
+          // instead. Without this, validating such a type would fail on a
+          // field the row actually holds.
+          const parsed = this.entitySerializer.deserializeEntity(
+            entity.content,
+            entity.entityType,
+          );
+          const validated = options.entityRegistry.validateEntity(
+            entity.entityType,
+            { ...parsed, ...entity.metadata, ...entity },
+          );
+          await validatePersist(options.entityRegistry, validated, operation);
+          return validated;
+        },
         isAssetBacked: (entityType): boolean =>
           options.entityRegistry.getEntityTypeConfig(entityType)
             .binaryStorage === "asset",
@@ -204,6 +253,24 @@ export class EntityService implements IEntityService {
       this.embeddingDbClient = emb.client;
 
       this.entityRegistry = options.entityRegistry;
+      this.groupingReprojection = new GroupingReprojection({
+        pending: (): GroupingProjectionTarget[] =>
+          this.entityRegistry.getPendingGroupingProjections(),
+        complete: (targets): void =>
+          this.entityRegistry.completeGroupingProjections(targets),
+        refresh: async (): Promise<void> => {
+          this.groupingAbort.signal.throwIfAborted();
+          await this.initialize();
+          await this.entityRegistry.ensureGroupingsCurrent();
+        },
+        project: (targets): Promise<void> =>
+          reprojectGroupings(
+            this.db,
+            this.entityRegistry,
+            targets,
+            this.groupingAbort.signal,
+          ),
+      });
       this.logger = (options.logger ?? ConsoleLogger.getInstance()).child(
         "EntityService",
       );
@@ -220,6 +287,7 @@ export class EntityService implements IEntityService {
       );
       this.entityQueries = new EntityQueries({
         db: this.db,
+        entityRegistry: this.entityRegistry,
         serializer: this.entitySerializer,
         logger: this.logger,
         embeddingDb: this.embeddingDb,
@@ -231,6 +299,7 @@ export class EntityService implements IEntityService {
         this.entitySerializer,
         this.logger,
         embeddingsEnabled,
+        () => this.declaredPublishGates(),
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -348,7 +417,6 @@ export class EntityService implements IEntityService {
     // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
     await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
-    await ensureEmbeddingIndexes(this.embeddingDbClient);
     await attachEmbeddingDatabase(
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),
@@ -366,6 +434,13 @@ export class EntityService implements IEntityService {
   ): Promise<boolean> {
     await this.initialize();
     return this.projectionStore.isProjectionOwnedEntity(request);
+  }
+
+  public async releaseProjectionOwnership(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<void> {
+    await this.initialize();
+    await this.projectionStore.releaseProjectionOwnership(request);
   }
 
   public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
@@ -458,7 +533,10 @@ export class EntityService implements IEntityService {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     await this.initialize();
-    return this.entityMutations.createEntity(request);
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.createEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
   }
 
   public async createEntityFromMarkdown(
@@ -466,12 +544,13 @@ export class EntityService implements IEntityService {
   ): Promise<EntityMutationResult> {
     await this.initialize();
     const { input, options } = request;
+    await this.entityRegistry.ensureGroupingsCurrent();
     const parsed = this.entitySerializer.deserializeEntity(
       input.markdown,
       input.entityType,
     );
 
-    return this.entityMutations.createEntity({
+    const result = await this.entityMutations.createEntity({
       entity: {
         ...parsed,
         id: input.id,
@@ -484,25 +563,83 @@ export class EntityService implements IEntityService {
       },
       ...(options !== undefined && { options }),
     });
+    await this.afterGroupingSourceMutation(input.entityType);
+    return result;
   }
 
   public async updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     await this.initialize();
-    return this.entityMutations.updateEntity(request);
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.updateEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
+  }
+
+  public async getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null> {
+    const captured = entityMutationReceiptKeySchema.parse(key);
+    await this.initialize();
+    return this.entityMutations.getEntityMutationReceipt(captured);
+  }
+
+  public async applyEntityMutationOnce(
+    request: ApplyEntityMutationOnceRequest,
+  ): Promise<EntityMutationReceipt> {
+    const captured = snapshotEntityMutation(request);
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.applyEntityMutationOnce(captured);
+    if (result.applied && result.receipt.operation !== "none")
+      await this.afterGroupingSourceMutation(result.receipt.entityType);
+    return result.receipt;
+  }
+
+  public async foldEntity(
+    request: FoldEntityRequest,
+  ): Promise<EntityMutationResult> {
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.foldEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
   }
 
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
     await this.initialize();
-    return this.entityMutations.deleteEntity(request);
+    if (request.entityType === this.entityRegistry.getGroupingSourceType())
+      await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.deleteEntity(request);
+    if (result) await this.afterGroupingSourceMutation(request.entityType);
+    return result;
+  }
+
+  public async purgeEntityType(entityType: string): Promise<number> {
+    await this.initialize();
+    if (this.entityRegistry.hasEntityType(entityType)) {
+      throw new Error(
+        `${entityType} is a registered entity type; delete its entities instead`,
+      );
+    }
+    const ids = await this.entityQueries.listStoredIds(entityType);
+    return ids.reduce<Promise<number>>(
+      async (count, id) =>
+        (await count) +
+        ((await this.entityMutations.deleteEntity({ entityType, id })) ? 1 : 0),
+      Promise.resolve(0),
+    );
   }
 
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
     await this.initialize();
-    return this.entityMutations.upsertEntity(request);
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.upsertEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
@@ -514,7 +651,15 @@ export class EntityService implements IEntityService {
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void> {
     await this.initialize();
-    return this.entityMutations.reconcileProjectionTargets(targets);
+    await this.entityMutations.reconcileProjectionTargets(targets);
+    const sourceType = this.entityRegistry.getGroupingSourceType();
+    if (
+      sourceType &&
+      targets.some((target) => target.entityType === sourceType)
+    ) {
+      // Projection preparation does not capture this source's before-state.
+      await this.afterGroupingSourceMutation(sourceType, false);
+    }
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
@@ -639,10 +784,11 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    // Bounded evidence reads never expand entity image references into extra reads.
-    const resolved = request.readBudget
-      ? entity
-      : await this.resolveEntityContent(entityType, entity, visibilityScope);
+    const resolved = await this.resolveEntityContent(
+      entityType,
+      entity,
+      visibilityScope,
+    );
     request.signal?.throwIfAborted();
     return schema ? schema.parse(resolved) : resolved;
   }
@@ -679,20 +825,21 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
+    await this.entityRegistry.ensureGroupingsCurrent(entityType);
     const entityData = await this.entityQueries.getEntityData(
       entityType,
       id,
       visibilityScope,
       request,
+      request.publishedOnly
+        ? { publishedStatuses: this.publishedStatusesFor(entityType) }
+        : undefined,
     );
     if (!entityData) {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(
-      entityData,
-      request.readBudget === undefined,
-    );
+    const entity = await this.entitySerializer.convertToEntity(entityData);
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }
@@ -719,6 +866,97 @@ export class EntityService implements IEntityService {
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
 
+  public async queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    return this.entityQueries.queryEntityHierarchy(request);
+  }
+
+  public areGroupingsReady(): boolean {
+    return (
+      !this.groupingAbort.signal.aborted && this.groupingReprojection.isReady()
+    );
+  }
+
+  public reprojectRegisteredGroupings(): Promise<void> {
+    return this.groupingReprojection.run(true);
+  }
+
+  public async ensureGroupingsReady(): Promise<boolean> {
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (
+      !this.areGroupingsReady() &&
+      this.entityRegistry.getGroupingSourceType()
+    ) {
+      // A read may start/retry a local pass, but must not return partial counts.
+      void this.groupingReprojection
+        .run()
+        .catch((error: unknown) => this.reportGroupingScanFailure(error));
+    }
+    return this.areGroupingsReady();
+  }
+
+  private async afterGroupingSourceMutation(
+    entityType: string,
+    locallyPrepared = true,
+  ): Promise<void> {
+    if (entityType !== this.entityRegistry.getGroupingSourceType()) return;
+    try {
+      await this.entityRegistry.ensureGroupingsCurrent(undefined, {
+        afterWrite: locallyPrepared,
+      });
+      await this.groupingReprojection.run();
+    } catch (error) {
+      // Persistence already succeeded. Do not report the document as unsaved.
+      this.groupingReprojection.invalidate();
+      this.reportGroupingScanFailure(error);
+    }
+  }
+
+  private reportGroupingScanFailure(error: unknown): void {
+    if (!this.groupingAbort.signal.aborted)
+      this.logger.error(
+        "Grouping scan failed; grouping reads remain unready until retry",
+        { error: getErrorMessage(error) },
+      );
+  }
+
+  public async queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
+    return this.entityQueries.queryGroupingCatalog(request);
+  }
+
+  public async queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
+    return this.entityQueries.queryGroupingMembers(request);
+  }
+
+  public async queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
+    return this.entityQueries.queryGroupingUsage(request);
+  }
+
   public async countEntities(request: CountEntitiesRequest): Promise<number> {
     await this.initialize();
     const { entityType, options } = request;
@@ -734,6 +972,15 @@ export class EntityService implements IEntityService {
    * "published" means belongs to the entity type — queries consult this
    * instead of the shell hardcoding every plugin's lifecycle vocabulary.
    */
+  private declaredPublishGates(): Record<string, string[]> {
+    return Object.fromEntries(
+      this.entityRegistry.getAllEntityTypes().flatMap((entityType) => {
+        const statuses = this.publishedStatusesFor(entityType);
+        return statuses ? [[entityType, statuses]] : [];
+      }),
+    );
+  }
+
   private publishedStatusesFor(entityType: string): string[] | undefined {
     if (!this.entityRegistry.hasEntityType(entityType)) {
       return undefined;
@@ -765,7 +1012,7 @@ export class EntityService implements IEntityService {
     await this.initialize();
     const results = await this.entitySearch.search(
       request.query,
-      request.options,
+      this.withBroadSearchExclusions(request.options),
     );
     request.options?.signal?.throwIfAborted();
     return schema
@@ -774,6 +1021,28 @@ export class EntityService implements IEntityService {
           entity: schema.parse(result.entity),
         }))
       : results;
+  }
+
+  /**
+   * A search naming no types leaves out types that opted out of broad search;
+   * a search naming types is taken as asked.
+   */
+  private withBroadSearchExclusions(
+    options: SearchOptions | undefined,
+  ): SearchOptions | undefined {
+    if (options?.types && options.types.length > 0) return options;
+    const optedOut = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          this.entityRegistry.getEntityTypeConfig(type).includeInBroadSearch ===
+          false,
+      );
+    if (optedOut.length === 0) return options;
+    return {
+      ...options,
+      excludeTypes: [...(options?.excludeTypes ?? []), ...optedOut],
+    };
   }
 
   public async searchEntities(
@@ -791,7 +1060,19 @@ export class EntityService implements IEntityService {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     await this.initialize();
-    return this.entitySearch.searchWithDistances(request.query);
+    return this.entitySearch.searchWithDistances(request.query, {
+      types: request.types,
+      maxDistance: request.maxDistance,
+    });
+  }
+
+  public async nearestToEntity(
+    request: NearestToEntityRequest,
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    await this.initialize();
+    return this.entitySearch.nearestToEntity(request);
   }
 
   public async projectSemanticSpace(

@@ -19,6 +19,7 @@
           "platformPostId": { "type": "string" },
           "sourceLocalEntityType": { "type": "string" },
           "sourceLocalEntityId": { "type": "string" },
+          "canonicalUrl": { "type": "string", "format": "uri" },
           "brainDid": { "type": "string" },
           "anchorDid": { "type": "string" },
           "sourceEntityType": { "type": "string" },

@@ -1,0 +1,56 @@
+import type { JSX, ReactNode } from "react";
+import type { LayoutSlots } from "@brains/site-engine";
+import type { SiteLayoutInfo } from "@brains/site-composition";
+import { Header, Footer } from "@brains/ui-library";
+
+export interface SiteLayoutProps {
+  sections: ReactNode[];
+  title: string;
+  description: string;
+  path: string;
+  siteInfo: SiteLayoutInfo;
+  /** Optional slots for plugin-registered UI components */
+  slots?: LayoutSlots;
+  /**
+   * Optional custom wordmark JSX — replaces the default title/logo in the
+   * header. Pass e.g. `<Wordmark name="yeehaa" brandSuffix="io" />` to render
+   * a structured site brand.
+   */
+  wordmark?: ReactNode;
+}
+
+/**
+ * Site layout with compact header and full footer with navigation
+ * Clean and minimal
+ */
+export function SiteLayout({
+  sections,
+  siteInfo,
+  slots,
+  wordmark,
+}: SiteLayoutProps): JSX.Element {
+  return (
+    <div className="flex flex-col min-h-screen bg-theme overflow-x-clip">
+      <Header
+        title={siteInfo.title}
+        navigation={siteInfo.navigation.primary}
+        showThemeToggle
+        {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
+        {...(wordmark !== undefined ? { wordmark } : {})}
+      />
+
+      <main className="flex-grow flex flex-col bg-theme">{sections}</main>
+
+      <Footer
+        primaryNavigation={siteInfo.navigation.primary}
+        secondaryNavigation={siteInfo.navigation.secondary}
+        copyright={siteInfo.copyright}
+        socialLinks={siteInfo.socialLinks}
+        title={siteInfo.title}
+        tagline={siteInfo.description}
+      >
+        {slots?.getSlot("footer-top").map((entry) => entry.render())}
+      </Footer>
+    </div>
+  );
+}

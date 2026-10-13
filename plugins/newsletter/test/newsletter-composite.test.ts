@@ -1,29 +1,70 @@
 import { describe, expect, test } from "bun:test";
-import { newsletter } from "../src";
+import { newsletter, newsletterCompositeConfigSchema } from "../src";
 
 describe("newsletter composite", () => {
-  test("returns both the newsletter entity plugin and the buttondown service plugin", () => {
-    const plugins = newsletter({});
-    expect(plugins).toHaveLength(2);
-    const ids = plugins.map((p) => p.id);
-    expect(ids).toContain("newsletter");
-    expect(ids).toContain("buttondown");
+  test("returns only the entity plugin without a configured provider", () => {
+    const plugins = newsletter();
+    expect(plugins.map((plugin) => plugin.id)).toEqual(["newsletter"]);
   });
 
-  test("works with empty config", () => {
-    const plugins = newsletter();
-    expect(plugins).toHaveLength(2);
+  test("selects Buttondown as the delivery provider", () => {
+    const plugins = newsletter({
+      provider: {
+        type: "buttondown",
+        apiKey: "buttondown-key",
+        doubleOptIn: false,
+      },
+    });
+    expect(plugins.map((plugin) => plugin.id)).toEqual([
+      "newsletter",
+      "buttondown",
+    ]);
   });
 
-  test("the newsletter entity plugin has type 'entity'", () => {
-    const plugins = newsletter();
-    const entity = plugins.find((p) => p.id === "newsletter");
-    expect(entity?.type).toBe("entity");
+  test("selects Resend as the delivery provider", () => {
+    const plugins = newsletter({
+      provider: {
+        type: "resend",
+        apiKey: "resend-key",
+        segmentId: "segment-1",
+        from: "Rizom <newsletter@example.com>",
+      },
+    });
+    expect(plugins.map((plugin) => plugin.id)).toEqual([
+      "newsletter",
+      "resend",
+    ]);
   });
 
-  test("the buttondown service plugin has type 'service'", () => {
-    const plugins = newsletter();
-    const service = plugins.find((p) => p.id === "buttondown");
-    expect(service?.type).toBe("service");
+  test("rejects incomplete Resend configuration", () => {
+    expect(
+      newsletterCompositeConfigSchema.safeParse({
+        provider: {
+          type: "resend",
+          apiKey: "resend-key",
+          segmentId: "segment-1",
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  test("rejects the replaced flat Buttondown configuration", () => {
+    expect(
+      newsletterCompositeConfigSchema.safeParse({
+        apiKey: "legacy-key",
+      }).success,
+    ).toBe(false);
+  });
+
+  test("preserves entity and service plugin types", () => {
+    const plugins = newsletter({
+      provider: { type: "buttondown", apiKey: "buttondown-key" },
+    });
+    expect(plugins.find((plugin) => plugin.id === "newsletter")?.type).toBe(
+      "entity",
+    );
+    expect(plugins.find((plugin) => plugin.id === "buttondown")?.type).toBe(
+      "service",
+    );
   });
 });

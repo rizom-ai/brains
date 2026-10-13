@@ -1,21 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import { createElement as h, type JSX } from "react";
-import { z } from "@brains/utils/zod";
-import { renderMediaTemplateHtml, type MediaPageTemplate } from "../src";
+import { renderMediaTemplateHtml } from "../src";
+import type { ViewTemplate } from "@brains/plugins";
+import { viewTemplate } from "./view-template";
 
 function PdfComponent(props: Record<string, unknown>): JSX.Element {
   return h("main", { className: "pdf-slide" }, String(props["title"]));
 }
 
-function createTemplate(): MediaPageTemplate {
-  return {
-    name: "carousel-template",
-    pluginId: "test",
-    schema: z.object({ title: z.string() }),
-    renderers: {
-      pdf: PdfComponent,
-    },
-  };
+function createTemplate(): ViewTemplate {
+  return viewTemplate("carousel-template", { pdf: PdfComponent });
 }
 
 describe("renderMediaTemplateHtml", () => {
@@ -53,6 +47,6 @@ describe("renderMediaTemplateHtml", () => {
         content: { title: "Carousel" },
         siteConfig: { title: "Test Site" },
       }),
-    ).toThrow("No image renderer for template: carousel-template");
+    ).toThrow("No image renderer for template: test:carousel-template");
   });
 });

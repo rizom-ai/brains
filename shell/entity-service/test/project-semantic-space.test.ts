@@ -84,7 +84,7 @@ describe("projectSemanticSpace", () => {
     expect(result.distanceRange).toEqual({ min: 0, max: 1 });
   });
 
-  test("prepaid public search and map projection share an enabled index without changing its provider", async () => {
+  test("public search and map projection share an enabled index", async () => {
     await seedEmbedding({ id: "origin", values: [1, 0] });
     await seedEmbedding({ id: "near", values: [1, 0] });
     await seedEmbedding({
@@ -92,59 +92,30 @@ describe("projectSemanticSpace", () => {
       visibility: "restricted",
       values: [1, 0],
     });
-    const provider = spyOn(mockEmbeddingService, "generateEmbedding");
-    let queries = 0;
-    const signal = new AbortController().signal;
+    const vector = new Float32Array(MOCK_DIMENSIONS);
+    vector[0] = 1;
+    const provider = spyOn(
+      mockEmbeddingService,
+      "generateEmbedding",
+    ).mockResolvedValue({ embedding: vector, usage: { tokens: 1 } });
     try {
       const results = await ctx.entityService.search({
         query: "Content",
-        options: {
-          visibilityScope: "public",
-          readBudget: { rows: 5, rowBytes: 1000, queryCharacters: 40 },
-          signal,
-          queryEmbedding: async (_query, suppliedSignal) => {
-            expect(suppliedSignal).toBe(signal);
-            queries++;
-            const vector = new Float32Array(MOCK_DIMENSIONS);
-            vector[0] = 1;
-            return vector;
-          },
-        },
+        options: { visibilityScope: "public" },
       });
       expect(results.map(({ entity }) => entity.id).sort()).toEqual([
         "near",
         "origin",
       ]);
-      const map = await ctx.entityService.projectSemanticSpace({
-        types: ["test"],
-        visibilityScope: "public",
-        origin: { entityId: "origin", entityType: "test" },
-      });
-      expect(map.points.map(({ entityId }) => entityId)).toEqual(["near"]);
-      expect(queries).toBe(1);
-      expect(provider).not.toHaveBeenCalled();
-      const denied = await ctx.entityService
-        .search({
-          query: "Content",
-          options: {
-            signal,
-            queryEmbedding: async () => {
-              throw new Error("Guest query embedding unavailable");
-            },
-          },
-        })
-        .catch((error: unknown) => error);
-      expect(denied).toBeInstanceOf(Error);
-      expect(denied).toMatchObject({
-        message: "Guest query embedding unavailable",
-      });
-      expect(provider).not.toHaveBeenCalled();
-      await ctx.entityService.search({ query: "Content" });
-      expect(provider).toHaveBeenCalledTimes(1);
-      expect(queries).toBe(1);
     } finally {
       provider.mockRestore();
     }
+    const map = await ctx.entityService.projectSemanticSpace({
+      types: ["test"],
+      visibilityScope: "public",
+      origin: { entityId: "origin", entityType: "test" },
+    });
+    expect(map.points.map(({ entityId }) => entityId)).toEqual(["near"]);
   });
 
   test("filters projected points by entity type", async () => {
@@ -164,6 +135,61 @@ describe("projectSemanticSpace", () => {
     expect(result.points.map(({ entityId }) => entityId)).toEqual([
       "image-entity",
     ]);
+  });
+
+  test("projects only the listed entities", async () => {
+    await seedEmbedding({ id: "a", values: [1, 0] });
+    await seedEmbedding({ id: "b", values: [0, 1] });
+    await seedEmbedding({ id: "c", values: [1, 1] });
+    await seedEmbedding({ id: "img", entityType: "image", values: [0, 1] });
+
+    const result = await ctx.entityService.projectSemanticSpace({
+      entities: [
+        { entityType: "test", entityId: "a" },
+        { entityType: "image", entityId: "img" },
+        { entityType: "test", entityId: "missing" },
+      ],
+    });
+
+    expect(
+      result.points
+        .map(({ entityType, entityId }) => `${entityType}:${entityId}`)
+        .sort(),
+    ).toEqual(["image:img", "test:a"]);
+  });
+
+  test("measures points from an origin of another type, within the scope", async () => {
+    await seedEmbedding({ id: "origin", values: [1, 0] });
+    await seedEmbedding({ id: "other", values: [0, 1] });
+    await seedEmbedding({ id: "near", entityType: "image", values: [1, 0] });
+    await seedEmbedding({ id: "far", entityType: "image", values: [0, 1] });
+    await seedEmbedding({
+      id: "hidden",
+      visibility: "restricted",
+      values: [1, 0],
+    });
+
+    const result = await ctx.entityService.projectSemanticSpace({
+      types: ["image"],
+      origin: { entityId: "origin", entityType: "test" },
+    });
+    const distance = (id: string): number | undefined =>
+      result.points.find(({ entityId }) => entityId === id)?.distanceToOrigin;
+
+    expect(result.origin).toEqual({
+      kind: "entity",
+      entityId: "origin",
+      entityType: "test",
+    });
+    expect(distance("near")).toBeCloseTo(0);
+    expect(distance("far")).toBeCloseTo(1);
+
+    // An origin outside the caller's scope is not used.
+    const hidden = await ctx.entityService.projectSemanticSpace({
+      types: ["image"],
+      origin: { entityId: "hidden", entityType: "test" },
+    });
+    expect(hidden.origin).toEqual({ kind: "centroid" });
   });
 
   test("fails closed to public visibility and allows explicit scope widening", async () => {

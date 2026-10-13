@@ -4,6 +4,19 @@ import {
   type ContentVisibility,
 } from "@brains/plugins";
 
+import { EntityPlacementError } from "./entity-placement-error";
+
+/** Refused IDs cannot become exportable by retrying; other failures stay pending. */
+async function materialize(effect: () => Promise<void>): Promise<boolean> {
+  try {
+    await effect();
+    return true;
+  } catch (error) {
+    if (!(error instanceof EntityPlacementError)) throw error;
+    return false;
+  }
+}
+
 export interface DurableEntityExportIntent {
   entityType: string;
   entityId: string;
@@ -56,9 +69,11 @@ export async function drainDurableEntityExports<TCheckpoint = unknown>(
     }
 
     if (intent.operation === "delete") {
-      await deps.deleteEntityFile(intent.entityType, intent.entityId);
+      const changed = await materialize(() =>
+        deps.deleteEntityFile(intent.entityType, intent.entityId),
+      );
       processed.push(intent);
-      changedFiles = true;
+      changedFiles ||= changed;
       continue;
     }
 
@@ -74,9 +89,9 @@ export async function drainDurableEntityExports<TCheckpoint = unknown>(
         `Durable entity export cannot resolve upsert target ${intent.entityType}:${intent.entityId} at revision ${intent.revision}`,
       );
     }
-    await deps.writeEntity(entity);
+    const changed = await materialize(() => deps.writeEntity(entity));
     processed.push(intent);
-    changedFiles = true;
+    changedFiles ||= changed;
   }
 
   let pushed = false;

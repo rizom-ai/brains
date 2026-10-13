@@ -1,7 +1,11 @@
 import { createMockShell } from "@brains/plugins/test";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  PluginRegistrationContext,
+  ServicePluginContext,
+} from "@brains/plugins";
 import { caughtError } from "@brains/test-utils";
 import {
   AtprotoPlugin,
@@ -52,6 +56,7 @@ function createLexicon(id: string): AtprotoLexicon {
             body: { type: "string" },
             format: { type: "string" },
             url: { type: "string", format: "uri" },
+            canonicalUrl: { type: "string", format: "uri" },
             topics: { type: "array", items: { type: "string" } },
             brainDid: { type: "string", format: "did" },
             anchorDid: { type: "string", format: "did" },
@@ -72,7 +77,7 @@ function registerTestPostProjection(): void {
     collection: "ai.rizom.brain.post",
     lexicon: createLexicon("ai.rizom.brain.post"),
     validate: false,
-    buildRecord: async ({ entity, config, topics }) => ({
+    buildRecord: async ({ entity, config, topics, pageUrl }) => ({
       $type: "ai.rizom.brain.post",
       title: "Distributed Brains",
       body: entity.content,
@@ -80,6 +85,7 @@ function registerTestPostProjection(): void {
       ...(config.brainDid && { brainDid: config.brainDid }),
       ...(config.anchorDid && { anchorDid: config.anchorDid }),
       ...(topics && topics.length > 0 && { topics }),
+      ...(pageUrl && { canonicalUrl: pageUrl }),
       sourceEntityType: "post",
       sourceEntityId: entity.id,
       createdAt: entity.created,
@@ -90,16 +96,51 @@ function registerTestPostProjection(): void {
 function createContext(
   post: BaseEntity = createPost(),
   extraEntities: BaseEntity[] = [],
+  entityDisplay?: PluginRegistrationContext["entityDisplay"],
 ): ServicePluginContext {
   const shell = createMockShell({ domain: "brain.example.com" });
   shell.addEntities([post, ...extraEntities]);
-  return createServicePluginContext(shell, "atproto");
+  return createServicePluginContext(
+    shell,
+    "atproto",
+    entityDisplay ? { entityDisplay } : undefined,
+  );
 }
 
 describe("AT Protocol post publishing", () => {
   beforeEach(() => {
     AtprotoProjectionRegistry.resetInstance();
     registerTestPostProjection();
+  });
+
+  it("hands the projection the entity's page on this brain's site", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+    });
+    const context = createContext(createPost(), [], {
+      post: { label: "Essay" },
+    });
+    const result = await plugin.publishPost(context, {
+      slug: "distributed-brains",
+      dryRun: true,
+    });
+    expect(result.record.canonicalUrl).toBe(
+      "https://brain.example.com/essays/distributed-brains",
+    );
+  });
+
+  it("hands no page for a type the site gives none", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+    });
+    const context = createContext(createPost(), [], {
+      deck: { label: "Deck" },
+    });
+    const result = await plugin.publishPost(context, {
+      slug: "distributed-brains",
+      dryRun: true,
+    });
+    expect(result.record.canonicalUrl).toBeUndefined();
   });
 
   it("dry-runs a post record by slug without writing to the PDS", async () => {
@@ -509,6 +550,63 @@ describe("AT Protocol post publishing", () => {
         "Cannot publish non-public post",
       );
     }
+  });
+
+  it("refuses to publish entities their projection does not deem publishable", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const buildRecord = mock(async ({ entity }: { entity: BaseEntity }) => ({
+      $type: "ai.rizom.brain.post",
+      title: "Distributed Brains",
+      createdAt: entity.created,
+    }));
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      validate: false,
+      buildRecord,
+      isPublishable: () => false,
+    });
+    const putRecord = mock(async () => ({
+      uri: "at://repo/post",
+      cid: "cid",
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        projectionRegistry: registry,
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:session-repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
+          putRecord,
+        }),
+      },
+    );
+
+    for (const dryRun of [true, false]) {
+      try {
+        await plugin.publishPost(createContext(), {
+          entityId: "post-123",
+          dryRun,
+        });
+        throw new Error("Expected unpublishable post publish to fail");
+      } catch (error) {
+        expect(caughtError(error).message).toContain(
+          "Cannot publish non-publishable post",
+        );
+      }
+    }
+    expect(buildRecord).not.toHaveBeenCalled();
+    expect(putRecord).not.toHaveBeenCalled();
   });
 
   it("does not expose publish-entity as an agent tool", async () => {

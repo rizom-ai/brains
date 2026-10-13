@@ -18,6 +18,8 @@ import {
   capturePredeployBackup,
   parsePredeployBackupOutput,
   renderPredeployBackupRemoteScript,
+  predeployBackupNotices,
+  renderPredeployReadinessProgram,
   type PredeployCaptureConfig,
 } from "../src/deploy-scripts/create-predeploy-backup";
 
@@ -91,6 +93,135 @@ VERIFICATION=passed
     expect(script).not.toMatch(/cp\s+[^\n]*\.db/);
     const syntax = await runProcess(["bash", "-n"], { stdin: script });
     expect(syntax.exitCode).toBe(0);
+  });
+
+  it("runs the readiness gate inside the current runtime", () => {
+    expect(renderPredeployBackupRemoteScript()).toContain(
+      `docker exec "$container" bun -e '\n${renderPredeployReadinessProgram()}'`,
+    );
+    expect(renderPredeployReadinessProgram()).not.toContain("'");
+  });
+});
+
+describe("predeploy backup notices", () => {
+  it("surfaces the runtime's own notices as workflow warnings, and nothing else", () => {
+    expect(
+      predeployBackupNotices(
+        "pre-deploy snapshot: runtime is degraded (contact:intake); backing it up anyway\nWarning: Permanently added host\n",
+      ),
+    ).toEqual([
+      "::warning title=Pre-deploy backup::runtime is degraded (contact:intake); backing it up anyway",
+    ]);
+    expect(predeployBackupNotices("")).toEqual([]);
+  });
+});
+
+describe("predeploy readiness gate", () => {
+  const idleQueue = {
+    totals: { pending: 0, processing: 0 },
+    staleLeaseCount: 0,
+  };
+
+  async function gate(
+    status: number,
+    health: unknown,
+  ): Promise<{ exitCode: number; stderr: string }> {
+    const server = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: () => Response.json(health, { status }),
+    });
+    try {
+      const result = await runProcess([
+        process.execPath,
+        "-e",
+        renderPredeployReadinessProgram(
+          `http://127.0.0.1:${server.port}/health/ready`,
+        ),
+      ]);
+      return { exitCode: result.exitCode, stderr: result.stderr };
+    } finally {
+      await server.stop(true);
+    }
+  }
+
+  it("backs up a ready runtime whose plugins report degradation", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "degraded",
+      checks: [
+        { name: "routing", status: "healthy" },
+        { name: "contact:intake", status: "degraded" },
+      ],
+      resources: { queue: idleQueue },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: runtime is degraded (contact:intake)",
+    );
+  });
+
+  it("refuses while the job queue has work", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "operational",
+      checks: [],
+      resources: {
+        queue: { ...idleQueue, totals: { pending: 1, processing: 0 } },
+      },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: job queue is not idle (1 pending, 0 processing, 0 abandoned); rerun once it drains",
+    );
+  });
+
+  it("refuses while a job holds a current lease", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "operational",
+      checks: [],
+      resources: {
+        queue: { totals: { pending: 0, processing: 2 }, staleLeaseCount: 1 },
+      },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: job queue is not idle (0 pending, 2 processing, 1 abandoned); rerun once it drains",
+    );
+  });
+
+  it("backs up past an abandoned job, which the next worker reruns", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "degraded",
+      checks: [{ name: "attempt-leases", status: "degraded" }],
+      resources: {
+        queue: { totals: { pending: 0, processing: 1 }, staleLeaseCount: 1 },
+      },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: 1 abandoned job(s) will rerun after the deploy",
+    );
+  });
+
+  it("refuses a runtime that is not ready", async () => {
+    const result = await gate(503, {
+      status: "not_ready",
+      operationalStatus: "degraded",
+      checks: [{ name: "routing", status: "unhealthy" }],
+      resources: { queue: idleQueue },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: current runtime is not ready",
+    );
   });
 });
 
@@ -357,4 +488,101 @@ db.close(false);
       "tracked.txt",
     );
   }, 20_000);
+});
+
+describe("predeploy embeddings capture", () => {
+  async function contentCheckout(root: string): Promise<string> {
+    const contentDir = join(root, "content");
+    const remoteDir = join(root, "remote.git");
+    await Bun.$`mkdir -p ${contentDir}`.quiet();
+    await git(contentDir, ["init", "-b", "main"]);
+    await git(contentDir, ["config", "user.name", "Backup Test"]);
+    await git(contentDir, ["config", "user.email", "backup@example.com"]);
+    await writeFile(join(contentDir, "tracked.txt"), "base\n");
+    await git(contentDir, ["add", "tracked.txt"]);
+    await git(contentDir, ["commit", "-m", "base"]);
+    await git(root, ["init", "--bare", remoteDir]);
+    await git(contentDir, ["remote", "add", "origin", remoteDir]);
+    await git(contentDir, ["push", "--set-upstream", "origin", "main"]);
+    return contentDir;
+  }
+
+  async function embeddingsDatabase(
+    path: string,
+    index: "present" | "dropped" | "never",
+  ): Promise<void> {
+    const { createClient } = await import("@libsql/client");
+    const client = createClient({ url: `file:${path}` });
+    try {
+      await client.execute(
+        "CREATE TABLE embeddings (entity_id TEXT NOT NULL, entity_type TEXT NOT NULL, embedding F32_BLOB(3) NOT NULL, PRIMARY KEY(entity_id, entity_type))",
+      );
+      if (index !== "never")
+        await client.execute(
+          "CREATE INDEX embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
+        );
+      await client.execute(
+        "INSERT INTO embeddings VALUES ('note-1', 'note', vector('[1, 2, 3]'))",
+      );
+      if (index === "dropped")
+        await client.execute("DROP INDEX IF EXISTS embeddings_embedding_idx");
+    } finally {
+      client.close();
+    }
+  }
+
+  for (const index of ["present", "dropped", "never"] as const) {
+    it(`verifies an embeddings database whose vector index is ${index}`, async () => {
+      const root = await mkdtemp(join(tmpdir(), `predeploy-embeddings-`));
+      temporaryDirectories.push(root);
+      const backupDir = join(root, "backup");
+      await Bun.$`mkdir -p ${backupDir}`.quiet();
+      const source = join(root, "embeddings.db");
+      await embeddingsDatabase(source, index);
+
+      await capturePredeployBackup({
+        backupDir,
+        contentRoot: await contentCheckout(root),
+        databases: [
+          {
+            source,
+            name: "embeddings.db",
+            method: "serialize",
+            quickCheck: "libsql",
+            logicalVector: true,
+          },
+        ],
+        metadata: {
+          snapshotId: `predeploy-test-embeddings-${index}`,
+          targetHandle: "test",
+          host: "test-host",
+          startedAt: new Date().toISOString(),
+          sourceVersion: "source",
+          targetVersion: "target",
+          toolVersion: "test",
+          containerId: "container",
+          imageId: "image",
+          imageDigest: "digest",
+        },
+      });
+
+      // Count through libSQL as the app does: plain SQLite answers COUNT(*)
+      // from the vector index's empty b-tree while that index exists.
+      const { createClient } = await import("@libsql/client");
+      const snapshot = createClient({
+        url: `file:${join(backupDir, "embeddings.db")}`,
+      });
+      const countRow = z
+        .looseObject({ count: z.number() })
+        .parse(
+          (await snapshot.execute("SELECT COUNT(*) AS count FROM embeddings"))
+            .rows[0],
+        );
+      snapshot.close();
+      expect(countRow.count).toBe(1);
+      expect(await Bun.file(join(backupDir, "manifest.json")).exists()).toBe(
+        true,
+      );
+    });
+  }
 });

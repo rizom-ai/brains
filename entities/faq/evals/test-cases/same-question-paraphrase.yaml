@@ -1,0 +1,20 @@
+id: faq-same-question-paraphrase
+name: A reworded question is the same question
+description: Two phrasings of one question fall within the same-question distance.
+type: plugin
+tags: [faq, dedup]
+plugin: faq
+handler: sameQuestion
+
+input:
+  stored:
+    question: What topics do you mostly write about?
+    answer: Mostly decision governance, documentation integrity, green software engineering and research evidence.
+  incoming:
+    question: Which subjects do you write about most?
+    answer: Decision governance, documentation integrity, green software engineering and research evidence.
+
+expectedOutput:
+  validateEach:
+    - path: sameQuestion
+      equals: true

@@ -1,5 +1,1264 @@
 # @rizom/brain
 
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- [#623](https://github.com/rizom-ai/brains/pull/623) [`b95e217`](https://github.com/rizom-ai/brains/commit/b95e2176b93bbc2676f0a11c966284adbf04febe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic that owns none of its nearest sources joins the topic that owns most of them, and the knowledge map files each source under the topic it sits closest to.
+
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- [#622](https://github.com/rizom-ai/brains/pull/622) [`df914fb`](https://github.com/rizom-ai/brains/commit/df914fbebd42f3563a9bb963c972d95bd6719ef7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a large corpus, the knowledge map files each source under the topic it was found nearest to, so territories hold their sources.
+
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- [#620](https://github.com/rizom-ai/brains/pull/620) [`107c26a`](https://github.com/rizom-ai/brains/commit/107c26af8ba078ac02b40097cf8a7c3637307964) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The knowledge map stays bounded however large the corpus. Up to 600 sources it draws the whole corpus as before; beyond that it draws the topics and the sources nearest each of them (eight per topic, read from stored embeddings), so a book brain's dashboard loads again instead of timing out while the map lays out thousands of points. The homepage atlas always draws every published essay, talk and project. Map ids stay within the view's limits for deeply nested entries, and an entry without a heading is labelled by its page name, as a section by its siglum.
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- [#615](https://github.com/rizom-ai/brains/pull/615) [`5968c00`](https://github.com/rizom-ai/brains/commit/5968c005bc312244e05c65e92ad2ad7be4605fe8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The analytics plugin runs in evals: its reports read stored snapshots and need no Cloudflare, so traffic questions are covered by eval cases (`traffic-overview` for a traffic question, `traffic-by-entity` with `firstDays` for how a piece did after publishing).
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- [#614](https://github.com/rizom-ai/brains/pull/614) [`6b2c162`](https://github.com/rizom-ai/brains/commit/6b2c162b924138dbc55e2292fdec458d996dc64f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A search result's and a source's excerpt is the entity's text, not its frontmatter. Where a query does not appear literally — the usual case for a semantic match — the excerpt used to begin with the entity's raw frontmatter ("--- title: '6' book: ecce-homo …"); a source read directly showed the same.
+
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- [#613](https://github.com/rizom-ai/brains/pull/613) [`e8590df`](https://github.com/rizom-ai/brains/commit/e8590df6f06f0275fce501de1a4098025f7228e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A chat answer's sources are named and linked as the site shows them. A book section is cited by its siglum ("EH-Weise-3") rather than its bare number, and links to its reading page wherever the site cites its type, in Studio's chat as in the guest Ask; Studio's source list no longer shows each source's raw record.
+
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- [#612](https://github.com/rizom-ai/brains/pull/612) [`2b37c8b`](https://github.com/rizom-ai/brains/commit/2b37c8b6827c67c87295abfc2b31d9acf6e01298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A template's component can no longer ask for data its schema does not supply. `ComponentType` checked props bivariantly, so a component could require a field the datasource never declared; the book's missing section number got through that way. Props are now checked as an ordinary function parameter. Templates whose components read the link fields site-builder fills (blog, decks, portfolio, agents, the personal and professional homepages, social posts) declare a render schema built on a shared `renderedLinkFields`, so those fields are parsed at render rather than assumed.
+
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- [#611](https://github.com/rizom-ai/brains/pull/611) [`dac577e`](https://github.com/rizom-ai/brains/commit/dac577e4a0416f3a8feb5cd80030047c20af1cad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic reports count `/cms` pages, Studio's path before it was renamed, among the owner's own pages instead of in the top pages readers read.
+
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- [#609](https://github.com/rizom-ai/brains/pull/609) [`031d887`](https://github.com/rizom-ai/brains/commit/031d88734a596c9f7737c0b7d5207c432a69862b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section's page shows its place again: "section 112 of 181" instead of "section of 181". The page template's schema now carries the section's position.
+
+## 0.2.0-alpha.533
+
+### Patch Changes
+
+- [#610](https://github.com/rizom-ai/brains/pull/610) [`e7704d7`](https://github.com/rizom-ai/brains/commit/e7704d715688d491a7c71e3a81d3e7ee956a081c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Studio Traffic workspace ignores query keys it does not own, such as the `offset` Studio keeps for a list, instead of failing to load.
+
+## 0.2.0-alpha.532
+
+### Patch Changes
+
+- [#608](https://github.com/rizom-ai/brains/pull/608) [`68ea348`](https://github.com/rizom-ai/brains/commit/68ea3483a63c7c2ddb2c963ab4fe3e5235f33bcb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section too long for one entry reads as one section. The importer records on each book which entries continue the one before, and counts the sections the edition prints. On the reading site, a split section shows its whole text from any of its entries, previous and next step over it as one, the book's score draws it once at its full length, and "section n of total" counts sections, not entries.
+
+## 0.2.0-alpha.531
+
+### Patch Changes
+
+- [#607](https://github.com/rizom-ai/brains/pull/607) [`e7f4a8c`](https://github.com/rizom-ai/brains/commit/e7f4a8c0b905030347fe3a0cf6fba08258ed8410) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio and web chat answer a failure of their own (a workspace that cannot load its data, an upload that cannot be promoted, an agent or runtime action answer that does not parse) with 500 instead of 502. A proxy in front of the brain, such as Cloudflare, replaces an origin 502 with its own page, so the reason never reached Studio.
+
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- [#606](https://github.com/rizom-ai/brains/pull/606) [`ea43e46`](https://github.com/rizom-ai/brains/commit/ea43e4648a979c7abe907dade6157c20b56c3b1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio collections that are still initializing end their wait with "Collections are not ready yet. Try again." even when the wait budget runs out as a response arrives, instead of surfacing the raw initializing error.
+
+- [#604](https://github.com/rizom-ai/brains/pull/604) [`9b457d1`](https://github.com/rizom-ai/brains/commit/9b457d13c022ec1a98c70cf4ae9336ff59422f9f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Traffic workspace chart draws a day Cloudflare sampled like any other day, naming it an estimate on hover, instead of in the warning colour that made the estimated history its boldest bars.
+
+## 0.2.0-alpha.529
+
+### Patch Changes
+
+- [#605](https://github.com/rizom-ai/brains/pull/605) [`b8ec541`](https://github.com/rizom-ai/brains/commit/b8ec54114b82ba94416293c7586f1f9bc1c9796b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Near-duplicate topics merge again. Once every source has been read, topics whose stored embeddings sit close together are judged once by the merge prompt. A duplicate leaves, and its votes count for the topic it duplicates, so "Bildung", "Cultural Education" and "Educational Formation" no longer take three of a brain's topic slots. Distinct verdicts are remembered, and a brain without embeddings keeps every topic.
+
+## 0.2.0-alpha.528
+
+### Patch Changes
+
+- [#603](https://github.com/rizom-ai/brains/pull/603) [`0efcc76`](https://github.com/rizom-ai/brains/commit/0efcc7632843e71d21f40b357ecf49f5b48a2ed8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `publishing-cadence` counts a piece in the month it was published (its creation month only when never published) and takes `entityTypes` and a `from`/`to` month range; `content-health` takes `staleDays` (default 90) and `entityTypes`.
+
+- [#602](https://github.com/rizom-ai/brains/pull/602) [`d87354f`](https://github.com/rizom-ai/brains/commit/d87354fefb417244a1e7424ead1c461695bb1bcf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Studio Traffic workspace no longer fails when its period select is set to "All": All now covers every recorded day, from the first traffic snapshot to yesterday, and a period it does not know reads as the last 30 days.
+
+## 0.2.0-alpha.527
+
+### Patch Changes
+
+- [#601](https://github.com/rizom-ai/brains/pull/601) [`2561fc2`](https://github.com/rizom-ai/brains/commit/2561fc26e2a90874c80a30e117c1b569d5c3015d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topic titles name one concept other brains can match. A title that joins two concepts ("Design and Craft", "Mind/Body"), or is built on a term the brain excludes through the topics plugin's new `excludeTitleTerms` (a book brain's author, so no "Nietzschean Philosophy"), never becomes a topic. An existing topic with such a title leaves once every source has been read, and the next-best challenger takes its place from the votes already stored.
+
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- [#599](https://github.com/rizom-ai/brains/pull/599) [`cc5e3cf`](https://github.com/rizom-ai/brains/commit/cc5e3cfecc4944d09aa1ea6c9a0a1395cfaa1371) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator views gain a `series` block: values over ordered points drawn as bars, up to a year of days, with a point able to read "no data" apart from zero, carry a marker for an event that day, and take a tone. Each bar names its reading on hover; the axis shows the first and last labels and the peak. Studio workspaces and dashboard widgets both accept it.
+
+- [#599](https://github.com/rizom-ai/brains/pull/599) [`b777c2e`](https://github.com/rizom-ai/brains/commit/b777c2ee9acd15668fabbd567094f169504bf107) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard gains a Traffic widget (admin): pageviews and visits for the last 7 days against the 7 before, the week as a chart, and a link into the Studio Traffic workspace through the new `traffic` launch target.
+
+- [#599](https://github.com/rizom-ai/brains/pull/599) [`a5de9bc`](https://github.com/rizom-ai/brains/commit/a5de9bcdaa8957125662a995ba4100da5bc2172e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio gains a Traffic workspace (admin): pageviews and visits for the last 7, 30 or 90 days against the period before, the busiest day, the owner's own pageviews counted apart, a daily chart with publish dates marked and sampled days toned, the most-read published pieces linked to their entities, top pages, referrers and countries. It reads the traffic reports over the stored snapshots. `traffic-by-entity` now tells the model to use `firstDays` for how a piece did after publishing.
+
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- [#598](https://github.com/rizom-ai/brains/pull/598) [`b282632`](https://github.com/rizom-ai/brains/commit/b282632c6dee99ffd42f8f3f1882826c61298797) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a brain's prompts takes effect on the next call instead of after a restart. For topics, an edited votes prompt re-reads every source, and topics chosen under the earlier prompt leave once the corpus has been read again, unless the new votes support them.
+
+## 0.2.0-alpha.524
+
+### Patch Changes
+
+- [#597](https://github.com/rizom-ai/brains/pull/597) [`ca345ba`](https://github.com/rizom-ai/brains/commit/ca345bab558ac68e68b48c7212583e3cc147286e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `traffic-by-entity` joins the traffic reports in `system_analytics`: pageviews per published piece, matched to its page through the site's entity display, busiest first, with its top referrers and, with `firstDays`, its views in the first days after publishing. Admin callers only.
+
+## 0.2.0-alpha.523
+
+### Minor Changes
+
+- [#596](https://github.com/rizom-ai/brains/pull/596) [`dbebce1`](https://github.com/rizom-ai/brains/commit/dbebce11cae17d6389f3145636b24793245fddf0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_insights` is now `system_analytics`, and its reports take typed params. A plugin registers a report with `context.analytics.register(defineAnalyticsReport({ type, description, params, minVisibility?, handler }))`; the tool shows every report and its params to the model, validates params against the report's schema, and refuses a report to callers below its `minVisibility`. `context.insights` and the `(type, handler)` registration are removed, with no alias.
+
+- [#596](https://github.com/rizom-ai/brains/pull/596) [`7ba473f`](https://github.com/rizom-ai/brains/commit/7ba473fcdf7429a1427b2779459eeb6ffe7e462d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic is asked through `system_analytics`: `traffic-overview` (pageviews and visits against the period before, top pages without the owner's own pages, referrers, countries, days missing or sampled) and `traffic-series` (per day or ISO week) read the brain's traffic snapshots, admin callers only, with today's numbers so far added from Cloudflare when a range reaches today. `analytics_query` is removed.
+
+## 0.2.0-alpha.522
+
+### Patch Changes
+
+- [#590](https://github.com/rizom-ai/brains/pull/590) [`9e06319`](https://github.com/rizom-ai/brains/commit/9e0631976c2df90463eaae4db62d6f65ea7c8e11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild math-rendering UI assets with KaTeX 0.18.2, which ignores inherited renderer settings such as `trust`. Use reviewed repository overrides for postcss-selector-parser 7.1.6 and only the legacy esbuild-kit loader's esbuild 0.25.12 dependency, leaving other esbuild copies and AI/Chat SDK, model, Effect and database dependencies unchanged.
+
+  Check actual installed dependency paths and rendering/loader behavior during dependency validation; a patched lockfile alone does not prove an existing installation was replaced.
+
+  Repository overrides are not inherited by downstream applications. The published Tailwind typography package still pins the vulnerable CSS parser, so consumers need their own parser override or a fixed parent package. This release does not claim a clean dependency audit: braces and sprintf-js findings remain.
+
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- [#595](https://github.com/rizom-ai/brains/pull/595) [`1fe3a30`](https://github.com/rizom-ai/brains/commit/1fe3a30f973b34496c7fcffe93173293f9f93d94) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Inside a book in Studio, parts and divisions are titled by the headings the edition prints ("Dritter Theil", "Von der verkleinernden Tugend") in the folder list and the folder trail, rather than by their slugs. An entity adapter can name the folders a nested id stands in; a book section names them by its headings.
+
+- [#594](https://github.com/rizom-ai/brains/pull/594) [`6404cb1`](https://github.com/rizom-ai/brains/commit/6404cb11133763e8c3dc2e3787ebe6103ca3994b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic snapshots are system records: Studio lists them under System, not Library, and no one creates, edits or deletes them by hand. The daily capture still writes them.
+
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- [#593](https://github.com/rizom-ai/brains/pull/593) [`2490d2a`](https://github.com/rizom-ai/brains/commit/2490d2aa5ce6267e30d209608b43694ae37b97b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain no longer copies what other brains publish. The `network-piece` entity type, its daily sync and its citations are gone; the live `network_ask` lane answers from other brains instead. On start, a brain deletes the pieces it kept before, with their search index, embeddings and files. FAQs no longer wait for review when a cited piece is withdrawn. The entity service can purge a type no plugin registers any more (`purgeEntityType`).
+
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- [#592](https://github.com/rizom-ai/brains/pull/592) [`5c51b8f`](https://github.com/rizom-ai/brains/commit/5c51b8f690f63f79940d96f29f1b55ad36eb363a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web chat initialises again. It reads the brain's app info while registering, to name the configured model to guests, and app info used to throw until every plugin had registered its job handlers. App info is now available throughout boot; its background-work summary checks undeclared job types once the handler declarations are final.
+
+- [#591](https://github.com/rizom-ai/brains/pull/591) [`d652301`](https://github.com/rizom-ai/brains/commit/d652301da8bf5e7ca9eb2ea6a054d3110f0bd30f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity type can be contained in another: a book's sections live in the book's own folder (`book/<slug>.md` beside `book/<slug>/`), are deleted with their book, and appear inside Books in Studio rather than as a separate collection. Each book is a folder titled by the book; opening one shows the book's record first, then its sections. Contained ids start with their container's id, and a container's ids stay flat.
+
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- [#589](https://github.com/rizom-ai/brains/pull/589) [`a2566b1`](https://github.com/rizom-ai/brains/commit/a2566b1df0f59902665386789932ce80fbabe371) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Built-in dashboard widgets read entities at the viewer's visibility, which `registerBuiltInDashboardWidget` now passes to `load` as `visibilityScope`. They read public entities only before, so the owner's dashboard showed none of their restricted conversation memory (summaries, decisions, action items, coverage) or non-public topics, wishes, skills and pipeline drafts.
+
+- [#589](https://github.com/rizom-ai/brains/pull/589) [`780b089`](https://github.com/rizom-ai/brains/commit/780b0898aec4b1a3de9f04f1b3101b4acdbe7180) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reads of non-public entities that relied on an unscoped lookup now pass a scope: a restricted artifact is withheld from callers who cannot see it instead of passing as missing; publishing a non-public post names why it is refused; reordering or restarting the publication queue keeps non-public queued posts; a redelivered email is not classified twice; note capture and markdown imports find their own private notes.
+
+## 0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+### Minor Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`2fa2775`](https://github.com/rizom-ai/brains/commit/2fa27752be3b73160704d99058cc18c29e00a7ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The default text model is now `gpt-6-luna` at low reasoning, replacing `gpt-5.6-luna`. On the canonical eval suites it passes at the same rate (98.7% against 98.8%) at about half the cost. Guest chat prices GPT-6 Luna turns at its published rates, so guest costs stay known after the switch; a turn answered from the FAQ without a model call is labelled `no-model-call`. Instances that set `model` keep their model.
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`6eb665a`](https://github.com/rizom-ai/brains/commit/6eb665a7e19631c4d1b849cb76bd06ca61023b1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_create` refuses a title that already exists for notes and other plugin-handled types too, and points the model to `system_update`; `replace: true` still creates a deliberate copy. Before, an edit of a just-imported note that the model misrouted to `system_create` silently saved a duplicate such as `community-launch-plan-2`, sometimes with the original upload's content instead of the edits.
+
+- [#559](https://github.com/rizom-ai/brains/pull/559) [`d31e95d`](https://github.com/rizom-ai/brains/commit/d31e95d26310c51936743fa7fbc410faedc2fae3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Eval success criteria accept `responseCriteria`: plain-language requirements on what a reply conveys, judged for meaning rather than wording, all of a turn's requirements in one judge call. An unmet requirement fails the case with the judge's reason. Requirements the run could not judge (judge skipped, unavailable, or an incomplete verdict) are listed on the result and in the console report instead of passing silently.
+
+  The bundled eval cases replace keyword checks on model wording with judged requirements that keep each check's intent: concept words, synonym lists such as verify/contact/reach, and single-word guards such as "deleted", "saved" or "done" that also match a correct refusal ("it can't be deleted"). Checks on host-produced text and on facts from seed content or tool results stay exact. A case no longer forbids a write attempt that runtime policy refuses; it requires the reply to decline without claiming the change.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`86ef50a`](https://github.com/rizom-ai/brains/commit/86ef50a2a1b6da147b665a17b257d59bcb3051b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publishing queue actions accept an entity's title or slug as well as its id, as the system tools do, and queue it under its id. Before, `publishing_manage` queue-add with a post's title failed with "Entity not found" and the assistant told admins it could not queue the draft.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`3299684`](https://github.com/rizom-ai/brains/commit/329968484199d2104e671dca332db68b7230e985) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_status` lists the web surfaces the caller may open — such as the dashboard, Studio and the public site — with their paths, filtered by the caller's permission. Before, status left them out although its description promised interfaces, so the assistant either guessed `/dashboard` and `/studio` or said it could not tell.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`afd282e`](https://github.com/rizom-ai/brains/commit/afd282e206917f87445f1670d268e78802162704) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A user-message source whose boundaries do not select content now names the failing boundary and why — missing, repeated, or out of order — and says how to select everything after an instruction with a literal `startAfter` and no `endBefore`. Before, one generic refusal told the model to ask for clarification, and models asked users to resend pasted posts whose frontmatter `---` lines repeat.
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- [#588](https://github.com/rizom-ai/brains/pull/588) [`eb47f05`](https://github.com/rizom-ai/brains/commit/eb47f05a3f3f0cffa999525a2522f7944277ec87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio names an entity type by its display label, pluralized, never by the path its pages live under. A books site opens book sections under `/books`, so Studio showed two "books" sections; it now shows Books and Sections.
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- [#587](https://github.com/rizom-ai/brains/pull/587) [`f681966`](https://github.com/rizom-ai/brains/commit/f6819663e0f8d8ab04f8de913e16c8a92bca822f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book that is one undivided text names its score's single line by its title instead of the edition's lone number.
+
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- [#585](https://github.com/rizom-ai/brains/pull/585) [`09595c9`](https://github.com/rizom-ai/brains/commit/09595c94e5d22f638342a2d6ec6c06aed14e94d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics captures site traffic into weekly `traffic-snapshot` entities: a daily check stores yesterday's Cloudflare counts per day (pageviews, visits, top paths, referrers, path × referrer pairs, countries) while they are exact, refreshes the last three days, and on its first run backfills every day Cloudflare still returns, marking sampled days as estimates. Snapshots are restricted and stay out of search and embeddings; a failed capture raises an alert.
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- [#584](https://github.com/rizom-ai/brains/pull/584) [`7681dc0`](https://github.com/rizom-ai/brains/commit/7681dc02e21fa90deb08cb9162fa0388e1d1c5f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book's score reads as its printed contents: every unit its author titled is listed by name, whether or not any of its part's units is split, numbered aphorisms are drawn as strokes on their chapter's line, texts the edition names (a motto, a dedication, a dialogue) are listed without brackets, and title pages are drawn on the line they open. Zarathustra's second part lists its Reden. The eKGWB importer files sections under the parts the edition prints: a chapter whose sigla are spelled two ways stays one chapter, a bracketed repeat of a heading continues its chapter, a heading-only block names its part ("Versuch einer Selbstkritik", "Der Wanderer und sein Schatten"), and neither a year nor a title fragment from a siglum becomes a heading.
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- [`360d676`](https://github.com/rizom-ai/brains/commit/360d67676f9dca662d5b8c80a8c3a80888e7c944) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Agent shutdown now drains complete admitted model/tool operation Promises, not only their interrupted Effect observations. Caller cancellation stays prompt and preserves its reason, while cancelled or cancellation-ignoring work remains owned until it actually settles. Publish work and close ownership before adapters or abort listeners can reenter shutdown, and retain scope-close failures until the work barrier completes.
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- [#583](https://github.com/rizom-ai/brains/pull/583) [`be78945`](https://github.com/rizom-ai/brains/commit/be78945758dd6b15e27271d25c042e2feb2eeedd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content pull no longer queues its work twice. The file watcher reports a large pull late, often minutes after git reconciliation has already queued the same imports and deletes, and the old ten-second, first-event-only suppression let those reports through: migrating Friedrich's corpus queued 3,731 redundant deletes and re-imported every file. The watcher now ignores a pulled path for as long as it still matches HEAD, however late or often it is reported; an edit made since still differs from HEAD and is imported.
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- [#575](https://github.com/rizom-ai/brains/pull/575) [`80c10ab`](https://github.com/rizom-ai/brains/commit/80c10abca6391eeb31203864ee2c7b3e30aa20b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serve a brain's stored identity from boot in every process. While the startup import is pending, or after it failed, the web process previously never read the brain character and anchor profile already in its database and advertised "Brain is Unknown's Knowledge assistant". Defaults are still created only after a successful startup sync.
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- [#581](https://github.com/rizom-ai/brains/pull/581) [`1516d52`](https://github.com/rizom-ai/brains/commit/1516d52fa1f909d7fa5e9aec79802ee851c4bf5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics injects its beacon only with `cloudflare.beaconToken` (`CLOUDFLARE_ANALYTICS_BEACON_TOKEN`), the Web Analytics site token; `siteTag` is only the metrics query filter. The beacon carried the site tag, which is not its token, and a proxied zone with automatic setup already gets the beacon from Cloudflare.
+
+- [#580](https://github.com/rizom-ai/brains/pull/580) [`dbaa3b1`](https://github.com/rizom-ai/brains/commit/dbaa3b11b0f4888bea6956e2cd7efa26e388617d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy snapshot's refusal "job queue is not idle" now names the queue it saw (pending, processing and abandoned counts) and says to rerun once it drains, so a deploy that stops on a busy brain explains itself in the workflow log.
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- [#578](https://github.com/rizom-ai/brains/pull/578) [`9d9d40d`](https://github.com/rizom-ai/brains/commit/9d9d40dd04be3a817ab53bf647f0b6ef54c6d5ef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds ask plugins for layout slots as they render, so the newsletter signup reaches the built footer; registered on `pluginsRegistered`, it never reached the worker process that builds the site.
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- [#576](https://github.com/rizom-ai/brains/pull/576) [`9c65cbf`](https://github.com/rizom-ai/brains/commit/9c65cbf0664c556cc8cab43c5b5a7fe9b4671cee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds ask plugins for head scripts as they render, through the new `context.messaging.collect`, so the analytics beacon reaches the built pages; registered from the ready phase, it never reached the worker process that builds the site.
+
+- [#576](https://github.com/rizom-ai/brains/pull/576) [`9c65cbf`](https://github.com/rizom-ai/brains/commit/9c65cbf0664c556cc8cab43c5b5a7fe9b4671cee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connection pragmas refused by a held lock are retried once, by the local client, instead of again on top of it; a locked database delayed startup by two retry budgets.
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- [#573](https://github.com/rizom-ai/brains/pull/573) [`34fc4ef`](https://github.com/rizom-ai/brains/commit/34fc4ef886cef62fb34f57f9a8fd74e044867291) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Books and their sections are two entity types: `book` is the work, with its details and contents, at `book/<slug>.md`; `book-section` is its text, at `book-section/<slug>/…`. Entity counts, search scopes and Studio now read 26 books and 3,705 sections instead of counting every section as a book. Answers cite sections only; a book's contents are never a source. The corpus reader reads back each part of a book printed in parts, so a corpus can be re-rendered without fetching its source.
+
+- [#571](https://github.com/rizom-ai/brains/pull/571) [`86bc21a`](https://github.com/rizom-ai/brains/commit/86bc21a0fb884b34ad9043bb45518fc20fceaa55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A projection wave larger than SQLite can bind in one statement is claimed and requeued in chunks. Before, a change touching several thousand entities at once — a corpus migration, a bulk import — failed every coordination sweep with "too many SQL variables", and no projection or automatic site rebuild ran again.
+
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- [#568](https://github.com/rizom-ai/brains/pull/568) [`da50849`](https://github.com/rizom-ai/brains/commit/da50849435abf847073c8d1b89f1f7d5aa255a42) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics queries accept Cloudflare's `errors: null` on a successful response; every query failed with "expected array, received null".
+
+- [`8932425`](https://github.com/rizom-ai/brains/commit/8932425101438c3eef1f60ac0f584b2974e9a465) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A native cron-stop failure no longer bypasses admitted callback draining or scheduler scope finalizers. Scheduled jobs prevent further callback admission and finish cleanup before reporting failures, preserving a single failure's identity and aggregating multiple failures in cleanup order.
+
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- [#566](https://github.com/rizom-ai/brains/pull/566) [`b5265b6`](https://github.com/rizom-ai/brains/commit/b5265b6985ea0cb0dac704028da8550d621fff4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep both published agent cards current with the brain's identity and skills. The A2A Agent Card is built per request, so a brain whose anchor profile, character or skills landed after startup no longer advertises "Brain is Unknown's Knowledge assistant" until restart. The AT Protocol brain card republishes on a new `system:identity:changed` signal, sent once the identity caches hold the change, and on skill creation, update and deletion; bursts of changes coalesce into one republish, and changes before the boot publish are covered by it.
+
+- [`c7614c9`](https://github.com/rizom-ai/brains/commit/c7614c957ae37e258ada6647b1090d5a6d86bf65) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep recurring-check service shutdown and plugin unregistration behind their cleanup barriers when a scheduler adapter throws synchronously from `stop()`. Cancel and drain admitted checks and catch-up enqueue work before reporting the original failure, and retain declaration-order aggregation of synchronous and asynchronous failures.
+
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- [#565](https://github.com/rizom-ai/brains/pull/565) [`9943020`](https://github.com/rizom-ai/brains/commit/9943020d6588e0ab7cfb957e91da7e63e77d1c36) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Content synced after startup reaches the site again. The web process schedules rebuilds while the worker runs them, so a rebuild queued once used to block every later one until the next restart; rebuilds now rely on the job queue, which keeps one pending build per environment. A build replaced by a newer one completes instead of failing and being retried against its replacement. A file removal seen while git rewrites a pulled file no longer deletes the entity whose file is back on disk.
+
+## 0.2.0-alpha.498
+
+### Patch Changes
+
+- [#534](https://github.com/rizom-ai/brains/pull/534) [`1d85b73`](https://github.com/rizom-ai/brains/commit/1d85b730ec435789b7701e3746c9ca79c085217f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate structured entity bodies on write. `StructuredContentFormatter` now parses and formats through a Zod codec, so `format` rejects data that violates the body schema instead of writing markdown that fails on the next read. Playbook optional text is a codec, so playbook bodies encode back to markdown.
+
+  Datasource-backed list and detail page templates (conversation summaries, decks, links, topics) no longer carry unused formatters that could not round-trip; they resolve from their data source only.
+
+  FAQ and conversation summary bodies are codecs too: writing an invalid FAQ body or summary entry fails at write time. Invalid stored summary entries fail validation rather than silently disappearing during export. Numeric arrays and absent optional collections retain their types and presence across the shared round-trip contract.
+
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- [#561](https://github.com/rizom-ai/brains/pull/561) [`ecd1746`](https://github.com/rizom-ai/brains/commit/ecd1746054788c189e78db7a6046f20431d66558) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section records its full heading path (`headings`, outermost first) in place of `part`, so a book printed in parts shows each part with its own divisions on the title page, and a section names its part and division. A long title or siglum wraps instead of overflowing, the title page opens with "Begin reading", Ask names the part or piece a section belongs to, and every spine on the horizon carries its title, outside the spine when it does not fit inside.
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- [#562](https://github.com/rizom-ai/brains/pull/562) [`2e542ee`](https://github.com/rizom-ai/brains/commit/2e542ee168657d54a134f306d646313415b10f6b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local database write refused by a briefly held lock no longer leaves its connection inside an uncommitted transaction. Before, the retried write and every later write on that connection looked applied to the brain itself but were never committed, and vanished when the connection reopened — import jobs completed, then ran again against a closed projection batch and failed.
+
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+
+- [`205f50c`](https://github.com/rizom-ai/brains/commit/205f50c0a65228c259206b2ac8ebd7d28db807ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the obsolete Effect v3 Promise-failure wrapper and use Effect v4's native Promise runner for shell, daemon, and job-runtime ownership. Preserve original failure values, all-siblings-settled startup phases, declaration-order failure selection, and shared cleanup barriers for concurrent shutdown callers.
+
+- [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade the private Effect control-plane boundary to exactly 4.0.1, migrate service layers and supervised work to v4 APIs, and retain Promise-based public contracts and AbortSignal cancellation. Centralize optional clock injection and add regressions for failure identity, resource ownership, cleanup barriers, and deterministic timing.
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- [#556](https://github.com/rizom-ai/brains/pull/556) [`81128b8`](https://github.com/rizom-ai/brains/commit/81128b892d6ff553e91a2bc4e69a2aa13a3d3431) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content repository checked out in place now tracks `origin` as a clone would, and a checkout without an upstream gets one on its next start; the pre-deploy backup resolves `@{upstream}` and refused a checkout that had none.
+
+## 0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- [#548](https://github.com/rizom-ai/brains/pull/548) [`5c4b107`](https://github.com/rizom-ai/brains/commit/5c4b107f4448fbbe479f45d0dd4314002bd03614) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new brain whose content repo already has history now checks it out in place: the data directory is a mount point in a deployed brain, and the old clone-then-rename failed there silently, falling back to a local repository merged with the remote as an unrelated history. A Git command whose output passes the retention ceiling now runs to completion instead of being killed, which had failed the startup sync of large repositories. After a failed startup sync no identity or prompt defaults are created, so they can no longer be exported over content the sync never imported.
+
+## 0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- [#541](https://github.com/rizom-ai/brains/pull/541) [`d266269`](https://github.com/rizom-ai/brains/commit/d2662699f5e0aa2db12ccc92b250c2b6ca9bfa59) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain's startup sync no longer imports its content repo before the web process reports ready. It pulls and queues every file as import jobs for the worker, so boot time no longer depends on content size and an interrupted import resumes from the job queue. Identity, profile and prompt defaults, onboarding playbooks and the starter identity are created once that import completes or fails, never before the repo's own versions; the worker creates no defaults and follows the identity its imports bring. Chat stays behind the knowledge-base readiness gate until the startup import is in and indexed.
+
+## 0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the `book` entity plugin (catalog member `book`): published books as read-only entries whose id path is the book's structure, each cited by its section and source, with book index and reading-page templates. Books feed topic extraction as canonical sources. Generated site routes now cover every entity of a type, not only the first 1,000.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask page links a cited section of a book with parts to the section itself, not to its part: the order is read from the entry's own id segment.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Book brains can be asked about their work. The books site has an Ask page: the guest box under the site's name, a rail listing the passages an answer cites by siglum, book and year, each linked to its page, and a note when asking is not open. A section's reading page offers "Ask about AC-2", which starts the question with the siglum. Answers cite book sections only; a book's title entry, its contents, is never a source, and a cited entry is titled by its page title, so a section reads as its siglum. The book plugin tells the agent to search the books first, cite by siglum and book, quote the text verbatim and say when the books do not address a question. Core configures the entity links its answer sources read, so a site-builder bundled apart from core no longer leaves every source uncitable.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Book brains open on the work as one horizon: each book a spine at its year, as tall as its text, published works above the line and posthumous writings below, busy years widening so nothing overlaps; small screens get a year list. A book's title entry records whether it was published in the author's lifetime, its length, its section count and a short spine title. The books site's navigation wraps on narrow screens.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the reading site for book brains: `@rizom/site-books` (the bar with the brain's name and navigation, routes, arrow-key paging) and `@rizom/theme-books` (paper and ink with a red pencil, Didone display, a reading serif and typewriter sigla, dark mode). Book sections render as a reading page with their siglum and place in the book, spaced emphasis as letter-spacing, and their source; generated detail pages take their title from the entry.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book's title page shows the score of its sections: one stroke per section, as tall as its text and linked to it, grouped by the book's parts with each part opening at its first section, beside the book's details and section count. Book sections can record the part they belong to.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site can render an entity type's pages with a template of its choosing through `entityDisplay.<type>.detailTemplate`. The books site renders topics as theme pages: the theme's summary, a strand showing how many sections of each book stand close to it by year, and its closest passages, all found by stored embeddings without API calls. A section split across several entries counts once. Plugins share one related-entries lookup over stored embeddings, `findRelatedEntities`. Detail pages fall back to the title in an entry's frontmatter before naming it by type and slug. Book pages count one book or section in the singular.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section's reading page names its themes in the margin: the topics nearest it by their stored embeddings, at most three, linked to their topic pages. It costs no API calls, and a brain without embeddings shows none.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A `brain` CLI that carries the bundled definition boots it, inside the monorepo too: `start`, `tool` and the command listing no longer hand off to the source runner when the bundled runtime is present, so a running brain is always the one module graph a deployment runs, with the same supervised web and worker processes. The test-app posture scripts (`start:minimal|personal|publishing|team|unified-inbox`) build once and run the bundled CLI from the app's own directory, so its `.env` loads as a deployed brain's does.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity URLs and citability come from one entity display, the one the shell resolves from the site, instead of a process-wide singleton the site builder configured and core read. `EntityUrlGenerator` is a plain value built from that map: core builds one for answer sources and AI content, the site builder and AT Protocol build theirs from the plugin context. The site builder no longer takes `entityDisplay` in its own config. A brain run from the monorepo, where the site builder loads from a separate bundle, now cites the same sources as a deployed one.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity services gain `nearestToEntity`: visible entities of given types nearest an entity's stored embedding, closest first, within a distance and a limit, in one store query. Related-entry lookups (a book section's margin themes, a theme's passages) use it instead of projecting the whole semantic space for every page, which built a pairwise matrix per page and made a book brain's site build quadratic: Nietzsche's 3,738 sections now build in about a minute instead of overrunning the build deadline. A semantic projection whose origin is of another type reads that origin alone.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Slugs transliterate letters instead of dropping them: German umlauts and ß as German writes them without (Übermensch → uebermensch, Größe → groesse), other accents bare (décadence → decadence). Ids already stored keep their old form; an id derived again from a title with such letters takes the new form.
+
+## 0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- [#516](https://github.com/rizom-ai/brains/pull/516) [`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Onboarding emails are shorter and personal. The anchor setup email greets a person anchor by name, and invitations say what the brain is for. Instead of listing MCP connection steps, both point to Studio → Account → AI tools. Chat, Studio and AI tools links come from the interactions the brain registers, and a sentence is left out when its page is not served. The chat, Studio and Account AI tools ids and link builder are shared contracts.
+
+- [#514](https://github.com/rizom-ai/brains/pull/514) [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's Account workspace gains an AI tools tab when the brain serves MCP over HTTP and the person's role can use it. It shows the brain's MCP address and how to connect Claude and ChatGPT, with Claude Code, Cursor, VS Code and any other OAuth MCP client in a collapsed developer section. Commands and configuration snippets name the server after the brain's host and copy exactly as shown. `?section=ai-tools` opens the tab directly.
+
+## 0.2.0-alpha.485
+
+### Minor Changes
+
+- [#508](https://github.com/rizom-ai/brains/pull/508) [`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: `auth-service.setupEmail` now takes only the recipient address. The `{ to, subject, body }` form and its `{{setupUrl}}`, `{{expiresAt}}` and `{{origin}}` placeholders are removed; a brain.yaml that still uses them fails config validation. Regenerate pilot brain.yaml files with `brains-ops reconcile` before pinning this release.
+
+  The anchor setup email and the invitation now share one onboarding body after their own opening: a first save-and-ask in chat, Studio, and how to connect AI tools over MCP (the brain's `/mcp` address, the Claude Code command, Claude Desktop custom connectors, OAuth sign-in with the passkey). Both have text and HTML parts. brains-ops no longer writes Rover-specific setup email copy.
+
+### Patch Changes
+
+- [#507](https://github.com/rizom-ai/brains/pull/507) [`46c7739`](https://github.com/rizom-ai/brains/commit/46c773981cdd998539a0ef65b71339b5978ac136) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render invitation emails with a text and an HTML part that name the inviter, the brain (from the anchor profile, falling back to the host) and the invited role, print the expiry as a readable UTC date, and explain passkeys and the next steps. Invitations are now sent with secret sensitivity.
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [`fdca4f8`](https://github.com/rizom-ai/brains/commit/fdca4f8d5e98f222fed1743ab55a74b6acc52169) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain complete auth HTTP handlers and facade operations before runtime shutdown. Keep independent requests concurrent, allow admitted handlers to finish nested auth calls, and defer later callers until cleanup settles. Track nested operations independently, give admitted background callbacks the same owner while skipping new scheduled ticks during shutdown, reject self-close instead of deadlocking, and prevent detached continuations from reusing completed request scopes.
+
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask room: the atlas kit now carries one runtime and one set of styles for a page that presents the Ask box beside a drawing of what an answer may cite, shared by the atlas sites and rizom.ai. The room matches an answer's sources to the drawing's marks, draws the leads between the listed sources and their marks, lends the drawing to a phone's open conversation and brings a cited source into view from its mark; the atlas keeps only what is the map's own, its turn towards the cited pieces and its names.
+
+## 0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- [#499](https://github.com/rizom-ai/brains/pull/499) [`45aa372`](https://github.com/rizom-ai/brains/commit/45aa3720eafc0829adbb33ccbbcf7a7f1eaee0da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest Ask box that mounts with nothing to show above its composer no longer takes more room than the composer its host showed before it: the empty welcome area loses its padding and fade, and the composer keeps no gap or divider above it, until a welcome, an answer or a notice arrives. On rizom.ai the composer used to drop a row the moment it was focused.
+
+## 0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`c5d4d2f`](https://github.com/rizom-ai/brains/commit/c5d4d2fd949357353b4e4f42186a0d105fe5c6a1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain start` boots in the instance directory even when launched from elsewhere with `INIT_CWD`, as the dev start scripts do. The supervising process ran migrations against `./data` relative to where it was launched while its web and worker processes opened the instance's own `data/`, so a fresh instance failed to start (`Unable to open connection to local database ./data/runtime-state.db`) and an existing one ran on unmigrated stores.
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`760a0bb`](https://github.com/rizom-ai/brains/commit/760a0bb09722929829ebb8db17fd30fc19026a23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An answer's source can name the brain whose published memory it came from. The citation and the Ask box's `ask:sources` event carry it, and the box's source rows show the brain and who answered — "Rizom, with Becca and Jo" — so a host page can show whose memory answered.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`934ebe5`](https://github.com/rizom-ai/brains/commit/934ebe5cc8707c8a0c2569c57dcc560aea198776) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A question asked before is answered before the model. A FAQ captured from a visitor's reply keeps the sources the answer drew on; a visitor's question is first put to the published FAQs over a new shell channel, and a hit answers the turn from the FAQ, with its kept sources, counting one more asking and calling no model. The box says "Asked before" above such an answer, in the live reply and in history, while still naming the brains whose memory it drew on. The FAQ datasource carries each FAQ's sources for pages to show.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`afeef92`](https://github.com/rizom-ai/brains/commit/afeef92134464dd8af977005564674bc359ea1cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The network index learns a connected brain's ATProto repository from its home when the directory holds none: an approved agent without a repository DID is asked at its well-known address once per sync, the DID is kept on the agent, and its published pieces are indexed from then on. Every connected brain with a repository is indexed, each piece keyed and cited to its own.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`eecbdea`](https://github.com/rizom-ai/brains/commit/eecbdea7dc0467b0df76f0c9ecb2a6e4265c284e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain keeps the connected brains' published pieces as `network-piece` entities: for every approved agent with an ATProto repository, each projected collection is read on the directory's daily cadence and kept keyed by brain and record — created, left alone when unchanged, deleted when withdrawn, kept when the repository cannot be reached. The pieces are public, searchable and citable to their brain, never this brain's site pages and never re-published. A visitor's answer cites such a piece at its origin, naming the brain.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`4d887da`](https://github.com/rizom-ai/brains/commit/4d887da17558420fbe2580f0cdd918215b2e6245) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every projected ATProto record names its page: the atproto plugin hands each projection the entity's page on this brain's site, when the site gives the type one, and the projection writes it as `canonicalUrl` (an essay first published elsewhere keeps that address). The deck, project, note, link, series, topic and social-post lexicons declare the optional field. A brain that keeps another's records can now send a reader to the piece itself.
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`99f6c6b`](https://github.com/rizom-ai/brains/commit/99f6c6b28bef79a39b083142d4c7717f3452fdf9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup verifies embedding databases whether or not they still carry the retired libSQL vector index. Before, it read the index's shadow table unconditionally and failed once the index was dropped. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- [#490](https://github.com/rizom-ai/brains/pull/490) [`d3d8e82`](https://github.com/rizom-ai/brains/commit/d3d8e8299d7262666a2e0f4f4ac90d730f32100f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a touch screen, the first tap on the atlas legend's "Latest" opens the latest piece's card instead of following its link.
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- [#487](https://github.com/rizom-ai/brains/pull/487) [`d823d75`](https://github.com/rizom-ai/brains/commit/d823d7572fb84bd745772062bebf59ce50de4479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage rings the most recently published piece and names it "Latest" in the legend, which opens its card; marks keep clear of the legend along the map's foot.
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`673f737`](https://github.com/rizom-ai/brains/commit/673f73756990cdd82b5e4bc48b242c2ccce07681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ answers on the atlas homepage are set in the FAQ band's own type, one size below the question, instead of blog-post prose sizes that made paragraphs larger than the question on phones.
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`0f327b4`](https://github.com/rizom-ai/brains/commit/0f327b42a64aac7ce1a9d0bea61431b87b3005f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An owner can rank FAQs: an optional `rank` in a FAQ's frontmatter puts it first on a site, in rank order; unranked FAQs follow, most asked first and newest first on a tie. Entity listings can sort NULLs last with `nullsLast`.
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- [#481](https://github.com/rizom-ai/brains/pull/481) [`7a44bf1`](https://github.com/rizom-ai/brains/commit/7a44bf14a42322dcc5e6f3f69e40aa6b67524535) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make new FAQ captures restart-safe with native mutation receipts committed atomically alongside their FAQ writes. Preserve existing ambiguous claims without automatically replaying them, and prevent repeated attempts from incrementing asked counts or recreating deleted FAQs. Classification may still repeat; no public authoring capability is added.
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- [#475](https://github.com/rizom-ai/brains/pull/475) [`3e113f0`](https://github.com/rizom-ai/brains/commit/3e113f003bdb075d12d20f13c8d3d8c526561146) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQs that need the owner now come to the Inbox instead of a separate FAQ review workspace. A captured question appears as a new item with its drafted answer, to **Publish** or **Decline**; a published FAQ that a repeated question answered differently appears with its current answer and each alternative, to **Use alternative N** or **Keep current answer**. The FAQ review workspace is removed.
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- [#474](https://github.com/rizom-ai/brains/pull/474) [`a54ab05`](https://github.com/rizom-ai/brains/commit/a54ab05f3e5f789cbe5f2803b6453c848ee70540) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Published FAQs under the atlas homepage start closed: a "+" marks each question, tapping one opens its answer beneath it, one at a time, the same on every screen; the side-by-side reader is gone. Visitor questions are now screened against what the brain's public work is about: the titles of its public topics, which the topics plugin answers on a new `topics:public-titles` channel, and the owner's `ask-content` introduction. The page's starter questions no longer double as the site's scope, so a site can drop them.
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- [#466](https://github.com/rizom-ai/brains/pull/466) [`2e17b92`](https://github.com/rizom-ai/brains/commit/2e17b929f9df55d02ac34cafbdf028c771f4a6af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep FAQ merge retries within the initially selected visibility and question. Concurrent changes to either stop the merge without rewriting the edited FAQ; same-question, same-visibility merges still retry with storage CAS.
+
+  Fold duplicate FAQs through a native-only atomic destination update and source removal, checking both full revisions and committing FTS and projection/export journals together. Failed writes preserve both records; retries after a committed fold do not restore the source or count its askings twice. This does not add a public authoring SDK capability.
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- [`6cd10dc`](https://github.com/rizom-ai/brains/commit/6cd10dca14b6cdcbac184045359aaa0ea0258a00) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serve owner-switched guest chat on the site itself as well as its preview. One Studio switch, monthly budget and set of limits cover both hosts; each host accepts guest requests only from its own pages, and the Ask box is served on both while guest chat is switched on. An authorization stored under the former preview-only origin authorizes nothing: switch guest chat on again in Studio after upgrading.
+
+- [#469](https://github.com/rizom-ai/brains/pull/469) [`674a5af`](https://github.com/rizom-ai/brains/commit/674a5afa237babe39adb02093168ec75792e15f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The RSS feed now links each post to where the site actually publishes it, so a site that calls its posts "Essays" links to `/essays/<slug>` instead of a missing `/posts/<slug>` page.
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- [#468](https://github.com/rizom-ai/brains/pull/468) [`b9fe336`](https://github.com/rizom-ai/brains/commit/b9fe33614a0e9a05f978899337d24c3b581bea05) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a wide screen, the open FAQ answer under the atlas starts level with the first question, whether or not the owner wrote a heading over them.
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- [#464](https://github.com/rizom-ai/brains/pull/464) [`8af0ca0`](https://github.com/rizom-ai/brains/commit/8af0ca0e94ac335c9aeb88c1d58c5f305ae6c456) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional site's atlas homepage shows the owner's published FAQs in a band under the atlas: the six most asked, under the owner's optional `faqHeading` from `ask-content` (unwritten, there is no heading). One answer is open at a time and every answer reads without a script; on a wide screen the atlas script shows the open answer beside the questions. Nothing renders until a FAQ is published; a preview build shows drafts too, like any draft content. `@brains/faq` exports `loadPublicFaqs` for sites that show FAQs beside their other content.
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- [#463](https://github.com/rizom-ai/brains/pull/463) [`fa9c090`](https://github.com/rizom-ai/brains/commit/fa9c090c26e3534b5be0592e657c41974abb80f3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder's route registry hears the pages plugins declare in the worker process too. The site builds in the worker, which takes no ordinary message subscriptions, so pages registered through the site builder's channel — the contact form's — were missing from every built site while the serving process listed them.
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- [#462](https://github.com/rizom-ai/brains/pull/462) [`aa4fd04`](https://github.com/rizom-ai/brains/commit/aa4fd046bc0b4103168ac49f5d3ea0927c29172c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ capture now includes site visitors' questions. A reply to a visitor becomes a public draft FAQ for the owner to review, merges with the same question asked before, and counts toward how often it was asked; a visitor's own messages and refusals create nothing. The conversation service tells plugins about visitor messages on a new `conversation:guestMessageAdded` event that carries only where the message is, never its text, so no other plugin hears visitor conversations. The capture rewrite leaves out who asked and does not follow instructions inside the exchange.
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- [#460](https://github.com/rizom-ai/brains/pull/460) [`033af2d`](https://github.com/rizom-ai/brains/commit/033af2d1305aed4677ec7bb781e6b183ec957c0e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form's default limits fit a proxied deployment: every visitor arrives from the proxy's network, so the network limits now equal the global ones and requests and forms take their bound's maximum. Before, a hundred page views an hour from behind the CDN refused every visitor for the rest of the hour.
+
+- [#461](https://github.com/rizom-ai/brains/pull/461) [`3e69c19`](https://github.com/rizom-ai/brains/commit/3e69c196335b7897a12425f4157bebcef536e6b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact plugin declares the site's `/contact` and `/contact/thanks` pages while it registers, with `site-builder` as a dependency so the builder is listening. A deployment builds its site in a worker process that registers plugins but never runs their ready phase, so pages declared at readiness never reached it and the built site had no contact page.
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- [#459](https://github.com/rizom-ai/brains/pull/459) [`7543016`](https://github.com/rizom-ai/brains/commit/75430166391b8b1bf8d6d7bc0650e57ac2f821b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact alerts and other background jobs can send email again. The queue worker runs no interfaces, so it had no Email sender and every alert failed as `transport-missing`. Message interfaces now register their channels and senders in a `registerChannels()` step that the worker also runs, without the interface's daemons, routes or subscriptions. Declarative message interfaces' `setup` runs there too, so `deliver` has its state; `setup` must build clients without connecting or listening.
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- [#458](https://github.com/rizom-ai/brains/pull/458) [`f5e4f68`](https://github.com/rizom-ai/brains/commit/f5e4f685db85e0c4d57fdbf836b3f0be04c40ce1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact plugin declares the site's `/contact` and `/contact/thanks` pages in every process. A deployment builds its site in a separate worker, which was never told about them, so the built site had no contact page and the form fell back to its own page.
+
+- [#434](https://github.com/rizom-ai/brains/pull/434) [`516d79c`](https://github.com/rizom-ai/brains/commit/516d79c8bd355dcf683bc94c6757c70e2439930f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the FAQ plugin to the chat bundle: reusable question-and-answer pairs from chats are captured as draft `faq` entities at the visibility of the turn that answered them, and a repeated question counts against the existing FAQ of the same visibility. Published public FAQs are available to sites as the `faq-section` template, which each site places itself. Differing answers from repeated questions are kept as alternatives, which the owner settles in the new FAQ review workspace in Studio. FAQs are left out of the agent's broad searches (new `includeInBroadSearch` entity type option), so answers never cite unreviewed FAQ drafts as sources. Guest conversations are never captured. Capture can be switched off with `plugins.faq.enabled: false`, same-question matches are shortlisted by a configurable distance (`sameQuestionDistance`) and confirmed by a short AI check so opposite questions never merge, and duplicate FAQs captured moments apart are folded together once they are embedded. `deleteEntity` takes an `expectedContentHash` option: it deletes only while the stored entity still has that hash and returns false otherwise. `searchWithDistances` takes optional `types` and `maxDistance` filters, applied in the query, so a lookup for one close match no longer returns every embedded entity.
+
+- [#445](https://github.com/rizom-ai/brains/pull/445) [`762f3f9`](https://github.com/rizom-ai/brains/commit/762f3f973847ee64fa3d1f3511a5e124e220abaa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_search` no longer returns a bare empty list when matches exist below `minScore`. It adds a `belowThreshold` block with the number of weaker matches the caller may see, the best score and a hint to search again with a lower `minScore`. Broad questions such as "What do you mostly write about?" match content weakly and used to fall under the default threshold, which led the agent to answer that no saved writing existed.
+
+- [#457](https://github.com/rizom-ai/brains/pull/457) [`b34d7d2`](https://github.com/rizom-ai/brains/commit/b34d7d294b40110a7bff7c87d218024ccb2b41ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topic extraction and topic reconciliation ask the embedding index only for topics when they look for a topic to merge with, and reconciliation only for topics within its merge distance. Before, each lookup returned the distance to every embedded entity in the brain.
+
+- [#446](https://github.com/rizom-ai/brains/pull/446) [`83fbb6a`](https://github.com/rizom-ai/brains/commit/83fbb6a1254d60573161aef9bebe927c0d9d922f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `topic-distribution` insight no longer returns a bare empty list when no topics exist yet but there is content to extract them from. It adds `unextracted` with the number of visible source entities and a hint to answer from `system_search`. Topics are extracted in the background, so right after content arrives the empty list read as "nothing written", and the agent told the owner there was not enough content.
+
+- [#434](https://github.com/rizom-ai/brains/pull/434) [`516d79c`](https://github.com/rizom-ai/brains/commit/516d79c8bd355dcf683bc94c6757c70e2439930f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wishlist deduplication now recognises a reworded wish by embedding distance and counts it against the existing wish. Previously only a wish whose title slug repeated exactly was merged. Reworded wishes within the configurable `sameWishDistance` (default 0.3) are shortlisted and confirmed by a short AI check, so opposite requests such as "send emails" and "stop sending emails" stay separate.
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize auth initialization, lazy startup, invitation recovery startup, and shutdown in admission order. Settle both signing-key loads before rollback, release partially acquired resources on failure, continue cleanup after supervisor errors, and recreate database-bound account settings after restart.
+
+- [`059f85e`](https://github.com/rizom-ai/brains/commit/059f85e35bfd32a76caad601d87f45dc74e82403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate and propagate causal provenance for collected messages through the same operation scope as sent messages, including nested dispatch and caller-context restoration.
+
+- [`23f916d`](https://github.com/rizom-ai/brains/commit/23f916d1dcb42d4d4511a6167ebfbd41eabc37d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wait for every recurring-check cleanup task before reporting service-stop or plugin-unregistration failures. Preserve a single cleanup error and aggregate multiple failures instead of letting the first failed schedule bypass sibling drains.
+
+- [`815edf3`](https://github.com/rizom-ai/brains/commit/815edf384e2acec98043b510c5b93568e2991cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain admitted recurring-check callbacks and alert deliveries after Effect interruption, before plugin or service teardown completes. Do not record cancelled checks as successful after their final alert delivery.
+
+- [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish first-Anchor setup tokens only after persistence succeeds. Serialize token lookup, rotation, consumption, and clearing so concurrent requests cannot expose unpersisted tokens or let pending creation undo setup-state clearing.
+
+- [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell registration, acknowledgement barriers, and resource teardown:
+
+  - Reject duplicate MCP capabilities without overwriting their owners, and propagate registration failures for plugin rollback.
+  - Retain failed message collection acknowledgements so successful subscribers cannot hide a failed projection-wave completion effect.
+  - Reject scoped plugin acquisition before registry mutation and keep attachment release handles bound to their own registrations.
+  - Drain admitted durable progress polling before runtime teardown; progress monitor stop is now terminal and Promise-based.
+  - Clear runtime-state prefixes atomically without parsing stale values, preserving literal wildcard, Unicode, and embedded-NUL matching.
+  - Separate operator runtime contracts, schemas, action normalization, block normalization, and diagnostics into private responsibility-owned modules without changing rendered output.
+
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- [#452](https://github.com/rizom-ai/brains/pull/452) [`7a51f32`](https://github.com/rizom-ai/brains/commit/7a51f32b9264e81a9083e4b62cb9aba05e19ca34) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form runs on its own policy the moment a brain adds the `contact` plugin: its origin is the brain's site URL (the local one in a development run), the deployment's preview host is served beside it, and the alert's Inbox link is derived from Studio's mounted workspaces route. Configuration is only for a value the owner wants different — a longer retention, tighter limits — and each override is held to the policy's bounds. Behind a TLS-terminating proxy, which is how an HTTPS origin is served, the proxy's protocol is believed.
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`e1bd16e`](https://github.com/rizom-ai/brains/commit/e1bd16ecaa0be303c5b3392b6eb03377402e35d5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's question is screened before the guest model answers it. One call on the guest model classifies the question, from the question, the visitor's two before it and the site's public topics, as in scope, off topic, abusive, an injection attempt or harmful. A question outside scope gets the site's refusal line, or a neutral one, without running the answer or finding sources for it; its cost is the screening call alone. A screening call that fails lets the answer through and marks the turn unscreened. The turn's response carries the outcome, and the screening call's usage counts toward the turn's settlement.
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`8c92284`](https://github.com/rizom-ai/brains/commit/8c92284d48f22a3a9c7e490f17958a21684f0f55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guest usage record keeps a screened-out question as `refused`, with its category, and marks an answer given because screening failed as `unscreened`. The Studio guest chat monitor counts screened-out questions today and this month, by category, shows the category on recent questions, and counts unscreened answers. Its today and this month now follow the record's clock rather than the host's.
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`8fcfa2f`](https://github.com/rizom-ai/brains/commit/8fcfa2f51da01d03cf3bb8fe3457e7e9a2ec0459) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web Chat screens each guest question against the site's `ask-content` topics, and `ask-content` gains an optional `refusal` line: what a visitor reads when their question is off topic, abusive, an injection attempt or harmful. Without it, the visitor reads a neutral line. The team recipe's `ask-content` no longer carries the removed `attribution` field.
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- [#448](https://github.com/rizom-ai/brains/pull/448) [`f7bbbe2`](https://github.com/rizom-ai/brains/commit/f7bbbe23090da7e9851a03ac3cd36df17653b036) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer is charged for its embeddings: the searches its tools ran and the search that found its sources. The embedding provider reports each call to a usage meter, each guest turn is measured, and its settlement counts the tokens and prices them at text-embedding-3-small's published rate ($0.02 per 1M tokens). An embedding model without pricing leaves the turn's cost unknown, so it is charged at the turn's maximum. Before, every guest answer recorded 0 embedding tokens.
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- [#444](https://github.com/rizom-ai/brains/pull/444) [`166d77e`](https://github.com/rizom-ai/brains/commit/166d77ea46aa8e601fa2974712307708f23a2aba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Closing the keyboard in the phone Ask sheet fills the screen again, with the composer at the bottom where a tap brings the keyboard back. The sheet follows the visible area only while its composer has focus: Safari blurs the field while it still reports the keyboard's height, and may report nothing once the keyboard has gone, which left the sheet at half height.
+
+## 0.2.0-alpha.456
+
+### Patch Changes
+
+- [#443](https://github.com/rizom-ai/brains/pull/443) [`cf06121`](https://github.com/rizom-ai/brains/commit/cf061218d627c52e00a9e4ce7c0698922ee5c08c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - While the phone Ask sheet covers the page, no blur on the page behind it paints. Safari kept drawing a hidden frosted header's blur, so a text-less bar sometimes showed at the top of the open sheet. The cover now switches blur off everywhere but the sheet, and restores it when the sheet closes. The Ask box contract gains `ASK_COVER_ATTRIBUTE` and `ASK_COVER_STYLE`.
+
+## 0.2.0-alpha.455
+
+### Patch Changes
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`b683034`](https://github.com/rizom-ai/brains/commit/b68303447e2a9117ee50f9e6bf76df66ea102a44) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An agent file that leaves out its About, Skills or Notes section keeps the sections it has, so a hand-written agent no longer loses its skill tags, its place in a named constellation, or its capabilities in SWOT assessments. Agent bodies are now read and written by one shared format in `@brains/plugins`.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`9d172de`](https://github.com/rizom-ai/brains/commit/9d172de3fe1f5336bfe34f23c94859c1556b70f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Agents saved before agent kinds were renamed on 22 July 2026 read again instead of being quarantined: a `professional` agent reads as a `person` and a `collective` as an `organization`, both when a file is imported and when a stored agent is parsed. A kind that was never valid is still refused.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`3bd0a1c`](https://github.com/rizom-ai/brains/commit/3bd0a1cc9deab7582349128b3e808a8841ce901c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box host takes an optional prompt for its field, so a page can show its own words (such as the shared Ask note's title) before the visitor types.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`d468310`](https://github.com/rizom-ai/brains/commit/d46831011f1aa959e434213b55cdeb0e01083044) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage's authored Ask copy can be read on its own (`loadAskContent`) by a page that docks the box itself and needs no contact door, the Ask box host is a shared piece a site can place, and the proximity map's authored copy fields are exported as their own schema.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`3830822`](https://github.com/rizom-ai/brains/commit/3830822088cc236df8518c2032f1cf4485a082b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form states only the retention period its owner configured. It no longer tells visitors that deletion can run late or that backups may keep copies, claims no owner had set, and drops the expired-form note; an expired form still says so when it is sent.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`9dca756`](https://github.com/rizom-ai/brains/commit/9dca7567927842c78d24f14e916ba38d0f362b08) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form now appears inside the site's own page. The contact plugin gives the site `/contact` and `/contact/thanks` pages that the site builds with its own layout, fonts, bar and footer around an empty slot; on each request the plugin fills the slot with the form and its one-time token, so the form still works without JavaScript. A route handler can return a `SitePageResponse` with a slot for this, and the webserver fills the slot for any method or status, falling back to the handler's own page where the site has no such page. Every brain site gets a contact page in its own look, the professional and organization sites included.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`51a03d6`](https://github.com/rizom-ai/brains/commit/51a03d64a6cd0e69a5316e4932b871f34b9839c4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form serves the local preview host beside a local origin (`http://preview.localhost:8080` beside `http://localhost:8080`), as the webserver already serves the preview site there, and treats `*.localhost` names as loopback. A preview-built page's link to the form no longer lands on "Contact unavailable" when a brain runs locally.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`e1edce0`](https://github.com/rizom-ai/brains/commit/e1edce0f707f656530717ab5cc65f2305d34988e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A built site's pages link only the icons the build has: `/favicon.svg` and `/favicon.png` each appear in the head only when the site package or the app's public folder provides them, with the SVG listed last so browsers that take the last icon use it. Sites without an icon no longer send every visitor's browser to two missing files.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`8e30c3f`](https://github.com/rizom-ai/brains/commit/8e30c3f88b40edb83d647665a0574ccf2510c282) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An anchor profile whose content is invalid, such as one carrying a key the profile schema no longer accepts, is now quarantined by directory sync as `anchor-profile.md.invalid` with its content intact. Before, the failure was treated as retryable, so on a brain's first start the default "Unknown" profile was written over the author's file, and with git sync pushed back to the content repository. A persist validator can now report that content is invalid in itself with a schema-phase validation error, which is kept rather than treated as a live policy refusal.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`31e0bf6`](https://github.com/rizom-ai/brains/commit/31e0bf692f3e22157bc07d070af2cb1bfdaa3df7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Team brains get their own site. The new organization site opens on a radar of the people, teams and organizations the team works with, drawn in the professional site's look: the team at the centre of a quiet scope, each agent placed by how close its work runs to the team's and named beside its mark, related agents gathered into named constellations, and a pulse radiating from the centre that lights each agent as it arrives. Beside it sits the team's authored opening, or its anchor profile's words when nothing is authored, with the topics, the contact door and the Ask box when the brain serves them. An about page presents the team's purpose, focus areas, capabilities and working principles, or an organization's mission, offerings and values. New team brains scaffold the site; existing brains keep the site they set in `brain.yaml`, and any team or organization brain can select `@brains/site-organization` there.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`3d8d163`](https://github.com/rizom-ai/brains/commit/3d8d163d17d9b4d9b142040a788ac78c9ef6c388) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional site's atlas homepage, its authored opening and Ask box checks, and its site layout now come from a shared atlas package, so other sites can build on them. Nothing a visitor sees changes.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`b28cf5a`](https://github.com/rizom-ai/brains/commit/b28cf5a8b5f649c170f69024988db7bcd8a4cc4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render the site once after every start, so an upgrade's template, component and style changes reach the published site even when no content changed; unchanged builds are still skipped while the app runs. The per-template `renderVersion` option is removed.
+
+## 0.2.0-alpha.454
+
+### Patch Changes
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`467f476`](https://github.com/rizom-ai/brains/commit/467f476a1c089ae0f46b8e65938f87675f489c37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box says nothing under its composer: the note and "About this chat" are gone, and only an over-limit warning appears there, while the draft is too long.
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`170627a`](https://github.com/rizom-ai/brains/commit/170627a74751e592f1818776a8209aa2ef2b21f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site-builder takes a site's entity display settings through the site contract's own schema instead of a copy that dropped what it did not list. A site's `citable` choices now reach the answers: on the professional site a visitor's sources are its essays, presentations and projects, not topics or social posts. An unknown entity display key now fails at startup instead of being dropped.
+
+## 0.2.0-alpha.453
+
+### Patch Changes
+
+- [#439](https://github.com/rizom-ai/brains/pull/439) [`3d40351`](https://github.com/rizom-ai/brains/commit/3d40351fa5b05ab04d1e7a196a3287a4fda5bf57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Honor explicit citable:false exclusions even when no entity type opts into citations. Keep published-only list and count views bounded when callers supply lifecycle-status filters or publishedOnly:false: intersect those filters with the publication gate instead of exposing drafts. Preserve unbounded preview behavior and custom per-type published statuses.
+
+## 0.2.0-alpha.452
+
+### Patch Changes
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`8df97bf`](https://github.com/rizom-ai/brains/commit/8df97bf413df6bc4d5d0d20e06366b2720a591c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer lists only the pieces of work a site marks `citable` in its entity display: on the professional site, essays, presentations and projects — the pieces that light up on the homepage atlas. Topics, series, links and social posts no longer appear as sources next to the essays they point at. A site that marks no type keeps citing any type it has pages for. A site override that relabels a type now keeps the base site's other display settings for it instead of replacing the whole entry.
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`8d401d0`](https://github.com/rizom-ai/brains/commit/8d401d0d1388223963de9765303a964dcd298bb8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box reads as one conversation. There are no "You" and owner labels over each turn (screen readers still hear who speaks), one rule parts the turns, and an answer's lists and headings keep the text's rhythm and size. Sources are a list of rows instead of pills. The note under the composer is the same in every state, "Answers use published work only. Leave private details out.", with "About this chat" beside it in place of the About link above the conversation. The waiting line names the work, not the person. "↓ Rest of the answer" takes the note's line while there is more to read, instead of a round button over the text, and text fades out toward the composer instead of being cut. The send button is quiet until there is something to send. On a phone the open sheet has no title row: its close button floats over the top corner, the starting questions are a list, and answers read at 15px. `ASK_SHEET_HEADER_HEIGHT` is removed from the Ask box contract.
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`57bb96e`](https://github.com/rizom-ai/brains/commit/57bb96e61b54f676a04c2c467124da739ef6ef18) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional site's atlas homepage says the owner's name once: the byline over the headline is gone, and with it the ask-content `attribution` field. The ask box asks "Ask about my work…" before and after it mounts (a host sets the box's first placeholder with `ASK_PLACEHOLDER_ATTRIBUTE`). An answer's sources take their mark's shape and are named as the map's legend names their kind. A lit piece is its shape in the accent with one thin ring. The send button is quiet until there is something to send. On phones, the type is smaller, the starting questions are a list between hairlines, the map strip keeps lit pieces near its edge in view, and text passes under a short fade below the strip.
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`0d57efc`](https://github.com/rizom-ai/brains/commit/0d57efc8e96dd0dd2978ff4c06369c1218675a1b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - People reading a brain publicly — site visitors asking in the Ask box, public chat users — only reach published work. Search, lookups by id, slug or title, listings, insights and an answer's sources all leave drafts out, using each entity type's own published statuses. Before, a visitor's answer could quote and link an unpublished draft, and the insights tool listed draft titles. A production site build's search now applies the same gate as its listings.
+
+## 0.2.0-alpha.451
+
+### Patch Changes
+
+- [#437](https://github.com/rizom-ai/brains/pull/437) [`9c69413`](https://github.com/rizom-ai/brains/commit/9c694130035731efe61b97c2c5e3b9e76bbb735b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site runtime scripts that the build serves itself now load from a content-fingerprinted src (`/scripts/homepage-atlas.js?v=…`). A release that changes a script reaches visitors on their next page load instead of after the four-hour browser and CDN cache runs out.
+
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- [#436](https://github.com/rizom-ai/brains/pull/436) [`db31d1f`](https://github.com/rizom-ai/brains/commit/db31d1f8c7c1211ae667c99b5a2966b0a88cd755) Thanks [@yeehaa123](https://github.com/yeehaa123)! - In the phone conversation, a tap on the map's strip brings the whole map back to the top, rather than opening a mark too small to aim at; at full height, taps work on the marks as before.
+
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- [#435](https://github.com/rizom-ai/brains/pull/435) [`1c4c0cb`](https://github.com/rizom-ai/brains/commit/1c4c0cbd7ba417f9cd73cd399d8539063b50f5eb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The first opening of the phone conversation hides the page behind it too, from the moment the sheet has risen, not only once the conversation has loaded (which can take a second or more).
+
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- [#433](https://github.com/rizom-ai/brains/pull/433) [`2c0c48b`](https://github.com/rizom-ai/brains/commit/2c0c48bf16807acd11917ff24a866fe41b9328e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - While the phone conversation is open, the rest of the page is out of sight: once the sheet has risen over it the page is hidden, and it shows again as the sheet starts to fall away. Nothing of the homepage or footer can show through wherever Safari's keyboard and bars briefly leave the sheet short of the screen.
+
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- [#431](https://github.com/rizom-ai/brains/pull/431) [`c5af76a`](https://github.com/rizom-ai/brains/commit/c5af76a051bde7ddcdba5e13525023f1a482ba23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the page behind the Ask conversation is held where it was when the visitor's finger landed on the box, not where Safari had already scrolled to reveal it, so closing the conversation returns to that place.
+
+- [#432](https://github.com/rizom-ai/brains/pull/432) [`5949cb4`](https://github.com/rizom-ai/brains/commit/5949cb4caf89a1168b45d8fb243a5f2a0f4a7240) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Opening the phone conversation again from the page holds the page still exactly as the first opening does: where the finger landed, at once, before Safari moves anything for the keyboard.
+
+## 0.2.0-alpha.446
+
+### Patch Changes
+
+- [#426](https://github.com/rizom-ai/brains/pull/426) [`f58e0fc`](https://github.com/rizom-ai/brains/commit/f58e0fcf0bc58f6d88184a8efe1a10fec74d90a4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add plugin-owned `content`/`system` entity-type classification, defaulting to content and available through public `defineEntity` authoring. Mark prompts, skills, playbooks, assessments, agents, identity and site configuration, and grouping definitions as system types.
+
+  Use one registry-enforced grouping eligibility rule for runtime declarations and Studio discovery. System types never contribute fields or membership counts and never appear as exclusion choices. Studio navigation consumes registration metadata, including custom system types, rather than inferring classification from type names.
+
+  Keep authored Markdown and exact memberships unchanged. Previously saved system exclusions remain in source but are not presented as selectable or unavailable options. Other unavailable exclusions remain visible and removable.
+
+- [#429](https://github.com/rizom-ai/brains/pull/429) [`03341b3`](https://github.com/rizom-ai/brains/commit/03341b348d06aa11e216d043a499cacb2f0a8fe7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the page behind the Ask conversation now holds still in Safari too: it is pinned at its scroll position from the first tap (Safari scrolled a page whose root only hid its overflow, both to reveal the focused field and under a swipe), so the homepage and footer cannot move into view behind the conversation, and closing returns the page to where it was.
+
+## 0.2.0-alpha.445
+
+### Patch Changes
+
+- [#428](https://github.com/rizom-ai/brains/pull/428) [`91d165d`](https://github.com/rizom-ai/brains/commit/91d165d4b1f10e3978561e0760a6fe6ad2216d8c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation's header is its title and a way out; it no longer links to "About", whose notice the line under the composer already gives.
+
+## 0.2.0-alpha.444
+
+### Patch Changes
+
+- [#427](https://github.com/rizom-ai/brains/pull/427) [`ad725df`](https://github.com/rizom-ai/brains/commit/ad725dfb44ae84502a91dec1991d792b66d9f74e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On the atlas map, an open title card on a lit piece now sits above the other lit pieces instead of under them.
+
+## 0.2.0-alpha.443
+
+### Patch Changes
+
+- [#424](https://github.com/rizom-ai/brains/pull/424) [`eaf4cc3`](https://github.com/rizom-ai/brains/commit/eaf4cc36792d9564715dd0c9d8900bba9d765f3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix a rare "Projection batch cannot join active batch" fencing failure that could hit unrelated jobs. The job queue dispatches jobs as Effect fibers, which have no relationship to Node's `AsyncLocalStorage` tracking, so an unrelated job's leftover projection-batch scope could appear ambient to a different job and trip the identity fence on jobs that were never actually nested inside it. The worker now resets the projection-batch coordinator's ambient scope to empty before running each job, so a job's batch identity can never leak from another job.
+
+## 0.2.0-alpha.442
+
+### Patch Changes
+
+- [#423](https://github.com/rizom-ai/brains/pull/423) [`7bfcaa6`](https://github.com/rizom-ai/brains/commit/7bfcaa635c9b23e51d59129612ce4293ca3f7570) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation's map is now part of the conversation rather than a layer over it: Web Chat's box offers a dock at the top of its scroll (`ASK_DOCK_ATTRIBUTE`), and the atlas lends its map there while the conversation is open. It scrolls up with the answer until only a strip is left, pinned under the header with the lit pieces in view, so a swipe anywhere, the map included, scrolls the conversation with the phone's own momentum. "Where it's cited" now sits beside its piece, where no edge of the map cuts it off.
+
+## 0.2.0-alpha.441
+
+### Patch Changes
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare image and document binary storage through entity type configuration. Sanitize binary bodies and search excerpts, exclude binary entities from stale insights, and reject unsupported prompt generation without hardcoded type checks.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Recover mangled entity update confirmations from the exact stored proposal rather than implicitly approving agents. Preserve entity identity, optimistic concurrency, permissions, and single-use tokens. Keep agent approval instructions with agent-discovery.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity types declare their default system_list sort order. Apply blog post publishedAt ordering in the entity service before pagination rather than reordering an already limited page.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity types opt into extract-markdown uploads with markdownImport. Notes declare support; unsupported imports list the installed types that accept markdown extraction.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the anchor-profile fields-only update prohibition. Use the generic persistence probe to reject non-persisting declared field changes while allowing supported updates such as visibility under the existing authorization policy.
+
+## 0.2.0-alpha.440
+
+### Patch Changes
+
+- [#419](https://github.com/rizom-ai/brains/pull/419) [`f1548a5`](https://github.com/rizom-ai/brains/commit/f1548a56b26f962d3094ab4833dad81f9b5b380b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - In the phone conversation on the atlas homepage, the map under the header is as tall as the page's at the top of the conversation and shrinks to a strip as the answer scrolls beneath it, keeping the lit pieces in view. A listed source takes you to its piece: the map grows back, the piece pulses and its card opens; a lit piece's card offers "Where it's cited", which scrolls the answer to that source. Title cards near the map's top open below their mark. Web Chat's box opens an answer below whatever a host docks under its header.
+
+## 0.2.0-alpha.439
+
+### Patch Changes
+
+- [#418](https://github.com/rizom-ai/brains/pull/418) [`ee1213f`](https://github.com/rizom-ai/brains/commit/ee1213f9276e952cefa8fd85819a8f92c9c35a63) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation's map strip keeps its size as the conversation opens, and changes height only while the keyboard folds it or it opens into the whole map; marks cut by its edges fade out. An open title card on the map sits above every other mark. "Connecting to chat…" is said to screen readers only, so the sheet opens complete.
+
+## 0.2.0-alpha.438
+
+### Patch Changes
+
+- [#415](https://github.com/rizom-ai/brains/pull/415) [`cfe9ad5`](https://github.com/rizom-ai/brains/commit/cfe9ad50eed5160fe281f59ff4a5d6eee3c80b30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation on an Ask box behaves as one piece. The sheet opens complete (the chat's files are fetched once the page is idle), rises into view and falls away when closed, and never reopens by itself after being closed while loading. A reload with it open returns to where the page was. While an answer is written, the box shows where it will appear and offers to stop waiting only after 20 seconds; the "Latest" control is a round button clear of the text, and the sheet no longer links to the full chat. On the atlas homepage the map strip is a window onto the same map at the page's size and zoom, pans only when an answer moves it, keeps its marks at their own size while zoomed, folds with the keyboard, and opens into the whole map until "Back to the answer".
+
+## 0.2.0-alpha.437
+
+### Patch Changes
+
+- [#393](https://github.com/rizom-ai/brains/pull/393) [`cc7500a`](https://github.com/rizom-ai/brains/commit/cc7500af3a6a0deb593c221f2009c121d1708b71) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply groupings to every eligible content type by default. Replace the explicit contributor checklist with optional `excludeTypes` under a collapsed Exclude types disclosure. Singleton controls, types without frontmatter adapters and binary asset types stay outside grouping participation by convention.
+
+  Resolve participation consistently for schema extensions, validation, scoped descriptors and reprojection. Removing an exclusion restores participation without rewriting stored memberships. Preserve unavailable exclusions rather than silently dropping them.
+
+  Prevent queued directory imports from undoing newer Studio saves. Capture per-file entity revisions at admission and use atomic conditional upserts; skip stale work with a visible issue while preserving source files and pending exports. Conditional upserts never retry a raced create as an unconditional update.
+
+  Definitions no longer accept explicit `types` lists. There is no compatibility reader or automatic conversion; smoke's test definitions must use the current document shape when this version is deployed.
+
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- [#414](https://github.com/rizom-ai/brains/pull/414) [`e6c1f40`](https://github.com/rizom-ai/brains/commit/e6c1f4080e3c87f06dd53e566ef5cbc73c66b151) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer's sources are now found on deployments whose site address is configured as a bare domain, such as `yeehaa.io`; before, building their links failed and the answer fell back to its lookups' sources.
+
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- [#413](https://github.com/rizom-ai/brains/pull/413) [`c3c8caf`](https://github.com/rizom-ai/brains/commit/c3c8caf1d6ed3ba835814002273c50e7461a4672) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer now cites the public pages closest to it in meaning: with embeddings enabled, the brain searches with the finished answer and keeps up to five pages the site shows, near the closest match, each with its address on the site. The homepage map lights those pages, so an answer about three essays lights the three essays even when the model read about them in a note or a social post. When the closed Ask box on a phone leaves the page, its "Latest" button no longer lingers there.
+
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- [#412](https://github.com/rizom-ai/brains/pull/412) [`4b385c3`](https://github.com/rizom-ai/brains/commit/4b385c3781e96c2099abf18a196bb110b8556697) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the open Ask sheet speaks in the site's words: it is titled "Ask <owner>", labels answers with the owner's name, shows the visitor's question as a bubble, lists an answer's sources as links and notes that answers come from what the owner has published; the "Answer received" status is gone. The atlas map strip under the sheet is now a window onto the map at its normal proportions instead of a squashed copy, and it slides to where an answer's sources sit.
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redirect retired operator Ask pages to Studio Chat at `/chat`, leaving authentication to Studio. Return 404 when Studio Chat is not registered. Public guest Ask remains unchanged.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retire Web Chat's operator bundle, page renderer, asset routes and browser-only session UI. Package only the guest Ask, box and dashboard bundles alongside Studio Chat. Remove browser-supplied `inboxContext` and its one-shot prefill contracts; Studio's authorized stored Inbox handoff remains. The old detach button is intentionally retired: start a new conversation for a different topic.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add confirmed permanent conversation deletion to Studio Chat, including archived conversations. Protect drafts, uploads and active turns, lock the composer during deletion, and ignore late completion after navigation. Failed or unacknowledged deletion stays visible without automatic retries. This restores an operator-chat capability required before retiring the old Ask bundle.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let Studio own the Chat interaction, advertised endpoint, and source-backed Inbox “Discuss in chat” handoff. Link directly to `/chat`, and register these entry points only when web-chat is installed. Web-chat no longer advertises a second operator chat UI.
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- [#411](https://github.com/rizom-ai/brains/pull/411) [`2a3f74f`](https://github.com/rizom-ai/brains/commit/2a3f74fc4b328336b36f75bfd96b8c8c18f36865) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest answer now opens at its question, so it reads from the start; "Latest" follows the end again. An answer's sources are now the search results it names, however they scored, plus what it read directly. An answer that names none keeps each search's best results, as before. So the essays an answer discusses light up on the homepage map, rather than the higher-scored notes and topics it passed over.
+
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- [#389](https://github.com/rizom-ai/brains/pull/389) [`7650439`](https://github.com/rizom-ai/brains/commit/7650439502c4bf91d9370b72d952aec25bdff8c2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Start modern Streamable HTTP responses in the SDK's SSE mode so its keepalive comments cover silent model/tool execution before the final result. This prevents that initial silence from exhausting a proxy's response-header timeout without increasing deployment timeouts. Authentication, confirmation handling, request cancellation, and stateless legacy compatibility remain unchanged.
+
+- [#409](https://github.com/rizom-ai/brains/pull/409) [`aeb4e6c`](https://github.com/rizom-ai/brains/commit/aeb4e6c2f28c2c213955514893306cd05f02fcee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a phone, the Ask box opens full screen once the visitor engages, instead of staying half-way down the page under the keyboard.
+
+  - **Keyboard:** the sheet fits the visual viewport, so the composer sits on the keyboard.
+  - **Page:** the page behind the sheet is locked.
+  - **Closing:** the close button, Back and Escape all close it, and sending closes the keyboard so the answer gets the screen.
+  - **Map:** the homepage atlas docks its map as a strip under the sheet header, where the answer's sources light up, and folds the strip away while typing.
+  - **After closing:** the box offers "Continue conversation" above its composer.
+  - **Contract:** `@brains/contracts` adds `ASK_SHEET_MEDIA`, `ASK_SHEET_ATTRIBUTE`, `ASK_KEYBOARD_ATTRIBUTE` and `ASK_SHEET_HEADER_HEIGHT` for hosts.
+
+- [#409](https://github.com/rizom-ai/brains/pull/409) [`48f328a`](https://github.com/rizom-ai/brains/commit/48f328aa66fce00557d54a9c128268514d8513ab) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box's code is now loaded at versioned addresses, so a release reaches visitors straight away instead of after their browser or edge cache expires (up to four hours on Cloudflare). The unversioned `/ask/assets/box.js` that sites reference is now a stub that never changes: it reads the current version from `/ask/assets/version`, which is never cached, and loads `/ask/assets/boot.js?v=…`, which loads `guest.js` and `guest.css` at the same version.
+
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- [#396](https://github.com/rizom-ai/brains/pull/396) [`c26ff7a`](https://github.com/rizom-ai/brains/commit/c26ff7ab7ee8529a3b4776ae52b9d995c8340dd7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask page and Ask box follow the newest message the way Studio Chat does: one "close enough to the bottom" distance for all three, and "Latest ↓" moves focus to the conversation it scrolls.
+
+- [#397](https://github.com/rizom-ai/brains/pull/397) [`b2f9b74`](https://github.com/rizom-ai/brains/commit/b2f9b745a713014cf08077c025747c229c01cf49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest lookup that returns an answer instead of results, such as the entity types a list knows, now reaches the model in the tool's own words (bounded to 500 characters), so it can correct its request. Guest answers speak of the brain's anchor in the third person.
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- [#394](https://github.com/rizom-ai/brains/pull/394) [`9077f1c`](https://github.com/rizom-ai/brains/commit/9077f1cf3f9d461fe077c6cf66004e608c9973b1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now runs on the brain's own agent as a public user.
+
+  - **Same agent as owner chat:** the brain's model, identity, public profile (without the owner's email) and instructions, the reviewed public read tools, and normal search. A short visitor instruction tells it to answer from the brain's public content.
+  - **Guest-only limits removed.** They ended answers early or emptied them: a three-step cap, output, context and lookup caps, a 32 KB request guard, a separate guest search and a 30-second stream idle timer.
+  - **Deadline:** an answer is bounded by a three-minute deadline.
+  - **Cost:** measured from each step's reported usage, and charged the answer cap when it cannot be measured.
+  - **Diagnosable failures:** a failed or empty guest turn is logged with its reason; visitors still see only that the answer failed.
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- [#392](https://github.com/rizom-ai/brains/pull/392) [`223282b`](https://github.com/rizom-ai/brains/commit/223282ba7bc0735a901655988269185662ca0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The embedded Ask box opens empty on every page load instead of restoring the tab's last conversation. The full chat page (`/ask`) still continues the conversation the box hands it, and the browser's back button still returns to an answer.
+
+- [#392](https://github.com/rizom-ai/brains/pull/392) [`e26b1ef`](https://github.com/rizom-ai/brains/commit/e26b1ef5b4eb6d9c626332da0139618150abe8bb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat and the contact form no longer show a retention notice. The chat session carries no `recording` notice, a question carries no `disclosure` revision, and every admitted question is kept for the owner's Studio view. The contact form drops its "Your note is kept for N days" paragraph. Retention and deletion work as before.
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- [#390](https://github.com/rizom-ai/brains/pull/390) [`7dea587`](https://github.com/rizom-ai/brains/commit/7dea587a0f9549ddc1fda21096d48feb9994ee1f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat is quieter and more honest.
+
+  - A guest lookup that finds nothing now tells the model that nothing public matches. Before, every failed lookup read as "Public retrieval unavailable", so the model told visitors that retrieval was down.
+  - A lookup past the turn's limit, or with an oversized result, now says so, so the model can answer with what it found.
+  - The homepage atlas scrolls a docked conversation only with its text column, with a thin themed scrollbar; the answer area no longer has a scrollbar of its own.
+  - The box drops "You can draft while you wait."
+  - The recording notice now reads "Questions are kept for the site owner for N days, even if you delete this chat."
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- [#386](https://github.com/rizom-ai/brains/pull/386) [`8e6a93f`](https://github.com/rizom-ai/brains/commit/8e6a93fc80511ff66c30d4b97dac094f1d5be716) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job whose attempt lease expired is reclaimed by the next free worker even while the worker that claimed it is still running; the attempt fence stops the old attempt's late writes. Before, a worker that stopped renewing a lease without exiting left the job processing indefinitely, which kept the queue from ever going idle and blocked every deploy at the pre-deploy backup. The backup gate now treats such an abandoned job as rerunnable work, names it in the deploy log and backs up.
+
+- [#388](https://github.com/rizom-ai/brains/pull/388) [`7086bff`](https://github.com/rizom-ai/brains/commit/7086bffad5695733bb11f150a57e88e08a2845ca) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An environment variable set to an empty string now counts as unset in `brain.yaml` interpolation, the way deploy tooling passes a secret that is not configured. The plugin it configures is skipped as missing config instead of failing validation on an empty value.
+
+- [#387](https://github.com/rizom-ai/brains/pull/387) [`17f5453`](https://github.com/rizom-ai/brains/commit/17f5453ea6821f0db371c5845556bb7cfaa4cc78) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest answer that fails no longer holds its place. When the model call returns an error, the answer settles as failed and is charged the $0.05 answer cap, so the visitor can ask again; an answer still active past its deadline (a process that died mid-answer) settles as interrupted at the cap on the next admission. Before, both stayed reserved for good, and three failed answers filled preview guest chat's concurrency so every later question was refused as busy.
+
+- [#386](https://github.com/rizom-ai/brains/pull/386) [`ee6a4dd`](https://github.com/rizom-ai/brains/commit/ee6a4ddd0275726256928a173f6054e81c7d0024) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A plugin whose configuration is wrong — an unknown key or a value of the wrong type — now stops the brain from starting with the validation message, instead of being dropped without a trace. A plugin is still skipped when its only problem is a required value that is not set, such as a credential whose environment variable is absent.
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`48b29ff`](https://github.com/rizom-ai/brains/commit/48b29ff5ff9ec28de232330db609540b8d3732eb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read raw entity source when draining durable directory exports. Presentation-time image expansion must not replace authored body references, grouping memberships or allowed values in exported Markdown. Preserve existing visibility scope, placement, acknowledgement and retry behavior.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`a0d561f`](https://github.com/rizom-ai/brains/commit/a0d561fe3e73f08d4a21eb85b89103ae38bba39f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refuse the grouping definitions control document as a contributor, with a section-level validation issue and repairable handling of invalid stored definitions.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`0ce2ac5`](https://github.com/rizom-ai/brains/commit/0ce2ac5b2b8ab789ec21628db66c3c9f3fc0533f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep automatically opened singleton creation drafts clean until edited, and disable pristine singleton creation saves through the button, form and keyboard paths.
+
+  Implement the approved Groupings editor and unified membership control, with independent cardinality/list rules, exact literal values, explicit removals, immutable saved keys, lossless duplicate-key drafts and read-only views. Ordinary editor integration uses document-owned descriptors and visibility-scoped usage reads.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add grouping usage reads with distinct entry totals and bounded, exact-value counts, including zero counts for unused values. One SQL statement applies admitted contributor types and visibility to every aggregate; duplicate and overlapping memberships do not inflate entry totals.
+
+  Expose the read through Studio's trusted-session API and typed client, retaining cancellation, source refresh and initializing/retry behavior. No durable state or content changes are introduced. Mounting usage data in the reviewed Groupings page and activating the replacement document source remain pending.
+
+- [#384](https://github.com/rizom-ai/brains/pull/384) [`d26d585`](https://github.com/rizom-ai/brains/commit/d26d5856a121236778fa9d386ff303afb0fb4d79) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat's budget works simply. A question is admitted while guest chat is on and the month's spend is under the owner's budget; nothing is reserved up front. Each answer runs within fixed limits (prompt size, answer length, model steps, searches) that hold it to about two cents, and when it finishes its measured cost is added to the month, or $0.05 when the provider reports no usage. The per-call cost quotes that refused real answers are gone from `GuestTurnBudget` (its accounting now only prices a settled turn), and changing the configured limits no longer locks out sessions or the owner's approval. The Studio budget starts at $0.05.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reproject added grouping type/field pairs after definition writes, using the existing bounded metadata-only scan. Keep pending work and readiness entirely in memory: Studio returns initializing during scans, failed scans remain retryable without misreporting saved definitions, and startup reconstructs progress from source.
+
+  Guard ordinary entity commits against a definition change after preparation. Stale writes, including no-op updates, are refused for retry before committing source or exports, using an in-memory publication revision and the existing write transaction.
+
+  Independent processes conservatively verify their own projections on observed definition changes, including remove/re-add cycles detected through existing document timestamps. No database tables, migrations or persistent status records are added. The new definitions registration module remains an internal implementation checkpoint, not yet activated by StudioPlugin.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`cf1b1f5`](https://github.com/rizom-ai/brains/commit/cf1b1f515330ba07f179da997876fbb1ebe88d37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connect the reviewed grouping definition editor to ordinary draft, save, conflict, and navigation handling. Supply eligible contributor types and repair issues, batch visibility-scoped usage without adding repeated entry totals, and show initialization, unavailable counts, and retry states. Reuse the unified membership control in ordinary fields.
+
+  Preserve invalid local drafts and literal definition values. Expose unparseable source for explicit repair rather than silently replacing it. Production definition-source activation and removal of the legacy configuration/vocabulary ownership path remain separate work; no migration is performed.
+
+  Apply the documented Bun/StyleX DFG workaround to Studio UI builds as well as tests. Production runtime settings are unchanged; this is not an underlying Bun fix.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`d9925ab`](https://github.com/rizom-ai/brains/commit/d9925ab9386021c377b7ef8c5f138c75938ee549) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read raw source for Studio editing and mutation preparation so image-like grouping values, unclaimed frontmatter and body references cannot be rewritten by presentation-time image expansion.
+
+  Resolve Markdown preview images separately through an authenticated, visibility-scoped image read. Use the injected client, cancel superseded requests and discard previously authorized image data when the client/session changes. Preserve literal code examples and existing Markdown sanitization. Cover exact Note/Post source round trips, mounted preview-and-save behavior, opaque image IDs and restricted-image non-disclosure.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add atomic replacement of an entity registry's complete grouping set through `replaceGroupings`. Grouping-owned schema extensions are kept separate from permanent plugin extensions, so removing a grouping preserves owner/plugin fields and their refinements. Invalid replacements leave the active set unchanged; authored memberships and file identities are never rewritten.
+
+  `validateGroupings` now preflights a complete replacement set. Studio's existing registration path includes already-registered declarations in that preflight. These registry primitives do not load a definitions document, coordinate readiness or automatically reproject stored content; their caller still owns those steps.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`86e8937`](https://github.com/rizom-ai/brains/commit/86e89377bb1c1dfe98d752a791469597c737b8b6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore ordinary no-op saves for existing System documents without weakening Groupings draft guards. Pristine singleton creation and unchanged Groupings remain blocked, including direct save actions as well as form and button submission.
+
+## 0.2.0-alpha.424
+
+### Patch Changes
+
+- [#382](https://github.com/rizom-ai/brains/pull/382) [`33a50f0`](https://github.com/rizom-ai/brains/commit/33a50f0c131cfda826a35c4d80a014bc288e2567) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat sessions no longer stay refused after a release changes their limits. The session ledger adopts new limits only through an explicit owner action, and nothing ever took it, so after the preset change every visitor saw "Chat isn't available" even with guest chat switched on. Switching on in Studio (or reopening through the activation endpoint) now adopts the session limits too, and at startup a deployment whose owner authorized exactly the current policy brings its session ledger to that policy's limits.
+
+## 0.2.0-alpha.423
+
+### Patch Changes
+
+- [#381](https://github.com/rizom-ai/brains/pull/381) [`272188b`](https://github.com/rizom-ai/brains/commit/272188bf8d8534fa7567da9ae002075de708dc84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Managed guest chat is limited by a monthly budget the owner sets, not by counts of sessions or questions. The owner opens guest chat in Studio's Guest chat workspace with a budget in US dollars ($0.50 to $10,000), confirmed before it applies; the same form changes it while open. Each question reserves a $0.50 quote until its cost is measured from the provider's reported usage, and the unused part returns to the budget; unknown cost keeps the whole quote. The budget covers one UTC month. The activation endpoint still accepts only `{ enabled }` and reopens with the budget set in Studio. The preview preset's session and question counts become flood limits sized far above normal use (the old four sessions a day, deployment-wide, shut out everyone). The two-question lifetime trial is retired: a deployment that had guest chat on must open it again with a budget.
+
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- [#380](https://github.com/rizom-ai/brains/pull/380) [`9f05393`](https://github.com/rizom-ai/brains/commit/9f053937e22deff5804427868bf0ad30e6b5c25b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage chat box stays on preview across a restart. Web Chat records at startup whether the box is offered, and it checked that guest chat could answer, which waits for the search index. That is never ready at startup, so every restart or deploy recorded the box as off until the owner switched guest chat again. The record now follows the owner's switch and remaining allowance; the box itself says when chat cannot answer yet.
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate MCP protocol registration from HTTP and stdio hosting. Hosted interfaces and protocol-only embeddings share the same tool handlers and registration lifecycle. Add the explicit ProtocolPluginProvider contract and have --mcp-basic use the selected interface's protocol provider without starting listeners or restoring disabled host dependencies. Preserve hosted HTTP dependency and authentication checks.
+
+  Add regressions for listener-free registration, canonical headless/personal composition, unsupported providers, and an MCP chat/confirm long-note edit with exact stored-content assertions.
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add exact-match `edits` to agent-backed `system_update` so small changes do not require regenerating an entire document. Reject missing, ambiguous, overlapping, and mixed-mode edits; preserve confirmation and content-conflict protection. Refresh changed source-derived metadata so a note heading edit also updates its title. Reject entity updates that supply both fields and content instead of silently discarding content. Align confirmation preview lines so insertions and deletions do not mark an unchanged suffix as rewritten, and preserve visible blank-line changes. Add long-note coverage for exact content and backslash preservation through confirmation.
+
+  Add agent evals for 7, 14, and 17 KB note edits and combined title/body edits. Exact tool-result assertions verify stored Markdown after cancellation and approval, rather than relying on the assistant's success claims.
+
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- [#379](https://github.com/rizom-ai/brains/pull/379) [`84a2aac`](https://github.com/rizom-ai/brains/commit/84a2aaccbd73ac2e3d40f500374ad92fc401dcf6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A failed notification now says why, without any message content. The email transport reports Resend's error name (`resend_validation_error`) or HTTP status (`resend_http_500`) instead of a generic failure, notifications passes that code on (`NOTIFICATION_FAILURES` and `notificationFailureCode` in `@brains/contracts`), and contact keeps the latest attempt's code with a failed alert and counts failed alerts by code in its operational health (`failures`). A missing recipient or transport reads `recipient-missing` or `transport-missing`.
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask page loads its own guest bundle (`/ask/assets/ask.js` and `ask.css`, about 1.9 MB) instead of the signed-in chat app (`app.js`, about 15 MB), which it mounted only to render the guest conversation. The app bundle stays served for sites that still load it.
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- [#374](https://github.com/rizom-ai/brains/pull/374) [`b6a1e11`](https://github.com/rizom-ai/brains/commit/b6a1e114fc21cbf00e915c07a9d08c7a3356af02) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage atlas starts its copy on the header's content edge at every width: the centred layout column on wide screens (it sat 48px from the window edge while the header logo moved inward), and the header's 1.5rem / 3rem gutter on phones and tablets, with the map legend on the same edge. The map keeps the rest of the width, and a map-less atlas keeps its measure.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`13b492f`](https://github.com/rizom-ai/brains/commit/13b492f449757eaa6e449d280060d5a44854b4b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Territory names on the professional homepage atlas carry a solid halo in the page colour, so contour lines part around them and dense rings no longer run through the letters.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`d6285e2`](https://github.com/rizom-ai/brains/commit/d6285e2583af61652d37242ab025f624450c7cb0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form opens in the site's own theme when a link names none, instead of always opening dark. Contact reads the theme from the site's metadata at startup and follows changes to it; a `?theme=` on the link still wins.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`5a70a6f`](https://github.com/rizom-ai/brains/commit/5a70a6f918644186ee01cfbffe7c23b64c97c479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A successful pre-deploy backup now shows the runtime's own notices, such as the degraded checks it backed up anyway, as workflow warnings. Before, the remote output of a successful capture was discarded. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#375](https://github.com/rizom-ai/brains/pull/375) [`ce39ab4`](https://github.com/rizom-ai/brains/commit/ce39ab4156e7d91cf5d472bde174095c947ec2f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage now offers the chat box in a preview build while the owner has managed guest chat switched on. The box rule required guest chat to be open to the public even for a preview build, so preview-only guest chat never showed it.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`b84a4c3`](https://github.com/rizom-ai/brains/commit/b84a4c380f2681f53544422daf2dcd575c51b701) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Published sites paint the page colour on the document itself, so scrolling past the footer on a phone never shows a white band in dark mode. The rule lives in the site build's own base stylesheet; Studio and rendered media pages are unchanged.
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- [#372](https://github.com/rizom-ai/brains/pull/372) [`b3a8c6e`](https://github.com/rizom-ai/brains/commit/b3a8c6e5f46691550e2e85be278208cb21fc1087) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A contact request whose email alert failed now keeps contact's operational health degraded only until the owner marks the request Done in the Studio Inbox, instead of for the request's whole retention with no way to clear it. Health details gain `failedUnhandled` beside the existing `failed` count.
+
+- [#372](https://github.com/rizom-ai/brains/pull/372) [`e3d947f`](https://github.com/rizom-ai/brains/commit/e3d947fcb7aaa67b9ff6a8478e975ef32f816c66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup no longer refuses a runtime whose plugins report degraded health. It still requires a ready runtime with an idle job queue, names the degraded checks in the deploy log and backs the runtime up, because a deploy is often the fix for what a plugin reports. A refusal now states its reason (runtime not ready, job queue not idle) instead of exiting silently. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- [#371](https://github.com/rizom-ai/brains/pull/371) [`2884fca`](https://github.com/rizom-ai/brains/commit/2884fca8d6d7c9144626e677e7a506975162cf66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio now has an admin-only **Guest chat** workspace wherever guest chat keeps a usage record. It shows what the public endpoint did — questions, measured cost, unknown-cost and unresolved counts for today and this month, a meter of questions and reserved cost against the allowance (measured cost never returns allowance), recording health and retention, recent questions, refusals by reason with their detailed and counted coverage, and the most active visitors within the retained window — with the switch beside the numbers. Opening guest chat asks for a prepared confirmation that states what the allowance still permits; closing it is one step and stops admissions at once. A recorded question can be saved as a note through its own confirmed action: web-chat sends it to the note plugin over the new `note:capture` message (`@brains/contracts`), and the note plugin keeps such notes restricted to the owner.
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- [#369](https://github.com/rizom-ai/brains/pull/369) [`34b0419`](https://github.com/rizom-ai/brains/commit/34b04190acdc2575fa6bbbffd1ad985facb848f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The owner's guest usage record now keeps refused questions. An admission denial is recorded with its reason and the visitor's salted digest; the guest send route's own refusals (forbidden origin, wrong method or media type, invalid, oversized, unknown conversation, closed access) are recorded by category without their body or a visitor; and a full or unwritable record records its refusals too. Detailed denials have their own allowance, the guest policy's new required `usageRecord.maxDenialRecords` (presets: 1,000), so denial traffic never takes the places admitted questions need. Beyond it, denials become daily counts by reason, held in memory and written by the guest maintenance tick, so a flood of refused requests writes at most once a minute; counts that could not be written wait for the next tick.
+
+- [#370](https://github.com/rizom-ai/brains/pull/370) [`35c4939`](https://github.com/rizom-ai/brains/commit/35c49397982afd1b8cf81fcf9c9f2cea345e71f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The owner's guest usage record now keeps to its own retention and reports its health. The guest maintenance tick removes records, denials and daily denial counts past the record's retention (a day's counts once the whole day is past it), without touching admission accounting or unresolved reservations, and deleting a conversation leaves its record in place, as the visitor notice says. Kept question text has a total bound, the guest policy's new required `usageRecord.maxStoredBytes` (presets: 4,000,000): a request whose largest possible question could exceed it is refused like one arriving at a full record. Operators see the record's bounded health as `guest-usage-record` — degraded while it is full and refusing questions, unhealthy while its writes fail — with counts only, never question text or storage errors.
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- [#368](https://github.com/rizom-ai/brains/pull/368) [`6916f21`](https://github.com/rizom-ai/brains/commit/6916f216a2fd84ad0b408af03077ef46dff2a3a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now tells visitors, with the composer, that their questions are kept for the site's owner, for how long, and that deleting the conversation does not delete them, and records a question's text in the owner's usage record only when the visitor was shown that notice. The notice is composed from the guest policy's `usageRecord` retention and returned by the guest session with a revision; the standalone Ask page and the shared Ask box show it as a visible line that describes the question field, and each question carries the revision it was shown. Question text is kept within the policy's new required `usageRecord.questionBytes`, cut on a character boundary and marked when cut; the presets keep 16,000 bytes.
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- [#367](https://github.com/rizom-ai/brains/pull/367) [`7957c18`](https://github.com/rizom-ai/brains/commit/7957c18f85f4e481123c50324462b3895eb956c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat turns now settle their actual cost. The guest turn budget records the usage the provider reported for every model call (input, cached, cache-write and output tokens, reasoning included) and every query embedding, and the OpenAI guest profile prices it at a pinned revision of the published gpt-5.6-luna and text-embedding-3-small rates, charging requests over 272K input tokens at the long-context rates throughout. The settlement travels on the agent response as `guestSettlement` and is kept in the owner's usage record with the turn's outcome. A turn whose usage is missing, a long-context request with cached input (whose rate is not published), or an accounting without pricing is recorded as unknown cost, never as zero; quotes are never recorded as cost.
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- [#366](https://github.com/rizom-ai/brains/pull/366) [`53f028a`](https://github.com/rizom-ai/brains/commit/53f028a7d1ebe2a038c6a2ebed8c264d24b4656a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now keeps an owner's record of what its public endpoint did. Each guest request takes a place in the record before admission is asked, so a full or unwritable record refuses the request (the existing `unavailable` response) instead of running work nobody can see, and spends no allowance. An admitted request is recorded as unresolved before any generation and records its outcome once; work that stops without one stays visibly unresolved. The record holds no credential, conversation locator or reply, and names a visitor only by a digest salted per deployment. Guest policies now carry a required `usageRecord` section with finite `maxRecords` and `retentionSeconds`; the built-in presets set both.
+
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- [#365](https://github.com/rizom-ai/brains/pull/365) [`210ef3c`](https://github.com/rizom-ai/brains/commit/210ef3c55d778720bf113120d25502fd1cf62da5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On touch screens the homepage topics now get the tap size and spacing meant for them: the touch styles came before the resting styles they override, so at equal specificity the resting padding and gap won and the choices sat 37px tall and nearly touching. They are now 44px targets with room between them.
+
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`e811d5d`](https://github.com/rizom-ai/brains/commit/e811d5d2e145c325c3e1d91fe93412b7c5417c7a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage's topics now carry into the contact form: each topic links to the form with the topic, and the form starts the visitor's message with it (bounded and escaped), so the thread they picked is not lost on the way. Links to the form also carry the visitor's current light or dark theme, which the script-free form cannot read itself, and follow a change. On touch screens, where no hover reveals them, the topics rest as the choices they are.
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`e324acb`](https://github.com/rizom-ai/brains/commit/e324acb5cbdae3d12aa850b6795b6fceba18aaa9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names now move in proportion to the map: a desktop map finds every name a place near its territory, while a phone map, too small for all of them, keeps the largest territories named at full size and never lets a name wander off to another part of the map. A name the map cannot fit keeps its place empty, so a smaller territory's name never stands in for it, and each mark's card now names its territory, so every territory stays one tap away. On touch screens the open card's title is underlined, since the card is the way in.
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`d248e16`](https://github.com/rizom-ai/brains/commit/d248e16eca3f5a21fb2103e92e7afbda9ddf3466) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form now speaks to the visitor. It names who the note goes to from the Brain's profile ("Write to Yeehaa"), says in plain words that the note is private, never published and never part of what the site knows, and states on the form how long a note is kept, that deletion can run late and that backups may keep earlier copies. The confirmation says the note is saved without promising the owner's alert arrived. Labels, the button ("Send note") and errors use sentence case and plain wording instead of the console's uppercase mono chrome, and inputs and the button have rounded corners; the page still loads no external fonts, assets or scripts.
+
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- [#362](https://github.com/rizom-ai/brains/pull/362) [`ba403f4`](https://github.com/rizom-ai/brains/commit/ba403f4423a71cd7a4969b49c624d7d47c53dc69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas never shows a chat box that cannot answer. Web Chat now records the Ask box as available publicly only for a configured guest policy, and on preview for managed guest chat only while the owner has it switched on; it rewrites the record on every start and activation change. The shared box boot marks its host `data-ask-ready` once the controls are live, and the atlas keeps the box out of sight until then. On phones, the atlas text flows with the page with the box docked, instead of scrolling inside a clipped column.
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- [#361](https://github.com/rizom-ai/brains/pull/361) [`7ac481d`](https://github.com/rizom-ai/brains/commit/7ac481d869b35bd914a49c82da88124d70ed89a0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage docks the guest chat box on deployments that run a separate worker. Web Chat now records in shared runtime state whether it serves the shared Ask box boot (and on preview), and site builds read that record instead of Web Chat's routes, which a worker does not have. Without the record, or with guest chat off, the homepage keeps only the contact door.
+
+- [#360](https://github.com/rizom-ai/brains/pull/360) [`fde11f4`](https://github.com/rizom-ai/brains/commit/fde11f4b9c2bc169e9738dcef5c05acdbe0a3666) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones the atlas text now starts where the map's content ends: the build records how far down marks and names reach, and the legend and the opening move up over the fading outer rings instead of leaving an empty strip. Long territory names wrap to two short lines on phones, so more of them fit, and names stay above that line.
+
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- [#358](https://github.com/rizom-ai/brains/pull/358) [`a83fa6f`](https://github.com/rizom-ai/brains/commit/a83fa6f699695f7011db996b98d93c661e429c41) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names no longer collide on real maps. The build keeps each name inside the map's edges, and the atlas script re-places names by their rendered size, largest territory first: each takes the nearest free spot off marks and apart from other names, or is hidden when none is free. On phones the first screen now holds the map and the headline together, with a compact legend on the map's lower fade and a quieter byline.
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- [#357](https://github.com/rizom-ai/brains/pull/357) [`e44477c`](https://github.com/rizom-ai/brains/commit/e44477c763351b94692a98c1d13c554cc02325d9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact intake and the homepage opening work when a brain runs a separate worker process. The worker now builds contact's intake and declares its routes, so site builds there see the form, and it can run contact's daily maintenance, whose freshness is shared through runtime state; before, the check failed as unknown in the worker and intake closed as overdue after 26 hours. The worker never serves or gates the form. The homepage opening no longer requires an advertised contact endpoint, which only the web process registers, so preview and production builds in the worker render it.
+
+## 0.2.0-alpha.407
+
+### Patch Changes
+
+- [#356](https://github.com/rizom-ai/brains/pull/356) [`249fcec`](https://github.com/rizom-ai/brains/commit/249fcec187ca4c3a837c49bba554e0d8f7311c23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact intake works behind a TLS-terminating proxy and on the preview host. With `http.trustForwardedProto: true`, a request forwarded as plain HTTP by a loopback or private-network proxy (such as Kamal's) counts as HTTPS when the proxy reports `X-Forwarded-Proto: https`; the header is ignored from public peers, and visitor identity stays the socket peer. With `preview: true`, the form also serves the deployment's preview origin, and a preview build's homepage opening links its contact door there.
+
+## 0.2.0-alpha.406
+
+### Minor Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`9204df2`](https://github.com/rizom-ai/brains/commit/9204df219fee7f726a38ba60281f780373110403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage atlas docks the public chat when guest chat is enabled: the composer sits in the opening, topics fill its draft instead of opening the contact form, and a finished answer lights the sources it drew on and turns the map towards them, zooming only as far as keeps each in view. On desktop, dotted leads run from each source the answer lists to its mark. Without guest chat, the topics stay links to the contact form.
+
+  Web Chat now serves the shared Ask box boot at `/ask/assets/box.js`, only while guest assets are enabled. It enhances every host that renders the `@brains/contracts` ask-box markup, never sends on load or focus, and keeps the draft with an unavailable notice when the box cannot load. The mounted box reports each answer's sources to its host as an `ask:sources` event, and each source it lists carries `data-ask-source` with the same `entityType:entityId` key. Hosts that set `data-ask-styled` get Web Chat's shared box presentation, themed with `--ask-*` tokens that default to the site theme; the dashboard's Ask panel now uses it.
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`40c3e77`](https://github.com/rizom-ai/brains/commit/40c3e77ce66a3dadabb342ca6e2bf8ce1e3f7777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Professional sites that opt into the authored homepage opening now render it as an atlas: everything published — essays, talks and projects — placed by topic on server-rendered topographic terrain from the knowledge map, with the authored opening and the contact door over it. Every word on the page is authored: Ask content gains optional `topicsHeading`, `contactLabel`, `contactNote`, `attribution` and `mapCaption`, and copy nobody wrote is left out. Drafts and private entities never appear; without embeddings the opening and door render on their own. The page works without JavaScript; a small script ships only with the atlas to let the terrain drift slowly (still under reduced motion and off screen) and to open a mark's title on the first tap on touch screens.
+
+### Patch Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`56d0c9e`](https://github.com/rizom-ai/brains/commit/56d0c9e48bcb8226bd88709a0da2041862275cbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the no-JavaScript contact form rejecting legitimate submissions: its pages sent `Referrer-Policy: no-referrer`, so browsers posted the form with `Origin: null` and the strict origin check refused it. The pages now use `same-origin`, which keeps referrers from leaving the site while identifying same-origin posts. The retention notice also reads "1 day" instead of "1 days".
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`262ae00`](https://github.com/rizom-ai/brains/commit/262ae00e458c936d25ef941d5a7bdbf2f5295188) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop warning on every site build that static pages have "no formatter but saved content was requested". Site builds offer saved content to every section; templates without a formatter now skip it quietly.
+
+## 0.2.0-alpha.405
+
+### Patch Changes
+
+- [#353](https://github.com/rizom-ai/brains/pull/353) [`eef433e`](https://github.com/rizom-ai/brains/commit/eef433e436770aca170136cb5b2e79b304ae2c55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply bounded asynchronous SQLite lock retries to queue claims, progress, heartbeats and terminal writes, including contention with enqueue transactions through the same client. Preserve attempt/session fencing and existing job retry policy; retry rejected database statements rather than handlers, and propagate non-lock errors or an exhausted write budget.
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build the browser-safe Chat export separately from server library chunks. Server subpaths still share their runtime, while browser consumers no longer inherit Node-only imports through shared chunks. Keep frontmatter-only contract parsing independent of Markdown AST initialization, so the export also loads in headless runtimes without a DOM. Verify the exact packed export with the existing browser-build and headless canary.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A registered entity type can now carry its own `actionPolicy` floor, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule. Each action preserves the stricter of the type's minimum and the wildcard policy, including `never`; an explicit per-type entry still overrides the result. Primary buttons keep a visible hover cue when motion is reduced. System forms omit empty field sections, including the Groupings reader's empty Access section.
+
+  Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. The vocabulary is always shared so the editors it constrains can read it. Create/update persistence enforces closed lists across Studio, tools, MCP and imports.
+
+  **Derived projection upserts are now validated.** They previously wrote without owner validation or persist validators; they now reconstruct the adapter's fields, project membership from the full source, and run both inside the admitted rule transaction. A rule can no longer write an entity its own type would reject, and supplied metadata cannot invent membership the source does not carry. A refusal rolls back the entire rule result, including export intents and ownership claims, and completed rule reports stay idempotent. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
+
+  Add configurable, visibility-scoped virtual collections across entity types, with source-authoritative frontmatter membership, startup reprojection, and Studio browsing and editor return navigation. Multiple grouping fields and multiple values per field are supported without copying entities or changing file placement.
+
+  Notes use the normal frontmatter/Properties editor while their type participates in any registered grouping, including Notes with no membership. Notes without a grouping retain whole-document Markdown editing. Removing configuration preserves authored fields. Grouping inputs preserve literal commas and whitespace with explicit Enter/Add submission, mark spaces a reader could not otherwise see, and offer the values that already exist so exact matching does not fragment one group into several. Ordinary tag inputs and stored memberships are unchanged.
+
+  **Behaviour change for every frontmatter entity type:** ordinary frontmatter-form saves and entity exports now preserve existing unclaimed, non-policy frontmatter keys instead of dropping them, including inactive grouping fields. Preservation does not authorize arbitrary new form fields, and explicit full-source replacement remains authoritative. Field-update tools author registered extension fields in Markdown and show their actual previous source values in confirmation previews.
+
+  Each registered field is validated against its own schema entry, so frontmatter the entity owner rejects elsewhere in the document no longer removes an entity from its collections. The bounded startup pass runs on each serving start, including after register-only writes with grouping disabled or changed field constraints. It commits metadata updates in bounded 200-row pages instead of one transaction per entity, retaining per-row source/revision checks, bounded conflict retries, and no-resurrection guarantees. Reusable owner fields are compared conservatively without dropping runtime checks. Failed suggestion refetches discard previously readable values, and the empty-value display marker cannot collide with a literal authored name.
+
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- [#352](https://github.com/rizom-ai/brains/pull/352) [`d991409`](https://github.com/rizom-ai/brains/commit/d9914097d9c7a915e310b1d02062fc14472a4318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix directory imports and orphan cleanup failing with “Projection batch cannot join active batch” when executed as children of a queued sync. Carry the durable root batch identity through the inner DirectorySync operations instead of generating a conflicting callback batch ID. Keep coordinator identity fencing and standalone callback batches unchanged.
+
+## 0.2.0-alpha.402
+
+### Minor Changes
+
+- [#349](https://github.com/rizom-ai/brains/pull/349) [`f601b75`](https://github.com/rizom-ai/brains/commit/f601b7596f788dc23f6dc761893a0faa925d97f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add Resend Contacts, Segments, and Broadcasts as a selectable newsletter delivery provider, move Buttondown onto the same provider-neutral publishing and subscriber seam, and render one shared HTML email body through both providers.
+
+  Newsletter configuration now uses a discriminated `provider` block. Provider-less configurations retain newsletter entities and generation without registering external publishing, subscriber tools, routes, or signup UI. Public signup routes now target a subscribe-only route tool instead of exposing the administrative subscriber action surface.
+
+## 0.2.0-alpha.401
+
+### Minor Changes
+
+- [#351](https://github.com/rizom-ai/brains/pull/351) [`8458106`](https://github.com/rizom-ai/brains/commit/845810658c7a7424f366e2553cd5289c100b2b82) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a default-off contact capability for explicitly configured brains. Contact requests are stored as restricted, non-indexed Markdown records behind bounded public form admission, recovered through durable notification delivery, exposed only in the authenticated Inbox, and removed by bounded retention maintenance. Professional sites can opt into an authored contact-first homepage opening when the matching public form is available.
+
+### Patch Changes
+
+- [#350](https://github.com/rizom-ai/brains/pull/350) [`4692154`](https://github.com/rizom-ai/brains/commit/46921546f52da55ec039ea222ccb7ff1ebb0057f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fail closed when a guest request crosses its elapsed-time deadline even if the event-loop timer has not run yet or the host resumes after sleep. Invalid or regressing clock readings now cancel guest execution without exposing backend details.
+
+## 0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- [#285](https://github.com/rizom-ai/brains/pull/285) [`6fa0d8e`](https://github.com/rizom-ai/brains/commit/6fa0d8edbfc3f3e3363e7ed7ba5c101eba57587c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose operator-generated brain configuration as an object and serialize once. Carry per-user canonical plugin configuration through reconciliation, using the runtime's shared merge implementation with explicit preservation of null deletion markers until runtime resolution. Plugin schemas remain authoritative; no dashboard-specific operator switch is introduced.
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#304](https://github.com/rizom-ai/brains/pull/304) [`18aec18`](https://github.com/rizom-ai/brains/commit/18aec1819582a18a5e4c7b5bb19393186e5a0d11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use manifest-selected, content-hashed Studio JavaScript and CSS entry URLs so browser caching cannot mask new releases. Keep authenticated shells uncached, serve immutable public assets only from the validated manifest, and offer explicit draft-loss confirmation rather than automatically reloading when an Account or Chat chunk cannot load.
+
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- [#274](https://github.com/rizom-ai/brains/pull/274) [`46d8477`](https://github.com/rizom-ai/brains/commit/46d847799d564a8b71302b0cb4faaa70b95632fc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate Account into accessible Profile, Sign-in & sessions, Linked identities, and capability-driven Personal settings sections. Preserve unsaved values while switching sections, clarify that settings belong to the current account on this brain, and link administrators to separate access management.
+
+  Preserve the account client binding when starting Add passkey so the existing authenticated WebAuthn registration ceremony can run.
+
+  Use consistent linked-identity terminology in Administration and label its existing audit tab Access activity. Preserve access checks, account-recovery controls, passkey protection, System navigation, and existing mutation contracts; do not expose proposed app-grant or shared-integration management features.
+
+## 0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- [#270](https://github.com/rizom-ai/brains/pull/270) [`1a0278b`](https://github.com/rizom-ai/brains/commit/1a0278b4f49143968abb0e2b3c61fc701bb6265d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the public Chat browser contract free of server-only markdown parsing dependencies by separating the authored Ask schema from its markdown loader.
+
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- [#269](https://github.com/rizom-ai/brains/pull/269) [`54d112a`](https://github.com/rizom-ai/brains/commit/54d112a5335806940e1a8fba23c85e6f929fc3fa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional public dashboard Ask tab using the existing guest runtime and a dedicated authored Ask content entity. Share safe welcome content and topics across guest presentations without changing permissions, budgets or activation.
+
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- [#268](https://github.com/rizom-ai/brains/pull/268) [`5b10272`](https://github.com/rizom-ai/brains/commit/5b10272c4f9108b1d2c8404190724c79427d70df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Start each claimed job under worker supervision before requesting the next claim. A later dequeue error or stall can no longer strand an earlier durable processing attempt without its handler or lease heartbeat. Preserve attempt fencing, concurrency limits, retry policy, and stop/drain behavior.
+
+## 0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- [#266](https://github.com/rizom-ai/brains/pull/266) [`ceebad4`](https://github.com/rizom-ai/brains/commit/ceebad44bc43dc5672453681a70d40bb0e22149d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cap first-line note title fallbacks at 80 characters including an ellipsis, preferring word boundaries and avoiding split Unicode surrogate pairs. Preserve authored titles, H1 headings, meaningful stored metadata titles, and exact note content. Stored Untitled placeholders use the same capped adapter projection without read-side writes.
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- [#265](https://github.com/rizom-ai/brains/pull/265) [`217ad1b`](https://github.com/rizom-ai/brains/commit/217ad1b24c96f6eee715281ec9455da1ba50a065) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the console climate toggle when Studio mounts or remounts its React chrome after document readiness. Keep theme tokens, accessible labels, and the shared preference synchronized.
+
+  Restore note title fallbacks to the first nonblank body line when no frontmatter title or body H1 exists. Studio requests adapter metadata projections for list and detail labels, so stored Untitled placeholders also display useful titles without a database backfill or read-side writes. Preserve authored titles and source content.
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- [#264](https://github.com/rizom-ai/brains/pull/264) [`b290b28`](https://github.com/rizom-ai/brains/commit/b290b2832c5246e7294bc326c4b08f416e28a28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Complete Studio's presentation follow-through: widen Properties without clipping native date/time values or upload guidance; neutralize disabled primary buttons; add distinct collapsed navigation marks; give grouped site links shared outlined controls; place published totals in the page head; use clear protection language and consistent connected-channel counts in People; share collection search, filters, ranges, and pagination while preserving separate query contracts; and retain exact timestamps with truthful relative/absolute presentation. Filter panels fit their containers and dismiss safely with the keyboard. Chat detail guidance uses accessible text colors. Permissions, source content, draft safety, and configured typography remain unchanged.
+
+  Preserve agent-reported failures through Web Chat's stream protocol so their error messages cannot disappear during Studio's history handoff. Explicit failure metadata produces sanitized stream errors instead of successful completion, while retry review and approval handling preserve no-replay guarantees.
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- [#263](https://github.com/rizom-ai/brains/pull/263) [`3ec2b73`](https://github.com/rizom-ai/brains/commit/3ec2b73902389be86ff5e1fe358841ce05504a90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Put every single destination above the toggles in phone Browse. Overview, Chat and Admin share one block at the top, separated by a rule from the Library, Work and System groups below. A lone destination placed between two group headers reads as the tail of the group above it whichever slot it holds, so position alone cannot carry that distinction.
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply the public Ask design with editable suggestions, a scrollable transcript and a compact conversation menu. Let admitted public-page handlers use the installed site's generated presentation, retaining a headerless fallback when no site page exists. Keep provider and retention information in the existing Privacy and limits disclosure, and preserve guest admission, ownership controls and the embedded Brain-page box.
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`3fde4a0`](https://github.com/rizom-ai/brains/commit/3fde4a0421c787fe7c58fc7902bfc81ab7f85a04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the rail's Overview/Chat/Library/Work/Admin/System order in phone Browse. Admin is area 04 and now stays between Work and System instead of being hoisted into the top block, so the phone and the desktop rail agree on where a destination lives. A direct destination is marked by its treatment rather than its position: group children indent under their header while a direct destination sits flush and rule-separated, so Admin cannot read as the last row of the group above it.
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`28793f1`](https://github.com/rizom-ai/brains/commit/28793f1407de682c65503b149d04bdd0c0a09a86) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- [#259](https://github.com/rizom-ai/brains/pull/259) [`d3ca552`](https://github.com/rizom-ai/brains/commit/d3ca552547af0c87f9ce6ad80997395b9dafc868) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+- [#256](https://github.com/rizom-ai/brains/pull/256) [`fbc1b6e`](https://github.com/rizom-ai/brains/commit/fbc1b6e54607e72c91bd31b7fb385e6a627293b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align System editors with the reviewed form and document presentation: schema-derived field groups, responsive grids, explicit Story and Guidance sections, contextual collections, and readable permission-aware profiles. Preserve nested draft values and supported Markdown bodies through validation and Save. Existing read-only complex lists display structured content rather than disabled JSON. Keep empty documents' Properties visible, distinguish relationship states from publication, and make Markdown source headings and URLs readable in both climates.
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- [#257](https://github.com/rizom-ai/brains/pull/257) [`13ed6d3`](https://github.com/rizom-ai/brains/commit/13ed6d32d46175250464243036d7615cb3f4df9e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain tool` and `brain <command>` in the monorepo runner now boot register-only, as the bundled runtime already did. A full boot started a job worker on the queue's stable slot, which superseded a running app's worker session; that app then stopped claiming jobs until it was restarted. A one-shot CLI process owns no runtime work: it registers plugins, invokes the tool, and exits, leaving queued jobs to the running app.
+
+- [#254](https://github.com/rizom-ai/brains/pull/254) [`9fbd8ad`](https://github.com/rizom-ai/brains/commit/9fbd8ad73d1d2f5fca58a4dcc73b92ad6daa97ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the phone Browse sheet around its hierarchy. Overview, Chat and Admin gather into one block above the groups instead of sitting between them, group headers become section-heading rows with the chevron leading rather than muted captions with a `+` at the far edge, and groups rest open so the sheet fills with destinations. A filter over every destination replaces the display line that named the sheet, the way out becomes a quiet round control, and a count that needs the operator is set in the accent while an item tally stays quiet. A folded group still names the destination you are in.
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes

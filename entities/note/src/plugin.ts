@@ -25,6 +25,11 @@ import {
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  type NoteCaptureResponse,
+} from "@brains/contracts";
 
 const webChatUploadsScope = {
   namespace: "upload",
@@ -55,7 +60,7 @@ export class NotePlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "primary" };
+    return { projectionSourceRole: "primary", markdownImport: true };
   }
 
   protected override async interceptCreate(
@@ -131,6 +136,7 @@ export class NotePlugin extends EntityPlugin<
       const stubEntity = await context.entityService.getEntity({
         entityType: "note",
         id: created.entityId,
+        visibilityScope: "restricted",
       });
       if (!stubEntity) {
         throw new Error("Created note import stub could not be read");
@@ -199,6 +205,34 @@ export class NotePlugin extends EntityPlugin<
         z.object({ title: z.string(), body: z.string() }),
       );
     });
+
+    // Another plugin keeps text as a note; always private to the owner.
+    context.messaging.subscribe<unknown, NoteCaptureResponse>(
+      NOTE_CAPTURE_MESSAGE,
+      async (message) => {
+        const request = noteCaptureRequestSchema.safeParse(message.payload);
+        if (!request.success)
+          return { success: false, error: "Invalid note capture request" };
+        const { id, title, body } = request.data;
+        const existing = await context.entityService.getEntity({
+          entityType: "note",
+          id,
+          visibilityScope: "restricted",
+        });
+        if (existing)
+          return { success: true, data: { noteId: id, created: false } };
+        await context.entityService.createEntityFromMarkdown({
+          input: {
+            entityType: "note",
+            id,
+            markdown: `---\ntitle: ${JSON.stringify(title)}\n---\n\n${body}\n`,
+            visibility: "restricted",
+          },
+          options: { conditionalWrite: { expectedRevision: null } },
+        });
+        return { success: true, data: { noteId: id, created: true } };
+      },
+    );
 
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(

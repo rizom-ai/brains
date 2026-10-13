@@ -57,6 +57,26 @@ describe("project ATProto projection", () => {
     });
   });
 
+  it("names its page when the site gives the project one, and nothing otherwise", async () => {
+    const projection = createProjectAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("portfolio");
+    const placed = await projection.buildRecord({
+      entity: project,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/projects/project-1",
+    });
+    expect(placed.canonicalUrl).toBe(
+      "https://brain.example.com/projects/project-1",
+    );
+    const unplaced = await projection.buildRecord({
+      entity: project,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the project projection when the portfolio plugin registers", async () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-project-atproto",

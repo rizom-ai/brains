@@ -5,6 +5,7 @@ import type {
   JobHandlerRegistrationMode,
   JobProgressMonitorMode,
   JobQueueServiceConfig,
+  ResettableAmbientScope,
 } from "@brains/job-queue";
 import {
   BatchJobManagerTag,
@@ -26,7 +27,6 @@ import {
   Layer,
   Scope,
 } from "@brains/utils/effect";
-import { runEffectPromise } from "../effect-runtime";
 import type { ShellDependencies } from "../types/shell-types";
 import { OperationContext } from "@brains/operation-context";
 import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
@@ -49,6 +49,8 @@ export interface JobServiceOptions {
   jobQueueConfig: JobQueueServiceConfig;
   messageBus: MessageBus;
   operationContext?: OperationContext;
+  /** Ambient async context(s) to reset to empty before each job runs. */
+  projectionBatchScope?: ResettableAmbientScope;
   projectionAdmission?: ProjectionRuntimeSupervisor;
   handlerRegistrationMode?: JobHandlerRegistrationMode;
   workerConcurrency: number;
@@ -69,7 +71,7 @@ export function createFatalJobWorkerHandler(
   };
 }
 
-function closeScopeSync(scope: Scope.CloseableScope): void {
+function closeScopeSync(scope: Scope.Closeable): void {
   const exit = Effect.runSyncExit(Scope.close(scope, Exit.void));
   if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
 }
@@ -83,7 +85,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
   const operationContext =
     options.operationContext ?? OperationContext.createFresh();
   const databaseScope = Effect.runSync(Scope.make());
-  let runtimeScope: Scope.CloseableScope | undefined;
+  let runtimeScope: Scope.Closeable | undefined;
   let runtimeLayerHandle: JobQueueRuntimeLayerHandle | undefined;
 
   try {
@@ -114,6 +116,9 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       messageBus: options.messageBus,
       logger: options.logger,
       operationContext,
+      ...(options.projectionBatchScope && {
+        projectionBatchScope: options.projectionBatchScope,
+      }),
       onWorkerUnhealthy: createFatalJobWorkerHandler(options.logger),
       workerConcurrency: options.workerConcurrency,
       ...(options.progressMonitorMode && {
@@ -157,7 +162,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       jobQueueWorker,
       closeRuntime: (): Promise<void> => {
         runtimeClosed = true;
-        runtimeClosePromise ??= runEffectPromise(
+        runtimeClosePromise ??= Effect.runPromise(
           Scope.close(acquiredRuntimeScope, Exit.void),
         );
         return runtimeClosePromise;

@@ -1,5 +1,373 @@
 # @brains/utils
 
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
+## 0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+
+- [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade the private Effect control-plane boundary to exactly 4.0.1, migrate service layers and supervised work to v4 APIs, and retain Promise-based public contracts and AbortSignal cancellation. Centralize optional clock injection and add regressions for failure identity, resource ownership, cleanup barriers, and deterministic timing.
+
+## 0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+## 0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+## 0.2.0-alpha.484
+
+## 0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell registration, acknowledgement barriers, and resource teardown:
+
+  - Reject duplicate MCP capabilities without overwriting their owners, and propagate registration failures for plugin rollback.
+  - Retain failed message collection acknowledgements so successful subscribers cannot hide a failed projection-wave completion effect.
+  - Reject scoped plugin acquisition before registry mutation and keep attachment release handles bound to their own registrations.
+  - Drain admitted durable progress polling before runtime teardown; progress monitor stop is now terminal and Promise-based.
+  - Clear runtime-state prefixes atomically without parsing stale values, preserving literal wildcard, Unicode, and embedded-NUL matching.
+  - Separate operator runtime contracts, schemas, action normalization, block normalization, and diagnostics into private responsibility-owned modules without changing rendered output.
+
+## 0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+## 0.2.0-alpha.456
+
+## 0.2.0-alpha.455
+
+## 0.2.0-alpha.454
+
+## 0.2.0-alpha.453
+
+## 0.2.0-alpha.452
+
+## 0.2.0-alpha.451
+
+## 0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+## 0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+## 0.2.0-alpha.443
+
+## 0.2.0-alpha.442
+
+## 0.2.0-alpha.441
+
+## 0.2.0-alpha.440
+
+## 0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+## 0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Give every unbounded loop an explicit shape. Schema unwrapping, workspace version resolution, redirect following, job-drain polling, SQLite write retries and atomic enqueue retries now recurse once per step, so each step's exit condition sits in its own signature. Stream reading and checkpoint draining keep a loop, but one with a real condition in its head rather than an open `for (;;)` and an interior break.
+
+  Behaviour is unchanged: the same retry budgets, backoff, redirect limits and cursor advancement apply. The atomic enqueue retry now closes its failed transaction before opening the next one rather than after, which was already the intent.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build the browser-safe Chat export separately from server library chunks. Server subpaths still share their runtime, while browser consumers no longer inherit Node-only imports through shared chunks. Keep frontmatter-only contract parsing independent of Markdown AST initialization, so the export also loads in headless runtimes without a DOM. Verify the exact packed export with the existing browser-build and headless canary.
+
+## 0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+## 0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ## 0.2.0-alpha.378

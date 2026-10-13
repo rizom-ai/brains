@@ -15,6 +15,7 @@ type NavigationStyle =
   | "mobileCurrent"
   | "mobileDisclosure"
   | "mobileDirect"
+  | "mobileDirectLink"
   | "mobileFilter"
   | "mobileEmpty"
   | "mobileTally"
@@ -156,6 +157,9 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       borderBottomStyle: "solid",
       borderBottomColor: "var(--console-rule)",
     },
+    // A group child indents under its header; a direct destination sits flush,
+    // so it cannot read as the last row of the group above it.
+    mobileDirectLink: { paddingInlineStart: "10px" },
     mobileFilter: { flex: "1 1 auto", minWidth: 0 },
     mobileEmpty: {
       padding: "24px 8px",

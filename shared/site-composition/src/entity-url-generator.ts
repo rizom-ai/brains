@@ -8,39 +8,21 @@ export interface EntityDisplayMap {
   [entityType: string]: {
     label: string;
     pluralName?: string | undefined;
+    /** A source candidate; false always excludes it from answer citations. */
+    citable?: boolean | undefined;
   };
 }
 
 /**
- * Generates URLs for entity detail pages based on entity display metadata.
- * Singleton pattern - configured once by site-builder, used by all plugins.
+ * Entity detail URLs and citability, read from one site's entity display.
+ * A plain value over the display the shell resolves: every reader builds its
+ * own from that same map, so there is no shared state to configure.
  */
 export class EntityUrlGenerator {
-  private static instance: EntityUrlGenerator | null = null;
-  private entityDisplay: EntityDisplayMap | undefined;
+  private readonly entityDisplay: EntityDisplayMap | undefined;
 
-  private constructor() {}
-
-  /**
-   * Get the singleton instance
-   */
-  static getInstance(): EntityUrlGenerator {
-    EntityUrlGenerator.instance ??= new EntityUrlGenerator();
-    return EntityUrlGenerator.instance;
-  }
-
-  /**
-   * Configure the URL generator (called by site-builder plugin)
-   */
-  configure(entityDisplay?: EntityDisplayMap): void {
+  constructor(entityDisplay?: EntityDisplayMap) {
     this.entityDisplay = entityDisplay;
-  }
-
-  /**
-   * Reset the instance (for testing)
-   */
-  static resetInstance(): void {
-    EntityUrlGenerator.instance = null;
   }
 
   /**
@@ -50,6 +32,20 @@ export class EntityUrlGenerator {
    */
   hasRoute(entityType: string): boolean {
     return this.entityDisplay?.[entityType] !== undefined;
+  }
+
+  /**
+   * Whether a visitor's answer may cite this type as a source: a type the
+   * site marks citable, or, when none opt in, any type with pages that is not
+   * explicitly excluded. False always excludes; it does not remove the page.
+   */
+  isCitable(entityType: string): boolean {
+    if (this.entityDisplay?.[entityType]?.citable === false) return false;
+    const entries = Object.values(this.entityDisplay ?? {});
+    if (!entries.some((entry) => entry.citable === true)) {
+      return this.hasRoute(entityType);
+    }
+    return this.entityDisplay?.[entityType]?.citable === true;
   }
 
   /**

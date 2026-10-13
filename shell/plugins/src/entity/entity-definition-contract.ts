@@ -1,3 +1,4 @@
+import type { EntityTypeClassification } from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 
 export type EntityVisibility = "public" | "shared" | "restricted";
@@ -32,6 +33,7 @@ export interface EntityDefinition<
   readonly kind: "rizom-entity";
   readonly type: TType;
   readonly purpose: string;
+  readonly classification: EntityTypeClassification;
   readonly metadata: TMetadataSchema;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
 }

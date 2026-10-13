@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yeehaa.io Ask styling pass</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap");
+/*
+  Styling pass over the homepage and Ask on yeehaa.io, desktop and phone
+  (docs/plans/public-ask.md). Every picture is the live preview in WebKit:
+  "Now" as it is, "Proposed" with yeehaa-ask-styling-pass/proposal.css and
+  proposal.js injected. Same fonts, same map, same sizes except where the
+  type table below says otherwise.
+*/
+:root{
+  --paper:#f4ede0; --ink:#18132a; --ink-muted:#443c54; --ink-subtle:#756c80;
+  --accent:#b8410c; --rule:rgb(24 19 42 / .12); --rule-strong:rgb(24 19 42 / .2);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e5ddcd;color:var(--ink);font:15px/1.55 Barlow,system-ui,sans-serif}
+.page{max-width:1240px;margin:0 auto;padding:40px 24px 80px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 10px}
+h2.part{font:600 22px/1.2 Fraunces,Georgia,serif;margin:48px 0 0}
+.lede{color:var(--ink-muted);max-width:70ch;margin:0 0 12px}
+figure{margin:0}
+figcaption{font:500 13px Barlow,sans-serif;color:var(--ink-subtle);margin:0 0 8px}
+.new figcaption{color:var(--accent)}
+.notes h3{font:600 19px/1.25 Fraunces,Georgia,serif;margin:0 0 10px}
+.notes ul{margin:0;padding-left:18px;color:var(--ink-muted)}
+.notes li{margin-bottom:8px}
+.notes b{color:var(--ink)}
+
+/* Phone rows: two phones and the notes. */
+.row{display:grid;grid-template-columns:auto auto 1fr;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.row{grid-template-columns:auto auto}.row .notes{grid-column:1/-1}}
+@media (max-width:680px){.row{grid-template-columns:1fr;justify-items:center}}
+.phone{width:300px;height:511px;border-radius:26px;overflow:hidden;box-shadow:0 0 0 8px #1d1a26,0 14px 30px rgb(0 0 0 / .22);background:var(--paper)}
+.phone img{display:block;width:100%}
+
+/* Desktop rows: now above proposed, beside the notes. */
+.drow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.drow{grid-template-columns:1fr}}
+.screens{display:grid;gap:18px}
+.screen{border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--rule-strong),0 10px 24px rgb(0 0 0 / .14)}
+.screen img{display:block;width:100%}
+.screen a{display:block}
+
+table{border-collapse:collapse;width:100%;max-width:820px;margin-top:14px;font-size:14px}
+th,td{text-align:left;padding:7px 12px 7px 0;border-bottom:1px solid var(--rule)}
+th{font-weight:600;color:var(--ink-subtle);font-size:12.5px}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+td.up{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Homepage and Ask: styling pass</h1>
+  <p class="lede">Every picture is the live preview in WebKit. "Now" is the page as it is today. "Proposed" is the same page with the proposal's stylesheet and a few lines of script injected (<code>yeehaa-ask-styling-pass/proposal.css</code> and <code>proposal.js</code>). The fonts and the map are the real ones. Answers differ between pictures because each is a fresh question.</p>
+  <p class="lede">One thing the injected script can only stand in for: the draft essay is hidden from the sources list here, but the answer text still mentions it. The real fix keeps drafts out of guest answers altogether.</p>
+
+  <h2 class="part">Space and type on a phone</h2>
+  <p class="lede">The top bar and the sheet's title row give back 80px between them. Nothing gets bigger except the sources, which move from 12px pills to 14px rows you can tap. Everything else stays the same size or gets smaller.</p>
+  <table>
+    <tr><th>Space</th><th>Now</th><th>Proposed</th></tr>
+    <tr><td>Top bar</td><td class="num">83px</td><td class="num">53px</td></tr>
+    <tr><td>"Ask Yeehaa" title row in the sheet</td><td class="num">52px</td><td class="num">none; ✕ floats over the map's corner</td></tr>
+  </table>
+  <table>
+    <tr><th>Text</th><th>Now</th><th>Proposed</th></tr>
+    <tr><td>Headline</td><td class="num">44.9px</td><td class="num">37px</td></tr>
+    <tr><td>Intro under the headline</td><td class="num">17.6px</td><td class="num">16px</td></tr>
+    <tr><td>"Where would you start?"</td><td class="num">23.2px</td><td class="num">19.2px</td></tr>
+    <tr><td>Starting questions</td><td class="num">17.6px</td><td class="num">16px</td></tr>
+    <tr><td>Ask box</td><td class="num">17.6px</td><td class="num">16px (the smallest size iOS doesn't zoom into)</td></tr>
+    <tr><td>Answer text</td><td class="num">16px</td><td class="num">15px</td></tr>
+    <tr><td>Answer headings the model writes</td><td class="num">larger than the text</td><td class="num">15px, bold</td></tr>
+    <tr><td>Sources</td><td class="num">12px pills</td><td class="num up">14px rows</td></tr>
+    <tr><td>Sheet title, waiting line, note under the composer</td><td class="num">16px, 14px, 12px</td><td class="num">unchanged</td></tr>
+  </table>
+  <p class="lede" style="margin-top:12px">On desktop the text keeps its size. The header menu and footer labels change face: spaced monospace capitals become the body face in normal case, which needs a larger size to read at the same weight.</p>
+  <table>
+    <tr><th>Desktop text</th><th>Now</th><th>Proposed</th></tr>
+    <tr><td>Header menu</td><td class="num">11.2px monospace capitals</td><td class="num up">15.2px body face</td></tr>
+    <tr><td>Footer labels, "Powered by Rizom"</td><td class="num">11px monospace capitals</td><td class="num up">12.8px body face</td></tr>
+  </table>
+
+  <h2 class="part">Desktop</h2>
+
+  <section class="drow">
+    <div class="screens">
+      <figure><figcaption>Now</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/now-desk-home.jpg"><img src="yeehaa-ask-styling-pass/now-desk-home.jpg" alt="Desktop homepage today"></a></div></figure>
+      <figure class="new"><figcaption>Proposed</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/new-desk-home.jpg"><img src="yeehaa-ask-styling-pass/new-desk-home.jpg" alt="Desktop homepage proposed"></a></div></figure>
+    </div>
+    <div class="notes"><h3>Homepage</h3><ul>
+      <li><b>The name once.</b> The byline above the headline (initial and "Yeehaa") goes; the wordmark in the header already says whose page this is.</li>
+      <li><b>The box says what it is for:</b> "Ask about my work…". Today it is an empty field.</li>
+      <li><b>One send button.</b> Muted while the box is empty, orange once there is something to send, the same on the page and in the conversation.</li>
+      <li><b>The header in plain words.</b> The menu drops the spaced monospace capitals for the body face at its normal size.</li>
+    </ul></div>
+  </section>
+
+  <section class="drow">
+    <div class="screens">
+      <figure><figcaption>Now</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/now-desk-answered.jpg"><img src="yeehaa-ask-styling-pass/now-desk-answered.jpg" alt="Desktop answer today"></a></div></figure>
+      <figure class="new"><figcaption>Proposed</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/new-desk-answered.jpg"><img src="yeehaa-ask-styling-pass/new-desk-answered.jpg" alt="Desktop answer proposed"></a></div></figure>
+    </div>
+    <div class="notes"><h3>An answer</h3><ul>
+      <li><b>No "YOU" and "YEEHAA" labels, no "About".</b> The question and the answer read as a conversation without spaced capitals over each turn, and the About link goes here as it already did on phones.</li>
+      <li><b>One paragraph rhythm.</b> Today the pieces the answer lists run together while its paragraphs are spaced.</li>
+      <li><b>A lit piece is its shape in orange with one thin ring</b>, instead of a blurred double halo.</li>
+    </ul></div>
+  </section>
+
+  <section class="drow">
+    <div class="screens">
+      <figure><figcaption>Now</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/now-desk-sources.jpg"><img src="yeehaa-ask-styling-pass/now-desk-sources.jpg" alt="Desktop sources today"></a></div></figure>
+      <figure class="new"><figcaption>Proposed</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/new-desk-sources.jpg"><img src="yeehaa-ask-styling-pass/new-desk-sources.jpg" alt="Desktop sources proposed"></a></div></figure>
+    </div>
+    <div class="notes"><h3>Sources and leads</h3><ul>
+      <li><b>Sources are a list in the map's shapes</b>, each with its type at the right. The leads start at the end of each row, so they no longer cross the pills' text like a strikethrough.</li>
+      <li><b>Only published pieces, once each.</b> Today the list has a LinkedIn post next to the essay it is about, a bare topic ("institutional-memory") and a draft.</li>
+      <li><b>"↓ Rest of the answer"</b> sits under the composer in place of the note while there is more to read. Today a round ↓ sits over the text.</li>
+    </ul></div>
+  </section>
+
+  <section class="drow">
+    <div class="screens">
+      <figure><figcaption>Now</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/now-desk-footer.jpg"><img src="yeehaa-ask-styling-pass/now-desk-footer.jpg" alt="Desktop footer today"></a></div></figure>
+      <figure class="new"><figcaption>Proposed</figcaption><div class="screen"><a href="yeehaa-ask-styling-pass/new-desk-footer.jpg"><img src="yeehaa-ask-styling-pass/new-desk-footer.jpg" alt="Desktop footer proposed"></a></div></figure>
+    </div>
+    <div class="notes"><h3>Footer</h3><ul>
+      <li><b>Plain labels.</b> "Navigate", "More" and "Powered by Rizom" drop the spaced monospace capitals, like the header.</li>
+    </ul></div>
+  </section>
+
+  <h2 class="part">Phone</h2>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-home.jpg" alt="Phone homepage today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-home.jpg" alt="Phone homepage proposed"></div></figure>
+    <div class="notes"><h3>Homepage</h3><ul>
+      <li><b>A slimmer top bar:</b> 53px instead of 83px, with a smaller menu button. The wordmark keeps its size.</li>
+      <li><b>The name once</b>, as on desktop.</li>
+      <li><b>A smaller headline and intro</b> (44.9 to 37px, 17.6 to 16px), so the ask box shows on the first screen.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-home-ask.jpg" alt="Phone ask box today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-home-ask.jpg" alt="Phone ask box proposed"></div></figure>
+    <div class="notes"><h3>Starting questions</h3><ul>
+      <li><b>A list, not cards.</b> The questions lose their filled boxes and sit between hairlines, as they already do on desktop.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-open.jpg" alt="Phone sheet opening today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-open.jpg" alt="Phone sheet opening proposed"></div></figure>
+    <div class="notes"><h3>The sheet opens</h3><ul>
+      <li><b>No title row.</b> "Ask Yeehaa" takes 52px that the map and the answer can use; the sheet is already clearly the conversation. The ✕ floats over the map's top corner, and Back and Escape close the sheet as before. Screen readers still hear the title.</li>
+      <li><b>The map starts where it stays.</b> Today it sits at the bottom of the sheet and jumps to the top when the question is sent. It now opens at the top, where every later state has it.</li>
+      <li><b>The starting questions are the same list as on the page</b>, instead of pills.</li>
+      <li><b>One note, the same in every state:</b> "Answers use published work only. Leave private details out." Today it changes after the first question and names Yeehaa.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-waiting.jpg" alt="Phone waiting today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-waiting.jpg" alt="Phone waiting proposed"></div></figure>
+    <div class="notes"><h3>Waiting</h3><ul>
+      <li><b>No "YEEHAA" label</b>, and the waiting line names the work, not the person: "Looking through the essays and talks".</li>
+      <li><b>One rule above the composer.</b> Today there are two, eight pixels apart.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-answered.jpg" alt="Phone answer today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-answered.jpg" alt="Phone answer proposed"></div></figure>
+    <div class="notes"><h3>The answer arrives</h3><ul>
+      <li><b>52px more for the answer</b>, from the title row that is gone.</li>
+      <li><b>Answer text at 15px</b>, and the model's own headings at text size.</li>
+      <li><b>"↓ Rest of the answer" under the composer</b>, where the note was; the round ↓ over the text goes.</li>
+      <li><b>Lit pieces with one thin ring.</b></li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-scrolled.jpg" alt="Phone reading today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-scrolled.jpg" alt="Phone reading proposed"></div></figure>
+    <div class="notes"><h3>Reading</h3><ul>
+      <li><b>The strip keeps the lit pieces in its middle.</b> Today pieces near the map's edge are pressed against the strip's lower edge.</li>
+      <li><b>Text passes under a short fade</b> instead of being cut in half at the strip's edge.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-sources.jpg" alt="Phone sources today"></div></figure>
+    <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-sources.jpg" alt="Phone sources proposed"></div></figure>
+    <div class="notes"><h3>Sources</h3><ul>
+      <li><b>The same list as on desktop</b>: the piece's shape, its title, its type. Published pieces only, once each.</li>
+    </ul></div>
+  </section>
+</div>
+</body>
+</html>

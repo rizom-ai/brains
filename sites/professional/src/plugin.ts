@@ -5,12 +5,26 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import {
+  HOMEPAGE_ATLAS_SCRIPT,
+  HOMEPAGE_ATLAS_SCRIPT_PATH,
+  homepageAtlasSchema,
+  homepageFaqsSchema,
+  homepageChatAvailable,
+  homepageOpeningSchema,
+  loadHomepageOpening,
+} from "@brains/site-atlas";
+import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { loadPublicFaqs } from "@brains/faq";
+
+/** The most asked published FAQs the homepage shows under the atlas. */
+const HOMEPAGE_FAQ_LIMIT = 6;
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/templates";
+import { createTemplate, renderedLinkFields } from "@brains/templates";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
 import {
@@ -83,6 +97,26 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     const homepageDataSource = new HomepageListDataSource(
       postsListUrl,
       decksListUrl,
+      this.config.homepageOpening
+        ? {
+            loadOpening: (
+              buildContext,
+            ): ReturnType<typeof loadHomepageOpening> =>
+              loadHomepageOpening(buildContext, context),
+            loadAtlas: (buildContext): ReturnType<typeof loadHomepageAtlas> =>
+              loadHomepageAtlas({
+                entityService: buildContext.entityService,
+                semantic: {
+                  project: (request) =>
+                    buildContext.entityService.projectSemanticSpace(request),
+                },
+              }),
+            chatAvailable: (buildContext): Promise<boolean> =>
+              homepageChatAvailable(buildContext, context),
+            loadFaqs: (buildContext): ReturnType<typeof loadPublicFaqs> =>
+              loadPublicFaqs(buildContext, HOMEPAGE_FAQ_LIMIT, context.logger),
+          }
+        : {},
     );
     context.entities.registerDataSource(homepageDataSource);
 
@@ -94,12 +128,22 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
       profile: professionalProfileSchema,
+      homepageOpening: z.boolean().default(false),
+      opening: homepageOpeningSchema,
+      atlas: homepageAtlasSchema,
+      askBox: z.boolean().default(false),
+      faqs: homepageFaqsSchema,
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),
       decksListUrl: z.string(),
       cta: siteInfoCTASchema,
       sections: z.record(z.string(), homepageSectionSchema),
+    });
+
+    const homepageRenderSchema = homepageListSchema.extend({
+      posts: z.array(blogPostSchema.extend(renderedLinkFields)),
+      decks: z.array(deckSchema.extend(renderedLinkFields)),
     });
 
     // About page schema
@@ -120,8 +164,20 @@ export class ProfessionalSitePlugin extends ServicePlugin<
         schema: homepageListSchema,
         dataSourceId: "professional:homepage-list",
         requiredPermission: "public",
+        // Touch titles and motion pausing, shipped only to sites that opt into the atlas.
+        ...(this.config.homepageOpening
+          ? {
+              runtimeScripts: [
+                { src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true },
+              ],
+              staticAssets: {
+                [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT,
+              },
+            }
+          : {}),
         layout: {
           component: HomepageListLayout,
+          renderSchema: homepageRenderSchema,
         },
       }),
       about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({

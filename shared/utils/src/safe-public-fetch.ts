@@ -208,54 +208,59 @@ export function createSafePublicFetch(
   const fetchFn = options.fetchFn ?? fetch;
   const resolveHostname = options.resolveHostname ?? defaultResolveHostname;
 
+  /** One hop per step; every destination is re-checked before it is fetched. */
+  const followFrom = async (
+    current: URL,
+    headers: Headers,
+    init: RequestInit,
+    redirects: number,
+  ): Promise<Response> => {
+    const timeoutSignal = AbortSignal.timeout(options.timeoutMs);
+    const signal = init.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
+    const response = await fetchFn(current, {
+      ...init,
+      credentials: "omit",
+      headers,
+      redirect: "manual",
+      signal,
+    });
+
+    if (redirectStatuses.has(response.status)) {
+      if (redirects >= options.maxRedirects) {
+        throw new UnsafePublicResourceError(
+          "Discovery response exceeded redirect limit",
+        );
+      }
+      const location = response.headers.get("location");
+      if (!location) {
+        throw new UnsafePublicResourceError(
+          "Discovery redirect has no location",
+        );
+      }
+      const next = await assertSafePublicHttpsUrl(
+        new URL(location, current),
+        resolveHostname,
+      );
+      return followFrom(next, headers, init, redirects + 1);
+    }
+
+    const body = await readBoundedBody(response, options.maxResponseBytes);
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  };
+
   return async (input, init = {}) => {
-    let current = await assertSafePublicHttpsUrl(
+    const current = await assertSafePublicHttpsUrl(
       input instanceof Request ? input.url : input,
       resolveHostname,
     );
     const headers = new Headers(init.headers);
     for (const name of credentialHeaders) headers.delete(name);
-    let redirects = 0;
-
-    for (;;) {
-      const timeoutSignal = AbortSignal.timeout(options.timeoutMs);
-      const signal = init.signal
-        ? AbortSignal.any([init.signal, timeoutSignal])
-        : timeoutSignal;
-      const response = await fetchFn(current, {
-        ...init,
-        credentials: "omit",
-        headers,
-        redirect: "manual",
-        signal,
-      });
-
-      if (redirectStatuses.has(response.status)) {
-        if (redirects >= options.maxRedirects) {
-          throw new UnsafePublicResourceError(
-            "Discovery response exceeded redirect limit",
-          );
-        }
-        const location = response.headers.get("location");
-        if (!location) {
-          throw new UnsafePublicResourceError(
-            "Discovery redirect has no location",
-          );
-        }
-        current = await assertSafePublicHttpsUrl(
-          new URL(location, current),
-          resolveHostname,
-        );
-        redirects += 1;
-        continue;
-      }
-
-      const body = await readBoundedBody(response, options.maxResponseBytes);
-      return new Response(body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      });
-    }
+    return followFrom(current, headers, init, 0);
   };
 }

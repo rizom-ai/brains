@@ -1,4 +1,4 @@
-import type { Template } from "./types";
+import { templateRenderers, type LayoutTemplate, type Template } from "./types";
 import type { Logger } from "@brains/utils/logger";
 
 /**
@@ -28,10 +28,10 @@ export class TemplateCapabilities {
 
   /**
    * Check if a template supports view rendering
-   * A template can render if it has a layout component
+   * A template can render if it has a component for some output format
    */
-  static canRender(template: Template): boolean {
-    return !!template.layout?.component;
+  static canRender(template: Template): template is LayoutTemplate {
+    return Object.keys(templateRenderers(template)).length > 0;
   }
 
   /**

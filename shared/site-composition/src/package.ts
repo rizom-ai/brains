@@ -144,8 +144,19 @@ export function extendSite<
     ? { ...baseSite.layouts, ...overrideLayouts }
     : baseSite.layouts;
 
+  // Per type: an override refines the base's display for a type and keeps
+  // what it leaves out, so relabelling essays does not drop their other
+  // settings.
   const entityDisplay = overrideEntityDisplay
-    ? { ...baseSite.entityDisplay, ...overrideEntityDisplay }
+    ? {
+        ...baseSite.entityDisplay,
+        ...Object.fromEntries(
+          Object.entries(overrideEntityDisplay).map(([entityType, display]) => [
+            entityType,
+            { ...baseSite.entityDisplay[entityType], ...display },
+          ]),
+        ),
+      }
     : baseSite.entityDisplay;
 
   const staticAssets = overrideStaticAssets

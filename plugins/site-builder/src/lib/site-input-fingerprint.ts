@@ -1,9 +1,16 @@
 import type { LayoutComponent, PreparedSiteBuild } from "@brains/site-engine";
 import { sha256Hex } from "@brains/utils/hash";
+import { randomUUID } from "crypto";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { SiteViewTemplate } from "./site-view-template";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
+
+/** Renderer code cannot change while the app runs, but a restart — an
+ *  upgrade included — may bring new components, styles or scripts that
+ *  `String(fn)` cannot see. A fresh identity per process renders once
+ *  after every start, and skips unchanged builds while the app runs. */
+export const RENDERER_PROCESS_IDENTITY: string = randomUUID();
 
 export interface SiteInputFingerprintOptions {
   preparedBuild: PreparedSiteBuild;
@@ -11,13 +18,15 @@ export interface SiteInputFingerprintOptions {
   getViewTemplate(name: string): SiteViewTemplate | undefined;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   sendMessage: SiteBuilderServices["sendMessage"];
+  rendererIdentity: string;
 }
 
-/** Hash all serializable renderer inputs plus the selected renderer functions.
- *  Functions are hashed by source text (`String(fn)`), which cannot see
- *  closure-captured state — a renderer must derive its output from the
- *  prepared build and its own source, never from captured mutable data,
- *  or an unchanged fingerprint could skip a build whose output would differ. */
+/** Hash all serializable renderer inputs, the selected renderer functions and
+ *  the renderer process identity. Functions are hashed by source text
+ *  (`String(fn)`), which cannot see closure-captured state — a renderer must
+ *  derive its output from the prepared build and its code, never from
+ *  captured mutable data, or an unchanged fingerprint could skip a build
+ *  whose output would differ. */
 export function computeSiteInputFingerprint(
   options: SiteInputFingerprintOptions,
 ): string {
@@ -36,7 +45,8 @@ export function computeSiteInputFingerprint(
 
   return sha256Hex(
     stableSerialize({
-      version: 1,
+      version: 2,
+      rendererIdentity: options.rendererIdentity,
       preparedInput,
       layouts: Object.fromEntries(
         Object.entries(options.layouts)
@@ -55,7 +65,6 @@ export function computeSiteInputFingerprint(
             template
               ? {
                   renderer: String(template.renderers.web),
-                  renderVersion: template.renderVersion,
                   fullscreen: template.fullscreen ?? false,
                   runtimeScripts: template.runtimeScripts ?? [],
                   staticAssets: template.staticAssets ?? {},

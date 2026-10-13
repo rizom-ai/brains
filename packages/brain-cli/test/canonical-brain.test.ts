@@ -4,11 +4,13 @@ import { join } from "node:path";
 import { resolve, type BrainDefinition } from "@brains/app";
 import { canonicalBrain, coreBundle } from "../src/model/canonical-brain";
 import { isRecord } from "@brains/utils/is-record";
+import { openAiGuestPricing } from "@brains/ai-service";
 
 const expectedCatalogIds = [
   "prompt",
   "profile",
   "style-guide",
+  "ask-content",
   "image",
   "document",
   "note",
@@ -22,6 +24,7 @@ const expectedCatalogIds = [
   "assessment",
   "auth-service",
   "notifications",
+  "contact",
   "playbook",
   "playbooks",
   "onboarding",
@@ -41,7 +44,9 @@ const expectedCatalogIds = [
   "stock-photo",
   "atproto",
   "conversation-memory",
+  "faq",
   "docs",
+  "book",
   "obsidian-vault",
   "email-workflows",
   "unified-inbox",
@@ -59,6 +64,7 @@ const expectedCoreMembers = [
   "profile",
   "prompt",
   "style-guide",
+  "ask-content",
   "directory-sync",
   "note",
   "link",
@@ -95,6 +101,13 @@ const definitionPermissionBaseline = {
 } satisfies NonNullable<BrainDefinition["permissions"]>;
 
 describe("canonical brain core", () => {
+  test("defaults to GPT-6 Luna at low reasoning, priced for guest turns", () => {
+    expect(canonicalBrain.model).toBe("gpt-6-luna");
+    expect(canonicalBrain.reasoningEffort).toBe("low");
+    // An unpriced default would charge every guest turn the answer cap.
+    expect(openAiGuestPricing(canonicalBrain.model)).toBeDefined();
+  });
+
   test("owns one complete model-neutral catalog", () => {
     expect(catalogIds(canonicalBrain)).toEqual(expectedCatalogIds);
     expect(new Set(expectedCatalogIds).size).toBe(expectedCatalogIds.length);
@@ -102,6 +115,29 @@ describe("canonical brain core", () => {
     expect(canonicalBrain.site).toBeUndefined();
     expect(canonicalBrain.theme).toBeUndefined();
     expect(canonicalBrain.agentInstructions).toBeUndefined();
+  });
+
+  test("offers contact only through explicit addition, with intake still default-off", () => {
+    expect(
+      canonicalBrain.bundles?.some((bundle) =>
+        bundle.members.includes("contact"),
+      ),
+    ).toBe(false);
+    const plugins =
+      resolve(
+        canonicalBrain,
+        {},
+        { bundleContract, bundles: ["core"], add: ["contact"] },
+      ).plugins ?? [];
+    expect(plugins.map((plugin) => plugin.id)).toContain("contact-request");
+    const contact = plugins.find((plugin) => plugin.id === "contact");
+    expect(contact).toBeDefined();
+    if (
+      contact &&
+      "getWebRoutes" in contact &&
+      typeof contact.getWebRoutes === "function"
+    )
+      expect(contact.getWebRoutes()).toEqual([]);
   });
 
   test("is the sole bundled definition", () => {
@@ -140,6 +176,7 @@ describe("canonical brain core", () => {
       "prompt",
       "profile",
       "style-guide",
+      "ask-content",
       "note",
       "link",
       "topics",

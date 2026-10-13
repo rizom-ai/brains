@@ -9,6 +9,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type {
   CleanupResult,
+  DirectoryProjectionBatchRef,
   DirectorySyncStatus,
   ExportResult,
   IDirectorySync,
@@ -16,7 +17,7 @@ import type {
   JobRequest,
   SyncResult,
 } from "../types";
-import type { FileWatcher } from "./file-watcher";
+import type { FileWatcher, MatchesHead } from "./file-watcher";
 import type { FileOperations } from "./file-operations";
 import type { ProgressOperations } from "./progress-operations";
 import {
@@ -32,6 +33,8 @@ import {
 } from "./directory-dependencies";
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import { PendingDeleteRegistry } from "./pending-delete-registry";
+import { captureImportPlan } from "./import-plan";
+import type { DirectoryImportPlan } from "../types/jobs";
 import { isDocumentSidecarFile } from "./document-file-utils";
 import {
   ensureDirectoryEntityStructure,
@@ -187,15 +190,30 @@ export class DirectorySync implements IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressReporter,
     batchSize: number,
+    projectionBatch?: DirectoryProjectionBatchRef,
+    plan?: DirectoryImportPlan,
   ): Promise<ImportResult> {
-    return this.runBulkMutation("import", () =>
-      importDirectoryEntitiesWithProgress(
-        this.progressOperations,
-        paths,
-        reporter,
-        batchSize,
-        this.importEntitiesUnbatched.bind(this),
-      ),
+    return this.runBulkMutation(
+      "import",
+      async () => {
+        const selectedPaths =
+          paths ?? (await this.fileOperations.getAllSyncFiles());
+        const admitted =
+          plan ??
+          (await captureImportPlan(
+            this.entityService,
+            this.fileOperations,
+            selectedPaths,
+          ));
+        return importDirectoryEntitiesWithProgress(
+          this.progressOperations,
+          selectedPaths,
+          reporter,
+          batchSize,
+          (batch) => this.importEntitiesUnbatched(batch, admitted),
+        );
+      },
+      projectionBatch,
     );
   }
 
@@ -220,14 +238,26 @@ export class DirectorySync implements IDirectorySync {
     );
   }
 
-  async removeOrphanedEntities(): Promise<CleanupResult> {
-    return this.runBulkMutation("cleanup", () =>
-      this.removeOrphanedEntitiesUnbatched(),
+  async removeOrphanedEntities(
+    projectionBatch?: DirectoryProjectionBatchRef,
+  ): Promise<CleanupResult> {
+    return this.runBulkMutation(
+      "cleanup",
+      () => this.removeOrphanedEntitiesUnbatched(),
+      projectionBatch,
     );
   }
 
-  private importEntitiesUnbatched(paths?: string[]): Promise<ImportResult> {
-    return importDirectoryEntities(this.operationDeps, this.entityTypes, paths);
+  private importEntitiesUnbatched(
+    paths?: string[],
+    plan?: DirectoryImportPlan,
+  ): Promise<ImportResult> {
+    return importDirectoryEntities(
+      this.operationDeps,
+      this.entityTypes,
+      paths,
+      plan,
+    );
   }
 
   private async removeOrphanedEntitiesUnbatched(): Promise<CleanupResult> {
@@ -243,11 +273,15 @@ export class DirectorySync implements IDirectorySync {
   private runBulkMutation<TResult>(
     operation: string,
     mutation: () => Promise<TResult>,
+    projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<TResult> {
+    // Durable job handlers already entered this root's scope. Reuse its
+    // identity so the coordinator can join it without weakening its fence.
     return this.entityService.runBulkMutation(
       {
         source: "directory-sync",
-        operationId: `${operation}:${createId()}`,
+        operationId:
+          projectionBatch?.operationId ?? `${operation}:${createId()}`,
       },
       mutation,
     );
@@ -318,6 +352,10 @@ export class DirectorySync implements IDirectorySync {
 
   suppressWatchPaths(paths: string[]): void {
     this.fileWatcher?.suppressPaths(paths);
+  }
+
+  ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void {
+    this.fileWatcher?.ignorePulledPaths(paths, matchesHead);
   }
 
   async recordPendingPullDeletes(paths: string[]): Promise<void> {

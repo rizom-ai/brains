@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChatApiError,
@@ -9,7 +9,12 @@ import {
   getArtifactCardState,
   narrowArtifactJobStatus,
 } from "@brains/plugins/message-interface/artifact-display";
-import { Button } from "@brains/app-ui-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 
 export function StudioChatAttachment(props: {
@@ -50,6 +55,9 @@ export function StudioChatAttachment(props: {
       (state.status === "completed" || state.status === "unknown"));
   const previewUrl = card.attachment.previewUrl ?? card.attachment.url;
   const [failedPreview, setFailedPreview] = useState<string | null>(null);
+  const [imageOpen, setImageOpen] = useState(false);
+  const [failedFullImage, setFailedFullImage] = useState<string | null>(null);
+  const previewTrigger = useRef<HTMLButtonElement>(null);
   const label = statusUnavailable
     ? "Status unavailable"
     : card.jobId && job.isPending
@@ -90,16 +98,27 @@ export function StudioChatAttachment(props: {
             Image preview unavailable. You can still open or download the file.
           </p>
         ) : (
-          <img
+          <button
+            ref={previewTrigger}
+            type="button"
+            aria-label={`Enlarge ${card.title}`}
             className={chatClass(
-              "studio-chat-attachment-preview",
-              chatLayout.attachmentPreview,
+              "studio-chat-image-trigger",
+              chatLayout.imageTrigger,
             )}
-            src={previewUrl}
-            alt={card.title}
-            loading="lazy"
-            onError={() => setFailedPreview(previewUrl)}
-          />
+            onClick={() => setImageOpen(true)}
+          >
+            <img
+              className={chatClass(
+                "studio-chat-attachment-preview",
+                chatLayout.attachmentPreview,
+              )}
+              src={previewUrl}
+              alt={card.title}
+              loading="lazy"
+              onError={() => setFailedPreview(previewUrl)}
+            />
+          </button>
         )
       ) : null}
       {available ? (
@@ -121,6 +140,39 @@ export function StudioChatAttachment(props: {
           </a>
         </div>
       ) : null}
+      <Dialog open={imageOpen && available} onOpenChange={setImageOpen}>
+        <DialogContent
+          aria-describedby={undefined}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            previewTrigger.current?.focus();
+          }}
+        >
+          <DialogTitle>{card.title}</DialogTitle>
+          {failedFullImage === card.attachment.url ? (
+            <p role="status">
+              Image unavailable. You can still try opening or downloading the
+              file.
+            </p>
+          ) : (
+            <img
+              className={chatClass(
+                "studio-chat-full-image",
+                chatLayout.fullImage,
+              )}
+              src={card.attachment.url}
+              alt={card.title}
+              onError={() => setFailedFullImage(card.attachment.url)}
+            />
+          )}
+          <a
+            href={card.attachment.downloadUrl ?? card.attachment.url}
+            download={card.attachment.filename ?? true}
+          >
+            Download image
+          </a>
+        </DialogContent>
+      </Dialog>
       {statusUnavailable ? (
         <Button
           type="button"

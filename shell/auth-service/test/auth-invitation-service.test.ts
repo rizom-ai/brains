@@ -11,7 +11,11 @@ import type {
 import { getErrorMessage } from "@brains/utils/error";
 import { AuthAuditStore } from "../src/audit-store";
 import { AuthService } from "../src/auth-service";
-import { AuthInvitationService } from "../src/invitation-service";
+import {
+  AuthInvitationService,
+  type OnboardingContext,
+} from "../src/invitation-service";
+import type { OnboardingDetails } from "../src/onboarding-emails";
 import { setupTokenDeliveries, setupTokens } from "../src/runtime-schema";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { AuthUserStore } from "../src/user-store";
@@ -535,6 +539,159 @@ describe("AuthInvitationService", () => {
     ).toHaveLength(2);
     expect(deliveries).toHaveLength(2);
     await database.stop();
+  });
+
+  it("names the inviter, the brain and the role on the first send and on a resend", async () => {
+    const { admin, database } = await createFixture();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthInvitationService({
+      db: database.db,
+      issuer: "https://brain.example.com",
+      setupTokenTtlSeconds: 86_400,
+      audit: new AuthAuditStore(database.db),
+      getOnboardingContext: async (): Promise<OnboardingContext> => ({
+        brainName: "Rizom",
+        purpose: "Keep the team’s decisions in one place",
+        links: {
+          chat: "/chat",
+          aiTools: "/studio/workspaces/studio%3Aaccount?section=ai-tools",
+        },
+      }),
+      getDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+    const created = await service.create({
+      idempotencyKey: "named-request-1",
+      displayName: "Mira Reyes",
+      role: "trusted",
+      delivery: { type: "email", subject: "mira@example.com" },
+      actorUserId: admin.id,
+    });
+
+    await service.resend(created.invitation.id, admin.id);
+
+    expect(sent.map((input) => input.subject)).toEqual([
+      "Admin invited you to the Rizom brain",
+      "Admin invited you to the Rizom brain",
+    ]);
+    for (const input of sent) {
+      expect(input.text).toContain("as a trusted member.");
+      expect(input.text).toContain(
+        "What it’s for: Keep the team’s decisions in one place.",
+      );
+      expect(input.text).toContain("chat (https://brain.example.com/chat)");
+      expect(input.text).toContain(
+        "Account → AI tools (https://brain.example.com/studio/workspaces/studio%3Aaccount?section=ai-tools)",
+      );
+      expect(input.html).toContain("Rizom");
+      expect(input.sensitivity).toBe("secret");
+    }
+    await database.stop();
+  });
+
+  it("names the brain by its host when the brain has no name", async () => {
+    const { admin, database } = await createFixture();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthInvitationService({
+      db: database.db,
+      issuer: "https://brain.example.com",
+      setupTokenTtlSeconds: 86_400,
+      audit: new AuthAuditStore(database.db),
+      getOnboardingContext: async (): Promise<OnboardingContext> => ({
+        links: {},
+      }),
+      getDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+
+    await service.create({
+      idempotencyKey: "unnamed-request-1",
+      displayName: "Mira Reyes",
+      role: "admin",
+      delivery: { type: "email", subject: "mira@example.com" },
+      actorUserId: admin.id,
+    });
+
+    expect(sent[0]?.subject).toBe(
+      "Admin invited you to the brain.example.com brain",
+    );
+    expect(sent[0]?.text).toContain("as an admin.");
+    await database.stop();
+  });
+
+  it("adds the brain's purpose and links from AuthService's onboarding details", async () => {
+    const { admin, database, storageDir } = await createFixture();
+    await database.stop();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+      autoStartInvitationDeliveryRecovery: false,
+      getOnboardingDetails: async (): Promise<OnboardingDetails> => ({
+        purpose: "Plan the garden",
+        links: { studio: "/studio" },
+      }),
+      getInvitationDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+    await service.initialize();
+
+    await service.createInvitation(
+      {
+        idempotencyKey: "onboarding-details-request-1",
+        displayName: "Mira Reyes",
+        role: "trusted",
+        delivery: { type: "email", subject: "mira@example.com" },
+      },
+      { actorUserId: admin.id },
+    );
+
+    expect(sent[0]?.text).toContain("What it’s for: Plan the garden.");
+    expect(sent[0]?.text).toContain(
+      "Studio (https://brain.example.com/studio)",
+    );
+    await service.close();
+  });
+
+  it("names the brain from the anchor profile when invited through AuthService", async () => {
+    const { admin, database, storageDir } = await createFixture();
+    await database.stop();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+      autoStartInvitationDeliveryRecovery: false,
+      resolveProfileDisplayName: async (
+        profileEntityId,
+      ): Promise<string | undefined> =>
+        profileEntityId === "anchor-profile/anchor-profile"
+          ? "Rizom"
+          : undefined,
+      getInvitationDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+    await service.initialize();
+
+    await service.createInvitation(
+      {
+        idempotencyKey: "anchor-named-request-1",
+        displayName: "Mira Reyes",
+        role: "trusted",
+        delivery: { type: "email", subject: "mira@example.com" },
+      },
+      { actorUserId: admin.id },
+    );
+
+    expect(sent[0]?.subject).toEndWith("invited you to the Rizom brain");
+    await service.close();
   });
 
   it("does not revive a cancelled invitation when provider acceptance arrives late", async () => {

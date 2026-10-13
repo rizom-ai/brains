@@ -192,7 +192,7 @@ function buildUploadedImageAttachment(input: {
  * Zero tools. Image operations go through:
  * - system_create { entityType: "image", source: { kind: "upload", transform: "preserve" } } — upload
  * - system_generate { entityType: "image", source: { kind: "prompt", prompt: "..." } } — AI generation
- * - system_update { fields: { coverImageId } } — set cover image references
+ * - system_update { operation: { kind: "fields", fields: { coverImageId } } } — set cover image references
  */
 export class ImagePlugin extends EntityPlugin<
   Image,
@@ -210,6 +210,7 @@ export class ImagePlugin extends EntityPlugin<
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
       embeddable: false,
+      binaryStorage: "data-url",
       projectionSource: false,
       projectionSourceRole: "excluded",
     };

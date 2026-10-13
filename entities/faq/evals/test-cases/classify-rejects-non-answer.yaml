@@ -1,0 +1,16 @@
+id: faq-classify-rejects-non-answer
+name: A reply that could not answer is rejected
+description: When the assistant found no information, the exchange is not a FAQ even though the question is reusable.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: which subjects do you mostly cover in your writing?
+  answer: I couldn’t identify recurring subjects or themes because no saved writing was available.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: false

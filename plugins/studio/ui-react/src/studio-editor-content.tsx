@@ -1,6 +1,11 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import type { StudioEditorPresentation } from "./entity-fields";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import { editorContentStyles as content } from "./studio-editor-content.styles";
@@ -38,13 +43,16 @@ export function StudioEditorProperties({
   presentation,
   reveal,
   children,
+  summaryDescription,
 }: {
   presentation: StudioEditorPresentation;
   reveal: boolean;
   children: ReactNode;
+  summaryDescription?: string | undefined;
 }): ReactElement {
   const ref = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Open before child field effects try to focus a validation error.
     // Structured server validation must also reveal errors in collapsed fields.
     // Clearing errors never closes a disclosure the user opened.
     if (reveal && ref.current) ref.current.open = true;
@@ -56,8 +64,15 @@ export function StudioEditorProperties({
         data-studio-properties=""
         {...stylex.props(content.disclosure)}
       >
-        <summary {...stylex.props(content.summary)}>Properties</summary>
-        <div {...stylex.props(content.properties)}>{children}</div>
+        <summary {...stylex.props(content.summary)}>
+          Properties
+          {summaryDescription && (
+            <span {...stylex.props(content.summaryDescription)}>
+              {summaryDescription}
+            </span>
+          )}
+        </summary>
+        <div {...stylex.props(content.disclosedFields)}>{children}</div>
       </details>
     );
   return (

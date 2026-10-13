@@ -15,6 +15,9 @@ Six-field expressions with seconds are unsupported and fail validation. Jobs
 may select an IANA timezone. Each scheduled job runs at most one callback at a
 time, reports skipped overlaps and callback errors through backend hooks, and
 prevents future cycles while draining active work when `stop()` is called.
+Shutdown failures are reported only after active callbacks and the owning scope
+have settled. A single failure retains its identity; multiple failures are
+aggregated in cleanup order.
 
 Fixed-interval jobs use the same supervised callback lifecycle and can receive
 an Effect clock.

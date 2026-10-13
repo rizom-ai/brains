@@ -4,7 +4,7 @@ import {
   InMemoryTemplateRegistry,
   type TemplateRegistry,
 } from "../src/registry";
-import type { Template } from "../src/types";
+import { createTemplate, type Template } from "../src/types";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
 
@@ -49,14 +49,12 @@ describe("RenderService", () => {
     const scriptedTemplate: Template = {
       ...testTemplate,
       name: "test-plugin:scripted",
-      renderVersion: "map-v2",
       runtimeScripts: [{ src: "/scripts/map.js", defer: true }],
       staticAssets: { "/scripts/map.js": "(function(){/* map */})();" },
     };
     templateRegistry.register(scriptedTemplate.name, scriptedTemplate);
 
     const retrieved = renderService.get("test-plugin:scripted");
-    expect(retrieved?.renderVersion).toBe("map-v2");
     expect(retrieved?.runtimeScripts).toEqual([
       { src: "/scripts/map.js", defer: true },
     ]);
@@ -146,5 +144,38 @@ describe("RenderService", () => {
 
     const formats = renderService.listFormats("test-plugin:test-template");
     expect(formats).toContain("web");
+  });
+
+  test("renders a print-only template in its own format, never as a page", () => {
+    const seen: unknown[] = [];
+    const printable = createTemplate<{ title: string }>({
+      name: "test-plugin:printable",
+      description: "Printable",
+      schema: z.object({ title: z.string() }),
+      requiredPermission: "public",
+      layout: {
+        formats: {
+          pdf: (props) => {
+            seen.push(props);
+            return h("h1", null, props.title);
+          },
+        },
+      },
+    });
+    templateRegistry.register("test-plugin:printable", printable);
+
+    const view = renderService.get("test-plugin:printable");
+    expect(Object.keys(view?.renderers ?? {})).toEqual(["pdf"]);
+    expect(renderService.listFormats("test-plugin:printable")).toEqual(["pdf"]);
+    expect(
+      renderService.validate("test-plugin:printable", { title: "T" }),
+    ).toBe(true);
+
+    const pdf = renderService.getRenderer("test-plugin:printable", "pdf");
+    if (typeof pdf !== "function") throw new Error("no pdf renderer");
+    // The renderer parses its props like a page component does.
+    pdf({ title: "T", extra: "dropped" });
+    expect(seen).toEqual([{ title: "T" }]);
+    expect(() => pdf({})).toThrow();
   });
 });

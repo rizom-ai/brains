@@ -1,4 +1,8 @@
-import { SITE_BUILD_MANIFEST_PATH } from "@brains/contracts";
+import {
+  SITE_BUILD_MANIFEST_PATH,
+  DEFAULT_FAVICON_PATH,
+  DEFAULT_FAVICON_SVG,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
@@ -7,7 +11,11 @@ import type {
   RegisteredHttpRoute,
   RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
-import type { WebRouteTransportContext } from "@brains/plugins/contracts/web-routes";
+import {
+  SITE_SLOT_ATTRIBUTE,
+  SitePageResponse,
+  type WebRouteTransportContext,
+} from "@brains/plugins/contracts/web-routes";
 import { resolve, join, sep } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
@@ -116,6 +124,39 @@ export class ServerManager {
   private routes: readonly RegisteredHttpRoute[] = Object.freeze([]);
   private productionServer: RunningServer | null = null;
   private readonly transport = new WeakMap<Request, WebRouteTransportContext>();
+
+  /**
+   * The route's site page at its path with the slot filled, keeping the
+   * route's status and headers; undefined where the page or its slot is
+   * missing, so the route's own page stands.
+   */
+  private async fillSitePage(
+    distDir: string,
+    requestPath: string,
+    response: SitePageResponse,
+  ): Promise<Response | undefined> {
+    const slot = response.slot;
+    if (!slot) return undefined;
+    const path = resolve(distDir, `.${requestPath}`, "index.html");
+    if (!isPathContained(path, resolve(distDir))) return undefined;
+    const page = Bun.file(path);
+    if (!(await page.exists())) return undefined;
+    const marker = `<div ${SITE_SLOT_ATTRIBUTE}="${slot.name}"></div>`;
+    const html = await page.text();
+    if (!html.includes(marker)) return undefined;
+    const headers = new Headers(response.headers);
+    headers.delete("Content-Length");
+    headers.delete("Content-Encoding");
+    headers.delete("ETag");
+    headers.set("Content-Type", "text/html; charset=utf-8");
+    return new Response(
+      html.replace(marker, () => slot.html),
+      {
+        status: response.status,
+        headers,
+      },
+    );
+  }
 
   private isPreviewHost(host: string | null): boolean {
     if (!host) {
@@ -301,7 +342,14 @@ export class ServerManager {
 
     app.use("/*", async (c, next) => {
       await next();
-      if (opts.revalidateExtensions?.test(c.req.path)) {
+      // A miss is never kept: an immutable 404 for an icon or an image would
+      // hide the file for a year once it exists. A handler that set its own
+      // caching keeps it.
+      if (c.res.status >= 400) {
+        c.header("Cache-Control", "no-cache");
+      } else if (c.res.headers.has("Cache-Control")) {
+        return;
+      } else if (opts.revalidateExtensions?.test(c.req.path)) {
         c.header("Cache-Control", "no-cache");
       } else if (opts.immutableExtensions.test(c.req.path)) {
         c.header("Cache-Control", CACHE_IMMUTABLE);
@@ -321,6 +369,14 @@ export class ServerManager {
 
     app.use("/*", this.createCleanUrlMiddleware(opts.distDir));
     app.use("/*", serveStatic({ root: opts.distDir }));
+    // Every brain is a light: an output without an icon of its own gets the
+    // lantern, at a day's caching since the output may bring one later.
+    app.get(DEFAULT_FAVICON_PATH, (c) =>
+      c.body(DEFAULT_FAVICON_SVG, 200, {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+      }),
+    );
 
     app.notFound(async (c) => {
       const notFoundFile = Bun.file(join(opts.distDir, "404.html"));
@@ -418,7 +474,35 @@ export class ServerManager {
       if (handlerRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
-      return handlerRoute.handler(c.req.raw, this.transport.get(c.req.raw));
+      const response = await handlerRoute.handler(
+        c.req.raw,
+        this.transport.get(c.req.raw),
+      );
+      if (response instanceof SitePageResponse && response.slot) {
+        return (
+          (await this.fillSitePage(opts.distDir, requestPath, response)) ??
+          response
+        );
+      }
+      if (
+        requestMethod === "GET" &&
+        response instanceof SitePageResponse &&
+        response.status === 200
+      ) {
+        const path = resolve(opts.distDir, `.${requestPath}`, "index.html");
+        if (isPathContained(path, resolve(opts.distDir))) {
+          const page = Bun.file(path);
+          if (await page.exists()) {
+            const headers = new Headers(response.headers);
+            headers.delete("Content-Length");
+            headers.delete("Content-Encoding");
+            headers.delete("ETag");
+            headers.set("Content-Type", "text/html; charset=utf-8");
+            return new Response(page, { headers });
+          }
+        }
+      }
+      return response;
     }
 
     // Preview opt-in applies only to handler routes, never the tool API surface.

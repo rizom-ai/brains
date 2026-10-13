@@ -1,4 +1,5 @@
-import { createClient, type Client, type Config } from "@libsql/client";
+import { type Client, type Config } from "@libsql/client";
+import { createSqliteClient } from "@brains/db";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
@@ -68,8 +69,9 @@ export function authRuntimeConnectionPragmas(
 ): string[] {
   return [
     "PRAGMA foreign_keys = ON",
+    ...(isLocalFileUrl(url) ? ["PRAGMA busy_timeout = 0"] : []),
     ...(isLocalFileUrl(url) && !embeddedReplica
-      ? ["PRAGMA journal_mode = WAL", "PRAGMA busy_timeout = 5000"]
+      ? ["PRAGMA journal_mode = WAL"]
       : []),
   ];
 }
@@ -142,7 +144,7 @@ export class AuthRuntimeDatabase {
 
   private async startDatabase(): Promise<void> {
     await this.prepareLocalDatabasePath();
-    const client = createClient(
+    const client = createSqliteClient(
       buildAuthRuntimeClientConfig({
         url: this.url,
         ...(this.authToken ? { authToken: this.authToken } : {}),

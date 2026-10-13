@@ -13,6 +13,7 @@ describe("getAgentDiscoveryInstructions", () => {
       "agent_connect",
       "agent_call",
       "agent_set_trust_level",
+      "network_ask",
     ]) {
       expect(instructions).toContain(toolName);
     }

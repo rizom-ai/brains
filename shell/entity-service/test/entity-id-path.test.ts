@@ -34,8 +34,19 @@ describe("entity ID paths", () => {
     expect(entityIdPathSchema.safeParse(path).success).toBe(false);
   });
 
-  test("rejects malformed stored IDs", () => {
-    expect(() => decodeEntityIdPath("book::chapter")).toThrow();
-    expect(() => decodeEntityIdPath("book:../chapter")).toThrow();
+  test.each([
+    { id: "", path: [""] },
+    { id: ":", path: ["", ""] },
+    { id: ":book::chapter:", path: ["", "book", "", "chapter", ""] },
+    { id: "book:.:chapter", path: ["book", ".", "chapter"] },
+    { id: "book:../chapter", path: ["book", "../chapter"] },
+    { id: "book/part:chapter", path: ["book/part", "chapter"] },
+    { id: "book\\part:chapter", path: ["book\\part", "chapter"] },
+    { id: "book:bad\u0000name", path: ["book", "bad\u0000name"] },
+    { id: "note:note:intro", path: ["note", "note", "intro"] },
+  ])("decodes existing ID $id without normalizing identity", ({ id, path }) => {
+    const decoded = decodeEntityIdPath(id);
+    expect(decoded).toEqual([...path]);
+    expect(encodeEntityIdPath(decoded)).toBe(id);
   });
 });

@@ -5,10 +5,176 @@ import {
   buildAgentContactCandidates,
   buildEntityMemoryContext,
   buildEntityMemoryRefs,
+  buildRetrievedEntityRefs,
   extractToolResults,
 } from "../src/agent-results";
 
+describe("buildRetrievedEntityRefs", () => {
+  const entity = (id: string): Record<string, unknown> => ({
+    id,
+    entityType: "note",
+    content: "Body",
+  });
+
+  it("records entities that successful reads returned, once each", () => {
+    expect(
+      buildRetrievedEntityRefs([
+        { toolName: "system_get", data: { entity: entity("seed") } },
+        {
+          toolName: "system_search",
+          data: {
+            results: [{ entity: entity("seed") }, { entity: entity("b") }],
+          },
+        },
+      ]),
+    ).toEqual([
+      { entityType: "note", entityId: "seed" },
+      { entityType: "note", entityId: "b" },
+    ]);
+  });
+
+  it("ignores failed reads and non-read tools", () => {
+    expect(
+      buildRetrievedEntityRefs([
+        {
+          toolName: "system_get",
+          error: { code: "not_found", message: "Missing" },
+        },
+        { toolName: "system_create", data: { entityId: "new" } },
+        { toolName: "system_list", data: { entities: [entity("x")] } },
+      ]),
+    ).toEqual([]);
+  });
+});
+
 describe("extractToolResults", () => {
+  it("keeps a rejected SDK attempt visible before a successful repair proposal", () => {
+    const input = {
+      entityType: "note",
+      id: "plan",
+      operation: {
+        kind: "edits",
+        edits: [{ oldText: "old", newText: "new" }],
+        fields: { title: "New" },
+      },
+    };
+    const error = new Error("Invalid tool input: mixed operation branches");
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "invalid",
+            toolName: "system_update",
+            input,
+            invalid: true,
+            error,
+          },
+        ],
+        content: [
+          {
+            type: "tool-error",
+            toolCallId: "invalid",
+            toolName: "system_update",
+            input,
+            error,
+          },
+        ],
+        toolResults: [],
+      },
+      {
+        toolCalls: [
+          {
+            toolCallId: "repair",
+            toolName: "system_update",
+            input: {
+              ...input,
+              operation: { kind: "edits", edits: input.operation.edits },
+            },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "repair",
+            toolName: "system_update",
+            output: {
+              needsConfirmation: true,
+              toolName: "system_update",
+              summary: "Update plan?",
+              args: {
+                ...input,
+                operation: { kind: "edits", edits: input.operation.edits },
+                confirmed: true,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+    expect(results.totalToolCalls).toBe(2);
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_update",
+        args: input,
+        error: { code: "invalid_tool_call", message: error.message },
+      },
+    ]);
+    expect(results.pendingConfirmations).toHaveLength(1);
+  });
+
+  it("records SDK execution exceptions that are absent from toolResults", () => {
+    const input = { entityType: "note", id: "plan" };
+    const results = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "failed", toolName: "system_get", input }],
+        content: [
+          {
+            type: "tool-error",
+            toolCallId: "failed",
+            toolName: "system_get",
+            input,
+            error: new Error("Storage unavailable"),
+          },
+        ],
+        toolResults: [],
+      },
+    ]);
+    expect(results.totalToolCalls).toBe(1);
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_get",
+        args: input,
+        error: {
+          code: "tool_execution_failed",
+          message: "Storage unavailable",
+        },
+      },
+    ]);
+  });
+
+  it("records malformed JSON calls even without record-shaped arguments", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "malformed",
+            toolName: "system_update",
+            input: "{broken",
+            invalid: true,
+            error: new Error("Invalid JSON"),
+          },
+        ],
+        toolResults: [],
+      },
+    ]);
+    expect(results.totalToolCalls).toBe(1);
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_update",
+        error: { code: "invalid_tool_call", message: "Invalid JSON" },
+      },
+    ]);
+  });
+
   it("omits cached duplicate read results from extracted metrics records", () => {
     const results = extractToolResults([
       {
@@ -147,6 +313,138 @@ describe("extractToolResults", () => {
             id: "playbook:run-1:NEXT",
             label: "Keep going",
             event: "NEXT",
+          },
+        ],
+      },
+    ]);
+  });
+});
+
+describe("an answer's sources", () => {
+  const hit = (id: string, title: string, score: number): unknown => ({
+    entity: {
+      id,
+      entityType: id.startsWith("note") ? "note" : "post",
+      metadata: { title },
+    },
+    score,
+  });
+  const steps = [
+    {
+      toolCalls: [{ toolCallId: "s", toolName: "system_search", input: {} }],
+      toolResults: [
+        {
+          toolCallId: "s",
+          toolName: "system_search",
+          output: {
+            success: true,
+            data: {
+              results: [
+                hit("note-a", "Institutional memory", 0.9),
+                hit("note-b", "Writing sample", 0.85),
+                hit("note-c", "Analysis notes", 0.8),
+                hit(
+                  "a-colleague-without-context",
+                  "A Colleague Without Context",
+                  0.7,
+                ),
+                hit("heroics", "Heroics Are Not Infrastructure", 0.6),
+              ],
+            },
+          },
+        },
+      ],
+    },
+    {
+      toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+      toolResults: [
+        {
+          toolCallId: "g",
+          toolName: "system_get",
+          output: {
+            success: true,
+            data: {
+              entity: {
+                id: "read-directly",
+                entityType: "post",
+                metadata: { title: "Read Directly" },
+              },
+            },
+          },
+        },
+      ],
+    },
+  ];
+  const sourceIds = (text?: string): string[] =>
+    extractToolResults(steps, text).cards.flatMap((card) =>
+      card.kind === "sources" ? card.sources.map((source) => source.id) : [],
+    );
+
+  it("are the results the answer names, however they scored, and what it read directly", () => {
+    expect(
+      sourceIds(
+        "Start with **A Colleague without context**, then heroics are not infrastructure.",
+      ),
+    ).toEqual([
+      "post:a-colleague-without-context",
+      "post:heroics",
+      "post:read-directly",
+    ]);
+  });
+
+  it("fall back to the best-scored results when the answer names none", () => {
+    expect(sourceIds("A general answer.")).toEqual([
+      "note:note-a",
+      "note:note-b",
+      "note:note-c",
+      "post:read-directly",
+    ]);
+    expect(sourceIds()).toEqual(sourceIds("A general answer."));
+  });
+
+  it("keep the sources a tool attributes itself, with their brains", () => {
+    const cards = extractToolResults(
+      [
+        {
+          toolCalls: [{ toolCallId: "n", toolName: "network_ask", input: {} }],
+          toolResults: [
+            {
+              toolCallId: "n",
+              toolName: "network_ask",
+              output: {
+                success: true,
+                data: {
+                  answers: [],
+                  sources: [
+                    {
+                      id: "agent:jo.example",
+                      title: "Jo",
+                      source: "agent",
+                      url: "https://jo.example",
+                      brain: { name: "Jo", url: "https://jo.example" },
+                    },
+                    { title: "not a citation" },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      "Jo says to start with the soil.",
+    ).cards;
+    expect(cards).toEqual([
+      {
+        kind: "sources",
+        id: "sources:tool-results",
+        title: "Retrieved sources",
+        sources: [
+          {
+            id: "agent:jo.example",
+            title: "Jo",
+            source: "agent",
+            url: "https://jo.example",
+            brain: { name: "Jo", url: "https://jo.example" },
           },
         ],
       },
@@ -423,5 +721,91 @@ describe("buildEntityMemoryContext", () => {
       "entityType: post; entityId: ai-and-knowledge-work",
     );
     expect(context).not.toContain("Entities listed this turn");
+  });
+});
+
+describe("a retrieved source as the site shows it", () => {
+  const search = (
+    entity: Record<string, unknown>,
+  ): Parameters<typeof extractToolResults>[0] => [
+    {
+      toolCalls: [{ toolCallId: "s", toolName: "system_search", input: {} }],
+      toolResults: [
+        {
+          toolCallId: "s",
+          toolName: "system_search",
+          output: {
+            success: true,
+            data: { results: [{ entity, score: 0.8 }] },
+          },
+        },
+      ],
+    },
+  ];
+  const links = {
+    isCitable: (entityType: string): boolean => entityType === "book-section",
+    urlFor: (_entityType: string, slug: string): string => `/books/${slug}`,
+    siteBaseUrl: "friedrich.rizom.ai",
+  };
+  const sourcesOf = (
+    entity: Record<string, unknown>,
+  ): Array<{ title?: string | undefined; url?: string | undefined }> =>
+    extractToolResults(search(entity), undefined, links).cards.flatMap(
+      (card) => (card.kind === "sources" ? card.sources : []),
+    );
+
+  it("cites a section by the name its page carries, linked to that page", () => {
+    expect(
+      sourcesOf({
+        id: "ecce-homo:00006-warum-ich-so-weise-bin:00008-3",
+        entityType: "book-section",
+        metadata: { title: "3", pageTitle: "EH-Weise-3", slug: "ecce-homo/8" },
+      }),
+    ).toMatchObject([
+      {
+        title: "EH-Weise-3",
+        url: "https://friedrich.rizom.ai/books/ecce-homo/8",
+      },
+    ]);
+  });
+
+  it("does not link a type the site does not cite", () => {
+    const [source] = sourcesOf({
+      id: "ecce-homo",
+      entityType: "book",
+      metadata: { title: "Ecce homo", slug: "ecce-homo" },
+    });
+    expect(source?.title).toBe("Ecce homo");
+    expect(source?.url).toBeUndefined();
+  });
+});
+
+describe("a source's excerpt", () => {
+  it("is the text of a source read directly, without its frontmatter", () => {
+    const [source] = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+        toolResults: [
+          {
+            toolCallId: "g",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: {
+                  id: "ecce-homo:00046-also-sprach-zarathustra:00051-6",
+                  entityType: "book-section",
+                  content:
+                    "---\ntitle: '6'\nbook: ecce-homo\nsection: EH-ZA-6\n---\nDer Text des Abschnitts.",
+                  metadata: { title: "6", pageTitle: "EH-ZA-6" },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
+
+    expect(source?.excerpt).toBe("Der Text des Abschnitts.");
   });
 });

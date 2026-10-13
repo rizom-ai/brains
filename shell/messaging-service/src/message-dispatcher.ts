@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import type { InternalMessageResponse, MessageWithPayload } from "./types";
 import type { HandlerEntry } from "./handler-registry";
+import { toInternalResponse } from "./message-factory";
 
 export async function publishBroadcast(
   message: MessageWithPayload<unknown>,
@@ -40,8 +41,16 @@ export async function collectHandlerResponses(
   const responses = await Promise.all(
     handlers.map((entry) => invokeHandler(entry, message, logger)),
   );
-  return responses.filter(
-    (response): response is InternalMessageResponse => response !== null,
+  // Collection is an acknowledgement barrier, not best-effort broadcast.
+  // Keep failures in their registration slots so one success cannot hide a
+  // subscriber that threw or returned an invalid response.
+  return responses.map(
+    (response) =>
+      response ??
+      toInternalResponse(message.id, {
+        success: false,
+        error: `Message handler failed for message type: ${message.type}`,
+      }),
   );
 }
 

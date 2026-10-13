@@ -11,7 +11,8 @@ import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 const studioAssetManifestSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
+  entrypoints: z.object({ script: z.string(), stylesheet: z.string() }),
   assets: z.record(z.string(), z.string()),
 });
 
@@ -39,10 +40,15 @@ describe("@rizom/brain package metadata", () => {
       "start:publishing",
       "start:team",
     ] as const) {
-      expect(packageJson.scripts[scriptName]).toContain(
-        "exec bun --no-orphans run",
+      expect(packageJson.scripts[scriptName]).toStartWith(
+        "sh scripts/start-test-app.sh ",
       );
     }
+    // The helper hands the shell's process to the bundled CLI, which owns
+    // the app's children.
+    expect(readPackageFile("scripts/start-test-app.sh")).toContain(
+      "exec bun --no-orphans ../../dist/brain.js start",
+    );
 
     const operateSource = readPackageFile("src/commands/operate.ts");
     expect(operateSource).toContain(
@@ -130,12 +136,17 @@ describe("@rizom/brain package metadata", () => {
     );
     expect(buildScript).toContain('await Bun.spawn(["bun", "run", "build"]');
     expect(buildScript).toContain('join(outdir, "ui")');
-    expect(buildScript).toContain(
-      'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',
-    );
-    expect(buildScript).toContain(
-      'cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"))',
-    );
+    expect(buildScript).not.toContain("webChatUiAssetPath");
+    expect(buildScript).not.toContain("webChatUiStylesheetPath");
+    for (const asset of [
+      "guest.js",
+      "guest.css",
+      "ask.js",
+      "ask.css",
+      "dashboard.js",
+      "dashboard.css",
+    ])
+      expect(buildScript).toContain(`"${asset}"`);
     expect(buildScript).toContain(
       "cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true })",
     );
@@ -145,12 +156,42 @@ describe("@rizom/brain package metadata", () => {
     expect(buildScript).not.toContain("accountUiAssetPath");
   });
 
+  it("packages guest chat bundles without retired operator assets", () => {
+    for (const asset of [
+      "guest.js",
+      "guest.css",
+      "ask.js",
+      "ask.css",
+      "dashboard.js",
+      "dashboard.css",
+    ])
+      expect(existsSync(join(packageDir, "dist", "ui", asset)), asset).toBe(
+        true,
+      );
+    for (const asset of ["app.js", "app.css", "app.js.map"])
+      expect(existsSync(join(packageDir, "dist", "ui", asset)), asset).toBe(
+        false,
+      );
+  });
+
   it("copies every generated Studio entry and lazy chunk into packaged dist", () => {
     const manifest = studioAssetManifestSchema.parse(
       JSON.parse(readPackageFile("dist/ui/studio-asset-manifest.json")),
     );
-    expect(manifest.assets["app.js"]).toBe("studio-app.js");
-    expect(manifest.assets["app.css"]).toBe("studio-app.css");
+    expect(manifest.entrypoints.script).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.js$/,
+    );
+    expect(manifest.entrypoints.stylesheet).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.css$/,
+    );
+    expect(manifest.assets[manifest.entrypoints.script]).toBe(
+      manifest.entrypoints.script,
+    );
+    expect(manifest.assets[manifest.entrypoints.stylesheet]).toBe(
+      manifest.entrypoints.stylesheet,
+    );
+    expect(manifest.assets["app.js"]).toBeUndefined();
+    expect(manifest.assets["app.css"]).toBeUndefined();
     expect(
       Object.keys(manifest.assets).some((asset) =>
         /^studio-chunks\/account-view-[A-Za-z0-9]+\.js$/.test(asset),

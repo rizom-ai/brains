@@ -7,10 +7,11 @@ import { createClient } from "@libsql/client";
 import { z } from "@brains/utils/zod";
 import {
   createEmbeddingDatabase,
-  ensureEmbeddingIndexes,
+  migrateEmbeddingDatabase,
   attachEmbeddingDatabase,
 } from "../src/db/embedding-db";
 import type { EntityDbConfig } from "../src/types";
+import { setupEntityService } from "./helpers/setup-entity-service";
 
 describe("Embedding Database", () => {
   let tempDir: string;
@@ -51,16 +52,7 @@ describe("Embedding Database", () => {
       const config: EntityDbConfig = { url: `file:${dbPath}` };
       const { client } = createEmbeddingDatabase(config);
 
-      // Create the embeddings table (migration does this)
-      await client.execute(`
-        CREATE TABLE IF NOT EXISTS embeddings (
-          entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL,
-          embedding F32_BLOB(1536) NOT NULL,
-          content_hash TEXT NOT NULL,
-          PRIMARY KEY(entity_id, entity_type)
-        )
-      `);
+      await migrateEmbeddingDatabase(client, 1536);
 
       const tables = await client.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='embeddings'",
@@ -82,31 +74,123 @@ describe("Embedding Database", () => {
     });
   });
 
-  describe("ensureEmbeddingIndexes", () => {
-    test("creates vector index on embeddings table", async () => {
+  describe("unused vector-index retirement", () => {
+    test("drops an existing index without changing vectors, cosine search or other indexes", async () => {
+      const { client } = createEmbeddingDatabase({
+        url: `file:${join(tempDir, "legacy.db")}`,
+      });
+      try {
+        await migrateEmbeddingDatabase(client, 4);
+        await client.execute(
+          "CREATE INDEX embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
+        );
+        await client.execute(
+          "CREATE INDEX embedding_hash_lookup ON embeddings(content_hash)",
+        );
+        await client.executeMultiple(`
+          INSERT INTO embeddings VALUES ('nearest', 'post', vector32('[1,0,0,0]'), 'hash-nearest');
+          INSERT INTO embeddings VALUES ('further', 'post', vector32('[1,1,0,0]'), 'hash-further');
+          INSERT INTO embeddings VALUES ('opposite', 'post', vector32('[-1,0,0,0]'), 'hash-opposite');
+        `);
+        const inventorySql =
+          "SELECT entity_id, entity_type, hex(embedding) AS bytes, content_hash FROM embeddings ORDER BY entity_id";
+        const searchSql =
+          "SELECT entity_id, vector_distance_cos(embedding, vector32('[1,0,0,0]')) AS distance FROM embeddings ORDER BY distance, entity_id";
+        const inventory = await client.execute(inventorySql);
+        const ranking = await client.execute(searchSql);
+        expect(ranking.rows.map((row) => row["entity_id"])).toEqual([
+          "nearest",
+          "further",
+          "opposite",
+        ]);
+        expect(
+          (
+            await client.execute(
+              "SELECT name FROM sqlite_master WHERE name = 'embeddings_embedding_idx'",
+            )
+          ).rows,
+        ).toHaveLength(1);
+
+        await migrateEmbeddingDatabase(client, 4);
+        await migrateEmbeddingDatabase(client, 4);
+
+        expect(
+          (
+            await client.execute(
+              "SELECT name FROM sqlite_master WHERE name = 'embeddings_embedding_idx'",
+            )
+          ).rows,
+        ).toHaveLength(0);
+        expect(
+          (
+            await client.execute(
+              "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'embedding_hash_lookup'",
+            )
+          ).rows,
+        ).toHaveLength(1);
+        expect((await client.execute(inventorySql)).rows).toEqual(
+          inventory.rows,
+        );
+        expect((await client.execute(searchSql)).rows).toEqual(ranking.rows);
+        expect(
+          (await client.execute("PRAGMA index_list(embeddings)")).rows.filter(
+            (row) => row["origin"] === "pk",
+          ),
+        ).toHaveLength(1);
+        await client.execute(
+          "INSERT INTO embeddings VALUES ('new', 'post', vector32('[0,1,0,0]'), 'hash-new')",
+        );
+        expect(
+          (await client.execute("SELECT count(*) AS n FROM embeddings"))
+            .rows[0]?.["n"],
+        ).toBe(4);
+      } finally {
+        client.close();
+      }
+    });
+
+    test("never creates the unused index for fresh or reopened databases", async () => {
       const config: EntityDbConfig = {
-        url: `file:${join(tempDir, "embeddings.db")}`,
+        url: `file:${join(tempDir, "fresh.db")}`,
       };
-      const { client } = createEmbeddingDatabase(config);
+      for (let startup = 0; startup < 2; startup++) {
+        const { client } = createEmbeddingDatabase(config);
+        try {
+          await migrateEmbeddingDatabase(client, 4);
+          expect(
+            (
+              await client.execute(
+                "SELECT name FROM sqlite_master WHERE name = 'embeddings_embedding_idx'",
+              )
+            ).rows,
+          ).toHaveLength(0);
+        } finally {
+          client.close();
+        }
+      }
+    });
 
-      await client.execute(`
-        CREATE TABLE IF NOT EXISTS embeddings (
-          entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL,
-          embedding F32_BLOB(1536) NOT NULL,
-          content_hash TEXT NOT NULL,
-          PRIMARY KEY(entity_id, entity_type)
-        )
-      `);
-
-      await ensureEmbeddingIndexes(client);
-
-      // Verify index exists
-      const indexes = await client.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='embeddings_embedding_idx'",
-      );
-      expect(indexes.rows).toHaveLength(1);
-      client.close();
+    test("does not recreate the index during actual EntityService initialization", async () => {
+      const context = await setupEntityService([]);
+      const { client } = createEmbeddingDatabase(context.embeddingDbConfig);
+      try {
+        // An existing installation may still have the former vector index.
+        await client.execute(
+          "CREATE INDEX IF NOT EXISTS embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
+        );
+        await context.entityService.initialize();
+        expect(
+          (
+            await client.execute(
+              "SELECT name FROM sqlite_master WHERE name = 'embeddings_embedding_idx'",
+            )
+          ).rows,
+        ).toHaveLength(0);
+      } finally {
+        client.close();
+        context.entityService.close();
+        await context.cleanup();
+      }
     });
   });
 

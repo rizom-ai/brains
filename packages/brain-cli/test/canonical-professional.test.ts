@@ -117,9 +117,8 @@ describe("canonical professional posture", () => {
     expect(pluginConfig(resolved, "social-media")).toMatchObject({
       autoGenerateOnBlogPublish: true,
     });
-    expect(pluginConfig(resolved, "buttondown")).toMatchObject({
-      doubleOptIn: true,
-    });
+    expect(pluginIds(resolved)).not.toContain("buttondown");
+    expect(pluginIds(resolved)).not.toContain("resend");
     expect(pluginIds(resolved)).toContain("atproto");
     expect(pluginIds(resolved)).toContain("atproto-registry");
   });

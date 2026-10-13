@@ -11,6 +11,7 @@ import {
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";
+import type { BlogPost, BlogPostStatus } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
 describe("blog ATProto projection", () => {
@@ -50,6 +51,60 @@ describe("blog ATProto projection", () => {
       sourceEntityId: "post-1",
       publishedAt: "2026-05-28T12:00:00.000Z",
     });
+  });
+
+  it("only treats published posts as publishable", () => {
+    const projection = createBlogAtprotoProjection();
+    const postWithStatus = (status: BlogPostStatus): BlogPost =>
+      createMockPost(
+        "post-1",
+        "Distributed Brains",
+        "distributed-brains",
+        status,
+      );
+
+    expect(projection.isPublishable?.(postWithStatus("published"))).toBe(true);
+    for (const status of ["generating", "draft", "queued", "failed"] as const) {
+      expect(projection.isPublishable?.(postWithStatus(status))).toBe(false);
+    }
+  });
+
+  it("names its page on this site, unless the essay was first published elsewhere", async () => {
+    const projection = createBlogAtprotoProjection();
+    const context = createMockServicePluginContext();
+    const entity = createMockPost(
+      "post-1",
+      "Distributed Brains",
+      "distributed-brains",
+    );
+    const here = await projection.buildRecord({
+      entity,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/essays/distributed-brains",
+    });
+    expect(here.canonicalUrl).toBe(
+      "https://brain.example.com/essays/distributed-brains",
+    );
+    const elsewhere = await projection.buildRecord({
+      entity: {
+        ...entity,
+        content: entity.content.replace(
+          "---\n",
+          "---\ncanonicalUrl: https://elsewhere.example/first\n",
+        ),
+      },
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/essays/distributed-brains",
+    });
+    expect(elsewhere.canonicalUrl).toBe("https://elsewhere.example/first");
+    const unplaced = await projection.buildRecord({
+      entity,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
   });
 
   it("includes cover image shape during dry-run without uploading a blob", async () => {
