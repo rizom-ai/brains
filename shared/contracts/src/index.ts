@@ -278,6 +278,11 @@ export {
   type TopicTitlesResponse,
 } from "./topic-titles";
 export {
+  TOPIC_SOURCE_TYPES_MESSAGE,
+  topicSourceTypesResponseSchema,
+  type TopicSourceTypesResponse,
+} from "./topic-source-types";
+export {
   NOTE_CAPTURE_MESSAGE,
   noteCaptureRequestSchema,
   noteCaptureResponseSchema,

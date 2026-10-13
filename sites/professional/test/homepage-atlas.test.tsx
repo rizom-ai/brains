@@ -90,10 +90,11 @@ function source(
 ): Parameters<typeof loadHomepageAtlas>[0] {
   return {
     semantic: { project },
+    sourceTypes: async () =>
+      Object.keys(listed).filter((type) => type !== "topic"),
     entityService: {
       listEntities: async ({ entityType }) => listed[entityType] ?? [],
       // A small corpus: the map draws all of it.
-      getEntityTypes: () => Object.keys(listed),
       countEntities: async ({ entityType }) =>
         (listed[entityType] ?? []).length,
       nearestToEntity: async () => [],

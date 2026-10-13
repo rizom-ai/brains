@@ -29,6 +29,34 @@ export function includesTopicSourceType(
   );
 }
 
+/** Whether topics are drawn from this type: included and given weight. */
+export function isTopicSourceType(
+  entityType: string,
+  config: TopicsPluginConfig,
+  entityTypeConfig: EntityTypeConfig,
+): boolean {
+  return (
+    includesTopicSourceType(entityType, config, entityTypeConfig) &&
+    topicSourcePolicy(entityType, config, entityTypeConfig).weight > 0
+  );
+}
+
+/** The entity types topics are drawn from, sorted. */
+export function topicSourceTypes(
+  entityService: {
+    getEntityTypes(): string[];
+    getEntityTypeConfig(type: string): EntityTypeConfig;
+  },
+  config: TopicsPluginConfig,
+): string[] {
+  return entityService
+    .getEntityTypes()
+    .filter((type) =>
+      isTopicSourceType(type, config, entityService.getEntityTypeConfig(type)),
+    )
+    .sort();
+}
+
 export function topicSourcePolicy(
   entityType: string,
   config: TopicsPluginConfig,

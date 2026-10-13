@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  ownerlessTopics,
+  duplicateTopics,
   ownTopicSources,
 } from "../../src/lib/topic-ownership";
 
@@ -34,10 +34,10 @@ describe("ownTopicSources", () => {
   });
 });
 
-describe("ownerlessTopics", () => {
+describe("duplicateTopics", () => {
   it("joins a topic that owns none of its sources to the one owning most", () => {
     expect(
-      ownerlessTopics([
+      duplicateTopics([
         { topicId: "bildung", sources: [near("a", 0.1), near("b", 0.1)] },
         { topicId: "greek-agon", sources: [near("c", 0.1)] },
         {
@@ -48,9 +48,23 @@ describe("ownerlessTopics", () => {
     ).toEqual([{ topicId: "cultural-formation", into: "bildung" }]);
   });
 
+  it("keeps a broad topic whose sources are spread over several topics", () => {
+    expect(
+      duplicateTopics([
+        { topicId: "bildung", sources: [near("a", 0.1)] },
+        { topicId: "greek-agon", sources: [near("b", 0.1)] },
+        { topicId: "bad-conscience", sources: [near("c", 0.1)] },
+        {
+          topicId: "will-to-power",
+          sources: [near("a", 0.2), near("b", 0.2), near("c", 0.2)],
+        },
+      ]),
+    ).toEqual([]);
+  });
+
   it("keeps a topic that owns one source", () => {
     expect(
-      ownerlessTopics([
+      duplicateTopics([
         { topicId: "bildung", sources: [near("a", 0.1)] },
         {
           topicId: "cultural-formation",
@@ -62,7 +76,7 @@ describe("ownerlessTopics", () => {
 
   it("keeps a topic that has no sources to judge by", () => {
     expect(
-      ownerlessTopics([
+      duplicateTopics([
         { topicId: "bildung", sources: [near("a", 0.1)] },
         { topicId: "unembedded", sources: [] },
       ]),
@@ -71,7 +85,7 @@ describe("ownerlessTopics", () => {
 
   it("on a tie, joins the topic owning its closest source", () => {
     expect(
-      ownerlessTopics([
+      duplicateTopics([
         { topicId: "bildung", sources: [near("a", 0.1)] },
         { topicId: "greek-agon", sources: [near("b", 0.1)] },
         {
