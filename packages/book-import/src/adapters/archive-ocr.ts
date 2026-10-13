@@ -205,12 +205,13 @@ const RUNNING_HEAD =
 /**
  * The printer's signature at a sheet's foot: the volume by its authors'
  * names, a comma after the first or more names after it, and numeral
- * (Freud, XIII; Marx, Engels, Lassalle. II), the sheet's number after it, the
+ * (Freud, XIII; Marx, Engels, Lassalle. II; Marx-Engels' Schriften. II),
+ * the sheet's number after it, the
  * numeral and the number however misread. A single word with a stop and a stray mark
  * (Gesetz. |) is a line's end.
  */
 const SIGNATURE =
-  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3})\s*[IVXLl1|]+\.?[,.]?\s*[\dIl|]*\s*$/u;
+  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
@@ -907,6 +908,10 @@ function normalised(text: string): string {
       .replace(/(?<=\p{L})¬$/u, "-")
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
+      // A capital umlaut the OCR read twice, small and capital: üÜber.
+      .replace(/([äöü])([ÄÖÜ])/gu, (pair, small: string, capital: string) =>
+        small.toUpperCase() === capital ? capital : pair,
+      )
       // A year of the 1800s or 1900s the OCR read as i, g and o for 1, 9 and 0.
       .replace(/(?<![\p{L}\d])[1i][89g][\dgoi]{2}(?![\p{L}\d])/gu, (year) =>
         /\p{L}/u.test(year)

@@ -83,6 +83,30 @@ describe("parseArchiveOcrWork", () => {
     expect(paragraphs).toContain("1 Eine Anmerkung. K.");
   });
 
+  it.each(["Marx-Engels' Schriften. II. 2", "Marx-Engels' Schriften. IJ."])(
+    "leaves out a signature that names its book after hyphened authors: %s",
+    async (signature) => {
+      const hocr = (await fixture()).replace(
+        ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+        `>.seits Beschreibung und Rechenschaft zu geben.</span>\n  <span class='ocr_line' title='bbox 180 4250 1400 4300; x_size 50'>${signature}</span>`,
+      );
+      const paragraphs = parseArchiveOcrWork(hocr, work).flatMap(
+        (unit) => unit.paragraphs,
+      );
+
+      expect(paragraphs.join("\n")).not.toContain("Schriften");
+    },
+  );
+
+  it("reads a capital umlaut the OCR doubled with its small letter as the capital", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, 1919. üÜber das Ich; äÄra.",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, 1919. Über das Ich; Ära.");
+  });
+
   it("keeps a citation set alone at the right, though it holds no word", async () => {
     const hocr = (await fixture()).replace(
       ">.seits Beschreibung und Rechenschaft zu geben.</span>",

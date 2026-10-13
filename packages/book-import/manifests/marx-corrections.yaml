@@ -8690,8 +8690,8 @@ p2theorienberd02marx:
     to: "[an]:"
     by: scan
   - page: 6
-    from: dieses „elearing ef
-    to: dieses „clearing ef
+    from: kontinentalen Land. Was heißt aber dieses „elearing ef
+    to: kontinentalen Land. Was heißt aber dieses „clearing of
     by: scan
   - page: 10
     from: (jene]
@@ -18694,6 +18694,10 @@ gesammelteschrif01marxuoft:
     from: sehen, laudatorés temporis
     to: sehen, laudatores temporis
     by: scan
+  - page: 4
+    from: von 1831als die
+    to: von 1831 als die
+    by: scan
   - page: 7
     from: übergewicht
     to: Übergewicht
@@ -18710,9 +18714,17 @@ gesammelteschrif01marxuoft:
     from: Wahlnorruption.
     to: Wahlkorruption.
     by: scan
+  - page: 25
+    from: W. J. For, einen
+    to: W. J. Fox, einen
+    by: scan
   - page: 33
     from: übermaß
     to: Übermaß
+    by: scan
+  - page: 38
+    from: leicht vum Windfang
+    to: leicht zum Windfang
     by: scan
   - page: 40
     from: Conditio sineé qua
@@ -18729,6 +18741,10 @@ gesammelteschrif01marxuoft:
   - page: 59
     from: Eine alkersschwache Regierung. — Aussichten des Koalitions-
     to: Eine altersschwache Regierung. — Aussichten des Koalitions-
+    by: scan
+  - page: 59
+    from: neue Ara in
+    to: neue Ära in
     by: scan
   - page: 60
     from: die „Enteénte cordiale“
@@ -18758,6 +18774,34 @@ gesammelteschrif01marxuoft:
     from: über das
     to: Über das
     by: scan
+  - page: 70
+    from: 1852 18 . ae Diskont-Rate
+    to: 1852 | Gold Pfd. St. | Sicherheiten Pfd. St. | Diskont-Rate
+    by: scan
+  - page: 70
+    from: 22. April. 19587670 23782000 herabgesetzt auf 2 Prozent
+    to: 22. April | 19587670 | 23782000 | herabgesetzt auf 2 Prozent
+    by: scan
+  - page: 70
+    from: 24. Juli . 22065349 24013728 «2 2
+    to: 24. Juli | 22065349 | 24013728 | ⸗ ⸗ 2 ⸗
+    by: scan
+  - page: 70
+    from: 18. Dezbr. 21165224 26765724 2 2
+    to: 18. Dezbr. | 21165224 | 26765724 | ⸗ ⸗ 2 ⸗
+    by: scan
+  - page: 70
+    from: 24. 20794 190 27545640 2 2
+    to: 24. ⸗ | 20794190 | 27545640 | ⸗ ⸗ 2 ⸗
+    by: scan
+  - page: 70
+    from: 1853 ——
+    to: 1853 | | |
+    by: scan
+  - page: 70
+    from: 1. Jan. . 20527 662 29284447 ö nn —2— 120 0.
+    to: 1. Jan. | 20527662 | 29284447 | ⸗ ⸗ 2 Proz., aber am 6. Januar auf 2½ erhöht.
+    by: scan
   - page: 73
     from: und die Sklaveren.
     to: und die Sklaverei.
@@ -18785,6 +18829,42 @@ gesammelteschrif01marxuoft:
   - page: 79
     from: Die Todesstrafe. — Herrn Cobdens Pamphlek. — Anordnungen
     to: Die Todesstrafe. — Herrn Cobdens Pamphlet. — Anordnungen
+    by: scan
+  - page: 80
+    from: "Hinrichtung von: Morde und Selbstmorde:"
+    to: "Hinrichtung von: | | Morde und Selbstmorde: |"
+    by: scan
+  - page: 80
+    from: Millan20. März Hanna Saddles. 22. März
+    to: Millan | 20. März | Hanna Saddles | 22. März
+    by: scan
+  - page: 80
+    from: Petleyr 20. 30 G. Newton 22.
+    to: Petley | 20. ⸗ | N. G. Newton | 22. ⸗
+    by: scan
+  - page: 80
+    from: Smith 27. J. G. Gleeson (vier Morde in
+    to: Smith | 27. ⸗ | J. G. Gleeson (vier Morde in Liverpool) | 27. ⸗
+    by: scan
+  - page: 80
+    from: Howe..1.. Lidepooh 27. 5
+    to: Howe | 31. ⸗ | Mord und Selbstmord in Leicester | 2. April
+    by: scan
+  - page: 80
+    from: Landiech ... 9. April Mord und in Lei-
+    to: Landish | 9. April | Vergiftung in Bath | 7. ⸗
+    by: scan
+  - page: 80
+    from: Sara Thomas. 9. Lester . 2. April
+    to: Sara Thomas | 9. ⸗ | W. Bailey | 8. ⸗
+    by: scan
+  - page: 80
+    from: Griffietreͤrrr18. Vergiftung in Bath 777..
+    to: Griffith | 18. ⸗ | |
+    by: scan
+  - page: 80
+    from: Rush)h. 424. W. BVailer 8.
+    to: Rush | 21. ⸗ | |
     by: scan
   - page: 85
     from: übelstand
@@ -18948,6 +19028,14 @@ gesammelteschrif01marxuoft:
     from: den Nuhen davon?
     to: den Nutzen davon?
     by: scan
+  - page: 126
+    from: Es ist darin ö
+    to: Es ist darin
+    by: scan
+  - page: 126
+    from: 7auf 6 Pence
+    to: 7 auf 6 Pence
+    by: scan
   - page: 129
     from: gewähren. überall
     to: gewähren. Überall
@@ -18989,16 +19077,136 @@ gesammelteschrif01marxuoft:
     to: Überschusses,
     by: scan
   - page: 132
-    from: 6 Penee 160000
-    to: 6 Pence 160000
+    from: Pfund Sterling
+    to: "[Posten] | Pfund Sterling"
+    by: scan
+  - page: 132
+    from: 1. Abschaffung der ganzen Seifensteuer. .. .. 1111000
+    to: 1. Abschaffung der ganzen Seifensteuer | 1111000
+    by: scan
+  - page: 132
+    from: 2. Reduzierung der Lebensversicherungsgebühren von 1 2 Schilling
+    to: 2. Reduzierung der Lebensversicherungsgebühren von 2 Schilling 6 Pence auf 6 Pence | 29000
+    by: scan
+  - page: 132
+    from: 6 Pence auf 6 Peneee 29000
+    to: ""
+    by: scan
+  - page: 132
+    from: 3. Reduzierung der Tunsenweagebahrn den onheus
+    to: 3. Reduzierung der Quittungsstempelgebühren auf den Einheitssatz von 1 Penny | 155000
+    by: scan
+  - page: 132
+    from: satz von 1 Penny .. . I55000
+    to: ""
+    by: scan
+  - page: 132
+    from: 4. Reduzierung der Gebühr für Lehrtontrakte
+    to: 4. Reduzierung der Gebühr für Lehrkontrakte von 20 Schilling auf 2 Schilling 6 Pence; 5. Reduzierung der Gebühr bei Anwaltszeugnissen | 50000
+    by: scan
+  - page: 132
+    from: von 20 Schilling auf 2 Schilling 6 Pence 50000
+    to: ""
+    by: scan
+  - page: 132
+    from: 5. Reduzierung der Gebühr bei dn
+    to: ""
+    by: scan
+  - page: 132
+    from: nissen . V. ů
+    to: ""
+    by: scan
+  - page: 132
+    from: 6. Reduzierung der Annoncensteuer von 1 6 Pence
+    to: 6. Reduzierung der Annoncensteuer von 1 Schilling 6 Pence auf 6 Pence | 160000
+    by: scan
+  - page: 132
+    from: auf 6 Penee 160000
+    to: ""
+    by: scan
+  - page: 132
+    from: 7. AVmnn der Steuer für Mietdroschken von 10 Scilne
+    to: 7. Reduzierung der Steuer für Mietdroschken von 1 Schilling 5 Pence auf 1 Schilling pro Tag | 26000
+    by: scan
+  - page: 132
+    from: 5 Pence auf 1 Schilling pro gg 26000
+    to: ""
     by: scan
   - page: 133
-    from: 6 Penee 87000
-    to: 6 Pence 87000
+    from: Pfund Sterling
+    to: ""
     by: scan
   - page: 133
-    from: (6 Penee 2
-    to: (6 Pence 2
+    from: 8. Reduzierung der Steuer für männliche Bediente von über
+    to: 8. Reduzierung der Steuer für männliche Bediente von über 18 Jahre auf 1 Pfund 1 Schilling und von unter 18 Jahren auf 10 Schilling 6 Pence | 87000
+    by: scan
+  - page: 133
+    from: 18 Jahre auf 1 Pfund 1 Schilling und von unter 18 5
+    to: ""
+    by: scan
+  - page: 133
+    from: auf 10 Schilling 6 Penee 87000
+    to: ""
+    by: scan
+  - page: 133
+    from: 9. Reduzierung der Steuer für Privatequtpagen IILE 95000
+    to: 9. Reduzierung der Steuer für Privatequipagen | 95000
+    by: scan
+  - page: 133
+    from: 10. Reduzierung der Hunde-, Pferde- und Ponysteuer.. 108000
+    to: 10. Reduzierung der Hunde-, Pferde- und Ponysteuer | 108000
+    by: scan
+  - page: 133
+    from: 11. Reduzierung der Steuer auf Postpferde, die durch eine Ge-
+    to: 11. Reduzierung der Steuer auf Postpferde, die durch eine Gebühr auf Meilengelder ersetzt werden soll | 54000
+    by: scan
+  - page: 133
+    from: bühr auf Meilengelder ersetzt werden soll .. 54000
+    to: ""
+    by: scan
+  - page: 133
+    from: 12. Reduzierung des 2 die Kolonien (6 Penee 2
+    to: 12. Reduzierung des Postportos für die Kolonien (6 Pence pro Brief) | 40000
+    by: scan
+  - page: 133
+    from: Brief5) 40000
+    to: ""
+    by: scan
+  - page: 133
+    from: 13. Reduzierung des Teezolls von 2 Schilling 2½ Pener auf
+    to: 13. Reduzierung des Teezolls von 2 Schilling 2½ Pence auf 1 Schilling 10 Pence bis 5. April 1854, auf 1 Schilling 6 Pence im Jahre 1855, 1 Schilling 3 Pence 1856 und von da an auf 1 Schilling | 3000000
+    by: scan
+  - page: 133
+    from: 1 Schilling 10 Pence bis 5. April 1854, auf 1 Schilling
+    to: ""
+    by: scan
+  - page: 133
+    from: 6 Pence im Jahre 1855, 1 Schilling 3 Pence 1856 und von
+    to: ""
+    by: scan
+  - page: 133
+    from: da an auf 1 Schilling .. 3000000
+    to: ""
+    by: scan
+  - page: 133
+    from: 14. Reduzierung der Zölle bei Äpfeln, Käse, Kakao, Cier, Butter
+    to: 14. Reduzierung der Zölle bei Äpfeln, Käse, Kakao, Eier, Butter und Früchten | 262000
+    by: scan
+  - page: 133
+    from: und Früchten. 262000
+    to: ""
+    by: scan
+  - page: 133
+    from: 15. Reduzierung der Zölle bei 133 geringfügigen Artikeln * 70000
+    to: 15. Reduzierung der Zölle bei 133 geringfügigen Artikeln | 70000
+    by: scan
+  - page: 133
+    from: 16. Abschaffung der Zölle bei 123 geringfügigen Artikeln .. 53000
+    to: 16. Abschaffung der Zölle bei 123 geringfügigen Artikeln | 53000
+    by: scan
+  - page: 133
+    from: Totalsumme 5315000
+    to: Totalsumme | 5315000
     by: scan
   - page: 139
     from: „Dio é popolo“
@@ -19108,6 +19316,10 @@ gesammelteschrif01marxuoft:
     from: übeln
     to: Übeln
     by: scan
+  - page: 230
+    from: bruar 1829.) ö
+    to: bruar 1829.)
+    by: scan
   - page: 242
     from: überbleibsel
     to: Überbleibsel
@@ -19116,13 +19328,25 @@ gesammelteschrif01marxuoft:
     from: Frankreich. über
     to: Frankreich. Über
     by: scan
+  - page: 245
+    from: Krakau uud ihre
+    to: Krakau und ihre
+    by: scan
   - page: 248
     from: übergriffe
     to: Übergriffe
     by: scan
+  - page: 252
+    from: Graf Orloff“* aus
+    to: Graf Orloff* aus
+    by: scan
   - page: 257
     from: übermaß
     to: Übermaß
+    by: scan
+  - page: 260
+    from: zum Trotz. ö
+    to: zum Trotz.
     by: scan
   - page: 265
     from: übergriffe
@@ -19207,6 +19431,10 @@ gesammelteschrif01marxuoft:
   - page: 337
     from: überbringer
     to: Überbringer
+    by: scan
+  - page: 337
+    from: Marx-Engels' Schriften. J. D
+    to: ""
     by: scan
   - page: 341
     from: que couteé, die
