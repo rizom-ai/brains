@@ -1,101 +1,120 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import type { Plugin } from "@brains/plugins";
-import { installSiteBuilder } from "../helpers/install";
-import type { UISlotRegistry } from "@brains/site-engine";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createTestConfig } from "../test-helpers";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import { defineServicePlugin, SdkError, z } from "@brains/sdk/services";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { caughtError } from "@brains/test-utils";
+import { SiteBuilder } from "../../src/lib/site-builder";
+import { instantiate, SITE_BUILDER_PLUGIN_ID } from "../helpers/install";
 
-describe("Site-builder slot messaging", () => {
-  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
-  let slotRegistry: UISlotRegistry;
-
-  beforeEach(async () => {
-    harness = createPluginHarness<Plugin>();
-    slotRegistry = (
-      await installSiteBuilder(
-        harness,
-        createTestConfig({
-          previewOutputDir: "/tmp/test-output",
-          productionOutputDir: "/tmp/test-output-production",
-        }),
-      )
-    ).slots;
+describe("worker layout contributions", () => {
+  const h = createPluginHarness();
+  const rendered: string[][] = [];
+  let late: (() => unknown) | undefined;
+  let restore = (): void => {};
+  beforeEach(() => {
+    const build = spyOn(SiteBuilder.prototype, "build").mockImplementation(
+      async (options) => {
+        const entries = options.slots?.getSlot("footer-top") ?? [];
+        late = entries[0]?.render;
+        rendered.push(
+          entries.map(
+            (entry) =>
+              `${entry.pluginId}:${renderToStaticMarkup(entry.render())}`,
+          ),
+        );
+        return {
+          success: true,
+          outputDir: options.outputDir,
+          routesBuilt: 1,
+          filesGenerated: 1,
+        };
+      },
+    );
+    restore = (): void => {
+      build.mockRestore();
+    };
   });
-
   afterEach(async () => {
-    await harness.reset();
+    await h.reset();
+    restore();
+    rendered.length = 0;
+    late = undefined;
+  });
+  async function worker(plugin: Plugin): Promise<void> {
+    const register = plugin.register.bind(plugin);
+    plugin.register = (shell, options): ReturnType<typeof register> =>
+      register(shell, { ...options, executionOnly: true });
+    await h.installPlugin(plugin);
+  }
+  async function contributor(
+    id: string,
+    priority: number,
+    read: () => string[],
+  ): Promise<void> {
+    const declaration = defineServicePlugin(
+      { id, config: z.object({}) },
+      {
+        layoutSlots: () =>
+          read().map((value) => ({
+            slotName: "footer-top",
+            priority,
+            render: (): ReturnType<typeof createElement> =>
+              createElement("p", null, value),
+          })),
+      },
+    );
+    const [plugin] = instantiatePluginPackageDefinition(
+      declaration,
+      {},
+      { name: `@fixture/${id}`, version: "1" },
+    );
+    if (!plugin) throw new Error("Missing provider");
+    await worker(plugin);
+  }
+  const build = (): Promise<unknown> =>
+    h.runJob(`${SITE_BUILDER_PLUGIN_ID}:site-build`, {
+      outputDir: "/tmp/slot-fixture",
+      environment: "preview",
+    });
+
+  it("collects on every build, with priority/order, removal and no accumulated registrations", async () => {
+    let values = ["first"];
+    await contributor("low", 10, () => values);
+    await worker(instantiate({}));
+    await build();
+    await contributor("high", 100, () => ["high"]);
+    await contributor("tie", 100, () => ["tie"]);
+    values = ["changed", "second"];
+    await build();
+    values = [];
+    await build();
+    expect(rendered).toEqual([
+      ["@fixture/low:low:<p>first</p>"],
+      [
+        "@fixture/high:high:<p>high</p>",
+        "@fixture/tie:tie:<p>tie</p>",
+        "@fixture/low:low:<p>changed</p>",
+        "@fixture/low:low:<p>second</p>",
+      ],
+      ["@fixture/high:high:<p>high</p>", "@fixture/tie:tie:<p>tie</p>"],
+    ]);
+    expect(late).toBeDefined();
+    expect(() => late?.()).toThrow(SdkError);
   });
 
-  describe("slot:register message handling", () => {
-    it("should collect slot registrations from messages", async () => {
-      // Simulate a plugin sending a slot registration
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "newsletter",
-        slotName: "footer-top",
-        render: (): null => null,
-      });
-
-      // Get the slot registry from site-builder
-      expect(slotRegistry.hasSlot("footer-top")).toBe(true);
+  it("refuses a failed collection without invoking the renderer", async () => {
+    await worker(instantiate({}));
+    await contributor("broken", 10, () => {
+      throw new Error("private details");
     });
-
-    it("should collect multiple slot registrations", async () => {
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "newsletter",
-        slotName: "footer-top",
-        render: (): null => null,
-      });
-
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "social",
-        slotName: "footer-top",
-        render: (): null => null,
-        priority: 100,
-      });
-
-      const footerSlots = slotRegistry.getSlot("footer-top");
-      expect(footerSlots).toHaveLength(2);
+    expect(await build().catch(caughtError)).toMatchObject({
+      code: "handler_failed",
     });
-
-    it("should preserve priority from registration", async () => {
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "low-priority",
-        slotName: "footer-top",
-        render: (): null => null,
-        priority: 10,
-      });
-
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "high-priority",
-        slotName: "footer-top",
-        render: (): null => null,
-        priority: 100,
-      });
-
-      const footerSlots = slotRegistry.getSlot("footer-top");
-
-      // Higher priority should come first
-      expect(footerSlots[0]?.pluginId).toBe("high-priority");
-      expect(footerSlots[1]?.pluginId).toBe("low-priority");
-    });
-
-    it("should handle registrations for different slots", async () => {
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "newsletter",
-        slotName: "footer-top",
-        render: (): null => null,
-      });
-
-      await harness.sendMessage("plugin:site-builder:slot:register", {
-        pluginId: "widgets",
-        slotName: "sidebar",
-        render: (): null => null,
-      });
-
-      expect(slotRegistry.hasSlot("footer-top")).toBe(true);
-      expect(slotRegistry.hasSlot("sidebar")).toBe(true);
-      expect(slotRegistry.getSlot("footer-top")).toHaveLength(1);
-      expect(slotRegistry.getSlot("sidebar")).toHaveLength(1);
-    });
+    expect(rendered).toEqual([]);
   });
 });

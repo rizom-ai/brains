@@ -1,12 +1,15 @@
 import type { NewsletterConfigInput } from "../src";
 import { afterEach, describe, expect, it } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import { defineServicePlugin, z } from "@brains/sdk/services";
 import {
   createPluginHarness,
   expectTemplateDataSourcesResolve,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { newsletterEntity } from "../src";
 import { newsletterMetadataSchema } from "../src/schemas/newsletter";
 import {
@@ -166,15 +169,30 @@ describe("newsletter package", () => {
     async function slotRegistrations(
       config: NewsletterConfigInput = {},
     ): Promise<unknown[]> {
-      const registered: unknown[] = [];
-      harness.subscribe(SITE_BUILDER_CHANNELS.slotRegister, async (msg) => {
-        registered.push(msg.payload);
-        return { success: true };
+      await installNewsletter(harness, config);
+      let read = async (): Promise<unknown[]> => {
+        throw new Error("Missing reader");
+      };
+      const definition = defineServicePlugin({
+        id: "reader",
+        config: z.object({}),
+        setup: ({ siteContributions }) => {
+          read = (): Promise<unknown[]> =>
+            siteContributions.withSlots(
+              new AbortController().signal,
+              async (slots) => [...slots],
+            );
+          return {};
+        },
       });
-      const { service } = await installNewsletter(harness, config);
-      if (!service.ready) throw new Error("Service plugin has no ready hook");
-      await service.ready();
-      return registered;
+      const [reader] = instantiatePluginPackageDefinition(
+        definition,
+        {},
+        { name: "@fixture/reader", version: "1" },
+      );
+      if (!reader) throw new Error("Missing reader");
+      await harness.installPlugin(reader);
+      return read();
     }
 
     it("offers the footer signup form to the site once Buttondown is configured", async () => {
@@ -185,7 +203,7 @@ describe("newsletter package", () => {
       expect(registered).toHaveLength(1);
       expect(registered[0]).toMatchObject({
         slotName: "footer-top",
-        pluginId: "delivery",
+        pluginId: SERVICE_PLUGIN_ID,
       });
       const payload = registered[0];
       const render =

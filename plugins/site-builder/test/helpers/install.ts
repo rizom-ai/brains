@@ -5,7 +5,7 @@ import {
   type PluginCapabilities,
 } from "@brains/plugins";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import { RouteRegistry, UISlotRegistry } from "@brains/site-engine";
+import { RouteRegistry } from "@brains/site-engine";
 import { siteBuilderService } from "../../src";
 import type { SiteBuilderConfigInput } from "../../src/config";
 import packageJson from "../../package.json";
@@ -18,7 +18,6 @@ export const SITE_BUILDER_PLUGIN_ID: string = `${packageJson.name}:site-builder`
 
 export interface SiteBuilderRegistries {
   readonly routes: RouteRegistry;
-  readonly slots: UISlotRegistry;
 }
 
 /** The site builder as the runtime builds it from one configuration. */
@@ -54,7 +53,6 @@ export async function installSiteBuilder(
 ): Promise<InstalledSiteBuilder> {
   const registries: SiteBuilderRegistries = {
     routes: new RouteRegistry(harness.getMockShell().getLogger()),
-    slots: new UISlotRegistry(),
   };
   const plugin = instantiate(config, registries);
   const capabilities = await harness.installPlugin(plugin);

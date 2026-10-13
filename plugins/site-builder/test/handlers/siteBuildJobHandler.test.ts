@@ -224,7 +224,7 @@ describe("the site build job", () => {
           };
         },
       },
-      slots,
+      withSlots: async (_signal, run) => run(slots),
     });
 
     await run({ outputDir: "/tmp/output" });

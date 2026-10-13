@@ -690,6 +690,25 @@ refuses admission or the collected result but does not interrupt or undo admitte
 callbacks, and provides no total shutdown deadline. This is not an arbitrary-topic
 `messaging.collect` API, a cross-process barrier, or a publication receipt.
 
+For trusted static site presentation, services may declare
+`layoutSlots: ({ config, state }) => [{ slotName, render, priority? }]`.
+Newsletter is the named provider; Site Builder consumes them through
+`siteContributions.withSlots(signal, async (slots) => ...)`. The host assigns each
+installed `pluginId`, validates and detaches declarations, and issues contributions
+for that collection only. Do not supply ownership fields or send raw callbacks over
+the internal slot channel. Render handles expire when the callback returns or
+throws, when its signal aborts, or when the owning service shuts down.
+
+The builder renders each declared slot once per build into a detached HTML snapshot,
+even when that build is subsequently skipped. The same bytes drive fingerprinting
+and page output, so changed or removed slots invalidate cached output without
+rehashing function source. Slots render in an isolated static React context, without
+inheriting page providers or hydration; nested components must not perform delivery
+or other effects. Output uses a `data-site-slot` wrapper. Layout slot readers expose
+`getSlotNames()`, `getSlot(name)`, and `hasSlot(name)`; no mutable registry is issued.
+Invalid or failing contributions fail the build. This site-only presentation API
+does not permit custom operator widgets or confer newsletter delivery authority.
+
 Durable `runtimeState({ namespace, schema })` stores are separate from setup's
 in-memory return value. `set()` and `setIfNotExists()` accept the schema's input
 type; `get()` and `list()` return its parsed output. Storage retains validated

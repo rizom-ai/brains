@@ -13,6 +13,8 @@ export interface SiteSlotRegistration {
 
 /** Minimal slot registry contract consumed by layouts. */
 export interface LayoutSlots {
+  /** Enumerate inputs so the builder can snapshot and fingerprint every slot. */
+  getSlotNames(): string[];
   getSlot(slotName: string): SiteSlotRegistration[];
   hasSlot(slotName: string): boolean;
 }

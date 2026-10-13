@@ -33,6 +33,7 @@ import { sitePageUrl } from "../internal/site-page-url";
 import { registerDeclaredSubscriptions } from "../interface/declared-subscriptions";
 import { createRequester } from "../internal/requester";
 import { createSiteContributions } from "../internal/site-contributions";
+import { registerSiteSlotProvider } from "../internal/site-slot-contributions";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
 import {
@@ -847,6 +848,18 @@ class DeclarativeServicePlugin<
         state: this.state,
         jobs: this.jobs(),
       }) ?? [];
+    if (this.definition.layoutSlots) {
+      registerSiteSlotProvider(
+        context.messaging,
+        this.id,
+        this.operatorAbortController.signal,
+        () =>
+          this.definition.layoutSlots?.({
+            config: this.config,
+            state: this.requireState(),
+          }) ?? [],
+      );
+    }
     registerDeclaredSubscriptions({
       ai: context.ai,
       label: `Service "${this.definition.id}"`,

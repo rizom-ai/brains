@@ -1,4 +1,8 @@
 import type { ServiceGroupingDeclaration } from "./grouping-definition";
+import type {
+  ServiceLayoutSlot,
+  InstalledLayoutSlot,
+} from "./site-slot-contract";
 import type { SchemaReturn } from "../internal/schema-return";
 import type {
   SdkError,
@@ -1253,6 +1257,11 @@ interface ServiceDefinitionHeader<
          */
         readonly siteContributions: {
           headScripts(signal?: AbortSignal): Promise<readonly string[]>;
+          /** Newsletter layout contributions, owned by the host and valid only during this build. */
+          withSlots<T>(
+            signal: AbortSignal,
+            build: (slots: readonly InstalledLayoutSlot[]) => Promise<T>,
+          ): Promise<T>;
         };
         /**
          * The other doors this caller should be shown.
@@ -1329,6 +1338,15 @@ interface ServiceDefinitionBehavior<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 > {
+  /** Trusted site UI, collected anew in workers. No owner/namespace override.
+   * Named provider: Newsletter. The builder snapshots HTML before fingerprinting.
+   */
+  readonly layoutSlots?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly ServiceLayoutSlot[])
+    | undefined;
   /**
    * Projection rules that read configuration.
    *

@@ -12,10 +12,12 @@ import {
   PROJECTION_CHANNELS,
   ProjectionWaveReadySchema,
 } from "@brains/contracts";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SITE_METADATA_UPDATED_CHANNEL } from "@brains/site-composition";
-import { RouteRegistry, UISlotRegistry } from "@brains/site-engine";
-import type { SlotRegistration } from "@brains/site-engine";
+import {
+  RouteRegistry,
+  UISlotRegistry,
+  type LayoutSlots,
+} from "@brains/site-engine";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { siteBuilderConfigSchema } from "./config";
@@ -44,13 +46,11 @@ import {
  */
 export interface SiteBuilderDeps {
   routes?: RouteRegistry;
-  slots?: UISlotRegistry;
 }
 
 /** What the site builder holds while it runs. */
 export interface SiteBuilderState {
   readonly routes: RouteRegistry;
-  readonly slots: UISlotRegistry;
   readonly builder: SiteBuilder;
   readonly status: SiteBuildStatusService;
   readonly rebuilds: RebuildManager;
@@ -65,18 +65,6 @@ const buildSiteInput = z.object({
     .describe(
       "Build environment (defaults to production, or preview if configured)",
     ),
-});
-
-// A slot contribution carries a bound renderer, which is a function rather
-// than data — the schema checks that one arrived, and the site engine's own
-// type says what it must be.
-const slotRegistrationPayload = z.looseObject({
-  slotName: z.string().min(1),
-  pluginId: z.string().min(1),
-  render: z.custom<SlotRegistration["render"]>(
-    (value) => typeof value === "function",
-  ),
-  priority: z.number().optional(),
 });
 
 /**
@@ -116,7 +104,6 @@ export function siteBuilderService(
         siteContributions,
       }): Promise<SiteBuilderState> => {
         const routes = deps.routes ?? new RouteRegistry(logger);
-        const slots = deps.slots ?? new UISlotRegistry();
         if (config.routes) {
           registerConfigRoutes(config.routes, "site-builder", routes);
         }
@@ -179,7 +166,16 @@ export function siteBuilderService(
           localSiteUrl,
           preferLocalUrls,
           themeCSS: config.themeCSS,
-          slots,
+          withSlots: <T>(
+            signal: AbortSignal,
+            build: (slots: LayoutSlots) => Promise<T>,
+          ): Promise<T> =>
+            siteContributions.withSlots(signal, async (entries) => {
+              const slots = new UISlotRegistry();
+              for (const { slotName, ...entry } of entries)
+                slots.register(slotName, entry);
+              return build(slots);
+            }),
           getHeadScripts: async (signal): Promise<string[]> => [
             ...config.headScripts,
             ...(await siteContributions.headScripts(signal)),
@@ -195,7 +191,6 @@ export function siteBuilderService(
 
         return {
           routes,
-          slots,
           builder,
           status,
           rebuilds,
@@ -207,7 +202,7 @@ export function siteBuilderService(
     {
       jobs: ({ state }) => [state.build],
 
-      // Routes and slots arrive from the packages that own
+      // Routes arrive from the packages that own
       // what they render. The payload schema is the boundary.
       subscriptions: ({ config, state }) => [
         ...routeSubscriptions(state.routes),
@@ -227,20 +222,6 @@ export function siteBuilderService(
               );
               if (exists) state.rebuilds.requestBuild(environment);
             }
-            return { success: true };
-          },
-        }),
-        defineSubscription({
-          topic: SITE_BUILDER_CHANNELS.slotRegister,
-          payload: slotRegistrationPayload,
-          handle: ({ payload }) => {
-            state.slots.register(payload.slotName, {
-              pluginId: payload.pluginId,
-              render: payload.render,
-              ...(payload.priority !== undefined && {
-                priority: payload.priority,
-              }),
-            });
             return { success: true };
           },
         }),

@@ -1,9 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import { defineServicePlugin, z } from "@brains/sdk/services";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { ReactElement } from "react";
 import { newsletterConfigSchema, type NewsletterConfigInput } from "../src";
-import { installNewsletter } from "./helpers/install";
+import {
+  installNewsletter,
+  instantiate,
+  SERVICE_PLUGIN_ID,
+} from "./helpers/install";
 import { SUBSCRIBE_PATH } from "../src/routes";
 
 interface PublishRegistration {
@@ -14,27 +21,94 @@ interface PublishRegistration {
 interface SlotRegistration {
   pluginId: string;
   slotName: string;
-  render: () => ReactElement<{ action?: string; successMessage?: string }>;
+  props: unknown;
+}
+
+async function slotReader(
+  harness: ReturnType<typeof createPluginHarness>,
+): Promise<(signal: AbortSignal) => Promise<readonly SlotRegistration[]>> {
+  let read: (
+    signal: AbortSignal,
+  ) => Promise<readonly SlotRegistration[]> = async () => {
+    throw new Error("Reader not installed");
+  };
+  const definition = defineServicePlugin({
+    id: "reader",
+    config: z.object({}),
+    setup: ({ siteContributions }) => {
+      read = (signal): Promise<readonly SlotRegistration[]> =>
+        siteContributions.withSlots(signal, async (slots) =>
+          slots.map((slot) => ({
+            pluginId: slot.pluginId,
+            slotName: slot.slotName,
+            props: slot.render()?.props,
+          })),
+        );
+      return {};
+    },
+  });
+  const [reader] = instantiatePluginPackageDefinition(
+    definition,
+    {},
+    { name: "@fixture/reader", version: "1" },
+  );
+  if (!reader) throw new Error("Missing reader");
+  await harness.installPlugin(reader);
+  return read;
 }
 
 describe("newsletter provider registration", () => {
+  for (const provider of ["buttondown", "resend", undefined] as const) {
+    it(`contributes ${provider ?? "no"} signup in workers without ready or pluginsRegistered`, async () => {
+      const harness = createPluginHarness();
+      try {
+        const config: NewsletterConfigInput = {
+          provider:
+            provider === "buttondown"
+              ? { type: "buttondown", apiKey: "synthetic", doubleOptIn: true }
+              : provider === "resend"
+                ? {
+                    type: "resend",
+                    apiKey: "synthetic",
+                    segmentId: "fixture",
+                    from: "sender@example.test",
+                  }
+                : undefined,
+        };
+        const { entity, service } = instantiate(config);
+        await harness.installPlugin(entity);
+        const register = service.register.bind(service);
+        service.register = (shell, options): ReturnType<typeof register> =>
+          register(shell, { ...options, executionOnly: true });
+        await harness.installPlugin(service);
+        const read = await slotReader(harness);
+        const slots = await read(new AbortController().signal);
+        expect(slots).toHaveLength(provider ? 1 : 0);
+        if (provider) {
+          expect(slots[0]?.pluginId).toBe(SERVICE_PLUGIN_ID);
+          expect(slots[0]?.props).toMatchObject({
+            action: SUBSCRIBE_PATH,
+            successMessage:
+              provider === "resend"
+                ? "You are subscribed."
+                : "Check your email to confirm your subscription.",
+          });
+        }
+      } finally {
+        await harness.reset();
+      }
+    });
+  }
   for (const provider of ["buttondown", "resend"] as const) {
     it(`registers ${provider} publishing and its matching signup action`, async () => {
       const harness = createPluginHarness();
       try {
         const publishes: PublishRegistration[] = [];
-        const slots: SlotRegistration[] = [];
+        const readSlots = await slotReader(harness);
         harness.subscribe<PublishRegistration>(
           "publish:register",
           async (msg) => {
             publishes.push(msg.payload);
-            return { success: true };
-          },
-        );
-        harness.subscribe<SlotRegistration>(
-          "plugin:site-builder:slot:register",
-          async (msg) => {
-            slots.push(msg.payload);
             return { success: true };
           },
         );
@@ -71,12 +145,13 @@ describe("newsletter provider registration", () => {
             publishTimestampField: "sentAt",
           },
         });
+        const slots = await readSlots(new AbortController().signal);
         expect(slots).toHaveLength(1);
         expect(slots[0]).toMatchObject({
-          pluginId: "delivery",
+          pluginId: SERVICE_PLUGIN_ID,
           slotName: "footer-top",
         });
-        expect(slots[0]?.render().props).toMatchObject({
+        expect(slots[0]?.props).toMatchObject({
           action: SUBSCRIBE_PATH,
           successMessage:
             provider === "resend"

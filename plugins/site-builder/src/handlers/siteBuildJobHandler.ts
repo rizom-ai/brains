@@ -44,7 +44,12 @@ export interface SiteBuildJobHandlerConfig {
   /** Prefer local URLs while the app is running outside deployed production. */
   preferLocalUrls?: boolean | undefined;
   themeCSS?: string | undefined;
-  slots?: LayoutSlots | undefined;
+  withSlots?:
+    | (<T>(
+        signal: AbortSignal,
+        build: (slots: LayoutSlots) => Promise<T>,
+      ) => Promise<T>)
+    | undefined;
   /** Resolve site-owned and installed contributions anew, before rendering. */
   getHeadScripts?: ((signal: AbortSignal) => Promise<string[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
@@ -106,25 +111,33 @@ export function handleSiteBuild(
       const headScripts = await cfg.getHeadScripts?.(signal);
       if (signal.aborted) throw new SdkError("cancelled");
 
-      const result = await cfg.siteBuilder.build(
-        {
-          outputDir: input.outputDir,
-          workingDir: input.workingDir,
-          sharedImagesDir: cfg.sharedImagesDir,
-          enableContentGeneration,
-          environment,
-          signal,
-          cleanBeforeBuild: true,
-          siteConfig,
-          siteUrl,
-          layouts: cfg.layouts,
-          themeCSS: cfg.themeCSS,
-          slots: cfg.slots,
-          headScripts,
-          ...(cfg.staticAssets && { staticAssets: cfg.staticAssets }),
-        },
-        buildProgress?.toCallback(),
-      );
+      const render = async (
+        slots?: LayoutSlots,
+      ): ReturnType<ISiteBuilder["build"]> => {
+        if (signal.aborted) throw new SdkError("cancelled");
+        return cfg.siteBuilder.build(
+          {
+            outputDir: input.outputDir,
+            workingDir: input.workingDir,
+            sharedImagesDir: cfg.sharedImagesDir,
+            enableContentGeneration,
+            environment,
+            signal,
+            cleanBeforeBuild: true,
+            siteConfig,
+            siteUrl,
+            layouts: cfg.layouts,
+            themeCSS: cfg.themeCSS,
+            slots,
+            headScripts,
+            ...(cfg.staticAssets && { staticAssets: cfg.staticAssets }),
+          },
+          buildProgress?.toCallback(),
+        );
+      };
+      const result = cfg.withSlots
+        ? await cfg.withSlots(signal, render)
+        : await render();
 
       await recordOutcome(cfg, environment, jobId, result);
 

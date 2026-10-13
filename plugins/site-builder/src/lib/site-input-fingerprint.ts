@@ -5,6 +5,7 @@ import { isPlainRecord } from "@brains/utils/predicates";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { SiteViewTemplate } from "./site-view-template";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
+import type { SlotContent } from "./prepare-layout-slots";
 
 /** Renderer code cannot change while the app runs, but a restart — an
  *  upgrade included — may bring new components, styles or scripts that
@@ -19,6 +20,7 @@ export interface SiteInputFingerprintOptions {
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   publishMessage: SiteBuilderServices["publishMessage"];
   rendererIdentity: string;
+  slotContent?: readonly SlotContent[];
 }
 
 /** Hash all serializable renderer inputs, the selected renderer functions and
@@ -45,7 +47,8 @@ export function computeSiteInputFingerprint(
 
   return sha256Hex(
     stableSerialize({
-      version: 2,
+      version: 3,
+      slotContent: options.slotContent ?? [],
       rendererIdentity: options.rendererIdentity,
       preparedInput,
       layouts: Object.fromEntries(

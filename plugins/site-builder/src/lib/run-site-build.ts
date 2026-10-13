@@ -18,6 +18,7 @@ import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
 import { generateSiteRoutes } from "./generate-site-routes";
 import { prepareSiteBuild } from "./prepare-site-build";
+import { prepareLayoutSlots } from "./prepare-layout-slots";
 import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
 import {
@@ -68,6 +69,7 @@ export async function runSiteBuild(
   let outputTarget: SiteBuildOutputTarget | undefined;
   let failureCode: SiteBuildDiagnosticCode = "build-failed";
   let commitStarted = false;
+  let slotSnapshot: ReturnType<typeof prepareLayoutSlots> | undefined;
 
   try {
     options.signal.throwIfAborted();
@@ -183,7 +185,12 @@ export async function runSiteBuild(
     }
 
     options.signal.throwIfAborted();
+    slotSnapshot = prepareLayoutSlots(
+      options.buildOptions.slots,
+      options.signal,
+    );
     const inputFingerprint = computeSiteInputFingerprint({
+      slotContent: slotSnapshot.content,
       preparedBuild: preparation.preparedBuild,
       layouts: parsedOptions.layouts,
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
@@ -221,7 +228,7 @@ export async function runSiteBuild(
     const buildContext = createBuildContext({
       preparedBuild: preparation.preparedBuild,
       layouts: parsedOptions.layouts,
-      slots: options.buildOptions.slots,
+      slots: slotSnapshot.slots,
       pipelineContext: options.pipelineContext,
     });
     outputTarget = await outputLifecycle.begin({
@@ -387,5 +394,7 @@ export async function runSiteBuild(
       errorMessages: [formatSiteBuildDiagnostic(diagnostic)],
       diagnostics: [...diagnostics, diagnostic],
     });
+  } finally {
+    slotSnapshot?.dispose();
   }
 }

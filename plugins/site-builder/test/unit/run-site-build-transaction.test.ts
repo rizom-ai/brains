@@ -7,7 +7,10 @@ import { dirname, join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
-import type { SiteBuildContext } from "@brains/site-engine";
+import { UISlotRegistry, type SiteBuildContext } from "@brains/site-engine";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { SdkError } from "@brains/sdk/services";
 import {
   createTestSiteBuildOutputLifecycle,
   TestLayout,
@@ -211,6 +214,94 @@ describe("runSiteBuild transactional output", () => {
         await fs.readFile(join(outputDir, ".site-build-manifest.json"), "utf8"),
       ).inputFingerprint,
     ).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("fingerprints the exact slot snapshot, rebuilding changes/removals without rerendering captured components", async () => {
+    const slots = new UISlotRegistry();
+    let value = "one";
+    let slotRenders = 0;
+    let builds = 0;
+    let late: (() => unknown) | undefined;
+    const Component = (): ReturnType<typeof createElement> => {
+      slotRenders++;
+      return createElement("p", null, value);
+    };
+    slots.register("footer-top", {
+      pluginId: "provider",
+      render: () => createElement(Component),
+    });
+    const factory: StaticSiteBuilderFactory = (options) => ({
+      clean: async () => undefined,
+      build: async (context): Promise<void> => {
+        builds++;
+        // Changing a nested component's captured state cannot change the
+        // already fingerprinted snapshot's eventual bytes.
+        value = "changed-after-snapshot";
+        const entries = context.slots?.getSlot("footer-top") ?? [];
+        late = entries[0]?.render;
+        const html = entries
+          .map((entry) => renderToStaticMarkup(entry.render()))
+          .join("");
+        await writeStaticAssets(context, options.outputDir);
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(
+          join(options.outputDir, "index.html"),
+          `<main>${html}</main>`,
+        );
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      },
+    });
+    const run = (): ReturnType<typeof runSiteBuild> =>
+      runSiteBuild({
+        buildOptions: {
+          environment: "preview",
+          outputDir,
+          sharedImagesDir: join(testDir, "images"),
+          enableContentGeneration: false,
+          cleanBeforeBuild: true,
+          siteConfig: { title: "Slots", description: "Snapshot" },
+          siteUrl: "https://fixture.example",
+          layouts: { default: TestLayout },
+          slots,
+        },
+        progress: undefined,
+        pipelineContext: createPipelineContext(),
+        staticSiteBuilderFactory: factory,
+        signal: new AbortController().signal,
+      });
+    expect((await run()).success).toBe(true);
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toContain(
+      "<p>one</p>",
+    );
+    expect(slotRenders).toBe(1);
+    expect(() => late?.()).toThrow(SdkError);
+    value = "one";
+    expect(await run()).toMatchObject({ success: true, skipped: true });
+    value = "two";
+    expect((await run()).skipped).not.toBe(true);
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toContain(
+      "<p>two</p>",
+    );
+    slots.unregisterAll("provider");
+    expect((await run()).skipped).not.toBe(true);
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
+      "<main></main>",
+    );
+    slots.register("footer-top", {
+      pluginId: "broken",
+      render: () => {
+        throw new Error("render failed");
+      },
+    });
+    expect((await run()).success).toBe(false);
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
+      "<main></main>",
+    );
+    expect(builds).toBe(3);
+    expect(slotRenders).toBe(3);
   });
 
   it("renders again after a restart, which may bring new renderer code", async () => {

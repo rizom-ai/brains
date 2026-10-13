@@ -106,7 +106,12 @@ export const SITE_BUILDER_CHANNELS = {
    * siteContributions.headScripts reader collects and validates responses.
    */
   headScripts: "plugin:site-builder:head-scripts",
-  slotRegister: "plugin:site-builder:slot:register",
+  /**
+   * Host-internal transport for declared layoutSlots. Responses are issued
+   * per collection; callers cannot supply owner claims or raw render callbacks.
+   * Site Builder uses the scoped siteContributions.withSlots reader.
+   */
+  slots: "plugin:site-builder:slots",
 } as const;
 
 export const SITE_CHANNELS = {

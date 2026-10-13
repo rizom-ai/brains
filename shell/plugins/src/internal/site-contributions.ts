@@ -6,6 +6,8 @@ import {
 } from "@brains/contracts";
 import type { IMessageBus } from "@brains/messaging-service";
 import { z } from "@brains/utils/zod";
+import { collectSiteSlots } from "./site-slot-contributions";
+import type { InstalledLayoutSlot } from "../service/site-slot-contract";
 
 /** Fixed-topic, installed-owner collection; never an author-facing bus. */
 export function createSiteContributions(
@@ -14,8 +16,35 @@ export function createSiteContributions(
   lifetime: AbortSignal,
 ): {
   headScripts(signal?: AbortSignal): Promise<readonly string[]>;
+  withSlots<T>(
+    signal: AbortSignal,
+    build: (slots: readonly InstalledLayoutSlot[]) => Promise<T>,
+  ): Promise<T>;
 } {
   return Object.freeze({
+    async withSlots<T>(
+      signal: AbortSignal,
+      build: (slots: readonly InstalledLayoutSlot[]) => Promise<T>,
+    ): Promise<T> {
+      if (!(signal instanceof AbortSignal) || typeof build !== "function")
+        throw new SdkError("invalid_input");
+      const scope = new AbortController();
+      try {
+        const slots = await collectSiteSlots(
+          bus,
+          owner,
+          lifetime,
+          AbortSignal.any([signal, scope.signal]),
+        );
+        const result = await build(slots);
+        if (lifetime.aborted || signal.aborted) throw new SdkError("cancelled");
+        return result;
+      } catch (cause) {
+        throw toSdkError(cause);
+      } finally {
+        scope.abort();
+      }
+    },
     async headScripts(signal?: AbortSignal): Promise<readonly string[]> {
       const active = (): void => {
         if (lifetime.aborted || signal?.aborted)

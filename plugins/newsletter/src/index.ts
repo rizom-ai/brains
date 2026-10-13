@@ -1,4 +1,4 @@
-import { PUBLISH_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import {
   defineRoute,
   defineServicePlugin,
@@ -116,25 +116,23 @@ export function newsletterService(
               },
             ]
           : [],
-      ready: async ({ state, messaging }) => {
-        if (!state.provider) return;
-        await messaging.request({
-          type: SITE_BUILDER_CHANNELS.slotRegister,
-          payload: {
-            pluginId: "delivery",
-            slotName: "footer-top",
-            render: () =>
-              h(NewsletterSignup, {
-                variant: "inline",
-                action: SUBSCRIBE_PATH,
-                successMessage:
-                  state.provider?.name === "resend"
-                    ? "You are subscribed."
-                    : "Check your email to confirm your subscription.",
-              }),
-          },
-        });
-      },
+      layoutSlots: ({ state }) =>
+        state.provider
+          ? [
+              {
+                slotName: "footer-top",
+                render: () =>
+                  h(NewsletterSignup, {
+                    variant: "inline",
+                    action: SUBSCRIBE_PATH,
+                    successMessage:
+                      state.provider?.name === "resend"
+                        ? "You are subscribed."
+                        : "Check your email to confirm your subscription.",
+                  }),
+              },
+            ]
+          : [],
     },
   );
 }

@@ -25,6 +25,7 @@ describe("installed site contributions", () => {
         config: z.object({}),
         setup: (context) => {
           expect(Object.keys(context.siteContributions)).toEqual([
+            "withSlots",
             "headScripts",
           ]);
           expect(Object.isFrozen(context.siteContributions)).toBe(true);
