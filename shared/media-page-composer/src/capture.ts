@@ -5,14 +5,14 @@ import {
   startStaticRenderServer,
   writeMediaRenderPage,
 } from "./media-render-page";
-import type { MediaPageTemplate, MediaTemplateFormat } from "./types";
+import type { MediaFormat, ViewTemplate } from "@brains/plugins";
 
 export interface CaptureMediaPageOptions {
   /** Route the throwaway page is written under, e.g. `/_media/og/project/<id>`. */
   mediaPath: string;
-  template: MediaPageTemplate;
+  template: ViewTemplate;
   /** Renderer variant the template should be rendered with. */
-  format: MediaTemplateFormat;
+  format: MediaFormat;
   content: unknown;
   /** Used as the rendered page's title. */
   title: string;

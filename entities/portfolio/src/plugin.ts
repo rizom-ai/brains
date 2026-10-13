@@ -59,9 +59,15 @@ import {
 import { ProjectDataSource } from "./datasources/project-datasource";
 import { createProjectAtprotoProjection } from "./atproto-projection";
 import { createProjectPrintableProvider } from "./attachments/printable-provider";
-import { PROJECT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
+import {
+  PROJECT_PRINTABLE_ATTACHMENT_TYPE,
+  projectPrintableTemplate,
+} from "./attachments/printable-template";
 import { createProjectOgImageProvider } from "./attachments/og-image-provider";
-import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
+import {
+  PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
+  projectOgImageTemplate,
+} from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
 const enrichedProjectViewSchema = projectViewSchema;
@@ -207,6 +213,8 @@ export class PortfolioPlugin extends EntityPlugin<
         },
       }),
       generation: projectGenerationTemplate,
+      "og-image": projectOgImageTemplate,
+      "project-printable": projectPrintableTemplate,
     };
   }
 

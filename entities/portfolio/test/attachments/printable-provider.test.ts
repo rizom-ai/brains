@@ -54,6 +54,9 @@ describe("Project printable attachment provider", () => {
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("project", "printable")).toBe(true);
+    expect(
+      context.views.hasRenderer("portfolio:project-printable", "pdf"),
+    ).toBe(true);
   });
 
   it("resolves a project into a printable PDF attachment", async () => {
@@ -74,6 +77,7 @@ describe("Project printable attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: "example.com",
       },
       { renderPdf },
