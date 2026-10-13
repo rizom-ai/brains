@@ -13,6 +13,10 @@ export interface EpubMetadata {
   creator?: string | undefined;
   /** Last change, `YYYY-MM-DDThh:mm:ssZ`; also every file's timestamp. */
   modified: string;
+  /** Where the text comes from, e.g. the edition's URL. */
+  source?: string | undefined;
+  /** The licence and attribution the text is distributed under. */
+  rights?: string | undefined;
 }
 
 export interface RenderEpubOptions {
@@ -133,7 +137,7 @@ function packageDocument(metadata: EpubMetadata, chapters: number): string {
 <dc:identifier id="publication-id">${escapeXml(metadata.identifier)}</dc:identifier>
 <dc:title>${escapeXml(metadata.title)}</dc:title>
 ${metadata.creator ? `<dc:creator>${escapeXml(metadata.creator)}</dc:creator>\n` : ""}<dc:language>${metadata.language}</dc:language>
-<meta property="dcterms:modified">${metadata.modified}</meta>
+${metadata.source ? `<dc:source>${escapeXml(metadata.source)}</dc:source>\n` : ""}${metadata.rights ? `<dc:rights>${escapeXml(metadata.rights)}</dc:rights>\n` : ""}<meta property="dcterms:modified">${metadata.modified}</meta>
 </metadata>
 <manifest>
 <item id="nav" href="nav.xhtml" media-type="${XHTML}" properties="nav"/>

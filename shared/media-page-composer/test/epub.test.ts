@@ -54,6 +54,8 @@ const metadata = {
   creator: "Erfundener Autor",
   language: "de",
   modified: "2026-10-06T00:00:00Z",
+  source: "https://example.org/eb",
+  rights: "CC BY-NC-ND 4.0 · Testquelle",
 };
 
 describe("renderEpub", () => {
@@ -95,6 +97,10 @@ describe("renderEpub", () => {
     expect(opf).toContain("<dc:language>de</dc:language>");
     expect(opf).toContain(
       '<meta property="dcterms:modified">2026-10-06T00:00:00Z</meta>',
+    );
+    expect(opf).toContain("<dc:source>https://example.org/eb</dc:source>");
+    expect(opf).toContain(
+      "<dc:rights>CC BY-NC-ND 4.0 · Testquelle</dc:rights>",
     );
   });
 

@@ -3,9 +3,28 @@ import { MarkdownContent } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
 
 /** A book as an EPUB carries it: its title and its sections in reading order. */
+const colophonSchema: z.ZodObject<{
+  author: z.ZodNullable<z.ZodString>;
+  year: z.ZodNullable<z.ZodNumber>;
+  edition: z.ZodNullable<z.ZodString>;
+  source: z.ZodString;
+  attribution: z.ZodNullable<z.ZodString>;
+  license: z.ZodNullable<z.ZodString>;
+}> = z.object({
+  author: z.string().nullable(),
+  year: z.number().int().nullable(),
+  edition: z.string().nullable(),
+  /** The edition's page the text was taken from. */
+  source: z.string(),
+  attribution: z.string().nullable(),
+  /** The licence as a reader reads it, e.g. "CC BY-NC-ND 4.0". */
+  license: z.string().nullable(),
+});
+
 export const bookEpubSchema: z.ZodObject<{
   title: z.ZodString;
   author: z.ZodNullable<z.ZodString>;
+  colophon: typeof colophonSchema;
   sections: z.ZodArray<
     z.ZodObject<{
       title: z.ZodString;
@@ -16,6 +35,8 @@ export const bookEpubSchema: z.ZodObject<{
 }> = z.object({
   title: z.string(),
   author: z.string().nullable(),
+  /** Where the text comes from and the terms it is passed on under. */
+  colophon: colophonSchema,
   sections: z.array(
     z.object({
       title: z.string(),
@@ -57,11 +78,54 @@ function sharedHeadings(headings: string[], previous: string[]): number {
   return differs === -1 ? headings.length : differs;
 }
 
+/** The book's details, its source and the licence it is passed on under. */
+const Colophon = ({
+  title,
+  colophon,
+}: {
+  title: string;
+  colophon: BookEpubData["colophon"];
+}): JSX.Element => {
+  const facts: [string, string | number | null][] = [
+    ["Author", colophon.author],
+    ["Year", colophon.year],
+    ["Edition", colophon.edition],
+    ["Attribution", colophon.attribution],
+    ["Licence", colophon.license],
+  ];
+  return (
+    <section data-epub-chapter="Colophon">
+      <h1>Colophon</h1>
+      <p>
+        <em>{title}</em>
+      </p>
+      <dl>
+        {facts.flatMap(([label, value]) =>
+          value === null
+            ? []
+            : [
+                <dt key={`${label}-term`}>{label}</dt>,
+                <dd key={`${label}-value`}>{value}</dd>,
+              ],
+        )}
+        <dt>Source</dt>
+        <dd>
+          <a href={colophon.source}>{colophon.source}</a>
+        </dd>
+      </dl>
+    </section>
+  );
+};
+
 /**
  * Each section is one chapter of the EPUB, marked with the headings it stands
  * under; a heading is set in the text where it opens.
  */
-export const BookEpub = ({ sections }: BookEpubData): JSX.Element => (
+export const BookEpub = ({
+  title,
+  colophon,
+  sections,
+}: BookEpubData): JSX.Element => (
   <article>
     {sections.map((section, index) => {
       const opens = sharedHeadings(
@@ -84,5 +148,6 @@ export const BookEpub = ({ sections }: BookEpubData): JSX.Element => (
         </section>
       );
     })}
+    <Colophon title={title} colophon={colophon} />
   </article>
 );

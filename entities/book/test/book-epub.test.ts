@@ -77,7 +77,8 @@ describe("book EPUB", () => {
     expect(chapter(1)).toContain("Erfundener Text 1.");
     expect(chapter(2)).toContain("Mitte");
     expect(chapter(2)).toContain("Erfundener Text 2.");
-    expect(files["OEBPS/chapter-3.xhtml"]).toBeUndefined();
+    // The third chapter is the colophon; the book has two sections.
+    expect(files["OEBPS/chapter-4.xhtml"]).toBeUndefined();
   });
 
   it("writes nothing for a book without sections", async () => {
@@ -120,7 +121,8 @@ describe("book EPUB", () => {
     expect(file("OEBPS/chapter-1.xhtml")).toContain("Erfundener Text 1.");
     expect(file("OEBPS/chapter-1.xhtml")).toContain("Erfundener Text 2.");
     expect(file("OEBPS/chapter-2.xhtml")).toContain("Erfundener Text 3.");
-    expect(file("OEBPS/content.opf")).not.toContain("chapter-3");
+    // Two sections and the colophon.
+    expect(file("OEBPS/content.opf")).not.toContain("chapter-4");
   });
 
   it("nests the contents by headings, opening each heading once in the text", async () => {
@@ -152,5 +154,36 @@ describe("book EPUB", () => {
     expect(file("OEBPS/chapter-1.xhtml")).toContain("<h1>Erster Theil</h1>");
     expect(file("OEBPS/chapter-2.xhtml")).not.toContain("Erster Theil</h1>");
     expect(file("OEBPS/chapter-3.xhtml")).toContain("<h1>Zweiter Theil</h1>");
+  });
+
+  it("closes with a colophon naming the edition, its source and its licence", async () => {
+    const file = await stagedBook("erstes");
+    const colophon = file("OEBPS/chapter-3.xhtml");
+
+    for (const fact of [
+      "Colophon",
+      "Erfundener Autor",
+      "1888",
+      "Testausgabe",
+      "https://example.org/erstes",
+      "Public domain",
+    ])
+      expect(colophon).toContain(fact);
+    expect(file("OEBPS/content.opf")).toContain(
+      "<dc:source>https://example.org/erstes</dc:source>",
+    );
+    expect(file("OEBPS/content.opf")).toContain(
+      "<dc:rights>Public domain</dc:rights>",
+    );
+  });
+
+  it("writes the same bytes for an unchanged book", async () => {
+    await stage();
+    const first = await fs.readFile(join(outputDir, "books", "erstes.epub"));
+    await stage();
+
+    expect(await fs.readFile(join(outputDir, "books", "erstes.epub"))).toEqual(
+      first,
+    );
   });
 });

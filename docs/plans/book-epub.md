@@ -4,7 +4,7 @@ Last updated: 2026-10-13
 
 ## Status
 
-In progress on #628: phases 1 and 2 are built. The prerequisite has shipped: media formats render from registered view templates (#624, `@rizom/brain` 0.2.0-alpha.544).
+In progress on #628: phases 1 to 3 are built. The prerequisite has shipped: media formats render from registered view templates (#624, `@rizom/brain` 0.2.0-alpha.544).
 
 ## Outcome
 
@@ -15,7 +15,7 @@ A reader downloads any book on the site as an EPUB from its title page, from a `
 The EPUB is a format of a registered view template, like the printable PDF and the OG image.
 
 1. **Format.** `epub` joins `image` and `pdf` as a media format. A template registers its EPUB component in `layout.formats.epub`, and its props are parsed against the template's schema.
-2. **Template.** `@brains/book` registers `book:epub`. Its data is the book and its sections in reading order, with split sections joined. Its EPUB component renders the book as XHTML: the book's details, one marked chapter per section, and the colophon.
+2. **Template.** `@brains/book` registers `book:epub`. Its data is the book and its sections in reading order, with split sections joined. Its EPUB component renders the book as XHTML: one marked chapter per section, then the colophon with the book's details.
 3. **Capture.** `media-page-composer` renders the EPUB component to XHTML without a browser and splits it at its chapter marks. It writes the `mimetype` entry first and uncompressed, then `META-INF/container.xml`, the package document, the navigation document built from the chapter headings, and the chapters, and zips them with fflate. Timestamps are fixed, so the same book yields the same bytes.
 4. **Site.** On every site build, the book plugin renders each public book with sections through `book:epub` and writes it to `/books/<id>.epub` in the build staging directory, as the blog writes its feed. The file always matches the pages built with it, and nothing binary is stored or committed. A failure fails the build, so the previous generation stays live.
 5. **Title page.** A book with sections links to its EPUB opposite `Begin reading →`.

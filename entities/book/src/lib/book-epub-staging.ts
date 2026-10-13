@@ -11,7 +11,7 @@ import {
   parseBookData,
 } from "../datasources/book-datasource";
 import { bookSchema } from "../schemas/book";
-import { bookHref } from "../templates/book-design";
+import { bookHref, licenseLabel } from "../templates/book-design";
 
 /** The registered book view an EPUB is rendered from. */
 export const BOOK_EPUB_TEMPLATE = "book:epub";
@@ -66,6 +66,14 @@ async function writeBookEpubs(
       content: {
         title: book.metadata.title,
         author: book.frontmatter.author,
+        colophon: {
+          author: book.frontmatter.author,
+          year: book.frontmatter.year,
+          edition: book.frontmatter.edition,
+          source: book.frontmatter.source,
+          attribution: book.frontmatter.attribution,
+          license: licenseLabel(book),
+        },
         sections: sections.map(([first, ...rest]) => ({
           title: first.metadata.title,
           headings: first.frontmatter.headings,
@@ -78,6 +86,11 @@ async function writeBookEpubs(
         creator: book.frontmatter.author ?? undefined,
         language: "de",
         modified: book.updated.replace(/\.\d+Z$/, "Z"),
+        source: book.frontmatter.source,
+        rights:
+          [licenseLabel(book), book.frontmatter.attribution]
+            .filter((part): part is string => part !== null)
+            .join(" · ") || undefined,
       },
     });
     const file = join(outputDir, `${bookHref(book).slice(1)}.epub`);
