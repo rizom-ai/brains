@@ -5,6 +5,8 @@ import type {
   Renderer,
 } from "./render-types";
 import type { TemplateRegistry } from "./registry";
+import { TemplateCapabilities } from "./capabilities";
+import { templateRenderers, type Template } from "./types";
 import type { JsonObject } from "@brains/contracts";
 
 export class RenderService implements IViewTemplateRegistry {
@@ -20,36 +22,7 @@ export class RenderService implements IViewTemplateRegistry {
 
   get(name: string): ViewTemplate | undefined {
     const template = this.templateRegistry.get(name);
-    if (!template?.layout?.component) {
-      return undefined; // Only return templates that have rendering components
-    }
-
-    // Convert unified Template to ViewTemplate format
-    const parts = name.split(":");
-    const pluginId = parts.length >= 2 && parts[0] ? parts[0] : "shell";
-
-    const viewTemplate: ViewTemplate = {
-      name,
-      schema: template.schema,
-      description: template.description,
-      pluginId,
-      renderers: { web: template.layout.component },
-    };
-
-    if (template.layout.fullscreen) {
-      viewTemplate.fullscreen = template.layout.fullscreen;
-    }
-    if (template.runtimeScripts && template.runtimeScripts.length > 0) {
-      viewTemplate.runtimeScripts = template.runtimeScripts;
-    }
-    if (
-      template.staticAssets &&
-      Object.keys(template.staticAssets).length > 0
-    ) {
-      viewTemplate.staticAssets = template.staticAssets;
-    }
-
-    return viewTemplate;
+    return template ? toViewTemplate(name, template) : undefined;
   }
 
   list(): ViewTemplate[] {
@@ -61,8 +34,8 @@ export class RenderService implements IViewTemplateRegistry {
 
   validate(templateName: string, content: unknown): boolean {
     const template = this.templateRegistry.get(templateName);
-    if (!template?.layout?.component) {
-      return false; // Template must have rendering components to be valid for view validation
+    if (!template || !TemplateCapabilities.canRender(template)) {
+      return false; // Only templates that render can validate view content
     }
 
     try {
@@ -125,4 +98,38 @@ export class RenderService implements IViewTemplateRegistry {
 
     return formats;
   }
+}
+
+/**
+ * The view template a registered template serves under its name: its
+ * renderers by format. Undefined when it renders in no format.
+ */
+export function toViewTemplate(
+  name: string,
+  template: Template,
+): ViewTemplate | undefined {
+  if (!TemplateCapabilities.canRender(template)) return undefined;
+
+  const parts = name.split(":");
+  const pluginId = parts.length >= 2 && parts[0] ? parts[0] : "shell";
+
+  const viewTemplate: ViewTemplate = {
+    name,
+    schema: template.schema,
+    description: template.description,
+    pluginId,
+    renderers: templateRenderers(template),
+  };
+
+  if (template.layout.fullscreen) {
+    viewTemplate.fullscreen = template.layout.fullscreen;
+  }
+  if (template.runtimeScripts && template.runtimeScripts.length > 0) {
+    viewTemplate.runtimeScripts = template.runtimeScripts;
+  }
+  if (template.staticAssets && Object.keys(template.staticAssets).length > 0) {
+    viewTemplate.staticAssets = template.staticAssets;
+  }
+
+  return viewTemplate;
 }

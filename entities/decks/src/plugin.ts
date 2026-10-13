@@ -25,12 +25,18 @@ import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
 import { deckSchema, type DeckEntity } from "./schemas/deck";
-import { DECK_CAROUSEL_ATTACHMENT_TYPE } from "./attachments/carousel-template";
+import {
+  DECK_CAROUSEL_ATTACHMENT_TYPE,
+  deckCarouselTemplate,
+} from "./attachments/carousel-template";
 import {
   DeckCarouselAttachmentProvider,
   type DeckCarouselAttachmentProviderDeps,
 } from "./attachments/carousel-provider";
-import { DECK_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
+import {
+  DECK_OG_IMAGE_ATTACHMENT_TYPE,
+  deckOgImageTemplate,
+} from "./attachments/og-image-template";
 import { createDeckOgImageProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
@@ -91,6 +97,8 @@ export class DecksPlugin extends EntityPlugin<
       "deck-list": deckListTemplate,
       generation: deckGenerationTemplate,
       description: deckDescriptionTemplate,
+      "og-image": deckOgImageTemplate,
+      carousel: deckCarouselTemplate,
     };
   }
 

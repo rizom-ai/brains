@@ -6,26 +6,15 @@ import {
   HeadCollector,
   type SiteImageRendererService,
 } from "@brains/site-engine";
-import { z } from "@brains/utils/zod";
-import type {
-  MediaPageRenderer,
-  MediaPageTemplate,
-  MediaTemplateFormat,
-  RenderMediaTemplateHtmlOptions,
-} from "./types";
-
-const mediaTemplateContentSchema = z.record(z.string(), z.unknown());
-type MediaTemplateContent = z.output<typeof mediaTemplateContentSchema>;
+import type { ComponentType, MediaFormat, ViewTemplate } from "@brains/plugins";
+import type { JsonObject } from "@brains/contracts";
+import type { RenderMediaTemplateHtmlOptions } from "./types";
 
 export function renderMediaTemplateHtml(
   options: RenderMediaTemplateHtmlOptions,
 ): string {
   const renderer = getRenderer(options.template, options.format);
-  const contentObj: MediaTemplateContent = mediaTemplateContentSchema.parse(
-    options.content,
-  );
-  const validatedContent: MediaTemplateContent =
-    mediaTemplateContentSchema.parse(options.template.schema.parse(contentObj));
+  const validatedContent = options.template.schema.parse(options.content);
 
   const headCollector = new HeadCollector(options.siteConfig.title);
   const imageRenderer = createImageRenderer(options.imageBuildService);
@@ -60,9 +49,9 @@ export function renderMediaTemplateHtml(
 }
 
 function getRenderer(
-  template: MediaPageTemplate,
-  format: MediaTemplateFormat,
-): MediaPageRenderer {
+  template: ViewTemplate,
+  format: MediaFormat,
+): ComponentType<JsonObject> {
   const renderer = template.renderers[format];
   if (!renderer || typeof renderer !== "function") {
     throw new Error(`No ${format} renderer for template: ${template.name}`);

@@ -4,6 +4,8 @@ export type {
   Template,
   TemplateInput,
   ComponentType,
+  FormatComponents,
+  MediaFormat,
   RuntimeScript,
   TemplateDataSchema,
   TemplateSchemaParser,
@@ -13,6 +15,7 @@ export {
   createTypedComponent,
   createTemplate,
   renderedLinkFields,
+  templateRenderers,
 } from "./types";
 export { InMemoryTemplateRegistry } from "./registry";
 export type { TemplateRegistry } from "./registry";
@@ -49,7 +52,7 @@ export type {
 export { matchSpaceSelector } from "./space-selector";
 
 // Render service (merged from @brains/render-service)
-export { RenderService } from "./render-service";
+export { RenderService, toViewTemplate } from "./render-service";
 export type {
   ViewTemplate,
   ViewTemplateRegistry,

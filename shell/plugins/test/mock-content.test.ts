@@ -7,9 +7,11 @@ import {
 import { createMockEntityStore } from "../src/test/mock-entity-store";
 import { createMockEntityService } from "../src/test/mock-entity-service";
 import {
+  InMemoryTemplateRegistry,
   PermissionService,
   type NonLayoutTemplate,
   type Template,
+  type TemplateRegistry,
 } from "@brains/templates";
 import type { DataSource } from "@brains/entity-service";
 
@@ -24,8 +26,8 @@ function template(overrides: Partial<NonLayoutTemplate> = {}): Template {
 }
 
 function services(
-  templates = new Map<string, Template>(),
-): MockContentServices & { templates: Map<string, Template> } {
+  templates: TemplateRegistry = InMemoryTemplateRegistry.createFresh(),
+): MockContentServices & { templates: TemplateRegistry } {
   const built = createMockContentServices({
     templates,
     entityService: createMockEntityService(createMockEntityStore()),
@@ -39,7 +41,7 @@ describe("the content service double", () => {
     // Returning the raw Template would hand tests fields — useKnowledgeContext
     // here, and whatever else Template carries — that production never shows.
     const { contentService, templates } = services();
-    templates.set("summary", template({ useKnowledgeContext: true }));
+    templates.register("summary", template({ useKnowledgeContext: true }));
 
     const found = contentService.getTemplate("summary");
 
@@ -54,8 +56,8 @@ describe("the content service double", () => {
 
   it("copies the optional fields only when the template has them", () => {
     const { contentService, templates } = services();
-    templates.set("bare", template({ name: "bare" }));
-    templates.set(
+    templates.register("bare", template({ name: "bare" }));
+    templates.register(
       "full",
       template({ name: "full", basePrompt: "write", dataSourceId: "source-1" }),
     );
@@ -74,8 +76,8 @@ describe("the content service double", () => {
 
   it("lists every registered template, narrowed the same way", () => {
     const { contentService, templates } = services();
-    templates.set("a", template({ name: "a" }));
-    templates.set("b", template({ name: "b" }));
+    templates.register("a", template({ name: "a" }));
+    templates.register("b", template({ name: "b" }));
 
     expect(contentService.listTemplates().map((one) => one.name)).toEqual([
       "a",
