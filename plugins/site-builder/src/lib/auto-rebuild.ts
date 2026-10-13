@@ -52,6 +52,13 @@ interface AutoRebuildContext {
 }
 
 /**
+ * The queue claims the lowest priority first. Embeddings and projections queue
+ * at the default, 0, so a build goes ahead of them: a new brain's site is up
+ * after its first import is stored, not once every entity is embedded and read.
+ */
+const SITE_BUILD_PRIORITY = -10;
+
+/**
  * Manages debounced site rebuilds triggered by entity changes or explicit
  * build requests. Separate debounces per environment so preview and production
  * do not interfere with each other.
@@ -260,7 +267,7 @@ export class RebuildManager {
         },
       },
       options: {
-        priority: 0,
+        priority: SITE_BUILD_PRIORITY,
         source: this.pluginId,
         metadata: {
           operationType: "content_operations",
