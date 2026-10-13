@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { MarkdownContent } from "@brains/ui-library";
+import { markdownToHtml } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
 
 /** A book as an EPUB carries it: its title and its sections in reading order. */
@@ -144,7 +144,9 @@ export const BookEpub = ({
             </Heading>
           ))}
           <Heading level={section.headings.length + 1}>{section.title}</Heading>
-          <MarkdownContent markdown={section.body} />
+          <div
+            dangerouslySetInnerHTML={{ __html: markdownToHtml(section.body) }}
+          />
         </section>
       );
     })}

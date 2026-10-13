@@ -75,6 +75,8 @@ describe("book EPUB", () => {
     };
     expect(chapter(1)).toContain("Vorrede");
     expect(chapter(1)).toContain("Erfundener Text 1.");
+    // The text alone: the site's styling means nothing in a reader.
+    expect(chapter(1)).not.toContain("prose");
     expect(chapter(2)).toContain("Mitte");
     expect(chapter(2)).toContain("Erfundener Text 2.");
     // The third chapter is the colophon; the book has two sections.
