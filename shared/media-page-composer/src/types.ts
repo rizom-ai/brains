@@ -1,24 +1,5 @@
-import type { ReactElement } from "react";
+import type { MediaFormat, ViewTemplate } from "@brains/plugins";
 import type { SiteImageRendererService } from "@brains/site-engine";
-import type { ZodType } from "@brains/utils/zod";
-
-export type MediaTemplateFormat = "image" | "pdf";
-
-export type MediaPageRenderer = (
-  props: Record<string, unknown>,
-) => ReactElement;
-
-export type MediaPageContentSchema = ZodType<unknown, unknown>;
-
-export interface MediaPageTemplate {
-  name: string;
-  schema: MediaPageContentSchema;
-  pluginId: string;
-  renderers: {
-    image?: MediaPageRenderer | string;
-    pdf?: MediaPageRenderer | string;
-  };
-}
 
 export interface MediaSiteConfig {
   title: string;
@@ -26,8 +7,8 @@ export interface MediaSiteConfig {
 }
 
 export interface RenderMediaTemplateHtmlOptions {
-  template: MediaPageTemplate;
-  format: MediaTemplateFormat;
+  template: ViewTemplate;
+  format: MediaFormat;
   content: unknown;
   siteConfig: MediaSiteConfig;
   imageBuildService?: SiteImageRendererService | null | undefined;
@@ -37,8 +18,8 @@ export interface RenderMediaTemplateHtmlOptions {
 export interface WriteMediaRenderPageOptions {
   outputDir: string;
   mediaPath: string;
-  template: MediaPageTemplate;
-  format: MediaTemplateFormat;
+  template: ViewTemplate;
+  format: MediaFormat;
   content: unknown;
   siteConfig: MediaSiteConfig;
   imageBuildService?: SiteImageRendererService | null | undefined;

@@ -3,8 +3,9 @@ import { getErrorMessage } from "@brains/utils/error";
 import { readdir } from "fs/promises";
 import { tmpdir } from "os";
 import { createElement as h, type JSX } from "react";
-import { z } from "@brains/utils/zod";
-import { renderOgImagePng, type MediaPageTemplate } from "../src";
+import { renderOgImagePng } from "../src";
+import type { ViewTemplate } from "@brains/plugins";
+import { viewTemplate } from "./view-template";
 
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -12,13 +13,8 @@ function OgCard(props: Record<string, unknown>): JSX.Element {
   return h("div", { className: "og-card" }, String(props["title"]));
 }
 
-function createTemplate(): MediaPageTemplate {
-  return {
-    name: "og-template",
-    pluginId: "test",
-    schema: z.object({ title: z.string() }),
-    renderers: { image: OgCard },
-  };
+function createTemplate(): ViewTemplate {
+  return viewTemplate("og-template", { image: OgCard });
 }
 
 async function countTempDirs(prefix: string): Promise<number> {

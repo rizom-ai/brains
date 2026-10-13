@@ -105,6 +105,18 @@ describe("TemplateCapabilities", () => {
   });
 
   describe("canRender", () => {
+    it("should return true for templates that render only another format", () => {
+      const template = createTemplate({
+        name: "test",
+        description: "Test template",
+        schema: z.object({ value: z.string() }),
+        requiredPermission: "public",
+        layout: { formats: { image: mockComponent } },
+      });
+
+      expect(TemplateCapabilities.canRender(template)).toBe(true);
+    });
+
     it("should return true for templates with layout component", () => {
       const template = createTemplate({
         name: "test",

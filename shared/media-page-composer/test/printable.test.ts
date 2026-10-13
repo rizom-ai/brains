@@ -2,10 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { readdir } from "fs/promises";
 import { tmpdir } from "os";
 import { createElement as h, type JSX } from "react";
-import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { PdfRenderOptions } from "@brains/media-renderer";
-import { renderPrintablePdf, type MediaPageTemplate } from "../src";
+import { renderPrintablePdf } from "../src";
+import type { ViewTemplate } from "@brains/plugins";
+import { viewTemplate } from "./view-template";
 
 const TINY_PDF = Buffer.from("%PDF-1.7\n", "utf-8");
 
@@ -17,13 +18,11 @@ function ImageCard(): JSX.Element {
   return h("div", null, "image renderer must not be used for pdf");
 }
 
-function createTemplate(): MediaPageTemplate {
-  return {
-    name: "printable-template",
-    pluginId: "test",
-    schema: z.object({ title: z.string() }),
-    renderers: { pdf: PrintableDocument, image: ImageCard },
-  };
+function createTemplate(): ViewTemplate {
+  return viewTemplate("printable-template", {
+    pdf: PrintableDocument,
+    image: ImageCard,
+  });
 }
 
 async function countTempDirs(prefix: string): Promise<number> {

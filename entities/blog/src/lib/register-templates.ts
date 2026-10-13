@@ -7,6 +7,8 @@ import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";
 import { blogExcerptTemplate } from "../templates/excerpt-template";
 import { homepageTemplate } from "../templates/homepage";
+import { blogOgImageTemplate } from "../attachments/og-image-template";
+import { blogPrintableTemplate } from "../attachments/printable-template";
 import {
   blogRenderSchema,
   blogViewSchema,
@@ -83,5 +85,7 @@ export function getTemplates(): Record<string, Template> {
     homepage: homepageTemplate,
     generation: blogGenerationTemplate,
     excerpt: blogExcerptTemplate,
+    "og-image": blogOgImageTemplate,
+    printable: blogPrintableTemplate,
   };
 }

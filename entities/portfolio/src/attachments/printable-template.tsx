@@ -1,51 +1,54 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
-import type { MediaPageTemplate } from "@brains/media-page-composer";
+import { createTemplate, type Template } from "@brains/plugins";
 
 export const PROJECT_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const PROJECT_PRINTABLE_TEMPLATE_NAME = "portfolio:project-printable";
 
 export const projectPrintableTemplateSchema: z.ZodObject<{
   title: z.ZodString;
-  description: z.ZodOptional<z.ZodString>;
-  year: z.ZodOptional<z.ZodNumber>;
-  publishedAt: z.ZodOptional<z.ZodString>;
-  url: z.ZodOptional<z.ZodString>;
-  canonicalUrl: z.ZodOptional<z.ZodString>;
-  coverImageUrl: z.ZodOptional<z.ZodString>;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  year: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  publishedAt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  canonicalUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   body: z.ZodString;
-  brandLabel: z.ZodOptional<z.ZodString>;
+  brandLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   title: z.string().min(1),
-  description: z.string().optional(),
-  year: z.number().optional(),
-  publishedAt: z.string().optional(),
-  url: z.string().optional(),
-  canonicalUrl: z.string().optional(),
-  coverImageUrl: z.string().optional(),
+  description: z.string().nullable().default(null),
+  year: z.number().nullable().default(null),
+  publishedAt: z.string().nullable().default(null),
+  url: z.string().nullable().default(null),
+  canonicalUrl: z.string().nullable().default(null),
+  coverImageUrl: z.string().nullable().default(null),
   body: z.string(),
-  brandLabel: z.string().optional(),
+  brandLabel: z.string().nullable().default(null),
 });
 
 export type ProjectPrintableTemplateData = z.output<
   typeof projectPrintableTemplateSchema
 >;
 
-export const projectPrintableTemplate: MediaPageTemplate = {
-  name: PROJECT_PRINTABLE_TEMPLATE_NAME,
-  pluginId: "portfolio",
-  schema: projectPrintableTemplateSchema,
-  renderers: {
-    pdf: renderProjectPrintablePdf,
-  },
-};
+/** What a provider builds; absent fields render as null. */
+export type ProjectPrintableTemplateInput = z.input<
+  typeof projectPrintableTemplateSchema
+>;
+
+export const projectPrintableTemplate: Template =
+  createTemplate<ProjectPrintableTemplateData>({
+    name: "project-printable",
+    description: "Printable PDF of a project",
+    schema: projectPrintableTemplateSchema,
+    requiredPermission: "public",
+    layout: { formats: { pdf: renderProjectPrintablePdf } },
+  });
 
 function renderProjectPrintablePdf(
-  props: Record<string, unknown>,
+  data: ProjectPrintableTemplateData,
 ): JSX.Element {
-  const data = projectPrintableTemplateSchema.parse(props);
-
   return (
     <main className="printable-document printable-project">
       <style
@@ -235,7 +238,7 @@ function renderProjectPrintablePdf(
           <footer className="printable-footer">
             <span>{data.brandLabel ?? "Project printable"}</span>
             {data.canonicalUrl || data.url ? (
-              <a href={data.canonicalUrl ?? data.url}>
+              <a href={data.canonicalUrl ?? data.url ?? undefined}>
                 {data.canonicalUrl ?? data.url}
               </a>
             ) : null}

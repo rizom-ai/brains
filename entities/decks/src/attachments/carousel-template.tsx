@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
-import type { MediaPageTemplate } from "@brains/media-page-composer";
+import { createTemplate, type Template } from "@brains/plugins";
 
 export const DECK_CAROUSEL_ATTACHMENT_TYPE = "carousel";
 export const DECK_CAROUSEL_TEMPLATE_NAME = "decks:carousel";
@@ -16,13 +16,13 @@ export const deckCarouselSlideSchema: DeckCarouselSlideSchema = z.object({
 
 export const deckCarouselTemplateSchema: z.ZodObject<{
   title: z.ZodString;
-  brandLabel: z.ZodOptional<z.ZodString>;
-  eyebrow: z.ZodOptional<z.ZodString>;
+  brandLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  eyebrow: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   slides: z.ZodArray<DeckCarouselSlideSchema>;
 }> = z.object({
   title: z.string().min(1),
-  brandLabel: z.string().min(1).optional(),
-  eyebrow: z.string().min(1).optional(),
+  brandLabel: z.string().min(1).nullable().default(null),
+  eyebrow: z.string().min(1).nullable().default(null),
   slides: z.array(deckCarouselSlideSchema).min(1),
 });
 
@@ -30,18 +30,26 @@ export type DeckCarouselTemplateData = z.output<
   typeof deckCarouselTemplateSchema
 >;
 
-export const deckCarouselTemplate: MediaPageTemplate = {
-  name: DECK_CAROUSEL_TEMPLATE_NAME,
-  pluginId: "decks",
-  schema: deckCarouselTemplateSchema,
-  renderers: {
-    pdf: renderDeckCarouselPdf,
-  },
-};
+/** What a provider builds; absent fields render as null. */
+export type DeckCarouselTemplateInput = z.input<
+  typeof deckCarouselTemplateSchema
+>;
 
-function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
-  const { title, brandLabel, eyebrow, slides } =
-    deckCarouselTemplateSchema.parse(props);
+export const deckCarouselTemplate: Template =
+  createTemplate<DeckCarouselTemplateData>({
+    name: "carousel",
+    description: "Carousel PDF of a deck's slides",
+    schema: deckCarouselTemplateSchema,
+    requiredPermission: "public",
+    layout: { formats: { pdf: renderDeckCarouselPdf } },
+  });
+
+function renderDeckCarouselPdf({
+  title,
+  brandLabel,
+  eyebrow,
+  slides,
+}: DeckCarouselTemplateData): JSX.Element {
   const wordmark = splitWordmark(brandLabel ?? title);
   const total = slides.length;
   const totalLabel = String(total).padStart(2, "0");

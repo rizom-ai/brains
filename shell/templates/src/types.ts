@@ -12,6 +12,14 @@ export type ComponentType<P = unknown> = (props: P) => ReactElement;
 
 export type TemplateDataSchema<T> = ZodType<T, unknown>;
 
+/** Formats a template renders besides its web page: an image, a printed PDF. */
+export type MediaFormat = "image" | "pdf";
+
+/** A template's components for its media formats. */
+export type FormatComponents<P = unknown> = Partial<
+  Record<MediaFormat, ComponentType<P>>
+>;
+
 /**
  * The link fields site-builder fills on every entity before render; a view
  * schema leaves them nullable. A render schema extends a view schema with
@@ -64,6 +72,20 @@ export function createTypedComponent<TComponent>(
   return (props: unknown) => component(schema.parse(props));
 }
 
+/** Wrap each format component so its props are parsed before it runs. */
+function createTypedFormats<TComponent>(
+  schema: TemplateDataSchema<TComponent>,
+  formats: FormatComponents<TComponent> | undefined,
+): FormatComponents | undefined {
+  const typed = Object.fromEntries(
+    Object.entries(formats ?? {}).map(([format, component]) => [
+      format,
+      createTypedComponent(schema, component),
+    ]),
+  );
+  return Object.keys(typed).length > 0 ? typed : undefined;
+}
+
 /**
  * Unified template interface that bundles content generation and view rendering
  * This is the single source of truth for what constitutes a template
@@ -114,6 +136,8 @@ export interface LayoutTemplate extends TemplateBase {
     component?: ComponentType<unknown>;
     // When true, render without any page layout shell (no header/footer)
     fullscreen?: boolean;
+    /** Components for formats other than the web page. */
+    formats?: FormatComponents;
   };
 }
 
@@ -144,6 +168,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
                 component?: ComponentType<NoInfer<TSchema>>;
                 renderSchema?: undefined;
                 fullscreen?: boolean;
+                formats?: FormatComponents<NoInfer<TSchema>>;
               }
             | {
                 // The component consumes an enriched shape that site-builder
@@ -152,6 +177,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
                 component: ComponentType<TComponent>;
                 renderSchema: TemplateDataSchema<TComponent>;
                 fullscreen?: boolean;
+                formats?: FormatComponents<TComponent>;
               };
         }
       | {
@@ -179,17 +205,23 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
     schema: schema.transform((data) => jsonObjectSchema.parse(data)),
     layout: {},
   };
+  // Format components parse their props against the same schema as the page.
+  let formats: FormatComponents | undefined;
   if (layout.renderSchema) {
     result.layout.component = createTypedComponent(
       layout.renderSchema,
       layout.component,
     );
-  } else if (layout.component) {
-    result.layout.component = createTypedComponent(schema, layout.component);
+    formats = createTypedFormats(layout.renderSchema, layout.formats);
+  } else {
+    if (layout.component)
+      result.layout.component = createTypedComponent(schema, layout.component);
+    formats = createTypedFormats(schema, layout.formats);
   }
   if (layout.fullscreen !== undefined) {
     result.layout.fullscreen = layout.fullscreen;
   }
+  if (formats) result.layout.formats = formats;
 
   return result;
 }
@@ -214,6 +246,7 @@ export const TemplateSchema: z.ZodObject<{
     z.ZodObject<{
       component: z.ZodOptional<z.ZodUnknown>;
       fullscreen: z.ZodOptional<z.ZodBoolean>;
+      formats: z.ZodOptional<z.ZodUnknown>;
     }>
   >;
   dataSourceId: z.ZodOptional<z.ZodString>;
@@ -230,9 +263,22 @@ export const TemplateSchema: z.ZodObject<{
     .object({
       component: z.unknown().optional(), // ComponentType or string
       fullscreen: z.boolean().optional(),
+      formats: z.unknown().optional(), // FormatComponents
     })
     .optional(),
   dataSourceId: z.string().optional(),
 });
 
 export type TemplateInput = z.output<typeof TemplateSchema>;
+
+/** A template's renderers by output format: its page component as `web`. */
+export function templateRenderers(
+  template: Template,
+): Partial<Record<"web" | MediaFormat, ComponentType<unknown>>> {
+  const { component, formats } = template.layout ?? {};
+  return {
+    ...(component ? { web: component } : {}),
+    ...(formats?.image ? { image: formats.image } : {}),
+    ...(formats?.pdf ? { pdf: formats.pdf } : {}),
+  };
+}

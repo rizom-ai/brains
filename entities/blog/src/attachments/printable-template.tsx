@@ -4,7 +4,7 @@ import {
   formatDate as formatDateStyled,
 } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
-import type { MediaPageTemplate } from "@brains/media-page-composer";
+import { createTemplate, type Template } from "@brains/plugins";
 
 export const BLOG_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const BLOG_PRINTABLE_TEMPLATE_NAME = "blog:printable";
@@ -12,45 +12,49 @@ export const BLOG_PRINTABLE_TEMPLATE_NAME = "blog:printable";
 export const blogPrintableTemplateSchema: z.ZodObject<{
   title: z.ZodString;
   body: z.ZodString;
-  excerpt: z.ZodOptional<z.ZodString>;
-  author: z.ZodOptional<z.ZodString>;
-  publishedAt: z.ZodOptional<z.ZodString>;
-  canonicalUrl: z.ZodOptional<z.ZodString>;
-  coverImageUrl: z.ZodOptional<z.ZodString>;
-  brandLabel: z.ZodOptional<z.ZodString>;
+  excerpt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  author: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  publishedAt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  canonicalUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  brandLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   title: z.string().min(1),
   body: z.string(),
-  excerpt: z.string().optional(),
-  author: z.string().optional(),
-  publishedAt: z.string().optional(),
-  canonicalUrl: z.string().optional(),
-  coverImageUrl: z.string().optional(),
-  brandLabel: z.string().optional(),
+  excerpt: z.string().nullable().default(null),
+  author: z.string().nullable().default(null),
+  publishedAt: z.string().nullable().default(null),
+  canonicalUrl: z.string().nullable().default(null),
+  coverImageUrl: z.string().nullable().default(null),
+  brandLabel: z.string().nullable().default(null),
 });
 
 export type BlogPrintableTemplateData = z.output<
   typeof blogPrintableTemplateSchema
 >;
 
-export const blogPrintableTemplate: MediaPageTemplate = {
-  name: BLOG_PRINTABLE_TEMPLATE_NAME,
-  pluginId: "blog",
-  schema: blogPrintableTemplateSchema,
-  renderers: {
-    pdf: renderBlogPrintablePdf,
-  },
-};
+/** What a provider builds; absent fields render as null. */
+export type BlogPrintableTemplateInput = z.input<
+  typeof blogPrintableTemplateSchema
+>;
 
-function formatDate(value: string | undefined): string | undefined {
+export const blogPrintableTemplate: Template =
+  createTemplate<BlogPrintableTemplateData>({
+    name: "printable",
+    description: "Printable PDF of a blog post",
+    schema: blogPrintableTemplateSchema,
+    requiredPermission: "public",
+    layout: { formats: { pdf: renderBlogPrintablePdf } },
+  });
+
+function formatDate(value: string | null): string | undefined {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
   return formatDateStyled(date, { style: "long" });
 }
 
-function renderBlogPrintablePdf(props: Record<string, unknown>): JSX.Element {
-  const data = blogPrintableTemplateSchema.parse(props);
+function renderBlogPrintablePdf(data: BlogPrintableTemplateData): JSX.Element {
   const published = formatDate(data.publishedAt);
 
   return (

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- [#624](https://github.com/rizom-ai/brains/pull/624) [`aff9cc4`](https://github.com/rizom-ai/brains/commit/aff9cc43804b2f6da52e0cd9b13beac0517aaf45) Thanks [@yeehaa123](https://github.com/yeehaa123)! - OG images, printable PDFs and deck carousels render from registered view templates: a template declares components per output format, and media attachment providers look their template up by name.
+
 ## 0.2.0-alpha.542
 
 ### Patch Changes

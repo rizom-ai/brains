@@ -42,6 +42,7 @@ describe("Blog printable attachment provider", () => {
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("post", "printable")).toBe(true);
+    expect(context.views.hasRenderer("blog:printable", "pdf")).toBe(true);
   });
 
   it("returns undefined for non-printable requests", async () => {
@@ -53,6 +54,7 @@ describe("Blog printable attachment provider", () => {
       entityService: harness.getEntityService(),
       themeCSS: "",
       identity: harness.getEntityContext("test").identity,
+      views: harness.getEntityContext("test").views,
       domain: undefined,
     });
 
@@ -89,6 +91,7 @@ describe("Blog printable attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: ":root { --print-test-token: #123456; }",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: "example.com",
       },
       { renderPdf },
