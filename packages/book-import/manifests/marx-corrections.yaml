@@ -1308,10 +1308,6 @@ ldpd_14861084_000:
     from: Yertheilung
     to: Vertheilung
     by: scan
-  - page: 58
-    from: Yortheilen
-    to: Vortheilen
-    by: scan
   - page: 60
     from: Yertheilung
     to: Vertheilung
@@ -1891,6 +1887,162 @@ ldpd_14861084_000:
   - page: 193
     from: beRaut
     to: bebaut
+    by: scan
+  - page: 3
+    from: Thätigkeitszweigen, vo Zu-
+    to: Thätigkeitszweigen, vorzu-
+    by: scan
+  - page: 13
+    from: nur wirksam r
+    to: nur wirksam,
+    by: scan
+  - page: 22
+    from: haben diejArbeit
+    to: haben die Arbeit
+    by: scan
+  - page: 35
+    from: os absolut keine
+    to: es absolut keine
+    by: scan
+  - page: 47
+    from: sein . • . Alle
+    to: sein . . . Alle
+    by: scan
+  - page: 50
+    from: entstammt, ■-=
+    to: entstammt, —
+    by: scan
+  - page: 50
+    from: der Gesell- <
+    to: der Gesell-
+    by: scan
+  - page: 51
+    from: die U n g 1 e i ch h e i t des
+    to: die Ungleichheit des
+    by: scan
+  - page: 56
+    from: Form zu j
+    to: Form zu
+    by: scan
+  - page: 56
+    from: wie sie j
+    to: wie sie
+    by: scan
+  - page: 58
+    from: wirkten Yortheilen. In Folge dessen kann es auf die Ge- j
+    to: wirkten Vortheilen. In Folge dessen kann es auf die Ge-
+    by: scan
+  - page: 58
+    from: p. 158, 160* |
+    to: p. 158, 160,
+    by: scan
+  - page: 76
+    from: \ol. IV
+    to: vol. IV
+    by: scan
+  - page: 91
+    from: 1 V2 Millionen
+    to: 1½ Millionen
+    by: scan
+  - page: 125
+    from: Suum cuique. *
+    to: Suum cuique.
+    by: scan
+  - page: 131
+    from: Arbeiter • dadurch
+    to: Arbeiter dadurch
+    by: scan
+  - page: 133
+    from: Gesetzgeber ange^
+    to: Gesetzgeber ange-
+    by: scan
+  - page: 140
+    from: wo die auto^
+    to: wo die auto-
+    by: scan
+  - page: 143
+    from: • „Das beständige
+    to: „Das beständige
+    by: scan
+  - page: 144
+    from: Augenblick au, wo
+    to: Augenblick an, wo
+    by: scan
+  - page: 145
+    from: „zur He rbeiführung
+    to: „zur Herbeiführung
+    by: scan
+  - page: 148
+    from: w erden. Herr
+    to: werden. Herr
+    by: scan
+  - page: 148
+    from: st ellung der
+    to: stellung der
+    by: scan
+  - page: 158
+    from: stets v o r
+    to: stets vor
+    by: scan
+  - page: 160
+    from: hergestellten Pro*
+    to: hergestellten Pro-
+    by: scan
+  - page: 174
+    from: ... ä la bonne
+    to: ... à la bonne
+    by: scan
+  - page: 183
+    from: Vgl. vou dem-
+    to: Vgl. von dem-
+    by: scan
+  - page: 183
+    from: nature and nse
+    to: nature and use
+    by: scan
+  - page: 183
+    from: vorliege iu dem
+    to: vorliege in dem
+    by: scan
+  - page: 183
+    from: should he merely
+    to: should be merely
+    by: scan
+  - page: 183
+    from: from some ona
+    to: from some one
+    by: scan
+  - page: 184
+    from: in tke proposed
+    to: in the proposed
+    by: scan
+  - page: 184
+    from: out tbe seif same tbing
+    to: out the self same thing
+    by: scan
+  - page: 193
+    from: 1.d®r Preis des
+    to: der Preis des
+    by: scan
+  - page: 193
+    from: sj . rührt dies
+    to: so rührt dies
+    by: scan
+  - page: 195
+    from: Dampfmühle zn werfen
+    to: Dampfmühle zu werfen
+    by: scan
+  - page: 204
+    from: Freihändler auD
+    to: Freihändler auf-
+    by: scan
+  - page: 205
+    from: aber da^ Leben
+    to: aber das Leben
+    by: scan
+  - page: 124
+    from: zum Land^modi-
+    to: zum Land modi-
     by: scan
 mehring-nachlass-1:
   - page: 67
