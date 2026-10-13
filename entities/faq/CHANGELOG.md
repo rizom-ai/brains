@@ -1,5 +1,16 @@
 # @brains/faq
 
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.542
+  - @brains/ui-library@0.2.0-alpha.542
+  - @brains/utils@0.2.0-alpha.542
+  - @brains/plugins@0.2.0-alpha.542
+  - @brains/templates@0.2.0-alpha.542
+
 ## 0.2.0-alpha.541
 
 ### Patch Changes

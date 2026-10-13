@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- [#623](https://github.com/rizom-ai/brains/pull/623) [`b95e217`](https://github.com/rizom-ai/brains/commit/b95e2176b93bbc2676f0a11c966284adbf04febe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic that owns none of its nearest sources joins the topic that owns most of them, and the knowledge map files each source under the topic it sits closest to.
+
 ## 0.2.0-alpha.541
 
 ### Patch Changes

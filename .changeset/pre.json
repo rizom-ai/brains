@@ -746,6 +746,7 @@
     "core--theme-canvas-colour",
     "core--theme-package-build-helper",
     "core--topic-near-duplicates",
+    "core--topic-ownership-merge",
     "core--topic-title-rules",
     "core--topics-follow-votes-prompt",
     "core--topics-narrow-distance",
