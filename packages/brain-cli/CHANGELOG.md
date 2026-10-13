@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- [#627](https://github.com/rizom-ai/brains/pull/627) [`d886a56`](https://github.com/rizom-ai/brains/commit/d886a56a1636fd6da044ec07254069c13b00a33a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard's knowledge map draws every topic territory, not only the 18 largest.
+
 ## 0.2.0-alpha.544
 
 ### Patch Changes
