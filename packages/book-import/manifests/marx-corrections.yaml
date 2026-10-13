@@ -15,6 +15,10 @@ dieklassenkmpf00marxuoft:
     from: Kompeère, den
     to: Kompère, den
     by: scan
+  - page: 20
+    from: volution verrathen. 2*
+    to: volution verrathen.
+    by: scan
   - page: 21
     from: anki
     to: ""
@@ -58,6 +62,10 @@ dieklassenkmpf00marxuoft:
   - page: 21
     from: Woxtüthrer
     to: Wortführer
+    by: scan
+  - page: 21
+    from: ebensoviele Ten des
+    to: ebensoviele Stützen des
     by: scan
   - page: 22
     from: diesem System geföhrdet- und beeinträchtigt
@@ -122,6 +130,14 @@ dieklassenkmpf00marxuoft:
   - page: 23
     from: de l'eépoque“ etc.
     to: de l'époque“ etc.
+    by: scan
+  - page: 23
+    from: —— Nnꝰ ⁵ — — — 22* · —
+    to: ""
+    by: scan
+  - page: 23
+    from: „4la dynastie Rothschild“, „les juits vois
+    to: „la dynastie Rothschild“, „les juifs rois
     by: scan
   - page: 24
     from: Boürgeoisie
@@ -847,6 +863,14 @@ dieklassenkmpf00marxuoft:
     from: ihrer Be
     to: ihrer Be-
     by: reference
+  - page: 93
+    from: gegen dis Bourgeoisdiktatur
+    to: gegen die Bourgeoisdiktatur
+    by: scan
+  - page: 93
+    from: Sozialis5smus!
+    to: Sozialismus!
+    by: scan
   - page: 94
     from: par excéellence. Das
     to: par excellence. Das
@@ -962,6 +986,10 @@ dieklassenkmpf00marxuoft:
   - page: 106
     from: in pétto hat,
     to: in petto hat,
+    by: scan
+  - page: 106
+    from: „N. Rh. 3Z.“
+    to: „N. Rh. Z.“
     by: scan
   - page: 107
     from: de mauvaise gräce hingeworfene Geschenk
@@ -2393,6 +2421,10 @@ mehring-nachlass-1:
     from: Takte sich üiber Bedenken hinwegzusetzen
     to: Takte sich über Bedenken hinwegzusetzen
     by: reference
+  - page: 166
+    from: temporum sfelicitas
+    to: temporum felicitas
+    by: scan
   - page: 208
     from: Debatten über Pressfreiheit und Publikation der landständischen
     to: ""
@@ -2416,6 +2448,10 @@ mehring-nachlass-1:
   - page: 208
     from: Uon einem Rheinländer.
     to: ""
+    by: scan
+  - page: 209
+    from: freiheit Jum Wesen
+    to: freiheit zum Wesen
     by: scan
   - page: 215
     from: Revolution fern
@@ -2468,6 +2504,10 @@ mehring-nachlass-1:
   - page: 271
     from: "ein: cτrοe en."
     to: "ein: αυτος εφη."
+    by: scan
+  - page: 274
+    from: —3——
+    to: ""
     by: scan
   - page: 275
     from: das angebliche corpus delieti vorgeführt
@@ -2554,6 +2594,10 @@ mehring-nachlass-2:
     from: fürchterlicher, wider
     to: fürchterlicher, wider-
     by: reference
+  - page: 58
+    from: isolirt ist, ist ch
+    to: isolirt ist, ist ein
+    by: scan
   - page: 107
     from: Kritik als Herr Jules Faucher. 7
     to: Kritik als Herr Jules Faucher.
@@ -3336,6 +3380,10 @@ mehring-nachlass-2:
     from: und Zweifel (ef. Nr. 14 Antwort
     to: und Zweifel (cf. Nr. 14 Antwort
     by: reference
+  - page: 434
+    from: ebenso (I) höchst (I1)
+    to: ebenso (!) höchst (!!)
+    by: scan
   - page: 439
     from: solch ein Land
     to: solch ein Land-
@@ -18937,17 +18985,33 @@ mehring-nachlass-3:
     from: Citeratur.
     to: Literatur.
     by: scan
+  - page: 403
+    from: pag. 23ff.).
+    to: pag. 23 ff.).
+    by: scan
+  - page: 403
+    from: Magnetis5smus.
+    to: Magnetismus.
+    by: scan
+  - page: 408
+    from: Pourquoi la revolution d'Angleterre a-t·elle reussi?
+    to: Pourquoi la révolution d'Angleterre a-t-elle réussi?
+    by: scan
   - page: 414
     from: eités de la bourgeoisie
     to: cités de la bourgeoisie
     by: scan
-  - page: 426
-    from: sociétés secréètes; la
-    to: sociétés secrètes; la
+  - page: 416
+    from: me das Ein reformirender
+    to: nur das . . . . . Ein reformirender
     by: scan
   - page: 426
-    from: la preéfecture de
-    to: la préfecture de
+    from: conspirateurs. — Ies sociétés secréètes; la preéfecture de police
+    to: conspirateurs. — Les sociétés secrètes; la préfecture de police
+    by: scan
+  - page: 426
+    from: Cucien de la hodde, La naissance de la Republique en Feorier
+    to: Lucien de la Hodde, La naissance de la République en Février
     by: scan
   - page: 433
     from: de I'Unité universelle
@@ -18960,6 +19024,10 @@ mehring-nachlass-3:
   - page: 436
     from: die baénale bürgerliche
     to: die banale bürgerliche
+    by: scan
+  - page: 445
+    from: Agitatio ien der
+    to: Agitationen der
     by: scan
   - page: 447
     from: vollständigen panie steigerte.
@@ -19000,6 +19068,14 @@ mehring-nachlass-3:
   - page: 453
     from: Londoner panie vom
     to: Londoner panic vom
+    by: scan
+  - page: 464
+    from: von New ork aus
+    to: von New York aus
+    by: scan
+  - page: 464
+    from: von New ork ausgegangen
+    to: von New York ausgegangen
     by: scan
   - page: 478
     from: aufgiebt, beweist unser Arnold Winkelried Ruge, der zur großen 1161
@@ -19861,6 +19937,14 @@ ao391_die_neue_zeit:
     from: . Man weiß,
     to: .... Man weiß,
     by: scan
+  - page: 562
+    from: erhältnisse fie dazu zwange
+    to: erhältnisse sie dazu zwange
+    by: scan
+  - page: 562
+    from: zen, halten fie wieder eine
+    to: zen, halten sie wieder eine
+    by: scan
   - page: 563
     from: Nandglossen zum Programm der deutschen Arbeiterpartei.
     to: Randglossen zum Programm der deutschen Arbeiterpartei.
@@ -19869,10 +19953,22 @@ ao391_die_neue_zeit:
     from: schaft fih Niemand
     to: schaft sich Niemand
     by: scan
+  - page: 563
+    from: er verhält, fie als ihm geh
+    to: er verhält, sie als ihm geh
+    by: scan
   - page: 564
     from: der Mensch ift ein Wilder
     to: der Mensch ist ein Wilder
     by: reference
+  - page: 564
+    from: hte sammelt 2c., verrichtet
+    to: hte sammelt etc., verrichtet
+    by: scan
+  - page: 564
+    from: eiche Recht x., da dieselb
+    to: eiche Recht etc., da dieselb
+    by: scan
   - page: 565
     from: Behanpten die Bourgeois
     to: Behaupten die Bourgeois
@@ -19881,10 +19977,18 @@ ao391_die_neue_zeit:
     from: Redendarten. Der Kern
     to: Redensarten. Der Kern
     by: scan
+  - page: 565
+    from: Was ift „Arbeitsert
+    to: Was ist „Arbeitsert
+    by: scan
   - page: 566
     from: aus; ebenso
     to: aus; ebenso-
     by: reference
+  - page: 566
+    from: rrichtungen 2c.
+    to: rrichtungen etc.
+    by: scan
   - page: 567
     from: Waarenägquivalenten
     to: Waarenäquivalenten
@@ -19913,6 +20017,18 @@ ao391_die_neue_zeit:
     from: einer Sklaverei tft, die im
     to: einer Sklaverei ist, die im
     by: reference
+  - page: 571
+    from: rbeitskraft x.; daß also d
+    to: rbeitskraft etc.; daß also d
+    by: scan
+  - page: 571
+    from: beweist fie nicht allei
+    to: beweist sie nicht allei
+    by: scan
+  - page: 571
+    from: nn, . . . . fie bei Abfassu
+    to: nn, . . . . sie bei Abfassu
+    by: scan
   - page: 572
     from: Kooperativgesellschaften betrifft, jo haben sie
     to: Kooperativgesellschaften betrifft, so haben sie
@@ -19929,6 +20045,10 @@ ao391_die_neue_zeit:
     from: fo hätte man
     to: so hätte man
     by: scan
+  - page: 573
+    from: gemein, daß fie auf dem Bod
+    to: gemein, daß sie auf dem Bod
+    by: scan
   - page: 574
     from: einzige progresstve Einkommensteuer etc.“ Die Steuern find die
     to: einzige progressive Einkommensteuer etc.“ Die Steuern sind die
@@ -19937,6 +20057,10 @@ ao391_die_neue_zeit:
     from: man von Scszialisten erwarten durfte
     to: man von Sozialisten erwarten durfte
     by: reference
+  - page: 575
+    from: fixirt, die fie
+    to: fixirt, die sie
+    by: scan
 zur-kritik-der-politischen-okonomie:
   - page: -1
     from: "Proudhon gerichteten Schrift: „Misère de la Philosophie ete.“"
@@ -22896,10 +23020,6 @@ enthullungen-1885:
     to: antike Welt hinterließ ihren sterbenden
     by: reference
   - page: 31
-    from: eine solche Ertlärung nichts zu
-    to: eine solche Erklärung nichts zu
-    by: reference
-  - page: 31
     from: spricht, aber gam
     to: spricht, aber ganz
     by: reference
@@ -22919,6 +23039,10 @@ enthullungen-1885:
     from: bei I+αH. gefundenen
     to: bei Dietz gefundenen
     by: scan
+  - page: 31
+    from: eine solche Ertlärung nichts zu fürchten“ etc. 2c. Schramm wies natürlich
+    to: eine solche Erklärung nichts zu fürchten“ etc. etc. Schramm wies natürlich
+    by: scan
   - page: 32
     from: Die französische Reqierung hatte ihr
     to: Die französische Regierung hatte ihr
@@ -22927,6 +23051,10 @@ enthullungen-1885:
     from: zu essen. Cheroal hatte sich
     to: zu essen. Cherval hatte sich
     by: reference
+  - page: 32
+    from: machen“ etc. 2c. Cherval
+    to: machen“ etc. etc. Cherval
+    by: scan
   - page: 33
     from: beigetragen, dieser figen Idee die
     to: beigetragen, dieser fixen Idee die
@@ -23873,6 +24001,10 @@ enthullungen-1885:
     from: Regierungs-Steckbriesen
     to: Regierungs-Steckbriefen
     by: scan
+  - page: 75
+    from: muß 41966 r werden.
+    to: muß hergestellt werden.
+    by: reference
   - page: 76
     from: eine Neihe von RNifionzreisen nu großen Erolg arigefrset hatte.
     to: eine Reihe von Missionsreisen mit großem Erfolg ausgeführt hatte.
@@ -24061,6 +24193,10 @@ enthullungen-1885:
     from: möglich ausrecht erhalten
     to: möglich aufrecht erhalten
     by: scan
+  - page: 79
+    from: Es ** nicht
+    to: Es liegt nicht
+    by: reference
   - page: 80
     from: 3) Sobald die neuen Regierungen sich einigermaßen befestigt
     to: 3) Sobald die neuen Regierungen sich einigermaßen befestigt haben,
@@ -24084,6 +24220,10 @@ enthullungen-1885:
   - page: 80
     from: Arbeiter bewassnet und
     to: Arbeiter bewaffnet und
+    by: reference
+  - page: 80
+    from: Herrschaft der *
+    to: Herrschaft der bürgerlichen
     by: reference
   - page: 81
     from: "* Wahlen schon"
@@ -24225,6 +24365,10 @@ enthullungen-1885:
     from: Die —+ Mitglieber der
     to: Die einflußreichsten Mitglieder der
     by: scan
+  - page: 86
+    from: ist, —* Einfluß hinreichend
+    to: ist, ihren Einfluß hinreichend
+    by: reference
   - page: 87
     from: über den Ersolg baldmöglichst zu
     to: über den Erfolg baldmöglichst zu
@@ -24341,6 +24485,18 @@ enthullungen-1885:
     from: schleunigsten Ber-
     to: schleunigsten Ver-
     by: scan
+  - page: 88
+    from: denen sie wichtige Vorarbeiten für die nüchste französische Nevolution
+    to: denen sie wichtige Vorarbeiten für die nächste französische Revolution
+    by: reference
+  - page: 88
+    from: Edie Chess der lutionuren Chartistenpartei ebenf
+    to: übertragen haben. Die Chefs der revolutionären Chartistenpartei stehen
+    by: reference
+  - page: 88
+    from: ie revoluti harti st alls in
+    to: ebenfalls in
+    by: reference
 ldpd_13048930_000:
   - page: 1
     from: Am 4. September 187⁰0, als die Pariser Arbeiter die
@@ -25616,16 +25772,16 @@ lohnarbeitundka00marxgoog:
     to: Waren, die er im Austausch für seine Ware, die Arbeit[skraft],
     by: scan
   - page: 17
-    from: Zucker kaufte, find der Preis
-    to: Zucker kaufte, sind der Preis
-    by: reference
-  - page: 17
     from: ") Marx schrieb: womit er 12 Stunden Arbeit kaufte. K."
     to: "1) Marx schrieb: womit er 12 Stunden Arbeit kaufte. K."
     by: scan
   - page: 17
     from: Ware. die
     to: Ware, die
+    by: scan
+  - page: 17
+    from: womit er 2· Pfund Zucker kaufte, find der Preis der 2 Pfund
+    to: womit er 2 Pfund Zucker kaufte, sind der Preis der 2 Pfund
     by: scan
   - page: 18
     from: Arbeitskraft! des Webers ganz so, wie er mit einem anderen Teil
@@ -25654,6 +25810,10 @@ lohnarbeitundka00marxgoog:
   - page: 18
     from: instrument) — den Webstuhl
     to: instrument¹) — den Webstuhl
+    by: scan
+  - page: 18
+    from: st immte Summe
+    to: stimmte Summe
     by: scan
   - page: 19
     from: Nodurch wird der DPreis einer Mare
@@ -25743,9 +25903,17 @@ lohnarbeitundka00marxgoog:
     from: "[Verschleiß von! Instrumenten"
     to: "[Verschleiß von] Instrumenten"
     by: scan
+  - page: 23
+    from: i st, um diese Ware
+    to: ist, um diese Ware
+    by: scan
   - page: 24
     from: Die Produktionskosten der einfachen Arbeitlskraft! belaufen
     to: Die Produktionskosten der einfachen Arbeit[skraft] belaufen
+    by: scan
+  - page: 24
+    from: die Exi sten z- und
+    to: die Existenz- und
     by: scan
   - page: 25
     from: (sondern auch auf einander]
@@ -25782,6 +25950,10 @@ lohnarbeitundka00marxgoog:
   - page: 25
     from: "— 1) Marr schrieb: beziehen sich die Menschen. K."
     to: "1) Marx schrieb: beziehen sich die Menschen. K."
+    by: scan
+  - page: 25
+    from: besteht, si
+    to: besteht, sind
     by: scan
   - page: 26
     from: mittelbare, lebendige Arbeitsskraft!]). Die Existenz
@@ -25824,8 +25996,8 @@ lohnarbeitundka00marxgoog:
     to: worden,
     by: scan
   - page: 27
-    from: Zig. schon
-    to: Ztg. schon
+    from: 11 aer steht auch im Original der N. Rh. Zig. schon das Wort „Arbeits-
+    to: 1) Hier steht auch im Original der N. Rh. Ztg. schon das Wort „Arbeits-
     by: scan
   - page: 28
     from: Arbeitsskraft! austauscht, indem es Lohnarbeit ins Leben ruft. Die
@@ -25842,6 +26014,10 @@ lohnarbeitundka00marxgoog:
   - page: 28
     from: ") Marr schrieb: Die Lohnarbeit. K."
     to: "1) Marx schrieb: Die Lohnarbeit. K."
+    by: scan
+  - page: 28
+    from: i st daher Vermehrung
+    to: ist daher Vermehrung
     by: scan
   - page: 29
     from: Was die Arbeiter zunächst für ihre Arbeitsskraft) erhalten, ist
@@ -25923,6 +26099,10 @@ lohnarbeitundka00marxgoog:
     from: Wiewirkt
     to: Wie wirkt
     by: scan
+  - page: 34
+    from: massenhaft re Ausbeutung
+    to: massenhaftere Ausbeutung
+    by: scan
   - page: 35
     from: nichts extra! gewinnen
     to: nichts [extra] gewinnen
@@ -25955,6 +26135,10 @@ lohnarbeitundka00marxgoog:
     from: "beständig rnt:"
     to: "beständig zuraunt:"
     by: scan
+  - page: 36
+    from: sin d. Die Teilung
+    to: sind. Die Teilung
+    by: scan
   - page: 37
     from: bis die Wonrurrenz
     to: bis die Konkurrenz
@@ -25967,9 +26151,17 @@ lohnarbeitundka00marxgoog:
     from: Arbeit befäbiat einen
     to: Arbeit befähigt einen
     by: scan
+  - page: 37
+    from: um das ß-, 10-, 20fache.
+    to: um das 5-, 10-, 20fache.
+    by: scan
   - page: 38
     from: Anwerbenals
     to: Anwerben als
+    by: scan
+  - page: 38
+    from: das eigentümliche, da ß
+    to: das eigentümliche, daß
     by: scan
   - page: 39
     from: und „Lebens
