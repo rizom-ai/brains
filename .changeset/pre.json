@@ -747,6 +747,7 @@
     "core--test-suite-hardening-type-narrowing",
     "core--theme-canvas-colour",
     "core--theme-package-build-helper",
+    "core--topic-duplicate-claim",
     "core--topic-near-duplicates",
     "core--topic-ownership-merge",
     "core--topic-title-rules",
