@@ -8,6 +8,11 @@ import {
   bookSectionMetadataSchema,
 } from "../schemas/book-section";
 import { BookAskTemplate, type BookAskProps } from "../templates/book-ask";
+import {
+  BookEpub,
+  bookEpubSchema,
+  type BookEpubData,
+} from "../templates/book-epub";
 import { BookListTemplate, type BookListProps } from "../templates/book-list";
 import {
   BookDetailTemplate,
@@ -159,6 +164,13 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "book:ask",
       requiredPermission: "public",
       layout: { component: BookAskTemplate },
+    }),
+    epub: createTemplate<BookEpubData>({
+      name: "epub",
+      description: "A book as an EPUB, one chapter per section",
+      schema: bookEpubSchema,
+      requiredPermission: "public",
+      layout: { formats: { epub: BookEpub } },
     }),
   };
 }

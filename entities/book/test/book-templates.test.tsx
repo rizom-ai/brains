@@ -309,6 +309,31 @@ describe("Book pages", () => {
     expect(html).toContain("3 sections");
   });
 
+  test("offers the book as an EPUB opposite the start of reading", () => {
+    const html = render(
+      <BookDetailTemplate
+        book={erstes}
+        first={section("erstes", 1, "Vorrede")}
+        score={score}
+      />,
+    );
+
+    expect(html).toMatch(
+      /<a href="\/books\/erstes\.epub" download=""[^>]*>Download EPUB ↓<\/a>/,
+    );
+    expect(html.indexOf("Download EPUB")).toBeLessThan(
+      html.indexOf("Begin reading"),
+    );
+  });
+
+  test("offers no EPUB for a book without sections", () => {
+    const html = render(
+      <BookDetailTemplate book={erstes} first={null} score={[]} />,
+    );
+
+    expect(html).not.toContain(".epub");
+  });
+
   test("counts a one-section book in the singular", () => {
     const html = render(
       <BookDetailTemplate

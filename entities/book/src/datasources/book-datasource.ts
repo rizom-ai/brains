@@ -92,6 +92,44 @@ export function parseBookSectionData(entity: BookSection): BookSectionWithData {
   });
 }
 
+/** Every entry of a book in reading order, as stored: one per entry. */
+export async function listBookSections(
+  book: string,
+  entityService: EntityServiceClient,
+): Promise<BookSectionWithData[]> {
+  const entities = await entityService.listEntities(
+    {
+      entityType: "book-section",
+      options: {
+        filter: { metadata: { book } },
+        sortFields: [{ field: "order", direction: "asc" }],
+        limit: 100000,
+      },
+    },
+    bookSectionSchema,
+  );
+  return entities.map(parseBookSectionData);
+}
+
+/**
+ * A book's entries as the sections they make up: an entry that continues
+ * the one before joins its section.
+ */
+export function groupContinuations(
+  entries: BookSectionWithData[],
+  continuations: ReadonlySet<number>,
+): [BookSectionWithData, ...BookSectionWithData[]][] {
+  return entries.reduce<[BookSectionWithData, ...BookSectionWithData[]][]>(
+    (sections, entry) => {
+      const previous = sections.at(-1);
+      return previous && continuations.has(entry.metadata.order)
+        ? [...sections.slice(0, -1), [...previous, entry]]
+        : [...sections, [entry]];
+    },
+    [],
+  );
+}
+
 /**
  * Books are listed by title. A book's page holds its score; a section's page
  * holds its book and its neighbours in reading order, each found by one
@@ -244,40 +282,20 @@ export class BookDataSource extends BaseEntityDataSource<
     continuations: ReadonlySet<number>,
     entityService: EntityServiceClient,
   ): Promise<ScoreEntry[]> {
-    const entities = await entityService.listEntities(
-      {
-        entityType: "book-section",
-        options: {
-          filter: { metadata: { book } },
-          sortFields: [{ field: "order", direction: "asc" }],
-          limit: 100000,
-        },
-      },
-      bookSectionSchema,
-    );
-    return entities
-      .map(parseBookSectionData)
-      .reduce<ScoreEntry[]>((score, section) => {
-        const length = Buffer.byteLength(section.body.trim(), "utf8");
-        const previous = score.at(-1);
-        if (previous && continuations.has(section.metadata.order)) {
-          return [
-            ...score.slice(0, -1),
-            { ...previous, length: previous.length + length },
-          ];
-        }
-        return [
-          ...score,
-          {
-            slug: section.metadata.slug,
-            title: section.metadata.title,
-            section: section.metadata.section,
-            order: section.metadata.order,
-            headings: section.frontmatter.headings,
-            length,
-          },
-        ];
-      }, []);
+    return groupContinuations(
+      await listBookSections(book, entityService),
+      continuations,
+    ).map(([first, ...rest]) => ({
+      slug: first.metadata.slug,
+      title: first.metadata.title,
+      section: first.metadata.section,
+      order: first.metadata.order,
+      headings: first.frontmatter.headings,
+      length: [first, ...rest].reduce(
+        (sum, entry) => sum + Buffer.byteLength(entry.body.trim(), "utf8"),
+        0,
+      ),
+    }));
   }
 
   /** The topics nearest a section, by their stored embeddings: no API calls. */

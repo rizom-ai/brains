@@ -178,4 +178,19 @@ describe("RenderService", () => {
     expect(seen).toEqual([{ title: "T" }]);
     expect(() => pdf({})).toThrow();
   });
+
+  test("an EPUB is one more format a template renders", () => {
+    templateRegistry.register(
+      "test-plugin:book",
+      createTemplate<{ title: string }>({
+        name: "test-plugin:book",
+        description: "Book",
+        schema: z.object({ title: z.string() }),
+        requiredPermission: "public",
+        layout: { formats: { epub: (props) => h("h1", null, props.title) } },
+      }),
+    );
+
+    expect(renderService.listFormats("test-plugin:book")).toEqual(["epub"]);
+  });
 });

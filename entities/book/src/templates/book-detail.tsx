@@ -391,7 +391,14 @@ export const BookDetailTemplate = ({
       </p>
       <Source href={book.frontmatter.source} book={book} />
       {first && (
-        <nav className="mt-10 flex justify-end font-mono text-sm">
+        <nav className="mt-10 flex justify-between gap-6 font-mono text-sm">
+          <a
+            href={`${bookHref(book)}.epub`}
+            download=""
+            className={bookClasses.link}
+          >
+            Download EPUB ↓
+          </a>
           <a href={bookHref(first)} rel="next" className={bookClasses.link}>
             Begin reading →
           </a>
