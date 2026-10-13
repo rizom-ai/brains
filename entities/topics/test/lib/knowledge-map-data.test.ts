@@ -402,4 +402,66 @@ describe("buildKnowledgeMapData at corpus scale", () => {
     // What the caller must show is drawn, near a topic or not.
     expect(data.points.some(({ id }) => id === essay.entityId)).toBe(true);
   });
+  test("files each source under the topic it was found nearest", async () => {
+    const topics = ["will-to-power", "eternal-recurrence"];
+    // "shared" is second-nearest to will-to-power and nearest to eternal-recurrence.
+    const nearest: Record<string, string[]> = {
+      "will-to-power": ["a1", "shared", "a2"],
+      "eternal-recurrence": ["shared", "b1", "b2"],
+    };
+    const context: KnowledgeMapDataContext = {
+      semantic: {
+        // The flattened plane puts every source beside the first topic.
+        project: (request) =>
+          Promise.resolve({
+            points: (request.entities ?? []).map((reference) => ({
+              ...reference,
+              coordinates:
+                reference.entityId === "eternal-recurrence" ? [9, 9] : [0, 0],
+              distanceToOrigin: 0.5,
+            })),
+          }),
+      },
+      entityService: {
+        listEntities: () =>
+          Promise.resolve(
+            topics.map((id) => ({
+              id,
+              entityType: "topic",
+              content: `# ${id}`,
+            })),
+          ),
+        getEntityTypes: () => ["topic", "book-section"],
+        countEntities: () => Promise.resolve(3000),
+        nearestToEntity: (request) =>
+          Promise.resolve(
+            (nearest[request.origin.entityId] ?? []).map((entityId) => ({
+              entityType: "book-section",
+              entityId,
+            })),
+          ),
+        getEntity: (request) =>
+          Promise.resolve({
+            id: request.id,
+            entityType: request.entityType,
+            content: "Text.",
+          }),
+      },
+    };
+
+    const data = await buildKnowledgeMapData(context, "public", {
+      include: [{ entityType: "post", entityId: "far-from-every-topic" }],
+    });
+    const members = (id: string): string[] | undefined =>
+      data.zones
+        .find((zone) => zone.id === id)
+        ?.memberIds.slice()
+        .sort();
+
+    expect(members("will-to-power")).toEqual(["a1", "a2"]);
+    expect(members("eternal-recurrence")).toEqual(["b1", "b2", "shared"]);
+    expect(
+      data.points.find(({ id }) => id === "far-from-every-topic")?.zoneId,
+    ).toBeNull();
+  });
 });
