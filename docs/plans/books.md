@@ -25,59 +25,59 @@ Asking a brain about an idea returns an answer grounded in book sections, quotin
 
 ## The `book` plugin
 
-`entities/book` (`@brains/book`), one entity type `book`, catalog member `book` in `packages/brain-cli/src/model/canonical-brain.ts`, selected per brain with `add: [book]`.
+`entities/book` (`@brains/book`), two entity types — `book` (the work) and `book-section` (its text) — catalog member `book` in `packages/brain-cli/src/model/canonical-brain.ts`, selected per brain with `add: [book]`.
 
-It follows the domain-plugin model in `docs/architecture-overview.md` (multi-target content generation): the book's structure is the entity's structured id path, encoded by the shared entity-path codec, exactly as `site-content` maps route › section. No book concept enters the shell.
+Both types are installed declaratively by the `reading` service package. No native Book plugin, adapter bridge or runtime registry access is exposed.
+
+It follows the domain-plugin model in `docs/architecture-overview.md` (multi-target content generation): a section's place in its book is the entity's structured id path, encoded by the shared entity-path codec, exactly as `site-content` maps route › section. No book concept enters the shell.
 
 ### Id path
 
-`brain-data/book/<book>/<nnnnn>-<slug>.md` → id `<book>:<nnnnn>-<slug>`; parts become folders named after the order of their first entry, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`.
-
-- `<book>` — the book's slug, one folder per book in Studio
-- `<nnnnn>` — five-digit reading order within the book, so id order is reading order
-- `<book>:00000-titel` — the title entry: the book's details and table of contents
+- `brain-data/book/<book>.md` → id `<book>`: the book's details and table of contents.
+- `brain-data/book-section/<book>/<nnnnn>-<slug>.md` → id `<book>:<nnnnn>-<slug>`; headings become folders named after the order of their first section, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`. `<nnnnn>` is five-digit reading order within the book, from 1, so id order is reading order.
 
 ### Frontmatter
 
-Every entry:
+A book:
 
-- `title` — section heading, or the book title on the title entry
-- `book` — the book's slug
-- `order` — reading order within the book, 0 for the title entry
-- `section` — the author's or edition's own citation unit where it exists (aphorism number, `§`, eKGWB siglum such as `FW-125`), else null
-- `page` — source page reference, else null
-- `part` — the top-level part of the book the section belongs to, else null
-- `source` — URL of the source for this entry
-
-Title entry only:
-
+- `title`, `source`
 - `author`, `year`, `kind` (`work` | `nachlass` | `letters` | `excerpt`)
 - `edition`, `license` (`public-domain` | `CC-BY-SA-4.0` | `CC-BY-NC-ND-4.0`), `attribution`
-- `published` (in the author's lifetime, private prints included), `length` (bytes of text), `sections`, `shortTitle` (for the spine)
+- `published` (in the author's lifetime, private prints included), `length` (bytes of its sections' text), `sections`, `shortTitle` (for the spine)
+
+A section:
+
+- `title` — section heading
+- `book` — the book's slug
+- `order` — reading order within the book, from 1
+- `section` — the author's or edition's own citation unit where it exists (aphorism number, `§`, eKGWB siglum such as `FW-125`), else null
+- `page` — source page reference, else null
+- `headings` — the headings the section stands under, outermost first: a book's part, then the division within it
+- `source` — URL of the source for this section
 
 Body: the author's text, unchanged except for markdown conversion.
 
 ### Splitting rule
 
-1. one entry per author's or edition's unit: aphorism, `§`, siglum, chapter or subsection, letter;
-2. a unit over 8,000 UTF-8 bytes splits at paragraph boundaries into consecutive entries with the same `title` and `section`;
+1. one section per author's or edition's unit: aphorism, `§`, siglum, chapter or subsection, letter;
+2. a unit over 8,000 UTF-8 bytes splits at paragraph boundaries into consecutive sections with the same `title` and `section`;
 3. two units are never merged.
 
-8,000 bytes keeps each entry inside one embedding input (`MAX_INPUT_TOKENS` in `shell/ai-service/src/online-embedding-provider.ts`), so every entry has its own vector and a search hit is the text to quote.
+8,000 bytes keeps each section inside one embedding input (`MAX_INPUT_TOKENS` in `shell/ai-service/src/online-embedding-provider.ts`), so every section has its own vector and a search hit is the text to quote.
 
 ### Reading on a site
 
-The plugin ships `book-list` and `book-detail` templates and a `book:entities` datasource. Generated routes: `/books` lists title entries; `/books/<book>` is the title page; `/books/<book>/<order>` is an entry with its citation, source attribution and prev/next in reading order. Every entry carries `book`, `order` and a derived `slug` in metadata, so each page is four indexed lookups regardless of book length. The site serving books sets `entityDisplay.book.paginate: false`, since the index lists books, not entries. The site-engine route generator pages through all entities, so books past 1,000 entries get every route.
+The plugin ships `book-list`, `book-detail` and `book-section-detail` templates and an `@brains/book:entities` datasource. Generated routes: `/books` lists books; `/books/<book>` is a book's title page with the score of its sections; `/books/<book>/<order>` is a section with its citation, source attribution and prev/next in reading order. Every section carries `book`, `order` and a derived `slug` in metadata. Section navigation uses a fixed number of scoped queries; that does not bound scanned rows, memory or build duration. The book score reads up to 100,000 sections, and the book index defaults to 1,000 books; these limits are not whole-corpus completeness or provider-spending guarantees. The site serving books sets `entityDisplay.book.paginate: false`, since the index lists books, and gives `book-section` the plural `books` so sections open under their book; `book-section` has no list template, so it gets detail routes only.
 
 ### Reading site
 
-Book brains get a purpose-built reading site, not the default site with books added. Mockup: [friedrich-reading-site-mockups.html](../friedrich-reading-site-mockups.html) — the work as one horizon of spines (height = measured length, published above the line, posthumous below), a book as a score of its sections, a section page cited by siglum with Sperrsatz emphasis and themes in the margin, a theme traced across the works, Frag Friedrich with cited answers, and phone layouts. The site turns off pagination for `book`.
+Book brains get a purpose-built reading site, not the default site with books added. Mockup: [friedrich-reading-site-mockups.html](../friedrich-reading-site-mockups.html) — the work as one horizon of spines (height = measured length, published above the line, posthumous below), a book as a score of its sections, a section page cited by siglum with Sperrsatz emphasis and themes in the margin, a theme traced across the works, Frag Friedrich with cited answers, and phone layouts.
 
-Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` is a book's score on its title entry and the reading page on a section. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode. Title entries gain `published`, `length` and `sections`; sections gain `part`; the importer writes them.
+Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` a book's score, `book-section-detail` the reading page. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode.
 
-Topics are named in the author's own terms: each book brain's content carries a `prompt` entry targeting `topics:extraction` that asks for the author's concepts in the source language (Mitleid, Ressentiment, Wille zur Macht), at the level of a concept, and no topic named after the author or a whole book's subject. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `@brains/book:book:theme` through `entityDisplay.topic.detailTemplate`). Both use the scoped datasource reader's `related()` capability, backed by stored-vector nearest lookup with publication and visibility floors. This avoids a whole-space projection per page, but is not a bound on total scan work. Incoming main reported about a minute and a half for Nietzsche's 3,738 sections; that timing is not acceptance evidence for this SDK integration.
+Topics are named in the author's own terms: each book brain's content carries a `prompt` entry targeting `topics:extraction` that asks for the author's concepts in the source language (Mitleid, Ressentiment, Wille zur Macht), at the level of a concept, and no topic named after the author or a whole book's subject. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `@brains/book:book:theme` through `entityDisplay.topic.detailTemplate`). Both use the scoped datasource reader's `related()` capability, backed by stored-vector nearest lookup with publication and visibility floors. This avoids a whole-space projection per page, but is not a bound on total scan work. Incoming main reported about a minute and a half for Nietzsche's 3,705 sections; that timing is not acceptance evidence for this SDK integration.
 
-Ask lives at `/ask` (`@brains/book:book:ask`): the guest box under the site's name, and a rail listing the passages an answer cites by siglum, book and year. A reading page offers "Ask about AC-2", which starts the question with the siglum. The books site marks only `book` citable; a title entry (a book's contents) carries `citable: false` and is never a source; a cited section is titled by its siglum (`pageTitle`). The book plugin's instructions tell the agent to search the books first, cite by siglum and book, quote verbatim, and say when the books do not address a question. Turning Ask on for a deployed brain is the owner's budgeted switch in Studio.
+Ask lives at `/ask` (`@brains/book:book:ask`): the guest box under the site's name, and a rail listing the passages an answer cites by siglum, book and year. A reading page offers "Ask about AC-2", which starts the question with the siglum. The books site marks only `book-section` citable; a book's contents still carry `citable: false`, preserving the general per-entity citation exclusion even on other sites; a cited section is titled by its siglum (`pageTitle`). The book plugin's instructions tell the agent to search the sections first, cite by siglum and book, quote verbatim, and say when the books do not address a question. Turning Ask on for a deployed brain is the owner's budgeted switch in Studio.
 
 Build slices, one PR each:
 
@@ -89,9 +89,9 @@ Build slices, one PR each:
 
 ### Entity type config
 
-- `actionPolicy: { create: "never", update: "never", delete: "never" }` — the agent reads and cites, never edits; the importer writes through directory-sync.
-- `projectionSourceRole: "canonical"` — a book brain's books are its primary texts; its topics map their themes.
-- `defaultSort`: `id` ascending — reading order for `system_list`.
+- Both types: `actionPolicy` `never` for create, update, delete, extract and publish — the agent reads and cites, never edits; the importer writes through directory-sync.
+- `book-section`: `projectionSourceRole: "canonical"` — a book brain's sections are its primary texts; its topics map their themes. `defaultSort`: `id` ascending — reading order for `system_list`.
+- `book`: `projectionSource: false` — a book's contents are no text to extract topics from.
 
 Action policy is enforced in the `system_*` tools, Studio and the operator surface, not in the entity service, so directory-sync writes books unhindered.
 
@@ -162,11 +162,13 @@ Stop the brain/directory-sync and other readers or writers of this output before
 
 - `manifests/{nietzsche,marx,freud}.yaml` — one entry per book: adapter, source, edition, license, strip rules
 - adapters: `dta-tei`, `ekgwb`, `mega-tei`, `archive-ocr`, `gutenberg-text`, `wikisource`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
-- one shared writer applies the splitting rule, validates every entry against `@brains/book`'s schema, writes `book/<book>/…`, and removes stale entries of that book
+- one shared renderer applies the splitting rule; the writer validates safe, unique paths, stages `book/<book>.md` and `book-section/<book>/…`, replaces both destinations with compensating rollback, and removes stale sections of that book
 - deterministic: rerunning on the same sources yields byte-identical files
 - downloads are cached locally and never committed
 - emphasis (Sperrsatz) becomes markdown emphasis; spans that touch in reading order merge, also across an editor's correction wrapped around a word, and space at a span's edge stays outside the markers
 - file and entry slugs transliterate letters (ü → ue, ß → ss, é → e) instead of dropping them
+
+`--from-corpus` reads the new two-type layout and can restructure its parts without fetching sources again. It is not a converter for historical single-type corpora. Existing installations with that older layout require separately managed content replacement; this code integration does not migrate live content. Use separate input/output directories, keep backups and stop readers and writers before replacement. Ambiguous sigla require manual reconciliation. The writer retains recovery paths when rollback fails; its two destinations are not filesystem-wide, whole-corpus, crash-safe or concurrent-writer atomic. No mixed-version/downgrade support or automatic redirects are provided.
 
 Flow per book:
 

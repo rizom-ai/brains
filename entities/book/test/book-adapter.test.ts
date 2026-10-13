@@ -1,24 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { decodeBook, encodeBook, bookFields } from "./helpers/book-codec";
+import {
+  decodeBook,
+  encodeBook,
+  bookFields,
+  decodeSection,
+  encodeSection,
+  sectionFields,
+} from "./helpers/book-codec";
 
-const sectionMarkdown = `---
-title: Erstes Hauptstück
-book: der-antichrist
-order: 1
-section: AC-1
-page: null
-source: http://www.nietzschesource.org/eKGWB/AC-1
----
-
-Ein erfundener Absatz für den Test.
-`;
-
-const titleMarkdown = `---
+const bookMarkdown = `---
 title: Der Antichrist
-book: der-antichrist
-order: 0
-section: null
-page: null
 source: http://www.nietzschesource.org/eKGWB/AC
 author: Friedrich Nietzsche
 year: 1888
@@ -32,43 +23,30 @@ sections: 65
 shortTitle: Antichrist
 ---
 
-Inhalt.
+## Contents
 `;
 
-describe("book declaration codec", () => {
-  it("parses a section entry into title and section metadata", () => {
-    const parsed = decodeBook(sectionMarkdown);
+const sectionMarkdown = `---
+title: Erstes Hauptstück
+book: der-antichrist
+order: 1
+section: AC-1
+page: null
+headings:
+  - Erster Theil
+  - Erstes Hauptstück
+source: http://www.nietzschesource.org/eKGWB/AC-1
+---
+
+Ein erfundener Absatz für den Test.
+`;
+
+describe("Book declaration codec", () => {
+  it("parses a book's details, opening at its own slug", () => {
+    const parsed = decodeBook(bookMarkdown);
 
     expect(parsed.entityType).toBe("book");
-    expect(parsed.metadata).toEqual({
-      title: "Erstes Hauptstück",
-      section: "AC-1",
-      book: "der-antichrist",
-      order: 1,
-      slug: "der-antichrist/1",
-      pageTitle: "AC-1",
-      citable: true,
-    });
-  });
-
-  it("reads the headings a section stands under", () => {
-    const frontmatter = bookFields(
-      sectionMarkdown.replace(
-        "section: AC-1",
-        "section: AC-1\nheadings:\n  - Erster Theil\n  - Erstes Hauptstück",
-      ),
-    );
-
-    expect(frontmatter["headings"]).toEqual([
-      "Erster Theil",
-      "Erstes Hauptstück",
-    ]);
-  });
-
-  it("parses the title entry's book details", () => {
-    const frontmatter = bookFields(titleMarkdown);
-
-    expect(frontmatter).toMatchObject({
+    expect(bookFields(bookMarkdown)).toMatchObject({
       author: "Friedrich Nietzsche",
       year: 1888,
       kind: "work",
@@ -78,61 +56,97 @@ describe("book declaration codec", () => {
       sections: 65,
       shortTitle: "Antichrist",
     });
-    expect(decodeBook(titleMarkdown).metadata).toEqual({
+    expect(parsed.metadata).toEqual({
       title: "Der Antichrist",
-      section: null,
-      book: "der-antichrist",
-      order: 0,
-      slug: "der-antichrist",
-      pageTitle: "Der Antichrist",
-      // A book's contents are no source in themselves; answers cite sections.
       citable: false,
     });
   });
 
-  it("rejects an entry without a source", () => {
+  it("rejects a book without a source", () => {
     expect(() =>
-      decodeBook(`---
-title: Ohne Quelle
----
-
-Text.
-`),
+      decodeBook("---\ntitle: Ohne Quelle\n---\n\nText.\n"),
     ).toThrow();
   });
 
   it("rejects an unknown license", () => {
     expect(() =>
       decodeBook(
-        titleMarkdown.replace("CC-BY-NC-ND-4.0", "all-rights-reserved"),
+        bookMarkdown.replace("CC-BY-NC-ND-4.0", "all-rights-reserved"),
       ),
     ).toThrow();
   });
 
   it("round-trips through markdown without loss", () => {
-    const parsed = decodeBook(titleMarkdown);
+    const parsed = decodeBook(bookMarkdown);
     const markdown = encodeBook({
-      id: "der-antichrist:0000-titel",
+      id: "der-antichrist",
       entityType: "book",
       content: parsed.content,
       contentHash: "",
       created: "2026-10-05T00:00:00.000Z",
       updated: "2026-10-05T00:00:00.000Z",
       visibility: "restricted",
-      metadata: {
-        title: "Der Antichrist",
-        section: null,
-        book: "der-antichrist",
-        order: 0,
-        slug: "der-antichrist",
-        pageTitle: "Der Antichrist",
-        citable: false,
-      },
+      metadata: { title: "Der Antichrist", citable: false },
     });
-    const reparsed = decodeBook(markdown);
 
-    expect(reparsed.metadata).toEqual(parsed.metadata);
-    expect(bookFields(markdown)).toEqual(bookFields(titleMarkdown));
-    expect(markdown).toContain("Inhalt.");
+    expect(decodeBook(markdown).metadata).toEqual(parsed.metadata);
+    expect(bookFields(markdown)).toEqual(bookFields(bookMarkdown));
+  });
+});
+
+describe("Book section declaration codec", () => {
+  it("parses a section's place in its book, cited by its siglum", () => {
+    const parsed = decodeSection(sectionMarkdown);
+
+    expect(parsed.entityType).toBe("book-section");
+    expect(parsed.metadata).toEqual({
+      title: "Erstes Hauptstück",
+      section: "AC-1",
+      book: "der-antichrist",
+      order: 1,
+      slug: "der-antichrist/1",
+      pageTitle: "AC-1",
+    });
+  });
+
+  it("names a section without a siglum by its title", () => {
+    expect(
+      decodeSection(sectionMarkdown.replace("section: AC-1", "section: null"))
+        .metadata.pageTitle,
+    ).toBe("Erstes Hauptstück");
+  });
+
+  it("reads the headings a section stands under", () => {
+    expect(sectionFields(sectionMarkdown)["headings"]).toEqual([
+      "Erster Theil",
+      "Erstes Hauptstück",
+    ]);
+  });
+
+  it("round-trips section text, headings and extension fields without stale metadata overlays", () => {
+    const markdown = sectionMarkdown.replace(
+      "page: null",
+      "page: null\nextension: retained",
+    );
+    const parsed = decodeSection(markdown);
+    const encoded = encodeSection({
+      ...parsed,
+      id: "der-antichrist:00001-section",
+      contentHash: "",
+      created: "2026-10-05T00:00:00.000Z",
+      updated: "2026-10-05T00:00:00.000Z",
+      visibility: "restricted",
+      metadata: { ...parsed.metadata, title: "Stale title" },
+    });
+    expect(decodeSection(encoded).metadata).toEqual(parsed.metadata);
+    expect(sectionFields(encoded)).toEqual(sectionFields(markdown));
+    expect(encoded).toContain("extension: retained");
+    expect(encoded).toContain("Ein erfundener Absatz für den Test.");
+  });
+
+  it("rejects a section outside reading order", () => {
+    expect(() =>
+      decodeSection(sectionMarkdown.replace("order: 1", "order: 0")),
+    ).toThrow();
   });
 });

@@ -31,7 +31,7 @@ export function bookAskDataSource(
         entities.listEntities(
           {
             entityType: "book",
-            options: { filter: { metadata: { order: 0 } }, limit: 1000 },
+            options: { limit: 1000 },
           },
           bookSchema,
         ),
@@ -40,7 +40,7 @@ export function bookAskDataSource(
       const books = titles
         .map(parseBookData)
         .map((entry) => ({
-          book: entry.metadata.book,
+          book: entry.id,
           title: entry.metadata.title,
           year: entry.frontmatter.year,
         }))

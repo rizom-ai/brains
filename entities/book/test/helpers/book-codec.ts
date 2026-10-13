@@ -3,6 +3,12 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/sdk/entities";
 import { book } from "../../src/book-entity";
+import { bookSection } from "../../src/book-section-entity";
+import {
+  bookSectionFrontmatterSchema,
+  bookSectionMetadataSchema,
+  type BookSection,
+} from "../../src/schemas/book-section";
 import {
   bookFrontmatterSchema,
   bookMetadataSchema,
@@ -40,4 +46,36 @@ export function bookFields(
   markdown: string,
 ): ReturnType<typeof bookFrontmatterSchema.parse> {
   return bookFrontmatterSchema.parse(parseMarkdown(markdown).frontmatter);
+}
+
+export function decodeSection(
+  markdown: string,
+): Pick<BookSection, "entityType" | "content" | "metadata"> {
+  const value = bookSection.markdown;
+  if (!value?.decode) throw new Error("Missing section markdown codec");
+  const parsed = parseMarkdown(markdown);
+  const result = value.decode({
+    content: parsed.content,
+    frontmatter: parsed.frontmatter,
+  });
+  return {
+    entityType: "book-section",
+    content: result.content,
+    metadata: bookSectionMetadataSchema.parse(result.metadata),
+  };
+}
+export function encodeSection(entity: BookSection): string {
+  const value = bookSection.markdown;
+  if (!value) throw new Error("Missing section markdown codec");
+  const result = value.encode(entity);
+  return generateMarkdownWithFrontmatter(result.content, {
+    ...result.frontmatter,
+  });
+}
+export function sectionFields(
+  markdown: string,
+): ReturnType<typeof bookSectionFrontmatterSchema.parse> {
+  return bookSectionFrontmatterSchema.parse(
+    parseMarkdown(markdown).frontmatter,
+  );
 }

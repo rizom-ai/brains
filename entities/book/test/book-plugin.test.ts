@@ -23,6 +23,9 @@ describe("book declarations", () => {
   });
   it("registers book and resolves every declared template datasource", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("book");
+    expect(harness.getEntityService().getEntityTypes()).toContain(
+      "book-section",
+    );
     expectTemplateDataSourcesResolve(harness);
     expect([...harness.getDataSources().keys()].sort()).toEqual([
       "@brains/book:ask",
@@ -30,9 +33,9 @@ describe("book declarations", () => {
       "@brains/book:theme",
     ]);
   });
-  it("keeps books read-only, in reading order, as canonical topic sources", () => {
+  it("keeps sections read-only, in reading order, as canonical topic sources", () => {
     expect(
-      harness.getEntityRegistry().getEntityTypeConfig("book"),
+      harness.getEntityRegistry().getEntityTypeConfig("book-section"),
     ).toMatchObject({
       classification: "content",
       includeInBroadSearch: true,
@@ -47,9 +50,16 @@ describe("book declarations", () => {
       },
     });
   });
-  it("lets topic extraction read books", () => {
-    expect(
-      harness.getEntityRegistry().getEntityTypeConfig("book").projectionSource,
-    ).not.toBe(false);
+  it("excludes book contents from topic extraction while retaining read-only actions", () => {
+    const config = harness.getEntityRegistry().getEntityTypeConfig("book");
+    expect(config.projectionSource).toBe(false);
+    expect(config.projectionSourceRole).toBe("excluded");
+    expect(config.actionPolicy).toEqual({
+      create: "never",
+      update: "never",
+      delete: "never",
+      extract: "never",
+      publish: "never",
+    });
   });
 });

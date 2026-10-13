@@ -13,6 +13,13 @@ import {
   type Book,
   type BookWithData,
 } from "../schemas/book";
+import {
+  bookSectionFrontmatterSchema,
+  bookSectionSchema,
+  bookSectionWithDataSchema,
+  type BookSection,
+  type BookSectionWithData,
+} from "../schemas/book-section";
 
 export interface Theme {
   id: string;
@@ -28,7 +35,6 @@ export interface ScoreEntry {
   /** Bytes of the section's text. */
   length: number;
 }
-
 export function parseBookData(entity: Book): BookWithData {
   const parsed = parseMarkdown(entity.content);
   return bookWithDataSchema.parse({
@@ -37,51 +43,66 @@ export function parseBookData(entity: Book): BookWithData {
     body: parsed.content,
   });
 }
-
-async function findEntry(
+export function parseBookSectionData(entity: BookSection): BookSectionWithData {
+  const parsed = parseMarkdown(entity.content);
+  return bookSectionWithDataSchema.parse({
+    ...entity,
+    frontmatter: bookSectionFrontmatterSchema.parse(parsed.frontmatter),
+    body: parsed.content,
+  });
+}
+async function findBook(
+  id: string,
+  entities: EntityQueryReader,
+): Promise<BookWithData> {
+  const entity = await entities.getEntity(
+    { entityType: "book", id },
+    bookSchema,
+  );
+  if (!entity) throw new Error(`book not found: ${id}`);
+  return parseBookData(entity);
+}
+async function findSection(
   book: string,
   order: number,
   entities: EntityQueryReader,
-): Promise<BookWithData | null> {
+): Promise<BookSectionWithData | null> {
+  if (order < 1) return null;
   const [entity] = await entities.listEntities(
     {
-      entityType: "book",
+      entityType: "book-section",
       options: { filter: { metadata: { book, order } }, limit: 1 },
     },
-    bookSchema,
+    bookSectionSchema,
   );
-  return entity ? parseBookData(entity) : null;
+  return entity ? parseBookSectionData(entity) : null;
 }
-
 async function scoreOf(
   book: string,
   entities: EntityQueryReader,
 ): Promise<ScoreEntry[]> {
-  const entries = await entities.listEntities(
+  const sections = await entities.listEntities(
     {
-      entityType: "book",
+      entityType: "book-section",
       options: {
         filter: { metadata: { book } },
         sortFields: [{ field: "order", direction: "asc" }],
         limit: 100000,
       },
     },
-    bookSchema,
+    bookSectionSchema,
   );
-  return entries
-    .map(parseBookData)
-    .filter((entry) => entry.metadata.order > 0)
-    .map((entry) => ({
-      slug: entry.metadata.slug,
-      title: entry.metadata.title,
-      section: entry.metadata.section,
-      order: entry.metadata.order,
-      headings: entry.frontmatter.headings,
-      length: Buffer.byteLength(entry.body.trim(), "utf8"),
-    }));
+  return sections.map(parseBookSectionData).map((section) => ({
+    slug: section.metadata.slug,
+    title: section.metadata.title,
+    section: section.metadata.section,
+    order: section.metadata.order,
+    headings: section.frontmatter.headings,
+    length: Buffer.byteLength(section.body.trim(), "utf8"),
+  }));
 }
-
 const querySchema = z.object({
+  entityType: z.enum(["book", "book-section"]).default("book"),
   query: z
     .object({
       id: z.string().optional(),
@@ -91,19 +112,18 @@ const querySchema = z.object({
     .default({ limit: 1000, page: 1 }),
 });
 
-/** Book navigation uses indexed lookups, not a shared/native entity service. */
+/** Book navigation uses scoped readers, not a shared/native entity service. */
 export const bookDataSource: DataSourceDefinition = defineDataSource({
   id: "entities",
   name: "Book Entity DataSource",
-  description: "Books and their entries in reading order",
+  description: "Books and their sections in reading order",
   fetch: async (query, entities) => {
-    const params = querySchema.parse(query).query;
+    const { entityType, query: params } = querySchema.parse(query);
     if (!params.id) {
       const books = await entities.listEntities(
         {
           entityType: "book",
           options: {
-            filter: { metadata: { order: 0 } },
             sortFields: [{ field: "title", direction: "asc" }],
             limit: params.limit,
             offset: (params.page - 1) * params.limit,
@@ -113,47 +133,45 @@ export const bookDataSource: DataSourceDefinition = defineDataSource({
       );
       return { books: books.map(parseBookData) };
     }
-    const [bySlug] = await entities.listEntities(
+    if (entityType === "book") {
+      const book = await findBook(params.id, entities);
+      const [first, score] = await Promise.all([
+        findSection(book.id, 1, entities),
+        scoreOf(book.id, entities),
+      ]);
+      return { book, first, score };
+    }
+    const [found] = await entities.listEntities(
       {
-        entityType: "book",
+        entityType: "book-section",
         options: { filter: { metadata: { slug: params.id } }, limit: 1 },
       },
-      bookSchema,
+      bookSectionSchema,
     );
-    const entity =
-      bySlug ??
-      (await entities.getEntity(
-        { entityType: "book", id: params.id },
-        bookSchema,
-      ));
-    if (!entity) throw new Error(`book not found: ${params.id}`);
-    const entry = parseBookData(entity);
-    const { book, order } = entry.metadata;
-    const [title, prev, next, count, score, related] = await Promise.all([
-      order === 0 ? entry : findEntry(book, 0, entities),
-      order === 0 ? null : findEntry(book, order - 1, entities),
-      findEntry(book, order + 1, entities),
+    if (!found) throw new Error(`book-section not found: ${params.id}`);
+    const section = parseBookSectionData(found);
+    const { book: bookId, order } = section.metadata;
+    const [book, prev, next, total, related] = await Promise.all([
+      findBook(bookId, entities),
+      findSection(bookId, order - 1, entities),
+      findSection(bookId, order + 1, entities),
       entities.count({
-        entityType: "book",
-        options: { filter: { metadata: { book } } },
+        entityType: "book-section",
+        options: { filter: { metadata: { book: bookId } } },
       }),
-      order === 0 ? scoreOf(book, entities) : [],
-      order === 0
-        ? []
-        : entities.related({
-            origin: { entityType: "book", entityId: entry.id },
-            types: ["topic"],
-            maxDistance: THEME_DISTANCE,
-            limit: THEME_LIMIT,
-          }),
+      entities.related({
+        origin: { entityType: "book-section", entityId: section.id },
+        types: ["topic"],
+        maxDistance: THEME_DISTANCE,
+        limit: THEME_LIMIT,
+      }),
     ]);
     return {
-      entry,
-      book: title ?? entry,
+      section,
+      book,
       prev,
       next,
-      total: Math.max(0, count - 1),
-      score,
+      total,
       themes: related.map(({ entity, title }) => ({ id: entity.id, title })),
     };
   },

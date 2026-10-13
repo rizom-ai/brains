@@ -1,8 +1,11 @@
 import type { BookWithData } from "../schemas/book";
+import type { BookSectionWithData } from "../schemas/book-section";
 
-/** Generated book routes live under the pluralized entity type. */
-export function bookHref(entry: BookWithData): string {
-  return `/books/${entry.metadata.slug}`;
+/** A book opens at /books/<book>; its sections at /books/<book>/<order>. */
+export function bookHref(target: BookWithData | BookSectionWithData): string {
+  return target.entityType === "book"
+    ? `/books/${target.id}`
+    : `/books/${target.metadata.slug}`;
 }
 
 const LICENSE_LABELS: Record<

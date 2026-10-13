@@ -6,7 +6,7 @@ describe("BookPlugin instructions", () => {
     const instructions = book.instructions ?? "";
 
     expect(instructions).toContain(
-      'system_search with scope { kind: "type", entityType: "book" }',
+      'system_search with scope { kind: "type", entityType: "book-section" }',
     );
     expect(instructions).toContain("by its siglum and its book's title");
     expect(instructions).toContain("verbatim, in the language of the text");

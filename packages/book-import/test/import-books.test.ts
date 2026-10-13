@@ -3,12 +3,18 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { rejects } from "node:assert/strict";
-import { bookFrontmatterSchema } from "@brains/book";
+import {
+  bookFrontmatterSchema,
+  bookSectionFrontmatterSchema,
+} from "@brains/book";
 import { parseMarkdown } from "@brains/sdk/entities";
-function frontmatterOf(
-  markdown: string,
-): ReturnType<typeof bookFrontmatterSchema.parse> {
-  return bookFrontmatterSchema.parse(parseMarkdown(markdown).frontmatter);
+function frontmatterOf(markdown: string): Record<string, unknown> {
+  const { frontmatter } = parseMarkdown(markdown);
+  return (
+    "order" in frontmatter
+      ? bookSectionFrontmatterSchema
+      : bookFrontmatterSchema
+  ).parse(frontmatter);
 }
 import { ekgwbReader, importBooks, parseManifest } from "../src/import-books";
 import { corpusReader } from "../src/corpus-source";
@@ -55,19 +61,22 @@ describe("importBooks", () => {
       "http://www.nietzschesource.org/eKGWB/EB/print",
     ]);
     expect(results).toEqual([{ slug: "erfundenes-buch", entries: 3 }]);
+    expect(await readdir(join(brainData, "book"))).toEqual([
+      "erfundenes-buch.md",
+    ]);
     expect(
-      (await readdir(join(brainData, "book/erfundenes-buch"))).sort(),
-    ).toEqual(["00000-titel.md", "00001-vorwort.md", "00002-1.md"]);
+      (await readdir(join(brainData, "book-section/erfundenes-buch"))).sort(),
+    ).toEqual(["00001-vorwort.md", "00002-1.md"]);
   });
 
-  it("credits eKGWB on the title entry", async () => {
+  it("credits eKGWB on the book", async () => {
     await importBooks(
       parseManifest(manifestYaml),
       brainData,
       ekgwbReader(fetchFixture),
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
@@ -92,11 +101,11 @@ describe("importBooks", () => {
       ekgwbReader(fetchFixture),
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
-    expect(frontmatterOf(title).title).toBe("Ein genauerer Titel");
+    expect(frontmatterOf(title)["title"]).toBe("Ein genauerer Titel");
   });
 
   it("carries published and shortTitle from the manifest", async () => {
@@ -111,7 +120,7 @@ describe("importBooks", () => {
       ekgwbReader(fetchFixture),
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
@@ -128,11 +137,11 @@ describe("importBooks", () => {
       ekgwbReader(fetchFixture),
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
-    expect(frontmatterOf(title).published).toBe(true);
+    expect(frontmatterOf(title)["published"]).toBe(true);
   });
 
   it("rejects a manifest entry without a siglum", () => {
@@ -183,7 +192,7 @@ books:
   }
 
   async function entries(): Promise<Record<string, unknown>[]> {
-    const root = join(brainData, "book/erfundenes-werk");
+    const root = join(brainData, "book-section/erfundenes-werk");
     const files = await readdir(root, { recursive: true });
     const parsed = await Promise.all(
       files
@@ -232,7 +241,7 @@ books:
       "http://www.nietzschesource.org/eKGWB/EB-II/print",
     ]);
     expect(results).toEqual([{ slug: "erfundenes-werk", entries: 5 }]);
-    const sections = (await entries()).slice(1);
+    const sections = await entries();
     expect(sections.map((entry) => entry["order"])).toEqual([1, 2, 3, 4]);
     expect(sections.map((entry) => entry["headings"])).toEqual([
       ["Erster Theil"],
@@ -255,13 +264,12 @@ books:
       ekgwbReader(fetchPart),
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-werk/00000-titel.md"),
+      join(brainData, "book/erfundenes-werk.md"),
       "utf8",
     );
 
     expect(frontmatterOf(title)).toMatchObject({
       title: "Erfundenes Werk",
-      order: 0,
       sections: 4,
     });
     expect(title).toContain("[Erster Theil]");
@@ -274,7 +282,7 @@ books:
       brainData,
       ekgwbReader(fetchPart),
     );
-    const titlePath = join(brainData, "book/erfundenes-werk/00000-titel.md");
+    const titlePath = join(brainData, "book/erfundenes-werk.md");
     const original = await readFile(titlePath, "utf8");
     const reads: string[] = [];
     await rejects(
@@ -309,7 +317,10 @@ books:
       originalRoot,
       ekgwbReader(fetchPart),
     );
-    const originalPath = join(originalRoot, "book/first-part/00002-1.md");
+    const originalPath = join(
+      originalRoot,
+      "book-section/first-part/00002-1.md",
+    );
     const original = await readFile(originalPath, "utf8");
     requested.length = 0;
     await importBooks(
@@ -320,8 +331,8 @@ books:
     expect(requested).toEqual([]);
     expect(await readFile(originalPath, "utf8")).toBe(original);
     const combined = await entries();
-    expect(combined.map((entry) => entry["order"])).toEqual([0, 1, 2, 3, 4]);
-    expect(combined.slice(1).map((entry) => entry["source"])).toEqual([
+    expect(combined.map((entry) => entry["order"])).toEqual([1, 2, 3, 4]);
+    expect(combined.map((entry) => entry["source"])).toEqual([
       "http://www.nietzschesource.org/eKGWB/EB-I-Vorwort",
       "http://www.nietzschesource.org/eKGWB/EB-I-1",
       "http://www.nietzschesource.org/eKGWB/EB-II-Vorwort",
