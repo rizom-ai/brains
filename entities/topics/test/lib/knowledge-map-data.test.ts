@@ -102,10 +102,12 @@ function makeContext(): KnowledgeMapDataContext {
         Promise.resolve((entitiesByType[request.entityType] ?? []).length),
       nearestToEntity: (request) =>
         Promise.resolve(
-          (nearestByTopic[request.origin.entityId] ?? []).slice(
-            0,
-            request.limit,
-          ),
+          (nearestByTopic[request.origin.entityId] ?? [])
+            .slice(0, request.limit)
+            .map((reference, index) => ({
+              ...reference,
+              distance: index / 10,
+            })),
         ),
       getEntity: (
         request,
@@ -377,6 +379,7 @@ describe("buildKnowledgeMapData at corpus scale", () => {
               entityId: longId(
                 topics.indexOf(request.origin.entityId) * 1000 + index,
               ),
+              distance: index / 10,
             })),
           ),
         getEntity: (request) =>
@@ -402,12 +405,20 @@ describe("buildKnowledgeMapData at corpus scale", () => {
     // What the caller must show is drawn, near a topic or not.
     expect(data.points.some(({ id }) => id === essay.entityId)).toBe(true);
   });
-  test("files each source under the topic it was found nearest", async () => {
+  test("files each source under the topic it sits closest to", async () => {
     const topics = ["will-to-power", "eternal-recurrence"];
-    // "shared" is second-nearest to will-to-power and nearest to eternal-recurrence.
-    const nearest: Record<string, string[]> = {
-      "will-to-power": ["a1", "shared", "a2"],
-      "eternal-recurrence": ["shared", "b1", "b2"],
+    // "shared" ranks first for will-to-power but sits closer to eternal-recurrence.
+    const nearest: Record<string, [string, number][]> = {
+      "will-to-power": [
+        ["shared", 0.3],
+        ["a1", 0.35],
+        ["a2", 0.4],
+      ],
+      "eternal-recurrence": [
+        ["b1", 0.2],
+        ["shared", 0.25],
+        ["b2", 0.3],
+      ],
     };
     const context: KnowledgeMapDataContext = {
       semantic: {
@@ -435,10 +446,13 @@ describe("buildKnowledgeMapData at corpus scale", () => {
         countEntities: () => Promise.resolve(3000),
         nearestToEntity: (request) =>
           Promise.resolve(
-            (nearest[request.origin.entityId] ?? []).map((entityId) => ({
-              entityType: "book-section",
-              entityId,
-            })),
+            (nearest[request.origin.entityId] ?? []).map(
+              ([entityId, distance]) => ({
+                entityType: "book-section",
+                entityId,
+                distance,
+              }),
+            ),
           ),
         getEntity: (request) =>
           Promise.resolve({
