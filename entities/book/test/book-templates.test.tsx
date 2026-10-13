@@ -192,25 +192,94 @@ describe("BookListTemplate", () => {
     );
   });
 
-  test("labels the last year even off the label step", () => {
+  /** One short book a year, each titled by its year. */
+  const yearly = (years: number[], shelf = "b"): BookWithData[] =>
+    years.map((year) =>
+      book(`${shelf}${year}`, `Buch ${year}`, {
+        ...bookDetails,
+        year,
+        length: 10,
+      }),
+    );
+  const span = (from: number, to: number): number[] =>
+    Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const axisLabel = (year: number): string => `data-axis-year="${year}"`;
+
+  test("labels the first and the last year", () => {
     const html = render(
+      <BookListTemplate books={yearly([1870, 1880, 1889])} />,
+    );
+
+    expect(html).toContain(axisLabel(1870));
+    expect(html).toContain(axisLabel(1889));
+    expect(html).not.toContain(axisLabel(1871));
+  });
+
+  test("labels years with books, never two too close to read", () => {
+    const html = render(<BookListTemplate books={yearly(span(1842, 1853))} />);
+
+    expect(html).toContain(axisLabel(1842));
+    expect(html).not.toContain(axisLabel(1843));
+    expect(html).toContain(axisLabel(1844));
+    expect(html).not.toContain(axisLabel(1852));
+    expect(html).toContain(axisLabel(1853));
+  });
+
+  test("a year's label never widens its year", () => {
+    const html = render(<BookListTemplate books={yearly([1870, 1889])} />);
+
+    expect(html).toMatch(/data-axis-year="1870" class="[^"]*\babsolute\b/);
+  });
+
+  test("folds a long run of years without books into one break", () => {
+    const html = render(
+      <BookListTemplate books={yearly([1842, 1843, 1939])} />,
+    );
+
+    expect(html).toContain('data-gap="1844–1938"');
+    expect(html).not.toContain(axisLabel(1900));
+  });
+
+  test("keeps a short run of years without books on the scale", () => {
+    const html = render(<BookListTemplate books={yearly([1870, 1875])} />);
+
+    expect(html).not.toContain("data-gap");
+  });
+
+  test("draws the horizon from the narrowest screen its spines fit", () => {
+    const few = render(<BookListTemplate books={yearly(span(1870, 1889))} />);
+    const many = render(
       <BookListTemplate
-        books={[
-          book("a", "Anfang", { ...bookDetails, year: 1870, length: 10 }),
-          book("m", "Mitte", { ...bookDetails, year: 1880, length: 10 }),
-          book("e", "Ende", { ...bookDetails, year: 1889, length: 10 }),
-        ]}
+        books={[...yearly(span(1842, 1869)), ...yearly(span(1842, 1869), "c")]}
       />,
     );
 
-    const axisLabel = (year: number): RegExp =>
-      new RegExp(
-        `class="pt-5 font-mono text-\\[11px\\] text-theme-light">${year}</span>`,
-      );
+    expect(few).toContain("hidden md:grid");
+    expect(few).toContain("md:hidden");
+    expect(many).toContain("hidden xl:grid");
+    expect(many).toContain("xl:hidden");
+  });
 
-    expect(html).toMatch(axisLabel(1870));
-    expect(html).toMatch(axisLabel(1889));
-    expect(html).not.toMatch(axisLabel(1871));
+  test("narrows a crowded shelf's spines, its titles left to hover and list", () => {
+    const crowded = span(1890, 1939).flatMap((year) =>
+      [1, 2, 3].map((n) =>
+        book(`b${year}-${n}`, `Buch ${year}-${n}`, {
+          ...bookDetails,
+          year,
+          length: 10,
+          shortTitle: "Kurz",
+        }),
+      ),
+    );
+    const html = render(<BookListTemplate books={crowded} />);
+    const width = Number(
+      html.match(/aria-label="Buch 1890-1, 1890"[^>]*width:(\d+)px/)?.[1],
+    );
+
+    expect(width).toBeLessThan(14);
+    expect(html).not.toContain(">Kurz</span>");
+    expect(html).toContain('title="Buch 1890-1, 1890"');
+    expect(html).toContain(">Buch 1890-1</a>");
   });
 
   test("lists every book by year for small screens", () => {
