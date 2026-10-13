@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- [#628](https://github.com/rizom-ai/brains/pull/628) [`d69e206`](https://github.com/rizom-ai/brains/commit/d69e206da5761a8e4b5697a1148b50234959d318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every book with sections can be downloaded as an EPUB from its title page. The EPUB is the `epub` format of the registered `book:epub` view template, written into each site build at `/books/<id>.epub`.
+
 ## 0.2.0-alpha.545
 
 ### Patch Changes
