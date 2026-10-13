@@ -18873,9 +18873,21 @@ mehring-nachlass-3:
     from: H A
     to: ""
     by: scan
+  - page: 118
+    from: man Vae vietis!
+    to: man Vae victis!
+    by: scan
   - page: 124
     from: Das Ministerium hansemann.
     to: Das Ministerium Hansemann.
+    by: scan
+  - page: 125
+    from: Namenborgers (prͤte-
+    to: Namenborgers (prête-
+    by: scan
+  - page: 133
+    from: teste Gierke eum
+    to: teste Gierke cum
     by: scan
   - page: 134
     from: Die polendebatte in Frankfurt.
@@ -18885,17 +18897,37 @@ mehring-nachlass-3:
     from: nir gends
     to: nirgends
     by: scan
+  - page: 143
+    from: ihrem eig enen
+    to: ihrem eigenen
+    by: scan
   - page: 183
     from: Der krieg um Schleswig-Holstein.
     to: Der Krieg um Schleswig-Holstein.
+    by: scan
+  - page: 194
+    from: „8S000 bis
+    to: „8000 bis
     by: scan
   - page: 197
     from: Der Fall Uiens.
     to: Der Fall Wiens.
     by: scan
+  - page: 213
+    from: preußischen Staates. * *
+    to: preußischen Staates.
+    by: scan
+  - page: 213
+    from: "*"
+    to: ""
+    by: scan
   - page: 216
     from: — — —— großen Debatte
     to: großen Debatte
+    by: scan
+  - page: 216
+    from: — — — — ͥłaNSR7 Kölnischen Zeitung
+    to: Kölnischen Zeitung
     by: scan
   - page: 230
     from: Deujahr 1849.
@@ -22472,6 +22504,10 @@ enthullungen-1885:
     to: ein paar Sitzungen, so kommt
     by: reference
   - page: 25
+    from: „ und kaum sind
+    to: und kaum sind
+    by: scan
+  - page: 25
     from: hinter die Berschwörer, sondern die
     to: hinter die Verschwörer, sondern die
     by: reference
@@ -22500,10 +22536,6 @@ enthullungen-1885:
     to: geschritten werden kann.
     by: scan
   - page: 25
-    from: bei der nüchsen
-    to: bei der nächsten
-    by: scan
-  - page: 25
     from: Stieber verlangt . macht mur- er
     to: Stieber verlangt Polizeiwunder, er
     by: scan
@@ -22512,17 +22544,9 @@ enthullungen-1885:
     to: entente cordiale
     by: scan
   - page: 25
-    from: Carlierꝰs Po
-    to: Carlier's Polizei-
-    by: scan
-  - page: 25
-    from: enten die Wohnungen der Verschwörer, enideckten
-    to: agenten die Wohnungen der Verschwörer, entdeckten
-    by: scan
-  - page: 25
     from: sie ihm 90 .. eine thätige Rolle. Während er von ihrem
-    to: sie ihm gegenüber eine thätige Rolle. Während er von ihrem Kom-
-    by: scan
+    to: spielen sie ihm gegenüber eine thätige Rolle. Während er von ihrem Kom-
+    by: reference
   - page: 25
     from: lott gegen
     to: plott gegen
@@ -22531,6 +22555,70 @@ enthullungen-1885:
     from: ohnung Stieber's.
     to: Wohnung Stieber's.
     by: scan
+  - page: 25
+    from: — —7 endezen- 6 1. ahet Um ue) . 7*
+    to: Bereitwilligkeit zweifeln, drei Monate vor dem Staatsstreich ein
+    by: reference
+  - page: 25
+    from: omplott zu en — St mut m mehr zu,
+    to: kommunistisches Komplott zu entdecken —, Stieber mutet ihm mehr zu, als
+    by: reference
+  - page: 25
+    from: worin *7 sich widersetzt. In der
+    to: worin Cherval sich widersetzt. In der
+    by: reference
+  - page: 25
+    from: sht in Faustan + ori Stieber sch wersekt. Wer an 8. hereschte
+    to: Nacht vom 3. auf den 4. schreitet Cherval bei Stieber ein, und es
+    by: reference
+  - page: 25
+    from: eht e ampf, worin widerse am 8.
+    to: entsteht ein Faustkampf, worin Stieber sich widersetzt. Aber am 3. herrschte ja
+    by: reference
+  - page: 25
+    from: am 8. auch hinter den Stieber gekommen sein. Während Carlierꝰs Po
+    to: am 3. auch hinter den Stieber gekommen sein. Während Carlier's Polizei-
+    by: reference
+  - page: 25
+    from: enten die Wohnungen der Verschwörer, enideckten die Verschwörer
+    to: agenten die Wohnungen der Verschwörer, entdeckten die Verschwörer die
+    by: scan
+  - page: 25
+    from: seine Person *4⁷—
+    to: seine Person beschäftigt.
+    by: reference
+  - page: 25
+    from: "Stieber sährt in s Aussage vom 18. Oltober fort:"
+    to: "Stieber fährt in seiner Aussage vom 18. Oktober fort:"
+    by: reference
+  - page: 25
+    from: daß am 8. die Wohnungen
+    to: daß am 3. die Wohnungen
+    by: reference
+  - page: 25
+    from: so werden es mehrere S
+    to: so werden es mehrere Sitzungen,
+    by: reference
+  - page: 25
+    from: Tag eine ganze Reihe von Sitzungen und können sich nicht von ihnen
+    to: trennen, ohne noch eiligst Beschlüsse über das Verfahren bei der nächsten
+    by: scan
+  - page: 25
+    from: trennen, ohne noch eiligst Beschlüsse über das Verfahren bei der nüchsen
+    to: Tag eine ganze Reihe von Sitzungen und können sich nicht von ihnen
+    by: scan
+  - page: 25
+    from: Beim Beginne des Unternehmens
+    to: „Beim Beginne des Unternehmens
+    by: scan
+  - page: 25
+    from: der französischen K Er
+    to: der französischen Kommunisten. Er
+    by: reference
+  - page: 25
+    from: h verwundet wurde.“ So Stieber's andere Aussage vom
+    to: zu Hülfe kam, verwundet wurde.“ So Stieber's andere Aussage vom 27. Oktober.
+    by: reference
   - page: 26
     from: entriß eine Hälste des von
     to: entriß eine Hälfte des von
@@ -22542,10 +22630,6 @@ enthullungen-1885:
   - page: 26
     from: Hen konnten die
     to: sonst, konnten die
-    by: reference
-  - page: 26
-    from: Herr Stieber iym in
-    to: Herr Stieber ihm in
     by: reference
   - page: 26
     from: elang nur
@@ -22583,6 +22667,14 @@ enthullungen-1885:
     from: sich durch Mandate
     to: glaubigt sich durch Mandate
     by: scan
+  - page: 26
+    from: au Stieber biß, um die Papiere zu retten, die Herr Stieber iym in
+    to: Frau Stieber biß, um die Papiere zu retten, die Herr Stieber ihm in
+    by: reference
+  - page: 26
+    from: det zunächst Cherval.
+    to: findet zunächst Cherval.
+    by: reference
   - page: 27
     from: Ceer bebrillten Subjekt
     to: grün bebrillten Subjekt
@@ -22709,7 +22801,7 @@ enthullungen-1885:
     by: scan
   - page: 28
     from: tragt, sie einer dritten Person einzuhänd Zum Beweise, daß er ein
-    to: tragt, sie einer dritten Person einzuhändigen Zum Beweise, daß er ein
+    to: tragt, sie einer dritten Person einzuhändigen. Zum Beweise, daß er ein
     by: scan
   - page: 28
     from: echter Abgesandter, zeigt er den weihen Fut, den er dem Cherval ab-
@@ -22743,6 +22835,26 @@ enthullungen-1885:
     from: arx bekannt und von diesem in den Bund aufgenommen worden, den
     to: Marx bekannt und von diesem in den Bund aufgenommen worden, den
     by: scan
+  - page: 28
+    from: vorlegte, war ein von Odwald Dietz 9e der fun Rundschreiben,
+    to: vorlegte, war ein von Oswald Dietz gezeichnetes Rundschreiben,
+    by: reference
+  - page: 28
+    from: as Cherval eben erst
+    to: das Cherval eben erst
+    by: reference
+  - page: 28
+    from: einer Engländerin — * als deutsch-
+    to: einer Engländerin — Fleury, als deutsch-
+    by: reference
+  - page: 28
+    from: 5. arretirt, die Gefahr groß, sie möchte Cherval's Papiere ½1 eben,
+    to: sei arretirt, die Gefahr groß, sie möchte Cherval's Papiere herausgeben,
+    by: reference
+  - page: 28
+    from: amit er nicht noch mehr kompromittirt 9 Cherval habe —* 1
+    to: damit er nicht noch mehr kompromittirt werde, Cherval habe ihn beauf-
+    by: reference
   - page: 29
     from: Archiv des Bunder
     to: Archiv des Bundes
@@ -22839,6 +22951,10 @@ enthullungen-1885:
     from: mihlang gegen
     to: aussage gegen
     by: scan
+  - page: 33
+    from: „Das ist uumudec n Greif
+    to: „Das ist unmöglich!“ Greif
+    by: reference
   - page: 34
     from: geschildert, ihre Thätsgkeit vor und
     to: geschildert, ihre Thätigkeit vor und
@@ -22895,6 +23011,14 @@ enthullungen-1885:
     from: 250 0ur Sonntag
     to: gangenen Sonntag
     by: scan
+  - page: 35
+    from: 7 66 gehörte. Ich werde jetzt Über
+    to: gehörte. Ich werde jetzt über
+    by: reference
+  - page: 35
+    from: ie es sich allein
+    to: die es sich allein
+    by: reference
   - page: 36
     from: ward eine Abschrist, ein leicht
     to: ward eine Abschrift, ein leicht
@@ -23043,6 +23167,14 @@ enthullungen-1885:
     from: kumente von London
     to: dokumente von London
     by: scan
+  - page: 41
+    from: o gibt das Protokollbuch
+    to: so gibt das Protokollbuch
+    by: reference
+  - page: 41
+    from: ie Thätigkeit des Rings
+    to: die Thätigkeit des Rings
+    by: reference
   - page: 42
     from: nun weitere Necherchen über das
     to: nun weitere Recherchen über das
@@ -23072,10 +23204,6 @@ enthullungen-1885:
     to: Greif führte.
     by: scan
   - page: 44
-    from: Als Probe sührt er an
-    to: Als Probe führt er an
-    by: reference
-  - page: 44
     from: bei Marx stattgesunden“. In dieser
     to: bei Marx stattgefunden“. In dieser
     by: scan
@@ -23086,14 +23214,6 @@ enthullungen-1885:
   - page: 44
     from: des Polizeiraths Sltieber wird dadurch
     to: des Polizeiraths Stieber wird dadurch
-    by: reference
-  - page: 44
-    from: London unterrichtet sindW.“ Als Probe
-    to: London unterrichtet sind.“ Als Probe
-    by: scan
-  - page: 44
-    from: an, am 27. Okiober
-    to: an, am 27. Oktober
     by: reference
   - page: 44
     from: gegen das Prolokollbuch
@@ -23110,6 +23230,14 @@ enthullungen-1885:
   - page: 44
     from: Partei Narx“ „völlig
     to: Partei Marx“ „völlig
+    by: reference
+  - page: 44
+    from: .* Argument liefern,
+    to: positive Argument liefern,
+    by: reference
+  - page: 44
+    from: London unterrichtet sindW.“ Als Probe sührt er an, am 27. Okiober
+    to: in London unterrichtet sind.“ Als Probe führt er an, am 27. Oktober
     by: reference
   - page: 45
     from: Liebtnecht und Rings
@@ -23139,6 +23267,10 @@ enthullungen-1885:
     from: sgen Adlers
     to: schen Adlers
     by: scan
+  - page: 45
+    from: ——ꝑ — brauchte nicht nach London
+    to: Goldheim brauchte nicht nach London
+    by: reference
   - page: 46
     from: Rarx diesen Brief
     to: Marx diesen Brief
@@ -23179,6 +23311,10 @@ enthullungen-1885:
     from: datirte Erllärung, an
     to: datirte Erklärung, an
     by: reference
+  - page: 47
+    from: als gerade mi r.
+    to: als gerade mir.
+    by: scan
   - page: 48
     from: Bitterkeit, schenlt dem
     to: Bitterkeit, schenkt dem
@@ -23187,6 +23323,18 @@ enthullungen-1885:
     from: Prun. und Briefunterschlagung
     to: Brieferbrechung und Briefunterschlagung
     by: scan
+  - page: 48
+    from: o doch seinem Polizei Lieutenant
+    to: so doch seinem Polizei-Lieutenant
+    by: reference
+  - page: 48
+    from: och dessen Polizei-Agenten
+    to: doch dessen Polizei-Agenten
+    by: reference
+  - page: 48
+    from: "* — völlig aufgeklärt."
+    to: nicht völlig aufgeklärt.
+    by: reference
   - page: 49
     from: "aber jetzt erllärt Goldheim: „Liebknecht"
     to: "aber jetzt erklärt Goldheim: „Liebknecht"
@@ -23219,6 +23367,10 @@ enthullungen-1885:
     from: elt im
     to: Welt im
     by: reference
+  - page: 49
+    from: von KH. Liebknecht übrig, nicht einmal eine Hanbschrift
+    to: von H. Liebknecht übrig, nicht einmal eine Handschrift
+    by: reference
   - page: 50
     from: falsche Protokolle, salsche Unterschriften fabrizirt
     to: falsche Protokolle, falsche Unterschriften fabrizirt
@@ -23250,6 +23402,10 @@ enthullungen-1885:
   - page: 50
     from: den Polizeilieutnant Greif
     to: den Polizeilieutenant Greif
+    by: scan
+  - page: 50
+    from: sür unvermeidli
+    to: für unvermeidli
     by: scan
   - page: 51
     from: Freitag den 5. Nevember brachte die
@@ -23645,6 +23801,10 @@ enthullungen-1885:
     from: Ree Veruriheilen wir in
     to: 2. Dezember. Verurtheilen wir in
     by: reference
+  - page: 63
+    from: wucherte, sür immer gebro
+    to: wucherte, für immer gebro
+    by: scan
   - page: 64
     from: VIII. Nachtrag aus der Teipziger Ruflage
     to: VIII. Nachtrag aus der Leipziger Auflage
@@ -23652,6 +23812,10 @@ enthullungen-1885:
   - page: 64
     from: „Herr Sogt“
     to: „Herr Vogt“
+    by: scan
+  - page: 65
+    from: hnten Jahre sür die Regieru
+    to: hnten Jahre für die Regieru
     by: scan
   - page: 67
     from: eheimen Bundessitzungen der Partei Marx. iout prix,
@@ -23680,6 +23844,10 @@ enthullungen-1885:
   - page: 72
     from: 2) Nachvort von Marr.
     to: 2) Nachwort von Marx.
+    by: scan
+  - page: 72
+    from: omittirlich sür sie selbst
+    to: omittirlich für sie selbst
     by: scan
   - page: 73
     from: Krise wiod Kopflosigkeit zum

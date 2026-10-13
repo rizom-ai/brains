@@ -1258,6 +1258,17 @@ books:
       - { page: 58, opens: "Daß er dem Fleury" }
       - { page: 58, opens: "Daß er den Fleury" }
       - { page: 58, opens: "Daß er endlich" }
+      - { page: 25, opens: "Aber nicht genug" }
+      - { page: 25, opens: "So bereitwillig" }
+      - { page: 25, opens: "Beim Beginne" }
+      - { page: 25, opens: "„Cherval verübte" }
+      - { page: 25, opens: "In der Nacht vom 4" }
+      - { page: 25, opens: "Stieber sährt" }
+      - { page: 25, opens: "Stieber fährt" }
+      - { page: 44, opens: "Aber „Polizei-Lieutenant" }
+      - { page: 44, opens: "Also der Polizei-Lieutenant" }
+      - { page: 44, opens: "Unbeirrt durch seine" }
+      - { page: 44, opens: "Nachdem Goldheim bisher" }
     # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm
