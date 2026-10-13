@@ -2830,6 +2830,18 @@ mehring-nachlass-2:
     from: das „von vorn
     to: das „von vorn-
     by: reference
+  - page: 192
+    from: ganz andere (I) Bedeutung h
+    to: ganz andere (!) Bedeutung h
+    by: scan
+  - page: 192
+    from: bekanntlich (I) von der Art
+    to: bekanntlich (!) von der Art
+    by: scan
+  - page: 192
+    from: bekanntlich (I) die phantas
+    to: bekanntlich (!) die phantas
+    by: scan
   - page: 197
     from: b. Die Judenfrage nr. 2. Kritische Entdeckungen über Sorialismus, +
     to: b. Die Judenfrage Nr. 2. Kritische Entdeckungen über Sozialismus, Jurisprudenz und Politik (Nationalität).
@@ -2842,6 +2854,10 @@ mehring-nachlass-2:
     from: müssen.
     to: müssen.
     by: scan
+  - page: 198
+    from: reden (I) müssen (I),
+    to: reden (!) müssen (!),
+    by: scan
   - page: 200
     from: sellschaftlich S Za, so
     to: sellschaftlich = 3a, so
@@ -2853,6 +2869,10 @@ mehring-nachlass-2:
   - page: 225
     from: Bahn Leclere und
     to: Bahn Leclerc und
+    by: scan
+  - page: 226
+    from: ution daher (I) die feudali
+    to: ution daher (!) die feudali
     by: scan
   - page: 241
     from: nous fait halr ou aimer
@@ -2946,9 +2966,21 @@ mehring-nachlass-2:
     from: ù peut-on stre mieux
     to: Où peut-on être mieux
     by: scan
+  - page: 254
+    from: (J) begreifen (I),
+    to: (!) begreifen (!),
+    by: scan
   - page: 258
     from: 3. Die verstockte masse und aie unbeiriedigte masse.
     to: a. Die verstockte Masse und die unbefriedigte Masse.
+    by: scan
+  - page: 259
+    from: "über: „Oder (I) meinen Sie,"
+    to: "über: „Oder (!) meinen Sie,"
+    by: scan
+  - page: 259
+    from: " Ende? Oder (I) wissen Sie"
+    to: " Ende? Oder (!) wissen Sie"
     by: scan
   - page: 265
     from: 3. Die unkritisch-kritische Masse, oder die Kritik +
@@ -3122,6 +3154,10 @@ mehring-nachlass-2:
     from: ses instinets sanguinairs
     to: ses instincts sanguinairs
     by: scan
+  - page: 297
+    from: so schnelle (I)
+    to: so schnelle (!)
+    by: scan
   - page: 298
     from: détenus eriminels.
     to: détenus criminels.
@@ -3288,6 +3324,10 @@ mehring-nachlass-2:
     from: 5. Das enthüllte Geheimniss des Standpunktes.
     to: 4. Das enthüllte Geheimniss des Standpunktes.
     by: scan
+  - page: 303
+    from: "m erhabenen (I) Standpunkt "
+    to: "m erhabenen (!) Standpunkt "
+    by: scan
   - page: 306
     from: utiliser le goüt naturel, régler
     to: utiliser le goût naturel, régler
@@ -3383,6 +3423,14 @@ mehring-nachlass-2:
   - page: 434
     from: ebenso (I) höchst (I1)
     to: ebenso (!) höchst (!!)
+    by: scan
+  - page: 434
+    from: daran, denn (I)
+    to: daran, denn (!)
+    by: scan
+  - page: 434
+    from: nd steht es (I) mit der soz
+    to: nd steht es (!) mit der soz
     by: scan
   - page: 439
     from: solch ein Land
@@ -18921,6 +18969,10 @@ mehring-nachlass-3:
     from: H A
     to: ""
     by: scan
+  - page: 102
+    from: er Verlust“ (I). Man habe
+    to: er Verlust“ (!). Man habe
+    by: scan
   - page: 118
     from: man Vae vietis!
     to: man Vae victis!
@@ -18941,6 +18993,10 @@ mehring-nachlass-3:
     from: Die polendebatte in Frankfurt.
     to: Die Polendebatte in Frankfurt.
     by: scan
+  - page: 140
+    from: nrichtungen (I), namentlich
+    to: nrichtungen (!), namentlich
+    by: scan
   - page: 143
     from: nir gends
     to: nirgends
@@ -18948,6 +19004,18 @@ mehring-nachlass-3:
   - page: 143
     from: ihrem eig enen
     to: ihrem eigenen
+    by: scan
+  - page: 152
+    from: t natürlich (I), daß manche
+    to: t natürlich (!), daß manche
+    by: scan
+  - page: 154
+    from: " unsre Zahl (I), unsern Bes"
+    to: " unsre Zahl (!), unsern Bes"
+    by: scan
+  - page: 170
+    from: unft Polens (I) auftreten“,
+    to: unft Polens (!) auftreten“,
     by: scan
   - page: 183
     from: Der krieg um Schleswig-Holstein.
@@ -18981,6 +19049,10 @@ mehring-nachlass-3:
     from: Deujahr 1849.
     to: Neujahr 1849.
     by: scan
+  - page: 266
+    from: s Gastrecht (I), welches er
+    to: s Gastrecht (!), welches er
+    by: scan
   - page: 399
     from: Citeratur.
     to: Literatur.
@@ -18992,6 +19064,10 @@ mehring-nachlass-3:
   - page: 403
     from: Magnetis5smus.
     to: Magnetismus.
+    by: scan
+  - page: 406
+    from: r lebendige (I) Ausdruck de
+    to: r lebendige (!) Ausdruck de
     by: scan
   - page: 408
     from: Pourquoi la revolution d'Angleterre a-t·elle reussi?
