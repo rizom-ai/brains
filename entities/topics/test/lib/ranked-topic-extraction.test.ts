@@ -484,7 +484,8 @@ describe("bounded ranked topic extraction", () => {
 
   /** Two topics whose stored embeddings sit within the merge distance. */
   const neighbours = (f: Fixture, left: string, right: string): void => {
-    f.service.nearestToEntity = mock(async ({ origin }) => {
+    f.service.nearestToEntity = mock(async ({ origin, types }) => {
+      if (!types.includes("topic")) return [];
       const other =
         origin.entityId === left
           ? right
@@ -536,6 +537,47 @@ describe("bounded ranked topic extraction", () => {
     expect(mergeCalls(f)).toBe(1);
     expect(f.entities.has("topic:pity")).toBe(true);
     expect(f.entities.has("topic:compassion")).toBe(true);
+  });
+
+  it("joins a topic that owns none of its sources to the one owning most, without asking", async () => {
+    const f = fixture(8);
+    f.addTopic("Bildung");
+    f.addTopic("Greek Agon", "greek-agon");
+    f.addTopic("Cultural Formation", "cultural-formation");
+    const nearestSources: Record<string, [string, number][]> = {
+      bildung: [
+        ["note-000", 0.1],
+        ["note-001", 0.1],
+      ],
+      "greek-agon": [["note-002", 0.1]],
+      "cultural-formation": [
+        ["note-002", 0.15],
+        ["note-000", 0.2],
+        ["note-001", 0.3],
+      ],
+    };
+    f.service.nearestToEntity = mock(async ({ origin, types }) =>
+      types.includes("topic")
+        ? []
+        : (nearestSources[origin.entityId] ?? []).map(
+            ([entityId, distance]) => ({
+              entityType: "note",
+              entityId,
+              distance,
+            }),
+          ),
+    );
+    await f.run();
+    const aliases = f.context.runtimeState.scoped({
+      namespace: "topics.aliases",
+      schema: z.string(),
+    });
+
+    expect(mergeCalls(f)).toBe(0);
+    expect(f.entities.has("topic:cultural-formation")).toBe(false);
+    expect(f.entities.has("topic:bildung")).toBe(true);
+    expect(f.entities.has("topic:greek-agon")).toBe(true);
+    expect(await aliases.get("cultural-formation")).toBe("bildung");
   });
 
   it("lets topics chosen under an earlier prompt go once the corpus is re-read", async () => {

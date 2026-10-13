@@ -1,5 +1,10 @@
 import type { ContentVisibility } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  SOURCES_PER_TOPIC,
+  ownTopicSources,
+  type NearSource,
+} from "./topic-ownership";
 
 /**
  * Knowledge map data.
@@ -34,9 +39,6 @@ const ZONE_RADIUS = 0.16;
 
 /** Up to this many sources the map draws the whole corpus. */
 const FULL_MAP_SOURCES = 600;
-
-/** Beyond that, the sources drawn around each topic. */
-const MEMBERS_PER_TOPIC = 8;
 
 const knowledgeMapPointSchema: z.ZodObject<{
   id: z.ZodString;
@@ -141,7 +143,7 @@ export interface KnowledgeMapDataContext {
       types: string[];
       limit: number;
       visibilityScope: ContentVisibility;
-    }): Promise<EntityReference[]>;
+    }): Promise<NearSource[]>;
     getEntity(request: {
       entityType: string;
       id: string;
@@ -259,7 +261,7 @@ interface ProjectedCorpus {
   projection: ProjectionResult;
   titleById: Map<string, string>;
   /**
-   * The topic each source was found near, keyed by type and id. Without it,
+   * The topic each source sits closest to, keyed by type and id. Without it,
    * a source joins the topic it lands beside on the plane.
    */
   topicBySource?: Map<string, string>;
@@ -311,26 +313,22 @@ async function projectAroundTopics(
       context.entityService.nearestToEntity({
         origin: { entityType: TOPIC_TYPE, entityId: topic.id },
         types: sourceTypes,
-        limit: MEMBERS_PER_TOPIC,
+        limit: SOURCES_PER_TOPIC,
         visibilityScope,
       }),
     ),
   );
-  // A source near several topics joins the one it ranks highest under.
-  const topicBySource = new Map<string, { topicId: string; rank: number }>();
-  nearest.forEach((references, topicIndex) => {
-    const topicId = topics[topicIndex]?.id;
-    if (!topicId) return;
-    references.forEach(({ entityType, entityId }, rank) => {
-      const key = `${entityType}:${entityId}`;
-      const current = topicBySource.get(key);
-      if (!current || rank < current.rank)
-        topicBySource.set(key, { topicId, rank });
-    });
-  });
+  const topicBySource = ownTopicSources(
+    topics.map((topic, index) => ({
+      topicId: topic.id,
+      sources: nearest[index] ?? [],
+    })),
+  );
   const references = [
     ...topics.map((topic) => ({ entityType: TOPIC_TYPE, entityId: topic.id })),
-    ...nearest.flat(),
+    ...nearest
+      .flat()
+      .map(({ entityType, entityId }) => ({ entityType, entityId })),
     ...include,
   ].filter(
     (reference, index, all) =>
@@ -373,9 +371,7 @@ async function projectAroundTopics(
   return {
     projection,
     titleById,
-    topicBySource: new Map(
-      [...topicBySource].map(([key, { topicId }]) => [key, topicId]),
-    ),
+    topicBySource,
   };
 }
 
