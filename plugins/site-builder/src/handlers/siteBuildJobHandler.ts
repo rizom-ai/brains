@@ -45,7 +45,8 @@ export interface SiteBuildJobHandlerConfig {
   preferLocalUrls?: boolean | undefined;
   themeCSS?: string | undefined;
   slots?: LayoutSlots | undefined;
-  getHeadScripts?: (() => string[]) | undefined;
+  /** Resolve site-owned and installed contributions anew, before rendering. */
+  getHeadScripts?: ((signal: AbortSignal) => Promise<string[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   statusService?: BuildStatusRecorder | undefined;
@@ -102,6 +103,9 @@ export function handleSiteBuild(
         ? (cfg.localSiteUrl ?? configuredSiteUrl)
         : configuredSiteUrl;
 
+      const headScripts = await cfg.getHeadScripts?.(signal);
+      if (signal.aborted) throw new SdkError("cancelled");
+
       const result = await cfg.siteBuilder.build(
         {
           outputDir: input.outputDir,
@@ -116,7 +120,7 @@ export function handleSiteBuild(
           layouts: cfg.layouts,
           themeCSS: cfg.themeCSS,
           slots: cfg.slots,
-          headScripts: cfg.getHeadScripts?.(),
+          headScripts,
           ...(cfg.staticAssets && { staticAssets: cfg.staticAssets }),
         },
         buildProgress?.toCallback(),

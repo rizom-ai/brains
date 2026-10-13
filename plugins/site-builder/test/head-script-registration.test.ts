@@ -1,85 +1,126 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { installSiteBuilder } from "./helpers/install";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import {
+  defineServicePlugin,
+  defineSubscription,
+  z,
+} from "@brains/sdk/services";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { caughtError } from "@brains/test-utils";
+import { SiteBuilder } from "../src/lib/site-builder";
+import { instantiate, SITE_BUILDER_PLUGIN_ID } from "./helpers/install";
 
-describe("Head script registration", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-  let registered: () => string[];
-  beforeEach(async () => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-head-scripts" });
-    const installed = await installSiteBuilder(harness);
-    registered = (): string[] => [...installed.headScripts.values()];
+describe("Head scripts at build time", () => {
+  const harness = createPluginHarness();
+  const rendered: Array<readonly string[] | undefined> = [];
+  let restore = (): void => {};
+  beforeEach(() => {
+    const render = spyOn(SiteBuilder.prototype, "build").mockImplementation(
+      async (options) => {
+        rendered.push(options.headScripts);
+        return {
+          success: true,
+          outputDir: options.outputDir,
+          filesGenerated: 1,
+          routesBuilt: 1,
+        };
+      },
+    );
+    restore = (): void => {
+      render.mockRestore();
+    };
   });
-
   afterEach(async () => {
     await harness.reset();
+    rendered.length = 0;
+    restore();
   });
 
-  it("should accept head script registration via message", async () => {
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script:
-          '<script defer src="https://example.com/beacon.min.js"></script>',
-        position: "end",
-      },
-      "analytics",
+  async function worker(plugin: Plugin): Promise<void> {
+    const register = plugin.register.bind(plugin);
+    plugin.register = (shell, options): ReturnType<typeof register> =>
+      register(shell, { ...options, executionOnly: true });
+    await harness.installPlugin(plugin);
+  }
+  async function builder(): Promise<void> {
+    await worker(
+      instantiate({ headScripts: ['<script src="/boot.js"></script>'] }),
     );
+  }
+  async function contribute(
+    id: string,
+    script: () => string | Promise<string>,
+  ): Promise<void> {
+    const definition = defineServicePlugin(
+      { id, config: z.object({}) },
+      {
+        subscriptions: () => [
+          defineSubscription({
+            topic: SITE_BUILDER_CHANNELS.headScripts,
+            payload: z.object({}),
+            response: z.string(),
+            execution: "all-roles",
+            handle: script,
+          }),
+        ],
+      },
+    );
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: `@fixture/${id}`, version: "1" },
+    );
+    if (!plugin) throw new Error("Missing contributor");
+    await worker(plugin);
+  }
+  const build = (): Promise<unknown> =>
+    harness.runJob(`${SITE_BUILDER_PLUGIN_ID}:site-build`, {
+      outputDir: "/tmp/head-script-fixture",
+      environment: "preview",
+    });
 
-    // Accepting the message means storing it; without this the test passed
-    // whether or not the script was kept.
-    expect(registered()).toEqual([
-      '<script defer src="https://example.com/beacon.min.js"></script>',
+  it("asks on every worker build, in registration order after configured scripts", async () => {
+    await contribute("first", async () => '<script src="/first.js"></script>');
+    await builder();
+    await build();
+    let value = "one";
+    await contribute("late", () => `<script>${value}</script>`);
+    await build();
+    value = "two";
+    await build();
+    expect(rendered).toEqual([
+      ['<script src="/boot.js"></script>', '<script src="/first.js"></script>'],
+      [
+        '<script src="/boot.js"></script>',
+        '<script src="/first.js"></script>',
+        "<script>one</script>",
+      ],
+      [
+        '<script src="/boot.js"></script>',
+        '<script src="/first.js"></script>',
+        "<script>two</script>",
+      ],
     ]);
   });
 
-  it("should store multiple registered head scripts", async () => {
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script: '<script src="analytics.js"></script>',
-      },
-      "analytics",
-    );
-
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "newsletter",
-        script: '<script src="newsletter.js"></script>',
-      },
-      "newsletter",
-    );
-
-    const scripts = registered();
-    expect(scripts).toHaveLength(2);
-    expect(scripts[0]).toContain("analytics.js");
-    expect(scripts[1]).toContain("newsletter.js");
+  it("keeps configured scripts when nobody contributes", async () => {
+    await builder();
+    await build();
+    expect(rendered).toEqual([['<script src="/boot.js"></script>']]);
   });
 
-  it("should not duplicate scripts from the same plugin", async () => {
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script: '<script src="v1.js"></script>',
-      },
-      "analytics",
-    );
-
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script: '<script src="v2.js"></script>',
-      },
-      "analytics",
-    );
-
-    const scripts = registered();
-    expect(scripts).toHaveLength(1);
-    expect(scripts[0]).toContain("v2.js");
+  it("refuses a failed contribution instead of certifying an incomplete render", async () => {
+    await builder();
+    await contribute("failed", () => {
+      throw new Error("private provider details");
+    });
+    expect(await build().catch(caughtError)).toMatchObject({
+      code: "handler_failed",
+    });
+    expect(rendered).toEqual([]);
   });
 });

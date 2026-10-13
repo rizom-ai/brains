@@ -1,78 +1,58 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import { defineServicePlugin, z } from "@brains/sdk/services";
 import { analyticsPlugin } from "./helpers/install";
 
-/**
- * Regression test: analytics plugin must inject its head script
- * regardless of plugin registration order.
- *
- * Fix: analytics sends from onReady, which runs after ALL plugins have
- * registered their message handlers.
- */
-describe("Analytics head script with plugin ordering", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-
-  beforeEach(() => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-analytics-ordering" });
-  });
-
-  afterEach(async () => {
-    await harness.reset();
-  });
-
-  it("should inject head script when site-builder subscribes AFTER analytics registers", async () => {
-    const analytics = analyticsPlugin({
-      cloudflare: {
-        accountId: "abc",
-        apiToken: "token",
-        siteTag: "my-site-tag",
-      },
+describe("Analytics build-time ordering", () => {
+  for (const analyticsFirst of [true, false]) {
+    it(`works without ready when analytics registers ${analyticsFirst ? "first" : "last"}`, async () => {
+      const harness = createPluginHarness();
+      let read: () => Promise<readonly string[]> = async () => {
+        throw new Error("Not installed");
+      };
+      const definition = defineServicePlugin({
+        id: "reader",
+        config: z.object({}),
+        setup: ({ siteContributions }) => {
+          read = siteContributions.headScripts;
+          return {};
+        },
+      });
+      const [reader] = instantiatePluginPackageDefinition(
+        definition,
+        {},
+        { name: "@fixture/site", version: "1" },
+      );
+      if (!reader) throw new Error("Missing reader");
+      const analytics = analyticsPlugin({
+        cloudflare: {
+          accountId: "abc",
+          apiToken: "synthetic",
+          siteTag: "ordered-tag",
+        },
+      });
+      async function install(plugin: Plugin): Promise<void> {
+        const register = plugin.register.bind(plugin);
+        plugin.register = (shell, options): ReturnType<typeof register> =>
+          register(shell, { ...options, executionOnly: true });
+        await harness.installPlugin(plugin);
+      }
+      try {
+        for (const plugin of analyticsFirst
+          ? [analytics, reader]
+          : [reader, analytics])
+          await install(plugin);
+        const first = await read();
+        expect(first).toHaveLength(1);
+        expect(first[0]).toContain("ordered-tag");
+        expect(await read()).toEqual(first);
+      } finally {
+        await harness.reset();
+      }
     });
-    await harness.installPlugin(analytics);
-
-    // Subscribe AFTER plugin registered (late subscriber)
-    let receivedPayload: { pluginId: string; script: string } | undefined;
-    harness.subscribe(
-      "plugin:site-builder:head-script:register",
-      async (message: { payload: { pluginId: string; script: string } }) => {
-        receivedPayload = message.payload;
-        return { success: true };
-      },
-    );
-
-    await analytics.ready?.();
-
-    expect(receivedPayload).toBeDefined();
-    expect(receivedPayload?.pluginId).toBe("analytics");
-    expect(receivedPayload?.script).toContain("beacon.min.js");
-    expect(receivedPayload?.script).toContain("my-site-tag");
-  });
-
-  it("should inject head script when site-builder subscribes BEFORE analytics registers", async () => {
-    // Subscribe BEFORE plugin registered (early subscriber)
-    let receivedPayload: { pluginId: string; script: string } | undefined;
-    harness.subscribe(
-      "plugin:site-builder:head-script:register",
-      async (message: { payload: { pluginId: string; script: string } }) => {
-        receivedPayload = message.payload;
-        return { success: true };
-      },
-    );
-
-    const analytics = analyticsPlugin({
-      cloudflare: {
-        accountId: "abc",
-        apiToken: "token",
-        siteTag: "my-site-tag",
-      },
-    });
-    await harness.installPlugin(analytics);
-
-    await analytics.ready?.();
-
-    expect(receivedPayload).toBeDefined();
-    expect(receivedPayload?.pluginId).toBe("analytics");
-    expect(receivedPayload?.script).toContain("beacon.min.js");
-    expect(receivedPayload?.script).toContain("my-site-tag");
-  });
+  }
 });

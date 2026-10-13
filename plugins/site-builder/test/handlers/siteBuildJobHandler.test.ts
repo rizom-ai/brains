@@ -160,6 +160,50 @@ describe("the site build job", () => {
     });
   });
 
+  it("awaits contributed scripts before handing inputs to the renderer", async () => {
+    const entered = Promise.withResolvers<AbortSignal>();
+    const scripts = Promise.withResolvers<string[]>();
+    const run = build({
+      getHeadScripts: async (signal) => {
+        entered.resolve(signal);
+        return scripts.promise;
+      },
+    });
+    const pending = run({ outputDir: "/tmp/output" });
+    const signal = await entered.promise;
+    expect(signal.aborted).toBe(false);
+    expect(siteBuilder.build).not.toHaveBeenCalled();
+    scripts.resolve(["<script>ready</script>"]);
+    await pending;
+    expect(siteBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ headScripts: ["<script>ready</script>"] }),
+      expect.any(Function),
+    );
+  });
+
+  it("does not render or announce completion after cancellation during collection", async () => {
+    const abort = new AbortController();
+    const entered = Promise.withResolvers<AbortSignal>();
+    const release = Promise.withResolvers<string[]>();
+    const run = build(
+      {
+        getHeadScripts: async (signal) => {
+          entered.resolve(signal);
+          return release.promise;
+        },
+      },
+      abort.signal,
+    );
+    const pending = run({ outputDir: "/tmp/output" }).catch(caughtError);
+    const collectedSignal = await entered.promise;
+    abort.abort();
+    release.resolve(["late"]);
+    expect(await pending).toMatchObject({ code: "cancelled" });
+    expect(collectedSignal).toBe(abort.signal);
+    expect(siteBuilder.build).not.toHaveBeenCalled();
+    expect(announced).toEqual([]);
+  });
+
   it("hands the build the slots other packages registered", async () => {
     const slots = new UISlotRegistry();
     slots.register("footer-top", {

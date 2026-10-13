@@ -32,6 +32,7 @@ import {
 import { sitePageUrl } from "../internal/site-page-url";
 import { registerDeclaredSubscriptions } from "../interface/declared-subscriptions";
 import { createRequester } from "../internal/requester";
+import { createSiteContributions } from "../internal/site-contributions";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
 import {
@@ -736,6 +737,11 @@ class DeclarativeServicePlugin<
           localSiteUrl: context.localSiteUrl,
           preferLocalUrls: context.preferLocalUrls,
           views: context.views,
+          siteContributions: createSiteContributions(
+            this.requireShell().getMessageBus(),
+            this.id,
+            this.operatorAbortController.signal,
+          ),
           templates: {
             resolve: context.templates.resolve,
             capabilities: (name) => context.templates.getCapabilities(name),

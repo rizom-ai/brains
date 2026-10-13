@@ -678,6 +678,18 @@ Service, generic-interface and message-interface setup may be async. Return the
 shared client/state and register its release with `lifecycle.onCleanup()`.
 Declaration callbacks receive the resolved state, independently per instance.
 
+Service setup also provides the advanced, named-consumer
+`siteContributions.headScripts(signal?)` reader for Site Builder, with Analytics
+as its dynamic provider. It collects fresh worker-local string contributions in
+registration order; the builder prepends configured site scripts before rendering
+and fingerprinting. Providers declare schema-validated `all-roles` subscriptions,
+not ready-phase announcements. Malformed or failed contributions reject with a
+coded error instead of silently producing incomplete output. Results are detached
+and frozen; the installed service owns the sender and lifetime. Cancellation
+refuses admission or the collected result but does not interrupt or undo admitted
+callbacks, and provides no total shutdown deadline. This is not an arbitrary-topic
+`messaging.collect` API, a cross-process barrier, or a publication receipt.
+
 Durable `runtimeState({ namespace, schema })` stores are separate from setup's
 in-memory return value. `set()` and `setIfNotExists()` accept the schema's input
 type; `get()` and `list()` return its parsed output. Storage retains validated

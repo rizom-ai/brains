@@ -1,5 +1,7 @@
 import {
   defineServicePlugin,
+  defineSubscription,
+  z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
@@ -21,7 +23,7 @@ import { createTrafficOverviewInsight } from "./insights/traffic-overview";
  * - Device breakdown
  *
  * Also injects the Cloudflare Web Analytics beacon script into
- * site builds via the site-builder's head-script registration hook.
+ * site builds via a build-time, worker-enabled contribution.
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
@@ -58,20 +60,21 @@ export function analyticsService(
 
       tools: ({ state }) => createAnalyticsTools(state.client),
 
-      // The beacon reaches site builds through the head-script channel, and
-      // site-builder's subscription only exists once every plugin has
-      // registered — which is what `ready` is for.
-      ready: async ({ config, messaging }) => {
+      // Workers do not run ready. Each build asks installed contributors
+      // instead of depending on a different process's registration map.
+      subscriptions: ({ config }) => {
         const siteTag = config.cloudflare?.siteTag;
-        if (!siteTag) return;
-
-        await messaging.request({
-          type: SITE_BUILDER_CHANNELS.headScriptRegister,
-          payload: {
-            pluginId: "analytics",
-            script: generateCloudflareBeaconScript(siteTag),
-          },
-        });
+        return siteTag
+          ? [
+              defineSubscription({
+                topic: SITE_BUILDER_CHANNELS.headScripts,
+                payload: z.object({}),
+                response: z.string(),
+                execution: "all-roles",
+                handle: () => generateCloudflareBeaconScript(siteTag),
+              }),
+            ]
+          : [];
       },
     },
   );

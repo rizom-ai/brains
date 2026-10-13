@@ -45,14 +45,12 @@ import {
 export interface SiteBuilderDeps {
   routes?: RouteRegistry;
   slots?: UISlotRegistry;
-  headScripts?: Map<string, string>;
 }
 
 /** What the site builder holds while it runs. */
 export interface SiteBuilderState {
   readonly routes: RouteRegistry;
   readonly slots: UISlotRegistry;
-  readonly headScripts: Map<string, string>;
   readonly builder: SiteBuilder;
   readonly status: SiteBuildStatusService;
   readonly rebuilds: RebuildManager;
@@ -79,11 +77,6 @@ const slotRegistrationPayload = z.looseObject({
     (value) => typeof value === "function",
   ),
   priority: z.number().optional(),
-});
-
-const headScriptPayload = z.looseObject({
-  pluginId: z.string().min(1),
-  script: z.string(),
 });
 
 /**
@@ -120,13 +113,10 @@ export function siteBuilderService(
         localSiteUrl,
         preferLocalUrls,
         entityDisplay,
+        siteContributions,
       }): Promise<SiteBuilderState> => {
         const routes = deps.routes ?? new RouteRegistry(logger);
         const slots = deps.slots ?? new UISlotRegistry();
-        const headScripts = deps.headScripts ?? new Map<string, string>();
-        for (const [index, script] of config.headScripts.entries()) {
-          headScripts.set(`site-package:${index}`, script);
-        }
         if (config.routes) {
           registerConfigRoutes(config.routes, "site-builder", routes);
         }
@@ -190,7 +180,10 @@ export function siteBuilderService(
           preferLocalUrls,
           themeCSS: config.themeCSS,
           slots,
-          getHeadScripts: (): string[] => [...headScripts.values()],
+          getHeadScripts: async (signal): Promise<string[]> => [
+            ...config.headScripts,
+            ...(await siteContributions.headScripts(signal)),
+          ],
           ...(config.staticAssets && { staticAssets: config.staticAssets }),
           statusService: status,
         });
@@ -203,7 +196,6 @@ export function siteBuilderService(
         return {
           routes,
           slots,
-          headScripts,
           builder,
           status,
           rebuilds,
@@ -215,7 +207,7 @@ export function siteBuilderService(
     {
       jobs: ({ state }) => [state.build],
 
-      // Routes, slots and head scripts all arrive from the packages that own
+      // Routes and slots arrive from the packages that own
       // what they render. The payload schema is the boundary.
       subscriptions: ({ config, state }) => [
         ...routeSubscriptions(state.routes),
@@ -249,15 +241,6 @@ export function siteBuilderService(
                 priority: payload.priority,
               }),
             });
-            return { success: true };
-          },
-        }),
-        defineSubscription({
-          topic: SITE_BUILDER_CHANNELS.headScriptRegister,
-          payload: headScriptPayload,
-          handle: ({ payload }) => {
-            // Keyed by package, so re-registering replaces rather than repeats.
-            state.headScripts.set(payload.pluginId, payload.script);
             return { success: true };
           },
         }),

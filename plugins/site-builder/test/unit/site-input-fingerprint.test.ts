@@ -41,7 +41,10 @@ const staticSiteBuilderFactory = (): never => {
 };
 const publishMessage = async (): Promise<void> => {};
 
-function fingerprint(rendererIdentity: string): string {
+function fingerprint(
+  rendererIdentity: string,
+  globalHeadScripts: string[] = [],
+): string {
   const template: SiteViewTemplate = {
     name: "docs:doc-list",
     pluginId: "docs",
@@ -50,7 +53,7 @@ function fingerprint(rendererIdentity: string): string {
   };
 
   return computeSiteInputFingerprint({
-    preparedBuild,
+    preparedBuild: { ...preparedBuild, globalHeadScripts },
     layouts: {},
     getViewTemplate: () => template,
     staticSiteBuilderFactory,
@@ -62,6 +65,19 @@ function fingerprint(rendererIdentity: string): string {
 describe("computeSiteInputFingerprint", () => {
   test("renders again under another renderer process, whose code may differ", () => {
     expect(fingerprint("process-a")).not.toBe(fingerprint("process-b"));
+  });
+
+  test("changed build-time head scripts invalidate the same process's fingerprint", () => {
+    const scripts = ['<script src="/beacon.js"></script>'];
+    expect(fingerprint("process-a", scripts)).toBe(
+      fingerprint("process-a", [...scripts]),
+    );
+    expect(fingerprint("process-a", scripts)).not.toBe(
+      fingerprint("process-a"),
+    );
+    expect(fingerprint("process-a", scripts)).not.toBe(
+      fingerprint("process-a", ['<script src="/changed.js"></script>']),
+    );
   });
 
   test("is stable within one renderer process", () => {

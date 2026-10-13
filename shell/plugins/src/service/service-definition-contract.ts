@@ -1245,6 +1245,16 @@ interface ServiceDefinitionHeader<
          */
         readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
         /**
+         * Worker-local contributions, read afresh for each build. Named
+         * consumer: @brains/site-builder-plugin; provider: @brains/analytics.
+         * No arbitrary topics or sender authority. Results are detached and
+         * malformed/failed contributions reject with a coded error. Aborting
+         * refuses admission/results, not effects of callbacks already running.
+         */
+        readonly siteContributions: {
+          headScripts(signal?: AbortSignal): Promise<readonly string[]>;
+        };
+        /**
          * The other doors this caller should be shown.
          *
          * A console renders a strip of links to the rest of the brain. The

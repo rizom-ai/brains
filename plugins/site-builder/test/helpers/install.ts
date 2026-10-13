@@ -19,8 +19,6 @@ export const SITE_BUILDER_PLUGIN_ID: string = `${packageJson.name}:site-builder`
 export interface SiteBuilderRegistries {
   readonly routes: RouteRegistry;
   readonly slots: UISlotRegistry;
-  /** Scripts other packages asked to have injected into every page head. */
-  readonly headScripts: Map<string, string>;
 }
 
 /** The site builder as the runtime builds it from one configuration. */
@@ -57,7 +55,6 @@ export async function installSiteBuilder(
   const registries: SiteBuilderRegistries = {
     routes: new RouteRegistry(harness.getMockShell().getLogger()),
     slots: new UISlotRegistry(),
-    headScripts: new Map<string, string>(),
   };
   const plugin = instantiate(config, registries);
   const capabilities = await harness.installPlugin(plugin);

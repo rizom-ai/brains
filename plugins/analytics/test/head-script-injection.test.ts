@@ -1,118 +1,54 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { analyticsPlugin } from "./helpers/install";
+import type { AnalyticsConfigInput } from "../src";
 
-describe("Analytics head script injection", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-
-  beforeEach(() => {
-    harness = createPluginHarness();
-  });
-
+describe("Analytics worker head-script contributions", () => {
+  const harness = createPluginHarness();
   afterEach(async () => {
     await harness.reset();
   });
 
-  it("should send head-script registration message when siteTag is configured", async () => {
-    let receivedPayload: { pluginId: string; script: string } | undefined;
-    harness.subscribe(
-      "plugin:site-builder:head-script:register",
-      async (message: { payload: { pluginId: string; script: string } }) => {
-        receivedPayload = message.payload;
-        return { success: true };
-      },
-    );
-
-    const plugin = analyticsPlugin({
-      cloudflare: {
-        accountId: "abc123",
-        apiToken: "cf_token",
-        siteTag: "site-tag-123",
-      },
-    });
-
+  async function scripts(config: AnalyticsConfigInput): Promise<unknown[]> {
+    const plugin = analyticsPlugin(config);
+    const register = plugin.register.bind(plugin);
+    plugin.register = (shell, options): ReturnType<typeof register> =>
+      register(shell, { ...options, executionOnly: true });
     await harness.installPlugin(plugin);
-    await plugin.ready?.();
+    return harness.getMockShell().getMessageBus().collect({
+      type: SITE_BUILDER_CHANNELS.headScripts,
+      payload: {},
+      sender: "@fixture/builder:site",
+    });
+  }
 
-    expect(receivedPayload).toBeDefined();
-    expect(receivedPayload?.pluginId).toBe("analytics");
-    expect(receivedPayload?.script).toContain("beacon.min.js");
-    expect(receivedPayload?.script).toContain("site-tag-123");
+  it("answers in an execution-only worker without ready", async () => {
+    expect(
+      await scripts({
+        cloudflare: {
+          accountId: "abc",
+          apiToken: "synthetic",
+          siteTag: "my-site-tag",
+        },
+      }),
+    ).toEqual([
+      {
+        success: true,
+        data: `<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token":"my-site-tag"}'></script>`,
+      },
+    ]);
   });
 
-  it("should NOT send head-script message when cloudflare is not configured", async () => {
-    let receivedPayload: unknown;
-    harness.subscribe(
-      "plugin:site-builder:head-script:register",
-      async (message: { payload: unknown }) => {
-        receivedPayload = message.payload;
-        return { success: true };
-      },
-    );
-
-    const plugin = analyticsPlugin({});
-    await harness.installPlugin(plugin);
-    await plugin.ready?.();
-
-    expect(receivedPayload).toBeUndefined();
+  it("contributes nothing without Cloudflare", async () => {
+    expect(await scripts({})).toEqual([]);
   });
 
-  it("should NOT send head-script message when siteTag is empty", async () => {
-    let receivedPayload: unknown;
-    harness.subscribe(
-      "plugin:site-builder:head-script:register",
-      async (message: { payload: unknown }) => {
-        receivedPayload = message.payload;
-        return { success: true };
-      },
-    );
-
-    const plugin = analyticsPlugin({
-      cloudflare: {
-        accountId: "abc123",
-        apiToken: "cf_token",
-        siteTag: "",
-      },
-    });
-
-    let installed = false;
-    try {
-      await harness.installPlugin(plugin);
-      installed = true;
-    } catch {
-      // Config validation may reject empty siteTag
-    }
-
-    if (installed) {
-      await plugin.ready?.();
-    }
-
-    expect(receivedPayload).toBeUndefined();
-  });
-
-  it("should generate correct Cloudflare beacon script", async () => {
-    let receivedScript: string | undefined;
-    harness.subscribe(
-      "plugin:site-builder:head-script:register",
-      async (message: { payload: { script: string } }) => {
-        receivedScript = message.payload.script;
-        return { success: true };
-      },
-    );
-
-    const plugin = analyticsPlugin({
-      cloudflare: {
-        accountId: "abc123",
-        apiToken: "cf_token",
-        siteTag: "my-site-tag",
-      },
-    });
-
-    await harness.installPlugin(plugin);
-    await plugin.ready?.();
-
-    expect(receivedScript).toBe(
-      `<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token":"my-site-tag"}'></script>`,
-    );
+  it("contributes nothing without a site tag", async () => {
+    expect(
+      await scripts({
+        cloudflare: { accountId: "abc", apiToken: "synthetic", siteTag: "" },
+      }),
+    ).toEqual([]);
   });
 });
