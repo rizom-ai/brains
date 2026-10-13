@@ -6315,10 +6315,6 @@ freud-1942-gw-2-3:
     from: Bild Savonarolas geschen? Ich war
     to: Bild Savonarolas gesehen? Ich war
     by: reference
-  - page: 185
-    from: Zwang, eine Einheitausiihnen zu gestalten
-    to: Zwang, eine Einheit aus ihnen zu gestalten
-    by: reference
   - page: 187
     from: des eigentlichen Trraumerregers selbst angehören
     to: des eigentlichen Traumerregers selbst angehören
@@ -7379,7 +7375,7 @@ freud-1942-gw-2-3:
     to: l’homme instinctif qui se révèle. ...L’homme revient pour ainsi dire à
     by: scan
   - page: 82
-    from: da verflossenen Tages sind.“ Die Bedingung, dab
+    from: da verflossenen Tages sind.“ Die Bedingung, daß
     to: des verflossenen Tages sind.“ Die Bedingung, daß
     by: scan
   - page: 82
@@ -7911,7 +7907,7 @@ freud-1942-gw-2-3:
     to: ""
     by: scan
   - page: 188
-    from: wie kommt es, dab
+    from: wie kommt es, daß
     to: wie kommt es, daß
     by: scan
   - page: 189
@@ -8167,7 +8163,7 @@ freud-1942-gw-2-3:
     to: ¹) Hugo Wolf.
     by: scan
   - page: 350
-    from: das Messer mub
+    from: das Messer muß
     to: das Messer muß
     by: scan
   - page: 353
@@ -8359,7 +8355,7 @@ freud-1942-gw-2-3:
     to: ""
     by: scan
   - page: 414
-    from: 11) (H. Sachs.) „„Aus der ‚Traumdeutung‘ wissen wir, dab
+    from: 11) (H. Sachs.) „„Aus der ‚Traumdeutung‘ wissen wir, daß
     to: 11) (H. Sachs.) „Aus der ‚Traumdeutung‘ wissen wir, daß
     by: scan
   - page: 416
@@ -8695,7 +8691,7 @@ freud-1942-gw-2-3:
     to: tionen, unter Deckung der Widersprüche,
     by: scan
   - page: 604
-    from: einfügen können, dab
+    from: einfügen können, daß
     to: einfügen können, daß
     by: scan
   - page: 615
@@ -8717,6 +8713,170 @@ freud-1942-gw-2-3:
   - page: 619
     from: 1) Vgl. hiezu den (oben $. 103) mitgeteilten "Traum (2a-rvpos) Alexanders
     to: 1) Vgl. hiezu den (oben S. 103) mitgeteilten Traum (Σα-τυρος) Alexanders
+    by: scan
+  - page: 182
+    from: a N Traummaterial und die Traumquellen
+    to: ""
+    by: scan
+  - page: 186
+    from: 186° TV. Das Traummaterial und die Traumquellen
+    to: ""
+    by: scan
+  - page: 232
+    from: Bor De ea ned ae Trasinquellen
+    to: ""
+    by: scan
+  - page: 235
+    from: e _Der Traum vom Reiten a er A
+    to: ""
+    by: scan
+  - page: 252
+    from: er BE m a Traimguellen
+    to: ""
+    by: scan
+  - page: 262
+    from: 262° _V. Das Traummaterial und die Traumquellen
+    to: ""
+    by: scan
+  - page: 313
+    from: _ Verhältnis von Verschiebung und Überdeterminierung RE
+    to: ""
+    by: scan
+  - page: 319
+    from: "Zusammenhang als Gleichzeitigkeit j N. ;<:"
+    to: ""
+    by: scan
+  - page: 323
+    from: bes nähen MAN IA BR...
+    to: ""
+    by: scan
+  - page: 331
+    from: ___Umgekehrt, im Gegenteile BB),
+    to: ""
+    by: scan
+  - page: 362
+    from: re in ; Än VI. Die Traumarbeit
+    to: ""
+    by: scan
+  - page: 366
+    from: 2er DR DIe Fraumarbeit
+    to: ""
+    by: scan
+  - page: 370
+    from: . SARANNAEN Bas Braumarbeit i __
+    to: ""
+    by: scan
+  - page: 398
+    from: Bee rem
+    to: ""
+    by: scan
+  - page: 412
+    from: BEN nl. Die Traumarbeit
+    to: ""
+    by: scan
+  - page: 422
+    from: NEN VI. Die Traumarbeit
+    to: ""
+    by: scan
+  - page: 430
+    from: Bu rm
+    to: ""
+    by: scan
+  - page: 432
+    from: v1. Die Traumarbeit
+    to: ""
+    by: scan
+  - page: 444
+    from: BZ VI. Die Traumarbeit
+    to: ""
+    by: scan
+  - page: 446
+    from: ki VI. Die Traumarbeit _
+    to: ""
+    by: scan
+  - page: 472
+    from: De raurbe
+    to: ""
+    by: scan
+  - page: 510
+    from: ">10 N UN ALALER VI. Die Traumabeit"
+    to: ""
+    by: scan
+  - page: 511
+    from: Der mißverständliche scheinbare Zusammenhang >11
+    to: ""
+    by: scan
+  - page: 566
+    from: Ban der Traumvorgänge
+    to: ""
+    by: scan
+  - page: 14
+    from: „Kontusz6wka“
+    to: „Kontuszówka“
+    by: scan
+  - page: 20
+    from: of daily hfe which
+    to: of daily life which
+    by: scan
+  - page: 36
+    from: veranlassen ($.
+    to: veranlassen (S.
+    by: scan
+  - page: 39
+    from: Die “Orgeamns0 WHEN EN a
+    to: ""
+    by: scan
+  - page: 162
+    from: K Sie hätten Ihr
+    to: mutung, Sie hätten Ihr
+    by: scan
+  - page: 185
+    from: Zwang, eine Einheitausiihnen zu gestalten; zB;
+    to: "Zwang, eine Einheit aus ihnen zu gestalten; z. B.:"
+    by: scan
+  - page: 199
+    from: eifriger Ro m pilger
+    to: eifriger Rompilger
+    by: scan
+  - page: 202
+    from: Hannibalund Ro m symbolisierten
+    to: Hannibal und Rom symbolisierten
+    by: scan
+  - page: 213
+    from: "Namen _ dichtete:"
+    to: "Namen dichtete:"
+    by: scan
+  - page: 244
+    from: ” Rank hat in einer Reihe
+    to: ¹) Rank hat in einer Reihe
+    by: scan
+  - page: 484
+    from: een [4
+    to: ""
+    by: scan
+  - page: 500
+    from: das Holz Maur ys
+    to: das Holz Maurys
+    by: scan
+  - page: 533
+    from: st, unter den unzähligen
+    to: ist, unter den unzähligen
+    by: scan
+  - page: 546
+    from: heißen wir ds Unbewußte
+    to: heißen wir das Unbewußte
+    by: scan
+  - page: 547
+    from: Albertus Ma gnus.
+    to: Albertus Magnus.
+    by: scan
+  - page: 566
+    from: die Rolle ds Unternehmers
+    to: die Rolle des Unternehmers
+    by: scan
+  - page: 576
+    from: auf dn Wunsch
+    to: auf den Wunsch
     by: scan
 freud-1942-gw-5:
   - page: 4
@@ -9952,6 +10112,10 @@ freud-1943-gw-8:
     from: gekränkt darüber, daB ein gerechter
     to: gekränkt darüber, daß ein gerechter
     by: reference
+  - page: 210
+    from: 219 Eine Kindheitserinnerung
+    to: ""
+    by: scan
   - page: 211
     from: Erfahrung. drängen
     to: Erfahrung drängen
@@ -10303,6 +10467,10 @@ freud-1943-gw-8:
   - page: 405
     from: undParanoia
     to: und Paranoia
+    by: scan
+  - page: 407
+    from: Das philosophische Interesse 4do7
+    to: ""
     by: scan
   - page: 428
     from: PERS) ZU Ki
@@ -10785,6 +10953,10 @@ freud-1946-gw-10:
     from: t überhaupt ZU
     to: t überhaupt zu
     by: scan
+  - page: 390
+    from: 390 Einige Charaktertypen aus der psychoanalytischen Arbeit
+    to: ""
+    by: scan
   - page: 395
     from: daB
     to: daß
@@ -10797,6 +10969,10 @@ freud-1946-gw-10:
     from: F rauenleben
     to: Frauenleben
     by: scan
+  - page: 404
+    from: 4jo4 Über Triebumsetzungen, insbesondere der Analerotik
+    to: ""
+    by: scan
   - page: 406
     from: Ü ber
     to: Über
@@ -10804,6 +10980,14 @@ freud-1946-gw-10:
   - page: 407
     from: daB
     to: daß
+    by: scan
+  - page: 407
+    from: Über Triebumsetzungen, insbesondere der Analerotik 4o7
+    to: ""
+    by: scan
+  - page: 409
+    from: Über Triebumsetzungen, insbesondere der Analerotik 4og
+    to: ""
     by: scan
   - page: 410
     from: daB
@@ -11454,6 +11638,10 @@ freud-1948-gw-14:
   - page: 78
     from: sie. ist
     to: sie ist
+    by: scan
+  - page: 87
+    from: „Selbstdarstellung“ ‚87
+    to: ""
     by: scan
   - page: 96
     from: „Nachschrift 1935* zur Selbstdarstellung ist im

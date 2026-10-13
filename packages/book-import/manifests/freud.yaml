@@ -229,6 +229,7 @@ books:
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 447, opens: "Satz, daß die Träume", runsOn: true }
+      - { page: 244, opens: "” Rank hat" }
     slug: die-traumdeutung
     references: [https://www.gutenberg.org/cache/epub/40739/pg40739.txt]
     title: Die Traumdeutung

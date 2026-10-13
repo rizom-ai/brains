@@ -509,11 +509,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads the italic Vbw, Zoë and daß the OCR misread", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, das Ybw, /bw und Fbw; Zo& Bertgang; dab er, dal das, Dal Monte.",
+      "Jones, das Ybw, /bw und Fbw; Zo& Bertgang; dab er, dal das, dal3 sie, dab „der, Dal Monte; er mub, dab",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, das Vbw, Vbw und Vbw; Zoë Bertgang; daß er, daß das, Dal Monte.",
+      "Jones, das Vbw, Vbw und Vbw; Zoë Bertgang; daß er, daß das, daß sie, daß „der, Dal Monte; er muß, daß",
     );
   });
 
