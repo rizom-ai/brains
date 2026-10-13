@@ -86,6 +86,72 @@ describe("NoteGenerationJobHandler", () => {
       );
     });
 
+    it("replaces a queued rewrite stub with the generated body, not the source or progress text", async () => {
+      const prompt = [
+        "Rewrite this upload with Decisions and Next steps sections.",
+        "Change Monday to Friday, set the owner to Mira, and replace the next step with Publish the participant checklist.",
+        "Source: Launch day: Monday. Owner: Unassigned. Next step: Draft the agenda.",
+      ].join("\n");
+      const body = [
+        "## Decisions",
+        "- Launch day: Friday.",
+        "- Owner: Mira.",
+        "",
+        "## Next steps",
+        "- Publish the participant checklist.",
+      ].join("\n");
+      const stub = createTestEntity<Note>("note", {
+        id: "revised-community-launch",
+        content:
+          "---\ntitle: Revised Community Launch\nstatus: generating\n---\n",
+        metadata: { title: "Revised Community Launch", status: "generating" },
+      });
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
+        title: "Launch Decisions",
+        body,
+      });
+      spyOn(mockContext.entityService, "getEntity").mockImplementation(
+        async ({ id }: { id: string }) => (id === stub.id ? stub : null),
+      );
+      const update = spyOn(
+        mockContext.entityService,
+        "updateEntity",
+      ).mockResolvedValue({
+        entityId: stub.id,
+        jobId: "saved-note-job",
+        skipped: false,
+      });
+      const parsed = handler.validateAndParse({ entityId: stub.id, prompt });
+      if (!parsed) throw new Error("Expected valid queued rewrite data");
+      expect(parsed).toMatchObject({ entityId: stub.id, prompt });
+
+      const result = await handler.process(
+        parsed,
+        "rewrite-job",
+        mockProgressReporter,
+      );
+
+      expect(result).toMatchObject({ success: true, entityId: stub.id });
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        {
+          prompt,
+          templateName: "note:generation",
+          representedIdentity: "none",
+        },
+        generatedNoteSchema,
+      );
+      expect(mockContext.entityService.createEntity).not.toHaveBeenCalled();
+      expect(update).toHaveBeenCalledTimes(1);
+      const saved = update.mock.calls[0]?.[0].entity;
+      expect(saved?.id).toBe(stub.id);
+      expect(saved?.content).toContain(body);
+      expect(saved?.content).not.toContain("Monday");
+      expect(saved?.content).not.toContain("Unassigned");
+      expect(saved?.content).not.toContain("Draft the agenda");
+      expect(saved?.content).not.toContain("status: generating");
+      expect(saved?.metadata["status"]).toBeUndefined();
+    });
+
     it("should slugify the title for the entity id and dedupe", async () => {
       spyOn(mockContext.ai, "generate").mockResolvedValue({
         title: "My Fancy Note!",
