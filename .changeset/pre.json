@@ -537,6 +537,7 @@
     "core--judged-response-requirements",
     "core--keep-entity-with-remaining-file",
     "core--knowledge-map-bounded",
+    "core--knowledge-map-membership",
     "core--large-projection-waves",
     "core--lock-before-tap",
     "core--lock-on-reopen",
