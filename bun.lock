@@ -249,6 +249,7 @@
         "react": "^19.2.7",
       },
       "devDependencies": {
+        "@brains/db": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/runtime-state": "workspace:*",

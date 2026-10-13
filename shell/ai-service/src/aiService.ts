@@ -1,5 +1,6 @@
 import { generateText, generateObject, NoObjectGeneratedError } from "ai";
 import { AIOutputValidationError } from "./errors";
+import type { GenerationUsageMeter } from "./generation-usage-meter";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -35,15 +36,25 @@ import {
 export class AIService implements IAIService {
   private config: AIModelConfig;
   private logger: Logger;
+  private readonly usage: GenerationUsageMeter | undefined;
   private providers: ProviderClients;
   private capabilities: TextModelCapabilities;
   private cachedModel: LanguageModel | null = null;
 
-  public static createFresh(config: AIModelConfig, logger: Logger): AIService {
-    return new AIService(config, logger);
+  public static createFresh(
+    config: AIModelConfig,
+    logger: Logger,
+    usage?: GenerationUsageMeter,
+  ): AIService {
+    return new AIService(config, logger, usage);
   }
 
-  private constructor(config: AIModelConfig, logger: Logger) {
+  private constructor(
+    config: AIModelConfig,
+    logger: Logger,
+    usage?: GenerationUsageMeter,
+  ) {
+    this.usage = usage;
     this.config = withAIModelDefaults(config);
     this.logger = logger.child("AIService");
     this.providers = createProviderClients(this.config);
@@ -73,6 +84,11 @@ export class AIService implements IAIService {
     usage: TokenUsage;
   }> {
     signal?.throwIfAborted();
+    const measurement = this.usage?.begin(this.config.model);
+    if (measurement)
+      signal = signal
+        ? AbortSignal.any([signal, measurement.signal])
+        : measurement.signal;
     this.logger.debug("Generating text response", {
       model: this.config.model,
     });
@@ -82,6 +98,7 @@ export class AIService implements IAIService {
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
+        ...(measurement ? { maxRetries: 0 } : {}),
         ...(signal ? { abortSignal: signal } : {}),
         ...getTextGenerationOptions(
           this.config,
@@ -90,6 +107,7 @@ export class AIService implements IAIService {
         ),
       });
 
+      measurement?.finish(result.usage);
       const usage = toTokenUsage(result.usage);
 
       this.logUsage("text_generation", usage);
@@ -115,6 +133,11 @@ export class AIService implements IAIService {
     usage: TokenUsage;
   }> {
     signal?.throwIfAborted();
+    const measurement = this.usage?.begin(this.config.model);
+    if (measurement)
+      signal = signal
+        ? AbortSignal.any([signal, measurement.signal])
+        : measurement.signal;
     this.logger.debug("Generating structured response", {
       model: this.config.model,
     });
@@ -130,6 +153,7 @@ export class AIService implements IAIService {
         system: systemPrompt,
         prompt: userPrompt,
         schema,
+        ...(measurement ? { maxRetries: 0 } : {}),
         ...(signal ? { abortSignal: signal } : {}),
         ...generationOptions,
         providerOptions: {
@@ -138,6 +162,7 @@ export class AIService implements IAIService {
         },
       });
 
+      measurement?.finish(result.usage);
       const usage = toTokenUsage(result.usage);
 
       this.logUsage("object_generation", usage);
@@ -147,6 +172,7 @@ export class AIService implements IAIService {
       signal?.throwIfAborted();
       this.logger.error("Failed to generate object", error);
       if (NoObjectGeneratedError.isInstance(error)) {
+        if (error.usage) measurement?.finish(error.usage);
         throw new AIOutputValidationError(error);
       }
       throw new Error("AI object generation failed", { cause: error });

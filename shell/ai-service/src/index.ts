@@ -21,6 +21,7 @@ export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 // Online embedding provider
 export { OnlineEmbeddingProvider } from "./online-embedding-provider";
 export { EmbeddingUsageMeter } from "./embedding-usage-meter";
+export { GenerationUsageMeter } from "./generation-usage-meter";
 export type { OnlineEmbeddingConfig } from "./online-embedding-provider";
 
 // AI service types

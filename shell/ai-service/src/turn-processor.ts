@@ -8,8 +8,11 @@
  * and stays a thin orchestration façade.
  */
 
-import type { EmbeddingUsage } from "./embedding-usage-meter";
-import { noModelCallPricing, withEmbeddingUsage } from "./openai-guest-pricing";
+import {
+  guestTurnSettlement,
+  sumGuestSettlements,
+  withEmbeddingUsage,
+} from "./openai-guest-pricing";
 import type {
   AgentContextItem,
   AskedBefore,
@@ -19,6 +22,7 @@ import {
   guestInterfaceType,
   getGuestSourceCards,
   type GuestExecutionPolicy,
+  type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import {
   assertGuestPermission,
@@ -106,6 +110,7 @@ export interface TurnProcessorDeps {
   entityLinks: AgentConfig["entityLinks"];
   guestAskedBefore: AgentConfig["guestAskedBefore"];
   embeddingUsage: AgentConfig["embeddingUsage"];
+  generationUsage: AgentConfig["generationUsage"];
 }
 
 /** A turn that passed admission: who is asking, and under which limits. */
@@ -146,22 +151,46 @@ export class TurnProcessor {
     if (input.message.trim().length === 0 && input.attachments.length > 0)
       return this.answerAttachmentsOnly(turn);
 
+    const run = (): Promise<AgentResponse> =>
+      this.processAdmittedTurn(turn, signal);
     const meter = this.deps.embeddingUsage;
-    // A visitor's question a published FAQ already answers is answered before
-    // anything is prepared for a model that will not be asked; the check's
-    // own embedding is the turn's whole cost.
-    if (turn.guest) {
+    if (!turn.guest || !meter) return run();
+    // One scope includes preflight misses/failures, preparation and answer sources.
+    const { value: response, usage } = await meter.measure(run, signal);
+    return response.guestSettlement
+      ? {
+          ...response,
+          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+        }
+      : response;
+  }
+
+  private async processAdmittedTurn(
+    turn: AdmittedTurn,
+    signal?: AbortSignal,
+  ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
+    const { input } = turn;
+    let preflight: GuestTurnSettlement | undefined;
+    if (turn.guest && this.deps.guestAskedBefore) {
       const check = (): Promise<AskedBeforeAnswer | undefined> =>
         this.findAskedBefore(turn, input.message);
+      const meter = this.deps.generationUsage;
       const found = meter
-        ? await meter.measure(check)
-        : { value: await check(), usage: [] };
+        ? await meter.measure(check, signal)
+        : {
+            value: await check(),
+            settlement: guestTurnSettlement([], undefined),
+          };
+      preflight = found.settlement;
+      signal?.throwIfAborted();
       if (found.value)
         return this.recordAskedBefore(
           turn,
           input.message,
           found.value,
-          found.usage,
+          preflight,
+          signal,
         );
     }
 
@@ -182,14 +211,14 @@ export class TurnProcessor {
       signal?.throwIfAborted();
       return this.recordResponse(turn, prepared, result);
     };
-    if (!turn.guest || !meter) return answer();
-    // A visitor's answer is charged for its embeddings too: its searches and
-    // the search that found its sources.
-    const { value: response, usage } = await meter.measure(answer);
-    return response.guestSettlement
+    const response = await answer();
+    return preflight
       ? {
           ...response,
-          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+          guestSettlement: sumGuestSettlements(
+            preflight,
+            response.guestSettlement ?? guestTurnSettlement([], undefined),
+          ),
         }
       : response;
   }
@@ -463,11 +492,14 @@ export class TurnProcessor {
     turn: AdmittedTurn,
     question: string,
     hit: AskedBeforeAnswer,
-    embeddings: readonly EmbeddingUsage[],
+    settlement: GuestTurnSettlement,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
     const { conversationId, channelId, channelName, userPermissionLevel } =
       turn.input;
+    signal?.throwIfAborted();
     await this.recordQuestion(turn, question, []);
+    signal?.throwIfAborted();
     const cards = withAnswerSources([], hit.sources);
     await this.deps.conversationService.addMessage({
       conversationId,
@@ -482,32 +514,21 @@ export class TurnProcessor {
         agentContactCandidates: [],
         guest: true,
         askedBefore: { faqId: hit.faqId },
+        faqCapture: { faqId: hit.faqId, question: hit.faqQuestion },
       })),
     });
     return {
       text: hit.answer,
       toolResults: [],
       ...(cards.length > 0 ? { cards } : {}),
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      // No model call: a known cost of nothing, plus the check's embedding.
-      guestSettlement: withEmbeddingUsage(
-        {
-          usage: {
-            modelCalls: 0,
-            inputTokens: 0,
-            cachedInputTokens: 0,
-            outputTokens: 0,
-            reasoningTokens: 0,
-            embeddingTokens: 0,
-          },
-          cost: {
-            state: "known",
-            microUsd: 0,
-            pricing: noModelCallPricing,
-          },
-        },
-        embeddings,
-      ),
+      usage: {
+        promptTokens: settlement.usage.inputTokens,
+        completionTokens: settlement.usage.outputTokens,
+        totalTokens:
+          settlement.usage.inputTokens + settlement.usage.outputTokens,
+      },
+      // No main answer generation, but the confirmation still consumes usage.
+      guestSettlement: settlement,
       askedBefore: { faqId: hit.faqId },
     };
   }
@@ -883,6 +904,7 @@ export class TurnProcessor {
     guest?: boolean;
     /** The FAQ that gave a visitor's reply in the model's place. */
     askedBefore?: AskedBefore;
+    faqCapture?: { faqId: string; question: string };
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
     if (params.guest) {
       const cards = getGuestSourceCards(params.cards);
@@ -891,6 +913,7 @@ export class TurnProcessor {
           userPermissionLevel: "public",
           ...(cards.length ? { cards } : {}),
           ...(params.askedBefore ? { askedBefore: params.askedBefore } : {}),
+          ...(params.faqCapture ? { faqCapture: params.faqCapture } : {}),
         },
       };
     }
