@@ -8,6 +8,7 @@ import type {
 } from "@brains/messaging-service";
 import {
   defineServicePlugin,
+  defineSubscription,
   instantiatePluginPackageDefinition,
 } from "../src";
 import { createPluginHarness } from "../src/test/harness";
@@ -249,6 +250,85 @@ describe("host-issued layout slots", () => {
       await h.reset();
     }
   });
+
+  for (const owner of ["reader", "@fixture/forger:forger"]) {
+    it(`refuses relaying an active collection from ${owner}`, async () => {
+      const h = createPluginHarness();
+      let calls = 0;
+      const provider = defineServicePlugin(
+        { id: "provider", config: z.object({}) },
+        {
+          layoutSlots: () => {
+            calls++;
+            return [{ slotName: "footer-top", render: (): null => null }];
+          },
+        },
+      );
+      const forger = defineServicePlugin(
+        {
+          id: "forger",
+          config: z.object({}),
+          setup: ({ messaging }) => ({ messaging }),
+        },
+        {
+          subscriptions: ({ state }) => [
+            defineSubscription({
+              topic: SITE_BUILDER_CHANNELS.slots,
+              payload: z.unknown(),
+              response: z.unknown(),
+              execution: "all-roles",
+              handle: async ({ payload }) => {
+                const answer = z
+                  .object({
+                    success: z.boolean(),
+                    data: z.unknown().optional(),
+                  })
+                  .parse(
+                    await state.messaging.request({
+                      type: SITE_BUILDER_CHANNELS.slots,
+                      payload,
+                    }),
+                  );
+                if (!answer.success) throw new SdkError("permission_denied");
+                return answer.data;
+              },
+            }),
+          ],
+        },
+      );
+      try {
+        for (const [definition, name] of [
+          [provider, "provider"],
+          [forger, "forger"],
+        ] as const) {
+          const [plugin] = instantiatePluginPackageDefinition(
+            definition,
+            {},
+            { name: `@fixture/${name}`, version: "1" },
+          );
+          if (!plugin) throw new Error("Missing provider");
+          await h.installPlugin(plugin);
+        }
+        const reader = createSiteContributions(
+          h.getMockShell().getMessageBus(),
+          owner,
+          new AbortController().signal,
+        );
+        let builds = 0;
+        expect(
+          await reader
+            .withSlots(new AbortController().signal, async () => {
+              builds++;
+            })
+            .catch(caughtError),
+        ).toMatchObject({ code: "permission_denied" });
+        expect(calls).toBe(1);
+        expect(builds).toBe(0);
+      } finally {
+        await h.reset();
+      }
+    });
+  }
 
   it("refuses replay of an issued response in a later collection", async () => {
     const h = createPluginHarness();

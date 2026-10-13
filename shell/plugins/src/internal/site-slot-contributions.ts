@@ -16,7 +16,14 @@ const declarations = z.array(
     ),
   }),
 );
-const requests = new WeakMap<object, Set<object>>();
+const requests = new WeakMap<
+  object,
+  {
+    owner: string;
+    credentials: Set<object>;
+    providers: Set<string>;
+  }
+>();
 const issued = new WeakMap<
   object,
   { request: object } & (
@@ -30,7 +37,7 @@ function issue(
 ): object {
   const credential = Object.freeze({});
   issued.set(credential, { request, ...result });
-  requests.get(request)?.add(credential);
+  requests.get(request)?.credentials.add(credential);
   return credential;
 }
 
@@ -46,16 +53,20 @@ export function registerSiteSlotProvider(
   };
   messaging.subscribeExecution(
     SITE_BUILDER_CHANNELS.slots,
-    async ({ payload }) => {
+    async ({ payload, source }) => {
       try {
         active();
         if (
           typeof payload !== "object" ||
           payload === null ||
-          !requests.has(payload)
+          requests.get(payload)?.owner !== source
         ) {
           throw new SdkError("permission_denied");
         }
+        const collection = requests.get(payload);
+        if (!collection || collection.providers.has(owner))
+          throw new SdkError("permission_denied");
+        collection.providers.add(owner);
         const values = declarations.safeParse(read());
         if (!values.success)
           throw new SdkError("invalid_response", { cause: values.error });
@@ -86,7 +97,7 @@ export function registerSiteSlotProvider(
         const data =
           typeof payload === "object" &&
           payload !== null &&
-          requests.has(payload)
+          requests.get(payload)?.owner === source
             ? issue(payload, { error })
             : undefined;
         // The transport acknowledges a host-issued result, including a private
@@ -112,7 +123,11 @@ export async function collectSiteSlots(
   const request = Object.freeze({});
   try {
     active();
-    requests.set(request, new Set());
+    requests.set(request, {
+      owner,
+      credentials: new Set(),
+      providers: new Set(),
+    });
     const answers = await bus.collect({
       type: SITE_BUILDER_CHANNELS.slots,
       payload: request,
@@ -148,7 +163,7 @@ export async function collectSiteSlots(
     active();
     throw toSdkError(cause);
   } finally {
-    for (const credential of requests.get(request) ?? [])
+    for (const credential of requests.get(request)?.credentials ?? [])
       issued.delete(credential);
     requests.delete(request);
   }
