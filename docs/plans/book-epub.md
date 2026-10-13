@@ -4,7 +4,7 @@ Last updated: 2026-10-13
 
 ## Status
 
-In progress on #628: phases 1 to 3 are built. The prerequisite has shipped: media formats render from registered view templates (#624, `@rizom/brain` 0.2.0-alpha.544).
+Phases 1 to 3 are built (#628); a staged _Also sprach Zarathustra_ has 182 chapters, a nested table of contents and no XML errors. Phase 4 runs on Friedrich after release. The prerequisite has shipped: media formats render from registered view templates (#624, `@rizom/brain` 0.2.0-alpha.544).
 
 ## Outcome
 
