@@ -27,9 +27,15 @@ import {
   type FaqReconcileJobData,
 } from "./handlers/faq-reconcile-handler";
 import { FaqDataSource } from "./datasources/faq-datasource";
-import { SAME_QUESTION_DISTANCE, type FaqStoreDeps } from "./lib/faq-store";
+import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
 import { answerAskedBefore } from "./lib/asked-before";
-import { reviewFaqsCiting } from "./lib/stale-sources";
+import {
+  sourceWithdrawals,
+  enqueueWithdrawal,
+  resumeWithdrawals,
+  completeWithdrawal,
+} from "./lib/source-withdrawals";
+import { FaqSourceReviewHandler } from "./handlers/faq-source-review-handler";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
 import { FaqInboxSource } from "./lib/faq-inbox-source";
@@ -140,6 +146,26 @@ export class FaqPlugin extends EntityPlugin<
       }),
     );
 
+    const withdrawals = sourceWithdrawals(context.runtimeState);
+    context.recurringChecks.register({
+      id: "faq-source-withdrawals",
+      cadence: "daily",
+      deliverAlerts: false,
+      includeInInbox: false,
+      run: async ({ signal }) => {
+        await resumeWithdrawals(withdrawals, context.jobs, signal);
+        return {};
+      },
+    });
+    context.jobs.registerHandler(
+      "faq-source-review",
+      new FaqSourceReviewHandler(
+        this.logger.child("FaqSourceReviewHandler"),
+        context.entityService,
+        withdrawals,
+      ),
+    );
+
     registerFaqEvalHandlers({
       context,
       sameQuestionDistance: this.config.sameQuestionDistance,
@@ -157,9 +183,17 @@ export class FaqPlugin extends EntityPlugin<
       async (message) => {
         const deleted = withdrawnSchema.safeParse(message.payload);
         if (deleted.success && deleted.data.entityType === "network-piece") {
-          await reviewFaqsCiting(
+          await withdrawals.setIfNotExists(message.id, {
+            sourceId: `network-piece:${deleted.data.entityId}`,
+          });
+          await enqueueWithdrawal(withdrawals, context.jobs, message.id);
+          // Preserve immediate review on a healthy notification; the queued job
+          // and pending record survive failure, and receipts make both paths safe.
+          await completeWithdrawal(
             context.entityService,
+            withdrawals,
             `network-piece:${deleted.data.entityId}`,
+            message.id,
           );
         }
         return { success: true };
@@ -169,7 +203,7 @@ export class FaqPlugin extends EntityPlugin<
     // A visitor's question a published FAQ already answers is answered from
     // it before the model is asked; the web process answers the shell here.
     if (!context.executionOnly) {
-      const askedBeforeDeps: FaqStoreDeps = {
+      const askedBeforeDeps = {
         entityService: context.entityService,
         searchWithDistances: context.entityService.searchWithDistances.bind(
           context.entityService,

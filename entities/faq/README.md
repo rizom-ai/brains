@@ -20,6 +20,16 @@ Classification can run again after interruption or overlap between attempts; thi
 
 Existing `faq.captured-replies` entries contain only a timestamp and cannot distinguish successful captures from interrupted ones. They are preserved and are not replayed automatically. Already-stuck legacy entries therefore require manual review; the new protocol does not retroactively resolve them. Stop old claim-writing workers before running the new capture protocol. Older runtimes do not understand new receipts, so a downgrade requires disabling capture or a separately verified migration; mixed-version capture is not supported.
 
+## Answered-before replies and source withdrawal
+
+A public, published FAQ without a review marker can answer a visitor after semantic confirmation. The complete canonical revision is re-read after that asynchronous check; changed or withdrawn eligibility yields no hit. This read does not increment `asked`. The persisted assistant reply records the confirmed FAQ question, and its normal capture receipt owns the increment. Capture checks the same public question and answer with full-revision CAS, without classifying an already approved answer again.
+
+Stop old web and worker writers before upgrading this protocol. Older fast-path replies lack capture provenance and may already have incremented without a receipt. Their pending capture jobs require manual reconciliation; they are neither counted again nor silently claimed complete. Existing capture claims and receipts retain their identities and are not expired or removed. Mixed-version operation and downgrade are unsupported.
+
+Confirmation generation and embeddings belong to guest settlement even on a miss or failed check. Unreported, unfinished or unpriced work makes cost unknown, not known zero. Auxiliary provider attempts share the request lifetime; measured requests disable hidden SDK retries. These are accounting and cancellation guarantees, not a provider-spend ceiling or a bounded database-scan guarantee.
+
+A delivered network-piece deletion first records pending withdrawal work in `faq.source-withdrawals`, then enqueues `faq-source-review`. Daily maintenance resumes work after enqueue failures or failed/pruned jobs using the same withdrawal identity. Pending records have no expiry and are removed only after a durable completion receipt. Per-FAQ receipts in `faq.source-review` make replay safe after an owner's later keep decision. Writes refresh full revisions on contention; exhausting retries does not acknowledge the withdrawal. A full 1,000-row citation scan requires manual reconciliation rather than being silently treated as complete. This does not add a transactional outbox for deletion notifications that never reach the subscriber.
+
 ## Visibility
 
 The FAQ takes the visibility of the turn that produced the answer:
@@ -54,7 +64,7 @@ The plugin registers the `faq:entities` datasource and the `faq-section` templat
 ```yaml
 plugins:
   faq:
-    enabled: false # default true; off means no subscription, no capture jobs, no AI calls
+    enabled: false # stops automatic capture and answered-before lookup; queued work and source review remain active
     sameQuestionDistance: 0.25 # shortlist distance; an AI check confirms each candidate
 ```
 

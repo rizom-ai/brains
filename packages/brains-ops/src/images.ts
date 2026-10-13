@@ -15,8 +15,9 @@ const TAG_LIMIT = 128;
  * Name the immutable runtime image for a Brain version and the exact site
  * packages installed into it: `brain-<version>` for an instance without site
  * pins, else that followed by each pin, sorted, in registry-safe spelling
- * (`@rizom/site-x@1.2.3` → `rizom-site-x-1.2.3`). A pin set too long to spell
- * out is named by a digest of it instead. Every instance with the same Brain
+ * (`@rizom/site-x@1.2.3` → `rizom-site-x-1.2.3`), plus an identity digest.
+ * Readable spelling is lossy, so even short names require the digest. A pin
+ * set too long to spell out uses only that digest. Every instance with the same Brain
  * version and pins shares one image; a change of pins is a new image, so a
  * site can move on its own. Build and Deploy both import this function so
  * their tags can never disagree.
@@ -26,7 +27,7 @@ export function runtimeImageTag(
   sitePackages: readonly string[] = [],
 ): string {
   const base = `brain-${brainVersion}`;
-  const pins = [...sitePackages].sort();
+  const pins = [...new Set(sitePackages)].sort();
   if (pins.length === 0) return base;
   const spelled = `${base}--${pins
     .map((spec) =>
@@ -36,9 +37,12 @@ export function runtimeImageTag(
         .replace(/@(?=[^@]*$)/, "-"),
     )
     .join("--")}`;
-  if (spelled.length <= TAG_LIMIT) return spelled;
-  const digest = createHash("sha256").update(pins.join("\n")).digest("hex");
-  return `${base}--s${digest.slice(0, 12)}`;
+  const digest = createHash("sha256")
+    .update(JSON.stringify([brainVersion, ...pins]))
+    .digest("hex")
+    .slice(0, 12);
+  const suffix = `--s${digest}`;
+  return `${spelled.length + suffix.length <= TAG_LIMIT ? spelled : base}${suffix}`;
 }
 
 /**
@@ -82,8 +86,20 @@ export function requiredImages(
 ): RequiredImage[] {
   const byTag = new Map<string, RequiredImage>();
   for (const user of users) {
-    const sitePackages = sitePackagesFor(user.siteOverride).sort();
+    const sitePackages = [
+      ...new Set(sitePackagesFor(user.siteOverride)),
+    ].sort();
     const tag = runtimeImageTag(user.brainVersion, sitePackages);
+    const existing = byTag.get(tag);
+    if (
+      existing &&
+      (existing.brainVersion !== user.brainVersion ||
+        !Bun.deepEquals(existing.sitePackages, sitePackages))
+    ) {
+      throw new Error(
+        `Image tag collision for distinct runtime requirements: ${tag}`,
+      );
+    }
     byTag.set(tag, { tag, brainVersion: user.brainVersion, sitePackages });
   }
   return [...byTag.values()].sort((left, right) =>

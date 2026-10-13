@@ -19,6 +19,7 @@ import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import type { FaqFrontmatter, FaqSource } from "../schemas/faq";
 import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
 import type { CapturedReplyStore } from "../lib/captured-replies";
+import { countAskedBefore } from "../lib/count-asked-before";
 
 /** Messages before the reply searched for the question it answers. */
 const QUESTION_LOOKBACK = 20;
@@ -86,6 +87,7 @@ export interface FaqCaptureDeps extends FaqStoreDeps {
     | "getEntity"
     | "updateEntity"
     | "getEntityMutationReceipt"
+    | "getEntityWriteSnapshot"
     | "applyEntityMutationOnce"
   >;
   conversations: Pick<IConversationsNamespace, "getMessages">;
@@ -237,6 +239,21 @@ export class FaqCaptureHandler extends BaseJobHandler<
 
     const question = findQuestion(messages, answerIndex);
     if (!question) return { captured: false, reason: "no-question" };
+
+    if (
+      answer.metadata["askedBefore"] !== undefined &&
+      data.userPermissionLevel !== "public"
+    )
+      return { captured: false, reason: "not-reusable" };
+    const counted = await countAskedBefore(
+      this.deps.entityService,
+      answer,
+      receipt,
+    );
+    if (counted !== undefined)
+      return counted
+        ? { captured: true, ...counted }
+        : { captured: false, reason: "not-reusable" };
 
     const classification = await classifyExchange(
       this.deps.ai,

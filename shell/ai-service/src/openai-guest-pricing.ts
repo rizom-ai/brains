@@ -81,7 +81,7 @@ export function priceOpenAiGuestTurn(usage: GuestProviderUsage): GuestTurnCost {
  * reported no usage, or a model without pricing, leaves the cost unknown.
  */
 export function guestTurnSettlement(
-  steps: ReadonlyArray<{ usage?: LanguageModelUsage | undefined }>,
+  steps: ReadonlyArray<{ usage?: Partial<LanguageModelUsage> | undefined }>,
   pricing: GuestPricing | undefined,
 ): GuestTurnSettlement {
   const calls = steps.flatMap(({ usage }) =>
@@ -90,10 +90,10 @@ export function guestTurnSettlement(
       : [
           {
             input: usage.inputTokens,
-            cacheRead: usage.inputTokenDetails.cacheReadTokens,
-            cacheWrite: usage.inputTokenDetails.cacheWriteTokens,
+            cacheRead: usage.inputTokenDetails?.cacheReadTokens,
+            cacheWrite: usage.inputTokenDetails?.cacheWriteTokens,
             output: usage.outputTokens,
-            reasoning: usage.outputTokenDetails.reasoningTokens ?? 0,
+            reasoning: usage.outputTokenDetails?.reasoningTokens ?? 0,
           },
         ],
   );
@@ -114,6 +114,43 @@ export function guestTurnSettlement(
       : pricing
         ? pricing({ calls })
         : { state: "unknown", reason: "unsupported-pricing" },
+  };
+}
+
+/** Combine independently measured work without converting missing usage to zero cost. */
+export function sumGuestSettlements(
+  left: GuestTurnSettlement,
+  right: GuestTurnSettlement,
+): GuestTurnSettlement {
+  const empty = (value: GuestTurnSettlement): boolean =>
+    value.cost.state === "known" &&
+    value.cost.microUsd === 0 &&
+    Object.values(value.usage).every((amount) => amount === 0);
+  if (empty(left)) return right;
+  if (empty(right)) return left;
+  const usage = {
+    modelCalls: left.usage.modelCalls + right.usage.modelCalls,
+    inputTokens: left.usage.inputTokens + right.usage.inputTokens,
+    cachedInputTokens:
+      left.usage.cachedInputTokens + right.usage.cachedInputTokens,
+    outputTokens: left.usage.outputTokens + right.usage.outputTokens,
+    reasoningTokens: left.usage.reasoningTokens + right.usage.reasoningTokens,
+    embeddingTokens: left.usage.embeddingTokens + right.usage.embeddingTokens,
+  };
+  if (left.cost.state === "unknown") return { usage, cost: left.cost };
+  if (right.cost.state === "unknown") return { usage, cost: right.cost };
+  return {
+    usage,
+    cost: {
+      state: "known",
+      microUsd: left.cost.microUsd + right.cost.microUsd,
+      pricing: [
+        ...new Set([
+          ...left.cost.pricing.split("+"),
+          ...right.cost.pricing.split("+"),
+        ]),
+      ].join("+"),
+    },
   };
 }
 
@@ -145,6 +182,8 @@ export function withEmbeddingUsage(
     ...settlement.usage,
     embeddingTokens: settlement.usage.embeddingTokens + tokens,
   };
+  if (embeddings.some((call) => call.incomplete))
+    return { usage, cost: { state: "unknown", reason: "missing-usage" } };
   if (settlement.cost.state === "unknown")
     return { usage, cost: settlement.cost };
   const centis = embeddings.map((call) => {

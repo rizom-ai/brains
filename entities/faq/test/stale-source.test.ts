@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityPluginContext, InboxActor } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createMockProgressReporter } from "@brains/test-utils";
+import {
+  FaqSourceReviewHandler,
+  faqSourceReviewSchema,
+} from "../src/handlers/faq-source-review-handler";
 import {
   FaqInboxSource,
   FaqPlugin,
@@ -18,6 +23,7 @@ import {
 describe("a FAQ whose cited piece left the network", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let context: EntityPluginContext;
+  let handler: FaqSourceReviewHandler;
   const owner: InboxActor = { permissionLevel: "admin" };
 
   async function seed(
@@ -51,18 +57,43 @@ describe("a FAQ whose cited piece left the network", () => {
     return faqAdapter.parseFaqContent(faq.content).frontmatter;
   }
 
-  function withdraw(entityId: string): Promise<unknown> {
-    return harness.sendMessage(ENTITY_CHANNELS.deleted, {
+  async function withdraw(entityId: string): Promise<void> {
+    await harness.sendMessage(ENTITY_CHANNELS.deleted, {
       entityType: "network-piece",
       entityId,
     });
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getActiveJobs(["faq:faq-source-review"]);
+    const job = jobs.at(-1);
+    if (!job) throw new Error("Missing durable source review job");
+    expect(faqSourceReviewSchema.parse(JSON.parse(job.data))).toEqual({
+      sourceId: `network-piece:${entityId}`,
+      withdrawalId: expect.any(String),
+    });
+    await handler.process(
+      faqSourceReviewSchema.parse(JSON.parse(job.data)),
+      job.id,
+      createMockProgressReporter(),
+    );
   }
 
   beforeEach(async () => {
     harness = createPluginHarness({
       dataDir: `/tmp/test-faq-stale-${randomUUID()}`,
     });
+    const registered = spyOn(
+      harness.getMockShell().getJobQueueService(),
+      "registerHandler",
+    );
     await harness.installPlugin(new FaqPlugin());
+    const sourceReview = registered.mock.calls.find(
+      ([type]) => type === "faq:faq-source-review",
+    )?.[1];
+    if (!(sourceReview instanceof FaqSourceReviewHandler))
+      throw new Error("Missing source review registration");
+    handler = sourceReview;
     context = harness.getEntityContext("faq");
     await seed("cites-becca", [
       {

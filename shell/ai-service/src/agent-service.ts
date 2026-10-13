@@ -167,6 +167,7 @@ export class AgentService implements IAgentService {
       guestAnswerSources: config.guestAnswerSources,
       guestAskedBefore: config.guestAskedBefore,
       embeddingUsage: config.embeddingUsage,
+      generationUsage: config.generationUsage,
     });
     this.conversationActors = new ConversationActorRegistry({
       createActor: (): ConversationActor => {

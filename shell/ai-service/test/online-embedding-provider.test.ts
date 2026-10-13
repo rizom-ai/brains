@@ -1,7 +1,12 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { OnlineEmbeddingProvider } from "../src/online-embedding-provider";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  guestTurnSettlement,
+  priceOpenAiGuestTurn,
+  withEmbeddingUsage,
+} from "../src/openai-guest-pricing";
+import { createSilentLogger, caughtError } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 /** The part of an OpenAI embeddings request the fake answers from. */
@@ -314,6 +319,59 @@ describe("OnlineEmbeddingProvider", () => {
       expect(embeddings).toHaveLength(3);
       expect(Array.from(embeddings[0] ?? [])).toEqual(vectorOf("first"));
       expect(Array.from(embeddings[2] ?? [])).toEqual(vectorOf("third"));
+    });
+
+    test("retains completed request usage when a later embedding request fails", async () => {
+      const usage = EmbeddingUsageMeter.createFresh();
+      const api = fakeOpenAi();
+      let calls = 0;
+      const respond = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        calls++;
+        return calls === 1
+          ? api.fetch(input, init)
+          : new Response(
+              JSON.stringify({
+                error: { message: "Refused", type: "invalid_request_error" },
+              }),
+              { status: 400, headers: { "content-type": "application/json" } },
+            );
+      };
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        dimensions: 2,
+        logger: createSilentLogger(),
+        usage,
+        fetch: Object.assign(respond, {
+          preconnect: globalThis.fetch.preconnect,
+        }),
+      });
+      const huge = Array.from({ length: 900 }, (_, index) =>
+        paragraph(index),
+      ).join("\n\n");
+      const measured = await usage.measure(async () => {
+        expect(
+          await provider.generateEmbedding(huge).catch(caughtError),
+        ).toBeInstanceOf(Error);
+      });
+      expect(calls).toBe(2);
+      const completed = bytes(api.requests.flat().join(""));
+      expect(completed).toBeGreaterThan(0);
+      expect(measured.usage).toEqual([
+        { model: "text-embedding-3-small", tokens: completed },
+        { model: "text-embedding-3-small", tokens: 0, incomplete: true },
+      ]);
+      const settled = withEmbeddingUsage(
+        guestTurnSettlement([], priceOpenAiGuestTurn),
+        measured.usage,
+      );
+      expect(settled.usage.embeddingTokens).toBe(completed);
+      expect(settled.cost).toEqual({
+        state: "unknown",
+        reason: "missing-usage",
+      });
     });
 
     test("reports a chunked call's tokens once, as the sum of its requests", async () => {

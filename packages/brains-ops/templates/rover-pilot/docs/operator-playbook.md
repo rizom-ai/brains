@@ -19,7 +19,7 @@ The deploy scripts and workflows should read from that contract instead of inven
 
 The fleet has one image topology:
 
-- one immutable image is published for each effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>` for instances with one (pins spelled out and sorted, or a digest when too long)
+- one immutable image is published for each effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>--s<digest>` for instances with one (sorted readable pins plus an exact-identity digest; long names omit readable pins); this format selects new immutable tags, never overwrites existing registry images
 - instances with the same version and pins share an image; a site's pin change builds that site's image and no other
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`, and `IMAGE_TAG=<tag>` for an instance with site pins
 - build and deploy derive the same effective image tag from the resolved registry
