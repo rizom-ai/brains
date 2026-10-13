@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- [#622](https://github.com/rizom-ai/brains/pull/622) [`df914fb`](https://github.com/rizom-ai/brains/commit/df914fbebd42f3563a9bb963c972d95bd6719ef7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a large corpus, the knowledge map files each source under the topic it was found nearest to, so territories hold their sources.
+
 ## 0.2.0-alpha.540
 
 ### Patch Changes
