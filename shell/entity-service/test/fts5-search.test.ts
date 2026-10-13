@@ -40,6 +40,25 @@ describe("FTS5 full-text search", () => {
     expect(results[0]?.entity.id).toBe(entity.id);
   });
 
+  test("excerpts a result from its text, not its frontmatter", async () => {
+    const entity = createTestEntity("test", {
+      content:
+        "---\ntitle: Wiederkunft\nsection: EH-ZA-6\n---\nDer Gedanke kehrt immer wieder.",
+    });
+    await ctx.entityService.createEntity({ entity });
+    await ctx.entityService.storeEmbedding({
+      entityId: entity.id,
+      entityType: "test",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: entity.contentHash,
+    });
+
+    const [result] = await ctx.entityService.search({ query: "Wiederkunft" });
+
+    expect(result?.entity.id).toBe(entity.id);
+    expect(result?.excerpt).toBe("Der Gedanke kehrt immer wieder.");
+  });
+
   test("lexical search remains available when semantic indexing is disabled", async () => {
     await ctx.cleanup();
     ctx = await setupEntityService(

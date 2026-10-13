@@ -6,6 +6,7 @@ import {
   type AgentResponse,
   type SourceCitation,
 } from "@brains/contracts";
+import type { EntityLinks } from "./entity-citation";
 export type {
   ActionsCard,
   AgentResponse,
@@ -206,6 +207,8 @@ export interface AgentConfig {
   guestAnswerSources?: (request: {
     answer: string;
   }) => Promise<SourceCitation[]>;
+  /** Where the site shows entities, so a turn's sources link to their pages. */
+  entityLinks?: EntityLinks;
   /**
    * Optional finder of a published FAQ that already answers a visitor's
    * question. A hit answers the turn in the model's place, with the FAQ's

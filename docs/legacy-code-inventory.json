@@ -72,6 +72,18 @@
       "targetRelease": "0.3.0"
     },
     {
+      "id": "changesets-prerelease-history-transition",
+      "paths": ["packages/build-tools/src/prerelease-history.ts"],
+      "symbol": "StoredPrereleaseState initialVersions/changesets transition",
+      "owner": "@brains/build-tools",
+      "class": "offline-migration",
+      "behavior": "Read-only checks recognize the current Changesets 2 prerelease state; a reviewed version operation exclusively moves consumed Markdown into the Changesets 3 archive and commits the new state last, rolling back ordinary failures.",
+      "currentConsumers": "The canonical repository's pre-transition pre.json and the parent Git revision used by release-mode classification during the first transition cycle.",
+      "removalPrerequisite": "Verify the first canonical Changesets 3 version transition and a subsequent release-mode cycle using only the new state shape; then remove the retired state fields and decoder branch.",
+      "rollbackDependency": "Failure rollback preserves the old state and source bytes. After a successful transition, a tooling downgrade requires a separately reviewed restoration of the old state and archived Markdown; the old CLI cannot consume the new metadata directly.",
+      "targetRelease": "post-Changesets-3-transition, after one verified release-mode cycle"
+    },
+    {
       "id": "public-brain-config-migration",
       "paths": ["packages/brain-cli/src/lib/brain-config-migration.ts"],
       "symbol": "brain config migrate",

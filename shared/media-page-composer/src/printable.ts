@@ -3,7 +3,7 @@ import {
   type PdfRenderOptions,
 } from "@brains/media-renderer";
 import { captureMediaPage } from "./capture";
-import type { MediaPageTemplate } from "./types";
+import type { ViewTemplate } from "@brains/plugins";
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -16,7 +16,7 @@ export type RenderPdf = (
 export interface RenderPrintablePdfOptions {
   /** Route the throwaway page is written under, e.g. `/_media/printable/post/<id>`. */
   mediaPath: string;
-  template: MediaPageTemplate;
+  template: ViewTemplate;
   content: unknown;
   /** Used as the rendered page's title. */
   title: string;

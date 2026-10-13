@@ -1,5 +1,137 @@
 # @brains/contact
 
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.545
+  - @brains/contracts@0.2.0-alpha.545
+  - @brains/site-composition@0.2.0-alpha.545
+  - @brains/utils@0.2.0-alpha.545
+  - @brains/plugins@0.2.0-alpha.545
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.544
+  - @brains/contracts@0.2.0-alpha.544
+  - @brains/site-composition@0.2.0-alpha.544
+  - @brains/utils@0.2.0-alpha.544
+  - @brains/plugins@0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.543
+  - @brains/contracts@0.2.0-alpha.543
+  - @brains/site-composition@0.2.0-alpha.543
+  - @brains/utils@0.2.0-alpha.543
+  - @brains/plugins@0.2.0-alpha.543
+
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.542
+  - @brains/contracts@0.2.0-alpha.542
+  - @brains/site-composition@0.2.0-alpha.542
+  - @brains/utils@0.2.0-alpha.542
+  - @brains/plugins@0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.541
+  - @brains/contracts@0.2.0-alpha.541
+  - @brains/site-composition@0.2.0-alpha.541
+  - @brains/utils@0.2.0-alpha.541
+  - @brains/plugins@0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.540
+  - @brains/contracts@0.2.0-alpha.540
+  - @brains/site-composition@0.2.0-alpha.540
+  - @brains/utils@0.2.0-alpha.540
+  - @brains/plugins@0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.539
+  - @brains/contracts@0.2.0-alpha.539
+  - @brains/site-composition@0.2.0-alpha.539
+  - @brains/utils@0.2.0-alpha.539
+  - @brains/plugins@0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.538
+  - @brains/contracts@0.2.0-alpha.538
+  - @brains/site-composition@0.2.0-alpha.538
+  - @brains/utils@0.2.0-alpha.538
+  - @brains/plugins@0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.537
+  - @brains/contracts@0.2.0-alpha.537
+  - @brains/site-composition@0.2.0-alpha.537
+  - @brains/utils@0.2.0-alpha.537
+  - @brains/plugins@0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.536
+  - @brains/contracts@0.2.0-alpha.536
+  - @brains/site-composition@0.2.0-alpha.536
+  - @brains/utils@0.2.0-alpha.536
+  - @brains/plugins@0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.535
+  - @brains/contracts@0.2.0-alpha.535
+  - @brains/site-composition@0.2.0-alpha.535
+  - @brains/utils@0.2.0-alpha.535
+  - @brains/plugins@0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.534
+  - @brains/contracts@0.2.0-alpha.534
+  - @brains/site-composition@0.2.0-alpha.534
+  - @brains/utils@0.2.0-alpha.534
+  - @brains/plugins@0.2.0-alpha.534
+
 ## 0.2.0-alpha.533
 
 ### Patch Changes

@@ -41,6 +41,7 @@ describe("Deck carousel attachment provider", () => {
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
+    expect(context.views.hasRenderer("decks:carousel", "pdf")).toBe(true);
   });
 
   it("refuses to render decks that exceed the max slide count", async () => {
@@ -87,6 +88,7 @@ describe("Deck carousel attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: ":root { --carousel-test-token: #123456; }",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: undefined,
       },
       {
@@ -125,6 +127,7 @@ describe("Deck carousel attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: "yeehaa.io",
       },
       {
@@ -196,6 +199,7 @@ themeMode: light
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: undefined,
       },
       {
@@ -227,6 +231,7 @@ themeMode: light
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: undefined,
       },
       {

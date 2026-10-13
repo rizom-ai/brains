@@ -8,16 +8,16 @@ import type { DeckEntity } from "../schemas/deck";
 import { deckFrontmatterSchema, deckSchema } from "../schemas/deck";
 import {
   DECK_OG_IMAGE_ATTACHMENT_TYPE,
-  deckOgImageTemplate,
-  type DeckOgImageTemplateData,
+  DECK_OG_IMAGE_TEMPLATE_NAME,
+  type DeckOgImageTemplateInput,
 } from "./og-image-template";
 
 export const createDeckOgImageProvider: OgImageProviderFactory =
-  createOgImageProvider<DeckEntity, DeckOgImageTemplateData>({
+  createOgImageProvider<DeckEntity, DeckOgImageTemplateInput>({
     sourceEntityType: "deck",
     entitySchema: deckSchema,
     attachmentType: DECK_OG_IMAGE_ATTACHMENT_TYPE,
-    template: deckOgImageTemplate,
+    templateName: DECK_OG_IMAGE_TEMPLATE_NAME,
     themeMode: "dark",
     buildContent: async (deck, helpers) => {
       const { frontmatter, content: body } = parseMarkdown(deck.content);

@@ -1,5 +1,35 @@
 # @brains/ops
 
+## 0.2.0-alpha.545
+
+No changes in this release.
+
+## 0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- [#563](https://github.com/rizom-ai/brains/pull/563) [`c12dde7`](https://github.com/rizom-ai/brains/commit/c12dde78b36fddb67d4995110dd30c472c8133fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Deploy finalize no longer conflicts when another deploy lands first: it carries only the generated `users/` config across the reset to the latest main and renders `views/users.md` there, instead of 3-way merging a stale copy of the generated view.
+
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
 ## 0.2.0-alpha.533
 
 ## 0.2.0-alpha.532

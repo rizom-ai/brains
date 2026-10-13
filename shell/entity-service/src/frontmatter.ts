@@ -248,6 +248,16 @@ export function extractVisibilityFromMarkdown(
   return visibilityFrontmatterSchema.parse(parsed.data).visibility;
 }
 
+/**
+ * The text of a markdown document without its frontmatter block. It never
+ * throws: a block it cannot recognise is left in place.
+ */
+export function markdownBody(markdown: string): string {
+  return markdown
+    .replace(/^---\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, "")
+    .trim();
+}
+
 export function hasVisibilityFrontmatter(markdown: string): boolean {
   const frontmatterMatch = markdown.match(/^---\r?\n[\s\S]*?\r?\n---/);
   const visibilityMatch = frontmatterMatch?.[0].match(/^visibility:/m);

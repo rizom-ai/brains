@@ -4,6 +4,13 @@ import {
   type AssistantTurn,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { markdownBody } from "@brains/entity-service";
+import {
+  entitySourceCitation,
+  entityTitle,
+  metadataString,
+  type EntityLinks,
+} from "./entity-citation";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { getErrorMessage } from "@brains/utils/error";
 import { SourceCitationSchema } from "@brains/contracts";
@@ -211,57 +218,23 @@ export function buildSourcesCardFromContextItems(
   };
 }
 
-function getMetadataString(
-  metadata: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = metadata[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function getEntityTitle(entity: z.infer<typeof sourceEntitySchema>): string {
-  return (
-    getMetadataString(entity.metadata, "title") ??
-    getMetadataString(entity.metadata, "name") ??
-    getMetadataString(entity.metadata, "slug") ??
-    entity.id
-  );
-}
-
-function getEntityUrl(
-  entity: z.infer<typeof sourceEntitySchema>,
-): string | undefined {
-  return (
-    getMetadataString(entity.metadata, "url") ??
-    getMetadataString(entity.metadata, "permalink") ??
-    getMetadataString(entity.metadata, "canonicalUrl")
-  );
-}
-
 function buildSourceCitationFromEntity(params: {
   toolName: string;
   entity: z.infer<typeof sourceEntitySchema>;
   excerpt?: string | undefined;
   score?: number | undefined;
+  links: EntityLinks | undefined;
 }): SourceCitation {
   const { entity, toolName, score } = params;
   const excerpt =
     params.excerpt !== undefined
       ? truncateSourceExcerpt(params.excerpt)
       : entity.content !== undefined
-        ? truncateSourceExcerpt(entity.content)
+        ? truncateSourceExcerpt(markdownBody(entity.content))
         : undefined;
-  const url = getEntityUrl(entity);
-
   return {
-    id: `${entity.entityType}:${entity.id}`,
-    title: getEntityTitle(entity),
-    source: entity.entityType,
-    entityType: entity.entityType,
-    entityId: entity.id,
-    ...definedFields({ url, excerpt }),
+    ...entitySourceCitation(entity, params.links),
+    ...definedFields({ excerpt }),
     provenance: {
       toolName,
       ...definedFields({ score }),
@@ -278,6 +251,7 @@ interface SourceCandidate {
 function buildToolSourceCitations(params: {
   toolName: string;
   data: unknown;
+  links: EntityLinks | undefined;
 }): SourceCandidate[] {
   if (params.toolName === "system_search") {
     const parsed = searchToolDataSchema.safeParse(params.data);
@@ -295,6 +269,7 @@ function buildToolSourceCitations(params: {
           entity: result.entity,
           excerpt: result.excerpt,
           score: result.score,
+          links: params.links,
         }),
       }));
   }
@@ -307,6 +282,7 @@ function buildToolSourceCitations(params: {
         citation: buildSourceCitationFromEntity({
           toolName: params.toolName,
           entity: parsed.data.entity,
+          links: params.links,
         }),
       },
     ];
@@ -413,6 +389,8 @@ export function extractToolResults(
   steps: BrainAgentResult["steps"],
   /** The answer, when known: its sources are the results it names. */
   answer?: string,
+  /** Where the site shows entities, so a source links to its page. */
+  links?: EntityLinks,
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
   const cards: StructuredChatCard[] = [];
@@ -562,6 +540,7 @@ export function extractToolResults(
           ...buildToolSourceCitations({
             toolName: tr.toolName,
             data: successParsed.data.data,
+            links,
           }),
         );
       }
@@ -731,8 +710,8 @@ export function buildEntityMemoryRefs(
     for (const entity of listData.data.entities) {
       if (seen.has(entity.id)) continue;
       seen.add(entity.id);
-      const title = getEntityTitle(entity);
-      const status = getMetadataString(entity.metadata, "status");
+      const title = entityTitle(entity);
+      const status = metadataString(entity.metadata, "status");
       refs.push({
         entityType: entity.entityType,
         entityId: entity.id,

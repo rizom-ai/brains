@@ -8,8 +8,8 @@ import {
   createPrintableProvider,
   preferredSlug,
   type MediaAttachmentContext,
-  type MediaPageTemplate,
 } from "../src";
+import { viewTemplate } from "./view-template";
 
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 const TINY_PDF = Buffer.from("%PDF-1.7\n", "utf-8");
@@ -30,18 +30,10 @@ function WidgetCard(props: Record<string, unknown>): JSX.Element {
   return h("div", null, String(props["title"]));
 }
 
-function createTemplate(): MediaPageTemplate {
-  return {
-    name: "widget-template",
-    pluginId: "test",
-    schema: z.object({
-      title: z.string(),
-      brandLabel: z.string().optional(),
-      coverImageUrl: z.string().optional(),
-    }),
-    renderers: { image: WidgetCard, pdf: WidgetCard },
-  };
-}
+const WIDGET_TEMPLATE = viewTemplate("widget-template", {
+  image: WidgetCard,
+  pdf: WidgetCard,
+});
 
 function createWidget(): Widget {
   return {
@@ -89,6 +81,10 @@ function createContext(
         return null;
       },
     }),
+    views: {
+      get: (name) =>
+        name === WIDGET_TEMPLATE.name ? WIDGET_TEMPLATE : undefined,
+    },
     themeCSS: "",
     identity: {
       get: () => ({
@@ -136,7 +132,7 @@ const WIDGET_OG_CONFIG = {
   sourceEntityType: "widget",
   entitySchema: widgetSchema,
   attachmentType: "og-image",
-  template: createTemplate(),
+  templateName: WIDGET_TEMPLATE.name,
   buildContent: async (
     widget: Widget,
     helpers: {
@@ -208,6 +204,21 @@ describe("createOgImageProvider", () => {
     expect(capturedUrl).toContain("/_media/og/widget/widget-1/");
     expect(capturedViewport).toEqual({ width: 1200, height: 630 });
     expect(renderedHtml).toContain("Civic Signals");
+  });
+
+  it("fails when its template is not registered", async () => {
+    const provider = createOgImageProvider({
+      ...WIDGET_OG_CONFIG,
+      templateName: "test:missing",
+    })(createContext(), { screenshotPng: async () => TINY_PNG });
+
+    expect(
+      provider.resolve({
+        sourceEntityType: "widget",
+        sourceEntityId: "widget-1",
+        attachmentType: "og-image",
+      }),
+    ).rejects.toThrow("test:missing has no image renderer");
   });
 
   it("declares image metadata targeting the ogImageId field", () => {

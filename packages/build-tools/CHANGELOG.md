@@ -1,5 +1,33 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- [#617](https://github.com/rizom-ai/brains/pull/617) [`2e4669b`](https://github.com/rizom-ai/brains/commit/2e4669bdf2649fd3075262264a289942e24d9929) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Migrate repository release tooling to Changesets 3 and Manypkg 3, removing the vulnerable braces tooling chain while preserving core/site isolation, private package versioning, peer-dependent bump policy, and coordinated stable exit. Validate archived prerelease references and transition existing history before versioning with rollback-safe source preservation. This does not remediate the separate gray-matter/sprintf-js runtime dependency.
+
+## 0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
 ## 0.2.0-alpha.533
 
 ## 0.2.0-alpha.532

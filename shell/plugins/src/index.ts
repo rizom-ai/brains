@@ -172,8 +172,8 @@ export type {
   ServicePluginContext,
   ServiceEntityService,
   IServiceTemplatesNamespace,
-  IViewsNamespace,
 } from "./service/context";
+export type { IViewsNamespace } from "./entity/namespaces";
 export {
   AttachmentRegistry,
   createAttachmentsNamespace,
@@ -546,11 +546,14 @@ export type {
   ComponentType,
   ViewTemplate,
   OutputFormat,
+  MediaFormat,
+  FormatComponents,
   UserPermissionLevel,
   PermissionLookupContext,
 } from "@brains/templates";
 export {
   createTemplate,
+  toViewTemplate,
   OutputFormatSchema,
   PermissionService,
   UserPermissionLevelSchema,

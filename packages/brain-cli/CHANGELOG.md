@@ -1,5 +1,77 @@
 # @rizom/brain
 
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- [#627](https://github.com/rizom-ai/brains/pull/627) [`d886a56`](https://github.com/rizom-ai/brains/commit/d886a56a1636fd6da044ec07254069c13b00a33a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard's knowledge map draws every topic territory, not only the 18 largest.
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- [#626](https://github.com/rizom-ai/brains/pull/626) [`9e9caed`](https://github.com/rizom-ai/brains/commit/9e9caed4704a719678a9d0e618035007e54c168c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic merges only into a topic that owns at least half of its nearest sources; a broad topic whose sources are spread stays. The knowledge map measures territories against the types topics are drawn from, which the topics plugin now answers for other plugins.
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- [#624](https://github.com/rizom-ai/brains/pull/624) [`aff9cc4`](https://github.com/rizom-ai/brains/commit/aff9cc43804b2f6da52e0cd9b13beac0517aaf45) Thanks [@yeehaa123](https://github.com/yeehaa123)! - OG images, printable PDFs and deck carousels render from registered view templates: a template declares components per output format, and media attachment providers look their template up by name.
+
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- [#623](https://github.com/rizom-ai/brains/pull/623) [`b95e217`](https://github.com/rizom-ai/brains/commit/b95e2176b93bbc2676f0a11c966284adbf04febe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic that owns none of its nearest sources joins the topic that owns most of them, and the knowledge map files each source under the topic it sits closest to.
+
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- [#622](https://github.com/rizom-ai/brains/pull/622) [`df914fb`](https://github.com/rizom-ai/brains/commit/df914fbebd42f3563a9bb963c972d95bd6719ef7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a large corpus, the knowledge map files each source under the topic it was found nearest to, so territories hold their sources.
+
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- [#620](https://github.com/rizom-ai/brains/pull/620) [`107c26a`](https://github.com/rizom-ai/brains/commit/107c26af8ba078ac02b40097cf8a7c3637307964) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The knowledge map stays bounded however large the corpus. Up to 600 sources it draws the whole corpus as before; beyond that it draws the topics and the sources nearest each of them (eight per topic, read from stored embeddings), so a book brain's dashboard loads again instead of timing out while the map lays out thousands of points. The homepage atlas always draws every published essay, talk and project. Map ids stay within the view's limits for deeply nested entries, and an entry without a heading is labelled by its page name, as a section by its siglum.
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- [#615](https://github.com/rizom-ai/brains/pull/615) [`5968c00`](https://github.com/rizom-ai/brains/commit/5968c005bc312244e05c65e92ad2ad7be4605fe8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The analytics plugin runs in evals: its reports read stored snapshots and need no Cloudflare, so traffic questions are covered by eval cases (`traffic-overview` for a traffic question, `traffic-by-entity` with `firstDays` for how a piece did after publishing).
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- [#614](https://github.com/rizom-ai/brains/pull/614) [`6b2c162`](https://github.com/rizom-ai/brains/commit/6b2c162b924138dbc55e2292fdec458d996dc64f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A search result's and a source's excerpt is the entity's text, not its frontmatter. Where a query does not appear literally — the usual case for a semantic match — the excerpt used to begin with the entity's raw frontmatter ("--- title: '6' book: ecce-homo …"); a source read directly showed the same.
+
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- [#613](https://github.com/rizom-ai/brains/pull/613) [`e8590df`](https://github.com/rizom-ai/brains/commit/e8590df6f06f0275fce501de1a4098025f7228e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A chat answer's sources are named and linked as the site shows them. A book section is cited by its siglum ("EH-Weise-3") rather than its bare number, and links to its reading page wherever the site cites its type, in Studio's chat as in the guest Ask; Studio's source list no longer shows each source's raw record.
+
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- [#612](https://github.com/rizom-ai/brains/pull/612) [`2b37c8b`](https://github.com/rizom-ai/brains/commit/2b37c8b6827c67c87295abfc2b31d9acf6e01298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A template's component can no longer ask for data its schema does not supply. `ComponentType` checked props bivariantly, so a component could require a field the datasource never declared; the book's missing section number got through that way. Props are now checked as an ordinary function parameter. Templates whose components read the link fields site-builder fills (blog, decks, portfolio, agents, the personal and professional homepages, social posts) declare a render schema built on a shared `renderedLinkFields`, so those fields are parsed at render rather than assumed.
+
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- [#611](https://github.com/rizom-ai/brains/pull/611) [`dac577e`](https://github.com/rizom-ai/brains/commit/dac577e4a0416f3a8feb5cd80030047c20af1cad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic reports count `/cms` pages, Studio's path before it was renamed, among the owner's own pages instead of in the top pages readers read.
+
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- [#609](https://github.com/rizom-ai/brains/pull/609) [`031d887`](https://github.com/rizom-ai/brains/commit/031d88734a596c9f7737c0b7d5207c432a69862b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section's page shows its place again: "section 112 of 181" instead of "section of 181". The page template's schema now carries the section's position.
+
 ## 0.2.0-alpha.533
 
 ### Patch Changes

@@ -723,3 +723,89 @@ describe("buildEntityMemoryContext", () => {
     expect(context).not.toContain("Entities listed this turn");
   });
 });
+
+describe("a retrieved source as the site shows it", () => {
+  const search = (
+    entity: Record<string, unknown>,
+  ): Parameters<typeof extractToolResults>[0] => [
+    {
+      toolCalls: [{ toolCallId: "s", toolName: "system_search", input: {} }],
+      toolResults: [
+        {
+          toolCallId: "s",
+          toolName: "system_search",
+          output: {
+            success: true,
+            data: { results: [{ entity, score: 0.8 }] },
+          },
+        },
+      ],
+    },
+  ];
+  const links = {
+    isCitable: (entityType: string): boolean => entityType === "book-section",
+    urlFor: (_entityType: string, slug: string): string => `/books/${slug}`,
+    siteBaseUrl: "friedrich.rizom.ai",
+  };
+  const sourcesOf = (
+    entity: Record<string, unknown>,
+  ): Array<{ title?: string | undefined; url?: string | undefined }> =>
+    extractToolResults(search(entity), undefined, links).cards.flatMap(
+      (card) => (card.kind === "sources" ? card.sources : []),
+    );
+
+  it("cites a section by the name its page carries, linked to that page", () => {
+    expect(
+      sourcesOf({
+        id: "ecce-homo:00006-warum-ich-so-weise-bin:00008-3",
+        entityType: "book-section",
+        metadata: { title: "3", pageTitle: "EH-Weise-3", slug: "ecce-homo/8" },
+      }),
+    ).toMatchObject([
+      {
+        title: "EH-Weise-3",
+        url: "https://friedrich.rizom.ai/books/ecce-homo/8",
+      },
+    ]);
+  });
+
+  it("does not link a type the site does not cite", () => {
+    const [source] = sourcesOf({
+      id: "ecce-homo",
+      entityType: "book",
+      metadata: { title: "Ecce homo", slug: "ecce-homo" },
+    });
+    expect(source?.title).toBe("Ecce homo");
+    expect(source?.url).toBeUndefined();
+  });
+});
+
+describe("a source's excerpt", () => {
+  it("is the text of a source read directly, without its frontmatter", () => {
+    const [source] = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+        toolResults: [
+          {
+            toolCallId: "g",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: {
+                  id: "ecce-homo:00046-also-sprach-zarathustra:00051-6",
+                  entityType: "book-section",
+                  content:
+                    "---\ntitle: '6'\nbook: ecce-homo\nsection: EH-ZA-6\n---\nDer Text des Abschnitts.",
+                  metadata: { title: "6", pageTitle: "EH-ZA-6" },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
+
+    expect(source?.excerpt).toBe("Der Text des Abschnitts.");
+  });
+});

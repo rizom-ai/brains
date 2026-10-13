@@ -34,6 +34,9 @@ describe("registerKnowledgeMapDashboardWidget", () => {
   it("registers one normalized semantic projection once plugins are ready", async () => {
     const shell = createMockShell();
     Object.assign(shell.getEntityService(), {
+      nearestToEntity: async () => [
+        { entityType: "post", entityId: "play-essay" },
+      ],
       projectSemanticSpace: async () => ({
         points: [
           {
@@ -85,7 +88,13 @@ describe("registerKnowledgeMapDashboardWidget", () => {
       );
     const context = createEntityPluginContext(shell, "topics");
 
-    registerKnowledgeMapDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () =>
+        context.entityService
+          .getEntityTypes()
+          .filter((type) => type !== "topic"),
+    });
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
@@ -135,9 +144,107 @@ describe("registerKnowledgeMapDashboardWidget", () => {
     });
   });
 
+  it("keeps every view id within the identifier limit, however long the entity id", async () => {
+    const longId = `die-philosophie-im-tragischen-zeitalter-der-griechen:00001-erster-theil:${"x".repeat(120)}`;
+    const shell = createMockShell();
+    Object.assign(shell.getEntityService(), {
+      nearestToEntity: async () => [
+        { entityType: "book-section", entityId: longId },
+      ],
+      projectSemanticSpace: async () => ({
+        points: [
+          {
+            entityId: "will-to-power",
+            entityType: "topic",
+            coordinates: [0, 0],
+            distanceToOrigin: 0.2,
+          },
+          {
+            entityId: longId,
+            entityType: "book-section",
+            coordinates: [0.01, 0.01],
+            distanceToOrigin: 0.2,
+          },
+        ],
+      }),
+    });
+    shell.addEntities([
+      {
+        id: "will-to-power",
+        entityType: "topic",
+        content: "# Will to Power",
+        contentHash: "t",
+        visibility: "public",
+        metadata: {},
+        created: new Date(0).toISOString(),
+        updated: new Date(0).toISOString(),
+      },
+    ]);
+    let registration: DashboardWidgetRegistration | undefined;
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registration = message.payload;
+          return { success: true };
+        },
+      );
+    const context = createEntityPluginContext(shell, "topics");
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () =>
+        context.entityService
+          .getEntityTypes()
+          .filter((type) => type !== "topic"),
+    });
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+    if (!registration) throw new Error("Knowledge Map was not registered");
+
+    const data = await registration.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
+    const block = z
+      .object({
+        view: z.object({
+          blocks: z.array(
+            z.object({
+              points: z.array(z.object({ id: z.string() })),
+              zones: z.array(
+                z.object({ id: z.string(), memberIds: z.array(z.string()) }),
+              ),
+              relationships: z.array(
+                z.object({ sourceId: z.string(), targetId: z.string() }),
+              ),
+            }),
+          ),
+        }),
+      })
+      .parse(data).view.blocks[0];
+    if (!block) throw new Error("no spatial block");
+    const [point] = block.points;
+    expect(point?.id.startsWith("book-section:")).toBe(true);
+    const ids = [
+      ...block.points.map(({ id }) => id),
+      ...block.zones.flatMap(({ id, memberIds }) => [id, ...memberIds]),
+      ...block.relationships.flatMap(({ sourceId, targetId }) => [
+        sourceId,
+        targetId,
+      ]),
+    ];
+    for (const id of ids) expect(id.length).toBeLessThanOrEqual(120);
+  });
+
   it("carries the cartographic renderer so the dashboard draws the real map", async () => {
     const shell = createMockShell();
     Object.assign(shell.getEntityService(), {
+      nearestToEntity: async () => [
+        { entityType: "post", entityId: "play-essay" },
+      ],
       projectSemanticSpace: async () => ({
         points: [
           {
@@ -173,7 +280,13 @@ describe("registerKnowledgeMapDashboardWidget", () => {
       );
     const context = createEntityPluginContext(shell, "topics");
 
-    registerKnowledgeMapDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () =>
+        context.entityService
+          .getEntityTypes()
+          .filter((type) => type !== "topic"),
+    });
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},

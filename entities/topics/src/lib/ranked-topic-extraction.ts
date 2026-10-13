@@ -21,10 +21,10 @@ import {
   type TopicVoteResponse,
 } from "../schemas/votes";
 import {
-  includesTopicSourceType,
   isTopicSourceEligible,
   topicSourcePolicy,
   topicSourceTitle,
+  topicSourceTypes,
 } from "./topic-source-policy";
 import {
   chooseTopicChallenger,
@@ -40,6 +40,11 @@ import {
 import { TopicAdapter } from "./topic-adapter";
 import { TopicService } from "./topic-service";
 import { TopicMergeSynthesizer } from "./topic-merge-synthesizer";
+import {
+  SOURCES_PER_TOPIC,
+  duplicateTopics,
+  type TopicNeighbourhood,
+} from "./topic-ownership";
 import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
 import { topicVoteTemplate } from "../templates/vote-template";
 
@@ -141,16 +146,7 @@ async function readSources(
   signal: AbortSignal,
 ): Promise<SourceRef[]> {
   signal.throwIfAborted();
-  const types = context.entityService
-    .getEntityTypes()
-    .filter((type) => {
-      const typeConfig = context.entityService.getEntityTypeConfig(type);
-      return (
-        includesTopicSourceType(type, config, typeConfig) &&
-        topicSourcePolicy(type, config, typeConfig).weight > 0
-      );
-    })
-    .sort();
+  const types = topicSourceTypes(context.entityService, config);
   const refs: SourceRef[] = [];
   for (const entityType of types) {
     refs.push(...(await readSourcePages(context, config, entityType, signal)));
@@ -419,16 +415,18 @@ export function createRankedTopicJobHandler(
         // Topics whose stored embeddings sit within the merge distance are
         // judged once; a duplicate leaves and its votes count for the topic it
         // duplicates. Strongest topics are kept first.
-        const mergeNearDuplicates = async (): Promise<void> => {
+        const strongestFirst = (): ActiveTopic[] => {
           const support = tally();
           const strength = (topic: ActiveTopic): number =>
             support.get(topic.slug)?.support ?? 0;
-          const ordered = [...active].sort(
+          return [...active].sort(
             (left, right) =>
               strength(right) - strength(left) ||
               left.id.localeCompare(right.id),
           );
-          for (const topic of ordered) {
+        };
+        const mergeNearDuplicates = async (): Promise<void> => {
+          for (const topic of strongestFirst()) {
             if (!active.some(({ id }) => id === topic.id)) continue;
             signal.throwIfAborted();
             let near: Awaited<
@@ -484,6 +482,43 @@ export function createRankedTopicJobHandler(
           }
         };
 
+        // A topic that owns none of its nearest sources, most of them owned
+        // by one other topic, duplicates it: it joins that topic, its votes
+        // with it. A broad topic whose sources are spread stays.
+        const mergeDuplicates = async (): Promise<void> => {
+          const types = topicSourceTypes(context.entityService, config);
+          if (types.length === 0) return;
+          let neighbourhoods: TopicNeighbourhood[];
+          try {
+            neighbourhoods = await Promise.all(
+              strongestFirst().map(async (topic) => ({
+                topicId: topic.id,
+                sources: await context.entityService.nearestToEntity({
+                  origin: { entityType: "topic", entityId: topic.id },
+                  types,
+                  limit: SOURCES_PER_TOPIC,
+                  visibilityScope: config.extractionVisibility,
+                }),
+              })),
+            );
+          } catch (error) {
+            // Without embeddings no topic is measured against its sources.
+            if (error instanceof SemanticIndexingDisabledError) return;
+            throw error;
+          }
+          for (const { topicId, into } of duplicateTopics(neighbourhoods)) {
+            signal.throwIfAborted();
+            const topic = active.find(({ id }) => id === topicId);
+            const owner = active.find(({ id }) => id === into);
+            if (!topic || !owner) continue;
+            await topics.deleteTopic(topic.id);
+            await aliases.set(topic.slug, owner.slug);
+            merged.set(topic.slug, owner.slug);
+            active = active.filter(({ id }) => id !== topic.id);
+            changed++;
+          }
+        };
+
         const select = async (): Promise<void> => {
           const support = tally();
           if (allRead() && earlier.size > 0) {
@@ -508,7 +543,10 @@ export function createRankedTopicJobHandler(
               changed++;
             }
           }
-          if (config.autoMerge && allRead()) await mergeNearDuplicates();
+          if (config.autoMerge && allRead()) {
+            await mergeNearDuplicates();
+            await mergeDuplicates();
+          }
           while (allRead() && active.length > ceiling()) {
             signal.throwIfAborted();
             const weakest = weakestTopic(active, support);

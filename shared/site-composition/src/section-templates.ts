@@ -1,5 +1,5 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import type { Template } from "@brains/templates";
+import { createTypedComponent, type Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import type { SiteSectionDefinition, SiteSectionGroup } from "@rizom/site";
 
@@ -125,7 +125,8 @@ export function sectionToTemplate(
     formatter,
     requiredPermission: section.requiredPermission ?? "public",
     layout: {
-      component: section.component,
+      // Parsed against the section schema, so the erased component is safe.
+      component: createTypedComponent(section.schema, section.component),
       ...(section.fullscreen !== undefined
         ? { fullscreen: section.fullscreen }
         : {}),

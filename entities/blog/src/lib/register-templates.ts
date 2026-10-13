@@ -7,7 +7,10 @@ import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";
 import { blogExcerptTemplate } from "../templates/excerpt-template";
 import { homepageTemplate } from "../templates/homepage";
+import { blogOgImageTemplate } from "../attachments/og-image-template";
+import { blogPrintableTemplate } from "../attachments/printable-template";
 import {
+  blogRenderSchema,
   blogViewSchema,
   type BlogSchemaData,
 } from "../templates/blog-view-schema";
@@ -17,6 +20,21 @@ import {
  * Keep those enrichment fields optional here; createTemplate casts to the
  * fully enriched component props after the site-builder enrichment pass.
  */
+const postListRenderSchema = z.object({
+  posts: z.array(blogRenderSchema),
+  pageTitle: z.string().nullable().default(null),
+  pageLabel: z.string().nullable().default(null),
+  pagination: paginationInfoSchema.nullable(),
+  baseUrl: z.string().nullable().default(null),
+});
+
+const postDetailRenderSchema = z.object({
+  post: blogRenderSchema,
+  prevPost: blogRenderSchema.nullable(),
+  nextPost: blogRenderSchema.nullable(),
+  seriesPosts: z.array(blogRenderSchema).nullable(),
+});
+
 const postListSchema = z.object({
   posts: z.array(blogViewSchema),
   pageTitle: z.string().nullable().default(null),
@@ -36,6 +54,7 @@ export function getTemplates(): Record<string, Template> {
         requiredPermission: "public",
         layout: {
           component: BlogListTemplate,
+          renderSchema: postListRenderSchema,
         },
       },
     ),
@@ -60,10 +79,13 @@ export function getTemplates(): Record<string, Template> {
       requiredPermission: "public",
       layout: {
         component: BlogPostTemplate,
+        renderSchema: postDetailRenderSchema,
       },
     }),
     homepage: homepageTemplate,
     generation: blogGenerationTemplate,
     excerpt: blogExcerptTemplate,
+    "og-image": blogOgImageTemplate,
+    printable: blogPrintableTemplate,
   };
 }
