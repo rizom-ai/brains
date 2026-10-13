@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`. Sigmund's import is built (#538): 154 books from the Gesammelte Werke scans, the OCR checked against 20 Gutenberg transcriptions and corrected from them and from the scans; seeding the content repo waits on the book and book-section split (#561). Karl's import (#567) reads the Deutsches Textarchiv, Wikisource, Project Gutenberg, MEGAdigital and archive.org's scans, Fraktur read anew with frak2021.
+In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`. Sigmund's import is built (#538): 154 books from the Gesammelte Werke scans, the OCR checked against 20 Gutenberg transcriptions and corrected from them and from the scans; seeding the content repo waits on the book and book-section split (#561). Karl's import (#567) reads the Deutsches Textarchiv, Wikisource, Project Gutenberg, MEGAdigital and archive.org's scans, Fraktur read anew with frak2021; Karl is deployed (rover-pilot #181) in the `books` cohort with 46 books (4,167 entries) seeded in `rizom-ai/rover-karl-content`.
 
 ## Goal
 
@@ -208,7 +208,7 @@ Each phase ships on its own PR, tests first.
 ### Phase 5 — Karl
 
 - `dta-tei`, `wikisource`, `gutenberg-letters`, `mega-letters` and `mega-etx` adapters (#567); Marx manifest and coverage note (#567): 46 books, every scanned one through the OCR gate
-- `karl` user added, content repo seeded, deploy, same verification
+- `karl` user added, content repo seeded, deploy (rover-pilot #181), same verification
 
 ## Risks
 
