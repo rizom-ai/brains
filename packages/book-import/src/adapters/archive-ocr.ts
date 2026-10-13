@@ -948,6 +948,10 @@ function normalised(text: string): string {
         (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
       )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
+      // Freud's italic Vbw, the Gradiva's Zoë, and daß, which the OCR misreads.
+      .replace(/(?<![\p{L}\d])[YF/](?=bw(?![\p{L}]))/gu, "V")
+      .replace(/(?<![\p{L}])Zo&/gu, "Zoë")
+      .replace(/(?<![\p{L}])da[bl](?= \p{Ll})/gu, "daß")
       // An umlaut standing alone is a speck the facing page left.
       .replace(/^[öů][‚,]?\s+|\s+[öů][‚,]?(?=\s|$)/gu, "")
       // So is one letter over and over standing between words (EEE, nn).

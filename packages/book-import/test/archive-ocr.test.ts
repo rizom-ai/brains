@@ -506,6 +506,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 4)).toContain("Jones, nach Hause, S. 12 ff., pp. 3.");
   });
 
+  it("reads the italic Vbw, Zoë and daß the OCR misread", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, das Ybw, /bw und Fbw; Zo& Bertgang; dab er, dal das, Dal Monte.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, das Vbw, Vbw und Vbw; Zoë Bertgang; daß er, daß das, Dal Monte.",
+    );
+  });
+
   it("reads loco citato the OCR set in capitals as l. c., not a name's initials", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
