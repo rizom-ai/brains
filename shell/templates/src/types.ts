@@ -12,8 +12,8 @@ export type ComponentType<P = unknown> = (props: P) => ReactElement;
 
 export type TemplateDataSchema<T> = ZodType<T, unknown>;
 
-/** Formats a template renders besides its web page: an image, a printed PDF. */
-export type MediaFormat = "image" | "pdf";
+/** Formats a template renders besides its web page: an image, a printed PDF, an EPUB. */
+export type MediaFormat = "image" | "pdf" | "epub";
 
 /** A template's components for its media formats. */
 export type FormatComponents<P = unknown> = Partial<
@@ -280,5 +280,6 @@ export function templateRenderers(
     ...(component ? { web: component } : {}),
     ...(formats?.image ? { image: formats.image } : {}),
     ...(formats?.pdf ? { pdf: formats.pdf } : {}),
+    ...(formats?.epub ? { epub: formats.epub } : {}),
   };
 }

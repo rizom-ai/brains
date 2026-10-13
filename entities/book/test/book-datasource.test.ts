@@ -5,67 +5,9 @@ import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { BookDataSource } from "../src/datasources/book-datasource";
 import { getTemplates } from "../src/lib/register-templates";
-import { bookSectionAdapter } from "../src/adapters/book-section-adapter";
-import type { Book } from "../src/schemas/book";
-import type { BookSection } from "../src/schemas/book-section";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
-
-function book(id: string, title: string, extra = ""): Book {
-  const content = `---
-title: ${title}${extra}
-source: https://example.org/${id}
-author: Erfundener Autor
-year: 1888
-kind: work
-edition: Testausgabe
-license: public-domain
----
-
-## Contents
-`;
-  return {
-    id,
-    entityType: "book",
-    content,
-    contentHash: id,
-    created: "2026-10-06T00:00:00.000Z",
-    updated: "2026-10-06T00:00:00.000Z",
-    visibility: "public",
-    metadata: { title },
-  };
-}
-
-function section(
-  id: string,
-  bookId: string,
-  order: number,
-  title: string,
-  siglum = `S-${order}`,
-): BookSection {
-  const content = `---
-title: ${title}
-book: ${bookId}
-order: ${order}
-section: ${siglum}
-page: null
-source: https://example.org/${bookId}/${order}
----
-
-Erfundener Text ${order}.
-`;
-  const parsed = bookSectionAdapter.fromMarkdown(content);
-  if (!parsed.metadata) throw new Error("Expected section metadata");
-  return {
-    id,
-    entityType: "book-section",
-    content,
-    contentHash: id,
-    created: "2026-10-06T00:00:00.000Z",
-    updated: "2026-10-06T00:00:00.000Z",
-    visibility: "public",
-    metadata: parsed.metadata,
-  };
-}
+import { book, section } from "./helpers/books";
+import type { Book } from "../src/schemas/book";
 
 describe("BookDataSource", () => {
   let shell: MockShell;

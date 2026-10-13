@@ -92,6 +92,25 @@ export function parseBookSectionData(entity: BookSection): BookSectionWithData {
   });
 }
 
+/** Every entry of a book in reading order, as stored: one per entry. */
+export async function listBookSections(
+  book: string,
+  entityService: EntityServiceClient,
+): Promise<BookSectionWithData[]> {
+  const entities = await entityService.listEntities(
+    {
+      entityType: "book-section",
+      options: {
+        filter: { metadata: { book } },
+        sortFields: [{ field: "order", direction: "asc" }],
+        limit: 100000,
+      },
+    },
+    bookSectionSchema,
+  );
+  return entities.map(parseBookSectionData);
+}
+
 /**
  * Books are listed by title. A book's page holds its score; a section's page
  * holds its book and its neighbours in reading order, each found by one
@@ -244,20 +263,8 @@ export class BookDataSource extends BaseEntityDataSource<
     continuations: ReadonlySet<number>,
     entityService: EntityServiceClient,
   ): Promise<ScoreEntry[]> {
-    const entities = await entityService.listEntities(
-      {
-        entityType: "book-section",
-        options: {
-          filter: { metadata: { book } },
-          sortFields: [{ field: "order", direction: "asc" }],
-          limit: 100000,
-        },
-      },
-      bookSectionSchema,
-    );
-    return entities
-      .map(parseBookSectionData)
-      .reduce<ScoreEntry[]>((score, section) => {
+    return (await listBookSections(book, entityService)).reduce<ScoreEntry[]>(
+      (score, section) => {
         const length = Buffer.byteLength(section.body.trim(), "utf8");
         const previous = score.at(-1);
         if (previous && continuations.has(section.metadata.order)) {
@@ -277,7 +284,9 @@ export class BookDataSource extends BaseEntityDataSource<
             length,
           },
         ];
-      }, []);
+      },
+      [],
+    );
   }
 
   /** The topics nearest a section, by their stored embeddings: no API calls. */
