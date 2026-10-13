@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-books",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "Reading site for book brains — the work as one horizon, each book and section set for reading",
   "type": "module",
   "exports": {

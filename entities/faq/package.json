@@ -1,7 +1,7 @@
 {
   "name": "@brains/faq",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.501",
+  "version": "0.2.0-alpha.502",
   "description": "Plugin that captures reusable chat questions and answers as FAQ entities",
   "dependencies": {
     "@brains/contracts": "workspace:*",

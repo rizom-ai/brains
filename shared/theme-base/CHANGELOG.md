@@ -1,5 +1,7 @@
 # @brains/theme-base
 
+## 0.2.0-alpha.502
+
 ## 0.2.0-alpha.501
 
 ## 0.2.0-alpha.500
