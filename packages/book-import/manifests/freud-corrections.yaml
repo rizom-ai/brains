@@ -51,6 +51,14 @@ freud-1940-gw-13:
     from: Reizschutzes. gegen
     to: Reizschutzes gegen
     by: scan
+  - page: 30
+    from: en und une zu Felt
+    to: menten der psychischen Systeme wissen und uns zu keiner
+    by: scan
+  - page: 30
+    from: "[Ges. Werke, Bd. X.)"
+    to: "[Ges. Werke, Bd. X.]"
+    by: scan
   - page: 31
     from: in jede reue Formel mit
     to: in jede neue Formel mit
@@ -1609,7 +1617,7 @@ freud-1940-gw-6:
     to: Nie
     by: scan
   - page: 270
-    from: A nn
+    from: A
     to: Ann
     by: scan
   - page: 270
@@ -1662,7 +1670,7 @@ freud-1940-gw-9:
     to: Ausgestaltungen, die sich weit genug
     by: scan
   - page: 8
-    from: ee ie Schwierigkeit
+    from: ie Schwierigkeit
     to: haben mögen. Die Schwierigkeit
     by: scan
   - page: 8
@@ -1678,11 +1686,11 @@ freud-1940-gw-9:
     to: oder
     by: scan
   - page: 9
-    from: ee zT io TEE
+    from: zT io TEE
     to: ""
     by: scan
   - page: 10
-    from: N RENSENESSAU DEREN ONE GN AR GREEN EEE
+    from: N RENSENESSAU DEREN ONE GN AR GREEN
     to: ""
     by: scan
   - page: 10
@@ -1702,7 +1710,7 @@ freud-1940-gw-9:
     to: würde dann der Inzest mit den Töchtern verboten sein, dem Sohne der Inzest mit
     by: scan
   - page: 10
-    from: ee oa mit den Töchtern verboten sein, dem Sohne der Inzest mit
+    from: oa mit den Töchtern verboten sein, dem Sohne der Inzest mit
     to: der Mutter freibleiben. Diese Erfolge der Totemverbote ergeben einen Hinweis darauf,
     by: scan
   - page: 10
@@ -1866,7 +1874,7 @@ freud-1940-gw-9:
     to: die dem Tabu innewohnt
     by: scan
   - page: 44
-    from: auf Gegenstände ee die dadurch selbst le des Tabu
+    from: auf Gegenstände die dadurch selbst le des Tabu
     to: auf Gegenstände äußert, die dadurch selbst Träger des Tabu
     by: scan
   - page: 45
@@ -2026,7 +2034,7 @@ freud-1940-gw-9:
     to: die Eltern zu entlarven. Vgl. hiezu auch die „Sexualgespenster“ betitelte Mitteilung
     by: scan
   - page: 82
-    from: Eee ER N hiezu auch die „Sexualgespenster“ betitelte Mitteilung
+    from: ER N hiezu auch die „Sexualgespenster“ betitelte Mitteilung
     to: von P. Haeberlin (Sexualprobleme, Februar 1912), in welcher es sich um eine
     by: scan
   - page: 82
@@ -2038,7 +2046,7 @@ freud-1940-gw-9:
     to: ""
     by: scan
   - page: 83
-    from: Dienste der NN. sie nun
+    from: Dienste der sie nun
     to: Dienste der Kulturanforderung sie nun
     by: reference
   - page: 83
@@ -2066,7 +2074,7 @@ freud-1940-gw-9:
     to: ""
     by: scan
   - page: 84
-    from: psychoanalyt. und psychopathol. Forsch ee rore” \im Jahrbuch I
+    from: psychoanalyt. und psychopathol. Forsch rore” \im Jahrbuch I
     to: psychoanalyt. und psychopathol. Forschungen, Bd. II, 1910. [Ges. Werke, Bd. VIII.]
     by: scan
   - page: 84
@@ -2074,7 +2082,7 @@ freud-1940-gw-9:
     to: ""
     by: scan
   - page: 84
-    from: nn ——
+    from: ——
     to: ""
     by: scan
   - page: 85
@@ -2190,7 +2198,7 @@ freud-1940-gw-9:
     to: Bd. VII.]
     by: scan
   - page: 108
-    from: er ee
+    from: er
     to: ""
     by: scan
   - page: 110
@@ -2270,7 +2278,7 @@ freud-1940-gw-9:
     to: Forderung
     by: scan
   - page: 128
-    from: ee En EEE nn 8
+    from: En 8
     to: ""
     by: scan
   - page: 129
@@ -2330,7 +2338,7 @@ freud-1940-gw-9:
     to: Les formes élémentaires de la
     by: reference
   - page: 137
-    from: )i er EEE
+    from: )i er
     to: ¹) l. c., T. I, p. 41.
     by: scan
   - page: 139
@@ -2414,7 +2422,7 @@ freud-1940-gw-9:
     to: wir eher
     by: scan
   - page: 150
-    from: "ee Verürängie Megungen #7"
+    from: "Verürängie Megungen #7"
     to: ""
     by: scan
   - page: 151
@@ -2514,7 +2522,7 @@ freud-1940-gw-9:
     to: Alle Tiere sind ursprüng-
     by: scan
   - page: 166
-    from: UNE SEELE RR TEA ER EEE.
+    from: UNE SEELE TEA ER
     to: ""
     by: scan
   - page: 166
@@ -2652,7 +2660,7 @@ freud-1940-gw-9:
     to: but it was otherwise with
     by: scan
   - page: 179
-    from: RR BEI 8 amilies traced their descent
+    from: BEI 8 amilies traced their descent
     to: ""
     by: scan
   - page: 179
@@ -2696,7 +2704,7 @@ freud-1940-gw-9:
     to: durch ein Fremdvolk oder auf dem
     by: scan
   - page: 181
-    from: Falle ee ar 2 rt de Gott
+    from: Falle ar 2 rt de Gott
     to: Falle nähert sich der Mythus den
     by: scan
   - page: 181
@@ -2816,7 +2824,7 @@ freud-1940-gw-9:
     to: der Berücksichtigung der psychoanalytischen Anforderungen ergibt. Die Synthese zu
     by: scan
   - page: 189
-    from: einem Ganzen Pa ea es, überlassen. Es geht ur rg nn
+    from: einem Ganzen Pa ea es, überlassen. Es geht ur rg
     to: einem Ganzen der Erklärung muß ich anderen überlassen. Es geht aber diesmal aus
     by: scan
   - page: 189
@@ -2824,7 +2832,7 @@ freud-1940-gw-9:
     to: in einer solchen Synthese keine
     by: scan
   - page: 189
-    from: die Überwin ee air
+    from: die Überwin air
     to: die Überwindung von großen
     by: scan
   - page: 189
@@ -2836,7 +2844,7 @@ freud-1940-gw-9:
     to: Tabu
     by: scan
   - page: 191
-    from: a 2 EEE
+    from: a 2
     to: ""
     by: scan
   - page: 193
@@ -3077,7 +3085,7 @@ freud-1941-gw-4:
     to: suchungen der Annahme geneigt worden, daß der in den
     by: scan
   - page: 26
-    from: RR Kanal han ‚al von Korinth BARBWIESCHS
+    from: Kanal han ‚al von Korinth BARBWIESCHS
     to: |-
       Beispielen „aliquis“ und „Braut von Korinth“ nachgewiesene
       Mechanismus des Vergessens fast allgemeine Gültigkeit hat. Es
@@ -3112,7 +3120,7 @@ freud-1941-gw-4:
     to: zu empfehlen. Ich weiß einen solchen Ort ganz nahe bei Genua,
     by: scan
   - page: 28
-    from: ee auch den Namen
+    from: auch den Namen
     to: erinnere auch den Namen
     by: scan
   - page: 28
@@ -3276,7 +3284,7 @@ freud-1941-gw-4:
     to: Aussicht gehabt hat, Professor
     by: scan
   - page: 44
-    from: RR jetzt Professor
+    from: jetzt Professor
     to: worin jetzt Professor
     by: scan
   - page: 44
@@ -3284,7 +3292,7 @@ freud-1941-gw-4:
     to: in dieser Hinsicht vielleicht eine
     by: scan
   - page: 44
-    from: AIR i. nn Keen er Name des dummen Studentel
+    from: AIR i. Keen er Name des dummen Studentel
     to: Jetzt fällt ihm plötzlich der Name des dummen Studenten
     by: scan
   - page: 44
@@ -3666,11 +3674,11 @@ freud-1941-gw-4:
     to: z.B. Anzengruber im „G
     by: reference
   - page: 96
-    from: NN Een RR EEE
+    from: Een
     to: ""
     by: scan
   - page: 98
-    from: ee EEE
+    from: EEE
     to: ""
     by: scan
   - page: 98
@@ -3718,7 +3726,7 @@ freud-1941-gw-4:
     to: (II, 2),
     by: scan
   - page: 112
-    from: ee 0
+    from: "0"
     to: ""
     by: scan
   - page: 112
@@ -3750,7 +3758,7 @@ freud-1941-gw-4:
     to: nur das Wort ‚Blutkörperchen‘.
     by: scan
   - page: 122
-    from: ee Verlesungen
+    from: Verlesungen
     to: analysierten Verlesungen
     by: scan
   - page: 122
@@ -3862,7 +3870,7 @@ freud-1941-gw-4:
     to: III, 1915,
     by: scan
   - page: 144
-    from: N NN
+    from: N
     to: ""
     by: scan
   - page: 144
@@ -3962,7 +3970,7 @@ freud-1941-gw-4:
     to: followed a golden rule
     by: scan
   - page: 164
-    from: Joch ee new observation
+    from: Joch new observation
     to: fact, a new observation
     by: scan
   - page: 164
@@ -4202,7 +4210,7 @@ freud-1941-gw-4:
     to: den Tod seiner geliebten Mutter
     by: reference
   - page: 204
-    from: gequält ee
+    from: gequält
     to: gequält?‘ —
     by: scan
   - page: 206
@@ -4210,7 +4218,7 @@ freud-1941-gw-4:
     to: verbrühen¹).
     by: scan
   - page: 206
-    from: De ONE ner N an re a LEE EEE
+    from: De ONE ner N an re a LEE
     to: ""
     by: scan
   - page: 206
@@ -4358,7 +4366,7 @@ freud-1941-gw-4:
     to: Ort und
     by: scan
   - page: 255
-    from: 1411 EEE
+    from: "1411"
     to: ""
     by: scan
   - page: 256
@@ -4406,7 +4414,7 @@ freud-1941-gw-4:
     to: Fehlleistung
     by: scan
   - page: 265
-    from: EEE N NN
+    from: N
     to: ""
     by: scan
   - page: 265
@@ -4738,7 +4746,7 @@ freud-1941-gw-4:
     to: Vergessen von einer direkten Funktion der Zeit überhaupt nicht die Rede. — An den
     by: scan
   - page: 305
-    from: verdrängten Erinnerungsspuren kann man konstatieren, daß sie Eee w War
+    from: verdrängten Erinnerungsspuren kann man konstatieren, daß sie w War
     to: verdrängten Erinnerungsspuren kann man konstatieren, daß sie durch die längste
     by: scan
   - page: 305
@@ -4831,7 +4839,7 @@ freud-1941-gw-7:
     to: drückt finden. Aber an ihrer Richtigkeit ist nicht zu zweifeln, denn Sie können in der Regel den
     by: scan
   - page: 4
-    from: drückt indem ee LER HERE ER.Imiverhohlen. ausge-
+    from: drückt indem LER HERE ER.Imiverhohlen. ausge-
     to: darüber in der Literatur des Gegenstandes unverhohlen ausge-
     by: scan
   - page: 4
@@ -5143,7 +5151,7 @@ freud-1941-gw-7:
     to: ""
     by: scan
   - page: 180
-    from: ee ee Psychopathologische Fors chungen. i. Halbbd, 1909.
+    from: ee Psychopathologische Fors chungen. i. Halbbd, 1909.
     to: analytische und psychopathologische Forschungen. 1. Halbbd. 1909.
     by: scan
   - page: 180
@@ -5375,7 +5383,7 @@ freud-1941-gw-7:
     to: der Genitalgegend
     by: scan
   - page: 256
-    from: gibst du nicht es ee
+    from: gibst du nicht es
     to: gibst du nicht
     by: scan
   - page: 257
@@ -5447,7 +5455,7 @@ freud-1941-gw-7:
     to: Am 10. März
     by: scan
   - page: 269
-    from: a 1 EEE
+    from: a 1
     to: ""
     by: scan
   - page: 272
@@ -5455,7 +5463,7 @@ freud-1941-gw-7:
     to: Welt.¹) Die
     by: scan
   - page: 272
-    from: ee we
+    from: we
     to: ""
     by: scan
   - page: 274
@@ -5543,7 +5551,7 @@ freud-1941-gw-7:
     to: Hose¹) habe
     by: scan
   - page: 290
-    from: ee 2
+    from: "2"
     to: ""
     by: scan
   - page: 290
@@ -5719,7 +5727,7 @@ freud-1941-gw-7:
     to: ""
     by: scan
   - page: 331
-    from: "nn lu BE Ag ee Re EEE:"
+    from: lu BE Ag Re
     to: ""
     by: scan
   - page: 333
@@ -7124,7 +7132,7 @@ freud-1942-gw-2-3:
     to: "(S. 119): „Besonders bemerkenswert ist es, wie gern"
     by: scan
   - page: 19
-    from: ihrer ee den
+    from: ihrer den
     to: ihrer Verwunderung den
     by: scan
   - page: 19
@@ -7175,11 +7183,11 @@ freud-1942-gw-2-3:
     to: richtig gedeutet, d. h.
     by: scan
   - page: 30
-    from: or. u ee zuerst in ein Pferd hält.“ Bei näherem Zusehen
+    from: or. u zuerst in ein Pferd hält.“ Bei näherem Zusehen
     to: men, daß er denselben zuerst für ein Pferd hält.“ Bei näherem Zusehen
     by: scan
   - page: 30
-    from: lich kann sich en ar en eh 2 = ee und. end-
+    from: lich kann sich en ar en eh 2 = und. end-
     to: kann die Deutung einer ruhenden Kuh sich aufdrängen, und end-
     by: scan
   - page: 30
@@ -7199,7 +7207,7 @@ freud-1942-gw-2-3:
     to: Die obige Deutung auf eine Reminiszenz aus Gullivers Reisen ist übrigens ein
     by: scan
   - page: 32
-    from: nicht BE Le RR Deutung nicht sein soll. Der Traumdeuter soll
+    from: nicht BE Le Deutung nicht sein soll. Der Traumdeuter soll
     to: gutes Beispiel dafür, wie eine Deutung nicht sein soll. Der Traumdeuter soll
     by: scan
   - page: 32
@@ -7227,7 +7235,7 @@ freud-1942-gw-2-3:
     to: ""
     by: scan
   - page: 36
-    from: nn eb Äskulap, dort wurde er verschiedenen Zeremonien unterworfen,
+    from: eb Äskulap, dort wurde er verschiedenen Zeremonien unterworfen,
     to: oder des Äskulap, dort wurde er verschiedenen Zeremonien unterworfen,
     by: scan
   - page: 36
@@ -7247,11 +7255,11 @@ freud-1942-gw-2-3:
     to: ""
     by: scan
   - page: 36
-    from: wos wurden, welche dann die Priester Re ee
+    from: wos wurden, welche dann die Priester Re
     to: gezeigt wurden, welche dann die Priester deuteten.
     by: scan
   - page: 36
-    from: ee erschn Van die Heilträume der Griechen bi Lehmann EL ©
+    from: erschn Van die Heilträume der Griechen bi Lehmann EL ©
     to: Weiteres über die Heilträume der Griechen bei Lehmann, I, 74,
     by: scan
   - page: 36
@@ -7561,7 +7569,7 @@ freud-1942-gw-2-3:
     to: treffende Person aufzugeben
     by: scan
   - page: 150
-    from: nn heuchlerischer Weise
+    from: heuchlerischer Weise
     to: sich in so heuchlerischer Weise
     by: scan
   - page: 150
@@ -7713,7 +7721,7 @@ freud-1942-gw-2-3:
     to: Inhalt. Wenn man
     by: scan
   - page: 170
-    from: ee rer ine meinen Onkel mis dem
+    from: rer ine meinen Onkel mis dem
     to: unterzogen habe (von Irmas Injektion, von meinem Onkel mit dem
     by: scan
   - page: 170
@@ -7847,7 +7855,7 @@ freud-1942-gw-2-3:
     to: ⁵) Solcherart sind die meisten Träume meiner Patienten während der
     by: scan
   - page: 187
-    from: eine Nacht er eine nn
+    from: eine Nacht er eine
     to: eine Nacht über eine An-
     by: scan
   - page: 187
@@ -7895,7 +7903,7 @@ freud-1942-gw-2-3:
     to: bildung experimentell zu studieren, von der früheren groben Technik absteht,
     by: scan
   - page: 188
-    from: die darin b d ee studieren, von der früheren groben Technik absteht,
+    from: die darin b d studieren, von der früheren groben Technik absteht,
     to: die darin bestand, schlafstörende Reize in den Trauminhalt einzuführen.
     by: scan
   - page: 188
@@ -7995,7 +8003,7 @@ freud-1942-gw-2-3:
     to: ¹) Vergleiche die Stelle bei Griesinger und
     by: scan
   - page: 240
-    from: Tee ee ee 5
+    from: Tee 5
     to: ""
     by: scan
   - page: 240
@@ -8011,7 +8019,7 @@ freud-1942-gw-2-3:
     to: ¹) Der Satz, daß unsere Methode der Traumdeutung unanwendbar wird,
     by: scan
   - page: 246
-    from: ee einer zweiten, auxiliären, Methode der Traumdeutung.
+    from: einer zweiten, auxiliären, Methode der Traumdeutung.
     to: genommen, einer zweiten, auxiliären, Methode der Traumdeutung.
     by: scan
   - page: 246
@@ -8019,11 +8027,11 @@ freud-1942-gw-2-3:
     to: (S. u.)
     by: scan
   - page: 250
-    from: felmete gbrmapn ee ER eneBE bei Frauen, die sich ohne
+    from: felmete gbrmapn ER eneBE bei Frauen, die sich ohne
     to: ¹) Eine Anzahl interessanter Nacktheitsträume bei Frauen, die sich ohne
     by: scan
   - page: 250
-    from: nn Arge 5 ibitionslust zurückführen ließen, aber in
+    from: Arge 5 ibitionslust zurückführen ließen, aber in
     to: Schwierigkeiten auf die infantile Exhibitionslust zurückführen ließen, aber in
     by: scan
   - page: 250
@@ -8247,7 +8255,7 @@ freud-1942-gw-2-3:
     to: Schacht....“
     by: scan
   - page: 370
-    from: TEEN ne ee ie
+    from: TEEN ne ie
     to: ""
     by: scan
   - page: 370
@@ -8347,7 +8355,7 @@ freud-1942-gw-2-3:
     to: „Er befindet sich in einem tiefen Schacht
     by: scan
   - page: 405
-    from: ee Län ———
+    from: Län ———
     to: ""
     by: scan
   - page: 414
@@ -8555,7 +8563,7 @@ freud-1942-gw-2-3:
     to: besinnen, uns oft
     by: scan
   - page: 536
-    from: nn —
+    from: —
     to: ""
     by: scan
   - page: 536
@@ -9357,7 +9365,7 @@ freud-1943-gw-8:
     to: 1907 (Zur
     by: scan
   - page: 129
-    from: En EEE
+    from: En
     to: ""
     by: scan
   - page: 130
@@ -9441,7 +9449,7 @@ freud-1943-gw-8:
     to: Il sole
     by: scan
   - page: 143
-    from: a a a EEE
+    from: a a a
     to: ""
     by: scan
   - page: 143
@@ -9705,7 +9713,7 @@ freud-1943-gw-8:
     to: Für das Tragen und Aufrichten des Kreuzes | 12 〃
     by: scan
   - page: 175
-    from: Katafalk . .-. . » 0 u... 0m 0 0m 0 able ar EEE EEE er
+    from: Katafalk . .-. . » 0 u... 0m 0 0m 0 able ar er
     to: Katafalk | 4 〃
     by: scan
   - page: 175
@@ -9721,7 +9729,7 @@ freud-1943-gw-8:
     to: Glockenläuten | 2 〃
     by: scan
   - page: 175
-    from: Den Totengräbern. 44. RR RE Tania
+    from: Den Totengräbern. 44. RE Tania
     to: Den Totengräbern | 16 〃
     by: scan
   - page: 175
@@ -9821,7 +9829,7 @@ freud-1943-gw-8:
     to: So dürfen
     by: scan
   - page: 183
-    from: ea EEE
+    from: ea
     to: ""
     by: scan
   - page: 183
@@ -9893,7 +9901,7 @@ freud-1943-gw-8:
     to: Vater zu verzichten
     by: scan
   - page: 194
-    from: a nn
+    from: a
     to: ""
     by: scan
   - page: 195
@@ -10275,6 +10283,10 @@ freud-1943-gw-8:
   - page: 388
     from: N un
     to: Nun
+    by: scan
+  - page: 393
+    from: z. BB nur
+    to: z. B. nur
     by: scan
   - page: 394
     from: s mit sich, SO
@@ -10939,11 +10951,11 @@ freud-1947-gw-12:
     to: lagung und zu jenen archaischen Zügen,
     by: scan
   - page: 68
-    from: fee Wi Yerden ag hg pay Ogenetisch ae ee au -
+    from: fee Wi Yerden ag hg pay Ogenetisch ae au -
     to: fassen. Wir werden auch auf
     by: scan
   - page: 68
-    from: ferarum — doch wohl af ee Ye er SHOT
+    from: ferarum — doch wohl af Ye er SHOT
     to: auszeichnen. Man darf die Begattung von rückwärts — more ferarum — doch wohl als die phylogenetisch ältere Form auf-
     by: scan
   - page: 68
@@ -11039,7 +11051,7 @@ freud-1947-gw-12:
     to: unmöglich, daß sie etwas anderes sei als die Reproduktion einer vom Kinde erlebten Realität. Denn das Kind kann wie auch
     by: scan
   - page: 84
-    from: zum Teil (wie die a, Hi ee en Saure
+    from: zum Teil (wie die a, Hi en Saure
     to: zum Teil (wie die Lektüre)
     by: scan
   - page: 86
@@ -11363,7 +11375,7 @@ freud-1947-gw-12:
     to: ""
     by: scan
   - page: 285
-    from: neuerlicher Objektwahl leicht das dem früheren entgegengesetzte ee ya
+    from: neuerlicher Objektwahl leicht das dem früheren entgegengesetzte ya
     to: neuerlicher Objektwahl leicht das dem früheren entgegengesetzte Geschlecht mit
     by: scan
   - page: 285
@@ -11464,7 +11476,7 @@ freud-1948-gw-14:
     to: durch die Arbeiten von Frau Melanie Klein und meiner Tochter Anna Freud
     by: scan
   - page: 96
-    from: einen mächtigen Aufschwung kennen; re ee
+    from: einen mächtigen Aufschwung kennen; re
     to: einen mächtigen Aufschwung gewonnen.
     by: scan
   - page: 96
@@ -11771,6 +11783,10 @@ freud-1952-gw-1:
   - page: 12
     from: $. Fre
     to: S. Fre
+    by: scan
+  - page: 12
+    from: Ges. WW erke.]
+    to: Ges. Werke.]
     by: scan
   - page: 15
     from: daB
@@ -12137,11 +12153,11 @@ freud-1952-gw-1:
     to: ""
     by: scan
   - page: 523
-    from: 5 e ee ene** Erklärung! Indes muss dieser Eindruc
+    from: 5 e ene** Erklärung! Indes muss dieser Eindruc
     to: "¹) Man wird sagen: eine „gesuchte, gezwungene“ Erklärung! Indes muss dieser Eindruck"
     by: scan
   - page: 523
-    from: ee die Verbindung mit dem nicht unter-
+    from: die Verbindung mit dem nicht unter-
     to: ""
     by: scan
   - page: 523

@@ -107,6 +107,34 @@ describe("parseArchiveOcrWork", () => {
     expect(pageText(hocr, 4)).toContain("Jones, 1919. Über das Ich; Ära.");
   });
 
+  it.each(["RL Ba ln a EEE", "Sb an rl a a kn a SEE", "Eee EEE EEE EEE"])(
+    "leaves out a rule the OCR read as letters, without a word among them: %s",
+    async (scraps) => {
+      const hocr = (await fixture()).replace(
+        ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+        `>.seits Beschreibung und Rechenschaft zu geben.</span>\n  <span class='ocr_line' title='bbox 92 3650 1200 3700; x_size 40'>${scraps}</span>`,
+      );
+      const read = parseArchiveOcrWork(hocr, work)
+        .flatMap((unit) => unit.paragraphs)
+        .join("\n");
+
+      expect(read).not.toContain(scraps.split(" ")[0]);
+      expect(read).toContain("Rechenschaft zu geben.");
+    },
+  );
+
+  it("keeps a short abbreviation in capitals standing alone, set in from the margin", async () => {
+    const hocr = (await fixture()).replace(
+      ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+      ">.seits Beschreibung und Rechenschaft zu geben.</span>\n  <span class='ocr_line' title='bbox 600 810 800 890; x_size 78'>USW.</span>",
+    );
+    const read = parseArchiveOcrWork(hocr, work)
+      .flatMap((unit) => unit.paragraphs)
+      .join("\n");
+
+    expect(read).toContain("USW.");
+  });
+
   it("keeps a citation set alone at the right, though it holds no word", async () => {
     const hocr = (await fixture()).replace(
       ">.seits Beschreibung und Rechenschaft zu geben.</span>",
@@ -467,6 +495,15 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
 
     expect(pageText(hocr, 4)).toContain("Jones, 1919. böse");
     expect(pageText(hocr, 4)).not.toMatch(/(?<![\p{L}])[öů](?![\p{L}])/u);
+  });
+
+  it("leaves out letters the facing page showed through between words, one letter over and over", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, nach EEE Hause, ee nn RR, S. 12 ff., pp. 3.",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, nach Hause, S. 12 ff., pp. 3.");
   });
 
   it("reads loco citato the OCR set in capitals as l. c., not a name's initials", async () => {

@@ -180,9 +180,24 @@ function isCitation(text: string): boolean {
   );
 }
 
+/**
+ * A token that reads as a word: a roman numeral or an abbreviation (USW.),
+ * or three letters running,
+ * a small one among them or four capitals; one letter over and over (EEE)
+ * is a rule the OCR read as letters.
+ */
+function isWordToken(token: string): boolean {
+  const run = token.match(/\p{L}{3,}/u)?.[0];
+  if (run === undefined) return false;
+  if (/^[IVXLCDM]+$/u.test(run) || /^\p{L}+\.$/u.test(token)) return true;
+  return (
+    !/^(\p{L})\1*$/iu.test(run) && (/\p{Ll}/u.test(run) || run.length >= 4)
+  );
+}
+
 /** A line without a word, and no citation: a mark on the scan. */
 function isWordless(text: string): boolean {
-  return !/\p{L}{3}/u.test(text) && !isCitation(text);
+  return !text.split(/\s+/u).some(isWordToken) && !isCitation(text);
 }
 
 /** A line of several tokens and no word among them: a rule read as letters. */
@@ -935,6 +950,11 @@ function normalised(text: string): string {
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
       // An umlaut standing alone is a speck the facing page left.
       .replace(/^[öů][‚,]?\s+|\s+[öů][‚,]?(?=\s|$)/gu, "")
+      // So is one letter over and over standing between words (EEE, nn).
+      .replace(
+        /^(?:[Ee]{2,}|[Nn]{2,}|R{2,}|T{2,}|o{2,})[,.;:]?\s+|\s+(?:[Ee]{2,}|[Nn]{2,}|R{2,}|T{2,}|o{2,})[,.;:]?(?=\s|$)/gu,
+        "",
+      )
       // A double hyphen inside a word is its hyphen, the Fraktur one.
       .replace(/(?<=\S)-?⸗+-?(?=\S)/gu, "-")
       // A double hyphen between spaces before a figure is an equals sign; before
