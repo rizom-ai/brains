@@ -116,4 +116,78 @@ describe("renderEpub", () => {
   it("yields the same bytes for the same book", () => {
     expect(renderEpub({ template: book, content, metadata })).toEqual(epub);
   });
+
+  it("nests its table of contents by the headings each chapter stands under", () => {
+    interface Parted {
+      chapters: { title: string; headings: string[] }[];
+    }
+    const parted = toViewTemplate(
+      "test:parted",
+      createTemplate<Parted>({
+        name: "parted",
+        description: "Parted",
+        schema: z.object({
+          chapters: z.array(
+            z.object({ title: z.string(), headings: z.array(z.string()) }),
+          ),
+        }),
+        requiredPermission: "public",
+        layout: {
+          formats: {
+            epub: ({ chapters }) =>
+              h(
+                "article",
+                null,
+                chapters.map((chapter) =>
+                  h(
+                    "section",
+                    {
+                      key: chapter.title,
+                      "data-epub-chapter": chapter.title,
+                      "data-epub-headings": JSON.stringify(chapter.headings),
+                    },
+                    h("p", null, chapter.title),
+                  ),
+                ),
+              ),
+          },
+        },
+      }),
+    );
+    if (!parted) throw new Error("the parted book renders in no format");
+    const files = unzipSync(
+      renderEpub({
+        template: parted,
+        content: {
+          chapters: [
+            { title: "Vorrede", headings: [] },
+            { title: "1", headings: ["Erster Theil", "Zarathustra's Vorrede"] },
+            { title: "2", headings: ["Erster Theil", "Zarathustra's Vorrede"] },
+            {
+              title: "Von den drei Verwandlungen",
+              headings: ["Erster Theil", "Die Reden Zarathustra's"],
+            },
+          ],
+        },
+        metadata,
+      }),
+    );
+    const nav = strFromU8(files["OEBPS/nav.xhtml"] ?? new Uint8Array()).replace(
+      />\s+</g,
+      "><",
+    );
+
+    expect(nav).toContain(
+      [
+        '<ol><li><a href="chapter-1.xhtml">Vorrede</a></li>',
+        '<li><a href="chapter-2.xhtml">Erster Theil</a><ol>',
+        `<li><a href="chapter-2.xhtml">Zarathustra's Vorrede</a><ol>`,
+        '<li><a href="chapter-2.xhtml">1</a></li>',
+        '<li><a href="chapter-3.xhtml">2</a></li></ol></li>',
+        `<li><a href="chapter-4.xhtml">Die Reden Zarathustra's</a><ol>`,
+        '<li><a href="chapter-4.xhtml">Von den drei Verwandlungen</a></li>',
+        "</ol></li></ol></li></ol>",
+      ].join(""),
+    );
+  });
 });

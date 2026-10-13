@@ -85,4 +85,72 @@ describe("book EPUB", () => {
 
     expect(existsSync(join(outputDir, "books", "leeres.epub"))).toBe(false);
   });
+
+  /** The package's files, staged for one book. */
+  const stagedBook = async (id: string): Promise<(path: string) => string> => {
+    await stage();
+    expect(failures).toEqual([]);
+    const files = unzipSync(
+      await fs.readFile(join(outputDir, "books", `${id}.epub`)),
+    );
+    return (path) => {
+      const file = files[path];
+      if (!file) throw new Error(`no ${path} in ${id}.epub`);
+      return strFromU8(file);
+    };
+  };
+
+  it("joins a section split over several entries into one chapter", async () => {
+    const entities = harness.getEntityService();
+    await entities.createEntity({
+      entity: book("geteilt", "Geteiltes Buch", "\ncontinuations: [2]"),
+    });
+    for (const [order, title] of [
+      [1, "Lang"],
+      [2, "Lang"],
+      [3, "Kurz"],
+    ] as const) {
+      await entities.createEntity({
+        entity: section(`geteilt:0000${order}`, "geteilt", order, title),
+      });
+    }
+
+    const file = await stagedBook("geteilt");
+
+    expect(file("OEBPS/chapter-1.xhtml")).toContain("Erfundener Text 1.");
+    expect(file("OEBPS/chapter-1.xhtml")).toContain("Erfundener Text 2.");
+    expect(file("OEBPS/chapter-2.xhtml")).toContain("Erfundener Text 3.");
+    expect(file("OEBPS/content.opf")).not.toContain("chapter-3");
+  });
+
+  it("nests the contents by headings, opening each heading once in the text", async () => {
+    const entities = harness.getEntityService();
+    await entities.createEntity({ entity: book("teile", "Buch in Teilen") });
+    for (const [order, headings] of [
+      [1, ["Erster Theil"]],
+      [2, ["Erster Theil"]],
+      [3, ["Zweiter Theil"]],
+    ] as const) {
+      await entities.createEntity({
+        entity: section(
+          `teile:0000${order}`,
+          "teile",
+          order,
+          `Abschnitt ${order}`,
+          `T-${order}`,
+          [...headings],
+        ),
+      });
+    }
+
+    const file = await stagedBook("teile");
+    const nav = file("OEBPS/nav.xhtml").replace(/>\s+</g, "><");
+
+    expect(nav).toContain(
+      '<li><a href="chapter-1.xhtml">Erster Theil</a><ol><li><a href="chapter-1.xhtml">Abschnitt 1</a></li><li><a href="chapter-2.xhtml">Abschnitt 2</a></li></ol></li>',
+    );
+    expect(file("OEBPS/chapter-1.xhtml")).toContain("<h1>Erster Theil</h1>");
+    expect(file("OEBPS/chapter-2.xhtml")).not.toContain("Erster Theil</h1>");
+    expect(file("OEBPS/chapter-3.xhtml")).toContain("<h1>Zweiter Theil</h1>");
+  });
 });

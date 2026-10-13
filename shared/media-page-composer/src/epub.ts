@@ -23,13 +23,26 @@ export interface RenderEpubOptions {
 }
 
 interface Chapter {
-  /** As marked, already escaped for markup. */
   title: string;
+  /** The headings the chapter stands under, outermost first. */
+  headings: string[];
   markup: string;
 }
 
-/** A chapter opens where the EPUB component marks one. */
-const CHAPTER_OPEN = /<section\b[^>]*\sdata-epub-chapter="([^"]*)"[^>]*>/g;
+/** A node of the table of contents: a heading, or a chapter under it. */
+interface NavNode {
+  title: string;
+  href: string;
+  heading: boolean;
+  children: NavNode[];
+}
+
+/**
+ * A chapter opens where the EPUB component marks one, as
+ * `<section data-epub-chapter="Title" data-epub-headings="[\"Part\"]">`.
+ */
+const CHAPTER_OPEN = /<section\b[^>]*\sdata-epub-chapter="[^"]*"[^>]*>/g;
+const ATTRIBUTE = (name: string): RegExp => new RegExp(`\\s${name}="([^"]*)"`);
 const SECTION_TAG = /<(\/?)section\b[^>]*>/g;
 /** HTML's void elements; XHTML closes each. */
 const VOID_ELEMENT =
@@ -43,6 +56,26 @@ function escapeXml(text: string): string {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+/** An attribute value as React wrote it, unescaped. */
+function attributeValue(tag: string, name: string): string | undefined {
+  const value = ATTRIBUTE(name).exec(tag)?.[1];
+  return value
+    ?.replaceAll("&quot;", '"')
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
+
+function headingsOf(tag: string): string[] {
+  const value = attributeValue(tag, "data-epub-headings");
+  if (!value) return [];
+  const parsed: unknown = JSON.parse(value);
+  return Array.isArray(parsed)
+    ? parsed.filter((heading): heading is string => typeof heading === "string")
+    : [];
 }
 
 function closeVoidElements(markup: string): string {
@@ -63,7 +96,8 @@ function sectionEnd(markup: string, start: number): number {
 
 function chaptersOf(markup: string): Chapter[] {
   return [...markup.matchAll(CHAPTER_OPEN)].map((open) => ({
-    title: open[1] ?? "",
+    title: attributeValue(open[0], "data-epub-chapter") ?? "",
+    headings: headingsOf(open[0]),
     markup: markup.slice(open.index, sectionEnd(markup, open.index)),
   }));
 }
@@ -112,24 +146,46 @@ ${ids.map((id) => `<itemref idref="${id}"/>`).join("\n")}
 `;
 }
 
+/**
+ * The contents as a tree: consecutive chapters under the same heading share
+ * its node, which links to the first of them.
+ */
+function navTree(chapters: Chapter[]): NavNode[] {
+  const root: NavNode[] = [];
+  chapters.forEach((chapter, index) => {
+    const href = `chapter-${index + 1}.xhtml`;
+    const parent = chapter.headings.reduce<NavNode[]>((level, title) => {
+      const last = level.at(-1);
+      if (last?.heading && last.title === title) return last.children;
+      const node: NavNode = { title, href, heading: true, children: [] };
+      level.push(node);
+      return node.children;
+    }, root);
+    parent.push({ title: chapter.title, href, heading: false, children: [] });
+  });
+  return root;
+}
+
+function navList(nodes: NavNode[]): string {
+  const items = nodes.map(
+    (node) =>
+      `<li><a href="${node.href}">${escapeXml(node.title)}</a>${
+        node.children.length > 0 ? `\n${navList(node.children)}\n` : ""
+      }</li>`,
+  );
+  return `<ol>\n${items.join("\n")}\n</ol>`;
+}
+
 function navigationDocument(
   metadata: EpubMetadata,
   chapters: Chapter[],
 ): string {
-  const entries = chapters
-    .map(
-      (chapter, i) =>
-        `<li><a href="chapter-${i + 1}.xhtml">${chapter.title}</a></li>`,
-    )
-    .join("\n");
   return xhtmlDocument(
     escapeXml(metadata.title),
     metadata.language,
     `<nav epub:type="toc" id="toc">
 <h1>${escapeXml(metadata.title)}</h1>
-<ol>
-${entries}
-</ol>
+${navList(navTree(chapters))}
 </nav>`,
   );
 }
@@ -166,7 +222,7 @@ export function renderEpub(options: RenderEpubOptions): Uint8Array {
         `OEBPS/chapter-${i + 1}.xhtml`,
         strToU8(
           xhtmlDocument(
-            chapter.title,
+            escapeXml(chapter.title),
             metadata.language,
             closeVoidElements(chapter.markup),
           ),

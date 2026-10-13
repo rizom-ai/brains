@@ -6,6 +6,7 @@ import { renderEpub } from "@brains/media-page-composer";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import {
+  groupContinuations,
   listBookSections,
   parseBookData,
 } from "../datasources/book-datasource";
@@ -55,16 +56,20 @@ async function writeBookEpubs(
   );
   for (const entity of books) {
     const book = parseBookData(entity);
-    const sections = await listBookSections(book.id, context.entityService);
+    const sections = groupContinuations(
+      await listBookSections(book.id, context.entityService),
+      new Set(book.frontmatter.continuations),
+    );
     if (sections.length === 0) continue;
     const epub = renderEpub({
       template,
       content: {
         title: book.metadata.title,
         author: book.frontmatter.author,
-        sections: sections.map((section) => ({
-          title: section.metadata.title,
-          body: section.body,
+        sections: sections.map(([first, ...rest]) => ({
+          title: first.metadata.title,
+          headings: first.frontmatter.headings,
+          body: [first, ...rest].map((entry) => entry.body.trim()).join("\n\n"),
         })),
       },
       metadata: {

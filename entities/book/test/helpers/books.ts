@@ -35,6 +35,7 @@ export function section(
   order: number,
   title: string,
   siglum = `S-${order}`,
+  headings: string[] = [],
 ): BookSection {
   const content = `---
 title: ${title}
@@ -43,6 +44,7 @@ order: ${order}
 section: ${siglum}
 page: null
 source: https://example.org/${bookId}/${order}
+headings: ${JSON.stringify(headings)}
 ---
 
 Erfundener Text ${order}.

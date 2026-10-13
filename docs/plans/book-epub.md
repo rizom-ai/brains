@@ -4,7 +4,7 @@ Last updated: 2026-10-13
 
 ## Status
 
-In progress on #628: phase 1 is built. The prerequisite has shipped: media formats render from registered view templates (#624, `@rizom/brain` 0.2.0-alpha.544).
+In progress on #628: phases 1 and 2 are built. The prerequisite has shipped: media formats render from registered view templates (#624, `@rizom/brain` 0.2.0-alpha.544).
 
 ## Outcome
 
@@ -30,6 +30,6 @@ The texts' licences allow this. Public-domain and CC BY-SA texts can be redistri
    - the spine lists every section in reading order;
    - the site build writes the file;
    - the title page links to it only for a book with sections.
-2. **Structure.** Navigation nests by section headings, split sections join into one chapter, and chapters carry the book's language. Tests on a book with nested headings and a split section.
+2. **Structure.** Navigation nests by section headings, each heading opens once in the text, and split sections join into one chapter. The text is German, as on the book pages. Tests on a book with headings and a split section.
 3. **Colophon and metadata.** Edition, source, attribution and licence on a colophon page and in the package metadata; the same book yields the same bytes. Tests for each field and for byte equality.
 4. **Friedrich.** Generate all 26 books, check that each opens in an EPUB reader, and link them from their title pages.
