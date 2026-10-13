@@ -1982,7 +1982,7 @@ freud-1940-gw-9:
     to: sie wüten
     by: scan
   - page: 74
-    from: Tode ihr \Vesen ändern und
+    from: Tode ihr Wesen ändern und
     to: Tode ihr Wesen ändern und
     by: reference
   - page: 74
@@ -2074,7 +2074,7 @@ freud-1940-gw-9:
     to: ""
     by: scan
   - page: 84
-    from: psychoanalyt. und psychopathol. Forsch rore” \im Jahrbuch I
+    from: psychoanalyt. und psychopathol. Forsch rore” im Jahrbuch I
     to: psychoanalyt. und psychopathol. Forschungen, Bd. II, 1910. [Ges. Werke, Bd. VIII.]
     by: scan
   - page: 84
@@ -5234,6 +5234,10 @@ freud-1941-gw-7:
     from: Religion, $. 16,
     to: Religion, S. 16,
     by: scan
+  - page: 208
+    from: 208° Pas en" Jahren 1906-1909
+    to: ""
+    by: scan
   - page: 213
     from: ließe uns höffen, eine erste
     to: ließe uns hoffen, eine erste
@@ -5323,7 +5327,7 @@ freud-1941-gw-7:
     to: deutung“ über die Träume vom Tode teuerer Verwandter bemerkt habe (p. 173 ff.,
     by: scan
   - page: 248
-    from: ER nur \eryandiex bemerkt habe (p. 173
+    from: ER nur eryandiex bemerkt habe (p. 173
     to: 8. Aufl., Ges. Werke, Bd. II/III).
     by: scan
   - page: 249
@@ -8878,6 +8882,10 @@ freud-1942-gw-2-3:
     from: auf dn Wunsch
     to: auf den Wunsch
     by: scan
+  - page: 160
+    from: 160° 22.22::00..40. Die Traumentstellung
+    to: ""
+    by: scan
 freud-1942-gw-5:
   - page: 4
     from: von. selbst
@@ -9214,6 +9222,10 @@ freud-1942-gw-5:
   - page: 171
     from: daB
     to: daß
+    by: scan
+  - page: 175
+    from: nnerungstäuschungen "stoßen.
+    to: innerungstäuschungen stoßen.
     by: scan
   - page: 176
     from: daB
@@ -10677,6 +10689,10 @@ freud-1946-gw-10:
     from: daB
     to: daß
     by: scan
+  - page: 100
+    from: 100. Zur Geschichte der psychoanalytischen Bewegung
+    to: ""
+    by: scan
   - page: 101
     from: F rage
     to: Frage
@@ -10941,6 +10957,10 @@ freud-1946-gw-10:
     from: nicht zügeln, rißB sich vom
     to: nicht zügeln, riß sich vom
     by: reference
+  - page: 372
+    from: 572 Einige Charaktertypen aus der psychoanalytischen Arbeit
+    to: ""
+    by: scan
   - page: 375
     from: Andauer beschieden seim konnte, oder
     to: Andauer beschieden sein konnte, oder
@@ -12084,6 +12104,10 @@ freud-1952-gw-1:
     from: vorhanden. waren
     to: vorhanden waren
     by: scan
+  - page: 167
+    from: Miß Lucy R. 167°
+    to: ""
+    by: scan
   - page: 182
     from: MiB
     to: Miß
@@ -12694,6 +12718,10 @@ freud-1940-gw-11:
     from: daß. die
     to: daß die
     by: scan
+  - page: 21
+    from: kettung aes Weltgeschehens
+    to: kettung des Weltgeschehens
+    by: scan
   - page: 30
     from: KommenSie
     to: Kommen Sie
@@ -12722,6 +12750,10 @@ freud-1940-gw-11:
     from: beiihm.
     to: bei ihm
     by: scan
+  - page: 45
+    from: zu finden, *
+    to: zu finden.
+    by: scan
   - page: 48
     from: brauchbarsind
     to: brauchbar sind
@@ -12738,9 +12770,17 @@ freud-1940-gw-11:
     from: daserste
     to: das erste
     by: scan
+  - page: 55
+    from: Sie übergehen andererseitsohne Grenzein die GestenundBewegungen,
+    to: Sie übergehen andererseits ohne Grenze in die Gesten und Bewegungen,
+    by: scan
   - page: 57
     from: einezweite
     to: eine zweite
+    by: scan
+  - page: 59
+    from: die Annahme*ein,
+    to: die Annahme ein,
     by: scan
   - page: 60
     from: inRede
@@ -12754,6 +12794,10 @@ freud-1940-gw-11:
     from: daB
     to: daß
     by: scan
+  - page: 64
+    from: glauben? Ä
+    to: glauben?
+    by: scan
   - page: 67
     from: daB
     to: daß
@@ -12762,9 +12806,145 @@ freud-1940-gw-11:
     from: derharmlosen
     to: der harmlosen
     by: scan
+  - page: 78
+    from: iR A
+    to: ""
+    by: scan
+  - page: 78
+    from: I 2 Sr
+    to: ""
+    by: scan
+  - page: 78
+    from: LurpR
+    to: ""
+    by: scan
+  - page: 78
+    from: r
+    to: ""
+    by: scan
+  - page: 78
+    from: 1 i et u +, I „ia
+    to: ""
+    by: scan
+  - page: 78
+    from: nz HAT rn f rt,
+    to: ""
+    by: scan
+  - page: 78
+    from: 7 L KITHN e
+    to: ""
+    by: scan
+  - page: 78
+    from: r ' ae A ‚*
+    to: ""
+    by: scan
+  - page: 78
+    from: N A HR ll d n«
+    to: ""
+    by: scan
+  - page: 78
+    from: A de In
+    to: ""
+    by: scan
+  - page: 78
+    from: I = % &
+    to: ""
+    by: scan
+  - page: 78
+    from: 0,4 % LE \ 3 > Ir ge Br . .
+    to: ""
+    by: scan
+  - page: 78
+    from: \ i ER
+    to: ""
+    by: scan
+  - page: 78
+    from: ET ER!
+    to: ""
+    by: scan
+  - page: 78
+    from: a a bt Fear, sr...
+    to: ""
+    by: scan
+  - page: 78
+    from: » RA nd er, Inne u ‚s 4 ur j
+    to: ""
+    by: scan
+  - page: 78
+    from: r N a u
+    to: ""
+    by: scan
+  - page: 78
+    from: ur a
+    to: ""
+    by: scan
+  - page: 78
+    from: ER j
+    to: ""
+    by: scan
+  - page: 78
+    from: N 2
+    to: ""
+    by: scan
+  - page: 78
+    from: un
+    to: ""
+    by: scan
+  - page: 78
+    from: l
+    to: ""
+    by: scan
+  - page: 78
+    from: En;
+    to: ""
+    by: scan
+  - page: 78
+    from: .*
+    to: ""
+    by: scan
+  - page: 78
+    from: h u. ET 4
+    to: ""
+    by: scan
+  - page: 78
+    from: w
+    to: ""
+    by: scan
+  - page: 78
+    from: ) a ri
+    to: ""
+    by: scan
+  - page: 78
+    from: \ 4
+    to: ""
+    by: scan
+  - page: 78
+    from: s
+    to: ""
+    by: scan
+  - page: 78
+    from: 5) MR, \
+    to: ""
+    by: scan
+  - page: 78
+    from: "#"
+    to: ""
+    by: scan
+  - page: 78
+    from: . } ur Wong
+    to: ""
+    by: scan
   - page: 89
     from: vor. der
     to: vor der
+    by: scan
+  - page: 100
+    from: kümmert. $o
+    to: kümmert. So
+    by: scan
+  - page: 100
+    from: er wisse e$,
+    to: er wisse es,
     by: scan
   - page: 106
     from: hatte. selbst
@@ -12802,6 +12982,18 @@ freud-1940-gw-11:
     from: er. gibt
     to: er gibt
     by: scan
+  - page: 119
+    from: f} Der Träumer
+    to: f) Der Träumer
+    by: scan
+  - page: 119
+    from: eine aufßer-
+    to: eine außer-
+    by: scan
+  - page: 122
+    from: "tk: es sei"
+    to: "tik: es sei"
+    by: scan
   - page: 128
     from: Der. andere
     to: Der andere
@@ -12837,6 +13029,22 @@ freud-1940-gw-11:
   - page: 141
     from: daB
     to: daß
+    by: scan
+  - page: 141
+    from: Bi Widerstand en das müssen wir nun als bean nsgaii
+    to: als Widerstand entgegentritt, das müssen wir nun als Traumzensur
+    by: scan
+  - page: 141
+    from: BEER
+    to: in die Traumarbeit eintragen. Der Deutungswiderstand ist nur die
+    by: scan
+  - page: 141
+    from: en
+    to: Objektivierung der Traumzensur. Er beweist uns auch, daß die Kraft
+    by: scan
+  - page: 141
+    from: mn
+    to: ""
     by: scan
   - page: 143
     from: einig. mit
@@ -12878,9 +13086,21 @@ freud-1940-gw-11:
     from: Kleiderund
     to: Kleider und
     by: scan
+  - page: 156
+    from: aus denen Wass r fließt
+    to: aus denen Wasser fließt
+    by: scan
+  - page: 156
+    from: durch dasZeppelinscheLuftschiff. Der’Traum
+    to: durch das Zeppelinsche Luftschiff. Der Traum
+    by: scan
   - page: 158
     from: Waldund
     to: Wald und
+    by: scan
+  - page: 162
+    from: und eifrig sp&-
+    to: und eifrig spä-
     by: scan
   - page: 166
     from: F ruchtbarkeitssymbol
@@ -12910,9 +13130,21 @@ freud-1940-gw-11:
     from: daB
     to: daß
     by: scan
+  - page: 176
+    from: Element aii mehreren
+    to: Element an mehreren
+    by: scan
+  - page: 177
+    from: (ler Witz bedient
+    to: der Witz bedient
+    by: scan
   - page: 179
     from: KlementineK. wegenEhebruches
     to: Klementine K. wegen Ehebruches
+    by: scan
+  - page: 179
+    from: erscheint.“ j
+    to: erscheint.“
     by: scan
   - page: 181
     from: daB
@@ -12925,6 +13157,10 @@ freud-1940-gw-11:
   - page: 182
     from: Modifikationen. des
     to: Modifikationen, des
+    by: scan
+  - page: 182
+    from: cleave ve spalten
+    to: cleave — spalten
     by: scan
   - page: 188
     from: Person. des
@@ -12942,6 +13178,18 @@ freud-1940-gw-11:
     from: muB
     to: muß
     by: scan
+  - page: 188
+    from: die Analyse dazu um*
+    to: die Analyse dazu um-
+    by: scan
+  - page: 189
+    from: setzen. j
+    to: setzen.
+    by: scan
+  - page: 190
+    from: "träume ich: /ch fahre"
+    to: "träume ich: Ich fahre"
+    by: scan
   - page: 192
     from: Gesetz. verfahren
     to: Gesetz verfahren
@@ -12949,6 +13197,14 @@ freud-1940-gw-11:
   - page: 194
     from: wiedieser
     to: wie dieser
+    by: scan
+  - page: 194
+    from: Traumes. /r sieht
+    to: Traumes. Er sieht
+    by: scan
+  - page: 194
+    from: blurig an dim tief herabhängenden Luster.
+    to: blutig an dem tief herabhängenden Luster.
     by: scan
   - page: 198
     from: Geschäf tslokal
@@ -12975,12 +13231,16 @@ freud-1940-gw-11:
     to: das Hinwegsetzen
     by: scan
   - page: 214
-    from: ihreBedeutung
-    to: ihre Bedeutung
-    by: scan
-  - page: 214
     from: daB
     to: daß
+    by: scan
+  - page: 214
+    from: haben ihreBedeutung sowohl als Anzeichen mitgebrachter Ko nstitution
+    to: haben ihre Bedeutung sowohl als Anzeichen mitgebrachter Konstitution
+    by: scan
+  - page: 214
+    from: Wunschregungen w rieder-
+    to: Wunschregungen wieder-
     by: scan
   - page: 217
     from: welcher. wir
@@ -13006,9 +13266,17 @@ freud-1940-gw-11:
     from: nichterraten
     to: nicht erraten
     by: scan
+  - page: 222
+    from: Wunsches, vum gemeinen
+    to: Wunsches, vom gemeinen
+    by: scan
   - page: 225
     from: aber. ver
     to: aber ver
+    by: scan
+  - page: 226
+    from: \ 1) Eine andere naheliegende
+    to: 1) Eine andere naheliegende
     by: scan
   - page: 227
     from: weit. mit
@@ -13034,9 +13302,17 @@ freud-1940-gw-11:
     from: daB
     to: daß
     by: scan
+  - page: 243
+    from: oa Tögos (dein ist Tyrus)
+    to: σὰ Τύρος (dein ist Tyrus)
+    by: scan
   - page: 244
     from: F rage
     to: Frage
+    by: scan
+  - page: 244
+    from: auf eine Mehrzahl \
+    to: auf eine Mehrzahl
     by: scan
   - page: 246
     from: dierichtige
@@ -13049,6 +13325,10 @@ freud-1940-gw-11:
   - page: 251
     from: Wertvolleszu
     to: Wertvolles zu
+    by: scan
+  - page: 252
+    from: auch desKonträstes wegen. IchgreifeeineSymptomhandlungauf, dieich
+    to: auch des Kontrastes wegen. Ich greife eine Symptomhandlung auf, die ich
     by: scan
   - page: 254
     from: daB
@@ -13082,6 +13362,10 @@ freud-1940-gw-11:
     from: derZwangs
     to: der Zwangs
     by: scan
+  - page: 270
+    from: impotent; Si®
+    to: impotent; sie
+    by: scan
   - page: 272
     from: zu. kurz
     to: zu kurz
@@ -13093,6 +13377,10 @@ freud-1940-gw-11:
   - page: 273
     from: daB
     to: daß
+    by: scan
+  - page: 276
+    from: schaffte ste sich
+    to: schaffte sie sich
     by: scan
   - page: 278
     from: hang. herzustellen
@@ -13138,6 +13426,10 @@ freud-1940-gw-11:
     from: daB
     to: daß
     by: scan
+  - page: 298
+    from: Angsthysteriker bringen ®S
+    to: Angsthysteriker bringen es
+    by: scan
   - page: 299
     from: daB
     to: daß
@@ -13146,9 +13438,17 @@ freud-1940-gw-11:
     from: daB
     to: daß
     by: scan
+  - page: 305
+    from: Vorraum schlieBe
+    to: Vorraum schließe
+    by: scan
   - page: 307
     from: hatteund
     to: hatte und
+    by: scan
+  - page: 310
+    from: an der ersagung in
+    to: an der Versagung in
     by: scan
   - page: 311
     from: daB
@@ -13173,6 +13473,10 @@ freud-1940-gw-11:
   - page: 316
     from: daB
     to: daß
+    by: scan
+  - page: 320
+    from: des Sexuallebens. j
+    to: des Sexuallebens.
     by: scan
   - page: 322
     from: einemindividuellen
@@ -13230,6 +13534,10 @@ freud-1940-gw-11:
     from: Psycho.
     to: Psycho-
     by: scan
+  - page: 342
+    from: gering, am w®"
+    to: gering, am we-
+    by: scan
   - page: 346
     from: erfährt.
     to: erfährt
@@ -13237,6 +13545,18 @@ freud-1940-gw-11:
   - page: 347
     from: istregelmäßig
     to: ist regelmäßig
+    by: scan
+  - page: 350
+    from: eiait abandonne & lui-meme, quil conserva toute son imbecillit€ et qul
+    to: était abandonné à lui-même, qu'il conserva toute son imbecillité et qu'il
+    by: scan
+  - page: 350
+    from: reunit au peu de raison
+    to: réunit au peu de raison
+    by: scan
+  - page: 350
+    from: de Phomme de trente ans, il tordrait le cou & son pere et coucherait
+    to: de l'homme de trente ans, il tordrait le cou à son père et coucherait
     by: scan
   - page: 351
     from: daB
@@ -13266,13 +13586,37 @@ freud-1940-gw-11:
     from: daß. seine
     to: daß seine
     by: scan
+  - page: 376
+    from: Verursachung __ Disposition durch Akzidentelles Erleben
+    to: Verursachung der Neurose = Disposition durch Libidofixierung + Akzidentelles Erleben (traumatisches)
+    by: scan
+  - page: 376
+    from: der Neurose _Libidofixierung ' (traumatisches)
+    to: ""
+    by: scan
+  - page: 376
+    from: Sexuelle Konstitution Infantiles Erleben
+    to: "Disposition durch Libidofixierung: Sexuelle Konstitution (Prähistorisches Erleben) + Infantiles Erleben"
+    by: scan
+  - page: 376
+    from: (Prähistorisches Erleben)
+    to: ""
+    by: scan
   - page: 378
     from: daB
     to: daß
     by: scan
+  - page: 384
+    from: daß das Kind nac h -
+    to: daß das Kind nach-
+    by: scan
   - page: 389
     from: muB
     to: muß
+    by: scan
+  - page: 394
+    from: stammen. Den Me-.
+    to: stammen. Den Me-
     by: scan
   - page: 396
     from: ist. die
@@ -13323,10 +13667,6 @@ freud-1940-gw-11:
     to: die Schwächung oder
     by: scan
   - page: 402
-    from: amKörper
-    to: am Körper
-    by: scan
-  - page: 402
     from: Hemmungeiner
     to: Hemmung einer
     by: scan
@@ -13337,6 +13677,10 @@ freud-1940-gw-11:
   - page: 402
     from: wiekönnen
     to: wie können
+    by: scan
+  - page: 402
+    from: _ nur vorwiegend amKörper, wie auch z. B. die hysterischen Symptome,
+    to: nur vorwiegend am Körper, wie auch z. B. die hysterischen Symptome,
     by: scan
   - page: 404
     from: dieHypochondrie
@@ -13358,9 +13702,21 @@ freud-1940-gw-11:
     from: dieserSchmerz
     to: dieser Schmerz
     by: scan
+  - page: 408
+    from: d. h. vör
+    to: d. h. vor
+    by: scan
   - page: 410
     from: gerade. auf
     to: gerade auf
+    by: scan
+  - page: 410
+    from: _ zuheben, welche
+    to: zuheben, welche
+    by: scan
+  - page: 410
+    from: einer Reminiszen2.
+    to: einer Reminiszenz.
     by: scan
   - page: 412
     from: Weib. aus
@@ -13381,6 +13737,14 @@ freud-1940-gw-11:
   - page: 425
     from: Qualität.
     to: Qualität
+    by: scan
+  - page: 426
+    from: herstellen können. Ä
+    to: herstellen können.
+    by: scan
+  - page: 428
+    from: die Diskussion. eb sie
+    to: die Diskussion, ob sie
     by: scan
   - page: 432
     from: für. zwei
@@ -13403,24 +13767,28 @@ freud-1940-gw-11:
     to: Narzißmus
     by: scan
   - page: 433
-    from: derim
-    to: der im
-    by: scan
-  - page: 433
-    from: einepoetische
-    to: eine poetische
-    by: scan
-  - page: 434
-    from: vomSchlafwunsch
-    to: vom Schlafwunsch
+    from: nach derim Grundetrockenen Phantastik derW issenschaft einepoetische
+    to: nach der im Grunde trockenen Phantastik der Wissenschaft eine poetische
     by: scan
   - page: 434
     from: daB
     to: daß
     by: scan
+  - page: 434
+    from: vomSchlafwunsch verfügteLibidoeinziehung einer bereits bestehenden
+    to: vom Schlafwunsch verfügte Libidoeinziehung einer bereits bestehenden
+    by: scan
+  - page: 435
+    from: zaR®
+    to: ""
+    by: scan
   - page: 447
     from: nicht. irreführen
     to: nicht irreführen
+    by: scan
+  - page: 450
+    from: wirken. Bas liegt
+    to: wirken. Das liegt
     by: scan
   - page: 453
     from: zu. ersetzen

@@ -83,6 +83,21 @@ describe("parseArchiveOcrWork", () => {
     expect(paragraphs).toContain("1 Eine Anmerkung. K.");
   });
 
+  it.each(["Freud, XI. ß", "Freud, X1. y", "Freud, XVI. B", "Freud, XI ’"])(
+    "leaves out Freud's signature whose sheet number the OCR misread: %s",
+    async (signature) => {
+      const hocr = (await fixture()).replace(
+        ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+        `>.seits Beschreibung und Rechenschaft zu geben.</span>\n  <span class='ocr_line' title='bbox 180 4250 1400 4300; x_size 50'>${signature}</span>`,
+      );
+      const paragraphs = parseArchiveOcrWork(hocr, work).flatMap(
+        (unit) => unit.paragraphs,
+      );
+
+      expect(paragraphs.join("\n")).not.toContain("Freud,");
+    },
+  );
+
   it.each(["Marx-Engels' Schriften. II. 2", "Marx-Engels' Schriften. IJ."])(
     "leaves out a signature that names its book after hyphened authors: %s",
     async (signature) => {
@@ -514,6 +529,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
 
     expect(pageText(hocr, 4)).toContain(
       "Jones, das Vbw, Vbw und Vbw; Zoë Bertgang; daß er, daß das, daß sie, daß „der, Dal Monte; er muß, daß",
+    );
+  });
+
+  it("reads W read as a backslash and V, Es read as Fs, und and wir misread", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, \\Vie Sie wissen, \\nur so; Fs gibt Kunst nnd Sprache uud wif.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, Wie Sie wissen, nur so; Es gibt Kunst und Sprache und wir.",
     );
   });
 

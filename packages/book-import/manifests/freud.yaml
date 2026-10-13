@@ -1065,6 +1065,12 @@ books:
     citation: GW XI
     firstPage: 3
     lastPage: 482
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 376, opens: "Verursachung der Neurose" }
+      - { page: 376, opens: "Disposition durch Libidofixierung:" }
+      - { page: 376, opens: "Die hereditäre" }
+      - { page: 376, opens: "Die Libidofixierung des Erwachsenen" }
     slug: vorlesungen-zur-einfuehrung-in-die-psychoanalyse
     title: Vorlesungen zur Einführung in die Psychoanalyse
     shortTitle: Vorlesungen

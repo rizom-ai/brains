@@ -1797,7 +1797,7 @@ ldpd_14861084_000:
     to: Arbeitstheilung
     by: scan
   - page: 135
-    from: nnd
+    from: und
     to: und
     by: scan
   - page: 137
@@ -1965,7 +1965,7 @@ ldpd_14861084_000:
     to: p. 158, 160,
     by: scan
   - page: 76
-    from: \ol. IV
+    from: ol. IV
     to: vol. IV
     by: scan
   - page: 91
@@ -19753,7 +19753,7 @@ gesammelteschrif01marxuoft:
     to: Frankreich. Über
     by: scan
   - page: 245
-    from: Krakau uud ihre
+    from: Krakau und ihre
     to: Krakau und ihre
     by: scan
   - page: 248

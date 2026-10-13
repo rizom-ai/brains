@@ -220,13 +220,14 @@ const RUNNING_HEAD =
 /**
  * The printer's signature at a sheet's foot: the volume by its authors'
  * names, a comma after the first or more names after it, and numeral
- * (Freud, XIII; Marx, Engels, Lassalle. II; Marx-Engels' Schriften. II),
+ * (Freud, XIII; Marx, Engels, Lassalle. II; Marx-Engels' Schriften. II;
+ * Freud's with its sheet number read as a scrap: Freud, XI. ß),
  * the sheet's number after it, the
  * numeral and the number however misread. A single word with a stop and a stray mark
  * (Gesetz. |) is a line's end.
  */
 const SIGNATURE =
-  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
+  /^Freud\s*[,.]?\s*[IVXLl1|J]+\.?[,.]?\s*\S{0,3}\s*$|^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
@@ -948,6 +949,13 @@ function normalised(text: string): string {
         (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
       )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
+      // A W read as a backslash and a V; a backslash before a word is a speck.
+      .replace(/\\V(?=\p{L})/gu, "W")
+      .replace(/\\(?=\p{Ll})/gu, "")
+      // Es read as Fs, und as nnd or uud, wir as wif.
+      .replace(/(?<![\p{L}])Fs(?= \p{Ll})/gu, "Es")
+      .replace(/(?<![\p{L}])(?:nnd|uud)(?![\p{L}])/gu, "und")
+      .replace(/(?<![\p{L}])wif(?![\p{L}])/gu, "wir")
       // Freud's italic Vbw, the Gradiva's Zoë, and daß and muß, which the OCR misreads.
       .replace(/(?<![\p{L}\d])[YF/](?=bw(?![\p{L}]))/gu, "V")
       .replace(/(?<![\p{L}])Zo&/gu, "Zoë")
