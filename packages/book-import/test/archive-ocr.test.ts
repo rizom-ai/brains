@@ -459,6 +459,16 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
+  it("leaves out an umlaut standing alone, a speck the facing page left", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "ö Jones, 1919. ů böse ö",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, 1919. böse");
+    expect(pageText(hocr, 4)).not.toMatch(/(?<![\p{L}])[öů](?![\p{L}])/u);
+  });
+
   it("reads loco citato the OCR set in capitals as l. c., not a name's initials", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
@@ -2490,7 +2500,7 @@ describe("parseArchiveOcrWork, a page of a table alone", () => {
         corrections: [
           {
             page: 14,
-            from: "III ö 100 81½j 13023 130½23 175⁵ 15/½5 0",
+            from: "III 100 81½j 13023 130½23 175⁵ 15/½5 0",
             to: "III | 100 | 81",
           },
           {

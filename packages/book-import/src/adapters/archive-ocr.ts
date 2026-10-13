@@ -933,6 +933,8 @@ function normalised(text: string): string {
         (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
       )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
+      // An umlaut standing alone is a speck the facing page left.
+      .replace(/^[öů][‚,]?\s+|\s+[öů][‚,]?(?=\s|$)/gu, "")
       // A double hyphen inside a word is its hyphen, the Fraktur one.
       .replace(/(?<=\S)-?⸗+-?(?=\S)/gu, "-")
       // A double hyphen between spaces before a figure is an equals sign; before
