@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- [#576](https://github.com/rizom-ai/brains/pull/576) [`9c65cbf`](https://github.com/rizom-ai/brains/commit/9c65cbf0664c556cc8cab43c5b5a7fe9b4671cee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds collect head scripts through the narrow `siteContributions.headScripts` setup reader before rendering. Analytics answers through a schema-validated, all-role subscription, so its configured beacon reaches worker-built pages without a ready-phase registration. Invalid or failed contributions reject the build; no arbitrary-topic collector or native bus is exposed.
+
+- [#576](https://github.com/rizom-ai/brains/pull/576) [`9c65cbf`](https://github.com/rizom-ai/brains/commit/9c65cbf0664c556cc8cab43c5b5a7fe9b4671cee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connection pragma retries share the managed client's single contention budget instead of restarting an outer budget. Raw clients retain their own retry handling; admitted transaction bodies are never replayed.
+
 ## 0.2.0-alpha.502
 
 ### Patch Changes
