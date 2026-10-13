@@ -752,6 +752,14 @@ freud-1940-gw-6:
     from: F ir
     to: Fir
     by: scan
+  - page: 5
+    from: Th. Vischer, KunoFischer und
+    to: Th. Vischer, Kuno Fischer und
+    by: scan
+  - page: 5
+    from: Theodor Lipps ind Richard
+    to: Theodor Lipps und Richard
+    by: scan
   - page: 6
     from: welches den kömisehen Kontrast erzeugt
     to: welches den komischen Kontrast erzeugt
@@ -776,6 +784,10 @@ freud-1940-gw-6:
     from: F ormel
     to: Formel
     by: scan
+  - page: 7
+    from: Urteil (S. z3¹).
+    to: Urteil (S. 51).
+    by: scan
   - page: 8
     from: en können“ ($. 90)
     to: en können“ (S. 90)
@@ -788,6 +800,10 @@ freud-1940-gw-6:
     from: he Prozeß“ ($. 85
     to: he Prozeß“ (S. 85
     by: scan
+  - page: 10
+    from: der Lösung der _Verblüffung,
+    to: der Lösung der Verblüffung,
+    by: scan
   - page: 11
     from: DaB
     to: Daß
@@ -795,6 +811,10 @@ freud-1940-gw-6:
   - page: 12
     from: jeder.
     to: jeder
+    by: scan
+  - page: 12
+    from: anderseits aut
+    to: anderseits auf
     by: scan
   - page: 15
     from: eine. familiäre
@@ -808,6 +828,14 @@ freud-1940-gw-6:
     from: naheliegend. daß
     to: naheliegend, daß
     by: scan
+  - page: 17
+    from: „AR. behandelte mich ganz wie seinesgleichen,
+    to: „R. behandelte mich ganz wie seinesgleichen,
+    by: scan
+  - page: 18
+    from: „AR. behandelte mich ganz familiär,
+    to: „R. behandelte mich ganz familiär,
+    by: scan
   - page: 21
     from: aus den Beziehurigen des ersten
     to: aus den Beziehungen des ersten
@@ -816,17 +844,25 @@ freud-1940-gw-6:
     from: berühmten Roman Salammbö, der im
     to: berühmten Roman Salammbô, der im
     by: reference
+  - page: 22
+    from: 2) Wie wenig diese
+    to: 2) Wie wenig diese regelmäßig zu wiederholende Beobachtung mit der Behauptung
+    by: scan
+  - page: 22
+    from: 2 regelmäßig zu wiederholende Beob a
+    to: ""
+    by: scan
+  - page: 22
+    from: stimmt, der Witz sei e 5 nde Beobachtung mit der Behauptung
+    to: stimmt, der Witz sei ein spielendes Urteil, brauche ich nur anzudeuten.
+    by: scan
+  - page: 22
+    from: in spielendes Urteil, brauche ich nur anzudeuten.
+    to: ""
+    by: scan
   - page: 23
     from: F adian
     to: Fadian
-    by: scan
-  - page: 24
-    from: sein. eine
-    to: sein, eine
-    by: scan
-  - page: 24
-    from: aufAlfred
-    to: auf Alfred
     by: scan
   - page: 24
     from: t&te-ä-t&äte
@@ -840,6 +876,14 @@ freud-1940-gw-6:
     from: eine t&te sein tin b verwandelt,.
     to: eine tête sein t in b verwandelt,
     by: scan
+  - page: 24
+    from: von H. Hei
+    to: von H. Heine auf Alfred de Musset
+    by: scan
+  - page: 24
+    from: geprägt worden sein. eine aufAlfred de Musset
+    to: geprägt worden sein.
+    by: scan
   - page: 25
     from: daB
     to: daß
@@ -847,6 +891,14 @@ freud-1940-gw-6:
   - page: 25
     from: daB
     to: daß
+    by: scan
+  - page: 25
+    from: „Y.1st bis auf
+    to: „Y. ist bis auf
+    by: scan
+  - page: 25
+    from: kompliziert, s. u. \
+    to: kompliziert, s. u.
     by: scan
   - page: 26
     from: groBen
@@ -864,6 +916,30 @@ freud-1940-gw-6:
     from: ihn als Abjkömmling normaler seelischer
     to: ihn als Abkömmling normaler seelischer
     by: reference
+  - page: 28
+    from: S. 206]).! Andere
+    to: S. 206]).¹ Andere
+    by: scan
+  - page: 28
+    from: DRalR, und zwar
+    to: Male, und zwar
+    by: scan
+  - page: 28
+    from: hen er Traumes nicht
+    to: arbeit des Traumes nicht
+    by: scan
+  - page: 28
+    from: ie völlig einem Objekt
+    to: die völlig einem Objekt
+    by: scan
+  - page: 28
+    from: nu en Beleken Dis auf SHT
+    to: ""
+    by: scan
+  - page: 28
+    from: Bd. I1/IIT.
+    to: Bd. II/III.
+    by: scan
   - page: 29
     from: meiner. jungen
     to: meiner jungen
@@ -884,10 +960,26 @@ freud-1940-gw-6:
     from: s0 Der
     to: so Der
     by: scan
+  - page: 30
+    from: kl Rousseau NE . . .
+    to: klang von Rousseau / roux sot.
+    by: scan
+  - page: 30
+    from: ang von Tours. Damit
+    to: Damit
+    by: scan
   - page: 31
     from: die Kritik, daB die Aufführung
     to: die Kritik, daß die Aufführung
     by: reference
+  - page: 31
+    from: Vischer undK. Fischer.)
+    to: Vischer und K. Fischer.)
+    by: scan
+  - page: 31
+    from: einmal als eines _
+    to: einmal als eines
+    by: scan
   - page: 32
     from: in. technischer
     to: in technischer
@@ -899,6 +991,10 @@ freud-1940-gw-6:
   - page: 33
     from: daB
     to: daß
+    by: scan
+  - page: 34
+    from: „Labeo ait“....
+    to: „Labeo ait“ . . .
     by: scan
   - page: 38
     from: WennSaphir
@@ -912,9 +1008,17 @@ freud-1940-gw-6:
     from: daB
     to: daß
     by: scan
+  - page: 39
+    from: ‚ie kommen um Ihre
+    to: ‚Sie kommen um Ihre
+    by: scan
   - page: 40
     from: Witz. auf
     to: Witz auf
+    by: scan
+  - page: 40
+    from: gebaut 3st, hat
+    to: gebaut ist, hat
     by: scan
   - page: 41
     from: K. Fischer ($. 88)
@@ -924,6 +1028,10 @@ freud-1940-gw-6:
     from: sei es, daB der eine
     to: sei es, daß der eine
     by: reference
+  - page: 42
+    from: J) dieselben Worte voll und leer.
+    to: f) dieselben Worte voll und leer.
+    by: scan
   - page: 43
     from: GewiB
     to: Gewiß
@@ -932,6 +1040,14 @@ freud-1940-gw-6:
     from: er die Cäsaren nicht auszurotten
     to: er die +Caes=a=ren+ nicht auszurotten
     by: reference
+  - page: 47
+    from: (Buch -Le Grand,
+    to: (Buch Le Grand,
+    by: scan
+  - page: 48
+    from: Blick anf den
+    to: Blick auf den
+    by: scan
   - page: 49
     from: K. Fischer, $. 82)
     to: K. Fischer, S. 82)
@@ -948,6 +1064,14 @@ freud-1940-gw-6:
     from: mit einer Anspiel ung. Er sagt
     to: mit einer Anspielung. Er sagt
     by: reference
+  - page: 52
+    from: ¹)\ Die Autwort Heines
+    to: ¹) Die Antwort Heines ist eine Kombination von zwei Witztechniken, einer Ab-
+    by: scan
+  - page: 52
+    from: ag ist eine Kombination von zwei Witztechniken, einer Ab-
+    to: ""
+    by: scan
   - page: 55
     from: daB
     to: daß
@@ -961,8 +1085,8 @@ freud-1940-gw-6:
     to: daß
     by: scan
   - page: 66
-    from: einLoch
-    to: ein Loch
+    from: einLoch, als ich ihn vonB übernahm; drittens habe
+    to: ein Loch, als ich ihn von B übernahm; drittens habe
     by: scan
   - page: 67
     from: Gruppe der sophistisc hen Denkfehler reiht
@@ -980,9 +1104,21 @@ freud-1940-gw-6:
     from: Miteiner
     to: Mit einer
     by: scan
+  - page: 74
+    from: liegt eim ‚neues
+    to: liegt ein neues
+    by: scan
+  - page: 77
+    from: „Ich nehme j edes
+    to: „Ich nehme jedes
+    by: scan
   - page: 78
     from: muB
     to: muß
+    by: scan
+  - page: 80
+    from: Heilands? 1aßt
+    to: Heilands? läßt
     by: scan
   - page: 82
     from: deren Sinn sle für sich
@@ -991,6 +1127,10 @@ freud-1940-gw-6:
   - page: 82
     from: tete-A-b&te
     to: tête-à-bête
+    by: scan
+  - page: 82
+    from: Wilt in8o Tagen.“
+    to: Wilt in 80 Tagen.“
     by: scan
   - page: 83
     from: Manifest. dieser
@@ -1056,6 +1196,10 @@ freud-1940-gw-6:
     from: daB
     to: daß
     by: scan
+  - page: 94
+    from: Buchhalter und Packknechte
+    to: Buchhalter und Packknechte
+    by: scan
   - page: 95
     from: Problem. unerledigt
     to: Problem unerledigt
@@ -1080,6 +1224,10 @@ freud-1940-gw-6:
     from: ist. wieder
     to: ist wieder
     by: scan
+  - page: 106
+    from: "[Ges. Werke, Bd. Vv)."
+    to: "[Ges. Werke, Bd. V]."
+    by: scan
   - page: 110
     from: oder. unmöglich
     to: oder unmöglich
@@ -1092,6 +1240,10 @@ freud-1940-gw-6:
     from: aber gilt sre dafür beim
     to: aber gilt sie dafür beim
     by: reference
+  - page: 114
+    from: häufiger Fall, daD
+    to: häufiger Fall, daß
+    by: scan
   - page: 116
     from: daB
     to: daß
@@ -1180,6 +1332,10 @@ freud-1940-gw-6:
     from: sehr gewachsen, daB die Lust
     to: sehr gewachsen, daß die Lust
     by: reference
+  - page: 141
+    from: zweckwidrigem _
+    to: zweckwidrigem
+    by: scan
   - page: 142
     from: ist. das
     to: ist, das
@@ -1272,6 +1428,10 @@ freud-1940-gw-6:
     from: Mittel. zur
     to: Mittel zur
     by: scan
+  - page: 163
+    from: Essays II. Bd., 1901. ‘
+    to: Essays II. Bd., 1901.
+    by: scan
   - page: 164
     from: als eine „detente“, eine Erscheinung
     to: als eine „détente“, eine Erscheinung
@@ -1295,6 +1455,10 @@ freud-1940-gw-6:
   - page: 171
     from: bungswitze ($. 57)
     to: bungswitze (S. 57)
+    by: scan
+  - page: 171
+    from: „Wie alt?* „im
+    to: „Wie alt?“ „im
     by: scan
   - page: 172
     from: S cherzfragen
@@ -1352,6 +1516,10 @@ freud-1940-gw-6:
     from: daB
     to: daß
     by: scan
+  - page: 192
+    from: des Vergessen®.
+    to: des Vergessens.
+    by: scan
   - page: 193
     from: dem Umstande, daB dort die
     to: dem Umstande, daß dort die
@@ -1368,6 +1536,10 @@ freud-1940-gw-6:
     from: in statu nmascendi korrigiert wird
     to: in statu nascendi korrigiert wird
     by: reference
+  - page: 194
+    from: gekommen sind, um e$
+    to: gekommen sind, um es
+    by: scan
   - page: 198
     from: daB
     to: daß
@@ -1376,6 +1548,10 @@ freud-1940-gw-6:
     from: Hörer. erzeugt
     to: Hörer erzeugt
     by: scan
+  - page: 199
+    from: "[Ges. Werke, Bd. vII].)"
+    to: "[Ges. Werke, Bd. VIII].)"
+    by: scan
   - page: 200
     from: um. den
     to: um den
@@ -1383,6 +1559,10 @@ freud-1940-gw-6:
   - page: 200
     from: F echner
     to: Fechner
+    by: scan
+  - page: 200
+    from: die dies ermöglicht. *
+    to: die dies ermöglicht.¹
     by: scan
   - page: 201
     from: Einwandes. nicht
@@ -1396,6 +1576,10 @@ freud-1940-gw-6:
     from: zum Ausdruck kommi, mit welcher
     to: zum Ausdruck kommt, mit welcher
     by: reference
+  - page: 203
+    from: in Beziehung zu den
+    to: in Beziehung zu den
+    by: scan
   - page: 207
     from: erfolgreich getrotzt, daB wir die
     to: erfolgreich getrotzt, daß wir die
@@ -1413,9 +1597,17 @@ freud-1940-gw-6:
     to: st ersetzt (S. 171
     by: scan
   - page: 209
-    from: lieben Verwandten hir, die sich
-    to: lieben Verwandten hin, die sich
-    by: reference
+    from: verdutzt auf die lieben Verwandten hir, die sich soweit ansiÄndig
+    to: verdutzt auf die lieben Verwandten hin, die sich soweit anständig
+    by: scan
+  - page: 209
+    from: Freud, vi
+    to: ""
+    by: scan
+  - page: 210
+    from: mm mju tkm pp zjz]j,s sy me u un
+    to: ""
+    by: scan
   - page: 213
     from: Nehmen. wir
     to: Nehmen wir
@@ -1427,6 +1619,14 @@ freud-1940-gw-6:
   - page: 215
     from: 904) weist ($. 99)
     to: 904) weist (S. 99)
+    by: scan
+  - page: 215
+    from: mit guten Argumenten ab. — Aut Pe
+    to: mit guten Argumenten ab. — Auf einem
+    by: scan
+  - page: 215
+    from: bei Lipps, die 'im Ei
+    to: bei Lipps, die im Zu-
     by: scan
   - page: 216
     from: daß. ihm
@@ -1451,6 +1651,10 @@ freud-1940-gw-6:
   - page: 222
     from: daB
     to: daß
+    by: scan
+  - page: 223
+    from: Bedingungen des Komischen, Fo
+    to: Bedingungen des Komischen, daß
     by: scan
   - page: 226
     from: bloB
@@ -1548,6 +1752,10 @@ freud-1940-gw-6:
     from: Eine zufällige EntblöBung wirkt auf
     to: Eine zufällige Entblößung wirkt auf
     by: reference
+  - page: 253
+    from: „substitution quelcongue de lartificiel au naturel“ ie;
+    to: „substitution quelconque de l'artificiel au naturel“ —
+    by: scan
   - page: 254
     from: ce qu'ill y a
     to: ce qu’il y a
@@ -1556,6 +1764,14 @@ freud-1940-gw-6:
     from: jeux qui amuserent l’enfant
     to: jeux qui amusèrent l’enfant
     by: reference
+  - page: 254
+    from: „Peut-etre meme devrions-nous
+    to: „Peut-être même devrions-nous
+    by: scan
+  - page: 254
+    from: remonter ü nos souvenirs
+    to: remonter à nos souvenirs
+    by: scan
   - page: 256
     from: uns Erwachsenen verlorenzugehen, dafür verspüren
     to: uns Erwachsenen verloren zu gehen, dafür verspüren
@@ -1612,6 +1828,10 @@ freud-1940-gw-6:
     from: peut s’interpreter & la fois
     to: peut s’interpréter à la fois
     by: reference
+  - page: 268
+    from: qui est & la fois, d’un cöte,
+    to: qui est à la fois, d’un côté,
+    by: scan
   - page: 270
     from: N ie
     to: Nie
@@ -4186,7 +4406,7 @@ freud-1941-gw-4:
     to: f) Daß zufällige
     by: scan
   - page: 195
-    from: sinnvoll ünd
+    from: sinnvoll und
     to: sinnvoll und
     by: scan
   - page: 198
@@ -4874,6 +5094,34 @@ freud-1941-gw-7:
     from: über. alles
     to: über alles
     by: scan
+  - page: 32
+    from: nicht Ber Ausdrucksbewegungen
+    to: nicht aber Ausdrucksbewegungen
+    by: scan
+  - page: 32
+    from: Bun die Dichter auf derselben Seite
+    to: nun die Dichter auf derselben Seite
+    by: scan
+  - page: 32
+    from: a ” ak ine ap er wie der Verfasser der „Traum-
+    to: wie das abergläubische Volk und wie der Verfasser der „Traum-
+    by: scan
+  - page: 32
+    from: iträhe Sp rgi sie die yon ihrer Fantasie gestalteten
+    to: deutung“. Denn wenn sie die von ihrer Phantasie gestalteten
+    by: scan
+  - page: 32
+    from: n, so folgen sie der alltäglichen Erfahrung,
+    to: Personen träumen lassen, so folgen sie der alltäglichen Erfahrung,
+    by: scan
+  - page: 34
+    from: Ba pe rechne darauf, daß ihre Erinnerung allen dabei
+    to: zurückrufen, und rechne darauf, daß ihre Erinnerung allen dabei
+    by: scan
+  - page: 34
+    from: gestreiften Reiz aus eigenem
+    to: abgestreiften Reiz aus eigenem
+    by: scan
   - page: 35
     from: daB
     to: daß
@@ -4882,9 +5130,53 @@ freud-1941-gw-7:
     from: trockenen Übergang vuh einer Seite
     to: trockenen Übergang von einer Seite
     by: reference
+  - page: 36
+    from: ePRNeh in kein günstiges Licht
+    to: natürlich in kein günstiges Licht
+    by: scan
+  - page: 36
+    from: "„doch kam ihm ara so en wi n Fasaeg a BENOE:"
+    to: „doch kam ihm das eine so wenig zum Verständnis wie das
+    by: scan
+  - page: 36
+    from: andere.“ (G.p. 10.) Als E RER a ROREPES ER as
+    to: andere.“ (G. p. 10.) Als Ergebnis dieser sorgfältigen Studien mußte
+    by: scan
+  - page: 36
+    from: P rgebnis dieser sorgfältigen Studien mußte
+    to: ""
+    by: scan
+  - page: 36
+    from: er BEE nr ihm manchen Arsen
+    to: |-
+      Straße zu schauen, welche Tätigkeit ihm manchen unmutigen
+      und manchen ermutigenden Blick der so Beobachteten eintrug;
+    by: scan
   - page: 37
     from: zu. haben
     to: zu haben
+    by: scan
+  - page: 38
+    from: en en das Mi ihm schenken, und die
+    to: er uns vorläufig das Vertrauen, das wir ihm schenken, und die
+    by: scan
+  - page: 38
+    from: relie h S Bee ah unverdient, na seinen Helden bereit-
+    to: Sympathie, die wir, noch unverdient, für seinen Helden bereit-
+    by: scan
+  - page: 38
+    from: die Familientradition z n He en = ui m
+    to: |-
+      halten. Von diesem teilt er uns noch mit, daß er schon durch
+      die Familientradition zum Altertumsforscher bestimmt, sich in
+    by: scan
+  - page: 38
+    from: Vrikessiän ER Na OmnEhier bestimmt, sich in
+    to: ""
+    by: scan
+  - page: 38
+    from: g und Unabhängigkeit ganz in seine
+    to: seiner späteren Vereinsamung und Unabhängigkeit ganz in seine
     by: scan
   - page: 39
     from: bestimmt. sein
@@ -4898,21 +5190,113 @@ freud-1941-gw-7:
     from: daB
     to: daß
     by: scan
+  - page: 40
+    from: ROH Becken or EN ai der „heißen, heiligen“ Mittags-
+    to: zugegen gewesen. Als dann in der „heißen, heiligen“ Mittags-
+    by: scan
+  - page: 40
+    from: ge an Krane als FINE Ber die anderen Be-
+    to: stunde, die ja den Alten als Geisterstunde galt, die anderen Be-
+    by: scan
+  - page: 40
+    from: aben, und die Trümmerhaufen verödet
+    to: sucher sich geflüchtet haben, und die Trümmerhaufen verödet
+    by: scan
   - page: 42
-    from: "völlig in Han: Dienst seiner"
-    to: völlig in den Dienst seiner
-    by: reference
+    from: Het wieder zu leben ‚begonnen habe
+    to: her wieder zu leben begonnen habe
+    by: scan
+  - page: 42
+    from: bewohnt hatte. -Scharf-
+    to: bewohnt hatte. Scharf-
+    by: scan
+  - page: 42
+    from: benannt sein mochte ‚und über
+    to: benannt sein mochte, und über
+    by: scan
+  - page: 42
+    from: or De er ihm ee» Inzah ‚seinen Kopf und beweisen,
+    to: der Gradiva zu ihm schießen durch seinen Kopf und beweisen,
+    by: scan
+  - page: 42
+    from: "VRR een aft vos völlig in Han: Dienst seiner Phanta-"
+    to: daß sich seine Wissenschaft nun völlig in den Dienst seiner Phanta-
+    by: scan
+  - page: 42
+    from: en, nnere innen Hayitee eingetreten, entdeckt er
+    to: sie begeben hat. Ins Innere dieses Hauses eingetreten, entdeckt er
+    by: scan
+  - page: 42
+    from: einung plötzlich wieder auf niedrigen Stufen zwischen
+    to: die Erscheinung plötzlich wieder auf niedrigen Stufen zwischen
+    by: scan
   - page: 44
     from: Diom&de
     to: Diomède
+    by: scan
+  - page: 46
+    from: ‚ gelebt ist, Hanolds Wahn
+    to: gelebt ist, Hanolds Wahn
+    by: scan
+  - page: 46
+    from: RT, ar ihn TOR ihm zu befreien. Es gibt keinen anderen
+    to: scheinlich, um ihn von ihm zu befreien. Es gibt keinen anderen
+    by: scan
+  - page: 46
+    from: en on
+    to: Weg dazu; durch Widerspruch versperrte man sich die Möglich-
+    by: scan
+  - page: 46
+    from: ET ei u > er Ka wirklichen solchen
+    to: keit. Auch die ernsthafte Behandlung eines wirklichen solchen
+    by: scan
+  - page: 46
+    from: ie; nicht anders, eis sich BunBchei- auf
+    to: Krankheitszustandes könnte nicht anders, als sich zunächst auf
+    by: scan
+  - page: 46
+    from: gebäudes stellen und dieses dann möglichst
+    to: den Boden des Wahngebäudes stellen und dieses dann möglichst
     by: scan
   - page: 48
     from: einem langen Grashälm hergestellte Schlinge
     to: einem langen Grashalm hergestellte Schlinge
     by: reference
+  - page: 48
+    from: DRERUNIEN, gerichtet gewesen.
+    to: Bekannten gerichtet gewesen.
+    by: scan
+  - page: 48
+    from: Bo 5 Haus, welches
+    to: deckten Haus, welches
+    by: scan
+  - page: 48
+    from: el Sole” herausstellte.
+    to: del Sole“ herausstellte.
+    by: scan
+  - page: 49
+    from: Hotel Diom®de einnehmen
+    to: Hotel Diomède einnehmen
+    by: scan
+  - page: 50
+    from: ausstieB und die Eidechse
+    to: ausstieß und die Eidechse
+    by: scan
+  - page: 50
+    from: verschoben, 'ind
+    to: verschoben, und
+    by: scan
+  - page: 50
+    from: im Erwarten de r Mittags-
+    to: im Erwarten der Mittags-
+    by: scan
   - page: 52
     from: lieB
     to: ließ
+    by: scan
+  - page: 52
+    from: "| LER Zoë-Gradiva war"
+    to: Die Zoë-Gradiva war
     by: scan
   - page: 54
     from: sein, der Zoö-Gradiva nicht
@@ -4946,6 +5330,26 @@ freud-1941-gw-7:
     from: Radierung von Felicien Rops illustriert
     to: Radierung von Félicien Rops illustriert
     by: reference
+  - page: 60
+    from: "} Untergang, dem Auslöschen"
+    to: Untergang, dem Auslöschen
+    by: scan
+  - page: 60
+    from: \ Eindrücken das erotische
+    to: Eindrücken das erotische
+    by: scan
+  - page: 60
+    from: Io viele Erläuterungen
+    to: als viele Erläuterungen
+    by: scan
+  - page: 60
+    from: Bene er bla —— zum Bild des gekreuzigten Erlösers ge-
+    to: suchungen der Welt — zum Bild des gekreuzigten Erlösers ge-
+    by: scan
+  - page: 61
+    from: \ Verdrängte bei seiner
+    to: Verdrängte bei seiner
+    by: scan
   - page: 62
     from: seine. gute
     to: seine gute
@@ -4954,6 +5358,10 @@ freud-1941-gw-7:
     from: zwischen der F araglionensis auf dem
     to: zwischen der Faraglionensis auf dem
     by: reference
+  - page: 64
+    from: sie s2lbst nicht
+    to: sie selbst nicht
+    by: scan
   - page: 71
     from: t) Der
     to: ¹) Der
@@ -4962,6 +5370,10 @@ freud-1941-gw-7:
     from: später her, daB er in
     to: später her, daß er in
     by: reference
+  - page: 73
+    from: \ gemacht, so daß er
+    to: gemacht, so daß er
+    by: scan
   - page: 75
     from: Erotik in ihya auf und
     to: Erotik in ihm auf und
@@ -4970,14 +5382,34 @@ freud-1941-gw-7:
     from: als. unbewußte
     to: als unbewußte
     by: scan
+  - page: 75
+    from: "' diese nicht anders als in ihrer Bindung an Vorstellungen faBbar."
+    to: diese nicht anders als in ihrer Bindung an Vorstellungen faßbar.
+    by: scan
+  - page: 75
+    from: kennt t oder gekannt hat
+    to: kennt oder gekannt hat
+    by: scan
   - page: 79
     from: Ereignis. ver
     to: Ereignis ver
+    by: scan
+  - page: 79
+    from: _„ nach jeder Kompromißbildung
+    to: nach jeder Kompromißbildung
     by: scan
   - page: 80
     from: Stückes des T'rieblebens und die
     to: Stückes des Trieblebens und die
     by: reference
+  - page: 80
+    from: __.» triebes sind oder
+    to: triebes sind oder
+    by: scan
+  - page: 80
+    from: Ba ae „Samml. kleiner Schrift. z. Neurosenlehre 1893— 1906“ [Ges.
+    to: 2) Vgl. des Verfassers „Samml. kleiner Schrift. z. Neurosenlehre 1893—1906“ [Ges.
+    by: scan
   - page: 81
     from: war. seine
     to: war seine
@@ -4985,6 +5417,10 @@ freud-1941-gw-7:
   - page: 81
     from: seinerSchöpfung
     to: seiner Schöpfung
+    by: scan
+  - page: 81
+    from: ji Straßen seines
+    to: Straßen seines
     by: scan
   - page: 82
     from: Taten und EntschlieBungen durch Träume
@@ -5001,6 +5437,10 @@ freud-1941-gw-7:
   - page: 94
     from: Zoës
     to: Zoës
+    by: scan
+  - page: 97
+    from: /oes eigenen Worten
+    to: Zoës eigenen Worten
     by: scan
   - page: 99
     from: vertretenen Absurditäten BEER wird, ist
@@ -8059,7 +8499,7 @@ freud-1942-gw-2-3:
     to: man behauptete,
     by: scan
   - page: 258
-    from: wozu er nützlich sel;
+    from: wozu er nützlich sei;
     to: wozu er nützlich sei;
     by: scan
   - page: 258
@@ -10069,7 +10509,7 @@ freud-1943-gw-8:
     to: allegando l'autorità non adopra
     by: reference
   - page: 194
-    from: Vater zü verzichten
+    from: Vater zu verzichten
     to: Vater zu verzichten
     by: scan
   - page: 194
@@ -10893,9 +11333,17 @@ freud-1946-gw-10:
     from: daB
     to: daß
     by: scan
+  - page: 283
+    from: das System 'Bw früher
+    to: das System Bw früher
+    by: scan
   - page: 284
     from: F bw
     to: Fbw
+    by: scan
+  - page: 286
+    from: T) Siehe die Ausführungen
+    to: 1) Siehe die Ausführungen
     by: scan
   - page: 290
     from: V bw
@@ -10904,6 +11352,14 @@ freud-1946-gw-10:
   - page: 294
     from: daB
     to: daß
+    by: scan
+  - page: 294
+    from: man nur aus der Kenntnis
+    to: man nur aus der Kenntnis
+    by: scan
+  - page: 298
+    from: Grube entstanden sei,
+    to: Grube entstanden sei,
     by: scan
   - page: 304
     from: R un

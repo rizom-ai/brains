@@ -521,25 +521,34 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 4)).toContain("Jones, nach Hause, S. 12 ff., pp. 3.");
   });
 
+  it("keeps a word's end that opens a line, though it reads like a misread word", async () => {
+    const hocr = (await fixture()).replace(
+      "Analyse beginnt .hier.",
+      "sel‘, das Traumbuch.",
+    );
+
+    expect(pageText(hocr, 5)).toContain("sel‘, das Traumbuch.");
+  });
+
   it("reads the italic Vbw, Zoë and daß the OCR misread", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, das Ybw, /bw und Fbw; Zo& Bertgang; dab er, dal das, dal3 sie, dab „der, Dal Monte; er mub, dab",
+      "Jones, das Ybw, /bw, 7bw und Fbw; Zo& Bertgang, Zo6&, Zo@, Zo£ und Zoë@; dab er, dal das, dal3 sie, dab „der, Dal Monte; er mub, dab",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, das Vbw, Vbw und Vbw; Zoë Bertgang; daß er, daß das, daß sie, daß „der, Dal Monte; er muß, daß",
+      "Jones, das Vbw, Vbw, Vbw und Vbw; Zoë Bertgang, Zoë, Zoë, Zoë und Zoë; daß er, daß das, daß sie, daß „der, Dal Monte; er muß, daß",
     );
   });
 
   it("reads W read as a backslash and V, Es read as Fs, und and wir misread", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, \\Vie Sie wissen, \\nur so; Fs gibt Kunst nnd Sprache uud wif.",
+      "Jones, \\Vie Sie wissen, \\nur so; Fs gibt Kunst nnd Sprache uud wif; er sel ünd äus, zü.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, Wie Sie wissen, nur so; Es gibt Kunst und Sprache und wir.",
+      "Jones, Wie Sie wissen, nur so; Es gibt Kunst und Sprache und wir; er sei und aus, zu.",
     );
   });
 
@@ -2513,7 +2522,7 @@ describe("parseArchiveOcrWork, signs the Fraktur model misreads", () => {
     );
 
     expect(units.at(-1)?.paragraphs.at(-2)).toBe(
-      "Das Kapital 80 c + 20 v gibt 110 = 100 + 10 £, Hope & Co., Zo6& 4; 130 £ (10), 300 £; von 1820 „Principles“ 1696“ seit.",
+      "Das Kapital 80 c + 20 v gibt 110 = 100 + 10 £, Hope & Co., Ab6& 4; 130 £ (10), 300 £; von 1820 „Principles“ 1696“ seit.",
     );
   });
 });

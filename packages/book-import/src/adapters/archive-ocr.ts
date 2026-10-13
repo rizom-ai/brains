@@ -952,13 +952,19 @@ function normalised(text: string): string {
       // A W read as a backslash and a V; a backslash before a word is a speck.
       .replace(/\\V(?=\p{L})/gu, "W")
       .replace(/\\(?=\p{Ll})/gu, "")
-      // Es read as Fs, und as nnd or uud, wir as wif.
+      // Es read as Fs, und as nnd or uud, wir as wif;
       .replace(/(?<![\p{L}])Fs(?= \p{Ll})/gu, "Es")
       .replace(/(?<![\p{L}])(?:nnd|uud)(?![\p{L}])/gu, "und")
       .replace(/(?<![\p{L}])wif(?![\p{L}])/gu, "wir")
+      // sei, und, aus and zu read with a speck: sel, ünd, äus, zü.
+      .replace(
+        /(?<= )(?:sel|ünd|äus|zü)(?![\p{L}])/gu,
+        (word) =>
+          ({ sel: "sei", ünd: "und", äus: "aus", zü: "zu" })[word] ?? word,
+      )
       // Freud's italic Vbw, the Gradiva's Zoë, and daß and muß, which the OCR misreads.
-      .replace(/(?<![\p{L}\d])[YF/](?=bw(?![\p{L}]))/gu, "V")
-      .replace(/(?<![\p{L}])Zo&/gu, "Zoë")
+      .replace(/(?<![\p{L}\d])[YF/7](?=bw(?![\p{L}]))/gu, "V")
+      .replace(/(?<![\p{L}])Zo(?:6?&|@|£|ë@)/gu, "Zoë")
       .replace(/(?<![\p{L}])(?:da[bl]|dal3)(?= [\p{Ll}„]|$)/gu, "daß")
       .replace(/(?<![\p{L}])mub(?=[ ,.;]|$)/gu, "muß")
       // An umlaut standing alone is a speck the facing page left.
