@@ -11,8 +11,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",
-    "drizzle-orm": "^0.45.2",
-    "gray-matter": "^4.0.3"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

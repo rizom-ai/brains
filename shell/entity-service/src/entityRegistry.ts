@@ -617,8 +617,7 @@ export class EntityRegistry implements IEntityRegistry {
     metadata: Record<string, unknown>,
     invalid: InvalidFieldPolicy,
   ): Record<string, unknown> {
-    // One parse feeds both projections; a bulk pass sees each row once, so it
-    // must not leave the document in gray-matter's process-lifetime cache.
+    // One stateless parse feeds both projections without retaining documents.
     const source = parseMarkdownWithFrontmatter(
       content,
       z.record(z.string(), z.unknown()),
