@@ -88,7 +88,13 @@ describe("registerKnowledgeMapDashboardWidget", () => {
       );
     const context = createEntityPluginContext(shell, "topics");
 
-    registerKnowledgeMapDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () =>
+        context.entityService
+          .getEntityTypes()
+          .filter((type) => type !== "topic"),
+    });
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
@@ -185,7 +191,13 @@ describe("registerKnowledgeMapDashboardWidget", () => {
         },
       );
     const context = createEntityPluginContext(shell, "topics");
-    registerKnowledgeMapDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () =>
+        context.entityService
+          .getEntityTypes()
+          .filter((type) => type !== "topic"),
+    });
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
@@ -268,7 +280,13 @@ describe("registerKnowledgeMapDashboardWidget", () => {
       );
     const context = createEntityPluginContext(shell, "topics");
 
-    registerKnowledgeMapDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () =>
+        context.entityService
+          .getEntityTypes()
+          .filter((type) => type !== "topic"),
+    });
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},

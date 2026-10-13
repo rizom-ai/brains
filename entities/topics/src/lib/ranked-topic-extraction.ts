@@ -21,10 +21,10 @@ import {
   type TopicVoteResponse,
 } from "../schemas/votes";
 import {
-  includesTopicSourceType,
   isTopicSourceEligible,
   topicSourcePolicy,
   topicSourceTitle,
+  topicSourceTypes,
 } from "./topic-source-policy";
 import {
   chooseTopicChallenger,
@@ -42,7 +42,7 @@ import { TopicService } from "./topic-service";
 import { TopicMergeSynthesizer } from "./topic-merge-synthesizer";
 import {
   SOURCES_PER_TOPIC,
-  ownerlessTopics,
+  duplicateTopics,
   type TopicNeighbourhood,
 } from "./topic-ownership";
 import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
@@ -146,16 +146,7 @@ async function readSources(
   signal: AbortSignal,
 ): Promise<SourceRef[]> {
   signal.throwIfAborted();
-  const types = context.entityService
-    .getEntityTypes()
-    .filter((type) => {
-      const typeConfig = context.entityService.getEntityTypeConfig(type);
-      return (
-        includesTopicSourceType(type, config, typeConfig) &&
-        topicSourcePolicy(type, config, typeConfig).weight > 0
-      );
-    })
-    .sort();
+  const types = topicSourceTypes(context.entityService, config);
   const refs: SourceRef[] = [];
   for (const entityType of types) {
     refs.push(...(await readSourcePages(context, config, entityType, signal)));
@@ -491,12 +482,11 @@ export function createRankedTopicJobHandler(
           }
         };
 
-        // A topic that owns none of its nearest sources covers no ground of
-        // its own: it joins the topic owning most of them, its votes with it.
-        const mergeOwnerless = async (): Promise<void> => {
-          const types = [
-            ...new Set(sources.map(({ entityType }) => entityType)),
-          ];
+        // A topic that owns none of its nearest sources, most of them owned
+        // by one other topic, duplicates it: it joins that topic, its votes
+        // with it. A broad topic whose sources are spread stays.
+        const mergeDuplicates = async (): Promise<void> => {
+          const types = topicSourceTypes(context.entityService, config);
           if (types.length === 0) return;
           let neighbourhoods: TopicNeighbourhood[];
           try {
@@ -516,7 +506,7 @@ export function createRankedTopicJobHandler(
             if (error instanceof SemanticIndexingDisabledError) return;
             throw error;
           }
-          for (const { topicId, into } of ownerlessTopics(neighbourhoods)) {
+          for (const { topicId, into } of duplicateTopics(neighbourhoods)) {
             signal.throwIfAborted();
             const topic = active.find(({ id }) => id === topicId);
             const owner = active.find(({ id }) => id === into);
@@ -555,7 +545,7 @@ export function createRankedTopicJobHandler(
           }
           if (config.autoMerge && allRead()) {
             await mergeNearDuplicates();
-            await mergeOwnerless();
+            await mergeDuplicates();
           }
           while (allRead() && active.length > ceiling()) {
             signal.throwIfAborted();

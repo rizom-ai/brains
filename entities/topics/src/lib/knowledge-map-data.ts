@@ -128,12 +128,16 @@ export interface KnowledgeMapDataContext {
       entities?: EntityReference[];
     }): Promise<ProjectionResult>;
   };
+  /**
+   * The entity types topics are drawn from: a large corpus is counted and
+   * each topic's nearest sources are measured among these alone.
+   */
+  sourceTypes(): Promise<string[]>;
   entityService: {
     listEntities(request: {
       entityType: string;
       options: { filter: { visibilityScope: ContentVisibility } };
     }): Promise<ListedEntity[]>;
-    getEntityTypes(): string[];
     countEntities(request: {
       entityType: string;
       options: { filter: { visibilityScope: ContentVisibility } };
@@ -401,9 +405,7 @@ export async function buildKnowledgeMapData(
     include?: EntityReference[];
   } = {},
 ): Promise<KnowledgeMapData> {
-  const sourceTypes = context.entityService
-    .getEntityTypes()
-    .filter((type) => type !== TOPIC_TYPE);
+  const sourceTypes = await context.sourceTypes();
   const sources = (
     await Promise.all(
       sourceTypes.map((entityType) =>
