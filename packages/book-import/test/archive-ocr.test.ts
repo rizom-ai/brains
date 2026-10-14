@@ -474,11 +474,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads a year the OCR set with a g between its figures", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, 18g91, Ende 18g92 und I, 19g13; 1g, 17g01.",
+      "Jones, 18g91, Ende 18g92 und I, 19g13, ig918. ig119, ig111) ig235; 1g, 17g01.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, 1891, Ende 1892 und I, 1913; 1g, 17g01.",
+      "Jones, 1891, Ende 1892 und I, 1913, 1918. 1919, 1911) ig235; 1g, 17g01.",
     );
   });
 

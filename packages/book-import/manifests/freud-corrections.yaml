@@ -879,6 +879,14 @@ freud-1940-gw-13:
     from: mit. einem
     to: mit einem
     by: scan
+  - page: 435
+    from: Am 2o. Jänner
+    to: Am 20. Jänner
+    by: scan
+  - page: 435
+    from: bieten kon
+    to: bieten zu
+    by: scan
 freud-1940-gw-6:
   - page: 2
     from: A are
@@ -2666,7 +2674,7 @@ freud-1940-gw-9:
     to: jecture“,
     by: scan
   - page: 133
-    from: Folk-Lore XXI, ig110. (Referat in
+    from: Folk-Lore XXI, 1910. (Referat in
     to: Folk-Lore XXIII, 1910. Referat in
     by: reference
   - page: 133
@@ -4220,10 +4228,6 @@ freud-1941-gw-4:
   - page: 141
     from: Namens Kar).
     to: Namens Karl).
-    by: scan
-  - page: 143
-    from: III, ig915,
-    to: III, 1915,
     by: scan
   - page: 144
     from: N
@@ -9883,10 +9887,6 @@ freud-1942-gw-5:
     from: 2) Vgl. hiezu das auf S. ior über di bj nrai
     to: "2) Vgl. hiezu das auf S. 101 über die Objektwahl des Kindes Gesagte: die"
     by: scan
-  - page: 127
-    from: Tabu ig913,
-    to: Tabu 1913,
-    by: scan
   - page: 128
     from: Vergleiche die Ausführun gen über das
     to: Vergleiche die Ausführungen über das
@@ -11040,6 +11040,10 @@ freud-1943-gw-8:
     from: immt sind. ($. 18)
     to: immt sind. (S. 18)
     by: scan
+  - page: 220
+    from: dum-a, ®vuos —
+    to: dum-a, ϑυμος —
+    by: scan
   - page: 221
     from: zu. folgen
     to: zu folgen
@@ -11052,9 +11056,21 @@ freud-1943-gw-8:
     from: N&vroses
     to: Névroses
     by: scan
+  - page: 232
+    from: des Rea litätsprinzips
+    to: des Realitätsprinzips
+    by: scan
   - page: 234
     from: F olge
     to: Folge
+    by: scan
+  - page: 234
+    from: nicht iri die
+    to: nicht in die
+    by: scan
+  - page: 236
+    from: bringt aif einem
+    to: bringt auf einem
     by: scan
   - page: 241
     from: daB
@@ -11275,6 +11291,10 @@ freud-1943-gw-8:
   - page: 295
     from: Zürich und $. Fer
     to: Zürich und S. Fer
+    by: scan
+  - page: 296
+    from: 910, 3. Aufl. ig235.
+    to: 1910, 3. Aufl. 1923.
     by: scan
   - page: 299
     from: daB
@@ -11613,9 +11633,73 @@ freud-1946-gw-10:
     from: daB
     to: daß
     by: scan
+  - page: 118
+    from: aissance (,‚deja raconte“)
+    to: aissance (,‚déjà raconte“)
+    by: scan
+  - page: 118
+    from: "„deja vu“), ohne "
+    to: "„déjà vu“), ohne "
+    by: scan
+  - page: 118
+    from: hänomen des deja
+    to: hänomen des déjà
+    by: scan
+  - page: 118
+    from: ", welche im deja vu eine Äuß"
+    to: ", welche im déjà vu eine Äuß"
+    by: scan
+  - page: 118
+    from: klärung des deja vu
+    to: klärung des déjà vu
+    by: scan
+  - page: 118
+    from: nsation du „deja vu“, (Journ
+    to: nsation du „déjà vu“, (Journ
+    by: scan
+  - page: 118
+    from: ohne ‘daß man je in die ‚Lage
+    to: ohne daß man je in die Lage
+    by: scan
+  - page: 119
+    from: n Falle von deja
+    to: n Falle von déjà
+    by: scan
+  - page: 119
+    from: welcher das deja vu auftrat,
+    to: welcher das déjà vu auftrat,
+    by: scan
+  - page: 119
+    from: ß der Name „deja vu“ für ein
+    to: ß der Name „déjà vu“ für ein
+    by: scan
+  - page: 119
+    from: t, für ein „deja entendu“, e
+    to: t, für ein „déjà entendu“, e
+    by: scan
+  - page: 119
+    from: endu“, ein „deja
+    to: endu“, ein „déjà
+    by: scan
+  - page: 119
+    from: ouve“, ein „deja senti“. Der
+    to: ouve“, ein „déjà senti“. Der
+    by: scan
+  - page: 119
+    from: nthält ein „deja raconte“,
+    to: nthält ein „déjà raconté“,
+    by: scan
   - page: 120
     from: daß. ich
     to: daß ich
+    by: scan
+  - page: 120
+    from: aissance (,‚deja raconte“)
+    to: aissance (,‚déjà raconte“)
+    by: scan
+  - page: 120
+    from: noch aan der
+    to: noch an der
     by: scan
   - page: 121
     from: dieser. kleinen
@@ -11624,6 +11708,10 @@ freud-1946-gw-10:
   - page: 121
     from: sein. dürfte
     to: sein dürfte
+    by: scan
+  - page: 122
+    from: aissance („‚deja raconte“)
+    to: aissance („‚déjà raconte“)
     by: scan
   - page: 128
     from: In. diesen
@@ -12923,9 +13011,17 @@ freud-1948-gw-14:
     from: sonst. als
     to: sonst als
     by: scan
+  - page: 315
+    from: "KEG: ish ei N Me"
+    to: ""
+    by: scan
   - page: 321
     from: Moses. des
     to: Moses, des
+    by: scan
+  - page: 321
+    from: (Nr. CCXVH, Vol. XXXVIL,
+    to: (Nr. CCXVII, Vol. XXXVIII.,
     by: scan
   - page: 333
     from: Bei. den
@@ -12943,9 +13039,21 @@ freud-1948-gw-14:
     from: F ähigkeit
     to: Fähigkeit
     by: scan
+  - page: 394
+    from: believe, deu rechten
+    to: believe, den rechten
+    by: scan
   - page: 395
     from: frommenKollegen
     to: frommen Kollegen
+    by: scan
+  - page: 395
+    from: weckt a Abe die
+    to: weckt in ihm die
+    by: scan
+  - page: 395
+    from: Mißhandlung, wa er
+    to: Mißhandlung, was der
     by: scan
   - page: 399
     from: daB
@@ -13051,6 +13159,14 @@ freud-1952-gw-1:
   - page: 20
     from: N ur
     to: Nur
+    by: scan
+  - page: 24
+    from: „La theorie, c’est bon, mais ga
+    to: „La théorie, c’est bon, mais ça
+    by: scan
+  - page: 24
+    from: n’empeche pas d’exister.“ |
+    to: n’empêche pas d’exister.“
     by: scan
   - page: 31
     from: daB
@@ -14020,10 +14136,6 @@ freud-1950-gw-16:
   - page: 235
     from: er Ausgabe, $. 97.
     to: er Ausgabe, S. 97.
-    by: scan
-  - page: 239
-    from: Im Jahre ig912
-    to: Im Jahre 1912
     by: scan
   - page: 244
     from: J udentum

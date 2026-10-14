@@ -936,6 +936,8 @@ function normalised(text: string): string {
       )
       // A year read with a g between its century and its decade: 18g91.
       .replace(/(?<![\p{L}\d])(1[89])g(\d{2})(?![\p{L}\d])/gu, "$1$2")
+      // Or with 19 read as ig and its 9 or 1 read twice: ig918, ig119.
+      .replace(/(?<![\p{L}\d])ig[91](\d{2})(?![\p{L}\d])/gu, "19$1")
       // A first read as i before a month or a volume's part; d. i. is "that is".
       .replace(
         /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
