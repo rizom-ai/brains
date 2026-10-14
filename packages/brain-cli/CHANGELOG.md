@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- [#636](https://github.com/rizom-ai/brains/pull/636) [`37e7602`](https://github.com/rizom-ai/brains/commit/37e7602b6db26eeff2f3db48bee6a898b2b187b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site build may run for 30 minutes: Karl's 4,198 pages took 11 minutes, past the previous 10-minute deadline.
+
 ## 0.2.0-alpha.550
 
 ### Patch Changes
