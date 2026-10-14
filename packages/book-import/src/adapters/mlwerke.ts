@@ -104,11 +104,12 @@ const NOTES_HEADING =
  * The same set as a paragraph of its own; Anmerkung alone stays text, for
  * Marx quotes Hegel's paragraphs and their Anmerkungen.
  */
-const NOTES_PARAGRAPH = /^(?:Redaktionelle\s+\S+|Fu(?:ß|ss)noten?\b)/i;
-/** Notes the authors wrote, not the editors: Fußnoten von Marx. */
-const AUTHORS_NOTES = /\bvon\s+(?:Marx|Engels)\b/i;
-/** A note's mark as a link shows it: [7*], [20], (1), A. */
-const NOTE_MARK = /^\s*[[(]?[\p{L}\d]{1,3}\*?[\])]?\.?\s*$/u;
+const NOTES_PARAGRAPH =
+  /^(?:Redaktionelle\s+\S+|Fu(?:ß|ss)noten?\b|Textvarianten\b)/i;
+/** Notes the authors wrote, not the editors: Fußnoten von (Karl) Marx. */
+const AUTHORS_NOTES = /\bvon\s+(?:(?:Karl|Friedrich)\s+)?(?:Marx|Engels)\b/i;
+/** A note's mark as a link shows it: [7*], [20], (1), {1}, A. */
+const NOTE_MARK = /^\s*[[({]?[\p{L}\d]{1,3}\*?[\])}]?\.?\s*$/u;
 /** A link to the page that gathers a volume's editors' notes: me03_anm.htm#M3. */
 const EDITORS_NOTES_PAGE = /_anm\.htm#/i;
 /** A MEW page number set in the text: <471>. */
@@ -222,9 +223,22 @@ function inlineText(node: Node, reading: Reading): string {
   return EMPHASIS.has(name) ? emphasised(inner) : inner;
 }
 
+/**
+ * A run between bars, as the older pages set the editors' glosses and a
+ * manuscript's numbers alike: |Zuhörerschaft|, |II|.
+ */
+const BARRED_RUN = /\|(\*?\p{L}(?:[^|\n]{0,60}?[^\s|])?)\|/gu;
+
+/** The editors' glosses in MEW's angle brackets, as the newer pages give them; a manuscript's numbers, in capitals, stay barred. */
+function angledGlosses(text: string): string {
+  return text.replace(BARRED_RUN, (run, inner: string) =>
+    /\p{Ll}/u.test(inner) ? `⟨${inner}⟩` : run,
+  );
+}
+
 function spaced(text: string): string {
   return germanQuotes(
-    mergedEmphasis(text)
+    angledGlosses(mergedEmphasis(text))
       .replace(/\s+/g, " ")
       .replace(/\s+([,.;:!?)])/g, "$1")
       .trim(),
@@ -367,13 +381,23 @@ function headingKind(element: Element): "part" | "section" | null {
 }
 
 /**
+ * The editors' lines above a work the oldest pages set as text: when it was
+ * written, and where it appeared, bracketed.
+ */
+const EDITORS_HEADER = /^(?:Geschrieben\s.{0,150}\d{4}\.?|\[[^\]]*\d{4}\.?\])$/;
+
+/**
  * The oldest pages' own apparatus set as text: the edition the page numbers
- * follow, the transcription's date, and the links to the work's other pages.
+ * follow, the transcription's date, the editors' header and the links to the
+ * work's other pages.
  */
 function isSiteApparatus(element: Element): boolean {
   const text = element.textContent.trim();
   if (
-    /^(?:Seitenzahlen verweisen auf|\d+\.\s*Korrektur|Erstellt am)/.test(text)
+    /^(?:Seitenzahlen verweisen auf|\d+\.\s*Korrektur|Erstellt am)/.test(
+      text,
+    ) ||
+    EDITORS_HEADER.test(text)
   ) {
     return true;
   }
@@ -426,7 +450,8 @@ function notesOf(blocks: Element[]): {
  * The oldest pages' markup made sound: a heading set in large type at the
  * centre made a heading, the type sizes dropped, and bold or emphasis opened before a
  * paragraph moved into it, which would otherwise close the paragraph at its
- * page number and leave the text after it out.
+ * page number and leave the text after it out; a note's mark nested in the
+ * link to its note, which HTML cannot nest, set as the link.
  */
 function sound(html: string): string {
   return html
@@ -435,7 +460,11 @@ function sound(html: string): string {
       "<H3>$1</H3>",
     )
     .replace(/<\/?FONT[^>]*>/gi, "")
-    .replace(/<(B|EM|I|STRONG|U)>(\s*)<P([^>]*)>/gi, "<P$3>$2<$1>");
+    .replace(/<(B|EM|I|STRONG|U)>(\s*)<P([^>]*)>/gi, "<P$3>$2<$1>")
+    .replace(
+      /<A\s+HREF="(#[^"]*)"\s*>\s*<A\s+NAME="[^"]*"\s*>([^<]*)<\/A>\s*<\/A>/gi,
+      '<A HREF="$1">$2</A>',
+    );
 }
 
 /** Read one page into the reading: headings, paragraphs, the authors' notes. */

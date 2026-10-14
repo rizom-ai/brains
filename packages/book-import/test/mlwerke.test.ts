@@ -79,6 +79,36 @@ describe("parseMlwerkePages", () => {
     ).toEqual(["Vorstellungen. Wie oben (p. [31-33])."]);
   });
 
+  it("keeps the notes of Karl Marx and leaves out the editors' dating, source and text variants", () => {
+    const page = `<H1>Inauguraladresse</H1><FONT SIZE=2><P>Geschrieben zwischen dem 21. und 27. Oktober 1864.</P></FONT><P><HR></P><FONT SIZE=2><P>["Der Social-Demokrat" Nr. 2 und 3 vom 21. und 30. Dezember 1864]<I> </P></I></FONT><B><P><A NAME="S5">|5|</A></B> Heruntergebracht.<A HREF="#F1"><A name="ZF1">(1)</A></A> Des Kapitals <A HREF="#T1"><A name="ZT1">{1}</A></A> stand bevor.</P><P><HR></P><P>Fu&szlig;noten von Karl Marx</P><P><A name="F1">(1)</A> Wir brauchen den Leser. <A HREF="#ZF1">&lt;=</A></P><HR><P>Textvarianten</P><P><A name="T1">{1} </A>Im englischen Text: des Besitzes <A HREF="#ZT1">&lt;=</A></P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], {
+        citation: "Inauguraladresse",
+      }).map((unit) => [unit.title, unit.section, unit.paragraphs]),
+    ).toEqual([
+      [
+        "Inauguraladresse, 5",
+        "Inauguraladresse, 5",
+        [
+          "Heruntergebracht.1) Des Kapitals stand bevor.",
+          "1) Wir brauchen den Leser.",
+        ],
+      ],
+    ]);
+  });
+
+  it("sets the editors' glosses the older pages bar as MEW's angle brackets, a manuscript's numbers as they stand", () => {
+    const page = `<H3>Lohn</H3><P>&lt;5&gt;seine Audienz |Zuh&ouml;rerschaft| durch, |<I>in Wirklichkeit</I>| so.</P><P>|II|Arbeitslohn ist|III| so, ||I| fort.</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], work)[0]?.paragraphs,
+    ).toEqual([
+      "seine Audienz ⟨Zuhörerschaft⟩ durch, ⟨*in Wirklichkeit*⟩ so.",
+      "|II|Arbeitslohn ist|III| so, ||I| fort.",
+    ]);
+  });
+
   it("opens a quotation the emphasis opens with it", () => {
     const page = `<H3>Grün</H3><P>&lt;480&gt;ihre <I>"Auflösung"</I> und <I>"so</I> weiter" (2).</P>`;
 

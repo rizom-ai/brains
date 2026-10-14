@@ -30,9 +30,6 @@ gaps:
   - title: Briefe an Engels 1854–1883
     year: 1854
     reason: of the second to fourth volumes of the Briefwechsel (1913), only the third is identified among the Internet Archive's scans
-  - title: Inauguraladresse der Internationalen Arbeiter-Assoziation
-    year: 1864
-    reason: no scan of a German edition found on the Internet Archive
   - title: Lohn, Preis und Profit
     year: 1865
     reason: no scan of the German edition (1908) found on the Internet Archive, which holds only a recording
@@ -195,6 +192,19 @@ books:
     edition: "Marx-Engels-Werke, Band 14 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 381–686"
     author: Karl Marx
     year: 1860
+    kind: work
+  - source: mlwerke
+    # MEW 16 (1962, 6th printing 1975) as mlwerke.de published it, from the
+    # Internet Archive's last capture: the German text of Der Social-Demokrat
+    # of December 1864, the editors' variants from the English left out.
+    pages:
+      - https://web.archive.org/web/20150902095155id_/http://www.mlwerke.de:80/me/me16/me16_005.htm
+    citation: Inauguraladresse
+    slug: inauguraladresse-der-internationalen-arbeiter-assoziation
+    title: Inauguraladresse der Internationalen Arbeiter-Assoziation
+    edition: "Marx-Engels-Werke, Band 16 (Berlin, Dietz, 1962; 6. Auflage 1975), S. 5–13"
+    author: Karl Marx
+    year: 1864
     kind: work
   - source: mlwerke
     # MEW 3 (1969) as mlwerke.de published it, from the Internet Archive's
