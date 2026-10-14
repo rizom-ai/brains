@@ -20,7 +20,7 @@ The EPUB is a format of a registered view template, like the printable PDF and t
 4. **Site.** On every site build, the book plugin renders each public book with sections through `book:epub` and writes it to `/books/<id>.epub` in the build staging directory, as the blog writes its feed. The file always matches the pages built with it, and nothing binary is stored or committed. A failure fails the build, so the previous generation stays live.
 5. **Title page.** A book with sections links to its EPUB opposite `Begin reading →`.
 
-The texts' licences allow this. Public-domain and CC BY-SA texts can be redistributed freely. CC BY-NC-ND 4.0 permits verbatim non-commercial redistribution in another format, with the attribution and licence notice carried in the colophon.
+The texts' licenses allow this. Public-domain and CC BY-SA texts can be redistributed freely. CC BY-NC-ND 4.0 permits verbatim non-commercial redistribution in another format, with the attribution and license notice carried in the colophon.
 
 ## Phases
 
@@ -31,5 +31,5 @@ The texts' licences allow this. Public-domain and CC BY-SA texts can be redistri
    - the site build writes the file;
    - the title page links to it only for a book with sections.
 2. **Structure.** Navigation nests by section headings, each heading opens once in the text, and split sections join into one chapter. The text is German, as on the book pages. Tests on a book with headings and a split section.
-3. **Colophon and metadata.** Edition, source, attribution and licence on a colophon page and in the package metadata; the same book yields the same bytes. Tests for each field and for byte equality.
+3. **Colophon and metadata.** Edition, source, attribution and license on a colophon page and in the package metadata; the same book yields the same bytes. Tests for each field and for byte equality.
 4. **Friedrich.** Generate all 26 books, check that each opens in an EPUB reader, and link them from their title pages.
