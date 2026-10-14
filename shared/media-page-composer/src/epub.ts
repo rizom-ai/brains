@@ -1,7 +1,7 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { strToU8, zipSync, type Zippable } from "fflate";
 import type { ViewTemplate } from "@brains/plugins";
+import { zip } from "./zip";
 
 /** What the package says about the publication. */
 export interface EpubMetadata {
@@ -15,7 +15,7 @@ export interface EpubMetadata {
   modified: string;
   /** Where the text comes from, e.g. the edition's URL. */
   source?: string | undefined;
-  /** The licence and attribution the text is distributed under. */
+  /** The license and attribution the text is distributed under. */
   rights?: string | undefined;
 }
 
@@ -45,7 +45,7 @@ interface NavNode {
  * A chapter opens where the EPUB component marks one, as
  * `<section data-epub-chapter="Title" data-epub-headings="[\"Part\"]">`.
  */
-const CHAPTER_OPEN = /<section\b[^>]*\sdata-epub-chapter="[^"]*"[^>]*>/g;
+const CHAPTER_MARK = /\sdata-epub-chapter="/;
 const ATTRIBUTE = (name: string): RegExp => new RegExp(`\\s${name}="([^"]*)"`);
 const SECTION_TAG = /<(\/?)section\b[^>]*>/g;
 /** HTML's void elements; XHTML closes each. */
@@ -86,24 +86,47 @@ function closeVoidElements(markup: string): string {
   return markup.replace(VOID_ELEMENT, "<$1$2 />");
 }
 
-/** Where the section opening at `start` closes, counting nested sections. */
-function sectionEnd(markup: string, start: number): number {
-  const tags = [...markup.slice(start).matchAll(SECTION_TAG)];
-  const depths = tags.reduce<number[]>(
-    (all, tag) => [...all, (all.at(-1) ?? 0) + (tag[1] ? -1 : 1)],
-    [],
-  );
-  const closing = tags[depths.findIndex((depth) => depth === 0)];
-  if (!closing) throw new Error("An EPUB chapter is never closed");
-  return start + closing.index + closing[0].length;
+/** Where a marked chapter opened, while its section is open. */
+interface OpenChapter {
+  tag: string;
+  start: number;
+  /** The section depth the chapter opened at. */
+  depth: number;
 }
 
+/**
+ * The marked chapters in reading order, found in one pass over the section
+ * tags: a chapter closes where its own section does, however deeply its text
+ * nests sections. A book of thousands of chapters splits in linear time.
+ */
 function chaptersOf(markup: string): Chapter[] {
-  return [...markup.matchAll(CHAPTER_OPEN)].map((open) => ({
-    title: attributeValue(open[0], "data-epub-chapter") ?? "",
-    headings: headingsOf(open[0]),
-    markup: markup.slice(open.index, sectionEnd(markup, open.index)),
-  }));
+  const walk = [...markup.matchAll(SECTION_TAG)].reduce<{
+    depth: number;
+    open: OpenChapter | undefined;
+    chapters: Chapter[];
+  }>(
+    (state, tag) => {
+      if (!tag[1]) {
+        if (!state.open && CHAPTER_MARK.test(tag[0]))
+          state.open = { tag: tag[0], start: tag.index, depth: state.depth };
+        state.depth += 1;
+        return state;
+      }
+      state.depth -= 1;
+      if (state.open?.depth === state.depth) {
+        state.chapters.push({
+          title: attributeValue(state.open.tag, "data-epub-chapter") ?? "",
+          headings: headingsOf(state.open.tag),
+          markup: markup.slice(state.open.start, tag.index + tag[0].length),
+        });
+        state.open = undefined;
+      }
+      return state;
+    },
+    { depth: 0, open: undefined, chapters: [] },
+  );
+  if (walk.open) throw new Error("An EPUB chapter is never closed");
+  return walk.chapters;
 }
 
 function xhtmlDocument(title: string, language: string, body: string): string {
@@ -215,24 +238,32 @@ export function renderEpub(options: RenderEpubOptions): Uint8Array {
   }
   const { metadata } = options;
 
-  const files: Zippable = {
-    // The first entry, stored uncompressed: how readers recognise an EPUB.
-    mimetype: [strToU8("application/epub+zip"), { level: 0 }],
-    "META-INF/container.xml": strToU8(CONTAINER),
-    "OEBPS/content.opf": strToU8(packageDocument(metadata, chapters.length)),
-    "OEBPS/nav.xhtml": strToU8(navigationDocument(metadata, chapters)),
-    ...Object.fromEntries(
-      chapters.map((chapter, i) => [
-        `OEBPS/chapter-${i + 1}.xhtml`,
-        strToU8(
+  const encoder = new TextEncoder();
+  const file = (
+    name: string,
+    text: string,
+  ): { name: string; data: Uint8Array } => ({
+    name,
+    data: encoder.encode(text),
+  });
+  return zip(
+    [
+      // The first entry, stored uncompressed: how readers recognise an EPUB.
+      { ...file("mimetype", "application/epub+zip"), store: true },
+      file("META-INF/container.xml", CONTAINER),
+      file("OEBPS/content.opf", packageDocument(metadata, chapters.length)),
+      file("OEBPS/nav.xhtml", navigationDocument(metadata, chapters)),
+      ...chapters.map((chapter, i) =>
+        file(
+          `OEBPS/chapter-${i + 1}.xhtml`,
           xhtmlDocument(
             escapeXml(chapter.title),
             metadata.language,
             closeVoidElements(chapter.markup),
           ),
         ),
-      ]),
-    ),
-  };
-  return zipSync(files, { level: 9, mtime: new Date(metadata.modified) });
+      ),
+    ],
+    new Date(metadata.modified),
+  );
 }

@@ -37,6 +37,11 @@ export class SiteBuilder implements ISiteBuilder {
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private outputLifecycle: SiteBuildOutputLifecycle | undefined;
   private readonly activeBuilds = new Map<string, ActiveSiteBuild>();
+  /**
+   * Builds take turns: a build starts once the builds admitted before it
+   * have settled, so two environments never hold a build's memory at once.
+   */
+  private turn: Promise<unknown> = Promise.resolve();
 
   /**
    * Set the default static site builder factory for all instances
@@ -99,14 +104,18 @@ export class SiteBuilder implements ISiteBuilder {
     const signal = options.signal
       ? AbortSignal.any([controller.signal, options.signal])
       : controller.signal;
-    const promise = runSiteBuild({
-      buildOptions: options,
-      progress,
-      pipelineContext: this.pipelineContext,
-      staticSiteBuilderFactory: this.staticSiteBuilderFactory,
-      ...(this.outputLifecycle && { outputLifecycle: this.outputLifecycle }),
-      signal,
-    });
+    // A build superseded or cancelled while it waits runs only to cancel.
+    const promise = this.turn.then(() =>
+      runSiteBuild({
+        buildOptions: options,
+        progress,
+        pipelineContext: this.pipelineContext,
+        staticSiteBuilderFactory: this.staticSiteBuilderFactory,
+        ...(this.outputLifecycle && { outputLifecycle: this.outputLifecycle }),
+        signal,
+      }),
+    );
+    this.turn = promise.catch(() => undefined);
     const activeBuild = { controller, promise };
     this.activeBuilds.set(environment, activeBuild);
 

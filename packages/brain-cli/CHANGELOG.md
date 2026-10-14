@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- [#630](https://github.com/rizom-ai/brains/pull/630) [`9d69e23`](https://github.com/rizom-ai/brains/commit/9d69e23a60a88de3732047af853c6d789906b8e2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A books site's work horizon fits its page: a long run of years without books folds into one break, year labels stand only under years with books and never widen the axis, the horizon appears from the narrowest screen its spines fit, and a shelf too crowded for full spines narrows them and leaves their titles to hover and the year list.
+
+- [#631](https://github.com/rizom-ai/brains/pull/631) [`2ad1b13`](https://github.com/rizom-ai/brains/commit/2ad1b13148f8edb7912327d96b0af8426a4bb067) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An EPUB's chapters are split in one pass, so a book of thousands of sections renders in a fraction of a second instead of blocking the worker.
+
 ## 0.2.0-alpha.546
 
 ### Patch Changes

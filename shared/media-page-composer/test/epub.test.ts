@@ -196,4 +196,21 @@ describe("renderEpub", () => {
       ].join(""),
     );
   });
+
+  it("renders a book of thousands of chapters without stalling", () => {
+    const many: Book = {
+      title: "Langes Buch",
+      chapters: Array.from({ length: 3000 }, (_, index) => ({
+        title: `Abschnitt ${index + 1}`,
+        html: `<p>${"Wort ".repeat(100)}</p>`,
+      })),
+    };
+    const started = performance.now();
+    const files = unzipSync(
+      renderEpub({ template: book, content: many, metadata }),
+    );
+
+    expect(performance.now() - started).toBeLessThan(3000);
+    expect(files["OEBPS/chapter-3000.xhtml"]).toBeDefined();
+  });
 });
