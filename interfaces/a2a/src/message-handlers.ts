@@ -5,7 +5,7 @@ import {
   z,
   type AnySubscriptionDefinition,
 } from "@brains/sdk/interfaces";
-import { executeAgentCall, type A2AClientDeps } from "./client";
+import { executeAgentCall, agentCallError, type A2AClientDeps } from "./client";
 
 const askAgentMessageSchema = z.object({
   agent: z.string().trim().min(1).max(253),
@@ -58,7 +58,7 @@ export function a2aSubscriptions(
             throw new SdkError("permission_denied", {
               publicMessage: result.error,
             });
-          throw new Error(result.error);
+          throw agentCallError(result);
         }
         return result.data;
       },

@@ -36,6 +36,7 @@ import {
 } from "../service/reaction-context";
 import { createRuntimeTool } from "../service/tool-runtime";
 import { createInterfaceEntityAccess } from "./interface-entity-access";
+import { createPublicSources } from "../internal/public-sources";
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import { createInterfaceAvailabilityWriter } from "../internal/interface-availability";
 import {
@@ -174,6 +175,15 @@ class DeclarativeInterfacePlugin<
           entities: createInterfaceEntityAccess(
             context.entityService,
             this.definition.id,
+          ),
+          publicSources: createPublicSources(
+            createInterfaceEntityAccess(
+              context.entityService,
+              this.definition.id,
+            ),
+            context.siteUrl,
+            context.entityDisplay,
+            this.operatorAbort.signal,
           ),
           identity: createIdentityReader(context.identity),
           profileKinds: createProfileSelectionReader(context.profileKinds),

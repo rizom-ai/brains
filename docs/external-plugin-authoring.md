@@ -678,6 +678,18 @@ Service, generic-interface and message-interface setup may be async. Return the
 shared client/state and register its release with `lifecycle.onCleanup()`.
 Declaration callbacks receive the resolved state, independently per instance.
 
+Interface setup provides the named-consumer `publicSources.resolve(references,
+signal)` reader for A2A citation transport. It accepts at most twenty `{ entityType,
+id }` references, not supplied titles, provenance or visibility overrides. The host
+re-reads public, published records and checks the installed site's citation policy
+and per-record `citable` exclusion, then returns frozen, detached current titles and
+canonical HTTPS links. A2A repeats this check for task polling and replay. Cancellation
+or interface shutdown refuses admission/results; it cannot undo completed reads or
+previous disclosure. These checks are not an atomic publication snapshot or proof
+that a hosted page has been deployed. Peer attribution identifies the contacted
+HTTPS origin, not verified truth or remote publication status. Guest network tools,
+admission/spending policy and rollout remain separately gated.
+
 Service setup also provides the advanced, named-consumer
 `siteContributions.headScripts(signal?)` reader for Site Builder, with Analytics
 as its dynamic provider. It collects fresh worker-local string contributions in

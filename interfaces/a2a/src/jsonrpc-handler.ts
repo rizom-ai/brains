@@ -3,6 +3,13 @@ import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import type { AgentNamespace } from "@brains/sdk/plugins";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
+import type { AgentResponse } from "@brains/contracts";
+import {
+  publicTaskSources,
+  resolveAnswerSources,
+  sourceArtifact,
+  type PublicSourceReader,
+} from "./source-artifacts";
 import type { A2ATurnSupervisor } from "./turn-supervisor";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -96,6 +103,8 @@ export type JsonRpcRequestInput = z.input<typeof jsonrpcRequestSchema>;
 export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
   turnSupervisor: A2ATurnSupervisor;
+  publicSources?: PublicSourceReader;
+  signal?: AbortSignal;
   agentService: AgentNamespace;
   callerPermissionLevel: UserPermissionLevel;
   /** Whether the verified caller is configured as the brain's Anchor identity. */
@@ -163,7 +172,14 @@ async function handleSendMessage(
     messageId,
   );
   if (existing) {
-    return successResponse(id, existing.task);
+    return successResponse(
+      id,
+      await publicTaskSources(
+        existing.task,
+        context.publicSources,
+        context.signal ?? new AbortController().signal,
+      ),
+    );
   }
 
   // Create task and move to working
@@ -207,14 +223,7 @@ function processInBackground(
           },
           signal,
         );
-        if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
-          return;
-        }
-        context.taskManager.updateState(
-          taskId,
-          "completed",
-          agentResponse.text,
-        );
+        await completeTask(taskId, agentResponse, context, signal);
       } catch (error) {
         if (signal.aborted) return;
         const errorMessage = getErrorMessage(error, "Unknown error");
@@ -233,8 +242,15 @@ function processInBackground(
   );
 }
 
-function isTaskCanceled(taskId: string, taskManager: TaskManager): boolean {
-  return taskManager.getTask(taskId)?.task.status.state === "canceled";
+function isTaskCanceled(
+  taskId: string,
+  taskManager: TaskManager,
+  signal: AbortSignal,
+): boolean {
+  return (
+    signal.aborted ||
+    taskManager.getTask(taskId)?.task.status.state === "canceled"
+  );
 }
 
 function transitionTaskToCanceled(
@@ -312,7 +328,7 @@ export function handleStreamMessage(
   if (existing) {
     return {
       taskId: existing.task.id,
-      stream: taskSnapshotStream(requestId, existing.task),
+      stream: taskSnapshotStream(requestId, existing.task, context),
     };
   }
 
@@ -399,17 +415,16 @@ export function handleStreamMessage(
               },
               signal,
             );
-            if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
-              return;
-            }
-            context.taskManager.updateState(
+            const completed = await completeTask(
               taskId,
-              "completed",
-              agentResponse.text,
+              agentResponse,
+              context,
+              signal,
             );
-            const completed = context.taskManager.getTask(taskId);
             if (completed) {
-              send(statusEvent(completed.task, true));
+              for (const artifact of completed.artifacts ?? [])
+                send(artifactEvent(requestId, completed, artifact));
+              send(statusEvent(completed, true));
             }
           } catch (error) {
             if (signal.aborted) return;
@@ -462,10 +477,27 @@ export function handleStreamMessage(
 function taskSnapshotStream(
   requestId: string | number,
   task: Task,
+  context: JsonRpcHandlerContext,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
+  const scope = new AbortController();
+  const signal = context.signal
+    ? AbortSignal.any([scope.signal, context.signal])
+    : scope.signal;
   return new ReadableStream<Uint8Array>({
-    start(controller): void {
+    async start(controller): Promise<void> {
+      const snapshot = await publicTaskSources(
+        task,
+        context.publicSources,
+        signal,
+      );
+      signal.throwIfAborted();
+      for (const artifact of snapshot.artifacts ?? [])
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify(artifactEvent(requestId, snapshot, artifact))}\n\n`,
+          ),
+        );
       controller.enqueue(
         encoder.encode(
           `data: ${JSON.stringify({
@@ -475,15 +507,57 @@ function taskSnapshotStream(
               kind: "status-update",
               taskId: task.id,
               contextId: task.contextId,
-              status: task.status,
-              final: TERMINAL_STATES.has(task.status.state),
+              status: snapshot.status,
+              final: TERMINAL_STATES.has(snapshot.status.state),
             },
           })}\n\n`,
         ),
       );
       controller.close();
     },
+    cancel(reason): void {
+      scope.abort(reason);
+    },
   });
+}
+
+async function completeTask(
+  taskId: string,
+  response: AgentResponse,
+  context: JsonRpcHandlerContext,
+  signal: AbortSignal,
+): Promise<Task | undefined> {
+  if (isTaskCanceled(taskId, context.taskManager, signal)) return undefined;
+  const sources = await resolveAnswerSources(
+    response,
+    context.publicSources,
+    signal,
+  );
+  if (isTaskCanceled(taskId, context.taskManager, signal)) return undefined;
+  if (sources.length) {
+    const artifact = sourceArtifact(sources);
+    context.taskManager.addArtifact(taskId, "sources", artifact.parts);
+  }
+  return context.taskManager.updateState(taskId, "completed", response.text)
+    ?.task;
+}
+
+function artifactEvent(
+  requestId: string | number,
+  task: Task,
+  artifact: NonNullable<Task["artifacts"]>[number],
+): Record<string, unknown> {
+  return {
+    jsonrpc: "2.0",
+    id: requestId,
+    result: {
+      kind: "artifact-update",
+      taskId: task.id,
+      contextId: task.contextId,
+      artifact,
+      lastChunk: true,
+    },
+  };
 }
 
 function callerCanAccessTask(
@@ -495,11 +569,11 @@ function callerCanAccessTask(
   );
 }
 
-function handleGetTask(
+async function handleGetTask(
   id: string | number,
   params: Record<string, unknown>,
   context: JsonRpcHandlerContext,
-): JsonRpcResponse {
+): Promise<JsonRpcResponse> {
   const parsed = taskIdParamsSchema.safeParse(params);
   if (!parsed.success) {
     return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
@@ -519,7 +593,14 @@ function handleGetTask(
     return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
   }
 
-  return successResponse(id, task);
+  return successResponse(
+    id,
+    await publicTaskSources(
+      task,
+      context.publicSources,
+      context.signal ?? new AbortController().signal,
+    ),
+  );
 }
 
 function handleCancelTask(

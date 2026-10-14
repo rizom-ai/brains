@@ -2,6 +2,7 @@ import type { z } from "@brains/utils/zod";
 import type { InterfaceOperatorContributions } from "./operator-contributions";
 import type {
   SdkErrorCode,
+  SourceCitation,
   InterfaceAvailabilityWriter,
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
@@ -277,6 +278,16 @@ export interface InterfaceSetupContext<
    * Named consumer: @brains/web-chat.
    */
   readonly entities: InterfaceEntityReader;
+  /** Public, published, citable local references only; rebuilt on every call. Named consumer: A2A. */
+  readonly publicSources: {
+    resolve(
+      references: readonly {
+        readonly entityType: string;
+        readonly id: string;
+      }[],
+      signal: AbortSignal,
+    ): Promise<readonly SourceCitation[]>;
+  };
   /**
    * How the brain presents itself to a peer: who it is, whose it is, what
    * kind of profile it represents, and what it offers publicly. Reads the

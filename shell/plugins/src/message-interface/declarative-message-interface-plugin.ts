@@ -31,6 +31,7 @@ import type { AccountSettingsRegistration } from "../operator/account-settings-r
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
 import { registerDeclaredSubscriptions } from "../interface/declared-subscriptions";
 import { createInterfaceEntityAccess } from "../interface/interface-entity-access";
+import { createPublicSources } from "../internal/public-sources";
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import { createRuntimeRoute } from "../interface/route-runtime";
 import {
@@ -308,6 +309,15 @@ class DeclarativeMessageInterfacePlugin<
                 ? { self: { id: this.definition.id, href: options.selfHref } }
                 : {}),
             }),
+          publicSources: createPublicSources(
+            createInterfaceEntityAccess(
+              context.entityService,
+              this.definition.id,
+            ),
+            context.siteUrl,
+            context.entityDisplay,
+            this.operatorAbort.signal,
+          ),
           entities: createInterfaceEntityAccess(
             context.entityService,
             this.definition.id,

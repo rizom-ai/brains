@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { createTestEntity } from "@brains/entity-service/test";
+import { SdkError } from "@brains/sdk/interfaces";
 import type { FetchFn } from "../src/client";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -425,6 +427,101 @@ describe("A2A HTTP routes", () => {
     expect(response.status).toBe(200);
     expect(capturedLevel).toBe("trusted");
     expect(capturedIsAnchor).toBe(true);
+  });
+
+  it("fails citation revalidation with a coded CORS response, not private diagnostics or cached sources", async () => {
+    await harness.reset();
+    harness = createPluginHarness({
+      domain: "brain.example",
+      entityDisplay: { post: { label: "Essay" } },
+      logger: createSilentLogger("source-error"),
+    });
+    harness.getMockShell().addEntities([
+      createTestEntity("post", {
+        id: "one",
+        visibility: "public",
+        metadata: { title: "Public title", status: "published" },
+      }),
+    ]);
+    const answer: AgentResponse = {
+      text: "Answer",
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      cards: [
+        {
+          id: "sources",
+          kind: "sources",
+          sources: [
+            { id: "one", source: "post", entityType: "post", entityId: "one" },
+          ],
+        },
+      ],
+    };
+    harness.setAgentService({
+      chat: async () => answer,
+      confirmPendingAction: async () => answer,
+      invalidateAgent: (): void => {},
+    });
+    const remoteAuth = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://remote.example",
+    });
+    const jwks = await remoteAuth.getJwks();
+    const a2a = await installA2A(
+      harness,
+      { inbound: true },
+      { fetch: async (): Promise<Response> => Response.json(jwks) },
+    );
+    const route = a2aPostRoute(a2a);
+    const stream = await route.handler(
+      await signedA2ARequest(
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "message/stream",
+          params: {
+            message: {
+              kind: "message",
+              parts: [{ kind: "text", text: "Question" }],
+            },
+          },
+        },
+        remoteAuth,
+      ),
+    );
+    const text = await stream.text();
+    expect(text).toContain('"name":"sources"');
+    const taskId = /"taskId":"([^"]+)"/.exec(text)?.[1];
+    if (!taskId) throw new Error("Missing task id");
+    const read = spyOn(
+      harness.getEntityService(),
+      "getEntity",
+    ).mockRejectedValue(new Error("PRIVATE storage diagnostic"));
+    try {
+      const response = await route.handler(
+        await signedA2ARequest(
+          {
+            jsonrpc: "2.0",
+            id: 2,
+            method: "tasks/get",
+            params: { id: taskId },
+          },
+          remoteAuth,
+        ),
+      );
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+      expect(await response.json()).toEqual({
+        jsonrpc: "2.0",
+        id: 2,
+        error: {
+          code: -32603,
+          message: new SdkError("handler_failed").publicMessage,
+          data: { code: "handler_failed" },
+        },
+      });
+      expect(read).toHaveBeenCalledTimes(1);
+    } finally {
+      read.mockRestore();
+    }
   });
 
   it("rejects signed inbound requests with a bad digest", async () => {

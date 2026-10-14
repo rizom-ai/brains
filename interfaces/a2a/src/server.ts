@@ -1,4 +1,5 @@
 import type { AgentCard } from "@a2a-js/sdk";
+import { toSdkError } from "@brains/contracts";
 import { verifyRequest, type JwksResolver } from "@brains/http-signatures";
 import {
   issuerFromRequest,
@@ -33,6 +34,9 @@ export interface A2AServerDependencies {
   readonly agentCard: () => Promise<AgentCard>;
   readonly entities: InterfaceEntityReader;
   readonly agent: AgentNamespace;
+  readonly publicSources: InterfaceSetupContext<
+    z.ZodType<object, object>
+  >["publicSources"];
   readonly auth: InterfaceSetupContext<z.ZodType<object, object>>["auth"];
   readonly permissions: Pick<
     InterfaceSetupContext<z.ZodType<object, object>>["permissions"],
@@ -41,6 +45,10 @@ export interface A2AServerDependencies {
   readonly jwksResolver: JwksResolver;
   readonly taskManager: TaskManager;
   readonly turnSupervisor: A2ATurnSupervisor;
+  readonly logger: Pick<
+    InterfaceSetupContext<z.ZodType<object, object>>["logger"],
+    "error"
+  >;
 }
 
 interface ResolvedCaller {
@@ -172,6 +180,8 @@ export function createA2AServer(deps: A2AServerDependencies): Hono {
       taskManager: deps.taskManager,
       turnSupervisor: deps.turnSupervisor,
       agentService: deps.agent,
+      publicSources: deps.publicSources,
+      signal: c.req.raw.signal,
       callerPermissionLevel: caller.permissionLevel,
       callerIsAnchor: caller.isAnchor,
       callerDomain: caller.callerDomain,
@@ -212,7 +222,23 @@ export function createA2AServer(deps: A2AServerDependencies): Hono {
       );
     }
 
-    return withCors(c.json(await handleJsonRpc(parsed.data, handlerContext)));
+    try {
+      return withCors(c.json(await handleJsonRpc(parsed.data, handlerContext)));
+    } catch (cause) {
+      const error = toSdkError(cause);
+      deps.logger.error("A2A request failed", { error });
+      return withCors(
+        c.json({
+          jsonrpc: "2.0",
+          id: parsed.data.id,
+          error: {
+            code: -32603,
+            message: error.publicMessage,
+            data: { code: error.code },
+          },
+        }),
+      );
+    }
   });
 
   return app;

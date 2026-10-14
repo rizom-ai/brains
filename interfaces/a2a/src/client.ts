@@ -5,17 +5,21 @@ import {
 } from "@brains/sdk/entities";
 import {
   defineTool,
+  SdkError,
   z,
   type AnyServiceToolDefinition,
 } from "@brains/sdk/interfaces";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
 import { getErrorMessage } from "@brains/utils/error";
+import type { SourceCitation } from "@brains/contracts";
+import { readSourceArtifacts, attributePeerSources } from "./source-artifacts";
 
 interface A2ASuccess {
   success: true;
   data: {
     state: string;
     response: string;
+    sources: SourceCitation[];
     taskId?: string;
   };
 }
@@ -23,6 +27,25 @@ interface A2ASuccess {
 interface A2AError {
   success: false;
   error: string;
+  code?: string | undefined;
+}
+
+const failureCauses = new WeakMap<object, SdkError>();
+function callFailure(error: SdkError): A2AError {
+  const result: A2AError = {
+    success: false,
+    error: error.publicMessage,
+    code: error.code,
+  };
+  failureCauses.set(result, error);
+  return result;
+}
+
+/** Preserve local SDK causes without putting diagnostics on a wire result. */
+export function agentCallError(
+  result: Extract<A2ACallResponse, { success: false }>,
+): Error {
+  return failureCauses.get(result) ?? new Error(result.error);
 }
 
 type A2AResult = A2ASuccess | A2AError;
@@ -34,6 +57,7 @@ type A2AResult = A2ASuccess | A2AError;
 export interface A2ACallData extends Record<string, unknown> {
   state: string;
   response: string;
+  sources?: SourceCitation[];
   taskId?: string | undefined;
 }
 
@@ -76,6 +100,7 @@ const taskResultSchema = z.object({
     state: z.string(),
     message: z.object({ parts: partsSchema }).optional(),
   }),
+  artifacts: z.unknown().optional(),
 });
 
 const resultEnvelopeSchema = z.object({ result: z.unknown() });
@@ -89,6 +114,8 @@ const sseEventSchema = z.looseObject({
   result: z
     .looseObject({
       final: z.boolean().optional(),
+      kind: z.string().optional(),
+      artifact: z.unknown().optional(),
       status: z
         .looseObject({
           state: z.string().optional(),
@@ -121,6 +148,14 @@ function extractText(parts: z.output<typeof partsSchema>): string {
  * Parse a JSON-RPC response from an A2A server into a structured result.
  */
 export function parseA2AResponse(data: unknown): A2AResult {
+  try {
+    return parseResponse(data);
+  } catch (cause) {
+    return callFailure(new SdkError("invalid_response", { cause }));
+  }
+}
+
+function parseResponse(data: unknown): A2AResult {
   if (typeof data !== "object" || data === null) {
     return { success: false, error: "Invalid response" };
   }
@@ -135,7 +170,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
   if (!resultParsed.success || resultParsed.data.result === undefined) {
     return {
       success: true,
-      data: { state: "unknown", response: "No response text" },
+      data: { state: "unknown", response: "No response text", sources: [] },
     };
   }
 
@@ -149,6 +184,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
       data: {
         state: "completed",
         response: extractText(messageParsed.data.parts),
+        sources: [],
       },
     };
   }
@@ -163,6 +199,10 @@ export function parseA2AResponse(data: unknown): A2AResult {
       data: {
         state: status.state,
         response: extractText(parts),
+        sources:
+          taskParsed.data.status.state === "completed"
+            ? readSourceArtifacts(taskParsed.data.artifacts)
+            : [],
         ...(id ? { taskId: id } : {}),
       },
     };
@@ -170,7 +210,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
 
   return {
     success: true,
-    data: { state: "unknown", response: "No response text" },
+    data: { state: "unknown", response: "No response text", sources: [] },
   };
 }
 
@@ -259,7 +299,7 @@ function validateCardEndpoint(
       error: `Agent Card for ${agentId} has an invalid endpoint URL.`,
     };
   }
-  if (url.protocol !== "https:" || url.hostname.toLowerCase() !== agentId) {
+  if (url.origin !== `https://${agentId}` || url.username || url.password) {
     return {
       ok: false,
       error: `Agent Card for ${agentId} has an untrusted endpoint URL (${cardUrl}). The endpoint must be https:// on ${agentId}.`,
@@ -284,7 +324,11 @@ async function fetchAgentCard(
       signal,
     );
     if (!response.ok) return null;
-    const data: unknown = await response.json();
+    const data: unknown = await readBoundedJson(
+      response,
+      requestTimeoutMs,
+      signal,
+    );
     signal?.throwIfAborted();
     return parseAgentCard(data);
   } catch {
@@ -370,6 +414,7 @@ async function sendMessage(
         );
       } catch (err) {
         if (signal?.aborted) throw signal.reason;
+        if (err instanceof SdkError) return callFailure(err);
         return {
           success: false,
           error: formatNetworkFailure(err, attempt),
@@ -404,69 +449,106 @@ async function readStreamToCompletion(
   signal?: AbortSignal,
 ): Promise<A2ACallResponse> {
   const reader = body.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
-
-  let chunk = await readChunkWithIdleTimeout(
-    reader,
-    streamIdleTimeoutMs,
-    signal,
-  );
-  while (!chunk.done) {
-    buffer += decoder.decode(chunk.value, { stream: true });
-
-    // Parse SSE events (data: {...}\n\n)
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
-
-    for (const part of parts) {
-      const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
-      if (!dataLine) continue;
-
-      let event: z.output<typeof sseEventSchema>;
-      try {
-        const parsedEvent = sseEventSchema.safeParse(
-          JSON.parse(dataLine.slice(6)),
-        );
-        if (!parsedEvent.success) continue;
-        event = parsedEvent.data;
-      } catch {
-        await cancelReader(reader);
+  let bytes = 0;
+  let events = 0;
+  let artifactCount = 0;
+  const sources: SourceCitation[] = [];
+  try {
+    for (let chunks = 0; chunks < 16_384; chunks++) {
+      const chunk = await readChunkWithIdleTimeout(
+        reader,
+        streamIdleTimeoutMs,
+        signal,
+      );
+      signal?.throwIfAborted();
+      if (chunk.done)
         return {
           success: false,
-          error: "Malformed SSE event from remote agent",
+          error: "Stream ended without a terminal event",
+        };
+      bytes += chunk.value.byteLength;
+      if (bytes > 1024 * 1024) throw new SdkError("invalid_response");
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() ?? "";
+      if (new TextEncoder().encode(buffer).byteLength > 128 * 1024)
+        throw new SdkError("invalid_response");
+      for (const part of parts) {
+        if (
+          ++events > 128 ||
+          new TextEncoder().encode(part).byteLength > 128 * 1024
+        )
+          throw new SdkError("invalid_response");
+        const dataLine = part
+          .split("\n")
+          .find((line) => line.startsWith("data: "));
+        if (!dataLine) continue;
+        let event: z.output<typeof sseEventSchema>;
+        try {
+          const parsed = sseEventSchema.safeParse(
+            JSON.parse(dataLine.slice(6)),
+          );
+          if (!parsed.success) throw new SdkError("invalid_response");
+          event = parsed.data;
+        } catch {
+          return {
+            success: false,
+            error: "Malformed SSE event from remote agent",
+          };
+        }
+        const result = event.result;
+        if (result?.kind === "artifact-update") {
+          if (++artifactCount > 16) throw new SdkError("invalid_response");
+          const next = readSourceArtifacts([result.artifact]);
+          if (sources.length + next.length > 20)
+            throw new SdkError("invalid_response");
+          sources.push(...next);
+        }
+        if (!result?.final) continue;
+        signal?.throwIfAborted();
+        return {
+          success: true,
+          data: {
+            state: result.status?.state ?? "unknown",
+            response: extractText(result.status?.message?.parts ?? []),
+            sources: result.status?.state === "completed" ? sources : [],
+          },
         };
       }
-
-      // Check if this is a JSON-RPC envelope with a result
-      const result = event.result;
-      if (!result?.final) continue;
-
-      // Terminal event — extract response
-      await cancelReader(reader);
-      const status = result.status;
-
-      const state = status?.state ?? "unknown";
-      const responseParts = status?.message?.parts ?? [];
-      const responseText =
-        responseParts
-          .filter(
-            (p): p is { kind: "text"; text: string } =>
-              p.kind === "text" && typeof p.text === "string",
-          )
-          .map((p) => p.text)
-          .join("\n") || "No response text";
-
-      return {
-        success: true,
-        data: { state, response: responseText },
-      };
     }
-
-    chunk = await readChunkWithIdleTimeout(reader, streamIdleTimeoutMs, signal);
+    throw new SdkError("invalid_response");
+  } finally {
+    await cancelReader(reader);
+    reader.releaseLock();
   }
+}
 
-  return { success: false, error: "Stream ended without a terminal event" };
+async function readBoundedJson(
+  response: Response,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  if (!response.body) throw new SdkError("invalid_response");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let text = "";
+  let bytes = 0;
+  try {
+    for (let chunks = 0; chunks < 16_384; chunks++) {
+      const chunk = await readChunkWithIdleTimeout(reader, timeoutMs, signal);
+      signal?.throwIfAborted();
+      if (chunk.done) return JSON.parse(text + decoder.decode());
+      bytes += chunk.value.byteLength;
+      if (bytes > 256 * 1024) throw new SdkError("invalid_response");
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    throw new SdkError("invalid_response");
+  } finally {
+    await cancelReader(reader);
+    reader.releaseLock();
+  }
 }
 
 class A2ARequestTimeoutError extends Error {
@@ -495,7 +577,8 @@ async function fetchWithTimeout(
   signal?: AbortSignal,
 ): Promise<Response> {
   return runWithInterruptibleTimeout(
-    (operationSignal) => fetchFn(url, { ...init, signal: operationSignal }),
+    (operationSignal) =>
+      fetchFn(url, { ...init, redirect: "error", signal: operationSignal }),
     {
       timeoutMs,
       onTimeout: () => new A2ARequestTimeoutError(timeoutMs),
@@ -674,13 +757,19 @@ export async function executeAgentCall(
       return { success: false, error: oneShotEndpoint.error };
     }
 
-    const oneShotResult = await sendMessage(
+    const response = await sendMessage(
       card.url,
       input.message,
       fetchFn,
       deps.requestSigner,
       networkOptions,
       signal,
+    );
+    signal?.throwIfAborted();
+    const oneShotResult = bindPeerResponse(
+      response,
+      card.brainName,
+      cardBaseUrl,
     );
     if (oneShotResult.success) {
       return {
@@ -732,7 +821,7 @@ export async function executeAgentCall(
     return { success: false, error: approvedEndpoint.error };
   }
 
-  return sendMessage(
+  const result = await sendMessage(
     card.url,
     input.message,
     fetchFn,
@@ -740,6 +829,30 @@ export async function executeAgentCall(
     networkOptions,
     signal,
   );
+  signal?.throwIfAborted();
+  return bindPeerResponse(result, card.brainName, cardBaseUrl);
+}
+
+function bindPeerResponse(
+  result: A2ACallResponse,
+  name: string,
+  origin: string,
+): A2ACallResponse {
+  if (!result.success) return result;
+  try {
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        sources: attributePeerSources(result.data.sources ?? [], {
+          name,
+          origin,
+        }),
+      },
+    };
+  } catch (cause) {
+    return callFailure(new SdkError("invalid_response", { cause }));
+  }
 }
 
 // Loose: the answer carries what the path attached, and the agent reads a
@@ -771,7 +884,7 @@ export function agentCallTool(
         deps,
         { signal },
       );
-      if (!result.success) throw new Error(result.error);
+      if (!result.success) throw agentCallError(result);
       return result.data;
     },
   });
