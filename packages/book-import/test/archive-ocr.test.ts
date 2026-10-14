@@ -582,6 +582,16 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
+  it("leaves out a backslash standing alone, a pencil mark, and reads one before a bracket as a note", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "\\ Jones, 1919. \\ und \\ \\) Über",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, 1919. und ¹) Über");
+    expect(pageText(hocr, 4)).not.toContain("\\");
+  });
+
   it("reads dgl. and an initial O the OCR set without their stop or with a zero", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",

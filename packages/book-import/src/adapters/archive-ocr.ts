@@ -234,7 +234,7 @@ const STAR_NOTE_START = /^\*+\)/;
 /** A note's mark, its digit read as ½ or lost: ½) 1 Frank ist 8 Sgr. */
 const MARKED_NOTE_START = /^(?:[ı½¹²³]|\d{1,2})?\)\s/u;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
-const OCR_NOTE_MARKER = /ı\)/g;
+const OCR_NOTE_MARKER = /ı\)|(?<![\p{L}\d])\\\)/gu;
 
 /** Share of a line's height a piece must overlap to stand on that line. */
 const SAME_LINE = 0.3;
@@ -998,8 +998,9 @@ function normalised(text: string): string {
       .replace(/(?<![\p{L}])mub(?=[ ,.;]|$)/gu, "muß")
       // An umlaut standing alone is a speck the facing page left.
       .replace(/^[öů][‚,]?\s+|\s+[öů][‚,]?(?=\s|$)/gu, "")
-      // So is an underscore standing alone.
+      // So is an underscore standing alone, and a backslash: a pencil mark.
       .replace(/^_+\s+|\s+_+(?=\s|$)/gu, "")
+      .replace(/^\\+\s+|\s+\\+(?=\s|$)|^\\+$/gu, "")
       // So is one letter over and over standing between words (EEE, nn).
       .replace(
         /^(?:[Ee]{2,}|[Nn]{2,}|R{2,}|T{2,}|o{2,})[,.;:]?\s+|\s+(?:[Ee]{2,}|[Nn]{2,}|R{2,}|T{2,}|o{2,})[,.;:]?(?=\s|$)/gu,
