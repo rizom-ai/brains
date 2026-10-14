@@ -566,11 +566,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads W read as a backslash and V, a backslash before a word, Es read as Fs, und and wir misread", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, \\Vie Sie wissen, \\nur so. \\Wenn die \\WViederkehr, \\Fuß und Ges. \\Werke; Fs gibt Kunst nnd Sprache uud wif; er sel ünd äus, zü.",
+      "Jones, \\Vie Sie wissen, \\nur so. \\Wenn die \\WViederkehr, \\Fuß und Ges. \\Werke; Fs gibt Kunst nnd Sprache uud wif; er sel ünd äus, zü, äuf äb.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, Wie Sie wissen, nur so. Wenn die Wiederkehr, Fuß und Ges. Werke; Es gibt Kunst und Sprache und wir; er sei und aus, zu.",
+      "Jones, Wie Sie wissen, nur so. Wenn die Wiederkehr, Fuß und Ges. Werke; Es gibt Kunst und Sprache und wir; er sei und aus, zu, auf ab.",
     );
   });
 
@@ -599,11 +599,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads a quotation the OCR closed with a single mark as closed with a double one", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, „Totem und Tabu‘ und „Angst‘, ein „Besseren‘ geben!“, „nicht ‘den und ‚Wort‘.",
+      "Jones, „Totem und Tabu‘ und „Angst‘, ein „Besseren‘ geben!“, „nicht ‘den und ‚Wort‘, dem Wort ‚„Asien‘ hinzu.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, „Totem und Tabu“ und „Angst“, ein „Besseren‘ geben!“, „nicht ‘den und ‚Wort‘.",
+      "Jones, „Totem und Tabu“ und „Angst“, ein „Besseren‘ geben!“, „nicht ‘den und ‚Wort‘, dem Wort ‚„Asien‘ hinzu.",
     );
   });
 

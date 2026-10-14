@@ -945,8 +945,9 @@ function normalised(text: string): string {
       .replace(/‚‚|,,(?=[\p{L}\d])/gu, "„")
       .replace(/‘‘/g, "“")
       // A „ quotation closed with a single mark, where no single quotation
-      // opened inside it and no double mark closes it later in the line.
-      .replace(/„([^“‘‚„]*?)‘(?![\p{L}])(?![^„]*“)/gu, "„$1“")
+      // opened inside or just before it and no double mark closes it later
+      // in the line.
+      .replace(/(?<!‚)„([^“‘‚„]*?)‘(?![\p{L}])(?![^„]*“)/gu, "„$1“")
       // Loco citato read with a figure one, a capital I or J, or a capital C;
       // J. C. is a name's initials. A page's p. read with a dash.
       .replace(
@@ -962,11 +963,19 @@ function normalised(text: string): string {
       .replace(/(?<![\p{L}])Fs(?= \p{Ll})/gu, "Es")
       .replace(/(?<![\p{L}])(?:nnd|uud)(?![\p{L}])/gu, "und")
       .replace(/(?<![\p{L}])wif(?![\p{L}])/gu, "wir")
-      // sei, und, aus and zu read with a speck: sel, ünd, äus, zü.
+      // sei, und, aus, zu, auf and ab read with a speck: sel, ünd, äus, zü,
+      // äuf, äb.
       .replace(
-        /(?<= )(?:sel|ünd|äus|zü)(?![\p{L}])/gu,
+        /(?<= )(?:sel|ünd|äus|zü|äuf|äb)(?![\p{L}])/gu,
         (word) =>
-          ({ sel: "sei", ünd: "und", äus: "aus", zü: "zu" })[word] ?? word,
+          ({
+            sel: "sei",
+            ünd: "und",
+            äus: "aus",
+            zü: "zu",
+            äuf: "auf",
+            äb: "ab",
+          })[word] ?? word,
       )
       // Freud's italic Vbw, the Gradiva's Zoë, and daß and muß, which the OCR misreads.
       .replace(/(?<![\p{L}\d])[YF/7](?=bw(?![\p{L}]))/gu, "V")

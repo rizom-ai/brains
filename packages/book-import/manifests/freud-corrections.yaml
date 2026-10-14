@@ -9327,10 +9327,18 @@ freud-1942-gw-5:
     from: begünstigt. nicht
     to: begünstigt nicht
     by: scan
+  - page: 45
+    from: "das Sexualziel Priarer2.: zu"
+    to: das Sexualziel
+    by: scan
   - page: 48
     from: zur Ausschließlichkeit erhoberi und an
     to: zur Ausschließlichkeit erhoben und an
     by: reference
+  - page: 49
+    from: als VEOeS SE
+    to: als
+    by: scan
   - page: 50
     from: ist indes zv bemerken, daß
     to: ist indes zu bemerken, daß
@@ -9343,10 +9351,22 @@ freud-1942-gw-5:
     from: Teil. durch
     to: Teil durch
     by: scan
+  - page: 50
+    from: „Sexualüberschätzung“* des
+    to: „Sexualüberschätzung“ des
+    by: scan
   - page: 51
     from: nicht viel stichhältiger ist als
     to: nicht viel stichhaltiger ist als
     by: reference
+  - page: 51
+    from: betätigen. ($. u.)
+    to: betätigen. (S. u.)
+    by: scan
+  - page: 51
+    from: dieses Fear ae
+    to: dieses
+    by: scan
   - page: 52
     from: Relation.
     to: Relation
@@ -9360,12 +9380,12 @@ freud-1942-gw-5:
     to: oder dessen
     by: scan
   - page: 55
-    from: Ein gewisses MaB von Tasten
-    to: Ein gewisses Maß von Tasten
-    by: reference
-  - page: 55
     from: b) Fizierungen von vorläufigen Sexualzielen
     to: b) Fixierungen von vorläufigen Sexualzielen
+    by: scan
+  - page: 55
+    from: Ein gewisses MaB von Tasten ist wenigstens für den Menschen Betasten una
+    to: Ein gewisses Maß von Tasten ist wenigstens für den Menschen
     by: scan
   - page: 56
     from: bei den Exhibit‘onisten der Fall
@@ -9374,6 +9394,10 @@ freud-1942-gw-5:
   - page: 57
     from: scheint. sich
     to: scheint sich
+    by: scan
+  - page: 57
+    from: \ enebunig an die
+    to: Verschiebung an die
     by: scan
   - page: 58
     from: Sadismus und issschäckinik nehmen unter
@@ -9386,6 +9410,22 @@ freud-1942-gw-5:
   - page: 59
     from: daB
     to: daß
+    by: scan
+  - page: 59
+    from: v. Kraf ft t-Ebing
+    to: v. Krafft-Ebing
+    by: scan
+  - page: 61
+    from: muß Pie seelische
+    to: muß
+    by: scan
+  - page: 61
+    from: Umwandlung bei Far
+    to: Umwandlung
+    by: scan
+  - page: 61
+    from: seelischer ii ;
+    to: seelischer
     by: scan
   - page: 62
     from: 4) Der Sexualtrieb bei. den. Neurotikern
@@ -9403,6 +9443,18 @@ freud-1942-gw-5:
     from: die heterosexuelle Stfömung der vollen
     to: die heterosexuelle Strömung der vollen
     by: reference
+  - page: 66
+    from: x) Wo ein
+    to: α) Wo ein
+    by: scan
+  - page: 67
+    from: ß) In einem
+    to: β) In einem
+    by: scan
+  - page: 69
+    from: Zone xar &koyiv.'
+    to: Zone κατ’ ἐξοχήν.¹)
+    by: scan
   - page: 70
     from: Höhe. der
     to: Höhe der
@@ -9411,6 +9463,10 @@ freud-1942-gw-5:
     from: die den EntwicklungsprozeßB der kindlichen
     to: die den Entwicklungsprozeß der kindlichen
     by: reference
+  - page: 73
+    from: au erkennen, ehe
+    to: zu erkennen, ehe
+    by: scan
   - page: 74
     from: geschlechtlicher Liebesregungen (ser-love) in
     to: geschlechtlicher Liebesregungen (sex-love) in
@@ -9443,10 +9499,34 @@ freud-1942-gw-5:
     from: einer. solchen
     to: einer solchen
     by: scan
+  - page: 81
+    from: Nr. 20o unter
+    to: Nr. 20 unter
+    by: scan
+  - page: 81
+    from: „Das Lutscherli*
+    to: „Das Lutscherli“
+    by: scan
   - page: 83
     from: Patientinnen mit EBßBstörungen, hysterischem Globus
     to: Patientinnen mit Eßstörungen, hysterischem Globus
     by: reference
+  - page: 83
+    from: anderen BRRSHIEHnBen der
+    to: anderen Betätigungen der
+    by: scan
+  - page: 84
+    from: ng von bestimmter
+    to: Lustempfindung von bestimmter
+    by: scan
+  - page: 84
+    from: Besonderheitsqualität._der
+    to: Besonderheitsqualität der
+    by: scan
+  - page: 84
+    from: geben un_ihre
+    to: geben ihre
+    by: scan
   - page: 85
     from: Zweck. für
     to: Zweck für
@@ -9463,6 +9543,10 @@ freud-1942-gw-5:
     from: Die masturbatorischen Sexualäußerungen’
     to: Die masturbatorischen Sexualäußerungen
     by: scan
+  - page: 86
+    from: baden 1912. \
+    to: baden 1912.
+    by: scan
   - page: 90
     from: können. nur
     to: können nur
@@ -9474,6 +9558,10 @@ freud-1942-gw-5:
   - page: 93
     from: F ähigkeit
     to: Fähigkeit
+    by: scan
+  - page: 93
+    from: noch nicht A
+    to: noch nicht geglückt;
     by: scan
   - page: 94
     from: undObjektliebe
@@ -9490,6 +9578,10 @@ freud-1942-gw-5:
   - page: 100
     from: daB
     to: daß
+    by: scan
+  - page: 100
+    from: Bd. XIIT].
+    to: Bd. XIII].
     by: scan
   - page: 102
     from: diese Hautstellen bloB eine besondere
@@ -9511,14 +9603,78 @@ freud-1942-gw-5:
     from: F all
     to: Fall
     by: scan
+  - page: 111
+    from: ver- TEEN
+    to: ver-
+    by: scan
+  - page: 111
+    from: ei 2) Vgl. einen
+    to: ¹) Vgl. einen
+    by: scan
+  - page: 111
+    from: mes Aufsatzes
+    to: meines Aufsatzes
+    by: scan
+  - page: 111
+    from: 1924. (Intern. Zeitschr.
+    to: 1924. [Intern. Zeitschr.
+    by: scan
+  - page: 111
+    from: E PaR X Geb, Werke, Bd. XII].
+    to: f. PsA., X; Ges. Werke, Bd. XIII].
+    by: scan
+  - page: 112
+    from: einzugehen.’
+    to: einzugehen.¹)
+    by: scan
+  - page: 112
+    from: ¹) Siehe meine 1905 erschienene Studi D j i ;
+    to: ¹) Siehe meine 1905 erschienene Studie „Der Witz und seine Beziehung
+    by: scan
+  - page: 112
+    from: zum Unbewußten“, (Band VI der % „VJ)er Witz und seine Beziehung
+    to: zum Unbewußten“, (Band VI der Ges. Werke). Die durch die Witztechnik
+    by: scan
+  - page: 112
+    from: es. Werke). Die durch die Witztechnik
+    to: ""
+    by: scan
+  - page: 112
+    from: gewonnene „Vorlust“ wird dazu verwendet, ei j
+    to: gewonnene „Vorlust“ wird dazu verwendet, eine größere Lust durch die Aufhebung
+    by: scan
+  - page: 112
+    from: innerer Hemmungen frei zu machen. Rue äsiech die. Aufhebung
+    to: innerer Hemmungen frei zu machen.
+    by: scan
+  - page: 114
+    from: „Lust“ Rechnung trägt. „Lust“
+    to: „Lust“ Rechnung trägt. „Lust“ ist doppelsinnig und bezeichnet ebensowohl die
+    by: scan
+  - page: 114
+    from: RP ist doppelsinnig und bezeichnet ebensowohl die
+    to: ""
+    by: scan
+  - page: 114
+    from: mpäindung der
+    to: Empfindung der
+    by: scan
   - page: 115
     from: verbreitet ist, daB die Anhäufung
     to: verbreitet ist, daß die Anhäufung
     by: reference
+  - page: 116
+    from: von Li pschütz,
+    to: von Lipschütz,
+    by: scan
   - page: 117
     from: wohl möglich, daB weitere Untersuchungen
     to: wohl möglich, daß weitere Untersuchungen
     by: reference
+  - page: 118
+    from: eo iblaskheorie
+    to: Die Libidotheorie
+    by: scan
   - page: 119
     from: zu. scheiden
     to: zu scheiden
@@ -9527,9 +9683,21 @@ freud-1942-gw-5:
     from: dann. darin
     to: dann darin
     by: scan
+  - page: 119
+    from: VI, ig9153, [Bd. X
+    to: VI, 1915, [Bd. X
+    by: scan
+  - page: 119
+    from: "Werke] _— Der: Terminus"
+    to: Werke.] — Der Terminus
+    by: scan
   - page: 120
     from: Libido. auf
     to: Libido auf
+    by: scan
+  - page: 120
+    from: Charakter. J a, wüßte
+    to: Charakter. Ja, wüßte
     by: scan
   - page: 122
     from: gleichfalls.
@@ -9543,10 +9711,22 @@ freud-1942-gw-5:
     from: Fortsetzung seines Säuglingsverhältnisess zur Amme
     to: Fortsetzung seines Säuglingsverhältnisses zur Amme
     by: reference
+  - page: 124
+    from: R ¹) Wem
+    to: ¹) Wem
+    by: scan
   - page: 126
     from: zu wecken, daB die seelische
     to: zu wecken, daß die seelische
     by: reference
+  - page: 126
+    from: 2) Vgl. hiezu das auf S. ior über di bj nrai
+    to: "2) Vgl. hiezu das auf S. 101 über die Objektwahl des Kindes Gesagte: die"
+    by: scan
+  - page: 127
+    from: Tabu ig913,
+    to: Tabu 1913,
+    by: scan
   - page: 128
     from: Vergleiche die Ausführun gen über das
     to: Vergleiche die Ausführungen über das
@@ -9559,6 +9739,18 @@ freud-1942-gw-5:
     from: 8. Auflage, $. 181
     to: 8. Auflage, S. 181
     by: scan
+  - page: 128
+    from: Eltern, des Vo
+    to: Eltern, des Sohnes
+    by: scan
+  - page: 128
+    from: Trauma de r Geburt
+    to: Trauma der Geburt
+    by: scan
+  - page: 128
+    from: Eindruc k der
+    to: Eindruck der
+    by: scan
   - page: 129
     from: sucht der Marn nach dem
     to: sucht der Mann nach dem
@@ -9567,6 +9759,34 @@ freud-1942-gw-5:
     from: F aktor
     to: Faktor
     by: scan
+  - page: 130
+    from: 2) Es ist hier der O
+    to: 2) Es ist hier der Ort, auf eine gewiß phantastische, aber überaus geistreiche
+    by: scan
+  - page: 130
+    from: "Schr: rt, auf eine gewiß phantastische, aber überaus geistreiche"
+    to: Schrift von Ferenczi (Versuch einer Genitaltheorie, 1924) hinzuweisen, in der
+    by: scan
+  - page: 130
+    from: "von Ferenczi (Versuch einer Genitaltheori ; : in der"
+    to: das Geschlechtsleben der höheren Tiere aus ihrer biologischen Entwicklungsgeschichte
+    by: scan
+  - page: 130
+    from: das Geschlechtsleben der h a eorie, 1924) hinzuweisen, in de
+    to: abgeleitet wird.
+    by: scan
+  - page: 130
+    from: "öheren Ti ; : . e che"
+    to: ""
+    by: scan
+  - page: 130
+    from: abgeleitet wird. iere aus ihrer biologischen Entwicklungsgeschichte
+    to: ""
+    by: scan
+  - page: 134
+    from: sie win jede
+    to: sie wie jede
+    by: scan
   - page: 135
     from: Analoges.
     to: Analoges
@@ -9574,6 +9794,14 @@ freud-1942-gw-5:
   - page: 135
     from: Menschenart.
     to: Menschenart
+    by: scan
+  - page: 137
+    from: auf die EN 27 lag ar
+    to: auf die wahr-
+    by: scan
+  - page: 137
+    from: Verschiedenheit Konstitution
+    to: Verschiedenheit
     by: scan
   - page: 157
     from: Fre ud,
@@ -9607,6 +9835,10 @@ freud-1942-gw-5:
     from: daB
     to: daß
     by: scan
+  - page: 179
+    from: Neuropatholog® drängt
+    to: Neuropathologe drängt
+    by: scan
   - page: 181
     from: und. als
     to: und als
@@ -9614,6 +9846,14 @@ freud-1942-gw-5:
   - page: 182
     from: uns. not
     to: uns not
+    by: scan
+  - page: 187
+    from: The nenn seen rer Pens a EL E
+    to: ""
+    by: scan
+  - page: 187
+    from: begleitet hat, ein Sch
+    to: begleitet hat, ein noch
     by: scan
   - page: 189
     from: ist. durch
@@ -9639,9 +9879,17 @@ freud-1942-gw-5:
     from: daB
     to: daß
     by: scan
+  - page: 198
+    from: Schrift = und 5b nebeneinander
+    to: Schrift a und b nebeneinander
+    by: scan
   - page: 199
     from: bekam. das
     to: bekam das
+    by: scan
+  - page: 200
+    from: sollte, sO
+    to: sollte, so
     by: scan
   - page: 203
     from: und. von
@@ -9659,9 +9907,25 @@ freud-1942-gw-5:
     from: die. aktenmäßig
     to: die aktenmäßig
     by: scan
+  - page: 218
+    from: Verdrängungsvorgang®,
+    to: Verdrängungsvorgange,
+    by: scan
   - page: 220
     from: daB
     to: daß
+    by: scan
+  - page: 225
+    from: Mama wil noch
+    to: Mama will noch
+    by: scan
+  - page: 225
+    from: i\ Es hat nie
+    to: ¹) Es hat nie
+    by: scan
+  - page: 228
+    from: N bolischen Bedeutung
+    to: symbolischen Bedeutung
     by: scan
   - page: 230
     from: Sinn. der
@@ -9671,6 +9935,14 @@ freud-1942-gw-5:
     from: wie. die
     to: wie die
     by: scan
+  - page: 231
+    from: würden.“*
+    to: würden.“⁴)
+    by: scan
+  - page: 232
+    from: "der „Übertragung“ auf welches ei yo: . j"
+    to: der „Übertragung“, auf welches einzugehen ich in dieser Abhandlung wenig Gelegen-
+    by: scan
   - page: 235
     from: werde. sich
     to: werde sich
@@ -9678,6 +9950,10 @@ freud-1942-gw-5:
   - page: 235
     from: daß. sie
     to: daß sie
+    by: scan
+  - page: 235
+    from: Versuchung ist su
+    to: Versuchung ist so
     by: scan
   - page: 236
     from: nach. ihrer
@@ -9687,13 +9963,29 @@ freud-1942-gw-5:
     from: indem sie es öffnete, einen F inger hineinsteckte, es. wieder schloß,
     to: indem sie es öffnete, einen Finger hineinsteckte, es wieder schloß,
     by: scan
+  - page: 238
+    from: leo 000000
+    to: ""
+    by: scan
   - page: 239
     from: absprechen. möchte
     to: absprechen möchte
     by: scan
+  - page: 239
+    from: 1904, io0. Aufl.
+    to: 1904, 10. Aufl.
+    by: scan
   - page: 240
     from: F ingerspitzen
     to: Fingerspitzen
+    by: scan
+  - page: 240
+    from: box, mbSis —
+    to: box, πύξις —
+    by: scan
+  - page: 241
+    from: Seite IQ7)
+    to: Seite 197)
     by: scan
   - page: 246
     from: man. neigte
@@ -9711,6 +10003,10 @@ freud-1942-gw-5:
     from: ausschließlich.
     to: ausschließlich
     by: scan
+  - page: 250
+    from: genommenen Traume®.
+    to: genommenen Traumes.
+    by: scan
   - page: 251
     from: Perverse. greifende
     to: Perverse greifende
@@ -9723,17 +10019,45 @@ freud-1942-gw-5:
     from: von. dem
     to: von dem
     by: scan
+  - page: 256
+    from: 'etwa I0oomal: Wo ist der "Bahnhof?'
+    to: "etwa 100mal: Wo ist der Bahnhof?"
+    by: scan
   - page: 257
     from: das. gewöhnliche
     to: das gewöhnliche
+    by: scan
+  - page: 257
+    from: oh Era sl
+    to: ""
     by: scan
   - page: 258
     from: hatte. sondern
     to: hatte, sondern
     by: scan
+  - page: 260
+    from: a ER
+    to: ""
+    by: scan
   - page: 262
-    from: t traurig‘ ($.257)
-    to: t traurig‘ (S.257)
+    from: 3) Ein andermal hatte sie anstatt „ruhig“ gesagt icht traurig‘ ($.257)-
+    to: 3) Ein andermal hatte sie anstatt „ruhig“ gesagt „gar nicht traurig“ (S. 257).
+    by: scan
+  - page: 262
+    from: 3 gar nic aurig‘
+    to: ""
+    by: scan
+  - page: 267
+    from: wäre wohl x
+    to: wäre wohl der
+    by: scan
+  - page: 267
+    from: gerade sie ae Yer-
+    to: gerade sie edelmütig ver-
+    by: scan
+  - page: 269
+    from: konnte, wie Ic
+    to: konnte, wie ich
     by: scan
   - page: 270
     from: daB
@@ -9748,8 +10072,32 @@ freud-1942-gw-5:
     to: wenn es
     by: scan
   - page: 273
-    from: F ried
-    to: Fried
+    from: lich wäre‘. RE Le
+    to: lich wäre¹).
+    by: scan
+  - page: 273
+    from: a ae On neh kat.
+    to: ¹) Noch einige Bemerkungen über den Aufbau dieses Traumes, der sich nicht so gründlich verstehen läßt, daß man seine Synthese versuchen könnte. Als ein fassaden-
+    by: scan
+  - page: 273
+    from: gegen den Vater heraus
+    to: gegen den Vater heraus-
+    by: scan
+  - page: 273
+    from: weggegangen, der Vater ist erkrankt, ER
+    to: weggegangen; der Vater ist erkrankt, dann
+    by: scan
+  - page: 273
+    from: gestorben ... Sie geht jetzt nach Hause, die anderen sind schon alle auf dem F ried
+    to: gestorben . . . Sie geht jetzt nach Hause, die anderen sind schon alle auf dem Fried-
+    by: scan
+  - page: 273
+    from: im Lexikon. er -
+    to: im Lexikon. Darunter
+    by: scan
+  - page: 273
+    from: wirklich ausge air
+    to: wirklich ausgeführt, indem sie
     by: scan
   - page: 275
     from: F ortführung
@@ -9758,6 +10106,18 @@ freud-1942-gw-5:
   - page: 275
     from: F ortsetzung
     to: Fortsetzung
+    by: scan
+  - page: 277
+    from: "berücksichtigt wrdgN:"
+    to: berücksichtigt worden.
+    by: scan
+  - page: 278
+    from: "entgegenzuhalten: „fa"
+    to: "entgegenzuhalten: „Ça"
+    by: scan
+  - page: 278
+    from: n’empeche pas d’exister.“
+    to: n’empêche pas d’exister.“
     by: scan
   - page: 280
     from: sie. haben

@@ -5678,6 +5678,10 @@ p1theorienberden02marxuoft:
     from: "* Soll heißen Produktionspreis."
     to: 4) Soll heißen Produktionspreis.
     by: scan
+  - page: 27
+    from: daß „ihre“ Pro-
+    to: daß „ihre¹) Pro-
+    by: scan
   - page: 28
     from: durch!
     to: "[durch]"
@@ -18859,6 +18863,10 @@ gesammelteschrif02marxuoft:
   - page: 396
     from: People's Paper, 26. April 1856.
     to: IV. People's Paper, 26. April 1856.
+    by: scan
+  - page: 397
+    from: Wort ‚„Asien‘ hinzu
+    to: Wort ‚Asien‘ hinzu
     by: scan
   - page: 399
     from: Expedition ́ Omer-Paschas
