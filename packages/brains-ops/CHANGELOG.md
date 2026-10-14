@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- [#634](https://github.com/rizom-ai/brains/pull/634) [`d304970`](https://github.com/rizom-ai/brains/commit/d30497070d804dd3a25484d9f4bd6a9c2fa6a3b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional per-user `anchorKind` (`person`, `team` or `organization`) to pilot user config, rendered as `anchor:` in the instance `brain.yaml`. A `team` or `organization` anchor makes the brain collectively owned, so its admins can be replaced; left unset, the runtime keeps its `person` default and existing instances are unchanged.
+
 ## 0.2.0-alpha.548
 
 No changes in this release.
