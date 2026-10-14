@@ -5214,9 +5214,53 @@ freud-1941-gw-7:
     from: dieSchuld
     to: die Schuld
     by: scan
+  - page: 20
+    from: Gesellschaftsordnung_ allein
+    to: Gesellschaftsordnung allein
+    by: scan
+  - page: 20
+    from: nr den Kindern erblicken
+    to: vor den Kindern erblicken
+    by: scan
+  - page: 20
+    from: "& ya werden einzelne Dinge nach meinem Gefühl"
+    to: „Im allgemeinen werden einzelne Dinge nach meinem Gefühl
+    by: scan
+  - page: 20
+    from: iert. Man tut recht, die Phantasie der Kinder
+    to: zu sehr umschleiert. Man tut recht, die Phantasie der Kinder
+    by: scan
   - page: 22
     from: Lust. erzeugt
     to: Lust erzeugt
+    by: scan
+  - page: 22
+    from: \ keit zur intellektuellen
+    to: keit zur intellektuellen
+    by: scan
+  - page: 22
+    from: SORT ng Re frühen Lebenszeit. Es muß wohl so
+    to: auch zu einer unvermutet frühen Lebenszeit. Es muß wohl so
+    by: scan
+  - page: 22
+    from: zugehen, 1e tern fi 1 . I .
+    to: zugehen, daß die Eltern für dieses Interesse des Kindes wie mit
+    by: scan
+  - page: 22
+    from: Blindheit geschlagen en a NZ N.
+    to: Blindheit geschlagen sind oder sich sofort be-
+    by: scan
+  - page: 26
+    from: anf jeder Stufe
+    to: auf jeder Stufe
+    by: scan
+  - page: 26
+    from: Nee vie u ve N auf die soziale Meneutumg
+    to: Geschlechtslebens und der Hinweis auf die soziale Bedeutung
+    by: scan
+  - page: 26
+    from: usse des Volksschulunterrichtes
+    to: desselben hätte sich dann am Schlusse des Volksschulunterrichtes
     by: scan
   - page: 27
     from: über. alles
@@ -5630,6 +5674,10 @@ freud-1941-gw-7:
     from: denen. einige
     to: denen einige
     by: scan
+  - page: 133
+    from: so legte, däß der
+    to: so legte, daß der
+    by: scan
   - page: 134
     from: daB
     to: daß
@@ -5637,6 +5685,14 @@ freud-1941-gw-7:
   - page: 136
     from: mehrzu
     to: mehr zu
+    by: scan
+  - page: 140
+    from: t im
+    to: ""
+    by: scan
+  - page: 140
+    from: r vo
+    to: ""
     by: scan
   - page: 144
     from: daB
@@ -5762,6 +5818,10 @@ freud-1941-gw-7:
     from: N&vroses
     to: Névroses
     by: scan
+  - page: 191
+    from: (deutsch von Kötscher). ig0o0.
+    to: (deutsch von Kötscher). 1900.
+    by: scan
   - page: 193
     from: auf. diese
     to: auf diese
@@ -5770,6 +5830,10 @@ freud-1941-gw-7:
     from: daB
     to: daß
     by: scan
+  - page: 194
+    from: hysterischen ie sind
+    to: hysterischen Symptomen sind
+    by: scan
   - page: 197
     from: begnüge. mich
     to: begnüge mich
@@ -5777,6 +5841,10 @@ freud-1941-gw-7:
   - page: 197
     from: ist. der
     to: ist der
+    by: scan
+  - page: 198
+    from: ¹) l.Sadger, dd :ürzlich
+    to: ¹) I. Sadger, der kürzlich
     by: scan
   - page: 200
     from: ik WO
@@ -5794,17 +5862,25 @@ freud-1941-gw-7:
     from: größen. erfahren
     to: größen erfahren
     by: scan
+  - page: 205
+    from: Sexualtheorie* bei
+    to: Sexualtheorie“ bei
+    by: scan
   - page: 208
     from: Testamentim
     to: Testament im
     by: scan
   - page: 208
-    from: Religion, $. 16,
-    to: Religion, S. 16,
-    by: scan
-  - page: 208
     from: 208° Pas en" Jahren 1906-1909
     to: ""
+    by: scan
+  - page: 208
+    from: Mammon — ilu manman? Wenn
+    to: Mammon = ilu manman.²) Wenn
+    by: scan
+  - page: 208
+    from: Religion, $. 16, Anm. i.*
+    to: Religion, S. 16, Anm. 1.“
     by: scan
   - page: 213
     from: ließe uns höffen, eine erste
@@ -5821,6 +5897,14 @@ freud-1941-gw-7:
   - page: 222
     from: nicht.
     to: nicht
+    by: scan
+  - page: 228
+    from: ’ Be der Neurotiker bezeichnen
+    to: Familienromane der Neurotiker bezeichnen
+    by: scan
+  - page: 229
+    from: Bd.VII).
+    to: Bd.VII].
     by: scan
   - page: 238
     from: Erforschung. der
@@ -11052,6 +11136,10 @@ freud-1943-gw-8:
     from: R at
     to: Rat
     by: scan
+  - page: 225
+    from: erotischen ‘ind anderen
+    to: erotischen und anderen
+    by: scan
   - page: 230
     from: N&vroses
     to: Névroses
@@ -11328,6 +11416,10 @@ freud-1943-gw-8:
     from: Dieser Band $. 229
     to: Dieser Band S. 229
     by: scan
+  - page: 336
+    from: Reitler ges
+    to: Reitler gegen
+    by: scan
   - page: 342
     from: muB
     to: muß
@@ -11336,6 +11428,10 @@ freud-1943-gw-8:
     from: F ortschritte
     to: Fortschritte
     by: scan
+  - page: 342
+    from: des vVerbleibens
+    to: des Verbleibens
+    by: scan
   - page: 355
     from: daB
     to: daß
@@ -11343,6 +11439,14 @@ freud-1943-gw-8:
   - page: 360
     from: n- Ausgabe, $. 195
     to: n- Ausgabe, S. 195
+    by: scan
+  - page: 360
+    from: Andenken au den
+    to: Andenken an den
+    by: scan
+  - page: 360
+    from: hatten.! Paulus war viel zu sehr starrer Jude, wa
+    to: hatten.¹) Paulus war viel zu sehr starrer Jude, um
     by: scan
   - page: 361
     from: Namen. wenig
@@ -11424,9 +11528,21 @@ freud-1943-gw-8:
     from: T eilung
     to: Teilung
     by: scan
+  - page: 434
+    from: zwischen zwei ver
+    to: zwischen zwei ver-
+    by: scan
   - page: 442
     from: daB
     to: daß
+    by: scan
+  - page: 443
+    from: "& ¹) Seitdem"
+    to: ¹) Seitdem
+    by: scan
+  - page: 450
+    from: Primat won Sadismus
+    to: Primat von Sadismus
     by: scan
   - page: 451
     from: umes. 1911, $. 536
@@ -11439,6 +11555,10 @@ freud-1943-gw-8:
   - page: 451
     from: F ähigkeit
     to: Fähigkeit
+    by: scan
+  - page: 451
+    from: "iMFerenczi:"
+    to: "¹) Ferenczi:"
     by: scan
   - page: 456
     from: J ungs
@@ -11484,6 +11604,14 @@ freud-1946-gw-10:
   - page: 14
     from: Ers cheinung
     to: Erscheinung
+    by: scan
+  - page: 14
+    from: WER Ren, TE finden Be a
+    to: ""
+    by: scan
+  - page: 14
+    from: einer Re vision
+    to: einer Revision
     by: scan
   - page: 15
     from: daB
@@ -11985,6 +12113,18 @@ freud-1946-gw-10:
     from: daB
     to: daß
     by: scan
+  - page: 402
+    from: auf eine vo
+    to: auf eine Ver-
+    by: scan
+  - page: 402
+    from: R \ ; iner
+    to: ""
+    by: scan
+  - page: 402
+    from: Zusammenhang auch el
+    to: Zusammenhang auch einer
+    by: scan
   - page: 403
     from: von. da
     to: von da
@@ -12009,13 +12149,49 @@ freud-1946-gw-10:
     from: Über Triebumsetzungen, insbesondere der Analerotik 4o7
     to: ""
     by: scan
+  - page: 408
+    from: Reihe Kot-*-Penis—Kind
+    to: Reihe Kot—Penis—Kind
+    by: scan
+  - page: 408
+    from: NAarZLSsmuts S Hastrattornsiiomplek
+    to: ""
+    by: scan
   - page: 409
     from: Über Triebumsetzungen, insbesondere der Analerotik 4og
     to: ""
     by: scan
+  - page: 409
+    from: Andreas-Salome& gleichsam abgemietete Vagina)‘ bei
+    to: Andreas-Salomé gleichsam abgemietete Vagina)¹) bei
+    by: scan
   - page: 410
     from: daB
     to: daß
+    by: scan
+  - page: 410
+    from: j10 Über Triebumsetzungen, insbesondere der. Analerotik
+    to: ""
+    by: scan
+  - page: 412
+    from: Abhand ; lungen stammen aus einer Sammlung, die 1€
+    to: Abhandlungen stammen aus einer Sammlung, die ich
+    by: scan
+  - page: 412
+    from: Jahrgang der N
+    to: Jahrgang der Intern.
+    by: scan
+  - page: 412
+    from: Triebe und Triebschie8-
+    to: Triebe und Triebschick-
+    by: scan
+  - page: 412
+    from: sale“ — Die Verdrängung“ — ‚Das Unbewusste‘ enthalten in diesem Bande). pe
+    to: sale“ — Die Verdrängung“ — „Das Unbewusste“ enthalten in diesem Bande). Absicht
+    by: scan
+  - page: 412
+    from: Annahmen, die mar
+    to: Annahmen, die man
     by: scan
   - page: 415
     from: und. sich
@@ -12025,9 +12201,17 @@ freud-1946-gw-10:
     from: daB
     to: daß
     by: scan
+  - page: 415
+    from: den SchlafnarziBmus
+    to: den Schlafnarzißmus
+    by: scan
   - page: 418
     from: wo. die
     to: wo die
+    by: scan
+  - page: 418
+    from: werden sie WI®
+    to: werden sie wie
     by: scan
   - page: 423
     from: hinzu. daß
@@ -12036,6 +12220,14 @@ freud-1946-gw-10:
   - page: 424
     from: werden. wir
     to: werden wir
+    by: scan
+  - page: 424
+    from: ann ——————
+    to: ""
+    by: scan
+  - page: 425
+    from: Anzahl yon Er-
+    to: Anzahl von Er-
     by: scan
   - page: 426
     from: daB
@@ -12767,6 +12959,18 @@ freud-1948-gw-14:
     from: Symptome. eingeführt
     to: Symptome eingeführt
     by: scan
+  - page: 12
+    from: Er SON O8 RER nadnelg netamiien
+    to: ""
+    by: scan
+  - page: 12
+    from: 2) Derselbe Vorgang lie
+    to: ¹) Derselbe Vorgang lie-
+    by: scan
+  - page: 16
+    from: Bst na ann al
+    to: ""
+    by: scan
   - page: 36
     from: zu. lokalisieren
     to: zu lokalisieren
@@ -13111,13 +13315,45 @@ freud-1948-gw-14:
     from: F eindseligkeit
     to: Feindseligkeit
     by: scan
+  - page: 544
+    from: "Dwerhalie pri:"
+    to: ""
+    by: scan
+  - page: 544
+    from: Ester yo niiu
+    to: ""
+    by: scan
+  - page: 544
+    from: ale ent Br
+    to: ""
+    by: scan
   - page: 554
     from: T JONES ZUM s0. GE
     to: T JONES ZUM so. GE
     by: scan
+  - page: 561
+    from: Am a5. Oktober 1931 wurde in Freiberg (Pfibor)
+    to: Am 25. Oktober 1931 wurde in Freiberg (Příbor)
+    by: scan
+  - page: 561
+    from: 75Jährigen nicht
+    to: 75jährigen nicht
+    by: scan
+  - page: 562
+    from: Am 2o. Juni
+    to: Am 20. Juni
+    by: scan
+  - page: 562
+    from: nur iin stark
+    to: nur in stark
+    by: scan
   - page: 563
     from: J anets
     to: Janets
+    by: scan
+  - page: 566
+    from: etwas sul generis
+    to: etwas sui generis
     by: scan
   - page: 572
     from: zur Broschüre „ZEHN JAHRE BERLINER PSYCHO-
@@ -13131,7 +13367,19 @@ freud-1948-gw-14:
     from: scher Verlag, 1930.
     to: ""
     by: scan
+  - page: 572
+    from: vervollkommnen. Ä
+    to: vervollkommnen.
+    by: scan
 freud-1952-gw-1:
+  - page: 10
+    from: ER en a Eat ann
+    to: ""
+    by: scan
+  - page: 10
+    from: H.K aan zugekommen
+    to: H. Kaan zugekommen
+    by: scan
   - page: 12
     from: $. Fre
     to: S. Fre
@@ -13143,6 +13391,22 @@ freud-1952-gw-1:
   - page: 15
     from: daB
     to: daß
+    by: scan
+  - page: 15
+    from: tic con»ulsif
+    to: tic convulsif
+    by: scan
+  - page: 15
+    from: hysterische Tie sich
+    to: hysterische Tic sich
+    by: scan
+  - page: 16
+    from: den zZigueurs
+    to: den tiqueurs
+    by: scan
+  - page: 17
+    from: des Tie nachzuspüren
+    to: des Tic nachzuspüren
     by: scan
   - page: 18
     from: N ut
@@ -13569,24 +13833,48 @@ freud-1952-gw-1:
     to: daß
     by: scan
   - page: 357
-    from: InNummer
-    to: In Nummer
-    by: scan
-  - page: 357
     from: "zutrennen: ($. 515"
     to: "zutrennen: (S. 515"
+    by: scan
+  - page: 357
+    from: InNummer > des, Neurologischen Zentralblattes“ von Mendel, 1895,
+    to: In Nummer 2 des „Neurologischen Zentralblattes“ von Mendel, 1895,
+    by: scan
+  - page: 357
+    from: — [00000 Tüten > sul NE u BE
+    to: ""
     by: scan
   - page: 360
     from: L öwenfeld
     to: Löwenfeld
     by: scan
+  - page: 360
+    from: Angstneuros®.
+    to: Angstneurose.
+    by: scan
   - page: 365
     from: daB
     to: daß
     by: scan
+  - page: 369
+    from: verwunderlich; ar
+    to: verwunderlich; die
+    by: scan
+  - page: 370
+    from: Angstneurose (l. ©
+    to: Angstneurose (l. c.
+    by: scan
+  - page: 370
+    from: ae halten, da findet
+    to: zu halten, da findet
+    by: scan
   - page: 371
     from: überhaupt.
     to: überhaupt
+    by: scan
+  - page: 373
+    from: "Ursache: Eim sexuelles"
+    to: "Ursache: Ein sexuelles"
     by: scan
   - page: 380
     from: daB
@@ -13696,9 +13984,21 @@ freud-1952-gw-1:
     from: F unktion
     to: Funktion
     by: scan
+  - page: 520
+    from: N RE
+    to: ""
+    by: scan
+  - page: 520
+    from: di ‘) Auch nicht
+    to: ¹) Auch nicht
+    by: scan
   - page: 521
     from: T age
     to: Tage
+    by: scan
+  - page: 522
+    from: War dem $0,
+    to: War dem so,
     by: scan
   - page: 523
     from: dass er.
@@ -13764,6 +14064,18 @@ freud-1952-gw-1:
     from: (Verdrängte Gedanken)
     to: ""
     by: scan
+  - page: 525
+    from: fortdauernd Ale zu
+    to: fortdauernd Unlust zu
+    by: scan
+  - page: 525
+    from: eigentlichen Ber diiäräh Objektes
+    to: eigentlichen psychischen Objektes
+    by: scan
+  - page: 526
+    from: \) Es wäre irrig
+    to: ¹) Es wäre irrig
+    by: scan
   - page: 537
     from: N eurologisches
     to: Neurologisches
@@ -13787,6 +14099,10 @@ freud-1952-gw-1:
   - page: 547
     from: Mädchen.
     to: Mädchen
+    by: scan
+  - page: 557
+    from: „‚Sammlung 1895—1906“ sind im Band 5 der CBeaERIDE
+    to: „Sammlung 1893—1906“ sind im Band 5 der Gesammelten
     by: scan
   - page: 564
     from: durchwegs. sinnvoll
@@ -13813,9 +14129,25 @@ freud-1952-gw-1:
     to: daß
     by: scan
 freud-1950-gw-16:
+  - page: 2
+    from: e we
+    to: ""
+    by: scan
   - page: 10
     from: D er
     to: Der
+    by: scan
+  - page: 12
+    from: „Correspondance*,
+    to: „Correspondance“,
+    by: scan
+  - page: 12
+    from: „Warum Krieg?*,
+    to: „Warum Krieg?“,
+    by: scan
+  - page: 12
+    from: „Pourguoi
+    to: „Pourquoi
     by: scan
   - page: 22
     from: daB
@@ -13832,6 +14164,10 @@ freud-1950-gw-16:
   - page: 26
     from: schon. heute
     to: schon heute
+    by: scan
+  - page: 26
+    from: daß*die
+    to: daß die
     by: scan
   - page: 28
     from: W ir
