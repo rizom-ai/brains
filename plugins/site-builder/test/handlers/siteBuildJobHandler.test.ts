@@ -47,7 +47,7 @@ describe("SiteBuildJobHandler", () => {
     // The queue claims a second build only once the first settles, so two
     // builds never hold their memory at once and none waits out its deadline.
     expect(handler.exclusive).toBe(true);
-    expect(handler.executionTimeoutMs).toBe(10 * 60_000);
+    expect(handler.executionTimeoutMs).toBe(30 * 60_000);
   });
 
   describe("validateAndParse", () => {
