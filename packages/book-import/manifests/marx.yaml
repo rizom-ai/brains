@@ -27,9 +27,6 @@ coverage:
   edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
-  - title: Die deutsche Ideologie
-    year: 1846
-    reason: no scan of its first full printing (MEGA I/5, 1932) found on the Internet Archive; the copies there are later editions of unknown source
   - title: Briefe an Engels 1854–1883
     year: 1854
     reason: of the second to fourth volumes of the Briefwechsel (1913), only the third is identified among the Internet Archive's scans
@@ -199,6 +196,215 @@ books:
     author: Karl Marx
     year: 1860
     kind: work
+  - source: mlwerke
+    # MEW 3 (1969) as mlwerke.de published it, from the Internet Archive's
+    # last captures. The pages set headings and Stirner's schemas alike as
+    # centred lines, so the headings are listed, after MEW's contents.
+    pages:
+      - https://web.archive.org/web/20160310040155id_/http://www.mlwerke.de/me/me03/me03_011.htm
+      - https://web.archive.org/web/20150907140157id_/http://www.mlwerke.de:80/me/me03/me03_017.htm
+      - https://web.archive.org/web/20151115084849id_/http://www.mlwerke.de:80/me/me03/me03_078.htm
+      - https://web.archive.org/web/20151115055801id_/http://www.mlwerke.de:80/me/me03/me03_101.htm
+      - https://web.archive.org/web/20151115084905id_/http://www.mlwerke.de:80/me/me03/me03_168.htm
+      - https://web.archive.org/web/20151115084917id_/http://www.mlwerke.de:80/me/me03/me03_222.htm
+      - https://web.archive.org/web/20160322181945id_/http://mlwerke.de/me/me03/me03_282.htm
+      - https://web.archive.org/web/20150831172600id_/http://www.mlwerke.de:80/me/me03/me03_331.htm
+      - https://web.archive.org/web/20151124055635id_/http://www.mlwerke.de:80/me/me03/me03_380.htm
+      - https://web.archive.org/web/20151127065221id_/http://www.mlwerke.de:80/me/me03/me03_430.htm
+      - https://web.archive.org/web/20151127065349id_/http://www.mlwerke.de:80/me/me03/me03_439.htm
+      - https://web.archive.org/web/20151116014505id_/http://www.mlwerke.de:80/me/me03/me03_473.htm
+      - https://web.archive.org/web/20151127065354id_/http://www.mlwerke.de:80/me/me03/me03_521.htm
+    citation: Ideologie
+    slug: die-deutsche-ideologie
+    title: Die deutsche Ideologie
+    edition: "Marx-Engels-Werke, Band 3 (Berlin, Dietz, 1969), S. 9–530"
+    author: Karl Marx und Friedrich Engels
+    year: 1846
+    published: false
+    kind: work
+    headings:
+      - {
+          level: 1,
+          title: "I. Band. Kritik der neuesten deutschen Philosophie in ihren Repräsentanten Feuerbach, B. Bauer und Stirner",
+          match: ["I. Band"],
+        }
+      - { level: 2, title: Vorrede }
+      - {
+          level: 2,
+          title: "I. Feuerbach. Gegensatz von materialistischer und idealistischer Anschauung",
+          match: ["I Feuerbach", "Gegensatz von materialistischer"],
+        }
+      - { level: 3, title: "[Einleitung]" }
+      - {
+          level: 3,
+          title: "A. Die Ideologie überhaupt, namentlich die deutsche",
+        }
+      - { level: 4, title: "[1.] Geschichte" }
+      - { level: 4, title: "[2.] Über die Produktion des Bewußtseins" }
+      - { level: 3, title: "[B. Die wirkliche Basis der Ideologie]" }
+      - { level: 4, title: "[1.] Verkehr und Produktivkraft" }
+      - { level: 4, title: "[2.] Verhältnis von Staat und Recht zum Eigentum" }
+      - {
+          level: 4,
+          title: "[3.] Naturwüchsige und zivilisierte Produktionsinstrumente und Eigentumsformen",
+        }
+      - {
+          level: 3,
+          title: "[C.] Kommunismus. – Produktion der Verkehrsform selbst",
+          match: ["[C.] Kommunismus"],
+        }
+      - { level: 2, title: Das Leipziger Konzil }
+      - { level: 2, title: II. Sankt Bruno, match: ["II", "Sankt Bruno"] }
+      - {
+          level: 3,
+          title: "1. „Feldzug“ gegen Feuerbach",
+          match: ['1. "Feldzug"'],
+        }
+      - {
+          level: 3,
+          title: "2. Sankt Brunos Betrachtungen über den Kampf zwischen Feuerbach und Stirner",
+          match: ["2. Sankt Brunos"],
+        }
+      - {
+          level: 3,
+          title: "3. Sankt Bruno contra die Verfasser der „Heiligen Familie“",
+          match: ["3. Sankt Bruno contra"],
+        }
+      - { level: 3, title: "4. Nachruf an „M. Heß“", match: ["4. Nachruf"] }
+      - { level: 2, title: III. Sankt Max, match: ["III", "Sankt Max"] }
+      - { level: 3, title: 1. Der Einzige und sein Eigentum }
+      - { level: 4, title: "Altes Testament: Der Mensch" }
+      - { level: 5, title: "1. Genesis, d.i. Ein Menschenleben" }
+      - { level: 5, title: 2. Ökonomie des Alten Bundes }
+      - { level: 5, title: 3. Die Alten }
+      - { level: 5, title: 4. Die Neuen }
+      - { level: 6, title: A) Der Geist (Reine Geistergeschichte) }
+      - { level: 6, title: B) Die Besessenen (Unreine Geistergeschichte) }
+      - { level: 7, title: a) Der Spuk }
+      - { level: 7, title: b) Der Sparren }
+      - { level: 6, title: C) Unreine unreine Geistergeschichte }
+      - { level: 7, title: a) Neger und Mongolen }
+      - { level: 7, title: b) Katholizismus und Protestantismus }
+      - { level: 6, title: D) Die Hierarchie }
+      - { level: 5, title: "5. Der in seiner Konstruktion vergnügte Stirner" }
+      - { level: 5, title: 6. Die Freien }
+      - { level: 6, title: A) Der politische Liberalismus }
+      - { level: 6, title: B) Der Kommunismus }
+      - { level: 6, title: C) Der humane Liberalismus }
+      - {
+          level: 4,
+          title: "Neues Testament: „Ich“",
+          match: ["Neues Testament"],
+        }
+      - { level: 5, title: 1. Ökonomie des Neuen Bundes }
+      - {
+          level: 5,
+          title: "2. Phänomenologie des mit sich einigen Egoisten oder die Lehre von der Rechtfertigung",
+          match: ["2. Phänomenologie"],
+        }
+      - {
+          level: 5,
+          title: "3. Offenbarung Johannis des Theologen oder „die Logik der neuen Weisheit“",
+          match: ["3. Offenbarung"],
+        }
+      - { level: 5, title: 4. Die Eigenheit }
+      - { level: 5, title: 5. Der Eigner }
+      - { level: 6, title: A) Meine Macht }
+      - { level: 7, title: I. Das Recht }
+      - { level: 8, title: A) Kanonisation im Allgemeinen }
+      - { level: 8, title: B) Aneignung durch einfache Antithese }
+      - { level: 8, title: C) Aneignung durch zusammengesetzte Antithese }
+      - { level: 7, title: II. Das Gesetz }
+      - { level: 7, title: III. Das Verbrechen }
+      - { level: 8, title: A) Einfache Kanonisation von Verbrechen und Strafe }
+      - { level: 9, title: a) Verbrechen }
+      - { level: 9, title: b) Strafe }
+      - {
+          level: 8,
+          title: B) Aneignung von Verbrechen und Strafe durch Antithese,
+        }
+      - {
+          level: 8,
+          title: C) Das Verbrechen im gewöhnlichen und außergewöhnlichen Verstande,
+        }
+      - { level: 6, title: "[B) Mein Verkehr]", match: [] }
+      - { level: 7, title: "[I. Die Gesellschaft]", match: [] }
+      - { level: 8, title: 5. Die Gesellschaft als bürgerliche Gesellschaft }
+      - { level: 7, title: II. Die Empörung }
+      - { level: 7, title: III. Der Verein }
+      - { level: 8, title: 1. Grundeigentum }
+      - { level: 8, title: 2. Organisation der Arbeit }
+      - { level: 8, title: 3. Geld }
+      - { level: 8, title: 4. Staat }
+      - { level: 8, title: 5. Empörung }
+      - { level: 8, title: 6. Religion und Philosophie des Vereins }
+      - { level: 9, title: A. Eigentum }
+      - { level: 9, title: B. Vermögen }
+      - { level: 9, title: "C. Moral. Verkehr, Exploititionstheorie" }
+      - { level: 9, title: D. Religion }
+      - { level: 9, title: E. Nachträgliches zum Verein }
+      - { level: 6, title: C) Mein Selbstgenuß, match: ["C. Mein Selbstgenuß"] }
+      - { level: 5, title: 6. Das hohe Lied Salomonis oder Der Einzige }
+      - { level: 3, title: 2. Apologetischer Kommentar }
+      - { level: 2, title: Schluß des Leipziger Konzils }
+      - {
+          level: 1,
+          title: "II. Band. Kritik des deutschen Sozialismus in seinen verschiedenen Propheten",
+          match: ["II. Band"],
+        }
+      - { level: 2, title: Der wahre Sozialismus }
+      - {
+          level: 2,
+          title: "I. „Die Rheinischen Jahrbücher“ oder Die Philosophie des wahren Sozialismus",
+          match: ["I.", '"Die Rheinischen Jahrbücher"'],
+        }
+      - {
+          level: 3,
+          title: "A. „Communismus, Socialismus, Humanismus“",
+          match: ["A. Communismus"],
+        }
+      - {
+          level: 3,
+          title: "B) „Socialistische Bausteine“",
+          match: ['B) "Socialistische Bausteine"'],
+        }
+      - { level: 4, title: Erster Baustein }
+      - { level: 4, title: Zweiter Baustein }
+      - { level: 4, title: Dritter Baustein }
+      - {
+          level: 2,
+          title: "IV. Karl Grün: „Die soziale Bewegung in Frankreich und Belgien“ (Darmstadt 1845) oder Die Geschichtschreibung des wahren Sozialismus",
+          match: ["IV", "Karl Grün"],
+        }
+      - { level: 3, title: Saint-Simonismus }
+      - {
+          level: 4,
+          title: "1. „Lettres d'un habitant de Genève à ses contemporains“",
+          match: ['1."Lettres'],
+        }
+      - {
+          level: 4,
+          title: "2. „Catéchisme politique des industriels“",
+          match: ['2. "Catéchisme'],
+        }
+      - {
+          level: 4,
+          title: "3. „Nouveau christianisme“",
+          match: ['3. "Nouveau'],
+        }
+      - { level: 4, title: 4. Saint-simonistische Schule }
+      - { level: 3, title: Fourierismus }
+      - {
+          level: 3,
+          title: "Der „bornierte Papa Cabet“ und Herr Grün",
+          match: ['Der "bornierte Papa Cabet"'],
+        }
+      - { level: 3, title: Proudhon }
+      - {
+          level: 2,
+          title: "V. „Der Dr. Georg Kuhlmann aus Holstein“ oder Die Prophetie des wahren Sozialismus",
+          match: ['V "Der Dr. Georg Kuhlmann'],
+        }
   - source: wikisource
     page: Thesen über Feuerbach
     citation: Feuerbach-Thesen

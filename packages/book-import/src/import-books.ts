@@ -283,6 +283,15 @@ const mlwerkeBookSchema: z.ZodObject<
           z.ZodObject<{ page: z.ZodString; from: z.ZodString; to: z.ZodString }>
         >
       >;
+      headings: z.ZodDefault<
+        z.ZodArray<
+          z.ZodObject<{
+            level: z.ZodNumber;
+            title: z.ZodString;
+            match: z.ZodOptional<z.ZodArray<z.ZodString>>;
+          }>
+        >
+      >;
     }
   >
 > = z.object({
@@ -301,6 +310,16 @@ const mlwerkeBookSchema: z.ZodObject<
         page: z.string().min(1),
         from: z.string().min(1),
         to: z.string(),
+      }),
+    )
+    .default([]),
+  /** The work's headings in order, where its pages set them as centred lines among others. */
+  headings: z
+    .array(
+      z.object({
+        level: z.number().int().min(1),
+        title: z.string().min(1),
+        match: z.array(z.string().min(1)).optional(),
       }),
     )
     .default([]),

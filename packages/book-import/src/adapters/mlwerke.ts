@@ -21,6 +21,24 @@ export interface MlwerkeWork {
   citation: string;
   /** The transcription's slips, each fixed on its MEW page as the text reads. */
   fixes?: MlwerkeFix[];
+  /**
+   * The work's headings in order, where its pages set them only as centred
+   * lines among others that are text; every other centred line is text.
+   * None listed, the pages' markup tells the headings.
+   */
+  headings?: MlwerkeHeading[];
+}
+
+export interface MlwerkeHeading {
+  /** 1 for the outermost. */
+  level: number;
+  title: string;
+  /**
+   * The line or lines the heading stands as, by how each begins; the title
+   * if none; an empty list for a heading the pages leave out, opened where
+   * the next one stands.
+   */
+  match?: string[] | undefined;
 }
 
 export interface MlwerkeFix {
@@ -54,8 +72,10 @@ interface Reading {
   place: Place;
   url: string;
   sections: Array<TitledSection<Block>>;
-  /** The part a heading of the second level stands under. */
-  part: { node: object; title: string } | null;
+  /** The headings the text now stands under, outermost first. */
+  open: Array<{ node: object; title: string }>;
+  /** A listed work's headings, the next one to find and how much of it is found. */
+  listed: { headings: MlwerkeHeading[]; next: number; line: number } | null;
   /** Marx's and Engels's notes, by their anchor: the mark, the page that marks them. */
   kept: Map<string, { mark: string; place: Place }>;
   /** Every note's anchor on the page, the editors' included. */
@@ -89,6 +109,8 @@ const NOTES_PARAGRAPH = /^(?:Redaktionelle\s+\S+|Fu(?:ß|ss)noten?\b)/i;
 const AUTHORS_NOTES = /\bvon\s+(?:Marx|Engels)\b/i;
 /** A note's mark as a link shows it: [7*], [20], (1), A. */
 const NOTE_MARK = /^\s*[[(]?[\p{L}\d]{1,3}\*?[\])]?\.?\s*$/u;
+/** A link to the page that gathers a volume's editors' notes: me03_anm.htm#M3. */
+const EDITORS_NOTES_PAGE = /_anm\.htm#/i;
 /** A MEW page number set in the text: <471>. */
 const PAGE_MARK = /<(\d+)>/g;
 /** The editors' words before a note Marx set without a reference. */
@@ -115,10 +137,12 @@ function punctuated(text: string): string {
   );
 }
 
-/** Straight quotation marks as German ones: "so" is „so“. */
+/** Straight quotation marks as German ones: "so" is „so“, *"so"* is *„so“*. */
 function germanQuotes(text: string): string {
-  return text.replace(/(^|[\s([—–])"|"/g, (_mark, before?: string) =>
-    before === undefined ? "“" : `${before}„`,
+  return text.replace(
+    /(^|[\s([—–])(\**)"|"/g,
+    (_mark, before?: string, emphasis?: string) =>
+      before === undefined ? "“" : `${before}${emphasis ?? ""}„`,
   );
 }
 
@@ -181,11 +205,13 @@ function inlineText(node: Node, reading: Reading): string {
       reading.kept.set(id, { ...kept, place: reading.place });
       return `${escapeMarkdown(kept.mark)})`;
     }
-    // An editors' note's mark, its note on this page or not; a link to a
-    // place in the text, such as p. [31], stays text.
+    // An editors' note's mark, its note on this page, on the volume's page
+    // of notes or not given; a link to a place in the text, such as p. [31],
+    // stays text.
     if (
-      id !== null &&
-      (reading.notes.has(id) || NOTE_MARK.test(node.textContent))
+      EDITORS_NOTES_PAGE.test(node.getAttribute("href") ?? "") ||
+      (id !== null &&
+        (reading.notes.has(id) || NOTE_MARK.test(node.textContent)))
     ) {
       return "";
     }
@@ -225,6 +251,17 @@ function addParagraph(element: Element, reading: Reading): void {
   });
 }
 
+/** Open a heading at its level, closing those at its level and below. */
+function openHeading(level: number, title: string, reading: Reading): void {
+  reading.open = [...reading.open.slice(0, level - 1), { node: {}, title }];
+  reading.sections.push({
+    path: reading.open.map((heading) => heading.node),
+    titles: reading.open.map((heading) => heading.title),
+    paragraphs: [],
+    notes: [],
+  });
+}
+
 function addHeading(
   element: Element,
   kind: "part" | "section",
@@ -232,23 +269,56 @@ function addHeading(
 ): void {
   const title = titleCased(spaced(element.textContent));
   if (title.length === 0) return;
-  if (kind === "part") {
-    reading.part = { node: element, title };
-    reading.sections.push({
-      path: [element],
-      titles: [title],
-      paragraphs: [],
-      notes: [],
-    });
-    return;
-  }
-  const part = reading.part;
-  reading.sections.push({
-    path: part ? [part.node, element] : [element],
-    titles: part ? [part.title, title] : [title],
-    paragraphs: [],
-    notes: [],
-  });
+  openHeading(kind === "part" ? 1 : 2, title, reading);
+}
+
+/** A line's words as it reads, its line breaks as spaces. */
+function lineText(node: Node): string {
+  if (node.nodeType === TEXT_NODE) return punctuated(node.textContent);
+  if (!isElement(node)) return "";
+  if (nameOf(node) === "br") return " ";
+  return Array.from(node.childNodes).map(lineText).join("");
+}
+
+/**
+ * Open the listed headings a line stands as, in order, one line holding
+ * several or one heading spanning lines; whether it stood as any.
+ */
+function openListed(element: Element, reading: Reading): boolean {
+  const listed = reading.listed;
+  if (!listed) return false;
+  // Headings the pages leave out stand before the next one they have.
+  const nextStanding = (index: number): number => {
+    const heading = listed.headings[index];
+    return heading?.match?.length === 0 ? nextStanding(index + 1) : index;
+  };
+  const take = (rest: string, found: boolean): boolean => {
+    const standing = nextStanding(listed.next);
+    const heading = listed.headings[standing];
+    if (!heading || rest.length === 0) return found;
+    const lines = heading.match ?? [heading.title];
+    const line = lines[listed.line] ?? "";
+    if (line.length === 0 || !rest.startsWith(line)) return found;
+    if (listed.line === 0) {
+      listed.headings
+        .slice(listed.next, standing)
+        .forEach((left) => openHeading(left.level, left.title, reading));
+      listed.next = standing;
+    }
+    listed.line += 1;
+    if (listed.line === lines.length) {
+      openHeading(heading.level, heading.title, reading);
+      listed.next = standing + 1;
+      listed.line = 0;
+    }
+    return take(rest.slice(line.length).trim(), true);
+  };
+  return take(lineText(element).replace(/\s+/g, " ").trim(), false);
+}
+
+/** A line set at the centre, where a listed work's headings stand. */
+function isCentred(element: Element): boolean {
+  return (element.getAttribute("align") ?? "").toLowerCase() === "center";
 }
 
 /** A note of the authors', with its mark, placed on the page that marks it. */
@@ -400,6 +470,14 @@ function readPage(page: MlwerkePage, reading: Reading): void {
       if (opened) return opened;
       const kind = headingKind(element);
       if (kind && AUTHOR_LINE.test(element.textContent.trim())) return region;
+      if (reading.listed) {
+        if ((kind || isCentred(element)) && openListed(element, reading)) {
+          return "text";
+        }
+        if (region === "text") addParagraph(element, reading);
+        if (region === "authors") addNote(element, reading);
+        return region;
+      }
       if (kind) {
         if (region !== "text") return "editors";
         addHeading(element, kind, reading);
@@ -447,11 +525,18 @@ export function parseMlwerkePages(
     place: { page: 0, label: "" },
     url: "",
     sections: [],
-    part: null,
+    open: [],
+    listed: work.headings?.length
+      ? { headings: work.headings, next: 0, line: 0 }
+      : null,
     kept: new Map(),
     notes: new Set(),
   };
   pages.forEach((page) => readPage(page, reading));
+  const missing = reading.listed?.headings[reading.listed.next];
+  if (missing) {
+    throw new Error(`No heading "${missing.title}" in the pages, in its order`);
+  }
   (work.fixes ?? []).forEach((fix) => applyFix(reading.sections, fix));
   return unitsOfSections(reading.sections, (start) => ({
     citation: `${work.citation}, ${start.label}`,

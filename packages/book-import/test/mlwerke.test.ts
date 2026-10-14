@@ -71,6 +71,22 @@ describe("parseMlwerkePages", () => {
     ).toEqual([["Die Rente."]]);
   });
 
+  it("leaves out the marks of the editors' notes the volume gathers on a page of their own", () => {
+    const page = `<H3>Feuerbach</H3><P>&lt;20&gt;Vorstellungen <A NAME="Z3"><A HREF="me03_anm.htm#M3">(3)</A></A>. Wie oben (<A HREF="#S31">p. [31-33]</A>).</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], work)[0]?.paragraphs,
+    ).toEqual(["Vorstellungen. Wie oben (p. [31-33])."]);
+  });
+
+  it("opens a quotation the emphasis opens with it", () => {
+    const page = `<H3>Grün</H3><P>&lt;480&gt;ihre <I>"Auflösung"</I> und <I>"so</I> weiter" (2).</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], work)[0]?.paragraphs,
+    ).toEqual(["ihre *„Auflösung“* und *„so* weiter“ (2)."]);
+  });
+
   it("fixes the transcription's slips on the MEW page the work names", async () => {
     const units = parseMlwerkePages(await pages(), {
       ...work,
@@ -159,6 +175,91 @@ describe("parseMlwerkePages", () => {
       "*Erstens* – *unmittelbare* Einheit.",
       "*Zweitens* so.",
     ]);
+  });
+
+  const listed = `<FONT SIZE=5><P ALIGN="CENTER">II<BR>Sankt Bruno</P></FONT><P ALIGN="CENTER">1. "Feldzug" gegen Feuerbach</P><P>&lt;78&gt;Text eins.</P><FONT SIZE=5><P ALIGN="CENTER">}-{ Recht ist, was Mit Recht ist</P></FONT><P ALIGN="CENTER">Sankt Sancho.</P><P>Text zwei.</P><P ALIGN="CENTER">[B. Die Basis] [1.] Verkehr</P><P>Text drei.</P>`;
+  const bruno = {
+    level: 1,
+    title: "II. Sankt Bruno",
+    match: ["II", "Sankt Bruno"],
+  };
+  const feldzug = {
+    level: 2,
+    title: "1. „Feldzug“ gegen Feuerbach",
+    match: ['1. "Feldzug"'],
+  };
+  const listedHeadings = [
+    bruno,
+    feldzug,
+    { level: 2, title: "[B. Die Basis]" },
+    { level: 3, title: "[1.] Verkehr" },
+  ];
+
+  it("takes a work's headings from the list it names, every other centred line text", () => {
+    const units = parseMlwerkePages([{ url: URL_471, html: listed }], {
+      citation: "Ideologie",
+      headings: listedHeadings,
+    });
+
+    expect(
+      units.map((unit) => [
+        unit.parents,
+        unit.title,
+        unit.section,
+        unit.paragraphs,
+      ]),
+    ).toEqual([
+      [
+        ["II. Sankt Bruno"],
+        "1. „Feldzug“ gegen Feuerbach",
+        "Ideologie, 78",
+        [
+          "Text eins.",
+          "}-{ Recht ist, was Mit Recht ist",
+          "Sankt Sancho.",
+          "Text zwei.",
+        ],
+      ],
+      [
+        ["II. Sankt Bruno", "[B. Die Basis]"],
+        "[1.] Verkehr",
+        "Ideologie, 78",
+        ["Text drei."],
+      ],
+    ]);
+  });
+
+  it("opens a heading the pages leave out where the next listed heading stands", () => {
+    const units = parseMlwerkePages([{ url: URL_471, html: listed }], {
+      citation: "Ideologie",
+      headings: [
+        bruno,
+        feldzug,
+        { level: 2, title: "[B) Mein Verkehr]", match: [] },
+        { level: 3, title: "[B. Die Basis]" },
+        { level: 4, title: "[1.] Verkehr" },
+      ],
+    });
+
+    expect(units.map((unit) => [unit.parents, unit.title])).toEqual([
+      [["II. Sankt Bruno"], "1. „Feldzug“ gegen Feuerbach"],
+      [
+        ["II. Sankt Bruno", "[B) Mein Verkehr]", "[B. Die Basis]"],
+        "[1.] Verkehr",
+      ],
+    ]);
+  });
+
+  it("refuses a listed heading the pages do not have", () => {
+    expect(() =>
+      parseMlwerkePages([{ url: URL_471, html: listed }], {
+        citation: "Ideologie",
+        headings: [
+          ...listedHeadings,
+          { level: 2, title: "4. Nachruf an „M. Heß“" },
+        ],
+      }),
+    ).toThrow(/Nachruf/);
   });
 
   it("leaves out a page with no heading of its own text, such as the editors' introduction", () => {
