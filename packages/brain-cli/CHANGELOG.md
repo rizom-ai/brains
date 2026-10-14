@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- [#635](https://github.com/rizom-ai/brains/pull/635) [`f4be0fb`](https://github.com/rizom-ai/brains/commit/f4be0fb4157f48ef6b4dce551ea76bafdda15910) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job type can be exclusive: the queue claims a second job of it only once the first settles. Site builds are exclusive and get a 10-minute deadline, so a waiting build no longer runs out its deadline inside a claimed job.
+
 ## 0.2.0-alpha.549
 
 No changes in this release.
