@@ -73,8 +73,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       jobTypeName: "site-build",
       // One build at a time: two builds' memory peaks would add up.
       exclusive: true,
-      // A book brain builds thousands of pages; the 5-minute default is too tight.
-      executionTimeoutMs: 10 * 60_000,
+      // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
+      executionTimeoutMs: 30 * 60_000,
     });
     this.sendMessage = sendMessage;
     this.cfg = cfg;
