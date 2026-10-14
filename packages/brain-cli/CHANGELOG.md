@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- [#633](https://github.com/rizom-ai/brains/pull/633) [`8ba21e3`](https://github.com/rizom-ai/brains/commit/8ba21e3956f5f5aaa13680c69152a0e9f49b770c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds take turns instead of running preview and production at once, and EPUBs are zipped with the runtime's native DEFLATE, which cuts the memory a book shelf's EPUBs leave behind by about two thirds.
+
 ## 0.2.0-alpha.547
 
 ### Patch Changes
