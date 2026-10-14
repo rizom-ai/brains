@@ -3994,7 +3994,7 @@ freud-1941-gw-4:
     to: ""
     by: scan
   - page: 130
-    from: "¹) Vgl. etwa die Stelle im „Julius Cä ‘ . sar® UI, z:"
+    from: "¹) Vgl. etwa die Stelle im „Julius Cä “ . sar® UI, z:"
     to: "¹) Vgl. etwa die Stelle im „Julius Cäsar“, III, 3:"
     by: scan
   - page: 130
@@ -8167,7 +8167,7 @@ freud-1942-gw-2-3:
       geworfen hatten. Die Erwähnung dieses späteren Jugenderlebnisses
     by: scan
   - page: 178
-    from: „Über rungen‘ in der "Monstsschrift
+    from: „Über rungen“ in der "Monstsschrift
     to: ""
     by: scan
   - page: 178
@@ -8674,10 +8674,6 @@ freud-1942-gw-2-3:
     from: "#) Die beiden Hälften des Hodensackes."
     to: ⁴) Die beiden Hälften des Hodensackes.
     by: scan
-  - page: 375
-    from: „Zentralblatt f. PsA.‘, Heft 1
-    to: „Zentralblatt f. PsA.“, Heft 1
-    by: scan
   - page: 378
     from: "der Cousine: fa, ich hab’"
     to: "der Cousine: Ja, ich hab’"
@@ -8805,10 +8801,6 @@ freud-1942-gw-2-3:
   - page: 454
     from: hervorrufen werden. $0
     to: hervorrufen werden. So
-    by: scan
-  - page: 456
-    from: zum Lesen.‘ Ich biete ihr
-    to: zum Lesen.“ Ich biete ihr
     by: scan
   - page: 457
     from: in She“ umeinen abenteuerlichen
@@ -13117,9 +13109,21 @@ freud-1950-gw-16:
     from: J ahrhundert
     to: Jahrhundert
     by: scan
+  - page: 104
+    from: schalten,* einem
+    to: schalten,²) einem
+    by: scan
   - page: 105
     from: Abkürzung. von
     to: Abkürzung von
+    by: scan
+  - page: 106
+    from: hat ©. Rank
+    to: hat O. Rank
+    by: scan
+  - page: 106
+    from: Helden“.* Sie
+    to: Helden“.²) Sie
     by: scan
   - page: 107
     from: gerettetund
@@ -13137,9 +13141,21 @@ freud-1950-gw-16:
     from: J ugendgeschichte
     to: Jugendgeschichte
     by: scan
+  - page: 110
+    from: ausdrückt,® habe
+    to: ausdrückt,²) habe
+    by: scan
   - page: 112
     from: en hatten“ ($. 651
     to: en hatten“ (S. 651
+    by: scan
+  - page: 116
+    from: Theben 4mon-Re,
+    to: Theben Amon-Re,
+    by: scan
+  - page: 116
+    from: von Or ist.
+    to: von On ist.
     by: scan
   - page: 118
     from: diereligiöse
@@ -13149,13 +13165,49 @@ freud-1950-gw-16:
     from: diedem
     to: die dem
     by: scan
+  - page: 118
+    from: zurückverfolgen.* In
+    to: zurückverfolgen.²) In
+    by: scan
+  - page: 118
+    from: Ä ¹) „Ihe first
+    to: ¹) „The first
+    by: scan
+  - page: 119
+    from: zu Or (Heliopolis)
+    to: zu On (Heliopolis)
+    by: scan
+  - page: 119
+    from: Frauen* waren
+    to: Frauen¹) waren
+    by: scan
+  - page: 120
+    from: ist.“* Und
+    to: ist.“²) Und
+    by: scan
   - page: 121
     from: Atonreligion war.
     to: Atonreligion war
     by: scan
+  - page: 122
+    from: "D. ofC.,S. 2gi:"
+    to: "D. of C., S. 291:"
+    by: scan
+  - page: 123
+    from: des 4ton,
+    to: des Aton,
+    by: scan
   - page: 124
     from: mit. der
     to: mit der
+    by: scan
+  - page: 128
+    from: die igte Dynastie
+    to: die 19te Dynastie
+    by: scan
+  - page: 129
+    from: S. i81, u. ff.)
+    to: S. 181, u. ff.)
     by: scan
   - page: 133
     from: dem. östlichen
@@ -13165,21 +13217,49 @@ freud-1950-gw-16:
     from: 3)l.c.$. 38,
     to: 3)l.c.S. 38,
     by: scan
+  - page: 133
+    from: es sej ihm
+    to: es sei ihm
+    by: scan
   - page: 134
     from: 5) l.c.$. 72.
     to: 5) l.c.S. 72.
     by: scan
+  - page: 134
+    from: en aan
+    to: ""
+    by: scan
+  - page: 134
+    from: Sagengeschichte.‘® Er
+    to: Sagengeschichte.“⁵) Er
+    by: scan
+  - page: 135
+    from: Wundertäter. ... .“*
+    to: Wundertäter. . . .“¹)
+    by: scan
   - page: 137
     from: M oses
     to: Moses
+    by: scan
+  - page: 138
+    from: noch mn Namen auftauchen.! Es
+    to: noch ägyptische Namen auftauchen.¹) Es
     by: scan
   - page: 140
     from: daß.
     to: daß
     by: scan
   - page: 140
-    from: aufeine
-    to: auf eine
+    from: stimmenden Berichten von JundE, die also hierin aufeine gemeinsame
+    to: stimmenden Berichten von J und E, die also hierin auf eine gemeinsame
+    by: scan
+  - page: 149
+    from: der idten Dynastie
+    to: der 18ten Dynastie
+    by: scan
+  - page: 150
+    from: en et ehe ARE
+    to: ""
     by: scan
   - page: 152
     from: und es.
@@ -13197,6 +13277,18 @@ freud-1950-gw-16:
     from: dieim
     to: die im
     by: scan
+  - page: 164
+    from: einen zerminus ad quem
+    to: einen terminus ad quem
+    by: scan
+  - page: 164
+    from: vom Auszugan
+    to: vom Auszug an
+    by: scan
+  - page: 164
+    from: (40) - iz20 (10)
+    to: (40) – 1320 (10)
+    by: scan
   - page: 167
     from: und.
     to: und
@@ -13204,6 +13296,10 @@ freud-1950-gw-16:
   - page: 171
     from: psychischer. und
     to: psychischer und
+    by: scan
+  - page: 174
+    from: Im gten oder 8ten.Jahrhundert,
+    to: Im 9ten oder 8ten Jahrhundert,
     by: scan
   - page: 184
     from: an. dessen
@@ -13224,6 +13320,14 @@ freud-1950-gw-16:
   - page: 202
     from: im. rezenten
     to: im rezenten
+    by: scan
+  - page: 206
+    from: kann.}Das
+    to: kann. Das
+    by: scan
+  - page: 206
+    from: gesammelt En Be-
+    to: gesammelt vorzulegen. Seine Be-
     by: scan
   - page: 214
     from: F orschung
@@ -13253,9 +13357,17 @@ freud-1950-gw-16:
     from: er Ausgabe, $. 97.
     to: er Ausgabe, S. 97.
     by: scan
+  - page: 239
+    from: Im Jahre ig912
+    to: Im Jahre 1912
+    by: scan
   - page: 244
     from: J udentum
     to: Judentum
+    by: scan
+  - page: 248
+    from: ren E
+    to: ""
     by: scan
   - page: 267
     from: zu. halten

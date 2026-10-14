@@ -944,6 +944,9 @@ function normalised(text: string): string {
       // A double quotation mark read as two single ones, or two commas.
       .replace(/‚‚|,,(?=[\p{L}\d])/gu, "„")
       .replace(/‘‘/g, "“")
+      // A „ quotation closed with a single mark, where no single quotation
+      // opened inside it and no double mark closes it later in the line.
+      .replace(/„([^“‘‚„]*?)‘(?![\p{L}])(?![^„]*“)/gu, "„$1“")
       // Loco citato read with a figure one, a capital I or J, or a capital C;
       // J. C. is a name's initials. A page's p. read with a dash.
       .replace(

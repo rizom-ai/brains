@@ -596,6 +596,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
+  it("reads a quotation the OCR closed with a single mark as closed with a double one", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, „Totem und Tabu‘ und „Angst‘, ein „Besseren‘ geben!“, „nicht ‘den und ‚Wort‘.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, „Totem und Tabu“ und „Angst“, ein „Besseren‘ geben!“, „nicht ‘den und ‚Wort‘.",
+    );
+  });
+
   it("reads a first the OCR set as i before a month or a volume's part as 1", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
