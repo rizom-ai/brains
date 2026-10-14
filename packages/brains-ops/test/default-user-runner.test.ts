@@ -84,6 +84,28 @@ describe("createDefaultUserRunner", () => {
     expect(result.brainYaml).not.toContain("kind: professional");
   });
 
+  it("renders the auth anchor kind from the user override", async () => {
+    const runner = createDefaultUserRunner("thefourth");
+
+    const result = await runner({
+      ...baseUser,
+      profileKind: "organization",
+      anchorKind: "organization",
+    });
+
+    expect(fromYaml(result.brainYaml ?? "")).toMatchObject({
+      anchor: "organization",
+    });
+  });
+
+  it("leaves the auth anchor kind to the runtime default when unset", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({ ...baseUser, profileKind: "organization" });
+
+    expect(fromYaml(result.brainYaml ?? "")).not.toHaveProperty("anchor");
+  });
+
   it("renders a hermetic directory-sync performance posture", async () => {
     const runner = createDefaultUserRunner("rizom-ai");
 

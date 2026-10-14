@@ -54,6 +54,20 @@ export const profileKindSchema: z.ZodEnum<{
   organization: "organization";
 }> = z.enum(PROFILE_KINDS);
 
+/**
+ * Who owns the brain in its auth service. "person" (the runtime default) makes
+ * the first passkey holder a permanent owner; "team" and "organization" make
+ * the brain collectively owned, so admins can be replaced. Kept in lockstep
+ * with @brains/auth-service AUTH_BRAIN_ANCHOR_CONFIG_KINDS by a test.
+ */
+export const ANCHOR_KINDS = ["person", "team", "organization"] as const;
+export const anchorKindSchema: z.ZodEnum<{
+  person: "person";
+  team: "team";
+  organization: "organization";
+}> = z.enum(ANCHOR_KINDS);
+export type AnchorKind = z.output<typeof anchorKindSchema>;
+
 const canonicalBundlesSchema: z.ZodArray<typeof canonicalBundleIdSchema> = z
   .array(canonicalBundleIdSchema)
   .min(1);
@@ -303,6 +317,7 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
   contentRepoOverride: z.ZodOptional<z.ZodString>;
   profileKind: z.ZodOptional<typeof profileKindSchema>;
+  anchorKind: z.ZodOptional<typeof anchorKindSchema>;
   plugins: z.ZodOptional<typeof userPluginsSchema>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -327,6 +342,7 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.string().min(1).optional(),
   contentRepoOverride: z.string().min(1).optional(),
   profileKind: profileKindSchema.optional(),
+  anchorKind: anchorKindSchema.optional(),
   plugins: userPluginsSchema.optional(),
   embeddingEnabled: z.boolean().optional(),
   topicExtractionEnabled: z.boolean().optional(),
