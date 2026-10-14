@@ -116,6 +116,28 @@ const headingLineSchema: z.ZodObject<{
     .optional(),
 });
 
+/** How the author's letters are known among the others in an edition. */
+const letterWriterSchema: z.ZodObject<{
+  signatures: z.ZodArray<z.ZodString>;
+  salutations: z.ZodArray<z.ZodString>;
+}> = z.object({
+  /** Signatures without their closing: K. M. for Dein K. M. */
+  signatures: z.array(z.string().min(1)).min(1),
+  /** Salutations of the author's letters, for a letter left unsigned. */
+  salutations: z.array(z.string().min(1)),
+});
+
+/** A scanned volume of letters: the author's, of the years from and to. */
+const letterVolumeSchema: z.ZodObject<{
+  signatures: z.ZodArray<z.ZodString>;
+  salutations: z.ZodArray<z.ZodString>;
+  from: z.ZodOptional<z.ZodNumber>;
+  to: z.ZodOptional<z.ZodNumber>;
+}> = letterWriterSchema.extend({
+  from: z.number().int().optional(),
+  to: z.number().int().optional(),
+});
+
 const archiveOcrBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -141,6 +163,7 @@ const archiveOcrBookSchema: z.ZodObject<
       curved: z.ZodDefault<z.ZodBoolean>;
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
+      letters: z.ZodOptional<typeof letterVolumeSchema>;
       opensWith: z.ZodOptional<z.ZodString>;
     }
   >
@@ -193,6 +216,8 @@ const archiveOcrBookSchema: z.ZodObject<
   marginalia: z.boolean().default(false),
   /** A volume of newspaper articles, each titled above its dateline: London, 9. Juni 1854. */
   datelined: z.boolean().default(false),
+  /** A volume of letters, each numbered above its salutation and date: the author's kept. */
+  letters: letterVolumeSchema.optional(),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
 });
@@ -330,10 +355,7 @@ const gutenbergLettersBookSchema: z.ZodObject<
     BookFields & {
       ebook: z.ZodNumber;
       citation: z.ZodString;
-      writer: z.ZodObject<{
-        signatures: z.ZodArray<z.ZodString>;
-        salutations: z.ZodArray<z.ZodString>;
-      }>;
+      writer: typeof letterWriterSchema;
       title: z.ZodString;
       edition: z.ZodString;
     }
@@ -345,12 +367,7 @@ const gutenbergLettersBookSchema: z.ZodObject<
   /** How a citation names the edition before its page: Briefwechsel I, 23. */
   citation: z.string().min(1),
   /** How the author's letters are known among the others. */
-  writer: z.object({
-    /** Signatures without their closing: K. M. for Dein K. M. */
-    signatures: z.array(z.string().min(1)).min(1),
-    /** Salutations of the author's letters, for a letter left unsigned. */
-    salutations: z.array(z.string().min(1)),
-  }),
+  writer: letterWriterSchema,
   title: z.string().min(1),
   /** The printed edition the ebook follows. */
   edition: z.string().min(1),

@@ -1,5 +1,6 @@
 import { Window, type Element, type Node } from "happy-dom";
 import type { BookUnit } from "../render-book";
+import { isWritersLetter, type LetterWriter } from "../letter-writer";
 import { unitsOfSections, type TitledSection } from "../sections";
 import {
   TEXT_NODE,
@@ -21,12 +22,7 @@ export interface GutenbergLetters {
   /** How a citation names the edition before its page: Briefwechsel I, 23. */
   citation: string;
   /** How the writer's letters are known. */
-  writer: {
-    /** The writer's signatures, without the closing (Dein K. M. is K. M.). */
-    signatures: string[];
-    /** Salutations of the writer's letters, for a letter left unsigned. */
-    salutations: string[];
-  };
+  writer: LetterWriter;
 }
 
 /** A paragraph, where its text starts. */
@@ -74,8 +70,6 @@ const EDITORIAL = new Set(["note", "footnote", "footnote2"]);
 const READ = new Set(["p", "tr", "blockquote"]);
 /** Elements whose text is the writer's emphasis. */
 const EMPHASIS = new Set(["em", "i", "b", "strong"]);
-/** Words that close a letter before the signature. */
-const CLOSING = /^(?:(?:Dein|Deinem|Euer|Ihr|Ihre|Salut!)\s+)+/;
 
 function textOf(element: Element): string {
   return element.textContent.replace(/\s+/g, " ").trim();
@@ -229,31 +223,6 @@ function visit(node: Node, reading: Reading): void {
   Array.from(node.childNodes).forEach((child) => visit(child, reading));
 }
 
-/** A signature's name, its closing words and the editors' brackets left out. */
-function signed(signature: string): string {
-  return signature
-    .replace(/[[\]]/g, "")
-    .replace(CLOSING, "")
-    .replace(/\.$/, "")
-    .trim();
-}
-
-/**
- * The writer's letter: one the writer signs, or, left unsigned (bar the
- * editors' bracketed remark), one that opens with the writer's salutation.
- * A signature in quotation marks closes a letter the writer quotes.
- */
-function isWriters(
-  letter: Letter,
-  writer: GutenbergLetters["writer"],
-): boolean {
-  const own = letter.signatures.filter((signature) => !/[“"]$/.test(signature));
-  const names = writer.signatures.map(signed);
-  if (own.some((signature) => names.includes(signed(signature)))) return true;
-  const unsigned = own.every((signature) => /^\[.*\]$/.test(signature));
-  return unsigned && writer.salutations.includes(letter.salutation ?? "");
-}
-
 /**
  * Read one writer's letters from a Project Gutenberg edition of letters:
  * each letter a section under its part and year, titled by its number and
@@ -277,7 +246,7 @@ export function parseGutenbergLetters(
     };
     visit(document.body, reading);
     const sections = reading.letters
-      .filter((letter) => isWriters(letter, edition.writer))
+      .filter((letter) => isWritersLetter(letter, edition.writer))
       .map((letter) => letter.section);
     const page = `https://www.gutenberg.org/cache/epub/${edition.ebook}/pg${edition.ebook}-images.html`;
     return unitsOfSections(sections, (start) => ({

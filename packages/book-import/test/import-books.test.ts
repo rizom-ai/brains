@@ -983,6 +983,24 @@ books:
     ).toBe(true);
   });
 
+  it("names a volume of letters: the writer's signatures and salutations, and the years kept", () => {
+    const manifest = parseManifest(
+      ocrManifest +
+        "    letters:\n      signatures: [K. M.]\n      salutations: [Lieber Engels!]\n      from: 1861\n      to: 1865\n",
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].letters
+        : null,
+    ).toEqual({
+      signatures: ["K. M."],
+      salutations: ["Lieber Engels!"],
+      from: 1861,
+      to: 1865,
+    });
+  });
+
   it("reads a corrections file by volume", () => {
     expect(
       parseCorrections(`

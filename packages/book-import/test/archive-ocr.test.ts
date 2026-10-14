@@ -2966,3 +2966,110 @@ describe("parseArchiveOcrWork, formulas restored from the scan", () => {
     expect(units[0]?.paragraphs.at(-1)).toBe("5. M. W. = y + x + P. P.");
   });
 });
+
+describe("parseArchiveOcrWork, letters", () => {
+  const letters = async (
+    years: { from?: number; to?: number } = { from: 1861, to: 1861 },
+  ): Promise<ReturnType<typeof parseArchiveOcrWork>> =>
+    parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-letters.html"),
+        "utf8",
+      ),
+      {
+        item: "derbriefwechsel01marxgoog",
+        title: "Briefe an Engels 1861–1865",
+        citation: "Briefwechsel III",
+        firstPage: 1,
+        lastPage: 5,
+        letters: {
+          signatures: ["K. M."],
+          salutations: ["Lieber Engels!", "Dear Frederick!"],
+          ...years,
+        },
+      },
+    );
+
+  it("reads the writer's letters, each under its year and titled by its number and date", async () => {
+    const units = await letters();
+
+    expect(
+      units.map((unit) => [unit.parents, unit.title, unit.section]),
+    ).toEqual([
+      [["1861"], "689. 18. November 1861.", "Briefwechsel III, 1"],
+      [["1861"], "691. 30. Dezember 1868.", "Briefwechsel III, 2"],
+    ]);
+  });
+
+  it("opens a letter with its date and salutation, leaves out the editors' notes after it, and keeps a quotation set small within it", async () => {
+    const units = await letters();
+
+    expect(units.map((unit) => unit.paragraphs)).toEqual([
+      [
+        "18. November 1861.",
+        "Lieber Engels!",
+        "Iterum Crispinus! Also die Affären stehen jetzt so, wie ich es Dir schrieb, und Lassalle wird das Geld schicken, sobald er von seiner Reise zurück ist, was nach seinem Briefe in vierzehn Tagen der Fall sein wird.",
+        "„Ich breche alle offiziellen Beziehungen ab.“",
+        "Das ist alles, was er schreibt. Schreib mir gleich, was geschehen soll, denn ich muß es ihm morgen sagen. Dein K. M.",
+      ],
+      [
+        "30. Dezember 1868.",
+        "Dear Frederick!",
+        "Ich schicke Dir das Zeug für den Solicitor und schreibe Dir über die Sache selbst, sobald ich mehr weiß, und zwar wohl noch heute abend, wenn mir die Leute Ruhe lassen, oder morgen früh.",
+      ],
+    ]);
+  });
+
+  it("reads a day the bold digits make 80 as 30, and keeps a letter of a year the OCR misread under the year before", async () => {
+    const units = await letters();
+
+    expect(units[1]?.parents).toEqual(["1861"]);
+    expect(units[1]?.title).toBe("691. 30. Dezember 1868.");
+  });
+
+  it("keeps the letters of every year where the volume names no years", async () => {
+    const units = await letters({});
+
+    expect(units.map((unit) => [unit.parents, unit.title])).toEqual([
+      [["1861"], "689. 18. November 1861."],
+      [["1861"], "691. 30. Dezember 1868."],
+      [["1862"], "692. 3. Januar 1862."],
+      [["1862"], "693. 8. Januar 1862."],
+      [["1862"], "694. 10. Januar 1862."],
+      [["1862"], "695. [Undatiert. Ende Januar (?) 1862.]"],
+    ]);
+  });
+
+  it("opens a letter at its number however the OCR places it, dated in the editors' brackets, and knows it by its salutation where the OCR misread the signature", async () => {
+    const units = await letters({ from: 1862 });
+
+    expect(units.at(-1)?.paragraphs).toEqual([
+      "[Undatiert. Ende Januar (?) 1862.]",
+      "Lieber Engels!",
+      "Die Kinder grüßen Dich, und Jenny läßt Dir sagen, daß sie das Buch mit großem Vergnügen gelesen hat, wie wir alle. Dein K. N.",
+    ]);
+  });
+
+  it("numbers a letter on from the one before where its number is misread or lost, even read as one to come, and opens it at its salutation", async () => {
+    const units = await letters({ from: 1862 });
+
+    expect(units.map((unit) => [unit.title, unit.paragraphs.at(-1)])).toEqual([
+      [
+        "692. 3. Januar 1862.",
+        "Hier geht alles schlecht, und der Hauswirt drängt mich, wie er es seit Wochen tut. Ich weiß nicht, was werden soll, wenn das so weitergeht, und schreibe Dir morgen mehr. Dein K. M.",
+      ],
+      [
+        "693. 8. Januar 1862.",
+        "Das Geld ist angekommen, und ich danke Dir dafür, wie immer, von Herzen, denn ohne Dich wären wir hier verloren. Dein K. M.",
+      ],
+      [
+        "694. 10. Januar 1862.",
+        "Ich vergaß Dir zu schreiben, daß der Wechsel noch nicht eingelöst ist, und daß ich ihn morgen zur Bank tragen werde, wo man mich kennt, so daß nichts zu fürchten ist. Dein K. M.",
+      ],
+      [
+        "695. [Undatiert. Ende Januar (?) 1862.]",
+        "Die Kinder grüßen Dich, und Jenny läßt Dir sagen, daß sie das Buch mit großem Vergnügen gelesen hat, wie wir alle. Dein K. N.",
+      ],
+    ]);
+  });
+});
