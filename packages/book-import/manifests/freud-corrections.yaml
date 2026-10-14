@@ -695,13 +695,37 @@ freud-1940-gw-13:
     from: ki HAITZMANN
     to: HAITZMANN
     by: scan
+  - page: 319
+    from: zwischen zo und 40
+    to: zwischen 30 und 40
+    by: scan
+  - page: 319
+    from: im Jahre 1700. . \ ’
+    to: im Jahre 1700.
+    by: scan
   - page: 321
     from: Tagebuch. des
     to: Tagebuch, des
     by: scan
+  - page: 323
+    from: qua iuzta votum
+    to: qua iuxta votum
+    by: scan
+  - page: 323
+    from: Der R. P* Pro-
+    to: Der R. Pr. Pro-
+    by: scan
   - page: 325
     from: jederzeit.
     to: jederzeit
+    by: scan
+  - page: 325
+    from: Geleitbrief des ek
+    to: Geleitbrief des Pfarrers,
+    by: scan
+  - page: 325
+    from: "artis suae RT BEER:"
+    to: artis suae progressum emolu-
     by: scan
   - page: 327
     from: bloB
@@ -710,6 +734,26 @@ freud-1940-gw-13:
   - page: 330
     from: DaB
     to: Daß
+    by: scan
+  - page: 331
+    from: der Zerlegung SR
+    to: der Zerlegung einer
+    by: scan
+  - page: 331
+    from: fremde Gott (Ima
+    to: fremde Gott (Imago-Bücher III, 1923)
+    by: scan
+  - page: 336
+    from: Teufelskörp®rs
+    to: Teufelskörpers
+    by: scan
+  - page: 337
+    from: Bd. rer;
+    to: Bd. VIII].
+    by: scan
+  - page: 341
+    from: nur guä iuxta
+    to: nur quâ iuxta
     by: scan
   - page: 342
     from: daB
@@ -723,9 +767,73 @@ freud-1940-gw-13:
     from: daB
     to: daß
     by: scan
+  - page: 344
+    from: Jahr 166g setzte
+    to: Jahr 1669 setzte
+    by: scan
+  - page: 344
+    from: MU TERFUR gestalt Nr. 2 bezwungen sich,
+    to: . . . . . gestalt Nr. 2 bezwungen sich,
+    by: scan
+  - page: 344
+    from: ann n Bluut zu verschreiben.
+    to: . . . . . . . . n Bluut zu verschreiben.
+    by: scan
+  - page: 345
+    from: daß der
+    to: ""
+    by: scan
+  - page: 345
+    from: file mir nicht leicht. Ich neige zwar zur Annahme,
+    to: fiele mir nicht leicht. Ich neige zwar zur Annahme, daß der
+    by: scan
+  - page: 345
+    from: “ nf . . . des
+    to: ""
+    by: scan
+  - page: 345
+    from: Kompilator im Interesse der Konkordanz einiges am Zeugnis
+    to: Kompilator im Interesse der Konkordanz einiges am Zeugnis des
+    by: scan
+  - page: 345
+    from: "ich fü: Leser"
+    to: ich für Leser
+    by: scan
+  - page: 347
+    from: ihren EIER ASIEN
+    to: ihren König halten
+    by: scan
+  - page: 349
+    from: die Bilder, Ä
+    to: die Bilder, die
+    by: scan
+  - page: 349
+    from: Einsiedler zu wörHerh
+    to: Einsiedler zu werden,
+    by: scan
   - page: 350
     from: daB
     to: daß
+    by: scan
+  - page: 350
+    from: („50 fer
+    to: („so fer
+    by: scan
+  - page: 351
+    from: “ bekannt sind, die sich von der beglückenden
+    to: „ewige Säuglinge“ bekannt sind, die sich von der beglückenden
+    by: scan
+  - page: 351
+    from: ‚ewiee Säuglinge
+    to: ""
+    by: scan
+  - page: 351
+    from: 2 hei eißen können und durchs
+    to: ""
+    by: scan
+  - page: 351
+    from: Situation an der Mutterbrust nicht losr
+    to: Situation an der Mutterbrust nicht losreißen können und durchs
     by: scan
   - page: 353
     from: daB
@@ -1977,6 +2085,10 @@ freud-1940-gw-9:
     from: unehmen, daß die Totemverbote vor allem gegen die inzestuösen Gelüste des
     to: ""
     by: scan
+  - page: 11
+    from: Die Inzestscheu ii
+    to: ""
+    by: scan
   - page: 13
     from: Verhütung des Gruppeninzestes, welches dann
     to: Verhütung des Gruppeninzests, welches dann
@@ -2136,6 +2248,10 @@ freud-1940-gw-9:
   - page: 47
     from: sicherlich. jünger
     to: sicherlich jünger
+    by: scan
+  - page: 47
+    from: Feinde, A) an Häupt-
+    to: Feinde, b) an Häupt-
     by: scan
   - page: 49
     from: Freud, IX, >
@@ -2381,6 +2497,10 @@ freud-1940-gw-9:
     from: erreichbar BE
     to: erreichbar ist“.²)
     by: scan
+  - page: 95
+    from: u. dgl, haben
+    to: u. dgl., haben
+    by: scan
   - page: 100
     from: aus. ihren
     to: aus ihren
@@ -2412,6 +2532,10 @@ freud-1940-gw-9:
   - page: 102
     from: Erkl ärung
     to: Erklärung
+    by: scan
+  - page: 102
+    from: p. 201— 2032.
+    to: p. 201—203.
     by: scan
   - page: 103
     from: oder ‚wie es fast
@@ -2550,7 +2674,7 @@ freud-1940-gw-9:
     to: nennen?¹)
     by: scan
   - page: 133
-    from: als @) nominalistische, ß) soziologische,
+    from: als @) nominalistische, β) soziologische,
     to: als α) nominalistische, β) soziologische,
     by: scan
   - page: 133
@@ -9487,10 +9611,6 @@ freud-1942-gw-5:
     from: x) Wo ein
     to: α) Wo ein
     by: scan
-  - page: 67
-    from: ß) In einem
-    to: β) In einem
-    by: scan
   - page: 69
     from: Zone xar &koyiv.'
     to: Zone κατ’ ἐξοχήν.¹)
@@ -10377,12 +10497,12 @@ freud-1943-gw-8:
     to: bleiben.“¹) In
     by: scan
   - page: 140
-    from: puö amare ne odiare
-    to: può amare nè odiare
-    by: scan
-  - page: 140
     from: Übersetzung vos
     to: Übersetzung von
+    by: scan
+  - page: 140
+    from: "'„Nessuna cosa si puö amare ne odiare, se prima non si ha"
+    to: „Nessuna cosa si può amare nè odiare, se prima non si ha
     by: scan
   - page: 141
     from: O mirabile necessitd ...“) gefeiert hat
@@ -10427,6 +10547,10 @@ freud-1943-gw-8:
   - page: 146
     from: Bd. VIT]
     to: Bd. VII]
+    by: scan
+  - page: 146
+    from: Bd. VII}, schrieb
+    to: Bd. VII], schrieb
     by: scan
   - page: 150
     from: nibio ven“
@@ -12170,6 +12294,18 @@ freud-1947-gw-12:
     from: $. 348
     to: S. 348
     by: scan
+  - page: 164
+    from: asked Jor this
+    to: asked for this
+    by: scan
+  - page: 164
+    from: op. eit., II, 319.
+    to: op. cit., II, 319.
+    by: scan
+  - page: 165
+    from: lassen. “*
+    to: lassen.“¹)
+    by: scan
   - page: 167
     from: daB
     to: daß
@@ -12181,6 +12317,30 @@ freud-1947-gw-12:
   - page: 173
     from: daB
     to: daß
+    by: scan
+  - page: 174
+    from: Be RER des Vatermordes
+    to: ¹) Zur Sonderstellung des Vatermordes
+    by: scan
+  - page: 175
+    from: "Das Weib I, XU, und Dulaure: Des Divinites"
+    to: "Das Weib I, XII, und Dulaure: Des Divinités"
+    by: scan
+  - page: 175
+    from: gen£ratrices. Paris 1885 (reimprime sur l’edition de 1825), p. 142 u. fl.
+    to: génératrices. Paris 1885 (réimprimé sur l’édition de 1825), p. 142 u. ff.
+    by: scan
+  - page: 176
+    from: ST 9, N, nice
+    to: ""
+    by: scan
+  - page: 176
+    from: "11) Siehe: Über"
+    to: "¹) Siehe: Über"
+    by: scan
+  - page: 176
+    from: £ PsA. IV,
+    to: f. PsA. IV,
     by: scan
   - page: 177
     from: daB
@@ -12239,21 +12399,81 @@ freud-1947-gw-12:
     to: ein abseits liegendes, von der
     by: reference
   - page: 232
-    from: "Sachs-Villatte): inquietant, sinistre, lugubre"
-    to: Sachs-Villatte) inquiétant, sinistre, lugubre
-    by: reference
-  - page: 232
     from: vgl. lat. Jamiliaris, vertraut. Die
     to: vgl. lat. familiaris, vertraut. Die
     by: reference
+  - page: 232
+    from: "Schenk]): &&vog —"
+    to: "Schenkl): ξένος —"
+    by: scan
+  - page: 232
+    from: "Französisch (Sachs-Villatte): inquietant, sinistre, lugubre, mal ä"
+    to: "Französisch (Sachs-Villatte): inquiétant, sinistre, lugubre, mal ä"
+    by: scan
+  - page: 232
+    from: mal ä
+    to: mal à
+    by: scan
   - page: 233
-    from: von Thieren zahim, sich den
-    to: von Thieren zahm, sich den
-    by: reference
+    from: " In stiller H— keit, umzielt vo"
+    to: " In stiller H—keit, umzielt vo"
+    by: scan
+  - page: 233
+    from: licher — 5b) von Thieren zahim, sich den Menschen traulich anschließend.
+    to: licher — b) von Thieren zahm, sich den Menschen traulich anschließend.
+    by: scan
+  - page: 233
+    from: aufzeucht. g2.
+    to: aufzeucht. 92.
+    by: scan
+  - page: 233
+    from: "So nöch:"
+    to: "So noch:"
+    by: scan
+  - page: 233
+    from: W. ii, 144
+    to: W. 11, 144
+    by: scan
+  - page: 234
+    from: und so auch H— keit statt Gehei
+    to: und so auch H—keit statt Gehei
+    by: scan
+  - page: 234
+    from: " Graben, in H— keiten werfen. 3"
+    to: " Graben, in H—keiten werfen. 3"
+    by: scan
+  - page: 234
+    from: Burmeister gB 2
+    to: Burmeister g B 2
+    by: scan
   - page: 235
     from: verschwiegener H. Schr. 495b; Ihr
     to: verschwiegener H. Sch. 495b; Ihr
     by: reference
+  - page: 235
+    from: " — Jemandes H— keiten entdecken"
+    to: " — Jemandes H—keiten entdecken"
+    by: scan
+  - page: 235
+    from: H— keit und das Gep
+    to: H—keit und das Gep
+    by: scan
+  - page: 235
+    from: Der H— keit (des verbor
+    to: Der H—keit (des verbor
+    by: scan
+  - page: 235
+    from: netet / der H— keiten Schloß (W
+    to: netet / der H—keiten Schloß (W
+    by: scan
+  - page: 235
+    from: " in seltnen H— keiten (Zauberkü"
+    to: " in seltnen H—keiten (Zauberkü"
+    by: scan
+  - page: 235
+    from: "er gewissen U— keit zu umgeben "
+    to: "er gewissen U—keit zu umgeben "
+    by: scan
   - page: 237
     from: bedeutung. des
     to: bedeutung des
@@ -12273,6 +12493,18 @@ freud-1947-gw-12:
   - page: 240
     from: liegenden. blutigen
     to: liegenden blutigen
+    by: scan
+  - page: 240
+    from: „El, nix
+    to: „Ei, nix
+    by: scan
+  - page: 241
+    from: hui —- huil!
+    to: hui — hui!
+    by: scan
+  - page: 241
+    from: unnlra alarlzay pls? ehr see Hab HaHnasan a
+    to: ""
     by: scan
   - page: 244
     from: der dem Goppelius zur Last
@@ -12314,6 +12546,14 @@ freud-1947-gw-12:
     from: aber. jetzt
     to: aber jetzt
     by: scan
+  - page: 252
+    from: Bd. vIl].
+    to: Bd. VII].
+    by: scan
+  - page: 256
+    from: Bee Benin in 00
+    to: ""
+    by: scan
   - page: 257
     from: Wir. wissen
     to: Wir wissen
@@ -12329,6 +12569,10 @@ freud-1947-gw-12:
   - page: 263
     from: daB
     to: daß
+    by: scan
+  - page: 263
+    from: Das Unheimliche RN
+    to: ""
     by: scan
   - page: 276
     from: Obj ektwahl
@@ -13268,13 +13512,25 @@ freud-1952-gw-1:
     from: W issensch
     to: Wissensch
     by: scan
+  - page: 466
+    from: VllIa
+    to: VIIa
+    by: scan
   - page: 467
     from: ergebe. dürften
     to: ergebe dürften
     by: scan
+  - page: 468
+    from: einem z36jährigen Manne
+    to: einem 36jährigen Manne
+    by: scan
   - page: 472
     from: der Läsion ZU
     to: der Läsion zu
+    by: scan
+  - page: 472
+    from: Zentrums- und Leitung$"
+    to: Zentrums- und Leitungs-
     by: scan
   - page: 477
     from: Diespastischen
@@ -13288,6 +13544,10 @@ freud-1952-gw-1:
     from: m&canisme
     to: mécanisme
     by: scan
+  - page: 483
+    from: (E. H ecker)
+    to: (E. Hecker)
+    by: scan
   - page: 484
     from: Angstist
     to: Angst ist
@@ -13295,6 +13555,10 @@ freud-1952-gw-1:
   - page: 487
     from: F örderung
     to: Förderung
+    by: scan
+  - page: 488
+    from: Contribution & l’&tude des diplegies cere-
+    to: Contribution à l’étude des diplégies céré-
     by: scan
   - page: 493
     from: N arkose

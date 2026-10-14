@@ -963,10 +963,10 @@ function normalised(text: string): string {
       .replace(/(?<![\p{L}])Fs(?= \p{Ll})/gu, "Es")
       .replace(/(?<![\p{L}])(?:nnd|uud)(?![\p{L}])/gu, "und")
       .replace(/(?<![\p{L}])wif(?![\p{L}])/gu, "wir")
-      // sei, und, aus, zu, auf and ab read with a speck: sel, ünd, äus, zü,
-      // äuf, äb.
+      // sei, und, aus, zu, auf, ab and als read with a speck: sel, ünd, äus,
+      // zü, äuf, äb, äls.
       .replace(
-        /(?<= )(?:sel|ünd|äus|zü|äuf|äb)(?![\p{L}])/gu,
+        /(?<= )(?:sel|ünd|äus|zü|äuf|äb|äls)(?![\p{L}])/gu,
         (word) =>
           ({
             sel: "sei",
@@ -975,6 +975,7 @@ function normalised(text: string): string {
             zü: "zu",
             äuf: "auf",
             äb: "ab",
+            äls: "als",
           })[word] ?? word,
       )
       // Freud's italic Vbw, the Gradiva's Zoë, and daß and muß, which the OCR misreads.
@@ -985,6 +986,8 @@ function normalised(text: string): string {
       // The italic W of W-Bw read with a #; Ich read with an l before it.
       .replace(/(?<![\p{L}\d])W#/gu, "W")
       .replace(/(?<![\p{L}])lI(?=ch)/gu, "I")
+      // An enumeration's β read as ß, which never stands alone.
+      .replace(/(?<![\p{L}] ?)ß\)/gu, "β)")
       .replace(/(?<![\p{L}])Zo(?:6?&|@|£|ë@)/gu, "Zoë")
       .replace(/(?<![\p{L}])(?:da[bl]|dal3)(?= [\p{Ll}„]|$)/gu, "daß")
       .replace(/(?<![\p{L}])mub(?=[ ,.;]|$)/gu, "muß")
