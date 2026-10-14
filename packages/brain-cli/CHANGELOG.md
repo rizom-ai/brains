@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- [#578](https://github.com/rizom-ai/brains/pull/578) [`9d9d40d`](https://github.com/rizom-ai/brains/commit/9d9d40dd04be3a817ab53bf647f0b6ef54c6d5ef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds collect declarative layout slots in workers through scoped `siteContributions.withSlots`, with installed ownership, sender-bound collection and expiring render handles. Static HTML snapshots drive both fingerprints and output, so changed or removed slots rebuild correctly. Configured newsletter signup reaches layouts that consume footer slots; malformed or failed contributions refuse the build.
+
 ## 0.2.0-alpha.503
 
 ### Patch Changes
