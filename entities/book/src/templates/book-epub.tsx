@@ -17,7 +17,7 @@ const colophonSchema: z.ZodObject<{
   /** The edition's page the text was taken from. */
   source: z.string(),
   attribution: z.string().nullable(),
-  /** The licence as a reader reads it, e.g. "CC BY-NC-ND 4.0". */
+  /** The license as a reader reads it, e.g. "CC BY-NC-ND 4.0". */
   license: z.string().nullable(),
 });
 
@@ -78,7 +78,7 @@ function sharedHeadings(headings: string[], previous: string[]): number {
   return differs === -1 ? headings.length : differs;
 }
 
-/** The book's details, its source and the licence it is passed on under. */
+/** The book's details, its source and the license it is passed on under. */
 const Colophon = ({
   title,
   colophon,
@@ -91,7 +91,7 @@ const Colophon = ({
     ["Year", colophon.year],
     ["Edition", colophon.edition],
     ["Attribution", colophon.attribution],
-    ["Licence", colophon.license],
+    ["License", colophon.license],
   ];
   return (
     <section data-epub-chapter="Colophon">

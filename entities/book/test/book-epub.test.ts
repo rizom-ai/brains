@@ -158,7 +158,7 @@ describe("book EPUB", () => {
     expect(file("OEBPS/chapter-3.xhtml")).toContain("<h1>Zweiter Theil</h1>");
   });
 
-  it("closes with a colophon naming the edition, its source and its licence", async () => {
+  it("closes with a colophon naming the edition, its source and its license", async () => {
     const file = await stagedBook("erstes");
     const colophon = file("OEBPS/chapter-3.xhtml");
 
@@ -169,6 +169,7 @@ describe("book EPUB", () => {
       "Testausgabe",
       "https://example.org/erstes",
       "Public domain",
+      "<dt>License</dt>",
     ])
       expect(colophon).toContain(fact);
     expect(file("OEBPS/content.opf")).toContain(
