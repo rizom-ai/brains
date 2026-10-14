@@ -83,7 +83,15 @@ describe("parseArchiveOcrWork", () => {
     expect(paragraphs).toContain("1 Eine Anmerkung. K.");
   });
 
-  it.each(["Freud, XI. ß", "Freud, X1. y", "Freud, XVI. B", "Freud, XI ’"])(
+  it.each([
+    "Freud, XI. ß",
+    "Freud, X1. y",
+    "Freud, XVI. B",
+    "Freud, XI ’",
+    "Freud, x1. 22",
+    "Freud, XIIE, ri",
+    "Freud, X]1t. 14",
+  ])(
     "leaves out Freud's signature whose sheet number the OCR misread: %s",
     async (signature) => {
       const hocr = (await fixture()).replace(
@@ -571,6 +579,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
 
     expect(pageText(hocr, 4)).toContain(
       "Jones, Wie Sie wissen, nur so. Wenn die Wiederkehr, Fuß und Ges. Werke; Es gibt Kunst und Sprache und wir; er sei und aus, zu, auf ab als.",
+    );
+  });
+
+  it("reads dgl. and an initial O the OCR set without their stop or with a zero", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, Melonen u. dgl, um; u. dgl m.; u. dgl. so; Anna O0. und O0. Rank; Dgl, O0.5.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, Melonen u. dgl., um; u. dgl. m.; u. dgl. so; Anna O. und O. Rank; Dgl, O0.5.",
     );
   });
 

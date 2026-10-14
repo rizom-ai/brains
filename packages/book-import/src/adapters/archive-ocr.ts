@@ -227,7 +227,7 @@ const RUNNING_HEAD =
  * (Gesetz. |) is a line's end.
  */
 const SIGNATURE =
-  /^Freud\s*[,.]?\s*[IVXLl1|J]+\.?[,.]?\s*\S{0,3}\s*$|^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
+  /^Freud\s*[,.]?\s*[IVXLlx1|J\]Eit]{1,5}\.?[,.]?\s*\S{0,3}\s*$|^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
@@ -957,6 +957,9 @@ function normalised(text: string): string {
         (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
       )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
+      // dgl. read without its stop, and an initial O read with a zero.
+      .replace(/(?<![\p{L}])dgl(?![.\p{L}])/gu, "dgl.")
+      .replace(/(?<![\p{L}\d])O0\.(?!\d)/gu, "O.")
       // A W read as a backslash and a V, or as \WV; a backslash before a word
       // is a speck.
       .replace(/\\W?V(?=\p{L})/gu, "W")
