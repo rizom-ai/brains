@@ -59,6 +59,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     kind: user.profileKind ?? "professional",
     domain: user.domain,
     bundles: user.bundles,
+    ...(user.anchorKind ? { anchor: user.anchorKind } : {}),
     ...(user.embeddingEnabled !== undefined
       ? { embedding: { enabled: user.embeddingEnabled } }
       : {}),

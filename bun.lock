@@ -793,6 +793,7 @@
         "yaml": "^2.9.0",
       },
       "devDependencies": {
+        "@brains/auth-service": "workspace:*",
         "@brains/deploy-support": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/job-queue": "workspace:*",
