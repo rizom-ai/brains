@@ -33,9 +33,6 @@ gaps:
   - title: Briefe an Engels 1854–1883
     year: 1854
     reason: of the second to fourth volumes of the Briefwechsel (1913), only the third is identified among the Internet Archive's scans
-  - title: Herr Vogt
-    year: 1860
-    reason: both scans of the first edition (London, 1860) read below the OCR gate, 1 wrong word in 68 and, after 554 fixes from MEW, in 78
   - title: Inauguraladresse der Internationalen Arbeiter-Assoziation
     year: 1864
     reason: no scan of a German edition found on the Internet Archive
@@ -177,6 +174,31 @@ books:
     # The Vorrede stands on page XXXIX of the third manuscript.
     fixes:
       - { page: "467", from: "||IXXXIX|", to: "||XXXIX|" }
+  - source: mlwerke
+    # MEW 14 (1961, 4th printing 1972) as mlwerke.de published it, from the
+    # Internet Archive's last captures; both scans of the London edition of
+    # 1860 read below the OCR gate.
+    pages:
+      - https://web.archive.org/web/20160320005304id_/http://mlwerke.de/me/me14/me14_385.htm
+      - https://web.archive.org/web/20160304202435id_/http://www.mlwerke.de/me/me14/me14_389.htm
+      - https://web.archive.org/web/20160304205627id_/http://www.mlwerke.de/me/me14/me14_398.htm
+      - https://web.archive.org/web/20160304204919id_/http://www.mlwerke.de/me/me14/me14_408.htm
+      - https://web.archive.org/web/20160320014845id_/http://mlwerke.de/me/me14/me14_435.htm
+      - https://web.archive.org/web/20160320012311id_/http://mlwerke.de/me/me14/me14_459.htm
+      - https://web.archive.org/web/20160320011253id_/http://mlwerke.de/me/me14/me14_461.htm
+      - https://web.archive.org/web/20160320011458id_/http://mlwerke.de/me/me14/me14_469.htm
+      - https://web.archive.org/web/20160320001309id_/http://mlwerke.de/me/me14/me14_490.htm
+      - https://web.archive.org/web/20160320001830id_/http://mlwerke.de/me/me14/me14_541.htm
+      - https://web.archive.org/web/20170113035927id_/http://www.mlwerke.de:80/me/me14/me14_570.htm
+      - https://web.archive.org/web/20160320001251id_/http://mlwerke.de/me/me14/me14_614.htm
+      - https://web.archive.org/web/20160321001404id_/http://mlwerke.de/me/me14/me14_650.htm
+    citation: Herr Vogt
+    slug: herr-vogt
+    title: Herr Vogt
+    edition: "Marx-Engels-Werke, Band 14 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 381–686"
+    author: Karl Marx
+    year: 1860
+    kind: work
   - source: wikisource
     page: Thesen über Feuerbach
     citation: Feuerbach-Thesen

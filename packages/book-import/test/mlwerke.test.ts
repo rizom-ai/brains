@@ -128,6 +128,39 @@ describe("parseMlwerkePages", () => {
     ]);
   });
 
+  it("reads a page of the oldest template: headings in large type, Marx's notes after a rule", async () => {
+    const html = await readFile(
+      join(import.meta.dir, "fixtures", "mlwerke-hv-408.html"),
+      "utf8",
+    );
+    const units = parseMlwerkePages([{ url: URL_471, html }], {
+      citation: "Herr Vogt",
+    });
+
+    expect(
+      units.map((unit) => [unit.parents, unit.title, unit.section]),
+    ).toEqual([[[], "III. Polizistisches", "Herr Vogt, 408"]]);
+    expect(units[0]?.paragraphs).toEqual([
+      "„Welch' Neues Unerhörtes hat der Vogt Sich ausgesonnen!“ (*Schiller*)",
+      "„Ich spreche es unverhohlen aus“, spricht Vogt 1), und so weiter.",
+      "Heiß mich nicht reden, heiß mich schweigen, Denn das Geheimnis ist mir Pflicht!",
+      "Wie oben (p. [31]) gesagt.",
+      "1) Erst nach dem Druck der „Enthüllungen“ erfuhr ich es. [*Zusatz von Engels zur Ausgabe von 1885.*]",
+    ]);
+  });
+
+  it("keeps a paragraph whole whose emphasis the page opened before it", () => {
+    const page = `<H3>Das Verh&auml;ltnis</H3><P>&lt;526&gt;Die Bewegung sind:</P> <EM><P>Erstens</EM> &#150; <EM>unmittelbare</EM> Einheit.</P> <B><P>Zweitens</B> so.</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], work)[0]?.paragraphs,
+    ).toEqual([
+      "Die Bewegung sind:",
+      "*Erstens* – *unmittelbare* Einheit.",
+      "*Zweitens* so.",
+    ]);
+  });
+
   it("leaves out a page with no heading of its own text, such as the editors' introduction", () => {
     const introduction = `<H2>Karl Marx</H2><H1>Manuskripte</H1><P CLASS="info">Zu diesen Texten schreibt das Institut.</P><P CLASS="toc"><A HREF="me40_467.htm">Vorrede</A></P>`;
 

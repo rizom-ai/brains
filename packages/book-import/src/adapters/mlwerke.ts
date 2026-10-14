@@ -56,8 +56,10 @@ interface Reading {
   sections: Array<TitledSection<Block>>;
   /** The part a heading of the second level stands under. */
   part: { node: object; title: string } | null;
-  /** Marx's and Engels's notes, by their mark, with the page that marks them. */
-  kept: Map<string, Place>;
+  /** Marx's and Engels's notes, by their anchor: the mark, the page that marks them. */
+  kept: Map<string, { mark: string; place: Place }>;
+  /** Every note's anchor on the page, the editors' included. */
+  notes: Set<string>;
 }
 
 /** The site's navigation and the editors' title line, never the text. */
@@ -85,6 +87,8 @@ const NOTES_HEADING =
 const NOTES_PARAGRAPH = /^(?:Redaktionelle\s+\S+|Fu(?:ß|ss)noten?\b)/i;
 /** Notes the authors wrote, not the editors: Fußnoten von Marx. */
 const AUTHORS_NOTES = /\bvon\s+(?:Marx|Engels)\b/i;
+/** A note's mark as a link shows it: [7*], [20], (1), A. */
+const NOTE_MARK = /^\s*[[(]?[\p{L}\d]{1,3}\*?[\])]?\.?\s*$/u;
 /** A MEW page number set in the text: <471>. */
 const PAGE_MARK = /<(\d+)>/g;
 /** The editors' words before a note Marx set without a reference. */
@@ -123,10 +127,20 @@ function turnPage(reading: Reading, label: string): void {
   reading.place = { page: reading.place.page + 1, label };
 }
 
-/** A note's mark from its reference: [A] in the text points to note A. */
-function referencedNote(element: Element): string | null {
+/** The anchor a link points to on its own page: #F1 is F1. */
+function linkedAnchor(element: Element): string | null {
   const href = element.getAttribute("href") ?? "";
-  return href.startsWith("#n") ? href.slice(2) : null;
+  return href.startsWith("#") ? href.slice(1) : null;
+}
+
+/** A note's own anchor and the mark it shows: A., (1). */
+function noteAnchor(
+  element: Element,
+): { anchor: Element; id: string; mark: string } | null {
+  const anchor = element.querySelector("a[name]");
+  const id = anchor?.getAttribute("name");
+  if (!anchor || !id) return null;
+  return { anchor, id, mark: anchor.textContent.replace(/[().\s]/g, "") };
 }
 
 /**
@@ -159,11 +173,21 @@ function inlineText(node: Node, reading: Reading): string {
     return textOf(node.textContent.slice(barred[0].length), reading);
   }
   if (name === "a") {
-    const mark = referencedNote(node);
-    if (mark !== null) {
-      if (!reading.kept.has(mark)) return "";
-      reading.kept.set(mark, reading.place);
-      return `${escapeMarkdown(mark)})`;
+    // A link back from a note to its mark.
+    if (node.textContent.trim() === "<=") return "";
+    const id = linkedAnchor(node);
+    const kept = id === null ? undefined : reading.kept.get(id);
+    if (id !== null && kept) {
+      reading.kept.set(id, { ...kept, place: reading.place });
+      return `${escapeMarkdown(kept.mark)})`;
+    }
+    // An editors' note's mark, its note on this page or not; a link to a
+    // place in the text, such as p. [31], stays text.
+    if (
+      id !== null &&
+      (reading.notes.has(id) || NOTE_MARK.test(node.textContent))
+    ) {
+      return "";
     }
   }
   const inner = Array.from(node.childNodes)
@@ -201,11 +225,14 @@ function addParagraph(element: Element, reading: Reading): void {
   });
 }
 
-function addHeading(element: Element, reading: Reading): void {
+function addHeading(
+  element: Element,
+  kind: "part" | "section",
+  reading: Reading,
+): void {
   const title = titleCased(spaced(element.textContent));
   if (title.length === 0) return;
-  const name = nameOf(element);
-  if (name === "h4" || name === "h2") {
+  if (kind === "part") {
     reading.part = { node: element, title };
     reading.sections.push({
       path: [element],
@@ -226,12 +253,12 @@ function addHeading(element: Element, reading: Reading): void {
 
 /** A note of the authors', with its mark, placed on the page that marks it. */
 function addNote(element: Element, reading: Reading): void {
-  const anchor = element.querySelector("a[name^='n']");
-  const mark = anchor?.getAttribute("name")?.slice(1) ?? "";
-  anchor?.remove();
+  const own = noteAnchor(element);
+  own?.anchor.remove();
+  const mark = own?.mark ?? "";
   const text = spaced(inlineText(element, reading)).replace(LEAD_IN, "");
   if (text.length === 0) return;
-  const place = reading.kept.get(mark) ?? reading.place;
+  const place = (own && reading.kept.get(own.id)?.place) ?? reading.place;
   currentSection(reading.sections).notes.push({
     text: mark ? `${escapeMarkdown(mark)}) ${text}` : text,
     ...place,
@@ -256,30 +283,89 @@ function notesOpened(element: Element): "authors" | "editors" | null {
   return AUTHORS_NOTES.test(title) ? "authors" : "editors";
 }
 
-/** The marks of a page's notes by Marx or Engels, read before its text. */
-function authorsMarks(body: Element): string[] {
-  const { marks } = Array.from(body.children).reduce<{
-    authors: boolean;
-    marks: string[];
+/** The page's blocks of text and its headings, in reading order. */
+function blocksOf(body: Element): Element[] {
+  return Array.from(body.querySelectorAll("h2, h3, h4, p"));
+}
+
+/** What a heading opens: a part (a manuscript, a book), a section, or nothing. */
+function headingKind(element: Element): "part" | "section" | null {
+  const name = nameOf(element);
+  if (name === "h2" || name === "h4") return "part";
+  if (name === "h3") return "section";
+  return null;
+}
+
+/**
+ * The oldest pages' own apparatus set as text: the edition the page numbers
+ * follow, the transcription's date, and the links to the work's other pages.
+ */
+function isSiteApparatus(element: Element): boolean {
+  const text = element.textContent.trim();
+  if (
+    /^(?:Seitenzahlen verweisen auf|\d+\.\s*Korrektur|Erstellt am)/.test(text)
+  ) {
+    return true;
+  }
+  const links = Array.from(element.querySelectorAll("a[href]")).filter(
+    (link) => linkedAnchor(link) === null,
+  );
+  if (links.length === 0) return false;
+  const words = (of: string): string => of.replace(/\s+/g, " ").trim();
+  const rest = links.reduce(
+    (left, link) => left.replace(words(link.textContent), ""),
+    words(text),
+  );
+  return /^[\s|–-]*$/.test(rest);
+}
+
+/** Where a block stands: in the text, among the authors' notes, or the editors'. */
+type Region = "text" | "authors" | "editors";
+
+/** The page's notes, by their anchors: the authors' with their marks, and all. */
+function notesOf(blocks: Element[]): {
+  kept: Array<[string, string]>;
+  all: string[];
+} {
+  return blocks.reduce<{
+    region: Region;
+    kept: Array<[string, string]>;
+    all: string[];
   }>(
     (state, element) => {
       const opened = notesOpened(element);
-      if (opened) return { ...state, authors: opened === "authors" };
-      const name = nameOf(element);
-      if (name === "h2" || name === "h3" || name === "h4") {
-        return { ...state, authors: false };
-      }
-      const mark = element
-        .querySelector("a[name^='n']")
-        ?.getAttribute("name")
-        ?.slice(1);
-      return state.authors && mark
-        ? { ...state, marks: [...state.marks, mark] }
-        : state;
+      if (opened) return { ...state, region: opened };
+      if (headingKind(element)) return { ...state, region: "editors" };
+      if (state.region === "text") return state;
+      const own = noteAnchor(element);
+      if (!own) return state;
+      return {
+        ...state,
+        kept:
+          state.region === "authors"
+            ? [...state.kept, [own.id, own.mark]]
+            : state.kept,
+        all: [...state.all, own.id],
+      };
     },
-    { authors: false, marks: [] },
+    { region: "text", kept: [], all: [] },
   );
-  return marks;
+}
+
+/**
+ * The oldest pages' markup made sound: a heading set in large type at the
+ * centre made a heading, the type sizes dropped, and bold or emphasis opened before a
+ * paragraph moved into it, which would otherwise close the paragraph at its
+ * page number and leave the text after it out.
+ */
+function sound(html: string): string {
+  return html
+    .replace(
+      /<FONT SIZE=\+?[5-9]>\s*<P ALIGN="?CENTER"?>([\s\S]*?)<\/P>/gi,
+      "<H3>$1</H3>",
+    )
+    .replace(/<\/?FONT[^>]*>/gi, "")
+    .replace(/<(B|EM|I|STRONG|U)>(\s*)<P([^>]*)>/gi, "<P$3>$2<$1>");
 }
 
 /** Read one page into the reading: headings, paragraphs, the authors' notes. */
@@ -287,37 +373,45 @@ function readPage(page: MlwerkePage, reading: Reading): void {
   const window = new Window();
   try {
     const document = window.document;
-    document.body.innerHTML = TEXT_REGION.exec(page.html)?.[1] ?? page.html;
+    document.body.innerHTML = sound(
+      TEXT_REGION.exec(page.html)?.[1] ?? page.html,
+    );
     document.querySelectorAll(APPARATUS).forEach((element) => {
       element.remove();
     });
+    const blocks = blocksOf(document.body).filter(
+      (element) => !isSiteApparatus(element),
+    );
+    const notes = notesOf(blocks);
     reading.url = page.url;
+    // Text before a page's first number, such as a chapter's motto, is on
+    // that page.
+    const first = /<(\d+)>|\|(\d+)\|/.exec(
+      blocks.map((block) => block.textContent).join(" "),
+    );
+    const label = first?.[1] ?? first?.[2];
+    if (label) turnPage(reading, label);
     reading.kept = new Map(
-      authorsMarks(document.body).map((mark) => [mark, reading.place]),
+      notes.kept.map(([id, mark]) => [id, { mark, place: reading.place }]),
     );
-    Array.from(document.body.children).reduce<"text" | "authors" | "editors">(
-      (region, element) => {
-        const opened = notesOpened(element);
-        if (opened) return opened;
-        const name = nameOf(element);
-        if (name === "h2" && AUTHOR_LINE.test(element.textContent.trim())) {
-          return region;
-        }
-        if (name === "h2" || name === "h3" || name === "h4") {
-          if (region !== "text") return "editors";
-          addHeading(element, reading);
-          return "text";
-        }
-        if (name !== "p") return region;
-        if (region === "authors") addNote(element, reading);
-        // A note out of its list is still the editors'.
-        if (region === "text" && !element.classList.contains("note")) {
-          addParagraph(element, reading);
-        }
-        return region;
-      },
-      "text",
-    );
+    reading.notes = new Set(notes.all);
+    blocks.reduce<Region>((region, element) => {
+      const opened = notesOpened(element);
+      if (opened) return opened;
+      const kind = headingKind(element);
+      if (kind && AUTHOR_LINE.test(element.textContent.trim())) return region;
+      if (kind) {
+        if (region !== "text") return "editors";
+        addHeading(element, kind, reading);
+        return "text";
+      }
+      if (region === "authors") addNote(element, reading);
+      // A note out of its list is still the editors'.
+      if (region === "text" && !element.classList.contains("note")) {
+        addParagraph(element, reading);
+      }
+      return region;
+    }, "text");
   } finally {
     // Closing only releases the window's timers; parsing is already done.
     void window.happyDOM.close();
@@ -355,6 +449,7 @@ export function parseMlwerkePages(
     sections: [],
     part: null,
     kept: new Map(),
+    notes: new Set(),
   };
   pages.forEach((page) => readPage(page, reading));
   (work.fixes ?? []).forEach((fix) => applyFix(reading.sections, fix));
