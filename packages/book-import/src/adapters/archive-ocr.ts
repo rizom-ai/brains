@@ -934,6 +934,8 @@ function normalised(text: string): string {
           ? year.replace(/i/g, "1").replace(/g/g, "9").replace(/o/g, "0")
           : year,
       )
+      // A year read with a g between its century and its decade: 18g91.
+      .replace(/(?<![\p{L}\d])(1[89])g(\d{2})(?![\p{L}\d])/gu, "$1$2")
       // A first read as i before a month or a volume's part; d. i. is "that is".
       .replace(
         /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
@@ -949,9 +951,10 @@ function normalised(text: string): string {
         (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
       )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
-      // A W read as a backslash and a V; a backslash before a word is a speck.
-      .replace(/\\V(?=\p{L})/gu, "W")
-      .replace(/\\(?=\p{Ll})/gu, "")
+      // A W read as a backslash and a V, or as \WV; a backslash before a word
+      // is a speck.
+      .replace(/\\W?V(?=\p{L})/gu, "W")
+      .replace(/\\(?=\p{L})/gu, "")
       // Es read as Fs, und as nnd or uud, wir as wif;
       .replace(/(?<![\p{L}])Fs(?= \p{Ll})/gu, "Es")
       .replace(/(?<![\p{L}])(?:nnd|uud)(?![\p{L}])/gu, "und")
@@ -969,6 +972,8 @@ function normalised(text: string): string {
       .replace(/(?<![\p{L}])mub(?=[ ,.;]|$)/gu, "muß")
       // An umlaut standing alone is a speck the facing page left.
       .replace(/^[öů][‚,]?\s+|\s+[öů][‚,]?(?=\s|$)/gu, "")
+      // So is an underscore standing alone.
+      .replace(/^_+\s+|\s+_+(?=\s|$)/gu, "")
       // So is one letter over and over standing between words (EEE, nn).
       .replace(
         /^(?:[Ee]{2,}|[Nn]{2,}|R{2,}|T{2,}|o{2,})[,.;:]?\s+|\s+(?:[Ee]{2,}|[Nn]{2,}|R{2,}|T{2,}|o{2,})[,.;:]?(?=\s|$)/gu,

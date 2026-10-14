@@ -471,6 +471,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
+  it("reads a year the OCR set with a g between its figures", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, 18g91, Ende 18g92 und I, 19g13; 1g, 17g01.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, 1891, Ende 1892 und I, 1913; 1g, 17g01.",
+    );
+  });
+
   it("reads loco citato and a page the OCR set as 1. c. and p- as l. c. and p.", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
@@ -512,6 +523,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 4)).not.toMatch(/(?<![\p{L}])[öů](?![\p{L}])/u);
   });
 
+  it("leaves out an underscore standing alone, a speck", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "_ Jones, daß _ der, Völkern, __ Reichen, so diesmal _",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, daß der, Völkern, Reichen, so diesmal",
+    );
+  });
+
   it("leaves out letters the facing page showed through between words, one letter over and over", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
@@ -541,14 +563,14 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
-  it("reads W read as a backslash and V, Es read as Fs, und and wir misread", async () => {
+  it("reads W read as a backslash and V, a backslash before a word, Es read as Fs, und and wir misread", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, \\Vie Sie wissen, \\nur so; Fs gibt Kunst nnd Sprache uud wif; er sel ünd äus, zü.",
+      "Jones, \\Vie Sie wissen, \\nur so. \\Wenn die \\WViederkehr, \\Fuß und Ges. \\Werke; Fs gibt Kunst nnd Sprache uud wif; er sel ünd äus, zü.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, Wie Sie wissen, nur so; Es gibt Kunst und Sprache und wir; er sei und aus, zu.",
+      "Jones, Wie Sie wissen, nur so. Wenn die Wiederkehr, Fuß und Ges. Werke; Es gibt Kunst und Sprache und wir; er sei und aus, zu.",
     );
   });
 
