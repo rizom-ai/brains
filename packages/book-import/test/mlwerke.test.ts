@@ -101,6 +101,33 @@ describe("parseMlwerkePages", () => {
     ).toThrow(/533/);
   });
 
+  it("reads a page of the older template from its text region, its page numbers set in bars", async () => {
+    const html = await readFile(
+      join(import.meta.dir, "fixtures", "mlwerke-kh-203.html"),
+      "utf8",
+    );
+    const units = parseMlwerkePages([{ url: URL_471, html }], {
+      citation: "Staatsrecht",
+    });
+
+    expect(
+      units.map((unit) => [unit.parents, unit.title, unit.section]),
+    ).toEqual([
+      [
+        [],
+        "[Kritik des Hegelschen Staatsrechts (§§ 261-313)]",
+        "Staatsrecht, 203",
+      ],
+    ]);
+    expect(units[0]?.paragraphs).toEqual([
+      "§ 261. »Gegen die Sphären des Privatrechts ist der Staat *einerseits* eine *äußerliche* Notwendigkeit.«",
+      "Der vorige Paragraph belehrt uns dahin, daß die *konkrete Freiheit* in der Identität besteht.",
+      "Anmerkung.",
+      "Die Angelegenheit für sich »subjektiv«.",
+      "Hegel fährt fort und schließt.",
+    ]);
+  });
+
   it("leaves out a page with no heading of its own text, such as the editors' introduction", () => {
     const introduction = `<H2>Karl Marx</H2><H1>Manuskripte</H1><P CLASS="info">Zu diesen Texten schreibt das Institut.</P><P CLASS="toc"><A HREF="me40_467.htm">Vorrede</A></P>`;
 

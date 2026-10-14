@@ -60,14 +60,29 @@ interface Reading {
   kept: Map<string, Place>;
 }
 
-/** The site's navigation and the editors' title lines, never the text. */
+/** The site's navigation and the editors' title line, never the text. */
 const APPARATUS =
-  "table, hr, h1, h2, p.link, p.toplink, p.updat, p.info, p.toc, script, style";
+  "table, hr, h1, p.link, p.toplink, p.updat, p.info, p.toc, script, style";
 /** Elements whose text is the author's emphasis. */
-const EMPHASIS = new Set(["em", "i", "strong", "b"]);
+const EMPHASIS = new Set(["em", "i", "strong", "b", "u"]);
+/** A heading that only names the author, above the work's title. */
+const AUTHOR_LINE =
+  /^(?:Karl Marx|Friedrich Engels)(?:\s*[-–]\s*(?:Karl Marx|Friedrich Engels))?$/;
+/** A MEW page number the older pages set in bold between bars, some starred: |203|, |204|*. */
+const BARRED_PAGE = /^\s*\|(\d+)\|\*?\s*$/;
+/** The same opening a bold run, the text set with it following. */
+const BARRED_OPENING = /^\s*\|(\d+)\|\*?/;
+/** Where the older pages' template holds the text itself. */
+const TEXT_REGION =
+  /<!-- #BeginEditable "Textk[^"]*" -->([\s\S]*?)<!-- #EndEditable -->/;
 /** A heading that opens the notes of a page: Fußnoten, Redaktionelle Fußnoten, Anmerkungen. */
 const NOTES_HEADING =
   /^(?:Redaktionelle\s+)?(?:Fu(?:ß|ss)noten?|Anmerkungen?|Bemerkungen?)\b/i;
+/**
+ * The same set as a paragraph of its own; Anmerkung alone stays text, for
+ * Marx quotes Hegel's paragraphs and their Anmerkungen.
+ */
+const NOTES_PARAGRAPH = /^(?:Redaktionelle\s+\S+|Fu(?:ß|ss)noten?\b)/i;
 /** Notes the authors wrote, not the editors: Fußnoten von Marx. */
 const AUTHORS_NOTES = /\bvon\s+(?:Marx|Engels)\b/i;
 /** A MEW page number set in the text: <471>. */
@@ -137,6 +152,12 @@ function inlineText(node: Node, reading: Reading): string {
   if (!isElement(node)) return "";
   const name = nameOf(node);
   if (name === "br") return " ";
+  const barred = BARRED_OPENING.exec(node.textContent);
+  if (barred?.[1] && (name === "strong" || name === "b")) {
+    // The bold sets off the page number; text set with it is plain text.
+    turnPage(reading, barred[1]);
+    return textOf(node.textContent.slice(barred[0].length), reading);
+  }
   if (name === "a") {
     const mark = referencedNote(node);
     if (mark !== null) {
@@ -162,8 +183,14 @@ function spaced(text: string): string {
 
 /** A paragraph cited from the page it starts on, a page number opening it included. */
 function addParagraph(element: Element, reading: Reading): void {
-  const opening = /^\s*<(\d+)>/.exec(element.textContent);
-  if (opening?.[1]) turnPage(reading, opening[1]);
+  const first = Array.from(element.children).at(0);
+  const opening =
+    /^\s*<(\d+)>/.exec(element.textContent)?.[1] ??
+    (first &&
+    element.textContent.trimStart().startsWith(first.textContent.trim())
+      ? BARRED_PAGE.exec(first.textContent)?.[1]
+      : undefined);
+  if (opening) turnPage(reading, opening);
   const place = reading.place;
   const text = spaced(inlineText(element, reading).replace(/^\s*/, ""));
   if (text.length === 0) return;
@@ -177,7 +204,8 @@ function addParagraph(element: Element, reading: Reading): void {
 function addHeading(element: Element, reading: Reading): void {
   const title = titleCased(spaced(element.textContent));
   if (title.length === 0) return;
-  if (nameOf(element) === "h4") {
+  const name = nameOf(element);
+  if (name === "h4" || name === "h2") {
     reading.part = { node: element, title };
     reading.sections.push({
       path: [element],
@@ -219,10 +247,12 @@ function notesOpened(element: Element): "authors" | "editors" | null {
   const name = nameOf(element);
   const title = element.textContent.trim();
   const heading =
-    name === "h3" ||
-    name === "h4" ||
-    (name === "p" && !element.classList.contains("note") && title.length < 60);
-  if (!heading || !NOTES_HEADING.test(title)) return null;
+    ((name === "h3" || name === "h4") && NOTES_HEADING.test(title)) ||
+    (name === "p" &&
+      !element.classList.contains("note") &&
+      title.length < 60 &&
+      NOTES_PARAGRAPH.test(title));
+  if (!heading) return null;
   return AUTHORS_NOTES.test(title) ? "authors" : "editors";
 }
 
@@ -236,7 +266,9 @@ function authorsMarks(body: Element): string[] {
       const opened = notesOpened(element);
       if (opened) return { ...state, authors: opened === "authors" };
       const name = nameOf(element);
-      if (name === "h3" || name === "h4") return { ...state, authors: false };
+      if (name === "h2" || name === "h3" || name === "h4") {
+        return { ...state, authors: false };
+      }
       const mark = element
         .querySelector("a[name^='n']")
         ?.getAttribute("name")
@@ -255,7 +287,7 @@ function readPage(page: MlwerkePage, reading: Reading): void {
   const window = new Window();
   try {
     const document = window.document;
-    document.body.innerHTML = page.html;
+    document.body.innerHTML = TEXT_REGION.exec(page.html)?.[1] ?? page.html;
     document.querySelectorAll(APPARATUS).forEach((element) => {
       element.remove();
     });
@@ -268,7 +300,10 @@ function readPage(page: MlwerkePage, reading: Reading): void {
         const opened = notesOpened(element);
         if (opened) return opened;
         const name = nameOf(element);
-        if (name === "h3" || name === "h4") {
+        if (name === "h2" && AUTHOR_LINE.test(element.textContent.trim())) {
+          return region;
+        }
+        if (name === "h2" || name === "h3" || name === "h4") {
           if (region !== "text") return "editors";
           addHeading(element, reading);
           return "text";

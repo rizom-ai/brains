@@ -27,9 +27,6 @@ coverage:
   edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
-  - title: Kritik des Hegelschen Staatsrechts
-    year: 1843
-    reason: no scan of its first printing (MEGA I/1.1, 1927) found on the Internet Archive
   - title: Die deutsche Ideologie
     year: 1846
     reason: no scan of its first full printing (MEGA I/5, 1932) found on the Internet Archive; the copies there are later editions of unknown source
@@ -134,6 +131,24 @@ books:
     edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 182–214
     author: Karl Marx
     year: 1844
+    kind: work
+  - source: mlwerke
+    # MEW 1 (1976) as mlwerke.de published it, from the Internet Archive's
+    # last captures before the site went offline.
+    pages:
+      - https://web.archive.org/web/20230511014219id_/http://www.mlwerke.de/me/me01/me01_203.htm
+      - https://web.archive.org/web/20150602153519id_/http://www.mlwerke.de:80/me/me01/me01_234.htm
+      - https://web.archive.org/web/20150602153523id_/http://www.mlwerke.de:80/me/me01/me01_263.htm
+      - https://web.archive.org/web/20150318042826id_/http://www.mlwerke.de/me/me01/me01_288.htm
+      - https://web.archive.org/web/20150602153602id_/http://www.mlwerke.de:80/me/me01/me01_316.htm
+    citation: Staatsrecht
+    slug: kritik-des-hegelschen-staatsrechts
+    title: Zur Kritik der Hegelschen Rechtsphilosophie. Kritik des Hegelschen Staatsrechts
+    shortTitle: Kritik des Hegelschen Staatsrechts
+    edition: "Marx-Engels-Werke, Band 1 (Berlin, Dietz, 1976), S. 203–333"
+    author: Karl Marx
+    year: 1843
+    published: false
     kind: work
   - source: mlwerke
     # MEW Ergänzungsband 1 (1968) as mlwerke.de published it, from the
