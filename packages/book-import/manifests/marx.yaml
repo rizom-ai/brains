@@ -24,12 +24,18 @@
 source: dta-tei
 coverage:
   author: Karl Marx
-  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans; […] marks a passage the only scan leaves illegible
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
-  - title: Briefe an Engels 1854–1883
+  - title: Briefe an Engels 1854–1860
     year: 1854
-    reason: of the second to fourth volumes of the Briefwechsel (1913), only the third is identified among the Internet Archive's scans
+    reason: the second volume of the Briefwechsel, which holds them, is not identified among the Internet Archive's scans
+  - title: Briefe an Engels 1872–1883
+    year: 1872
+    reason: the fourth volume of the Briefwechsel is not yet read
+  - title: Briefe an Engels vom März 1865 (Briefwechsel III, S. 238–239)
+    year: 1865
+    reason: the two pages are missing from the Internet Archive's scan, which holds pages 228–229 twice in their place
   - title: Lohn, Preis und Profit
     year: 1865
     reason: no scan of the German edition (1908) found on the Internet Archive, which holds only a recording
@@ -443,6 +449,35 @@ books:
     edition: Der Briefwechsel zwischen Friedrich Engels und Karl Marx 1844 bis 1883, hrsg. von A. Bebel und Ed. Bernstein, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1921)
     author: Karl Marx
     year: 1847
+    published: false
+    kind: letters
+  - source: archive-ocr
+    # Marx's letters of 1861 to 1865; those from 1866 on are MEGAdigital's.
+    item: derbriefwechsel01marxgoog
+    citation: Briefwechsel III
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 290
+    letters:
+      signatures: [K. M., K. Marx., Marx., Mohr., Karl Marx.]
+      salutations:
+        [
+          Lieber Engels!,
+          Lieber Frederick!,
+          Lieber Frederic!,
+          Lieber Fred!,
+          Dear Frederick!,
+          Dear Frederic!,
+          Dear Fred!,
+          Dear Engels!,
+        ]
+      from: 1861
+      to: 1865
+    slug: briefe-an-engels-1861-1865
+    title: Briefe an Engels 1861–1865
+    edition: Der Briefwechsel zwischen Friedrich Engels und Karl Marx 1844 bis 1883, hrsg. von A. Bebel und Ed. Bernstein, Dritter Band (Stuttgart, J. H. W. Dietz Nachf., 1919)
+    author: Karl Marx
+    year: 1861
     published: false
     kind: letters
   - source: mega-letters

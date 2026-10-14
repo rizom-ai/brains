@@ -1830,9 +1830,13 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       ) {
         return [...pieces, { kind: "letter", number, dated }];
       }
-      // A letter whose number the OCR lost opens at its salutation and date.
-      return SALUTED.test(line.text) &&
-        LETTER_DATED.test(line.text) &&
+      // A letter whose number the OCR lost opens at its salutation and date,
+      // or at the line the manifest names where it lost the salutation too.
+      const named = (volume.headingOpenings ?? []).some((opening) =>
+        line.text.startsWith(opening.opens),
+      );
+      return (named ||
+        (SALUTED.test(line.text) && LETTER_DATED.test(line.text))) &&
         pieces.at(-1)?.kind !== "letter"
         ? [...pieces, { kind: "letter", number: null, dated: true }, text]
         : [...pieces, text];
@@ -2877,9 +2881,60 @@ function withoutSignatures(pages: Page[]): Page[] {
   });
 }
 
+/** A full page holds this many pairs of words in turn at least. */
+const RESCAN_PAIRS = 80;
+/** A rescan shares this share of its pairs of words with the page it repeats, */
+const RESCAN_SHARE = 0.75;
+/** and follows it within this many leaves. */
+const RESCAN_REACH = 20;
+
+/** A page number read this long tells a page apart; a shorter one may be a longer one misread. */
+const TELLING_HEAD = 100;
+
+/**
+ * The pages without those the scan holds twice: a full leaf that shares
+ * most of its pairs of words with one shortly before it is a rescan, read
+ * anew as it is, unless their heads number them apart, as an index's pages
+ * alike in their words are.
+ */
+function withoutRescans(pages: Page[]): Page[] {
+  const pairs = pages.map((page) => {
+    const words = page.lines.flatMap(
+      (line) => line.text.toLowerCase().match(/\p{L}{3,}/gu) ?? [],
+    );
+    return new Set(words.slice(1).map((word, at) => `${words[at]} ${word}`));
+  });
+  const heads = pages.map((page) => {
+    const number = numberedHead(page)?.number ?? null;
+    return number !== null && number >= TELLING_HEAD ? number : null;
+  });
+  const repeats = (index: number): boolean => {
+    const own = pairs[index] ?? new Set<string>();
+    if (own.size < RESCAN_PAIRS) return false;
+    return pairs
+      .slice(Math.max(0, index - RESCAN_REACH), index)
+      .some((other, at) => {
+        const earlier = Math.max(0, index - RESCAN_REACH) + at;
+        const apart =
+          heads[index] !== null &&
+          heads[earlier] !== null &&
+          heads[index] !== heads[earlier];
+        return (
+          !apart &&
+          other.size >= RESCAN_PAIRS &&
+          [...own].filter((pair) => other.has(pair)).length >=
+            Math.min(own.size, other.size) * RESCAN_SHARE
+        );
+      });
+  };
+  return pages.filter((_page, index) => !repeats(index));
+}
+
 function readVolume(hocr: string): ReadVolume {
-  const pages = withoutSignatures(
-    withUmlauts(withoutTopMargin(atOneScale(readPages(hocr)))),
+  const pages = withoutRescans(
+    withoutSignatures(
+      withUmlauts(withoutTopMargin(atOneScale(readPages(hocr)))),
+    ),
   );
   const printed = printedPageNumbers(pages.map(readingOf));
   // The leaves before the first page are the front matter.
@@ -3311,23 +3366,10 @@ export function parseArchiveOcrWork(
   if (firstPage === null) {
     throw new Error(`No page ${work.firstPage} in ${work.item}`);
   }
-  // A page scanned twice is read once, from its first leaf.
-  const rescans = new Set(
-    pages
-      .filter((page, index) => {
-        const number = printed.get(page.leaf);
-        return (
-          number !== undefined &&
-          pages.findIndex((other) => printed.get(other.leaf) === number) < index
-        );
-      })
-      .map((page) => page.leaf),
-  );
   const { sections } = pages
     .flatMap((page) => {
       const number = printed.get(page.leaf) ?? null;
       return number !== null &&
-        !rescans.has(page.leaf) &&
         number >= firstPage &&
         number <= work.lastPage &&
         !(work.skipPages ?? []).includes(number)

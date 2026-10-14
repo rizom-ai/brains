@@ -2970,6 +2970,7 @@ describe("parseArchiveOcrWork, formulas restored from the scan", () => {
 describe("parseArchiveOcrWork, letters", () => {
   const letters = async (
     years: { from?: number; to?: number } = { from: 1861, to: 1861 },
+    headings = [{ page: 6, opens: "Confidential!" }],
   ): Promise<ReturnType<typeof parseArchiveOcrWork>> =>
     parseArchiveOcrWork(
       await readFile(
@@ -2981,7 +2982,8 @@ describe("parseArchiveOcrWork, letters", () => {
         title: "Briefe an Engels 1861–1865",
         citation: "Briefwechsel III",
         firstPage: 1,
-        lastPage: 5,
+        lastPage: 6,
+        headings,
         letters: {
           signatures: ["K. M."],
           salutations: ["Lieber Engels!", "Dear Frederick!"],
@@ -3015,7 +3017,7 @@ describe("parseArchiveOcrWork, letters", () => {
       [
         "30. Dezember 1868.",
         "Dear Frederick!",
-        "Ich schicke Dir das Zeug für den Solicitor und schreibe Dir über die Sache selbst, sobald ich mehr weiß, und zwar wohl noch heute abend, wenn mir die Leute Ruhe lassen, oder morgen früh.",
+        "Ich schicke Dir das Zeug für den Solicitor und schreibe Dir über die Sache selbst, sobald ich mehr weiß, und zwar wohl Freiligrath hat mir gestern geschrieben, daß die Bank ihre Zahlungen eingestellt habe, worüber die ganze deutsche Gemeinde hier außer sich gerät, denn jedermann fürchtet für seine kleinen Ersparnisse, welche dieser würdige Herr seit Jahren verwaltet und, wie man jetzt merkt, verspekuliert hat. Lupus läßt Dich grüßen; er klagt über seine Schüler, die nichts lernen wollen, und über das Wetter, das ihm die Gicht bringt. Meine Frau hat endlich den Arzt gefunden, der ihr hilft, und die Mädchen gehen wieder regelmäßig zur Schule, wo sie Französisch und Zeichnen treiben, noch heute abend, wenn mir die Leute Ruhe lassen, oder morgen früh.",
       ],
     ]);
   });
@@ -3037,13 +3039,26 @@ describe("parseArchiveOcrWork, letters", () => {
       [["1862"], "693. 8. Januar 1862."],
       [["1862"], "694. 10. Januar 1862."],
       [["1862"], "695. [Undatiert. Ende Januar (?) 1862.]"],
+      [["1862"], "696. Confidential! [Undatiert. Februar 1862.]"],
+    ]);
+  });
+
+  it("opens a letter the OCR lost both number and salutation of at the line the manifest names", async () => {
+    const merged = await letters({}, []);
+
+    expect(merged.map((unit) => unit.title)).not.toContain(
+      "696. Confidential! [Undatiert. Februar 1862.]",
+    );
+    expect((await letters({})).at(-1)?.paragraphs).toEqual([
+      "Confidential! [Undatiert. Februar 1862.]",
+      "Die Sache mit dem Wechsel ist abgemacht, und Du brauchst Dir keine Sorgen mehr zu machen, wie ich Dir schon schrieb. Dein K. M.",
     ]);
   });
 
   it("opens a letter at its number however the OCR places it, dated in the editors' brackets, and knows it by its salutation where the OCR misread the signature", async () => {
     const units = await letters({ from: 1862 });
 
-    expect(units.at(-1)?.paragraphs).toEqual([
+    expect(units.at(-2)?.paragraphs).toEqual([
       "[Undatiert. Ende Januar (?) 1862.]",
       "Lieber Engels!",
       "Die Kinder grüßen Dich, und Jenny läßt Dir sagen, daß sie das Buch mit großem Vergnügen gelesen hat, wie wir alle. Dein K. N.",
@@ -3070,6 +3085,53 @@ describe("parseArchiveOcrWork, letters", () => {
         "695. [Undatiert. Ende Januar (?) 1862.]",
         "Die Kinder grüßen Dich, und Jenny läßt Dir sagen, daß sie das Buch mit großem Vergnügen gelesen hat, wie wir alle. Dein K. N.",
       ],
+      [
+        "696. Confidential! [Undatiert. Februar 1862.]",
+        "Die Sache mit dem Wechsel ist abgemacht, und Du brauchst Dir keine Sorgen mehr zu machen, wie ich Dir schon schrieb. Dein K. M.",
+      ],
     ]);
+  });
+});
+
+describe("parseArchiveOcrWork, pages alike", () => {
+  const body = [
+    "Abraham, Karl, Klinische Beiträge zur Psychoanalyse aus den Jahren",
+    "Adler, Alfred, Über den nervösen Charakter, Grundzüge einer vergleichenden",
+    "Individualpsychologie und Psychotherapie, Wiesbaden bei Bergmann",
+    "Andreas-Salomé, Lou, Narzißmus als Doppelrichtung, Imago siebenter Jahrgang",
+    "Bleuler, Eugen, Dementia praecox oder Gruppe der Schizophrenien, Leipzig",
+    "Breuer, Josef, und Freud, Studien über Hysterie, Wien bei Deuticke",
+    "Ferenczi, Sándor, Entwicklungsstufen des Wirklichkeitssinnes, Zeitschrift",
+    "Jones, Ernest, Papers on Psycho-Analysis, London bei Baillière, Tindall",
+    "Jung, Carl Gustav, Wandlungen und Symbole der Libido, Jahrbuch für",
+    "Rank, Otto, Der Künstler, Ansätze zu einer Sexualpsychologie, Wien",
+    "Reik, Theodor, Probleme der Religionspsychologie, erster Teil, Leipzig",
+    "Sachs, Hanns, Gemeinsame Tagträume, Vortrag auf dem sechsten Kongreß",
+    "Silberer, Herbert, Probleme der Mystik und ihrer Symbolik, Heller",
+    "Stekel, Wilhelm, Nervöse Angstzustände und ihre Behandlung, Berlin",
+    "Tausk, Viktor, Über die Entstehung des Beeinflussungsapparates",
+    "Wittels, Fritz, Sigmund Freud, der Mann, die Lehre, die Schule",
+    "Pfister, Oskar, Die psychanalytische Methode, Pädagogium, Klinkhardt",
+    "Putnam, James, Addresses on Psychoanalysis, International Library",
+  ];
+  const page = (leaf: number, head: string): string =>
+    `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}' title='bbox 0 0 4000 6000'>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 1900 300 2100 400; x_size 85'>${head}</span></p>
+ <p class='ocr_par'>${body.map((text, line) => `<span class='ocr_line' title='bbox ${line % 3 === 0 ? 560 : 451} ${800 + line * 120} 3550 ${900 + line * 120}; x_size 90'>${text}</span>`).join("\n")}</p>
+</div>`;
+  const paragraphs = (heads: [string, string]): string[] =>
+    parseArchiveOcrWork(
+      `<html><body>${page(0, heads[0])}${page(1, heads[1])}</body></html>`,
+      {
+        item: "register",
+        title: "Verzeichnis",
+        citation: "Register",
+        firstPage: 466,
+        lastPage: 467,
+      },
+    ).flatMap((unit) => unit.paragraphs);
+
+  it("keeps pages alike in their words whose heads number them apart, as an index's are", () => {
+    expect(paragraphs(["466", "467"])).toHaveLength(12);
   });
 });
