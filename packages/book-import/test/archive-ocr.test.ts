@@ -552,14 +552,14 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 5)).toContain("sel‘, das Traumbuch.");
   });
 
-  it("reads the italic Vbw, Zoë and daß the OCR misread", async () => {
+  it("reads the italic Vbw and W, Ich, Zoë and daß the OCR misread", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, das Ybw, /bw, 7bw und Fbw; Zo& Bertgang, Zo6&, Zo@, Zo£ und Zoë@; dab er, dal das, dal3 sie, dab „der, Dal Monte; er mub, dab",
+      "Jones, das Ybw, /bw, 7bw und Fbw, latenten YDw, solche vdw, System W#-Bw und W# als, dem lIchideal; Zo& Bertgang, Zo6&, Zo@, Zo£ und Zoë@; dab er, dal das, dal3 sie, dab „der, Dal Monte; er mub, dab",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, das Vbw, Vbw, Vbw und Vbw; Zoë Bertgang, Zoë, Zoë, Zoë und Zoë; daß er, daß das, daß sie, daß „der, Dal Monte; er muß, daß",
+      "Jones, das Vbw, Vbw, Vbw und Vbw, latenten Vbw, solche vbw, System W-Bw und W als, dem Ichideal; Zoë Bertgang, Zoë, Zoë, Zoë und Zoë; daß er, daß das, daß sie, daß „der, Dal Monte; er muß, daß",
     );
   });
 

@@ -979,6 +979,12 @@ function normalised(text: string): string {
       )
       // Freud's italic Vbw, the Gradiva's Zoë, and daß and muß, which the OCR misreads.
       .replace(/(?<![\p{L}\d])[YF/7](?=bw(?![\p{L}]))/gu, "V")
+      .replace(/(?<![\p{L}\d])(?:YD|vd)w(?![\p{L}])/gu, (word) =>
+        word === "YDw" ? "Vbw" : "vbw",
+      )
+      // The italic W of W-Bw read with a #; Ich read with an l before it.
+      .replace(/(?<![\p{L}\d])W#/gu, "W")
+      .replace(/(?<![\p{L}])lI(?=ch)/gu, "I")
       .replace(/(?<![\p{L}])Zo(?:6?&|@|£|ë@)/gu, "Zoë")
       .replace(/(?<![\p{L}])(?:da[bl]|dal3)(?= [\p{Ll}„]|$)/gu, "daß")
       .replace(/(?<![\p{L}])mub(?=[ ,.;]|$)/gu, "muß")

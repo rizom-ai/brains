@@ -403,17 +403,9 @@ freud-1940-gw-13:
     from: auf. erotische
     to: auf erotische
     by: scan
-  - page: 147
-    from: mit dem lIchideal zusammenfällt. Als
-    to: mit dem Ichideal zusammenfällt. Als
-    by: reference
   - page: 148
     from: nachdem es vörher besonders strenge
     to: nachdem es vorher besonders strenge
-    by: reference
-  - page: 149
-    from: und vom lIchideal streng gerichtet
-    to: und vom Ichideal streng gerichtet
     by: reference
   - page: 150
     from: nun. nachholen
@@ -563,6 +555,10 @@ freud-1940-gw-13:
     from: rektur. aber
     to: rektur, aber
     by: scan
+  - page: 238
+    from: ur i
+    to: ""
+    by: scan
   - page: 240
     from: daß. solche
     to: daß solche
@@ -570,6 +566,10 @@ freud-1940-gw-13:
   - page: 240
     from: F olgen
     to: Folgen
+    by: scan
+  - page: 242
+    from: Ri zum matten
+    to: bis zum matten
     by: scan
   - page: 244
     from: uns. die
@@ -583,6 +583,18 @@ freud-1940-gw-13:
     from: enkvorgänge ZU
     to: enkvorgänge zu
     by: scan
+  - page: 251
+    from: Das Ich und das Es s51
+    to: ""
+    by: scan
+  - page: 253
+    from: "des Systems #"
+    to: des Systems W
+    by: scan
+  - page: 256
+    from: durchaus Sen 22
+    to: durchaus den Be-
+    by: scan
   - page: 258
     from: narzißtische. ver
     to: narzißtische ver
@@ -590,6 +602,10 @@ freud-1940-gw-13:
   - page: 260
     from: lexes hätte SO
     to: lexes hätte so
+    by: scan
+  - page: 260
+    from: N mann
+    to: ""
     by: scan
   - page: 262
     from: desIchs
@@ -603,6 +619,10 @@ freud-1940-gw-13:
     from: jetzt. als
     to: jetzt als
     by: scan
+  - page: 265
+    from: N Be een nee. Mn. et
+    to: ""
+    by: scan
   - page: 266
     from: wir. nicht
     to: wir nicht
@@ -614,6 +634,14 @@ freud-1940-gw-13:
   - page: 272
     from: Untersuchung. erst
     to: Untersuchung erst
+    by: scan
+  - page: 272
+    from: ein ar Benehmen
+    to: ein geändertes Benehmen
+    by: scan
+  - page: 273
+    from: einem Kae, BIACHRR muß,
+    to: einem Mut machen muß,
     by: scan
   - page: 274
     from: zu. vereinigen
@@ -631,9 +659,21 @@ freud-1940-gw-13:
     from: Person. die
     to: Person, die
     by: scan
+  - page: 279
+    from: Schuldgefihl
+    to: Schuldgefühl
+    by: scan
   - page: 281
     from: nicht. selbstverständlich
     to: nicht selbstverständlich
+    by: scan
+  - page: 282
+    from: o8a Das Ich und das Es
+    to: ""
+    by: scan
+  - page: 283
+    from: erwehrt. Ä
+    to: erwehrt.
     by: scan
   - page: 303
     from: stärkung. aus
