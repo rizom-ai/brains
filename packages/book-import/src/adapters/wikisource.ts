@@ -13,6 +13,7 @@ import {
   isElement,
   mergedEmphasis,
   nameOf,
+  titleCased,
 } from "./markup";
 
 /** A work on de.wikisource.org, transcribed from its scans page by page. */
@@ -130,15 +131,6 @@ function addParagraph(element: Element, reading: Reading): void {
   currentSection(reading.sections).paragraphs.push({ text, ...page });
 }
 
-/** A heading set in capitals, cased as a title. */
-function cased(line: string): string {
-  if (/\p{Ll}/u.test(line)) return line;
-  return line.replace(
-    /\p{Lu}+/gu,
-    (word) => `${word.charAt(0)}${word.slice(1).toLowerCase()}`,
-  );
-}
-
 /** A centred block's lines, broken at its line breaks and rules. */
 function blockLines(node: Node, reading: Reading): string {
   if (!isElement(node)) return inlineText(node, reading);
@@ -163,7 +155,7 @@ function headingOf(block: Element, reading: Reading): string | null {
     if (/^von\b/i.test(line)) return false;
     return !/^von$/i.test(lines[index - 1] ?? "");
   });
-  return kept.length > 0 ? cased(kept.join(" ")) : null;
+  return kept.length > 0 ? titleCased(kept.join(" ")) : null;
 }
 
 function visit(node: Node, reading: Reading, work: WikisourceWork): void {

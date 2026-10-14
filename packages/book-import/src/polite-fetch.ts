@@ -42,6 +42,27 @@ function isTransient(status: number): boolean {
 
 const RETRIES = 4;
 
+/** A charset an answer or its page names: charset=ISO-8859-1. */
+const CHARSET = /charset\s*=\s*["']?([\w-]+)/i;
+
+/**
+ * An answer's text in the charset its header names, else the one its page's
+ * meta tag names, else UTF-8: old pages are often Latin-1, said only in the page.
+ */
+async function decoded(response: Response): Promise<string> {
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const header = CHARSET.exec(response.headers.get("content-type") ?? "")?.[1];
+  const head = new TextDecoder("latin1").decode(bytes.slice(0, 1024));
+  const meta = /<meta[^>]*charset[^>]*>/i.exec(head)?.[0];
+  const named = header ?? (meta ? CHARSET.exec(meta)?.[1] : undefined);
+  try {
+    return new TextDecoder(named ?? "utf-8").decode(bytes);
+  } catch {
+    // A charset the decoder does not know is read as UTF-8, the web's default.
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
 async function readCached(path: string): Promise<string | null> {
   try {
     return await readFile(path, "utf8");
@@ -104,7 +125,7 @@ export function createPoliteFetch(options: PoliteFetchOptions): PoliteFetch {
     const path = cachePath(options.cacheDir, url);
     const cached = await readCached(path);
     if (cached !== null) return cached;
-    const body = await (await queued(url)).text();
+    const body = await decoded(await queued(url));
     await mkdir(options.cacheDir, { recursive: true });
     await writeFile(path, body);
     return body;

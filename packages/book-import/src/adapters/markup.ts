@@ -36,3 +36,12 @@ export function emphasised(inner: string): string {
   const trail = plain.slice(plain.trimEnd().length);
   return `${lead}*${word}*${trail}`;
 }
+
+/** A heading set in capitals, cased as a title: ERSTES MANUSKRIPT is Erstes Manuskript. */
+export function titleCased(line: string): string {
+  if (/\p{Ll}/u.test(line)) return line;
+  return line.replace(
+    /\p{Lu}+/gu,
+    (word) => `${word.charAt(0)}${word.slice(1).toLowerCase()}`,
+  );
+}

@@ -15,6 +15,7 @@ import {
   parseMegaListing,
 } from "./adapters/mega-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
+import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
   frakturRead,
   volumeOfPages,
@@ -270,6 +271,41 @@ const wikisourceBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
+const mlwerkeBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      pages: z.ZodArray<z.ZodURL>;
+      citation: z.ZodString;
+      title: z.ZodString;
+      edition: z.ZodString;
+      fixes: z.ZodDefault<
+        z.ZodArray<
+          z.ZodObject<{ page: z.ZodString; from: z.ZodString; to: z.ZodString }>
+        >
+      >;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The work's pages on mlwerke.de, in reading order, as the Internet Archive keeps them. */
+  pages: z.array(z.url()).min(1),
+  /** How a citation names the work before its MEW page: Manuskripte 1844, 471. */
+  citation: z.string().min(1),
+  title: z.string().min(1),
+  /** The MEW volume the transcription follows. */
+  edition: z.string().min(1),
+  /** The transcription's slips, each fixed on its MEW page. */
+  fixes: z
+    .array(
+      z.object({
+        page: z.string().min(1),
+        from: z.string().min(1),
+        to: z.string(),
+      }),
+    )
+    .default([]),
+});
+
 const gutenbergLettersBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -353,6 +389,7 @@ const SOURCES = [
   "gutenberg-letters",
   "mega-letters",
   "mega-etx",
+  "mlwerke",
 ] as const;
 
 /** A book of the manifest, read from its source. */
@@ -389,6 +426,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
         source: z.ZodLiteral<"mega-etx">;
       }>
     >,
+    ReturnType<
+      typeof mlwerkeBookSchema.extend<{
+        source: z.ZodLiteral<"mlwerke">;
+      }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
@@ -407,6 +449,7 @@ const bookSchema: z.ZodDiscriminatedUnion<
   gutenbergLettersBookSchema.extend({ source: z.literal("gutenberg-letters") }),
   megaLettersBookSchema.extend({ source: z.literal("mega-letters") }),
   megaEtxBookSchema.extend({ source: z.literal("mega-etx") }),
+  mlwerkeBookSchema.extend({ source: z.literal("mlwerke") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -780,6 +823,36 @@ async function loadWikisourceBook(
   };
 }
 
+async function loadMlwerkeBook(
+  entry: z.output<typeof mlwerkeBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  // One page after another, as the source asks to be read.
+  const pages = await entry.pages.reduce<
+    Promise<Array<{ url: string; html: string }>>
+  >(
+    async (read, url) => [...(await read), { url, html: await fetchText(url) }],
+    Promise.resolve([]),
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "public-domain",
+      attribution:
+        "Transcription: Marxists Internet Archive, as published on mlwerke.de; read from the Internet Archive's Wayback Machine",
+      source: entry.pages[0] ?? "",
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: parseMlwerkePages(pages, entry),
+  };
+}
+
 const GUTENBERG = "https://www.gutenberg.org/";
 
 async function loadGutenbergLettersBook(
@@ -912,6 +985,8 @@ function loadersOf(
         return loadMegaLettersBook(entry, fetchText);
       case "mega-etx":
         return loadMegaEtxBook(entry, fetchText);
+      case "mlwerke":
+        return loadMlwerkeBook(entry, fetchText);
     }
   });
 }

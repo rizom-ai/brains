@@ -24,15 +24,12 @@
 source: dta-tei
 coverage:
   author: Karl Marx
-  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
-  license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces and introductions are left out.
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
+  license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
   - title: Kritik des Hegelschen Staatsrechts
     year: 1843
     reason: no scan of its first printing (MEGA I/1.1, 1927) found on the Internet Archive
-  - title: Ökonomisch-philosophische Manuskripte
-    year: 1844
-    reason: no scan of its first printing (MEGA I/3, 1932) found on the Internet Archive
   - title: Die deutsche Ideologie
     year: 1846
     reason: no scan of its first full printing (MEGA I/5, 1932) found on the Internet Archive; the copies there are later editions of unknown source
@@ -138,6 +135,33 @@ books:
     author: Karl Marx
     year: 1844
     kind: work
+  - source: mlwerke
+    # MEW Ergänzungsband 1 (1968) as mlwerke.de published it, from the
+    # Internet Archive's last captures before the site went offline.
+    pages:
+      - https://web.archive.org/web/20161114142054id_/http://www.mlwerke.de/me/me40/me40_467.htm
+      - https://web.archive.org/web/20170725032312id_/http://www.mlwerke.de:80/me/me40/me40_471.htm
+      - https://web.archive.org/web/20161114142129id_/http://www.mlwerke.de/me/me40/me40_483.htm
+      - https://web.archive.org/web/20161031084248id_/http://www.mlwerke.de/me/me40/me40_497.htm
+      - https://web.archive.org/web/20161026040614id_/http://www.mlwerke.de:80/me/me40/me40_510.htm
+      - https://web.archive.org/web/20161026235311id_/http://www.mlwerke.de:80/me/me40/me40_523.htm
+      - https://web.archive.org/web/20161114142035id_/http://www.mlwerke.de/me/me40/me40_530.htm
+      - https://web.archive.org/web/20170115034703id_/http://www.mlwerke.de/me/me40/me40_533.htm
+      - https://web.archive.org/web/20161026235336id_/http://www.mlwerke.de:80/me/me40/me40_546.htm
+      - https://web.archive.org/web/20161026205325id_/http://www.mlwerke.de:80/me/me40/me40_562.htm
+      - https://web.archive.org/web/20161114142019id_/http://www.mlwerke.de/me/me40/me40_568.htm
+    citation: Manuskripte 1844
+    slug: oekonomisch-philosophische-manuskripte
+    title: Ökonomisch-philosophische Manuskripte aus dem Jahre 1844
+    shortTitle: Manuskripte 1844
+    edition: "Marx-Engels-Werke, Ergänzungsband, 1. Teil (Berlin, Dietz, 1968), S. 465–588"
+    author: Karl Marx
+    year: 1844
+    published: false
+    kind: work
+    # The Vorrede stands on page XXXIX of the third manuscript.
+    fixes:
+      - { page: "467", from: "||IXXXIX|", to: "||XXXIX|" }
   - source: wikisource
     page: Thesen über Feuerbach
     citation: Feuerbach-Thesen

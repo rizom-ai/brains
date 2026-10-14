@@ -398,6 +398,67 @@ books:
   });
 });
 
+describe("importBooks from mlwerke.de", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-mlwerke-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads a work page by page from its archived pages and credits the transcription", async () => {
+    const page471 =
+      "https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me40/me40_471.htm";
+    const page533 =
+      "https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me40/me40_533.htm";
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+books:
+  - source: mlwerke
+    pages: [${page471}, ${page533}]
+    citation: Manuskripte 1844
+    slug: oekonomisch-philosophische-manuskripte
+    title: Ökonomisch-philosophische Manuskripte aus dem Jahre 1844
+    edition: "Marx-Engels-Werke, Ergänzungsband, 1. Teil (Berlin, Dietz, 1968), S. 465–588"
+    author: Karl Marx
+    year: 1844
+    published: false
+    kind: work
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        return readFile(
+          join(
+            import.meta.dir,
+            "fixtures",
+            url.endsWith("471.htm")
+              ? "mlwerke-opm-471.html"
+              : "mlwerke-opm-533.html",
+          ),
+          "utf8",
+        );
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "oekonomisch-philosophische-manuskripte.md"),
+      "utf8",
+    );
+
+    expect(requested).toEqual([page471, page533]);
+    expect(results).toEqual([
+      { slug: "oekonomisch-philosophische-manuskripte", entries: 3 },
+    ]);
+    expect(title).toContain("license: public-domain");
+    expect(title).toContain("Marxists Internet Archive");
+    expect(title).toContain(`source: '${page471}'`);
+  });
+});
+
 describe("importBooks from Project Gutenberg letters", () => {
   let brainData: string;
 

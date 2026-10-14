@@ -71,6 +71,33 @@ describe("createPoliteFetch", () => {
     expect(sent[1]?.["cookie"]).toBeUndefined();
   });
 
+  it("reads a page in the charset its header or its meta tag names, else as UTF-8", async () => {
+    const latin1 = (text: string): Uint8Array<ArrayBuffer> =>
+      new Uint8Array([...text].map((char) => char.charCodeAt(0)));
+    const pages: Record<string, Response> = {
+      "https://example.org/meta": new Response(
+        latin1(
+          '<HTML><HEAD><META HTTP-EQUIV="Content-Type"; CONTENT="text/html; charset=ISO-8859-1"></HEAD><BODY>für \u0085</BODY></HTML>',
+        ),
+        { headers: { "content-type": "text/html" } },
+      ),
+      "https://example.org/header": new Response(latin1("für"), {
+        headers: { "content-type": "text/plain; charset=iso-8859-1" },
+      }),
+      "https://example.org/plain": new Response("für …"),
+    };
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      fetchFn: async (url) => pages[url] ?? new Response("", { status: 404 }),
+    });
+
+    expect(await get("https://example.org/meta")).toContain("für …");
+    expect(await get("https://example.org/header")).toBe("für");
+    expect(await get("https://example.org/plain")).toBe("für …");
+  });
+
   it("keeps requests at least the minimum interval apart", async () => {
     const { calls, fetchFn } = recorder();
     const get = createPoliteFetch({
