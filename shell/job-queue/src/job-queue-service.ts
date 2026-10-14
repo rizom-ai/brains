@@ -382,6 +382,7 @@ export class JobQueueService implements IJobQueueService {
       now,
       attemptId: createId(),
       executableTypes,
+      exclusiveTypes: this.handlerRegistry.getExclusiveTypes(),
     });
     if (!job) return null;
 
