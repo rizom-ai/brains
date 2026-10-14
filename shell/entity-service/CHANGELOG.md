@@ -1,5 +1,23 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- [#632](https://github.com/rizom-ai/brains/pull/632) [`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace gray-matter's legacy YAML dependency chain with the existing maintained YAML 4 parser, removing sprintf-js from the runtime dependency graph. Preserve YAML/JSON frontmatter, existing octal/base-60 numeric meanings, custom fields, visibility handling, dates, binary values, and publishing-required colon-string quoting through an explicitly owned frontmatter schema.
+
+  Executable JavaScript frontmatter headers are now rejected, including empty executable-language blocks. Parsing is stateless, so document reads do not retain raw content or share mutable parsed objects. Regenerated YAML may use equivalent quoting or binary-tag notation; values and body text remain covered by old-reader round-trip controls.
+
+  This change does not ship downstream application overrides or establish published/deployed consumer adoption.
+
+- Updated dependencies [[`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333)]:
+  - @brains/utils@0.2.0-alpha.552
+  - @brains/assets@0.2.0-alpha.552
+  - @brains/content-formatters@0.2.0-alpha.552
+  - @brains/contracts@0.2.0-alpha.552
+  - @brains/db@0.2.0-alpha.552
+  - @brains/job-queue@0.2.0-alpha.552
+
 ## 0.2.0-alpha.551
 
 ### Patch Changes

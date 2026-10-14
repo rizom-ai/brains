@@ -1,5 +1,18 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- Updated dependencies [[`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333)]:
+  - @brains/utils@0.2.0-alpha.552
+  - @brains/contracts@0.2.0-alpha.552
+  - @brains/operator-view-react@0.2.0-alpha.552
+  - @brains/ui-library@0.2.0-alpha.552
+  - @brains/auth-service@0.2.0-alpha.552
+  - @brains/plugins@0.2.0-alpha.552
+  - @brains/console-theme@0.2.0-alpha.552
+
 ## 0.2.0-alpha.551
 
 ### Patch Changes
