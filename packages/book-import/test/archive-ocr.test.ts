@@ -91,6 +91,9 @@ describe("parseArchiveOcrWork", () => {
     "Freud, x1. 22",
     "Freud, XIIE, ri",
     "Freud, X]1t. 14",
+    "G Freud XVII",
+    "H Freud XVIl",
+    "D Freud XVU",
   ])(
     "leaves out Freud's signature whose sheet number the OCR misread: %s",
     async (signature) => {
@@ -102,7 +105,7 @@ describe("parseArchiveOcrWork", () => {
         (unit) => unit.paragraphs,
       );
 
-      expect(paragraphs.join("\n")).not.toContain("Freud,");
+      expect(paragraphs.join("\n")).not.toMatch(/Freud,? ?[XxIVl]/);
     },
   );
 
@@ -482,11 +485,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads a year the OCR set with a g between its figures", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, 18g91, Ende 18g92 und I, 19g13, ig918. ig119, ig111) ig235; 1g, 17g01.",
+      "Jones, 18g91, Ende 18g92 und I, 19g13, ig918. ig119, ig111) ig235; 1g, 17g01; um ii Uhr, ig Jahre, io Tage, die ii.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, 1891, Ende 1892 und I, 1913, 1918. 1919, 1911) ig235; 1g, 17g01.",
+      "Jones, 1891, Ende 1892 und I, 1913, 1918. 1919, 1911) ig235; 1g, 17g01; um 11 Uhr, 19 Jahre, 10 Tage, die ii.",
     );
   });
 
@@ -592,14 +595,14 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 4)).not.toContain("\\");
   });
 
-  it("reads dgl. and an initial O the OCR set without their stop or with a zero", async () => {
+  it("reads dgl. and an initial O the OCR set without their stop or with a zero, and Sch split from its word", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, Melonen u. dgl, um; u. dgl m.; u. dgl. so; Anna O0. und O0. Rank; Dgl, O0.5.",
+      "Jones, Melonen u. dgl, um; u. dgl m.; u. dgl. so; Anna O0. und O0. Rank; Dgl, O0.5. Sch wierigkeiten, Sch wester.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, Melonen u. dgl., um; u. dgl. m.; u. dgl. so; Anna O. und O. Rank; Dgl, O0.5.",
+      "Jones, Melonen u. dgl., um; u. dgl. m.; u. dgl. so; Anna O. und O. Rank; Dgl, O0.5. Schwierigkeiten, Schwester.",
     );
   });
 

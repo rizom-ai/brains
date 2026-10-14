@@ -227,7 +227,7 @@ const RUNNING_HEAD =
  * (Gesetz. |) is a line's end.
  */
 const SIGNATURE =
-  /^Freud\s*[,.]?\s*[IVXLlx1|J\]Eit]{1,5}\.?[,.]?\s*\S{0,3}\s*$|^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
+  /^(?:\p{Lu}\s+)?Freud\s*[,.]?\s*[IVXLlx1|J\]EitU]{1,5}\.?[,.]?\s*\S{0,3}\s*$|^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3}|\p{Lu}[\p{L}'’-]*-[\p{L}'’-]+\s+\p{Lu}\p{L}*\s*\.)\s*[IVXLl1|J]+\.?[,.]?\s*[\dIl|]*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
@@ -938,6 +938,11 @@ function normalised(text: string): string {
       .replace(/(?<![\p{L}\d])(1[89])g(\d{2})(?![\p{L}\d])/gu, "$1$2")
       // Or with 19 read as ig and its 9 or 1 read twice: ig918, ig119.
       .replace(/(?<![\p{L}\d])ig[91](\d{2})(?![\p{L}\d])/gu, "19$1")
+      // 11, 19 and 10 read as ii, ig and io before a span of time.
+      .replace(
+        /(?<![\p{L}\d])(?:ii|ig|io)(?= (?:Uhr|Monate|Monaten|Jahre|Jahren|Wochen|Tage|Tagen)\b)/gu,
+        (figure) => ({ ii: "11", ig: "19", io: "10" })[figure] ?? figure,
+      )
       // A first read as i before a month or a volume's part; d. i. is "that is".
       .replace(
         /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
@@ -960,6 +965,8 @@ function normalised(text: string): string {
       // dgl. read without its stop, and an initial O read with a zero.
       .replace(/(?<![\p{L}])dgl(?![.\p{L}])/gu, "dgl.")
       .replace(/(?<![\p{L}\d])O0\.(?!\d)/gu, "O.")
+      // Sch split from the rest of its word: Sch wierigkeiten.
+      .replace(/(?<![\p{L}])Sch (?=w\p{Ll})/gu, "Sch")
       // A W read as a backslash and a V, or as \WV; a backslash before a word
       // is a speck.
       .replace(/\\W?V(?=\p{L})/gu, "W")
