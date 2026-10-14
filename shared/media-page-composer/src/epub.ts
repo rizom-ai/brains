@@ -1,7 +1,7 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { strToU8, zipSync, type Zippable } from "fflate";
 import type { ViewTemplate } from "@brains/plugins";
+import { zip } from "./zip";
 
 /** What the package says about the publication. */
 export interface EpubMetadata {
@@ -238,24 +238,32 @@ export function renderEpub(options: RenderEpubOptions): Uint8Array {
   }
   const { metadata } = options;
 
-  const files: Zippable = {
-    // The first entry, stored uncompressed: how readers recognise an EPUB.
-    mimetype: [strToU8("application/epub+zip"), { level: 0 }],
-    "META-INF/container.xml": strToU8(CONTAINER),
-    "OEBPS/content.opf": strToU8(packageDocument(metadata, chapters.length)),
-    "OEBPS/nav.xhtml": strToU8(navigationDocument(metadata, chapters)),
-    ...Object.fromEntries(
-      chapters.map((chapter, i) => [
-        `OEBPS/chapter-${i + 1}.xhtml`,
-        strToU8(
+  const encoder = new TextEncoder();
+  const file = (
+    name: string,
+    text: string,
+  ): { name: string; data: Uint8Array } => ({
+    name,
+    data: encoder.encode(text),
+  });
+  return zip(
+    [
+      // The first entry, stored uncompressed: how readers recognise an EPUB.
+      { ...file("mimetype", "application/epub+zip"), store: true },
+      file("META-INF/container.xml", CONTAINER),
+      file("OEBPS/content.opf", packageDocument(metadata, chapters.length)),
+      file("OEBPS/nav.xhtml", navigationDocument(metadata, chapters)),
+      ...chapters.map((chapter, i) =>
+        file(
+          `OEBPS/chapter-${i + 1}.xhtml`,
           xhtmlDocument(
             escapeXml(chapter.title),
             metadata.language,
             closeVoidElements(chapter.markup),
           ),
         ),
-      ]),
-    ),
-  };
-  return zipSync(files, { level: 9, mtime: new Date(metadata.modified) });
+      ),
+    ],
+    new Date(metadata.modified),
+  );
 }
