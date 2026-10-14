@@ -8836,10 +8836,6 @@ freud-1942-gw-2-3:
     from: verdanke ich fo] - genden Traum
     to: verdanke ich folgenden Traum
     by: scan
-  - page: 163
-    from: „Gegenwunschträume‘“ wurden
-    to: „Gegenwunschträume“ wurden
-    by: scan
   - page: 166
     from: Wunsches.!
     to: Wunsches.¹)
@@ -10061,6 +10057,22 @@ freud-1942-gw-2-3:
   - page: 698
     from: N Anwendung
     to: Anwendung
+    by: scan
+  - page: 54
+    from: x Einen ähnlichen
+    to: ¹) Einen ähnlichen
+    by: scan
+  - page: 163
+    from: A Ähnliche „Gegenwunschträume‘“ wurden mir in den letzten Jahren
+    to: ¹) Ähnliche „Gegenwunschträume“ wurden mir in den letzten Jahren
+    by: scan
+  - page: 240
+    from: 2400 ____V. Das Traummaterial und die Traumquelln
+    to: ""
+    by: scan
+  - page: 404
+    from: Dieses „Deja vu“
+    to: Dieses „Déjà vu“
     by: scan
 freud-1942-gw-5:
   - page: 4
@@ -16138,9 +16150,17 @@ freud-1940-gw-11:
     from: kettung aes Weltgeschehens
     to: kettung des Weltgeschehens
     by: scan
+  - page: 25
+    from: der N werden
+    to: der Fehlleistungen werden
+    by: scan
   - page: 30
     from: KommenSie
     to: Kommen Sie
+    by: scan
+  - page: 30
+    from: USW.
+    to: usw.
     by: scan
   - page: 31
     from: dieandre
@@ -16173,6 +16193,10 @@ freud-1940-gw-11:
   - page: 48
     from: brauchbarsind
     to: brauchbar sind
+    by: scan
+  - page: 49
+    from: R) Ebenso in
+    to: ¹) Ebenso in
     by: scan
   - page: 52
     from: nach. der
@@ -16209,6 +16233,14 @@ freud-1940-gw-11:
   - page: 61
     from: daB
     to: daß
+    by: scan
+  - page: 63
+    from: ein eu oder oz wie ei;
+    to: ein eu oder oi wie ei;
+    by: scan
+  - page: 63
+    from: nachfolgendes er zu ex oder oz
+    to: nachfolgendes ei zu eu oder oi
     by: scan
   - page: 64
     from: glauben? Ä
@@ -16406,6 +16438,10 @@ freud-1940-gw-11:
     from: eine aufßer-
     to: eine außer-
     by: scan
+  - page: 121
+    from: die i fl. 50
+    to: die 1 fl. 50
+    by: scan
   - page: 122
     from: "tk: es sei"
     to: "tik: es sei"
@@ -16421,6 +16457,10 @@ freud-1940-gw-11:
   - page: 131
     from: dieimperativen
     to: die imperativen
+    by: scan
+  - page: 131
+    from: (Anna F...., Er(@)brer,
+    to: (Anna F. . . ., Er(d)brer,
     by: scan
   - page: 132
     from: desMorgens
@@ -16513,6 +16553,10 @@ freud-1940-gw-11:
   - page: 158
     from: Waldund
     to: Wald und
+    by: scan
+  - page: 161
+    from: griechische din,
+    to: griechische ὕλη,
     by: scan
   - page: 162
     from: und eifrig sp&-
@@ -16634,6 +16678,10 @@ freud-1940-gw-11:
     from: infolgevon
     to: infolge von
     by: scan
+  - page: 199
+    from: viele Ko fer aufgehäuf',
+    to: viele Koffer aufgehäuft,
+    by: scan
   - page: 200
     from: gehtmit
     to: geht mit
@@ -16657,6 +16705,10 @@ freud-1940-gw-11:
   - page: 214
     from: Wunschregungen w rieder-
     to: Wunschregungen wieder-
+    by: scan
+  - page: 216
+    from: "zweitens: Al"
+    to: "zweitens: All"
     by: scan
   - page: 217
     from: welcher. wir
