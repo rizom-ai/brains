@@ -125,21 +125,29 @@ export class NewsletterPlugin extends EntityPlugin<
             return { success: true };
           }
 
-          await context.jobs.enqueue({
-            type: NEWSLETTER_CHANNELS.generation,
-            data: {
-              sourceEntityIds: recentPosts.map((p) => p.id),
-              sourceEntityType: "post",
-              addToQueue: false,
-            },
-            toolContext: {
-              interfaceType: "job",
-              actor: {
-                kind: "service",
-                serviceId: "newsletter-generation",
-              },
-            },
-          });
+          // A refused enqueue is retried until the queue admits it; the
+          // scheduled run does not come again until its next cycle.
+          const sourceEntityIds = recentPosts.map((p) => p.id);
+          await this.retries.run(
+            () =>
+              context.jobs.enqueue({
+                type: NEWSLETTER_CHANNELS.generation,
+                data: {
+                  sourceEntityIds,
+                  sourceEntityType: "post",
+                  addToQueue: false,
+                },
+                toolContext: {
+                  interfaceType: "job",
+                  actor: {
+                    kind: "service",
+                    serviceId: "newsletter-generation",
+                  },
+                },
+              }),
+            "queue a scheduled newsletter generation",
+            "generate:newsletter",
+          );
 
           return { success: true };
         } catch (error) {

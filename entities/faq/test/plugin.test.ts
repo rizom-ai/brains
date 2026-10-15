@@ -5,8 +5,12 @@ import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/plugins";
 import { GUEST_ASKED_BEFORE_CHANNEL } from "@brains/contracts";
-import { createMockShell, createPluginHarness } from "@brains/plugins/test";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockShell,
+  createPluginHarness,
+  refuseEnqueues,
+} from "@brains/plugins/test";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { FaqPlugin } from "../src";
 
 describe("FaqPlugin", () => {
@@ -128,6 +132,85 @@ describe("FaqPlugin", () => {
         position: 4,
       },
     ]);
+  });
+});
+
+describe("FaqPlugin refused enqueues", () => {
+  // The job queue refuses an enqueue while another process holds its write
+  // lock; a capture or fold dropped then would never be made.
+  it("queues a capture the queue refused once it admits it", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin());
+    const queue = harness.getMockShell().getJobQueueService();
+    const refusals = refuseEnqueues(queue, 1);
+
+    await harness.sendMessage(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL, {
+      conversationId: "guest-1",
+      messageId: "g2",
+      role: "assistant",
+      position: 4,
+    });
+    expect(refusals.count).toBe(1);
+
+    await waitUntil(
+      async () =>
+        (await queue.getActiveJobs()).some((job) =>
+          job.type.endsWith("faq-capture"),
+        ),
+      "the refused capture to be queued",
+      { timeoutMs: 5_000 },
+    );
+    await harness.reset();
+  });
+
+  it("queues a fold the queue refused once it admits it", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin());
+    const queue = harness.getMockShell().getJobQueueService();
+    refuseEnqueues(queue, 1);
+
+    await harness.sendMessage("entity:embedding:ready", {
+      entityType: "faq",
+      entityId: "faq-1",
+    });
+
+    await waitUntil(
+      async () =>
+        (await queue.getActiveJobs()).some((job) =>
+          job.type.endsWith("faq-reconcile"),
+        ),
+      "the refused fold to be queued",
+      { timeoutMs: 5_000 },
+    );
+    await harness.reset();
+  });
+
+  it("stops retrying a refused capture when the plugin shuts down", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin());
+    const queue = harness.getMockShell().getJobQueueService();
+    const refusals = refuseEnqueues(queue, Number.POSITIVE_INFINITY);
+
+    await harness.sendMessage(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL, {
+      conversationId: "guest-1",
+      messageId: "g2",
+      role: "assistant",
+      position: 4,
+    });
+    await waitUntil(() => refusals.count >= 2, "a retry to be refused", {
+      timeoutMs: 5_000,
+    });
+    await harness.reset();
+    const attempts = refusals.count;
+    await Bun.sleep(2_500);
+
+    expect(refusals.count).toBe(attempts);
   });
 });
 

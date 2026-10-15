@@ -135,7 +135,9 @@ export class TopicsPlugin extends EntityPlugin<
         ENTITY_CHANNELS.deleted,
       ]) {
         // Execution subscriptions run in both processes, exactly once: worker
-        // imports need the same trigger as ordinary web-side mutations.
+        // imports need the same trigger as ordinary web-side mutations. A
+        // refused enqueue is retried until the queue admits it: the event is
+        // not delivered again, and one keyed retry stands for all of them.
         context.messaging.subscribeExecution(channel, async (message) => {
           const event = eventSchema.safeParse(message.payload);
           if (
@@ -145,9 +147,14 @@ export class TopicsPlugin extends EntityPlugin<
               context.entityService,
             )
           ) {
-            await enqueueTopicExtraction(
-              context,
-              this.config.sourceChangeBatchDelayMs,
+            await this.retries.run(
+              () =>
+                enqueueTopicExtraction(
+                  context,
+                  this.config.sourceChangeBatchDelayMs,
+                ),
+              "queue a topic extraction",
+              "topics:extract",
             );
           }
           return { success: true };
@@ -156,7 +163,11 @@ export class TopicsPlugin extends EntityPlugin<
       context.messaging.subscribe(
         SYSTEM_CHANNELS.startupContentSettled,
         async () => {
-          await enqueueTopicExtraction(context);
+          await this.retries.run(
+            () => enqueueTopicExtraction(context),
+            "queue a topic extraction",
+            "topics:extract",
+          );
           return { success: true };
         },
       );
