@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- [#648](https://github.com/rizom-ai/brains/pull/648) [`ea68ab1`](https://github.com/rizom-ai/brains/commit/ea68ab15013bd88aac44d9593259e7115576b5be) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds stay linear in a brain's size: the entity store indexes entities by type and slug, so a page finds its entity and a section's themes without reading the whole store. A book's section page carries only what it shows, so a build of a large book brain holds the text once.
+
 ## 0.2.0-alpha.555
 
 ### Patch Changes
