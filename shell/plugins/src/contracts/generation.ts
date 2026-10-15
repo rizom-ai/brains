@@ -1,17 +1,11 @@
+import type { GenerationContext } from "@brains/content-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
-export interface GenerationStyleGuide {
-  voice?: string;
-  visual?: string;
-}
+export type GenerationStyleGuide = NonNullable<GenerationContext["styleGuide"]>;
 
-export interface ContentGenerationConfig {
+export interface ContentGenerationConfig extends GenerationContext {
   prompt: string;
   templateName: string;
-  conversationHistory?: string;
-  data?: Record<string, unknown>;
-  representedIdentity?: "brain" | "anchor" | "none";
-  styleGuide?: GenerationStyleGuide;
   interfacePermissionGrant?: UserPermissionLevel;
 }
 
