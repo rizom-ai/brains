@@ -108,8 +108,7 @@ Allowed: public-domain texts, CC BY-SA 4.0, and Nietzsche Source's CC BY-NC-ND 4
 | archive.org, Großoktavausgabe (1894–1926) scans | Philologica                                                          | public domain (author text) | OCR                 |
 
 eKGWB terms: attribution with URL on every entry (`source`), no commercial use, text unchanged. Every eKGWB unit is addressed by its siglum (`/eKGWB/<siglum>`), which becomes `section`.
-Fetching: the importer requests each print page (`/eKGWB/<siglum>/print`) once — a published work, a Nachlass notebook (`NF-1888,14`) or a year of letters (`BVN-1888`) — at most one request per second, caches every response and never refetches, and identifies itself with a User-Agent carrying a contact address. The operator has told Nietzsche Source about the import.
-The Nachlass is one book per year, its notebooks as parts titled by the edition's group label (`14 = W II 5. Frühjahr 1888`); a fragment is titled by its number (`14[1]`). The letters are one book per year; a letter is titled by its addressee line (`969. An Paul Deussen in Berlin`). A page names a unit's siglum by the anchor before it, since some pages leave the block's own id empty.
+Fetching: the importer requests each print page (`/eKGWB/<siglum>/print`) once, at most one request per second, caches every response and never refetches, and identifies itself with a User-Agent carrying a contact address. The operator has told Nietzsche Source about the import.
 Not covered: Juvenilia, the Nachlass fragments and Nietzsche's letters, which are not published works.
 
 ### Karl

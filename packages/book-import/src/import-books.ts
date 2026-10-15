@@ -65,11 +65,10 @@ const ekgwbBookSchema: z.ZodObject<
   /** The book's siglum, for a book printed as one. */
   siglum: z.string().min(1).optional(),
   /**
-   * A title printed in numbered parts is one book, as is a year of the
-   * Nachlass, whose parts are its notebooks: each part is read from its own
-   * siglum, in this order.
+   * A title printed in numbered parts is one book: each part is read from
+   * its own siglum, in this order.
    */
-  parts: z.array(manifestPartSchema).min(1).optional(),
+  parts: z.array(manifestPartSchema).min(2).optional(),
   /** The work's own title, where the page heads it with a series title. */
   title: z.string().min(1).optional(),
 });
