@@ -154,12 +154,11 @@ bun packages/book-import/src/cli.ts <manifest> <content-repo>/brain-data
 ```
 
 - `manifests/{nietzsche,marx,freud}.yaml` — one entry per book: adapter, source, edition, license, strip rules
-- adapters: `ekgwb`, `archive-ocr`, `dta-tei`, `mega-etx` (both on a shared TEI reader), `wikisource`, `gutenberg-letters`, `mega-letters`, `mlwerke`, `mew-letters`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
+- adapters: `ekgwb`, `archive-ocr`, `dta-tei`, `mega-etx` (both on a shared TEI reader), `wikisource`, `mlwerke`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
 - one shared writer applies the splitting rule, validates every entry against `@brains/book`'s schema, writes `book/<book>/…`, and removes stale entries of that book
 - deterministic: rerunning on the same sources yields byte-identical files
 - downloads are cached locally and never committed
 - a scanned book may name an OCR model (`ocr: frak2021`): its page images are read anew with Tesseract after ImageMagick doubles them in grey, both on the path, each page recognised once into the cache; its OCR is checked against transcriptions of any edition (`references`), whose spelling is mapped to the edition’s before a fix is made
-- a letter volume read from a PDF (`mew-letters`) takes its text from the PDF's text layer by pdftohtml (poppler, on the path), its type sizes telling the text from the editors' notes and note marks and the headings from the text (a word or line it measured as small as a note but standing between runs of the text is kept), and its page numbers from each page's running head read by Tesseract; the PDF, its text layer and the heads read are cached; words the layer spaced out letter by letter are closed up without emphasis, since it spaces tightly set type as well as Sperrsatz; corrections are kept by the volume's file and MEW page, since the volumes share one item; a correction may run through a later line, setting the span anew, which restores lines the layer lost and tables it read cell by cell (rows parted by bars, written as markdown tables)
 - a scanned book leaves out notes not the author’s, by page and opening words (`skipNotes`) or by the editor’s signature (`skipNotesSigned: [K.]`); an edition that sets its notes as large as the text, below a rule the OCR does not read, says so (`spacedNotes`); a page the OCR set too askew to tell paragraphs by their indent names the lines that open them (`paragraphs`), and a page whose notes the OCR set as close below the text as its lines names the lines that open them (`notes`); a scan whose lines curve, so their starts tell no indent, opens a paragraph only below a sentence’s end (`curved`); an edition that glosses its paragraphs in the margin leaves the glosses out of the text (`marginalia`)
 - the printer’s signature at a sheet’s foot (Marx, Theorien über den Mehrwert. I. 7) is left out wherever a line naming the book closes three pages or more alike; a compound’s first part set apart before und or oder keeps its hyphen (Kredit- und Bankwesen)
 - a table the OCR misread is restored by a scan correction that gives each row as a line, its cells parted by bars; a run of rows is written as a markdown table, headed by its first row where that row holds no figures; elsewhere a bar is a speck, and a glyph the OCR read from the page edge’s shadow, at the scan’s edge, is dropped
@@ -212,7 +211,7 @@ Each phase ships on its own PR, tests first.
 
 ### Phase 5 — Karl
 
-- `dta-tei`, `wikisource`, `gutenberg-letters`, `mega-letters` and `mega-etx` adapters (#567); Marx manifest and coverage note (#567): 46 books, every scanned one through the OCR gate
+- `dta-tei`, `wikisource`, `mega-etx` and `mlwerke` adapters (#567); Marx manifest and coverage note (#567): 46 books, every scanned one through the OCR gate
 - `karl` user added, content repo seeded, deploy (rover-pilot #181), same verification
 
 ## Risks

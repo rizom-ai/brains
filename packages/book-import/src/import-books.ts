@@ -1,21 +1,10 @@
-import { parseMewLetters } from "./adapters/mew-letters";
-import type { PdfReader } from "./pdf-reader";
 import { parse as parseYaml } from "yaml";
 import { bookKindSchema } from "@brains/book";
 import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
-import { parseGutenbergLetters } from "./adapters/gutenberg-letters";
 import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
-import {
-  LANGUAGES,
-  isWritersLetter,
-  type MegaLetter,
-  megaLetterUnits,
-  parseMegaLetter,
-  parseMegaListing,
-} from "./adapters/mega-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
 import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
@@ -71,27 +60,19 @@ const ekgwbBookSchema: z.ZodObject<
       title: z.ZodOptional<z.ZodString>;
     }
   >
-> = z
-  .object({
-    ...bookFields,
-    /** The book's siglum, for a book printed as one. */
-    siglum: z.string().min(1).optional(),
-    /**
-     * A title printed in numbered parts is one book, as is a year of the
-     * Nachlass, whose parts are its notebooks: each part is read from its own
-     * siglum, in this order.
-     */
-    parts: z.array(manifestPartSchema).min(1).optional(),
-    /** The work's own title, where the page heads it with a series title. */
-    title: z.string().min(1).optional(),
-  })
-  .refine(
-    (book) => (book.siglum === undefined) !== (book.parts === undefined),
-    { message: "A book names either its siglum or its parts" },
-  )
-  .refine((book) => book.parts === undefined || book.title !== undefined, {
-    message: "A book of parts names its title",
-  });
+> = z.object({
+  ...bookFields,
+  /** The book's siglum, for a book printed as one. */
+  siglum: z.string().min(1).optional(),
+  /**
+   * A title printed in numbered parts is one book, as is a year of the
+   * Nachlass, whose parts are its notebooks: each part is read from its own
+   * siglum, in this order.
+   */
+  parts: z.array(manifestPartSchema).min(1).optional(),
+  /** The work's own title, where the page heads it with a series title. */
+  title: z.string().min(1).optional(),
+});
 
 /** A printed page: its number, or its roman number in the front matter. */
 const printedPageSchema: z.ZodUnion<[z.ZodNumber, z.ZodString]> = z.union([
@@ -130,28 +111,6 @@ const headingLineSchema: z.ZodObject<{
     .optional(),
 });
 
-/** How the author's letters are known among the others in an edition. */
-const letterWriterSchema: z.ZodObject<{
-  signatures: z.ZodArray<z.ZodString>;
-  salutations: z.ZodArray<z.ZodString>;
-}> = z.object({
-  /** Signatures without their closing: K. M. for Dein K. M. */
-  signatures: z.array(z.string().min(1)).min(1),
-  /** Salutations of the author's letters, for a letter left unsigned. */
-  salutations: z.array(z.string().min(1)),
-});
-
-/** A scanned volume of letters: the author's, of the years from and to. */
-const letterVolumeSchema: z.ZodObject<{
-  signatures: z.ZodArray<z.ZodString>;
-  salutations: z.ZodArray<z.ZodString>;
-  from: z.ZodOptional<z.ZodNumber>;
-  to: z.ZodOptional<z.ZodNumber>;
-}> = letterWriterSchema.extend({
-  from: z.number().int().optional(),
-  to: z.number().int().optional(),
-});
-
 const archiveOcrBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -177,7 +136,6 @@ const archiveOcrBookSchema: z.ZodObject<
       curved: z.ZodDefault<z.ZodBoolean>;
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
-      letters: z.ZodOptional<typeof letterVolumeSchema>;
       opensWith: z.ZodOptional<z.ZodString>;
     }
   >
@@ -230,8 +188,6 @@ const archiveOcrBookSchema: z.ZodObject<
   marginalia: z.boolean().default(false),
   /** A volume of newspaper articles, each titled above its dateline: London, 9. Juni 1854. */
   datelined: z.boolean().default(false),
-  /** A volume of letters, each numbered above its salutation and date: the author's kept. */
-  letters: letterVolumeSchema.optional(),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
 });
@@ -310,42 +266,6 @@ const wikisourceBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
-const mewLettersBookSchema: z.ZodObject<
-  Shape<
-    BookFields & {
-      item: z.ZodString;
-      file: z.ZodString;
-      volume: z.ZodNumber;
-      firstPage: z.ZodNumber;
-      lastPage: z.ZodNumber;
-      writer: z.ZodString;
-      from: z.ZodOptional<z.ZodNumber>;
-      to: z.ZodOptional<z.ZodNumber>;
-      title: z.ZodString;
-      edition: z.ZodString;
-    }
-  >
-> = z.object({
-  ...bookFields,
-  /** The archive.org item holding the volumes as PDFs: Marx_Engels_Werke_MEW. */
-  item: z.string().min(1),
-  /** The volume's PDF in the item, without its extension: mew_band30. */
-  file: z.string().min(1),
-  /** The MEW volume, which citations name: 30. */
-  volume: z.number().int().positive(),
-  /** The PDF's pages that hold the letters, the editors' apparatus after them left out. */
-  firstPage: z.number().int().positive(),
-  lastPage: z.number().int().positive(),
-  /** The writer whose letters are kept, as the letters' headings name him: Marx. */
-  writer: z.string().min(1),
-  /** The years whose letters are kept, where another source holds the rest. */
-  from: z.number().int().optional(),
-  to: z.number().int().optional(),
-  title: z.string().min(1),
-  /** The MEW volume and its printing. */
-  edition: z.string().min(1),
-});
-
 const mlwerkeBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -400,48 +320,6 @@ const mlwerkeBookSchema: z.ZodObject<
     .default([]),
 });
 
-const gutenbergLettersBookSchema: z.ZodObject<
-  Shape<
-    BookFields & {
-      ebook: z.ZodNumber;
-      citation: z.ZodString;
-      writer: typeof letterWriterSchema;
-      title: z.ZodString;
-      edition: z.ZodString;
-    }
-  >
-> = z.object({
-  ...bookFields,
-  /** The Project Gutenberg ebook's number: 64327. */
-  ebook: z.number().int().positive(),
-  /** How a citation names the edition before its page: Briefwechsel I, 23. */
-  citation: z.string().min(1),
-  /** How the author's letters are known among the others. */
-  writer: letterWriterSchema,
-  title: z.string().min(1),
-  /** The printed edition the ebook follows. */
-  edition: z.string().min(1),
-});
-
-const megaLettersBookSchema: z.ZodObject<
-  Shape<
-    BookFields & {
-      writer: z.ZodString;
-      language: z.ZodEnum<{ [K in (typeof LANGUAGES)[number]]: K }>;
-      title: z.ZodString;
-      edition: z.ZodString;
-    }
-  >
-> = z.object({
-  ...bookFields,
-  /** The writer as MEGAdigital's headings name them: Karl Marx. */
-  writer: z.string().min(1),
-  /** The language of the letters the book holds. */
-  language: z.enum(LANGUAGES),
-  title: z.string().min(1),
-  edition: z.string().min(1),
-});
-
 const megaEtxBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -472,11 +350,8 @@ const SOURCES = [
   "archive-ocr",
   "dta-tei",
   "wikisource",
-  "gutenberg-letters",
-  "mega-letters",
   "mega-etx",
   "mlwerke",
-  "mew-letters",
 ] as const;
 
 /** A book of the manifest, read from its source. */
@@ -499,16 +374,6 @@ const bookSchema: z.ZodDiscriminatedUnion<
       }>
     >,
     ReturnType<
-      typeof gutenbergLettersBookSchema.extend<{
-        source: z.ZodLiteral<"gutenberg-letters">;
-      }>
-    >,
-    ReturnType<
-      typeof megaLettersBookSchema.extend<{
-        source: z.ZodLiteral<"mega-letters">;
-      }>
-    >,
-    ReturnType<
       typeof megaEtxBookSchema.extend<{
         source: z.ZodLiteral<"mega-etx">;
       }>
@@ -516,11 +381,6 @@ const bookSchema: z.ZodDiscriminatedUnion<
     ReturnType<
       typeof mlwerkeBookSchema.extend<{
         source: z.ZodLiteral<"mlwerke">;
-      }>
-    >,
-    ReturnType<
-      typeof mewLettersBookSchema.extend<{
-        source: z.ZodLiteral<"mew-letters">;
       }>
     >,
   ],
@@ -538,11 +398,8 @@ const bookSchema: z.ZodDiscriminatedUnion<
   archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
-  gutenbergLettersBookSchema.extend({ source: z.literal("gutenberg-letters") }),
-  megaLettersBookSchema.extend({ source: z.literal("mega-letters") }),
   megaEtxBookSchema.extend({ source: z.literal("mega-etx") }),
   mlwerkeBookSchema.extend({ source: z.literal("mlwerke") }),
-  mewLettersBookSchema.extend({ source: z.literal("mew-letters") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -584,14 +441,11 @@ const correctionSchema: z.ZodObject<{
   page: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
   from: z.ZodString;
   to: z.ZodString;
-  through: z.ZodOptional<z.ZodString>;
   by: z.ZodEnum<{ reference: "reference"; scan: "scan" }>;
 }> = z.object({
   page: z.union([z.number().int(), z.string().min(1)]),
   from: z.string().min(1),
   to: z.string(),
-  /** In a text layer, the last line the correction replaces: a table read cell by cell, given as rows parted by bars. */
-  through: z.string().min(1).optional(),
   /** A transcription of the work, or the scan read again. */
   by: z.enum(["reference", "scan"]),
 });
@@ -671,8 +525,6 @@ export interface ImportOptions {
    * already rendered, so a book's structure can change without a fetch.
    */
   ekgwb?: BookReader;
-  /** Reads PDFs with a text layer, for books read from one. */
-  pdfReader?: PdfReader;
 }
 
 export interface ImportResult {
@@ -956,118 +808,6 @@ async function loadMlwerkeBook(
   };
 }
 
-const ARCHIVE_DOWNLOAD = "https://archive.org/download/";
-
-async function loadMewLettersBook(
-  entry: z.output<typeof mewLettersBookSchema>,
-  options: ImportOptions,
-): Promise<LoadedBook> {
-  if (!options.pdfReader) {
-    throw new Error(`${entry.slug}: no PDF reader given to read its volume`);
-  }
-  const read = await options.pdfReader(
-    `${ARCHIVE_DOWNLOAD}${entry.item}/${entry.file}.pdf`,
-    entry.firstPage,
-    entry.lastPage,
-  );
-  return {
-    book: {
-      slug: entry.slug,
-      title: entry.title,
-      author: entry.author,
-      year: entry.year,
-      kind: entry.kind,
-      edition: entry.edition,
-      license: "public-domain",
-      attribution: `Scan and text layer: Internet Archive (archive.org/details/${entry.item})`,
-      source: `https://archive.org/details/${entry.item}/${entry.file}`,
-      published: entry.published,
-      shortTitle: entry.shortTitle ?? null,
-    },
-    // The volumes share one item, so their corrections go by the volume's file.
-    units: parseMewLetters(read.xml, read.heads, {
-      ...entry,
-      corrections: options.corrections?.[entry.file] ?? [],
-    }),
-  };
-}
-
-const GUTENBERG = "https://www.gutenberg.org/";
-
-async function loadGutenbergLettersBook(
-  entry: z.output<typeof gutenbergLettersBookSchema>,
-  fetchText: FetchText,
-): Promise<LoadedBook> {
-  const html = await fetchText(
-    `${GUTENBERG}cache/epub/${entry.ebook}/pg${entry.ebook}-images.html`,
-  );
-  return {
-    book: {
-      slug: entry.slug,
-      title: entry.title,
-      author: entry.author,
-      year: entry.year,
-      kind: entry.kind,
-      edition: entry.edition,
-      license: "public-domain",
-      // The text is used without Project Gutenberg's license and trademark,
-      // as its terms allow for a public-domain work; the ebook is its source.
-      attribution: null,
-      source: `${GUTENBERG}ebooks/${entry.ebook}`,
-      published: entry.published,
-      shortTitle: entry.shortTitle ?? null,
-    },
-    units: parseGutenbergLetters(html, entry),
-  };
-}
-
-const MEGA = "https://megadigital.bbaw.de/";
-
-async function loadMegaLettersBook(
-  entry: z.output<typeof megaLettersBookSchema>,
-  fetchText: FetchText,
-): Promise<LoadedBook> {
-  const listed = parseMegaListing(
-    await fetchText(`${MEGA}api/v2/tei-xml.xql`),
-  ).filter(({ heading }) => isWritersLetter(heading, entry.writer));
-  // One letter after another, as the source asks to be fetched.
-  const letters = await listed.reduce<Promise<MegaLetter[]>>(
-    async (done, listing) => {
-      const read = await done;
-      const letter = parseMegaLetter(
-        await fetchText(`${MEGA}${listing.id}.xml`),
-      );
-      if (!letter.licence?.includes("/by-sa/")) {
-        throw new Error(
-          `${listing.id} is not under CC BY-SA: ${letter.licence}`,
-        );
-      }
-      return [...read, { ...listing, letter }];
-    },
-    Promise.resolve([]),
-  );
-  return {
-    book: {
-      slug: entry.slug,
-      title: entry.title,
-      author: entry.author,
-      year: entry.year,
-      kind: entry.kind,
-      edition: entry.edition,
-      license: "CC-BY-SA-4.0",
-      attribution:
-        "MEGAdigital, Berlin-Brandenburgische Akademie der Wissenschaften (megadigital.bbaw.de), CC BY-SA 4.0",
-      source: `${MEGA}briefe/index.xql`,
-      published: entry.published,
-      shortTitle: entry.shortTitle ?? null,
-    },
-    units: megaLetterUnits(
-      letters.filter(({ letter }) => letter.language === entry.language),
-      entry.writer,
-    ),
-  };
-}
-
 async function loadMegaEtxBook(
   entry: z.output<typeof megaEtxBookSchema>,
   fetchText: FetchText,
@@ -1118,16 +858,10 @@ function loadersOf(
         return loadDtaTeiBook(entry, fetchText);
       case "wikisource":
         return loadWikisourceBook(entry, fetchText);
-      case "gutenberg-letters":
-        return loadGutenbergLettersBook(entry, fetchText);
-      case "mega-letters":
-        return loadMegaLettersBook(entry, fetchText);
       case "mega-etx":
         return loadMegaEtxBook(entry, fetchText);
       case "mlwerke":
         return loadMlwerkeBook(entry, fetchText);
-      case "mew-letters":
-        return loadMewLettersBook(entry, options);
     }
   });
 }

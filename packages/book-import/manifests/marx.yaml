@@ -4,13 +4,10 @@
 # and of the Thesen über Feuerbach as Engels first printed them (1888). The
 # Textarchiv's transcriptions are under CC BY-SA 4.0, the Manifest's under
 # CC BY-SA 2.0 DE; Wikisource's are of public-domain texts. Of the letters the
-# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept;
-# Marx's letters, to Engels and to others, from the Marx-Engels-Werke's
-# letter volumes (27–35, 1963–1967; the PDFs and their text layer on the
-# Internet Archive), past the edition right, those the editors translated
-# from English or French left out with the editors' notes; those of
-# 1866–1871 from MEGAdigital (CC BY-SA 4.0), in German too; and
-# the economic manuscripts of 1857/58 and 1863–65 from MEGAdigital's
+# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept,
+# a published work; his other letters are not. The economic manuscripts of
+# 1857/58 and 1863–65 (the first book; the second is a draft Das Kapital II
+# supersedes) come from MEGAdigital's
 # transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
 # right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
 # apparatus and Marx's English "Value, price and profit" are left out.
@@ -18,14 +15,14 @@
 # Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
 # of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
 # (1902), without his introductions and notes and without Engels' own pieces.
-# `year` is first publication, for letters the year of the first. The second
+# `year` is first publication. The second
 # and third volumes of Das Kapital appeared after Marx's death, edited by
 # Engels; Engels' prefaces to them are left out. The third volume is two
 # books, as printed, each paged on its own.
 source: dta-tei
 coverage:
   author: Karl Marx
-  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans; Marx's letters are those he wrote in German, from the Marx-Engels-Werke and MEGAdigital
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
   - title: Lohn, Preis und Profit
@@ -423,145 +420,6 @@ books:
     year: 1888
     published: false
     kind: work
-  - source: mlwerke
-    # MEW 40 (1973) as mlwerke.de published it, from the Internet Archive's
-    # last capture.
-    pages:
-      - https://web.archive.org/web/20151104163816id_/http://www.mlwerke.de:80/me/me40/me40_003.htm
-    citation: Brief an den Vater
-    slug: brief-an-den-vater
-    title: Brief an den Vater
-    edition: "Marx-Engels-Werke, Band 40 (Berlin, Dietz, 1973), S. 3–12"
-    author: Karl Marx
-    year: 1837
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band27
-    volume: 27
-    firstPage: 45
-    lastPage: 674
-    writer: Marx
-    slug: briefe-1842-1851
-    title: Briefe 1842–1851
-    edition: "Marx-Engels-Werke, Band 27 (Berlin, Dietz, 1963): Briefe Februar 1842 – Dezember 1851"
-    author: Karl Marx
-    year: 1842
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band28
-    volume: 28
-    firstPage: 37
-    lastPage: 696
-    writer: Marx
-    slug: briefe-1852-1855
-    title: Briefe 1852–1855
-    edition: "Marx-Engels-Werke, Band 28 (Berlin, Dietz, 1963): Briefe Januar 1852 – Dezember 1855"
-    author: Karl Marx
-    year: 1852
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band29
-    volume: 29
-    firstPage: 33
-    lastPage: 692
-    writer: Marx
-    slug: briefe-1856-1859
-    title: Briefe 1856–1859
-    edition: "Marx-Engels-Werke, Band 29 (Berlin, Dietz, 1978): Briefe Januar 1856 – Dezember 1859"
-    author: Karl Marx
-    year: 1856
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band30
-    volume: 30
-    firstPage: 33
-    lastPage: 732
-    writer: Marx
-    slug: briefe-1860-1864
-    title: Briefe 1860–1864
-    edition: "Marx-Engels-Werke, Band 30 (Berlin, Dietz, 1974): Briefe Januar 1860 – September 1864"
-    author: Karl Marx
-    year: 1860
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band31
-    volume: 31
-    firstPage: 33
-    lastPage: 646
-    writer: Marx
-    # Its letters of 1866 and 1867 are MEGAdigital's.
-    to: 1865
-    slug: briefe-1864-1865
-    title: Briefe 1864–1865
-    edition: "Marx-Engels-Werke, Band 31 (Berlin, Dietz, 1965): Briefe Oktober 1864 – Dezember 1867"
-    author: Karl Marx
-    year: 1864
-    published: false
-    kind: letters
-  - source: mega-letters
-    writer: Karl Marx
-    language: de
-    slug: briefe-1866-1871
-    title: Briefe 1866–1871
-    edition: MEGAdigital, Briefe 1866–1871, Berlin-Brandenburgische Akademie der Wissenschaften (megadigital.bbaw.de)
-    author: Karl Marx
-    year: 1866
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band33
-    volume: 33
-    firstPage: 37
-    lastPage: 744
-    writer: Marx
-    # Its letters of 1870 and 1871 are MEGAdigital's.
-    from: 1872
-    slug: briefe-1872-1874
-    title: Briefe 1872–1874
-    edition: "Marx-Engels-Werke, Band 33 (Berlin, Dietz, 1976): Briefe Juli 1870 – Dezember 1874"
-    author: Karl Marx
-    year: 1872
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band34
-    volume: 34
-    firstPage: 29
-    lastPage: 574
-    writer: Marx
-    slug: briefe-1875-1880
-    title: Briefe 1875–1880
-    edition: "Marx-Engels-Werke, Band 34 (Berlin, Dietz, 1966): Briefe Januar 1875 – Dezember 1880"
-    author: Karl Marx
-    year: 1875
-    published: false
-    kind: letters
-  - source: mew-letters
-    item: Marx_Engels_Werke_MEW
-    file: mew_band35
-    volume: 35
-    firstPage: 27
-    lastPage: 500
-    writer: Marx
-    slug: briefe-1881-1883
-    title: Briefe 1881–1883
-    edition: "Marx-Engels-Werke, Band 35 (Berlin, Dietz, 1967): Briefe Januar 1881 – März 1883"
-    author: Karl Marx
-    year: 1881
-    published: false
-    kind: letters
   - source: mega-etx
     citation: MEGA² II/1
     parts:
@@ -612,19 +470,6 @@ books:
     edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
     author: Karl Marx
     year: 1933
-    published: false
-    kind: nachlass
-  - source: mega-etx
-    citation: MEGA² II/4.1
-    parts:
-      - file: MEGA_A2_B004-01_ETX.xml
-        text: Das Kapital (Ökonomisches Manuskript 1863-1865) Zweites Buch (Manuskript I)
-    slug: oekonomisches-manuskript-1863-1865-zweites-buch
-    title: "Das Kapital. Ökonomisches Manuskript 1863–1865, Zweites Buch (Manuskript I)"
-    shortTitle: Manuskript 1863–65, Zweites Buch
-    edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
-    author: Karl Marx
-    year: 1988
     published: false
     kind: nachlass
   - source: archive-ocr

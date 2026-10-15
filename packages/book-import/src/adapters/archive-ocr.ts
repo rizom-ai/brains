@@ -1,5 +1,4 @@
 import { Window } from "happy-dom";
-import { isWritersLetter, type LetterWriter } from "../letter-writer";
 import type { BookUnit } from "../render-book";
 import { unitsOfSections } from "../sections";
 import { closedBrackets } from "./brackets";
@@ -24,16 +23,6 @@ export interface OcrCorrection {
   page: number | string;
   from: string;
   to: string;
-  /** The last line a correction of a text layer replaces with its lines, from the one holding from: a table read cell by cell. */
-  through?: string | undefined;
-}
-
-/** A volume of letters: whose letters to keep, and of which years. */
-export interface LetterVolume extends LetterWriter {
-  /** The first year whose letters are kept. */
-  from?: number | undefined;
-  /** The last year whose letters are kept. */
-  to?: number | undefined;
 }
 
 /** A work inside a scanned volume, by its printed pages. */
@@ -100,12 +89,6 @@ export interface ArchiveOcrWork {
    * articles stand under topics set in display type.
    */
   datelined?: boolean;
-  /**
-   * A volume of letters, each numbered above its salutation and date: the
-   * writer's letters kept, of the years given, without the editors' notes
-   * set small after each.
-   */
-  letters?: LetterVolume | undefined;
   /**
    * The line its first page opens the work with, where it follows another
    * work's end on that page, as a periodical prints it.
@@ -864,15 +847,8 @@ type Piece =
       kind: "text";
       text: string;
       opens: boolean;
-      /** Set smaller than the text, as the notes after a letter are. */
-      small?: boolean;
     }
-  | { kind: "note"; text: string; opens: boolean }
-  /**
-   * A letter opened by its number as read, none where the OCR lost it; dated
-   * where the line below ends in a year, as a letter's opening line does.
-   */
-  | { kind: "letter"; number: string | null; dated: boolean };
+  | { kind: "note"; text: string; opens: boolean };
 
 /** What reading a page needs to know about its volume. */
 interface Volume {
@@ -882,8 +858,6 @@ interface Volume {
   curved?: boolean;
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
-  /** Letters, each numbered above its salutation. */
-  letters?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
   headingOpenings?: Array<{ opens: string; numeral?: string }>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
@@ -1103,9 +1077,7 @@ export function pageText(
       piece.kind === "heading"
         ? // A topic's or an article's mark prints nothing of its own.
           piece.lines.map(headingLineText).filter((text) => text !== "")
-        : piece.kind === "letter"
-          ? [piece.number ?? ""]
-          : [piece.text],
+        : [piece.text],
     )
     .join("\n");
 }
@@ -1124,7 +1096,7 @@ function correctedPieces(
     (correction) => String(correction.page) === label,
   );
   const read = pieces.map((piece) =>
-    piece.kind === "heading" || piece.kind === "letter"
+    piece.kind === "heading"
       ? piece
       : { ...piece, text: normalised(piece.text) },
   );
@@ -1146,12 +1118,10 @@ function correctedPieces(
           : line,
       );
     },
-    read.map((piece) =>
-      piece.kind === "heading" || piece.kind === "letter" ? null : piece.text,
-    ),
+    read.map((piece) => (piece.kind === "heading" ? null : piece.text)),
   );
   return read.flatMap((piece, index): Piece[] => {
-    if (piece.kind === "heading" || piece.kind === "letter") return [piece];
+    if (piece.kind === "heading") return [piece];
     const text = (texts[index] ?? "").trim();
     // A line a correction empties was the scan's noise.
     return text === "" ? [] : [{ ...piece, text }];
@@ -1223,9 +1193,7 @@ function readPage(
   const rest = own.filter((correction) => !whole.includes(correction));
   const pieces = piecesOf(debarred(lined), volume);
   const texts = pieces.flatMap((piece) =>
-    piece.kind === "heading" || piece.kind === "letter"
-      ? []
-      : [normalised(piece.text)],
+    piece.kind === "heading" ? [] : [normalised(piece.text)],
   );
   const inScan = rest.filter(
     (correction) => !texts.some((text) => text.includes(correction.from)),
@@ -1367,24 +1335,6 @@ const DATELINE =
  */
 const INLINE_DATELINE =
   /^[*⁎]*\s*\[?(\p{Lu}[\p{L}.]*(?:\s[\p{L}.]+)?,\s*(?:\d{1,2}\.|im)\s*\p{L}+\.)\]?\s/u;
-/** Superscript digits, as the Fraktur model reads a letter's number in part. */
-const SUPERSCRIPTS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
-/** A letter's number spans this share of the column at most. */
-const LETTER_NUMBER_WIDTH = 0.2;
-/**
- * A line ending in a year, as a letter's opening line does, in the editors'
- * brackets or not: Lieber Engels! 18. November 1861., [Ende Januar (?) 1861.]
- */
-const LETTER_DATED = /\b1[89]\d\d\b\D{0,4}$/u;
-/** A letter's salutation, opening its first line: Lieber Engels!, Dear Fred! */
-const SALUTED =
-  /^(?:Lieber|Liebe|Liebster|Liebste|Teurer|Teure|Werter|Dear|My dear|Mein)\b[^.!,]{0,40}[!,]/u;
-/** A letter's number read this far past the last one is the next, a letter or two the OCR lost between. */
-const LETTER_SKIP = 3;
-/** Pairs of letters read in turn are checked against the pairs this many letters about them. */
-const LETTER_WINDOW = 25;
-/** The editors' notes after a letter are set smaller than its text, by this share at least. */
-const LETTER_NOTE_SIZE = 0.93;
 /** A dateline is set no larger than the text, give or take the OCR's measure. */
 const DATELINE_SIZE = 1.05;
 /** A series' numeral, as Fraktur sets I and J alike, with the part's own title or none. */
@@ -1648,9 +1598,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
               line.y - (headless[index - 1]?.bottom ?? line.y) > bodyHeight) ||
             spacedFoot(line, headless[index - 1], headless[index + 1]))),
   );
-  // A volume of letters sets each letter's notes after it, not at the foot.
-  const noteFrom =
-    footAt < 0 || volume.letters === true ? headless.length : footAt;
+  const noteFrom = footAt < 0 ? headless.length : footAt;
   const textLines = headless.slice(0, noteFrom);
   // Most full lines start at the margin; the lowest quarter of starts finds
   // it, which headings and verse set in from both sides would move.
@@ -1810,39 +1758,6 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       line.width < volume.column / 2
     ) {
       return pieces;
-    }
-    // In a volume of letters, a number alone in the middle opens a letter;
-    // every other line is a letter's text, marked where it is set small.
-    if (volume.letters === true) {
-      const text: Piece = {
-        kind: "text",
-        text: line.text,
-        opens: opensParagraph(line, index),
-        ...(line.size < bodySize * LETTER_NOTE_SIZE ? { small: true } : {}),
-      };
-      // A number stands alone in the middle, or wherever a speck beside it
-      // moves the line, above the letter's dated opening line.
-      const number = letterNumberOf(line.text);
-      const below = headless[index + 1];
-      const dated = below !== undefined && LETTER_DATED.test(below.text);
-      if (
-        number !== null &&
-        (dated ||
-          (Math.abs(line.x + line.width / 2 - middle) < page.width * CENTRE &&
-            line.width < volume.column * LETTER_NUMBER_WIDTH))
-      ) {
-        return [...pieces, { kind: "letter", number, dated }];
-      }
-      // A letter whose number the OCR lost opens at its salutation and date,
-      // or at the line the manifest names where it lost the salutation too.
-      const named = (volume.headingOpenings ?? []).some((opening) =>
-        line.text.startsWith(opening.opens),
-      );
-      return (named ||
-        (SALUTED.test(line.text) && LETTER_DATED.test(line.text))) &&
-        pieces.at(-1)?.kind !== "letter"
-        ? [...pieces, { kind: "letter", number: null, dated: true }, text]
-        : [...pieces, text];
     }
     // A table's row is text, however large the OCR read the line it fixes,
     // and so is a line the manifest names as opening a paragraph.
@@ -2329,8 +2244,6 @@ interface Block {
   label: string;
   /** The scan leaf the block ends on, where it runs over pages. */
   lastLeaf: number;
-  /** Opened by a line set smaller than the text. */
-  small?: boolean;
 }
 
 interface Place {
@@ -2344,7 +2257,6 @@ function addLine(
   line: string,
   opens: boolean,
   place: Place,
-  small = false,
 ): Block[] {
   const last = blocks.at(-1);
   // A table's row stands alone: it runs on no line, and no line on it.
@@ -2360,7 +2272,6 @@ function addLine(
         text: line,
         ...place,
         lastLeaf: place.leaf,
-        ...(small ? { small: true } : {}),
       },
     ];
   }
@@ -2410,10 +2321,6 @@ interface PathStep {
   letter: string | null;
   /** A chapter numbered by its numeral. */
   numbered: boolean;
-  /** A letter's number as counted while reading, in a volume of letters. */
-  letterNumber?: string;
-  /** The letter's number as the OCR read it, if at all. */
-  letterRead?: string;
 }
 
 /** The text under one heading, with the headings above it. */
@@ -2600,66 +2507,6 @@ function addHeading(
   };
 }
 
-/**
- * A letter's number as the OCR reads it, its superscript digits as digits
- * and a stray mark or two beside them left out: 85⁴4, ö 618.
- */
-function letterNumberOf(text: string): string | null {
-  const read = text.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/gu, (digit) =>
-    String(SUPERSCRIPTS.indexOf(digit)),
-  );
-  const digits = read.replace(/\D/gu, "");
-  const marks = read.replace(/[\d\s.·,']/gu, "");
-  return digits.length >= 2 && marks.length <= 2 ? digits : null;
-}
-
-/**
- * A letter opened by its number: a section of its own. The letters count
- * up; a number read within a few of the count sets it, and one read further
- * off, or none, is the next. A number far off the count without a dated
- * line below is a mark, not a letter, as is the first without one: a year
- * heading's.
- */
-function addLetter(
-  state: WorkState,
-  read: string | null,
-  dated: boolean,
-): WorkState {
-  const previous = state.sections
-    .map((section) => section.path.at(-1)?.letterNumber)
-    .filter((number): number is string => number !== undefined)
-    .at(-1);
-  const last = previous === undefined ? null : Number(previous);
-  const counts =
-    read !== null &&
-    (last === null ? dated : Math.abs(Number(read) - last) <= LETTER_SKIP);
-  if (!counts && !dated) return state;
-  const number = counts ? read : last === null ? "" : String(last + 1);
-  return {
-    ...state,
-    sections: [
-      ...state.sections,
-      {
-        path: [
-          {
-            level: 1,
-            label: number,
-            name: "",
-            qualifiers: [],
-            letter: null,
-            numbered: false,
-            letterNumber: number,
-            letterRead: read ?? "",
-          },
-        ],
-        paragraphs: [],
-        notes: [],
-      },
-    ],
-    skipping: null,
-  };
-}
-
 function addPiece(
   state: WorkState,
   piece: Extract<Piece, { kind: "text" | "note" }>,
@@ -2686,13 +2533,7 @@ function addPiece(
         }
       : {
           ...current,
-          paragraphs: addLine(
-            current.paragraphs,
-            text,
-            piece.opens,
-            place,
-            piece.small === true,
-          ),
+          paragraphs: addLine(current.paragraphs, text, piece.opens, place),
         };
   return { ...state, sections: [...rest, section] };
 }
@@ -3125,155 +2966,6 @@ function withoutMarginalia(page: Page): Page {
   };
 }
 
-/** A note's mark opening a line: 1 Irgend eine Summe. */
-const LETTER_NOTE_MARK = /^(?:\d{1,2}|\*+)\s+\S/u;
-/** The closing words before a letter's signature, at its end: … soll. Dein K. M. */
-const LETTER_CLOSE =
-  /(?:^|[\s.!?,;])(?:(?:Dein|Deine|Deinem|Euer|Eure|Ihr|Ihre)\s+)+(\S.{0,40})$/u;
-/** A letter's last paragraph this short is its signature alone. */
-const SIGNATURE_LENGTH = 40;
-
-/**
- * The letters' numbers, by the numbers the OCR read: two letters read as
- * following each other are read right, unless a digit misread alike in both
- * sets them far off the pairs about them, and set the number of the letters
- * about them by their place; a number read alone that agrees with the
- * nearest pair, but for a letter lost or opened between, stands, and sets
- * the numbers of the letters next to it; one that does not is misread.
- * Without such a pair, the count kept while reading stands.
- */
-function letterNumbers(sections: Section[]): Map<Section, string> {
-  const letters = sections.filter(
-    (section) => section.path.at(-1)?.letterNumber !== undefined,
-  );
-  const reads = letters.map((section) => {
-    const read = section.path.at(-1)?.letterRead;
-    return read === undefined || read === "" ? null : Number(read);
-  });
-  const paired = reads.map((read, index) =>
-    read !== null &&
-    (reads[index + 1] === read + 1 || reads[index - 1] === read - 1)
-      ? read - index
-      : null,
-  );
-  const offsets = paired.map((offset, index) => {
-    if (offset === null) return null;
-    const about = paired
-      .slice(Math.max(0, index - LETTER_WINDOW), index + LETTER_WINDOW + 1)
-      .filter((other): other is number => other !== null);
-    return Math.abs(offset - median(about)) <= LETTER_SKIP ? offset : null;
-  });
-  // The nearest letter whose offset is known, of a list, the earlier on a tie.
-  const nearest = (known: Array<number | null>, index: number): number | null =>
-    known.reduce<{ offset: number | null; distance: number }>(
-      (best, offset, at) =>
-        offset !== null && Math.abs(at - index) < best.distance
-          ? { offset, distance: Math.abs(at - index) }
-          : best,
-      { offset: null, distance: Number.POSITIVE_INFINITY },
-    ).offset;
-  // A number read alone stands where it agrees with the nearest pair but
-  // for a letter the OCR lost or opened between them.
-  const evidence = reads.map((read, index) => {
-    const pair = nearest(offsets, index);
-    return read !== null && pair !== null && Math.abs(read - index - pair) <= 1
-      ? read - index
-      : null;
-  });
-  return new Map(
-    letters.map((section, index) => {
-      const offset = nearest(evidence, index);
-      return [
-        section,
-        offset === null
-          ? (section.path.at(-1)?.letterNumber ?? "")
-          : String(index + offset),
-      ];
-    }),
-  );
-}
-
-/**
- * The writer's letters of a volume of letters, of the years asked: each
- * opening with its date and salutation as paragraphs of their own, without
- * the editors' notes set small or marked after it, titled by its number and
- * date under its year. A letter dated without its year is of the year before.
- * A signature the OCR misread leaves the salutation to tell the writer.
- */
-function lettersOf(
-  sections: Section[],
-  volume: LetterVolume,
-): Array<{ section: Section; titles: string[] }> {
-  const numbers = letterNumbers(sections);
-  return sections.reduce<{
-    year: string;
-    letters: Array<{ section: Section; titles: string[] }>;
-  }>(
-    (done, section) => {
-      const number = numbers.get(section);
-      const [opening, ...rest] = section.paragraphs;
-      if (number === undefined || opening === undefined) return done;
-      const body = rest.slice(
-        0,
-        rest.length -
-          [...rest]
-            .reverse()
-            .findIndex(
-              (block) =>
-                block.small !== true && !LETTER_NOTE_MARK.test(block.text),
-            ),
-      );
-      const salutation = SALUTED.exec(opening.text)?.[0] ?? null;
-      const after = opening.text.slice(salutation?.length ?? 0).trim();
-      // The edition's bold 3 reads as 8; no day is the 80th.
-      const date = LETTER_DATED.test(after)
-        ? after.replace(/(^|\D)8([01])\.(?=\s)/u, "$13$2.")
-        : null;
-      // The letters run on in time: a year before the last letter's, or
-      // more than one past it, is misread.
-      const read = Number(date?.match(/1[89]\d\d/gu)?.at(-1) ?? Number.NaN);
-      const before = Number(done.year);
-      const year =
-        Number.isNaN(read) ||
-        (done.year !== "" && (read < before || read > before + 1))
-          ? done.year
-          : String(read);
-      const last = body.at(-1)?.text.trim() ?? "";
-      const signature =
-        LETTER_CLOSE.exec(last)?.[1] ??
-        (last.length <= SIGNATURE_LENGTH ? last : null);
-      const kept =
-        (isWritersLetter(
-          {
-            salutation: null,
-            signatures: signature === null ? [] : [signature],
-          },
-          volume,
-        ) ||
-          isWritersLetter({ salutation, signatures: [] }, volume)) &&
-        (volume.from === undefined || Number(year) >= volume.from) &&
-        (volume.to === undefined || Number(year) <= volume.to);
-      if (!kept) return { ...done, year };
-      const opened = [
-        ...(date === null ? [] : [{ ...opening, text: date }]),
-        ...(salutation === null ? [] : [{ ...opening, text: salutation }]),
-        ...(date === null && after !== "" ? [{ ...opening, text: after }] : []),
-      ];
-      return {
-        year,
-        letters: [
-          ...done.letters,
-          {
-            section: { ...section, paragraphs: [...opened, ...body] },
-            titles: [year, date === null ? `${number}.` : `${number}. ${date}`],
-          },
-        ],
-      };
-    },
-    { year: "", letters: [] },
-  ).letters;
-}
-
 /**
  * Parse a work from a scanned volume's hOCR: its parts, chapters and
  * subsections by their headings, paragraphs by first-line indent across
@@ -3294,7 +2986,6 @@ export function parseArchiveOcrWork(
     spacedNotes: work.spacedNotes === true,
     curved: work.curved === true,
     datelined: work.datelined === true,
-    letters: work.letters !== undefined,
   };
   const { cased } = volume.spelling;
   const labelOf = (number: number, leaf: number): string =>
@@ -3358,13 +3049,11 @@ export function parseArchiveOcrWork(
                   work.title,
                   work.skipHeadings ?? [],
                 )
-              : piece.kind === "letter"
-                ? addLetter(done, piece.number, piece.dated)
-                : addPiece(done, piece, {
-                    page: number,
-                    leaf: page.leaf,
-                    label: labelOf(number, page.leaf),
-                  }),
+              : addPiece(done, piece, {
+                  page: number,
+                  leaf: page.leaf,
+                  label: labelOf(number, page.leaf),
+                }),
           state,
         ),
       {
@@ -3405,18 +3094,6 @@ export function parseArchiveOcrWork(
         volume.common,
       ),
     }));
-  if (work.letters !== undefined) {
-    return unitsOfSections(
-      lettersOf(filled, work.letters).map(({ section, titles }) => ({
-        ...section,
-        paragraphs: tabled(parted(section.paragraphs)),
-        notes: [],
-        titles,
-      })),
-      cite,
-      options.entryBytes,
-    );
-  }
   const skipNotes = work.skipNotes ?? [];
   // A signature closes a note after a stop or space, not inside a word.
   const signed = (work.skipNotesSigned ?? []).map(
