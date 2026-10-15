@@ -6,7 +6,6 @@ import { getErrorMessage } from "@brains/utils/error";
 import { isRecord } from "@brains/utils/is-record";
 import path from "node:path";
 import { PNG } from "pngjs";
-import axe from "axe-core";
 import { createAdministrationFixture } from "./fixtures/studio-administration";
 import {
   pinConsoleFonts,
@@ -16,10 +15,7 @@ import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
 import { createSyncViewFixture } from "./fixtures/studio-sync-view";
 import { systemFixtures } from "./fixtures/studio-system";
-import {
-  studioStudyStateSchema,
-  supportsStudioStudyState,
-} from "./fixtures/studio-study-state";
+import { supportsStudioStudyState } from "./fixtures/studio-study-state";
 import { createElement, type ReactElement } from "react";
 import { renderEditorShellHtml, studioTypeHierarchy } from "@brains/studio";
 import {
@@ -34,44 +30,45 @@ import {
   proximityMapWidgetStyles,
 } from "../entities/agent-discovery/src/widgets/proximity-map";
 import { proximityMapDataSchema } from "../entities/agent-discovery/src/lib/proximity-map-schema";
+import {
+  auditStudioAccessibility,
+  failures,
+  openCapturePage,
+  recordVisualCapture,
+  settleVisualCapture,
+} from "./console-visual/capture";
+import {
+  ARTIFACT_DIR,
+  BASELINE_DIR,
+  CLIMATE_FILTER,
+  CLIMATES,
+  FIXED_NOW,
+  ROOT,
+  STUDY_STATE,
+  SURFACE_FILTER,
+  SURFACE_PREFIX,
+  UPDATE,
+  VIEWPORT_FILTER,
+  VIEWPORTS,
+} from "./console-visual/options";
+import {
+  activateWorkspaceTab,
+  blurLabel,
+  clickSelector,
+  clickText,
+  elementBounds,
+  elementDisplay,
+  evaluatePage,
+  evaluatePageWith,
+  fillLabel,
+  navigateToNetworkIdle,
+  pointerDownSelector,
+  waitForPage,
+  waitForSelector,
+  waitForText,
+  waitForVisualStability,
+} from "./console-visual/page";
 
-const ROOT = path.resolve(import.meta.dir, "..");
-const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
-const ARTIFACT_DIR = path.join(ROOT, "test/visual/console/artifacts");
-const UPDATE = process.argv.includes("--update");
-const AUDIT_ACCESSIBILITY = process.argv.includes("--a11y");
-const SURFACE_PREFIX = process.argv
-  .find((argument) => argument.startsWith("--surface-prefix="))
-  ?.slice("--surface-prefix=".length);
-const STUDY_STATE = studioStudyStateSchema
-  .optional()
-  .parse(
-    process.argv
-      .find((arg) => arg.startsWith("--study-state="))
-      ?.slice("--study-state=".length),
-  );
-const SURFACE_FILTER = process.argv
-  .find((argument) => argument.startsWith("--surface="))
-  ?.slice("--surface=".length);
-if (
-  STUDY_STATE &&
-  SURFACE_FILTER &&
-  !supportsStudioStudyState(SURFACE_FILTER, STUDY_STATE)
-)
-  throw Error(`Study state ${STUDY_STATE} does not apply to ${SURFACE_FILTER}`);
-const VIEWPORT_FILTER = process.argv
-  .find((argument) => argument.startsWith("--viewport="))
-  ?.slice("--viewport=".length);
-const CLIMATE_FILTER = process.argv
-  .find((argument) => argument.startsWith("--climate="))
-  ?.slice("--climate=".length);
-const FIXED_NOW = Date.parse("2026-07-11T16:40:00.000Z");
-const VIEWPORTS = [
-  { width: 1440, height: 1000 },
-  { width: 768, height: 1024 },
-  { width: 390, height: 844 },
-] as const;
-const CLIMATES = ["instrument", "paper"] as const;
 const editCapabilities = {
   canRead: true,
   canCreate: true,
@@ -831,52 +828,6 @@ function climateHtml(html: string, request: Request): string {
 
 function json(value: unknown): Response {
   return Response.json(value);
-}
-
-interface BrowserNetworkEvent {
-  requestId: string;
-}
-
-async function evaluatePage<T>(
-  page: Bun.WebView,
-  operation: () => T | Promise<T>,
-): Promise<Awaited<T>> {
-  return page.evaluate<Awaited<T>>(`(${operation.toString()})()`);
-}
-
-async function evaluatePageWith<TArg, TResult>(
-  page: Bun.WebView,
-  operation: (arg: TArg) => TResult | Promise<TResult>,
-  arg: TArg,
-): Promise<Awaited<TResult>> {
-  const serialized = JSON.stringify(arg);
-  return page.evaluate<Awaited<TResult>>(
-    `(${operation.toString()})(${serialized})`,
-  );
-}
-
-async function waitForPage(
-  description: string,
-  probe: () => Promise<boolean>,
-  timeoutMs = 30_000,
-): Promise<void> {
-  const deadline = performance.now() + timeoutMs;
-  while (performance.now() < deadline) {
-    if (await probe()) return;
-    await Bun.sleep(20);
-  }
-  throw new Error(`Timed out waiting for ${description}`);
-}
-
-async function waitForSelector(
-  page: Bun.WebView,
-  selector: string,
-): Promise<void> {
-  await waitForPage(selector, () =>
-    page.evaluate<boolean>(
-      `document.querySelector(${JSON.stringify(selector)}) !== null`,
-    ),
-  );
 }
 
 async function verifyAdministrationRecords(
@@ -1708,107 +1659,6 @@ async function verifyRecordTypography(page: Bun.WebView): Promise<void> {
     throw new Error(`Record hierarchy mismatch: ${failures.join("; ")}`);
 }
 
-async function waitForText(page: Bun.WebView, text: string): Promise<void> {
-  await waitForPage(`text ${JSON.stringify(text)}`, () =>
-    page.evaluate<boolean>(
-      `document.body?.textContent?.includes(${JSON.stringify(text)}) ?? false`,
-    ),
-  );
-}
-
-async function clickSelector(
-  page: Bun.WebView,
-  selector: string,
-): Promise<void> {
-  await waitForSelector(page, selector);
-  const clicked = await evaluatePageWith(
-    page,
-    (candidateSelector) => {
-      const candidate = document.querySelector(candidateSelector);
-      if (!(candidate instanceof HTMLElement)) return false;
-      candidate.click();
-      return true;
-    },
-    selector,
-  );
-  if (!clicked) throw new Error(`Could not click ${selector}`);
-}
-
-async function pointerDownSelector(
-  page: Bun.WebView,
-  selector: string,
-): Promise<void> {
-  await waitForSelector(page, selector);
-  const dispatched = await evaluatePageWith(
-    page,
-    (candidateSelector) => {
-      const candidate = document.querySelector(candidateSelector);
-      if (!(candidate instanceof HTMLElement)) return false;
-      candidate.dispatchEvent(
-        new PointerEvent("pointerdown", {
-          bubbles: true,
-          button: 0,
-          pointerType: "mouse",
-        }),
-      );
-      return true;
-    },
-    selector,
-  );
-  if (!dispatched) throw new Error(`Could not press ${selector}`);
-}
-
-async function clickText(
-  page: Bun.WebView,
-  selector: string,
-  text: string,
-): Promise<void> {
-  const clicked = await evaluatePageWith(
-    page,
-    ({ selector: candidateSelector, text: candidateText }) => {
-      const candidate = Array.from(
-        document.querySelectorAll<HTMLElement>(candidateSelector),
-      ).find((element) => element.textContent.trim().includes(candidateText));
-      candidate?.click();
-      return candidate !== undefined;
-    },
-    { selector, text },
-  );
-  if (!clicked)
-    throw new Error(`Could not find ${selector} containing ${text}`);
-}
-
-async function activateWorkspaceTab(
-  page: Bun.WebView,
-  label: string,
-): Promise<void> {
-  const position = await evaluatePageWith(
-    page,
-    (text) => {
-      const tab = Array.from(
-        document.querySelectorAll<HTMLElement>('[role="tab"]'),
-      ).find((node) => node.textContent.trim() === text);
-      if (!tab) return null;
-      const rect = tab.getBoundingClientRect();
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    },
-    label,
-  );
-  if (!position) throw new Error(`Missing workspace tab: ${label}`);
-  await page.cdp("Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    ...position,
-    button: "left",
-    clickCount: 1,
-  });
-  await page.cdp("Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    ...position,
-    button: "left",
-    clickCount: 1,
-  });
-}
-
 async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   const originalPath = await page.evaluate<string>("location.pathname");
   await clickSelector(page, ".studio-mobile-switcher");
@@ -2065,208 +1915,6 @@ async function verifyStudioProfileNavigation(
   });
 }
 
-async function fillLabel(
-  page: Bun.WebView,
-  labelText: string,
-  value: string,
-): Promise<void> {
-  const filled = await evaluatePageWith(
-    page,
-    ({ labelText: text, value: nextValue }) => {
-      // Fields that carry their own label expose it as aria-label rather than
-      // spending a line on it, so match either.
-      const labelled = Array.from(
-        document.querySelectorAll<HTMLElement>(
-          "input[aria-label], textarea[aria-label]",
-        ),
-      ).find(
-        (candidate) =>
-          candidate.getAttribute("aria-label") === text &&
-          candidate.getBoundingClientRect().height > 0,
-      );
-      const label = Array.from(document.querySelectorAll("label")).find(
-        (candidate) =>
-          candidate.textContent.includes(text) &&
-          candidate.getBoundingClientRect().height > 0,
-      );
-      const input =
-        labelled ??
-        (label?.htmlFor
-          ? document.getElementById(label.htmlFor)
-          : label?.querySelector("input, textarea"));
-      if (!(
-        input instanceof HTMLInputElement ||
-        input instanceof HTMLTextAreaElement
-      )) {
-        return false;
-      }
-      const prototype =
-        input instanceof HTMLInputElement
-          ? HTMLInputElement.prototype
-          : HTMLTextAreaElement.prototype;
-      Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(
-        input,
-        nextValue,
-      );
-      input.dispatchEvent(new InputEvent("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      return true;
-    },
-    { labelText, value },
-  );
-  if (!filled) throw new Error(`Could not fill field labelled ${labelText}`);
-}
-
-async function blurLabel(page: Bun.WebView, labelText: string): Promise<void> {
-  const blurred = await evaluatePageWith(
-    page,
-    (text) => {
-      const label = Array.from(document.querySelectorAll("label")).find(
-        (candidate) => candidate.textContent.includes(text),
-      );
-      const input = label?.htmlFor
-        ? document.getElementById(label.htmlFor)
-        : label?.querySelector("input, textarea");
-      if (!(input instanceof HTMLElement)) return false;
-      input.blur();
-      return true;
-    },
-    labelText,
-  );
-  if (!blurred) throw new Error(`Could not blur field labelled ${labelText}`);
-}
-
-async function elementDisplay(
-  page: Bun.WebView,
-  selector: string,
-): Promise<string> {
-  return page.evaluate<string>(
-    `(() => { const element = document.querySelector(${JSON.stringify(selector)}); return element ? getComputedStyle(element).display : "missing"; })()`,
-  );
-}
-
-async function elementBounds(
-  page: Bun.WebView,
-  selector: string,
-): Promise<
-  { x: number; y: number; width: number; height: number } | undefined
-> {
-  return evaluatePageWith(
-    page,
-    (candidateSelector) => {
-      const element = document.querySelector(candidateSelector);
-      if (!(element instanceof HTMLElement)) return undefined;
-      const bounds = element.getBoundingClientRect();
-      return {
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height,
-      };
-    },
-    selector,
-  );
-}
-
-function networkRequestFromEvent(
-  event: Event,
-): BrowserNetworkEvent | undefined {
-  if (!("data" in event)) return undefined;
-  const data = event.data;
-  if (
-    typeof data !== "object" ||
-    data === null ||
-    !("requestId" in data) ||
-    typeof data.requestId !== "string"
-  ) {
-    return undefined;
-  }
-  return { requestId: data.requestId };
-}
-
-async function navigateToNetworkIdle(
-  page: Bun.WebView,
-  url: string,
-): Promise<void> {
-  const activeRequests = new Set<string>();
-  let lastActivity = performance.now();
-  await page.cdp("Network.enable");
-  page.addEventListener("Network.requestWillBeSent", (event: Event) => {
-    const request = networkRequestFromEvent(event);
-    if (!request) return;
-    activeRequests.add(request.requestId);
-    lastActivity = performance.now();
-  });
-  const finish = (event: Event): void => {
-    const request = networkRequestFromEvent(event);
-    if (!request) return;
-    activeRequests.delete(request.requestId);
-    lastActivity = performance.now();
-  };
-  page.addEventListener("Network.loadingFinished", finish);
-  page.addEventListener("Network.loadingFailed", finish);
-  await page.navigate(url);
-  await waitForPage(`network idle for ${url}`, () =>
-    Promise.resolve(
-      activeRequests.size === 0 && performance.now() - lastActivity >= 500,
-    ),
-  );
-}
-
-async function waitForVisualStability(page: Bun.WebView): Promise<void> {
-  await evaluatePage(
-    page,
-    () =>
-      new Promise<void>((resolve) => {
-        let previous = "";
-        let stableFrames = 0;
-        let sampledFrames = 0;
-        const sample = (): void => {
-          const positions = [
-            window.scrollX,
-            window.scrollY,
-            ...Array.from(document.querySelectorAll<HTMLElement>("*"))
-              .filter(
-                (element) =>
-                  element.scrollHeight > element.clientHeight + 1 ||
-                  element.scrollWidth > element.clientWidth + 1,
-              )
-              .flatMap((element) => [element.scrollLeft, element.scrollTop]),
-          ];
-          const current = JSON.stringify(positions);
-          stableFrames = current === previous ? stableFrames + 1 : 0;
-          previous = current;
-          sampledFrames++;
-          if (stableFrames >= 4 || sampledFrames >= 180) {
-            resolve();
-            return;
-          }
-          requestAnimationFrame(sample);
-        };
-        requestAnimationFrame(sample);
-      }),
-  );
-}
-
-async function addVisualInitScript(
-  page: Bun.WebView,
-  conversation: string,
-): Promise<void> {
-  await page.cdp("Page.addScriptToEvaluateOnNewDocument", {
-    source: `(() => {
-      Date.now = () => ${FIXED_NOW};
-      localStorage.setItem(
-        "console.climate",
-        new URL(location.href).searchParams.get("climate") ?? "instrument",
-      );
-      if (${JSON.stringify(STUDY_STATE !== "empty")}) localStorage.setItem(
-        "brain:web-chat:conversation-id",
-        ${JSON.stringify(conversation)},
-      );
-    })()`,
-  });
-}
-
 /**
  * Studio splits into two phone layout contracts: app-shell surfaces (the
  * editor and its dialogs) hold fixed chrome around scrolling panes, while
@@ -2362,36 +2010,6 @@ async function verifyStudioDialogKeyboard(page: Bun.WebView): Promise<void> {
         .querySelector(`[data-studio-audit-${edge}]`)
         ?.removeAttribute(`data-studio-audit-${edge}`);
   });
-}
-
-async function auditStudioAccessibility(
-  page: Bun.WebView,
-  name: string,
-): Promise<void> {
-  if (!AUDIT_ACCESSIBILITY) return;
-  await page.evaluate(`(() => { ${axe.source}; return true; })()`);
-  const audit = await evaluatePage(page, async () => {
-    const runtime = (globalThis as unknown as { axe: typeof axe }).axe;
-    const result = await runtime.run(document, {
-      runOnly: {
-        type: "tag",
-        values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
-      },
-    });
-    return {
-      violations: result.violations,
-      incomplete: result.incomplete,
-      passedRules: result.passes.map((rule) => rule.id),
-    };
-  });
-  await writeFile(
-    path.join(ARTIFACT_DIR, `${name}-a11y.json`),
-    JSON.stringify(audit, null, 2),
-  );
-  if (audit.violations.length)
-    failures.push(
-      `${name}: accessibility ${audit.violations.map((violation) => `${violation.id} (${violation.nodes.length})`).join(", ")}`,
-    );
 }
 
 interface StudioScrollAudit {
@@ -3219,35 +2837,6 @@ async function checkLayout(
   }
 }
 
-async function comparePng(
-  actual: Buffer,
-  baselinePath: string,
-): Promise<number> {
-  const baseline = await readFile(baselinePath);
-  const left = PNG.sync.read(actual);
-  const right = PNG.sync.read(baseline);
-  if (left.width !== right.width || left.height !== right.height) return 1;
-  let changed = 0;
-  const pixels = left.width * left.height;
-  for (let offset = 0; offset < left.data.length; offset += 4) {
-    if (
-      Math.abs(left.data.readUInt8(offset) - right.data.readUInt8(offset)) >
-        12 ||
-      Math.abs(
-        left.data.readUInt8(offset + 1) - right.data.readUInt8(offset + 1),
-      ) > 12 ||
-      Math.abs(
-        left.data.readUInt8(offset + 2) - right.data.readUInt8(offset + 2),
-      ) > 12 ||
-      Math.abs(
-        left.data.readUInt8(offset + 3) - right.data.readUInt8(offset + 3),
-      ) > 12
-    )
-      changed += 1;
-  }
-  return changed / pixels;
-}
-
 await mkdir(BASELINE_DIR, { recursive: true });
 await mkdir(ARTIFACT_DIR, { recursive: true });
 const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
@@ -3951,38 +3540,6 @@ const browserBackend: Bun.WebView.Backend = {
   path: executablePath,
   ...(browserArgs.length > 0 ? { argv: browserArgs } : {}),
 };
-const failures: string[] = [];
-async function settleVisualCapture(page: Bun.WebView): Promise<void> {
-  await evaluatePage(page, async () => {
-    await document.fonts.ready;
-    const style = document.createElement("style");
-    style.textContent =
-      "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important}";
-    document.head.append(style);
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    );
-  });
-}
-async function recordVisualCapture(name: string, image: Buffer): Promise<void> {
-  const baselinePath = path.join(BASELINE_DIR, name);
-  if (UPDATE) {
-    const ratio = await comparePng(image, baselinePath).catch(() => 1);
-    if (ratio > 0.002) await writeFile(baselinePath, image);
-  } else {
-    // Keep CI-native evidence even when small, intentional changes (for
-    // example rail marks) fall below the whole-page comparison threshold.
-    await writeFile(path.join(ARTIFACT_DIR, name), image);
-    try {
-      const ratio = await comparePng(image, baselinePath);
-      if (ratio > 0.002) {
-        failures.push(`${name}: ${(ratio * 100).toFixed(2)}% pixels changed`);
-      }
-    } catch (error) {
-      failures.push(`${name}: ${getErrorMessage(error)}`);
-    }
-  }
-}
 try {
   for (const climate of CLIMATES) {
     if (CLIMATE_FILTER && climate !== CLIMATE_FILTER) continue;
@@ -4051,21 +3608,12 @@ try {
               );
         const isDashboard = surface.startsWith("dashboard");
         const conversationId = "responsive";
-        const page = new Bun.WebView({
-          width: viewport.width,
-          height: viewport.height,
-          backend: browserBackend,
-        });
-        await page.navigate("about:blank");
-        // Each capture starts from a fresh fixture preference. The browser backend
-        // can reuse storage across WebViews; collapsed captures must not seed the next case.
-        await page.cdp("Storage.clearDataForOrigin", {
-          origin: `http://127.0.0.1:${server.port}`,
-          storageTypes: "local_storage",
-        });
-        await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
-        await page.cdp("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
-        await addVisualInitScript(page, conversationId);
+        const page = await openCapturePage(
+          viewport,
+          browserBackend,
+          `http://127.0.0.1:${server.port}`,
+          conversationId,
+        );
         const isStudioEditor =
           surface === "studio-editor" ||
           (reviewingSystem && !systemCollection) ||
