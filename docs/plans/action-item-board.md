@@ -4,7 +4,7 @@
 
 Proposed. Origin: Executive Team Meeting 2026-10-06, action "surface tasks and projects in a shared Kanban board"; first scoped in three PRDs by Niels (board, shared and attributed board, project layer).
 
-Mockups: [action-item-board-mockups.html](../action-item-board-mockups.html) (seven states by phase; desktop and phone; paper and instrument).
+Mockups: [action-item-board-mockups.html](../action-item-board-mockups.html) (eight states by phase; desktop and phone; paper and instrument).
 
 ## Goal
 
