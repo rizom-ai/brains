@@ -92,6 +92,122 @@ function isScalarResultSchema(schema: unknown): boolean {
   );
 }
 
+/** What a form field is checked against besides its own schema. */
+export interface FormFieldIssueContext {
+  /** Every field of the form, so a dynamic label can find its source. */
+  readonly fields: Readonly<Record<string, SourceActionFormField>>;
+  /** The pre-bound input, which a secret may not appear in. */
+  readonly initial: Readonly<Record<string, unknown>>;
+  readonly actionPath: readonly PropertyKey[];
+}
+
+/**
+ * The issues of one form field the action's input schema declares: its
+ * control, options, dynamic label, and secrecy, in that order.
+ */
+export function formFieldIssues(
+  name: string,
+  field: SourceActionFormField,
+  schema: unknown,
+  context: FormFieldIssueContext,
+): readonly RuntimeOperatorValidationIssue[] {
+  const { actionPath } = context;
+  const issues: RuntimeOperatorValidationIssue[] = [];
+  const enumValues = readEnumValues(unwrapField(schema).inner);
+  if (!formControlSupportsSchema(field.control, schema)) {
+    issues.push({
+      path: [...actionPath, "form", "fields", name, "control"],
+      message: `Form control "${field.control}" is incompatible with schema field "${name}"`,
+    });
+  }
+  if (field.control === "select") {
+    if (!field.options || field.options.length === 0) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "options"],
+        message: `Select field "${name}" requires options`,
+      });
+    } else if (enumValues) {
+      if (field.options.some((option) => !enumValues.includes(option.value))) {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "options"],
+          message: `Select field "${name}" options must use values from its enum schema`,
+        });
+      }
+    }
+  } else if (field.options !== undefined) {
+    issues.push({
+      path: [...actionPath, "form", "fields", name, "options"],
+      message: `Non-select field "${name}" cannot declare options`,
+    });
+  }
+  if (field.labelBy) {
+    const sourceField = context.fields[field.labelBy.field];
+    const sourceValues = new Set(
+      sourceField?.options?.map((option) => option.value) ?? [],
+    );
+    const labelValues = new Set(
+      field.labelBy.values.map((option) => option.value),
+    );
+    if (sourceField?.control !== "select") {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "labelBy", "field"],
+        message: `Dynamic label source "${field.labelBy.field}" must be a select form field`,
+      });
+    } else if (
+      sourceValues.size !== labelValues.size ||
+      Array.from(sourceValues).some((value) => !labelValues.has(value))
+    ) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "labelBy", "values"],
+        message: `Dynamic labels for "${name}" must cover every option of "${field.labelBy.field}"`,
+      });
+    }
+  }
+  if (field.secret === true && name in context.initial) {
+    issues.push({
+      path: [...actionPath, "input", name],
+      message: `Secret form field "${name}" cannot be pre-bound into browser data`,
+    });
+  }
+  if (
+    field.secret === true &&
+    field.control !== "text" &&
+    field.control !== "url"
+  ) {
+    issues.push({
+      path: [...actionPath, "form", "fields", name, "secret"],
+      message: `Secret field "${name}" must use a text or URL control`,
+    });
+  }
+  return issues;
+}
+
+function initialInputIssues(
+  shape: Readonly<Record<string, unknown>>,
+  initial: Readonly<Record<string, unknown>>,
+  actionPath: readonly PropertyKey[],
+): RuntimeOperatorValidationIssue[] {
+  return Object.entries(initial).flatMap(([name, value]) => {
+    const schema = shape[name];
+    if (schema === undefined) {
+      return [
+        {
+          path: [...actionPath, "input", name],
+          message: `Form initial input "${name}" is not declared by the action schema`,
+        },
+      ];
+    }
+    return schema instanceof z.ZodType && !schema.safeParse(value).success
+      ? [
+          {
+            path: [...actionPath, "input", name],
+            message: `Form initial input "${name}" does not satisfy the action schema`,
+          },
+        ]
+      : [];
+  });
+}
+
 function normalizeActionForm(
   control: SourceActionControl,
   actionPath: readonly PropertyKey[],
@@ -100,8 +216,8 @@ function normalizeActionForm(
   readonly form?: RuntimeWorkspaceActionForm | undefined;
   readonly issues: readonly RuntimeOperatorValidationIssue[];
 } {
-  if (!control.form) return { issues: [] };
-  const issues: RuntimeOperatorValidationIssue[] = [];
+  const form = control.form;
+  if (!form) return { issues: [] };
   const shape = getObjectShape(control.action.input);
   if (!shape) {
     return {
@@ -135,31 +251,15 @@ function normalizeActionForm(
       ],
     };
   }
-  const schemaNames = Object.keys(shape);
-  const fieldEntries = Object.entries(control.form.fields);
+  const fieldEntries = Object.entries(form.fields);
+  const issues: RuntimeOperatorValidationIssue[] = [];
   if (fieldEntries.length > 50) {
     issues.push({
       path: [...actionPath, "form", "fields"],
       message: "Workspace action forms support at most 50 fields",
     });
   }
-  for (const [name, value] of Object.entries(initial)) {
-    const schema = shape[name];
-    if (schema === undefined) {
-      issues.push({
-        path: [...actionPath, "input", name],
-        message: `Form initial input "${name}" is not declared by the action schema`,
-      });
-    } else if (
-      schema instanceof z.ZodType &&
-      !schema.safeParse(value).success
-    ) {
-      issues.push({
-        path: [...actionPath, "input", name],
-        message: `Form initial input "${name}" does not satisfy the action schema`,
-      });
-    }
-  }
+  issues.push(...initialInputIssues(shape, initial, actionPath));
   const runtimeFields: RuntimeWorkspaceActionFormField[] = [];
   for (const [name, field] of fieldEntries) {
     const schema = shape[name];
@@ -170,87 +270,25 @@ function normalizeActionForm(
       });
       continue;
     }
-    const unwrapped = unwrapField(schema);
-    const enumValues = readEnumValues(unwrapped.inner);
-    if (!formControlSupportsSchema(field.control, schema)) {
-      issues.push({
-        path: [...actionPath, "form", "fields", name, "control"],
-        message: `Form control "${field.control}" is incompatible with schema field "${name}"`,
-      });
-    }
-    if (field.control === "select") {
-      if (!field.options || field.options.length === 0) {
-        issues.push({
-          path: [...actionPath, "form", "fields", name, "options"],
-          message: `Select field "${name}" requires options`,
-        });
-      } else if (enumValues) {
-        if (
-          field.options.some((option) => !enumValues.includes(option.value))
-        ) {
-          issues.push({
-            path: [...actionPath, "form", "fields", name, "options"],
-            message: `Select field "${name}" options must use values from its enum schema`,
-          });
-        }
-      }
-    } else if (field.options !== undefined) {
-      issues.push({
-        path: [...actionPath, "form", "fields", name, "options"],
-        message: `Non-select field "${name}" cannot declare options`,
-      });
-    }
-    if (field.labelBy) {
-      const sourceField = control.form.fields[field.labelBy.field];
-      const sourceValues = new Set(
-        sourceField?.options?.map((option) => option.value) ?? [],
-      );
-      const labelValues = new Set(
-        field.labelBy.values.map((option) => option.value),
-      );
-      if (sourceField?.control !== "select") {
-        issues.push({
-          path: [...actionPath, "form", "fields", name, "labelBy", "field"],
-          message: `Dynamic label source "${field.labelBy.field}" must be a select form field`,
-        });
-      } else if (
-        sourceValues.size !== labelValues.size ||
-        Array.from(sourceValues).some((value) => !labelValues.has(value))
-      ) {
-        issues.push({
-          path: [...actionPath, "form", "fields", name, "labelBy", "values"],
-          message: `Dynamic labels for "${name}" must cover every option of "${field.labelBy.field}"`,
-        });
-      }
-    }
-    if (field.secret === true && name in initial) {
-      issues.push({
-        path: [...actionPath, "input", name],
-        message: `Secret form field "${name}" cannot be pre-bound into browser data`,
-      });
-    }
-    if (
-      field.secret === true &&
-      field.control !== "text" &&
-      field.control !== "url"
-    ) {
-      issues.push({
-        path: [...actionPath, "form", "fields", name, "secret"],
-        message: `Secret field "${name}" must use a text or URL control`,
-      });
-    }
+    issues.push(
+      ...formFieldIssues(name, field, schema, {
+        fields: form.fields,
+        initial,
+        actionPath,
+      }),
+    );
     runtimeFields.push({
       name,
       label: field.label,
       control: field.control,
-      required: unwrapped.required,
+      required: unwrapField(schema).required,
       ...(field.secret ? { secret: true } : {}),
       ...(field.options ? { options: field.options } : {}),
       ...(field.labelBy ? { labelBy: field.labelBy } : {}),
     });
   }
   const rendered = new Set(fieldEntries.map(([name]) => name));
-  for (const name of schemaNames) {
+  for (const name of Object.keys(shape)) {
     if (!rendered.has(name) && !(name in initial)) {
       issues.push({
         path: [...actionPath, "form", "fields", name],
@@ -261,12 +299,8 @@ function normalizeActionForm(
   return {
     input: parsedInitial.data,
     form: {
-      ...(control.form.presentation
-        ? { presentation: control.form.presentation }
-        : {}),
-      ...(control.form.submitLabel
-        ? { submitLabel: control.form.submitLabel }
-        : {}),
+      ...(form.presentation ? { presentation: form.presentation } : {}),
+      ...(form.submitLabel ? { submitLabel: form.submitLabel } : {}),
       fields: runtimeFields,
     },
     issues,
