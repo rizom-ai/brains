@@ -58,6 +58,7 @@ export class SocialMediaPlugin extends EntityPlugin<
     return new GenerationJobHandler(
       this.logger.child("GenerationJobHandler"),
       context,
+      this.retries,
     );
   }
 
