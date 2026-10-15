@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
@@ -7,8 +7,10 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { DirectorySyncPlugin } from "../src/plugin";
+import { BrokerConnection } from "../src/lib/broker/client";
 import { startGitBrokerHost } from "../src/lib/broker/host";
 import { gitBrokerSocketPath } from "../src/lib/broker/server";
+import { getGitRemoteFingerprint } from "../src/lib/git-options";
 import type { DirectorySyncConfigInput } from "../src/types";
 import { runGit } from "./git/real-git";
 
@@ -130,10 +132,15 @@ interface GitFixture {
   config: DirectorySyncConfigInput;
 }
 
-/** A checkout owned by a running broker, with a remote that may not exist. */
+/**
+ * A checkout owned by a running broker, with a remote that may not exist.
+ * With `inheritedWork`, the owner replaces one that held the checkout, so it
+ * starts with mutations closed until the serving role reconciles.
+ */
 async function startOwnedCheckout(options: {
   remote: "bare" | "missing";
   initialSync: boolean;
+  inheritedWork?: boolean;
 }): Promise<GitFixture> {
   const root = tempDir("test-interrupted-pull-git-");
   const checkout = join(root, "checkout");
@@ -156,13 +163,27 @@ async function startOwnedCheckout(options: {
       bootstrapFromSeed: false,
     },
   };
-  const owner: Owner = await startGitBrokerHost({
-    socketPath,
-    cwd: root,
-    dataDir: checkout,
-    pluginConfig: config,
-    logger: createSilentLogger(),
-  });
+  const startOwner = (): Promise<Owner> =>
+    startGitBrokerHost({
+      socketPath,
+      cwd: root,
+      dataDir: checkout,
+      pluginConfig: config,
+      logger: createSilentLogger(),
+    });
+  if (options.inheritedWork) {
+    const previous = await startOwner();
+    const connection = await BrokerConnection.connect(socketPath);
+    await connection.registerCheckout({
+      checkoutPath: checkout,
+      branch: "main",
+      remoteFingerprint: getGitRemoteFingerprint(`file://${remotePath}`),
+    });
+    await connection.execute(checkout, { name: "initialize" });
+    connection.close();
+    await previous.stop();
+  }
+  const owner = await startOwner();
   cleanups.push(() => owner.stop());
   return { checkout, socketPath, config };
 }
@@ -248,6 +269,52 @@ describe("interrupted pull recovery at startup", () => {
     expect(harness.installPlugin(plugin)).rejects.toThrow();
 
     expectFailedRecovery(await readStatus(harness), "checkpoint");
+  }, 60_000);
+
+  // Initial sync is on in the next two, so registration runs no startup
+  // replay: the only step left to fail is the one each test breaks.
+  it("records a failed recovery when inherited-work reconciliation throws", async () => {
+    const fixture = await startOwnedCheckout({
+      remote: "missing",
+      initialSync: true,
+      inheritedWork: true,
+    });
+    const harness = createHarness({
+      dataDir: fixture.checkout,
+      gitBrokerSocket: fixture.socketPath,
+      gitBrokerCheckout: fixture.checkout,
+    });
+    await seedInterruptedPull(harness);
+    await corruptReconciliationCheckpoint(harness);
+    const plugin = new DirectorySyncPlugin(fixture.config);
+    cleanups.push(() => plugin.shutdown());
+
+    expect(harness.installPlugin(plugin)).rejects.toThrow("checkpoint");
+
+    expectFailedRecovery(await readStatus(harness), "checkpoint");
+  }, 60_000);
+
+  it("records a failed recovery when Git initialization throws", async () => {
+    const fixture = await startOwnedCheckout({
+      remote: "missing",
+      initialSync: true,
+    });
+    // A `.git` file where a repository should be: initialization cannot
+    // read the checkout it is asked to prepare.
+    mkdirSync(fixture.checkout, { recursive: true });
+    writeFileSync(join(fixture.checkout, ".git"), "not a gitdir\n");
+    const harness = createHarness({
+      dataDir: fixture.checkout,
+      gitBrokerSocket: fixture.socketPath,
+      gitBrokerCheckout: fixture.checkout,
+    });
+    await seedInterruptedPull(harness);
+    const plugin = new DirectorySyncPlugin(fixture.config);
+    cleanups.push(() => plugin.shutdown());
+
+    expect(harness.installPlugin(plugin)).rejects.toThrow("ENOTDIR");
+
+    expectFailedRecovery(await readStatus(harness), "ENOTDIR");
   }, 60_000);
 
   it("records the recovery once the initial sync has pulled", async () => {

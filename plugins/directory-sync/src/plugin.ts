@@ -310,6 +310,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
     syncPath: string,
     recovery: InterruptedPullRecovery,
   ): Promise<void> {
+    // Any of these failing leaves the checkout unreconciled, so each one
+    // settles an interrupted pull as a failed recovery.
     const gitSync = await recovery.guard(async () => {
       if (!context.executionOnly) await this.bootstrapContentRemote();
       const connected = await this.connectToGitBroker(
@@ -317,24 +319,24 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.requireDirectorySync(),
       );
       this.gitSync = connected;
+      // A replacement owner holds mutations until someone has accounted
+      // for what the lost generation left. Only a scheduling role can do
+      // that — the queue and the checkpoint live here — and only one of
+      // them should, so the worker never opens admission.
+      if (!context.executionOnly) {
+        await this.reconcileInheritedWork(
+          context,
+          connected,
+          this.requireDirectorySync(),
+        );
+      }
+      // `initialize` can clone, checkout, and configure the repository. It is
+      // intentionally after inherited-work replay: a replacement starts with
+      // mutation admission closed, so doing this first would prevent the role
+      // from ever reaching the reconciliation that opens it.
+      await connected.initialize();
       return connected;
     });
-    // A replacement owner holds mutations until someone has accounted
-    // for what the lost generation left. Only a scheduling role can do
-    // that — the queue and the checkpoint live here — and only one of
-    // them should, so the worker never opens admission.
-    if (!context.executionOnly) {
-      await this.reconcileInheritedWork(
-        context,
-        gitSync,
-        this.requireDirectorySync(),
-      );
-    }
-    // `initialize` can clone, checkout, and configure the repository. It is
-    // intentionally after inherited-work replay: a replacement starts with
-    // mutation admission closed, so doing this first would prevent the role
-    // from ever reaching the reconciliation that opens it.
-    await gitSync.initialize();
     this.logger.info("Git integration enabled", {
       repo: this.config.git?.repo,
     });
