@@ -17,7 +17,9 @@ import type {
   ContentGenerationConfig,
 } from "@brains/plugins";
 import {
+  acquireExtractionLease,
   createRankedTopicJobHandler,
+  releaseExtractionLease,
   type TopicExtractionResult,
 } from "../../src/lib/ranked-topic-extraction";
 import { topicVoteSchema, type TopicVote } from "../../src/schemas/votes";
@@ -732,5 +734,64 @@ describe("bounded ranked topic extraction", () => {
     expect(
       (await f.store.list()).every(({ value }) => value.proposal === null),
     ).toBe(true);
+  });
+});
+
+describe("topic extraction lease", () => {
+  const setup = (): {
+    context: EntityPluginContext;
+    leases: IRuntimeStateStore<{ owner: string; expiresAt: number }>;
+  } => {
+    const context = createMockEntityPluginContext();
+    return {
+      context,
+      leases: context.runtimeState.scoped({
+        namespace: "topics.extraction",
+        schema: z.object({ owner: z.string(), expiresAt: z.number() }),
+      }),
+    };
+  };
+
+  it("takes a free lease and releases it", async () => {
+    const { context, leases } = setup();
+    const lease = await acquireExtractionLease(context, leases);
+    expect(lease).not.toBeNull();
+    expect(await leases.get("lease")).toEqual(lease);
+    if (lease) await releaseExtractionLease(leases, lease);
+    expect(await leases.get("lease")).toBeNull();
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("leaves a held lease alone and enqueues a delayed successor", async () => {
+    const { context, leases } = setup();
+    const held = { owner: "other-attempt", expiresAt: Date.now() + 60_000 };
+    await leases.set("lease", held);
+    expect(await acquireExtractionLease(context, leases)).toBeNull();
+    expect(await leases.get("lease")).toEqual(held);
+    expect(context.jobs.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "topics:extract",
+        options: expect.objectContaining({ delayMs: 30_000 }),
+      }),
+    );
+  });
+
+  it("takes over an expired lease", async () => {
+    const { context, leases } = setup();
+    await leases.set("lease", { owner: "dead-worker", expiresAt: 0 });
+    const lease = await acquireExtractionLease(context, leases);
+    expect(lease?.owner).not.toBe("dead-worker");
+    expect(await leases.get("lease")).toEqual(lease);
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("does not release a lease another worker took over", async () => {
+    const { context, leases } = setup();
+    const lease = await acquireExtractionLease(context, leases);
+    if (!lease) throw new Error("lease not acquired");
+    const successor = { owner: "successor", expiresAt: Date.now() + 60_000 };
+    await leases.set("lease", successor);
+    await releaseExtractionLease(leases, lease);
+    expect(await leases.get("lease")).toEqual(successor);
   });
 });
