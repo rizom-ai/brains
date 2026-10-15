@@ -57,6 +57,7 @@ import {
   runtimeRoleProfile,
   type RuntimeProcessRole,
 } from "../runtime-process-role";
+import { relayPeerEvents, type PeerChannel } from "../peer-event-relay";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import { createRecurringCheckDelivery } from "./recurring-check-delivery";
@@ -73,9 +74,16 @@ export function createShellServices(options: {
   initializerLogger: Logger;
   lifecycle: ShellLifecycle;
   processRole?: RuntimeProcessRole;
+  peerChannel?: PeerChannel;
 }): ShellServices {
-  const { config, dependencies, initializerLogger, lifecycle, processRole } =
-    options;
+  const {
+    config,
+    dependencies,
+    initializerLogger,
+    lifecycle,
+    processRole,
+    peerChannel,
+  } = options;
   initializerLogger.debug("Initializing Shell services");
   const role = runtimeRoleProfile(processRole);
 
@@ -102,6 +110,10 @@ export function createShellServices(options: {
   const messageBus =
     dependencies?.messageBus ??
     MessageBus.createFresh(logger, operationContext);
+  // A supervised process tells the runtime's other processes what it changed.
+  if (peerChannel) {
+    disposables.push(relayPeerEvents(messageBus, peerChannel, logger));
+  }
   const templateRegistry =
     dependencies?.templateRegistry ??
     InMemoryTemplateRegistry.createFresh(logger);

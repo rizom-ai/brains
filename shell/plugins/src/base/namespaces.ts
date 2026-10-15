@@ -210,6 +210,11 @@ export function createMessagingNamespace(
       channel: string,
       handler: MessageHandler<T, R>,
     ): (() => void) => messageBus.subscribe(channel, handler),
+    observe: <T = unknown, R = unknown>(
+      channel: string,
+      handler: MessageHandler<T, R>,
+    ): (() => void) =>
+      executionOnly ? (): void => {} : messageBus.observe(channel, handler),
   };
 }
 

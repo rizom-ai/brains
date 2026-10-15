@@ -11,7 +11,7 @@ import {
 } from "./standard-paths";
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import type { Fiber } from "@brains/utils/effect";
-import type { RuntimeProcessRole } from "@brains/core";
+import type { PeerChannel, RuntimeProcessRole } from "@brains/core";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
 
 export type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
@@ -20,6 +20,8 @@ export type InitializeOptions = Parameters<Shell["initialize"]>[0];
 export interface AppRuntimeOptions {
   migrationsCompleted?: boolean;
   processRole?: RuntimeProcessRole;
+  /** The line to the runtime's other processes, when supervised. */
+  peerChannel?: PeerChannel;
   onRuntimeReady?: () => void;
 }
 
@@ -250,7 +252,7 @@ export class App {
 
   private createShell(
     options?: InitializeOptions,
-    processRole?: RuntimeProcessRole,
+    runtimeOptions?: AppRuntimeOptions,
   ): void {
     // Let shellInitializer build the logger from shellConfig.logging so
     // logFile, format, and level take effect. ConsoleLogger.getInstance() ignores
@@ -258,7 +260,14 @@ export class App {
     this.shell = Shell.createFresh(
       buildShellConfig(this.config, options),
       undefined,
-      { ...(processRole && { processRole }) },
+      {
+        ...(runtimeOptions?.processRole && {
+          processRole: runtimeOptions.processRole,
+        }),
+        ...(runtimeOptions?.peerChannel && {
+          peerChannel: runtimeOptions.peerChannel,
+        }),
+      },
     );
   }
 
@@ -279,7 +288,7 @@ export class App {
     // Injected shells remain migration-free for tests and embedding applications.
     if (!this.shell) {
       if (!runtimeOptions?.migrationsCompleted) await this.migrate();
-      this.createShell(options, runtimeOptions?.processRole);
+      this.createShell(options, runtimeOptions);
     }
 
     await this.registerCLIInterface();

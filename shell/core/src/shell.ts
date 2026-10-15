@@ -158,6 +158,7 @@ export class Shell implements IShell {
       constructionLogger,
       this.config,
       runtimeOptions?.processRole,
+      runtimeOptions?.peerChannel,
     );
 
     try {

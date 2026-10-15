@@ -18,6 +18,20 @@ export function createMockMessageBus(): IMessageBus {
     string,
     Set<MessageHandler<unknown, unknown>>
   >();
+  const peerHandlers = new Map<string, Set<MessageHandler<unknown, unknown>>>();
+  const add = (
+    registry: Map<string, Set<MessageHandler<unknown, unknown>>>,
+    type: string,
+    handler: MessageHandler<unknown, unknown>,
+  ): (() => void) => {
+    const handlers =
+      registry.get(type) ?? new Set<MessageHandler<unknown, unknown>>();
+    registry.set(type, handlers);
+    handlers.add(handler);
+    return (): void => {
+      registry.get(type)?.delete(handler);
+    };
+  };
 
   return {
     send: async <T = unknown, R = unknown>(
@@ -44,17 +58,32 @@ export function createMockMessageBus(): IMessageBus {
     subscribe: <T = unknown, R = unknown>(
       type: string,
       handler: MessageHandler<T, R>,
+    ): (() => void) =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- erasing the handler is what lets one set hold every subscription
+      add(messageHandlers, type, handler as MessageHandler<unknown, unknown>),
+    observe: <T = unknown, R = unknown>(
+      type: string,
+      handler: MessageHandler<T, R>,
     ): (() => void) => {
-      const handlers =
-        messageHandlers.get(type) ??
-        new Set<MessageHandler<unknown, unknown>>();
-      messageHandlers.set(type, handlers);
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- erasing the handler is what lets one set hold every subscription
       const erased = handler as MessageHandler<unknown, unknown>;
-      handlers.add(erased);
+      const local = add(messageHandlers, type, erased);
+      const peer = add(peerHandlers, type, erased);
       return (): void => {
-        messageHandlers.get(type)?.delete(erased);
+        local();
+        peer();
       };
+    },
+    deliverPeer: async (type: string, payload: unknown): Promise<void> => {
+      for (const handler of peerHandlers.get(type) ?? []) {
+        await handler({
+          type,
+          payload,
+          source: "peer",
+          id: `msg-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
     },
     unsubscribe: (): void => {},
     hasHandlers: (messageType: string): boolean =>

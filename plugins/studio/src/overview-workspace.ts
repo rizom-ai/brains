@@ -696,15 +696,17 @@ export function registerStudioOverviewActivity(
   context: ServicePluginContext,
   registry: StudioOverviewRegistry,
 ): void {
-  context.messaging.subscribe(ENTITY_CHANNELS.created, (message) => {
+  // Observed: the feed shows changes from either process, such as the
+  // worker syncing content from git.
+  context.messaging.observe(ENTITY_CHANNELS.created, (message) => {
     registry.recordEntity("created", message.payload);
     return { success: true };
   });
-  context.messaging.subscribe(ENTITY_CHANNELS.updated, (message) => {
+  context.messaging.observe(ENTITY_CHANNELS.updated, (message) => {
     registry.recordEntity("updated", message.payload);
     return { success: true };
   });
-  context.messaging.subscribe(ENTITY_CHANNELS.deleted, (message) => {
+  context.messaging.observe(ENTITY_CHANNELS.deleted, (message) => {
     registry.recordEntity("deleted", message.payload);
     return { success: true };
   });
