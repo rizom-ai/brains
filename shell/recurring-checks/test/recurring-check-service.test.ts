@@ -1149,6 +1149,7 @@ interface ContendedQueueFixture {
   refusals: unknown[];
   firstFireAt: number;
   periodMs: number;
+  unregister(): void;
   holdQueue(): Promise<Transaction>;
   queuedRuns(): Promise<number>;
   cleanup(): Promise<void>;
@@ -1156,6 +1157,7 @@ interface ContendedQueueFixture {
 
 async function createContendedQueueFixture(
   clock: Clock.Clock,
+  options: { start?: boolean } = {},
 ): Promise<ContendedQueueFixture> {
   const database = await createTestDatabase({
     prefix: "recurring-check-contention-",
@@ -1187,15 +1189,17 @@ async function createContendedQueueFixture(
     logger,
     clock,
   });
-  service.namespace("agent").register({
+  const unregister = service.namespace("agent").register({
     id: "directory-scan",
     cadence: "daily",
     run: async () => ({}),
   });
-  await service.start();
-  // Settle the startup catch-up; the scheduled run is the one under test.
-  for (const job of await queue.getActiveJobs([RECURRING_CHECK_JOB_TYPE])) {
-    await queue.complete(job.id, {});
+  if (options.start !== false) {
+    await service.start();
+    // Settle the startup catch-up; the scheduled run is the one under test.
+    for (const job of await queue.getActiveJobs([RECURRING_CHECK_JOB_TYPE])) {
+      await queue.complete(job.id, {});
+    }
   }
   const worker = database.track(createClient({ url: database.url }));
   const schedule = createRecurringCheckSchedule(
@@ -1213,6 +1217,7 @@ async function createContendedQueueFixture(
         schedule,
       ).getTime() + schedule.periodMs,
     periodMs: schedule.periodMs,
+    unregister,
     holdQueue: (): Promise<Transaction> => worker.transaction("write"),
     queuedRuns: async (): Promise<number> =>
       (await queue.getActiveJobs([RECURRING_CHECK_JOB_TYPE])).length,
@@ -1324,6 +1329,58 @@ describe("RecurringCheckService refused scheduled runs", () => {
       }
     });
   }, 30_000);
+
+  it("retries a refused startup catch-up until the queue admits it", async () => {
+    await withTestClock(async (clock) => {
+      const fixture = await createContendedQueueFixture(clock, {
+        start: false,
+      });
+      const held = await fixture.holdQueue();
+      try {
+        await fixture.service.start();
+        expect(fixture.refusals).toHaveLength(1);
+        await release(held);
+
+        await waitUntil(
+          async () => {
+            await Effect.runPromise(clock.adjust(1_000));
+            return (await fixture.queuedRuns()) === 1;
+          },
+          "the refused catch-up to be queued",
+          { timeoutMs: 5_000, intervalMs: 20 },
+        );
+        expect(fixture.refusals).toHaveLength(1);
+      } finally {
+        await release(held);
+        await fixture.cleanup();
+      }
+    });
+  }, 20_000);
+
+  it("stops retrying a refused run when its check is unregistered", async () => {
+    await withTestClock(async (clock) => {
+      const fixture = await createContendedQueueFixture(clock);
+      const held = await fixture.holdQueue();
+      try {
+        await Effect.runPromise(clock.setTime(fixture.firstFireAt));
+        await fixture.scheduler.runDue();
+        await waitForRefusals(clock, fixture, 2);
+        await Bun.sleep(RETRY_SETTLE_MS);
+
+        fixture.unregister();
+        await Bun.sleep(RETRY_SETTLE_MS);
+        await release(held);
+        await Effect.runPromise(clock.adjust(10 * 60_000));
+        await Bun.sleep(RETRY_SETTLE_MS);
+
+        expect(await fixture.queuedRuns()).toBe(0);
+        expect(fixture.refusals).toHaveLength(2);
+      } finally {
+        await release(held);
+        await fixture.cleanup();
+      }
+    });
+  }, 20_000);
 
   it("stops retrying a refused run when the service stops", async () => {
     await withTestClock(async (clock) => {

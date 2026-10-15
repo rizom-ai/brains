@@ -5,6 +5,7 @@ import {
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
+import { retryWithBackoff } from "@brains/utils/retry-backoff";
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
@@ -75,7 +76,7 @@ export class RebuildManager {
   private debounces = new Map<string, LeadingTrailingDebounce>();
   private readonly enqueueRetries = new Map<
     BuildEnvironment,
-    { timer: Timer; failures: number }
+    AbortController
   >();
   private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
@@ -190,7 +191,7 @@ export class RebuildManager {
       }
     }
     this.debounces.clear();
-    for (const { timer } of this.enqueueRetries.values()) clearTimeout(timer);
+    for (const retry of this.enqueueRetries.values()) retry.abort();
     this.enqueueRetries.clear();
 
     for (const unsubscribe of this.unsubscribeFunctions) {
@@ -223,37 +224,11 @@ export class RebuildManager {
     environment: BuildEnvironment,
     failClosed: boolean = false,
   ): Promise<void> {
-    const outputDir =
-      environment === "production"
-        ? this.config.productionOutputDir
-        : this.config.previewOutputDir;
-
     this.logger.debug(`Triggering ${environment} site rebuild`);
 
     try {
-      const jobId = await this.context.jobs.enqueue({
-        type: "site-build",
-        data: {
-          environment,
-          outputDir,
-          workingDir: this.config.workingDir,
-          enableContentGeneration: true,
-          metadata: {
-            trigger: "debounced-rebuild",
-            timestamp: new Date().toISOString(),
-          },
-        },
-        options: {
-          priority: 0,
-          source: this.pluginId,
-          metadata: {
-            operationType: "content_operations",
-          },
-          deduplication: "skip",
-          deduplicationKey: `site-build:${environment}`,
-        },
-      });
-      this.clearEnqueueRetry(environment);
+      const jobId = await this.enqueueBuildJob(environment);
+      this.cancelEnqueueRetry(environment);
       await this.statusService?.markQueued(environment, jobId);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {
@@ -265,39 +240,72 @@ export class RebuildManager {
         if (failClosed) throw error;
         return;
       }
-      this.scheduleEnqueueRetry(environment, error);
+      this.retryEnqueue(environment, error);
     }
   }
 
-  /** Keep the build requested and enqueue it again after a backoff. */
-  private scheduleEnqueueRetry(
-    environment: BuildEnvironment,
-    error: unknown,
-  ): void {
-    const previous = this.enqueueRetries.get(environment);
-    if (previous) clearTimeout(previous.timer);
-    const failures = (previous?.failures ?? 0) + 1;
-    const delayMs = Math.min(
-      this.config.rebuildDebounce * 2 ** (failures - 1),
-      ENQUEUE_RETRY_MAX_DELAY_MS,
-    );
-    const timer = setTimeout(() => {
-      if (this.disposed) return;
-      this.runTrackedTask(`enqueue ${environment} build`, () =>
-        this.enqueueBuild(environment),
-      );
-    }, delayMs);
-    this.enqueueRetries.set(environment, { timer, failures });
-    this.logger.warn(
-      `Failed to enqueue ${environment} site rebuild; retrying in ${delayMs}ms`,
-      { error, failures },
-    );
+  private enqueueBuildJob(environment: BuildEnvironment): Promise<string> {
+    return this.context.jobs.enqueue({
+      type: "site-build",
+      data: {
+        environment,
+        outputDir:
+          environment === "production"
+            ? this.config.productionOutputDir
+            : this.config.previewOutputDir,
+        workingDir: this.config.workingDir,
+        enableContentGeneration: true,
+        metadata: {
+          trigger: "debounced-rebuild",
+          timestamp: new Date().toISOString(),
+        },
+      },
+      options: {
+        priority: 0,
+        source: this.pluginId,
+        metadata: {
+          operationType: "content_operations",
+        },
+        deduplication: "skip",
+        deduplicationKey: `site-build:${environment}`,
+      },
+    });
   }
 
-  private clearEnqueueRetry(environment: BuildEnvironment): void {
-    const retry = this.enqueueRetries.get(environment);
-    if (!retry) return;
-    clearTimeout(retry.timer);
+  /** Keep the build requested and enqueue it again after a backoff. */
+  private retryEnqueue(environment: BuildEnvironment, error: unknown): void {
+    this.cancelEnqueueRetry(environment);
+    const controller = new AbortController();
+    this.enqueueRetries.set(environment, controller);
+    this.runTrackedTask(`retry ${environment} build`, async () => {
+      const outcome = await retryWithBackoff(
+        () => this.enqueueBuildJob(environment),
+        error,
+        {
+          firstDelayMs: this.config.rebuildDebounce,
+          maxDelayMs: ENQUEUE_RETRY_MAX_DELAY_MS,
+          signal: controller.signal,
+          onRetry: (refusal, delayMs) => {
+            this.logger.warn(
+              `Failed to enqueue ${environment} site rebuild; retrying in ${delayMs}ms`,
+              { error: refusal },
+            );
+          },
+        },
+      );
+      if (this.enqueueRetries.get(environment) === controller) {
+        this.enqueueRetries.delete(environment);
+      }
+      if (outcome.kind === "succeeded") {
+        await this.statusService?.markQueued(environment, outcome.value);
+        this.logger.debug("Site rebuild enqueued");
+      }
+    });
+  }
+
+  /** A newer enqueue, a newer retry, or disposal supersedes a pending retry. */
+  private cancelEnqueueRetry(environment: BuildEnvironment): void {
+    this.enqueueRetries.get(environment)?.abort();
     this.enqueueRetries.delete(environment);
   }
 }

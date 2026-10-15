@@ -1,11 +1,5 @@
-import {
-  Cause,
-  Clock,
-  Effect,
-  Exit,
-  Fiber,
-  withOptionalClock,
-} from "@brains/utils/effect";
+import { Cause, Effect, Exit } from "@brains/utils/effect";
+import type { Clock } from "@brains/utils/effect";
 import type {
   IJobQueueService,
   JobHandler,
@@ -18,6 +12,7 @@ import type {
 import type { ScheduledJob, SchedulerBackend } from "@brains/scheduler";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
+import { retryWithBackoff } from "@brains/utils/retry-backoff";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import {
@@ -38,8 +33,8 @@ const FIRST_SUNDAY_UTC_MS = 3 * DAY_MS;
 
 // The job queue refuses an enqueue once another process has held its write
 // lock past the enqueue budget, and no budget bounds how long a stalled commit
-// can hold it. A refused scheduled run is retried, doubling from the first
-// delay to the ceiling, until the next scheduled run supersedes it.
+// can hold it. A refused scheduled or catch-up run is retried, doubling from
+// the first delay to the ceiling, until the next scheduled run supersedes it.
 const ENQUEUE_RETRY_FIRST_DELAY_MS = 1_000;
 const ENQUEUE_RETRY_MAX_DELAY_MS = 60_000;
 
@@ -104,7 +99,8 @@ interface ActiveCheck {
 }
 
 interface EnqueueRetry {
-  fiber?: Fiber.Fiber<void> | undefined;
+  controller: AbortController;
+  settled: Promise<void>;
 }
 
 interface RegisteredCheck {
@@ -392,7 +388,7 @@ export class RecurringCheckService {
   }
 
   private trackCatchUp(registered: RegisteredCheck): Promise<void> {
-    const task = this.enqueueCatchUpIfNeeded(registered.definition);
+    const task = this.enqueueCatchUpIfNeeded(registered);
     registered.catchUpTasks.add(task);
     const remove = (): void => {
       registered.catchUpTasks.delete(task);
@@ -492,9 +488,9 @@ export class RecurringCheckService {
   }
 
   /**
-   * Keep a refused scheduled run until the queue admits it. Retries reuse the
-   * check's deduplication key, so a run is never queued twice, and end at the
-   * next scheduled run, on unregister, and on stop.
+   * Keep a refused scheduled or catch-up run until the queue admits it.
+   * Retries reuse the check's deduplication key, so a run is never queued
+   * twice, and end at the next scheduled run, on unregister, and on stop.
    */
   private retryRefusedEnqueue(
     registered: RegisteredCheck,
@@ -502,10 +498,7 @@ export class RecurringCheckService {
   ): void {
     const check = registered.definition;
     if (!this.started || this.checks.get(check.id) !== registered) {
-      this.logger.error(
-        `Failed to enqueue scheduled recurring check ${check.id}`,
-        error,
-      );
+      this.logger.error(`Failed to enqueue recurring check ${check.id}`, error);
       return;
     }
     const schedule = createRecurringCheckSchedule(
@@ -516,70 +509,54 @@ export class RecurringCheckService {
     const nextRunAt =
       getPreviousOccurrence(this.currentTime(), schedule).getTime() +
       schedule.periodMs;
-    const attempt = (failures: number, cause: unknown): Effect.Effect<void> => {
-      const delayMs = Math.min(
-        ENQUEUE_RETRY_FIRST_DELAY_MS * 2 ** (failures - 1),
-        ENQUEUE_RETRY_MAX_DELAY_MS,
-      );
-      return Clock.currentTimeMillis.pipe(
-        Effect.flatMap((now) => {
-          if (now + delayMs >= nextRunAt) {
-            return Effect.sync(() => {
-              this.logger.error(
-                `Failed to enqueue scheduled recurring check ${check.id}; the next scheduled run supersedes it`,
-                cause,
-              );
-            });
-          }
-          this.logger.warn(
-            `Failed to enqueue scheduled recurring check ${check.id}; retrying in ${delayMs}ms`,
-            cause,
-          );
-          return Effect.sleep(delayMs).pipe(
-            // An admitted enqueue settles before its retry can be interrupted.
-            Effect.andThen(
-              Effect.uninterruptible(
-                Effect.tryPromise({
-                  try: () => this.enqueue(check.id),
-                  catch: (refusal) => refusal,
-                }),
-              ),
-            ),
-            Effect.matchEffect({
-              onSuccess: () => Effect.void,
-              onFailure: (refusal) => attempt(failures + 1, refusal),
-            }),
-          );
-        }),
-      );
-    };
-    const retry: EnqueueRetry = {};
+    const controller = new AbortController();
+    const retry: EnqueueRetry = { controller, settled: Promise.resolve() };
     registered.enqueueRetry = retry;
-    retry.fiber = Effect.runFork(
-      withOptionalClock(
-        attempt(1, error).pipe(
-          Effect.ensuring(
-            Effect.sync(() => {
-              if (registered.enqueueRetry === retry) {
-                delete registered.enqueueRetry;
-              }
-            }),
-          ),
-        ),
-        this.clock,
-      ),
-    );
+    retry.settled = retryWithBackoff(() => this.enqueue(check.id), error, {
+      firstDelayMs: ENQUEUE_RETRY_FIRST_DELAY_MS,
+      maxDelayMs: ENQUEUE_RETRY_MAX_DELAY_MS,
+      giveUpAt: nextRunAt,
+      signal: controller.signal,
+      clock: this.clock,
+      onRetry: (refusal, delayMs) => {
+        this.logger.warn(
+          `Failed to enqueue recurring check ${check.id}; retrying in ${delayMs}ms`,
+          refusal,
+        );
+      },
+    })
+      .then(
+        (outcome) => {
+          if (outcome.kind !== "abandoned") return;
+          this.logger.error(
+            `Failed to enqueue recurring check ${check.id}; the next scheduled run supersedes it`,
+            outcome.error,
+          );
+        },
+        (failure: unknown) => {
+          this.logger.error(
+            `Retrying recurring check ${check.id} failed`,
+            failure,
+          );
+        },
+      )
+      .finally(() => {
+        if (registered.enqueueRetry === retry) delete registered.enqueueRetry;
+      });
   }
 
   private async cancelEnqueueRetry(registered: RegisteredCheck): Promise<void> {
-    const fiber = registered.enqueueRetry?.fiber;
+    const retry = registered.enqueueRetry;
     delete registered.enqueueRetry;
-    if (fiber) await Effect.runPromise(Fiber.interrupt(fiber));
+    if (!retry) return;
+    retry.controller.abort();
+    await retry.settled;
   }
 
   private async enqueueCatchUpIfNeeded(
-    check: RecurringCheckDefinition,
+    registered: RegisteredCheck,
   ): Promise<void> {
+    const check = registered.definition;
     const currentTime = this.currentTime();
     const schedule = createRecurringCheckSchedule(
       this.brainId,
@@ -594,7 +571,11 @@ export class RecurringCheckService {
     ) {
       return;
     }
-    await this.enqueue(check.id);
+    try {
+      await this.enqueue(check.id);
+    } catch (error) {
+      this.retryRefusedEnqueue(registered, error);
+    }
   }
 
   private enqueue(checkId: string): Promise<string> {
