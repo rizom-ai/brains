@@ -96,7 +96,7 @@ const ENTITIES: Record<string, string> = {
  * emphasis.
  */
 const SPACED =
-  /(?<=^|\s\s)[\p{L}\d](?: (?:[\p{L}\d][.,;:!?)\]]?|[.,;:!?)\]])(?!\S))+(?:\s\s[\p{L}\d](?: (?:[\p{L}\d][.,;:!?)\]]?|[.,;:!?)\]])(?!\S))+)*/gu;
+  /(?<=^|\s\s|„)[\p{L}\d](?: (?:[\p{L}\d][.,;:!?)\]]?|[.,;:!?)\]])(?!\S))+(?:\s\s[\p{L}\d](?: (?:[\p{L}\d][.,;:!?)\]]?|[.,;:!?)\]])(?!\S))+)*/gu;
 
 /** A run's words: markup's entities read, its spaced words closed up, its italics as emphasis, other markup dropped. */
 function runText(inner: string): string {
@@ -106,6 +106,8 @@ function runText(inner: string): string {
       const plain = part
         .replace(/<[^>]+>/g, "")
         .replace(/&(?:#\d+|[a-z]+);/g, (entity) => ENTITIES[entity] ?? entity)
+        // An opening quotation mark stands against its word: „ mightily.
+        .replace(/„ (?=[\p{L}\d])/gu, "„")
         .replace(SPACED, (spaced) =>
           spaced
             .split(/\s\s+/)
@@ -133,6 +135,83 @@ function bodySize(runs: Run[]): number {
     new Map<number, number>(),
   );
   return [...weights].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+}
+
+/** Below this share of the text's size a run is a mark, never the text. */
+const MARK_SIZE = 0.7;
+/** A note's mark: digits and brackets, as the text layer reads them. */
+const MARK = /^[\s\d[\]()*|tlIi1.,'"’‘„“-]{1,8}$/;
+/** The editors' source of a letter, or their word on it, set small after it. */
+const APPARATUS = /^(?:Nach:|Aus dem|\[|\*)/;
+/** A page's running head the text layer holds: 49 • Marx an Max Oppenheim • 30. August 1876. */
+const RUNNING_HEAD = /\s[•·]\s/u;
+/** The OCR's reading of a speck or a stamp, its signs no text sets. */
+const SPECKS = /[$^~|{}<>]/;
+/** The printer's signature at a page's foot: 29*, 15 Marx/Engels, Werke, Bd. 27. */
+const SIGNATURE = /^\s*\d{1,3}\s*\\?[*«»]?\s*$|Werke,?\s*Bd\.?\s*\d+\s*$/;
+/** At most this many runs the text layer measured small stand between runs of the text. */
+const EMBEDDED_RUNS = 3;
+
+/**
+ * A page's runs of the text: those set in its type, and those the text
+ * layer measured as small as a note's between them, a word or a line; the
+ * marks, the notes at the foot, the running head, the editors' sources and
+ * the printer's signature left out.
+ */
+function textRuns(page: Run[], body: number): Run[] {
+  const runs = SIGNATURE.test(page.at(-1)?.text ?? "")
+    ? page.slice(0, -1)
+    : page;
+  const sized = (run: Run): boolean => run.size >= body * NOTE_SIZE;
+  const mark = (run: Run): boolean =>
+    !sized(run) &&
+    (run.size < body * MARK_SIZE ||
+      MARK.test(run.text) ||
+      SPECKS.test(run.text));
+  // Small runs read in a row, marks between them aside.
+  const chains = runs.reduce<number[][]>((done, run, index) => {
+    if (sized(run) || mark(run)) return done;
+    const chain = done.at(-1);
+    const previous = chain?.at(-1);
+    return chain !== undefined &&
+      previous !== undefined &&
+      runs.slice(previous + 1, index).every(mark)
+      ? [...done.slice(0, -1), [...chain, index]]
+      : [...done, [index]];
+  }, []);
+  const resized = new Map(
+    chains.flatMap((chain) => {
+      const first = chain[0] ?? 0;
+      const last = chain.at(-1) ?? 0;
+      const before = runs
+        .slice(0, first)
+        .filter((run) => !mark(run))
+        .at(-1);
+      const after = runs.slice(last + 1).find((run) => !mark(run));
+      const words = chain.map((index) => runs[index]?.text ?? "").join(" ");
+      const embedded =
+        before !== undefined &&
+        sized(before) &&
+        after !== undefined &&
+        chain.length <= EMBEDDED_RUNS &&
+        !APPARATUS.test(runs[first]?.text.trim() ?? "") &&
+        /\p{L}{3}/u.test(words) &&
+        !RUNNING_HEAD.test(words) &&
+        // The OCR's reading of a speck is signs and letters one by one.
+        words.split(/\s+/u).filter((word) => /\p{L}{2}/u.test(word)).length *
+          2 >
+          words.split(/\s+/u).filter(Boolean).length;
+      // Set in the text's type, they join its lines.
+      return embedded
+        ? chain.map((index): [number, number] => [index, after.size])
+        : [];
+    }),
+  );
+  return runs.flatMap((run, index) => {
+    const size = resized.get(index);
+    if (size !== undefined) return [{ ...run, size }];
+    return sized(run) || TRANSLATED.test(run.text) ? [run] : [];
+  });
 }
 
 /**
@@ -163,9 +242,7 @@ function linesOf(xml: string): Line[] {
       text: runText(match[4] ?? ""),
     }));
     const body = bodySize(runs);
-    const kept = runs.filter(
-      (run) => run.size >= body * NOTE_SIZE || TRANSLATED.test(run.text),
-    );
+    const kept = textRuns(runs, body);
     const lines = kept.reduce<Array<Omit<Line, "margin">>>((done, run) => {
       if (TRANSLATED.test(run.text)) {
         return [
@@ -273,17 +350,19 @@ export function mewPageNumbers(
 
 const MONTHS: Array<[RegExp, number]> = [
   [/^jan/i, 1],
-  [/^feb/i, 2],
+  [/^f[eé][bv]/i, 2],
   [/^m[äa]r/i, 3],
-  [/^apr/i, 4],
+  [/^a[pv]r/i, 4],
   [/^ma[iy]/i, 5],
-  [/^jun/i, 6],
+  [/^juil/i, 7],
+  [/^jui?n/i, 6],
   [/^jul/i, 7],
   [/^aug/i, 8],
+  [/^ao[uûü]t/i, 8],
   [/^sep/i, 9],
   [/^o[ck]t/i, 10],
   [/^nov/i, 11],
-  [/^de[zc]/i, 12],
+  [/^d[eé][zc]/i, 12],
 ];
 
 /**
@@ -329,13 +408,15 @@ function cleanDate(text: string): string {
   return figures(text)
     .replace(/^[^\p{L}\d[({]+/u, "")
     .replace(/\{(?=\p{L}[^{}[\]]*\])/gu, "[")
+    .replace(/(\[[^\]{}]*)\}/u, "$1]")
     .replace(/(?<=[\d.]\s?)[lI](?=[\d.])/g, "1")
     .replace(/(?<![\p{L}])H(?=\.\s?\p{L}{3,})/gu, "11")
     .replace(/(?<![\p{L}])[lI](?=\.\s?\p{L}{3,})/gu, "1")
     .replace(/(?<=\p{Ll})(?=1[78]\d\d\b)/u, " ")
     .replace(/(?<=\d{4})J$/u, "]")
     .replace(/(?<=\[[^\]]*\b1[78]\d\d)1(?=\s|$)/u, "]")
-    .replace(/[\s'’‘`,-]+$/u, "");
+    .replace(/[\s'’‘`,-]+$/u, "")
+    .replace(/(?<=\p{L})(?=\d\d$)/u, " ");
 }
 
 /** A heading or a place without the OCR's stray marks: Engels •, Bern;. */
@@ -350,13 +431,15 @@ function unmarked(text: string): string {
 /** A letter's heading: its writer and recipient, the place it went to. */
 const HEADING = /^(.+?)\s+an\s+(.+)$/;
 /** The place a letter went to, opening the line under its heading. */
-const RECIPIENT = /^(?:in|nach)\s/;
+const RECIPIENT = /^\[?(?:in|nach)\s/;
+/** The OCR's misreadings of the in opening a recipient's place: m, in. */
+const MISREAD_IN = /^(?:m|in\.)\s/;
 /** The editors' word on what a letter is, under its heading, its dateline perhaps run into it: (Entwurf). */
 const EDITORIAL =
   /^[([]\s*(Entwurf|Abschrift|Fragment|Auszug|Konzept)\s*[)\]]\.?\s*(.*)$/i;
 /** A letter's salutation, opening a line the OCR ran its dateline into. */
 const SALUTATION =
-  /^((?:Lieber|Liebe|Liebes|Liebster|Liebste|Teurer|Teure|Werter|Werte|Geehrter|Geehrte|Verehrter|Verehrte|Mein|Meine|Dear|My|Cher|Chère|Mon|Ma|Monsieur|Madame|Citoyen|Bürger)\b[^,!]{0,40}[,!])\s+(.+)$/u;
+  /^((?:Lieber|Liebe|Liebes|Liebster|Liebste|Teurer|Teure|Werter|Werte|Geehrter|Geehrte|Verehrter|Verehrte|Mein|Meine|Dear|My|Cher|Chère|Mon|Ma|Monsieur|Madame|Citoyen|Bürger)\b[^,!]{0,40}[,!])(?:\s+(.+))?$/u;
 
 /**
  * A recipient's place and the dateline the text layer may have run into it,
@@ -367,10 +450,16 @@ const SALUTATION =
  * any word does: in New York [London].
  */
 function recipientOf(text: string): [string, string | null] {
-  const opening = /^(?:in|nach)\s+\S/u.exec(text)?.[0].length ?? text.length;
+  const opening = /^\[?(?:in|nach)\s+\S/u.exec(text)?.[0].length ?? text.length;
   const dates = (index: number): boolean => {
     const rest = text.slice(index).trim();
-    return /^(?:\p{L}{2}|\[|\d)/u.test(rest) && dateOf(rest) !== null;
+    // A place opening the dateline stands apart from its date: London, 5. Mai.
+    const word = /^(\p{L}+)\.?\s+\d/u.exec(rest)?.[1];
+    return (
+      /^(?:\p{L}{2}|\[|\d)/u.test(rest) &&
+      (word === undefined || MONTHS.some(([name]) => name.test(word))) &&
+      dateOf(rest) !== null
+    );
   };
   const indices = Array.from({ length: text.length }, (_, index) => index);
   const bracketed = indices.find(
@@ -395,6 +484,27 @@ function recipientOf(text: string): [string, string | null] {
   return at === undefined
     ? [unmarked(text), null]
     : [unmarked(text.slice(0, at)), text.slice(at).trim()];
+}
+
+/** A dateline closing a line, its place opening it: … London, 16. Jan. 1865. */
+const DATED_TAIL =
+  /^(.*?)\s+(\p{Lu}[\p{L}.\- ]*,\s*(?:den\s+|d\.\s*)?\d{1,2}[.\s]*\p{L}+\.?\s*(?:1[78])?\d\d)$/u;
+/** A dateline names its date within this many characters, unless the editors' bracket opens it. */
+const DATE_REACH = 40;
+
+/**
+ * Whether a line may be a dateline: one names its date early, or opens with
+ * the editors' bracket; a line of the text may name a date late, or open in
+ * small letters, where a dateline opens so only with den, am and the like.
+ */
+function datelike(text: string): boolean {
+  if (text.startsWith("[")) return true;
+  const digit = text.search(/\d/u);
+  return (
+    digit >= 0 &&
+    digit <= DATE_REACH &&
+    !/^(?!(?:den|d\.|am|im|um)\s)\p{Ll}/u.test(text)
+  );
 }
 
 interface Letter {
@@ -497,7 +607,7 @@ export function parseMewLetters(
         line.size >= line.body * HEADING_SIZE ? HEADING.exec(line.text) : null;
       if (heading) {
         const letter: Letter = {
-          heading: unmarked(line.text),
+          heading: germanQuotes(unmarked(line.text)),
           dateline: "",
           date: null,
           blocks: [],
@@ -538,11 +648,14 @@ export function parseMewLetters(
         letter.date = dateOf(text);
         letter.blocks.push(place(text));
       };
-      if (done.state === "recipient" && RECIPIENT.test(line.text)) {
+      const addressed = cleanDate(line.text).replace(MISREAD_IN, "in ");
+      if (done.state === "recipient" && RECIPIENT.test(addressed)) {
         // What the runs set beside the place is a line of its own: the
         // dateline, or an address above it.
         const [named = "", ...beside] = line.parts;
-        const [recipient, ran] = recipientOf(cleanDate(named));
+        const [recipient, ran] = recipientOf(
+          cleanDate(named).replace(MISREAD_IN, "in "),
+        );
         letter.heading = `${letter.heading} ${recipient}`;
         const rest = [ran ?? "", ...beside].join(" ").trim();
         if (rest.length === 0) return { ...done, state: "dateline" };
@@ -570,7 +683,20 @@ export function parseMewLetters(
           letter.blocks.push(place(saluted[1]));
           return { ...done, state: "text" };
         }
-        if (dateOf(text) !== null) {
+        // The dateline stands above the salutation: none is looked for after it.
+        const greeting = SALUTATION.exec(line.text);
+        if (greeting && greeting[2] === undefined) {
+          letter.blocks.push(place(line.text));
+          return { ...done, state: "text" };
+        }
+        // A line naming its date late may end with the dateline itself.
+        const tail = DATED_TAIL.exec(text.replace(/(?<!\\)\*/gu, ""));
+        if (!datelike(text) && tail?.[1] && tail[2]) {
+          letter.blocks.push(place(tail[1]));
+          dateline(tail[2]);
+          return { ...done, state: "text" };
+        }
+        if (datelike(text) && dateOf(text) !== null) {
           // A dateline the OCR ran on into the salutation ends at its year.
           const ran = /^(.*?\b1[78]\d\d\]?\.?)\s+(\p{Lu}.*)$/u.exec(text);
           dateline(ran?.[1] ?? text);
@@ -629,7 +755,9 @@ export function parseMewLetters(
     titles: [
       String(letter.year),
       titleOf(
-        `${letter.heading.replace(/\.$/u, "")}. ${letter.dateline}`,
+        letter.dateline === ""
+          ? letter.heading
+          : `${letter.heading.replace(/\.$/u, "")}. ${letter.dateline}`,
         volume.writer,
       ),
     ],

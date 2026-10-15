@@ -203,6 +203,125 @@ ${lines.map(([left, size, text]) => `<text top="9" left="${left}" width="${Math.
     ).toBe("An Engels in Bern. Köln, 29. November 48");
   });
 
+  it("reads a French month, a year run on into it, and a place of two words before a date", () => {
+    const dated = (place: string, date: string): string | undefined =>
+      opened([
+        [278, 14, "4"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, place],
+        [370, 14, date],
+        [89, 14, "Dear Fred,"],
+      ])[0]?.[1];
+
+    expect(dated("in London", "[Argenteuil] Jeudi, 3 Aoüt82")).toBe(
+      "An Engels in London. [Argenteuil] Jeudi, 3 Aoüt 82",
+    );
+    expect(
+      opened([
+        [278, 14, "4"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, "in London"],
+        [370, 14, "Cannes, 5 Juin 82"],
+        [89, 14, "Dear Fred,"],
+        [278, 14, "5"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, "in London"],
+        [370, 14, "Cannes, 20. Mai 82"],
+        [89, 14, "Dear Fred,"],
+      ]).map(([, title]) => title),
+    ).toEqual([
+      "An Engels in London. Cannes, 20. Mai 82",
+      "An Engels in London. Cannes, 5 Juin 82",
+    ]);
+    expect(dated("in Bridlington Quay 3. August 1881", "")).toBe(
+      "An Engels in Bridlington Quay. 3. August 1881",
+    );
+  });
+
+  it("takes no line of the text for a dateline, its date late in the line or the line opening in small letters", () => {
+    const titled = (text: string): string | undefined =>
+      opened([
+        [278, 14, "4"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, "in Ramsgate"],
+        [89, 14, text],
+      ])[0]?.[1];
+
+    expect(
+      titled(
+        "den ich eigenhändig, präsente Dr. Gans junior, am 18. August auf dem",
+      ),
+    ).toBe("An Engels in Ramsgate");
+    expect(titled('der „N[euen] Rh[einischen] Z[eitung]" d. 28.Februar)')).toBe(
+      "An Engels in Ramsgate",
+    );
+    expect(titled("den 10ten November [1837]")).toBe(
+      "An Engels in Ramsgate. den 10ten November [1837]",
+    );
+    expect(
+      titled(
+        'An J.B. v. Schweitzer („Soc[ial]-Dem[okrat]") London, 16. Jan. 1865',
+      ),
+    ).toBe("An Engels in Ramsgate. London, 16. Jan. 1865");
+    expect(titled("[Karlsbad, Ende August/Anfang September 1876]")).toBe(
+      "An Engels in Ramsgate. [Karlsbad, Ende August/Anfang September 1876]",
+    );
+  });
+
+  it("looks for a dateline no further than the salutation, a letter without one titled by its heading", () => {
+    expect(
+      opened([
+        [278, 14, "4"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, "in London"],
+        [370, 14, "Mittwoch"],
+        [89, 14, "Dear Fred,"],
+        [
+          89,
+          14,
+          "Zunächst nun Gesundheitsbericht. Meine Kur begann 17ten Juni. Das",
+        ],
+      ])[0]?.[1],
+    ).toBe("An Engels in London");
+  });
+
+  it("reads a recipient's place behind a stray mark, misread as m or in., or in the editors' brackets", () => {
+    const titled = (place: string): string | undefined =>
+      opened([
+        [278, 14, "4"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, place],
+        [89, 14, "Lieber Engels!"],
+      ])[0]?.[1];
+
+    expect(titled("• in Manchester [London] 25.Oktober 1851")).toBe(
+      "An Engels in Manchester. [London] 25.Oktober 1851",
+    );
+    expect(titled("m Manchester [London] 28. April 1853")).toBe(
+      "An Engels in Manchester. [London] 28. April 1853",
+    );
+    expect(titled("in. Manchester 18. März [1857]")).toBe(
+      "An Engels in Manchester. 18. März [1857]",
+    );
+    expect(titled("[in London] [London] 15. Juni 1857")).toBe(
+      "An Engels [in London]. [London] 15. Juni 1857",
+    );
+  });
+
+  it("sets a heading's quotation marks as German ones and reads a dateline's closing brace as a bracket", () => {
+    expect(
+      opened([
+        [278, 14, "4"],
+        [233, 17, 'Marx an die Redaktion der "Allgemeinen Zeitung"'],
+        [240, 14, "in Augsburg"],
+        [370, 14, "[London, Anfang Dezember 1851}"],
+        [89, 14, "Herr Redakteur!"],
+      ])[0]?.[1],
+    ).toBe(
+      "An die Redaktion der „Allgemeinen Zeitung“ in Augsburg. [London, Anfang Dezember 1851]",
+    );
+  });
+
   it("leaves out the OCR's stray marks before a dateline and reads its brace as a bracket", () => {
     const titled = (date: string): string | undefined =>
       opened([
@@ -477,6 +596,55 @@ ${place}
         `<text top="9" left="265" width="270" height="16" font="0">in New York [London] 19. Dezember 1851 </text>`,
       )[0],
     ).toBe("An Engels in New York. [London] 19. Dezember 1851");
+  });
+});
+
+describe("parseMewLetters, words the text layer measured small", () => {
+  it("keeps a word or line of the text it measured as small as a note, between runs of the text; notes, marks, specks, running heads, the editors' sources and the printer's signature stay out", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="16" family="Garamond"/>
+<fontspec id="1" size="18" family="Garamond"/>
+<fontspec id="2" size="14" family="Garamond"/>
+<fontspec id="3" size="8" family="Garamond"/>
+<fontspec id="4" size="12" family="Garamond"/>
+<text top="9" left="260" width="18" height="18" font="0">27 </text>
+<text top="9" left="197" width="158" height="20" font="1">Marx an Adolf Cluß </text>
+<text top="9" left="229" width="97" height="16" font="2">in Washington </text>
+<text top="9" left="359" width="140" height="18" font="0">[London] 30. Juli 1852 </text>
+<text top="9" left="70" width="176" height="18" font="0">Lieber Cluß! Er bekam große Elogen von</text>
+<text top="9" left="246" width="40" height="14" font="2"> Seiten</text>
+<text top="9" left="286" width="190" height="18" font="0"> des Herrn Delius, gegen Injurie</text>
+<text top="9" left="30" width="190" height="14" font="2">W $ n - f c j C&lt;t ^ Uta ^ W U</text>
+<text top="9" left="476" width="5" height="12" font="3">1</text>
+<text top="9" left="481" width="20" height="18" font="0"> und</text>
+<text top="9" left="50" width="190" height="14" font="2">excites „ m i g h t i l y little enthusiasm"</text>
+<text top="9" left="50" width="150" height="18" font="0">so weiter, und so fort, wie es in solchen Briefen der Brauch ist, bis zum Ende des Briefes. </text>
+<text top="9" left="60" width="120" height="14" font="2">r » ' .immym Mtpim</text>
+<text top="9" left="90" width="120" height="18" font="0">Mehr bald. </text>
+<text top="9" left="109" width="272" height="14" font="2">28 • Marx an Adolf Cluß • 30. Juli 1852 </text>
+<text top="9" left="377" width="105" height="18" font="0">Dein K. M. </text>
+<text top="9" left="50" width="200" height="16" font="2">Nach: Photokopie des </text>
+<text top="9" left="50" width="100" height="16" font="2">Originals. </text>
+<text top="9" left="50" width="3" height="8" font="3">1</text>
+<text top="9" left="53" width="69" height="13" font="4"> Beleidigung -</text>
+<text top="9" left="60" width="160" height="16" font="2">siehe vorl. Band, S. 606</text>
+<text top="9" left="460" width="20" height="18" font="0">29* </text>
+</page></pdf2xml>`;
+
+    const [letter] = parseMewLetters(xml, new Map([[40, "1852 27"]]), {
+      volume: 28,
+      file: "mew_band28",
+      item: "Marx_Engels_Werke_MEW",
+      writer: "Marx",
+    });
+
+    expect([letter?.title, ...(letter?.paragraphs ?? [])]).toEqual([
+      "An Adolf Cluß in Washington. [London] 30. Juli 1852",
+      "[London] 30. Juli 1852",
+      "Lieber Cluß! Er bekam große Elogen von Seiten des Herrn Delius, gegen Injurie und excites „mightily little enthusiasm“ so weiter, und so fort, wie es in solchen Briefen der Brauch ist, bis zum Ende des Briefes.",
+      "Mehr bald.",
+      "Dein K. M.",
+    ]);
   });
 });
 

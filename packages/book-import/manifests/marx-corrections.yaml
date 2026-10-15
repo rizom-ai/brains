@@ -26280,7 +26280,21 @@ mew_band27:
     from: "[London] RDezember 1851"
     to: "[London] 19.Dezember 1851"
     by: scan
+mew_band28:
+  - page: 203
+    from: Marx an Engel?
+    to: Marx an Engels
+    by: scan
+mew_band34:
+  - page: 388
+    from: in Ramsgate Hotel de l'Europe, St.Helier
+    to: "in Ramsgate\nHôtel de l'Europe, St. Hélier"
+    by: scan
 mew_band35:
+  - page: 30
+    from: Marx an Engfels
+    to: Marx an Engels
+    by: scan
   - page: 85
     from: in Great Yarmouth Hotel du Nord, Lausanne
     to: "in Great Yarmouth\nHôtel du Nord, Lausanne"
