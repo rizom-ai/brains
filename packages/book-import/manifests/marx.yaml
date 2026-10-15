@@ -15,7 +15,7 @@
 # Civil War in France and the addresses on the Franco-Prussian War from
 # en.wikisource, the Misère de la philosophie and the Discours sur la
 # question du libre-échange from fr.wikisource's transcription of the 1896
-# Paris edition.
+# Paris edition. Le Capital is the French edition Marx revised (1872–75).
 # Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
 # Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
 # of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
@@ -57,6 +57,29 @@ books:
     edition: Das Kapital. Kritik der politischen Oekonomie, Erster Band (Hamburg, Otto Meissner, 1867)
     author: Karl Marx
     year: 1867
+    kind: work
+  # Marx revised Joseph Roy's translation himself, and rewrote parts of it.
+  - source: wikisource
+    page: Le Capital
+    pages:
+      - Le Capital/Préface
+      - Le Capital/Texte entier
+      - Le Capital/Avis au lecteur
+      - Le Capital/Postface
+    site: fr.wikisource.org
+    citation: Le Capital
+    nested: true
+    printedNotes: true
+    # Lachâtre's reply to Marx's letter, printed with it.
+    skipHeadings: [Au citoyen Karl Marx]
+    # The preface closes on Dante, set centred.
+    textHeadings: [Segui il tuo corso, e lascia dir le genti !]
+    slug: le-capital
+    title: Le Capital. Livre premier. Développement de la production capitaliste
+    shortTitle: Le Capital
+    edition: Le Capital, traduction de M. J. Roy, entièrement revisée par l'auteur (Paris, Maurice Lachâtre, 1872–1875)
+    author: Karl Marx
+    year: 1872
     kind: work
   - id: marx_kapital02_1885
     citation: Kapital II

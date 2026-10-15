@@ -261,6 +261,7 @@ const wikisourceBookSchema: z.ZodObject<
       until: z.ZodOptional<z.ZodString>;
       textHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       omitHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      nested: z.ZodDefault<z.ZodBoolean>;
       printedNotes: z.ZodDefault<z.ZodBoolean>;
       skipNotes: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
@@ -281,6 +282,8 @@ const wikisourceBookSchema: z.ZodObject<
   textHeadings: z.array(z.string().min(1)).default([]),
   /** Centred lines an editor set, neither heading nor text: left out. */
   omitHeadings: z.array(z.string().min(1)).default([]),
+  /** The page's heading tags, h2 to h6, nest as the work's parts do. */
+  nested: z.boolean().default(false),
   /** The page's references are the printed book's notes, not Wikisource's own. */
   printedNotes: z.boolean().default(false),
   /** Openings of printed notes left out: an editor's, not the author's. */

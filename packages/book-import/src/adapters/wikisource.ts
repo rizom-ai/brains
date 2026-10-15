@@ -6,6 +6,7 @@ import {
   type TitledSection,
 } from "../sections";
 import { sameName } from "./archive-ocr-headings";
+import { markdownTable } from "./tables";
 import {
   TEXT_NODE,
   emphasised,
@@ -34,6 +35,8 @@ export interface WikisourceWork {
   textHeadings?: string[];
   /** Centred lines an editor set, neither heading nor text: left out. */
   omitHeadings?: string[];
+  /** The page's heading tags, h2 to h6, nest as the work's parts do. */
+  nested?: boolean | undefined;
   /** The page's references are the printed book's notes, not Wikisource's own. */
   printedNotes?: boolean | undefined;
   /** Openings of printed notes left out: an editor's, not the author's. */
@@ -63,6 +66,17 @@ interface Page {
   url: string;
 }
 
+/** A part a heading of the page's own opened. */
+interface Head {
+  section: TitledSection<Block>;
+  /** Its title as printed. */
+  printed: string;
+  /** How deep it stands: 1 outermost. */
+  level: number;
+  /** What it opens with: a word, or a numeral. */
+  kind: string;
+}
+
 interface Reading {
   /** The Wikisource read: its language sets the spacing and casing. */
   site: string;
@@ -73,7 +87,11 @@ interface Reading {
   /** Before the work's first heading, in it, or past its end. */
   within: "before" | "in" | "after";
   /** The chapter a heading of the page's own opened, its title as printed. */
-  chapter: { section: TitledSection<Block>; printed: string } | null;
+  chapter: Head | null;
+  /** The headings of the page's own still open, outermost first. */
+  heads: Head[];
+  /** The level each kind of heading has stood at, by what it opens with. */
+  kinds: Map<string, number>;
   /** The section a § opened within the chapter. */
   numbered: TitledSection<Block> | null;
   /** The chapter was just opened: a centred line below it is its title's rest. */
@@ -92,14 +110,20 @@ export function wikisourcePageUrl(
   return `https://${site}/wiki/${encodeURIComponent(page.replace(/ /g, "_"))}`;
 }
 
-/** A heading set in capitals in sentence case, as French sets titles; roman numerals stay, an elided article (L’) does not. */
+/**
+ * A heading in sentence case, as French sets titles: each word set in
+ * capitals lowered, an elided article (L’ÉCONOMIE) with it, but a roman
+ * numeral kept; a sentence opens with a capital.
+ */
 function sentenceCased(line: string): string {
-  if (/\p{Ll}/u.test(line)) return line;
-  const lowered = line
-    .replace(/\p{Lu}+(?!['’])/gu, (word) =>
-      /^[IVXLC]+$/u.test(word) ? word : word.toLowerCase(),
-    )
-    .replace(/\p{Lu}+(?=['’])/gu, (word) => word.toLowerCase());
+  const lowered = line.replace(/[\p{L}'’]+/gu, (word) => {
+    const letters = word.replace(/['’]/gu, "");
+    if (/\p{Ll}/u.test(letters)) return word;
+    // A numeral stays, and a lone capital that is an initial or a label.
+    if (/^[IVX][IVXLC]*$/u.test(letters)) return word;
+    if (letters.length === 1 && !/^[ÀÂÉÈÊÔÙÎ]$/u.test(letters)) return word;
+    return word.toLowerCase();
+  });
   return lowered.replace(
     /(^|[.!?]\s+)(\p{Ll})/gu,
     (_match, before: string, letter: string) =>
@@ -182,6 +206,7 @@ function inlineText(node: Node, reading: Reading): string {
   }
   if (node.matches(REFERENCE)) return noteMark(node, reading);
   const name = nameOf(node);
+  if (name === "math") return mathText(node);
   if (name === "br") return " ";
   if (name === "hr") return "";
   const inner = Array.from(node.childNodes)
@@ -189,6 +214,88 @@ function inlineText(node: Node, reading: Reading): string {
     .join("");
   const set = EMPHASIS.has(name) || styleOf(node).includes("letter-spacing");
   return set ? emphasised(inner) : inner;
+}
+
+const SUBSCRIPTS: Record<string, string> = Object.fromEntries(
+  [..."0123456789"].map((digit, index) => [
+    digit,
+    "₀₁₂₃₄₅₆₇₈₉"[index] ?? digit,
+  ]),
+);
+const SUPERSCRIPTS: Record<string, string> = Object.fromEntries(
+  [..."0123456789"].map((digit, index) => [
+    digit,
+    "⁰¹²³⁴⁵⁶⁷⁸⁹"[index] ?? digit,
+  ]),
+);
+
+/** Accents a formula sets over a letter, as combining marks. */
+const ACCENTS: Record<string, string> = {
+  "´": "\u0301",
+  "`": "\u0300",
+  "^": "\u0302",
+  "¨": "\u0308",
+  "˜": "\u0303",
+};
+
+/** A part of a formula set apart in brackets, unless it is one term already. */
+function term(text: string): string {
+  return /^[\p{L}\p{N}.,′']+$/u.test(text) || /^\(.*\)$/u.test(text)
+    ? text
+    : `(${text})`;
+}
+
+/**
+ * A formula as a line of text: a fraction over a slash, figures set below or
+ * above the line as such, the braces and blanks that only lay it out left
+ * out.
+ */
+function mathText(node: Node): string {
+  if (node.nodeType === TEXT_NODE) return node.textContent.trim();
+  if (!isElement(node)) return "";
+  const name = nameOf(node);
+  const parts = Array.from(node.children).map(mathText);
+  const [first = "", second = ""] = parts;
+  switch (name) {
+    case "annotation":
+    case "annotation-xml":
+      return "";
+    case "mo":
+      // A stretched fence, or a brace, only groups the formula on the page.
+      return node.getAttribute("stretchy") === "true" ||
+        /^[{}]$/u.test(node.textContent.trim())
+        ? ""
+        : node.textContent.trim();
+    case "mspace":
+      return " ";
+    case "mover":
+      // An accent set over a letter is the letter's: é.
+      return /^[´`^¨˜]$/u.test(second)
+        ? `${first}${ACCENTS[second] ?? ""}`.normalize("NFC")
+        : first + second;
+    case "mfrac":
+      return `${term(first)}/${term(second)}`;
+    case "msub":
+      return /^\d+$/u.test(second)
+        ? first +
+            [...second].map((digit) => SUBSCRIPTS[digit] ?? digit).join("")
+        : `${first}_${term(second)}`;
+    case "msup":
+      return /^[′']+$/u.test(second)
+        ? first + second
+        : /^\d+$/u.test(second)
+          ? first +
+            [...second].map((digit) => SUPERSCRIPTS[digit] ?? digit).join("")
+          : `${first}^${term(second)}`;
+    case "mtable":
+      return parts.filter((row) => row !== "").join("; ");
+    case "mtr":
+      return parts.filter((cell) => cell !== "").join(" ");
+    default:
+      return node.children.length === 0
+        ? node.textContent.trim()
+        : parts.join("");
+  }
 }
 
 /**
@@ -285,34 +392,100 @@ function bound(title: string, reading: Reading, work: WikisourceWork): void {
   }
 }
 
-/** A heading of the page's own, as a chapter: the sections below stand under it. */
-function openChapter(
+/** Words a title runs on over a line's end with: articles and prepositions. */
+const RUNS_ON =
+  /^(?:de|du|des|d['’]\S*|à|au|aux|en|sur|dans|par|pour|et|la|le|les|l['’]\S*|of|the|and|in|on|to)$/iu;
+/** Words that open a line going on with the title above it: prepositions, not articles, which open a title. */
+const GOES_ON =
+  /^(?:de|du|des|d['’]\S*|à|au|aux|en|sur|dans|par|pour|et|of|and|in|on|to)$/iu;
+
+/**
+ * A heading's printed lines as one title: a line goes on after a full stop,
+ * or after the stop it ends with; a title broken over lines (PRÉFACE / DE LA /
+ * PREMIÈRE ÉDITION) runs on with a space.
+ */
+function titleOfLines(lines: string[]): string {
+  return lines.reduce((name, line) => {
+    if (name === "") return line;
+    const last = name.split(/\s/u).at(-1) ?? "";
+    const first = line.split(/\s/u)[0] ?? "";
+    // A label that numbers the part (CHAPITRE II) is the title's first sentence.
+    const label = /^(?:[IVX][IVXLC]*|\d+|premier|première)\.?$/iu.test(last);
+    const runsOn =
+      !label &&
+      (RUNS_ON.test(last) || GOES_ON.test(first) || /^\p{Ll}/u.test(line));
+    return runsOn || /[.!?:,;]$/u.test(name)
+      ? `${name} ${line}`
+      : `${name}. ${line}`;
+  }, "");
+}
+
+/**
+ * What a heading opens with: its first word, or a numeral standing for its
+ * number. A lone C. or L. is a lettered part's letter, not a hundred or fifty.
+ */
+function kindOf(title: string): string {
+  const first = title.split(/\s/u)[0] ?? "";
+  if (/^[IVX][IVXLC]*\.?$/u.test(first)) return "numeral";
+  return /^\p{Lu}[.)]$/u.test(first) ? "letter" : lettersOf(first);
+}
+
+/** A heading's lines as printed, its notes' references left out. */
+function printedLines(block: Element, reading: Reading): string[] {
+  return blockLines(unreferenced(block), reading)
+    .split(LINE_END)
+    .map((line) => spaced(line, reading.site))
+    .filter((line) => line.length > 0);
+}
+
+/**
+ * A heading of the page's own, opening a part at its level: the parts below
+ * stand under it, and those at its level or deeper close.
+ */
+function openHead(
   node: Element,
+  level: number,
   reading: Reading,
   work: WikisourceWork,
 ): void {
-  const printed = spaced(inlineText(unreferenced(node), reading), reading.site);
+  const printed = titleOfLines(printedLines(node, reading));
   if (printed === "") return;
   const chapter = reading.chapter;
-  // A heading straight below another goes on with its title.
-  if (chapter && reading.titling && reading.within === "in") {
+  // A heading straight below another of its level goes on with its title.
+  if (
+    chapter &&
+    reading.titling &&
+    chapter.level === level &&
+    reading.within === "in"
+  ) {
     chapter.printed = `${chapter.printed} ${printed}`;
-    chapter.section.titles = [casedFor(reading.site)(chapter.printed)];
+    chapter.section.titles = [
+      ...chapter.section.titles.slice(0, -1),
+      casedFor(reading.site)(chapter.printed),
+    ];
     markNotes(node, reading);
     return;
   }
   const title = casedFor(reading.site)(printed);
   bound(title, reading, work);
   if (reading.within !== "in") return;
+  const skipped = (work.skipHeadings ?? []).some((heading) =>
+    sameName(title, heading),
+  );
+  const above = reading.heads.filter((head) => head.level < level);
   const section: TitledSection<Block> = {
-    path: [node],
-    titles: [title],
+    path: [...above.map((head) => head.section.path.at(-1) ?? node), node],
+    titles: [...above.map((head) => head.section.titles.at(-1) ?? ""), title],
     paragraphs: [],
     notes: [],
   };
   reading.sections.push(section);
   markNotes(node, reading);
-  reading.chapter = { section, printed };
+  if (skipped) reading.skipped.add(section);
+  const head: Head = { section, printed, level, kind: kindOf(printed) };
+  reading.kinds.set(head.kind, level);
+  reading.heads = [...above, head];
+  reading.chapter = head;
   reading.numbered = null;
   reading.titling = true;
 }
@@ -323,9 +496,11 @@ function blockLines(node: Node, reading: Reading): string {
   if (isPageNumber(node)) return inlineText(node, reading);
   const name = nameOf(node);
   if (name === "br" || name === "hr") return LINE_END;
-  return Array.from(node.childNodes)
+  const inner = Array.from(node.childNodes)
     .map((child) => blockLines(child, reading))
     .join("");
+  // A block set within a heading parts its lines, as a spacer between them.
+  return name === "div" ? `${LINE_END}${inner}${LINE_END}` : inner;
 }
 
 /** A block's text as printed, its lines run together. */
@@ -360,6 +535,9 @@ const BLOCKS = new Set([
   "h2",
   "h3",
   "h4",
+  "h5",
+  "h6",
+  "hr",
   "ol",
   "ul",
   "li",
@@ -428,6 +606,29 @@ function captionOnly(title: string, captions: string[]): boolean {
   return spelled.length > 0 && covered(lettersOf(title));
 }
 
+/** A table's rows as a markdown table, read as one paragraph. */
+function addTable(table: Element, reading: Reading): void {
+  const page = reading.page;
+  const rows = Array.from(table.querySelectorAll("tr"))
+    .map((row) =>
+      Array.from(row.children)
+        .filter((cell) => ["td", "th"].includes(nameOf(cell)))
+        .map((cell) =>
+          spaced(inlineText(cell, reading), reading.site).replace(
+            /\|/gu,
+            "\\|",
+          ),
+        ),
+    )
+    .filter((cells) => cells.some((cell) => cell !== ""));
+  if (rows.length === 0 || reading.within !== "in") return;
+  reading.titling = false;
+  currentSection(reading.sections).paragraphs.push({
+    text: markdownTable(rows),
+    ...page,
+  });
+}
+
 function visit(node: Node, reading: Reading, work: WikisourceWork): void {
   if (!isElement(node)) return;
   if (isPageNumber(node)) {
@@ -439,11 +640,26 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
     addParagraph(node, reading);
     return;
   }
-  if (/^h[2-4]$/u.test(name)) {
-    openChapter(node, reading, work);
+  if (name === "table") {
+    addTable(node, reading);
     return;
   }
-  if (name === "center" || (name === "div" && isCentred(node))) {
+  const tag = /^h([2-6])$/u.exec(name);
+  if (tag && (work.nested === true || Number(tag[1]) <= 4)) {
+    // Unnested, every heading of the page's own opens a chapter.
+    openHead(
+      node,
+      work.nested === true ? Number(tag[1]) - 1 : 1,
+      reading,
+      work,
+    );
+    return;
+  }
+  // A centred table is the text's, not a heading.
+  if (
+    (name === "center" || (name === "div" && isCentred(node))) &&
+    !node.querySelector("table")
+  ) {
     const parts = partedByRules(node);
     if (parts.length > 1) {
       parts.forEach((part) => {
@@ -457,15 +673,33 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
     bound(title, reading, work);
     if (reading.within !== "in") return;
     if (captionOnly(title, work.omitHeadings ?? [])) return;
-    if ((work.textHeadings ?? []).some((line) => sameName(title, line))) {
+    // A formula set centred, or a line of figures, is the text's.
+    if (
+      node.querySelector("math") ||
+      (/^\d/u.test(title) && /[=+×−]/u.test(title)) ||
+      (work.textHeadings ?? []).some((line) => sameName(title, line))
+    ) {
       addParagraph(node, reading);
       return;
     }
+    const like =
+      work.nested === true ? reading.kinds.get(kindOf(title)) : undefined;
+    if (like !== undefined) {
+      openHead(node, like, reading, work);
+      return;
+    }
     const chapter = reading.chapter;
+    if (work.nested === true && chapter && !reading.titling) {
+      openHead(node, chapter.level + 1, reading, work);
+      return;
+    }
     // A chapter's title may go on below its heading, its number above it.
     if (chapter && reading.titling && !title.startsWith("§")) {
       chapter.printed = `${chapter.printed}. ${blockText(node, reading)}`;
-      chapter.section.titles = [cased(chapter.printed)];
+      chapter.section.titles = [
+        ...chapter.section.titles.slice(0, -1),
+        cased(chapter.printed),
+      ];
       markNotes(node, reading);
       return;
     }
@@ -477,13 +711,13 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
     // of the section open.
     const under =
       chapter === null
-        ? []
+        ? null
         : title.startsWith("§") || reading.numbered === null
-          ? [chapter.section]
-          : [chapter.section, reading.numbered];
+          ? chapter.section
+          : reading.numbered;
     const section: TitledSection<Block> = {
-      path: [...under.map((above) => above.path.at(-1) ?? above), node],
-      titles: [...under.map((above) => above.titles.at(-1) ?? ""), title],
+      path: [...(under?.path ?? []), node],
+      titles: [...(under?.titles ?? []), title],
       paragraphs: [],
       notes: [],
     };
@@ -559,6 +793,8 @@ export function parseWikisourcePages(
       skipped: new Set(),
       within: work.from ? "before" : "in",
       chapter: null,
+      heads: [],
+      kinds: new Map(),
       numbered: null,
       titling: false,
       notes: new Map(),

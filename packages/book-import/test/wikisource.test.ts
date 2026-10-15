@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { BookUnit } from "../src/render-book";
 import {
   parseWikisourcePage,
   parseWikisourcePages,
@@ -305,6 +306,94 @@ describe("parseWikisourcePages, a work set out over several pages", () => {
       '"The column of prisoners halted in the Avenue Uhrich."—*Daily News*, June 8th.',
       "I am, Sir, your obedient servant,",
       '"John Hales."',
+    ]);
+  });
+});
+
+describe("parseWikisourcePage, a book in nested parts", () => {
+  const capital = async (): Promise<BookUnit[]> =>
+    parseWikisourcePage(
+      await readFile(
+        join(import.meta.dir, "fixtures", "wikisource-capital.html"),
+        "utf8",
+      ),
+      {
+        page: "Le Capital/Texte entier",
+        citation: "Capital",
+        site: "fr.wikisource.org",
+        from: "Première section. Marchandise et monnaie",
+        nested: true,
+        printedNotes: true,
+        skipHeadings: ["Au citoyen Karl Marx"],
+      },
+    );
+
+  it("nests its parts as the page's headings do, a centred heading set like one standing at its level, a heading's lines read as one title", async () => {
+    const units = await capital();
+
+    expect(units.map((unit) => [unit.parents, unit.title])).toEqual([
+      [
+        [
+          "Première section. Marchandise et monnaie",
+          "Chapitre premier. La marchandise",
+          "I. Les deux facteurs de la marchandise",
+        ],
+        "I. Les deux facteurs de la marchandise",
+      ],
+      [
+        [
+          "Première section. Marchandise et monnaie",
+          "Chapitre premier. La marchandise",
+          "I. Les deux facteurs de la marchandise",
+        ],
+        "C. Forme valeur générale.",
+      ],
+      [
+        [
+          "Première section. Marchandise et monnaie",
+          "Chapitre premier. La marchandise",
+          "I. Les deux facteurs de la marchandise",
+        ],
+        "D. Forme monnaie ou argent",
+      ],
+      [
+        ["Première section. Marchandise et monnaie"],
+        "Chapitre II. Des échanges à part",
+      ],
+      [
+        [
+          "Première section. Marchandise et monnaie",
+          "Chapitre VIII. Capital constant et capital variable",
+        ],
+        "Chapitre VIII. Capital constant et capital variable",
+      ],
+      [
+        [
+          "Première section. Marchandise et monnaie",
+          "Chapitre VIII. Capital constant et capital variable",
+        ],
+        "I. Le degré d’exploitation de la force de travail.",
+      ],
+      [[], "Préface de la première édition"],
+      [[], "Extraits de la postface de la seconde édition allemande"],
+    ]);
+  });
+
+  it("reads a table as a markdown table, and a formula as a line of text, a centred one too", async () => {
+    const units = await capital();
+
+    expect(units[1]?.paragraphs).toEqual([
+      "|  |  |  |  |  |\n| --- | --- | --- | --- | --- |\n| 1 | *habit* | = |  | 20 *mètres de toile* |\n| 10 | *livres de thé* | = |  |  |",
+    ]);
+    expect(units[4]?.paragraphs).toEqual([
+      "Les différents facteurs du procès de travail prennent une part différente.",
+      "|  |  |\n| --- | --- |\n| 1852 | 1 sur 45 |\n| 1855 | 1 sur 18 |",
+    ]);
+    expect(units[5]?.paragraphs).toEqual([
+      "La valeur journalière moyenne =(365A+52B)/365 par jour.",
+      "La masse est P=a; b.",
+      "(sur travail)/nécessaire",
+      "détermine le taux de la plus-value.",
     ]);
   });
 });
