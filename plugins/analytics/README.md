@@ -11,17 +11,22 @@ Query website analytics directly from Cloudflare Web Analytics.
 
 ## Configuration
 
-```typescript
-import { analyticsPlugin } from "@brains/analytics";
+Configure the Analytics package in your canonical `brain.yaml`:
 
-analyticsPlugin({
-  cloudflare: {
-    accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
-    apiToken: process.env.CLOUDFLARE_API_TOKEN,
-    siteTag: process.env.CLOUDFLARE_ANALYTICS_SITE_TAG,
-  },
-});
+```yaml
+add: [analytics]
+plugins:
+  analytics:
+    cloudflare:
+      accountId: ${CLOUDFLARE_ACCOUNT_ID}
+      apiToken: ${CLOUDFLARE_API_TOKEN}
+      siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
+      # Only for manual beacon setup; omit this line for automatic setup.
+      beaconToken: ${CLOUDFLARE_ANALYTICS_BEACON_TOKEN}
 ```
+
+These environment variables are consumed through configuration interpolation,
+not read directly by the plugin.
 
 ## Environment Variables
 
@@ -29,6 +34,7 @@ analyticsPlugin({
 CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_API_TOKEN=your_api_token  # Needs Analytics:Read permission
 CLOUDFLARE_ANALYTICS_SITE_TAG=your_site_tag
+CLOUDFLARE_ANALYTICS_BEACON_TOKEN=your_public_site_token  # Optional
 ```
 
 ## MCP Tools
@@ -86,7 +92,16 @@ analytics_query({ startDate: "2025-01-01", endDate: "2025-01-31" });
 
 ## Infrastructure Setup
 
-Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics), then provide its site tag to the brain via the `CLOUDFLARE_ANALYTICS_SITE_TAG` environment variable. The site tag is used both for the tracking script injected into the site and for the GraphQL metrics queries.
+The **site tag** (`CLOUDFLARE_ANALYTICS_SITE_TAG`) filters Cloudflare Web Analytics metrics queries. It is not a tracking token.
+
+The tracking beacon uses the separate, public **site token**:
+
+- **Automatic setup enabled in Cloudflare**: leave `beaconToken` unset. The Brain adds no beacon; it does not detect or verify Cloudflare's edge injection.
+- **Manual setup**: configure `beaconToken` through `CLOUDFLARE_ANALYTICS_BEACON_TOKEN` using the `token` from the Web Analytics JavaScript snippet. The Brain contributes one beacon per build through its worker-enabled head-script subscription.
+
+Both values are available in Cloudflare's Web Analytics site configuration and as `site_tag` / `site_token` from `GET /accounts/{account_id}/rum/site_info/list`. The site token is intentionally published in HTML; never use the private API token as `beaconToken`. An absent or empty beacon token contributes nothing. There is no fallback to the site tag.
+
+This configuration does not enable Cloudflare automatic setup, detect another injector, deploy pages or verify traffic collection. Configure only one injector to avoid duplicate tracking.
 
 ## Dependencies
 

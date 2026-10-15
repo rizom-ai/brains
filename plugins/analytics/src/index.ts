@@ -63,15 +63,17 @@ export function analyticsService(
       // Workers do not run ready. Each build asks installed contributors
       // instead of depending on a different process's registration map.
       subscriptions: ({ config }) => {
-        const siteTag = config.cloudflare?.siteTag;
-        return siteTag
+        // The site tag filters metrics; only an explicit public site token
+        // authorizes adding a beacon to the generated pages.
+        const beaconToken = config.cloudflare?.beaconToken;
+        return beaconToken
           ? [
               defineSubscription({
                 topic: SITE_BUILDER_CHANNELS.headScripts,
                 payload: z.object({}),
                 response: z.string(),
                 execution: "all-roles",
-                handle: () => generateCloudflareBeaconScript(siteTag),
+                handle: () => generateCloudflareBeaconScript(beaconToken),
               }),
             ]
           : [];

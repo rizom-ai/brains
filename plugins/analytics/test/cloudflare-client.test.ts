@@ -63,6 +63,25 @@ describe("CloudflareClient", () => {
   });
 
   describe("getWebsiteStats", () => {
+    it("keeps querying by site tag when a separate beacon token is configured", async () => {
+      const captured = installCapturingMockFetch({
+        data: {
+          viewer: { accounts: [{ rumPageloadEventsAdaptiveGroups: [] }] },
+        },
+      });
+      const manualClient = new CloudflareClient(
+        { ...config, beaconToken: "public-beacon-token" },
+        { fetch: delegatingFetch },
+      );
+      await manualClient.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-16",
+      });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+      expect(captured()).toHaveProperty("variables.siteTag", "test_site_tag");
+      expect(JSON.stringify(captured())).not.toContain("public-beacon-token");
+    });
+
     it("should fetch website stats from Cloudflare GraphQL API", async () => {
       const mockResponse = {
         data: {

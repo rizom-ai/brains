@@ -23,6 +23,23 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(true);
     });
 
+    it("keeps the optional public beacon token separate from the metrics filter", () => {
+      const cloudflare = {
+        accountId: "account",
+        apiToken: "private-api-token",
+        siteTag: "metrics-tag",
+        beaconToken: "public-beacon-token",
+      };
+      expect(analyticsConfigSchema.parse({ cloudflare })).toEqual({
+        cloudflare,
+      });
+      expect(
+        analyticsConfigSchema.safeParse({
+          cloudflare: { ...cloudflare, beaconToken: 42 },
+        }).success,
+      ).toBe(false);
+    });
+
     it("should require accountId when cloudflare is provided", () => {
       const config = {
         cloudflare: {

@@ -32,7 +32,8 @@ describe("Analytics build-time ordering", () => {
         cloudflare: {
           accountId: "abc",
           apiToken: "synthetic",
-          siteTag: "ordered-tag",
+          siteTag: "metrics-tag",
+          beaconToken: "ordered-token",
         },
       });
       async function install(plugin: Plugin): Promise<void> {
@@ -48,7 +49,9 @@ describe("Analytics build-time ordering", () => {
           await install(plugin);
         const first = await read();
         expect(first).toHaveLength(1);
-        expect(first[0]).toContain("ordered-tag");
+        expect(first[0]).toContain("ordered-token");
+        expect(first[0]).not.toContain("metrics-tag");
+        expect(first[0]).not.toContain("synthetic");
         expect(await read()).toEqual(first);
       } finally {
         await harness.reset();

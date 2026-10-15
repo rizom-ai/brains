@@ -9,4 +9,9 @@ export const analyticsEnvSchema: EnvVarDecl[] = [
   },
   { name: "CLOUDFLARE_API_TOKEN", sensitive: true },
   { name: "CLOUDFLARE_ANALYTICS_SITE_TAG" },
+  {
+    name: "CLOUDFLARE_ANALYTICS_BEACON_TOKEN",
+    description:
+      "Public site token; only for a site without Cloudflare automatic setup",
+  },
 ];
