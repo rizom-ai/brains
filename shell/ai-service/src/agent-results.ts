@@ -1,4 +1,5 @@
 import {
+  AttachmentCardDataSchema,
   StructuredChatCardSchema,
   type AgentContextItem,
   type AssistantTurn,
@@ -77,21 +78,7 @@ const attachmentToolDataSchema = z
   .object({
     documentId: z.string().min(1).optional(),
     entityId: z.string().min(1).optional(),
-    attachment: z.object({
-      mediaType: z.string().min(1),
-      url: z.string().min(1),
-      downloadUrl: z.string().min(1).optional(),
-      previewUrl: z.string().min(1).optional(),
-      filename: z.string().min(1).optional(),
-      sizeBytes: z.number().nonnegative().optional(),
-      source: z
-        .object({
-          entityType: z.string().optional(),
-          entityId: z.string().optional(),
-          attachmentType: z.string().optional(),
-        })
-        .optional(),
-    }),
+    attachment: AttachmentCardDataSchema,
   })
   .transform((data, ctx) => {
     // A card is addressed by whichever id the tool supplied. Resolving it here
