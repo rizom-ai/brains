@@ -275,46 +275,12 @@ async function markAgentCardUnavailable(
     cardUnavailableAt: input.observedAt,
     ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
   };
-  const content = agentAdapter.createAgentContent({
-    name: parsed.frontmatter.name,
-    kind: parsed.frontmatter.kind,
-    ...(parsed.frontmatter.organization && {
-      organization: parsed.frontmatter.organization,
-    }),
-    brainName: parsed.frontmatter.brainName,
-    url: parsed.frontmatter.url,
-    ...(parsed.frontmatter.did && { did: parsed.frontmatter.did }),
-    ...(parsed.frontmatter.repoDid && { repoDid: parsed.frontmatter.repoDid }),
-    ...(parsed.frontmatter.brainDid && {
-      brainDid: parsed.frontmatter.brainDid,
-    }),
-    ...(parsed.frontmatter.anchorDid && {
-      anchorDid: parsed.frontmatter.anchorDid,
-    }),
-    ...(parsed.frontmatter.cardUri && { cardUri: parsed.frontmatter.cardUri }),
-    ...(parsed.frontmatter.cardCid && { cardCid: parsed.frontmatter.cardCid }),
-    ...(parsed.frontmatter.cardObservedAt && {
-      cardObservedAt: parsed.frontmatter.cardObservedAt,
-    }),
+  const content = agentAdapter.rewriteAgentContent(parsed, {
     cardLastCheckedAt: input.observedAt,
     cardLastError: error,
     cardFailureCount: agent.metadata.cardFailureCount ?? 0,
     cardUnavailableAt: input.observedAt,
-    ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
-    ...(parsed.frontmatter.a2aEndpoint && {
-      a2aEndpoint: parsed.frontmatter.a2aEndpoint,
-    }),
-    status: parsed.frontmatter.status,
-    discoveredAt: parsed.frontmatter.discoveredAt,
-    ...(parsed.frontmatter.introducedBy && {
-      introducedBy: parsed.frontmatter.introducedBy,
-    }),
-    ...(parsed.frontmatter.hops !== undefined && {
-      hops: parsed.frontmatter.hops,
-    }),
-    about: parsed.body.about,
-    skills: parsed.body.skills,
-    notes: parsed.body.notes,
+    cardStaleAfter: input.staleAfter,
   });
 
   await context.entityService.updateEntity({
@@ -432,48 +398,11 @@ async function markAgentCardRefreshFailure(
     cardFailureCount,
     ...(cardUnavailableAt && { cardUnavailableAt }),
   };
-  const content = agentAdapter.createAgentContent({
-    name: parsed.frontmatter.name,
-    kind: parsed.frontmatter.kind,
-    ...(parsed.frontmatter.organization && {
-      organization: parsed.frontmatter.organization,
-    }),
-    brainName: parsed.frontmatter.brainName,
-    url: parsed.frontmatter.url,
-    ...(parsed.frontmatter.did && { did: parsed.frontmatter.did }),
-    ...(parsed.frontmatter.repoDid && { repoDid: parsed.frontmatter.repoDid }),
-    ...(parsed.frontmatter.brainDid && {
-      brainDid: parsed.frontmatter.brainDid,
-    }),
-    ...(parsed.frontmatter.anchorDid && {
-      anchorDid: parsed.frontmatter.anchorDid,
-    }),
-    ...(parsed.frontmatter.cardUri && { cardUri: parsed.frontmatter.cardUri }),
-    ...(parsed.frontmatter.cardCid && { cardCid: parsed.frontmatter.cardCid }),
-    ...(parsed.frontmatter.cardObservedAt && {
-      cardObservedAt: parsed.frontmatter.cardObservedAt,
-    }),
+  const content = agentAdapter.rewriteAgentContent(parsed, {
     cardLastCheckedAt: now,
     cardLastError: errorMessage,
     cardFailureCount,
-    ...(cardUnavailableAt && { cardUnavailableAt }),
-    ...(parsed.frontmatter.cardStaleAfter && {
-      cardStaleAfter: parsed.frontmatter.cardStaleAfter,
-    }),
-    ...(parsed.frontmatter.a2aEndpoint && {
-      a2aEndpoint: parsed.frontmatter.a2aEndpoint,
-    }),
-    status: parsed.frontmatter.status,
-    discoveredAt: parsed.frontmatter.discoveredAt,
-    ...(parsed.frontmatter.introducedBy && {
-      introducedBy: parsed.frontmatter.introducedBy,
-    }),
-    ...(parsed.frontmatter.hops !== undefined && {
-      hops: parsed.frontmatter.hops,
-    }),
-    about: parsed.body.about,
-    skills: parsed.body.skills,
-    notes: parsed.body.notes,
+    cardUnavailableAt,
   });
 
   await context.entityService.updateEntity({
@@ -492,56 +421,8 @@ async function archiveExpiredStaleCandidate(
   now: string,
 ): Promise<void> {
   const parsed = agentAdapter.parseEntity(agent);
-  const content = agentAdapter.createAgentContent({
-    name: parsed.frontmatter.name,
-    kind: parsed.frontmatter.kind,
-    ...(parsed.frontmatter.organization && {
-      organization: parsed.frontmatter.organization,
-    }),
-    brainName: parsed.frontmatter.brainName,
-    url: parsed.frontmatter.url,
-    ...(parsed.frontmatter.did && { did: parsed.frontmatter.did }),
-    ...(parsed.frontmatter.repoDid && { repoDid: parsed.frontmatter.repoDid }),
-    ...(parsed.frontmatter.brainDid && {
-      brainDid: parsed.frontmatter.brainDid,
-    }),
-    ...(parsed.frontmatter.anchorDid && {
-      anchorDid: parsed.frontmatter.anchorDid,
-    }),
-    ...(parsed.frontmatter.cardUri && { cardUri: parsed.frontmatter.cardUri }),
-    ...(parsed.frontmatter.cardCid && { cardCid: parsed.frontmatter.cardCid }),
-    ...(parsed.frontmatter.cardObservedAt && {
-      cardObservedAt: parsed.frontmatter.cardObservedAt,
-    }),
-    ...(parsed.frontmatter.cardLastCheckedAt && {
-      cardLastCheckedAt: parsed.frontmatter.cardLastCheckedAt,
-    }),
-    ...(parsed.frontmatter.cardLastError && {
-      cardLastError: parsed.frontmatter.cardLastError,
-    }),
-    ...(parsed.frontmatter.cardFailureCount !== undefined && {
-      cardFailureCount: parsed.frontmatter.cardFailureCount,
-    }),
-    ...(parsed.frontmatter.cardUnavailableAt && {
-      cardUnavailableAt: parsed.frontmatter.cardUnavailableAt,
-    }),
-    ...(parsed.frontmatter.cardStaleAfter && {
-      cardStaleAfter: parsed.frontmatter.cardStaleAfter,
-    }),
-    ...(parsed.frontmatter.a2aEndpoint && {
-      a2aEndpoint: parsed.frontmatter.a2aEndpoint,
-    }),
+  const content = agentAdapter.rewriteAgentContent(parsed, {
     status: "archived",
-    discoveredAt: parsed.frontmatter.discoveredAt,
-    ...(parsed.frontmatter.introducedBy && {
-      introducedBy: parsed.frontmatter.introducedBy,
-    }),
-    ...(parsed.frontmatter.hops !== undefined && {
-      hops: parsed.frontmatter.hops,
-    }),
-    about: parsed.body.about,
-    skills: parsed.body.skills,
-    notes: parsed.body.notes,
   });
   await context.entityService.updateEntity({
     entity: {

@@ -70,6 +70,12 @@ export interface CreateAgentContentInput {
   notes: string;
 }
 
+/** An agent's markdown, read back into its frontmatter and body sections. */
+export interface ParsedAgent {
+  frontmatter: AgentFrontmatter;
+  body: { about: string; skills: AgentSkill[]; notes: string };
+}
+
 export class AgentAdapter extends BaseEntityAdapter<
   AgentEntity,
   AgentMetadata,
@@ -173,6 +179,21 @@ export class AgentAdapter extends BaseEntityAdapter<
     return this.buildMarkdown(body, frontmatter);
   }
 
+  /**
+   * Rebuild a parsed agent's markdown with only `patch` changed. A patched
+   * field follows createAgentContent's rules: undefined or empty drops it.
+   */
+  public rewriteAgentContent(
+    parsed: ParsedAgent,
+    patch: Partial<CreateAgentContentInput> = {},
+  ): string {
+    return this.createAgentContent({
+      ...parsed.frontmatter,
+      ...parsed.body,
+      ...patch,
+    });
+  }
+
   public parseAgentContent(content: string): {
     about: string;
     skills: AgentSkill[];
@@ -181,10 +202,7 @@ export class AgentAdapter extends BaseEntityAdapter<
     return parseAgentBody(this.extractBody(content));
   }
 
-  public parseEntity(entity: AgentEntity): {
-    frontmatter: AgentFrontmatter;
-    body: { about: string; skills: AgentSkill[]; notes: string };
-  } {
+  public parseEntity(entity: AgentEntity): ParsedAgent {
     return {
       frontmatter: this.parseFrontMatter(
         withCurrentKind(entity.content),

@@ -107,7 +107,8 @@ export async function scanAgentDirectories(
     signal?.throwIfAborted();
     const existing = agentsById.get(domain);
     if (existing) {
-      const { frontmatter, body } = agentAdapter.parseEntity(existing);
+      const parsed = agentAdapter.parseEntity(existing);
+      const { frontmatter } = parsed;
       const prior = frontmatter.introducedBy ?? [];
       // Only sightings accumulate introducers. Agents known first-hand
       // (connected, or discovered via ATProto) don't gain provenance
@@ -125,12 +126,8 @@ export async function scanAgentDirectories(
       await context.entityService.updateEntity({
         entity: {
           ...existing,
-          content: agentAdapter.createAgentContent({
-            ...frontmatter,
+          content: agentAdapter.rewriteAgentContent(parsed, {
             introducedBy: merged,
-            about: body.about,
-            skills: body.skills,
-            notes: body.notes,
           }),
           updated: now,
         },
