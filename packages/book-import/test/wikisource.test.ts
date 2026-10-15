@@ -397,3 +397,58 @@ describe("parseWikisourcePage, a book in nested parts", () => {
     ]);
   });
 });
+
+describe("parseWikisourcePages, a Project Gutenberg transcription", () => {
+  it("reads it as a transcription like Wikisource's: its pages, its notes, its centred lines, without the project's boilerplate", async () => {
+    const units = parseWikisourcePages(
+      [
+        {
+          page: "32370",
+          url: "https://www.gutenberg.org/ebooks/32370",
+          html: await readFile(
+            join(
+              import.meta.dir,
+              "fixtures",
+              "gutenberg-secret-diplomatic.html",
+            ),
+            "utf8",
+          ),
+        },
+      ],
+      {
+        page: "32370",
+        citation: "Diplomatic History",
+        site: "www.gutenberg.org",
+        from: "Chapter I",
+        printedNotes: true,
+      },
+    );
+
+    expect(
+      units.map((unit) => [
+        unit.parents,
+        unit.title,
+        unit.section,
+        unit.source,
+      ]),
+    ).toEqual([
+      [
+        ["CHAPTER I"],
+        "NO. 1. MR. RONDEAU TO HORACE WALPOLE.",
+        "Diplomatic History, 7",
+        "https://www.gutenberg.org/ebooks/32370#Page_7",
+      ],
+      [
+        [],
+        "CHAPTER II",
+        "Diplomatic History, 8",
+        "https://www.gutenberg.org/ebooks/32370#Page_8",
+      ],
+    ]);
+    expect(units[0]?.paragraphs).toEqual([
+      '"Petersburg, *17th August, 1736*.1)',
+      '" ... I heartily wish ... that the Turks could be brought to condescend to make the first step."',
+      "1) This letter relates to the war against Turkey.",
+    ]);
+  });
+});

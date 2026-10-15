@@ -141,11 +141,14 @@ function casedFor(site: string): (line: string) => string {
   if (site.startsWith("fr.")) return sentenceCased;
   return (line) => line;
 }
-/** Wikisource's own apparatus: the text data, its notes and edit links. */
+/**
+ * A transcription's own apparatus: Wikisource's text data, notes and edit
+ * links, Project Gutenberg's licence and the list of notes.
+ */
 const APPARATUS =
-  "#textdaten, ol.references, .mw-heading, .mw-editsection, .ws-noexport, style, meta";
-/** A note's reference in the text. */
-const REFERENCE = "sup.reference";
+  "#textdaten, ol.references, .mw-heading, .mw-editsection, .ws-noexport, style, meta, .pg-boilerplate, #pg-machine-header, div.footnotes";
+/** A note's reference in the text: Wikisource's, or Project Gutenberg's. */
+const REFERENCE = "sup.reference, a.fnanchor";
 /** Elements read as a paragraph of their own. */
 const PARAGRAPHS = new Set(["p", "dd", "li"]);
 /** Elements whose text is the author's emphasis. */
@@ -160,7 +163,8 @@ function styleOf(element: Element): string {
 function isPageNumber(element: Element): boolean {
   return (
     element.classList.contains("PageNumber") ||
-    element.classList.contains("ws-pagenum")
+    element.classList.contains("ws-pagenum") ||
+    element.classList.contains("pagenum")
   );
 }
 
@@ -183,7 +187,11 @@ function isRightAligned(element: Element): boolean {
 }
 
 function turnPage(span: Element, reading: Reading): void {
-  const anchor = span.getAttribute("id") ?? "";
+  // Project Gutenberg anchors the page on a link within its number.
+  const anchor =
+    span.getAttribute("id") ??
+    span.querySelector("a[id]")?.getAttribute("id") ??
+    "";
   // A page number with no text of its own names its page by its anchor.
   const label = span.textContent.replace(/[[\]\s]/g, "");
   reading.page = {
@@ -303,9 +311,9 @@ function mathText(node: Node): string {
  * page that marks it; a note left out leaves no mark.
  */
 function noteMark(reference: Element, reading: Reading): string {
-  const id = (reference.querySelector("a")?.getAttribute("href") ?? "").slice(
-    1,
-  );
+  const link =
+    nameOf(reference) === "a" ? reference : reference.querySelector("a");
+  const id = (link?.getAttribute("href") ?? "").slice(1);
   const note = reading.notes.get(id);
   if (!note || reading.within !== "in") return "";
   reading.marked += 1;
@@ -334,6 +342,28 @@ function markNotes(heading: Element, reading: Reading): void {
   });
 }
 
+/** A printed note's text, by the id its reference points to: Wikisource's or Project Gutenberg's. */
+function noteTexts(document: Document): Array<[string, Element | null]> {
+  const wikisource = Array.from(
+    document.querySelectorAll("ol.references > li"),
+  ).map((item): [string, Element | null] => [
+    item.id,
+    item.querySelector(".reference-text"),
+  ]);
+  const gutenberg = Array.from(document.querySelectorAll("div.footnote")).map(
+    (note): [string, Element | null] => {
+      const id = note.querySelector("a[id]")?.getAttribute("id") ?? "";
+      // The note's text without its label linking back to the text.
+      const text = note.cloneNode(true);
+      text.querySelectorAll("a[href^='#FNanchor'], a[id]").forEach((link) => {
+        link.remove();
+      });
+      return [id, text];
+    },
+  );
+  return [...wikisource, ...gutenberg];
+}
+
 /** The page's printed notes, by id, but those the work leaves out. */
 function printedNotes(
   document: Document,
@@ -341,25 +371,25 @@ function printedNotes(
 ): Map<string, Element> {
   if (!work.printedNotes) return new Map();
   return new Map(
-    Array.from(document.querySelectorAll("ol.references > li")).flatMap(
-      (item) => {
-        const text = item.querySelector(".reference-text");
-        const opening = spaced(
-          text?.textContent ?? "",
-          work.site ?? DEFAULT_SITE,
-        );
-        const skipped = (work.skipNotes ?? []).some((skip) =>
-          opening.startsWith(skip),
-        );
-        return text && !skipped ? [[item.id, text] as const] : [];
-      },
-    ),
+    noteTexts(document).flatMap(([id, text]) => {
+      const opening = spaced(
+        text?.textContent ?? "",
+        work.site ?? DEFAULT_SITE,
+      );
+      const skipped = (work.skipNotes ?? []).some((skip) =>
+        opening.startsWith(skip),
+      );
+      return text && !skipped ? [[id, text] as const] : [];
+    }),
   );
 }
 
 /** A block's spacing evened; French keeps its space before ; : ! ? as printed. */
 function spaced(text: string, site: string): string {
-  const tight = site.startsWith("fr.") ? /\s+([,.)])/g : /\s+([,.;:!?)])/g;
+  // An ellipsis keeps the space it was set with.
+  const tight = site.startsWith("fr.")
+    ? /\s+([,)]|\.(?!\.))/g
+    : /\s+([,;:!?)]|\.(?!\.))/g;
   return mergedEmphasis(text).replace(/\s+/g, " ").replace(tight, "$1").trim();
 }
 
@@ -527,6 +557,9 @@ function headingOf(block: Element, reading: Reading): string | null {
   return kept.length > 0 ? casedFor(reading.site)(kept.join(" ")) : null;
 }
 
+/** A line that numbers a part: § 1, No. 1., N° 1. */
+const NUMBERED = /^(?:§|(?:No|Nr)\.\s*\d|N°\s*\d)/iu;
+
 /** Elements set as blocks of their own, not within a line. */
 const BLOCKS = new Set([
   "div",
@@ -636,7 +669,13 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
     return;
   }
   const name = nameOf(node);
-  if (PARAGRAPHS.has(name) || (name === "div" && isRightAligned(node))) {
+  // A paragraph set centred is a line like any other centred.
+  const centred =
+    name === "center" || ((name === "div" || name === "p") && isCentred(node));
+  if (
+    (PARAGRAPHS.has(name) && !centred) ||
+    (name === "div" && isRightAligned(node))
+  ) {
     addParagraph(node, reading);
     return;
   }
@@ -656,10 +695,7 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
     return;
   }
   // A centred table is the text's, not a heading.
-  if (
-    (name === "center" || (name === "div" && isCentred(node))) &&
-    !node.querySelector("table")
-  ) {
+  if (centred && !node.querySelector("table")) {
     const parts = partedByRules(node);
     if (parts.length > 1) {
       parts.forEach((part) => {
@@ -693,8 +729,9 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
       openHead(node, chapter.level + 1, reading, work);
       return;
     }
-    // A chapter's title may go on below its heading, its number above it.
-    if (chapter && reading.titling && !title.startsWith("§")) {
+    // A chapter's title may go on below its heading, its number above it;
+    // a line that numbers a part of it (§ 1, No. 1.) opens that part.
+    if (chapter && reading.titling && !NUMBERED.test(title)) {
       chapter.printed = `${chapter.printed}. ${blockText(node, reading)}`;
       chapter.section.titles = [
         ...chapter.section.titles.slice(0, -1),
@@ -759,6 +796,8 @@ export interface WikisourcePage {
   /** The page's title: The Civil War in France (1871)/Chapter 1. */
   page: string;
   html: string;
+  /** Where the page is read, if not on Wikisource: a Project Gutenberg ebook. */
+  url?: string;
 }
 
 /**
@@ -800,7 +839,7 @@ export function parseWikisourcePages(
       notes: new Map(),
       marked: 0,
     };
-    pages.forEach(({ page, html }) => {
+    pages.forEach(({ page, html, url }) => {
       document.body.innerHTML = html;
       // Each page numbers its own notes.
       reading.notes = printedNotes(document, work);
@@ -812,7 +851,10 @@ export function parseWikisourcePages(
       document.querySelectorAll(APPARATUS).forEach((element) => {
         element.remove();
       });
-      reading.page = { ...reading.page, url: wikisourcePageUrl(page, site) };
+      reading.page = {
+        ...reading.page,
+        url: url ?? wikisourcePageUrl(page, site),
+      };
       visit(document.body, reading, work);
     });
     const kept = reading.sections.filter(

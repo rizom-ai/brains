@@ -376,11 +376,54 @@ const megaEtxBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
+/** A work transcribed by Project Gutenberg, read from the ebook's HTML as a Wikisource page is. */
+const gutenbergBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      ebook: z.ZodNumber;
+      citation: z.ZodString;
+      title: z.ZodString;
+      edition: z.ZodString;
+      skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      from: z.ZodOptional<z.ZodString>;
+      until: z.ZodOptional<z.ZodString>;
+      textHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      omitHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      printedNotes: z.ZodDefault<z.ZodBoolean>;
+      skipNotes: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The ebook's number at Project Gutenberg: 32370. */
+  ebook: z.number().int().positive(),
+  /** How a citation names the work before its page: Diplomatic History, 7. */
+  citation: z.string().min(1),
+  title: z.string().min(1),
+  /** The printed edition the transcription follows. */
+  edition: z.string().min(1),
+  /** Headings of sections left out. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
+  /** The heading the work opens with, after the edition's front matter. */
+  from: z.string().min(1).optional(),
+  /** The heading after the work. */
+  until: z.string().min(1).optional(),
+  /** Centred lines that are the text's own, not headings. */
+  textHeadings: z.array(z.string().min(1)).default([]),
+  /** Centred lines an editor set, neither heading nor text: left out. */
+  omitHeadings: z.array(z.string().min(1)).default([]),
+  /** The ebook's footnotes are the printed book's. */
+  printedNotes: z.boolean().default(false),
+  /** Openings of notes left out: an editor's, not the author's. */
+  skipNotes: z.array(z.string().min(1)).default([]),
+});
+
 const SOURCES = [
   "ekgwb",
   "archive-ocr",
   "dta-tei",
   "wikisource",
+  "gutenberg",
   "mega-etx",
   "mlwerke",
 ] as const;
@@ -402,6 +445,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
     ReturnType<
       typeof wikisourceBookSchema.extend<{
         source: z.ZodLiteral<"wikisource">;
+      }>
+    >,
+    ReturnType<
+      typeof gutenbergBookSchema.extend<{
+        source: z.ZodLiteral<"gutenberg">;
       }>
     >,
     ReturnType<
@@ -429,6 +477,7 @@ const bookSchema: z.ZodDiscriminatedUnion<
   archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
+  gutenbergBookSchema.extend({ source: z.literal("gutenberg") }),
   megaEtxBookSchema.extend({ source: z.literal("mega-etx") }),
   mlwerkeBookSchema.extend({ source: z.literal("mlwerke") }),
 ]);
@@ -816,6 +865,38 @@ async function loadWikisourceBook(
   };
 }
 
+/** A Project Gutenberg ebook, its HTML read as a transcription with its printed pages. */
+async function loadGutenbergBook(
+  entry: z.output<typeof gutenbergBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  const id = String(entry.ebook);
+  const source = `https://www.gutenberg.org/ebooks/${id}`;
+  const html = await fetchText(
+    `https://www.gutenberg.org/cache/epub/${id}/pg${id}-images.html`,
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "public-domain",
+      attribution: `Transcription: Project Gutenberg (ebook ${id})`,
+      source,
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: parseWikisourcePages([{ page: id, html, url: source }], {
+      ...entry,
+      page: id,
+      site: "www.gutenberg.org",
+    }),
+  };
+}
+
 async function loadMlwerkeBook(
   entry: z.output<typeof mlwerkeBookSchema>,
   fetchText: FetchText,
@@ -896,6 +977,8 @@ function loadersOf(
         return loadDtaTeiBook(entry, fetchText);
       case "wikisource":
         return loadWikisourceBook(entry, fetchText);
+      case "gutenberg":
+        return loadGutenbergBook(entry, fetchText);
       case "mega-etx":
         return loadMegaEtxBook(entry, fetchText);
       case "mlwerke":

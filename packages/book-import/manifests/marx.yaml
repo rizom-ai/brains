@@ -16,6 +16,7 @@
 # en.wikisource, the Misère de la philosophie and the Discours sur la
 # question du libre-échange from fr.wikisource's transcription of the 1896
 # Paris edition. Le Capital is the French edition Marx revised (1872–75).
+# The Secret Diplomatic History is Project Gutenberg's transcription.
 # Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
 # Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
 # of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
@@ -225,6 +226,20 @@ books:
     edition: "Marx-Engels-Werke, Band 16 (Berlin, Dietz, 1962; 6. Auflage 1975), S. 5–13"
     author: Karl Marx
     year: 1864
+    kind: work
+  - source: gutenberg
+    # Marx's Revelations of the Diplomatic History of the 18th Century, in his
+    # English, as the Free Press printed them in 1856–57 and his daughter
+    # Eleanor reprinted them in 1899; the publisher's preface is left out.
+    ebook: 32370
+    citation: Diplomatic History
+    from: Chapter I
+    printedNotes: true
+    slug: secret-diplomatic-history-of-the-eighteenth-century
+    title: Secret Diplomatic History of the Eighteenth Century
+    edition: Secret Diplomatic History of the Eighteenth Century, edited by Eleanor Marx Aveling (London, Swan Sonnenschein, 1899)
+    author: Karl Marx
+    year: 1856
     kind: work
   - source: archive-ocr
     # Marx's address to the General Council of the International (June

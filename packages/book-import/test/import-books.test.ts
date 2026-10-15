@@ -491,6 +491,66 @@ books:
   });
 });
 
+describe("importBooks from Project Gutenberg", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-gutenberg-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads an ebook's transcription, cited by its printed pages, and credits the project", async () => {
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: gutenberg
+books:
+  - ebook: 32370
+    citation: Diplomatic History
+    from: Chapter I
+    printedNotes: true
+    slug: secret-diplomatic-history-of-the-eighteenth-century
+    title: Secret Diplomatic History of the Eighteenth Century
+    edition: "Secret Diplomatic History of the Eighteenth Century (London, Swan Sonnenschein, 1899)"
+    author: Karl Marx
+    year: 1856
+    kind: work
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        return readFile(
+          join(import.meta.dir, "fixtures", "gutenberg-secret-diplomatic.html"),
+          "utf8",
+        );
+      },
+    );
+    const title = await readFile(
+      join(
+        brainData,
+        "book",
+        "secret-diplomatic-history-of-the-eighteenth-century.md",
+      ),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://www.gutenberg.org/cache/epub/32370/pg32370-images.html",
+    ]);
+    expect(results).toEqual([
+      {
+        slug: "secret-diplomatic-history-of-the-eighteenth-century",
+        entries: 3,
+      },
+    ]);
+    expect(title).toContain("Project Gutenberg");
+    expect(title).toContain("source: 'https://www.gutenberg.org/ebooks/32370'");
+  });
+});
+
 describe("importBooks from mlwerke.de", () => {
   let brainData: string;
 
