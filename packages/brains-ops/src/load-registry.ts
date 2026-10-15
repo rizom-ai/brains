@@ -95,7 +95,7 @@ export interface ResolvedPlaybooksConfig {
 
 export interface ResolvedSiteOverride {
   package: string;
-  version: string;
+  version?: string | undefined;
   theme?: string | undefined;
   themeVersion?: string | undefined;
 }

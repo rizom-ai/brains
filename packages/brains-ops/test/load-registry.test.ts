@@ -255,6 +255,29 @@ discord:
     ).toBe(true);
   });
 
+  it("takes a bundled site package without a version pin", () => {
+    const baseUser = {
+      handle: "thefourth",
+      discord: { enabled: false },
+    };
+
+    expect(
+      userSchema.safeParse({
+        ...baseUser,
+        siteOverride: { package: "@brains/site-organization" },
+      }).success,
+    ).toBe(true);
+    expect(
+      userSchema.safeParse({
+        ...baseUser,
+        siteOverride: {
+          package: "@brains/site-organization",
+          version: "0.2.0-alpha.552",
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("loads user-level ATProto identifier metadata", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
