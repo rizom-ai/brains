@@ -122,6 +122,70 @@ describe("generated artifact cards", () => {
 
     expect(card).toBeUndefined();
   });
+
+  it.each([
+    ["an empty media type", { mediaType: "", url: "/a/doc-1" }],
+    ["an empty url", { mediaType: "application/pdf", url: "" }],
+    [
+      "an empty download url",
+      { mediaType: "application/pdf", url: "/a/doc-1", downloadUrl: "" },
+    ],
+    [
+      "an empty preview url",
+      { mediaType: "application/pdf", url: "/a/doc-1", previewUrl: "" },
+    ],
+    [
+      "an empty filename",
+      { mediaType: "application/pdf", url: "/a/doc-1", filename: "" },
+    ],
+    [
+      "a negative size",
+      { mediaType: "application/pdf", url: "/a/doc-1", sizeBytes: -1 },
+    ],
+    [
+      "a malformed source",
+      {
+        mediaType: "application/pdf",
+        url: "/a/doc-1",
+        source: { entityId: 1 },
+      },
+    ],
+  ])("returns undefined for an attachment with %s", (_label, attachment) => {
+    expect(
+      buildAttachmentCardFromToolData({ documentId: "doc-1", attachment }),
+    ).toBeUndefined();
+  });
+
+  it("keeps every attachment field it knows and drops the rest", () => {
+    const card = buildAttachmentCardFromToolData({
+      documentId: "doc-1",
+      attachment: {
+        mediaType: "application/pdf",
+        url: "/a/doc-1",
+        downloadUrl: "/a/doc-1?download=1",
+        previewUrl: "/a/doc-1/preview.png",
+        filename: "report.pdf",
+        sizeBytes: 0,
+        source: { entityType: "document", extra: true },
+        extra: "ignored",
+      },
+    });
+
+    expect(card).toEqual({
+      kind: "attachment",
+      id: "attachment:doc-1",
+      title: "report.pdf",
+      attachment: {
+        mediaType: "application/pdf",
+        url: "/a/doc-1",
+        downloadUrl: "/a/doc-1?download=1",
+        previewUrl: "/a/doc-1/preview.png",
+        filename: "report.pdf",
+        sizeBytes: 0,
+        source: { entityType: "document" },
+      },
+    });
+  });
 });
 
 describe("generated artifact tool loop", () => {
