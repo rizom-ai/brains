@@ -7,8 +7,22 @@ import {
   operatorToneSchema as toneSchema,
   operatorCoordinateSchema as coordinateSchema,
 } from "./operator-view-contract";
-import { addDuplicateIssues } from "./operator-schema-refinements";
+import {
+  addDuplicateIssues,
+  type OperatorIssueContext,
+} from "./operator-schema-refinements";
 import type { RuntimeOperatorSpatialBlock } from "./operator-view-runtime-types";
+
+/** Both layouts key relationships, zones, and clusters by unique point ids. */
+function spatialPointIds(
+  context: OperatorIssueContext,
+  points: readonly { readonly id: string }[],
+): Set<string> {
+  return addDuplicateIssues(context, points, (point) => point.id, {
+    label: "Spatial point id",
+    path: ["points", "id"],
+  });
+}
 
 const spatialLegendItemSchema = z
   .object({ label: labelSchema, tone: toneSchema.optional() })
@@ -56,12 +70,7 @@ const cartesianSpatialBlockSchema = z
   })
   .strict()
   .superRefine((block, context) => {
-    const pointIds = addDuplicateIssues(
-      context,
-      block.points,
-      (point) => point.id,
-      { label: "Spatial point id", path: ["points", "id"] },
-    );
+    const pointIds = spatialPointIds(context, block.points);
     const zoneIds = addDuplicateIssues(
       context,
       block.zones,
@@ -153,12 +162,7 @@ const radialSpatialBlockSchema = z
   })
   .strict()
   .superRefine((block, context) => {
-    const pointIds = addDuplicateIssues(
-      context,
-      block.points,
-      (point) => point.id,
-      { label: "Spatial point id", path: ["points", "id"] },
-    );
+    const pointIds = spatialPointIds(context, block.points);
     for (const [index, point] of block.points.entries()) {
       for (const relatedId of point.relatedIds ?? []) {
         if (!pointIds.has(relatedId)) {
