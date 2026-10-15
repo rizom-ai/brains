@@ -480,6 +480,69 @@ describe("EntityService", (): void => {
     expect(after?.generation).toBe(before?.generation);
   });
 
+  test("skips an update whose expected content hash changes after the read", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const entity = createNote({ id: "raced-update", content: "observed" });
+    await entityService.createEntity({ entity });
+    const client = createClient({ url: entityDbUrl });
+    const stored = async (): Promise<Record<string, unknown> | undefined> =>
+      (
+        await client.execute({
+          sql: "SELECT content, contentHash FROM entities WHERE id = ?",
+          args: [entity.id],
+        })
+      ).rows[0];
+    const observedHash = (await stored())?.["contentHash"];
+    if (typeof observedHash !== "string")
+      throw new Error("Missing observed hash");
+    const journaled = (
+      await entityService.getProjectionStore().listPendingInputs()
+    ).find((input) => input.sourceId === entity.id);
+    // Admission runs between the stale-hash read and the write transaction.
+    assertMutationAdmission.mockImplementation(
+      async (input: { operation: string }) => {
+        if (input.operation !== "update") return;
+        await client.execute({
+          sql: "UPDATE entities SET content = ?, contentHash = ? WHERE id = ?",
+          args: ["raced", "raced-hash", entity.id],
+        });
+      },
+    );
+    sendEvent.mockClear();
+    enqueueJob.mockClear();
+
+    try {
+      expect(
+        await entityService.updateEntity({
+          entity: { ...entity, content: "late" },
+          options: { expectedContentHash: observedHash },
+        }),
+      ).toEqual({
+        entityId: entity.id,
+        jobId: "",
+        skipped: true,
+        skipReason: "content-conflict",
+      });
+      expect(await stored()).toEqual({
+        content: "raced",
+        contentHash: "raced-hash",
+      });
+    } finally {
+      client.close();
+    }
+    expect(
+      (await entityService.getProjectionStore().listPendingInputs()).find(
+        (input) => input.sourceId === entity.id,
+      )?.generation,
+    ).toBe(journaled?.generation);
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(enqueueJob).not.toHaveBeenCalled();
+  });
+
   test("rolls back entity persistence when dirty journaling fails", async () => {
     entityRegistry.registerEntityType(
       "note",

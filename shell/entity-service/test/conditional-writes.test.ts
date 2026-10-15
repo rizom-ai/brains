@@ -470,4 +470,31 @@ describe("atomic conditional entity writes (real SQLite)", () => {
       }),
     ).rejects.toThrow("no deduplication");
   });
+
+  test("rejects conditional replacement without a revision or with a content hash", async () => {
+    await ctx.entityService.createEntity({ entity: input });
+    const observed = await snapshot();
+    const refusals = await Promise.all(
+      [
+        { conditionalWrite: createCondition },
+        {
+          conditionalWrite: { expectedRevision: observed.revision },
+          expectedContentHash: observed.entity.contentHash,
+        },
+      ].map((options) =>
+        ctx.entityService
+          .updateEntity({
+            entity: { ...observed.entity, content: "Refused" },
+            options,
+          })
+          .then(
+            () => undefined,
+            (error: unknown) => String(error),
+          ),
+      ),
+    );
+    for (const refusal of refusals)
+      expect(refusal).toContain("Conditional replacement requires a revision");
+    expect(await snapshot()).toEqual(observed);
+  });
 });
