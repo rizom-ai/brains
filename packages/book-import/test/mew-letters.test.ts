@@ -667,6 +667,40 @@ describe("parseMewLetters, runs left out within a line", () => {
   });
 });
 
+describe("parseMewLetters, facsimiles", () => {
+  it("leaves out a page the OCR read from a facsimile, its caption with it, the letter going on after it", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="16" family="Garamond"/>
+<fontspec id="1" size="19" family="Garamond"/>
+<text top="9" left="269" width="10" height="16" font="0">3 </text>
+<text top="9" left="215" width="121" height="19" font="1">Marx an Engels </text>
+<text top="9" left="228" width="200" height="16" font="0">in Manchester [London] 9. Mai 1864 </text>
+<text top="9" left="60" width="440" height="16" font="0">Lieber Engels, ich schreibe Dir heute nur kurz, denn die Sache mit dem </text>
+</page>
+<page number="41">
+<fontspec id="0" size="16" family="Garamond"/>
+<text top="9" left="60" width="440" height="16" font="0">B«r» \u00a7 citfä V safcrs Hiesig »#* |ifn$*a fit ruaK it»rUna%. stät Wv ^ ^ 4t«. W ^ J U ^ t T ^ A^ </text>
+<text top="9" left="60" width="440" height="16" font="0">V «•/ p w ' •*„•»*»A»«»-«* # / ~ •: . i J flfc tn 0 »«* J* . y *•*»- - -V- ** - •• </text>
+<text top="9" left="60" width="300" height="16" font="0">Rückseite von Marx' Reisepaß (1861) </text>
+</page>
+<page number="42">
+<fontspec id="0" size="16" family="Garamond"/>
+<text top="9" left="60" width="440" height="16" font="0">Geld geht nicht voran, wie Du weißt, und so weiter, bis zum Schluß. </text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(xml, new Map([[40, "1864 3"]]), {
+        volume: 30,
+        file: "mew_band30",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      })[0]?.paragraphs.slice(1),
+    ).toEqual([
+      "Lieber Engels, ich schreibe Dir heute nur kurz, denn die Sache mit dem Geld geht nicht voran, wie Du weißt, und so weiter, bis zum Schluß.",
+    ]);
+  });
+});
+
 describe("parseMewLetters, a part's title", () => {
   it("closes the letter before the part's title, though the text layer measured it as the text, the notes above it left out", () => {
     const xml = `<pdf2xml><page number="40">

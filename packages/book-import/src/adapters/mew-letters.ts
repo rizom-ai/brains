@@ -288,6 +288,29 @@ function textRuns(page: Run[], body: number): Run[] {
   ).runs;
 }
 
+/** A page read from a facsimile holds this share of words and figures at most. */
+const FACSIMILE_WORDS = 0.5;
+/** Below this many words a page is too short to tell. */
+const FACSIMILE_LEAST = 15;
+
+/**
+ * Whether a page is a facsimile, a letter's page or a passport the edition
+ * shows, which the OCR read as signs: half its words are none, its caption
+ * left out with it.
+ */
+function isFacsimile(runs: Run[]): boolean {
+  const words = runs
+    .flatMap((run) => run.text.replace(/\\(?=\S)|\*/gu, "").split(/\s+/u))
+    .filter(Boolean);
+  const read = words.filter((word) =>
+    /^[„"([]*(?:\p{L}{2,}[\p{L}'’-]*|\d[\d.,]*)[.,;:!?“")\]-]*$/u.test(word),
+  );
+  return (
+    words.length >= FACSIMILE_LEAST &&
+    read.length < words.length * FACSIMILE_WORDS
+  );
+}
+
 /**
  * The PDF's pages as lines of text: the runs of each line in reading order,
  * superscript marks and the notes at the foot left out. A run that starts
@@ -315,6 +338,7 @@ function linesOf(xml: string): Line[] {
       size: sizes.get(match[3] ?? "") ?? 0,
       text: runText(match[4] ?? ""),
     }));
+    if (isFacsimile(runs)) return [];
     const body = bodySize(runs);
     const kept = textRuns(runs, body);
     const lines = kept.reduce<Array<Omit<Line, "margin">>>((done, run) => {
