@@ -26385,6 +26385,57 @@ mew_band29:
       Cavalry | 3826
       Von der Artillery kömmt im Monat October nur 100 Mann an in Kalkutta. Ihre eigentlichen arrivals beginnen von November 15. Die erste Kavallerie kömmt an 10. November.
     by: scan
+  - page: 200
+    from: Funded Debt
+    through: 1705 Mill.
+    to: |-
+      *Funded Debt*
+      Louis-Philippe (18 Jahre)
+      Jahre | Mill. fcs.
+      1831 | 162½
+      1832 | 150
+      1841 | 187½
+      1844 | 325
+      1847 | 87½
+      Total | 912½
+      Average für 18 Jahre: | 50
+      Bonaparte (6 Jahre 1852-57)
+      Jahre | Mill. fcs.
+      Decree of April 1852 | 100
+      March 1853 | 250
+      December 1854 | 500
+      July 1855 | 750
+      August 1855 (Filiated vom excess der subscription) | 31¼
+      1857 (Bank of France Coin) | 100
+      Total | 1 731 250 000
+      Average für 6 Jahre: Near | 300
+      *Floating Debt*
+      | Mill. fcs.
+      Louis-Phil[ippe] about | 1000
+      Republik Ende 1851 nur noch | 700
+      Bonaparte Addition
+      | Mill. fcs.
+      1852 | 50
+      53 | 262¼
+      54 | 205¾
+      55 | 152¼
+      56-57 | 335⅛
+      Total | 1005 und fraction
+      Addition von Zeit der Republik | 700
+      | 1705 Mill.
+    by: scan
+  - page: 405
+    from: Amicus Engels Senior
+    through: cp(3ovelv
+    to: |-
+      Amicus Engels Senior, amicus Ermen (Gotofredus!), sed magis amicum τὸ φρονεῖν
+      „φεῦ, φεῦ, φρονεῖν ὡς δεινόν, ἔνθα μὴ τέλη λύει φρονοῦντι“.
+    by: scan
+  - page: 405
+    from: rotg
+    through: ö'etpv
+    to: „ἐν τοῖς κέρδεσι μόνον δέδορκε, τὴν τέχνην δ' ἔφυ τυφλός“.
+    by: scan
   - page: 341
     from: Berechnung für 20 £ am 19. Mai.
     through: „ - 10 „
@@ -26437,6 +26488,14 @@ mew_band29:
       *Lina Schöler* | „ 9 —
       *Schapper* | „ 4 —
       *Pfandhaus* | „ 30 —
+    by: scan
+mew_band31:
+  - page: 166
+    from: sprechenden Teil der Kurve selbst
+    through: den in der Operation.
+    to: |-
+      sprechenden Teil der Kurve selbst. Ich kann also mnR als ein Δ (Dreieck) betrachten, und die Δ mnR und mTP sind ähnliche Dreiecke. Daher: dy (= nR) : dx (= mR) = y (mP) : PT (welches die Subtangente der Tangente Tm ist). Also ist die Subtangente PT = y dx/dy. Dies ist nun die *allgemeine Differentialgleichung* für alle Tangen[ten]punkte *aller* Kurven. Soll ich nun mit dieser Gleichung weiteroperieren und dadurch die Größe der Subtangente PT bestimmen (habe ich diese, so brauche ich bloß die Punkte T und m durch eine grade Linie zu verbinden, um die Tangente zu haben), so muß ich wissen, welches der *spezifische Charakter* der Kurve [ist]. Ihrem Charakter gemäß (als Parabole, Ellipse, Zissoide usw.) hat sie eine *bestimmte allgemeine Gleichung* für ihre Ordinate und Abszisse von jedem Punkt, die man aus der algebraischen Geometrie kennt. Ist also z.B. die Kurve mAo eine Parabole, so weiß ich, daß y² (y = die Ordinate von jedem beliebigen Punkt) = ax, wo a der Parameter der Parabole und x die der Ordinate y entsprechende Abszisse.
+      Setze ich diesen Wert von y in die Gleichung PT = y dx/dy, so muß ich also zunächst suchen dy, d.h. den Differential von y (den Ausdruck, den y in seinem unendlich kleinen Wachstum annimmt) zu finden. Ist y² = ax, so weiß ich aus dem Differentialkalkül, daß d(y²) = d(ax) (ich muß natürlich beide Seiten der Gleichung differenzieren) ergibt 2y dy = a dx (d heißt immer Differential). Also dx = 2y dy/a. Setze ich diesen Wert von dx in die Formel PT = y dx/dy, so erhalte ich PT = 2y² dy/(a dy) = 2y²/a = (da y² = ax) 2ax/a = 2x. Oder die Subtangente jedes Punktes m in der Parabole = der doppelten Abszisse vom selben Punkt. Die Differentialgrößen verschwinden in der Operation.
     by: scan
 mew_band34:
   - page: 10
