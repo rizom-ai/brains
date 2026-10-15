@@ -39,7 +39,9 @@ export interface IFileOperations {
 export interface IDirectorySync {
   initialize(): Promise<void>;
   initializeDirectory(): Promise<void>;
-  setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void;
+  setJobQueueCallback(
+    callback: (job: JobRequest) => Promise<string | undefined>,
+  ): void;
   sync(): Promise<{
     export: ExportResult;
     import: ImportResult;
