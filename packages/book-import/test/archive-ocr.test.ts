@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   pageText,
   parseArchiveOcrWork,
+  workPages,
   printedPageNumbers,
   type LeafReading,
 } from "../src/adapters/archive-ocr";
@@ -858,6 +859,67 @@ describe("parseArchiveOcrWork on front matter", () => {
     expect(units[1]?.paragraphs).toEqual([
       "Daß es von diesem Buche zur zweiten Auflage kommen würde, verdanke ich nicht dem Interesse der Fachkreise.",
     ]);
+  });
+
+  it("opens a heading the manifest names on a roman page", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        citation: "GW II/III",
+        firstPage: "V",
+        lastPage: "VI",
+        headings: [{ page: "VI", opens: "Der Traum ist das erste Glied" }],
+      },
+    );
+
+    expect(units.map((unit) => unit.section)).toEqual([
+      "GW II/III, V",
+      "GW II/III, VI",
+    ]);
+  });
+
+  it("ends a work within the front matter at a roman page", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        citation: "GW II/III",
+        firstPage: "V",
+        lastPage: "VI",
+      },
+    );
+
+    expect(units.map((unit) => [unit.title, unit.section])).toEqual([
+      ["Vorbemerkung", "GW II/III, V"],
+    ]);
+  });
+});
+
+describe("workPages", () => {
+  it("lists a work's printed pages in reading order, the front matter's by their roman numbers", async () => {
+    const hocr = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+      "utf8",
+    );
+
+    expect(
+      workPages(hocr, { firstPage: "V", lastPage: 3, skipPages: [2] }),
+    ).toEqual(["V", "VI", "VII", 1, 3]);
+    expect(
+      workPages(hocr, { firstPage: "V", lastPage: "VI", skipPages: [] }),
+    ).toEqual(["V", "VI"]);
+    expect(pageText(hocr, "V")).toContain(
+      "Indem ich hier die Darstellung der Traumdeutung versuche",
+    );
   });
 });
 

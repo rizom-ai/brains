@@ -5,7 +5,11 @@ import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
 import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
-import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
+import {
+  DEFAULT_SITE,
+  parseWikisourcePage,
+  wikisourcePageUrl,
+} from "./adapters/wikisource";
 import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
   frakturRead,
@@ -118,7 +122,7 @@ const archiveOcrBookSchema: z.ZodObject<
       ocr: z.ZodOptional<z.ZodString>;
       binarise: z.ZodDefault<z.ZodBoolean>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
-      lastPage: z.ZodNumber;
+      lastPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       title: z.ZodString;
       edition: z.ZodString;
       skipPages: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
@@ -150,7 +154,7 @@ const archiveOcrBookSchema: z.ZodObject<
   binarise: z.boolean().default(false),
   /** The work's printed pages in the volume. */
   firstPage: printedPageSchema,
-  lastPage: z.number().int().positive(),
+  lastPage: printedPageSchema,
   title: z.string().min(1),
   /** The printed edition the scan reproduces. */
   edition: z.string().min(1),
@@ -250,12 +254,30 @@ const wikisourceBookSchema: z.ZodObject<
       title: z.ZodString;
       edition: z.ZodString;
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      site: z.ZodDefault<z.ZodString>;
+      from: z.ZodOptional<z.ZodString>;
+      until: z.ZodOptional<z.ZodString>;
+      textHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      printedNotes: z.ZodDefault<z.ZodBoolean>;
+      skipNotes: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
   >
 > = z.object({
   ...bookFields,
-  /** The work's page title on de.wikisource.org: Zur Judenfrage. */
+  /** The work's page title on its Wikisource: Zur Judenfrage. */
   page: z.string().min(1),
+  /** The Wikisource the work is on. */
+  site: z.string().min(1).default(DEFAULT_SITE),
+  /** The heading the work opens with, where the page holds an edition's front matter before it. */
+  from: z.string().min(1).optional(),
+  /** The heading after the work, where the page goes on with others. */
+  until: z.string().min(1).optional(),
+  /** Centred lines that are the text's own, such as a motto, not headings. */
+  textHeadings: z.array(z.string().min(1)).default([]),
+  /** The page's references are the printed book's notes, not Wikisource's own. */
+  printedNotes: z.boolean().default(false),
+  /** Openings of printed notes left out: an editor's, not the author's. */
+  skipNotes: z.array(z.string().min(1)).default([]),
   /** How a citation names the work before its page: Judenfrage, 182. */
   citation: z.string().min(1),
   title: z.string().min(1),
@@ -741,8 +763,6 @@ async function loadArchiveOcrBook(
   };
 }
 
-const WIKISOURCE_API = "https://de.wikisource.org/w/api.php";
-
 const parsedPageSchema = z.object({ parse: z.object({ text: z.string() }) });
 
 async function loadWikisourceBook(
@@ -757,7 +777,9 @@ async function loadWikisourceBook(
     formatversion: "2",
   });
   const { parse } = parsedPageSchema.parse(
-    JSON.parse(await fetchText(`${WIKISOURCE_API}?${query.toString()}`)),
+    JSON.parse(
+      await fetchText(`https://${entry.site}/w/api.php?${query.toString()}`),
+    ),
   );
   return {
     book: {
@@ -768,8 +790,8 @@ async function loadWikisourceBook(
       kind: entry.kind,
       edition: entry.edition,
       license: "public-domain",
-      attribution: "Transcription: Wikisource (de.wikisource.org)",
-      source: wikisourcePageUrl(entry.page),
+      attribution: `Transcription: Wikisource (${entry.site})`,
+      source: wikisourcePageUrl(entry.page, entry.site),
       published: entry.published,
       shortTitle: entry.shortTitle ?? null,
     },

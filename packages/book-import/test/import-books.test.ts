@@ -396,6 +396,49 @@ books:
       "source: 'https://de.wikisource.org/wiki/Ein_Briefwechsel_von_1843'",
     );
   });
+  it("reads a work from the Wikisource it is on, from its first heading to its end", async () => {
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: wikisource
+books:
+  - page: Misère de la philosophie/Texte entier
+    site: fr.wikisource.org
+    citation: Misère
+    slug: misere-de-la-philosophie
+    title: Misère de la philosophie
+    edition: "Misère de la philosophie (Paris 1896)"
+    author: Karl Marx
+    year: 1847
+    kind: work
+    from: Chapitre premier
+    until: Appendice I
+    textHeadings: ["Et propter vitam vivendi perdere causas !", "Variante."]
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        const html = await readFile(
+          join(import.meta.dir, "fixtures", "wikisource-misere.html"),
+          "utf8",
+        );
+        return JSON.stringify({ parse: { text: html } });
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "misere-de-la-philosophie.md"),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://fr.wikisource.org/w/api.php?action=parse&page=Mis%C3%A8re+de+la+philosophie%2FTexte+entier&prop=text&format=json&formatversion=2",
+    ]);
+    expect(results).toEqual([{ slug: "misere-de-la-philosophie", entries: 5 }]);
+    expect(title).toContain("Wikisource (fr.wikisource.org)");
+    expect(title).toContain(
+      "source: 'https://fr.wikisource.org/wiki/Mis%C3%A8re_de_la_philosophie%2FTexte_entier'",
+    );
+  });
 });
 
 describe("importBooks from mlwerke.de", () => {

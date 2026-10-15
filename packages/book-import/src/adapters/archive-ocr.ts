@@ -35,7 +35,7 @@ export interface ArchiveOcrWork {
   citation: string;
   /** A printed page, or a roman page of the front matter. */
   firstPage: number | string;
-  lastPage: number;
+  lastPage: number | string;
   /** Pages in the range that are not the author's, such as an editors' note. */
   skipPages?: number[];
   /** Sections to leave out by their headings, such as a piece in another language. */
@@ -1052,11 +1052,69 @@ function headingLineText(line: HeadingLine): string {
 }
 
 /** The scan leaf a printed page is on. */
-export function pageLeaf(hocr: string, printedPage: number): number {
-  const { pages, printed } = volumeOf(hocr);
-  const page = pages.find((each) => printed.get(each.leaf) === printedPage);
+export function pageLeaf(hocr: string, printedPage: number | string): number {
+  const read = volumeOf(hocr);
+  const number = printedNumber(read, printedPage);
+  const page = read.pages.find(
+    (each) => number !== null && read.printed.get(each.leaf) === number,
+  );
   if (!page) throw new Error(`No page ${printedPage}`);
   return page.leaf;
+}
+
+/** A page's number as the volume counts it, a roman page of the front matter below 1. */
+function printedNumber(read: ReadVolume, page: number | string): number | null {
+  if (typeof page === "number") return page;
+  return read.front === null
+    ? null
+    : (read.printed.get(romanValue(page) - read.front) ?? null);
+}
+
+/** A page as cited: the front matter's by its roman number. */
+function labelOf(read: ReadVolume, number: number, leaf: number): string {
+  return number < 1 && read.front !== null
+    ? roman(leaf + read.front)
+    : String(number);
+}
+
+/** The bounds of a work in its volume, and the pages it leaves out. */
+interface WorkRange {
+  firstPage: number | string;
+  lastPage: number | string;
+  skipPages?: number[];
+}
+
+/** The pages a work spans in its volume, in reading order, each with its number and label. */
+function pagesOfWork(
+  read: ReadVolume,
+  work: WorkRange,
+): Array<{ page: Page; number: number; label: string }> {
+  const numberOf = (page: number | string): number => {
+    const number = printedNumber(read, page);
+    if (number === null) throw new Error(`No page ${page}`);
+    return number;
+  };
+  const first = numberOf(work.firstPage);
+  const last = numberOf(work.lastPage);
+  return read.pages.flatMap((page) => {
+    const number = read.printed.get(page.leaf) ?? null;
+    return number !== null &&
+      number >= first &&
+      number <= last &&
+      !(work.skipPages ?? []).includes(number)
+      ? [{ page, number, label: labelOf(read, number, page.leaf) }]
+      : [];
+  });
+}
+
+/** A work's printed pages in reading order: the front matter's by their roman numbers. */
+export function workPages(
+  hocr: string,
+  work: WorkRange,
+): Array<number | string> {
+  return pagesOfWork(volumeOf(hocr), work).map(({ number, label }) =>
+    number < 1 ? label : number,
+  );
 }
 
 /**
@@ -1065,7 +1123,7 @@ export function pageLeaf(hocr: string, printedPage: number): number {
  */
 export function pageText(
   hocr: string,
-  printedPage: number,
+  printedPage: number | string,
   corrections: OcrCorrection[] = [],
 ): string {
   const { pages, volume } = volumeOf(hocr);
@@ -2888,10 +2946,10 @@ function volumeOf(hocr: string): ReadVolume {
 /** The lines the manifest names as opening a printed page's paragraphs, if it names any there. */
 function paragraphOpeningsOn(
   work: ArchiveOcrWork,
-  page: number,
+  label: string,
 ): { paragraphOpenings?: string[] } {
   const named = (work.paragraphs ?? []).filter(
-    (line) => String(line.page) === String(page),
+    (line) => String(line.page) === label,
   );
   return named.length === 0
     ? {}
@@ -2901,10 +2959,10 @@ function paragraphOpeningsOn(
 /** The lines the manifest names as opening a printed page's notes, if it names any there. */
 function noteOpeningsOn(
   work: ArchiveOcrWork,
-  page: number,
+  label: string,
 ): { noteOpenings?: string[]; noteRunsOn?: string[] } {
   const named = (work.notes ?? []).filter(
-    (line) => String(line.page) === String(page),
+    (line) => String(line.page) === label,
   );
   return named.length === 0
     ? {}
@@ -2985,7 +3043,6 @@ export function parseArchiveOcrWork(
   options: ArchiveOcrOptions = {},
 ): BookUnit[] {
   const read = volumeOf(hocr);
-  const { pages, printed, front } = read;
   const volume = {
     ...read.volume,
     spacedNotes: work.spacedNotes === true,
@@ -2993,52 +3050,30 @@ export function parseArchiveOcrWork(
     datelined: work.datelined === true,
   };
   const { cased } = volume.spelling;
-  const labelOf = (number: number, leaf: number): string =>
-    number < 1 && front !== null ? roman(leaf + front) : String(number);
-  const firstPage =
-    typeof work.firstPage === "number"
-      ? work.firstPage
-      : front === null
-        ? null
-        : (printed.get(romanValue(work.firstPage) - front) ?? null);
-  if (firstPage === null) {
-    throw new Error(`No page ${work.firstPage} in ${work.item}`);
-  }
-  const { sections } = pages
-    .flatMap((page) => {
-      const number = printed.get(page.leaf) ?? null;
-      return number !== null &&
-        number >= firstPage &&
-        number <= work.lastPage &&
-        !(work.skipPages ?? []).includes(number)
-        ? [
-            {
-              page: (work.marginalia === true
-                ? withoutMarginalia
-                : (same: Page): Page => same)(
-                number === firstPage ? opened(page, work) : page,
-              ),
-              number,
-            },
-          ]
-        : [];
-    })
+  const { sections } = pagesOfWork(read, work)
+    .map(({ page, number, label }, index) => ({
+      page: (work.marginalia === true
+        ? withoutMarginalia
+        : (same: Page): Page => same)(index === 0 ? opened(page, work) : page),
+      number,
+      label,
+    }))
     .reduce<WorkState>(
-      (state, { page, number }) =>
+      (state, { page, number, label }) =>
         readPage(
           page,
           {
             ...volume,
             headingOpenings: (work.headings ?? [])
-              .filter((heading) => String(heading.page) === String(number))
+              .filter((heading) => String(heading.page) === label)
               .map(({ opens, numeral }) =>
                 numeral === undefined ? { opens } : { opens, numeral },
               ),
-            ...paragraphOpeningsOn(work, number),
-            ...noteOpeningsOn(work, number),
+            ...paragraphOpeningsOn(work, label),
+            ...noteOpeningsOn(work, label),
           },
           work.corrections ?? [],
-          labelOf(number, page.leaf),
+          label,
         ).reduce<WorkState>(
           (done, piece) =>
             piece.kind === "heading"
@@ -3049,7 +3084,7 @@ export function parseArchiveOcrWork(
                   {
                     page: number,
                     leaf: page.leaf,
-                    label: labelOf(number, page.leaf),
+                    label,
                   },
                   work.title,
                   work.skipHeadings ?? [],
@@ -3057,7 +3092,7 @@ export function parseArchiveOcrWork(
               : addPiece(done, piece, {
                   page: number,
                   leaf: page.leaf,
-                  label: labelOf(number, page.leaf),
+                  label,
                 }),
           state,
         ),

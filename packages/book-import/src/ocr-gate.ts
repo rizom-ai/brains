@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { pageLeaf, pageText } from "./adapters/archive-ocr";
+import { pageLeaf, pageText, workPages } from "./adapters/archive-ocr";
 import {
   firstOfEachVolume,
   parseManifest,
@@ -9,13 +9,6 @@ import {
 } from "./import-books";
 import { importerPageOcr } from "./page-ocr";
 import { createImporterFetch } from "./polite-fetch";
-
-/** The printed pages of one work in a volume. */
-export interface PageRange {
-  firstPage: number | string;
-  lastPage: number;
-  skipPages: number[];
-}
 
 /** A seed from the volume's name, so a volume is always sampled alike. */
 function seedOf(item: string): number {
@@ -41,33 +34,23 @@ function random(seed: number): () => number {
 
 /**
  * A volume's pages to check against the scan: the same draw every time,
- * from the pages its works span, in page order. Front matter cited in roman
- * is left to the works' arabic pages.
+ * from the pages its works span, the front matter's included, in the
+ * volume's order.
  */
 export function samplePages(
   item: string,
-  ranges: PageRange[],
+  pages: Array<number | string>,
   count: number,
-): number[] {
-  const pages = [
-    ...new Set(
-      ranges.flatMap((range) => {
-        const first = typeof range.firstPage === "number" ? range.firstPage : 1;
-        return Array.from(
-          { length: Math.max(0, range.lastPage - first + 1) },
-          (_, index) => first + index,
-        ).filter((page) => !range.skipPages.includes(page));
-      }),
-    ),
-  ].sort((a, b) => a - b);
-  if (pages.length <= count) return pages;
+): Array<number | string> {
+  const listed = [...new Set(pages)];
+  if (listed.length <= count) return listed;
   const next = random(seedOf(item));
-  return pages
-    .map((page) => ({ page, key: next() }))
+  return listed
+    .map((page, order) => ({ page, order, key: next() }))
     .sort((a, b) => a.key - b.key)
     .slice(0, count)
-    .map(({ page }) => page)
-    .sort((a, b) => a - b);
+    .sort((a, b) => a.order - b.order)
+    .map(({ page }) => page);
 }
 
 /** One request at a time to archive.org for the scans, as for the text. */
@@ -112,7 +95,9 @@ async function main(): Promise<void> {
     const hocr = await volumeHocr(first, fetchText, importerPageOcr(fetchText));
     const pages = samplePages(
       item,
-      books.filter((book) => book.item === item),
+      books
+        .filter((book) => book.item === item)
+        .flatMap((book) => workPages(hocr, book)),
       PAGES_PER_VOLUME,
     );
     const dir = join(outDir, item);

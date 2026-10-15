@@ -11,7 +11,9 @@
 # transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
 # right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
 # apparatus is left out. A work Marx wrote in English or French is read in
-# his own words: Value, Price and Profit from the 1899 London edition.
+# his own words: Value, Price and Profit from the 1899 London edition, the
+# Misère de la philosophie and the Discours sur la question du libre-échange
+# from fr.wikisource's transcription of the 1896 Paris edition.
 # Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
 # Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
 # of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
@@ -23,7 +25,7 @@
 source: dta-tei
 coverage:
   author: Karl Marx
-  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, MEGAdigital and Wikisource or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps: []
 books:
@@ -735,31 +737,55 @@ books:
     kind: work
   - source: archive-ocr
     item: ldpd_14861084_000
-    citation: Elend
+    citation: Proudhon
     firstPage: XXVI
-    lastPage: 209
-    # Engels' notes, signed F. E. or speaking of Marx, and the translators'.
-    skipNotes:
-      - { page: 21, opens: "*) Ricärdo bestimmt" }
-      - { page: 26, opens: "*) Der Satz, dass der" }
-      - { page: 26, opens: "1844) und in der" }
-      - { page: 62, opens: "*) Wie jede andere Theorie" }
-      - { page: 69, opens: "*) Titre heisst" }
-      - { page: 103, opens: "*) Dies war vollkommen" }
-      - { page: 177, opens: "*) Das heisst: die damaligen" }
-      - { page: 181, opens: "*) Stände hier im historischen" }
-    # MEW 4 and 16, Dietz 1972 and 1962, as mlwerke.de published them.
+    lastPage: XXXVI
+    # MEW 16, Dietz 1962, as mlwerke.de published it.
     references:
       - https://web.archive.org/web/20030511031035id_/http://www.mlwerke.de:80/me/me16/me16_025.htm
-      - https://web.archive.org/web/20010222180609id_/http://www.mlwerke.de:80/me/me04/me04_065.htm
-      - https://web.archive.org/web/20010118055500id_/http://www.mlwerke.de:80/me/me04/me04_125.htm
-      - https://web.archive.org/web/20000602120617id_/http://www.mlwerke.de:80/me/me04/me04_444.htm
-    slug: das-elend-der-philosophie
-    title: Das Elend der Philosophie. Antwort auf Proudhons „Philosophie des Elends“
-    shortTitle: Das Elend der Philosophie
-    edition: Das Elend der Philosophie. Antwort auf Proudhons „Philosophie des Elends“, deutsch von E. Bernstein und K. Kautsky (Stuttgart, J. H. W. Dietz, 1885), with Marx's letter Über P.-J. Proudhon (1865) and his speech on free trade (1848)
+    slug: ueber-p-j-proudhon
+    title: Ueber P.-J. Proudhon
+    edition: Der Social-Demokrat Nr. 16–18 (Berlin, 1865), as reprinted in Das Elend der Philosophie (Stuttgart, J. H. W. Dietz, 1885), S. XXVI–XXXVI
+    author: Karl Marx
+    year: 1865
+    kind: work
+  # Marx wrote the Misère in French; the 1896 edition follows the first
+  # (Paris and Brussels, 1847) with the corrections in Marx's own copy.
+  - source: wikisource
+    page: Misère de la philosophie/Texte entier
+    site: fr.wikisource.org
+    citation: Misère
+    from: Avant-propos
+    until: Fin
+    textHeadings: [Et propter vitam vivendi perdere causas !, Variante.]
+    printedNotes: true
+    slug: misere-de-la-philosophie
+    title: Misère de la philosophie. Réponse à la Philosophie de la misère de M. Proudhon
+    shortTitle: Misère de la philosophie
+    edition: Misère de la philosophie. Réponse à la Philosophie de la misère de M. Proudhon (Paris, V. Giard & E. Brière, 1896), after the first edition (Paris, A. Frank; Bruxelles, C.-G. Vogler, 1847)
     author: Karl Marx
     year: 1847
+    kind: work
+  - source: wikisource
+    page: Misère de la philosophie/Texte entier
+    site: fr.wikisource.org
+    citation: Libre-échange
+    from: Discours
+    until: Table des matières
+    # The brochure's title page, set as text.
+    textHeadings:
+      - Prononcé
+      - À l’Association démocratique de Bruxelles
+      - Dans la séance publique du 9 janvier 1848
+      - Par Karl Marx
+      - (Imprimé aux frais de l’Association démocratique
+    printedNotes: true
+    skipNotes: [Le discours de Marx sur le libre échange]
+    slug: discours-sur-la-question-du-libre-echange
+    title: Discours sur la question du libre-échange
+    edition: Discours sur la question du libre-échange (Bruxelles, 1848), as reprinted in Misère de la philosophie (Paris, V. Giard & E. Brière, 1896)
+    author: Karl Marx
+    year: 1848
     kind: work
   - source: archive-ocr
     item: theorienberden01marxuoft

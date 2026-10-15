@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { Window } from "happy-dom";
-import { pageText } from "./adapters/archive-ocr";
+import { pageText, workPages } from "./adapters/archive-ocr";
 import {
   readCorrectionsBeside,
   writeCorrectionsBeside,
@@ -547,19 +547,6 @@ const SPELLED = /^\p{Lu}?\p{Ll}+$/u;
 /** The plan's OCR gate: fewer than one wrong word in this many. */
 const GATE = 200;
 
-/** A scanned book's arabic pages, without those its manifest leaves out. */
-function pagesOfBook(book: {
-  firstPage: number | string;
-  lastPage: number;
-  skipPages: number[];
-}): number[] {
-  const first = typeof book.firstPage === "number" ? book.firstPage : 1;
-  return Array.from(
-    { length: Math.max(0, book.lastPage - first + 1) },
-    (_, index) => first + index,
-  ).filter((page) => !book.skipPages.includes(page));
-}
-
 const USAGE =
   "Usage: bun packages/book-import/src/check-ocr.ts <manifest.yaml> [--correct] [--show] [--dictionary=<hunspell dictionary>]";
 
@@ -620,7 +607,7 @@ async function main(): Promise<void> {
     ),
   );
   const textOf = (book: (typeof books)[number]): PageOfText[] =>
-    pagesOfBook(book).flatMap((page) => {
+    workPages(hocrs.get(book.item) ?? "", book).flatMap((page) => {
       try {
         return [
           {
