@@ -24,6 +24,9 @@ import { OperationContext } from "@brains/operation-context";
 export class MessageBus implements IMessageBus {
   private readonly registry = new HandlerRegistry();
   private readonly publisher: MessagePublisher;
+  /** Observers of peer events, a subset of the subscribers above. */
+  private readonly peerRegistry = new HandlerRegistry();
+  private readonly peerPublisher: MessagePublisher;
   private readonly logger: Logger;
   private readonly operationContext: OperationContext;
 
@@ -38,6 +41,7 @@ export class MessageBus implements IMessageBus {
     this.logger = logger;
     this.operationContext = operationContext ?? OperationContext.createFresh();
     this.publisher = new MessagePublisher(this.registry, logger);
+    this.peerPublisher = new MessagePublisher(this.peerRegistry, logger);
   }
 
   /**
@@ -59,6 +63,25 @@ export class MessageBus implements IMessageBus {
     return () => {
       this.registry.remove(type, entry);
     };
+  }
+
+  observe<T = unknown, R = unknown>(
+    type: string,
+    handler: MessageHandler<T, R>,
+  ): () => void {
+    const unsubscribe = this.subscribe(type, handler);
+    const entry = this.peerRegistry.add(type, handler);
+    return () => {
+      unsubscribe();
+      this.peerRegistry.remove(type, entry);
+    };
+  }
+
+  async deliverPeer<T = unknown>(type: string, payload: T): Promise<void> {
+    await this.peerPublisher.publish(
+      createMessage(type, payload, "peer"),
+      true,
+    );
   }
 
   /**

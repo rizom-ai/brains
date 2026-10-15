@@ -96,6 +96,17 @@ export interface IMessagingNamespace {
     channel: string,
     handler: MessageHandler<T, R>,
   ) => () => void;
+
+  /**
+   * Follow a channel in this process and in the runtime's other processes,
+   * for caches and views: changes another process made arrive too. Never for
+   * work, which each process triggers for its own changes. A worker serves no
+   * views, so it observes nothing.
+   */
+  observe: <T = unknown, R = unknown>(
+    channel: string,
+    handler: MessageHandler<T, R>,
+  ) => () => void;
 }
 
 /**

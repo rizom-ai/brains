@@ -85,8 +85,10 @@ function subscribeToEntityCacheInvalidation(
     ENTITY_CHANNELS.deleted,
   ] as const;
 
+  // Observed, not subscribed: the identity follows writes from the runtime's
+  // other process too, such as content the worker syncs from git.
   return events.map((event) =>
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+    messageBus.observe<{ entityType: string; entityId: string }, void>(
       event,
       async (message) => {
         if (

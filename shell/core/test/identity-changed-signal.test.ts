@@ -52,6 +52,19 @@ describe("identity changed signal", () => {
     expect(seen).toEqual(["Taeke", "Taeke", "Taeke"]);
   });
 
+  it("follows a change the other process of the runtime made", async () => {
+    const { messageBus, seen } = observeIdentitySignal();
+
+    // Content synced from git is written by the worker; the web process
+    // learns of it as a relayed peer event.
+    await messageBus.deliverPeer(ENTITY_CHANNELS.updated, {
+      entityType: "anchor-profile",
+      entityId: "anchor-profile",
+    });
+
+    expect(seen).toEqual(["Taeke"]);
+  });
+
   it("stays quiet for other entity types", async () => {
     const { messageBus, seen } = observeIdentitySignal();
 

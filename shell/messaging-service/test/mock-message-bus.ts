@@ -51,6 +51,10 @@ export function createMockMessageBus(
 
   return {
     subscribe: genericSpy<IMessageBus["subscribe"]>(mock(() => mock(() => {}))),
+    observe: genericSpy<IMessageBus["observe"]>(mock(() => mock(() => {}))),
+    deliverPeer: genericSpy<IMessageBus["deliverPeer"]>(
+      mock(() => Promise.resolve()),
+    ),
     unsubscribe: mock(() => {}),
     send: genericSpy<IMessageBus["send"]>(
       mock(() => Promise.resolve(defaultSendResult)),
