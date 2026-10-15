@@ -121,6 +121,10 @@ export interface EntityMutationDeps {
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
   embeddingsEnabled: boolean;
+  /** Retries refused embedding enqueues; see EmbeddingIndexCoordinator. */
+  embeddingRetries?: ConstructorParameters<
+    typeof EmbeddingIndexCoordinator
+  >[0]["retries"];
 }
 
 /**
@@ -161,6 +165,7 @@ export class EntityMutations {
       jobQueueService: deps.jobQueueService,
       logger: this.logger,
       embeddingsEnabled: deps.embeddingsEnabled,
+      retries: deps.embeddingRetries,
     });
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;

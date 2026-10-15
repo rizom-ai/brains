@@ -210,6 +210,27 @@ describe("RetryScope", () => {
     });
   });
 
+  it("cancels the pending retry under a key", async () => {
+    await withTestClock(async (clock) => {
+      const scope = new RetryScope({ clock, logger: quiet });
+      const { attempt, ranAt } = refusing(clock, 0);
+      const outcome = scope.retry(
+        attempt,
+        new Error("first"),
+        "queue a job",
+        "job",
+      );
+
+      scope.cancel("job");
+      scope.cancel("unknown");
+      await advance(clock, 10_000);
+
+      expect(await outcome).toEqual({ kind: "stopped" });
+      expect(ranAt).toEqual([]);
+      await scope.dispose();
+    });
+  });
+
   it("stops every retry it owns when disposed, and admits none after", async () => {
     await withTestClock(async (clock) => {
       const scope = new RetryScope({

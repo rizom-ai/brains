@@ -380,15 +380,14 @@ describe("atomic conditional entity writes (real SQLite)", () => {
   );
 
   test("a retry after acknowledgement loss and restart conflicts instead of undoing a later edit", async () => {
-    const enqueue = spyOn(ctx.jobQueueService, "enqueue").mockRejectedValueOnce(
-      new Error("acknowledgement lost"),
-    );
-    expect(
-      ctx.entityService.createEntity({
-        entity: input,
-        options: { conditionalWrite: createCondition },
-      }),
-    ).rejects.toThrow("acknowledgement lost");
+    const enqueue = spyOn(ctx.jobQueueService, "enqueue");
+    // The write commits but its acknowledgement never reaches the caller. (A
+    // refused embedding enqueue no longer stands in for that loss: it is
+    // retried in the background and the write resolves.)
+    await ctx.entityService.createEntity({
+      entity: input,
+      options: { conditionalWrite: createCondition },
+    });
     const saved = await snapshot();
     await ctx.entityService.updateEntity({
       entity: { ...saved.entity, content: "Editor wins" },

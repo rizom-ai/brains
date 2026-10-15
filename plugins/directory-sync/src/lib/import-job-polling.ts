@@ -26,8 +26,15 @@ interface ImportJobPollingOptions {
 
 /** Await import jobs on one deterministic, non-overlapping schedule. @internal */
 export async function waitForImportJobs(
-  options: ImportJobPollingOptions,
+  pollingOptions: ImportJobPollingOptions,
 ): Promise<void> {
+  // An import that queued no job (indexing disabled, a type that is not
+  // embeddable, or an embedding enqueue the queue refused and is retrying in
+  // the background) reports an empty id: there is nothing to wait for.
+  const options = {
+    ...pollingOptions,
+    jobIds: pollingOptions.jobIds.filter((id) => id !== ""),
+  };
   if (options.jobIds.length === 0) return;
 
   const maxWaitMs = options.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;

@@ -177,6 +177,12 @@ export class RetryScope {
     }
   }
 
+  /** Stop the pending retry under `key`, as when newer work replaced it. */
+  cancel(key: string): void {
+    this.keyed.get(key)?.abort();
+    this.keyed.delete(key);
+  }
+
   async dispose(): Promise<void> {
     this.controller.abort();
     await Promise.all([...this.running]);
