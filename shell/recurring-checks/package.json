@@ -13,6 +13,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@libsql/client": "^0.17.4",
     "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
   },
