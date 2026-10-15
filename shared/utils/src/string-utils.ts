@@ -119,6 +119,24 @@ export function generateIdFromText(text: string, suffix?: string): string {
 }
 
 /**
+ * Normalize a free-form tag conservatively: trim, lowercase, and turn runs
+ * of whitespace or underscores into a single hyphen. Other characters stay.
+ */
+export function normalizeTag(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+}
+
+/**
+ * Normalize tags and drop empties and duplicates, keeping first-seen order.
+ */
+export function normalizeTags(raw: string[]): string[] {
+  return Array.from(new Set(raw.map(normalizeTag).filter(Boolean)));
+}
+
+/**
  * Words that don't change form in plural
  */
 const INVARIANT_WORDS = new Set(["series", "species", "sheep", "deer", "fish"]);

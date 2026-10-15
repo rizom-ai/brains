@@ -26,6 +26,7 @@ import {
 } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
 import type { DashboardWidgetRegistration, Plugin } from "@brains/plugins";
+import { AgentAdapter } from "../src/adapters/agent-adapter";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
@@ -1299,6 +1300,58 @@ describe("AgentDiscoveryPlugin", () => {
     expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T13:00:00.000Z");
     expect(after?.metadata.cardLastError).toContain("deleted");
     expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
+
+    await harness.reset();
+  });
+
+  it("keeps the stale deadline when a later unavailable event carries none", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_UNAVAILABLE,
+      {
+        repoDid: "did:plc:peer",
+        observedAt: "2026-07-22T13:00:00.000Z",
+        staleAfter: "2026-07-23T13:00:00.000Z",
+        reason: "deleted",
+      },
+      "atproto",
+    );
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_UNAVAILABLE,
+      {
+        repoDid: "did:plc:peer",
+        observedAt: "2026-07-22T14:00:00.000Z",
+        reason: "refresh-failed",
+      },
+      "atproto",
+    );
+
+    const after = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
+    expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T14:00:00.000Z");
+    expect(after?.metadata.cardLastError).toContain("refresh failed");
+    expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
+    expect(after?.content).toContain(
+      "cardStaleAfter: '2026-07-23T13:00:00.000Z'",
+    );
+    // The handler writes the kept deadline itself, in its schema position,
+    // rather than leaving the metadata overlay to append it at the end.
+    if (!after) throw new Error("Expected unavailable agent");
+    const adapter = new AgentAdapter();
+    expect(after.content).toBe(
+      adapter.rewriteAgentContent(adapter.parseEntity(after)),
+    );
 
     await harness.reset();
   });

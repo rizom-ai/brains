@@ -93,9 +93,7 @@ export class AgentSightingsInboxSource implements InboxSource {
     const parsed = parseSighting(entity);
     if (!parsed) throw new Error("Agent sighting not found");
     const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    const content = agentAdapter.createAgentContent({
-      ...parsed.frontmatter,
-      ...parsed.body,
+    const content = agentAdapter.rewriteAgentContent(parsed, {
       status,
       ...(status === "approved"
         ? { introducedBy: undefined, hops: undefined }

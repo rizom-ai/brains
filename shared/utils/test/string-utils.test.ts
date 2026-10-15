@@ -4,6 +4,8 @@ import {
   generateIdFromText,
   pluralize,
   toDisplayName,
+  normalizeTag,
+  normalizeTags,
 } from "../src/string-utils";
 
 describe("string-utils", () => {
@@ -169,6 +171,31 @@ describe("string-utils", () => {
     it("should only pluralize the last word", () => {
       expect(toDisplayName("anchor-profile")).toBe("Anchor Profiles");
       expect(toDisplayName("brain-character")).toBe("Brain Characters");
+    });
+  });
+
+  describe("normalizeTag", () => {
+    it("should trim, lowercase, and hyphenate spaces and underscores", () => {
+      expect(normalizeTag("  Academic Research  ")).toBe("academic-research");
+      expect(normalizeTag("data_analysis")).toBe("data-analysis");
+      expect(normalizeTag("Machine \t Learning")).toBe("machine-learning");
+    });
+
+    it("should keep other punctuation as written", () => {
+      expect(normalizeTag("C++")).toBe("c++");
+      expect(normalizeTag("ai/ml")).toBe("ai/ml");
+    });
+  });
+
+  describe("normalizeTags", () => {
+    it("should dedupe after normalizing, keeping first-seen order", () => {
+      expect(
+        normalizeTags([" Research ", "research", "RESEARCH", "data analysis"]),
+      ).toEqual(["research", "data-analysis"]);
+    });
+
+    it("should drop tags that normalize to an empty string", () => {
+      expect(normalizeTags(["", "   ", "design"])).toEqual(["design"]);
     });
   });
 });
