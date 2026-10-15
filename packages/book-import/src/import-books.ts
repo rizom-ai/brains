@@ -1,3 +1,5 @@
+import { parseMewLetters } from "./adapters/mew-letters";
+import type { PdfReader } from "./pdf-reader";
 import { parse as parseYaml } from "yaml";
 import { bookKindSchema } from "@brains/book";
 import { z } from "@brains/utils/zod";
@@ -296,6 +298,42 @@ const wikisourceBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
+const mewLettersBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      item: z.ZodString;
+      file: z.ZodString;
+      volume: z.ZodNumber;
+      firstPage: z.ZodNumber;
+      lastPage: z.ZodNumber;
+      writer: z.ZodString;
+      from: z.ZodOptional<z.ZodNumber>;
+      to: z.ZodOptional<z.ZodNumber>;
+      title: z.ZodString;
+      edition: z.ZodString;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The archive.org item holding the volumes as PDFs: Marx_Engels_Werke_MEW. */
+  item: z.string().min(1),
+  /** The volume's PDF in the item, without its extension: mew_band30. */
+  file: z.string().min(1),
+  /** The MEW volume, which citations name: 30. */
+  volume: z.number().int().positive(),
+  /** The PDF's pages that hold the letters, the editors' apparatus after them left out. */
+  firstPage: z.number().int().positive(),
+  lastPage: z.number().int().positive(),
+  /** The writer whose letters are kept, as the letters' headings name him: Marx. */
+  writer: z.string().min(1),
+  /** The years whose letters are kept, where another source holds the rest. */
+  from: z.number().int().optional(),
+  to: z.number().int().optional(),
+  title: z.string().min(1),
+  /** The MEW volume and its printing. */
+  edition: z.string().min(1),
+});
+
 const mlwerkeBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -426,6 +464,7 @@ const SOURCES = [
   "mega-letters",
   "mega-etx",
   "mlwerke",
+  "mew-letters",
 ] as const;
 
 /** A book of the manifest, read from its source. */
@@ -467,6 +506,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
         source: z.ZodLiteral<"mlwerke">;
       }>
     >,
+    ReturnType<
+      typeof mewLettersBookSchema.extend<{
+        source: z.ZodLiteral<"mew-letters">;
+      }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
@@ -486,6 +530,7 @@ const bookSchema: z.ZodDiscriminatedUnion<
   megaLettersBookSchema.extend({ source: z.literal("mega-letters") }),
   megaEtxBookSchema.extend({ source: z.literal("mega-etx") }),
   mlwerkeBookSchema.extend({ source: z.literal("mlwerke") }),
+  mewLettersBookSchema.extend({ source: z.literal("mew-letters") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -611,6 +656,8 @@ export interface ImportOptions {
    * already rendered, so a book's structure can change without a fetch.
    */
   ekgwb?: BookReader;
+  /** Reads PDFs with a text layer, for books read from one. */
+  pdfReader?: PdfReader;
 }
 
 export interface ImportResult {
@@ -889,6 +936,38 @@ async function loadMlwerkeBook(
   };
 }
 
+const ARCHIVE_DOWNLOAD = "https://archive.org/download/";
+
+async function loadMewLettersBook(
+  entry: z.output<typeof mewLettersBookSchema>,
+  options: ImportOptions,
+): Promise<LoadedBook> {
+  if (!options.pdfReader) {
+    throw new Error(`${entry.slug}: no PDF reader given to read its volume`);
+  }
+  const read = await options.pdfReader(
+    `${ARCHIVE_DOWNLOAD}${entry.item}/${entry.file}.pdf`,
+    entry.firstPage,
+    entry.lastPage,
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "public-domain",
+      attribution: `Scan and text layer: Internet Archive (archive.org/details/${entry.item})`,
+      source: `https://archive.org/details/${entry.item}/${entry.file}`,
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: parseMewLetters(read.xml, read.heads, entry),
+  };
+}
+
 const GUTENBERG = "https://www.gutenberg.org/";
 
 async function loadGutenbergLettersBook(
@@ -1023,6 +1102,8 @@ function loadersOf(
         return loadMegaEtxBook(entry, fetchText);
       case "mlwerke":
         return loadMlwerkeBook(entry, fetchText);
+      case "mew-letters":
+        return loadMewLettersBook(entry, options);
     }
   });
 }

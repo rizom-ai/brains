@@ -3,6 +3,7 @@ import { corpusReader } from "./corpus-source";
 import { readCorrectionsBeside } from "./corrections-file";
 import { importBooks, parseManifest } from "./import-books";
 import { importerPageOcr } from "./page-ocr";
+import { importerPdfReader } from "./pdf-reader";
 import { createImporterFetch } from "./polite-fetch";
 
 const USAGE =
@@ -23,6 +24,7 @@ const fetchText = createImporterFetch();
 const results = await importBooks(manifest, brainData, fetchText, {
   corrections: await readCorrectionsBeside(manifestPath),
   pageOcr: importerPageOcr(fetchText),
+  pdfReader: importerPdfReader(fetchText),
   // A corpus the importer already rendered is a source too: restructuring
   // an eKGWB book needs no second fetch.
   ...(corpus ? { ekgwb: await corpusReader(corpus) } : {}),

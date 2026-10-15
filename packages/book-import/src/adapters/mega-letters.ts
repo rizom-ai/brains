@@ -184,7 +184,7 @@ export function isWritersLetter(heading: string, writer: string): boolean {
 }
 
 /** A letter's title: its heading without its writer, Mit for a joint one. */
-function titleOf(heading: string, writer: string): string {
+export function titleOf(heading: string, writer: string): string {
   if (heading.startsWith(`${writer} und `)) {
     return `Mit ${heading.slice(writer.length + " und ".length)}`;
   }
