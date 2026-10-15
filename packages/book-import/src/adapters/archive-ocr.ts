@@ -2591,7 +2591,12 @@ function namedByHeads(
     )
     .flatMap((leaf) => {
       const head = headsByLeaf.get(leaf);
-      return head !== undefined && sameName(head, step.name) ? [head] : [];
+      // A head set in capitals tells no more of the case than the heading.
+      return head !== undefined &&
+        /\p{Ll}/u.test(head) &&
+        sameName(head, step.name)
+        ? [head]
+        : [];
     });
   const counts = heads.reduce(
     (tally, head) => tally.set(head, (tally.get(head) ?? 0) + 1),

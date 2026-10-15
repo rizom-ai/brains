@@ -706,6 +706,21 @@ describe("parseArchiveOcrWork on headings", () => {
     ]);
   });
 
+  it("keeps a title cased as the text spells it where the running heads repeat it in capitals", async () => {
+    const hocr = (await headings())
+      .replace("Die Traumzensur 6</span>", "DIE TRAUMZENSUR 6</span>")
+      .replace(
+        /<p class='ocr_par'><span class='ocr_line'[^>]*>\(Fortsetzung\)<\/span><\/p>/u,
+        "",
+      );
+
+    expect(hocr).toContain("DIE TRAUMZENSUR 6");
+    expect(hocr).not.toContain("(Fortsetzung)");
+    expect(
+      parseArchiveOcrWork(hocr, lectures).map((unit) => unit.title),
+    ).toContain("II. Die Traumzensur");
+  });
+
   it("leaves out a section the manifest names, such as a piece in another language", async () => {
     const units = parseArchiveOcrWork(await headings(), {
       ...lectures,

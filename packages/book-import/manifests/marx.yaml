@@ -10,7 +10,8 @@
 # supersedes) come from MEGAdigital's
 # transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
 # right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
-# apparatus and Marx's English "Value, price and profit" are left out.
+# apparatus is left out. A work Marx wrote in English or French is read in
+# his own words: Value, Price and Profit from the 1899 London edition.
 # Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
 # Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
 # of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
@@ -24,10 +25,7 @@ coverage:
   author: Karl Marx
   edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
-gaps:
-  - title: Lohn, Preis und Profit
-    year: 1865
-    reason: no scan of the German edition (1908) found on the Internet Archive, which holds only a recording
+gaps: []
 books:
   - id: marx_manifestws_1848
     citation: Manifest
@@ -201,6 +199,34 @@ books:
     author: Karl Marx
     year: 1864
     kind: work
+  - source: archive-ocr
+    # Marx's address to the General Council of the International (June
+    # 1865), in his English, as his daughter Eleanor first published it in
+    # 1898; the scan is of the 1899 London edition, reprinted photographically.
+    # Edward Aveling's preface and the editors' notes are left out; the
+    # chapters are as Aveling divided and named them, the first unheaded.
+    item: valuepriceprofit0000unse
+    citation: Value, Price and Profit
+    slug: value-price-and-profit
+    title: Value, Price and Profit
+    edition: "Value, Price and Profit, edited by his daughter Eleanor Marx Aveling (London, George Allen & Unwin, 1899)"
+    author: Karl Marx
+    year: 1898
+    published: false
+    kind: work
+    firstPage: 11
+    lastPage: 94
+    references:
+      - https://www.marxists.org/archive/marx/works/1865/value-price-profit/ch01.htm
+      - https://www.marxists.org/archive/marx/works/1865/value-price-profit/ch02.htm
+      - https://www.marxists.org/archive/marx/works/1865/value-price-profit/ch03.htm
+    headings:
+      - page: 11
+        opens: PRELIMINARY
+      - page: 13
+        opens: PRODUCTION, WAGES, PROFITS
+      - page: 37
+        opens: WAGES AND PRICES
   - source: mlwerke
     # MEW 3 (1969) as mlwerke.de published it, from the Internet Archive's
     # last captures. The pages set headings and Stirner's schemas alike as
