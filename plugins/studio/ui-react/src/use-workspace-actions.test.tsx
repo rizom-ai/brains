@@ -30,6 +30,7 @@ function publishingWorkspace(
     priority: 1,
     permission: "trusted",
     entityTypes: ["post"],
+    publishesEntityTypes: true,
     ...overrides,
   };
 }

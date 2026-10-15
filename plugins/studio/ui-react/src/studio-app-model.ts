@@ -43,14 +43,14 @@ export function workspaceRailBadges(
   );
 }
 
-/** The workspace that publishes a type, when the content pipeline offers one. */
+/** The workspace the server declares as the publisher of a type, if any. */
 export function publicationWorkspaceFor(
   workspaces: StudioWorkspaceInfo[],
   entityType: string,
 ): StudioWorkspaceInfo | undefined {
   return workspaces.find(
     (workspace) =>
-      workspace.pluginId === "content-pipeline" &&
+      workspace.publishesEntityTypes === true &&
       workspace.entityTypes.includes(entityType),
   );
 }

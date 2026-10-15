@@ -8,6 +8,7 @@ import {
   deriveEditorHead,
   deriveListingHead,
   deriveStudioAppModel,
+  publicationWorkspaceFor,
 } from "./studio-app-model";
 import { systemEditorCopy } from "./studio-system-presentation";
 
@@ -714,5 +715,50 @@ describe("deriveEditorHead", () => {
       collectionLabel: "Studio",
       editorHead: { title: "Editor" },
     });
+  });
+});
+
+describe("publicationWorkspaceFor", () => {
+  const traffic = workspaceInfo({
+    id: "analytics:traffic",
+    pluginId: "analytics",
+    entityTypes: ["post"],
+  });
+
+  it("finds the workspace the server says publishes the type", () => {
+    const publishing = workspaceInfo({
+      id: "content-pipeline:publishing",
+      pluginId: "content-pipeline",
+      entityTypes: ["post"],
+      publishesEntityTypes: true,
+    });
+
+    expect(publicationWorkspaceFor([traffic, publishing], "post")?.id).toBe(
+      "content-pipeline:publishing",
+    );
+    expect(publicationWorkspaceFor([traffic, publishing], "note")).toBe(
+      undefined,
+    );
+  });
+
+  it("reads the declaration rather than the providing plugin", () => {
+    const undeclared = workspaceInfo({
+      id: "content-pipeline:publishing",
+      pluginId: "content-pipeline",
+      entityTypes: ["post"],
+    });
+    const elsewhere = workspaceInfo({
+      id: "newsroom:publishing",
+      pluginId: "newsroom",
+      entityTypes: ["post"],
+      publishesEntityTypes: true,
+    });
+
+    expect(publicationWorkspaceFor([undeclared, traffic], "post")).toBe(
+      undefined,
+    );
+    expect(publicationWorkspaceFor([elsewhere], "post")?.id).toBe(
+      "newsroom:publishing",
+    );
   });
 });

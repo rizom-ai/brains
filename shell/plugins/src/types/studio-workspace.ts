@@ -64,6 +64,8 @@ export interface StudioWorkspaceRegistration {
     | string[]
     | ((actor: StudioWorkspaceActor) => string[] | Promise<string[]>)
     | undefined;
+  /** Studio sends publication actions for the covered entity types here. */
+  publishesEntityTypes?: true | undefined;
   accessHandler: (actor: StudioWorkspaceActor) => boolean | Promise<boolean>;
   dataProvider: (
     actor: StudioWorkspaceActor,
@@ -96,6 +98,8 @@ export interface StudioWorkspaceDescriptor {
   urlQuery?: true | undefined;
   aliases?: readonly StudioWorkspaceAlias[] | undefined;
   entityTypes: string[];
+  /** Studio sends publication actions for the covered entity types here. */
+  publishesEntityTypes?: true | undefined;
   badge?: number | undefined;
 }
 

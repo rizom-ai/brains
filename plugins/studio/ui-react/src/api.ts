@@ -1,6 +1,6 @@
 import type {
   RuntimeStudioWorkspaceData,
-  UserPermissionLevel,
+  StudioWorkspaceDescriptor,
   EntityIdPath,
   EntityIdPathInput,
   EntityGroupingUsage,
@@ -27,30 +27,27 @@ import {
  */
 
 import type { StudioEntityTypeInfo } from "../../src/editor-contracts";
+import type { STUDIO_ACCOUNT_WORKSPACE_RENDERER } from "../../src/account-workspace";
+import type { STUDIO_CHAT_WORKSPACE_RENDERER } from "../../src/chat-workspace";
 
 export type { StudioTypeCapabilities } from "../../src/editor-contracts";
 export type { StudioTypeHierarchy } from "../../src/config";
 /** One entity type in Studio's type list, as the server describes it. */
 export type EntityTypeInfo = StudioEntityTypeInfo;
 
-export interface StudioWorkspaceInfo {
-  id: string;
-  pluginId: string;
-  label: string;
+/**
+ * One workspace in Studio's rail: a registered workspace's descriptor, or one
+ * of the host-owned Account and Chat workspaces.
+ */
+export interface StudioWorkspaceInfo extends Omit<
+  StudioWorkspaceDescriptor,
+  "rendererName"
+> {
   rendererName:
-    | "DeclarativeOperatorWorkspace"
-    | "StudioAccountWorkspace"
-    | "StudioChatWorkspace";
-  priority: number;
-  permission: UserPermissionLevel;
-  urlQuery?: true;
+    | StudioWorkspaceDescriptor["rendererName"]
+    | typeof STUDIO_ACCOUNT_WORKSPACE_RENDERER
+    | typeof STUDIO_CHAT_WORKSPACE_RENDERER;
   chatApiPath?: string;
-  aliases?: readonly {
-    id: string;
-    query: Readonly<Record<string, string>>;
-  }[];
-  entityTypes: string[];
-  badge?: number;
 }
 
 export interface StudioNavigation {
