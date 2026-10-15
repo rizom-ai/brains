@@ -3,6 +3,7 @@ import { unitsOfSections, type TitledSection } from "../sections";
 import type { OcrCorrection } from "./archive-ocr";
 import { emphasised, escapeMarkdown, mergedEmphasis } from "./markup";
 import { isWritersLetter, titleOf } from "./mega-letters";
+import { tableCells, tabled } from "./tables";
 
 /** A volume of the Marx-Engels-Werke's letters, as a PDF with its text layer. */
 export interface MewLetters {
@@ -47,6 +48,10 @@ interface Line {
   translated?: boolean;
   /** Its text as the runs set apart on it: a recipient's place and the dateline set beside it. */
   parts: string[];
+  /** A line a correction set opens a paragraph or a table's row. */
+  opens?: boolean;
+  /** No line goes on after it: a table's row, or a correction's line before its last. */
+  alone?: boolean;
 }
 
 /** A paragraph and the page it starts on. */
@@ -55,6 +60,8 @@ interface Block {
   page: number;
   pdfPage: number;
   label: string;
+  /** Set by a correction, a paragraph or a table's row of its own. */
+  alone?: boolean;
 }
 
 /** Superscript marks, the editors' note numbers among them, and the editors' notes at a page's foot are set this much smaller than the text at most. */
@@ -640,6 +647,38 @@ function corrected(
     if (at < 0) {
       throw new Error(`No "${correction.from}" on page ${page} to correct`);
     }
+    const through = correction.through;
+    if (through !== undefined) {
+      // A span is set anew, each line of the correction one of its own.
+      const last = done.findIndex(
+        (line, index) => index >= at && line.parts.join("\n").includes(through),
+      );
+      if (last < 0) {
+        throw new Error(`No "${through}" after page ${page} to correct`);
+      }
+      const opening = done[at];
+      const rows = correction.to
+        .split("\n")
+        .map((row) => row.trim())
+        .filter((row) => row.length > 0);
+      // Its first line goes on with the paragraph before, as the line it
+      // sets right did, and the text after its last, unless either is
+      // a table's row.
+      const set = rows.flatMap((row, index): Line[] =>
+        opening === undefined
+          ? []
+          : [
+              {
+                ...opening,
+                text: row,
+                parts: [row],
+                opens: index > 0 || tableCells(row) !== null,
+                alone: index < rows.length - 1 || tableCells(row) !== null,
+              },
+            ],
+      );
+      return [...done.slice(0, at), ...set, ...done.slice(last + 1)];
+    }
     return done.map((line, index) => {
       if (index !== at) return line;
       const parts = line.parts
@@ -804,9 +843,15 @@ export function parseMewLetters(
       if (
         last === undefined ||
         last.text === letter.dateline ||
+        line.opens === true ||
+        last.alone === true ||
         line.left > line.margin + INDENT
       ) {
-        letter.blocks.push(place(line.text));
+        letter.blocks.push(
+          line.alone === true
+            ? { ...place(line.text), alone: true }
+            : place(line.text),
+        );
       } else {
         last.text = joined(last.text, line.text);
       }
@@ -857,10 +902,12 @@ export function parseMewLetters(
         volume.writer,
       ),
     ],
-    paragraphs: letter.blocks.map((block) => ({
-      ...block,
-      text: germanQuotes(mergedEmphasis(parted(block.text))),
-    })),
+    paragraphs: tabled(
+      letter.blocks.map((block) => ({
+        ...block,
+        text: germanQuotes(mergedEmphasis(parted(block.text))),
+      })),
+    ),
     notes: [],
   }));
   return unitsOfSections(sections, (start) => ({

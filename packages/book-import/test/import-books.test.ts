@@ -1130,6 +1130,31 @@ freud-1940-gw-13:
     });
   });
 
+  it("reads a correction of a text layer's span, through its last line", () => {
+    expect(
+      parseCorrections(`
+mew_band34:
+  - page: 10
+    from: Schwefelsaures Kali
+    through: Kohlensaures Natron
+    to: |-
+      Schwefelsaures Kali | 1,2564
+      Kohlensaures Natron | 10,4593
+    by: scan
+`),
+    ).toEqual({
+      mew_band34: [
+        {
+          page: 10,
+          from: "Schwefelsaures Kali",
+          through: "Kohlensaures Natron",
+          to: "Schwefelsaures Kali | 1,2564\nKohlensaures Natron | 10,4593",
+          by: "scan",
+        },
+      ],
+    });
+  });
+
   it("credits the edition and the scan on the title entry", async () => {
     await importBooks(parseManifest(ocrManifest), brainData, fetchArchive);
     const title = await readFile(

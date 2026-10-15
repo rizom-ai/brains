@@ -572,11 +572,14 @@ const correctionSchema: z.ZodObject<{
   page: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
   from: z.ZodString;
   to: z.ZodString;
+  through: z.ZodOptional<z.ZodString>;
   by: z.ZodEnum<{ reference: "reference"; scan: "scan" }>;
 }> = z.object({
   page: z.union([z.number().int(), z.string().min(1)]),
   from: z.string().min(1),
   to: z.string(),
+  /** In a text layer, the last line the correction replaces: a table read cell by cell, given as rows parted by bars. */
+  through: z.string().min(1).optional(),
   /** A transcription of the work, or the scan read again. */
   by: z.enum(["reference", "scan"]),
 });

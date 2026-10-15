@@ -811,6 +811,120 @@ describe("parseMewLetters, corrections", () => {
     ]);
   });
 
+  it("restores a table the text layer read cell by cell from a correction through its last line, its rows parted by bars", () => {
+    const [letter] = parseMewLetters(
+      `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="269" width="17" height="16" font="0">41 </text>
+<text top="9" left="217" width="122" height="16" font="1">Marx an Engels </text>
+<text top="9" left="216" width="200" height="16" font="0">in Manchester [London] 20.Oktober 1857 </text>
+<text top="9" left="80" width="400" height="16" font="0">Folgendes ist ein Resumé, wie es die Regierung gibt, und so weiter: </text>
+<text top="9" left="63" width="72" height="12" font="0">September 20 </text>
+<text top="9" left="192" width="19" height="12" font="0">214 </text>
+<text top="9" left="63" width="91" height="12" font="0">October 2 </text>
+<text top="9" left="198" width="19" height="12" font="0">300 </text>
+<text top="9" left="80" width="400" height="16" font="0">Von den 30 899 Mann sind also die meisten noch unterwegs, wie Du siehst. </text>
+</page></pdf2xml>`,
+      new Map([[40, "1857 41"]]),
+      {
+        volume: 29,
+        file: "mew_band29",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+        corrections: [
+          {
+            page: 41,
+            from: "September 20",
+            through: "300",
+            to: "Day of Arrival | Total\nSeptember 20 | 214\nOctober 2 | 300",
+          },
+        ],
+      },
+    );
+
+    expect(letter?.paragraphs.slice(1)).toEqual([
+      "Folgendes ist ein Resumé, wie es die Regierung gibt, und so weiter:",
+      "| Day of Arrival | Total |\n| --- | --- |\n| September 20 | 214 |\n| October 2 | 300 |",
+      "Von den 30 899 Mann sind also die meisten noch unterwegs, wie Du siehst.",
+    ]);
+  });
+
+  it("restores the opening lines the text layer lost, the paragraph going on after them", () => {
+    const [letter] = parseMewLetters(
+      `<pdf2xml><page number="40">
+<fontspec id="0" size="16" family="Garamond"/>
+<fontspec id="1" size="19" family="Garamond"/>
+<text top="9" left="269" width="10" height="16" font="0">3 </text>
+<text top="9" left="215" width="121" height="19" font="1">Marx an Engels </text>
+<text top="9" left="228" width="77" height="16" font="0">in Ramsgate</text>
+<text top="9" left="54" width="447" height="16" font="0">den ich eigenhändig, präsente Dr. Gans junior, am 18. August auf dem </text>
+<text top="9" left="54" width="444" height="16" font="0">hiesigen Hauptpostamt an sie abgab, unterschlagen worden, zweifelsohne. </text>
+</page></pdf2xml>`,
+      new Map([[40, "10 3 Marx an Engels 8.September 1875"]]),
+      {
+        volume: 34,
+        file: "mew_band34",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+        corrections: [
+          {
+            page: 10,
+            from: "den ich eigenhändig",
+            through: "den ich eigenhändig",
+            to: "8.Sept. 75\nGermania, Karlsbad\nLieber Fred,\nDu wirst wahrscheinlich schon von Tussy wissen, daß mein erster Brief, den ich eigenhändig, präsente Dr. Gans junior, am 18. August auf dem",
+          },
+        ],
+      },
+    );
+
+    expect([letter?.title, ...(letter?.paragraphs ?? [])]).toEqual([
+      "An Engels in Ramsgate. 8.Sept. 75",
+      "8.Sept. 75",
+      "Germania, Karlsbad",
+      "Lieber Fred,",
+      "Du wirst wahrscheinlich schon von Tussy wissen, daß mein erster Brief, den ich eigenhändig, präsente Dr. Gans junior, am 18. August auf dem hiesigen Hauptpostamt an sie abgab, unterschlagen worden, zweifelsohne.",
+    ]);
+  });
+
+  it("lets a correction's first line go on with the paragraph it sets right, its caption and rows apart", () => {
+    const [letter] = parseMewLetters(
+      `<pdf2xml><page number="40">
+<fontspec id="0" size="16" family="Garamond"/>
+<fontspec id="1" size="19" family="Garamond"/>
+<text top="9" left="269" width="10" height="16" font="0">3 </text>
+<text top="9" left="215" width="121" height="19" font="1">Marx an Engels </text>
+<text top="9" left="228" width="200" height="16" font="0">in Manchester [London] 15. Juli 1858 </text>
+<text top="9" left="84" width="435" height="16" font="0">Ich halte es für nötig, daß Du diese Details durchgehst, da es sonst unmöglich ist, </text>
+<text top="9" left="66" width="427" height="16" font="0">zu einer richtigen Beurteilung des case </text>
+<text top="9" left="66" width="369" height="16" font="0">zu kommen. Berechnung für 20 £ am 19. Mai. Davon bezahlt: </text>
+<text top="9" left="65" width="139" height="16" font="0">Steuern (Wasser, Gas) </text>
+<text top="9" left="434" width="72" height="16" font="0">£ 7 — </text>
+</page></pdf2xml>`,
+      new Map([[40, "341 153 Marx an Engels 15.Juli 1858"]]),
+      {
+        volume: 29,
+        file: "mew_band29",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+        corrections: [
+          {
+            page: 341,
+            from: "Berechnung für 20 £ am 19. Mai.",
+            through: "£ 7 —",
+            to: "zu kommen.\n*Berechnung für 20 £ am 19. Mai.* Davon bezahlt:\nSteuern (Wasser, Gas) | £ 7 —",
+          },
+        ],
+      },
+    );
+
+    expect(letter?.paragraphs.slice(1)).toEqual([
+      "Ich halte es für nötig, daß Du diese Details durchgehst, da es sonst unmöglich ist, zu einer richtigen Beurteilung des case zu kommen.",
+      "*Berechnung für 20 £ am 19. Mai.* Davon bezahlt:",
+      "|  |  |\n| --- | --- |\n| Steuern (Wasser, Gas) | £ 7 — |",
+    ]);
+  });
+
   it("stops at a correction that finds nothing to set right", () => {
     expect(() =>
       read([{ page: 41, from: "in Lausanne", to: "in Vevey" }]),
