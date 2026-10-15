@@ -1,11 +1,5 @@
 /** @jsxImportSource react */
-import {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { useMemo, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { useFollowTail } from "@brains/app-ui-react";
 import type {
@@ -86,12 +80,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     compact,
   });
   useAnswerAnchoring(tail, messages);
-
-  // The confirmation opens at the end of the region, where it was asked for.
-  useLayoutEffect(() => {
-    const region = tail.ref.current;
-    if (confirmFresh && region) region.scrollTop = region.scrollHeight;
-  }, [confirmFresh]);
 
   const maximum = session?.messageCharacters ?? 4000;
   const over = draft.length - maximum;
@@ -212,6 +200,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         {confirmFresh && (
           <GuestBoxFreshConfirmation
             busy={busy}
+            regionRef={tail.ref}
             onContinue={(): void => {
               void props.onFresh().then((started) => {
                 if (started) {
