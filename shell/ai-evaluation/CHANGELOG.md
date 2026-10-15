@@ -1,5 +1,19 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.555
+  - @brains/contracts@0.2.0-alpha.555
+  - @brains/utils@0.2.0-alpha.555
+  - @brains/ai-service@0.2.0-alpha.555
+  - @brains/app@0.2.0-alpha.555
+  - @brains/mcp-service@0.2.0-alpha.555
+  - @brains/plugins@0.2.0-alpha.555
+  - @brains/templates@0.2.0-alpha.555
+
 ## 0.2.0-alpha.554
 
 ### Patch Changes

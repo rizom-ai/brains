@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- [#641](https://github.com/rizom-ai/brains/pull/641) [`6af4612`](https://github.com/rizom-ai/brains/commit/6af461268f80c8f17c54b5af5c557e0999295800) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Changes the worker makes, such as content synced from git, now reach every plugin that follows entity changes: site metadata, publish preflight, playbook evidence, AT Protocol projections and the brain card, and the git export. FAQ reconciles where the embedding was made. Plugins can no longer subscribe to entity or embedding events in one process only.
+
 ## 0.2.0-alpha.554
 
 No changes in this release.
