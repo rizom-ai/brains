@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { setImmediate as nextTurn } from "node:timers/promises";
-import { runConcurrentPhase } from "../src/effect-runtime";
+import { runConcurrentPhase } from "@brains/utils/effect";
 
 describe("runConcurrentPhase", () => {
   it("accepts an empty phase", async () => {
@@ -38,6 +38,26 @@ describe("runConcurrentPhase", () => {
     release[0]?.resolve();
     await phase;
     expect(finished).toEqual([1, 0]);
+  });
+
+  it("admits every sibling at once, without a concurrency bound", async () => {
+    const width = 64;
+    const entered = Array.from({ length: width }, () =>
+      Promise.withResolvers<void>(),
+    );
+    const release = Promise.withResolvers<void>();
+    const phase = runConcurrentPhase(
+      entered.map((gate) => async (): Promise<void> => {
+        gate.resolve();
+        await release.promise;
+      }),
+    );
+
+    // Every operation must be running before any of them is allowed to finish;
+    // a bounded pool would leave the later ones waiting and hang this await.
+    await Promise.all(entered.map((gate) => gate.promise));
+    release.resolve();
+    expect(await phase).toBeUndefined();
   });
 
   it("settles every sibling before preserving the first original failure", async () => {

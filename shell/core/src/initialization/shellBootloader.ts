@@ -11,8 +11,7 @@ import type { ShellConfig } from "../config";
 import type { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
-import { runConcurrentPhase } from "../effect-runtime";
-import { Effect } from "@brains/utils/effect";
+import { Effect, runConcurrentPhase } from "@brains/utils/effect";
 import { createId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
 import {

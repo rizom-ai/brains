@@ -1,33 +1,25 @@
 import { InterfacePlugin as RuntimeInterfacePlugin } from "../interface/interface-plugin";
-import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
 import type { PluginConfigSchema } from "../config";
 import type { WebRouteDefinition } from "../types/web-routes";
-import type {
-  BaseJobTrackingInfo,
-  InterfacePluginContext,
-  Resource,
-  Tool,
-} from "./types";
+import type { BaseJobTrackingInfo, InterfacePluginContext } from "./types";
 import {
+  forwardInterfaceHooks,
   HookedPublicPlugin,
-  type CommonPluginHooks,
+  type InterfacePluginHooks,
   type PluginPackageJson,
   type RuntimePluginDelegate,
 } from "./public-plugin";
-
-export interface InterfacePluginHooks<
-  TContext,
-> extends CommonPluginHooks<TContext> {
-  getWebRoutes(): WebRouteDefinition[];
-  requiresDaemonStartup(): boolean;
-}
 
 class InterfacePluginDelegate<
   TConfig,
   TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo,
-> extends RuntimeInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
-  private readonly hooks: InterfacePluginHooks<InterfacePluginContext>;
+> extends forwardInterfaceHooks(RuntimeInterfacePlugin)<
+  TConfig,
+  TConfigInput,
+  TTrackingInfo
+> {
+  protected readonly hooks: InterfacePluginHooks<InterfacePluginContext>;
 
   constructor(
     id: string,
@@ -38,42 +30,6 @@ class InterfacePluginDelegate<
   ) {
     super(id, packageJson, config, configSchema);
     this.hooks = hooks;
-  }
-
-  protected override onRegister(
-    context: RuntimeInterfacePluginContext,
-  ): Promise<void> {
-    return this.hooks.onRegister(context);
-  }
-
-  protected override onReady(
-    context: RuntimeInterfacePluginContext,
-  ): Promise<void> {
-    return this.hooks.onReady(context);
-  }
-
-  protected override onShutdown(): Promise<void> {
-    return this.hooks.onShutdown();
-  }
-
-  protected override getTools(): Promise<Tool[]> {
-    return this.hooks.getTools();
-  }
-
-  protected override getResources(): Promise<Resource[]> {
-    return this.hooks.getResources();
-  }
-
-  protected override getInstructions(): Promise<string | undefined> {
-    return this.hooks.getInstructions();
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return this.hooks.getWebRoutes();
-  }
-
-  override requiresDaemonStartup(): boolean {
-    return this.hooks.requiresDaemonStartup();
   }
 }
 
