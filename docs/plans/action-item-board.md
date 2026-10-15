@@ -4,6 +4,8 @@
 
 Proposed. Origin: Executive Team Meeting 2026-10-06, action "surface tasks and projects in a shared Kanban board"; first scoped in three PRDs by Niels (board, shared and attributed board, project layer).
 
+Mockups: [action-item-board-mockups.html](../action-item-board-mockups.html) (seven states by phase; desktop and phone; paper and instrument).
+
 ## Goal
 
 A team board over the brain's action items. Cards sit in four columns, move between them, take notes, and show who did what. Blocked cards reach the Inbox, Inbox items can become cards, and projects filter the board and roll up its counts. The brain stays the source of truth: the board is a view whose writes change only the fields they own.
