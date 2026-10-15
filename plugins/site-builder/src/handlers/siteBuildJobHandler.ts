@@ -71,6 +71,10 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     super(logger, {
       schema: siteBuildJobSchema,
       jobTypeName: "site-build",
+      // One build at a time: two builds' memory peaks would add up.
+      exclusive: true,
+      // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
+      executionTimeoutMs: 30 * 60_000,
     });
     this.sendMessage = sendMessage;
     this.cfg = cfg;

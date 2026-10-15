@@ -45,13 +45,16 @@ describe("Typed Message Channels", () => {
         entityId: z.string(),
         entityType: z.string(),
       });
-      const EntityCreatedChannel = defineChannel("entity:created", schema);
+      const PublishCompletedChannel = defineChannel(
+        "publish:completed",
+        schema,
+      );
 
       const receivedPayloads: Array<{ entityId: string; entityType: string }> =
         [];
 
       // Subscribe with typed channel - handler receives validated payload directly
-      context.messaging.subscribe(EntityCreatedChannel, async (payload) => {
+      context.messaging.subscribe(PublishCompletedChannel, async (payload) => {
         receivedPayloads.push(payload);
         return { success: true };
       });
@@ -59,7 +62,7 @@ describe("Typed Message Channels", () => {
       // Simulate sending a message through the message bus
       const messageBus = shell.getMessageBus();
       await messageBus.send({
-        type: "entity:created",
+        type: "publish:completed",
         payload: { entityId: "123", entityType: "note" },
         sender: "other-plugin",
       });
@@ -79,16 +82,19 @@ describe("Typed Message Channels", () => {
         entityId: z.string(),
         entityType: z.string(),
       });
-      const EntityCreatedChannel = defineChannel("entity:created", schema);
+      const PublishCompletedChannel = defineChannel(
+        "publish:completed",
+        schema,
+      );
 
       const handler = mock(async () => ({ success: true }));
 
-      context.messaging.subscribe(EntityCreatedChannel, handler);
+      context.messaging.subscribe(PublishCompletedChannel, handler);
 
       // Send invalid payload (missing entityType)
       const messageBus = shell.getMessageBus();
       await messageBus.send({
-        type: "entity:created",
+        type: "publish:completed",
         payload: { entityId: "123" },
         sender: "other-plugin",
       });

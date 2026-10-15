@@ -98,6 +98,13 @@ export class HandlerRegistry {
     return [...this.handlers.keys()];
   }
 
+  /** The registered types whose handlers run one job at a time. */
+  public getExclusiveTypes(): string[] {
+    return [...this.handlers]
+      .filter(([, handler]) => handler.exclusive === true)
+      .map(([type]) => type);
+  }
+
   public getHandler(type: string): JobHandler | undefined {
     return this.handlers.get(type);
   }

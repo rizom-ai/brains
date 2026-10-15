@@ -1,5 +1,143 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.556
+  - @brains/content-formatters@0.2.0-alpha.556
+  - @brains/contracts@0.2.0-alpha.556
+  - @brains/db@0.2.0-alpha.556
+  - @brains/utils@0.2.0-alpha.556
+  - @brains/job-queue@0.2.0-alpha.556
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.555
+  - @brains/content-formatters@0.2.0-alpha.555
+  - @brains/contracts@0.2.0-alpha.555
+  - @brains/db@0.2.0-alpha.555
+  - @brains/utils@0.2.0-alpha.555
+  - @brains/job-queue@0.2.0-alpha.555
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.554
+  - @brains/content-formatters@0.2.0-alpha.554
+  - @brains/contracts@0.2.0-alpha.554
+  - @brains/db@0.2.0-alpha.554
+  - @brains/utils@0.2.0-alpha.554
+  - @brains/job-queue@0.2.0-alpha.554
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.553
+  - @brains/content-formatters@0.2.0-alpha.553
+  - @brains/contracts@0.2.0-alpha.553
+  - @brains/db@0.2.0-alpha.553
+  - @brains/utils@0.2.0-alpha.553
+  - @brains/job-queue@0.2.0-alpha.553
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- [#632](https://github.com/rizom-ai/brains/pull/632) [`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace gray-matter's legacy YAML dependency chain with the existing maintained YAML 4 parser, removing sprintf-js from the runtime dependency graph. Preserve YAML/JSON frontmatter, existing octal/base-60 numeric meanings, custom fields, visibility handling, dates, binary values, and publishing-required colon-string quoting through an explicitly owned frontmatter schema.
+
+  Executable JavaScript frontmatter headers are now rejected, including empty executable-language blocks. Parsing is stateless, so document reads do not retain raw content or share mutable parsed objects. Regenerated YAML may use equivalent quoting or binary-tag notation; values and body text remain covered by old-reader round-trip controls.
+
+  This change does not ship downstream application overrides or establish published/deployed consumer adoption.
+
+- Updated dependencies [[`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333)]:
+  - @brains/utils@0.2.0-alpha.552
+  - @brains/assets@0.2.0-alpha.552
+  - @brains/content-formatters@0.2.0-alpha.552
+  - @brains/contracts@0.2.0-alpha.552
+  - @brains/db@0.2.0-alpha.552
+  - @brains/job-queue@0.2.0-alpha.552
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.551
+  - @brains/content-formatters@0.2.0-alpha.551
+  - @brains/contracts@0.2.0-alpha.551
+  - @brains/db@0.2.0-alpha.551
+  - @brains/utils@0.2.0-alpha.551
+  - @brains/job-queue@0.2.0-alpha.551
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.550
+  - @brains/content-formatters@0.2.0-alpha.550
+  - @brains/contracts@0.2.0-alpha.550
+  - @brains/db@0.2.0-alpha.550
+  - @brains/utils@0.2.0-alpha.550
+  - @brains/job-queue@0.2.0-alpha.550
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.549
+  - @brains/content-formatters@0.2.0-alpha.549
+  - @brains/contracts@0.2.0-alpha.549
+  - @brains/db@0.2.0-alpha.549
+  - @brains/utils@0.2.0-alpha.549
+  - @brains/job-queue@0.2.0-alpha.549
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.548
+  - @brains/content-formatters@0.2.0-alpha.548
+  - @brains/contracts@0.2.0-alpha.548
+  - @brains/db@0.2.0-alpha.548
+  - @brains/utils@0.2.0-alpha.548
+  - @brains/job-queue@0.2.0-alpha.548
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.547
+  - @brains/content-formatters@0.2.0-alpha.547
+  - @brains/contracts@0.2.0-alpha.547
+  - @brains/db@0.2.0-alpha.547
+  - @brains/utils@0.2.0-alpha.547
+  - @brains/job-queue@0.2.0-alpha.547
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.546
+  - @brains/content-formatters@0.2.0-alpha.546
+  - @brains/contracts@0.2.0-alpha.546
+  - @brains/db@0.2.0-alpha.546
+  - @brains/utils@0.2.0-alpha.546
+  - @brains/job-queue@0.2.0-alpha.546
+
 ## 0.2.0-alpha.545
 
 ### Patch Changes

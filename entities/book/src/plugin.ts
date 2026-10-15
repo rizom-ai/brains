@@ -15,6 +15,7 @@ import { BookAskDataSource } from "./datasources/book-ask-datasource";
 import { BookDataSource } from "./datasources/book-datasource";
 import { BookThemeDataSource } from "./datasources/book-theme-datasource";
 import { getTemplates } from "./lib/register-templates";
+import { subscribeToBookEpubStaging } from "./lib/book-epub-staging";
 import packageJson from "../package.json";
 
 /** The importer writes books through directory-sync; no one edits them. */
@@ -69,6 +70,7 @@ export class BookPlugin extends EntityPlugin<
         containedIn: bookAdapter.entityType,
       },
     );
+    subscribeToBookEpubStaging(context, this.logger);
   }
 
   protected override async getInstructions(): Promise<string> {

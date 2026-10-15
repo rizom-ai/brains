@@ -2,11 +2,14 @@ import type {
   JobHandlerRegistrationMode,
   JobProgressMonitorMode,
 } from "@brains/job-queue";
+import type { PeerChannel } from "./peer-event-relay";
 
 export type RuntimeProcessRole = "web" | "worker";
 
 export interface ShellRuntimeOptions {
   readonly processRole?: RuntimeProcessRole;
+  /** The line to the runtime's other processes, when supervised. */
+  readonly peerChannel?: PeerChannel;
 }
 
 /**

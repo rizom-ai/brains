@@ -1,5 +1,73 @@
 # @rizom/brain
 
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- [#648](https://github.com/rizom-ai/brains/pull/648) [`ea68ab1`](https://github.com/rizom-ai/brains/commit/ea68ab15013bd88aac44d9593259e7115576b5be) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds stay linear in a brain's size: the entity store indexes entities by type and slug, so a page finds its entity and a section's themes without reading the whole store. A book's section page carries only what it shows, so a build of a large book brain holds the text once.
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- [#641](https://github.com/rizom-ai/brains/pull/641) [`6af4612`](https://github.com/rizom-ai/brains/commit/6af461268f80c8f17c54b5af5c557e0999295800) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Changes the worker makes, such as content synced from git, now reach every plugin that follows entity changes: site metadata, publish preflight, playbook evidence, AT Protocol projections and the brain card, and the git export. FAQ reconciles where the embedding was made. Plugins can no longer subscribe to entity or embedding events in one process only.
+
+## 0.2.0-alpha.554
+
+No changes in this release.
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- [#639](https://github.com/rizom-ai/brains/pull/639) [`d45f056`](https://github.com/rizom-ai/brains/commit/d45f056270ac84ef6a030bee787989ddc0056cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The web and worker processes tell each other about entity changes. A brain's identity, and Studio's activity feed, follow writes made in either process, such as content the worker syncs from git, without a restart.
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- [#632](https://github.com/rizom-ai/brains/pull/632) [`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace gray-matter's legacy YAML dependency chain with the existing maintained YAML 4 parser, removing sprintf-js from the runtime dependency graph. Preserve YAML/JSON frontmatter, existing octal/base-60 numeric meanings, custom fields, visibility handling, dates, binary values, and publishing-required colon-string quoting through an explicitly owned frontmatter schema.
+
+  Executable JavaScript frontmatter headers are now rejected, including empty executable-language blocks. Parsing is stateless, so document reads do not retain raw content or share mutable parsed objects. Regenerated YAML may use equivalent quoting or binary-tag notation; values and body text remain covered by old-reader round-trip controls.
+
+  This change does not ship downstream application overrides or establish published/deployed consumer adoption.
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- [#636](https://github.com/rizom-ai/brains/pull/636) [`37e7602`](https://github.com/rizom-ai/brains/commit/37e7602b6db26eeff2f3db48bee6a898b2b187b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site build may run for 30 minutes: Karl's 4,198 pages took 11 minutes, past the previous 10-minute deadline.
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- [#635](https://github.com/rizom-ai/brains/pull/635) [`f4be0fb`](https://github.com/rizom-ai/brains/commit/f4be0fb4157f48ef6b4dce551ea76bafdda15910) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job type can be exclusive: the queue claims a second job of it only once the first settles. Site builds are exclusive and get a 10-minute deadline, so a waiting build no longer runs out its deadline inside a claimed job.
+
+## 0.2.0-alpha.549
+
+No changes in this release.
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- [#633](https://github.com/rizom-ai/brains/pull/633) [`8ba21e3`](https://github.com/rizom-ai/brains/commit/8ba21e3956f5f5aaa13680c69152a0e9f49b770c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds take turns instead of running preview and production at once, and EPUBs are zipped with the runtime's native DEFLATE, which cuts the memory a book shelf's EPUBs leave behind by about two thirds.
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- [#630](https://github.com/rizom-ai/brains/pull/630) [`9d69e23`](https://github.com/rizom-ai/brains/commit/9d69e23a60a88de3732047af853c6d789906b8e2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A books site's work horizon fits its page: a long run of years without books folds into one break, year labels stand only under years with books and never widen the axis, the horizon appears from the narrowest screen its spines fit, and a shelf too crowded for full spines narrows them and leaves their titles to hover and the year list.
+
+- [#631](https://github.com/rizom-ai/brains/pull/631) [`2ad1b13`](https://github.com/rizom-ai/brains/commit/2ad1b13148f8edb7912327d96b0af8426a4bb067) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An EPUB's chapters are split in one pass, so a book of thousands of sections renders in a fraction of a second instead of blocking the worker.
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- [#628](https://github.com/rizom-ai/brains/pull/628) [`d69e206`](https://github.com/rizom-ai/brains/commit/d69e206da5761a8e4b5697a1148b50234959d318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every book with sections can be downloaded as an EPUB from its title page. The EPUB is the `epub` format of the registered `book:epub` view template, written into each site build at `/books/<id>.epub`.
+
 ## 0.2.0-alpha.545
 
 ### Patch Changes

@@ -11,8 +11,8 @@ import { getErrorMessage } from "@brains/utils/error";
 const jobDataSchema = z.record(z.string(), z.unknown());
 
 /**
- * Subscribe to entity CRUD events and mirror changes to the filesystem
- * in real time (entity:created, entity:updated, entity:deleted).
+ * Wake the durable export on every entity change in the runtime, including
+ * those the worker makes (entity:created, entity:updated, entity:deleted).
  */
 export function setupAutoSync(
   context: ServicePluginContext,
@@ -26,7 +26,7 @@ export function setupAutoSync(
     ENTITY_CHANNELS.updated,
     ENTITY_CHANNELS.deleted,
   ]) {
-    context.messaging.subscribe(event, async () => {
+    context.messaging.observe(event, async () => {
       // The event is only a wake-up. The mutation itself is already durable in
       // Entity Service's export outbox, so losing this delivery loses no work.
       scheduleDurableExport();

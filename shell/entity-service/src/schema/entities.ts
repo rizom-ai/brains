@@ -5,6 +5,7 @@ import {
   integer,
   primaryKey,
   check,
+  index,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
 import type {
@@ -127,6 +128,12 @@ export const entities: EntitiesTable = sqliteTable(
       visibilityCheck: check(
         "entities_visibility_check",
         sql`${table.visibility} IN ('public', 'shared', 'restricted')`,
+      ),
+      // A page is found by its type and slug, once for every page a site
+      // build renders; its type alone leads the index for a listing by type.
+      typeSlugIdx: index("entities_type_slug_idx").on(
+        table.entityType,
+        sql`json_extract(${table.metadata}, '$.slug')`,
       ),
     };
   },

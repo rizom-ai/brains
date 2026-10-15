@@ -1,6 +1,6 @@
 {
   "name": "@rizom/ops",
-  "version": "0.2.0-alpha.545",
+  "version": "0.2.0-alpha.556",
   "description": "Operator CLI for managing private brain fleet registry repos",
   "keywords": [
     "brains",
@@ -22,6 +22,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@brains/auth-service": "workspace:*",
     "@brains/deploy-support": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/job-queue": "workspace:*",

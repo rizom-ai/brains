@@ -95,6 +95,7 @@ export class RenderService implements IViewTemplateRegistry {
     if (template.renderers.web) formats.push("web");
     if (template.renderers.image) formats.push("image");
     if (template.renderers.pdf) formats.push("pdf");
+    if (template.renderers.epub) formats.push("epub");
 
     return formats;
   }

@@ -314,6 +314,82 @@ function withParts(raws: RawUnit[], bookSiglum: string | null): BookUnit[] {
   ).units;
 }
 
+/** A notebook (NF-1888,14) or a year of letters (BVN-1888). */
+const UNPARTED = /^(NF|BVN)-\d{4}/;
+/** The editors' label of a notebook or a year of letters. */
+const EDITORS_LABEL = /\[(Gruppe|Jahrgang)\]$/;
+
+/** A page block with the siglum its anchor gives it, which its own id may not. */
+interface AnchoredBlock {
+  section: string;
+  block: Element;
+}
+
+/**
+ * Each text block on the page follows an anchor naming its siglum. The block
+ * itself repeats the siglum as its id on most pages, but not on all. Read in
+ * document order, a block's anchor is the mark just before it: the anchors
+ * inside the block before come before that one.
+ */
+function anchoredBlocks(document: Window["document"]): AnchoredBlock[] {
+  const marks = Array.from(document.querySelectorAll("a[name], div.txt_block"));
+  return marks.flatMap((wrapper, index): AnchoredBlock[] => {
+    if (wrapper.tagName !== "DIV") return [];
+    const name = marks[index - 1]?.getAttribute("name") ?? null;
+    const block = Array.from(wrapper.children).find(
+      (child) => child.tagName === "DIV" && child.className !== "footnotes",
+    );
+    return name?.startsWith("eKGWB/") && block
+      ? [{ section: name.replace(/^eKGWB\//, ""), block }]
+      : [];
+  });
+}
+
+/**
+ * A notebook or a year of letters prints its units one after another, in no
+ * parts. The editors label the page in brackets, as [14 = W II 5. Frühjahr
+ * 1888]; the label titles the page and is no text of the author's. A
+ * fragment is titled by its number, 14[1], a letter by its addressee line,
+ * 969. An Paul Deussen in Berlin, which leaves the letter's text.
+ */
+function unpartedBook(document: Window["document"]): EkgwbBook {
+  const blocks = anchoredBlocks(document);
+  const labels = blocks.filter(({ section }) => EDITORS_LABEL.test(section));
+  const title = labels
+    .flatMap(({ block }) => Array.from(block.children).filter(isParagraph))
+    .map((paragraph) => blockText(paragraph).replace(/^\[(.*)\]$/, "$1"))
+    .join(" ");
+  const units = blocks
+    .filter((anchored) => !labels.includes(anchored))
+    .flatMap(({ section, block }): BookUnit[] => {
+      const paragraphs = Array.from(block.children).filter(isParagraph);
+      const addressee = paragraphs.find(
+        (paragraph) => paragraph.querySelector("p.addressee") !== null,
+      );
+      const text = paragraphs
+        .filter((paragraph) => paragraph !== addressee)
+        .map(paragraphText)
+        .filter((line) => line.length > 0);
+      if (text.length === 0) return [];
+      const heading = block.querySelector("div.head");
+      return [
+        {
+          parents: [],
+          title: addressee
+            ? labelText(addressee)
+            : heading
+              ? labelText(heading)
+              : (bracketOf(section) ?? section),
+          section,
+          page: null,
+          source: `${EKGWB_BASE}${section}`,
+          paragraphs: text,
+        },
+      ];
+    });
+  return { title, units };
+}
+
 /**
  * The page writes empty anchors XML-style (`<a name="…"/>`); HTML reads that
  * as an anchor left open, which swallows the section that follows.
@@ -344,6 +420,9 @@ export function parseEkgwbBook(html: string, siglum?: string): EkgwbBook {
       (titleBlock
         ? titleBlock.id.replace(/^eKGWB\//, "").replace(/-\[Titel\]$/, "")
         : null);
+    if (bookSiglum !== null && UNPARTED.test(bookSiglum)) {
+      return unpartedBook(document);
+    }
     // The title page opens the book and belongs to no part.
     const titlePage = titleBlock ? rawUnitOf(titleBlock) : null;
     const units = [

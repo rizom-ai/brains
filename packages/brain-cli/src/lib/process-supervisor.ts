@@ -5,6 +5,7 @@ import {
   GIT_BROKER_SOCKET_ENV,
 } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
+import { peerEventMessageSchema } from "./peer-event-message";
 import { supervisorConclusion } from "./shutdown-sequence";
 import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
 import {
@@ -736,6 +737,16 @@ function runRuntimeSupervisor(
 
       child.handleMessage = (message: unknown): void => {
         if (child.closed) return;
+        // The app roles share one database but not one message bus: each
+        // tells the other what it changed, so caches follow either's writes.
+        if (role !== "git-broker" && hasMessageType(message, "peer-event")) {
+          const relayed = peerEventMessageSchema.safeParse(message);
+          const peer = role === "web" ? worker : web;
+          if (relayed.success && peer && !peer.closed) {
+            peer.process.send?.(relayed.data);
+          }
+          return;
+        }
         if (role === "git-broker" && hasMessageType(message, "broker-ready")) {
           if (child.ready) return;
           child.ready = true;

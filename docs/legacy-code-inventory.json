@@ -295,6 +295,18 @@
       "removalPrerequisite": "Verify every completed image stores a valid asset reference and legacy materialization telemetry remains at zero through the migration soak.",
       "rollbackDependency": "The transitional release must read and update pre-migration image rows while the pre-cutover database remains the rollback source.",
       "targetRelease": "post-image-migration-soak"
+    },
+    {
+      "id": "frontmatter-yaml-scalar-semantics",
+      "paths": ["shared/utils/src/frontmatter-schema.ts"],
+      "symbol": "frontmatterSchema scalar grammar, colon-string quoting, and binary representation",
+      "owner": "@brains/utils",
+      "class": "durable-data-compatibility",
+      "behavior": "Retains YAML 3 frontmatter octal/base-60 numeric meanings, colon-string quoting required by publishing consumers, and binary value representation while using the maintained YAML 4 parser; no executable engines or removed-API fallback.",
+      "currentConsumers": "Durable and custom frontmatter authored under gray-matter's YAML 3 schema, including external supported content sources.",
+      "removalPrerequisite": "Approve a durable-frontmatter format migration, verify equivalent values across supported content sources and rollback targets, and observe zero dependence on the previous scalar grammar.",
+      "rollbackDependency": "Removing the schema without that migration reinterprets bare values such as 012, 0o12, and 12:34 in existing documents.",
+      "targetRelease": "after-approved-frontmatter-format-migration"
     }
   ],
   "exemptions": [

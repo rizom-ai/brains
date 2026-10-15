@@ -29,11 +29,14 @@ import { writeBook } from "./write-book";
 
 const manifestPartSchema: z.ZodObject<{
   siglum: z.ZodString;
-  title: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
 }> = z.object({
   siglum: z.string().min(1),
-  /** The part's title as its title page names it: "Erster Theil". */
-  title: z.string().min(1),
+  /**
+   * The part's title as its title page names it: "Erster Theil". A part the
+   * manifest leaves untitled takes its page's title, as a notebook does.
+   */
+  title: z.string().min(1).optional(),
 });
 
 interface BookFields {
@@ -68,18 +71,27 @@ const ekgwbBookSchema: z.ZodObject<
       title: z.ZodOptional<z.ZodString>;
     }
   >
-> = z.object({
-  ...bookFields,
-  /** The book's siglum, for a book printed as one. */
-  siglum: z.string().min(1).optional(),
-  /**
-   * A title printed in numbered parts is one book: each part is read from
-   * its own siglum, in this order.
-   */
-  parts: z.array(manifestPartSchema).min(2).optional(),
-  /** The work's own title, where the page heads it with a series title. */
-  title: z.string().min(1).optional(),
-});
+> = z
+  .object({
+    ...bookFields,
+    /** The book's siglum, for a book printed as one. */
+    siglum: z.string().min(1).optional(),
+    /**
+     * A title printed in numbered parts is one book, as is a year of the
+     * Nachlass, whose parts are its notebooks: each part is read from its own
+     * siglum, in this order.
+     */
+    parts: z.array(manifestPartSchema).min(1).optional(),
+    /** The work's own title, where the page heads it with a series title. */
+    title: z.string().min(1).optional(),
+  })
+  .refine(
+    (book) => (book.siglum === undefined) !== (book.parts === undefined),
+    { message: "A book names either its siglum or its parts" },
+  )
+  .refine((book) => book.parts === undefined || book.title !== undefined, {
+    message: "A book of parts names its title",
+  });
 
 /** A printed page: its number, or its roman number in the front matter. */
 const printedPageSchema: z.ZodUnion<[z.ZodNumber, z.ZodString]> = z.union([
@@ -677,18 +689,23 @@ async function loadEkgwbBook(
   entry: z.output<typeof ekgwbBookSchema>,
   reader: BookReader,
 ): Promise<LoadedBook> {
-  const parts = entry.parts ?? [{ siglum: entry.siglum ?? "", title: null }];
+  const parts = entry.parts ?? [{ siglum: entry.siglum ?? "" }];
   const read = await parts.reduce<Promise<BookRead[]>>(
     async (previous, part) => {
       const book = await reader.read(part.siglum);
       if (book.units.length === 0) {
         throw new Error(`No sections found for ${part.siglum}`);
       }
+      const partTitle =
+        entry.parts === undefined ? null : (part.title ?? book.title);
+      if (partTitle === "") {
+        throw new Error(`No title found for ${part.siglum}`);
+      }
       // A part's title encloses everything read from its siglum.
       const units = book.units.map((unit) => ({
         ...unit,
         parents:
-          part.title === null ? unit.parents : [part.title, ...unit.parents],
+          partTitle === null ? unit.parents : [partTitle, ...unit.parents],
       }));
       return [...(await previous), { title: book.title, units }];
     },

@@ -81,7 +81,9 @@ export class SiteInfoPlugin extends EntityPlugin<
       },
     );
 
-    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
+    // Observed: a site-info change synced by the worker refreshes this
+    // process's metadata too.
+    context.messaging.observe(ENTITY_CHANNELS.updated, async (message) => {
       const payload = isPlainRecord(message.payload)
         ? message.payload
         : undefined;

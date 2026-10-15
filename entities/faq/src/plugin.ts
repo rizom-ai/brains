@@ -170,8 +170,9 @@ export class FaqPlugin extends EntityPlugin<
     }
 
     // A FAQ becomes findable by meaning once its embedding exists; that is
-    // when a duplicate captured moments earlier can be folded away.
-    context.messaging.subscribe(
+    // when a duplicate captured moments earlier can be folded away. The
+    // embedding is made where the job runs, so that process queues the fold.
+    context.messaging.subscribeExecution(
       ENTITY_CHANNELS.embeddingReady,
       async (message) => {
         const ready = embeddingReadySchema.safeParse(message.payload);

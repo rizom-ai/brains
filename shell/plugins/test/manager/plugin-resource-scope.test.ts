@@ -66,6 +66,10 @@ describe("Plugin resource acquisition", () => {
           scoped
             .getMessageBus()
             .subscribe("late:event", () => ({ success: true })),
+        (): unknown =>
+          scoped
+            .getMessageBus()
+            .observe("late:event", () => ({ success: true })),
       ];
       try {
         for (const acquire of acquisitions)
@@ -94,6 +98,33 @@ describe("Plugin resource acquisition", () => {
       }
     },
   );
+
+  it("admits a plugin's observer to peer and local events until its scope closes", async () => {
+    const shell = createMockShell();
+    const scope = new PluginResourceScope();
+    const scoped = createPluginScopedShell(shell, scope);
+    const seen: unknown[] = [];
+    scoped.getMessageBus().observe("entity:updated", (message) => {
+      seen.push(message.payload);
+      return { success: true };
+    });
+    const bus = shell.getMessageBus();
+    const local = (entityId: string): Promise<unknown> =>
+      bus.send({
+        type: "entity:updated",
+        payload: { entityId },
+        sender: "test",
+        broadcast: true,
+      });
+
+    await bus.deliverPeer("entity:updated", { entityId: "peer" });
+    await local("local");
+    await scope.close();
+    await bus.deliverPeer("entity:updated", { entityId: "after" });
+    await local("after");
+
+    expect(seen).toEqual([{ entityId: "peer" }, { entityId: "local" }]);
+  });
 
   it("owns a successful acquisition and releases it once", async () => {
     const scope = new PluginResourceScope();
