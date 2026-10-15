@@ -261,7 +261,7 @@ const atprotoSchema: z.ZodObject<{
 export const siteOverrideSchema: z.ZodObject<
   {
     package: z.ZodString;
-    version: z.ZodString;
+    version: z.ZodOptional<z.ZodString>;
     theme: z.ZodOptional<z.ZodString>;
     themeVersion: z.ZodOptional<z.ZodString>;
   },
@@ -269,11 +269,27 @@ export const siteOverrideSchema: z.ZodObject<
 > = z
   .strictObject({
     package: z.string().min(1),
-    version: exactVersionSchema,
+    version: exactVersionSchema.optional(),
     theme: z.string().min(1).optional(),
     themeVersion: exactVersionSchema.optional(),
   })
   .superRefine((value, context) => {
+    // @brains/* sites ship inside @rizom/brain, pinned by its version.
+    const hasExternalPackage = value.package.startsWith("@rizom/");
+    if (hasExternalPackage && value.version === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["version"],
+        message: "external @rizom site packages require an exact version pin",
+      });
+    }
+    if (!hasExternalPackage && value.version !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["version"],
+        message: "version is valid only for external @rizom site packages",
+      });
+    }
     const hasExternalTheme = value.theme?.startsWith("@rizom/") === true;
     if (hasExternalTheme && value.themeVersion === undefined) {
       context.addIssue({
