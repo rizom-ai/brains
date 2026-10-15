@@ -13,6 +13,11 @@ import type { IShell } from "../interfaces";
 import type { EvalHandler } from "../contracts/handlers";
 import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
+import { ENTITY_CHANNELS } from "@brains/contracts";
+
+const ENTITY_CHANNEL_NAMES: ReadonlySet<string> = new Set(
+  Object.values(ENTITY_CHANNELS),
+);
 
 /**
  * The two ways `subscribe` may be called, as one discriminated pair.
@@ -183,6 +188,14 @@ export function createMessagingNamespace(
     subscribe: <T = unknown, R = unknown>(
       ...subscription: SubscribeArgs<T, R>
     ): (() => void) => {
+      const channelName = isChannelSubscription(subscription)
+        ? subscription[0].name
+        : subscription[0];
+      if (ENTITY_CHANNEL_NAMES.has(channelName)) {
+        throw new Error(
+          `${pluginId} subscribes to ${channelName}, which every process raises; use observe or subscribeExecution`,
+        );
+      }
       if (executionOnly) return () => {};
       if (isChannelSubscription(subscription)) {
         const [channel, typedHandler] = subscription;

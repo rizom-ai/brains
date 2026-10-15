@@ -253,7 +253,7 @@ describe("AT Protocol ambient publishing triggers", () => {
   /** Card writes after the boot publish has landed and `messages` arrive. */
   async function countCardWritesAfter(
     messages: Array<{ type: string; payload: Record<string, unknown> }>,
-    options: { concurrent?: boolean } = {},
+    options: { concurrent?: boolean; peer?: boolean } = {},
   ): Promise<number> {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client);
@@ -266,12 +266,15 @@ describe("AT Protocol ambient publishing triggers", () => {
       "the boot card publish",
     );
 
+    // A peer event is a change the runtime's other process made.
     const send = (message: (typeof messages)[number]): Promise<unknown> =>
-      shell.getMessageBus().send({
-        ...message,
-        sender: "test",
-        broadcast: true,
-      });
+      options.peer
+        ? shell.getMessageBus().deliverPeer(message.type, message.payload)
+        : shell.getMessageBus().send({
+            ...message,
+            sender: "test",
+            broadcast: true,
+          });
     if (options.concurrent) {
       await Promise.all(messages.map(send));
     } else {
@@ -302,6 +305,20 @@ describe("AT Protocol ambient publishing triggers", () => {
       expect(writes).toBe(2);
     });
   }
+
+  it("republishes the brain card when the worker changes a skill", async () => {
+    const writes = await countCardWritesAfter(
+      [
+        {
+          type: "entity:updated",
+          payload: { entityType: "skill", entityId: "skill-1" },
+        },
+      ],
+      { peer: true },
+    );
+
+    expect(writes).toBe(2);
+  });
 
   it("coalesces a burst of skill changes into one pending republish", async () => {
     const writes = await countCardWritesAfter(
@@ -592,6 +609,49 @@ describe("AT Protocol ambient publishing triggers", () => {
       rkey: "note-123",
     });
     expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("deletes the projected record when the worker deletes a public entity", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    const entity = createEntity();
+
+    await shell.getMessageBus().deliverPeer("entity:deleted", {
+      entityType: "note",
+      entityId: "note-123",
+      entity,
+    });
+    await plugin.shutdown();
+
+    expect(client.deleteRecord).toHaveBeenCalledWith({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.note",
+      rkey: "note-123",
+    });
+  });
+
+  it("deletes the projected record when the worker turns an entity non-public", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const entity = createEntity({ visibility: "restricted" });
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+
+    await shell.getMessageBus().deliverPeer("entity:updated", {
+      entityType: "note",
+      entityId: "note-123",
+      entity,
+    });
+    await plugin.shutdown();
+
+    expect(client.deleteRecord).toHaveBeenCalledWith({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.note",
+      rkey: "note-123",
+    });
   });
 
   it("deletes the projected record when an entity turns non-public", async () => {
