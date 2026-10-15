@@ -139,4 +139,22 @@ describe("SiteInfoPlugin", () => {
 
     expect(updateCount).toBe(1);
   });
+
+  it("re-announces site metadata when the worker syncs a site-info change", async () => {
+    const plugin = new SiteInfoPlugin();
+    await harness.installPlugin(plugin);
+
+    let updateCount = 0;
+    harness.subscribe(SITE_METADATA_UPDATED_CHANNEL, () => {
+      updateCount++;
+      return { success: true };
+    });
+
+    await harness.getMockShell().getMessageBus().deliverPeer("entity:updated", {
+      entityType: "site-info",
+      entityId: "site-info",
+    });
+
+    expect(updateCount).toBe(1);
+  });
 });

@@ -415,7 +415,8 @@ export class PlaybooksPlugin extends ServicePlugin<
         ),
       }),
     );
-    context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
+    // Observed: an entity the worker writes for a run is evidence too.
+    context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(
       ENTITY_CHANNELS.created,
       async (message) => ({
         success: true,
@@ -425,7 +426,7 @@ export class PlaybooksPlugin extends ServicePlugin<
         ),
       }),
     );
-    context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
+    context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(
       ENTITY_CHANNELS.updated,
       async (message) => ({
         success: true,

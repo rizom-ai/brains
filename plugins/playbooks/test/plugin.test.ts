@@ -1647,6 +1647,52 @@ describe("PlaybooksPlugin", () => {
     expect(evaluate).toHaveBeenCalledTimes(1);
   });
 
+  it("records evidence from an entity the worker created for the run", async () => {
+    const evaluate = mock(async () => ({
+      met: true,
+      reason: "The seed note was recorded.",
+    }));
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Save a seed."],
+          requiredDetails: [],
+          doneWhen: ["A first knowledge seed has been saved."],
+          transitions: [{ event: "NEXT", target: "complete" }],
+        },
+        completeState,
+      ],
+    });
+    const conversationId = "worker-runtime-evidence";
+    const runId = await startRun(harness, conversationId);
+
+    await harness.getMockShell().getMessageBus().deliverPeer("entity:created", {
+      entityType: "note",
+      entityId: "seed-note",
+      conversationId,
+    });
+
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.evidence).toEqual([
+      expect.objectContaining({
+        data: {
+          entityType: "note",
+          entityId: "seed-note",
+          operation: "created",
+        },
+      }),
+    ]);
+  });
+
   it("auto-advances a gated NEXT after runtime evidence satisfies it", async () => {
     const evaluate = mock(async (input) => {
       expect(input.evidence).toHaveLength(1);
