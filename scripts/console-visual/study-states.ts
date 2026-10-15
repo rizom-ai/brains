@@ -42,7 +42,7 @@ export async function runStudyStateCase(
   if (studyState === "dense") await verifyDenseRecords(visualCase, studyState);
   if (studyState === "busy" && surface === "studio-chat") {
     await clickText(page, "button", "Stop");
-    await waitForText(page, "Send");
+    await waitForSelector(page, 'button[aria-label="Send message"]');
     await waitForText(page, "Fixture response remains in progress.");
   }
   console.log(
@@ -113,9 +113,10 @@ async function verifyStudyStateSource(
           );
       });
   } else if (studyState === "busy" && surface === "studio-chat") {
-    await waitForText(page, "Message");
+    // The composer is labelled for assistive technology, not with visible text.
+    await waitForSelector(page, 'textarea[aria-label="Message"]');
     await fillLabel(page, "Message", "Continue the current review");
-    await clickText(page, "button", "Send");
+    await clickSelector(page, 'button[aria-label="Send message"]');
     await waitForText(page, "Fixture response remains in progress.");
     await waitForText(page, "Stop");
   } else if (studyState === "busy") {
