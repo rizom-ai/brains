@@ -7,6 +7,7 @@ import {
   operatorToneSchema as toneSchema,
   operatorCoordinateSchema as coordinateSchema,
 } from "./operator-view-contract";
+import { addDuplicateIssues } from "./operator-schema-refinements";
 import type { RuntimeOperatorSpatialBlock } from "./operator-view-runtime-types";
 
 const spatialLegendItemSchema = z
@@ -55,37 +56,33 @@ const cartesianSpatialBlockSchema = z
   })
   .strict()
   .superRefine((block, context) => {
-    const pointIds = new Set<string>();
-    for (const [index, point] of block.points.entries()) {
-      if (pointIds.has(point.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Spatial point id "${point.id}" is duplicated`,
-          path: ["points", index, "id"],
-        });
-      }
-      pointIds.add(point.id);
-    }
-    const zoneIds = new Set<string>();
-    for (const [index, zone] of block.zones.entries()) {
-      if (zoneIds.has(zone.id) || pointIds.has(zone.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Spatial zone id "${zone.id}" is duplicated`,
-          path: ["zones", index, "id"],
-        });
-      }
-      zoneIds.add(zone.id);
-      for (const memberId of zone.memberIds) {
-        if (!pointIds.has(memberId)) {
-          context.addIssue({
-            code: "custom",
-            message: `Spatial zone member "${memberId}" has no matching point`,
-            path: ["zones", index, "memberIds"],
-          });
-        }
-      }
-    }
+    const pointIds = addDuplicateIssues(
+      context,
+      block.points,
+      (point) => point.id,
+      { label: "Spatial point id", path: ["points", "id"] },
+    );
+    const zoneIds = addDuplicateIssues(
+      context,
+      block.zones,
+      (zone) => zone.id,
+      {
+        label: "Spatial zone id",
+        path: ["zones", "id"],
+        reserved: pointIds,
+        each: (zone, index) => {
+          for (const memberId of zone.memberIds) {
+            if (!pointIds.has(memberId)) {
+              context.addIssue({
+                code: "custom",
+                message: `Spatial zone member "${memberId}" has no matching point`,
+                path: ["zones", index, "memberIds"],
+              });
+            }
+          }
+        },
+      },
+    );
     for (const [index, point] of block.points.entries()) {
       if (point.zoneId && !zoneIds.has(point.zoneId)) {
         context.addIssue({
@@ -156,17 +153,12 @@ const radialSpatialBlockSchema = z
   })
   .strict()
   .superRefine((block, context) => {
-    const pointIds = new Set<string>();
-    for (const [index, point] of block.points.entries()) {
-      if (pointIds.has(point.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Spatial point id "${point.id}" is duplicated`,
-          path: ["points", index, "id"],
-        });
-      }
-      pointIds.add(point.id);
-    }
+    const pointIds = addDuplicateIssues(
+      context,
+      block.points,
+      (point) => point.id,
+      { label: "Spatial point id", path: ["points", "id"] },
+    );
     for (const [index, point] of block.points.entries()) {
       for (const relatedId of point.relatedIds ?? []) {
         if (!pointIds.has(relatedId)) {
@@ -178,26 +170,21 @@ const radialSpatialBlockSchema = z
         }
       }
     }
-    const clusterIds = new Set<string>();
-    for (const [index, cluster] of (block.clusters ?? []).entries()) {
-      if (clusterIds.has(cluster.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Spatial cluster id "${cluster.id}" is duplicated`,
-          path: ["clusters", index, "id"],
-        });
-      }
-      clusterIds.add(cluster.id);
-      for (const memberId of cluster.memberIds) {
-        if (!pointIds.has(memberId)) {
-          context.addIssue({
-            code: "custom",
-            message: `Spatial cluster member "${memberId}" has no matching point`,
-            path: ["clusters", index, "memberIds"],
-          });
+    addDuplicateIssues(context, block.clusters ?? [], (cluster) => cluster.id, {
+      label: "Spatial cluster id",
+      path: ["clusters", "id"],
+      each: (cluster, index) => {
+        for (const memberId of cluster.memberIds) {
+          if (!pointIds.has(memberId)) {
+            context.addIssue({
+              code: "custom",
+              message: `Spatial cluster member "${memberId}" has no matching point`,
+              path: ["clusters", index, "memberIds"],
+            });
+          }
         }
-      }
-    }
+      },
+    });
     for (const [index, relationship] of (block.relationships ?? []).entries()) {
       if (
         !pointIds.has(relationship.sourceId) ||
