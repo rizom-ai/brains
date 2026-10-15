@@ -599,6 +599,93 @@ ${place}
   });
 });
 
+describe("parseMewLetters, headings set little larger than the text", () => {
+  it("opens a letter at a heading under its number though the text layer measured it hardly larger than the text, an än read as an", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="16" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="290" width="10" height="16" font="0">7 </text>
+<text top="9" left="203" width="190" height="19" font="1"><b>Marx an Justizrat Weber </b></text>
+<text top="9" left="266" width="236" height="16" font="0">in Berlin London, 13ten Februar 1860 </text>
+<text top="9" left="60" width="440" height="16" font="0">Sehr geehrter Herr! Ich ersuche Sie, die Sache in die Hand zu nehmen, und so weiter. </text>
+<text top="9" left="290" width="10" height="16" font="0">8 </text>
+<text top="9" left="203" width="190" height="19" font="1"><b>Marx än Engels </b></text>
+<text top="9" left="266" width="236" height="16" font="0">in Manchester [London] 14. Februar 1860 </text>
+<text top="9" left="60" width="440" height="16" font="0">Lieber Engels, die Sache mit Weber geht voran, und so weiter, wie es sich gehört. </text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(xml, new Map([[40, "1860 27"]]), {
+        volume: 30,
+        file: "mew_band30",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      }).map((letter) => letter.title),
+    ).toEqual([
+      "An Justizrat Weber in Berlin. London, 13ten Februar 1860",
+      "An Engels in Manchester. [London] 14. Februar 1860",
+    ]);
+  });
+});
+
+describe("parseMewLetters, a part's title", () => {
+  it("closes the letter before the part's title, though the text layer measured it as the text, the notes above it left out", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="16" family="Garamond"/>
+<fontspec id="1" size="18" family="Garamond"/>
+<fontspec id="2" size="14" family="Garamond"/>
+<text top="9" left="290" width="10" height="16" font="0">7 </text>
+<text top="9" left="203" width="190" height="19" font="1">Marx an Engels </text>
+<text top="9" left="266" width="236" height="16" font="0">in Manchester [London] 7. Sept. 1864 </text>
+<text top="9" left="60" width="440" height="16" font="0">Einliegend Photogramm von Laura, und so weiter, wie es sich gehört, bis zum Schluß. </text>
+<text top="9" left="400" width="80" height="16" font="0">Dein K.M. </text>
+<text top="9" left="60" width="300" height="13" font="2">„Verbesserungen“ - schrecklich, in der Tat! -</text>
+<text top="9" left="139" width="287" height="25" font="0"><b>Briefe von Marx und Engels </b></text>
+<text top="9" left="180" width="196" height="26" font="0"><b>an dritte Personen </b></text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(xml, new Map([[40, "1864 27"]]), {
+        volume: 30,
+        file: "mew_band30",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      })[0]?.paragraphs.slice(1),
+    ).toEqual([
+      "Einliegend Photogramm von Laura, und so weiter, wie es sich gehört, bis zum Schluß.",
+      "Dein K.M.",
+    ]);
+  });
+});
+
+describe("parseMewLetters, a page's margin", () => {
+  it("takes the margin from the edge the lines share, not from a line a speck in the margin opens", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="15" family="Garamond"/>
+<fontspec id="1" size="18" family="Garamond"/>
+<text top="9" left="260" width="18" height="18" font="0">27 </text>
+<text top="9" left="197" width="158" height="20" font="1">Marx an Engels </text>
+<text top="9" left="229" width="97" height="16" font="0">in Manchester </text>
+<text top="9" left="359" width="140" height="18" font="0">[London] 3. März 1852 </text>
+<text top="9" left="74" width="426" height="16" font="0">Deine Sendung der „Revolution" und „Tribüne" war erbrochen. Man </text>
+<text top="9" left="55" width="419" height="16" font="0">hatte sich nicht einmal die Mühe genommen, sie wieder zuzumachen. </text>
+<text top="9" left="11" width="491" height="16" font="0">/ mit einem Antwortschreiben an Frau Daniels verwechselt, wie es </text>
+<text top="9" left="55" width="440" height="16" font="0">scheint, und so weiter, und so fort, wie es der Brauch ist. </text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(xml, new Map([[40, "1852 27"]]), {
+        volume: 28,
+        file: "mew_band28",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      })[0]?.paragraphs.slice(1),
+    ).toEqual([
+      "Deine Sendung der „Revolution“ und „Tribüne“ war erbrochen. Man hatte sich nicht einmal die Mühe genommen, sie wieder zuzumachen. / mit einem Antwortschreiben an Frau Daniels verwechselt, wie es scheint, und so weiter, und so fort, wie es der Brauch ist.",
+    ]);
+  });
+});
+
 describe("parseMewLetters, words the text layer measured small", () => {
   it("keeps a word or line of the text it measured as small as a note, between runs of the text; notes, marks, specks, running heads, the editors' sources and the printer's signature stay out", () => {
     const xml = `<pdf2xml><page number="40">

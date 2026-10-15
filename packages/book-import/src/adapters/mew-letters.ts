@@ -74,6 +74,8 @@ const SIZE_STEP = 0.1;
 const HEAD_REACH = 3;
 /** Runs of one line this far apart at least are set apart: a place and the dateline beside it. */
 const PART_GAP = 12;
+/** Lines set at the margin start within this much of each other. */
+const MARGIN_PLAY = 4;
 /** A line of the text, not a heading or a signature, is at least this wide. */
 const FULL_LINE = 250;
 
@@ -147,6 +149,9 @@ const APPARATUS = /^(?:Nach:|Aus dem|\[|\*)/;
 const RUNNING_HEAD = /\s[•·]\s/u;
 /** The OCR's reading of a speck or a stamp, its signs no text sets. */
 const SPECKS = /[$^~|{}<>]/;
+/** A part's title between the letters: Briefe von Marx und Engels an dritte Personen. */
+const PART_TITLE =
+  /^\s*(?:Briefe von Marx und Engels|an dritte Personen|Briefwechsel zwischen Marx und Engels)\s*$/;
 /** The printer's signature at a page's foot: 29*, 15 Marx/Engels, Werke, Bd. 27. */
 const SIGNATURE = /^\s*\d{1,3}\s*\\?[*«»]?\s*$|Werke,?\s*Bd\.?\s*\d+\s*$/;
 /** At most this many runs the text layer measured small stand between runs of the text. */
@@ -159,9 +164,15 @@ const EMBEDDED_RUNS = 3;
  * the printer's signature left out.
  */
 function textRuns(page: Run[], body: number): Run[] {
-  const runs = SIGNATURE.test(page.at(-1)?.text ?? "")
-    ? page.slice(0, -1)
-    : page;
+  // A part's title is set as large as a year's, though the text layer may
+  // measure it as the text.
+  const runs = (
+    SIGNATURE.test(page.at(-1)?.text ?? "") ? page.slice(0, -1) : page
+  ).map((run) =>
+    PART_TITLE.test(run.text) ? { ...run, size: body * TITLE_SIZE } : run,
+  );
+  const text = (run: Run): boolean =>
+    run.size >= body * NOTE_SIZE && run.size < body * TITLE_SIZE;
   const sized = (run: Run): boolean => run.size >= body * NOTE_SIZE;
   const mark = (run: Run): boolean =>
     !sized(run) &&
@@ -191,8 +202,9 @@ function textRuns(page: Run[], body: number): Run[] {
       const words = chain.map((index) => runs[index]?.text ?? "").join(" ");
       const embedded =
         before !== undefined &&
-        sized(before) &&
+        text(before) &&
         after !== undefined &&
+        text(after) &&
         chain.length <= EMBEDDED_RUNS &&
         !APPARATUS.test(runs[first]?.text.trim() ?? "") &&
         /\p{L}{3}/u.test(words) &&
@@ -290,7 +302,15 @@ function linesOf(xml: string): Line[] {
       ];
     }, []);
     const full = lines.filter((line) => line.width > FULL_LINE);
-    const margin = Math.min(...full.map((line) => line.left));
+    // The margin is the edge the lines share: a speck the OCR read before
+    // a line sets that line further left alone.
+    const lefts = full.map((line) => line.left);
+    const shared = lefts.filter(
+      (left) =>
+        lefts.filter((other) => Math.abs(other - left) <= MARGIN_PLAY).length >
+        1,
+    );
+    const margin = Math.min(...(shared.length > 0 ? shared : lefts));
     return lines
       .map((line) => ({
         ...line,
@@ -429,7 +449,10 @@ function unmarked(text: string): string {
 }
 
 /** A letter's heading: its writer and recipient, the place it went to. */
-const HEADING = /^(.+?)\s+an\s+(.+)$/;
+const HEADING = /^(.+?)\s+[aä]n\s+(.+)$/;
+/** A heading in full, its writer and recipient named, no sentence: Marx an Justizrat Weber. */
+const NAMED_HEADING =
+  /^\p{Lu}[\p{L}.\- ]{1,40}\s[aä]n\s\p{Lu}[^.,;:!?]{1,60}$/u;
 /** The place a letter went to, opening the line under its heading. */
 const RECIPIENT = /^\[?(?:in|nach)\s/;
 /** The OCR's misreadings of the in opening a recipient's place: m, in. */
@@ -603,11 +626,26 @@ export function parseMewLetters(
       if (line.size >= line.body * TITLE_SIZE) {
         return { ...done, open: null };
       }
-      const heading =
-        line.size >= line.body * HEADING_SIZE ? HEADING.exec(line.text) : null;
-      if (heading) {
+      // A heading is set larger than the text; under its letter's number
+      // the text layer may measure it hardly larger.
+      const headed = (at: number): boolean => {
+        const candidate = lines[at];
+        if (candidate === undefined) return false;
+        if (candidate.size >= candidate.body * HEADING_SIZE) {
+          return HEADING.test(candidate.text);
+        }
+        return (
+          candidate.size >= candidate.body &&
+          /^\d{1,4}$/.test(lines[at - 1]?.text ?? "") &&
+          NAMED_HEADING.test(candidate.text)
+        );
+      };
+      if (headed(index)) {
         const letter: Letter = {
-          heading: germanQuotes(unmarked(line.text)),
+          heading: germanQuotes(unmarked(line.text)).replace(
+            /\s[aä]n\s/u,
+            " an ",
+          ),
           dateline: "",
           date: null,
           blocks: [],
@@ -621,14 +659,7 @@ export function parseMewLetters(
         };
       }
       // The letter's number stands above its heading.
-      const next = lines[index + 1];
-      if (
-        /^\d{1,4}$/.test(line.text) &&
-        next !== undefined &&
-        next.size >= next.body * HEADING_SIZE
-      ) {
-        return done;
-      }
+      if (/^\d{1,4}$/.test(line.text) && headed(index + 1)) return done;
       const letter = done.open;
       if (letter === null) return done;
       if (line.translated === true) {
