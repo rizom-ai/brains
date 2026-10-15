@@ -64,8 +64,9 @@ class MessageInterfacePluginDelegate<
     return this.hooks.onReady(context);
   }
 
-  protected override onShutdown(): Promise<void> {
-    return this.hooks.onShutdown();
+  protected override async onShutdown(): Promise<void> {
+    await this.hooks.onShutdown();
+    await super.onShutdown();
   }
 
   protected override getTools(): Promise<Tool[]> {
