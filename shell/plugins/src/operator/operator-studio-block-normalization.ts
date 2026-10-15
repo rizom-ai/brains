@@ -3,12 +3,14 @@ import type { AnyWorkspaceActionDefinition } from "./workspace-action-definition
 import type {
   StudioBlockSource,
   StudioRegionSource,
+  StudioListItemSource,
 } from "./operator-studio-source-types";
 import { normalizeActionControls } from "./operator-action-normalization";
 import { definedFields } from "@brains/utils/strip-undefined";
 import type {
   RuntimeOperatorActionControl,
   RuntimeStudioOperatorActionBlock,
+  RuntimeStudioOperatorListItem,
   RuntimeStudioOperatorPanelBlock,
   RuntimeStudioOperatorDetailBlock,
   RuntimeStudioOperatorCardBlock,
@@ -41,6 +43,51 @@ function actionBlock(
   };
 }
 
+/**
+ * Normalizes one item of a Studio list or matrix cell: copies the fields it
+ * declares and resolves its actions, reporting their issues under `itemPath`.
+ * The actions label travels only with actions that survive normalization.
+ */
+export function normalizeStudioListItem(
+  item: StudioListItemSource,
+  itemPath: readonly PropertyKey[],
+  declared: readonly AnyWorkspaceActionDefinition[],
+  permission: UserPermissionLevel,
+): {
+  readonly item: RuntimeStudioOperatorListItem;
+  readonly issues: readonly RuntimeOperatorValidationIssue[];
+} {
+  const actions = normalizeActionControls(
+    item.actions ?? [],
+    declared,
+    permission,
+    [...itemPath, "actions"],
+  );
+  return {
+    item: {
+      id: item.id,
+      title: item.title,
+      ...(item.description ? { description: item.description } : {}),
+      ...(item.meta ? { meta: item.meta } : {}),
+      ...(item.metadata ? { metadata: item.metadata } : {}),
+      ...(item.tags ? { tags: item.tags } : {}),
+      ...definedFields({ count: item.count }),
+      ...(item.badges ? { badges: item.badges } : {}),
+      ...(item.filterValues ? { filterValues: item.filterValues } : {}),
+      ...(item.links ? { links: item.links } : {}),
+      ...(item.tone ? { tone: item.tone } : {}),
+      ...(item.link ? { link: item.link } : {}),
+      ...(actions.controls.length > 0
+        ? {
+            actions: actions.controls,
+            ...definedFields({ actionsLabel: item.actionsLabel }),
+          }
+        : {}),
+    },
+    issues: actions.issues,
+  };
+}
+
 export function normalizeStudioBlock(
   block: StudioBlockSource | StudioRegionSource,
   blockIndex: number,
@@ -54,33 +101,14 @@ export function normalizeStudioBlock(
     case "list": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const items = block.items.map((item, itemIndex) => {
-        const actions = normalizeActionControls(
-          item.actions ?? [],
+        const normalized = normalizeStudioListItem(
+          item,
+          ["blocks", blockIndex, "items", itemIndex],
           declared,
           permission,
-          ["blocks", blockIndex, "items", itemIndex, "actions"],
         );
-        issues.push(...actions.issues);
-        return {
-          id: item.id,
-          title: item.title,
-          ...(item.description ? { description: item.description } : {}),
-          ...(item.meta ? { meta: item.meta } : {}),
-          ...(item.metadata ? { metadata: item.metadata } : {}),
-          ...(item.tags ? { tags: item.tags } : {}),
-          ...definedFields({ count: item.count }),
-          ...(item.badges ? { badges: item.badges } : {}),
-          ...(item.filterValues ? { filterValues: item.filterValues } : {}),
-          ...(item.links ? { links: item.links } : {}),
-          ...(item.tone ? { tone: item.tone } : {}),
-          ...(item.link ? { link: item.link } : {}),
-          ...(actions.controls.length > 0
-            ? {
-                actions: actions.controls,
-                ...definedFields({ actionsLabel: item.actionsLabel }),
-              }
-            : {}),
-        };
+        issues.push(...normalized.issues);
+        return normalized.item;
       });
       return {
         block: {
@@ -133,41 +161,14 @@ export function normalizeStudioBlock(
         ...(cell.tone ? { tone: cell.tone } : {}),
         empty: cell.empty,
         items: cell.items.map((item, itemIndex) => {
-          const actions = normalizeActionControls(
-            item.actions ?? [],
+          const normalized = normalizeStudioListItem(
+            item,
+            ["blocks", blockIndex, "cells", cellIndex, "items", itemIndex],
             declared,
             permission,
-            [
-              "blocks",
-              blockIndex,
-              "cells",
-              cellIndex,
-              "items",
-              itemIndex,
-              "actions",
-            ],
           );
-          issues.push(...actions.issues);
-          return {
-            id: item.id,
-            title: item.title,
-            ...(item.description ? { description: item.description } : {}),
-            ...(item.meta ? { meta: item.meta } : {}),
-            ...(item.metadata ? { metadata: item.metadata } : {}),
-            ...(item.tags ? { tags: item.tags } : {}),
-            ...definedFields({ count: item.count }),
-            ...(item.badges ? { badges: item.badges } : {}),
-            ...(item.filterValues ? { filterValues: item.filterValues } : {}),
-            ...(item.links ? { links: item.links } : {}),
-            ...(item.tone ? { tone: item.tone } : {}),
-            ...(item.link ? { link: item.link } : {}),
-            ...(actions.controls.length > 0
-              ? {
-                  actions: actions.controls,
-                  ...definedFields({ actionsLabel: item.actionsLabel }),
-                }
-              : {}),
-          };
+          issues.push(...normalized.issues);
+          return normalized.item;
         }),
       }));
       return {
