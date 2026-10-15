@@ -1,30 +1,24 @@
 /** @jsxImportSource react */
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { useMemo, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { useFollowTail } from "@brains/app-ui-react";
 import type {
   ChatHistoryMessage,
   GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
+import { GuestTranscript } from "./GuestTranscript";
 import { GuestBoxComposer } from "./GuestBoxComposer";
 import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
+import { GuestBoxPending } from "./GuestBoxPending";
+import { GuestBoxWelcome } from "./GuestBoxWelcome";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
+import { useAnswerAnchoring } from "./use-answer-anchoring";
+import { useAskHost } from "./use-ask-host";
 import { useGuestBoxViewport } from "./use-guest-box-viewport";
 import { useAskSheet } from "./use-ask-sheet";
-import {
-  ASK_BOX_ATTRIBUTE,
-  ASK_DOCK_ATTRIBUTE,
-  ASK_NAME_ATTRIBUTE,
-  ASK_PLACEHOLDER_ATTRIBUTE,
-} from "@brains/contracts";
+import { useInitialIntent } from "./use-initial-intent";
+import { useStopWaitingOffer } from "./use-stop-waiting-offer";
+import { ASK_DOCK_ATTRIBUTE } from "@brains/contracts";
 
 export interface GuestBoxProps {
   copy: GuestBoxCopy;
@@ -50,8 +44,6 @@ export interface GuestBoxProps {
   stopWaitingAfterMs?: number;
 }
 
-const STOP_WAITING_AFTER_MS = 20_000;
-
 function activityText(busy: boolean, state: GuestBoxState): string {
   if (!busy) return "";
   if (state === "sending") return "Sending your question…";
@@ -65,7 +57,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const freshButton = useRef<HTMLButtonElement>(null);
-  const [header, setHeader] = useState<Element | null>(null);
   const [confirmFresh, setConfirmFresh] = useState(false);
   // A fresh token whenever anything that changes the region's height does.
   const contentKey = useMemo(
@@ -75,75 +66,20 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const tail = useFollowTail({ resetKey: null, contentKey });
   // An answer is being written; after a while the visitor may stop waiting.
   const waiting = busy && (state === "sending" || state === "working");
-  const [patient, setPatient] = useState(false);
-  const stopWaitingAfterMs = props.stopWaitingAfterMs ?? STOP_WAITING_AFTER_MS;
-  useEffect(() => {
-    setPatient(false);
-    if (!waiting) return;
-    const timer = window.setTimeout(() => setPatient(true), stopWaitingAfterMs);
-    return (): void => window.clearTimeout(timer);
-  }, [waiting, stopWaitingAfterMs]);
+  const offerStop = useStopWaitingOffer(waiting, props.stopWaitingAfterMs);
   useGuestBoxViewport(root, input);
   const sheet = useAskSheet(root, input);
   // Closed on a phone, the box is a composer and a way back to the conversation.
   const compact = sheet.narrow && !sheet.open;
-  // Whose brain this is and what the empty box asks for, from the host
-  // (ASK_NAME_ATTRIBUTE, ASK_PLACEHOLDER_ATTRIBUTE), once mounted.
-  const [owner, setOwner] = useState<string>();
-  const [placeholder, setPlaceholder] = useState<string>();
-  useEffect(() => {
-    const host = root.current?.closest(`[${ASK_BOX_ATTRIBUTE}]`);
-    // An empty attribute says nothing.
-    const said = (name: string): string | undefined => {
-      const value = host?.getAttribute(name)?.trim();
-      if (!value) return undefined;
-      return value;
-    };
-    setOwner(said(ASK_NAME_ATTRIBUTE));
-    setPlaceholder(said(ASK_PLACEHOLDER_ATTRIBUTE));
-  }, []);
-
-  const initialIntent = useRef(props.submitOnReady === true);
-  const initialFocus = useRef(true);
-  useEffect(() => {
-    if (props.busy) return;
-    if (initialFocus.current) {
-      initialFocus.current = false;
-      // Only while the conversation is in view: focusing a closed sheet's
-      // composer would open it again after the visitor closed it.
-      if (document.activeElement === document.body && !compact)
-        input.current?.focus({ preventScroll: true });
-    }
-    if (!initialIntent.current) return;
-    initialIntent.current = false;
-    if (props.canSend) props.onSend();
-  }, [props.busy, props.canSend, props.onSend]);
-
-  useEffect(() => {
-    setHeader(root.current?.closest(".talk")?.querySelector(".ui-bar") ?? null);
-  }, []);
-
-  // An answer opens at its question, so it is read from the start; the reader
-  // follows the end again from "Latest". A box its page grows has no region
-  // to scroll and is left to the page.
-  const lastRole = useRef(messages.at(-1)?.role);
-  useLayoutEffect(() => {
-    const previous = lastRole.current;
-    lastRole.current = messages.at(-1)?.role;
-    if (previous !== "user" || messages.at(-1)?.role !== "assistant") return;
-    const region = tail.ref.current;
-    if (!region || region.scrollHeight <= region.clientHeight) return;
-    const asked = [...region.querySelectorAll<HTMLElement>(".guest-user")].at(
-      -1,
-    );
-    if (asked) tail.showFrom(asked);
-  }, [messages]);
-
-  // The confirmation opens at the end of the region, where it was asked for.
-  useLayoutEffect(() => {
-    const region = tail.ref.current;
-    if (confirmFresh && region) region.scrollTop = region.scrollHeight;
-  }, [confirmFresh]);
+  const { owner, placeholder, header } = useAskHost(root);
+  useInitialIntent(input, {
+    submitOnReady: props.submitOnReady === true,
+    busy,
+    canSend: props.canSend,
+    onSend: props.onSend,
+    compact,
+  });
+  useAnswerAnchoring(tail, messages);
 
   const maximum = session?.messageCharacters ?? 4000;
   const over = draft.length - maximum;
@@ -210,39 +146,14 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         {/* A host may lend what it docks at the top of the conversation here;
             it is theirs, and React never renders into it. */}
         <div className="brain-box-dock" {...{ [ASK_DOCK_ATTRIBUTE]: "" }} />
-        {welcome && (copy.title || copy.notice || copy.topics.length > 0) && (
-          <div className="brain-box-welcome">
-            {copy.title && (
-              <h2 id="brain-chat-heading" className="display">
-                {copy.title}
-              </h2>
-            )}
-            {copy.notice && (
-              <div className="chat-notice">
-                <GuestMarkdown>{copy.notice}</GuestMarkdown>
-              </div>
-            )}
-            <div className="hints" aria-label={copy.topicsLabel}>
-              {copy.topics.map((topic, index) => (
-                <button
-                  type="button"
-                  key={`${index}:${topic}`}
-                  onClick={(): void => {
-                    props.setDraft(topic);
-                    input.current?.focus();
-                  }}
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {(!welcome || !copy.title) && (
-          <h2 id="brain-chat-heading" className="brain-box-sr-only">
-            {copy.title || "Ask"}
-          </h2>
-        )}
+        <GuestBoxWelcome
+          copy={copy}
+          welcome={welcome}
+          onTopic={(topic): void => {
+            props.setDraft(topic);
+            input.current?.focus();
+          }}
+        />
         {earlier.length > 0 && (
           <details className="brain-box-earlier">
             <summary>Earlier text · not resent</summary>
@@ -255,20 +166,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           {...(owner ? { assistantLabel: owner } : {})}
         />
         {waiting && messages.at(-1)?.role === "user" && (
-          <section
-            className="guest-message guest-assistant brain-box-pending"
-            aria-hidden="true"
-          >
-            <h2>{owner ?? "Brain"}</h2>
-            <p className="brain-box-waiting">
-              <span className="brain-box-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              Looking through the published work
-            </p>
-          </section>
+          <GuestBoxPending owner={owner} />
         )}
         <p
           className={`brain-box-activity${waiting || (busy && state === "connecting") ? " brain-box-sr-only" : ""}${state === "complete" && !busy ? " is-complete" : ""}`}
@@ -290,7 +188,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           }}
           onFresh={(): void => setConfirmFresh(true)}
         />
-        {waiting && patient && (
+        {offerStop && (
           <button
             className="brain-box-quiet"
             type="button"
@@ -302,6 +200,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         {confirmFresh && (
           <GuestBoxFreshConfirmation
             busy={busy}
+            regionRef={tail.ref}
             onContinue={(): void => {
               void props.onFresh().then((started) => {
                 if (started) {
