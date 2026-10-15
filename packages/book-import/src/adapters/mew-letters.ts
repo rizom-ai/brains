@@ -344,6 +344,19 @@ interface Letter {
   translated: boolean;
 }
 
+/**
+ * Words the text layer ran together, parted: a word in small letters holds no
+ * capital, so one there opens the next word (dreiMonate, denTag). Two
+ * capitalised words stay as they are: Marx capitalises within compounds.
+ * A capital I between small letters is the l the OCR took it for
+ * (erteiIt, PaImerston) and is read as one first.
+ */
+function parted(text: string): string {
+  return text
+    .replace(/(?<=\p{Ll})I(?=\p{Ll})/gu, "l")
+    .replace(/(?<![\p{L}])(\p{Ll}{2,})(?=\p{Lu}\p{Ll})/gu, "$1 ");
+}
+
 /** A line run on the paragraph before: a word broken at its end joined, a hyphen kept before a capital. */
 function joined(text: string, line: string): string {
   if (/[\p{L}]-$/u.test(text)) {
@@ -515,7 +528,7 @@ export function parseMewLetters(
     ],
     paragraphs: letter.blocks.map((block) => ({
       ...block,
-      text: germanQuotes(mergedEmphasis(block.text)),
+      text: germanQuotes(mergedEmphasis(parted(block.text))),
     })),
     notes: [],
   }));

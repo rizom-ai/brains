@@ -287,6 +287,62 @@ ${lines.map(([left, size, text]) => `<text top="9" left="${left}" width="${Math.
   });
 });
 
+describe("parseMewLetters, words the text layer ran together", () => {
+  it("parts a small word from the capitalised one the OCR ran it into, a name like MacAdam and a compound like ArbeitsZeit left whole", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="278" width="10" height="16" font="0">4</text>
+<text top="9" left="233" width="120" height="16" font="1">Marx an Engels</text>
+<text top="9" left="240" width="90" height="16" font="0">in Manchester</text>
+<text top="9" left="370" width="120" height="16" font="0">[London] 13. Jan. 1860</text>
+<text top="9" left="60" width="440" height="16" font="0">Ich habe seit dreiMonate aus einemBriefe von MacAdam nichts gehört, undSchramms ArbeitsZeit</text>
+<text top="9" left="40" width="440" height="16" font="0">ist am Ende doch denTag nicht wert, an dem sie erschien, wie Du weißt.</text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(
+        xml,
+        new Map([[40, "12 4 + Marx an Engels * 13. Januar 1860"]]),
+        {
+          volume: 30,
+          file: "mew_band30",
+          item: "Marx_Engels_Werke_MEW",
+          writer: "Marx",
+        },
+      )[0]?.paragraphs[1],
+    ).toBe(
+      "Ich habe seit drei Monate aus einem Briefe von MacAdam nichts gehört, und Schramms ArbeitsZeit ist am Ende doch den Tag nicht wert, an dem sie erschien, wie Du weißt.",
+    );
+  });
+  it("reads a capital I between small letters as the l the OCR took it for, so the word is not parted there", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="278" width="10" height="16" font="0">4</text>
+<text top="9" left="233" width="120" height="16" font="1">Marx an Engels</text>
+<text top="9" left="240" width="90" height="16" font="0">in Manchester</text>
+<text top="9" left="370" width="120" height="16" font="0">[London] 13. Jan. 1860</text>
+<text top="9" left="60" width="440" height="16" font="0">Die Erlaubnis ist erteiIt. PaImerston hat am 13.JuIy nichts gesagt, und das ist alles, was ich weiß.</text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(
+        xml,
+        new Map([[40, "12 4 + Marx an Engels * 13. Januar 1860"]]),
+        {
+          volume: 30,
+          file: "mew_band30",
+          item: "Marx_Engels_Werke_MEW",
+          writer: "Marx",
+        },
+      )[0]?.paragraphs[1],
+    ).toBe(
+      "Die Erlaubnis ist erteilt. Palmerston hat am 13.July nichts gesagt, und das ist alles, was ich weiß.",
+    );
+  });
+});
+
 describe("parseMewLetters, letters the edition translates", () => {
   it("leaves out a letter the editors mark as translated, its German theirs", () => {
     const xml = `<pdf2xml><page number="40">

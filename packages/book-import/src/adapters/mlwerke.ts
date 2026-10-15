@@ -388,13 +388,13 @@ const EDITORS_HEADER = /^(?:Geschrieben\s.{0,150}\d{4}\.?|\[[^\]]*\d{4}\.?\])$/;
 
 /**
  * The oldest pages' own apparatus set as text: the edition the page numbers
- * follow, the transcription's date, the editors' header and the links to the
- * work's other pages.
+ * follow, the transcription's date, the editors' header, the site's path
+ * to the volume and the links to the work's other pages.
  */
 function isSiteApparatus(element: Element): boolean {
   const text = element.textContent.trim();
   if (
-    /^(?:Seitenzahlen verweisen auf|\d+\.\s*Korrektur|Erstellt am)/.test(
+    /^(?:Seitenzahlen verweisen auf|Pfad:|\d+\.\s*Korrektur|Erstellt am)/.test(
       text,
     ) ||
     EDITORS_HEADER.test(text)

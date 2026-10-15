@@ -423,6 +423,19 @@ books:
     year: 1888
     published: false
     kind: work
+  - source: mlwerke
+    # MEW 40 (1973) as mlwerke.de published it, from the Internet Archive's
+    # last capture.
+    pages:
+      - https://web.archive.org/web/20151104163816id_/http://www.mlwerke.de:80/me/me40/me40_003.htm
+    citation: Brief an den Vater
+    slug: brief-an-den-vater
+    title: Brief an den Vater
+    edition: "Marx-Engels-Werke, Band 40 (Berlin, Dietz, 1973), S. 3–12"
+    author: Karl Marx
+    year: 1837
+    published: false
+    kind: letters
   - source: mew-letters
     item: Marx_Engels_Werke_MEW
     file: mew_band27

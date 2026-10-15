@@ -109,6 +109,14 @@ describe("parseMlwerkePages", () => {
     ]);
   });
 
+  it("leaves out the site's path to the volume at the page's foot", () => {
+    const page = `<H3>Brief</H3><P>&lt;3&gt;Teurer Vater!</P><HR><P><SMALL>Pfad: &raquo;../me/me40&laquo;</SMALL></P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], work)[0]?.paragraphs,
+    ).toEqual(["Teurer Vater!"]);
+  });
+
   it("opens a quotation the emphasis opens with it", () => {
     const page = `<H3>Grün</H3><P>&lt;480&gt;ihre <I>"Auflösung"</I> und <I>"so</I> weiter" (2).</P>`;
 
