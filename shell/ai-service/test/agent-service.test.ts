@@ -1,6 +1,8 @@
 import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
+import { deferred } from "@brains/utils/deferred";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { AgentService } from "../src/agent-service";
 import type { AgentResponse } from "../src";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
@@ -408,6 +410,100 @@ describe("AgentService", () => {
           .chat("after", "test-conversation")
           .catch((error: unknown) => error),
       ).toBe(activeError);
+    });
+
+    it("drains a cancellation-ignoring model call before shutdown settles", async () => {
+      const entered = deferred();
+      const release = deferred();
+      const addMessage = mock(mockConversationService.addMessage);
+      mockConversationService.addMessage = addMessage;
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(async (params) => {
+        modelSignal = params.abortSignal;
+        entered.resolve();
+        await release.promise;
+        return mockAgentGenerateResult;
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const turn = service
+        .chat("hello", "test-conversation")
+        .catch((error: unknown) => error);
+      await entered.promise;
+      const messagesBeforeShutdown = addMessage.mock.calls.length;
+      const shuttingDown = service.shutdown();
+      let settled = false;
+      const observedShutdown = shuttingDown.then(() => {
+        settled = true;
+      });
+      try {
+        expect(service.shutdown()).toBe(shuttingDown);
+        const error = await turn;
+        expect(error).toEqual(new Error("Agent service has been shut down"));
+        await nextTurn();
+        expect(modelSignal?.aborted).toBe(true);
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+        await Promise.allSettled([turn, observedShutdown]);
+      }
+      expect(settled).toBe(true);
+      expect(addMessage.mock.calls.length).toBe(messagesBeforeShutdown);
+    });
+
+    it("joins shutdown reentered from the model abort listener", async () => {
+      const entered = deferred();
+      const work = deferred();
+      let fromAbort: Promise<void> | undefined;
+      mockGenerate.mockImplementation(async (params) => {
+        params.abortSignal?.addEventListener(
+          "abort",
+          () => {
+            fromAbort = service.shutdown();
+          },
+          { once: true },
+        );
+        entered.resolve();
+        await work.promise;
+        return mockAgentGenerateResult;
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const turn = service
+        .chat("hello", "test-conversation")
+        .catch((error: unknown) => error);
+      await entered.promise;
+      const closing = service.shutdown();
+      const late = service
+        .chat("late", "another-conversation")
+        .catch((error: unknown) => error);
+      try {
+        const reason = await turn;
+        await nextTurn();
+        expect(fromAbort).toBe(closing);
+        expect(service.shutdown()).toBe(closing);
+        expect(await late).toBe(reason);
+        expect(mockGenerate).toHaveBeenCalledTimes(1);
+      } finally {
+        work.resolve();
+        await Promise.allSettled([
+          turn,
+          closing,
+          ...(fromAbort ? [fromAbort] : []),
+        ]);
+      }
     });
 
     it("rejects messages beyond the bounded per-conversation queue", async () => {

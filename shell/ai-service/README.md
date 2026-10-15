@@ -108,6 +108,19 @@ const agentService = AgentService.getInstance(
 );
 ```
 
+### Shutdown and cancellation
+
+Caller cancellation remains prompt and retains its original reason.
+`AgentService.shutdown()` closes admission synchronously, interrupts turn
+observations, and waits for admitted operation Promises to settle, including
+model/tool operations that ignore their abort signal. Reentrant shutdown calls
+join the same Promise. Scope-close failures are reported after the work barrier.
+
+This is not a shutdown deadline or a way to undo admitted effects. An operation
+that never settles can hold shutdown indefinitely; unreturned detached work is
+not owned by its Promise. Do not await shutdown from inside an operation that
+shutdown must drain.
+
 ## Test utilities
 
 ```typescript

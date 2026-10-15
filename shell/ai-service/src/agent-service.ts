@@ -1,5 +1,6 @@
 import { type Logger } from "@brains/utils/logger";
 import { isRecord } from "@brains/utils/is-record";
+import { deferred } from "@brains/utils/deferred";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import {
   assertGuestPermission,
@@ -472,7 +473,13 @@ export class AgentService implements IAgentService {
   }
 
   public shutdown(): Promise<void> {
-    this.shutdownPromise ??= this.shutdownActiveTurns();
+    if (!this.shutdownPromise) {
+      // Publish ownership before closing actors can invoke model abort listeners.
+      // Still close admission synchronously: do not defer shutdownActiveTurns.
+      const closing = deferred<void>();
+      this.shutdownPromise = closing.promise;
+      void this.shutdownActiveTurns().then(closing.resolve, closing.reject);
+    }
     return this.shutdownPromise;
   }
 
