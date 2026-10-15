@@ -92,6 +92,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
+- [action-item-board.md](./plans/action-item-board.md) — a Studio board over the shared action items: four status columns, field-scoped moves and notes that survive re-projection, attributed history, and project filters through a Studio grouping.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 - [organization-site.md](./plans/organization-site.md) — a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.
 
