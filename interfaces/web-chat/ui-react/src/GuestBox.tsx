@@ -1,6 +1,5 @@
 /** @jsxImportSource react */
 import {
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -17,14 +16,13 @@ import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
 import { GuestBoxComposer } from "./GuestBoxComposer";
 import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
+import { useAnswerAnchoring } from "./use-answer-anchoring";
+import { useAskHost } from "./use-ask-host";
 import { useGuestBoxViewport } from "./use-guest-box-viewport";
 import { useAskSheet } from "./use-ask-sheet";
-import {
-  ASK_BOX_ATTRIBUTE,
-  ASK_DOCK_ATTRIBUTE,
-  ASK_NAME_ATTRIBUTE,
-  ASK_PLACEHOLDER_ATTRIBUTE,
-} from "@brains/contracts";
+import { useInitialIntent } from "./use-initial-intent";
+import { useStopWaitingOffer } from "./use-stop-waiting-offer";
+import { ASK_DOCK_ATTRIBUTE } from "@brains/contracts";
 
 export interface GuestBoxProps {
   copy: GuestBoxCopy;
@@ -50,8 +48,6 @@ export interface GuestBoxProps {
   stopWaitingAfterMs?: number;
 }
 
-const STOP_WAITING_AFTER_MS = 20_000;
-
 function activityText(busy: boolean, state: GuestBoxState): string {
   if (!busy) return "";
   if (state === "sending") return "Sending your question…";
@@ -65,7 +61,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const freshButton = useRef<HTMLButtonElement>(null);
-  const [header, setHeader] = useState<Element | null>(null);
   const [confirmFresh, setConfirmFresh] = useState(false);
   // A fresh token whenever anything that changes the region's height does.
   const contentKey = useMemo(
@@ -75,69 +70,20 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const tail = useFollowTail({ resetKey: null, contentKey });
   // An answer is being written; after a while the visitor may stop waiting.
   const waiting = busy && (state === "sending" || state === "working");
-  const [patient, setPatient] = useState(false);
-  const stopWaitingAfterMs = props.stopWaitingAfterMs ?? STOP_WAITING_AFTER_MS;
-  useEffect(() => {
-    setPatient(false);
-    if (!waiting) return;
-    const timer = window.setTimeout(() => setPatient(true), stopWaitingAfterMs);
-    return (): void => window.clearTimeout(timer);
-  }, [waiting, stopWaitingAfterMs]);
+  const offerStop = useStopWaitingOffer(waiting, props.stopWaitingAfterMs);
   useGuestBoxViewport(root, input);
   const sheet = useAskSheet(root, input);
   // Closed on a phone, the box is a composer and a way back to the conversation.
   const compact = sheet.narrow && !sheet.open;
-  // Whose brain this is and what the empty box asks for, from the host
-  // (ASK_NAME_ATTRIBUTE, ASK_PLACEHOLDER_ATTRIBUTE), once mounted.
-  const [owner, setOwner] = useState<string>();
-  const [placeholder, setPlaceholder] = useState<string>();
-  useEffect(() => {
-    const host = root.current?.closest(`[${ASK_BOX_ATTRIBUTE}]`);
-    // An empty attribute says nothing.
-    const said = (name: string): string | undefined => {
-      const value = host?.getAttribute(name)?.trim();
-      if (!value) return undefined;
-      return value;
-    };
-    setOwner(said(ASK_NAME_ATTRIBUTE));
-    setPlaceholder(said(ASK_PLACEHOLDER_ATTRIBUTE));
-  }, []);
-
-  const initialIntent = useRef(props.submitOnReady === true);
-  const initialFocus = useRef(true);
-  useEffect(() => {
-    if (props.busy) return;
-    if (initialFocus.current) {
-      initialFocus.current = false;
-      // Only while the conversation is in view: focusing a closed sheet's
-      // composer would open it again after the visitor closed it.
-      if (document.activeElement === document.body && !compact)
-        input.current?.focus({ preventScroll: true });
-    }
-    if (!initialIntent.current) return;
-    initialIntent.current = false;
-    if (props.canSend) props.onSend();
-  }, [props.busy, props.canSend, props.onSend]);
-
-  useEffect(() => {
-    setHeader(root.current?.closest(".talk")?.querySelector(".ui-bar") ?? null);
-  }, []);
-
-  // An answer opens at its question, so it is read from the start; the reader
-  // follows the end again from "Latest". A box its page grows has no region
-  // to scroll and is left to the page.
-  const lastRole = useRef(messages.at(-1)?.role);
-  useLayoutEffect(() => {
-    const previous = lastRole.current;
-    lastRole.current = messages.at(-1)?.role;
-    if (previous !== "user" || messages.at(-1)?.role !== "assistant") return;
-    const region = tail.ref.current;
-    if (!region || region.scrollHeight <= region.clientHeight) return;
-    const asked = [...region.querySelectorAll<HTMLElement>(".guest-user")].at(
-      -1,
-    );
-    if (asked) tail.showFrom(asked);
-  }, [messages]);
+  const { owner, placeholder, header } = useAskHost(root);
+  useInitialIntent(input, {
+    submitOnReady: props.submitOnReady === true,
+    busy,
+    canSend: props.canSend,
+    onSend: props.onSend,
+    compact,
+  });
+  useAnswerAnchoring(tail, messages);
 
   // The confirmation opens at the end of the region, where it was asked for.
   useLayoutEffect(() => {
@@ -290,7 +236,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           }}
           onFresh={(): void => setConfirmFresh(true)}
         />
-        {waiting && patient && (
+        {offerStop && (
           <button
             className="brain-box-quiet"
             type="button"
