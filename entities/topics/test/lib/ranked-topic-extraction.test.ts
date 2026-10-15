@@ -539,6 +539,46 @@ describe("bounded ranked topic extraction", () => {
     expect(f.entities.has("topic:compassion")).toBe(true);
   });
 
+  it("trims to the ceiling counting a merged topic's votes for the topic it joined", async () => {
+    const f = fixture(8, { mergeVerdict: "merge" });
+    await f.run();
+    const [seeded] = await f.store.list();
+    if (!seeded) throw new Error("missing vote");
+    const votesFor: [string, number][] = [
+      ["Alpha", 0.9],
+      ["Beta", 0.9],
+      ["Cee", 1],
+      ["Dee", 1],
+      ["Eee", 1],
+      ["Eff", 1],
+      ["Gee", 1],
+    ];
+    for (const [index, [title, relevanceScore]] of votesFor.entries()) {
+      f.addTopic(title);
+      await f.store.set(`note:note-00${index}`, {
+        ...seeded.value,
+        contentHash: `hash-${index}`,
+        supported: [{ slug: title.toLowerCase(), title, relevanceScore }],
+      });
+    }
+    neighbours(f, "alpha", "beta");
+    await f.run("merge");
+    // Beta's votes count for Alpha, so Alpha outranks every other topic: the
+    // weakest left is Cee, and Alpha keeps its description.
+    expect(mergeCalls(f)).toBe(1);
+    expect(
+      f.calls.filter(
+        ({ templateName }) => templateName === "topics:description",
+      ),
+    ).toHaveLength(0);
+    expect(f.service.deleteEntity).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: "alpha" }),
+    );
+    expect(f.service.deleteEntity).toHaveBeenCalledTimes(2);
+    expect(f.entities.has("topic:beta")).toBe(false);
+    expect(f.entities.has("topic:cee")).toBe(false);
+  });
+
   it("joins a topic that owns none of its sources to the one owning most, without asking", async () => {
     const f = fixture(8);
     f.addTopic("Bildung");

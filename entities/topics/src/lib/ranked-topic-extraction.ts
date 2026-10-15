@@ -547,9 +547,11 @@ export function createRankedTopicJobHandler(
             await mergeNearDuplicates();
             await mergeDuplicates();
           }
+          // A merge above moves the absorbed topic's votes to the topic it
+          // joined, so the weakest topic is judged on a fresh tally.
           while (allRead() && active.length > ceiling()) {
             signal.throwIfAborted();
-            const weakest = weakestTopic(active, support);
+            const weakest = weakestTopic(active, tally());
             if (!weakest) break;
             await topics.deleteTopic(weakest.id);
             active = active.filter(({ id }) => id !== weakest.id);
