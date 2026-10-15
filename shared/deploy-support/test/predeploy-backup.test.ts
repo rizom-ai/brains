@@ -174,7 +174,7 @@ describe("predeploy readiness gate", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain(
-      "pre-deploy snapshot: job queue is not idle",
+      "pre-deploy snapshot: job queue is not idle (1 pending, 0 processing, 0 abandoned); rerun once it drains",
     );
   });
 
@@ -190,7 +190,7 @@ describe("predeploy readiness gate", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain(
-      "pre-deploy snapshot: job queue is not idle",
+      "pre-deploy snapshot: job queue is not idle (0 pending, 2 processing, 1 abandoned); rerun once it drains",
     );
   });
 
@@ -208,6 +208,49 @@ describe("predeploy readiness gate", () => {
     expect(result.stderr).toContain(
       "pre-deploy snapshot: 1 abandoned job(s) will rerun after the deploy",
     );
+  });
+
+  for (const { name, queue, counts } of [
+    {
+      name: "both totals",
+      queue: {},
+      counts: "? pending, ? processing, 0 abandoned",
+    },
+    {
+      name: "processing",
+      queue: { totals: { pending: 3 }, staleLeaseCount: 2 },
+      counts: "3 pending, ? processing, 2 abandoned",
+    },
+    {
+      name: "pending",
+      queue: { totals: { processing: 2 }, staleLeaseCount: 1 },
+      counts: "? pending, 2 processing, 1 abandoned",
+    },
+  ]) {
+    it(`names unknown counts and still refuses when ${name} is missing`, async () => {
+      const result = await gate(200, {
+        status: "ready",
+        operationalStatus: "operational",
+        resources: { queue },
+        privateDetail: "DO_NOT_LOG",
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toBe(
+        `pre-deploy snapshot: job queue is not idle (${counts}); rerun once it drains\n`,
+      );
+    });
+  }
+
+  it("keeps the existing idle and absent-queue readiness decisions", async () => {
+    for (const resources of [{ queue: idleQueue }, {}]) {
+      const result = await gate(200, {
+        status: "ready",
+        operationalStatus: "operational",
+        resources,
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toBe("");
+    }
   });
 
   it("refuses a runtime that is not ready", async () => {
