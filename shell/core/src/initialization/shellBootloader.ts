@@ -272,10 +272,12 @@ export class ShellBootloader {
       return;
     }
 
+    // Load stored identity before serving HTTP or starting workers, even while
+    // startup content is pending or failed. Refreshing caches creates no defaults;
+    // only the existing ready-state path may initialize missing documents.
+    await this.loadIdentityServices();
+
     if (!this.role.serves) {
-      // The worker imports startup content, so it never creates defaults:
-      // it reads what exists and follows what its imports bring.
-      await this.loadIdentityServices();
       this.services.jobProgressMonitor.start();
       await this.services.jobQueueWorker.start();
       this.services.logger.debug("Shell boot complete (worker process)");

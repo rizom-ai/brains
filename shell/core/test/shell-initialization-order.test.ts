@@ -447,6 +447,169 @@ describe("Shell initialization order", () => {
       expect(record.withDefaults).toBe(true);
     });
 
+    async function storeIdentityFromEarlierRun(
+      includeProfile = true,
+    ): Promise<void> {
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      await shell.initialize();
+      const stored: Record<string, string> = {
+        "brain-character":
+          "---\nname: Dynamic Sage\nrole: Knowledge Synthesis Agent\npurpose: Synthesize knowledge\nvalues:\n  - clarity\n---\n",
+        ...(includeProfile
+          ? { "anchor-profile": "---\nname: Becca\n---\n" }
+          : {}),
+      };
+      for (const [entityType, content] of Object.entries(stored)) {
+        await shell.getEntityService().createEntity({
+          entity: { id: entityType, entityType, content, metadata: {} },
+        });
+      }
+      await shell.shutdown();
+    }
+
+    for (const processRole of ["web", "combined"] as const) {
+      for (const failed of [false, true]) {
+        it(`serves stored identity in ${processRole} with ${failed ? "failed" : "pending"} startup content`, async () => {
+          await storeIdentityFromEarlierRun();
+          const config = createTestShellConfig(testDir.dir);
+          config.plugins = [initialSyncPlugin()];
+          shell = Shell.createFresh(
+            config,
+            deps,
+            processRole === "web" ? { processRole } : undefined,
+          );
+          const record = recordSettled();
+          const writes = spyOn(shell.getEntityService(), "createEntity");
+          const monitor = spyOn(shell.getEntityService(), "awaitIndexReady");
+          await shell.initialize();
+          if (failed) {
+            await completeInitialSync(false);
+            // Failure handling starts the monitor but does not finish a
+            // semantic backfill: a web-only process has no job worker.
+            await waitUntil(
+              () => monitor.mock.calls.length === 1,
+              "readiness monitoring after failed import",
+            );
+          } else {
+            expect(shell.getEntityService().isIndexReady()).toBe(false);
+          }
+          expect(shell.getIdentity().name).toBe("Dynamic Sage");
+          expect(shell.getProfile().name).toBe("Becca");
+          expect(record.settled).toBe(false);
+          expect(writes).not.toHaveBeenCalled();
+        });
+      }
+    }
+
+    it("does not create a missing profile while loading a stored character", async () => {
+      await storeIdentityFromEarlierRun(false);
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      const writes = spyOn(shell.getEntityService(), "createEntity");
+      await shell.initialize();
+      expect(shell.getIdentity().name).toBe("Dynamic Sage");
+      await completeInitialSync(false);
+      await waitUntil(
+        () => shell.getEntityService().isIndexReady(),
+        "failed import readiness",
+      );
+      expect(
+        await shell.getEntityService().getEntity({
+          entityType: "anchor-profile",
+          id: "anchor-profile",
+          visibilityScope: internalFullScope(
+            "test checks that identity loading creates no defaults",
+          ),
+        }),
+      ).toBeNull();
+      expect(writes).not.toHaveBeenCalled();
+    });
+
+    it("still loads stored identity in the worker without creating defaults", async () => {
+      await storeIdentityFromEarlierRun();
+      shell = Shell.createFresh(createTestShellConfig(testDir.dir), deps, {
+        processRole: "worker",
+      });
+      const writes = spyOn(shell.getEntityService(), "createEntity");
+      await shell.initialize();
+      expect(shell.getIdentity().name).toBe("Dynamic Sage");
+      expect(shell.getProfile().name).toBe("Becca");
+      expect(writes).not.toHaveBeenCalled();
+    });
+
+    it("keeps register-only mode free of stored-identity refresh and default writes", async () => {
+      await storeIdentityFromEarlierRun();
+      shell = Shell.createFresh(createTestShellConfig(testDir.dir), deps);
+      const before = {
+        character: shell.getIdentity(),
+        profile: shell.getProfile(),
+      };
+      const writes = spyOn(shell.getEntityService(), "createEntity");
+      await shell.initialize({ mode: "register-only" });
+      expect({
+        character: shell.getIdentity(),
+        profile: shell.getProfile(),
+      }).toEqual(before);
+      expect(writes).not.toHaveBeenCalled();
+    });
+
+    it("serves stored identity over HTTP before the initial sync handler returns", async () => {
+      await storeIdentityFromEarlierRun();
+      const finish = deferred();
+      let started = false;
+      const plugin: Plugin = {
+        id: "held-identity-sync",
+        version: "1.0.0",
+        type: "service",
+        packageName: "@test/held-identity-sync",
+        register: async (instance) => {
+          instance
+            .getMessageBus()
+            .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+              started = true;
+              await finish.promise;
+              return { success: true, data: { initialSyncPending: true } };
+            });
+          return { tools: [], resources: [] };
+        },
+        getWebRoutes: () => [
+          {
+            path: "/stored-identity",
+            public: true,
+            handler: () =>
+              Response.json({
+                character: shell.getIdentity().name,
+                profile: shell.getProfile().name,
+              }),
+          },
+        ],
+      };
+      const config = createTestShellConfig(testDir.dir, {
+        http: { port: 0, productionDistDir: `${testDir.dir}/production` },
+      });
+      config.plugins = [plugin];
+      shell = Shell.createFresh(config, deps, { processRole: "web" });
+      const initializing = shell.initialize();
+      try {
+        await waitUntil(() => started, "held startup handler");
+        expect(shell.isInitialized()).toBe(false);
+        const url = shell.getHttpHostStatus()?.productionUrl;
+        expect(url).toBeDefined();
+        const response = await fetch(`${url}/stored-identity`);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          character: "Dynamic Sage",
+          profile: "Becca",
+        });
+      } finally {
+        finish.resolve();
+        await initializing;
+      }
+    });
+
     it("creates defaults at boot when no initial sync is pending", async () => {
       shell = Shell.createFresh(createTestShellConfig(testDir.dir), deps);
       const record = recordSettled();
