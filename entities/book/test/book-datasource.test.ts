@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
@@ -8,6 +8,10 @@ import { getTemplates } from "../src/lib/register-templates";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 import { book, section } from "./helpers/books";
 import type { Book } from "../src/schemas/book";
+import {
+  bookDetailPageSchema,
+  bookSectionPageSchema,
+} from "../src/schemas/book-pages";
 
 describe("BookDataSource", () => {
   let shell: MockShell;
@@ -57,9 +61,66 @@ describe("BookDataSource", () => {
     expect(result.section.body.trim()).toBe("Erfundener Text 2.");
     expect(result.book.metadata.title).toBe("Erstes Buch");
     expect(result.book.frontmatter.author).toBe("Erfundener Autor");
-    expect(result.prev.metadata.slug).toBe("erstes/1");
-    expect(result.next.metadata.slug).toBe("erstes/3");
+    expect(result.prev.slug).toBe("erstes/1");
+    expect(result.next.slug).toBe("erstes/3");
     expect(result.total).toBe(3);
+  });
+
+  it("looks every section up by its slug, which a build finds by index", async () => {
+    const listEntities = spyOn(shell.getEntityService(), "listEntities");
+
+    await datasource.fetch(
+      { entityType: "book-section", query: { id: "erstes/2" } },
+      z.object({ section: z.any() }),
+      context,
+    );
+
+    const filters = listEntities.mock.calls.map(
+      ([request]) => request.options?.filter?.metadata,
+    );
+    expect(filters.length).toBeGreaterThan(0);
+    expect(
+      filters.every((filter) => Object.keys(filter ?? {}).join() === "slug"),
+    ).toBe(true);
+  });
+
+  it("carries what the page shows: its text once, links to its neighbours, its book without text", async () => {
+    const result = await datasource.fetch(
+      { entityType: "book-section", query: { id: "erstes/2" } },
+      bookSectionPageSchema,
+      context,
+    );
+
+    expect(result.prev).toEqual({
+      slug: "erstes/1",
+      title: "Anfang",
+      section: "S-1",
+    });
+    expect(result.next).toEqual({
+      slug: "erstes/3",
+      title: "Ende",
+      section: "S-3",
+    });
+    expect(result.section).not.toHaveProperty("content");
+    expect(result.section.body.trim()).toBe("Erfundener Text 2.");
+    expect(result.book).not.toHaveProperty("content");
+    expect(result.book).not.toHaveProperty("body");
+  });
+
+  it("opens a book's title page with a link where reading begins", async () => {
+    const result = await datasource.fetch(
+      { entityType: "book", query: { id: "erstes" } },
+      bookDetailPageSchema,
+      context,
+    );
+
+    expect(result.first).toEqual({
+      slug: "erstes/1",
+      title: "Anfang",
+      section: "S-1",
+    });
+    expect(result.book).not.toHaveProperty("content");
+    expect(result.book).not.toHaveProperty("body");
   });
 
   it("opens a book on its title page, its first section where reading begins", async () => {
@@ -71,7 +132,7 @@ describe("BookDataSource", () => {
 
     expect(result.book.id).toBe("erstes");
     expect(result.book.frontmatter.author).toBe("Erfundener Autor");
-    expect(result.first.metadata.slug).toBe("erstes/1");
+    expect(result.first.slug).toBe("erstes/1");
   });
 
   it("opens the first section after the book, with no section before it", async () => {
@@ -137,8 +198,8 @@ describe("BookDataSource", () => {
       expect(result.section.body).toContain("Erfundener Text 2.");
       expect(result.section.body).toContain("Erfundener Text 3.");
       expect(result.section.body).toContain("Erfundener Text 4.");
-      expect(result.prev.metadata.slug).toBe("langes/1");
-      expect(result.next.metadata.slug).toBe("langes/5");
+      expect(result.prev.slug).toBe("langes/1");
+      expect(result.next.slug).toBe("langes/5");
       expect(result.position).toBe(2);
       expect(result.total).toBe(3);
     });
@@ -162,7 +223,7 @@ describe("BookDataSource", () => {
         context,
       );
 
-      expect(result.prev.metadata.slug).toBe("langes/2");
+      expect(result.prev.slug).toBe("langes/2");
       expect(result.position).toBe(3);
     });
 

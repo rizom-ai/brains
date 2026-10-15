@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import type { BookWithData } from "../src/schemas/book";
 import type { BookSectionWithData } from "../src/schemas/book-section";
-import type { ScoreEntry } from "../src/datasources/book-datasource";
+import type { BookSectionLink, ScoreEntry } from "../src/schemas/book-pages";
 import { BookListTemplate } from "../src/templates/book-list";
 import {
   BookDetailTemplate,
@@ -89,6 +89,11 @@ function section(
     },
     body: `Erfundener Text in **${title}**.`,
   };
+}
+
+/** A link to a section, as a pager or a title page shows it. */
+function link(bookSlug: string, order: number, title: string): BookSectionLink {
+  return { slug: `${bookSlug}/${order}`, title, section: `S-${order}` };
 }
 
 const erstes = book("erstes", "Erstes Buch", bookDetails);
@@ -296,8 +301,8 @@ describe("Book pages", () => {
       <BookSectionTemplate
         section={section("erstes", 2, "Mitte")}
         book={erstes}
-        prev={section("erstes", 1, "Anfang")}
-        next={section("erstes", 3, "Ende")}
+        prev={link("erstes", 1, "Anfang")}
+        next={link("erstes", 3, "Ende")}
         position={2}
         total={3}
         themes={[]}
@@ -320,8 +325,8 @@ describe("Book pages", () => {
       <BookSectionTemplate
         section={section("erstes", 2, "Mitte")}
         book={erstes}
-        prev={section("erstes", 1, "Anfang")}
-        next={section("erstes", 3, "Ende")}
+        prev={link("erstes", 1, "Anfang")}
+        next={link("erstes", 3, "Ende")}
         position={2}
         total={3}
         themes={[]}
@@ -367,7 +372,7 @@ describe("Book pages", () => {
     const html = render(
       <BookDetailTemplate
         book={erstes}
-        first={section("erstes", 1, "Vorrede")}
+        first={link("erstes", 1, "Vorrede")}
         score={score}
       />,
     );
@@ -382,7 +387,7 @@ describe("Book pages", () => {
     const html = render(
       <BookDetailTemplate
         book={erstes}
-        first={section("erstes", 1, "Vorrede")}
+        first={link("erstes", 1, "Vorrede")}
         score={score}
       />,
     );
@@ -419,7 +424,7 @@ describe("Book pages", () => {
     const html = render(
       <BookDetailTemplate
         book={erstes}
-        first={section("erstes", 1, "Vorrede")}
+        first={link("erstes", 1, "Vorrede")}
         score={score}
       />,
     );
@@ -451,7 +456,7 @@ describe("Book pages", () => {
     const html = render(
       <BookDetailTemplate
         book={erstes}
-        first={section("erstes", 1, "Vorrede")}
+        first={link("erstes", 1, "Vorrede")}
         score={parted}
       />,
     );
@@ -584,7 +589,7 @@ describe("Book pages", () => {
         section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
-        next={section("erstes", 3, "S-3")}
+        next={link("erstes", 3, "S-3")}
         position={2}
         total={3}
         themes={[]}
@@ -677,7 +682,7 @@ describe("Book pages", () => {
     const html = render(
       <BookDetailTemplate
         book={erstes}
-        first={section("erstes", 1, "Anfang")}
+        first={link("erstes", 1, "Anfang")}
         score={[]}
       />,
     );
