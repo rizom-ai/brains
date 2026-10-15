@@ -75,19 +75,32 @@ const GERMAN_LETTERS: Record<string, string> = {
 };
 
 /**
- * Convert a string to a URL-safe slug. Letters are transliterated, not
- * dropped: German umlauts and ß as German writes them, other accents bare.
+ * Convert a string to a URL-safe slug. Letters and digits of every script
+ * are kept. Latin letters are transliterated, not dropped: German umlauts and
+ * ß as German writes them, other accents bare. Compatibility forms such as
+ * full-width letters fold to their plain equivalents.
  */
 export function slugify(text: string): string {
   return text
     .toLowerCase()
     .trim()
     .replace(/[äöüß]/g, (letter) => GERMAN_LETTERS[letter] ?? letter)
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "") // Drop accents left by decomposition
-    .replace(/[^\w\s-]/g, "") // Remove non-word chars
+    .normalize("NFKC")
+    .replace(/\p{Script=Latin}/gu, (letter) =>
+      letter.normalize("NFD").replace(/\p{M}/gu, ""),
+    ) // Drop Latin accents
+    .replace(/[^\p{L}\p{M}\p{N}\s_-]/gu, "") // Remove symbols and punctuation
+    .replace(/(^|[^\p{L}\p{M}])\p{M}+/gu, "$1") // Drop marks left without a letter
     .replace(/[\s_-]+/g, "-") // Replace spaces, underscores, hyphens with single hyphen
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
+
+/**
+ * Shorten a slug to at most `maxLength` characters, counting whole code
+ * points so no character is cut in half, without a trailing hyphen.
+ */
+export function truncateSlug(slug: string, maxLength: number): string {
+  return Array.from(slug).slice(0, maxLength).join("").replace(/-+$/, "");
 }
 
 /**
@@ -106,14 +119,15 @@ export function slugifyUrl(url: string): string {
 }
 
 /**
- * Generate a unique ID from text by slugifying it, with optional suffix
+ * Derive an ID from text by slugifying it, with optional suffix. The same
+ * text always gives the same ID, because derived entities are matched by it.
  */
 export function generateIdFromText(text: string, suffix?: string): string {
   const slug = slugify(text);
   if (!slug) {
-    // Fallback for edge cases where slug is empty
-    const timestamp = Date.now().toString(36);
-    return suffix ? `id-${timestamp}-${suffix}` : `id-${timestamp}`;
+    // Text without letters or digits: name it by a hash of the text.
+    const hash = textHash(text);
+    return suffix ? `id-${hash}-${suffix}` : `id-${hash}`;
   }
   return suffix ? `${slug}-${suffix}` : slug;
 }
@@ -276,4 +290,14 @@ export function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+/** 32-bit FNV-1a of the text in base 36: short, stable, browser-safe. */
+function textHash(text: string): string {
+  const hash = Array.from(text).reduce(
+    (state, char) =>
+      Math.imul(state ^ (char.codePointAt(0) ?? 0), 0x01000193) >>> 0,
+    0x811c9dc5,
+  );
+  return hash.toString(36);
 }

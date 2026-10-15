@@ -12,7 +12,7 @@ import {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { slugify } from "@brains/utils/string-utils";
+import { slugify, truncateSlug } from "@brains/utils/string-utils";
 import { getGuestSourceCards } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
@@ -97,10 +97,10 @@ const ID_SLUG_LENGTH = 60;
 
 /**
  * A FAQ's readable id: the question's slug, or "faq" for a question with no
- * latin letters. A taken slug gets a -2, -3, … suffix when the FAQ is created.
+ * letters or digits. A taken slug gets a -2, -3, … suffix when the FAQ is created.
  */
 export function faqSlug(question: string): string {
-  const slug = slugify(question).slice(0, ID_SLUG_LENGTH).replace(/-+$/, "");
+  const slug = truncateSlug(slugify(question), ID_SLUG_LENGTH);
   return slug || "faq";
 }
 

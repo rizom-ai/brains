@@ -499,10 +499,22 @@ describe("FaqCaptureHandler", () => {
     expect(fetches).toEqual([{ range: { start: 1, end: 30 } }]);
   });
 
-  it("falls back to 'faq' for a question with no latin letters", async () => {
+  it("names a question in another script by its own words", async () => {
     classification = {
       reusable: true,
       question: "如何发布草稿？",
+      answer: "在 Studio 中选择发布。",
+    };
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: "如何发布草稿" });
+  });
+
+  it("falls back to 'faq' for a question with no letters or digits", async () => {
+    classification = {
+      reusable: true,
+      question: "？？？",
       answer: "在 Studio 中选择发布。",
     };
 
