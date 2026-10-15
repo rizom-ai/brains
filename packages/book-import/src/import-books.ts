@@ -964,7 +964,11 @@ async function loadMewLettersBook(
       published: entry.published,
       shortTitle: entry.shortTitle ?? null,
     },
-    units: parseMewLetters(read.xml, read.heads, entry),
+    // The volumes share one item, so their corrections go by the volume's file.
+    units: parseMewLetters(read.xml, read.heads, {
+      ...entry,
+      corrections: options.corrections?.[entry.file] ?? [],
+    }),
   };
 }
 

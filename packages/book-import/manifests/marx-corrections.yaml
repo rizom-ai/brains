@@ -26275,3 +26275,13 @@ lohnarbeitundka00marxgoog:
     from: und nichts
     to: und nichts-
     by: reference
+mew_band27:
+  - page: 594
+    from: "[London] RDezember 1851"
+    to: "[London] 19.Dezember 1851"
+    by: scan
+mew_band35:
+  - page: 85
+    from: in Great Yarmouth Hotel du Nord, Lausanne
+    to: "in Great Yarmouth\nHôtel du Nord, Lausanne"
+    by: scan

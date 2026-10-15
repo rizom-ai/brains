@@ -1,5 +1,6 @@
 import type { BookUnit } from "../render-book";
 import { unitsOfSections, type TitledSection } from "../sections";
+import type { OcrCorrection } from "./archive-ocr";
 import { emphasised, escapeMarkdown, mergedEmphasis } from "./markup";
 import { isWritersLetter, titleOf } from "./mega-letters";
 
@@ -17,6 +18,8 @@ export interface MewLetters {
   from?: number | undefined;
   /** The last year whose letters are kept. */
   to?: number | undefined;
+  /** What the text layer misread, set right by MEW page. */
+  corrections?: OcrCorrection[] | undefined;
 }
 
 /** A run of text in the PDF's text layer, its type size against the page's text. */
@@ -40,6 +43,8 @@ interface Line {
   margin: number;
   /** The editors' word that the letter before is their translation. */
   translated?: boolean;
+  /** Its text as the runs set apart on it: a recipient's place and the dateline set beside it. */
+  parts: string[];
 }
 
 /** A paragraph and the page it starts on. */
@@ -67,6 +72,8 @@ const TRANSLATED =
 const SIZE_STEP = 0.1;
 /** A page's head counts where it agrees with the heads this many pages about it. */
 const HEAD_REACH = 3;
+/** Runs of one line this far apart at least are set apart: a place and the dateline beside it. */
+const PART_GAP = 12;
 /** A line of the text, not a heading or a signature, is at least this wide. */
 const FULL_LINE = 250;
 
@@ -80,14 +87,31 @@ const ENTITIES: Record<string, string> = {
   "&apos;": "'",
 };
 
-/** A run's words: markup's entities read, its italics as emphasis, other markup dropped. */
+/**
+ * Words the text layer spaced out letter by letter, a space between their
+ * letters and two between the words (W e n n  D u), a mark closing the
+ * word set against its last letter (I I I.); a dash between them is no
+ * letter of theirs (Stieber  - 3 Tage). It does so with
+ * letterspaced and tightly set type alike, so the words are read without
+ * emphasis.
+ */
+const SPACED =
+  /(?<=^|\s\s)[\p{L}\d](?: (?:[\p{L}\d][.,;:!?)\]]?|[.,;:!?)\]])(?!\S))+(?:\s\s[\p{L}\d](?: (?:[\p{L}\d][.,;:!?)\]]?|[.,;:!?)\]])(?!\S))+)*/gu;
+
+/** A run's words: markup's entities read, its spaced words closed up, its italics as emphasis, other markup dropped. */
 function runText(inner: string): string {
   return inner
     .split(/(<i>[\s\S]*?<\/i>)/)
     .map((part) => {
       const plain = part
         .replace(/<[^>]+>/g, "")
-        .replace(/&(?:#\d+|[a-z]+);/g, (entity) => ENTITIES[entity] ?? entity);
+        .replace(/&(?:#\d+|[a-z]+);/g, (entity) => ENTITIES[entity] ?? entity)
+        .replace(SPACED, (spaced) =>
+          spaced
+            .split(/\s\s+/)
+            .map((word) => word.replace(/ /g, ""))
+            .join(" "),
+        );
       const escaped = escapeMarkdown(plain);
       return part.startsWith("<i>") ? emphasised(escaped) : escaped;
     })
@@ -144,7 +168,10 @@ function linesOf(xml: string): Line[] {
     );
     const lines = kept.reduce<Array<Omit<Line, "margin">>>((done, run) => {
       if (TRANSLATED.test(run.text)) {
-        return [...done, { ...run, text: "", pdfPage, body, translated: true }];
+        return [
+          ...done,
+          { ...run, text: "", pdfPage, body, translated: true, parts: [] },
+        ];
       }
       const last = done.at(-1);
       const end = last === undefined ? 0 : last.left + last.width;
@@ -162,6 +189,13 @@ function linesOf(xml: string): Line[] {
             width: run.left + run.width - last.left,
             size: Math.max(last.size, run.size),
             text: `${last.text}${run.text}`,
+            parts:
+              run.left - end > PART_GAP
+                ? [...last.parts, run.text]
+                : [
+                    ...last.parts.slice(0, -1),
+                    `${last.parts.at(-1) ?? ""}${run.text}`,
+                  ],
           },
         ];
       }
@@ -174,6 +208,7 @@ function linesOf(xml: string): Line[] {
           text: run.text,
           pdfPage,
           body,
+          parts: [run.text],
         },
       ];
     }, []);
@@ -183,6 +218,9 @@ function linesOf(xml: string): Line[] {
       .map((line) => ({
         ...line,
         text: line.text.replace(/\s+/g, " ").trim(),
+        parts: line.parts
+          .map((part) => part.replace(/\s+/g, " ").trim())
+          .filter((part) => part.length > 0),
         margin: Number.isFinite(margin) ? margin : line.left,
       }))
       .filter((line) => line.text.length > 0 || line.translated === true);
@@ -269,16 +307,30 @@ function dateOf(dateline: string): [number, number, number] | null {
 }
 
 /**
- * A dateline's misreadings set right: a 1 the OCR read as l or I beside a
- * digit, an 11 read as H before a month, a stray mark after the date.
+ * Numbers as the OCR misread them: the I, l and O it took in a number read
+ * as 1 and 0 (3I.Mai, I815, lOten), and a month's O it took for a 0 read as
+ * O again (13.0ktober), an O opening a month never read into a number.
+ */
+function figures(text: string): string {
+  return text
+    .replace(
+      /(?<![\p{L}\d])(?:(?:[\dlI]|O(?![kc]))*\d(?:[\dlI]|O(?![kc]))*|[lI][O0]+)/gu,
+      (number) => number.replace(/[lI]/g, "1").replace(/O/g, "0"),
+    )
+    .replace(/(?<=\d\.?\s?)0(?=[kc]t)/g, "O");
+}
+
+/**
+ * A dateline's misreadings set right: its numbers, a 1 the OCR read as l or
+ * I beside a dot, an 11 read as H before a month, a bracket read as a
+ * brace, the stray marks before and after it.
  */
 function cleanDate(text: string): string {
-  return text
+  return figures(text)
+    .replace(/^[^\p{L}\d[({]+/u, "")
+    .replace(/\{(?=\p{L}[^{}[\]]*\])/gu, "[")
     .replace(/(?<=[\d.]\s?)[lI](?=[\d.])/g, "1")
-    .replace(/(?<=\d)[lI](?![\p{L}])/gu, "1")
-    .replace(/(?<![\p{L}])[lI](?=\d)/gu, "1")
     .replace(/(?<![\p{L}])H(?=\.\s?\p{L}{3,})/gu, "11")
-    .replace(/(?<![\p{L}])[lI]O(?=ten\b|\.)/gu, "10")
     .replace(/(?<![\p{L}])[lI](?=\.\s?\p{L}{3,})/gu, "1")
     .replace(/(?<=\p{Ll})(?=1[78]\d\d\b)/u, " ")
     .replace(/(?<=\d{4})J$/u, "]")
@@ -311,23 +363,35 @@ const SALUTATION =
  * parted at the first space, bracket or meeting of a small letter and a
  * capital after which a dateline opens, with a word, a bracket or a digit,
  * and dates the letter: in Brüssel[London], in ManchesterLondon, in
- * Frankfurt a. M. Paris.
+ * Frankfurt a. M. Paris. A place in brackets opens the dateline before
+ * any word does: in New York [London].
  */
 function recipientOf(text: string): [string, string | null] {
   const opening = /^(?:in|nach)\s+\S/u.exec(text)?.[0].length ?? text.length;
-  const at = Array.from({ length: text.length }, (_, index) => index)
-    .filter(
-      (index) =>
-        index >= opening &&
-        (text[index - 1] === " " ||
-          text[index] === "[" ||
-          (/\p{Ll}/u.test(text[index - 1] ?? "") &&
-            /\p{Lu}/u.test(text[index] ?? ""))),
-    )
-    .find((index) => {
-      const rest = text.slice(index).trim();
-      return /^(?:\p{L}{2}|\[|\d)/u.test(rest) && dateOf(rest) !== null;
-    });
+  const dates = (index: number): boolean => {
+    const rest = text.slice(index).trim();
+    return /^(?:\p{L}{2}|\[|\d)/u.test(rest) && dateOf(rest) !== null;
+  };
+  const indices = Array.from({ length: text.length }, (_, index) => index);
+  const bracketed = indices.find(
+    (index) =>
+      index >= opening &&
+      text[index] === "[" &&
+      /\p{Lu}/u.test(text[index + 1] ?? "") &&
+      dates(index),
+  );
+  const at =
+    bracketed ??
+    indices
+      .filter(
+        (index) =>
+          index >= opening &&
+          (text[index - 1] === " " ||
+            text[index] === "[" ||
+            (/\p{Ll}/u.test(text[index - 1] ?? "") &&
+              /\p{Lu}/u.test(text[index] ?? ""))),
+      )
+      .find(dates);
   return at === undefined
     ? [unmarked(text), null]
     : [unmarked(text.slice(0, at)), text.slice(at).trim()];
@@ -349,12 +413,46 @@ interface Letter {
  * capital, so one there opens the next word (dreiMonate, denTag). Two
  * capitalised words stay as they are: Marx capitalises within compounds.
  * A capital I between small letters is the l the OCR took it for
- * (erteiIt, PaImerston) and is read as one first.
+ * (erteiIt, PaImerston) and is read as one first, and so are numbers.
  */
 function parted(text: string): string {
-  return text
+  return figures(text)
     .replace(/(?<=\p{Ll})I(?=\p{Ll})/gu, "l")
     .replace(/(?<![\p{L}])(\p{Ll}{2,})(?=\p{Lu}\p{Ll})/gu, "$1 ");
+}
+
+/**
+ * Lines with the text layer's misreadings set right, each correction on the
+ * first line of its page that holds it; a line break in the correction sets
+ * apart what the layer ran on. A correction that finds nothing to set right
+ * is stale, and the import stops rather than keep the misreading.
+ */
+function corrected(
+  lines: Line[],
+  corrections: OcrCorrection[],
+  labelOf: (pdfPage: number) => string,
+): Line[] {
+  return corrections.reduce((done, correction) => {
+    const page = String(correction.page);
+    const at = done.findIndex(
+      (line) =>
+        labelOf(line.pdfPage) === page &&
+        line.parts.join("\n").includes(correction.from),
+    );
+    if (at < 0) {
+      throw new Error(`No "${correction.from}" on page ${page} to correct`);
+    }
+    return done.map((line, index) => {
+      if (index !== at) return line;
+      const parts = line.parts
+        .join("\n")
+        .replace(correction.from, correction.to)
+        .split("\n")
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+      return { ...line, parts, text: parts.join(" ") };
+    });
+  }, lines);
 }
 
 /** A line run on the paragraph before: a word broken at its end joined, a hyphen kept before a capital. */
@@ -384,7 +482,7 @@ export function parseMewLetters(
   const labels = mewPageNumbers(heads);
   const labelOf = (pdfPage: number): string =>
     String(labels.get(pdfPage) ?? pdfPage);
-  const lines = linesOf(xml);
+  const lines = corrected(linesOf(xml), volume.corrections ?? [], labelOf);
   const reading = lines.reduce<{
     letters: Letter[];
     open: Letter | null;
@@ -441,10 +539,19 @@ export function parseMewLetters(
         letter.blocks.push(place(text));
       };
       if (done.state === "recipient" && RECIPIENT.test(line.text)) {
-        const [recipient, rest] = recipientOf(cleanDate(line.text));
+        // What the runs set beside the place is a line of its own: the
+        // dateline, or an address above it.
+        const [named = "", ...beside] = line.parts;
+        const [recipient, ran] = recipientOf(cleanDate(named));
         letter.heading = `${letter.heading} ${recipient}`;
-        if (rest === null) return { ...done, state: "dateline" };
-        dateline(rest);
+        const rest = [ran ?? "", ...beside].join(" ").trim();
+        if (rest.length === 0) return { ...done, state: "dateline" };
+        const set = cleanDate(rest);
+        if (dateOf(set) === null) {
+          letter.blocks.push(place(set));
+          return { ...done, state: "dateline" };
+        }
+        dateline(set);
         return { ...done, state: "text" };
       }
       if (done.state !== "text") {

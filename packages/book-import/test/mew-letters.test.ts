@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { mewPageNumbers, parseMewLetters } from "../src/adapters/mew-letters";
+import {
+  mewPageNumbers,
+  parseMewLetters,
+  type MewLetters,
+} from "../src/adapters/mew-letters";
+import type { BookUnit } from "../src/render-book";
 
 /** The running heads of PDF pages 415–418 of MEW 30, as Tesseract reads them. */
 const heads = new Map([
@@ -139,7 +144,7 @@ ${lines.map(([left, size, text]) => `<text top="9" left="${left}" width="${Math.
     ).toBe("An Engels in Manchester. London, 12. Dez.. [1860]");
   });
 
-  it("reads the OCR's I, l and H for a date's digits: I3ten, H.November, 186I", () => {
+  it("reads the OCR's I, l and H for a date's digits and 0 for a month's O: I3ten, H.November, 186I, 13.0ktober", () => {
     const titled = (date: string): string | undefined =>
       opened([
         [278, 14, "4"],
@@ -170,6 +175,9 @@ ${lines.map(([left, size, text]) => `<text top="9" left="${left}" width="${Math.
     expect(titled("[London] 6.Nov.186I")).toBe(
       "An Engels in Manchester. [London] 6.Nov.1861",
     );
+    expect(titled("[London] 13.0ktober 1851")).toBe(
+      "An Engels in Manchester. [London] 13.Oktober 1851",
+    );
   });
 
   it("keeps a place of more than one word whole, parted from the dateline at the first place a dateline opens", () => {
@@ -193,6 +201,27 @@ ${lines.map(([left, size, text]) => `<text top="9" left="${left}" width="${Math.
         [89, 14, "Lieber Engels!"],
       ])[0]?.[1],
     ).toBe("An Engels in Bern. Köln, 29. November 48");
+  });
+
+  it("leaves out the OCR's stray marks before a dateline and reads its brace as a bracket", () => {
+    const titled = (date: string): string | undefined =>
+      opened([
+        [278, 14, "4"],
+        [233, 17, "Marx an Engels"],
+        [240, 14, "in Manchester"],
+        [370, 14, date],
+        [89, 14, "Lieber Engels!"],
+      ])[0]?.[1];
+
+    expect(titled("'' [London] 31.Juli 1865")).toBe(
+      "An Engels in Manchester. [London] 31.Juli 1865",
+    );
+    expect(titled(",..„ [London] 15.Dez. 1881")).toBe(
+      "An Engels in Manchester. [London] 15.Dez. 1881",
+    );
+    expect(titled("{London] 18. Juli 1853")).toBe(
+      "An Engels in Manchester. [London] 18. Juli 1853",
+    );
   });
 
   it("parts a dateline from the salutation and text the OCR ran on into it, its bracket read as 1", () => {
@@ -340,6 +369,158 @@ describe("parseMewLetters, words the text layer ran together", () => {
     ).toBe(
       "Die Erlaubnis ist erteilt. Palmerston hat am 13.July nichts gesagt, und das ist alles, was ich weiß.",
     );
+  });
+  it("reads the I, l and O the OCR took in a number as the 1 and 0 they are", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="278" width="10" height="16" font="0">4</text>
+<text top="9" left="233" width="120" height="16" font="1">Marx an Engels</text>
+<text top="9" left="240" width="90" height="16" font="0">in Manchester</text>
+<text top="9" left="370" width="120" height="16" font="0">[London] 13. Jan. 1860</text>
+<text top="9" left="60" width="440" height="16" font="0">Am lOten und am 3I.Mai, seit I815, am 19.0ktob. und 3Oktober, für lOOOOfrs. und den 3Ist, S. 5I7. I am sure.</text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(
+        xml,
+        new Map([[40, "12 4 + Marx an Engels * 13. Januar 1860"]]),
+        {
+          volume: 30,
+          file: "mew_band30",
+          item: "Marx_Engels_Werke_MEW",
+          writer: "Marx",
+        },
+      )[0]?.paragraphs[1],
+    ).toBe(
+      "Am 10ten und am 31.Mai, seit 1815, am 19.Oktob. und 3Oktober, für 10000frs. und den 31st, S. 517. I am sure.",
+    );
+  });
+});
+
+describe("parseMewLetters, letters the text layer spaced out", () => {
+  it("reads words the text layer spaced out letter by letter as words, its words two spaces apart, a French y a left as it is", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="278" width="10" height="16" font="0">4</text>
+<text top="9" left="198" width="222" height="16" font="1">Marx an Joseph Weydemeyer </text>
+<text top="9" left="265" width="270" height="16" font="0">in  N e w York [London]  19.  D e z e m b e r 1851 </text>
+<text top="9" left="60" width="440" height="16" font="0">Vorgestern erhielt ich,  d . h . Engels Deinen Brief, il y a des Fragen  u n d  W e n n  D u Zeit hast,  I I I. Freund Stieber  - 3 Tage, um  - a tout seigneur. </text>
+</page></pdf2xml>`;
+
+    const [letter] = parseMewLetters(
+      xml,
+      new Map([[40, "12 4 + Marx an Joseph Weydemeyer * 19. Dezember 1851"]]),
+      {
+        volume: 27,
+        file: "mew_band27",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      },
+    );
+
+    expect(letter?.title).toBe(
+      "An Joseph Weydemeyer in New York. [London] 19. Dezember 1851",
+    );
+    expect(letter?.paragraphs[1]).toBe(
+      "Vorgestern erhielt ich, d.h. Engels Deinen Brief, il y a des Fragen und Wenn Du Zeit hast, III. Freund Stieber - 3 Tage, um - a tout seigneur.",
+    );
+  });
+});
+
+describe("parseMewLetters, a recipient's place the text layer ran on", () => {
+  const titled = (place: string): Array<string | undefined> => {
+    const [letter] = parseMewLetters(
+      `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="278" width="10" height="16" font="0">4</text>
+<text top="9" left="220" width="121" height="16" font="1">Marx an Engels </text>
+${place}
+<text top="9" left="76" width="92" height="16" font="0">Lieber Engels, </text>
+</page></pdf2xml>`,
+      new Map([[40, "12 4 + Marx an Engels * 7. August 1855"]]),
+      {
+        volume: 28,
+        file: "mew_band28",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      },
+    );
+    return [letter?.title, ...(letter?.paragraphs ?? [])];
+  };
+
+  it("parts the place from an address set beside it, the address a line before the dateline", () => {
+    expect(
+      titled(`<text top="9" left="233" width="94" height="16" font="0">in Manchester </text>
+<text top="9" left="358" width="139" height="16" font="0">28, Dean Street, Soho </text>
+<text top="9" left="351" width="153" height="16" font="0">[London] 7. August 1855 </text>`),
+    ).toEqual([
+      "An Engels in Manchester. [London] 7. August 1855",
+      "28, Dean Street, Soho",
+      "[London] 7. August 1855",
+      "Lieber Engels,",
+    ]);
+  });
+
+  it("parts the place from a dateline set beside it", () => {
+    expect(
+      titled(`<text top="9" left="281" width="69" height="16" font="0">in Brüssel </text>
+<text top="9" left="382" width="149" height="16" font="0">[Paris] 19. August 1846 </text>`)[0],
+    ).toBe("An Engels in Brüssel. [Paris] 19. August 1846");
+  });
+
+  it("parts the place from a dateline in the same run at its bracketed place, not at the place's second word", () => {
+    expect(
+      titled(
+        `<text top="9" left="265" width="270" height="16" font="0">in New York [London] 19. Dezember 1851 </text>`,
+      )[0],
+    ).toBe("An Engels in New York. [London] 19. Dezember 1851");
+  });
+});
+
+describe("parseMewLetters, corrections", () => {
+  const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<text top="9" left="269" width="17" height="16" font="0">41 </text>
+<text top="9" left="217" width="122" height="16" font="1">Marx an Engels </text>
+<text top="9" left="216" width="287" height="16" font="0">in Great Yarmouth Hotel du Nord, Lausanne </text>
+<text top="9" left="375" width="85" height="16" font="0">R August 82 </text>
+<text top="9" left="72" width="71" height="16" font="0">Dear Fred, </text>
+</page></pdf2xml>`;
+  const read = (corrections: MewLetters["corrections"]): BookUnit[] =>
+    parseMewLetters(xml, new Map([[40, "1882 41"]]), {
+      volume: 35,
+      file: "mew_band35",
+      item: "Marx_Engels_Werke_MEW",
+      writer: "Marx",
+      corrections,
+    });
+
+  it("sets right on its printed page what the text layer misread, a line it ran on set apart where the correction breaks it", () => {
+    const [letter] = read([
+      {
+        page: 41,
+        from: "in Great Yarmouth Hotel du Nord, Lausanne",
+        to: "in Great Yarmouth\nHotel du Nord, Lausanne",
+      },
+      { page: 41, from: "R August 82", to: "24. August 82" },
+    ]);
+
+    expect([letter?.title, ...(letter?.paragraphs ?? [])]).toEqual([
+      "An Engels in Great Yarmouth. 24. August 82",
+      "Hotel du Nord, Lausanne",
+      "24. August 82",
+      "Dear Fred,",
+    ]);
+  });
+
+  it("stops at a correction that finds nothing to set right", () => {
+    expect(() =>
+      read([{ page: 41, from: "in Lausanne", to: "in Vevey" }]),
+    ).toThrow('No "in Lausanne" on page 41 to correct');
   });
 });
 

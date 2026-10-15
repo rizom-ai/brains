@@ -150,6 +150,20 @@ export function parseMegaLetter(xml: string): MegaLetterText {
   }
 }
 
+/**
+ * A heading that runs its dateline on with a comma, parted by the period
+ * the edition's other headings set there: in Hannover, London, Donnerstag,
+ * 2. Juli 1868 is in Hannover. London, Donnerstag, 2. Juli 1868.
+ */
+function partedDateline(heading: string): string {
+  const date = heading.search(/\d/u);
+  if (date < 0 || heading.slice(0, date).includes(". ")) return heading;
+  return heading.replace(
+    /^(.+? an .+? in [^,]+), (?=[^,]+, (?:\p{L}+, )?\d)/u,
+    "$1. ",
+  );
+}
+
 /** The edition's documents as its API lists them: id and heading. */
 export function parseMegaListing(
   xml: string,
@@ -164,11 +178,11 @@ export function parseMegaListing(
       (entry) => {
         const uri = entry.getElementsByTagName("uri")[0]?.textContent ?? "";
         const id = /(M\d+)\.xml$/.exec(uri.trim())?.[1];
-        const heading = (
-          entry.getElementsByTagName("title")[0]?.textContent ?? ""
-        )
-          .replace(/\s+/g, " ")
-          .trim();
+        const heading = partedDateline(
+          (entry.getElementsByTagName("title")[0]?.textContent ?? "")
+            .replace(/\s+/g, " ")
+            .trim(),
+        );
         return id ? [{ id, heading }] : [];
       },
     );

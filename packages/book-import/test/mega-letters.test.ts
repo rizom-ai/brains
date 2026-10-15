@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   languageOf,
   megaLetterUnits,
+  parseMegaListing,
   parseMegaLetter,
 } from "../src/adapters/mega-letters";
 
@@ -53,6 +54,34 @@ describe("parseMegaLetter, the editors' additions", () => {
 
     expect(letter.paragraphs).toEqual([
       "Es war ausserdem nicht er’s Schuld, […] und so weiter.",
+    ]);
+  });
+});
+
+describe("parseMegaListing", () => {
+  it("reads each document's id and heading, a dateline the heading runs on with a comma parted by a period", () => {
+    expect(
+      parseMegaListing(`<documents>
+<document><uri>https://megadigital.bbaw.de/M0000226.xml</uri><title> Karl Marx an Louis Kugelmann in Hannover. London, Montag, 18. Februar 1867</title></document>
+<document><uri>https://megadigital.bbaw.de/M0004883.xml</uri><title> Karl Marx an Louis Kugelmann in Hannover, London, Donnerstag, 2. Juli 1868 </title></document>
+<document><uri>https://megadigital.bbaw.de/M0000100.xml</uri><title> Karl Marx an Joseph Weydemeyer in Frankfurt a. M., Paris, 13. Juli 1849</title></document>
+</documents>`),
+    ).toEqual([
+      {
+        id: "M0000226",
+        heading:
+          "Karl Marx an Louis Kugelmann in Hannover. London, Montag, 18. Februar 1867",
+      },
+      {
+        id: "M0004883",
+        heading:
+          "Karl Marx an Louis Kugelmann in Hannover. London, Donnerstag, 2. Juli 1868",
+      },
+      {
+        id: "M0000100",
+        heading:
+          "Karl Marx an Joseph Weydemeyer in Frankfurt a. M., Paris, 13. Juli 1849",
+      },
     ]);
   });
 });

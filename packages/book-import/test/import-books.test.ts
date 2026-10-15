@@ -526,6 +526,50 @@ books:
     expect(title).toContain("license: public-domain");
     expect(title).toContain("archive.org/details/Marx_Engels_Werke_MEW");
   });
+  it("sets right what the volume's corrections name, kept by the volume's file", async () => {
+    const importing = importBooks(
+      parseManifest(`
+books:
+  - source: mew-letters
+    item: Marx_Engels_Werke_MEW
+    file: mew_band30
+    volume: 30
+    firstPage: 415
+    lastPage: 418
+    writer: Marx
+    slug: briefe-1860-1864
+    title: Briefe 1860–1864
+    edition: "Marx-Engels-Werke, Band 30 (Berlin, Dietz, 1964; 1974)"
+    author: Karl Marx
+    year: 1860
+    published: false
+    kind: letters
+`),
+      brainData,
+      async () => "",
+      {
+        corrections: {
+          mew_band30: [
+            { page: 386, from: "a line not there", to: "", by: "scan" },
+          ],
+        },
+        pdfReader: async () => ({
+          xml: await readFile(
+            join(import.meta.dir, "fixtures", "mew-30-415.xml"),
+            "utf8",
+          ),
+          heads: new Map([
+            [415, "209 + Engels an Marx * 3. Januar 1864 385"],
+            [416, "386 210 * Marx an Engels * 20. Januar 1864"],
+            [417, "210 - Marx an Engels * 20. Januar 1864 387"],
+            [418, "388 211 + Marx an Engels * 25. Februar 1864"],
+          ]),
+        }),
+      },
+    );
+
+    expect(importing).rejects.toThrow('No "a line not there" on page 386');
+  });
 });
 
 describe("importBooks from Project Gutenberg letters", () => {
