@@ -12,9 +12,11 @@ import type {
   ChatHistoryMessage,
   GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
+import { GuestTranscript } from "./GuestTranscript";
 import { GuestBoxComposer } from "./GuestBoxComposer";
 import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
+import { GuestBoxPending } from "./GuestBoxPending";
+import { GuestBoxWelcome } from "./GuestBoxWelcome";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
 import { useAnswerAnchoring } from "./use-answer-anchoring";
 import { useAskHost } from "./use-ask-host";
@@ -156,39 +158,14 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         {/* A host may lend what it docks at the top of the conversation here;
             it is theirs, and React never renders into it. */}
         <div className="brain-box-dock" {...{ [ASK_DOCK_ATTRIBUTE]: "" }} />
-        {welcome && (copy.title || copy.notice || copy.topics.length > 0) && (
-          <div className="brain-box-welcome">
-            {copy.title && (
-              <h2 id="brain-chat-heading" className="display">
-                {copy.title}
-              </h2>
-            )}
-            {copy.notice && (
-              <div className="chat-notice">
-                <GuestMarkdown>{copy.notice}</GuestMarkdown>
-              </div>
-            )}
-            <div className="hints" aria-label={copy.topicsLabel}>
-              {copy.topics.map((topic, index) => (
-                <button
-                  type="button"
-                  key={`${index}:${topic}`}
-                  onClick={(): void => {
-                    props.setDraft(topic);
-                    input.current?.focus();
-                  }}
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {(!welcome || !copy.title) && (
-          <h2 id="brain-chat-heading" className="brain-box-sr-only">
-            {copy.title || "Ask"}
-          </h2>
-        )}
+        <GuestBoxWelcome
+          copy={copy}
+          welcome={welcome}
+          onTopic={(topic): void => {
+            props.setDraft(topic);
+            input.current?.focus();
+          }}
+        />
         {earlier.length > 0 && (
           <details className="brain-box-earlier">
             <summary>Earlier text · not resent</summary>
@@ -201,20 +178,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           {...(owner ? { assistantLabel: owner } : {})}
         />
         {waiting && messages.at(-1)?.role === "user" && (
-          <section
-            className="guest-message guest-assistant brain-box-pending"
-            aria-hidden="true"
-          >
-            <h2>{owner ?? "Brain"}</h2>
-            <p className="brain-box-waiting">
-              <span className="brain-box-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              Looking through the published work
-            </p>
-          </section>
+          <GuestBoxPending owner={owner} />
         )}
         <p
           className={`brain-box-activity${waiting || (busy && state === "connecting") ? " brain-box-sr-only" : ""}${state === "complete" && !busy ? " is-complete" : ""}`}
