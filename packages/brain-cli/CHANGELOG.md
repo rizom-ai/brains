@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- [#639](https://github.com/rizom-ai/brains/pull/639) [`d45f056`](https://github.com/rizom-ai/brains/commit/d45f056270ac84ef6a030bee787989ddc0056cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The web and worker processes tell each other about entity changes. A brain's identity, and Studio's activity feed, follow writes made in either process, such as content the worker syncs from git, without a restart.
+
 ## 0.2.0-alpha.552
 
 ### Patch Changes
