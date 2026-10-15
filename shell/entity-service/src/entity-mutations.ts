@@ -25,6 +25,7 @@ import type {
   DeleteEntityRequest,
   CreateEntityRequest,
   UpdateEntityRequest,
+  UpdateEntityOptions,
   FoldEntityRequest,
   ApplyEntityMutationOnceRequest,
   UpsertEntityRequest,
@@ -45,7 +46,11 @@ import type { Logger } from "@brains/utils/logger";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
-import { EmbeddingIndexCoordinator } from "./embedding-index-coordinator";
+import {
+  EmbeddingIndexCoordinator,
+  type EnqueueEmbeddingInput,
+} from "./embedding-index-coordinator";
+import type { EntityTransaction } from "./projection-transaction-runner";
 import { and, eq, sql } from "drizzle-orm";
 import {
   entityWriteConditionSchema,
@@ -103,6 +108,37 @@ const foldSourceSchema = z.strictObject({
 interface FoldRemoval {
   condition: EntityWritePrecondition;
   prior: BaseEntity;
+}
+
+/** What the final in-transaction checks see of an entity about to be written. */
+interface EntityWriteGuard {
+  /** Carries the final ID. */
+  entity: BaseEntity;
+  markdown: string;
+  metadata: Record<string, unknown>;
+  contentHash: string;
+  stagedAsset: StagedAsset | undefined;
+  options: Pick<UpdateEntityOptions, "signal" | "beforeWrite"> | undefined;
+  assertGroupingsCurrent: () => Promise<void>;
+}
+
+/** A validated, serialized update and the stored row it replaces. */
+interface EntityUpdatePlan extends EntityWriteGuard {
+  options: UpdateEntityOptions | undefined;
+  precondition: EntityWritePrecondition | undefined;
+  fold: FoldRemoval | undefined;
+  receipt: EntityMutationReceiptKey | undefined;
+  previousMetadata: BaseEntity["metadata"];
+  /** Every persisted field already matches the stored row. */
+  unchanged: boolean;
+}
+
+type PreparedEntityUpdate =
+  { stale: true; entityId: string } | { stale: false; plan: EntityUpdatePlan };
+
+/** The stored content hash no longer matches the caller's expectation. */
+function contentConflict(entityId: string): EntityMutationResult {
+  return { entityId, jobId: "", skipped: true, skipReason: "content-conflict" };
 }
 
 export interface EntityMutationDeps {
@@ -333,22 +369,15 @@ export class EntityMutations {
             precondition,
             validatedEntity,
           );
-        await this.bindAssetContent(
-          transaction,
-          validatedEntity.entityType,
+        await this.guardEntityWrite(transaction, {
+          entity: { ...validatedEntity, id: finalId },
           markdown,
-          stagedAsset,
-        );
-        await options?.beforeWrite?.({
-          ...validatedEntity,
-          id: finalId,
-          content: markdown,
-          contentHash,
           metadata,
+          contentHash,
+          stagedAsset,
+          options,
+          assertGroupingsCurrent,
         });
-        options?.signal?.throwIfAborted();
-        await assertGroupingsCurrent();
-        options?.signal?.throwIfAborted();
         // Once the entity write starts, settle the complete atomic mutation.
         await transaction.insert(entities).values({
           id: finalId,
@@ -360,27 +389,17 @@ export class EntityMutations {
           created: new Date(validatedEntity.created).getTime(),
           updated: new Date(validatedEntity.updated).getTime(),
         });
-        await this.syncFtsIndex(
-          transaction,
-          finalId,
-          validatedEntity.entityType,
-          markdown,
-        );
-        await this.persistEntityExport(
+        await this.recordEntityUpsert(
           transaction,
           {
-            entityType: validatedEntity.entityType,
-            entityId: finalId,
-            operation: "upsert",
-          },
-          options?.persistenceOrigin,
-        );
-        if (receipt)
-          await this.mutationReceipts.record(transaction, receipt, {
             operation: "create",
             entityType: validatedEntity.entityType,
             entityId: finalId,
-          });
+            markdown,
+          },
+          receipt,
+          options?.persistenceOrigin,
+        );
       },
     );
     await this.notifyProjectionScheduler();
@@ -401,17 +420,15 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.embeddingIndex.enqueue({
-      entityId: finalId,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "create",
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-      ...(options?.eventContext && { eventContext: options.eventContext }),
-    });
+    return this.enqueueEmbedding(
+      {
+        entityId: finalId,
+        entityType: validatedEntity.entityType,
+        contentHash,
+        operation: "create",
+      },
+      options,
+    );
   }
 
   /**
@@ -476,6 +493,31 @@ export class EntityMutations {
     fold?: FoldRemoval,
     receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
+    const prepared = await this.prepareUpdate(request, fold, receipt);
+    if (prepared.stale) return contentConflict(prepared.entityId);
+    const { plan } = prepared;
+    if (plan.unchanged) return this.refreshUnchangedEntity(plan);
+
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "update",
+      entityType: plan.entity.entityType,
+      entityId: plan.entity.id,
+    });
+
+    if ((await this.commitUpdate(plan)) === "stale")
+      return contentConflict(plan.entity.id);
+    return this.afterUpdateCommit(plan);
+  }
+
+  /**
+   * Validate and serialize an update, read the row it replaces, and settle
+   * every check that can refuse or skip it before a transaction opens.
+   */
+  private async prepareUpdate<T extends BaseEntity>(
+    request: UpdateEntityRequest<T>,
+    fold: FoldRemoval | undefined,
+    receipt: EntityMutationReceiptKey | undefined,
+  ): Promise<PreparedEntityUpdate> {
     const { entity, options, preparedAsset } = request;
     options?.signal?.throwIfAborted();
     const condition =
@@ -561,12 +603,7 @@ export class EntityMutations {
       this.logger.debug(
         `Skipping stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
-      return {
-        entityId: validatedEntity.id,
-        jobId: "",
-        skipped: true,
-        skipReason: "content-conflict",
-      };
+      return { stale: true, entityId: validatedEntity.id };
     }
 
     if (
@@ -586,76 +623,114 @@ export class EntityMutations {
       preparedAsset,
     );
 
-    if (
-      !precondition &&
-      !receipt &&
-      existingEntity.contentHash === contentHash &&
-      existingEntity.visibility === validatedEntity.visibility &&
-      stableJson(existingEntity.metadata) === stableJson(metadata)
-    ) {
-      await this.projectionStore.transferEntityAuthority(
-        {
-          entityType: validatedEntity.entityType,
-          id: validatedEntity.id,
-        },
-        async (transaction) => {
-          options?.signal?.throwIfAborted();
-          await assertGroupingsCurrent();
-          await this.bindAssetContent(
-            transaction,
-            validatedEntity.entityType,
-            markdown,
-            stagedAsset,
-          );
-          options?.signal?.throwIfAborted();
-          await this.pruneFtsIndexIfExcluded(
-            transaction,
-            validatedEntity.id,
-            validatedEntity.entityType,
-          );
-          return this.persistEntityExport(
-            transaction,
-            {
-              entityType: validatedEntity.entityType,
-              entityId: validatedEntity.id,
-              operation: "upsert",
-            },
-            options?.persistenceOrigin,
-          );
-        },
-      );
-      this.logger.debug(
-        `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
-      );
-      if (options?.eventContext) {
-        await this.emitEntityEvent(
-          ENTITY_CHANNELS.updated,
-          validatedEntity.entityType,
-          validatedEntity.id,
-          validatedEntity,
-          existingEntity.metadata,
-          options.eventContext,
+    return {
+      stale: false,
+      plan: {
+        entity: validatedEntity,
+        options,
+        precondition,
+        fold,
+        receipt,
+        assertGroupingsCurrent,
+        markdown,
+        metadata,
+        contentHash,
+        stagedAsset,
+        previousMetadata: existingEntity.metadata,
+        unchanged:
+          !precondition &&
+          !receipt &&
+          existingEntity.contentHash === contentHash &&
+          existingEntity.visibility === validatedEntity.visibility &&
+          stableJson(existingEntity.metadata) === stableJson(metadata),
+      },
+    };
+  }
+
+  /**
+   * Every persisted field already matches the stored row: write nothing, but
+   * take authority back from a projection, bind the asset, prune an excluded
+   * FTS row, and journal the export.
+   */
+  private async refreshUnchangedEntity(
+    plan: EntityUpdatePlan,
+  ): Promise<EntityMutationResult> {
+    const { entity, options } = plan;
+    await this.projectionStore.transferEntityAuthority(
+      {
+        entityType: entity.entityType,
+        id: entity.id,
+      },
+      async (transaction) => {
+        options?.signal?.throwIfAborted();
+        await plan.assertGroupingsCurrent();
+        await this.bindAssetContent(
+          transaction,
+          entity.entityType,
+          plan.markdown,
+          plan.stagedAsset,
         );
-      }
-      return { entityId: validatedEntity.id, jobId: "", skipped: true };
+        options?.signal?.throwIfAborted();
+        await this.pruneFtsIndexIfExcluded(
+          transaction,
+          entity.id,
+          entity.entityType,
+        );
+        return this.persistEntityExport(
+          transaction,
+          {
+            entityType: entity.entityType,
+            entityId: entity.id,
+            operation: "upsert",
+          },
+          options?.persistenceOrigin,
+        );
+      },
+    );
+    this.logger.debug(
+      `Skipping no-op update for ${entity.entityType}:${entity.id}`,
+    );
+    if (options?.eventContext) {
+      await this.emitEntityEvent(
+        ENTITY_CHANNELS.updated,
+        entity.entityType,
+        entity.id,
+        entity,
+        plan.previousMetadata,
+        options.eventContext,
+      );
     }
+    return { entityId: entity.id, jobId: "", skipped: true };
+  }
 
-    await this.mutationAdmission?.assertMutationAdmission({
-      operation: "update",
-      entityType: validatedEntity.entityType,
-      entityId: validatedEntity.id,
-    });
-
+  /**
+   * Commit the update with its fold removal, FTS, both durable journals and
+   * its receipt in one transaction. A row whose expected content hash changed
+   * after preparation commits nothing and reports "stale".
+   */
+  private async commitUpdate(
+    plan: EntityUpdatePlan,
+  ): Promise<"committed" | "stale"> {
+    const {
+      entity,
+      options,
+      precondition,
+      fold,
+      receipt,
+      markdown,
+      metadata,
+      contentHash,
+    } = plan;
     try {
       await this.projectionStore.withDirtyInputs(
         [
           {
-            sourceType: validatedEntity.entityType,
-            sourceId: validatedEntity.id,
+            sourceType: entity.entityType,
+            sourceId: entity.id,
             revision: entityRevision({
               contentHash,
               metadata,
-              visibility: validatedEntity.visibility,
+              visibility: entity.visibility,
             }),
             operation: "upsert",
             markedAt: this.projectionNow(),
@@ -682,47 +757,29 @@ export class EntityMutations {
               fold.prior,
             );
           if (precondition)
-            await assertEntityWriteCondition(
-              transaction,
-              precondition,
-              validatedEntity,
-            );
-          await this.bindAssetContent(
-            transaction,
-            validatedEntity.entityType,
-            markdown,
-            stagedAsset,
-          );
-          await options?.beforeWrite?.({
-            ...validatedEntity,
-            content: markdown,
-            contentHash,
-            metadata,
-          });
-          options?.signal?.throwIfAborted();
-          await assertGroupingsCurrent();
-          options?.signal?.throwIfAborted();
+            await assertEntityWriteCondition(transaction, precondition, entity);
+          await this.guardEntityWrite(transaction, plan);
           // Cancellation after this boundary must not split the entity from its journals.
           const updateResult = await transaction
             .update(entities)
             .set({
               content: markdown,
               contentHash,
-              visibility: validatedEntity.visibility,
+              visibility: entity.visibility,
               metadata,
-              updated: new Date(validatedEntity.updated).getTime(),
+              updated: new Date(entity.updated).getTime(),
             })
             .where(
               and(
-                eq(entities.id, validatedEntity.id),
-                eq(entities.entityType, validatedEntity.entityType),
+                eq(entities.id, entity.id),
+                eq(entities.entityType, entity.entityType),
                 options?.expectedContentHash !== undefined
                   ? eq(entities.contentHash, options.expectedContentHash)
                   : undefined,
               ),
             );
           if (
-            (condition || options?.expectedContentHash !== undefined) &&
+            (precondition || options?.expectedContentHash !== undefined) &&
             Number(updateResult.rowsAffected) === 0
           ) {
             if (precondition)
@@ -741,56 +798,39 @@ export class EntityMutations {
                   eq(entities.id, fold.prior.id),
                 ),
               );
-            await this.deleteFtsIndex(
+            await this.recordEntityRemoval(
               transaction,
-              fold.prior.id,
-              fold.prior.entityType,
-            );
-            await this.persistEntityExport(
-              transaction,
-              {
-                entityType: fold.prior.entityType,
-                entityId: fold.prior.id,
-                operation: "delete",
-              },
+              { entityType: fold.prior.entityType, entityId: fold.prior.id },
               options?.persistenceOrigin,
             );
           }
-          await this.syncFtsIndex(
-            transaction,
-            validatedEntity.id,
-            validatedEntity.entityType,
-            markdown,
-          );
-          await this.persistEntityExport(
+          await this.recordEntityUpsert(
             transaction,
             {
-              entityType: validatedEntity.entityType,
-              entityId: validatedEntity.id,
-              operation: "upsert",
+              operation: "update",
+              entityType: entity.entityType,
+              entityId: entity.id,
+              markdown,
             },
+            receipt,
             options?.persistenceOrigin,
           );
-          if (receipt)
-            await this.mutationReceipts.record(transaction, receipt, {
-              operation: "update",
-              entityType: validatedEntity.entityType,
-              entityId: validatedEntity.id,
-            });
         },
       );
     } catch (error) {
       if (!(error instanceof StaleEntityUpdateError)) throw error;
       this.logger.debug(
-        `Skipping concurrently stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,
+        `Skipping concurrently stale update for ${entity.entityType}:${entity.id}`,
       );
-      return {
-        entityId: validatedEntity.id,
-        jobId: "",
-        skipped: true,
-        skipReason: "content-conflict",
-      };
+      return "stale";
     }
+    return "committed";
+  }
+
+  private async afterUpdateCommit(
+    plan: EntityUpdatePlan,
+  ): Promise<EntityMutationResult> {
+    const { entity, options, fold } = plan;
     // Recoverable cross-database/index and notification work starts only after
     // the entity pair, FTS and both durable journals have committed.
     if (fold)
@@ -810,32 +850,30 @@ export class EntityMutations {
         options?.eventContext,
       );
     this.logger.debug(
-      `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
+      `Updated entity ${entity.entityType}:${entity.id} immediately`,
     );
 
     await this.emitEntityEvent(
       ENTITY_CHANNELS.updated,
-      validatedEntity.entityType,
-      validatedEntity.id,
-      validatedEntity,
+      entity.entityType,
+      entity.id,
+      entity,
       // Prior metadata lets projections (e.g. series) reconcile a moved value
       // such as a changed `seriesName` without a full resync. Already loaded
-      // above for the no-op check, so this adds no extra read.
-      existingEntity.metadata,
+      // by prepareUpdate for the no-op check, so this adds no extra read.
+      plan.previousMetadata,
       options?.eventContext,
     );
 
-    return this.embeddingIndex.enqueue({
-      entityId: validatedEntity.id,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "update",
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-      ...(options?.eventContext && { eventContext: options.eventContext }),
-    });
+    return this.enqueueEmbedding(
+      {
+        entityId: entity.id,
+        entityType: entity.entityType,
+        contentHash: plan.contentHash,
+        operation: "update",
+      },
+      options,
+    );
   }
 
   /** Delete the entities contained in a container, one by one. */
@@ -953,12 +991,9 @@ export class EntityMutations {
           ) {
             throw new StaleEntityUpdateError();
           }
-          await transaction.run(
-            sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-          );
-          await this.persistEntityExport(
+          await this.recordEntityRemoval(
             transaction,
-            { entityType, entityId: id, operation: "delete" },
+            { entityType, entityId: id },
             options?.persistenceOrigin,
           );
         },
@@ -1143,6 +1178,91 @@ export class EntityMutations {
       storedContent,
       stagedAsset,
     );
+  }
+
+  /**
+   * The last refusals before an entity row is written, inside its transaction:
+   * asset binding, the caller's guard over the final persisted fields,
+   * cancellation, and grouping currency.
+   */
+  private async guardEntityWrite(
+    transaction: EntityTransaction,
+    write: EntityWriteGuard,
+  ): Promise<void> {
+    const { entity, markdown, contentHash, metadata, options } = write;
+    await this.bindAssetContent(
+      transaction,
+      entity.entityType,
+      markdown,
+      write.stagedAsset,
+    );
+    await options?.beforeWrite?.({
+      ...entity,
+      content: markdown,
+      contentHash,
+      metadata,
+    });
+    options?.signal?.throwIfAborted();
+    await write.assertGroupingsCurrent();
+    options?.signal?.throwIfAborted();
+  }
+
+  /** Index, journal and receipt an entity row written in this transaction. */
+  private async recordEntityUpsert(
+    transaction: EntityTransaction,
+    write: {
+      operation: "create" | "update";
+      entityType: string;
+      entityId: string;
+      markdown: string;
+    },
+    receipt: EntityMutationReceiptKey | undefined,
+    origin: EntityJobOptions["persistenceOrigin"],
+  ): Promise<void> {
+    const { operation, entityType, entityId } = write;
+    await this.syncFtsIndex(transaction, entityId, entityType, write.markdown);
+    await this.persistEntityExport(
+      transaction,
+      { entityType, entityId, operation: "upsert" },
+      origin,
+    );
+    if (receipt)
+      await this.mutationReceipts.record(transaction, receipt, {
+        operation,
+        entityType,
+        entityId,
+      });
+  }
+
+  /** Unindex and journal an entity row deleted in this transaction. */
+  private async recordEntityRemoval(
+    transaction: EntityTransaction,
+    target: { entityType: string; entityId: string },
+    origin: EntityJobOptions["persistenceOrigin"],
+  ): Promise<void> {
+    await this.deleteFtsIndex(transaction, target.entityId, target.entityType);
+    await this.persistEntityExport(
+      transaction,
+      { ...target, operation: "delete" },
+      origin,
+    );
+  }
+
+  private enqueueEmbedding(
+    target: Pick<
+      EnqueueEmbeddingInput,
+      "entityId" | "entityType" | "contentHash" | "operation"
+    >,
+    options: EntityJobOptions | undefined,
+  ): Promise<EntityMutationResult> {
+    return this.embeddingIndex.enqueue({
+      ...target,
+      ...(options?.priority !== undefined && { priority: options.priority }),
+      ...(options?.maxRetries !== undefined && {
+        maxRetries: options.maxRetries,
+      }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
+    });
   }
 
   /** Synchronize FTS independently from vector embedding policy. */
