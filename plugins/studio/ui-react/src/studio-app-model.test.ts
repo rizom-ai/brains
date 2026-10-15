@@ -1,8 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import type { StudioAppViewProps } from "./app-view-props";
+import type { StudioCollectionQuery } from "../../src/collection-query";
 import { ApiError, type EntityTypeInfo, type StudioWorkspaceInfo } from "./api";
-import { initialEditorWorkflowState } from "./editor-workflow";
-import { deriveStudioAppModel } from "./studio-app-model";
+import { initialEditorWorkflowState, type EditorMode } from "./editor-workflow";
+import {
+  deriveEditorCapabilities,
+  deriveEditorHead,
+  deriveListingHead,
+  deriveStudioAppModel,
+  publicationWorkspaceFor,
+} from "./studio-app-model";
+import { systemEditorCopy } from "./studio-system-presentation";
 
 function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
   return {
@@ -325,5 +333,432 @@ describe("deriveStudioAppModel", () => {
 
     expect(loaded.pageEnd).toBe(25);
     expect(unloaded.pageEnd).toBe(25);
+  });
+});
+
+const editingNote: EditorMode = {
+  kind: "edit",
+  entity: {
+    id: "hello",
+    entityType: "note",
+    frontmatter: { title: "Hello", status: "published" },
+    updated: "2026-09-18T00:00:00.000Z",
+    created: "2026-09-18T00:00:00.000Z",
+    body: "",
+    contentHash: "hash-1",
+  },
+};
+
+function withMode(mode: EditorMode): Pick<StudioAppViewProps, "editor"> {
+  return { editor: { ...initialEditorWorkflowState, mode } };
+}
+
+describe("deriveEditorCapabilities", () => {
+  it("grants nothing without an active type", () => {
+    expect(
+      deriveEditorCapabilities(
+        { ...viewProps(), ...withMode(editingNote) },
+        undefined,
+      ),
+    ).toEqual({
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+      canPublish: false,
+      canAssist: false,
+      namedCreate: false,
+      fieldIssues: undefined,
+      destinationBlocked: false,
+    });
+  });
+
+  it("follows the type's capabilities while editing", () => {
+    const props = { ...viewProps(), ...withMode(editingNote) };
+    const assisted = typeInfo({
+      capabilities: {
+        ...typeInfo().capabilities,
+        canPublish: true,
+        canAssist: true,
+      },
+    });
+    const readOnly = typeInfo({
+      capabilities: {
+        ...typeInfo().capabilities,
+        canUpdate: false,
+        canDelete: false,
+        canAssist: true,
+      },
+    });
+
+    expect(deriveEditorCapabilities(props, assisted)).toMatchObject({
+      canEdit: true,
+      canDelete: true,
+      canPublish: true,
+      canAssist: true,
+    });
+    expect(deriveEditorCapabilities(props, readOnly)).toMatchObject({
+      canEdit: false,
+      canDelete: false,
+      canAssist: false,
+    });
+  });
+
+  it("refuses creating a flat type inside the folder the create started in", () => {
+    const flat = typeInfo({ hierarchy: { kind: "folder", nested: false } });
+    const atRoot = deriveEditorCapabilities(
+      { ...viewProps(), ...withMode({ kind: "create" }) },
+      flat,
+    );
+    const inFolder = deriveEditorCapabilities(
+      { ...viewProps(), ...withMode({ kind: "create", prefix: ["a"] }) },
+      flat,
+    );
+
+    expect(atRoot).toMatchObject({ canCreate: true, canEdit: true });
+    expect(inFolder).toMatchObject({ canCreate: false, canEdit: false });
+  });
+
+  it("only blocks a named creation until its destination resolves", () => {
+    const named = {
+      ...viewProps(),
+      ...withMode({ kind: "create", segment: "hello" }),
+    };
+    const resolved = deriveEditorCapabilities(
+      {
+        ...named,
+        creationDestination: {
+          data: {
+            idPath: ["hello"],
+            entityId: "hello",
+            entityLeaf: { start: 0, end: 5 },
+            filePath: null,
+            fileLeaf: null,
+          },
+          pending: false,
+          error: null,
+        },
+      },
+      typeInfo(),
+    );
+    const unnamed = deriveEditorCapabilities(
+      {
+        ...viewProps(),
+        ...withMode({ kind: "create" }),
+        creationDestination: {
+          data: null,
+          pending: false,
+          error: new ApiError(400, "Bad segment", [
+            { path: ["segment"], message: "Taken" },
+          ]),
+        },
+      },
+      typeInfo(),
+    );
+
+    expect(resolved).toMatchObject({
+      namedCreate: true,
+      destinationBlocked: false,
+      fieldIssues: undefined,
+    });
+    expect(unnamed).toMatchObject({
+      namedCreate: false,
+      destinationBlocked: false,
+      fieldIssues: undefined,
+    });
+  });
+});
+
+describe("deriveListingHead", () => {
+  const plainContext = {
+    activeType: typeInfo(),
+    hierarchyKind: "folder" as const,
+    syncPending: false,
+  };
+  const query = viewProps().collectionQuery;
+
+  it("counts entities across the collection in the singular and plural", () => {
+    expect(
+      deriveListingHead({ ...viewProps(), entityTotal: 1 }, plainContext)
+        .listingHead.metadata,
+    ).toEqual(["1 entity"]);
+    expect(
+      deriveListingHead(
+        {
+          ...viewProps(),
+          entityTotal: 1,
+          collectionQuery: { ...query, visibility: "public" },
+        },
+        plainContext,
+      ),
+    ).toMatchObject({
+      collectionFiltered: true,
+      directFolderCount: false,
+      listingHead: { metadata: ["1 matching entity"] },
+    });
+  });
+
+  it("counts entries directly inside the open folder", () => {
+    const inFolder: StudioCollectionQuery = { ...query, prefix: ["a"] };
+    expect(
+      deriveListingHead(
+        { ...viewProps(), entityTotal: 1, collectionQuery: inFolder },
+        plainContext,
+      ),
+    ).toMatchObject({
+      directFolderCount: true,
+      listingHead: { metadata: ["1 entry here"] },
+    });
+    expect(
+      deriveListingHead(
+        {
+          ...viewProps(),
+          entityTotal: 2,
+          collectionQuery: { ...inFolder, status: "draft" },
+        },
+        plainContext,
+      ).listingHead.metadata,
+    ).toEqual(["2 matching entries here"]);
+  });
+
+  it("names the scope of a folder listing that is not a direct count", () => {
+    expect(
+      deriveListingHead(
+        {
+          ...viewProps(),
+          collectionQuery: { ...query, prefix: ["a"], scope: "collection" },
+        },
+        plainContext,
+      ).listingHead.metadata,
+    ).toEqual(["0 entities", "Whole collection"]);
+    expect(
+      deriveListingHead(
+        {
+          ...viewProps(),
+          collectionQuery: { ...query, prefix: ["a"], q: "draft" },
+        },
+        { ...plainContext, hierarchyKind: "page" },
+      ).listingHead.metadata,
+    ).toEqual(["0 matching entities", "In this page"]);
+  });
+
+  it("pluralizes sub-levels and flags pending sync", () => {
+    const head = deriveListingHead(
+      {
+        ...viewProps(),
+        entityTotal: 2,
+        folders: [
+          { path: ["a"], name: "a", descendantCount: 3 },
+          { path: ["b"], name: "b", descendantCount: 4 },
+        ],
+      },
+      { ...plainContext, hierarchyKind: "page", syncPending: true },
+    );
+
+    expect(head.listingHead.metadata).toEqual([
+      "2 entries here",
+      "2 pages · 9 in total",
+      "Sync pending",
+    ]);
+  });
+
+  it("titles the listing after the type, then the requested type, then the library", () => {
+    expect(deriveListingHead(viewProps(), plainContext).listingHead.title).toBe(
+      "Notes",
+    );
+    expect(
+      deriveListingHead(viewProps({ entityType: "memo" }), {
+        ...plainContext,
+        activeType: undefined,
+      }).listingHead.title,
+    ).toBe("memo");
+    expect(
+      deriveListingHead(viewProps({ entityType: null }), {
+        ...plainContext,
+        activeType: undefined,
+      }).listingHead,
+    ).toMatchObject({
+      kicker: "Content library",
+      title: "Library",
+      access: { kind: "permission", label: "Trusted" },
+      totals: [],
+    });
+  });
+});
+
+describe("deriveEditorHead", () => {
+  const schema = viewProps().schema;
+  if (!schema) throw new Error("The fixture has a schema");
+  const context = {
+    activeType: typeInfo(),
+    activeWorkspace: undefined,
+    entitySchema: schema,
+    systemDesign: undefined,
+  };
+  const publishable = {
+    ...schema,
+    fields: [
+      {
+        name: "status",
+        label: "Status",
+        widget: "select",
+        options: ["draft", "published"],
+      },
+    ],
+  };
+
+  it("titles an edited entity and reports its publication state", () => {
+    const head = deriveEditorHead(
+      { ...viewProps(), ...withMode(editingNote) },
+      { ...context, entitySchema: publishable },
+    );
+
+    expect(head).toMatchObject({
+      heading: "Hello",
+      collectionLabel: "Notes",
+      entryLabel: "Note",
+      publicationState: "published",
+      editorHead: {
+        kicker: "Notes",
+        title: "Hello",
+        metadata: ["Note · published"],
+      },
+    });
+  });
+
+  it("leaves the publication state out for types without one", () => {
+    const head = deriveEditorHead(
+      { ...viewProps(), ...withMode(editingNote) },
+      context,
+    );
+
+    expect(head.publicationState).toBeNull();
+    expect(head.editorHead.metadata).toEqual([]);
+  });
+
+  it("marks a new entry and names it after the collection", () => {
+    const head = deriveEditorHead(
+      { ...viewProps(), ...withMode({ kind: "create" }) },
+      { ...context, entitySchema: publishable },
+    );
+
+    expect(head).toMatchObject({
+      heading: "New Notes",
+      publicationState: null,
+      editorHead: { title: "New Notes", metadata: ["Note · new"] },
+    });
+  });
+
+  it("names a singleton by its singular label under its area", () => {
+    const profile = typeInfo({
+      entityType: "anchor-profile",
+      classification: "system",
+      label: "Profiles",
+      isSingleton: true,
+    });
+    const head = deriveEditorHead(
+      {
+        ...viewProps({ entityType: "anchor-profile" }),
+        ...withMode(editingNote),
+      },
+      {
+        ...context,
+        activeType: profile,
+        entitySchema: { ...schema, isSingleton: true },
+      },
+    );
+
+    expect(head).toMatchObject({
+      heading: "Profile",
+      collectionLabel: "Profile",
+      editorHead: { kicker: "system / singleton", title: "Profile" },
+    });
+  });
+
+  it("prefers the workspace label and the system title", () => {
+    const head = deriveEditorHead(
+      {
+        ...viewProps({ entityType: "grouping-definitions" }),
+        ...withMode(editingNote),
+      },
+      {
+        ...context,
+        activeWorkspace: workspaceInfo(),
+        systemDesign: systemEditorCopy("grouping-definitions"),
+      },
+    );
+
+    expect(head).toMatchObject({
+      collectionLabel: "Inbox",
+      entryLabel: "Inbox",
+      editorHead: { kicker: "Inbox", title: "Groupings" },
+    });
+  });
+
+  it("falls back to the requested type and the studio without type metadata", () => {
+    expect(
+      deriveEditorHead(viewProps({ entityType: "memo" }), {
+        ...context,
+        activeType: undefined,
+      }),
+    ).toMatchObject({
+      heading: "memo",
+      collectionLabel: "memo",
+      editorHead: { title: "memo" },
+    });
+    expect(
+      deriveEditorHead(viewProps({ entityType: null }), {
+        ...context,
+        activeType: undefined,
+      }),
+    ).toMatchObject({
+      heading: null,
+      collectionLabel: "Studio",
+      editorHead: { title: "Editor" },
+    });
+  });
+});
+
+describe("publicationWorkspaceFor", () => {
+  const traffic = workspaceInfo({
+    id: "analytics:traffic",
+    pluginId: "analytics",
+    entityTypes: ["post"],
+  });
+
+  it("finds the workspace the server says publishes the type", () => {
+    const publishing = workspaceInfo({
+      id: "content-pipeline:publishing",
+      pluginId: "content-pipeline",
+      entityTypes: ["post"],
+      publishesEntityTypes: true,
+    });
+
+    expect(publicationWorkspaceFor([traffic, publishing], "post")?.id).toBe(
+      "content-pipeline:publishing",
+    );
+    expect(publicationWorkspaceFor([traffic, publishing], "note")).toBe(
+      undefined,
+    );
+  });
+
+  it("reads the declaration rather than the providing plugin", () => {
+    const undeclared = workspaceInfo({
+      id: "content-pipeline:publishing",
+      pluginId: "content-pipeline",
+      entityTypes: ["post"],
+    });
+    const elsewhere = workspaceInfo({
+      id: "newsroom:publishing",
+      pluginId: "newsroom",
+      entityTypes: ["post"],
+      publishesEntityTypes: true,
+    });
+
+    expect(publicationWorkspaceFor([undeclared, traffic], "post")).toBe(
+      undefined,
+    );
+    expect(publicationWorkspaceFor([elsewhere], "post")?.id).toBe(
+      "newsroom:publishing",
+    );
   });
 });

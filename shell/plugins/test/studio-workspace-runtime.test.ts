@@ -6,6 +6,7 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  defineEntityCatalog,
   defineStudioWorkspace,
   defineServicePlugin,
   defineWorkspaceAction,
@@ -1725,5 +1726,85 @@ describe("operator columns composition", () => {
       { actions: [], permission: "trusted" },
     );
     expect(result.success).toBe(false);
+  });
+});
+
+describe("publication workspace registration", () => {
+  const publicationActions = (
+    ["queue", "remove", "retry", "reorder", "publish"] as const
+  ).map((name) =>
+    defineWorkspaceAction({
+      name,
+      label: name,
+      permission: "trusted",
+      input: z.object({ entityType: z.string(), entityId: z.string() }),
+      output: z.object({ success: z.literal(true) }),
+    }),
+  );
+  const publishing = defineStudioWorkspace({
+    id: "publishing",
+    label: "Publishing",
+    permission: "trusted",
+    publishesEntityTypes: true,
+    entityCatalog: defineEntityCatalog({
+      id: "publishable",
+      label: "Publishable",
+    }),
+    data: z.object({}),
+    actions: publicationActions,
+    view: () => ({ blocks: [] }),
+  });
+
+  it("tells the host which workspace publishes its entity types", async () => {
+    const definition = defineServicePlugin({
+      id: "publishing-operator",
+      config: z.object({}),
+      studioWorkspaces: (context) => [
+        workspace.bind(context, {
+          actions: [
+            refresh.bind(context, ({ input }) => ({ refreshed: input.id })),
+          ],
+          load: () => ({ count: 0 }),
+        }),
+        publishing.bind(context, {
+          actions: publicationActions.map((action) =>
+            action.bind(context, () => ({ success: true as const })),
+          ),
+          load: () => ({}),
+          listEntityTypes: () => ["post"],
+        }),
+      ],
+    });
+    const shell = createMockShell({
+      logger: createSilentLogger("publication-studio-runtime"),
+    });
+    const registrations: StudioWorkspaceRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<StudioWorkspaceRegistration>(
+        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        (message) => {
+          registrations.push(message.payload);
+          return {
+            success: true,
+            data: { workspaceUrl: "/studio/workspaces/x" },
+          };
+        },
+      );
+
+    const plugin = instantiate(definition);
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
+
+    const byLocalId = (localId: string): StudioWorkspaceRegistration => {
+      const found = registrations.find((registration) =>
+        registration.id.endsWith(`:${localId}`),
+      );
+      if (!found) throw new Error(`${localId} was not registered`);
+      return found;
+    };
+    expect(byLocalId("publishing").publishesEntityTypes).toBe(true);
+    expect(byLocalId("library")).not.toHaveProperty("publishesEntityTypes");
+    await plugin.shutdown?.();
   });
 });

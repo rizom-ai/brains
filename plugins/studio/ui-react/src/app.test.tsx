@@ -723,6 +723,7 @@ function renderCapabilityView(
         priority: 40,
         permission: "trusted",
         entityTypes: ["post"],
+        publishesEntityTypes: true,
       },
     ],
     workspaceError: null,

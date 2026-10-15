@@ -334,6 +334,7 @@ const publishingWorkspace = defineStudioWorkspace({
   priority: 40,
   permission: "trusted",
   entityCatalog: publishableEntities,
+  publishesEntityTypes: true,
   data: publicationPipelineSnapshotSchema,
   actions: [
     queueAction,

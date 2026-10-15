@@ -318,6 +318,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
     permission: definition.permission,
     ...(definition.query ? { urlQuery: true } : {}),
     ...(input.aliases ? { aliases: input.aliases } : {}),
+    ...(definition.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
     entityTypes: listEntityTypes
       ? async (actor): Promise<string[]> => {
           if (!(await admitted(actor, input.runtimeSignal))) return [];
