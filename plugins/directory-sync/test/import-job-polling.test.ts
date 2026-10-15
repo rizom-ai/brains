@@ -36,6 +36,27 @@ function yieldToFibers(): Effect.Effect<void> {
 }
 
 describe("waitForImportJobs", () => {
+  // An import whose embedding was not queued (indexing disabled, a type that
+  // is not embeddable, or an enqueue the queue refused and is retrying)
+  // reports no job id; there is nothing to wait for.
+  it("does not wait on an import that queued no job", async () => {
+    const entityService = createMockEntityService();
+    const status = mock(async (id: string) =>
+      id === "one" ? { status: "completed" as const } : null,
+    );
+    entityService.getAsyncJobStatus = status;
+
+    await waitForImportJobs({
+      jobIds: ["one", "", ""],
+      entityService,
+      reporter: createReporter([]),
+      logger: createSilentLogger(),
+      maxWaitMs: 60_000,
+    });
+
+    expect(status.mock.calls).toEqual([["one"]]);
+  });
+
   it("polls immediately, preserves cadence, and reports 50-55% progress", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {

@@ -1,6 +1,7 @@
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import type { Logger } from "@brains/utils/logger";
+import type { RetryScope } from "@brains/utils/retry-backoff";
 import { z } from "@brains/utils/zod";
 import { and, eq, sql } from "drizzle-orm";
 import type { EntityDB } from "./db";
@@ -40,6 +41,10 @@ function parseEmbeddingFailureReference(
   }
 }
 
+function embeddingRetryKey(entityType: string, entityId: string): string {
+  return `${entityType}:${entityId}`;
+}
+
 function embeddingReferenceKey(reference: EmbeddingFailureReference): string {
   return `${reference.entityType}:${reference.entityId}:${reference.contentHash}`;
 }
@@ -68,6 +73,11 @@ export interface EmbeddingIndexCoordinatorOptions {
   jobQueueService: IJobQueueService;
   logger: Logger;
   embeddingsEnabled: boolean;
+  /**
+   * Retries embedding enqueues the job queue refuses. Without it a refusal
+   * is thrown to the mutation's caller, after the entity is committed.
+   */
+  retries?: RetryScope | undefined;
 }
 
 /** Owns recoverable embedding persistence, queueing, and readiness statistics. */
@@ -78,6 +88,7 @@ export class EmbeddingIndexCoordinator {
   private readonly jobQueueService: IJobQueueService;
   private readonly logger: Logger;
   private readonly embeddingsEnabled: boolean;
+  private readonly retries: RetryScope | undefined;
 
   public constructor(options: EmbeddingIndexCoordinatorOptions) {
     this.entityDb = options.entityDb;
@@ -86,12 +97,14 @@ export class EmbeddingIndexCoordinator {
     this.jobQueueService = options.jobQueueService;
     this.logger = options.logger;
     this.embeddingsEnabled = options.embeddingsEnabled;
+    this.retries = options.retries;
   }
 
   public async deleteEmbedding(
     entityType: string,
     entityId: string,
   ): Promise<void> {
+    this.retries?.cancel(embeddingRetryKey(entityType, entityId));
     await this.embeddingDb
       .delete(embeddings)
       .where(
@@ -192,37 +205,62 @@ export class EmbeddingIndexCoordinator {
       contentHash,
       operation,
     };
-    const jobId = await this.jobQueueService.enqueue({
-      type: SHELL_CHANNELS.embedding,
-      data: jobData,
-      options: {
-        ...(priority !== undefined && { priority }),
-        ...(maxRetries !== undefined && { maxRetries }),
-        source: "entity-service",
-        deduplication: "coalesce",
-        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
-        metadata: {
-          operationType: "data_processing",
-          operationTarget: entityId,
-          ...(eventContext?.interfaceType
-            ? {
-                interfaceType: eventContext.interfaceType,
-                requestedByInterface: eventContext.interfaceType,
-              }
-            : {}),
-          ...(eventContext?.actor
-            ? {
-                requestedByActor: eventContext.actor,
-                ...(eventContext.actor.kind === "user"
-                  ? { requestedByUserId: eventContext.actor.userId }
-                  : {}),
-              }
-            : {}),
-          silent: true,
+    const enqueueJob = (): Promise<string> =>
+      this.jobQueueService.enqueue({
+        type: SHELL_CHANNELS.embedding,
+        data: jobData,
+        options: {
+          ...(priority !== undefined && { priority }),
+          ...(maxRetries !== undefined && { maxRetries }),
+          source: "entity-service",
+          deduplication: "coalesce",
+          deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
+          metadata: {
+            operationType: "data_processing",
+            operationTarget: entityId,
+            ...(eventContext?.interfaceType
+              ? {
+                  interfaceType: eventContext.interfaceType,
+                  requestedByInterface: eventContext.interfaceType,
+                }
+              : {}),
+            ...(eventContext?.actor
+              ? {
+                  requestedByActor: eventContext.actor,
+                  ...(eventContext.actor.kind === "user"
+                    ? { requestedByUserId: eventContext.actor.userId }
+                    : {}),
+                }
+              : {}),
+            silent: true,
+          },
         },
-      },
-    });
+      });
 
+    // The job queue refuses an enqueue while another process holds its write
+    // lock past the enqueue budget. The entity is committed by now, so the
+    // mutation resolves with no job id and the embedding is enqueued again in
+    // the background: one retry per entity, the latest content winning. A
+    // retry still pending when the process exits is lost; the startup
+    // backfill (backfillMissing) then finds that entity's embedding missing or
+    // stale and enqueues it, so it stays the crash-safety net. An outbox would
+    // replace both, but the job queue lives in a separate database by design.
+    const key = embeddingRetryKey(entityType, entityId);
+    let jobId: string;
+    try {
+      jobId = await enqueueJob();
+    } catch (error) {
+      if (!this.retries) throw error;
+      void this.retries.retry(
+        enqueueJob,
+        error,
+        `queue the embedding for ${key}`,
+        key,
+      );
+      return { entityId, jobId: "", skipped: false };
+    }
+    // A queued embedding of newer content replaces an older pending retry.
+    this.retries?.cancel(key);
     this.logger.debug(
       `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,
     );

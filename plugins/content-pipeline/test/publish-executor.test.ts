@@ -132,17 +132,17 @@ Body`,
         metadata: { status: "draft", slug: "post-1" },
       },
     });
-    const ensureForEntity = mock(async () => undefined);
+    const ensureOrRetry = mock(async () => undefined);
     const executor = new PublishExecutor({
       context,
       providerRegistry,
-      publishAssetPreflight: { ensureForEntity },
+      publishAssetPreflight: { ensureOrRetry },
     });
 
     const result = await executor.publish({ entityType: "post", id: "post-1" });
 
     expect("error" in result).toBe(false);
-    expect(ensureForEntity).toHaveBeenCalledWith(
+    expect(ensureOrRetry).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "post-1",
         metadata: expect.objectContaining({ status: "published" }),

@@ -8,7 +8,8 @@ import { resolveInSyncPath } from "./path-utils";
 export interface ImageJobQueueDeps {
   logger: Logger;
   syncPath: string;
-  jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
+  jobQueueCallback?:
+    ((job: JobRequest) => Promise<string | undefined>) | undefined;
   coverImageConverter: FrontmatterImageConverter;
   inlineImageConverter: MarkdownImageConverter;
 }

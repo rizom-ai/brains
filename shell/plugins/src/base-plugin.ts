@@ -11,6 +11,7 @@ import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
+import { RetryScope } from "@brains/utils/retry-backoff";
 import {
   CallbackProgressReporter,
   type ProgressNotification,
@@ -74,6 +75,7 @@ export abstract class BasePlugin<
   public abstract readonly type: PluginType;
   protected config: TConfig;
   protected context?: TContext;
+  private retryScope: RetryScope | undefined;
 
   /**
    * Get the logger - uses context logger if available, creates temp logger otherwise
@@ -82,6 +84,16 @@ export abstract class BasePlugin<
     return (
       this.context?.logger ?? ConsoleLogger.createFresh({ context: this.id })
     );
+  }
+
+  /**
+   * Background retries this plugin owns; shutdown stops them. For work a
+   * refusal must not lose, such as a job the queue refused while another
+   * process held its write lock: `this.retries.run(() => enqueue(), "...")`.
+   */
+  protected get retries(): RetryScope {
+    this.retryScope ??= new RetryScope({ logger: this.logger });
+    return this.retryScope;
   }
 
   constructor(
@@ -334,6 +346,7 @@ export abstract class BasePlugin<
    * shutdown; plugins without cleanup inherit the default no-op onShutdown.
    */
   async shutdown(): Promise<void> {
+    await this.retryScope?.dispose();
     await this.onShutdown();
   }
 

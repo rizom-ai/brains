@@ -21,7 +21,8 @@ export interface DirectoryOperationDepsOptions {
   inlineImageConverter: MarkdownImageConverter;
   maxImportFileBytes: number;
   pendingDeletes: PendingDeleteRegistry;
-  getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined;
+  getJobQueueCallback: () =>
+    ((job: JobRequest) => Promise<string | undefined>) | undefined;
 }
 
 export class DirectoryOperationDeps {

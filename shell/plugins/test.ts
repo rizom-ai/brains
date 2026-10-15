@@ -30,6 +30,10 @@ export {
   type HarnessOptions,
 } from "./src/test/harness";
 export {
+  refuseEnqueues,
+  type EnqueueRefusals,
+} from "./src/test/refuse-enqueues";
+export {
   createTempDataDir,
   createTempDataDirSync,
   removeTrackedTempDataDirs,

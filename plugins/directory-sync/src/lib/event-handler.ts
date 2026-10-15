@@ -14,7 +14,8 @@ export class EventHandler {
   constructor(
     logger: Logger,
     importFn: (paths: string[]) => Promise<unknown>,
-    jobQueueCallback: ((job: JobRequest) => Promise<string>) | undefined,
+    jobQueueCallback:
+      ((job: JobRequest) => Promise<string | undefined>) | undefined,
     fileOperations: IFileOperations,
     deleteOnFileRemoval = true,
   ) {

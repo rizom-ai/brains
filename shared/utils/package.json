@@ -50,6 +50,7 @@
     "./predicates": "./src/predicates.ts",
     "./progress": "./src/progress.ts",
     "./record-fields": "./src/record-fields.ts",
+    "./retry-backoff": "./src/retry-backoff.ts",
     "./run-process": "./src/run-process.ts",
     "./process-signals": "./src/process-signals.ts",
     "./query": "./src/query.ts",

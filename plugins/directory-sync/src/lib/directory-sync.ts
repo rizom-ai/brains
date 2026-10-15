@@ -77,7 +77,8 @@ export class DirectorySync implements IDirectorySync {
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
   private operationDeps: DirectoryOperationDeps;
-  private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
+  private jobQueueCallback?:
+    ((job: JobRequest) => Promise<string | undefined>) | undefined;
   private readonly pendingDeletes: PendingDeleteRegistry;
   private cleanupAdmission: (() => Promise<void>) | undefined;
 
@@ -114,7 +115,7 @@ export class DirectorySync implements IDirectorySync {
       dependencies,
       normalizedOptions.maxImportFileBytes,
       this.pendingDeletes,
-      (): ((job: JobRequest) => Promise<string>) | undefined =>
+      (): ((job: JobRequest) => Promise<string | undefined>) | undefined =>
         this.jobQueueCallback,
     );
 
@@ -137,7 +138,9 @@ export class DirectorySync implements IDirectorySync {
     await initializeDirectoryStructure(this.logger, this.syncPath);
   }
 
-  setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
+  setJobQueueCallback(
+    callback: (job: JobRequest) => Promise<string | undefined>,
+  ): void {
     this.jobQueueCallback = callback;
   }
 

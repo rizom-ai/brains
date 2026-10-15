@@ -23,6 +23,7 @@ import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFo
 import { directorySyncStatusSchema } from "./schemas";
 import { DirectorySyncRequestJobHandler } from "./handlers";
 import { registerDirectorySyncJobHandlers } from "./lib/register-job-handlers";
+import { RetryScope } from "@brains/utils/retry-backoff";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
 import {
@@ -261,6 +262,10 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.directorySync,
         syncPath,
         this.operationStatus,
+        await this.runtime.acquire(
+          async () => new RetryScope({ logger: this.logger }),
+          (retries) => retries.dispose(),
+        ),
       );
     }
 
@@ -506,6 +511,10 @@ export class DirectorySyncPlugin extends ServicePlugin<
           candidateDirectorySync,
           syncPath,
           this.operationStatus,
+          await candidateRuntime.acquire(
+            async () => new RetryScope({ logger: this.logger }),
+            (retries) => retries.dispose(),
+          ),
         );
       }
       if (this.isGitConfigured()) {
