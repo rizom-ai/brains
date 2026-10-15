@@ -26,30 +26,42 @@ import {
   type BookSection,
   type BookSectionWithData,
 } from "../schemas/book-section";
+import type {
+  BookDetailPage,
+  BookFields,
+  BookSectionLink,
+  BookSectionPage,
+  ScoreEntry,
+  Theme,
+} from "../schemas/book-pages";
+import { bookSectionSlug } from "../adapters/book-section-adapter";
+
+/** A book as its pages show it, without its text. */
+function fieldsOf(book: BookWithData): BookFields {
+  return {
+    id: book.id,
+    entityType: "book",
+    metadata: book.metadata,
+    frontmatter: book.frontmatter,
+  };
+}
+
+/** A section as a link to it shows it. */
+function linkTo(section: BookSectionWithData | null): BookSectionLink | null {
+  return (
+    section && {
+      slug: section.metadata.slug,
+      title: section.metadata.title,
+      section: section.metadata.section,
+    }
+  );
+}
 
 interface BookListData {
   books: BookWithData[];
 }
 
 type EntityServiceClient = BaseDataSourceContext["entityService"];
-
-/** A theme near a section: a topic page to link to. */
-export interface Theme {
-  id: string;
-  title: string;
-}
-
-/** One section in a book's score: enough to draw and link it. */
-export interface ScoreEntry {
-  slug: string;
-  title: string;
-  section: string | null;
-  order: number;
-  /** The headings the section stands under, outermost first. */
-  headings: string[];
-  /** Bytes of the section's text. */
-  length: number;
-}
 
 /** The first entry of the section an entry belongs to. */
 function sectionStart(
@@ -192,7 +204,12 @@ export class BookDataSource extends BaseEntityDataSource<
         entityService,
       ),
     ]);
-    return outputSchema.parse({ book, first, score });
+    const page: BookDetailPage = {
+      book: fieldsOf(book),
+      first: linkTo(first),
+      score,
+    };
+    return outputSchema.parse(page);
   }
 
   /**
@@ -203,24 +220,10 @@ export class BookDataSource extends BaseEntityDataSource<
   private async sectionPage(
     slug: string,
     entityService: EntityServiceClient,
-  ): Promise<{
-    section: BookSectionWithData;
-    book: BookWithData;
-    prev: BookSectionWithData | null;
-    next: BookSectionWithData | null;
-    position: number;
-    total: number;
-    themes: Theme[];
-  }> {
-    const [found] = await entityService.listEntities(
-      {
-        entityType: "book-section",
-        options: { filter: { metadata: { slug } }, limit: 1 },
-      },
-      bookSectionSchema,
-    );
+  ): Promise<BookSectionPage> {
+    const found = await this.findBySlug(slug, entityService);
     if (!found) throw new Error(`book-section not found: ${slug}`);
-    const { book: bookId, order } = parseBookSectionData(found).metadata;
+    const { book: bookId, order } = found.metadata;
     const book = this.transformEntity(
       await this.lookupEntity(bookId, entityService),
     );
@@ -263,12 +266,15 @@ export class BookDataSource extends BaseEntityDataSource<
       .slice(0, THEME_LIMIT);
     return {
       section: {
-        ...head,
+        id: head.id,
+        entityType: "book-section",
+        metadata: head.metadata,
+        frontmatter: head.frontmatter,
         body: pieces.map(({ body }) => body.trim()).join("\n\n"),
       },
-      book,
-      prev,
-      next,
+      book: fieldsOf(book),
+      prev: linkTo(prev),
+      next: linkTo(next),
       position:
         first - [...continuations].filter((entry) => entry < first).length,
       total,
@@ -312,16 +318,25 @@ export class BookDataSource extends BaseEntityDataSource<
     return related.map(({ entity, title }) => ({ id: entity.id, title }));
   }
 
+  /** A section at its place in reading order, found by the slug it has there. */
   private async findSection(
     book: string,
     order: number,
     entityService: EntityServiceClient,
   ): Promise<BookSectionWithData | null> {
     if (order < 1) return null;
+    return this.findBySlug(bookSectionSlug(book, order), entityService);
+  }
+
+  /** A section by its slug: an index lookup, whatever the brain's size. */
+  private async findBySlug(
+    slug: string,
+    entityService: EntityServiceClient,
+  ): Promise<BookSectionWithData | null> {
     const [entity] = await entityService.listEntities(
       {
         entityType: "book-section",
-        options: { filter: { metadata: { book, order } }, limit: 1 },
+        options: { filter: { metadata: { slug } }, limit: 1 },
       },
       bookSectionSchema,
     );

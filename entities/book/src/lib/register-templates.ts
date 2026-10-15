@@ -4,9 +4,9 @@ import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
 import { bookFrontmatterSchema, bookMetadataSchema } from "../schemas/book";
 import {
-  bookSectionFrontmatterSchema,
-  bookSectionMetadataSchema,
-} from "../schemas/book-section";
+  bookDetailPageSchema,
+  bookSectionPageSchema,
+} from "../schemas/book-pages";
 import { BookAskTemplate, type BookAskProps } from "../templates/book-ask";
 import {
   BookEpub,
@@ -44,40 +44,8 @@ const bookDisplaySchema = z.object({
   frontmatter: bookFrontmatterSchema,
 });
 
-const bookSectionDisplaySchema = z.object({
-  ...displayedEntity,
-  entityType: z.literal("book-section"),
-  metadata: bookSectionMetadataSchema,
-  frontmatter: bookSectionFrontmatterSchema,
-});
-
 const bookListSchema = z.object({
   books: z.array(bookDisplaySchema),
-});
-
-const bookSectionPageSchema = z.object({
-  section: bookSectionDisplaySchema,
-  book: bookDisplaySchema,
-  prev: bookSectionDisplaySchema.nullable(),
-  next: bookSectionDisplaySchema.nullable(),
-  position: z.number().int().min(1),
-  total: z.number().int().min(0),
-  themes: z.array(z.object({ id: z.string(), title: z.string() })),
-});
-
-const bookDetailSchema = z.object({
-  book: bookDisplaySchema,
-  first: bookSectionDisplaySchema.nullable(),
-  score: z.array(
-    z.object({
-      slug: z.string(),
-      title: z.string(),
-      section: z.string().nullable(),
-      order: z.number().int(),
-      headings: z.array(z.string()),
-      length: z.number().int().min(0),
-    }),
-  ),
 });
 
 const bookAskSchema = z.object({
@@ -127,13 +95,13 @@ export function getTemplates(): Record<string, Template> {
       },
     ),
     "book-detail": createTemplate<
-      z.output<typeof bookDetailSchema>,
+      z.output<typeof bookDetailPageSchema>,
       BookDetailProps
     >({
       name: "book-detail",
       description:
         "A book's title page: its details and the score of its sections",
-      schema: bookDetailSchema,
+      schema: bookDetailPageSchema,
       dataSourceId: "book:entities",
       requiredPermission: "public",
       layout: { component: BookDetailTemplate },

@@ -1,35 +1,28 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
-import type { BookWithData } from "../schemas/book";
-import type { BookSectionWithData } from "../schemas/book-section";
-import type { ScoreEntry, Theme } from "../datasources/book-datasource";
+import type {
+  BookDetailPage,
+  BookFields,
+  BookSectionLink,
+  BookSectionPage,
+  BookSectionReading,
+  ScoreEntry,
+} from "../schemas/book-pages";
 import { count } from "../lib/count";
-import { bookClasses, bookHref, licenseLabel } from "./book-design";
+import {
+  bookClasses,
+  bookHref,
+  licenseLabel,
+  sectionHref,
+} from "./book-design";
 
 /** A book's title page. */
-export interface BookDetailProps {
-  book: BookWithData;
-  /** The section reading begins at; null for a book without sections. */
-  first: BookSectionWithData | null;
-  /** Every section in reading order. */
-  score: ScoreEntry[];
-}
+export type BookDetailProps = BookDetailPage;
 
 /** A section set for reading. */
-export interface BookSectionProps {
-  section: BookSectionWithData;
-  book: BookWithData;
-  prev: BookSectionWithData | null;
-  next: BookSectionWithData | null;
-  /** Sections in the book. */
-  /** The section's place among the book's sections, from 1. */
-  position: number;
-  total: number;
-  /** The topics nearest the section. */
-  themes: Theme[];
-}
+export type BookSectionProps = BookSectionPage;
 
-const BookDetails = ({ book }: { book: BookWithData }): JSX.Element => (
+const BookDetails = ({ book }: { book: BookFields }): JSX.Element => (
   <dl className="m-0 mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm text-theme-muted">
     {book.frontmatter.author && (
       <>
@@ -60,7 +53,7 @@ const Source = ({
 }: {
   /** The edition's page for what is shown: the book, or one section. */
   href: string;
-  book: BookWithData;
+  book: BookFields;
 }): JSX.Element => {
   const license = licenseLabel(book);
   return (
@@ -77,19 +70,14 @@ const Source = ({
 };
 
 /** Where a link leads: the section's own title, with its siglum. */
-const PagerLabel = ({
-  target,
-}: {
-  target: BookSectionWithData;
-}): JSX.Element => (
+const PagerLabel = ({ target }: { target: BookSectionLink }): JSX.Element => (
   <>
-    <span lang="de">{target.metadata.title}</span>
-    {target.metadata.section &&
-      target.metadata.section !== target.metadata.title && (
-        <span className="book-siglum ml-2 text-theme-light">
-          {target.metadata.section}
-        </span>
-      )}
+    <span lang="de">{target.title}</span>
+    {target.section && target.section !== target.title && (
+      <span className="book-siglum ml-2 text-theme-light">
+        {target.section}
+      </span>
+    )}
   </>
 );
 
@@ -97,22 +85,22 @@ const Pager = ({
   prev,
   next,
 }: {
-  prev: BookSectionWithData | null;
-  next: BookSectionWithData | null;
+  prev: BookSectionLink | null;
+  next: BookSectionLink | null;
 }): JSX.Element => (
   <nav
     className="mt-10 flex justify-between gap-6 font-mono text-sm"
     aria-label="Sections"
   >
     {prev ? (
-      <a href={bookHref(prev)} rel="prev" className={bookClasses.link}>
+      <a href={sectionHref(prev)} rel="prev" className={bookClasses.link}>
         ← <PagerLabel target={prev} />
       </a>
     ) : (
       <span />
     )}
     {next && (
-      <a href={bookHref(next)} rel="next" className={bookClasses.link}>
+      <a href={sectionHref(next)} rel="next" className={bookClasses.link}>
         <PagerLabel target={next} /> →
       </a>
     )}
@@ -399,7 +387,7 @@ export const BookDetailTemplate = ({
           >
             Download EPUB ↓
           </a>
-          <a href={bookHref(first)} rel="next" className={bookClasses.link}>
+          <a href={sectionHref(first)} rel="next" className={bookClasses.link}>
             Begin reading →
           </a>
         </nav>
@@ -434,7 +422,7 @@ const AskAbout = ({
  * (a bracketed siglum, `Za-II-[Titel]`) whose title only names its kind,
  * the heading it opens, or the book.
  */
-function askTitleOf(section: BookSectionWithData, book: BookWithData): string {
+function askTitleOf(section: BookSectionReading, book: BookFields): string {
   if (!section.metadata.section?.includes("[")) return section.metadata.title;
   return section.frontmatter.headings.at(-1) ?? book.metadata.title;
 }
