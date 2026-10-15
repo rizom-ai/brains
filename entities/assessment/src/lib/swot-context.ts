@@ -3,10 +3,10 @@ import type {
   EntityPluginContext,
   ProfileCategory,
 } from "@brains/plugins";
+import { normalizeTags } from "@brains/utils/string-utils";
 import {
   buildCapabilityProfiles,
   buildCapabilityProfilesFromEntities,
-  normalizeTags,
   type CapabilityProfile,
   type CapabilityProfileSkill,
 } from "./capability-profile";
