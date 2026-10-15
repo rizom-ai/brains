@@ -26,6 +26,7 @@ import {
 } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
 import type { DashboardWidgetRegistration, Plugin } from "@brains/plugins";
+import { AgentAdapter } from "../src/adapters/agent-adapter";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
@@ -1343,6 +1344,13 @@ describe("AgentDiscoveryPlugin", () => {
     expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
     expect(after?.content).toContain(
       "cardStaleAfter: '2026-07-23T13:00:00.000Z'",
+    );
+    // The handler writes the kept deadline itself, in its schema position,
+    // rather than leaving the metadata overlay to append it at the end.
+    if (!after) throw new Error("Expected unavailable agent");
+    const adapter = new AgentAdapter();
+    expect(after.content).toBe(
+      adapter.rewriteAgentContent(adapter.parseEntity(after)),
     );
 
     await harness.reset();

@@ -267,21 +267,17 @@ async function markAgentCardUnavailable(
     (input.reason === "deleted"
       ? "ATProto brain card was deleted"
       : "ATProto brain card refresh failed");
-  const metadata = {
-    ...agent.metadata,
+  // Metadata and frontmatter take the same card state: an event without a
+  // stale deadline keeps the one already recorded in both.
+  const cardState = {
     cardLastCheckedAt: input.observedAt,
     cardLastError: error,
     cardFailureCount: agent.metadata.cardFailureCount ?? 0,
     cardUnavailableAt: input.observedAt,
     ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
   };
-  const content = agentAdapter.rewriteAgentContent(parsed, {
-    cardLastCheckedAt: input.observedAt,
-    cardLastError: error,
-    cardFailureCount: agent.metadata.cardFailureCount ?? 0,
-    cardUnavailableAt: input.observedAt,
-    cardStaleAfter: input.staleAfter,
-  });
+  const metadata = { ...agent.metadata, ...cardState };
+  const content = agentAdapter.rewriteAgentContent(parsed, cardState);
 
   await context.entityService.updateEntity({
     entity: {
