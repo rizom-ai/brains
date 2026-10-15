@@ -1,5 +1,31 @@
 # @rizom/brain
 
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- [#653](https://github.com/rizom-ai/brains/pull/653) [`7f2beaa`](https://github.com/rizom-ai/brains/commit/7f2beaa754bfb308cdaed240af773b2b21112ab3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An agent whose ATProto brain card is reported unavailable again, without a new stale deadline, keeps its deadline in place in the agent's frontmatter instead of having it moved to the end.
+
+- [#650](https://github.com/rizom-ai/brains/pull/650) [`4127492`](https://github.com/rizom-ai/brains/commit/41274926c24f76ae0f174905c7e4e280cfa43609) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a Git pull is interrupted, a startup that later fails during inherited-work reconciliation or Git initialization now records the recovery as failed, as connect, startup replay, and initial-sync failures already did. Before this fix, sync status kept showing a `pulling` run while directory sync was disabled.
+
+- [#654](https://github.com/rizom-ai/brains/pull/654) [`d031b9b`](https://github.com/rizom-ai/brains/commit/d031b9b14529fa4af6ed5e1fa0fc209b325c70db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface built on the public `MessageInterfacePlugin` now releases its progress tracking when it shuts down: pending delayed cleanup is interrupted and tracked progress events are cleared after the interface's own `onShutdown` runs.
+
+- [#657](https://github.com/rizom-ai/brains/pull/657) [`e365b80`](https://github.com/rizom-ai/brains/commit/e365b80df0149b3985ced660fd4b22387fdc6eb2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Work is no longer lost when the job queue refuses an enqueue because another process held the queue's write lock past the enqueue budget. Each of these is enqueued again until the queue admits it:
+
+  - A requested site build. It is retried first after one debounce window, then backing off to once a minute.
+  - A scheduled or catch-up recurring check run. It is retried until the next scheduled run supersedes it, or until the check is unregistered or stopped.
+  - A FAQ capture or fold, a topic extraction wakeup, and a scheduled social post or newsletter generation. These are retried until the plugin shuts down.
+  - A publish asset preflight. Each retry re-reads the entity, so nothing is queued for an entity that is no longer published or whose asset already exists.
+  - A watched file change in directory sync. It is retried until its sync generation stops.
+  - The embedding job of an entity just created or updated. The entity write now resolves without throwing, and the embedding is retried once per entity, with the latest content winning, until the entity service closes. The startup embedding backfill still covers a retry pending when the process exits. Directory sync's import wait no longer polls an empty job id until it times out.
+  - A generated post's cover or social image. The generation job now succeeds, because the post exists, and the image is retried until the plugin shuts down.
+
+  Retries start after a second and double up to a minute.
+
+- [#651](https://github.com/rizom-ai/brains/pull/651) [`b00fe78`](https://github.com/rizom-ai/brains/commit/b00fe7876f0ab8205eafabf782ed343a8ed4489d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Studio workspace can declare `publishesEntityTypes: true` to receive the editor's publication actions for the entity types it covers. Studio no longer assumes the content pipeline publishes; the Publishing workspace now says so itself.
+
+- [#647](https://github.com/rizom-ai/brains/pull/647) [`9cdf93e`](https://github.com/rizom-ai/brains/commit/9cdf93e68dedd27902954a6e679586f7c9c894e9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic that absorbs a near-duplicate keeps its place when topics are trimmed to the ceiling. The weakest topic is judged on the votes after the merge, so the topic that gained the duplicate's votes is no longer dropped and re-minted with a new description.
+
 ## 0.2.0-alpha.556
 
 ### Patch Changes

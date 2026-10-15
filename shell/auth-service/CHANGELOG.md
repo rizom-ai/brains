@@ -1,5 +1,16 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.557
+  - @brains/contracts@0.2.0-alpha.557
+  - @brains/db@0.2.0-alpha.557
+  - @brains/utils@0.2.0-alpha.557
+  - @brains/plugins@0.2.0-alpha.557
+
 ## 0.2.0-alpha.556
 
 ### Patch Changes
