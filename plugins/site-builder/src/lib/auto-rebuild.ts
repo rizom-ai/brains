@@ -12,6 +12,12 @@ interface ProjectionWaveReadyMessage {
   payload: ProjectionWaveReady;
 }
 
+type BuildEnvironment = "preview" | "production";
+
+// A refused build request is retried, first after one debounce window, then
+// backing off to this ceiling so a lasting failure is not a hot loop.
+const ENQUEUE_RETRY_MAX_DELAY_MS = 60_000;
+
 interface AutoRebuildContext {
   messaging: {
     subscribeExecution(
@@ -54,6 +60,11 @@ interface AutoRebuildContext {
  * waves while the worker runs builds, so no one process sees both. The queue
  * skips a build only behind a pending one, which has yet to read its input;
  * a change during a running build leaves one pending behind it.
+ *
+ * The queue refuses an enqueue once another process has held its write lock
+ * past the enqueue budget, and no budget bounds how long a stalled commit can
+ * hold it. A requested build therefore stays requested: a refused enqueue is
+ * retried until the queue admits it or the manager is disposed.
  */
 export class RebuildManager {
   private readonly config: SiteBuilderConfig;
@@ -62,6 +73,10 @@ export class RebuildManager {
   private readonly logger: Logger;
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
+  private readonly enqueueRetries = new Map<
+    BuildEnvironment,
+    { timer: Timer; failures: number }
+  >();
   private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
@@ -175,6 +190,8 @@ export class RebuildManager {
       }
     }
     this.debounces.clear();
+    for (const { timer } of this.enqueueRetries.values()) clearTimeout(timer);
+    this.enqueueRetries.clear();
 
     for (const unsubscribe of this.unsubscribeFunctions) {
       try {
@@ -203,7 +220,7 @@ export class RebuildManager {
   }
 
   private async enqueueBuild(
-    environment: "preview" | "production",
+    environment: BuildEnvironment,
     failClosed: boolean = false,
   ): Promise<void> {
     const outputDir =
@@ -236,12 +253,51 @@ export class RebuildManager {
           deduplicationKey: `site-build:${environment}`,
         },
       });
+      this.clearEnqueueRetry(environment);
       await this.statusService?.markQueued(environment, jobId);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {
-      await this.statusService?.clearActive(environment);
-      this.logger.error("Failed to enqueue site rebuild", { error });
-      if (failClosed) throw error;
+      // An unacknowledged wave stays incomplete and the scheduler's sweep
+      // advances it again, so a wave's build request fails closed instead.
+      if (failClosed || this.disposed) {
+        await this.statusService?.clearActive(environment);
+        this.logger.error("Failed to enqueue site rebuild", { error });
+        if (failClosed) throw error;
+        return;
+      }
+      this.scheduleEnqueueRetry(environment, error);
     }
+  }
+
+  /** Keep the build requested and enqueue it again after a backoff. */
+  private scheduleEnqueueRetry(
+    environment: BuildEnvironment,
+    error: unknown,
+  ): void {
+    const previous = this.enqueueRetries.get(environment);
+    if (previous) clearTimeout(previous.timer);
+    const failures = (previous?.failures ?? 0) + 1;
+    const delayMs = Math.min(
+      this.config.rebuildDebounce * 2 ** (failures - 1),
+      ENQUEUE_RETRY_MAX_DELAY_MS,
+    );
+    const timer = setTimeout(() => {
+      if (this.disposed) return;
+      this.runTrackedTask(`enqueue ${environment} build`, () =>
+        this.enqueueBuild(environment),
+      );
+    }, delayMs);
+    this.enqueueRetries.set(environment, { timer, failures });
+    this.logger.warn(
+      `Failed to enqueue ${environment} site rebuild; retrying in ${delayMs}ms`,
+      { error, failures },
+    );
+  }
+
+  private clearEnqueueRetry(environment: BuildEnvironment): void {
+    const retry = this.enqueueRetries.get(environment);
+    if (!retry) return;
+    clearTimeout(retry.timer);
+    this.enqueueRetries.delete(environment);
   }
 }
