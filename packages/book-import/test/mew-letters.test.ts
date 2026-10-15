@@ -628,6 +628,45 @@ describe("parseMewLetters, headings set little larger than the text", () => {
   });
 });
 
+describe("parseMewLetters, runs left out within a line", () => {
+  it("keeps an emphasised word the text layer measured as small as a mark, and a line a dropped mark widened whole", () => {
+    const xml = `<pdf2xml><page number="40">
+<fontspec id="0" size="14" family="Garamond"/>
+<fontspec id="1" size="17" family="Garamond"/>
+<fontspec id="2" size="9" family="Garamond"/>
+<text top="9" left="290" width="10" height="16" font="0">7 </text>
+<text top="9" left="203" width="190" height="19" font="1">Marx an Engels </text>
+<text top="9" left="266" width="236" height="16" font="0">in Manchester [London] 7. Sept. 1873 </text>
+<text top="9" left="68" width="427" height="14" font="0">Für den Kostecki kann ich absolut nichts tun. 1. bin ich selbst in high </text>
+<text top="9" left="50" width="49" height="14" font="0">pressure</text>
+<text top="9" left="100" width="40" height="9" font="2">[2045]</text>
+<text top="9" left="154" width="342" height="14" font="0">, die daher auch gehörig auf mich schimpfen; 2. Herr </text>
+<text top="9" left="51" width="155" height="14" font="0">K[ostecki] ist keineswegs</text>
+<text top="9" left="205" width="70" height="10" font="2"><i> durch mich</i></text>
+<text top="9" left="275" width="223" height="14" font="0"> versandt worden, umgekehrt. Er </text>
+<text top="9" left="490" width="20" height="10" font="2"><i>llsi]</i></text>
+<text top="9" left="50" width="444" height="14" font="0">konnte sich in London nicht halten, und so weiter, wie es der Brauch ist. </text>
+<text top="9" left="120" width="90" height="10" font="2"><i>OXSÄSTÖV</i></text>
+<text top="9" left="50" width="444" height="14" font="0">Hier noch ein Satz, der zum Brief gehört. </text>
+<text top="9" left="120" width="190" height="10" font="2"><i>[Mit Bleistift, in Marx' Handschrift]</i></text>
+<text top="9" left="400" width="60" height="14" font="0">Dein</text>
+<text top="9" left="466" width="30" height="10" font="2"><i>K.M.</i></text>
+</page></pdf2xml>`;
+
+    expect(
+      parseMewLetters(xml, new Map([[40, "1873 27"]]), {
+        volume: 33,
+        file: "mew_band33",
+        item: "Marx_Engels_Werke_MEW",
+        writer: "Marx",
+      })[0]?.paragraphs.slice(1),
+    ).toEqual([
+      "Für den Kostecki kann ich absolut nichts tun. 1. bin ich selbst in high pressure, die daher auch gehörig auf mich schimpfen; 2. Herr K[ostecki] ist keineswegs *durch mich* versandt worden, umgekehrt. Er konnte sich in London nicht halten, und so weiter, wie es der Brauch ist. Hier noch ein Satz, der zum Brief gehört.",
+      "Dein *K.M.*",
+    ]);
+  });
+});
+
 describe("parseMewLetters, a part's title", () => {
   it("closes the letter before the part's title, though the text layer measured it as the text, the notes above it left out", () => {
     const xml = `<pdf2xml><page number="40">

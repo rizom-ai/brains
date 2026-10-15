@@ -29,6 +29,8 @@ interface Run {
   size: number;
   /** Its words, emphasis marked. */
   text: string;
+  /** Where the runs left out before it on its line end: a mark between it and the run before. */
+  reach?: number;
 }
 
 interface Line {
@@ -72,6 +74,8 @@ const TRANSLATED =
 const SIZE_STEP = 0.1;
 /** A page's head counts where it agrees with the heads this many pages about it. */
 const HEAD_REACH = 3;
+/** Runs of one line this far apart stand a word apart. */
+const WORD_GAP = 3;
 /** Runs of one line this far apart at least are set apart: a place and the dateline beside it. */
 const PART_GAP = 12;
 /** Lines set at the margin start within this much of each other. */
@@ -144,7 +148,20 @@ const MARK_SIZE = 0.7;
 /** A note's mark: digits and brackets, as the text layer reads them. */
 const MARK = /^[\s\d[\]()*|tlIi1.,'"’‘„“-]{1,8}$/;
 /** The editors' source of a letter, or their word on it, set small after it. */
-const APPARATUS = /^(?:Nach:|Aus dem|\[|\*)/;
+const APPARATUS = /^\*?(?:Nach:|Aus dem|\[)|^\*\s/;
+
+/**
+ * Whether a run is words the writer emphasised: set off, with small letters
+ * or initials (K.M.), no bracket, figure or backslash a misread note mark
+ * (llsi]) or the OCR's reading of Greek (OXSÄSTÖV) has.
+ */
+function emphasisedWords(text: string): boolean {
+  return (
+    /(?<!\\)\*\p{L}/u.test(text) &&
+    !/[[\]\\\d]/u.test(text) &&
+    (/\p{Ll}{3}/u.test(text) || /^\s*\*(?:\p{Lu}\.\s?){1,3}\*\s*$/u.test(text))
+  );
+}
 /** A page's running head the text layer holds: 49 • Marx an Max Oppenheim • 30. August 1876. */
 const RUNNING_HEAD = /\s[•·]\s/u;
 /** The OCR's reading of a speck or a stamp, its signs no text sets. */
@@ -174,8 +191,10 @@ function textRuns(page: Run[], body: number): Run[] {
   const text = (run: Run): boolean =>
     run.size >= body * NOTE_SIZE && run.size < body * TITLE_SIZE;
   const sized = (run: Run): boolean => run.size >= body * NOTE_SIZE;
+  // An emphasised word is the writer's, however small the layer measured it.
   const mark = (run: Run): boolean =>
     !sized(run) &&
+    !emphasisedWords(run.text) &&
     (run.size < body * MARK_SIZE ||
       MARK.test(run.text) ||
       SPECKS.test(run.text));
@@ -200,30 +219,66 @@ function textRuns(page: Run[], body: number): Run[] {
         .at(-1);
       const after = runs.slice(last + 1).find((run) => !mark(run));
       const words = chain.map((index) => runs[index]?.text ?? "").join(" ");
+      const opening = runs[first];
+      // A run going on the line of the text before it, as a signature does,
+      // needs no text after it.
+      const onItsLine =
+        chain.length === 1 &&
+        opening !== undefined &&
+        before !== undefined &&
+        opening.left >= before.left + before.width - 3 &&
+        opening.left <= before.left + before.width + RUN_GAP;
       const embedded =
         before !== undefined &&
         text(before) &&
-        after !== undefined &&
-        text(after) &&
+        (after === undefined ? onItsLine : text(after)) &&
         chain.length <= EMBEDDED_RUNS &&
-        !APPARATUS.test(runs[first]?.text.trim() ?? "") &&
-        /\p{L}{3}/u.test(words) &&
+        !APPARATUS.test(opening?.text.trim() ?? "") &&
+        (/\p{L}{3}/u.test(words) || emphasisedWords(words)) &&
         !RUNNING_HEAD.test(words) &&
         // The OCR's reading of a speck is signs and letters one by one.
-        words.split(/\s+/u).filter((word) => /\p{L}{2}/u.test(word)).length *
-          2 >
-          words.split(/\s+/u).filter(Boolean).length;
+        (emphasisedWords(words) ||
+          words.split(/\s+/u).filter((word) => /\p{L}{2}/u.test(word)).length *
+            2 >
+            words.split(/\s+/u).filter(Boolean).length);
       // Set in the text's type, they join its lines.
       return embedded
-        ? chain.map((index): [number, number] => [index, after.size])
+        ? chain.map((index): [number, number] => [
+            index,
+            (after ?? before).size,
+          ])
         : [];
     }),
   );
-  return runs.flatMap((run, index) => {
+  const kept = (run: Run, index: number): Run | null => {
     const size = resized.get(index);
-    if (size !== undefined) return [{ ...run, size }];
-    return sized(run) || TRANSLATED.test(run.text) ? [run] : [];
-  });
+    if (size !== undefined) return { ...run, size };
+    return sized(run) || TRANSLATED.test(run.text) ? run : null;
+  };
+  // A run left out still holds its place on its line, so the run after it
+  // goes on the line.
+  return runs.reduce<{ runs: Run[]; reach?: number }>(
+    (done, run, index) => {
+      const keep = kept(run, index);
+      if (keep !== null) {
+        return {
+          runs: [
+            ...done.runs,
+            done.reach === undefined ? keep : { ...keep, reach: done.reach },
+          ],
+        };
+      }
+      const last = done.runs.at(-1);
+      const end = Math.max(
+        last === undefined ? 0 : last.left + last.width,
+        done.reach ?? 0,
+      );
+      return run.left >= end - 3
+        ? { ...done, reach: run.left + run.width }
+        : { runs: done.runs };
+    },
+    { runs: [] },
+  ).runs;
 }
 
 /**
@@ -263,7 +318,10 @@ function linesOf(xml: string): Line[] {
         ];
       }
       const last = done.at(-1);
-      const end = last === undefined ? 0 : last.left + last.width;
+      const end =
+        last === undefined
+          ? 0
+          : Math.max(last.left + last.width, run.reach ?? 0);
       if (
         last &&
         last.translated !== true &&
@@ -271,19 +329,26 @@ function linesOf(xml: string): Line[] {
         run.left >= end - 3 &&
         run.left <= end + RUN_GAP
       ) {
+        // Runs set apart are words apart, unless a mark opens the second.
+        const spaced =
+          run.left - end > WORD_GAP &&
+          !/\s$/u.test(last.text) &&
+          /^[\p{L}\d*„(]/u.test(run.text)
+            ? ` ${run.text}`
+            : run.text;
         return [
           ...done.slice(0, -1),
           {
             ...last,
             width: run.left + run.width - last.left,
             size: Math.max(last.size, run.size),
-            text: `${last.text}${run.text}`,
+            text: `${last.text}${spaced}`,
             parts:
               run.left - end > PART_GAP
                 ? [...last.parts, run.text]
                 : [
                     ...last.parts.slice(0, -1),
-                    `${last.parts.at(-1) ?? ""}${run.text}`,
+                    `${last.parts.at(-1) ?? ""}${spaced}`,
                   ],
           },
         ];
