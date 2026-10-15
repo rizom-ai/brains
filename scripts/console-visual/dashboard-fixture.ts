@@ -1,27 +1,24 @@
-import { createElement, type ReactElement } from "react";
 import { createMockAppInfo } from "@brains/plugins/test";
 import { safeParseRuntimeDashboardWidgetData } from "@brains/plugins";
 import type { DashboardRenderInput } from "@brains/dashboard";
-import {
-  ProximityMap,
-  proximityMapDataSchema,
-  proximityMapScript,
-  proximityMapWidgetStyles,
-} from "@brains/agent-discovery/proximity-map";
 import { findCartesianMap } from "../../plugins/dashboard/src/render/public-card-data";
 
-function VisualProximityWidget({
-  data,
-}: {
-  data: unknown;
-}): ReactElement | null {
-  const parsed = proximityMapDataSchema.safeParse(data);
-  return parsed.success
-    ? createElement(ProximityMap, { data: parsed.data })
-    : null;
+type DashboardWidget = DashboardRenderInput["widgets"][string];
+
+/**
+ * What the page needs beyond data: the proximity map's registered component,
+ * styles, and script. They load the widget runtime, so the fixture server
+ * passes them in and this module stays pure data.
+ */
+export interface DashboardWidgetRendering {
+  proximityComponent: NonNullable<DashboardWidget["component"]>;
+  widgetStyles: readonly string[];
+  widgetScripts: readonly string[];
 }
 
-function dashboardInput(): DashboardRenderInput {
+function dashboardInput(
+  rendering: DashboardWidgetRendering,
+): DashboardRenderInput {
   return {
     title: "Rover Collective",
     baseUrl: "http://127.0.0.1",
@@ -38,12 +35,14 @@ function dashboardInput(): DashboardRenderInput {
         "The shared brain of a cooperative agent network — public by choice, private by default.",
     },
     appInfo: dashboardAppInfo(),
-    widgetStyles: [proximityMapWidgetStyles],
-    widgetScripts: [proximityMapScript],
+    widgetStyles: [...rendering.widgetStyles],
+    widgetScripts: [...rendering.widgetScripts],
     widgets: {
       "agent-discovery:skills": skillsWidget(),
       "topics:topics-knowledge-map": knowledgeMapWidget(),
-      "agent-discovery:agent-proximity": agentProximityWidget(),
+      "agent-discovery:agent-proximity": agentProximityWidget(
+        rendering.proximityComponent,
+      ),
     },
     authAccess: {
       loginUrl: "/login",
@@ -102,7 +101,7 @@ function dashboardAppInfo(): DashboardRenderInput["appInfo"] {
 }
 
 /** Public skills, listed in the network sidebar. */
-function skillsWidget(): DashboardRenderInput["widgets"][string] {
+function skillsWidget(): DashboardWidget {
   return {
     widget: {
       id: "skills",
@@ -146,7 +145,7 @@ function skillsWidget(): DashboardRenderInput["widgets"][string] {
 }
 
 /** A cartesian atlas of public knowledge around seven topic territories. */
-function knowledgeMapWidget(): DashboardRenderInput["widgets"][string] {
+function knowledgeMapWidget(): DashboardWidget {
   return {
     widget: {
       id: "topics-knowledge-map",
@@ -380,7 +379,9 @@ function knowledgeMapWidget(): DashboardRenderInput["widgets"][string] {
 }
 
 /** Approved agents by semantic distance, drawn by the registered proximity map. */
-function agentProximityWidget(): DashboardRenderInput["widgets"][string] {
+function agentProximityWidget(
+  component: DashboardWidget["component"],
+): DashboardWidget {
   return {
     widget: {
       id: "agent-proximity",
@@ -392,7 +393,7 @@ function agentProximityWidget(): DashboardRenderInput["widgets"][string] {
       rendererName: "DeclarativeOperatorWidget",
       visibility: "public",
     },
-    component: VisualProximityWidget,
+    component,
     data: {
       view: {
         blocks: [
@@ -497,8 +498,9 @@ function agentProximityWidget(): DashboardRenderInput["widgets"][string] {
  */
 export function dashboardFixtureInput(
   fixtureState: string | null,
+  rendering: DashboardWidgetRendering,
 ): DashboardRenderInput {
-  const input = dashboardInput();
+  const input = dashboardInput(rendering);
   if (fixtureState === "dense-map") {
     const block = findCartesianMap(input.widgets);
     const widget = input.widgets["topics:topics-knowledge-map"];

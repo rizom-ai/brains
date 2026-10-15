@@ -13,6 +13,7 @@ import { systemFixtures } from "../fixtures/studio-system";
 import type { StudioStudyState } from "../fixtures/studio-study-state";
 import type { createWorkViewFixtures } from "../fixtures/studio-work-views";
 import { dashboardFixtureInput } from "./dashboard-fixture";
+import { dashboardWidgetRendering } from "./dashboard-widgets";
 import {
   accountFixture,
   cardMessages,
@@ -114,7 +115,10 @@ export function createFixtureRoutes(
       ? new Response(
           climateHtml(
             renderDashboardPageHtml(
-              dashboardFixtureInput(url.searchParams.get("fixture-state")),
+              dashboardFixtureInput(
+                url.searchParams.get("fixture-state"),
+                dashboardWidgetRendering,
+              ),
             ),
             request,
           ),

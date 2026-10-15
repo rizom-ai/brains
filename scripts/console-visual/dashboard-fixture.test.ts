@@ -1,8 +1,24 @@
 import { describe, expect, it } from "bun:test";
 import { safeParseRuntimeDashboardWidgetData } from "@brains/plugins";
-import { renderDashboardPageHtml } from "@brains/dashboard";
 import { findCartesianMap } from "../../plugins/dashboard/src/render/public-card-data";
-import { dashboardFixtureInput } from "./dashboard-fixture";
+import {
+  type DashboardWidgetRendering,
+  dashboardFixtureInput as buildDashboardFixtureInput,
+} from "./dashboard-fixture";
+
+// The fixture holds data only; its render-time pieces are passed in.
+const proximityComponent = (): null => null;
+const rendering: DashboardWidgetRendering = {
+  proximityComponent,
+  widgetStyles: [".proximity {}"],
+  widgetScripts: ["/* proximity */"],
+};
+
+function dashboardFixtureInput(
+  fixtureState: string | null,
+): ReturnType<typeof buildDashboardFixtureInput> {
+  return buildDashboardFixtureInput(fixtureState, rendering);
+}
 
 const widgetIds = [
   "agent-discovery:skills",
@@ -17,19 +33,20 @@ function chatStatus(fixtureState: string | null): string | undefined {
 }
 
 describe("dashboardFixtureInput", () => {
-  it("renders the default Dashboard with every public widget", () => {
+  it("builds the default Dashboard with every public widget", () => {
     const input = dashboardFixtureInput(null);
     expect(Object.keys(input.widgets)).toEqual(widgetIds);
-    expect(
-      input.widgets["agent-discovery:agent-proximity"]?.component,
-    ).toBeDefined();
+    expect(input.widgets["agent-discovery:agent-proximity"]?.component).toBe(
+      proximityComponent,
+    );
+    expect(input.widgetStyles).toEqual([".proximity {}"]);
+    expect(input.widgetScripts).toEqual(["/* proximity */"]);
     expect(chatStatus(null)).toBe("available");
     // The proximity widget draws itself from the source beside its view.
     for (const id of ["agent-discovery:skills", "topics:topics-knowledge-map"])
       expect(
         safeParseRuntimeDashboardWidgetData(input.widgets[id]?.data).success,
       ).toBe(true);
-    expect(renderDashboardPageHtml(input)).toContain("Rover Collective");
   });
 
   it("treats an unknown fixture state as the default", () => {
