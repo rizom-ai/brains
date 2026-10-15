@@ -1,5 +1,9 @@
 # @rizom/brain
 
+## 0.2.0-alpha.554
+
+No changes in this release.
+
 ## 0.2.0-alpha.553
 
 ### Patch Changes

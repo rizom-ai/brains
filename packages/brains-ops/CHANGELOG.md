@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- [#640](https://github.com/rizom-ai/brains/pull/640) [`9c96128`](https://github.com/rizom-ai/brains/commit/9c961285cba5fd275782580f9e8953aa7982a588) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A pilot user's `siteOverride` can select a site bundled in `@rizom/brain` (any `@brains/*` package, such as `@brains/site-organization`) without a version pin; the Brain version pins it, and it is never npm-installed into the image. External `@rizom/*` site packages still require an exact `version`, and a `version` on a bundled package is rejected.
+
 ## 0.2.0-alpha.553
 
 No changes in this release.
