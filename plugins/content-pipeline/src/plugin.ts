@@ -75,6 +75,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
     const publishAssetPreflight = new PublishAssetPreflight({
       context,
       registry: publishAssetRegistry,
+      retries: this.retries,
     });
     const publishExecutor = new PublishExecutor({
       context,

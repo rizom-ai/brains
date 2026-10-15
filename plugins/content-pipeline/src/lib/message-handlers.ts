@@ -274,7 +274,7 @@ async function handleEntityChange(
       return { success: true };
     }
 
-    await deps.publishAssetPreflight.ensureForEntity(entity);
+    await deps.publishAssetPreflight.ensureOrRetry(entity);
     return { success: true };
   } catch (error) {
     deps.logger.warn("Failed to run publish asset preflight for entity event", {
