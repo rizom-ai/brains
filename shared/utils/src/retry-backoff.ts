@@ -1,4 +1,5 @@
 import { Cause, Clock, Effect, Exit, withOptionalClock } from "./effect";
+import type { Logger } from "./logger";
 
 export interface RetryWithBackoffOptions {
   /** Wait before the first retry; each refusal doubles it up to the ceiling. */
@@ -86,4 +87,98 @@ export async function retryWithBackoff<T>(
   if (succeeded) return succeeded;
   if (Cause.hasInterruptsOnly(exit.cause)) return { kind: "stopped" };
   throw Cause.squash(exit.cause);
+}
+
+/** The scope default: a second, doubling to a minute. */
+export const DEFAULT_RETRY_FIRST_DELAY_MS = 1_000;
+export const DEFAULT_RETRY_MAX_DELAY_MS = 60_000;
+
+export interface RetryScopeOptions {
+  firstDelayMs?: number | undefined;
+  maxDelayMs?: number | undefined;
+  clock?: Clock.Clock | undefined;
+  logger: Pick<Logger, "warn" | "error">;
+}
+
+/**
+ * Background retries owned by one lifetime, such as a plugin's: a refused
+ * attempt keeps retrying until it succeeds or the scope is disposed. Disposal
+ * stops every retry, waits for admitted attempts to settle, and admits no
+ * new retries.
+ */
+export class RetryScope {
+  private readonly options: RetryScopeOptions;
+  private readonly controller = new AbortController();
+  private readonly running = new Set<Promise<unknown>>();
+  private readonly keyed = new Map<string, AbortController>();
+
+  constructor(options: RetryScopeOptions) {
+    this.options = options;
+  }
+
+  /**
+   * Retry `attempt`, whose first try was refused with `error`. `description`
+   * names the work in logs, as in "queue a site build". A retry under the same
+   * `key` supersedes a pending one, so repeated requests for one piece of
+   * work keep one retry, not one each.
+   */
+  retry<T>(
+    attempt: () => Promise<T>,
+    error: unknown,
+    description: string,
+    key?: string,
+  ): Promise<RetryOutcome<T>> {
+    const { clock, logger } = this.options;
+    const superseded = new AbortController();
+    if (key !== undefined) {
+      this.keyed.get(key)?.abort();
+      this.keyed.set(key, superseded);
+    }
+    const outcome = retryWithBackoff(attempt, error, {
+      firstDelayMs: this.options.firstDelayMs ?? DEFAULT_RETRY_FIRST_DELAY_MS,
+      maxDelayMs: this.options.maxDelayMs ?? DEFAULT_RETRY_MAX_DELAY_MS,
+      clock,
+      signal: AbortSignal.any([this.controller.signal, superseded.signal]),
+      onRetry: (refusal, delayMs) => {
+        logger.warn(`Failed to ${description}; retrying in ${delayMs}ms`, {
+          error: refusal,
+        });
+      },
+    }).catch((failure: unknown): RetryOutcome<T> => {
+      // Only a defect outside the attempt reaches here; the attempt's own
+      // refusals are retried. Log it and report the retry as stopped.
+      logger.error(`Retrying "${description}" failed`, { error: failure });
+      return { kind: "stopped" };
+    });
+    this.running.add(outcome);
+    void outcome.then(() => {
+      this.running.delete(outcome);
+      if (key !== undefined && this.keyed.get(key) === superseded) {
+        this.keyed.delete(key);
+      }
+    });
+    return outcome;
+  }
+
+  /**
+   * Run `operation` now; if it fails, keep retrying it in the background.
+   * Resolves once the first try settles, so a caller keeps its latency.
+   */
+  async run(
+    operation: () => Promise<unknown>,
+    description: string,
+    key?: string,
+  ): Promise<void> {
+    try {
+      await operation();
+    } catch (error) {
+      // Not flattened: the refusal is handed to a retry this scope owns.
+      void this.retry(operation, error, description, key);
+    }
+  }
+
+  async dispose(): Promise<void> {
+    this.controller.abort();
+    await Promise.all([...this.running]);
+  }
 }

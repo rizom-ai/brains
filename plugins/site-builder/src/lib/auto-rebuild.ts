@@ -5,7 +5,10 @@ import {
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
-import { retryWithBackoff } from "@brains/utils/retry-backoff";
+import {
+  DEFAULT_RETRY_MAX_DELAY_MS,
+  retryWithBackoff,
+} from "@brains/utils/retry-backoff";
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
@@ -14,10 +17,6 @@ interface ProjectionWaveReadyMessage {
 }
 
 type BuildEnvironment = "preview" | "production";
-
-// A refused build request is retried, first after one debounce window, then
-// backing off to this ceiling so a lasting failure is not a hot loop.
-const ENQUEUE_RETRY_MAX_DELAY_MS = 60_000;
 
 interface AutoRebuildContext {
   messaging: {
@@ -283,7 +282,8 @@ export class RebuildManager {
         error,
         {
           firstDelayMs: this.config.rebuildDebounce,
-          maxDelayMs: ENQUEUE_RETRY_MAX_DELAY_MS,
+          // First after one debounce window, then backing off to a minute.
+          maxDelayMs: DEFAULT_RETRY_MAX_DELAY_MS,
           signal: controller.signal,
           onRetry: (refusal, delayMs) => {
             this.logger.warn(

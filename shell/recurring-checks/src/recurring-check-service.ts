@@ -12,7 +12,11 @@ import type {
 import type { ScheduledJob, SchedulerBackend } from "@brains/scheduler";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
-import { retryWithBackoff } from "@brains/utils/retry-backoff";
+import {
+  DEFAULT_RETRY_FIRST_DELAY_MS,
+  DEFAULT_RETRY_MAX_DELAY_MS,
+  retryWithBackoff,
+} from "@brains/utils/retry-backoff";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import {
@@ -30,13 +34,6 @@ export const RECURRING_CHECK_JOB_TYPE = "shell:recurring-check" as const;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 const WEEK_MS = 7 * DAY_MS;
 const FIRST_SUNDAY_UTC_MS = 3 * DAY_MS;
-
-// The job queue refuses an enqueue once another process has held its write
-// lock past the enqueue budget, and no budget bounds how long a stalled commit
-// can hold it. A refused scheduled or catch-up run is retried, doubling from
-// the first delay to the ceiling, until the next scheduled run supersedes it.
-const ENQUEUE_RETRY_FIRST_DELAY_MS = 1_000;
-const ENQUEUE_RETRY_MAX_DELAY_MS = 60_000;
 
 const recurringCheckJobSchema = z.strictObject({ checkId: z.string().min(1) });
 type RecurringCheckJob = z.infer<typeof recurringCheckJobSchema>;
@@ -488,7 +485,10 @@ export class RecurringCheckService {
   }
 
   /**
-   * Keep a refused scheduled or catch-up run until the queue admits it.
+   * Keep a refused scheduled or catch-up run until the queue admits it: the
+   * queue refuses an enqueue once another process has held its write lock
+   * past the enqueue budget, and no budget bounds how long a stalled commit
+   * can hold it.
    * Retries reuse the check's deduplication key, so a run is never queued
    * twice, and end at the next scheduled run, on unregister, and on stop.
    */
@@ -513,8 +513,8 @@ export class RecurringCheckService {
     const retry: EnqueueRetry = { controller, settled: Promise.resolve() };
     registered.enqueueRetry = retry;
     retry.settled = retryWithBackoff(() => this.enqueue(check.id), error, {
-      firstDelayMs: ENQUEUE_RETRY_FIRST_DELAY_MS,
-      maxDelayMs: ENQUEUE_RETRY_MAX_DELAY_MS,
+      firstDelayMs: DEFAULT_RETRY_FIRST_DELAY_MS,
+      maxDelayMs: DEFAULT_RETRY_MAX_DELAY_MS,
       giveUpAt: nextRunAt,
       signal: controller.signal,
       clock: this.clock,

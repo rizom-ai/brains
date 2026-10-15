@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "../src/effect";
 import { TestClock } from "../src/effect-test";
-import { retryWithBackoff, type RetryOutcome } from "../src/retry-backoff";
+import {
+  RetryScope,
+  retryWithBackoff,
+  type RetryOutcome,
+} from "../src/retry-backoff";
 
 function withTestClock(
   body: (clock: TestClock.TestClock) => Promise<void>,
@@ -18,6 +22,8 @@ async function advance(clock: TestClock.TestClock, ms: number): Promise<void> {
   // Let the woken retry run its attempt before the next assertion.
   await Bun.sleep(5);
 }
+
+const quiet = { warn: (): void => {}, error: (): void => {} };
 
 /** An attempt refused a set number of times, recording when it ran. */
 function refusing(
@@ -139,6 +145,101 @@ describe("retryWithBackoff", () => {
 
       expect(outcome).toEqual({ kind: "stopped" });
       expect(ranAt).toEqual([]);
+    });
+  });
+});
+
+describe("RetryScope", () => {
+  it("keeps retrying in the background until the attempt succeeds", async () => {
+    await withTestClock(async (clock) => {
+      const scope = new RetryScope({
+        firstDelayMs: 1_000,
+        maxDelayMs: 60_000,
+        clock,
+        logger: quiet,
+      });
+      const { attempt, ranAt } = refusing(clock, 1);
+      const outcome = scope.retry(attempt, new Error("first"), "queue a job");
+
+      await advance(clock, 1_000);
+      await advance(clock, 2_000);
+
+      expect(await outcome).toEqual({ kind: "succeeded", value: "job-1" });
+      expect(ranAt).toEqual([1_000, 3_000]);
+      await scope.dispose();
+    });
+  });
+
+  it("runs an operation now and retries it in the background when refused", async () => {
+    await withTestClock(async (clock) => {
+      const scope = new RetryScope({ clock, logger: quiet });
+      const { attempt, ranAt } = refusing(clock, 1);
+
+      await scope.run(attempt, "queue a job");
+      expect(ranAt).toEqual([0]);
+      await advance(clock, 1_000);
+
+      expect(ranAt).toEqual([0, 1_000]);
+      await scope.dispose();
+    });
+  });
+
+  it("keeps one retry per key, the latest superseding the pending one", async () => {
+    await withTestClock(async (clock) => {
+      const scope = new RetryScope({ clock, logger: quiet });
+      const first = refusing(clock, 0);
+      const second = refusing(clock, 0);
+      const superseded = scope.retry(
+        first.attempt,
+        new Error("first"),
+        "queue a job",
+        "job",
+      );
+      const latest = scope.retry(
+        second.attempt,
+        new Error("first"),
+        "queue a job",
+        "job",
+      );
+
+      expect(await superseded).toEqual({ kind: "stopped" });
+      await advance(clock, 1_000);
+      expect(await latest).toEqual({ kind: "succeeded", value: "job-1" });
+      expect(first.ranAt).toEqual([]);
+      await scope.dispose();
+    });
+  });
+
+  it("stops every retry it owns when disposed, and admits none after", async () => {
+    await withTestClock(async (clock) => {
+      const scope = new RetryScope({
+        firstDelayMs: 1_000,
+        maxDelayMs: 60_000,
+        clock,
+        logger: quiet,
+      });
+      const first = refusing(clock, 0);
+      const second = refusing(clock, 0);
+      const outcomes = [
+        scope.retry(first.attempt, new Error("first"), "queue a job"),
+        scope.retry(second.attempt, new Error("first"), "queue a job"),
+      ];
+
+      await scope.dispose();
+      const late = refusing(clock, 0);
+      const lateOutcome = scope.retry(
+        late.attempt,
+        new Error("first"),
+        "queue a job",
+      );
+      await advance(clock, 10_000);
+
+      expect(await Promise.all(outcomes)).toEqual([
+        { kind: "stopped" },
+        { kind: "stopped" },
+      ]);
+      expect(await lateOutcome).toEqual({ kind: "stopped" });
+      expect([...first.ranAt, ...second.ranAt, ...late.ranAt]).toEqual([]);
     });
   });
 });
