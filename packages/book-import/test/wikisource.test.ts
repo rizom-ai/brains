@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseWikisourcePage } from "../src/adapters/wikisource";
+import {
+  parseWikisourcePage,
+  parseWikisourcePages,
+} from "../src/adapters/wikisource";
 
 async function briefwechsel(): Promise<string> {
   return readFile(
@@ -209,6 +212,99 @@ describe("parseWikisourcePage, a French transcription", () => {
       "« La division du travail est un instrument de misère. » (Tome 1er, p. 94.)",
       "variante.",
       "« Le travail, en se *divisant*, se détruit lui-même. »",
+    ]);
+  });
+});
+
+describe("parseWikisourcePage, an editor's headings", () => {
+  it("leaves out the centred lines an editor set, their text running on under the heading above", async () => {
+    const units = parseWikisourcePage(
+      await readFile(
+        join(import.meta.dir, "fixtures", "wikisource-misere.html"),
+        "utf8",
+      ),
+      {
+        page: "Misère de la philosophie/Texte entier",
+        citation: "Misère",
+        site: "fr.wikisource.org",
+        from: "Chapitre premier",
+        until: "Appendice I",
+        textHeadings: [
+          "Et propter vitam vivendi perdere causas !",
+          "Variante.",
+        ],
+        omitHeadings: ["Première observation."],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "§ Ier. — opposition de la valeur d’utilité et de la valeur d’échange",
+      "§ II. La valeur constituée.",
+      "§ Ier. — la méthode.",
+    ]);
+    expect(units[2]?.paragraphs).toContain("Les catégories économiques.");
+  });
+});
+
+describe("parseWikisourcePages, a work set out over several pages", () => {
+  it("reads the pages as one work, each part cited from the page it is on, a rule parting a centred block, an editor's caption left out line by line, English capitals as printed", async () => {
+    const read = (name: string): Promise<string> =>
+      readFile(join(import.meta.dir, "fixtures", name), "utf8");
+    const units = parseWikisourcePages(
+      [
+        {
+          page: "The Civil War in France (1871)/Chapter 1",
+          html: await read("wikisource-civil-war-1.html"),
+        },
+        {
+          page: "The Civil War in France (1871)/Notes",
+          html: await read("wikisource-civil-war-notes.html"),
+        },
+      ],
+      {
+        page: "The Civil War in France (1871)",
+        citation: "Civil War",
+        site: "en.wikisource.org",
+        textHeadings: [
+          "To all the members of the Association in Europe and the United States.",
+        ],
+        omitHeadings: [
+          "The Declaration of War",
+          "First manifesto of the General Council",
+        ],
+      },
+    );
+
+    expect(
+      units.map((unit) => [unit.title, unit.section, unit.source]),
+    ).toEqual([
+      [
+        "Civil War, 3",
+        "Civil War, 3",
+        "https://en.wikisource.org/wiki/The_Civil_War_in_France_(1871)%2FChapter_1#3",
+      ],
+      [
+        "I.",
+        "Civil War, 3",
+        "https://en.wikisource.org/wiki/The_Civil_War_in_France_(1871)%2FChapter_1#3",
+      ],
+      [
+        "NOTES. I.",
+        "Civil War, 33",
+        "https://en.wikisource.org/wiki/The_Civil_War_in_France_(1871)%2FNotes#33",
+      ],
+    ]);
+    expect(units[0]?.paragraphs).toEqual([
+      "TO ALL THE MEMBERS OF THE ASSOCIATION IN EUROPE AND THE UNITED STATES.",
+    ]);
+    expect(units[1]?.paragraphs).toEqual([
+      "On the 4th of September, 1870, the working men of Paris proclaimed the Republic.",
+      "When the Assembly had met at Bordeaux, Thiers told the admiring Frankfort Philistines.",
+    ]);
+    expect(units[2]?.paragraphs).toEqual([
+      '"The column of prisoners halted in the Avenue Uhrich."—*Daily News*, June 8th.',
+      "I am, Sir, your obedient servant,",
+      '"John Hales."',
     ]);
   });
 });

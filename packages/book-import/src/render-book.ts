@@ -134,20 +134,22 @@ function placeEntries(units: BookUnit[]): PlacedEntry[] {
   ).entries;
 }
 
-/** Top-level parts, each linked at its first entry. */
+/**
+ * Top-level parts, each linked at its first entry; a part's later entries
+ * follow it, and a title repeated further on is another part.
+ */
 function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
-  const lines = entries.reduce<{ seen: Set<string>; lines: string[] }>(
+  const lines = entries.reduce<{ last: string | null; lines: string[] }>(
     (state, entry) => {
       const heading = entry.unit.parents[0] ?? entry.unit.title;
-      if (state.seen.has(heading)) return state;
-      state.seen.add(heading);
+      if (heading === state.last) return state;
       const href = `/books/${bookSectionSlug(book.slug, entry.order)}`;
       return {
-        seen: state.seen,
+        last: heading,
         lines: [...state.lines, `- [${heading}](${href})`],
       };
     },
-    { seen: new Set(), lines: [] },
+    { last: null, lines: [] },
   ).lines;
   return `## Contents\n\n${lines.join("\n")}\n`;
 }

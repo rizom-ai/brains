@@ -32,6 +32,8 @@ export interface WikisourceWork {
   until?: string | undefined;
   /** Centred lines that are the text's own, such as a motto, not headings. */
   textHeadings?: string[];
+  /** Centred lines an editor set, neither heading nor text: left out. */
+  omitHeadings?: string[];
   /** The page's references are the printed book's notes, not Wikisource's own. */
   printedNotes?: boolean | undefined;
   /** Openings of printed notes left out: an editor's, not the author's. */
@@ -50,12 +52,15 @@ interface Block {
   label: string;
   /** The page's anchor on the Wikisource page. */
   anchor: string;
+  /** The Wikisource page the text is on. */
+  url: string;
 }
 
 interface Page {
   page: number;
   label: string;
   anchor: string;
+  url: string;
 }
 
 interface Reading {
@@ -102,9 +107,15 @@ function sentenceCased(line: string): string {
   );
 }
 
-/** How a Wikisource's titles in capitals are cased: German capitalises its nouns. */
+/**
+ * How a Wikisource's titles in capitals are cased: German capitalises its
+ * nouns, French sets titles in sentence case; English capitals stay as
+ * printed, since its proper nouns cannot be told from the rest.
+ */
 function casedFor(site: string): (line: string) => string {
-  return site.startsWith("de.") ? titleCased : sentenceCased;
+  if (site.startsWith("de.")) return titleCased;
+  if (site.startsWith("fr.")) return sentenceCased;
+  return (line) => line;
 }
 /** Wikisource's own apparatus: the text data, its notes and edit links. */
 const APPARATUS =
@@ -134,6 +145,7 @@ function isCentred(element: Element): boolean {
   return (
     element.localName === "center" ||
     element.classList.contains("center") ||
+    element.classList.contains("wst-center") ||
     styleOf(element).includes("text-align:center")
   );
 }
@@ -151,6 +163,7 @@ function turnPage(span: Element, reading: Reading): void {
   // A page number with no text of its own names its page by its anchor.
   const label = span.textContent.replace(/[[\]\s]/g, "");
   reading.page = {
+    ...reading.page,
     page: reading.page.page + 1,
     label: label === "" ? anchor : label,
     anchor,
@@ -365,6 +378,56 @@ function isBareText(node: Node): boolean {
   return node.nodeType === TEXT_NODE && node.textContent.trim().length > 0;
 }
 
+/** A printed rule: a line, or Wikisource's rule drawn in segments. */
+function isRule(node: Node): boolean {
+  return (
+    isElement(node) &&
+    (nameOf(node) === "hr" ||
+      node.classList.contains("wst-custom-rule") ||
+      node.classList.contains("wst-rule"))
+  );
+}
+
+/** A centred block a rule parts into blocks of its own, as the salutation above a section's numeral. */
+function partedByRules(block: Element): Element[] {
+  const children = Array.from(block.childNodes);
+  if (!children.some(isRule)) return [block];
+  const groups = children.reduce<Node[][]>(
+    (found, child) =>
+      isRule(child)
+        ? [...found, []]
+        : [...found.slice(0, -1), [...(found.at(-1) ?? []), child]],
+    [[]],
+  );
+  return groups.map((group) => {
+    const part = block.cloneNode(false);
+    group.forEach((child) => {
+      part.appendChild(child);
+    });
+    return part;
+  });
+}
+
+/** A heading's letters alone, to tell what it spells however it is set. */
+function lettersOf(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+/** Whether a heading is nothing but an editor's captions, one after another. */
+function captionOnly(title: string, captions: string[]): boolean {
+  const spelled = captions.map(lettersOf).filter((caption) => caption !== "");
+  const covered = (rest: string): boolean =>
+    rest === "" ||
+    spelled.some(
+      (caption) =>
+        rest.startsWith(caption) && covered(rest.slice(caption.length)),
+    );
+  return spelled.length > 0 && covered(lettersOf(title));
+}
+
 function visit(node: Node, reading: Reading, work: WikisourceWork): void {
   if (!isElement(node)) return;
   if (isPageNumber(node)) {
@@ -381,11 +444,19 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
     return;
   }
   if (name === "center" || (name === "div" && isCentred(node))) {
+    const parts = partedByRules(node);
+    if (parts.length > 1) {
+      parts.forEach((part) => {
+        visit(part, reading, work);
+      });
+      return;
+    }
     const cased = casedFor(reading.site);
     const title = headingOf(node, reading);
     if (title === null) return;
     bound(title, reading, work);
     if (reading.within !== "in") return;
+    if (captionOnly(title, work.omitHeadings ?? [])) return;
     if ((work.textHeadings ?? []).some((line) => sameName(title, line))) {
       addParagraph(node, reading);
       return;
@@ -449,49 +520,71 @@ function visit(node: Node, reading: Reading, work: WikisourceWork): void {
   });
 }
 
+/** One of the Wikisource pages a work is read from, as rendered. */
+export interface WikisourcePage {
+  /** The page's title: The Civil War in France (1871)/Chapter 1. */
+  page: string;
+  html: string;
+}
+
 /**
- * Read a work transcribed on de.wikisource.org from its rendered page: each
- * centred heading opens a section, paragraphs and datelines as printed with
- * spaced or italic emphasis marked, each part cited by work and printed page.
+ * Read a work transcribed on Wikisource from its rendered page: each centred
+ * heading opens a section, paragraphs and datelines as printed with spaced
+ * or italic emphasis marked, each part cited by work and printed page.
  * Wikisource's text data and its own notes are left out.
  */
 export function parseWikisourcePage(
   html: string,
   work: WikisourceWork,
 ): BookUnit[] {
+  return parseWikisourcePages([{ page: work.page, html }], work);
+}
+
+/**
+ * Read a work set out over several Wikisource pages, as one reading in their
+ * order: each part cited from the page it is on.
+ */
+export function parseWikisourcePages(
+  pages: WikisourcePage[],
+  work: WikisourceWork,
+): BookUnit[] {
   const window = new Window();
   try {
     const document = window.document;
-    document.body.innerHTML = html;
-    const notes = printedNotes(document, work);
-    if (!work.printedNotes) {
-      document.querySelectorAll(REFERENCE).forEach((element) => {
-        element.remove();
-      });
-    }
-    document.querySelectorAll(APPARATUS).forEach((element) => {
-      element.remove();
-    });
+    const site = work.site ?? DEFAULT_SITE;
     const reading: Reading = {
-      site: work.site ?? DEFAULT_SITE,
-      page: { page: 0, label: "", anchor: "" },
+      site,
+      page: { page: 0, label: "", anchor: "", url: "" },
       sections: [],
       skipped: new Set(),
       within: work.from ? "before" : "in",
       chapter: null,
       numbered: null,
       titling: false,
-      notes,
+      notes: new Map(),
       marked: 0,
     };
-    visit(document.body, reading, work);
+    pages.forEach(({ page, html }) => {
+      document.body.innerHTML = html;
+      // Each page numbers its own notes.
+      reading.notes = printedNotes(document, work);
+      if (!work.printedNotes) {
+        document.querySelectorAll(REFERENCE).forEach((element) => {
+          element.remove();
+        });
+      }
+      document.querySelectorAll(APPARATUS).forEach((element) => {
+        element.remove();
+      });
+      reading.page = { ...reading.page, url: wikisourcePageUrl(page, site) };
+      visit(document.body, reading, work);
+    });
     const kept = reading.sections.filter(
       (section) => !reading.skipped.has(section),
     );
-    const page = wikisourcePageUrl(work.page, work.site);
     return unitsOfSections(kept, (start) => ({
       citation: `${work.citation}, ${start.label}`,
-      source: `${page}#${start.anchor}`,
+      source: `${start.url}#${start.anchor}`,
     }));
   } finally {
     // Closing only releases the window's timers; parsing is already done.

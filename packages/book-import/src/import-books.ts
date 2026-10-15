@@ -7,8 +7,9 @@ import { parseDtaTei } from "./adapters/dta-tei";
 import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
 import {
   DEFAULT_SITE,
-  parseWikisourcePage,
+  parseWikisourcePages,
   wikisourcePageUrl,
+  type WikisourcePage,
 } from "./adapters/wikisource";
 import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
@@ -255,9 +256,11 @@ const wikisourceBookSchema: z.ZodObject<
       edition: z.ZodString;
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       site: z.ZodDefault<z.ZodString>;
+      pages: z.ZodOptional<z.ZodArray<z.ZodString>>;
       from: z.ZodOptional<z.ZodString>;
       until: z.ZodOptional<z.ZodString>;
       textHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      omitHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       printedNotes: z.ZodDefault<z.ZodBoolean>;
       skipNotes: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
@@ -268,12 +271,16 @@ const wikisourceBookSchema: z.ZodObject<
   page: z.string().min(1),
   /** The Wikisource the work is on. */
   site: z.string().min(1).default(DEFAULT_SITE),
+  /** The pages the work is set out over, in order, where it is not on its own page. */
+  pages: z.array(z.string().min(1)).min(1).optional(),
   /** The heading the work opens with, where the page holds an edition's front matter before it. */
   from: z.string().min(1).optional(),
   /** The heading after the work, where the page goes on with others. */
   until: z.string().min(1).optional(),
   /** Centred lines that are the text's own, such as a motto, not headings. */
   textHeadings: z.array(z.string().min(1)).default([]),
+  /** Centred lines an editor set, neither heading nor text: left out. */
+  omitHeadings: z.array(z.string().min(1)).default([]),
   /** The page's references are the printed book's notes, not Wikisource's own. */
   printedNotes: z.boolean().default(false),
   /** Openings of printed notes left out: an editor's, not the author's. */
@@ -769,18 +776,25 @@ async function loadWikisourceBook(
   entry: z.output<typeof wikisourceBookSchema>,
   fetchText: FetchText,
 ): Promise<LoadedBook> {
-  const query = new URLSearchParams({
-    action: "parse",
-    page: entry.page,
-    prop: "text",
-    format: "json",
-    formatversion: "2",
-  });
-  const { parse } = parsedPageSchema.parse(
-    JSON.parse(
-      await fetchText(`https://${entry.site}/w/api.php?${query.toString()}`),
-    ),
-  );
+  // One page after another, as the source asks to be read.
+  const pages = await (entry.pages ?? [entry.page]).reduce<
+    Promise<WikisourcePage[]>
+  >(async (done, page) => {
+    const read = await done;
+    const query = new URLSearchParams({
+      action: "parse",
+      page,
+      prop: "text",
+      format: "json",
+      formatversion: "2",
+    });
+    const { parse } = parsedPageSchema.parse(
+      JSON.parse(
+        await fetchText(`https://${entry.site}/w/api.php?${query.toString()}`),
+      ),
+    );
+    return [...read, { page, html: parse.text }];
+  }, Promise.resolve([]));
   return {
     book: {
       slug: entry.slug,
@@ -795,7 +809,7 @@ async function loadWikisourceBook(
       published: entry.published,
       shortTitle: entry.shortTitle ?? null,
     },
-    units: parseWikisourcePage(parse.text, entry),
+    units: parseWikisourcePages(pages, entry),
   };
 }
 

@@ -72,6 +72,32 @@ describe("renderBook", () => {
     );
   });
 
+  it("lists a title again where a later section repeats it, as a note numbered like a chapter", () => {
+    const unit = (
+      title: string,
+      order: number,
+    ): BookSource["units"][number] => ({
+      parents: [],
+      title,
+      section: `EB-${order}`,
+      page: null,
+      source: `https://example.org/eb/${order}`,
+      paragraphs: [`Absatz ${order}.`],
+    });
+    const [title] = renderBook({
+      ...source,
+      units: [
+        unit("I.", 1),
+        unit("II.", 2),
+        unit("Anmerkungen. I.", 3),
+        unit("II.", 4),
+      ],
+    });
+
+    expect(title?.markdown).toContain("[II.](/books/erfundenes-buch/2)");
+    expect(title?.markdown).toContain("[II.](/books/erfundenes-buch/4)");
+  });
+
   it("measures the book by its sections", () => {
     const [title, ...sections] = renderBook(source);
     const bodyBytes = sections

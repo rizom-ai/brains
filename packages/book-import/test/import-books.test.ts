@@ -439,6 +439,56 @@ books:
       "source: 'https://fr.wikisource.org/wiki/Mis%C3%A8re_de_la_philosophie%2FTexte_entier'",
     );
   });
+  it("reads a work set out over several pages, in their order", async () => {
+    const requested: string[] = [];
+    const fixtures: Record<string, string> = {
+      "The Civil War in France (1871)/Chapter 1": "wikisource-civil-war-1.html",
+      "The Civil War in France (1871)/Notes": "wikisource-civil-war-notes.html",
+    };
+    const results = await importBooks(
+      parseManifest(`
+source: wikisource
+books:
+  - page: The Civil War in France (1871)
+    pages:
+      - The Civil War in France (1871)/Chapter 1
+      - The Civil War in France (1871)/Notes
+    site: en.wikisource.org
+    citation: Civil War
+    slug: the-civil-war-in-france
+    title: The Civil War in France
+    edition: "The Civil War in France (London, Edward Truelove, 1871), second edition, revised"
+    author: Karl Marx
+    year: 1871
+    kind: work
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        const page = new URL(url).searchParams.get("page") ?? "";
+        const html = await readFile(
+          join(import.meta.dir, "fixtures", fixtures[page] ?? ""),
+          "utf8",
+        );
+        return JSON.stringify({ parse: { text: html } });
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "the-civil-war-in-france.md"),
+      "utf8",
+    );
+
+    expect(
+      requested.map((url) => new URL(url).searchParams.get("page")),
+    ).toEqual([
+      "The Civil War in France (1871)/Chapter 1",
+      "The Civil War in France (1871)/Notes",
+    ]);
+    expect(results).toEqual([{ slug: "the-civil-war-in-france", entries: 3 }]);
+    expect(title).toContain(
+      "source: 'https://en.wikisource.org/wiki/The_Civil_War_in_France_(1871)'",
+    );
+  });
 });
 
 describe("importBooks from mlwerke.de", () => {

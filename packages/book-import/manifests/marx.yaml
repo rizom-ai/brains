@@ -11,9 +11,11 @@
 # transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
 # right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
 # apparatus is left out. A work Marx wrote in English or French is read in
-# his own words: Value, Price and Profit from the 1899 London edition, the
-# Misère de la philosophie and the Discours sur la question du libre-échange
-# from fr.wikisource's transcription of the 1896 Paris edition.
+# his own words: Value, Price and Profit from the 1899 London edition, The
+# Civil War in France and the addresses on the Franco-Prussian War from
+# en.wikisource, the Misère de la philosophie and the Discours sur la
+# question du libre-échange from fr.wikisource's transcription of the 1896
+# Paris edition.
 # Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
 # Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
 # of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
@@ -1618,75 +1620,65 @@ books:
     author: Karl Marx und Friedrich Engels
     year: 1850
     kind: work
-  - source: archive-ocr
-    # Engels's translation, printed from the Volksstaat in 1871, with the
-    # address's two appendices; his introduction of 1891 is not in it.
-    item: ldpd_13048930_000
-    citation: Bürgerkrieg
-    ocr: frak2021
-    # Yellowed paper, its lines askew.
-    binarise: true
-    curved: true
-    firstPage: 1
-    lastPage: 52
-    # The address opens without a numeral, its second section with II.
-    firstChapter: 2
-    opensWith: Am 4. September
-    # The numerals the scan lost above their sections' first lines.
-    headings:
-      - { page: 11, opens: Paris war das einzige, numeral: II }
-      - { page: 19, opens: Am Morgen des 18. März, numeral: III }
-      - { page: 35, opens: Der erste Versuch der Sklavenhalter, numeral: IV }
-    # Pages the OCR set askew, their paragraphs named.
-    paragraphs:
-      - { page: 4, opens: Jules Ferry, ein }
-      - { page: 4, opens: Ernest Picard, der }
-      - { page: 4, opens: Diese Männer. }
-      - { page: 6, opens: Wenige Tage vor }
-      - { page: 6, opens: Achtzehn Monate später }
-      - { page: 6, opens: "— „Ich gehöre zur" }
-      - { page: 6, opens: Die Februar-Revolution kam. }
-      - { page: 11, opens: Und nun haben wir }
-      - { page: 11, opens: 1) daß dies }
-      - { page: 11, opens: 2) daß keine }
-      - { page: 11, opens: In jedem Falle }
-      - { page: 11, opens: Paris war das einzige }
-      - { page: 15, opens: Die „Ordnungsmänner“ }
-      - { page: 15, opens: Die angebliche Schlächterei }
-      - { page: 19, opens: „Die Proletarier von Paris“ }
-      - { page: 19, opens: Am Morgen des 18. }
-      - { page: 22, opens: Deer gerade Gegensatz }
-      - { page: 22, opens: Die Kommune bildete }
-      - { page: 22, opens: Paris, der Mittelpunkt }
-      - { page: 23, opens: Das stehende Heer }
-      - { page: 23, opens: Die Pariser Kommune sollte }
-      - { page: 23, opens: Die richterlichen Beamten }
-      - { page: 24, opens: Es ist das gewöhnliche }
-      - { page: 26, opens: Es ist eine eigenthümliche }
-      - { page: 26, opens: Ohne diese letzte }
-      - { page: 27, opens: Als die Pariser Kommune }
-      - { page: 27, opens: Die Arbeiterklasse verlangte }
-      - { page: 33, opens: Und nun, gegenüber }
-      - { page: 39, opens: In der Zwischenzeit vom }
-      - { page: 39, opens: Als dies fürtreffliche }
-      - { page: 39, opens: Einige Tage nachher }
-      - { page: 41, opens: Und nach diesen }
-      - { page: 41, opens: „Während, schreibt }
-      - { page: 42, opens: Was beweist das? }
-      - { page: 42, opens: Wenn Regierungen }
-      - { page: 42, opens: Das Paris der Arbeiter }
-      - { page: 52, opens: Ich bin, mein Herr }
-      - { page: 52, opens: "John Hales," }
-      - { page: 52, opens: Sekretär des Generalraths }
-      - { page: 52, opens: "256, High Holborn" }
-      - { page: 52, opens: In einem Artikel }
-    # MEW 17, Dietz 1962, as mlwerke.de published it: the edition of 1891.
-    references:
-      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me17/me17_319.htm
-    slug: der-buergerkrieg-in-frankreich
-    title: Der Bürgerkrieg in Frankreich. Adresse des Generalraths der Internationalen Arbeiter-Assoziation an alle Mitglieder in Europa und den Vereinigten Staaten
-    shortTitle: Der Bürgerkrieg in Frankreich
-    edition: Der Bürgerkrieg in Frankreich. Adresse des Generalraths der Internationalen Arbeiter-Assoziation, deutsch von F. Engels, Separatabdruck aus dem Volksstaat (Leipzig, Verlag der Expedition des Volksstaat, 1871)
+  # The two addresses on the war Marx wrote in English, in the only edition
+  # transcribed: the American of 1902, without its editor's captions and notes.
+  - source: wikisource
+    page: The Paris Commune/First Manifesto
+    site: en.wikisource.org
+    citation: First Address
+    # The American edition's captions, not the address's.
+    omitHeadings:
+      - The International Workingmen's Association on the Franco-Prussian War
+      - The Declaration of War
+      - First manifesto of the General Council
+      - Issued on July 23, 1870, and addressed to the Members of the Association in Europe and the United States
+    slug: first-address-on-the-franco-prussian-war
+    title: The General Council of the International Working Men's Association on the War
+    shortTitle: First Address on the Franco-Prussian War
+    edition: The Paris Commune, edited by Lucien Sanial (New York, New York Labor News Company, 1902), in its American spelling; first issued by the General Council in London, July 23, 1870
+    author: Karl Marx
+    year: 1870
+    kind: work
+  - source: wikisource
+    page: The Paris Commune/Second Manifesto
+    site: en.wikisource.org
+    citation: Second Address
+    # The American edition's captions, not the address's.
+    omitHeadings:
+      - The International Workingmen's Association on the Franco-Prussian War
+      - After Sedan
+      - Second manifesto of the General Council
+      - Issued on September 9, 1870, and addressed to the Members of the Association in Europe and the United States
+    textHeadings: [Vive la République!]
+    slug: second-address-on-the-franco-prussian-war
+    title: Second Address of the General Council of the International Working Men's Association on the War
+    shortTitle: Second Address on the Franco-Prussian War
+    edition: The Paris Commune, edited by Lucien Sanial (New York, New York Labor News Company, 1902), in its American spelling; first issued by the General Council in London, September 9, 1870
+    author: Karl Marx
+    year: 1870
+    kind: work
+  # Marx wrote the address in English; the second edition is his revision.
+  - source: wikisource
+    page: The Civil War in France (1871)
+    pages:
+      - The Civil War in France (1871)/Chapter 1
+      - The Civil War in France (1871)/Chapter 2
+      - The Civil War in France (1871)/Chapter 3
+      - The Civil War in France (1871)/Chapter 4
+      - The Civil War in France (1871)/Notes
+    site: en.wikisource.org
+    citation: Civil War
+    # The address, its signatures and a letter in the notes, set centred.
+    textHeadings:
+      - To all the members of the Association in Europe and the United States.
+      - The General Council.
+      - Corresponding Secretaries.
+      - "\"To the editor of the 'Times.'"
+      - I am, Sir, your obedient servant, John Hales, Secretary to the General Council of the International Working Men's Association.
+    slug: the-civil-war-in-france
+    title: The Civil War in France. Address of the General Council of the International Working-Men's Association
+    shortTitle: The Civil War in France
+    edition: The Civil War in France. Address of the General Council of the International Working-Men's Association, second edition, revised (London, Edward Truelove, 1871)
     author: Karl Marx
     year: 1871
     kind: work
