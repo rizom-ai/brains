@@ -1454,7 +1454,7 @@
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/utils": "workspace:*",
-        "js-yaml": "^4.2.0",
+        "js-yaml": "^4.3.2",
         "remark": "^15.0.1"
       },
       "devDependencies": {
@@ -1801,7 +1801,7 @@
         "@effect/platform-bun": "4.0.1",
         "effect": "4.0.1",
         "gray-matter": "^4.0.3",
-        "js-yaml": "^4.2.0",
+        "js-yaml": "^4.3.2",
         "mdast-util-to-string": "^4.0.0",
         "nanoid": "^5.0.4",
         "p-limit": "^7.3.0",
@@ -11162,7 +11162,7 @@
       "sha512-5v6yZd4JK3eMI3FqqCouswVqwugaA9r4dNZB1wwcmrD02QkV5H0y7XBQW8QwQqEaZY1pM9aqORSORhJRdNK44Q=="
     ],
     "gray-matter/js-yaml": [
-      "js-yaml@3.15.0",
+      "js-yaml@3.15.2",
       "",
       {
         "dependencies": {
@@ -11173,7 +11173,7 @@
           "js-yaml": "bin/js-yaml.js"
         }
       },
-      "sha512-ttBQIIQPDeLjpPOohtUdXuXUVoA2uIB6fEH9HyJ7234s5mBJ5wTx20njxplLZQgLaOfpmPQA7X2t5AX6tIPbog=="
+      "sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w=="
     ],
     "gray-matter/js-yaml/argparse": [
       "argparse@1.0.10",
@@ -11939,7 +11939,7 @@
       "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="
     ],
     "js-yaml": [
-      "js-yaml@4.3.0",
+      "js-yaml@4.3.2",
       "",
       {
         "dependencies": {
@@ -11949,7 +11949,7 @@
           "js-yaml": "bin/js-yaml.js"
         }
       },
-      "sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q=="
+      "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA=="
     ],
     "jsesc": [
       "jsesc@3.1.0",
@@ -14251,7 +14251,7 @@
       "sha512-VIMnQi/Z4HT2Fxuwg5KrY174U1VdUIASQVWXXyqtNRtxSr9IYkn1rsI6Tb6HsrHCmB7gVpNwX6JxPTHcH6IoTA=="
     ],
     "read-yaml-file/js-yaml": [
-      "js-yaml@3.15.0",
+      "js-yaml@3.15.2",
       "",
       {
         "dependencies": {
@@ -14262,7 +14262,7 @@
           "js-yaml": "bin/js-yaml.js"
         }
       },
-      "sha512-ttBQIIQPDeLjpPOohtUdXuXUVoA2uIB6fEH9HyJ7234s5mBJ5wTx20njxplLZQgLaOfpmPQA7X2t5AX6tIPbog=="
+      "sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w=="
     ],
     "read-yaml-file/js-yaml/argparse": [
       "argparse@1.0.10",
