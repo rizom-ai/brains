@@ -305,6 +305,43 @@ books:
     year: 1863
     kind: work
   - source: mlwerke
+    # MEW 16–18 as mlwerke.de published them, from the Internet Archive's
+    # last captures with content: Marx's German letters to editors,
+    # statements, the General Council's German statements he wrote, and his
+    # replies to Brentano, two with Engels.
+    articles: true
+    pages:
+      - https://web.archive.org/web/20240520145638id_/http://www.mlwerke.de/me/me16/me16_021.htm
+      - https://web.archive.org/web/20240520154124id_/http://www.mlwerke.de/me/me16/me16_022.htm
+      - https://web.archive.org/web/20200218113715id_/http://www.mlwerke.de:80/me/me16/me16_079.htm
+      - https://web.archive.org/web/20200218113640id_/http://www.mlwerke.de:80/me/me16/me16_084.htm
+      - https://web.archive.org/web/20200218152250id_/http://www.mlwerke.de:80/me/me16/me16_086.htm
+      - https://web.archive.org/web/20200218113916id_/http://www.mlwerke.de:80/me/me16/me16_090.htm
+      - https://web.archive.org/web/20250222022654id_/http://www.mlwerke.de/me/me16/me16_091.htm
+      - https://web.archive.org/web/20200218151801id_/http://www.mlwerke.de:80/me/me16/me16_164.htm
+      - https://web.archive.org/web/20221128010245id_/http://mlwerke.de/me/me16/me16_205.htm
+      - https://web.archive.org/web/20241212162204id_/http://www.mlwerke.de/me/me16/me16_221.htm
+      - https://web.archive.org/web/20200218113325id_/http://www.mlwerke.de:80/me/me16/me16_316.htm
+      - https://web.archive.org/web/20200218114006id_/http://www.mlwerke.de:80/me/me16/me16_331.htm
+      - https://web.archive.org/web/20220129112434id_/http://www.mlwerke.de/me/me16/me16_421.htm
+      - https://web.archive.org/web/20240812170809id_/http://www.mlwerke.de/me/me17/me17_298.htm
+      - https://web.archive.org/web/20240812175824id_/http://www.mlwerke.de/me/me17/me17_435.htm
+      - https://web.archive.org/web/20240812165856id_/http://www.mlwerke.de/me/me17/me17_466.htm
+      - https://web.archive.org/web/20221005150028id_/http://www.mlwerke.de/me/me18/me18_089.htm
+      - https://web.archive.org/web/20220129020724id_/http://www.mlwerke.de/me/me18/me18_082.htm
+      - https://web.archive.org/web/20220129020517id_/http://www.mlwerke.de/me/me18/me18_105.htm
+      - https://web.archive.org/web/20241009125507id_/http://mlwerke.de/me/me18/me18_108.htm
+      - https://web.archive.org/web/20241219161647id_/http://www.mlwerke.de/me/me18/me18_129.htm
+      - https://web.archive.org/web/20220129013112id_/http://www.mlwerke.de/me/me18/me18_180.htm
+      - https://web.archive.org/web/20240909223533id_/http://www.mlwerke.de/me/me18/me18_572.htm
+    citation: Artikel 1864–1875
+    slug: artikel-und-erklaerungen-1864-1875
+    title: Artikel und Erklärungen 1864–1875
+    edition: "Marx-Engels-Werke, Bände 16–18 (Berlin, Dietz, 1962–1964)"
+    author: Karl Marx
+    year: 1864
+    kind: work
+  - source: mlwerke
     # MEW 16 (1962, 6th printing 1975) as mlwerke.de published it, from the
     # Internet Archive's last capture: the German text of Der Social-Demokrat
     # of December 1864, the editors' variants from the English left out.
@@ -1482,6 +1519,41 @@ books:
     title: Artikel in der „Neuen Oder-Zeitung“ 1855
     shortTitle: Artikel in der „Neuen Oder-Zeitung“
     edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, Zweiter Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    author: Karl Marx
+    year: 1855
+    kind: work
+  - source: mlwerke
+    # MEW 11 (1961) as mlwerke.de published it, from the Internet Archive's
+    # last captures with content: Marx's German articles for the Neue
+    # Oder-Zeitung that Rjasanoff's second volume does not print, three of
+    # them with Engels.
+    articles: true
+    pages:
+      - https://web.archive.org/web/20241009123817id_/http://mlwerke.de/me/me11/me11_158.htm
+      - https://web.archive.org/web/20241009140142id_/http://mlwerke.de/me/me11/me11_210.htm
+      - https://web.archive.org/web/20241009132424id_/http://mlwerke.de/me/me11/me11_303.htm
+      - https://web.archive.org/web/20241009135517id_/http://mlwerke.de/me/me11/me11_328.htm
+      - https://web.archive.org/web/20241009124500id_/http://mlwerke.de/me/me11/me11_338.htm
+      - https://web.archive.org/web/20241009122205id_/http://mlwerke.de/me/me11/me11_345.htm
+      - https://web.archive.org/web/20241009125020id_/http://mlwerke.de/me/me11/me11_362.htm
+      - https://web.archive.org/web/20241009121657id_/http://mlwerke.de/me/me11/me11_365.htm
+      - https://web.archive.org/web/20241009122123id_/http://mlwerke.de/me/me11/me11_373.htm
+      - https://web.archive.org/web/20241009140523id_/http://mlwerke.de/me/me11/me11_402.htm
+      - https://web.archive.org/web/20241009132217id_/http://mlwerke.de/me/me11/me11_481.htm
+      - https://web.archive.org/web/20241009135942id_/http://mlwerke.de/me/me11/me11_482.htm
+      - https://web.archive.org/web/20241009140102id_/http://mlwerke.de/me/me11/me11_490.htm
+      - https://web.archive.org/web/20241009135044id_/http://mlwerke.de/me/me11/me11_498.htm
+      - https://web.archive.org/web/20241009123742id_/http://mlwerke.de/me/me11/me11_501.htm
+      - https://web.archive.org/web/20241009122949id_/http://mlwerke.de/me/me11/me11_529.htm
+      - https://web.archive.org/web/20241009132018id_/http://mlwerke.de/me/me11/me11_539.htm
+      - https://web.archive.org/web/20241009140256id_/http://mlwerke.de/me/me11/me11_544.htm
+      - https://web.archive.org/web/20241009122744id_/http://mlwerke.de/me/me11/me11_557.htm
+      - https://web.archive.org/web/20241009131818id_/http://mlwerke.de/me/me11/me11_559.htm
+    citation: NOZ
+    slug: weitere-artikel-in-der-neuen-oder-zeitung
+    title: Weitere Artikel in der „Neuen Oder-Zeitung“ 1855
+    shortTitle: Weitere Artikel in der „Neuen Oder-Zeitung“
+    edition: "Marx-Engels-Werke, Band 11 (Berlin, Dietz, 1961)"
     author: Karl Marx
     year: 1855
     kind: work
