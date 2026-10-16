@@ -34,6 +34,7 @@ import {
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import { PendingDeleteRegistry } from "./pending-delete-registry";
 import { captureImportPlan } from "./import-plan";
+import { withoutStoredEchoes } from "./stored-echoes";
 import type { DirectoryImportPlan } from "../types/jobs";
 import { isDocumentSidecarFile } from "./document-file-utils";
 import {
@@ -359,6 +360,17 @@ export class DirectorySync implements IDirectorySync {
 
   ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void {
     this.fileWatcher?.ignorePulledPaths(paths, matchesHead);
+  }
+
+  withoutStoredEchoes(paths: string[]): Promise<string[]> {
+    return withoutStoredEchoes(
+      {
+        syncPath: this.syncPath,
+        entityService: this.entityService,
+        fileOperations: this.fileOperations,
+      },
+      paths,
+    );
   }
 
   async recordPendingPullDeletes(paths: string[]): Promise<void> {
