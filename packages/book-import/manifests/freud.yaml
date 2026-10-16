@@ -1103,6 +1103,43 @@ books:
     author: Sigmund Freud
     year: 1893
     kind: work
+  - item: wmp-1893-mechanismus
+    citation: WMP 1893
+    ocr: deu
+    # The Presse's columns, each read as a page: it numbers its columns.
+    # The lecture is read from below its title and byline, the second
+    # part, in the next issue, from below its repeated title; the Presse's
+    # note on where it was given is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/1893_WMP_34_4_5
+      firstPage: 121
+      pages:
+        - https://archive.org/download/1893_WMP_34_4_5/page/n0_w1600.jpg#region=0.066,0.552,0.422,0.352
+        - https://archive.org/download/1893_WMP_34_4_5/page/n0_w1600.jpg#region=0.496,0.468,0.421,0.477
+        - https://archive.org/download/1893_WMP_34_4_5/page/n1_w1600.jpg#region=0.067,0.104,0.422,0.846
+        - https://archive.org/download/1893_WMP_34_4_5/page/n1_w1600.jpg#region=0.497,0.104,0.424,0.846
+        - https://archive.org/download/1893_WMP_34_4_5/page/n2_w1600.jpg#region=0.071,0.091,0.422,0.859
+        - https://archive.org/download/1893_WMP_34_4_5/page/n2_w1600.jpg#region=0.501,0.091,0.422,0.149
+        - url: https://archive.org/download/1893_WMP_34_4_5/page/n18_w1600.jpg#region=0.072,0.234,0.422,0.716
+          page: 165
+        - https://archive.org/download/1893_WMP_34_4_5/page/n18_w1600.jpg#region=0.502,0.093,0.422,0.857
+        - https://archive.org/download/1893_WMP_34_4_5/page/n19_w1600.jpg#region=0.075,0.099,0.423,0.771
+    firstPage: 121
+    lastPage: 167
+    # A column whose lines the scan sets unevenly: the lines that open its
+    # paragraphs.
+    paragraphs:
+      - { page: 165, opens: Mit diesen }
+      - { page: 165, opens: Die weitere }
+      - { page: 165, opens: Ich habe soeben }
+    slug: ueber-den-psychischen-mechanismus-hysterischer-phaenomene
+    title: Ueber den psychischen Mechanismus hysterischer Phänomene
+    shortTitle: Psychischer Mechanismus hysterischer Phänomene (Vortrag)
+    edition: Wiener Medizinische Presse, XXXIV. Jahrgang, Nr. 4 und 5 (Wien, 22. und 29. Januar 1893), Sp. 121–126 und 165–167
+    author: Sigmund Freud
+    year: 1893
+    kind: work
   - item: cn-1895-14-11
     citation: Bernhardt’sche Sensibilitätsstörung
     ocr: deu
