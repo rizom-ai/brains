@@ -73,6 +73,614 @@ gaps:
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
     reason: published in 1987 with an editorial apparatus still in copyright
 books:
+  - item: Sitz_MN_1_1877_75
+    citation: Lappenorgane
+    ocr: deu
+    firstPage: 419
+    lastPage: 431
+    # Its note, which the OCR sets as text.
+    notes:
+      - { page: 429, opens: ¹ Diese }
+    # The legend to the plate, an entry to each line.
+    paragraphs:
+      - { page: 431, opens: Erklärung der Abbildungen. }
+      - { page: 431, opens: Fig. 1. }
+      - { page: 431, opens: A Lappenloses }
+      - { page: 431, opens: B Organ }
+      - { page: 431, opens: C Entwickeltes }
+      - { page: 431, opens: Fig. 2. }
+      - { page: 431, opens: p. E. }
+      - { page: 431, opens: sp. E. }
+      - { page: 431, opens: Fig. 3. }
+      - { page: 431, opens: a drei }
+      - { page: 431, opens: b zwei }
+      - { page: 431, opens: c Kerne }
+      - { page: 431, opens: d zwei }
+      - { page: 431, opens: e Bindegewebszelle }
+      - { page: 431, opens: f Bindegewebszelle }
+      - { page: 431, opens: g Bindegewebskörper }
+      - { page: 431, opens: h Ungewöhnliche }
+      - { page: 431, opens: Fig. 4. }
+      - { page: 431, opens: Fig. 5. }
+      - { page: 431, opens: sp. Spindelzellen. }
+      - { page: 431, opens: b. Bindegewebskörper. }
+      - { page: 431, opens: z. Zellen }
+      - { page: 431, opens: hz. Zellen }
+    slug: beobachtungen-ueber-gestaltung-und-feineren-bau-der-als-hoden-beschriebenen-lappenorgane-des-aals
+    title: Beobachtungen über Gestaltung und feineren Bau der als Hoden beschriebenen Lappenorgane des Aals
+    shortTitle: Die Lappenorgane des Aals
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXV, I. Abtheilung (Wien 1877), S. 419–431
+    author: Sigmund Freud
+    year: 1877
+    kind: work
+  - item: Sitz_MN_3_1877_75
+    citation: Ammocoetes
+    ocr: deu
+    firstPage: 15
+    lastPage: 27
+    # The legend to the plate, an entry to each line.
+    paragraphs:
+      - { page: 27, opens: Erklärung der Abbildungen. }
+      - { page: 27, opens: Fig. 1. }
+      - { page: 27, opens: c. Centralkanal, }
+      - { page: 27, opens: h. Hinterzelle, }
+      - { page: 27, opens: hzf. }
+      - { page: 27, opens: M. f. Müller’sche Faser, }
+      - { page: 27, opens: r. Vorderhorn. }
+      - { page: 27, opens: Fig. 2. }
+      - { page: 27, opens: Ch. Chorda }
+      - { page: 27, opens: Chs. }
+      - { page: 27, opens: d. Dura }
+      - { page: 27, opens: p. Pia }
+      - { page: 27, opens: ar. Zellen }
+      - { page: 27, opens: m. Muskelsegmente. }
+      - { page: 27, opens: n. l. }
+      - { page: 27, opens: M. f. Müller’sche Faser. }
+      - { page: 27, opens: c. Centralkanal. }
+      - { page: 27, opens: h. Hinterzelle. }
+      - { page: 27, opens: h. f. }
+      - { page: 27, opens: Daneben }
+      - { page: 27, opens: f. die }
+      - { page: 27, opens: h. w. }
+      - { page: 27, opens: s. G. }
+    slug: ueber-den-ursprung-der-hinteren-nervenwurzeln-im-rueckenmark-von-ammocoetes
+    title: Über den Ursprung der hinteren Nervenwurzeln im Rückenmark von Ammocoetes (Petromyzon Planeri)
+    shortTitle: Hintere Nervenwurzeln von Ammocoetes
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXV, III. Abtheilung (Wien 1877), S. 15–27
+    author: Sigmund Freud
+    year: 1877
+    kind: work
+  - item: Sitz_MN_3_1878_78
+    citation: Petromyzon
+    ocr: deu
+    firstPage: 81
+    lastPage: 167
+    # The legend to the plates, an entry to each line.
+    paragraphs:
+      - { page: 163, opens: "Ich sah einigemale," }
+      - { page: 163, opens: "Die feinen Fasern" }
+      - { page: 163, opens: "Erklärung der Abbildungen." }
+      - { page: 163, opens: "Tafel I." }
+      - { page: 163, opens: "Fig. 1. Spinalganglion" }
+      - { page: 163, opens: "Spinalganglion mit 15" }
+      - { page: 163, opens: "Der centrale Fortsatz" }
+      - { page: 163, opens: "Ein Zellkern ist" }
+      - { page: 163, opens: "Im ventralen Ast" }
+      - { page: 163, opens: "HW = hintere" }
+      - { page: 163, opens: "v A =" }
+      - { page: 163, opens: "kz = Kleinzelle." }
+      - { page: 163, opens: "d A =" }
+      - { page: 163, opens: "gz = Grosszelle." }
+      - { page: 163, opens: "zf = Zellenfasern." }
+      - { page: 163, opens: "ang, ang' =" }
+      - { page: 163, opens: "s A =" }
+      - { page: 163, opens: "dz = breite" }
+      - { page: 163, opens: "dz' = mittelstarke" }
+      - { page: 163, opens: "wf = um" }
+      - { page: 163, opens: "RZ = Ranvier’sche" }
+      - { page: 163, opens: "Fig. 2. Spinalganglion" }
+      - { page: 164, opens: "Die Doppelzelle zeigte," }
+      - { page: 164, opens: "gf = Gefäss." }
+      - { page: 164, opens: "s a =" }
+      - { page: 164, opens: "dz' = durchziehende" }
+      - { page: 164, opens: "hw = hintere" }
+      - { page: 164, opens: "ang = angelehnte" }
+      - { page: 164, opens: "Fig. 3. Spinalganglion," }
+      - { page: 164, opens: "hw = hintere" }
+      - { page: 164, opens: "gza = Grosszellenast." }
+      - { page: 164, opens: "dz′ = durchziehende" }
+      - { page: 164, opens: "kza = Kleinzellenast." }
+      - { page: 164, opens: "Rz, Rz′ =" }
+      - { page: 164, opens: "az = scheinbar" }
+      - { page: 164, opens: "ang = angelehnte" }
+      - { page: 164, opens: "Fig. 4A. Ranvier’sche" }
+      - { page: 164, opens: "Fig. 4. B—F." }
+      - { page: 164, opens: "B bipolare Zelle" }
+      - { page: 164, opens: "C tripolare Zelle" }
+      - { page: 164, opens: "D Ranvier’sche Zelle;" }
+      - { page: 164, opens: "E Zwei anscheinend" }
+      - { page: 164, opens: "F Ranvier" }
+      - { page: 164, opens: "Tafel II." }
+      - { page: 164, opens: "Fig. 1. Spinalganglion," }
+      - { page: 164, opens: "Gez. bei Hartnack" }
+      - { page: 164, opens: "h W =" }
+      - { page: 164, opens: "dz = breite" }
+      - { page: 164, opens: "dz′ = durchziehende" }
+      - { page: 164, opens: "zf = Zellenfaser." }
+      - { page: 165, opens: "Th = Theilungen" }
+      - { page: 165, opens: "Th′ = Theilung" }
+      - { page: 165, opens: "ang = angelehnte" }
+      - { page: 165, opens: "Fig. 2. Rückenmark" }
+      - { page: 165, opens: "Vordere oberflächliche Faserkreuzung." }
+      - { page: 165, opens: "C = Centralcanal." }
+      - { page: 165, opens: "Mf = die" }
+      - { page: 165, opens: "Vhz = Vorderhornzellen." }
+      - { page: 165, opens: "Cmf = Vordere" }
+      - { page: 165, opens: "Th = Theilungen" }
+      - { page: 165, opens: "Fig. 3. Eine" }
+      - { page: 165, opens: "h W =" }
+      - { page: 165, opens: "zf = Zellenfaser." }
+      - { page: 165, opens: "ohz = oberflächliche" }
+      - { page: 165, opens: "auf. f =" }
+      - { page: 165, opens: "Fig. 4. Vordere" }
+      - { page: 165, opens: "v W =" }
+      - { page: 165, opens: "d = dorsaler" }
+      - { page: 165, opens: "v = ventraler" }
+      - { page: 165, opens: "kz = kleine," }
+      - { page: 165, opens: "Tafel III." }
+      - { page: 165, opens: "Fig. 1. Flächenschnitt" }
+      - { page: 165, opens: "hw¹ — hw⁵" }
+      - { page: 165, opens: "ohz = oberflächliche" }
+      - { page: 165, opens: "auf. f =" }
+      - { page: 165, opens: "qhz = in" }
+      - { page: 165, opens: "FZ = Faserzusammensetzungen" }
+      - { page: 165, opens: "Fig. 2. Flächenschnitt" }
+      - { page: 165, opens: "Zellen in den" }
+      - { page: 165, opens: "sk G =" }
+      - { page: 165, opens: "D = Dura" }
+      - { page: 165, opens: "Ar = Arachnoidealraum." }
+      - { page: 165, opens: "Spg = Spinalganglion." }
+      - { page: 165, opens: "G = Gefässdurchschnitt." }
+      - { page: 166, opens: "M = Muskel." }
+      - { page: 166, opens: "h W =" }
+      - { page: 166, opens: "U = Umbiegung" }
+      - { page: 166, opens: "v W =" }
+      - { page: 166, opens: "Gf = Gefäss." }
+      - { page: 166, opens: "qhz = querliegende," }
+      - { page: 166, opens: "Fig. 3. Hintere" }
+      - { page: 166, opens: "h W =" }
+      - { page: 166, opens: "auf. f =" }
+      - { page: 166, opens: "ohz = oberflächliche" }
+      - { page: 166, opens: "Fig. 4. Isolirte" }
+      - { page: 166, opens: "ohz = oberflächliche" }
+      - { page: 166, opens: "zf = Wurzelfortsatz" }
+      - { page: 166, opens: "hw = Umbiegung" }
+      - { page: 166, opens: "c = centraler" }
+      - { page: 166, opens: "Tafel IV." }
+      - { page: 166, opens: "Fig. 1. Ventraler" }
+      - { page: 166, opens: "spz = äusserste" }
+      - { page: 166, opens: "v A =" }
+      - { page: 166, opens: "sz = sympathische" }
+      - { page: 166, opens: "ez = in" }
+      - { page: 166, opens: "a A =" }
+      - { page: 166, opens: "gbf = gefässbegleitende" }
+      - { page: 166, opens: "z = Zweig" }
+      - { page: 166, opens: "ff = feine" }
+      - { page: 166, opens: "Fig. 2. Spinalganglion," }
+      - { page: 166, opens: "Sp G =" }
+      - { page: 166, opens: "d = dorsaler," }
+      - { page: 166, opens: "v = ventraler" }
+      - { page: 166, opens: "s = sympathischer" }
+      - { page: 166, opens: "ang = angelehnte" }
+      - { page: 166, opens: "dz′ = durchziehende" }
+      - { page: 166, opens: "Th = Theilung" }
+      - { page: 166, opens: "a A =" }
+      - { page: 167, opens: "sz = sympathische" }
+      - { page: 167, opens: "sdz = sympathische" }
+      - { page: 167, opens: "G A =" }
+      - { page: 167, opens: "ff = feine" }
+      - { page: 167, opens: "Gf = Gefäss." }
+      - { page: 167, opens: "gbf = gefässbegleitende" }
+      - { page: 167, opens: "zs = Spinalganglienzelle," }
+      - { page: 167, opens: "Fig. 3. Feines" }
+      - { page: 167, opens: "PM = Pia" }
+      - { page: 167, opens: "Rmk = Rückenmark." }
+      - { page: 167, opens: "Wz = Wurzel." }
+      - { page: 167, opens: "G = Gefäss" }
+      - { page: 167, opens: "nf = Nervenfasern," }
+      - { page: 167, opens: "A = ein" }
+    # A section heading the OCR measures as the text.
+    headings:
+      - { page: 106, opens: III. Über das Wesentliche }
+    # The notes, by their marks: the OCR sets some as text.
+    notes:
+      - { page: 83, opens: "¹ Polaillon," }
+      - { page: 83, opens: "² Bidder," }
+      - { page: 84, opens: "¹ R." }
+      - { page: 84, opens: "² ibid." }
+      - { page: 84, opens: "³ ibid." }
+      - { page: 84, opens: "⁴ ibid." }
+      - { page: 85, opens: "¹ Kölliker," }
+      - { page: 85, opens: "² ibid." }
+      - { page: 86, opens: "¹ Schwalbe," }
+      - { page: 86, opens: "² ibid." }
+      - { page: 87, opens: "¹ Arndt," }
+      - { page: 87, opens: "² Holl," }
+      - { page: 87, opens: "³ ibid." }
+      - { page: 88, opens: "¹ Schramm," }
+      - { page: 88, opens: "2 l." }
+      - { page: 88, opens: "3 l." }
+      - { page: 88, opens: "⁴ Bericht" }
+      - { page: 88, opens: "⁵ Sigm." }
+      - { page: 89, opens: "¹ On" }
+      - { page: 89, opens: "2 l." }
+      - { page: 90, opens: "1 l." }
+      - { page: 90, opens: "2 l." }
+      - { page: 90, opens: "3 l." }
+      - { page: 90, opens: "⁴ Leydig," }
+      - { page: 90, opens: "⁵ Stannius," }
+      - { page: 91, opens: "1 l." }
+      - { page: 91, opens: "2 l." }
+      - { page: 92, opens: "¹ Axmann," }
+      - { page: 92, opens: "2 l." }
+      - { page: 92, opens: "3 l." }
+      - { page: 92, opens: "4 l." }
+      - { page: 92, opens: "5 l." }
+      - { page: 92, opens: "⁶ Courvoisier," }
+      - { page: 93, opens: "1 l." }
+      - { page: 93, opens: "² Fräntzel," }
+      - { page: 93, opens: "³ Thanhoffer," }
+      - { page: 93, opens: "⁴ Ranvier," }
+      - { page: 94, opens: "¹ Axel" }
+      - { page: 94, opens: "² Tafel" }
+      - { page: 94, opens: "³ ibid." }
+      - { page: 94, opens: "⁴ ibid." }
+      - { page: 94, opens: "⁵ Stannius," }
+      - { page: 95, opens: "¹ ibid." }
+      - { page: 95, opens: "² R." }
+      - { page: 95, opens: "³ Remak," }
+      - { page: 95, opens: "⁴ Leydig," }
+      - { page: 96, opens: "1 l." }
+      - { page: 96, opens: "² Küttner," }
+      - { page: 97, opens: "¹ Stannius," }
+      - { page: 97, opens: "² In" }
+      - { page: 97, opens: "³ Langerhans," }
+      - { page: 98, opens: "1 l." }
+      - { page: 98, opens: "2 l." }
+      - { page: 99, opens: "¹ Joh." }
+      - { page: 99, opens: "² Vergl." }
+      - { page: 101, opens: "¹ Joh." }
+      - { page: 102, opens: "¹ Königstein," }
+      - { page: 103, opens: "¹ J." }
+      - { page: 104, opens: "¹ Langerhans," }
+      - { page: 104, opens: "² Stannius," }
+      - { page: 104, opens: "³ Vergl." }
+      - { page: 105, opens: "¹ Meine" }
+      - { page: 105, opens: "2 l." }
+      - { page: 111, opens: "¹ Vergl." }
+      - { page: 113, opens: "1 l." }
+      - { page: 117, opens: "¹ Henle," }
+      - { page: 119, opens: "¹ Joh." }
+      - { page: 127, opens: "¹ Stannius" }
+      - { page: 127, opens: "² Stannius," }
+      - { page: 127, opens: "³ Sigm." }
+      - { page: 129, opens: "¹ Neurologische" }
+      - { page: 131, opens: "¹ Langerhans," }
+      - { page: 131, opens: "² Beale," }
+      - { page: 133, opens: "¹ Max" }
+      - { page: 134, opens: "¹ Kutschin," }
+      - { page: 134, opens: "² Vergl." }
+      - { page: 134, opens: "³ Über" }
+      - { page: 135, opens: "1 l." }
+      - { page: 135, opens: "² Stilling," }
+      - { page: 139, opens: "¹ Hensen," }
+      - { page: 139, opens: "² Schenk," }
+      - { page: 139, opens: "3 l." }
+      - { page: 139, opens: "⁴ Balfour," }
+      - { page: 142, opens: "¹ Stannius," }
+      - { page: 147, opens: "¹ Königstein," }
+      - { page: 154, opens: "¹ Stannius," }
+      - { page: 154, opens: "² ibid." }
+      - { page: 154, opens: "³ ibid." }
+      - { page: 154, opens: "⁴ Volkmann," }
+      - { page: 154, opens: "⁵ Vergl." }
+      - { page: 154, opens: "⁶ Langerhans," }
+      - { page: 155, opens: "¹ Mémoires" }
+      - { page: 155, opens: "2 l." }
+      - { page: 156, opens: "¹ Stannius" }
+      - { page: 157, opens: "¹ Neue" }
+      - { page: 158, opens: "¹ Reissner," }
+      - { page: 158, opens: "² Referate" }
+      - { page: 160, opens: "1 l." }
+    slug: ueber-spinalganglien-und-rueckenmark-des-petromyzon
+    title: Über Spinalganglien und Rückenmark des Petromyzon
+    shortTitle: Spinalganglien und Rückenmark des Petromyzon
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXVIII, III. Abtheilung (Wien 1878), S. 81–167
+    author: Sigmund Freud
+    year: 1878
+    kind: work
+  - item: sb-1882-85-1-2
+    citation: Flusskrebs
+    ocr: deu
+    firstPage: 9
+    lastPage: 46
+    # The plate legend, set with hanging figure numbers.
+    paragraphs:
+      - { page: 46, opens: Erklärung der Tafel. }
+      - { page: 46, opens: Fig. 1. }
+      - { page: 46, opens: Fig. 2. }
+      - { page: 46, opens: Fig. 3. }
+      - { page: 46, opens: s Die dicke }
+      - { page: 46, opens: ks Die Kerne }
+      - { page: 46, opens: hm Stark }
+      - { page: 46, opens: f Eine }
+      - { page: 46, opens: Dieselbe Vergrösserung. }
+      - { page: 46, opens: Fig. 4. }
+      - { page: 46, opens: Fig. 5. }
+    # The notes, which the OCR sets as text, by their marks.
+    notes:
+      - { page: 11, opens: ¹ Helmholtz }
+      - { page: 11, opens: ² Remak }
+      - { page: 12, opens: ¹ Remak }
+      - { page: 12, opens: ² Haeckel }
+      - { page: 12, opens: ³ Haeckel }
+      - { page: 13, opens: ¹ Waldeyer }
+      - { page: 13, opens: ² Leydig }
+      - { page: 14, opens: ¹ l. }
+      - { page: 14, opens: ² Leydig }
+      - { page: 14, opens: ³ Ebendaselbst }
+      - { page: 14, opens: ⁴ Walter }
+      - { page: 15, opens: ¹ Hannover }
+      - { page: 15, opens: ² Owsjannikow }
+      - { page: 15, opens: ³ Lemoine }
+      - { page: 15, opens: ⁴ De }
+      - { page: 16, opens: ¹ Yung }
+      - { page: 16, opens: ² Krieger }
+      - { page: 17, opens: ¹ Huxley }
+      - { page: 18, opens: ¹ Remak }
+      - { page: 19, opens: ¹ Dietl }
+      - { page: 21, opens: ¹ l. }
+      - { page: 21, opens: ² Claus }
+      - { page: 21, opens: ³ J. }
+      - { page: 21, opens: ⁴ l. }
+      - { page: 22, opens: ¹ Histologie }
+      - { page: 22, opens: ² l. }
+      - { page: 23, opens: ¹ Müller’s }
+      - { page: 23, opens: ² l. }
+      - { page: 23, opens: ³ l. }
+      - { page: 24, opens: ¹ l. }
+      - { page: 24, opens: ² l. }
+      - { page: 29, opens: ¹ Müller’s }
+      - { page: 30, opens: ¹ Leydig }
+      - { page: 33, opens: ¹ H. }
+      - { page: 34, opens: ¹ E. }
+      - { page: 34, opens: ² Solbrig }
+      - { page: 34, opens: ³ Vgl. }
+      - { page: 35, opens: ¹ Remak }
+      - { page: 35, opens: ² l. }
+      - { page: 35, opens: ³ H. }
+      - { page: 35, opens: ⁴ Jahresbericht }
+      - { page: 35, opens: ⁵ Arndt }
+      - { page: 36, opens: ¹ Fleischl }
+      - { page: 36, opens: ² Boll }
+      - { page: 36, opens: ³ Ich }
+      - { page: 36, opens: ⁴ Bemerkungen }
+      - { page: 37, opens: ¹ Über }
+      - { page: 37, opens: ² l. }
+      - { page: 37, opens: ³ Schwalbe }
+      - { page: 38, opens: ¹ Schwalbe }
+      - { page: 38, opens: ² Leydig }
+      - { page: 38, opens: ³ Boll }
+      - { page: 38, opens: ⁴ Observationes }
+      - { page: 39, opens: "¹ „Fibrillae" }
+      - { page: 40, opens: ¹ Amtlicher }
+      - { page: 41, opens: ¹ Bemerkungen }
+      - { page: 42, opens: ¹ Ebendaselbst }
+      - { page: 42, opens: ² l. }
+      - { page: 42, opens: ³ C. }
+      - { page: 42, opens: ⁴ Heitzmann }
+      - { page: 43, opens: ¹ C. }
+      - { page: 43, opens: ² Vgl. }
+      - { page: 44, opens: ¹ Schleicher }
+      - { page: 44, opens: ² Vgl. }
+      - { page: 44, opens: ³ Leydig }
+      - { page: 45, opens: ¹ Claus }
+      - { page: 45, opens: ² Vgl. }
+    slug: ueber-den-bau-der-nervenfasern-und-nervenzellen-beim-flusskrebs
+    title: Über den Bau der Nervenfasern und Nervenzellen beim Flusskrebs
+    shortTitle: Nervenfasern und Nervenzellen beim Flusskrebs
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXXV, III. Abtheilung (Wien 1882), S. 9–46
+    author: Sigmund Freud
+    year: 1882
+    kind: work
+  - item: JfPsychiatrie_1884_5
+    citation: Structur der Elemente
+    ocr: deu
+    firstPage: 221
+    lastPage: 229
+    opensWith: (Nach einem im psychiatrischen Vereine
+    slug: die-structur-der-elemente-des-nervensystems
+    title: Die Structur der Elemente des Nervensystems
+    edition: Jahrbücher für Psychiatrie, V. Band (Wien 1884), S. 221–229
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+    notes:
+      - { page: 221, opens: ¹ Wiener }
+      - { page: 222, opens: ¹ Untersuchungen }
+      - { page: 222, opens: ² Der }
+      - { page: 223, opens: ¹ Wissenschaftl. }
+      - { page: 223, opens: ² Ueber }
+      - { page: 223, opens: ³ Ueber }
+      - { page: 226, opens: ¹ Festgabe }
+      - { page: 227, opens: ¹ Ueber }
+      - { page: 227, opens: ² Ueber }
+      - { page: 227, opens: ³ Sitzungsb. }
+      - { page: 227, opens: ⁴ Bemerkungen }
+      - { page: 229, opens: ¹ Comptes }
+      - { page: 229, opens: ² Studien }
+      - { page: 229, opens: ³ Sitzungsb. }
+      - { page: 229, opens: ⁴ Vergl. }
+  - item: Freud_1885_Coca
+    citation: Coca
+    ocr: deu
+    firstPage: 3
+    lastPage: 26
+    # Headings set in the text's type.
+    headings:
+      - { page: 3, opens: II. Geschichte }
+      - { page: 6, opens: III. Die Cocablätter }
+    # The notes, set below a rule the OCR does not read, by their marks.
+    notes:
+      - { page: 3, opens: ¹ O. }
+      - { page: 3, opens: ² Nach }
+      - { page: 3, opens: ³ Diese }
+      - { page: 3, opens: ⁴ Weddel }
+      - { page: 4, opens: ¹ Scrivener }
+      - { page: 4, opens: ² Garcilasso }
+      - { page: 4, opens: ³ Christison }
+      - { page: 4, opens: ⁴ Mantegazza }
+      - { page: 4, opens: ⁵ Scrivener }
+      - { page: 4, opens: ⁶ Nach }
+      - { page: 5, opens: ¹ Systema }
+      - { page: 5, opens: ² Essai }
+      - { page: 5, opens: ³ Vgl. }
+      - { page: 5, opens: ⁴ Viagem }
+      - { page: 5, opens: ⁵ Expedition }
+      - { page: 5, opens: ⁶ Reise }
+      - { page: 5, opens: 7 l. c. }
+      - { page: 5, opens: ⁸ Reiseskizzen }
+      - { page: 5, opens: 9 l. c. }
+      - { page: 5, opens: ¹⁰ Reise }
+      - { page: 5, opens: ¹¹ Travels }
+      - { page: 5, opens: ¹² Reise }
+      - { page: 6, opens: ¹ Disertacion }
+      - { page: 6, opens: ² Historical }
+      - { page: 6, opens: ³ Fronmüller }
+      - { page: 6, opens: ⁴ The }
+      - { page: 6, opens: ⁵ Disertacion }
+      - { page: 6, opens: ⁶ Memoria }
+      - { page: 7, opens: ¹ Sulle }
+      - { page: 7, opens: ² Annal. }
+      - { page: 7, opens: ³ Annalen }
+      - { page: 7, opens: ⁴ Ueber }
+      - { page: 7, opens: ⁵ Husemann }
+      - { page: 8, opens: ¹ Für }
+      - { page: 9, opens: ¹ Der }
+      - { page: 9, opens: ² Ueber }
+      - { page: 9, opens: ³ Vorläufige }
+      - { page: 9, opens: ⁴ Recherches }
+      - { page: 9, opens: ⁵ Cocaïn }
+      - { page: 9, opens: ⁶ Beitrag }
+      - { page: 9, opens: ⁷ Ueber }
+      - { page: 9, opens: ⁸ An }
+      - { page: 9, opens: ⁹ Coca }
+      - { page: 10, opens: ¹ Bei }
+      - { page: 11, opens: ¹ Ich }
+      - { page: 12, opens: ¹ Finska }
+      - { page: 12, opens: ² De }
+      - { page: 12, opens: ³ Sur }
+      - { page: 12, opens: ⁴ Essai }
+      - { page: 12, opens: ⁵ Note }
+      - { page: 12, opens: ⁶ Die }
+      - { page: 13, opens: ¹ Mit }
+      - { page: 13, opens: ² Observations }
+      - { page: 14, opens: ¹ Erfahrungen }
+      - { page: 14, opens: ² J. }
+      - { page: 14, opens: ³ Erythroxylon }
+      - { page: 14, opens: ⁴ Die }
+      - { page: 14, opens: 5 l. c. }
+      - { page: 15, opens: ¹ Ploss }
+      - { page: 16, opens: ¹ Philadelphia }
+      - { page: 17, opens: ¹ Detroit }
+      - { page: 17, opens: ² Review }
+      - { page: 17, opens: ³ Ricerche }
+      - { page: 17, opens: ⁴ Ihre }
+      - { page: 17, opens: ⁵ Pharmakologisch }
+      - { page: 17, opens: ⁶ l. c. }
+      - { page: 17, opens: ⁷ Mantegazza }
+      - { page: 17, opens: ⁸ Mittheilung }
+      - { page: 19, opens: ¹ Erythroxylon }
+      - { page: 19, opens: ² Detroit }
+      - { page: 19, opens: ³ Coca }
+      - { page: 19, opens: ⁴ Detroit }
+      - { page: 19, opens: ⁵ Marvaud }
+      - { page: 20, opens: ¹ Physiologie }
+      - { page: 20, opens: ² Erythroxylon }
+      - { page: 20, opens: ³ Comptes }
+      - { page: 20, opens: ⁴ Bei }
+      - { page: 21, opens: ¹ Pathology }
+      - { page: 21, opens: 2 l. c. }
+      - { page: 21, opens: ³ Erythroxylon }
+      - { page: 22, opens: ¹ J. }
+      - { page: 22, opens: ² E. }
+      - { page: 22, opens: ³ R. }
+      - { page: 22, opens: ⁴ T. }
+      - { page: 23, opens: ¹ W. }
+      - { page: 23, opens: ² Travels }
+      - { page: 23, opens: ³ The }
+      - { page: 24, opens: ¹ T. }
+      - { page: 24, opens: ² De }
+    slug: ueber-coca
+    title: Über Coca
+    edition: "Über Coca, neu durchgesehener und vermehrter Separat-Abdruck aus dem „Centralblatt für die gesammte Therapie“ (Wien, Moritz Perles, 1885)"
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+  - item: Arch_Anat_1884
+    citation: Faserverlauf
+    ocr: deu
+    firstPage: 453
+    lastPage: 460
+    slug: eine-neue-methode-zum-studium-des-faserverlaufs-im-centralnervensystem
+    title: Eine neue Methode zum Studium des Faserverlaufs im Centralnervensystem
+    shortTitle: Eine neue Methode zum Studium des Faserverlaufs
+    edition: Archiv für Anatomie und Physiologie, Anatomische Abtheilung, Jahrgang 1884, S. 453–460
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+    notes:
+      - { page: 454, opens: 1 A. a. O. }
+      - { page: 454, opens: ² Meinem }
+      - { page: 459, opens: ¹ Ich konnte }
+  - item: nc_4_1885_12
+    citation: Olivenzwischenschicht
+    ocr: deu
+    firstPage: 268
+    lastPage: 270
+    opensWith: 2. Zur Kenntniss der Olivenzwischenschicht.
+    # The notes at the foot of its first page close the article before it.
+    notes:
+      - { page: 268, opens: ı Vgl. meine }
+      - { page: 268, opens: "? Eine nochmals" }
+    skipNotes:
+      - { page: 268, opens: i Vgl. meine }
+      - { page: 268, opens: "? Eine nochmals" }
+    # The journal's reviews after its end.
+    headings:
+      - { page: 270, opens: II. Referate. }
+    skipHeadings: [Referate.]
+    slug: zur-kenntniss-der-olivenzwischenschicht
+    title: Zur Kenntniss der Olivenzwischenschicht
+    edition: Neurologisches Centralblatt, IV. Jahrgang, Nr. 12 (Leipzig 1885), S. 268–270
+    author: Sigmund Freud
+    year: 1885
+    kind: work
+  - item: cn-1895-14-11
+    citation: Bernhardt’sche Sensibilitätsstörung
+    ocr: deu
+    firstPage: 491
+    lastPage: 492
+    # Its note the OCR set as text.
+    notes:
+      - { page: 492, opens: "¹ W. HAGER" }
+    slug: ueber-die-bernhardtsche-sensibilitaetsstoerung-am-oberschenkel
+    title: Ueber die Bernhardt’sche Sensibilitätsstörung am Oberschenkel
+    shortTitle: Die Bernhardt’sche Sensibilitätsstörung
+    edition: Neurologisches Centralblatt, XIV. Jahrgang, Nr. 11 (Leipzig 1895), S. 491–492
+    author: Sigmund Freud
+    year: 1895
+    kind: work
   - item: freud-1952-gw-1
     citation: GW I
     firstPage: 3
