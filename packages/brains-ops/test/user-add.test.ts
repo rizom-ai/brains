@@ -35,7 +35,7 @@ describe("addPilotUser", () => {
 anchorProfile:
   name: Bob
 discord:
-  enabled: true
+  enabled: false
 `,
     );
     expect(
@@ -44,7 +44,6 @@ discord:
       [
         "# local per-user secret staging file",
         "# fill values, run `bunx brains-ops secrets:encrypt . bob`, then the plaintext file will be removed",
-        "discordBotToken: ",
         "atprotoAppPassword: ",
         "# For custom-domain sites, paste PEMs with literal \\n escapes.",
         "certificatePem: ",
@@ -59,7 +58,32 @@ discord:
 `);
   });
 
-  it("can include a Discord anchor user id", async () => {
+  it("can explicitly enable Discord", async () => {
+    const root = await createPilotRepo({
+      "cohorts/cohort-1.yaml": `members:
+  - alice
+`,
+    });
+
+    await addPilotUser(root, "bob", {
+      cohort: "cohort-1",
+      discord: true,
+    });
+
+    expect(await readFile(join(root, "users", "bob.yaml"), "utf8")).toBe(
+      `handle: bob
+anchorProfile:
+  name: Bob
+discord:
+  enabled: true
+`,
+    );
+    expect(
+      await readFile(join(root, "users", "bob.secrets.yaml"), "utf8"),
+    ).toContain("discordBotToken: ");
+  });
+
+  it("treats a Discord anchor user id as enabling Discord", async () => {
     const root = await createPilotRepo({
       "cohorts/cohort-1.yaml": `members:
   - alice
@@ -80,6 +104,9 @@ discord:
   anchorUserId: "1234567890"
 `,
     );
+    expect(
+      await readFile(join(root, "users", "bob.secrets.yaml"), "utf8"),
+    ).toContain("discordBotToken: ");
   });
 
   it("is replay-safe for existing user and cohort membership", async () => {

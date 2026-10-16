@@ -430,9 +430,11 @@ Notes:
 
 ## Discord application credential checklist
 
-Use this when enabling Discord for a pilot user.
+Discord is optional. Browser chat with passkey setup is the default pilot interface. Use this checklist only when enabling Discord for a user.
 
-1. Pick the user handle (for example `smoke`).
+1. Add the user with Discord enabled:
+   - `bunx brains-ops user:add . <handle> --cohort <cohort> --discord`
+   - Add `--anchor-id <discord-user-id>` if the user should be a Discord anchor. For compatibility, `--anchor-id` also enables Discord when `--discord` is omitted.
 2. Open the Discord Developer Portal.
 3. Create a **new application** for that user's brain.
 4. Add a **Bot** to the application.
@@ -441,7 +443,7 @@ Use this when enabling Discord for a pilot user.
    - `DISCORD_BOT_TOKEN=...`
    - `DISCORD_PUBLIC_KEY=...`
    - `DISCORD_APPLICATION_ID=...`
-7. Keep `discord.enabled: true` in `users/<handle>.yaml` unless you explicitly want to disable the primary pilot interface.
+7. Confirm `users/<handle>.yaml` contains `discord.enabled: true` and its secrets template contains `discordBotToken`.
 8. Encrypt the current per-user credential payload:
    - `bunx brains-ops secrets:encrypt . <handle>`
 9. Reconcile/deploy the user or cohort:
@@ -454,7 +456,7 @@ Notes:
 
 - Use **one Discord application credential set per user/brain**.
 - Do not reuse the same Discord application across multiple pilot users.
-- Discord is the default pilot interface moving forward.
+- Discord-disabled users generate `anchors: []`, no `plugins.discord` block, and require no Discord secret.
 - The encrypted `users/<handle>.secrets.yaml.age` file is the durable checked-in deploy input; your local env is only the operator staging source.
 - Direct MCP client access should use OAuth/passkey-capable clients where possible.
 - When explaining the content workflow, describe it first as a normal **git repo** of **markdown/text files**.
