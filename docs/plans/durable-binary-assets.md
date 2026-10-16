@@ -1,26 +1,20 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-10-16
+Last updated: 2026-10-02
 
 ## Status
 
-The SQLite asset foundation is on `main` (`a7396a4a88`, `0.2.0-alpha.337`):
-`@brains/assets` contracts, the single-BLOB `assets` table (migration 0010),
-`SqliteAssetRepository`, and the `fullTextSearchable` and `binaryStorage`
-entity-type settings. No entity type on `main` uses `binaryStorage: "asset"`;
-images and documents remain `data-url`, and no instance has migrated.
+The SQLite asset foundation is on `main` (`a7396a4a88`, released): `@brains/assets`
+contracts, a single-BLOB `assets` table (migration 0010), `SqliteAssetRepository`, the
+`fullTextSearchable` and `binaryStorage` entity-type settings, and atomic
+asset/entity tests. No entity type uses `binaryStorage: "asset"`; images and documents
+remain `data-url`. No instance has migrated.
 
-Phases 1–5 are implemented as one stack in open PR #476
-(`work/binary-asset-migrate`), unmerged and conflicting with `main`: its
-migration `0012_staged_asset_chunks` collides with `main`'s
-`0012_entities_type_slug_idx` and needs renumbering. Fixes found while building it
-and rehearsing on a copy of `yeehaa.io` shipped separately in #495
-(`0.2.0-alpha.479`). Phases 6–8 (production cutover, soak and bridge removal,
-PDFs) have not started.
+This plan is a stable `0.2.0` release gate. Images and PDFs reach their completion
+criteria, including bridge removal, before the final alpha is nominated.
 
-This plan is a stable `0.2.0` release gate: images and PDFs reach their completion
-criteria, including bridge removal, before the final alpha is nominated. It is the
-single source for asset storage and proceeds independently of
+Next is Phase 1: replace the single-BLOB storage with staged chunk storage. This plan is
+the single source for asset storage and proceeds independently of
 [turso-salvage.md](./turso-salvage.md).
 
 ## Decision
