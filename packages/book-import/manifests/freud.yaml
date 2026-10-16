@@ -72,6 +72,39 @@ gaps:
     reason: the letters are not in the Gesammelte Werke
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
     reason: published in 1987 with an editorial apparatus still in copyright
+  - title: Anzeige der „Schriften zur angewandten Seelenkunde“ (second version)
+    year: 1908
+    reason: an unsigned publisher's announcement on the series' wrappers; attribution not certain
+  - citation: Zbl. I
+    pages: "137"
+    title: Note to J. J. Putnam, Über Ätiologie und Behandlung der Psychoneurosen
+    year: 1911
+    reason: an unsigned editorial note; attribution not certain
+  - citation: Zbl. II
+    pages: "676"
+    title: Note to E. Jones, Psycho-Analyse Roosevelts
+    year: 1912
+    reason: signed "Die Redaktion"; attribution not certain
+  - title: Ergänzungen zur Traumlehre
+    year: 1920
+    reason: an unsigned abstract in the third person in the congress report (IZ VI, 397–398); attribution not certain
+  - title: Etwas vom Unbewußten
+    year: 1922
+    reason: an unsigned abstract in the third person in the congress report (IZ VIII, 486); attribution not certain
+  - title: Note on E. Hering, in I. Levine, Das Unbewußte
+    year: 1926
+    reason: signed "Anmerkung des Übersetzers", and Anna Freud translated the book; attribution not certain
+  - title: Unser Orden
+    year: 1926
+    reason: not in the one 1926 number of the B'nai B'rith Mitteilungen on archive.org (Heft 5), nor on its LBI reel
+  - title: Zum Ableben Professor Brauns
+    year: 1936
+    reason: the B'nai B'rith Mitteilungen for 1936 are not on archive.org; the LBI reel holds 1925, 1928–1930, 1932–1934 and the index of 1937
+  - title: Short pieces of 1927–1939 (Festschrift Emanuel Löwy; Rundfragen on Magnus Hirschfeld and on geistige Vererbung; for Frederik van Eeden; Unbesiegbarer Lebenswille; Der Thomas Mann-Fonds; Vorwort to Bardi; Glückwunsch to the Argentinisches Tageblatt)
+    reason: not located on archive.org
+  - title: Geleitwort zu P. Federn und H. Meng, Das psychoanalytische Volksbuch
+    year: 1939
+    reason: not in the first (1926) or the third (1939) edition on archive.org
 books:
   - item: b21293181
     citation: Charcot 1886
@@ -105,6 +138,28 @@ books:
     author: Sigmund Freud
     year: 1887
     kind: work
+  - item: wmw-37-1887-5
+    citation: WMW 1887
+    # Two columns to a page, each numbered: a page is cited by its first.
+    columns: true
+    firstPage: 137
+    lastPage: 137
+    opensWith: Die akute Neurasthenie
+    closesWith: Sinne des viel
+    # Each review opens with the title of the book it reviews, set on two
+    # or three short lines.
+    paragraphs:
+      - { page: 137, opens: Die akute Neurasthenie }
+      - { page: 137, opens: Wie wenig }
+      - { page: 137, opens: Die Behandlung gewisser }
+      - { page: 137, opens: Das Heilverfahren }
+    slug: besprechungen-von-averbeck-und-weir-mitchell
+    title: "Besprechungen von Averbeck, Die akute Neurasthenie, und Weir Mitchell, Die Behandlung gewisser Formen von Neurasthenie und Hysterie"
+    shortTitle: Averbeck und Weir Mitchell
+    edition: "Wiener Medizinische Wochenschrift 37, Nr. 5 (29. Jänner 1887), Sp. 138"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
   - item: bernheim-1888-suggestion
     citation: Bernheim 1888
     firstPage: III
@@ -125,6 +180,28 @@ books:
     author: Sigmund Freud
     year: 1888
     kind: work
+  - item: 1895j_WKR_9_9
+    citation: WKR 1895
+    columns: true
+    firstPage: 140
+    lastPage: 141
+    opensWith: Die Migräne. Von G. J.
+    closesWith: sieht. Sigm. Freud.
+    # The OCR read the paragraphs of the review's first page askew.
+    paragraphs:
+      - { page: 140, opens: Die Migräne. Von }
+      - { page: 140, opens: Die Reihe }
+      - { page: 140, opens: Dieses Büchlein }
+      - { page: 140, opens: Es wäre verlockend }
+      - { page: 140, opens: Ich kenne }
+      - { page: 140, opens: Wie man sieht, ist }
+    slug: besprechung-von-moebius-die-migraene
+    title: "Die Migräne. Von G. J. Moebius"
+    shortTitle: Moebius, Die Migräne
+    edition: "Wiener klinische Rundschau 9, Nr. 9 (3. März 1895), S. 140–141"
+    author: Sigmund Freud
+    year: 1895
+    kind: work
   - item: bernheim-1896-suggestion
     citation: Bernheim 1896
     firstPage: III
@@ -135,6 +212,192 @@ books:
     edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud, zweite, umgearbeitete Auflage besorgt von Dr. Max Kahane (Franz Deuticke, Leipzig und Wien 1896), S. III–IV"
     author: Sigmund Freud
     year: 1896
+    kind: work
+  - item: Freud_1907_Gradiva
+    citation: Gradiva 1907
+    # The archive's OCR lost the notice's title.
+    ocr: deu
+    firstPage: 82
+    lastPage: 82
+    # Signed by the publisher and by Freud as the series' editor.
+    closesWith: schaft Ausdruck geben
+    headings:
+      - { page: 82, opens: Anzeige., unnumbered: true }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    shortTitle: Mitteilungen 1907–1914
+    edition: "Der Wahn und die Träume in W. Jensens „Gradiva“ (Schriften zur angewandten Seelenkunde 1, 1907), S. [82]; Zentralblatt für Psychoanalyse 1–2 (1911–12); Internationale Zeitschrift für ärztliche Psychoanalyse 1–2 (1913–14)"
+    author: Sigmund Freud
+    year: 1907
+    kind: work
+  - item: zb119111011
+    citation: Zbl. I
+    firstPage: 495
+    lastPage: 495
+    # Freud's note, signed "Der Herausgeber", to Stekel's article on exhibitionism.
+    notesOnly: true
+    notesSigned: [Der Herausgeber.]
+    # The OCR sets the note as the text.
+    notes:
+      - { page: 495, opens: "... »)" }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 10/11 (1911), S. 495"
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: zb2191212
+    citation: Zbl. II
+    firstPage: 680
+    lastPage: 680
+    opensWith: Offener Sprechsaal
+    closesWith: die in den Kinderjahren selbst
+    headings:
+      - { page: 680, opens: Offener Sprechsaal, unnumbered: true }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Zentralblatt für Psychoanalyse 2, Heft 12 (1912), S. 680"
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: z119131
+    citation: IZ I
+    firstPage: 79
+    lastPage: 79
+    opensWith: Kindheitsträume mit
+    closesWith: sich ein größeres Material
+    headings:
+      - { page: 79, opens: Kindheitsträume mit, unnumbered: true }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 1, Heft 1 (1913), S. 79"
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: z219144
+    citation: IZ II
+    firstPage: 384
+    lastPage: 385
+    opensWith: Darstellung der
+    closesWith: welche ihn in die weibliche
+    headings:
+      - { page: 384, opens: Darstellung der, unnumbered: true }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 2, Heft 4 (1914), S. 384–385"
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: Freud_1910_Drei_Abhandlungen_2te
+    citation: Drei Abhandlungen 1910
+    ocr: deu
+    # The preface's page is unnumbered: the third of the front matter.
+    frontPage: { leaf: 4, page: III }
+    firstPage: III
+    lastPage: III
+    slug: vorwort-zur-zweiten-auflage-der-drei-abhandlungen-zur-sexualtheorie
+    title: Vorwort zur zweiten Auflage
+    shortTitle: Vorwort zu den Drei Abhandlungen (1910)
+    edition: "Drei Abhandlungen zur Sexualtheorie, zweite Auflage (Franz Deuticke, Leipzig und Wien 1910), S. [III]"
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: zb1191156
+    citation: Zbl. I
+    firstPage: 187
+    lastPage: 192
+    opensWith: Einige Beispiele
+    closesWith: Scherz im Wachen
+    # Its two parts' titles, set in the text's type, and the first of the
+    # symbols' numbered titles.
+    headings:
+      - { page: 187, opens: Einige Beispiele, unnumbered: true }
+      - { page: 187, opens: 1. Der Hut }
+      - { page: 191, opens: Einige seltenere, unnumbered: true }
+    slug: nachtraege-zur-traumdeutung
+    title: Nachträge zur Traumdeutung
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 5/6 (1911), S. 187–192"
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: z419161
+    citation: IZ IV
+    firstPage: 42
+    lastPage: 42
+    # Freud's note, signed, to Ernest Jones' reply to Pierre Janet.
+    notesOnly: true
+    notesSigned: [Freud.]
+    # The OCR sets the note as the text.
+    notes:
+      - { page: 42, opens: "‘) Anmerkung" }
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    shortTitle: Mitteilungen 1916–1939
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 4–5 (1916–19); Internationale Zeitschrift für Psychoanalyse 7–10 (1921–24); Internationale Zeitschrift für Psychoanalyse und Imago 24 (1939)"
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: z519194
+    citation: IZ V
+    firstPage: 308
+    lastPage: 308
+    opensWith: E. T. A. Hoffmann über
+    closesWith: Ausfuhr ist verboten
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 5, Heft 4 (1919), S. 308"
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: z719213
+    citation: IZ VII
+    firstPage: 381
+    lastPage: 381
+    opensWith: Preiszuteilungen
+    closesWith: Mark. Freud.
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse 7, Heft 3 (1921), S. 381"
+    author: Sigmund Freud
+    year: 1921
+    kind: work
+  - item: z819224
+    citation: IZ VIII
+    firstPage: 527
+    lastPage: 527
+    opensWith: Preisausschreibung
+    closesWith: Wien, IX., Berggasse 19.
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse 8, Heft 4 (1922), S. 527"
+    author: Sigmund Freud
+    year: 1922
+    kind: work
+  - item: z1019244
+    citation: IZ X
+    firstPage: 373
+    lastPage: 373
+    opensWith: Mitteilung des Herausgebers
+    closesWith: (Direktor A. J.
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse 10, Heft 4 (1924), S. 373"
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: z24193912
+    citation: IZ XXIV
+    firstPage: 5
+    lastPage: 5
+    opensWith: Vorbemerkung
+    closesWith: unverändert fortsetzen
+    headings:
+      - { page: 5, opens: Vorbemerkung, unnumbered: true }
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse und Imago 24, Heft 1/2 (1939), S. [5]"
+    author: Sigmund Freud
+    year: 1939
     kind: work
   - item: freud-1952-gw-1
     citation: GW I

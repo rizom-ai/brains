@@ -6,6 +6,7 @@ import {
   parseArchiveOcrWork,
   workPages,
   printedPageNumbers,
+  withVolumeReading,
   type LeafReading,
 } from "../src/adapters/archive-ocr";
 
@@ -300,6 +301,56 @@ describe("parseArchiveOcrWork on a work that opens mid-page", () => {
     expect(() =>
       parseArchiveOcrWork(hocr, { ...work, opensWith: "Nicht da" }),
     ).toThrow('No line opening "Nicht da" on page 3');
+  });
+});
+
+describe("parseArchiveOcrWork on notes set to another's text", () => {
+  it("keeps the notes alone, each under the passage it is set to", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notesOnly: true,
+    });
+
+    expect(units.map((unit) => [unit.title, unit.page])).toEqual([
+      [
+        "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit wir uns mit der Aufstellung des Lustprinzips einem bestimmten, historisch festgelegten System angenähert haben.",
+        "GW XIII, 4",
+      ],
+    ]);
+    expect(units[0]?.paragraphs).toEqual([
+      "¹) Vgl. Zur Psychoanalyse der Kriegsneurosen. Mit Beiträgen von Ferenczi, Abraham, Simmel und E. Jones, 1919.",
+    ]);
+  });
+
+  it("keeps only the notes signed as the manifest names", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notesOnly: true,
+      notesSigned: ["Anmerkung des Übersetzers."],
+    });
+
+    expect(units).toEqual([]);
+  });
+});
+
+describe("parseArchiveOcrWork on a work that closes mid-page", () => {
+  it("reads its last page up to the line it closes with, before another begins", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      closesWith: "Ein volles Verständnis",
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(text).toContain("Ein volles Verständnis ist bisher");
+    expect(text).not.toContain("nicht erzielt worden");
+  });
+
+  it("stops on a closing line its last page does not hold", async () => {
+    const hocr = await fixture();
+
+    expect(() =>
+      parseArchiveOcrWork(hocr, { ...work, closesWith: "Nicht da" }),
+    ).toThrow('No line opening "Nicht da" on page 10');
   });
 });
 
@@ -881,6 +932,31 @@ describe("parseArchiveOcrWork on front matter", () => {
       "GW II/III, V",
       "GW II/III, VI",
     ]);
+  });
+
+  it("titles a heading the manifest names unnumbered as the edition sets it", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        citation: "GW II/III",
+        firstPage: "V",
+        lastPage: "VI",
+        headings: [
+          {
+            page: "VI",
+            opens: "Der Traum ist das erste Glied",
+            unnumbered: true,
+          },
+        ],
+      },
+    );
+
+    expect(units[1]?.title).toStartWith("Der Traum ist das erste Glied");
   });
 
   it("ends a work within the front matter at a roman page", async () => {
@@ -3142,6 +3218,111 @@ describe("a volume that numbers its columns", () => {
 
     expect(workPages(apart, { firstPage: 721, lastPage: 727 })).toEqual([
       721, 723, 725, 727,
+    ]);
+  });
+});
+
+describe("a volume whose front matter no head numbers", () => {
+  /** A page of text, its running head numbering it where it has one. */
+  const textPage = (leaf: number, head: string | null, words: string): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      ...(head === null
+        ? []
+        : [
+            `<span class='ocr_line' title='bbox 200 100 1800 160; x_size 50'>${head}</span>`,
+          ]),
+      ...Array.from(
+        { length: 8 },
+        (_, line) =>
+          `<span class='ocr_line' title='bbox 200 ${300 + line * 80} 1800 ${350 + line * 80}; x_size 50'>${words} in der Zeile ${line} und noch mehr Worte hier</span>`,
+      ),
+      "</div>",
+    ].join("\n");
+  const hocr = `<html><body>\n${[
+    textPage(0, null, "Titelblatt"),
+    textPage(1, null, "Vorwort zur zweiten Auflage"),
+    textPage(2, null, "Erstes Kapitel"),
+    textPage(3, "2 Die sexuellen Abirrungen.", "Weiter im Text"),
+    textPage(4, "Die sexuellen Abirrungen. 3", "Noch weiter"),
+    // A line of the text the OCR read with a roman numeral before it.
+    textPage(5, null, "I großen Verbreitung"),
+    textPage(6, "Die sexuellen Abirrungen. 5", "Am Ende"),
+  ].join("\n")}\n</body></html>`;
+
+  it("numbers its pages in roman from the page the manifest names", () => {
+    const named = withVolumeReading(hocr, {
+      frontPage: { leaf: 1, page: "III" },
+    });
+
+    expect(workPages(named, { firstPage: "III", lastPage: "III" })).toEqual([
+      "III",
+    ]);
+    expect(pageText(named, "III")).toContain("Vorwort zur zweiten Auflage");
+  });
+
+  it("takes no line of the text for a roman head", () => {
+    expect(() => workPages(hocr, { firstPage: "I", lastPage: "I" })).toThrow(
+      "No page I",
+    );
+  });
+});
+
+describe("a volume set in two columns", () => {
+  /** A line of words, each placed where the OCR read it. */
+  const line = (y: number, words: Array<[number, string]>): string => {
+    const right = (words.at(-1)?.[0] ?? 0) + 300;
+    return `<span class='ocr_line' title='bbox ${words[0]?.[0] ?? 0} ${y} ${right} ${y + 50}; x_size 50'>${words
+      .map(
+        ([x, word]) =>
+          `<span class='ocrx_word' title='bbox ${x} ${y} ${x + 280} ${y + 50}'>${word}</span>`,
+      )
+      .join(" ")}</span>`;
+  };
+  const column = (
+    x: number,
+    side: string,
+    y: number,
+  ): Array<[number, string]> => [
+    [x, side],
+    [x + 300, "Spalte"],
+    [x + 600, `Zeile${y}`],
+  ];
+  const page = (leaf: number, left: number): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(100, [[100, String(left)]]),
+      line(100, [[800, "STICHWORT."]]),
+      line(100, [[1700, String(left + 1)]]),
+      ...Array.from({ length: 8 }, (_, row) => {
+        const y = 300 + row * 80;
+        // The OCR runs the third row of both columns together.
+        return row === 2
+          ? line(y, [...column(100, "Links", y), ...column(1100, "Rechts", y)])
+          : [
+              line(y, column(100, "Links", y)),
+              line(y, column(1100, "Rechts", y)),
+            ].join("\n");
+      }),
+      "</div>",
+    ].join("\n");
+  const hocr = withVolumeReading(
+    `<html><body>\n${[page(0, 719), page(1, 721), page(2, 723), page(3, 725)].join("\n")}\n</body></html>`,
+    { columns: true },
+  );
+
+  it("reads each page down its left column, then its right", () => {
+    const lines = pageText(hocr, 723).split("\n");
+
+    expect(lines.slice(0, 8).every((text) => text.startsWith("Links"))).toBe(
+      true,
+    );
+    expect(lines.slice(8).every((text) => text.startsWith("Rechts"))).toBe(
+      true,
+    );
+    expect(lines).toHaveLength(16);
+    expect(workPages(hocr, { firstPage: 721, lastPage: 725 })).toEqual([
+      721, 723, 725,
     ]);
   });
 });

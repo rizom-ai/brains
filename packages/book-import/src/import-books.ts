@@ -2,7 +2,7 @@ import { parse as parseYaml } from "yaml";
 import { bookKindSchema } from "@brains/book";
 import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
-import { parseArchiveOcrWork } from "./adapters/archive-ocr";
+import { parseArchiveOcrWork, withVolumeReading } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
 import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
 import {
@@ -106,6 +106,7 @@ const headingLineSchema: z.ZodObject<{
   page: typeof printedPageSchema;
   opens: z.ZodString;
   numeral: z.ZodOptional<z.ZodString>;
+  unnumbered: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   page: printedPageSchema,
   opens: z.string().min(1),
@@ -113,6 +114,8 @@ const headingLineSchema: z.ZodObject<{
     .string()
     .regex(/^[IVXL]+$/)
     .optional(),
+  /** A title the edition sets without a numeral: none is given it by place. */
+  unnumbered: z.boolean().optional(),
 });
 
 const archiveOcrBookSchema: z.ZodObject<
@@ -136,11 +139,18 @@ const archiveOcrBookSchema: z.ZodObject<
       paragraphs: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       notes: z.ZodDefault<z.ZodArray<typeof noteLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      notesOnly: z.ZodDefault<z.ZodBoolean>;
+      notesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       curved: z.ZodDefault<z.ZodBoolean>;
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
       opensWith: z.ZodOptional<z.ZodString>;
+      closesWith: z.ZodOptional<z.ZodString>;
+      frontPage: z.ZodOptional<
+        z.ZodObject<{ leaf: z.ZodNumber; page: z.ZodString }>
+      >;
+      columns: z.ZodDefault<z.ZodBoolean>;
     }
   >
 > = z.object({
@@ -184,6 +194,14 @@ const archiveOcrBookSchema: z.ZodObject<
   notes: z.array(noteLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
+  /**
+   * The work is the notes the author set to another's text, as a translator
+   * or an editor: the text is left out, and each note stands under the
+   * passage it is set to.
+   */
+  notesOnly: z.boolean().default(false),
+  /** Of such notes, only those ending in one of these signatures are the author's. */
+  notesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
   spacedNotes: z.boolean().default(false),
   /** The scan's lines curve, so their starts tell no indent: a paragraph opens only below a sentence's end. */
@@ -194,6 +212,20 @@ const archiveOcrBookSchema: z.ZodObject<
   datelined: z.boolean().default(false),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
+  /** The line the last page closes the work with, before another work begins. */
+  closesWith: z.string().min(1).optional(),
+  /**
+   * A leaf of the scan's front matter, which no head numbers, and the roman
+   * page it is: the front matter's other leaves are numbered from it.
+   */
+  frontPage: z
+    .object({
+      leaf: z.number().int().nonnegative(),
+      page: z.string().regex(/^[IVXL]+$/u),
+    })
+    .optional(),
+  /** The edition sets its pages in two columns, as a lexicon does: each is read down its left column, then its right. */
+  columns: z.boolean().default(false),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */
@@ -533,9 +565,13 @@ export function firstOfEachVolume(books: ScannedBook[]): ScannedBook[] {
 
 /** A volume as read: its scan, and the model it is read anew with, if any. */
 export function volumeKey(book: ScannedBook): string {
-  return [book.item, book.ocr ?? "", book.binarise ? "binarised" : ""].join(
-    "|",
-  );
+  return [
+    book.item,
+    book.ocr ?? "",
+    book.binarise ? "binarised" : "",
+    book.frontPage ? `${book.frontPage.page}@${book.frontPage.leaf}` : "",
+    book.columns ? "columns" : "",
+  ].join("|");
 }
 
 /** The manifest's books read from scanned volumes. */
@@ -863,16 +899,29 @@ export async function volumeHocr(
   fetchText: FetchText,
   pageOcr?: (reading: OcrReading) => PageOcr,
 ): Promise<string> {
-  if (!book.ocr) return fetchVolumeHocr(book.item, fetchText);
+  // The volume as read carries how to read what its scan does not tell.
+  const reading = {
+    ...(book.frontPage ? { frontPage: book.frontPage } : {}),
+    ...(book.columns ? { columns: true } : {}),
+  };
+  if (!book.ocr) {
+    return withVolumeReading(
+      await fetchVolumeHocr(book.item, fetchText),
+      reading,
+    );
+  }
   if (!pageOcr) {
     throw new Error(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
-  return ocrVolumeHocr(
-    book.item,
-    fetchText,
-    pageOcr({ model: book.ocr, binarise: book.binarise }),
+  return withVolumeReading(
+    await ocrVolumeHocr(
+      book.item,
+      fetchText,
+      pageOcr({ model: book.ocr, binarise: book.binarise }),
+    ),
+    reading,
   );
 }
 

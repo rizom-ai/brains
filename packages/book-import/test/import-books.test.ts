@@ -11,6 +11,7 @@ import {
   parseCorrections,
   parseManifest,
   scannedBooks,
+  volumeHocr,
   volumeKey,
 } from "../src/import-books";
 
@@ -1242,5 +1243,48 @@ books:
     const [first, other, third] = books.map(volumeKey);
     expect(first).toBe(third);
     expect(first).not.toBe(other);
+  });
+});
+
+describe("a volume whose front matter no head numbers", () => {
+  const manifest = parseManifest(`
+source: archive-ocr
+books:
+  - { item: drei, citation: DA, firstPage: III, lastPage: III, frontPage: { leaf: 4, page: III }, slug: vorwort, title: Vorwort, edition: DA, author: Sigmund Freud, year: 1910, kind: work }
+  - { item: drei, citation: DA, firstPage: 1, lastPage: 2, slug: text, title: Text, edition: DA, author: Sigmund Freud, year: 1910, kind: work }
+`);
+  const books = scannedBooks(manifest);
+  const fetchDrei = async (url: string): Promise<string> =>
+    url.includes("/metadata/")
+      ? JSON.stringify({ files: [{ name: "drei_hocr.html", format: "hOCR" }] })
+      : "<div class='ocr_page' id='page_0'></div>";
+
+  it("reads it numbered in roman from the leaf the manifest names", async () => {
+    const [vorwort] = books;
+    if (!vorwort) throw new Error("no book");
+
+    expect(await volumeHocr(vorwort, fetchDrei)).toStartWith(
+      `<meta name='volume-reading' content='{"frontPage":{"leaf":4,"page":"III"}}'>`,
+    );
+    expect(volumeKey(vorwort)).not.toBe(volumeKey(books[1] ?? vorwort));
+  });
+});
+
+describe("a scanned work set among others' texts", () => {
+  const [book] = scannedBooks(
+    parseManifest(`
+source: archive-ocr
+books:
+  - { item: wmw, citation: WMW, columns: true, firstPage: 137, lastPage: 137, opensWith: Die akute, closesWith: behandelt sind, notesOnly: true, notesSigned: [Der Herausgeber.], slug: a, title: A, edition: WMW, author: Sigmund Freud, year: 1887, kind: work }
+`),
+  );
+
+  it("names its columns, its closing line and the notes that are its own", () => {
+    expect(book).toMatchObject({
+      columns: true,
+      closesWith: "behandelt sind",
+      notesOnly: true,
+      notesSigned: ["Der Herausgeber."],
+    });
   });
 });

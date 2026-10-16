@@ -134,6 +134,20 @@ describe("renderBook", () => {
     );
   });
 
+  it("names a section with a title too long for a file name by as much of it as fits", () => {
+    const title =
+      "Das Zusammenwirken der beiden Autoren begann volle zehn Jahre vor ihrer ersten Veröffentlichung, und in den Studien finden wir ausdrücklich bestätigt, daß einer der mitgeteilten Fälle vierzehn Jahre vor der Publikation nach der kathartischen Methode behandelt wurde";
+    const files = renderBook({
+      ...source,
+      units: source.units.slice(0, 1).map((unit) => ({ ...unit, title })),
+    });
+    const name = files[1]?.path.split("/").at(-1) ?? "";
+
+    expect(name.length).toBeLessThanOrEqual(255);
+    expect(name).toStartWith("00001-das-zusammenwirken-der-beiden-autoren");
+    expect(name).toEndWith(".md");
+  });
+
   it("records each section's headings, outermost first", () => {
     const [, vorrede, first] = renderBook(source);
 
