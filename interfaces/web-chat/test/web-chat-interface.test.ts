@@ -2401,6 +2401,44 @@ describe("WebChatInterface", () => {
     );
   });
 
+  it("streams asset-backed image attachments from their stored chunks", async () => {
+    const plugin = adminPlugin();
+    const bytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "base64");
+    const asset = await harness.getEntityService().stageAsset(bytes);
+    harness.addEntities([
+      {
+        id: "staged-robot",
+        entityType: "image",
+        content: asset.ref,
+        metadata: {
+          title: "Staged robot",
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1,
+          height: 1,
+        },
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/attachments/image?id=staged-robot"),
+    );
+    const body = await response?.arrayBuffer();
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("content-type")).toBe("image/png");
+    expect(response?.headers.get("content-length")).toBe(
+      String(bytes.byteLength),
+    );
+    expect(response?.headers.get("content-disposition")).toBe(
+      "inline; filename=\"staged-robot.png\"; filename*=UTF-8''staged-robot.png",
+    );
+    expect(Buffer.from(body ?? new ArrayBuffer(0))).toEqual(bytes);
+  });
+
   it("rejects image attachment requests from unauthenticated callers", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);

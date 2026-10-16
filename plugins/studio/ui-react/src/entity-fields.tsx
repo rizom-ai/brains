@@ -129,12 +129,12 @@ function ImageField(props: {
         </span>
         <strong {...stylex.props(f.uploadTitle)}>Choose an image</strong>
         <small {...stylex.props(f.uploadNote)}>
-          PNG, JPEG, GIF, WebP, AVIF, or SVG. Keep files below 10 MiB.
+          PNG, JPEG, GIF or WebP. Keep files below 10 MiB.
         </small>
         <input
           {...stylex.props(f.file)}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/gif,image/webp"
           disabled={uploadMutation.isPending}
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];

@@ -103,6 +103,7 @@ async function verifyDatabaseContents(
             "eval database verification counts all visibility tiers",
           ),
         },
+        binaryContent: "reference",
       },
     });
     if (entities.length > 0) counts[type] = entities.length;

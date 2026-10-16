@@ -51,6 +51,7 @@ function setup(existing: BaseEntity | null = null): {
       markAsRecoveredIfNeeded: mock(async (): Promise<void> => {}),
     },
     imageJobQueue: { syncPath: "/tmp/sync" },
+    maxAssetImportBytes: 25 * 1024 * 1024,
   };
   const snapshot = existing
     ? { entity: existing, revision: "observed-revision" }
@@ -217,5 +218,98 @@ describe("persistImportEntity visibility", () => {
     const hash = f.entity().contentHash;
     expect(hash).toBe(computeContentHash(`canonical:restricted:${content}`));
     expect(hash).not.toBe(computeContentHash(content));
+  });
+});
+
+describe("persistImportEntity staged bytes", () => {
+  async function importStaged(
+    parsedId: string,
+    storedContentHash: (ref: string) => string,
+  ): Promise<{
+    discard: Mock<EntityServiceClient["discardStagedAsset"]>;
+    upsert: Mock<EntityServiceClient["upsertEntity"]>;
+    staged: Awaited<ReturnType<EntityServiceClient["stageAsset"]>>;
+  }> {
+    const entityService = createMockShell().getEntityService();
+    const discard = spyOn(entityService, "discardStagedAsset");
+    const upsert = spyOn(entityService, "upsertEntity");
+    spyOn(entityService, "serializeEntity").mockImplementation(
+      (entity) => entity.content,
+    );
+    const staged = await entityService.stageAsset(Buffer.from("image bytes"));
+    const existing: BaseEntity = {
+      id: "robot",
+      entityType: "image",
+      content: staged.ref,
+      visibility: "public",
+      metadata: {},
+      created: "2025-01-01T00:00:00.000Z",
+      updated: "2025-01-02T00:00:00.000Z",
+      contentHash: storedContentHash(staged.ref),
+    };
+    await persistImportEntity(
+      {
+        entityService,
+        logger: createSilentLogger(),
+        quarantine: {
+          isValidationError: (): boolean => false,
+          quarantineInvalidFile: mock(async (): Promise<void> => {}),
+          markAsRecoveredIfNeeded: mock(async (): Promise<void> => {}),
+        },
+        imageJobQueue: { syncPath: "/tmp/sync" },
+        maxAssetImportBytes: 25 * 1024 * 1024,
+      },
+      {
+        entityType: "image",
+        id: "robot",
+        content: staged.ref,
+        created: new Date("2026-01-01T00:00:00Z"),
+        updated: new Date("2026-01-02T00:00:00Z"),
+      },
+      { id: parsedId, entityType: "image", content: staged.ref, metadata: {} },
+      "image/robot.png",
+      {
+        imported: 0,
+        skipped: 0,
+        failed: 0,
+        quarantined: 0,
+        quarantinedFiles: [],
+        errors: [],
+        jobIds: [],
+      },
+      { entity: existing, revision: "observed-revision" },
+      staged,
+    );
+    return { discard, upsert, staged };
+  }
+
+  it("discards staged bytes that an unchanged import does not publish", async () => {
+    const { discard, upsert, staged } = await importStaged(
+      "robot",
+      computeContentHash,
+    );
+
+    expect(upsert).not.toHaveBeenCalled();
+    expect(discard).toHaveBeenCalledWith(staged);
+  });
+
+  it("discards staged bytes when the adapter changes the destination", async () => {
+    const { discard, upsert, staged } = await importStaged(
+      "elsewhere",
+      () => "stored-hash",
+    );
+
+    expect(upsert).not.toHaveBeenCalled();
+    expect(discard).toHaveBeenCalledWith(staged);
+  });
+
+  it("hands staged bytes to the upsert instead of discarding them", async () => {
+    const { discard, upsert } = await importStaged(
+      "robot",
+      () => "stored-hash",
+    );
+
+    expect(upsert).toHaveBeenCalled();
+    expect(discard).not.toHaveBeenCalled();
   });
 });
