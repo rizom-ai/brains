@@ -41,6 +41,19 @@
       "outputs": [],
       "cache": true
     },
+    "test:evals": {
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "test/**/*.tsx",
+        "brain.eval.yaml",
+        "package.json"
+      ],
+      "outputs": [],
+      "cache": true
+    },
     "test:surface": {
       "dependsOn": ["^build", "build"],
       "inputs": [
