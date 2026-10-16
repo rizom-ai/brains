@@ -6,11 +6,18 @@
 # (II/III, 627–642). `year` is first publication; short pieces the edition
 # prints under a collective title are one book per volume. The scan of GW I
 # lacks pages 74–75 (a blank page and the half-title of Studien über
-# Hysterie).
+# Hysterie). Four neurological monographs the edition does not print are read
+# from scans of their first editions: Zur Auffassung der Aphasien (1891), the
+# Klinische Studie über die halbseitige Cerebrallähmung der Kinder written
+# with Oscar Rie (1891), Zur Kenntniss der cerebralen Diplegien des
+# Kindesalters (1893) and Die infantile Cerebrallähmung (1897); the Diplegien
+# are read anew from their scan (`ocr`), which has no archive text.
+# Their literature lists, tables of contents and publishers’ advertisements
+# are left out, and the dedication of the Aphasien.
 source: archive-ocr
 coverage:
   author: Sigmund Freud
-  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), read from the Internet Archive's scans
+  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), and for the neurological monographs of 1891–1897 the first editions, read from the Internet Archive's scans
   license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
 gaps:
   - citation: GW I
@@ -73,6 +80,191 @@ gaps:
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
     reason: published in 1987 with an editorial apparatus still in copyright
 books:
+  - item: b28071852
+    citation: Aphasien
+    firstPage: 1
+    lastPage: 107
+    # The sections' numerals, which the OCR lost or misread.
+    headings:
+      - { page: 1, opens: "Wenn ich, ohne über", numeral: I }
+      - { page: 10, opens: "Die Anschauung, dass die in der Klinik", numeral: II }
+      - { page: 19, opens: "Während wir uns herauszufinden", numeral: III }
+      - { page: 34, opens: "Etwa gleichzeitig mit jener", numeral: IV }
+      - { page: 45, opens: "Wir haben in einem der vorstehenden", numeral: V }
+      - { page: 68, opens: "Unsere Vorstellung vom Aufbau", numeral: VI }
+    # Pages whose figures and captions the OCR set among the lines of text.
+    paragraphs:
+      - { page: 5, opens: "Ich entlehne den Arbeiten" }
+      - { page: 5, opens: "Fig. 2. Fig. 3 in Wernicke" }
+      - { page: 5, opens: "Das Schema von Wernicke" }
+      - { page: 6, opens: "In demselben bedeuten" }
+      - { page: 6, opens: "Fig. 3. Fig. 1 in Lichtheim" }
+      - { page: 8, opens: "6. Die transcorticale" }
+      - { page: 8, opens: "3. Die Leitungsaphasie" }
+      - { page: 8, opens: "Ich setze noch" }
+      - { page: 8, opens: "Fig. 4. Fig. 2 in Lichtheim" }
+      - { page: 8, opens: "Wenn man erfährt" }
+      - { page: 95, opens: "Fig. 10. Wernicke" }
+      - { page: 95, opens: "Das Copiren unterscheidet" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 72, opens: "9 Nachschrift beider Correctur" }
+      - { page: 73, opens: "Sprachstörung) mir grosse", runsOn: true }
+    slug: zur-auffassung-der-aphasien
+    title: Zur Auffassung der Aphasien. Eine kritische Studie
+    shortTitle: Zur Auffassung der Aphasien
+    edition: Zur Auffassung der Aphasien. Eine kritische Studie (Leipzig und Wien, Franz Deuticke, 1891)
+    author: Sigmund Freud
+    year: 1891
+    kind: work
+  - item: Freud_Rie_1891_halbseitige_201606
+    citation: Halbseitige Cerebrallähmung
+    firstPage: 1
+    lastPage: 212
+    # The folded table of chapter III (41–42), which the OCR cannot read,
+    # and the leaf the page numbering takes for page 40: its text is restored
+    # from the scan below page 39.
+    skipPages: [40, 41, 42]
+    skipHeadings: [Tabellarische Zusammenstellung der 35 vorstehenden Beobachtungen]
+    # Chapters set in the text's type, their numerals taken off, and
+    # subsections the page does not set apart.
+    headings:
+      - { page: 1, opens: "Geschichte und Literatur der cerebralen" }
+      - { page: 13, opens: "Eigene Beobachtungen." }
+      - { page: 34, opens: "α) Bloss Facialparese" }
+      - { page: 35, opens: "β) Facialis- und Beinparese" }
+      - { page: 36, opens: "γ) Fälle ohne Anamnese" }
+      - { page: 36, opens: "δ) Andere Uebergangsformen" }
+      - { page: 37, opens: "ε) Fälle mit acutem Beginn" }
+      - { page: 39, opens: "Tabellarische Zusammenstellung" }
+      - { page: 43, opens: "Charakteristik der einzelnen Fälle" }
+      - { page: 52, opens: "Analyse der einzelnen Symptome" }
+      - { page: 52, opens: "1. Geschlecht." }
+      - { page: 52, opens: "2. Beziehung zur Körperseite." }
+      - { page: 52, opens: "3. Alter bei der Erkrankung" }
+      - { page: 57, opens: "4. Allgemeiner Gesundheitszustand." }
+      - { page: 57, opens: "5. Heredität." }
+      - { page: 71, opens: "7. Initialerscheinungen." }
+      - { page: 86, opens: "9. Contracturen" }
+      - { page: 152, opens: "Pathologische Anatomie der cerebralen" }
+      - { page: 171, opens: "Cerebrale Kinderlähmung und Epilepsie" }
+      - { page: 180, opens: "Cerebrale Kinderlähmung und Poliomyelitis" }
+      - { page: 191, opens: "Zur Differentialdiagnose der cerebralen" }
+      - { page: 196, opens: "Zur Therapie der cerebralen" }
+      - { page: 199, opens: "a) Fälle von nicht traumatischer" }
+      - { page: 204, opens: "c) Fälle von nicht traumatischer" }
+      - { page: 206, opens: "d) Fälle von traumatischer" }
+      - { page: 207, opens: "e) Fälle von traumatischer" }
+    slug: klinische-studie-ueber-die-halbseitige-cerebrallaehmung-der-kinder
+    title: Klinische Studie über die halbseitige Cerebrallähmung der Kinder
+    shortTitle: Halbseitige Cerebrallähmung der Kinder
+    edition: Klinische Studie über die halbseitige Cerebrallähmung der Kinder (Wien, Moritz Perles, 1891; Beiträge zur Kinderheilkunde, III. Heft)
+    author: Sigmund Freud und Oscar Rie
+    year: 1891
+    kind: work
+  - item: Freud_1893_Diplegien
+    citation: Diplegien
+    ocr: deu
+    firstPage: 1
+    lastPage: 165
+    # The table of chapter III, folded in at the volume's end, is left out.
+    skipHeadings: [Tabellarische Zusammenstellung der 53 vorstehenden Beobachtungen]
+    # Chapters whose numerals the OCR read apart from their titles.
+    headings:
+      - { page: 43, opens: "Tabellarische Zusammenstellung" }
+      - { page: 45, opens: "Allgemeine Charakteristik der beschriebenen" }
+      - { page: 57, opens: "Specielle Analyse der einzelnen" }
+      - { page: 104, opens: "Zur pathologischen Anatomie" }
+      - { page: 121, opens: "Zur pathologischen Physiologie" }
+      - { page: 137, opens: "Hereditäre und familiäre Formen" }
+      - { page: 151, opens: "Differentialdiagnose, Verlauf, Therapie" }
+      - { page: 161, opens: "Einige Ergebnisse über die Cerebrallähmungen" }
+    # Pages whose lists the importer takes for headings: each opening line.
+    paragraphs:
+      - { page: 65, opens: "Erörtern wir diese Tabelle" }
+      - { page: 65, opens: "1. Allgemeine Starre" }
+      - { page: 65, opens: "In der Aetiologie der allgemeinen" }
+      - { page: 65, opens: "2. Paraplegische Starre" }
+      - { page: 65, opens: "In der Aetiologie der paraplegischen" }
+      - { page: 65, opens: "3. Choreatische Formen" }
+      - { page: 65, opens: "In der Gruppe der choreatischen" }
+      - { page: 65, opens: "Ich verkenne nat" }
+      - { page: 66, opens: "a) Mütterliche Ursachen" }
+      - { page: 66, opens: "Psychische Affection der Mutter" }
+      - { page: 66, opens: "Trauma oder häufiger Krankheit" }
+      - { page: 66, opens: "Alle diese F" }
+      - { page: 66, opens: "b) Frühgeburt findet sich" }
+      - { page: 66, opens: "Mehr als die Hälfte der Frühgeburten" }
+      - { page: 66, opens: "c) Asphyxie oder erschwerte" }
+      - { page: 96, opens: "1. Idiotie als Symptom" }
+      - { page: 96, opens: "2. Idiotie als Symptom" }
+      - { page: 96, opens: "3. Idiotie in Folge" }
+      - { page: 96, opens: "4. Idiotie in Folge" }
+      - { page: 96, opens: "5. Idiotie bei knolliger" }
+      - { page: 96, opens: "6. Id" }
+      - { page: 96, opens: "7. Id" }
+      - { page: 96, opens: "8. Idiotie bei Myx" }
+      - { page: 96, opens: "Es ist, wie man sieht" }
+      - { page: 96, opens: "Ueber die Sprachentwickelung" }
+    slug: zur-kenntniss-der-cerebralen-diplegien-des-kindesalters
+    title: Zur Kenntniss der cerebralen Diplegien des Kindesalters (im Anschluss an die Little’sche Krankheit)
+    shortTitle: Cerebrale Diplegien des Kindesalters
+    edition: Zur Kenntniss der cerebralen Diplegien des Kindesalters (im Anschluss an die Little’sche Krankheit) (Leipzig und Wien, Franz Deuticke, 1893; Beiträge zur Kinderheilkunde, Neue Folge III)
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: b33778474
+    citation: Infantile Cerebrallähmung
+    firstPage: 1
+    lastPage: 312
+    # Chapters the page does not set apart: IIa and IIIa are numbered II
+    # and III by their place, IIb and IIIb follow them unnumbered.
+    headings:
+      - { page: 1, opens: "Einleitung. Nosographische" }
+      - { page: 6, opens: "IIa. Geschichte und Literatur", numeral: II }
+      - { page: 41, opens: "IIIa. Klinik der hemiplegischen" }
+    # Pages whose lists and case numbers the importer takes for headings: each opening line.
+    paragraphs:
+      - { page: 123, opens: "König resumirt" }
+      - { page: 123, opens: "Sie kommt häufiger" }
+      - { page: 123, opens: "Das Vorkommen des Nystagmus" }
+      - { page: 123, opens: "Oeulomotoriusparesen" }
+      - { page: 123, opens: "Einigermassen abweichend" }
+      - { page: 123, opens: "Strabismus bei Diplegien" }
+      - { page: 123, opens: "a) Strabismus" }
+      - { page: 123, opens: "b) Strabismus" }
+      - { page: 123, opens: "c) einseitige" }
+      - { page: 123, opens: "d) doppelseitige" }
+      - { page: 123, opens: "Dabei neunmal" }
+      - { page: 123, opens: "In vereinzelten" }
+      - { page: 123, opens: "Störungen der anderen" }
+      - { page: 206, opens: "Autopsie: Meningoencephalitis" }
+      - { page: 206, opens: "II. Bourneville und Leflaive" }
+      - { page: 206, opens: "6jähriges Kind" }
+      - { page: 206, opens: ".‚6jähriges Kind" }
+      - { page: 206, opens: "Autopsie: Herde" }
+      - { page: 206, opens: "IV. Bourneville und Baumgarten" }
+      - { page: 206, opens: "4jähriges Kind" }
+      - { page: 206, opens: "Autopsie: Herdweise" }
+      - { page: 206, opens: "Uebersehaut man" }
+      - { page: 206, opens: "Die Beziehungen der Meningoencephalitis" }
+      - { page: 206, opens: "Dies ist nieht der Fall" }
+      - { page: 258, opens: "4. Mehr oder minder" }
+      - { page: 258, opens: "5. Rascher Ablauf" }
+      - { page: 258, opens: "Inconstant war" }
+      - { page: 258, opens: "Die anatomische Kenntniss" }
+      - { page: 258, opens: "Als Aetiologie der Erkrankung" }
+      - { page: 258, opens: "Sachs erhebt" }
+      - { page: 258, opens: "Besonders häufig" }
+      - { page: 258, opens: "Ösler erwähnt" }
+      - { page: 258, opens: "Fr. Schultze" }
+      - { page: 258, opens: "Von den vier Kindern" }
+    slug: die-infantile-cerebrallaehmung
+    title: Die infantile Cerebrallähmung
+    edition: Die infantile Cerebrallähmung (Wien, Alfred Hölder, 1897; Nothnagels Specielle Pathologie und Therapie, IX. Band, II. Theil, II. Abtheilung)
+    author: Sigmund Freud
+    year: 1897
+    kind: work
   - item: freud-1952-gw-1
     citation: GW I
     firstPage: 3
