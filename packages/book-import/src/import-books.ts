@@ -326,8 +326,6 @@ const mlwerkeBookSchema: z.ZodObject<
   ...bookFields,
   /** Each page is an article of a volume, titled by the page's first-level heading. */
   articles: z.boolean().default(false),
-  /** Headings of articles' parts left out with what they hold, such as a speech of Engels'. */
-  skipHeadings: z.array(z.string().min(1)).default([]),
   /** The work's pages on mlwerke.de, in reading order, as the Internet Archive keeps them. */
   pages: z.array(z.url()).min(1),
   /** How a citation names the work before its MEW page: Manuskripte 1844, 471. */
@@ -355,6 +353,8 @@ const mlwerkeBookSchema: z.ZodObject<
       }),
     )
     .default([]),
+  /** Sections to leave out by their headings, with what stands under them: another author's article. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
 const megaEtxBookSchema: z.ZodObject<

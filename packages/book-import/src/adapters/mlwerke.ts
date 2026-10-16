@@ -1,4 +1,5 @@
 import { Window, type Element, type Node } from "happy-dom";
+import { sameName } from "./archive-ocr-headings";
 import type { BookUnit } from "../render-book";
 import {
   currentSection,
@@ -29,7 +30,7 @@ export interface MlwerkeWork {
   headings?: MlwerkeHeading[];
   /** Each page is an article of a volume, titled by the page's first-level heading. */
   articles?: boolean | undefined;
-  /** Headings of an article's parts left out with what they hold, such as a speech of Engels'. */
+  /** Sections to leave out by their headings, with what stands under them: another author's article. */
   skipHeadings?: string[] | undefined;
 }
 
@@ -77,11 +78,14 @@ interface Reading {
   url: string;
   sections: Array<TitledSection<Block>>;
   /** The headings the text now stands under, outermost first. */
-  open: Array<{ node: object; title: string }>;
+  open: Array<{ node: object; title: string; level: number }>;
   /** A listed work's headings, the next one to find and how much of it is found. */
   listed: { headings: MlwerkeHeading[]; next: number; line: number } | null;
-  /** Marx's and Engels's notes, by their anchor: the mark, the page that marks them. */
-  kept: Map<string, { mark: string; place: Place }>;
+  /** Marx's and Engels's notes, by their anchor: the mark, and the page and section that mark them. */
+  kept: Map<
+    string,
+    { mark: string; place: Place; section?: TitledSection<Block> }
+  >;
   /** Every note's anchor on the page, the editors' included. */
   notes: Set<string>;
   /** Levels the page's own headings stand below: one under an article's title. */
@@ -93,9 +97,12 @@ const APPARATUS =
   "table, hr, h1, p.link, p.toplink, p.updat, p.info, p.toc, script, style";
 /** Elements whose text is the author's emphasis. */
 const EMPHASIS = new Set(["em", "i", "strong", "b", "u"]);
-/** A heading that only names the author, above the work's title. */
+/**
+ * A heading or line that only names the authors, above the work's title,
+ * some bracketed or after a stray bracket: [Karl Marx], Karl Marx; Friedrich Engels.
+ */
 const AUTHOR_LINE =
-  /^(?:Karl Marx|Friedrich Engels)(?:\s*[-–/]\s*(?:Karl Marx|Friedrich Engels))?$/;
+  /^[<⟨]?\[?(?:Karl Marx|Friedrich Engels)(?:\s*[-–/;]\s*(?:Karl Marx|Friedrich Engels))?\]?$/;
 /** A line that names the authors and then the article: Karl Marx [Erklärung]. */
 const BYLINE_TITLE =
   /^\*?(?:Karl Marx|Friedrich Engels)(?:\s*[-–/]\s*(?:Karl Marx|Friedrich Engels))?\s+(.+?)\*?$/;
@@ -212,7 +219,11 @@ function inlineText(node: Node, reading: Reading): string {
     const id = linkedAnchor(node);
     const kept = id === null ? undefined : reading.kept.get(id);
     if (id !== null && kept) {
-      reading.kept.set(id, { ...kept, place: reading.place });
+      reading.kept.set(id, {
+        ...kept,
+        place: reading.place,
+        section: currentSection(reading.sections),
+      });
       return `${escapeMarkdown(kept.mark)})`;
     }
     // An editors' note's mark, its note on this page, on the volume's page
@@ -271,7 +282,22 @@ function addParagraph(element: Element, reading: Reading): void {
   const place = reading.place;
   const text = spaced(inlineText(element, reading).replace(/^\s*/, ""));
   if (text.length === 0) return;
-  currentSection(reading.sections).paragraphs.push({
+  const paragraphs = currentSection(reading.sections).paragraphs;
+  const last = paragraphs.at(-1);
+  // A paragraph the transcription broke off at a page number inside a
+  // word runs on into the next.
+  if (
+    last &&
+    last.page < place.page &&
+    /\p{L}-$/u.test(last.text) &&
+    /^\p{Ll}/u.test(text)
+  ) {
+    last.text = SET_APART.test(text)
+      ? `${last.text} ${text}`
+      : `${last.text.slice(0, -1)}${text}`;
+    return;
+  }
+  paragraphs.push({
     text,
     ...place,
     url: reading.url,
@@ -280,7 +306,10 @@ function addParagraph(element: Element, reading: Reading): void {
 
 /** Open a heading at its level, closing those at its level and below. */
 function openHeading(level: number, title: string, reading: Reading): void {
-  reading.open = [...reading.open.slice(0, level - 1), { node: {}, title }];
+  reading.open = [
+    ...reading.open.filter((heading) => heading.level < level),
+    { node: {}, title, level },
+  ];
   reading.sections.push({
     path: reading.open.map((heading) => heading.node),
     titles: reading.open.map((heading) => heading.title),
@@ -360,8 +389,10 @@ function addNote(element: Element, reading: Reading): void {
   const mark = own?.mark ?? "";
   const text = spaced(inlineText(element, reading)).replace(LEAD_IN, "");
   if (text.length === 0) return;
-  const place = (own && reading.kept.get(own.id)?.place) ?? reading.place;
-  currentSection(reading.sections).notes.push({
+  const marked = own ? reading.kept.get(own.id) : undefined;
+  const place = marked?.place ?? reading.place;
+  // A note goes with the section that marks it, not the page's last.
+  (marked?.section ?? currentSection(reading.sections)).notes.push({
     text: mark ? `${escapeMarkdown(mark)}) ${text}` : text,
     ...place,
     url: reading.url,
@@ -413,6 +444,65 @@ const EDITORS_SIGNATURE =
   /^Geschrieben von (?:Karl Mar[xs]|Friedrich Engels)(?: und (?:Karl Marx|Friedrich Engels))?[.,]?$/;
 
 /**
+ * The editors' lines a page sets above the text, before its first page
+ * number: when and how the work appeared, where it is printed from, the
+ * newspaper bracketed or quoted, the authors' names.
+ */
+const EDITORS_LINES: RegExp[] = [
+  AUTHOR_LINE,
+  /^(?:Geschrieben|Erschienen|Gedruckt|Zuerst veröffentlicht|Zum erstenmal veröffentlicht)\s/,
+  /^(?:Aus|Nach):\s/,
+  /^Nach der Handschrift\.?$/,
+  /^Nach de[mr]\s.{0,60}(?:Flugblatt|Handschrift|Manuskript|Ausgabe)\.?$/,
+  /^\[[^\]]*\d{4}[^\]]*\]$/,
+  /^["„][^"“]{3,100}["“],\s.{0,100}\d{4}\.?$/,
+  // The Revue's title, which some pages break across two lines.
+  /^["„]Neue Rheinische Zeitung\.$/,
+  /^Politisch-ökonomische Revue["“],\s.{0,60}\d{4}\.?$/,
+];
+
+function isEditorsLine(element: Element): boolean {
+  const text = lineText(element).replace(/\s+/g, " ").trim();
+  return (
+    headingKind(element) === null &&
+    EDITORS_LINES.some((line) => line.test(text))
+  );
+}
+
+/** A word that keeps the hyphen before it: Kauf- und Verkauf. */
+const SET_APART = /^(?:und|oder|bis|sowie)(?![\p{L}-])/u;
+
+/** The site's line above a page's text naming the author and the work: Friedrich Engels - Herrn Eugen Dühring's Umwälzung der Wissenschaft. */
+const SITE_TITLE =
+  /^(?:Karl Marx|Friedrich Engels)(?:\s*\/\s*(?:Karl Marx|Friedrich Engels))?\s+-\s+\S/;
+
+/** A page number set in the text: <471>, |203|. */
+const MARKED_PAGE = /<(\d+)>|\|(\d+)\|/;
+
+/** The blocks after the editors' lines above the page's first page number. */
+function withoutEditorsLines(blocks: Element[]): Element[] {
+  const marked = blocks.findIndex((block) =>
+    MARKED_PAGE.test(block.textContent),
+  );
+  // A page with no page number has them only above its first line of text.
+  const text = blocks.findIndex(
+    (block) => headingKind(block) === null && !isEditorsLine(block),
+  );
+  const opening = marked === -1 ? text : marked;
+  return blocks.filter(
+    (block, index) => index >= opening || !isEditorsLine(block),
+  );
+}
+
+/** The first MEW page the page's header names: S. 625, S. 148-151. */
+function headerPage(html: string): string | undefined {
+  const text = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]*>/g, " ");
+  return /Seitenzahlen verweisen auf:[\s\S]{0,600}?\bS\.\s*(\d+)/.exec(
+    text,
+  )?.[1];
+}
+
+/**
  * The oldest pages' own apparatus set as text: the edition the page numbers
  * follow, the transcription's date, the editors' header and signature, the site's path
  * to the volume and the links to the work's other pages.
@@ -420,7 +510,8 @@ const EDITORS_SIGNATURE =
 function isSiteApparatus(element: Element): boolean {
   const text = element.textContent.trim();
   if (
-    /^(?:Seitenzahlen verweisen auf|Pfad:|\d+\.\s*Korrektur|Erstellt am)/.test(
+    (headingKind(element) !== null && SITE_TITLE.test(text)) ||
+    /^(?:Seitenzahlen verweisen auf|Pfad:|\d+\.\s*Korrektur|Erstellt am|Karl Marx\s*[-/]\s*Friedrich Engels\s*-\s*Werke\b)/.test(
       text,
     ) ||
     EDITORS_HEADER.test(text) ||
@@ -474,46 +565,26 @@ function notesOf(blocks: Element[]): {
 }
 
 /**
- * A first-level heading the page leaves open, its line ended by a
- * paragraph's end tag instead: <h1>Titel</font></p>. Left open, it would
- * hold the whole page.
- */
-const OPEN_HEADING = /<H1\b([^>]*)>((?:(?!<\/?H1\b|<P\b)[\s\S])*?)<\/P>/gi;
-/** A line set in large type: where a page without a first-level heading sets an article's title. */
-const LARGE_LINE = /<FONT SIZE=\+?[5-9]>\s*<P\b[^>]*>([\s\S]*?)<\/P>/i;
-/** A line that opens with its authors' names, which BYLINE_TITLE reads. */
-const BYLINE_OPENING = /^\s*\*?(?:Karl Marx|Friedrich Engels)\b/;
-
-/**
- * An article's title the page sets as its first line in large type, made
- * its first-level heading; a page with one, or whose line names the authors
- * first, as it is.
- */
-function articleTitled(html: string): string {
-  if (/<H1\b/i.test(html)) return html;
-  const line = LARGE_LINE.exec(html);
-  if (!line?.[1] || BYLINE_OPENING.test(line[1].replace(/<[^>]*>/g, ""))) {
-    return html;
-  }
-  return html.replace(LARGE_LINE, "<H1>$1</H1>");
-}
-
-/**
- * The oldest pages' markup made sound: a first-level heading left open
- * closed, a heading set in large type at the
- * centre made a heading, the type sizes dropped, and bold or emphasis opened before a
+ * The oldest pages' markup made sound: a stray bracket before a name set as
+ * text, which HTML would read as a tag; a heading set in large type made a
+ * heading, the type sizes dropped, and a heading the page closes as a
+ * paragraph closed, as one it leaves open (<h1>Titel</font></p>); bold or emphasis opened before a
  * paragraph moved into it, which would otherwise close the paragraph at its
  * page number and leave the text after it out; a note's mark nested in the
  * link to its note, which HTML cannot nest, set as the link.
  */
 function sound(html: string): string {
   return html
-    .replace(OPEN_HEADING, "<H1$1>$2</H1>")
+    .replace(/<(?=[A-ZÄÖÜ][a-zäöüß]+\s+[A-ZÄÖÜ][a-zäöüß]+[^>=]*>)/g, "&lt;")
     .replace(
-      /<FONT SIZE=\+?[5-9]>\s*<P ALIGN="?CENTER"?>([\s\S]*?)<\/P>/gi,
+      /<FONT SIZE="?(?:\+[2-9]|[5-9])"?>\s*<P(?:\s+ALIGN="?CENTER"?)?>([\s\S]*?)<\/P>/gi,
       "<H3>$1</H3>",
     )
     .replace(/<\/?FONT[^>]*>/gi, "")
+    .replace(
+      /<(H[1-6])([^>]*)>((?:(?!<\/?H[1-6][\s>]|<P[\s>])[\s\S])*?)<\/P>/gi,
+      "<$1$2>$3</$1>",
+    )
     .replace(/<(B|EM|I|STRONG|U)>(\s*)<P([^>]*)>/gi, "<P$3>$2<$1>")
     .replace(
       /<A\s+HREF="(#[^"]*)"\s*>\s*<A\s+NAME="[^"]*"\s*>([^<]*)<\/A>\s*<\/A>/gi,
@@ -530,20 +601,27 @@ function readPage(
   const window = new Window();
   try {
     const document = window.document;
-    const text = TEXT_REGION.exec(page.html)?.[1] ?? page.html;
-    document.body.innerHTML = sound(
-      work.articles === true ? articleTitled(text) : text,
-    );
+    const region = TEXT_REGION.exec(page.html)?.[1];
+    // The older template sets an article's title above its text region.
+    const above = (): string => {
+      if (region === undefined || work.articles !== true) return "";
+      document.body.innerHTML = sound(page.html);
+      return document.querySelector("h1")?.textContent ?? "";
+    };
+    const outside = above();
+    document.body.innerHTML = sound(region ?? page.html);
     // An article's title, which the apparatus would take for the site's.
     const headed =
       work.articles === true
-        ? titleCased(spaced(document.querySelector("h1")?.textContent ?? ""))
+        ? titleCased(
+            spaced(document.querySelector("h1")?.textContent ?? outside),
+          )
         : "";
     document.querySelectorAll(APPARATUS).forEach((element) => {
       element.remove();
     });
-    const listed = blocksOf(document.body).filter(
-      (element) => !isSiteApparatus(element),
+    const listed = withoutEditorsLines(
+      blocksOf(document.body).filter((element) => !isSiteApparatus(element)),
     );
     // Some pages set an article's title in one line with its authors' names.
     const byline =
@@ -552,21 +630,43 @@ function readPage(
             .slice(0, 3)
             .find((element) => BYLINE_TITLE.test(spaced(element.textContent)))
         : undefined;
+    // Others set it as the first heading above the text, in large type.
+    const marked = listed.findIndex((element) =>
+      MARKED_PAGE.test(element.textContent),
+    );
+    const opening =
+      work.articles === true && headed === "" && byline === undefined
+        ? listed
+            .slice(0, marked === -1 ? listed.length : marked)
+            .find(
+              (element) =>
+                headingKind(element) !== null &&
+                !AUTHOR_LINE.test(element.textContent.trim()),
+            )
+        : undefined;
+    const titling = byline ?? opening;
     const article =
-      byline === undefined
+      titling === undefined
         ? headed
         : titleCased(
-            spaced(byline.textContent).replace(BYLINE_TITLE, "$1").trim(),
+            spaced(titling.textContent).replace(BYLINE_TITLE, "$1").trim(),
           );
-    const blocks = listed.filter((element) => element !== byline);
+    const blocks = listed.filter((element) => element !== titling);
     const notes = notesOf(blocks);
     reading.url = page.url;
     // Text before a page's first number, such as a chapter's motto, is on
     // that page.
-    const first = /<(\d+)>|\|(\d+)\|/.exec(
+    const first = MARKED_PAGE.exec(
       blocks.map((block) => block.textContent).join(" "),
     );
-    const label = first?.[1] ?? first?.[2];
+    // A page with no page number of its own is on the page its header
+    // names, if it opens an article or the work.
+    const label =
+      first?.[1] ??
+      first?.[2] ??
+      (work.articles === true || reading.place.label === ""
+        ? headerPage(page.html)
+        : undefined);
     if (label) turnPage(reading, label);
     if (article.length > 0) openHeading(1, article, reading);
     reading.kept = new Map(
@@ -657,17 +757,28 @@ export function parseMlwerkePages(
     throw new Error(`No heading "${missing.title}" in the pages, in its order`);
   }
   (work.fixes ?? []).forEach((fix) => applyFix(reading.sections, fix));
-  const skipped = work.skipHeadings ?? [];
-  const absent = skipped.find(
-    (title) =>
-      !reading.sections.some((section) => section.titles.includes(title)),
+  const skipped = (section: TitledSection<Block>): boolean =>
+    section.titles.some((title) =>
+      (work.skipHeadings ?? []).some((heading) => sameName(title, heading)),
+    );
+  // A heading to leave out that names none is stale.
+  const absent = (work.skipHeadings ?? []).find(
+    (heading) =>
+      !reading.sections.some((section) =>
+        section.titles.some((title) => sameName(title, heading)),
+      ),
   );
   if (absent !== undefined) {
     throw new Error(`No heading "${absent}" in the pages to leave out`);
   }
-  const kept = reading.sections.filter(
-    (section) => !section.titles.some((title) => skipped.includes(title)),
-  );
+  // A paragraph or note a fix empties is left out.
+  const kept = reading.sections
+    .filter((section) => !skipped(section))
+    .map((section) => ({
+      ...section,
+      paragraphs: section.paragraphs.filter((block) => block.text !== ""),
+      notes: section.notes.filter((block) => block.text !== ""),
+    }));
   // Page numbers repeat across MEW volumes: a book drawn from several names
   // the volume in each citation.
   const volumes = new Set(pages.map((page) => volumeOf(page.url)));

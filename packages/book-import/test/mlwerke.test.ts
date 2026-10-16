@@ -144,6 +144,23 @@ describe("parseMlwerkePages", () => {
     );
   });
 
+  it("leaves out a paragraph a fix empties, such as a newspaper editor's note", () => {
+    const page = `<H3>Brief</H3><P>&lt;687&gt;Ihr ganz ergebener</P><P>Dr. K. Marx</P><P>Redakteur der ehemaligen "Rheinischen Zeitung" (Fu&szlig;note der Redaktion)</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html: page }], {
+        ...work,
+        fixes: [
+          {
+            page: "687",
+            from: "Redakteur der ehemaligen „Rheinischen Zeitung“ (Fußnote der Redaktion)",
+            to: "",
+          },
+        ],
+      })[0]?.paragraphs,
+    ).toEqual(["Ihr ganz ergebener", "Dr. K. Marx"]);
+  });
+
   it("refuses a fix whose text is not on its page", async () => {
     const pagesRead = await pages();
 
@@ -382,6 +399,145 @@ describe("parseMlwerkePages, an article whose page sets its title with its autho
         "[Brief an den Redakteur des „Beobachters“]",
         "Artikel, 21",
         ["Herr Redakteur! Ich ersuche Sie."],
+      ],
+    ]);
+  });
+});
+
+describe("parseMlwerkePages, the pages of shorter writings", () => {
+  const read = (
+    html: string,
+  ): Array<[string[], string, string | null, string[]]> =>
+    parseMlwerkePages([{ url: URL_471, html }], {
+      citation: "Artikel",
+      articles: true,
+    }).map((unit) => [unit.parents, unit.title, unit.section, unit.paragraphs]);
+
+  it("titles an article of the older template by the heading above its text region", () => {
+    const html = `<P><SMALL>Seitenzahlen verweisen auf: Karl Marx/ Friedrich Engels - Werke. Band <!-- #BeginEditable "Band" -->1<!-- #EndEditable -->. S. <!-- #BeginEditable "Seitenzahl" -->148-151<!-- #EndEditable -->.</SMALL></P><H2><!-- #BeginEditable "Autor" -->Karl Marx<!-- #EndEditable --></H2><H1><!-- #BeginEditable "%DCberschrift" -->Der Ehescheidungsgesetzentwurf<!-- #EndEditable --></H1><!-- #BeginEditable "Textk%F6rper" --><P><SMALL>[&raquo;Rheinische Zeitung&laquo; Nr. 353 vom 19. Dezember 1842]</SMALL></P><P><B>|148|</B> Die Ehe.</P><!-- #EndEditable -->`;
+
+    expect(read(html)).toEqual([
+      [[], "Der Ehescheidungsgesetzentwurf", "Artikel, 148", ["Die Ehe."]],
+    ]);
+  });
+
+  it("cites an article whose page sets no page number from the page its header names", () => {
+    const html = `<P><SMALL>Seitenzahlen verweisen auf: Karl Marx - Friedrich Engels - Werke, Band 2, S. 625<BR>Dietz Verlag, Berlin/DDR 1972</SMALL></P><H2>Karl Marx</H2><H1>Erkl&auml;rung</H1><P><SMALL>Aus: "Trier'sche Zeitung" Nr. 26 vom 26. Januar 1846.</SMALL></P><P>Ich habe nie eine Zeile geschrieben.</P><P ALIGN="RIGHT">Karl Marx</P>`;
+
+    expect(read(html)).toEqual([
+      [
+        [],
+        "Erklärung",
+        "Artikel, 625",
+        ["Ich habe nie eine Zeile geschrieben.", "Karl Marx"],
+      ],
+    ]);
+  });
+
+  it("leaves out the editors' lines above the text, the text's own opening kept", () => {
+    const html = `<P><SMALL>Seitenzahlen verweisen auf: Karl Marx - Friedrich Engels - Werke, Band 7, S. 323</SMALL></P><P><FONT SIZE="2">Karl Marx/Friedrich Engels - Werke. (Karl) Dietz Verlag, Berlin. Band 7, S. 323.</FONT></P><H2>Karl Marx; Friedrich Engels</H2><H1>Erkl&auml;rung</H1><P>[Karl Marx]</P><FONT SIZE=2><P>Geschrieben am 11. Mai 1846.<BR>Als lithographisches Zirkular im Mai 1846 verbreitet.</P><P>Erschienen als Brosch&uuml;re Januar 1854 in New York.</P><P>Nach der Handschrift.</P><P>Nach: "Das kommunistische Manifest", <BR>neue Ausgabe, Leipzig 1872.</P><P>["Die Reform" Nr. 139 vom 19. November 1859, Beilage]</P><P>"Neue Rheinische Zeitung. Politisch-&ouml;konomische Revue", Viertes Heft, April 1850.</P><P>"Neue Rheinische Zeitung.</P><P>Politisch-&ouml;konomische Revue",<BR>Zweites Heft, Februar 1850.</P></FONT><P><I>An den Redakteur der "Neuen Deutschen Zeitung"!</I></P><B><P>&lt;323&gt;</B> Nach der Erkl&auml;rung.</P><P>Geschrieben steht es.</P>`;
+
+    expect(read(html)).toEqual([
+      [
+        [],
+        "Erklärung",
+        "Artikel, 323",
+        [
+          "*An den Redakteur der „Neuen Deutschen Zeitung“!*",
+          "Nach der Erklärung.",
+          "Geschrieben steht es.",
+        ],
+      ],
+    ]);
+  });
+
+  it("leaves out an authors' line set in brackets as a heading", () => {
+    const html = `<H2>[Karl Marx]</H2><H1>Der Text</H1><P>&lt;511&gt; Der Anfang.</P>`;
+
+    expect(read(html)).toEqual([
+      [[], "Der Text", "Artikel, 511", ["Der Anfang."]],
+    ]);
+  });
+
+  it("sets the articles a page bundles side by side under its title", () => {
+    const html = `<H1>Das Verbot</H1><H3>Erster Artikel</H3><P><B>|152|</B> Eins.</P><H3>Zweiter Artikel</H3><P>Zwei.</P><H3>Dritter Artikel</H3><P>Drei.</P>`;
+
+    expect(read(html).map(([parents, title]) => [parents, title])).toEqual([
+      [["Das Verbot"], "Erster Artikel"],
+      [["Das Verbot"], "Zweiter Artikel"],
+      [["Das Verbot"], "Dritter Artikel"],
+    ]);
+  });
+
+  it("titles an article whose page has no first-level heading by the heading above its text", () => {
+    const large = `<P><SMALL>Seitenzahlen verweisen auf: Werke, Band 6, S. 527-528</SMALL></P><P><FONT SIZE=4><Karl Marx</FONT></P><FONT SIZE=5><P>Der 13. Juni</P></FONT><FONT SIZE=2><P>["Der Volksfreund" Nr. 26 vom 29. Juni 1849]</P></FONT><B><P><A NAME="S527">&lt;527&gt;</A></B> <I>Paris, </I>den 21 Juni.</P>`;
+    const centred = `<FONT Size="+2"><P ALIGN="CENTER"><A NAME="S18">Nachwort zur zweiten Auflage</P></FONT><P><B>&lt;18&gt;</A></B> Den Lesern.</P>`;
+    const unclosed = `<p><font size="+1">Karl Marx/Friedrich Engels</font></p><h1>Forderungen der Kommunistischen Partei</font></p><p><font size="2">Geschrieben zwischen dem 21. und 29. M&auml;rz 1848.</font></p><p><b><a name="S3">&lt;3&gt;</a></b> 1. Ganz Deutschland.</p>`;
+
+    expect(read(large)).toEqual([
+      [[], "Der 13. Juni", "Artikel, 527", ["*Paris,* den 21 Juni."]],
+    ]);
+    expect(read(centred)).toEqual([
+      [[], "Nachwort zur zweiten Auflage", "Artikel, 18", ["Den Lesern."]],
+    ]);
+    expect(read(unclosed)).toEqual([
+      [
+        [],
+        "Forderungen der Kommunistischen Partei",
+        "Artikel, 3",
+        ["1. Ganz Deutschland."],
+      ],
+    ]);
+  });
+
+  it("leaves out the sections the work names, with their notes, the text after them kept", () => {
+    const html = `<H3>I. Gegenstand</H3><P><B>|136|</B> Engels.<A HREF="#F1">(1)</A></P><H4>(Schlu&szlig;)</H4><P>Noch Engels.</P><H3>X. Aus der Geschichte</H3><P><B>|210|</B> Marx.<A HREF="#F2">(2)</A></P><P>Fu&szlig;noten von Friedrich Engels</P><P><A NAME="F1">(1)</A> Eine Note.</P><P><A NAME="F2">(2)</A> Noch eine.</P>`;
+    const units = parseMlwerkePages([{ url: URL_471, html }], {
+      citation: "Anti-Dühring",
+      headings: [
+        { level: 1, title: "I. Gegenstand" },
+        { level: 1, title: "X. Aus der Geschichte" },
+      ],
+      skipHeadings: ["I. Gegenstand"],
+    });
+
+    expect(
+      units.map((unit) => [unit.title, unit.section, unit.paragraphs]),
+    ).toEqual([
+      [
+        "X. Aus der Geschichte",
+        "Anti-Dühring, 210",
+        ["Marx.2)", "2) Noch eine."],
+      ],
+    ]);
+  });
+});
+
+describe("parseMlwerkePages, the site's and the transcription's slips", () => {
+  it("leaves out the site's line naming the author and the work above a page's text", () => {
+    const html = `<H2>Friedrich Engels - Herrn Eugen D&uuml;hring's Umw&auml;lzung der Wissenschaft</H2><H3>X. Aus der Geschichte</H3><P><B>|210|</B> Marx.</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html }], {
+        citation: "Anti-Dühring",
+        headings: [{ level: 1, title: "X. Aus der Geschichte" }],
+      }).map((unit) => [unit.title, unit.paragraphs]),
+    ).toEqual([["X. Aus der Geschichte", ["Marx."]]]);
+  });
+
+  it("runs a paragraph the transcription broke off at a page number inside a word on into the next", () => {
+    const html = `<H3>Revue</H3><P>&lt;219&gt; reißt die Barbarenv&ouml;lker in den Welt- <B>&lt;221&gt;</B></P><P>handel, in die Zivilisation.</P><P>Kauf- <B>&lt;222&gt;</B></P><P>und Verkauf.</P><P>Ein Wort-</P><P>spiel.</P>`;
+
+    expect(
+      parseMlwerkePages([{ url: URL_471, html }], work).map(
+        (unit) => unit.paragraphs,
+      ),
+    ).toEqual([
+      [
+        "reißt die Barbarenvölker in den Welthandel, in die Zivilisation.",
+        "Kauf- und Verkauf.",
+        "Ein Wort-",
+        "spiel.",
       ],
     ]);
   });
