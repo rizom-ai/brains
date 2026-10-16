@@ -1,5 +1,16 @@
 # @brains/document-plugin
 
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.563
+  - @brains/document@0.2.0-alpha.563
+  - @brains/media-renderer@0.2.0-alpha.563
+  - @brains/utils@0.2.0-alpha.563
+  - @brains/plugins@0.2.0-alpha.563
+
 ## 0.2.0-alpha.562
 
 ### Patch Changes

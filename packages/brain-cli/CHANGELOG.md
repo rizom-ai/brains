@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- [#672](https://github.com/rizom-ai/brains/pull/672) [`a2e3e92`](https://github.com/rizom-ai/brains/commit/a2e3e92ec1f5067d462929a19624b40f5089de1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `port` in `brain.yaml` now sets the port the production server listens on, not only the URLs the brain prints. An explicit `plugins.webserver.productionPort` still takes precedence.
+
+- [#673](https://github.com/rizom-ai/brains/pull/673) [`8a82dff`](https://github.com/rizom-ai/brains/commit/8a82dff9418c6b4961945af2a02581d96cb0f5cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Built-in commands such as `brain tool` now refuse `--remote` instead of ignoring it and booting a local brain against the same data. Remote mode applies to the brain's own commands, e.g. `brain build-site preview --remote <url>`.
+
+- [#676](https://github.com/rizom-ai/brains/pull/676) [`b2e1d9d`](https://github.com/rizom-ai/brains/commit/b2e1d9dac7e2cb97790e1d6cdfb96d292ac0473a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation that dies with its worker no longer leaves its entity stuck at "generating". When the job queue fails an expired attempt for good on reclaim, it now runs the handler's terminal error callback, which the queue skipped before; generation jobs use it to mark a still-generating placeholder failed. If `system_generate` cannot queue its job at all, it removes the placeholder it just created instead of leaving it behind.
+
+- [#625](https://github.com/rizom-ai/brains/pull/625) [`b94a75c`](https://github.com/rizom-ai/brains/commit/b94a75c7c5dda9dada4131fc5768ff4821b3518b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking to create a note from an upload with changes (rewritten, restructured, summarised or translated) now generates a new note from the upload's content instead of importing the original unchanged. Importing an upload as-is still preserves its wording.
+
 ## 0.2.0-alpha.562
 
 No changes in this release.
