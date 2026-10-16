@@ -68,16 +68,31 @@ if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; t
   # --continue: keep running sibling tasks after one fails so their successful
   # results still seal the turbo cache — avoids re-running the same packages
   # on every retry after a single broken file.
+  # The repo-scripts lint and typecheck sit outside turbo, so they are
+  # uncached (~50s together). Run them only when scripts/ or the root config
+  # they read is staged; CI still runs both on every push.
+  if git diff --cached --name-only | grep -qE '^scripts/|^(eslint\.config\.[a-z]+|tsconfig\.json|package\.json|bun\.lock)$'; then
+    SCRIPTS_STAGED=1
+  else
+    SCRIPTS_STAGED=0
+  fi
+
   echo "🔍 Running linter..."
-  bun run lint -- --continue
+  if [ "$SCRIPTS_STAGED" = 1 ]; then
+    bun run lint -- --continue
+  else
+    bun run lint -- --continue --skip-scripts
+  fi
 
   # Run type checking on all packages (required for monorepo correctness).
   echo "🔍 Running type checks..."
   bun run typecheck -- --continue
 
   # scripts/ is outside the workspaces glob, so turbo never typechecks it.
-  echo "🔍 Type checking repo scripts..."
-  bun run typecheck:scripts
+  if [ "$SCRIPTS_STAGED" = 1 ]; then
+    echo "🔍 Type checking repo scripts..."
+    bun run typecheck:scripts
+  fi
 
   # Run tests on all packages (required for monorepo correctness).
   # The published-surface checks — tsc over the generated declarations, the
