@@ -24,9 +24,43 @@ The fleet has one image topology:
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`, and `IMAGE_TAG=<tag>` for an instance with site pins
 - build and deploy derive the same effective image tag from the resolved registry
 
+## Reviewed runtime dependencies
+
+Use Bun 1.4.0 to prepare the full dependency graph before building a new image:
+
+```sh
+brains-ops images:lock .
+# Or prepare one version/pin set before promotion:
+brains-ops images:lock . --brain-version <exact-version> --site-packages "<exact site/theme pins>"
+```
+
+Review and commit each new `deploy/runtime/<image-tag>/package.json` and `bun.lock`
+together with its desired-state change. The manifest pins Brain and exactly that
+image's site/theme packages, and overrides `postcss-selector-parser` to 7.1.6.
+Review fresh runtime audit and behavior checks; a frozen lock is not proof that
+bundled code, operating-system packages, or every dependency is vulnerability-free.
+
+The command resolves dependencies with lifecycle scripts disabled; it does not
+build, publish, deploy, decrypt secrets, or inspect fleet hosts. Existing entries
+are validated and left untouched, never refreshed. A failed new entry retains an
+`.incomplete` marker and diagnostic files and blocks reuse; inspect and preserve
+that evidence before separately approving any recovery.
+
+Build refuses missing, incomplete, or mismatched manifests. Docker copies only the
+reviewed manifest and lock for the selected tag and installs production packages
+with `--frozen-lockfile --ignore-scripts`; it never resolves updates with `bun add`.
+Commit both inputs: changing only the manifest without a matching lock fails the
+frozen install before publication.
+
+Existing published tags remain immutable and are not rebuilt by adopting this
+scaffold. Existing-image verification still checks only the exact top-level Brain
+and site/theme versions; it does not certify a legacy image's transitive graph.
+The parser fix reaches running instances only through a separately approved new
+image/version rollout, never by overwriting a deployed tag.
+
 ## Version bump flow
 
-When `pilot.yaml.brainVersion` changes and you push:
+First generate and review the matching runtime locks. When `pilot.yaml.brainVersion` changes and you push:
 
 1. build publishes each missing image, named by Brain version and site pins, and verifies existing images against what their names say they hold
 2. reconcile refreshes generated `users/<handle>/.env`
