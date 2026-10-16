@@ -132,17 +132,37 @@ const matrixSchema = z.looseObject({
   ),
 });
 
+const detailSchema = z.object({
+  type: z.literal("detail"),
+  queryKey: z.string(),
+  master: matrixSchema,
+  open: z
+    .object({
+      forId: z.string(),
+      title: z.string(),
+      blocks: z.array(z.looseObject({ type: z.string() })),
+    })
+    .optional(),
+});
+
+async function boardDetail(
+  registration: StudioWorkspaceRegistration,
+  query?: Record<string, string>,
+): Promise<z.output<typeof detailSchema>> {
+  const { view } = z
+    .object({ view: z.object({ blocks: z.array(z.unknown()) }) })
+    .parse(await registration.dataProvider(niels, query));
+  const detail = view.blocks
+    .map((block) => detailSchema.safeParse(block))
+    .find((parsed) => parsed.success);
+  if (!detail?.success) throw new Error("Board has no card detail");
+  return detail.data;
+}
+
 async function board(
   registration: StudioWorkspaceRegistration,
 ): Promise<z.output<typeof matrixSchema>> {
-  const { view } = z
-    .object({ view: z.object({ blocks: z.array(z.unknown()) }) })
-    .parse(await registration.dataProvider(niels));
-  const matrix = view.blocks
-    .map((block) => matrixSchema.safeParse(block))
-    .find((parsed) => parsed.success);
-  if (!matrix?.success) throw new Error("Board has no matrix");
-  return matrix.data;
+  return (await boardDetail(registration)).master;
 }
 
 function column(
@@ -295,15 +315,74 @@ describe("the Board workspace", () => {
     expect(card?.metadata).toContain("#events");
   });
 
-  it("links each card to the action item and its source summary", async () => {
+  it("opens a card in place and links it to its editor and source summary", async () => {
     const registration = await registered(
       await brain([{ id: "a", text: "Draft the checklist", status: "open" }]),
     );
     const [card] = column(await board(registration), "open");
+    expect(JSON.stringify(card)).toContain(
+      '"link":{"kind":"detail","itemId":"a"}',
+    );
     const links = JSON.stringify(card?.links);
     expect(links).toContain('"entityType":"summary"');
     expect(links).toContain('"id":"conv-1"');
-    expect(JSON.stringify(card)).toContain('"entityType":"action-item"');
+    expect(links).toContain('"entityType":"action-item"');
+  });
+
+  it("shows an open card's text, facts, named history, notes and a note form", async () => {
+    const registration = await registered(
+      await brain([
+        {
+          id: "c",
+          text: "Book the venue",
+          status: "blocked",
+          assignee: "Sam Rivera",
+          history: [
+            {
+              ...move(daysAgo(2), "open", "blocked"),
+              displayName: "Sam Rivera",
+            },
+          ],
+        },
+      ]),
+    );
+
+    const detail = await boardDetail(registration, { card: "c" });
+
+    expect(detail.queryKey).toBe("card");
+    expect(detail.open?.forId).toBe("c");
+    expect(detail.open?.title).toBe("Book the venue");
+    const open = JSON.stringify(detail.open?.blocks);
+    expect(open).toContain('"id":"card-text","text":"Book the venue"');
+    expect(open).toContain('"label":"Assigned to"');
+    expect(open).toContain("To do → Blocked");
+    expect(open).toContain("Sam Rivera");
+    expect(open).toContain('"label":"Add a note"');
+    expect(open).toContain('"control":"text"');
+  });
+
+  it("adds a note under the signed-in name", async () => {
+    const context = await brain([
+      { id: "a", text: "Draft the checklist", status: "open" },
+    ]);
+    const registration = await registered(context);
+    if (!registration.actionHandler) throw new Error("Board has no actions");
+
+    expect(
+      await registration.actionHandler(
+        { actionId: "note", input: { id: "a", text: "Started a draft." } },
+        niels,
+      ),
+    ).toEqual({ status: "Note added." });
+
+    const stored = await context.entityService.getEntity(
+      { entityType: "action-item", id: "a", visibilityScope: "restricted" },
+      actionItemSchema,
+    );
+    expect(stored?.content).toContain("— Started a draft.");
+    expect(stored?.content).toContain("Niels Ward");
+    const detail = await boardDetail(registration, { card: "a" });
+    expect(JSON.stringify(detail.open?.blocks)).toContain("Started a draft.");
   });
 
   it("moves a card and records who moved it", async () => {

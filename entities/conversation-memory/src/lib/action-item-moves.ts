@@ -1,7 +1,7 @@
 import type { ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { applyMove } from "./action-item-board";
+import { applyMove, applyNote } from "./action-item-board";
 import {
   actionItemSchema,
   type ActionItemEntity,
@@ -13,7 +13,7 @@ export interface ActionItemMoveDeps {
     EntityPluginContext["entityService"],
     "getEntity" | "updateEntity"
   >;
-  /** The mover's reach: a card they cannot read is a card they cannot move. */
+  /** The writer's reach: a card they cannot read is a card they cannot change. */
   visibilityScope: ContentVisibility;
   now?: () => Date;
 }
@@ -32,51 +32,111 @@ export type ActionItemMoveResult =
   | { status: "conflict"; current: ActionItemStatus }
   | { status: "not-found" };
 
+export interface ActionItemNoteRequest {
+  id: string;
+  text: string;
+  actor: ActorRef;
+  actorName?: string | undefined;
+}
+
+export type ActionItemNoteResult =
+  | { status: "noted" }
+  | { status: "conflict"; current: ActionItemStatus }
+  | { status: "not-found" };
+
+type WriteOutcome =
+  | { status: "written"; entity: ActionItemEntity }
+  | { status: "conflict"; current: ActionItemStatus }
+  | { status: "not-found" };
+
 /**
- * Move a card through the one write path that records who moved it. The write
- * is conditional on the version read; an unrelated concurrent edit is
- * reapplied once, but a card someone else already moved is reported, never
- * overridden.
+ * The one way the board writes a card: read it, derive the change, and write
+ * conditionally on the version read. An unrelated concurrent edit is
+ * reapplied once; a change refused by the fresh card is reported.
  */
-export async function moveActionItem(
+async function writeActionItem(
   deps: ActionItemMoveDeps,
-  request: ActionItemMoveRequest,
-): Promise<ActionItemMoveResult> {
-  const attempt = async (
-    attemptsLeft: number,
-  ): Promise<ActionItemMoveResult> => {
+  id: string,
+  actor: ActorRef,
+  change: (
+    entity: ActionItemEntity,
+    at: string,
+  ) => ActionItemEntity | { refused: ActionItemStatus },
+): Promise<WriteOutcome> {
+  const attempt = async (attemptsLeft: number): Promise<WriteOutcome> => {
     const entity = await deps.entityService.getEntity(
       {
         entityType: ACTION_ITEM_ENTITY_TYPE,
-        id: request.id,
+        id,
         visibilityScope: deps.visibilityScope,
       },
       actionItemSchema,
     );
     if (!entity) return { status: "not-found" };
-    if (entity.metadata.status !== request.from) {
-      return { status: "conflict", current: entity.metadata.status };
+    const changed = change(entity, (deps.now?.() ?? new Date()).toISOString());
+    if ("refused" in changed) {
+      return { status: "conflict", current: changed.refused };
     }
-    const moved = applyMove(entity, {
-      from: request.from,
-      to: request.to,
-      actor: request.actor,
-      actorName: request.actorName,
-      at: (deps.now?.() ?? new Date()).toISOString(),
-    });
     const result = await deps.entityService.updateEntity({
-      entity: moved,
+      entity: changed,
       options: {
         expectedContentHash: entity.contentHash,
-        eventContext: { actor: request.actor },
+        eventContext: { actor },
       },
     });
     if (result.skipReason !== "content-conflict") {
-      return { status: "moved", entity: moved };
+      return { status: "written", entity: changed };
     }
     return attemptsLeft > 1
       ? attempt(attemptsLeft - 1)
       : { status: "conflict", current: entity.metadata.status };
   };
   return attempt(2);
+}
+
+/**
+ * Move a card through the one write path that records who moved it. A card
+ * someone else already moved is reported, never overridden.
+ */
+export async function moveActionItem(
+  deps: ActionItemMoveDeps,
+  request: ActionItemMoveRequest,
+): Promise<ActionItemMoveResult> {
+  const outcome = await writeActionItem(
+    deps,
+    request.id,
+    request.actor,
+    (entity, at) =>
+      entity.metadata.status === request.from
+        ? applyMove(entity, {
+            from: request.from,
+            to: request.to,
+            actor: request.actor,
+            actorName: request.actorName,
+            at,
+          })
+        : { refused: entity.metadata.status },
+  );
+  return outcome.status === "written"
+    ? { status: "moved", entity: outcome.entity }
+    : outcome;
+}
+
+/** Add one dated, named note to a card. */
+export async function addActionItemNote(
+  deps: ActionItemMoveDeps,
+  request: ActionItemNoteRequest,
+): Promise<ActionItemNoteResult> {
+  const outcome = await writeActionItem(
+    deps,
+    request.id,
+    request.actor,
+    (entity, at) =>
+      applyNote(entity, {
+        text: request.text,
+        actorName: request.actorName,
+        at,
+      }),
+  );
+  return outcome.status === "written" ? { status: "noted" } : outcome;
 }

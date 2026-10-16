@@ -17,8 +17,12 @@ import { ActionItemAdapter } from "../../src/adapters/conversation-memory-adapte
 import {
   actionItemBody,
   actionItemBodyHash,
+  isBoardOwned,
 } from "../../src/lib/action-item-board";
-import { moveActionItem } from "../../src/lib/action-item-moves";
+import {
+  addActionItemNote,
+  moveActionItem,
+} from "../../src/lib/action-item-moves";
 import { createActionItemStatusValidator } from "../../src/lib/action-item-validator";
 import {
   actionItemSchema,
@@ -318,5 +322,39 @@ describe("the status validator", () => {
     expect(frontmatterOf((await stored(service)).content)["projects"]).toEqual([
       "Field guide",
     ]);
+  });
+});
+
+describe("noting a stored card", () => {
+  it("keeps the note, passes the status validator, and claims the card for the board", async () => {
+    const service = await brain();
+
+    const result = await addActionItemNote(
+      { entityService: service, now: at, visibilityScope: "restricted" },
+      {
+        id: ID,
+        text: "Venue wants a deposit.",
+        actor: niels,
+        actorName: "Niels Ward",
+      },
+    );
+
+    expect(result).toEqual({ status: "noted" });
+    const after = await stored(service);
+    expect(actionItemBody(after.content)).toContain(
+      "## Notes\n\n- 2026-10-15 · Niels Ward — Venue wants a deposit.\n",
+    );
+    expect(after.metadata.status).toBe("open");
+    expect(isBoardOwned(after)).toBe(true);
+  });
+
+  it("reports a card that no longer exists", async () => {
+    const service = await brain();
+    expect(
+      await addActionItemNote(
+        { entityService: service, now: at, visibilityScope: "restricted" },
+        { id: "missing", text: "Hello.", actor: niels },
+      ),
+    ).toEqual({ status: "not-found" });
   });
 });

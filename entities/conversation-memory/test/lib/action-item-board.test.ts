@@ -9,6 +9,7 @@ import { ActionItemAdapter } from "../../src/adapters/conversation-memory-adapte
 import {
   actionItemBody,
   applyMove,
+  applyNote,
   isBoardOwned,
 } from "../../src/lib/action-item-board";
 import {
@@ -231,5 +232,41 @@ describe("moving a card", () => {
         at: "2026-10-15T08:02:00.000Z",
       }),
     ).toThrow();
+  });
+});
+
+describe("adding a note", () => {
+  it("appends a dated, named line under Notes, keeping the text and every field", () => {
+    const item = projected({ status: "blocked" });
+    const noted = applyNote(item, {
+      text: "Waiting on the\n deposit.",
+      actorName: "Sam Rivera",
+      at: "2026-10-15T08:02:00.000Z",
+    });
+    expect(actionItemBody(noted.content)).toBe(
+      `${actionItemBody(item.content)}\n## Notes\n\n- 2026-10-15 · Sam Rivera — Waiting on the deposit.\n`,
+    );
+    expect(frontmatterOf(noted.content)).toEqual(frontmatterOf(item.content));
+    expect(noted.metadata).toEqual(item.metadata);
+    expect(
+      isBoardOwned({
+        ...noted,
+        metadata: { ...noted.metadata, status: "open" },
+      }),
+    ).toBe(true);
+
+    const twice = applyNote(noted, {
+      text: "Deposit paid.",
+      at: "2026-10-16T09:00:00.000Z",
+    });
+    expect(actionItemBody(twice.content)).toBe(
+      `${actionItemBody(noted.content)}- 2026-10-16 · A team member — Deposit paid.\n`,
+    );
+  });
+
+  it("refuses an empty note", () => {
+    expect(() =>
+      applyNote(projected(), { text: "  ", at: "2026-10-15T08:02:00.000Z" }),
+    ).toThrow("text");
   });
 });

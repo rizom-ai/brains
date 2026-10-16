@@ -6,12 +6,18 @@ import {
   registerBuiltInStudioWorkspace,
   type EntityPluginContext,
   type OperatorCaller,
+  type OperatorRegionBlock,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
-import { moveActionItem } from "./action-item-moves";
-import { actionItemTitle, arrivedAt, lastArrival } from "./action-item-board";
-import { channelLabel, formatAge } from "./widgets/format";
+import { addActionItemNote, moveActionItem } from "./action-item-moves";
+import {
+  actionItemBody,
+  actionItemTitle,
+  arrivedAt,
+  lastArrival,
+} from "./action-item-board";
+import { channelLabel, formatAge, formatShortDate } from "./widgets/format";
 import {
   actionItemSchema,
   actionItemStatusSchema,
@@ -83,7 +89,29 @@ const cardSchema = z.object({
   blockedBy: z.string().optional(),
 });
 
-const dataSchema = z.object({ cards: z.array(cardSchema) });
+const openCardSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  text: z.string(),
+  status: actionItemStatusSchema,
+  assignees: z.array(z.string()),
+  requesters: z.array(z.string()),
+  channel: z.string(),
+  history: z.array(
+    z.object({ move: z.string(), who: z.string(), when: z.string() }),
+  ),
+  notes: z.string().optional(),
+});
+
+const dataSchema = z.object({
+  cards: z.array(cardSchema),
+  open: openCardSchema.optional(),
+});
+
+/** The open card lives in the URL, so a reload reopens it. */
+const boardQuerySchema = z.object({ card: z.string().optional() });
+
+type OpenCard = z.output<typeof openCardSchema>;
 
 type BoardCard = z.output<typeof cardSchema>;
 
@@ -111,6 +139,21 @@ const moveAction = defineWorkspaceAction({
   output: moveResultSchema,
 });
 
+const noteAction = defineWorkspaceAction({
+  name: "note",
+  label: "Add a note",
+  input: z.object({
+    id: z.string(),
+    text: z.string().trim().min(1).max(2_000),
+  }),
+  output: moveResultSchema,
+});
+
+const noteResult = {
+  title: "Note",
+  fields: { status: { label: "Outcome" } },
+} as const;
+
 const dropAction = defineWorkspaceAction({
   name: "drop",
   label: "Drop",
@@ -123,6 +166,72 @@ const dropAction = defineWorkspaceAction({
   output: moveResultSchema,
 });
 
+type BoardAction = typeof moveAction | typeof dropAction | typeof noteAction;
+
+/** The open card's panels: its text, facts, recorded moves, notes, and a note form. */
+function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
+  return [
+    { type: "text", id: "card-text", text: card.text },
+    {
+      type: "key-values",
+      id: "card-facts",
+      items: [
+        { label: "Status", value: STATUS_LABELS[card.status] },
+        ...(card.assignees.length > 0
+          ? [{ label: "Assigned to", value: card.assignees.join(", ") }]
+          : []),
+        ...(card.requesters.length > 0
+          ? [{ label: "Requested by", value: card.requesters.join(", ") }]
+          : []),
+        { label: "From", value: card.channel },
+      ],
+    },
+    {
+      type: "card",
+      id: "card-history",
+      label: "History",
+      presentation: "section",
+      blocks: [
+        {
+          type: "list",
+          id: "card-moves",
+          empty: "No moves recorded yet.",
+          items: card.history.map((entry, index) => ({
+            id: `move-${index}`,
+            title: entry.move,
+            metadata: [entry.who, entry.when].filter(
+              (segment) => segment.length > 0,
+            ),
+          })),
+        },
+      ],
+    },
+    ...(card.notes
+      ? [
+          {
+            type: "text" as const,
+            id: "card-notes",
+            label: "Notes",
+            text: card.notes,
+          },
+        ]
+      : []),
+    {
+      type: "action",
+      id: "card-note",
+      action: noteAction,
+      label: "Add a note",
+      input: { id: card.id },
+      form: {
+        presentation: "inline",
+        submitLabel: "Add note",
+        fields: { text: { label: "Note", control: "text" } },
+      },
+      result: noteResult,
+    },
+  ];
+}
+
 const boardWorkspace = defineStudioWorkspace({
   id: "board",
   label: "Board",
@@ -130,25 +239,41 @@ const boardWorkspace = defineStudioWorkspace({
   priority: 15,
   permission: "trusted",
   entityCatalog: boardSources,
+  query: boardQuerySchema,
   data: dataSchema,
-  actions: [moveAction, dropAction],
+  actions: [moveAction, dropAction, noteAction],
   view: ({ data }) => ({
     title: "Board",
     description: "Action items from the team's conversations.",
     blocks: [
       {
-        type: "matrix",
-        id: "board",
-        columns: 4,
-        cells: COLUMNS.map((column) => ({
-          id: column.status,
-          label: column.label,
-          ...(column.status === "blocked" ? { tone: "warn" as const } : {}),
-          empty: column.empty,
-          items: data.cards
-            .filter((card) => card.status === column.status)
-            .map(cardItem),
-        })),
+        type: "detail",
+        id: "board-detail",
+        queryKey: "card",
+        empty: "Select a card to read it.",
+        master: {
+          type: "matrix",
+          id: "board",
+          columns: 4,
+          cells: COLUMNS.map((column) => ({
+            id: column.status,
+            label: column.label,
+            ...(column.status === "blocked" ? { tone: "warn" as const } : {}),
+            empty: column.empty,
+            items: data.cards
+              .filter((card) => card.status === column.status)
+              .map(cardItem),
+          })),
+        },
+        ...(data.open
+          ? {
+              open: {
+                forId: data.open.id,
+                title: data.open.title,
+                blocks: openCardBlocks(data.open),
+              },
+            }
+          : {}),
       },
       {
         type: "text",
@@ -164,9 +289,9 @@ function cardItem(card: BoardCard): {
   title: string;
   metadata: string[];
   badges?: { label: string; tone: "warn" }[];
-  link?: { catalog: typeof boardSources; entityType: string; id: string };
+  link: { detail: { itemId: string } };
   actionsLabel: string;
-  links?: {
+  links: {
     label: string;
     target: { catalog: typeof boardSources; entityType: string; id: string };
   }[];
@@ -203,18 +328,22 @@ function cardItem(card: BoardCard): {
           ],
         }
       : {}),
-    ...(card.id.length <= LINKABLE_ID_LENGTH
-      ? {
-          link: {
-            catalog: boardSources,
-            entityType: ACTION_ITEM_ENTITY_TYPE,
-            id: card.id,
-          },
-        }
-      : {}),
-    ...(card.summaryId.length <= LINKABLE_ID_LENGTH
-      ? {
-          links: [
+    link: { detail: { itemId: card.id } },
+    links: [
+      ...(card.id.length <= LINKABLE_ID_LENGTH
+        ? [
+            {
+              label: "Open in editor",
+              target: {
+                catalog: boardSources,
+                entityType: ACTION_ITEM_ENTITY_TYPE,
+                id: card.id,
+              },
+            },
+          ]
+        : []),
+      ...(card.summaryId.length <= LINKABLE_ID_LENGTH
+        ? [
             {
               label: "Conversation summary",
               target: {
@@ -223,9 +352,9 @@ function cardItem(card: BoardCard): {
                 id: card.summaryId,
               },
             },
-          ],
-        }
-      : {}),
+          ]
+        : []),
+    ],
     actionsLabel: "Move",
     actions: [
       ...MOVES[card.status].map((move) => ({
@@ -275,6 +404,43 @@ function finishedAt(entity: ActionItemEntity): number {
   return new Date(
     arrivedAt(entity, "done") ?? entity.metadata.timeRange.end,
   ).getTime();
+}
+
+/** The card text and its Notes section, from the markdown body. */
+function splitBody(entity: ActionItemEntity): { text: string; notes?: string } {
+  const body = actionItemBody(entity.content).replace(/^#\s+.+\n+/, "");
+  const [text = "", notes] = body.split(/^## Notes\s*$/m);
+  const trimmedNotes = notes?.trim();
+  return {
+    text: text.trim(),
+    ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+  };
+}
+
+function toOpenCard(entity: ActionItemEntity): OpenCard {
+  const { text, notes } = splitBody(entity);
+  return {
+    id: entity.id,
+    title: actionItemTitle(entity),
+    text: text.length > 0 ? text : actionItemTitle(entity),
+    status: entity.metadata.status,
+    assignees: (entity.metadata.assignedTo ?? []).map(
+      (assignee) => assignee.displayName,
+    ),
+    requesters: (entity.metadata.requestedBy ?? []).flatMap((requester) =>
+      requester.displayName ? [requester.displayName] : [],
+    ),
+    channel: channelLabel(
+      entity.metadata.channelName,
+      entity.metadata.channelId,
+    ),
+    history: [...(entity.metadata.history ?? [])].reverse().map((entry) => ({
+      move: `${STATUS_LABELS[entry.from]} → ${STATUS_LABELS[entry.to]}`,
+      who: entry.displayName ?? "",
+      when: formatShortDate(entry.at),
+    })),
+    ...(notes ? { notes } : {}),
+  };
 }
 
 function finishedRecently(entity: ActionItemEntity, now: Date): boolean {
@@ -328,7 +494,7 @@ export async function registerBoardWorkspace(
     bind: (bindingContext) =>
       boardWorkspace.bind(bindingContext, {
         listEntityTypes: () => [ACTION_ITEM_ENTITY_TYPE, SUMMARY_ENTITY_TYPE],
-        load: async ({ caller }) => {
+        load: async ({ caller, query }) => {
           if (!caller) throw new Error("The board requires a signed-in member");
           const visibilityScope = permissionToVisibilityScope(
             caller.permission,
@@ -353,10 +519,22 @@ export async function registerBoardWorkspace(
           const finished = done
             .filter((entity) => finishedRecently(entity, at))
             .sort((a, b) => finishedAt(b) - finishedAt(a));
+          const selected = query.get(boardQuerySchema).card;
+          const opened = selected
+            ? await context.entityService.getEntity(
+                {
+                  entityType: ACTION_ITEM_ENTITY_TYPE,
+                  id: selected,
+                  visibilityScope,
+                },
+                actionItemSchema,
+              )
+            : null;
           return {
             cards: [...open, ...doing, ...blocked, ...finished].map((entity) =>
               toCard(entity, at),
             ),
+            ...(opened ? { open: toOpenCard(opened) } : {}),
           };
         },
         actions: [
@@ -366,6 +544,31 @@ export async function registerBoardWorkspace(
           dropAction.bind(bindingContext, ({ caller, input }) =>
             move(caller, { ...input, to: "dropped" }),
           ),
+          noteAction.bind(bindingContext, async ({ caller, input }) => {
+            if (!caller)
+              throw new Error("Adding a note requires a signed-in member");
+            const result = await addActionItemNote(
+              {
+                entityService: context.entityService,
+                visibilityScope: permissionToVisibilityScope(caller.permission),
+                now,
+              },
+              {
+                id: input.id,
+                text: input.text,
+                actor: { kind: "user", userId: caller.actor.id },
+                actorName: caller.actor.displayName,
+              },
+            );
+            return {
+              status:
+                result.status === "noted"
+                  ? "Note added."
+                  : result.status === "not-found"
+                    ? "This card is no longer on the board."
+                    : "This card changed while you wrote; add the note again.",
+            };
+          }),
         ],
       }),
   });

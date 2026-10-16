@@ -126,3 +126,30 @@ export function arrivedAt(
 ): string | undefined {
   return lastArrival(entity, status)?.at;
 }
+
+export interface ActionItemNote {
+  text: string;
+  /** The writer's name as the signed-in surface knows it. */
+  actorName?: string | undefined;
+  at: string;
+}
+
+/**
+ * Append one dated, named line under the body's Notes section, creating the
+ * section once. Earlier body text and every frontmatter field stay as stored.
+ */
+export function applyNote(
+  entity: ActionItemEntity,
+  note: ActionItemNote,
+): ActionItemEntity {
+  const text = note.text.replace(/\s+/g, " ").trim();
+  if (text.length === 0) throw new Error("A note needs text");
+  const line = `- ${note.at.slice(0, 10)} · ${note.actorName ?? "A team member"} — ${text}\n`;
+  const body = actionItemBody(entity.content);
+  const ended = body.endsWith("\n") ? body : `${body}\n`;
+  const next = /^## Notes$/m.test(body)
+    ? `${ended}${line}`
+    : `${ended}\n## Notes\n\n${line}`;
+  const content = generateMarkdown(frontmatterFields(entity.content), next);
+  return { ...entity, content, contentHash: computeContentHash(content) };
+}
