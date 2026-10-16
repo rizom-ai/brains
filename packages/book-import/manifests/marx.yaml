@@ -341,6 +341,22 @@ books:
     author: Karl Marx
     year: 1864
     kind: work
+  - source: wikisource
+    # The Inaugural Address and the Provisional Rules in Marx's English, from
+    # the facsimile (1924) of the first edition (London, 1864).
+    page: Address and Provisional Rules of the International Working Men's Association
+    site: en.wikisource.org
+    citation: Address and Provisional Rules
+    from: ADDRESS, &c., &c.
+    # The 1924 facsimile's colophon.
+    skipHeadings: [Reprinted from the Original by Photographic "L.H." Reprint Process]
+    slug: address-and-provisional-rules-of-the-international-working-mens-association
+    title: Address and Provisional Rules of the International Working Men's Association
+    shortTitle: Inaugural Address and Provisional Rules
+    edition: Address and Provisional Rules of the Working Men's International Association (London, 1864), facsimile edition 1924
+    author: Karl Marx
+    year: 1864
+    kind: work
   - source: mlwerke
     # MEW 16 (1962, 6th printing 1975) as mlwerke.de published it, from the
     # Internet Archive's last capture: the German text of Der Social-Demokrat
@@ -353,6 +369,30 @@ books:
     edition: "Marx-Engels-Werke, Band 16 (Berlin, Dietz, 1962; 6. Auflage 1975), S. 5–13"
     author: Karl Marx
     year: 1864
+    kind: work
+  - source: wikisource
+    # Marx's Lord Palmerston articles (People's Paper and New-York Tribune,
+    # 1853), in his English, as Eleanor Marx reprinted them in 1899.
+    page: The Story of the Life of Lord Palmerston
+    pages:
+      - The Story of the Life of Lord Palmerston/Chapter 1
+      - The Story of the Life of Lord Palmerston/Chapter 2
+      - The Story of the Life of Lord Palmerston/Chapter 3
+      - The Story of the Life of Lord Palmerston/Chapter 4
+      - The Story of the Life of Lord Palmerston/Chapter 5
+      - The Story of the Life of Lord Palmerston/Chapter 6
+      - The Story of the Life of Lord Palmerston/Chapter 7
+      - The Story of the Life of Lord Palmerston/Chapter 8
+    site: en.wikisource.org
+    citation: Palmerston
+    # The first chapter's page repeats the book's title above it.
+    omitHeadings: [The Story of the Life of Lord Palmerston]
+    textHeadings: ["\"Sans teeth, sans eyes, sans taste, sans everything,\""]
+    slug: the-story-of-the-life-of-lord-palmerston
+    title: The Story of the Life of Lord Palmerston
+    edition: The Story of the Life of Lord Palmerston, edited by Eleanor Marx Aveling (London, Swan Sonnenschein, 1899)
+    author: Karl Marx
+    year: 1853
     kind: work
   - source: gutenberg
     # Marx's Revelations of the Diplomatic History of the 18th Century, in his
@@ -1867,6 +1907,31 @@ books:
     title: The Civil War in France. Address of the General Council of the International Working-Men's Association
     shortTitle: The Civil War in France
     edition: The Civil War in France. Address of the General Council of the International Working-Men's Association, second edition, revised (London, Edward Truelove, 1871)
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: wikisource
+    # The International's rules as Marx and Engels revised them for the
+    # London Conference of 1871, in English.
+    page: General Rules and Administrative Regulations of the International Working-Men's Association
+    site: en.wikisource.org
+    citation: General Rules
+    slug: general-rules-and-administrative-regulations-of-the-international-working-mens-association
+    title: General Rules and Administrative Regulations of the International Working-Men's Association
+    shortTitle: General Rules of the International
+    edition: General Rules and Administrative Regulations of the International Working-Men's Association (London, 1871)
+    author: Karl Marx und Friedrich Engels
+    year: 1871
+    kind: work
+  - source: wikisource
+    # The London Conference's resolutions as Marx drafted them, in English.
+    page: Resolutions of the Conference of Delegates of the International Working Men's Association
+    site: en.wikisource.org
+    citation: Conference Resolutions
+    slug: resolutions-of-the-conference-of-delegates-of-the-international-working-mens-association
+    title: Resolutions of the Conference of Delegates of the International Working Men's Association
+    shortTitle: London Conference Resolutions
+    edition: Resolutions of the Conference of Delegates of the International Working Men's Association, assembled at London from 17th to 23rd September 1871 (London, 1871)
     author: Karl Marx
     year: 1871
     kind: work

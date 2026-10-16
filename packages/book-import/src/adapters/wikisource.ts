@@ -142,11 +142,11 @@ function casedFor(site: string): (line: string) => string {
   return (line) => line;
 }
 /**
- * A transcription's own apparatus: Wikisource's text data, notes and edit
- * links, Project Gutenberg's licence and the list of notes.
+ * A transcription's own apparatus: Wikisource's text data, notes, edit links
+ * and licence box, Project Gutenberg's licence and the list of notes.
  */
 const APPARATUS =
-  "#textdaten, ol.references, .mw-heading, .mw-editsection, .ws-noexport, style, meta, .pg-boilerplate, #pg-machine-header, div.footnotes";
+  "#textdaten, ol.references, .mw-heading, .mw-editsection, .ws-noexport, style, meta, .licenseContainer, .pg-boilerplate, #pg-machine-header, div.footnotes";
 /** A note's reference in the text: Wikisource's, or Project Gutenberg's. */
 const REFERENCE = "sup.reference, a.fnanchor";
 /** Elements read as a paragraph of their own. */
@@ -174,6 +174,10 @@ function isCentred(element: Element): boolean {
     element.localName === "center" ||
     element.classList.contains("center") ||
     element.classList.contains("wst-center") ||
+    // A block set in larger type is a title line, as a centred one.
+    element.classList.contains("wst-larger-block") ||
+    element.classList.contains("wst-x-larger-block") ||
+    element.classList.contains("wst-xx-larger-block") ||
     styleOf(element).includes("text-align:center")
   );
 }

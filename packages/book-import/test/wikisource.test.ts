@@ -248,7 +248,7 @@ describe("parseWikisourcePage, an editor's headings", () => {
 });
 
 describe("parseWikisourcePages, a work set out over several pages", () => {
-  it("reads the pages as one work, each part cited from the page it is on, a rule parting a centred block, an editor's caption left out line by line, English capitals as printed", async () => {
+  it("reads the pages as one work, each part cited from the page it is on, a rule parting a centred block, an editor's caption left out line by line, a title set in larger type like a centred one, English capitals as printed", async () => {
     const read = (name: string): Promise<string> =>
       readFile(join(import.meta.dir, "fixtures", name), "utf8");
     const units = parseWikisourcePages(
@@ -272,6 +272,7 @@ describe("parseWikisourcePages, a work set out over several pages", () => {
         omitHeadings: [
           "The Declaration of War",
           "First manifesto of the General Council",
+          "The Civil War in France",
         ],
       },
     );
