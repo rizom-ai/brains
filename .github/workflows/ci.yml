@@ -196,6 +196,12 @@ jobs:
       - name: Test core packages
         run: bunx turbo run test --concurrency="$(nproc)" --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
+      # Each canonical eval suite boots a full brain (minutes in total), so the
+      # suite stays out of the unit run the pre-commit hook repeats and runs
+      # here instead.
+      - name: Test canonical eval suites
+        run: bunx turbo run test:evals --filter @rizom/brain
+
   build:
     name: Build
     timeout-minutes: 20
