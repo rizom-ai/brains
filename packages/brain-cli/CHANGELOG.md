@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.561
+
+### Patch Changes
+
+- [#668](https://github.com/rizom-ai/brains/pull/668) [`2abd6d1`](https://github.com/rizom-ai/brains/commit/2abd6d1e4434c1e119232d0f39441a355b4431a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync no longer re-imports the brain's own exports. Auto-sync commits what the brain writes, and the next periodic pull listed those files as changed and queued an import job for each, which could only skip. Changed markdown files whose content already matches their stored entity are now left out of the pull's import batch; a pull whose changes are all such echoes queues nothing and still advances its checkpoint.
+
 ## 0.2.0-alpha.560
 
 ### Patch Changes
