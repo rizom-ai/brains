@@ -209,15 +209,18 @@ const SMALL_NOUN =
 
 /**
  * A volume's pages as one hOCR document, each page numbered by its leaf, the
- * order the scan holds them in; Fraktur's long s read as s, its hyphen as
- * one, and its capital umlauts with their dots.
+ * order the scan holds them in, and by its printed number where the scan
+ * states the first page's; Fraktur's long s read as s, its hyphen as one,
+ * and its capital umlauts with their dots.
  */
-export function volumeOfPages(pages: string[]): string {
+export function volumeOfPages(pages: string[], firstPage?: number): string {
   const bodies = pages.map((page, leaf) =>
     frakturRead(
       (/<body>([\s\S]*)<\/body>/.exec(page)?.[1] ?? "").replace(
-        /<div class='ocr_page' id='page_\d+'/,
-        `<div class='ocr_page' id='page_${leaf}'`,
+        /<div class='ocr_page' id='page_\d+'([^>]*)>/,
+        firstPage === undefined
+          ? `<div class='ocr_page' id='page_${leaf}'$1>`
+          : `<div class='ocr_page' id='page_${leaf}'$1><span class='ocr_pageno'>${firstPage + leaf}</span>`,
       ),
     ),
   );

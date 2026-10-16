@@ -27,8 +27,10 @@ export interface OcrCorrection {
 
 /** A work inside a scanned volume, by its printed pages. */
 export interface ArchiveOcrWork {
-  /** The archive.org item, e.g. `freud-1940-gw-13`. */
+  /** The archive.org item, e.g. `freud-1940-gw-13`, or the name of a scan another library holds. */
   item: string;
+  /** A scan another library holds: its page images, in the scan's order. */
+  scan?: { pages: string[] } | undefined;
   /** The work's title, which its opening heading may print. */
   title: string;
   /** How a citation names the volume before its page: GW XIII. */
@@ -123,6 +125,8 @@ interface Line {
 interface Page {
   /** The scan leaf, as archive.org numbers its pages. */
   leaf: number;
+  /** The printed number the scan's reading gives the page, where it gives one. */
+  pageno: number | null;
   width: number;
   height: number;
   lines: Line[];
@@ -450,8 +454,13 @@ function readPages(hocr: string): Page[] {
             })
             .filter((line) => line.text.length > 0),
         );
+        const pageno = Number.parseInt(
+          document.querySelector(".ocr_pageno")?.textContent ?? "",
+          10,
+        );
         return {
           leaf: Number(/(\d+)$/.exec(page?.id ?? "")?.[1] ?? Number.NaN),
+          pageno: Number.isNaN(pageno) ? null : pageno,
           width,
           height,
           lines,
@@ -610,7 +619,7 @@ function romanOffset(pages: Page[]): number | null {
 }
 
 function runningHeadNumber(page: Page): number | null {
-  return numberedHead(page)?.number ?? null;
+  return page.pageno ?? numberedHead(page)?.number ?? null;
 }
 
 /** Words of a running head, by which a head that lost its number is known. */
@@ -3106,7 +3115,9 @@ export function parseArchiveOcrWork(
   const filled = sections.filter((section) => section.paragraphs.length > 0);
   const cite = (start: Block): { citation: string; source: string } => ({
     citation: `${work.citation}, ${start.label}`,
-    source: `https://archive.org/details/${work.item}/page/n${start.leaf}`,
+    source:
+      work.scan?.pages[start.leaf] ??
+      `https://archive.org/details/${work.item}/page/n${start.leaf}`,
   });
   const steps = [...new Set(filled.flatMap((section) => section.path))];
   // A title is spelled as the running text spells it, its misread type too.

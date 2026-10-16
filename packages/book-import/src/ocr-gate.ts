@@ -110,7 +110,8 @@ async function main(): Promise<void> {
       const leaf = pageLeaf(hocr, page);
       await writeFile(join(dir, `${page}.txt`), `${text}\n`);
       await downloadScan(
-        `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
+        first.scan?.pages[leaf] ??
+          `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
         join(dir, `${page}.jpg`),
       );
       return [...rows, `| ${page} | ${leaf} | ${words(text)} | |`];
@@ -120,8 +121,7 @@ async function main(): Promise<void> {
       [
         `# OCR gate: ${item}`,
         "",
-        "Each page's scan is <page>.jpg (archive.org/details/" +
-          `${item}/page/n<leaf>) and its text as imported <page>.txt.`,
+        `Each page's scan is <page>.jpg (${first.scan?.url ?? `archive.org/details/${item}/page/n<leaf>`}) and its text as imported <page>.txt.`,
         "Count the words the text gets wrong against the scan.",
         "",
         "| page | leaf | words | wrong |",

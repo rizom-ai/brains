@@ -115,12 +115,30 @@ const headingLineSchema: z.ZodObject<{
     .optional(),
 });
 
+/** A scan another library holds: its page images, read with an OCR model. */
+const scanSchema: z.ZodObject<{
+  library: z.ZodString;
+  url: z.ZodURL;
+  pages: z.ZodArray<z.ZodURL>;
+  firstPage: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
+  /** The library, as the attribution names it: Polona. */
+  library: z.string().min(1),
+  /** The scanned item's page in the library. */
+  url: z.url(),
+  /** The scan's page images, in the order the scan holds them. */
+  pages: z.array(z.url()).min(1),
+  /** The printed number of the first image's page, where the scan's own page numbers read as noise: the pages follow it one by one. */
+  firstPage: z.number().int().positive().optional(),
+});
+
 const archiveOcrBookSchema: z.ZodObject<
   Shape<
     BookFields & {
       item: z.ZodString;
       citation: z.ZodString;
       ocr: z.ZodOptional<z.ZodString>;
+      scan: z.ZodOptional<typeof scanSchema>;
       binarise: z.ZodDefault<z.ZodBoolean>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       lastPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
@@ -151,6 +169,8 @@ const archiveOcrBookSchema: z.ZodObject<
   citation: z.string().min(1),
   /** A Tesseract model to read the scan anew with, where the archive's text read the type wrong: frk for Fraktur. */
   ocr: z.string().min(1).optional(),
+  /** The scan, where another library holds it: `item` then names the scan for its corrections. */
+  scan: scanSchema.optional(),
   /** The scan's paper is uneven in tone and its lines askew: each page is straightened and set black on white before it is read anew. */
   binarise: z.boolean().default(false),
   /** The work's printed pages in the volume. */
@@ -480,7 +500,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
     .refine((book) => book.parts === undefined || book.title !== undefined, {
       message: "A book of parts names its title",
     }),
-  archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
+  archiveOcrBookSchema
+    .extend({ source: z.literal("archive-ocr") })
+    .refine((book) => book.scan === undefined || book.ocr !== undefined, {
+      message: "A scan another library holds is read with an OCR model",
+    }),
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
   gutenbergBookSchema.extend({ source: z.literal("gutenberg") }),
@@ -777,16 +801,26 @@ export async function ocrVolumeHocr(
     (await servedLeaves(item, metadata, fetchText)) ??
     metadata.metadata?.imagecount;
   if (!count) throw new Error(`No image count for ${item}`);
-  const pages = await Array.from({ length: count }, (_, leaf) => leaf).reduce<
-    Promise<string[]>
-  >(
-    async (done, leaf) => [
-      ...(await done),
-      await pageOcr(`${ARCHIVE}/download/${item}/page/n${leaf}_w1600.jpg`),
-    ],
+  return imagesHocr(
+    Array.from(
+      { length: count },
+      (_, leaf) => `${ARCHIVE}/download/${item}/page/n${leaf}_w1600.jpg`,
+    ),
+    pageOcr,
+  );
+}
+
+/** A scan's page images read one after another, as one volume. */
+async function imagesHocr(
+  images: string[],
+  pageOcr: PageOcr,
+  firstPage?: number,
+): Promise<string> {
+  const pages = await images.reduce<Promise<string[]>>(
+    async (done, image) => [...(await done), await pageOcr(image)],
     Promise.resolve([]),
   );
-  return volumeOfPages(pages);
+  return volumeOfPages(pages, firstPage);
 }
 
 /** A scanned book's volume: the archive's hOCR, or the scan read anew. */
@@ -801,11 +835,10 @@ export async function volumeHocr(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
-  return ocrVolumeHocr(
-    book.item,
-    fetchText,
-    pageOcr({ model: book.ocr, binarise: book.binarise }),
-  );
+  const read = pageOcr({ model: book.ocr, binarise: book.binarise });
+  return book.scan
+    ? imagesHocr(book.scan.pages, read, book.scan.firstPage)
+    : ocrVolumeHocr(book.item, fetchText, read);
 }
 
 async function loadArchiveOcrBook(
@@ -827,8 +860,10 @@ async function loadArchiveOcrBook(
       kind: entry.kind,
       edition: entry.edition,
       license: "public-domain",
-      attribution: `Scan: Internet Archive (archive.org/details/${entry.item})`,
-      source: `${ARCHIVE}/details/${entry.item}`,
+      attribution: entry.scan
+        ? `Scan: ${entry.scan.library} (${entry.scan.url.replace(/^https?:\/\//u, "")})`
+        : `Scan: Internet Archive (archive.org/details/${entry.item})`,
+      source: entry.scan?.url ?? `${ARCHIVE}/details/${entry.item}`,
       published: entry.published,
       shortTitle: entry.shortTitle ?? null,
     },

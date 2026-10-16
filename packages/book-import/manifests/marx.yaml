@@ -1142,6 +1142,32 @@ books:
     year: 1848
     kind: work
   - source: archive-ocr
+    # Marx's speech in the brochure of the Brussels meeting, printed pp.
+    # 10–14 (Polona’s files 0018–0022, cropped to the page); the other
+    # speakers’ are left out.
+    item: polona-d6af54cc
+    citation: Célébration 1848
+    ocr: fra
+    scan:
+      library: Polona (Biblioteka Narodowa)
+      url: https://polona.pl/item-view/d6af54cc-a046-4310-a291-740319dabe9e
+      firstPage: 10
+      pages:
+        - https://polona.pl/iiif/3/076f6e33-1901-48f1-a132-c2c4eccc1584/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/9bbc2fea-3524-408c-b64b-0ebea78e4de0/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/051dc70e-4cc1-4c0b-a7ce-e7d0cc648437/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/2b215258-8266-4145-9bec-b7ea88f93d18/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/4f8cbdd6-105a-41f1-8acb-512658b35e6f/pct:9,5,84,90/max/0/default.jpg
+    firstPage: 10
+    lastPage: 14
+    slug: discours-sur-la-pologne
+    title: Discours de M. Karl Marx
+    shortTitle: Discours sur la Pologne
+    edition: "Célébration, à Bruxelles, du deuxième anniversaire de la révolution polonaise du 22 février 1846. Discours prononcés par MM. A.-J. Senault, Karl Marx, Lelewel, F. Engels et Louis Lubliner (Bruxelles, C. G. Vogler, 1848)"
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: archive-ocr
     item: theorienberden01marxuoft
     citation: Theorien I
     ocr: frak2021

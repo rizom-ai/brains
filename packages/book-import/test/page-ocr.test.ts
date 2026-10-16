@@ -55,6 +55,20 @@ describe("volumeOfPages", () => {
   });
 });
 
+describe("volumeOfPages, numbered", () => {
+  it("gives each page its printed number, counted from the first page's, where the scan states it", () => {
+    const volume = volumeOfPages(
+      [tesseractPage("Messieurs"), tesseractPage("communisme")],
+      10,
+    );
+
+    expect(volume.match(/<span class='ocr_pageno'>\d+<\/span>/g)).toEqual([
+      "<span class='ocr_pageno'>10</span>",
+      "<span class='ocr_pageno'>11</span>",
+    ]);
+  });
+});
+
 describe("volumeOfPages, capital umlauts", () => {
   it("dots the capital umlauts the Fraktur model reads without them, by the word", () => {
     const volume = volumeOfPages([

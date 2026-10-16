@@ -794,6 +794,71 @@ books:
     expect(await files(join(brainData, "book"))).toEqual(fromArchive);
   });
 
+  it("reads a scan another library holds from the page images the work lists, and names that library", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const images = pages.map(
+      (_, leaf) =>
+        `https://polona.pl/iiif/3/leaf-${leaf}/full/max/0/default.jpg`,
+    );
+    const recognised: string[] = [];
+
+    await importBooks(
+      parseManifest(
+        ocrManifest +
+          "    ocr: fra\n    scan:\n      library: Polona\n      url: https://polona.pl/item-view/gw-13\n      pages:\n" +
+          images.map((image) => `        - ${image}\n`).join(""),
+      ),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            recognised.push(`${model} ${url}`);
+            const leaf = Number(/leaf-(\d+)\//.exec(url)?.[1]);
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+    const book = await readFile(
+      join(brainData, "book", "jenseits-des-lustprinzips.md"),
+      "utf8",
+    );
+    const [first] = (
+      await Array.fromAsync(
+        new Bun.Glob("jenseits-des-lustprinzips/*.md").scan(
+          join(brainData, "book"),
+        ),
+      )
+    ).sort();
+
+    expect(requested).toEqual([]);
+    expect(recognised).toEqual(images.map((image) => `fra ${image}`));
+    expect(book).toContain(
+      "attribution: 'Scan: Polona (polona.pl/item-view/gw-13)'",
+    );
+    expect(book).toContain("source: 'https://polona.pl/item-view/gw-13'");
+    expect(
+      await readFile(join(brainData, "book", first ?? "missing"), "utf8"),
+    ).toMatch(
+      /source: 'https:\/\/polona\.pl\/iiif\/3\/leaf-\d+\/full\/max\/0\/default\.jpg'/,
+    );
+  });
+
+  it("will not read a scan another library holds without an OCR model", () => {
+    expect(() =>
+      parseManifest(
+        ocrManifest +
+          "    scan:\n      library: Polona\n      url: https://polona.pl/item-view/gw-13\n      pages: [https://polona.pl/iiif/3/a/full/max/0/default.jpg]\n",
+      ),
+    ).toThrow();
+  });
+
   it("counts an uploaded scan's pages in its scandata, read from the item's own server, where its metadata has no image count", async () => {
     const scandata = (leaves: boolean[]): string =>
       `<book><pageData>${leaves

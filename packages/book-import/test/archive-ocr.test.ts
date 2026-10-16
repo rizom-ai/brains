@@ -921,6 +921,19 @@ describe("workPages", () => {
       "Indem ich hier die Darstellung der Traumdeutung versuche",
     );
   });
+
+  it("numbers a page by the page number the scan's reading gives it, where its head reads as noise", () => {
+    const page = (leaf: number, head: string): string =>
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 3300 5300'><span class='ocr_pageno'>${leaf + 10}</span>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 1500 200 1800 280; x_size 60'>${head}</span>
+ <span class='ocr_line' title='bbox 300 400 3000 480; x_size 70'>le nom de communisme à ce qu'ils appelaient autrefois le jaco-</span></p>
+</div>`;
+    const hocr = `<html><body>${page(0, "ds 14 0")}${page(1, "— 0.")}${page(2, "_3 4")}</body></html>`;
+
+    expect(
+      workPages(hocr, { firstPage: 10, lastPage: 12, skipPages: [] }),
+    ).toEqual([10, 11, 12]);
+  });
 });
 
 describe("printedPageNumbers", () => {
