@@ -662,6 +662,160 @@ books:
       - { page: 454, opens: 1 A. a. O. }
       - { page: 454, opens: ² Meinem }
       - { page: 459, opens: ¹ Ich konnte }
+  - item: wmw-1885-cocawirkung
+    citation: WMW 1885
+    ocr: deu
+    # The paper's columns, each read as a page: the Wochenschrift numbers
+    # its columns. The paper is read from below its title and byline; its
+    # tables are read from the scan.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-35-1885-5
+      firstPage: 129
+      pages:
+        - https://archive.org/download/wmw-35-1885-5/page/n0_w1600.jpg#region=0.05,0.377,0.432,0.608
+        - https://archive.org/download/wmw-35-1885-5/page/n0_w1600.jpg#region=0.488,0.325,0.437,0.635
+        - https://archive.org/download/wmw-35-1885-5/page/n1_w1600.jpg#region=0.065,0.083,0.431,0.882
+        - https://archive.org/download/wmw-35-1885-5/page/n1_w1600.jpg#region=0.502,0.083,0.433,0.882
+        - https://archive.org/download/wmw-35-1885-5/page/n2_w1600.jpg#region=0.055,0.072,0.438,0.888
+    firstPage: 129
+    lastPage: 133
+    # The column whose foot the scan curves, and the columns of tables,
+    # each row a paragraph: the lines that open their paragraphs.
+    paragraphs:
+      - { page: 129, opens: Im Julihefte }
+      - { page: 129, opens: In Fortsetzung }
+      - { page: 131, opens: I. Versuch }
+      - { page: 131, opens: II. Versuch }
+      - { page: 131, opens: Zeiten | }
+      - { page: 131, opens: 8 Uhr }
+      - { page: 131, opens: 10 Uhr }
+      - { page: 131, opens: 1 〃 }
+      - { page: 131, opens: 2 〃 }
+      - { page: 131, opens: 3 〃 }
+      - { page: 131, opens: 4 〃 }
+      - { page: 131, opens: 6 〃 }
+      - { page: 131, opens: 8 〃 }
+      - { page: 131, opens: 9 〃 }
+      - { page: 131, opens: 10 〃 }
+      - { page: 131, opens: 11 〃 }
+      - { page: 131, opens: 12 〃 }
+      - { page: 131, opens: — | }
+      - { page: 131, opens: Wie man }
+      - { page: 131, opens: Ein anderer }
+      - { page: 131, opens: Als ich }
+      - { page: 132, opens: Von dem Ablaufe }
+      - { page: 132, opens: Versuche vom }
+      - { page: 132, opens: 27. November | }
+      - { page: 132, opens: Zeiten | }
+      - { page: 132, opens: 7 Uhr }
+      - { page: 132, opens: 2 〃 }
+      - { page: 132, opens: 4 〃 }
+      - { page: 132, opens: 5 〃 }
+      - { page: 132, opens: 6 〃 }
+      - { page: 132, opens: 7 〃 }
+      - { page: 132, opens: 8 〃 }
+      - { page: 132, opens: 9 〃 }
+      - { page: 132, opens: 12 〃 }
+      - { page: 132, opens: Aus diesen }
+      - { page: 132, opens: Nachdem ich }
+      - { page: 132, opens: Als zweite }
+      - { page: 133, opens: Es ist mir }
+      - { page: 133, opens: Wenn man }
+      - { page: 133, opens: Die Versuche }
+      - { page: 133, opens: I. Versuch }
+      - { page: 133, opens: II. Versuch }
+      - { page: 133, opens: Zeiten | }
+      - { page: 133, opens: 7 U. }
+      - { page: 133, opens: "| um 7 Uhr" }
+      - { page: 133, opens: 8 〃 }
+      - { page: 133, opens: 8 U. }
+      - { page: 133, opens: 9 〃 }
+      - { page: 133, opens: 10 〃 }
+    # The notes at the columns' foot, by their marks.
+    notes:
+      - { page: 129, opens: ¹) „Ueber }
+      - { page: 129, opens: ²) Die }
+      - { page: 130, opens: ³) Pflüger }
+      - { page: 132, opens: ⁴) Ueber }
+      - { page: 132, opens: ⁵) Ueber }
+    slug: beitrag-zur-kenntniss-der-cocawirkung
+    title: Beitrag zur Kenntniss der Cocawirkung
+    edition: Wiener Medizinische Wochenschrift, 35. Jahrgang, Nr. 5 (Wien, 31. Jänner 1885), Sp. 129–133
+    author: Sigmund Freud
+    year: 1885
+    kind: work
+  - item: wmw-1885-syringomyelie
+    citation: WMW 1885
+    ocr: deu
+    # The paper's columns, each read as a page: the Wochenschrift numbers
+    # its columns. Each part is read from below its title and byline; the
+    # notes at the foot of column 425 that close the article before it are
+    # left out, and the table set across columns 427 and 428 is read with
+    # column 428, after the text that leads to it.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-35-1885-13
+      firstPage: 389
+      pages:
+        - https://archive.org/download/wmw-35-1885-13/page/n2_w1600.jpg#region=0.05,0.678,0.446,0.3
+        - https://archive.org/download/wmw-35-1885-13/page/n2_w1600.jpg#region=0.507,0.066,0.443,0.915
+        - https://archive.org/download/wmw-35-1885-13/page/n3_w1600.jpg#region=0.058,0.066,0.436,0.91
+        - https://archive.org/download/wmw-35-1885-13/page/n3_w1600.jpg#region=0.503,0.066,0.44,0.826
+        - url: https://archive.org/download/wmw-35-1885-14/page/n4_w1600.jpg#region=0.057,0.727,0.43,0.131&region=0.057,0.908,0.43,0.055
+          page: 425
+        - https://archive.org/download/wmw-35-1885-14/page/n4_w1600.jpg#region=0.497,0.066,0.43,0.9
+        - https://archive.org/download/wmw-35-1885-14/page/n5_w1600.jpg#region=0.075,0.066,0.425,0.34&region=0.075,0.74,0.425,0.24
+        - https://archive.org/download/wmw-35-1885-14/page/n5_w1600.jpg#region=0.511,0.066,0.43,0.34&region=0.075,0.41,0.866,0.325&region=0.511,0.74,0.43,0.24
+        - https://archive.org/download/wmw-35-1885-14/page/n6_w1600.jpg#region=0.045,0.066,0.44,0.092
+    firstPage: 389
+    lastPage: 429
+    # The table across columns 427 and 428, each row a paragraph, and the
+    # list of column 427: the lines that open their paragraphs.
+    paragraphs:
+      - { page: 427, opens: 1. symptomenlos }
+      - { page: 427, opens: 2. unter }
+      - { page: 427, opens: 3. einer }
+      - { page: 427, opens: 4. einer }
+      - { page: 427, opens: 5. einer }
+      - { page: 427, opens: 6. unter }
+      - { page: 427, opens: Die Mannigfaltigkeit }
+      - { page: 427, opens: Fr. Schultze hat }
+      - { page: 428, opens: Auf Grund }
+      - { page: 428, opens: Im Folgenden }
+      - { page: 428, opens: Fall von | }
+      - { page: 428, opens: Fr. Schultze (l. c. IV) }
+      - { page: 428, opens: E. Remak, }
+      - { page: 428, opens: Unser Fall, }
+    # The notes at the columns' foot, by their marks; those of column 425
+    # above Freud's close the article before it.
+    notes:
+      - { page: 425, opens: ¹) F. }
+      - { page: 425, opens: ²) Vergl. }
+      - { page: 426, opens: ³) Note }
+      - { page: 426, opens: ⁴) Beiträge }
+      - { page: 426, opens: ⁵) „Ueber }
+      - { page: 426, opens: ⁶) Fr. }
+      - { page: 426, opens: ⁷) „Ueber }
+      - { page: 426, opens: ⁸) Pick. }
+      - { page: 426, opens: ⁹) A }
+      - { page: 427, opens: ¹⁰) Fall }
+      - { page: 427, opens: ¹¹) Fall }
+      - { page: 427, opens: ¹²) Fall }
+      - { page: 427, opens: ¹³) Fall }
+      - { page: 428, opens: Fall von Kahler (Paraplegia, runsOn: true }
+      - { page: 428, opens: ¹⁴) Siehe }
+      - { page: 428, opens: ¹⁵) Kasuistische }
+      - { page: 428, opens: ¹⁶) Beitrag }
+      - { page: 428, opens: ¹⁷) Ein }
+      - { page: 428, opens: ¹⁸) Weshalb }
+    slug: ein-fall-von-muskelatrophie-mit-ausgebreiteten-sensibilitaetsstoerungen
+    title: Ein Fall von Muskelatrophie mit ausgebreiteten Sensibilitätsstörungen (Syringomyelie)
+    shortTitle: Muskelatrophie mit Sensibilitätsstörungen
+    edition: Wiener Medizinische Wochenschrift, 35. Jahrgang, Nr. 13 und 14 (Wien, 28. März und 4. April 1885), Sp. 389–392 und 425–429
+    author: Sigmund Freud
+    year: 1885
+    kind: work
   - item: nc_4_1885_12
     citation: Olivenzwischenschicht
     ocr: deu
@@ -684,6 +838,74 @@ books:
     edition: Neurologisches Centralblatt, IV. Jahrgang, Nr. 12 (Leipzig 1885), S. 268–270
     author: Sigmund Freud
     year: 1885
+    kind: work
+  - item: wmp-1885-parke
+    citation: WMP 1885
+    ocr: deu
+    # Freud's statement as the Presse quotes it, set deeper in, in its
+    # unsigned article on the cocaine preparations; the article around it
+    # is left out. The Presse numbers its columns; the statement has no
+    # title of its own, and is named as the Nachtragsband names it.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/WMP_1885_26
+      firstPage: 1036
+      pages:
+        - https://archive.org/download/WMP_1885_26/page/n439_w1600.jpg#region=0.507,0.6015,0.393,0.122
+    firstPage: 1036
+    lastPage: 1036
+    slug: gutachten-ueber-das-parke-cocain
+    title: Gutachten über das Parke Cocaïn
+    edition: Wiener Medizinische Presse, XXVI. Jahrgang, Nr. 32 (Wien, 9. August 1885), Sp. 1036
+    author: Sigmund Freud
+    year: 1885
+    kind: work
+  - item: wmw-1886-neuritis
+    citation: WMW 1886
+    ocr: deu
+    # The paper's columns, each read as a page: the Wochenschrift numbers
+    # its columns. The paper is read from below its title and byline.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-36-1886-6
+      firstPage: 168
+      pages:
+        - https://archive.org/download/wmw-36-1886-6/page/n1_w1600.jpg#region=0.518,0.128,0.427,0.84
+        - https://archive.org/download/wmw-36-1886-6/page/n2_w1600.jpg#region=0.06,0.065,0.4365,0.9
+        - https://archive.org/download/wmw-36-1886-6/page/n2_w1600.jpg#region=0.505,0.065,0.435,0.903
+        - https://archive.org/download/wmw-36-1886-6/page/n3_w1600.jpg#region=0.07,0.075,0.424,0.89
+        - https://archive.org/download/wmw-36-1886-6/page/n3_w1600.jpg#region=0.5015,0.075,0.4335,0.5
+    firstPage: 168
+    lastPage: 172
+    # Columns whose lines the scan curves, where their starts tell no
+    # indent: the lines that open their paragraphs.
+    paragraphs:
+      - { page: 169, opens: Die Haut der Vorderfläche }
+      - { page: 169, opens: An den unteren }
+      - { page: 169, opens: Ein Versuch }
+      - { page: 169, opens: Am 30. Oktober }
+      - { page: 169, opens: Am 2. November }
+      - { page: 169, opens: Am 4. November }
+      - { page: 169, opens: Am 6. November }
+      - { page: 169, opens: Am 8. November }
+      - { page: 169, opens: Am 10. November }
+      - { page: 169, opens: Am 21. November }
+      - { page: 170, opens: Am 24. November }
+      - { page: 170, opens: Nach längerer }
+      - { page: 170, opens: Die Haut ist }
+      - { page: 170, opens: Dieselben Erscheinungen }
+      - { page: 170, opens: Am 13. Dezember }
+      - { page: 170, opens: Am 14. Dezember }
+      - { page: 171, opens: Am 15. Dezember }
+      - { page: 171, opens: Am 16. Dezember }
+      - { page: 171, opens: Am 17. Dezember }
+      - { page: 171, opens: Die Diagnose }
+      - { page: 171, opens: Sektionsbefund }
+    slug: akute-multiple-neuritis-der-spinalen-und-hirnnerven
+    title: Akute multiple Neuritis der spinalen und Hirnnerven
+    edition: Wiener Medizinische Wochenschrift, 36. Jahrgang, Nr. 6 (Wien, 6. Februar 1886), Sp. 168–172
+    author: Sigmund Freud
+    year: 1886
     kind: work
   - item: b28071852
     citation: Aphasien
