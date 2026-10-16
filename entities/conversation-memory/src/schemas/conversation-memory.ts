@@ -168,6 +168,43 @@ export const decisionSchema: ReturnType<
 
 export type DecisionEntity = z.output<typeof decisionSchema>;
 
+type ActionItemStatusSchema = z.ZodEnum<{
+  open: "open";
+  doing: "doing";
+  blocked: "blocked";
+  done: "done";
+  dropped: "dropped";
+}>;
+
+/** To do, doing, blocked and done are board columns; dropped leaves the board. */
+export const actionItemStatusSchema: ActionItemStatusSchema = z.enum([
+  "open",
+  "doing",
+  "blocked",
+  "done",
+  "dropped",
+]);
+
+type ActionItemHistoryEntrySchema = z.ZodObject<{
+  at: z.ZodISODateTime;
+  actor: typeof actorRefSchema;
+  from: ActionItemStatusSchema;
+  to: ActionItemStatusSchema;
+}>;
+
+/** One status change and who made it. */
+export const actionItemHistoryEntrySchema: ActionItemHistoryEntrySchema =
+  z.object({
+    at: z.iso.datetime(),
+    actor: actorRefSchema,
+    from: actionItemStatusSchema,
+    to: actionItemStatusSchema,
+  });
+
+export type ActionItemHistoryEntry = z.output<
+  typeof actionItemHistoryEntrySchema
+>;
+
 type ActionItemMetadataSchema = z.ZodObject<{
   conversationId: z.ZodString;
   channelId: z.ZodString;
@@ -178,9 +215,11 @@ type ActionItemMetadataSchema = z.ZodObject<{
   sourceSummaryId: z.ZodString;
   sourceMessageCount: z.ZodNumber;
   projectionVersion: z.ZodNumber;
-  status: z.ZodEnum<{ open: "open"; done: "done"; dropped: "dropped" }>;
+  status: ActionItemStatusSchema;
   assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
   requestedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
+  projectedBodyHash: z.ZodOptional<z.ZodString>;
+  history: z.ZodOptional<z.ZodArray<ActionItemHistoryEntrySchema>>;
 }>;
 
 export const actionItemMetadataSchema: ActionItemMetadataSchema = z.object({
@@ -193,9 +232,12 @@ export const actionItemMetadataSchema: ActionItemMetadataSchema = z.object({
   sourceSummaryId: z.string(),
   sourceMessageCount: z.number().int().min(0),
   projectionVersion: z.number().int().min(1),
-  status: z.enum(["open", "done", "dropped"]),
+  status: actionItemStatusSchema,
   assignedTo: z.array(actionItemAssigneeSchema).optional(),
   requestedBy: z.array(memoryActorReferenceSchema).optional(),
+  /** Body hash when the projector wrote the item; a different body is the board's. */
+  projectedBodyHash: z.string().optional(),
+  history: z.array(actionItemHistoryEntrySchema).optional(),
 });
 
 const actionItemEntityMetadataParserSchema: z.ZodObject<
@@ -217,9 +259,11 @@ const actionItemEntityMetadataParserSchema: z.ZodObject<
   sourceSummaryId: z.string(),
   sourceMessageCount: z.number().int().min(0),
   projectionVersion: z.number().int().min(1),
-  status: z.enum(["open", "done", "dropped"]),
+  status: actionItemStatusSchema,
   assignedTo: z.array(actionItemAssigneeParserSchema).optional(),
   requestedBy: z.array(memoryActorReferenceParserSchema).optional(),
+  projectedBodyHash: z.string().optional(),
+  history: z.array(actionItemHistoryEntrySchema).optional(),
 });
 
 /** Action item entity metadata, as parsed from stored (possibly legacy) records. */

@@ -51,6 +51,12 @@ import {
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
+import { actionItemBodyHash, isBoardOwned } from "./action-item-board";
+
+/** The text hash that ends a projected memory id; stable when extraction order shifts. */
+function textHashOf(id: string): string {
+  return id.slice(id.lastIndexOf(":") + 1);
+}
 
 const CHUNK_EXTRACTION_CONCURRENCY = 3;
 
@@ -259,14 +265,18 @@ export class SummaryProjector {
 
     await this.context.entityService.upsertEntity({ entity });
 
-    if (decision.decision === "update") {
-      await this.deleteConversationMemory(conversationId);
-    }
+    const boardOwned =
+      decision.decision === "update"
+        ? await this.replaceConversationMemory(conversationId)
+        : (await this.listConversationActionItems(conversationId)).filter(
+            isBoardOwned,
+          );
     await this.upsertConversationMemory(
       projected,
       metadata,
       now,
       source.messages,
+      boardOwned,
     );
 
     this.logger.info("Projected conversation memory", {
@@ -363,12 +373,35 @@ export class SummaryProjector {
     };
   }
 
-  private async deleteConversationMemory(
+  private async listConversationActionItems(
     conversationId: string,
-  ): Promise<void> {
+  ): Promise<ActionItemEntity[]> {
+    const visibilityScope = this.config.memoryVisibility;
+    const actionItems = await this.context.entityService.listEntities(
+      {
+        entityType: ACTION_ITEM_ENTITY_TYPE,
+        options: {
+          filter: { metadata: { conversationId }, visibilityScope },
+          limit: this.config.maxEntries * 4,
+        },
+      },
+      actionItemSchema,
+    );
+    return actionItems.filter(
+      (entity) => entity.visibility === visibilityScope,
+    );
+  }
+
+  /**
+   * Replace a conversation's projected memory: decisions and untouched action
+   * items go; action items the board owns stay. Returns those it kept.
+   */
+  private async replaceConversationMemory(
+    conversationId: string,
+  ): Promise<ActionItemEntity[]> {
     const limit = this.config.maxEntries * 4;
     const visibilityScope = this.config.memoryVisibility;
-    const [decisions, actionItems] = await Promise.all([
+    const [decisions, listedActionItems] = await Promise.all([
       this.context.entityService.listEntities(
         {
           entityType: DECISION_ENTITY_TYPE,
@@ -379,17 +412,12 @@ export class SummaryProjector {
         },
         decisionSchema,
       ),
-      this.context.entityService.listEntities(
-        {
-          entityType: ACTION_ITEM_ENTITY_TYPE,
-          options: {
-            filter: { metadata: { conversationId }, visibilityScope },
-            limit,
-          },
-        },
-        actionItemSchema,
-      ),
+      this.listConversationActionItems(conversationId),
     ]);
+    const boardOwned = listedActionItems.filter(isBoardOwned);
+    const actionItems = listedActionItems.filter(
+      (entity) => !isBoardOwned(entity),
+    );
 
     await Promise.all([
       ...decisions
@@ -400,15 +428,14 @@ export class SummaryProjector {
             id: entity.id,
           }),
         ),
-      ...actionItems
-        .filter((entity) => entity.visibility === visibilityScope)
-        .map((entity) =>
-          this.context.entityService.deleteEntity({
-            entityType: ACTION_ITEM_ENTITY_TYPE,
-            id: entity.id,
-          }),
-        ),
+      ...actionItems.map((entity) =>
+        this.context.entityService.deleteEntity({
+          entityType: ACTION_ITEM_ENTITY_TYPE,
+          id: entity.id,
+        }),
+      ),
     ]);
+    return boardOwned;
   }
 
   private async upsertConversationMemory(
@@ -416,13 +443,27 @@ export class SummaryProjector {
     summaryMetadata: SummaryMetadata,
     now: string,
     messages: Message[],
+    boardOwned: ActionItemEntity[],
   ): Promise<void> {
     const decisionEntities = projected.decisions.map((item, index) =>
       this.createDecisionEntity(item, summaryMetadata, index, now, messages),
     );
-    const actionItemEntities = projected.actionItems.map((item, index) =>
-      this.createActionItemEntity(item, summaryMetadata, index, now, messages),
+    // A re-extracted item the board already owns keeps its card, wherever it
+    // now falls in the extraction order.
+    const ownedTexts = new Set(
+      boardOwned.map((entity) => textHashOf(entity.id)),
     );
+    const actionItemEntities = projected.actionItems
+      .map((item, index) =>
+        this.createActionItemEntity(
+          item,
+          summaryMetadata,
+          index,
+          now,
+          messages,
+        ),
+      )
+      .filter((entity) => !ownedTexts.has(textHashOf(entity.id)));
 
     await Promise.all(
       [...decisionEntities, ...actionItemEntities].map((entity) =>
@@ -520,10 +561,17 @@ export class SummaryProjector {
       ...(requesterActors.length > 0 ? { requestedBy: requesterActors } : {}),
     };
     const title = this.titleForMemory("Action item", item.text);
+    const projectedBodyHash = actionItemBodyHash(
+      this.actionItemAdapter.composeContent(title, item.text, metadata),
+    );
+    const projectedMetadata: ActionItemMetadata = {
+      ...metadata,
+      projectedBodyHash,
+    };
     const content = this.actionItemAdapter.composeContent(
       title,
       item.text,
-      metadata,
+      projectedMetadata,
     );
 
     return {
@@ -539,7 +587,7 @@ export class SummaryProjector {
       visibility: this.config.memoryVisibility,
       created: now,
       updated: now,
-      metadata,
+      metadata: projectedMetadata,
     };
   }
 
