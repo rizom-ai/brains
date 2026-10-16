@@ -134,6 +134,15 @@ describe("parseArchiveOcrWork", () => {
     expect(pageText(hocr, 4)).toContain("Jones, 1919. Über das Ich; Ära.");
   });
 
+  it("reads an apostrophe the OCR doubled, straight and curved, as one, and leaves a prime's two strokes", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, 1919. qu'’il England’'s B''",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, 1919. qu’il England’s B''");
+  });
+
   it.each(["RL Ba ln a EEE", "Sb an rl a a kn a SEE", "Eee EEE EEE EEE"])(
     "leaves out a rule the OCR read as letters, without a word among them: %s",
     async (scraps) => {

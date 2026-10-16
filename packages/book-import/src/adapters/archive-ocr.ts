@@ -947,6 +947,8 @@ function normalised(text: string): string {
       .replace(OCR_NOTE_MARKER, "¹)")
       // Some scans' OCR prints a line's closing hyphen as ¬.
       .replace(/(?<=\p{L})¬$/u, "-")
+      // An apostrophe the OCR read twice, straight and curved: qu'’il.
+      .replace(/(?<=\p{L})(?:'’|’')(?=\p{L})/gu, "’")
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
       // A capital umlaut the OCR read twice, small and capital: üÜber.
