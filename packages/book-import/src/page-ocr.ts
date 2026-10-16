@@ -135,37 +135,55 @@ export async function preparedImage(
 /** The part of a page a scan reads: left, top, width and height, as shares of the page. */
 export type Region = [number, number, number, number];
 
-/** A PDF's page as an image, and the part of it the scan reads. */
+/** A PDF's page as an image. */
 export type RenderPdfPage = (
   pdf: Uint8Array,
   page: number,
-  region?: Region,
 ) => Promise<Uint8Array>;
 
-/** A PDF page named as PDF viewers open one, its part after it: file.pdf#page=5&region=0.37,0.1,0.27,0.3. */
-const PDF_PAGE =
-  /^(.*\.pdf)#page=(\d+)(?:&region=([\d.]+),([\d.]+),([\d.]+),([\d.]+))?$/iu;
+/** The part of an image a scan reads. */
+export type CropImage = (
+  image: Uint8Array,
+  region: Region,
+) => Promise<Uint8Array>;
 
 /**
- * A scan's page images: an image as fetched, or a PDF's page rendered and
- * cut to the part the scan reads, each PDF fetched once.
+ * A scan's page as addressed: an image, or a PDF's page named as PDF viewers
+ * open one, either with the part of it to read after it:
+ * file.pdf#page=5&region=0.37,0.1,0.27,0.3, page.jpg#region=0.5,0,0.5,1.
+ */
+const SCAN_PAGE =
+  /^(.*?)(?:#page=(\d+))?(?:[#&]region=([\d.]+),([\d.]+),([\d.]+),([\d.]+))?$/u;
+
+/**
+ * A scan's page images: an image as fetched, or a PDF's page rendered, each
+ * cut to the part the scan reads, such as one of a newspaper's columns;
+ * each PDF is fetched once.
  */
 export function scanImages(
   fetchBytes: (url: string) => Promise<Uint8Array>,
   renderPdfPage: RenderPdfPage,
+  cropImage: CropImage,
 ): (url: string) => Promise<Uint8Array> {
   const pdfs = new Map<string, Promise<Uint8Array>>();
   return async (url) => {
-    const match = PDF_PAGE.exec(url);
-    if (!match?.[1]) return fetchBytes(url);
-    const pdf = pdfs.get(match[1]) ?? fetchBytes(match[1]);
-    pdfs.set(match[1], pdf);
-    const [, , , left, top, across, down] = match;
-    const region: Region | undefined =
-      left && top && across && down
-        ? [Number(left), Number(top), Number(across), Number(down)]
-        : undefined;
-    return renderPdfPage(await pdf, Number(match[2]), region);
+    const [, address = url, page, left, top, across, down] =
+      SCAN_PAGE.exec(url) ?? [];
+    const pdf =
+      page === undefined ? null : (pdfs.get(address) ?? fetchBytes(address));
+    if (pdf !== null) pdfs.set(address, pdf);
+    const image =
+      pdf === null
+        ? await fetchBytes(address)
+        : await renderPdfPage(await pdf, Number(page));
+    return left && top && across && down
+      ? cropImage(image, [
+          Number(left),
+          Number(top),
+          Number(across),
+          Number(down),
+        ])
+      : image;
   };
 }
 
@@ -184,13 +202,13 @@ async function run(command: string[], stdin?: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(out);
 }
 
-/** A PDF's page at 300 dpi with poppler's pdftoppm, cut with ImageMagick; both must be on the path. */
-export const renderPdfPage: RenderPdfPage = async (pdf, page, region) => {
+/** A PDF's page at 300 dpi with poppler's pdftoppm, which must be on the path. */
+export const renderPdfPage: RenderPdfPage = async (pdf, page) => {
   const dir = await mkdtemp(join(tmpdir(), "book-import-pdf-"));
   try {
     const file = join(dir, "scan.pdf");
     await writeFile(file, pdf);
-    const png = await run([
+    return await run([
       "pdftoppm",
       "-f",
       String(page),
@@ -201,16 +219,20 @@ export const renderPdfPage: RenderPdfPage = async (pdf, page, region) => {
       "-png",
       file,
     ]);
-    if (!region) return png;
-    // A PNG gives its width and height in its header.
-    const header = new DataView(png.buffer, png.byteOffset, 24);
-    const [width, height] = [header.getUint32(16), header.getUint32(20)];
-    const [left, top, across, down] = region;
-    const crop = `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`;
-    return await run(["magick", "-", "-crop", crop, "+repage", "png:-"], png);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+};
+
+/** Part of an image, cut with ImageMagick, which must be on the path. */
+export const cropImage: CropImage = async (image, region) => {
+  const size = new TextDecoder().decode(
+    await run(["magick", "identify", "-format", "%w %h", "-"], image),
+  );
+  const [width = 0, height = 0] = size.split(" ").map(Number);
+  const [left, top, across, down] = region;
+  const crop = `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`;
+  return run(["magick", "-", "-crop", crop, "+repage", "png:-"], image);
 };
 
 /** The importer's page OCR: Tesseract, images fetched in the importer's queue. */
@@ -224,7 +246,7 @@ export function importerPageOcr(
       cacheDir,
       model: reading.model,
       prepare: preparation.join(" "),
-      fetchImage: scanImages(fetch.bytes, renderPdfPage),
+      fetchImage: scanImages(fetch.bytes, renderPdfPage, cropImage),
       recognise: async (image, used) =>
         tesseractHocr(
           await preparedImage(image, preparation),

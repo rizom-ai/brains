@@ -275,6 +275,13 @@ describe("frakturRead", () => {
 });
 
 describe("scanImages", () => {
+  const noPdf = async (): Promise<Uint8Array> => {
+    throw new Error("no PDF here");
+  };
+  const noCrop = async (): Promise<Uint8Array> => {
+    throw new Error("nothing to cut");
+  };
+
   it("fetches a page image as it is", async () => {
     const fetched: string[] = [];
     const image = scanImages(
@@ -282,9 +289,8 @@ describe("scanImages", () => {
         fetched.push(url);
         return new Uint8Array([1]);
       },
-      async () => {
-        throw new Error("no PDF here");
-      },
+      noPdf,
+      noCrop,
     );
 
     expect(
@@ -295,17 +301,48 @@ describe("scanImages", () => {
     ]);
   });
 
-  it("renders a PDF's page, the part of it the address names, fetching the PDF once", async () => {
+  it("cuts a page image to the part the address names, as a newspaper's column", async () => {
+    const fetched: string[] = [];
+    const cut: string[] = [];
+    const image = scanImages(
+      async (url) => {
+        fetched.push(url);
+        return new Uint8Array([2]);
+      },
+      noPdf,
+      async (whole, region) => {
+        cut.push(`${whole[0]} ${region.join(",")}`);
+        return new Uint8Array([3]);
+      },
+    );
+
+    expect(
+      await image(
+        "https://archive.org/download/wmw/page/n3_w1600.jpg#region=0.5,0,0.5,1",
+      ),
+    ).toEqual(new Uint8Array([3]));
+    expect(fetched).toEqual([
+      "https://archive.org/download/wmw/page/n3_w1600.jpg",
+    ]);
+    expect(cut).toEqual(["2 0.5,0,0.5,1"]);
+  });
+
+  it("renders a PDF's page, cut to the part the address names, fetching the PDF once", async () => {
     const fetched: string[] = [];
     const rendered: string[] = [];
+    const cut: string[] = [];
     const image = scanImages(
       async (url) => {
         fetched.push(url);
         return new Uint8Array([37]);
       },
-      async (pdf, page, region) => {
-        rendered.push(`${pdf[0]} ${page} ${region?.join(",") ?? "whole"}`);
+      async (pdf, page) => {
+        rendered.push(`${pdf[0]} ${page}`);
         return new Uint8Array([page]);
+      },
+      async (whole, region) => {
+        cut.push(`${whole[0]} ${region.join(",")}`);
+        return new Uint8Array([99]);
       },
     );
 
@@ -313,11 +350,12 @@ describe("scanImages", () => {
       await image(
         "http://iapsop.com/weekly.pdf#page=5&region=0.37,0.1,0.27,0.3",
       ),
-    ).toEqual(new Uint8Array([5]));
+    ).toEqual(new Uint8Array([99]));
     expect(await image("http://iapsop.com/weekly.pdf#page=6")).toEqual(
       new Uint8Array([6]),
     );
     expect(fetched).toEqual(["http://iapsop.com/weekly.pdf"]);
-    expect(rendered).toEqual(["37 5 0.37,0.1,0.27,0.3", "37 6 whole"]);
+    expect(rendered).toEqual(["37 5", "37 6"]);
+    expect(cut).toEqual(["5 0.37,0.1,0.27,0.3"]);
   });
 });
