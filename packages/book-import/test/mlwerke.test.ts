@@ -530,3 +530,24 @@ describe("parseMlwerkePages, the editors' cross-references", () => {
     ]);
   });
 });
+
+describe("parseMlwerkePages, a book drawn from more than one MEW volume", () => {
+  it("names the volume in each citation, as page numbers repeat across volumes", () => {
+    const page = (
+      volume: number,
+      title: string,
+    ): { url: string; html: string } => ({
+      url: `http://www.mlwerke.de/me/me0${volume}/me0${volume}_037.htm`,
+      html: `<H2>Karl Marx </H2><H1>${title} </H1><B><P><A NAME="S37">&lt;37&gt;</A></B> Text.</P>`,
+    });
+    const units = parseMlwerkePages(
+      [page(5, "Comité de sûreté générale"), page(6, "Der Stadtrat")],
+      { citation: "NRZ 1848", articles: true },
+    );
+
+    expect(units.map((unit) => unit.section)).toEqual([
+      "NRZ 1848, MEW 5, 37",
+      "NRZ 1848, MEW 6, 37",
+    ]);
+  });
+});

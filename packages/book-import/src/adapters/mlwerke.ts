@@ -668,8 +668,20 @@ export function parseMlwerkePages(
   const kept = reading.sections.filter(
     (section) => !section.titles.some((title) => skipped.includes(title)),
   );
+  // Page numbers repeat across MEW volumes: a book drawn from several names
+  // the volume in each citation.
+  const volumes = new Set(pages.map((page) => volumeOf(page.url)));
   return unitsOfSections(kept, (start) => ({
-    citation: `${work.citation}, ${start.label}`,
+    citation:
+      volumes.size > 1
+        ? `${work.citation}, MEW ${volumeOf(start.url)}, ${start.label}`
+        : `${work.citation}, ${start.label}`,
     source: start.url,
   }));
+}
+
+/** The MEW volume a page of mlwerke.de is from: /me/me05/ is 5. */
+function volumeOf(url: string): string {
+  const volume = /\/me(\d+)\//u.exec(url)?.[1];
+  return volume === undefined ? "" : String(Number(volume));
 }
