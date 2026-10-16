@@ -185,15 +185,21 @@ const SCRAP_TOKENS = 3;
 const CITATION_TOKEN =
   /^[([„“]*(?:\p{L}{1,2}\.|[IVXLC]+\.?|\d+(?:[.,—–-]\d+)*[.,;:]?)[)\]“”.,;:]*$/u;
 
+/** A note's mark opening its line: a superscript figure, bracketed or not, or a figure or asterisks before a bracket. */
+const LEADING_NOTE_MARK = /^(?:[¹²³⁴⁵⁶⁷⁸⁹⁰]+\)?|ı\)|\d{1,2}\)|\*+\))\s+/u;
+
 /**
- * A citation set alone, all abbreviations and numbers: (l. c. S. 114, 115.)
- * A number without an abbreviation is a margin's page number.
+ * A citation set alone, all abbreviations and numbers: (l. c. S. 114, 115.),
+ * or a note that only refers back, after its mark: ¹ l. c.; ² A. a. O. A
+ * number without an abbreviation is a margin's page number.
  */
 function isCitation(text: string): boolean {
+  const marked = LEADING_NOTE_MARK.test(text);
+  const rest = text.replace(LEADING_NOTE_MARK, "");
   return (
-    /\d/.test(text) &&
-    /(?<![\p{L}\d])\p{L}{1,2}\./u.test(text) &&
-    text.split(" ").every((token) => CITATION_TOKEN.test(token))
+    (marked || /\d/.test(rest)) &&
+    /(?<![\p{L}\d])\p{L}{1,2}\./u.test(rest) &&
+    rest.split(" ").every((token) => CITATION_TOKEN.test(token))
   );
 }
 

@@ -60,6 +60,25 @@ describe("parseArchiveOcrWork", () => {
     );
   });
 
+  it.each(["² l. c.", "² A. a. O.", "²) l. c."])(
+    "keeps a note that only refers back, its mark set in superscript: %s",
+    async (note) => {
+      const hocr = (await fixture()).replace(
+        ">Ferenczi, Abraham, Simmel und E. Jones, 1919.</span>",
+        `>Ferenczi, Abraham, Simmel und E. Jones, 1919.</span>\n  <span class='ocr_line' title='bbox 182 4010 700 4070; x_size 60'>${note}</span>`,
+      );
+      const paragraphs = parseArchiveOcrWork(hocr, {
+        ...work,
+        notes: [
+          { page: 4, opens: "ı) Vgl." },
+          { page: 4, opens: note },
+        ],
+      }).flatMap((unit) => unit.paragraphs);
+
+      expect(paragraphs).toContain(note);
+    },
+  );
+
   it("runs a page opening in lower case on the sentence left open above a note read as text", async () => {
     const hocr = (await fixture())
       .replace(
