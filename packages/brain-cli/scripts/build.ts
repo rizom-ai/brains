@@ -154,6 +154,9 @@ const sharedExternals = [
   "libsql",
   "lightningcss",
   "@tailwindcss/oxide",
+  // PDF.js resolves its worker and native canvas support relative to its own
+  // package. Bundling the entry relocates it without those runtime assets.
+  "pdfjs-dist",
   // ink loads react-devtools-core unconditionally
   "react-devtools-core",
   // Keep MCP protocol classes in one runtime module. Bundling the server while

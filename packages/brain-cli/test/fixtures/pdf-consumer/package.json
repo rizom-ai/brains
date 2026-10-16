@@ -1,0 +1,11 @@
+{
+  "name": "packed-pdf-consumer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rizom/brain": "0.2.0-alpha.504"
+  },
+  "scripts": {
+    "smoke": "bun smoke.ts"
+  }
+}

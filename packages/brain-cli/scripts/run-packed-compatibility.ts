@@ -10,6 +10,7 @@ import {
 const packageDirectory = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = join(packageDirectory, "../..");
 const compatibilityTests = [
+  "packages/brain-cli/test/pdf-packed.test.ts",
   "packages/brain-cli/test/public-chat-packed.test.ts",
   "packages/brain-cli/test/studio-groupings-packed.test.ts",
   "packages/brain-cli/test/public-authoring-phase1-packed.test.ts",
