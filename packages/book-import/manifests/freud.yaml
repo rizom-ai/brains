@@ -278,26 +278,26 @@ books:
       - { page: 87, opens: "² Holl," }
       - { page: 87, opens: "³ ibid." }
       - { page: 88, opens: "¹ Schramm," }
-      - { page: 88, opens: "2 l." }
-      - { page: 88, opens: "3 l." }
+      - { page: 88, opens: "² l." }
+      - { page: 88, opens: "³ l." }
       - { page: 88, opens: "⁴ Bericht" }
       - { page: 88, opens: "⁵ Sigm." }
       - { page: 89, opens: "¹ On" }
-      - { page: 89, opens: "2 l." }
-      - { page: 90, opens: "1 l." }
-      - { page: 90, opens: "2 l." }
-      - { page: 90, opens: "3 l." }
+      - { page: 89, opens: "² l." }
+      - { page: 90, opens: "¹ l." }
+      - { page: 90, opens: "² l." }
+      - { page: 90, opens: "³ l." }
       - { page: 90, opens: "⁴ Leydig," }
       - { page: 90, opens: "⁵ Stannius," }
-      - { page: 91, opens: "1 l." }
-      - { page: 91, opens: "2 l." }
+      - { page: 91, opens: "¹ l." }
+      - { page: 91, opens: "² l." }
       - { page: 92, opens: "¹ Axmann," }
-      - { page: 92, opens: "2 l." }
-      - { page: 92, opens: "3 l." }
-      - { page: 92, opens: "4 l." }
-      - { page: 92, opens: "5 l." }
+      - { page: 92, opens: "² l." }
+      - { page: 92, opens: "³ l." }
+      - { page: 92, opens: "⁴ l." }
+      - { page: 92, opens: "⁵ l." }
       - { page: 92, opens: "⁶ Courvoisier," }
-      - { page: 93, opens: "1 l." }
+      - { page: 93, opens: "¹ l." }
       - { page: 93, opens: "² Fräntzel," }
       - { page: 93, opens: "³ Thanhoffer," }
       - { page: 93, opens: "⁴ Ranvier," }
@@ -310,13 +310,13 @@ books:
       - { page: 95, opens: "² R." }
       - { page: 95, opens: "³ Remak," }
       - { page: 95, opens: "⁴ Leydig," }
-      - { page: 96, opens: "1 l." }
+      - { page: 96, opens: "¹ l." }
       - { page: 96, opens: "² Küttner," }
       - { page: 97, opens: "¹ Stannius," }
       - { page: 97, opens: "² In" }
       - { page: 97, opens: "³ Langerhans," }
-      - { page: 98, opens: "1 l." }
-      - { page: 98, opens: "2 l." }
+      - { page: 98, opens: "¹ l." }
+      - { page: 98, opens: "² l." }
       - { page: 99, opens: "¹ Joh." }
       - { page: 99, opens: "² Vergl." }
       - { page: 101, opens: "¹ Joh." }
@@ -326,9 +326,9 @@ books:
       - { page: 104, opens: "² Stannius," }
       - { page: 104, opens: "³ Vergl." }
       - { page: 105, opens: "¹ Meine" }
-      - { page: 105, opens: "2 l." }
+      - { page: 105, opens: "² l." }
       - { page: 111, opens: "¹ Vergl." }
-      - { page: 113, opens: "1 l." }
+      - { page: 113, opens: "¹ l." }
       - { page: 117, opens: "¹ Henle," }
       - { page: 119, opens: "¹ Joh." }
       - { page: 127, opens: "¹ Stannius" }
@@ -341,11 +341,11 @@ books:
       - { page: 134, opens: "¹ Kutschin," }
       - { page: 134, opens: "² Vergl." }
       - { page: 134, opens: "³ Über" }
-      - { page: 135, opens: "1 l." }
+      - { page: 135, opens: "¹ l." }
       - { page: 135, opens: "² Stilling," }
       - { page: 139, opens: "¹ Hensen," }
       - { page: 139, opens: "² Schenk," }
-      - { page: 139, opens: "3 l." }
+      - { page: 139, opens: "³ l." }
       - { page: 139, opens: "⁴ Balfour," }
       - { page: 142, opens: "¹ Stannius," }
       - { page: 147, opens: "¹ Königstein," }
@@ -356,12 +356,12 @@ books:
       - { page: 154, opens: "⁵ Vergl." }
       - { page: 154, opens: "⁶ Langerhans," }
       - { page: 155, opens: "¹ Mémoires" }
-      - { page: 155, opens: "2 l." }
+      - { page: 155, opens: "² l." }
       - { page: 156, opens: "¹ Stannius" }
       - { page: 157, opens: "¹ Neue" }
       - { page: 158, opens: "¹ Reissner," }
       - { page: 158, opens: "² Referate" }
-      - { page: 160, opens: "1 l." }
+      - { page: 160, opens: "¹ l." }
     slug: ueber-spinalganglien-und-rueckenmark-des-petromyzon
     title: Über Spinalganglien und Rückenmark des Petromyzon
     shortTitle: Spinalganglien und Rückenmark des Petromyzon
@@ -498,8 +498,8 @@ books:
     lastPage: 26
     # Headings set in the text's type.
     headings:
-      - { page: 3, opens: II. Geschichte }
-      - { page: 6, opens: III. Die Cocablätter }
+      - { page: 3, opens: II. Geschichte, level: 1, label: II }
+      - { page: 6, opens: III. Die Cocablätter, level: 1, label: III }
     # The notes, set below a rule the OCR does not read, by their marks.
     notes:
       - { page: 3, opens: ¹ O. }
@@ -518,9 +518,9 @@ books:
       - { page: 5, opens: ⁴ Viagem }
       - { page: 5, opens: ⁵ Expedition }
       - { page: 5, opens: ⁶ Reise }
-      - { page: 5, opens: 7 l. c. }
+      - { page: 5, opens: ⁷ l. c. }
       - { page: 5, opens: ⁸ Reiseskizzen }
-      - { page: 5, opens: 9 l. c. }
+      - { page: 5, opens: ⁹ l. c. }
       - { page: 5, opens: ¹⁰ Reise }
       - { page: 5, opens: ¹¹ Travels }
       - { page: 5, opens: ¹² Reise }
@@ -559,7 +559,7 @@ books:
       - { page: 14, opens: ² J. }
       - { page: 14, opens: ³ Erythroxylon }
       - { page: 14, opens: ⁴ Die }
-      - { page: 14, opens: 5 l. c. }
+      - { page: 14, opens: ⁵ l. c. }
       - { page: 15, opens: ¹ Ploss }
       - { page: 16, opens: ¹ Philadelphia }
       - { page: 17, opens: ¹ Detroit }
@@ -580,7 +580,7 @@ books:
       - { page: 20, opens: ³ Comptes }
       - { page: 20, opens: ⁴ Bei }
       - { page: 21, opens: ¹ Pathology }
-      - { page: 21, opens: 2 l. c. }
+      - { page: 21, opens: ² l. c. }
       - { page: 21, opens: ³ Erythroxylon }
       - { page: 22, opens: ¹ J. }
       - { page: 22, opens: ² E. }
@@ -610,7 +610,7 @@ books:
     year: 1884
     kind: work
     notes:
-      - { page: 454, opens: 1 A. a. O. }
+      - { page: 454, opens: ¹ A. a. O. }
       - { page: 454, opens: ² Meinem }
       - { page: 459, opens: ¹ Ich konnte }
   - item: nc_4_1885_12
