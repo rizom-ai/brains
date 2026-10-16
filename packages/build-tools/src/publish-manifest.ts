@@ -65,6 +65,27 @@ export async function preparePublishManifest(
   await writeFile(manifestPath, publishText);
 }
 
+/**
+ * The manifest a publish of this package would carry, computed without
+ * touching the package directory.
+ */
+export async function publishManifestFor(
+  packageDir: string,
+  options: PreparePublishManifestOptions = {},
+): Promise<Record<string, unknown>> {
+  const originalText = await readFile(join(packageDir, "package.json"), "utf8");
+  const parsed: unknown = JSON.parse(
+    await createPublishManifestText(
+      originalText,
+      options.resolveFrom ?? packageDir,
+    ),
+  );
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`Publish manifest for ${packageDir} is not an object`);
+  }
+  return Object.fromEntries(Object.entries(parsed));
+}
+
 export async function restorePublishManifest(
   packageDir: string,
   options: RestorePublishManifestOptions = {},
