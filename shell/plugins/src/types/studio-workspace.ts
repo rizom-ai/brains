@@ -11,6 +11,8 @@ export const DECLARATIVE_STUDIO_WORKSPACE_RENDERER =
 export interface StudioWorkspaceActor {
   interfaceType: "studio";
   userId: string;
+  /** The signed-in person's name, for providers that record who acted. */
+  displayName?: string | undefined;
   actor: ActorRef;
   userPermissionLevel: UserPermissionLevel;
   visibilityScope: ContentVisibility;

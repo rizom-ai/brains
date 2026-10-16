@@ -1,3 +1,4 @@
+import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 const inboxIdPattern = /^[a-z][a-z0-9-]*$/;
@@ -225,6 +226,21 @@ export const inboxActorSchema: InboxActorSchema = z.strictObject({
   permissionLevel: z.enum(["admin", "trusted", "public"]),
 });
 
+type InboxActionActorSchema = z.ZodObject<
+  InboxActorSchema["shape"] & {
+    actor: typeof actorRefSchema;
+    displayName: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+>;
+
+/** An action is taken by someone: sources record who, not just their rank. */
+export const inboxActionActorSchema: InboxActionActorSchema =
+  inboxActorSchema.extend({
+    actor: actorRefSchema,
+    displayName: z.string().trim().min(1).max(200).optional(),
+  });
+
 type InboxItemDetailSchema = z.ZodObject<
   { kind: z.ZodLiteral<"plain">; text: z.ZodString; truncated: z.ZodBoolean },
   z.core.$strict
@@ -274,6 +290,7 @@ export type InboxFacetDefinition = z.output<typeof inboxFacetDefinitionSchema>;
 export type InboxFacets = z.output<typeof inboxFacetsSchema>;
 export type InboxItem = z.output<typeof inboxItemSchema>;
 export type InboxActor = z.output<typeof inboxActorSchema>;
+export type InboxActionActor = z.output<typeof inboxActionActorSchema>;
 export type InboxItemDetail = z.output<typeof inboxItemDetailSchema>;
 export type InboxSourceMetadata = z.output<typeof inboxSourceMetadataSchema>;
 export type InboxSourceDescriptor = z.output<
@@ -287,7 +304,7 @@ export interface InboxSource extends InboxSourceDescriptor {
     actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail>;
-  act(itemId: string, actionId: string, actor: InboxActor): Promise<void>;
+  act(itemId: string, actionId: string, actor: InboxActionActor): Promise<void>;
 }
 
 export interface IInboxRegistry {
@@ -433,14 +450,14 @@ function normalizeSource(
     act: async (
       itemId: string,
       actionId: string,
-      actor: InboxActor,
+      actor: InboxActionActor,
     ): Promise<void> => {
       const normalizedItemId = inboxItemIdSchema.parse(itemId);
       const normalizedActionId = inboxIdSchema.parse(actionId);
       await source.act(
         normalizedItemId,
         normalizedActionId,
-        inboxActorSchema.parse(actor),
+        inboxActionActorSchema.parse(actor),
       );
     },
   });

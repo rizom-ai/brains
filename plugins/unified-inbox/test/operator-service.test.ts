@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   InboxFollowUpRegistry,
   InboxRegistry,
+  type InboxActionActor,
   type InboxActor,
   type InboxItem,
 } from "@brains/plugins";
@@ -37,10 +38,10 @@ function attentionItem(
 
 function createService(input?: { rejectActor?: (actor: InboxActor) => void }): {
   service: InboxOperatorService;
-  actors: InboxActor[];
+  actors: InboxActionActor[];
 } {
   let open = true;
-  const actors: InboxActor[] = [];
+  const actors: InboxActionActor[] = [];
   const registry = new InboxRegistry();
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
@@ -424,7 +425,10 @@ describe("InboxOperatorService", () => {
           actionId: "archive",
           confirmed: false,
         },
-        { permissionLevel: "admin" },
+        {
+          permissionLevel: "admin",
+          actor: { kind: "user", userId: "usr_admin" },
+        },
       ),
     );
 
@@ -442,11 +446,19 @@ describe("InboxOperatorService", () => {
           actionId: "archive",
           confirmed: true,
         },
-        { permissionLevel: "admin" },
+        {
+          permissionLevel: "admin",
+          actor: { kind: "user", userId: "usr_admin" },
+        },
       ),
     );
 
-    expect(fixture.actors).toEqual([{ permissionLevel: "admin" }]);
+    expect(fixture.actors).toEqual([
+      {
+        permissionLevel: "admin",
+        actor: { kind: "user", userId: "usr_admin" },
+      },
+    ]);
     expect(completed).toEqual({ kind: "completed" });
   });
 
@@ -515,10 +527,18 @@ describe("InboxOperatorService", () => {
           actionId: "mark-reviewed",
           confirmed: false,
         },
-        { permissionLevel: "trusted" },
+        {
+          permissionLevel: "trusted",
+          actor: { kind: "user", userId: "usr_trusted" },
+        },
       ),
     ).rejects.toThrow("Source requires admin permission");
-    expect(fixture.actors).toEqual([{ permissionLevel: "trusted" }]);
+    expect(fixture.actors).toEqual([
+      {
+        permissionLevel: "trusted",
+        actor: { kind: "user", userId: "usr_trusted" },
+      },
+    ]);
   });
 
   it("rejects actions that are not currently offered by the owning source", async () => {
@@ -532,7 +552,10 @@ describe("InboxOperatorService", () => {
           actionId: "delete",
           confirmed: true,
         },
-        { permissionLevel: "admin" },
+        {
+          permissionLevel: "admin",
+          actor: { kind: "user", userId: "usr_admin" },
+        },
       ),
     ).rejects.toThrow("Inbox item or action not found");
     expect(fixture.actors).toEqual([]);

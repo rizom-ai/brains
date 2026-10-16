@@ -454,7 +454,11 @@ export interface UploadSaveHandlerRegistration {
  */
 export type PersistValidator<T extends BaseEntity = BaseEntity> = (
   entity: T,
-  context: { operation: "create" | "update" },
+  context: {
+    operation: "create" | "update";
+    /** Who is writing, when the write names them; system writes do not. */
+    actor?: ActorRef;
+  },
 ) => Promise<void>;
 
 /**

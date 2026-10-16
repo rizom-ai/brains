@@ -1,3 +1,4 @@
+import { actionItemSchema, type ActionItemEntity } from "@brains/action-items";
 import { actorRefFromLegacy } from "@brains/contracts";
 import {
   type BaseEntity,
@@ -12,9 +13,7 @@ import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import {
-  actionItemSchema,
   decisionSchema,
-  type ActionItemEntity,
   type DecisionEntity,
 } from "../schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../schemas/summary";

@@ -92,7 +92,6 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
-- [action-item-board.md](./plans/action-item-board.md) — a Studio board over the shared action items: four status columns, attributed moves and notes that survive re-projection, blocked cards in the Inbox, Inbox items tracked as cards, and project filters through a Studio grouping.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 
 ### 3. Trust and identity

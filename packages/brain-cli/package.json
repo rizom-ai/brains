@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/action-board": "workspace:*",
     "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/ai-evaluation": "workspace:*",

@@ -1,3 +1,13 @@
+import {
+  actionItemSchema,
+  actionItemStatusSchema,
+  type ActionItemEntity,
+  type ActionItemStatus,
+  ACTION_ITEM_ENTITY_TYPE,
+  formatAge,
+  actionItemCapturedAt,
+  actionItemSource,
+} from "@brains/action-items";
 import type { ContentVisibility } from "@brains/plugins";
 import {
   SYSTEM_CHANNELS,
@@ -7,12 +17,6 @@ import {
 } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import {
-  actionItemSchema,
-  type ActionItemEntity,
-} from "../../schemas/conversation-memory";
-import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
-import { channelLabel, formatAge } from "./format";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "action-items";
@@ -27,8 +31,9 @@ export interface ActionItemWidgetItem {
 
 export interface ActionItemsWidgetData {
   items: ActionItemWidgetItem[];
-  /** Total open items, uncapped (the items list is truncated for display). */
-  openCount: number;
+  /** Open, doing and blocked items, uncapped (the list is truncated for display). */
+  unfinishedCount: number;
+  blockedCount: number;
 }
 
 const actionItemsWidgetDataSchema = z.object({
@@ -38,10 +43,11 @@ const actionItemsWidgetDataSchema = z.object({
       name: z.string(),
       description: z.string().optional(),
       meta: z.array(z.string()),
-      status: z.enum(["open", "done", "dropped"]),
+      status: actionItemStatusSchema,
     }),
   ),
-  openCount: z.number().int().nonnegative(),
+  unfinishedCount: z.number().int().nonnegative(),
+  blockedCount: z.number().int().nonnegative(),
 });
 
 const actionItemsWidget = defineDashboardWidget({
@@ -50,17 +56,21 @@ const actionItemsWidget = defineDashboardWidget({
   group: "knowledge",
   placement: "secondary",
   priority: 25,
-  permission: "public",
+  // Action items are shared or restricted memory; members read them in Studio
+  // Overview, where blocked items ask for attention.
+  permission: "trusted",
   data: actionItemsWidgetDataSchema,
   digest: ({ data }) => ({
     items: [
+      { label: "Open actions", value: String(data.unfinishedCount) },
       {
-        label: "Open actions",
-        value: String(data.openCount),
-        ...(data.openCount > 0 ? { tone: "warn" } : {}),
+        label: "Blocked",
+        value: String(data.blockedCount),
+        ...(data.blockedCount > 0 ? { tone: "warn" } : {}),
       },
     ],
-    attention: data.openCount,
+    // Open work is the board's business; a blocker is what needs someone.
+    attention: data.blockedCount,
   }),
   view: ({ data }) => ({
     blocks: [
@@ -76,27 +86,35 @@ const actionItemsWidget = defineDashboardWidget({
           badges: [
             {
               label: item.status,
-              tone:
-                item.status === "open"
-                  ? "warn"
-                  : item.status === "done"
-                    ? "good"
-                    : "neutral",
+              tone: item.status === "blocked" ? "warn" : "neutral",
             },
           ],
         })),
+      },
+      {
+        type: "links",
+        items: [
+          { label: "Open the board", target: { launch: { target: "board" } } },
+        ],
       },
     ],
   }),
 });
 
-function statusOrder(status: ActionItemEntity["metadata"]["status"]): number {
+const UNFINISHED: ReadonlySet<ActionItemStatus> = new Set([
+  "blocked",
+  "doing",
+  "open",
+]);
+
+/** Blockers first: they are what the widget is for. */
+function statusOrder(status: ActionItemStatus): number {
   switch (status) {
-    case "open":
+    case "blocked":
       return 0;
-    case "done":
+    case "doing":
       return 1;
-    case "dropped":
+    default:
       return 2;
   }
 }
@@ -126,19 +144,22 @@ export async function buildActionItemsWidgetData(
     actionItemSchema,
   );
 
-  const sorted = [...items].sort((a, b) => {
+  const unfinished = items.filter((entity) =>
+    UNFINISHED.has(entity.metadata.status),
+  );
+  const sorted = [...unfinished].sort((a, b) => {
     const statusDiff =
       statusOrder(a.metadata.status) - statusOrder(b.metadata.status);
     if (statusDiff !== 0) return statusDiff;
-    return b.metadata.timeRange.end.localeCompare(a.metadata.timeRange.end);
+    return actionItemCapturedAt(b).localeCompare(actionItemCapturedAt(a));
   });
 
   return {
     items: sorted.slice(0, MAX_ITEMS).map((entity) => {
       const description = firstSentence(entityBody(entity));
       const meta = [
-        channelLabel(entity.metadata.channelName, entity.metadata.channelId),
-        formatAge(entity.metadata.timeRange.end, now),
+        actionItemSource(entity).place,
+        formatAge(actionItemCapturedAt(entity), now),
       ].filter((segment) => segment.length > 0);
       return {
         id: entity.id,
@@ -148,8 +169,10 @@ export async function buildActionItemsWidgetData(
         status: entity.metadata.status,
       };
     }),
-    openCount: items.filter((entity) => entity.metadata.status === "open")
-      .length,
+    unfinishedCount: unfinished.length,
+    blockedCount: unfinished.filter(
+      (entity) => entity.metadata.status === "blocked",
+    ).length,
   };
 }
 

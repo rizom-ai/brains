@@ -6,7 +6,8 @@
       "paths": [
         "entities/conversation-memory/src/lib/eval-handlers.ts",
         "entities/conversation-memory/src/schemas/conversation-memory.ts",
-        "entities/conversation-memory/src/schemas/summary.ts"
+        "entities/conversation-memory/src/schemas/summary.ts",
+        "shared/action-items/src/schema.ts"
       ],
       "symbol": "actor reference fallback",
       "owner": "@brains/conversation-memory",

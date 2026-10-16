@@ -1,3 +1,4 @@
+import { type ActionItemEntity } from "@brains/action-items";
 import { describe, expect, it, spyOn } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, SearchResult } from "@brains/plugins";
@@ -7,10 +8,7 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-retriever";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
-} from "../../src/schemas/conversation-memory";
+import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
@@ -252,6 +250,46 @@ describe("ConversationMemoryRetriever", () => {
         excerpt: "Create action-item entities.",
       }),
     ]);
+  });
+
+  it("leaves action items tracked from the Inbox out of conversation memory", async () => {
+    const context = createMockEntityPluginContext();
+    const conversationItem = createActionItem({
+      id: "action-1",
+      channelId: "team",
+    });
+    const tracked: ActionItemEntity = {
+      ...createActionItem({ id: "inbox-1", channelId: "team" }),
+      metadata: {
+        origin: "inbox",
+        sourceRef: {
+          sourceId: "contact-requests",
+          entityType: "contact-request",
+          entityId: "req-1",
+        },
+        capturedAt: "2026-01-01T00:00:00.000Z",
+        status: "open",
+      },
+    };
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: tracked, score: 0.95, excerpt: "Reply to the request." },
+        {
+          entity: conversationItem,
+          score: 0.8,
+          excerpt: "Create action-item entities.",
+        },
+      ]),
+    );
+
+    const result = await new ConversationMemoryRetriever(context).retrieve({
+      query: "request",
+      interfaceType: "mcp",
+      channelId: "team",
+      includeOtherSpaces: true,
+    });
+
+    expect(result.results.map((memory) => memory.id)).toEqual(["action-1"]);
   });
 
   it("derives retrieval space from conversation id", async () => {

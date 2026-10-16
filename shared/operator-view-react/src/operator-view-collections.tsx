@@ -23,7 +23,7 @@ import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
 } from "@brains/plugins";
-import { useContext, useState, type ReactElement } from "react";
+import { useContext, useState, type DragEvent, type ReactElement } from "react";
 import {
   OperatorRendererHostContext,
   OpenDetailContext,
@@ -31,7 +31,11 @@ import {
 import type { OperatorViewQuery } from "./operator-view-host";
 import { displayCell } from "./operator-view-format";
 import { OperatorLink } from "./operator-view-links";
-import { Actions } from "./operator-view-actions";
+import {
+  Actions,
+  actionFailureMessage,
+  presentedActionResult,
+} from "./operator-view-actions";
 import { QueryBlock } from "./operator-view-blocks";
 
 type RuntimeListItem = Extract<
@@ -49,8 +53,12 @@ function ListItems(props: {
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
   openId?: string | undefined;
+  /** Cards with drop actions can be dragged; the matrix answers the drop. */
+  drag?:
+    { start: (item: RuntimeListItem) => void; end: () => void } | undefined;
 }): ReactElement {
   const { components } = useContext(OperatorRendererHostContext);
+  const drag = props.drag;
   const { Disclosure } = components;
   const master = useContext(OpenDetailContext) !== null;
   return (
@@ -75,6 +83,18 @@ function ListItems(props: {
               props.presentation === "attention"
             }
             interactive={Boolean(item.link ?? item.links?.length)}
+            drag={
+              drag && dropActions(item).length > 0
+                ? {
+                    onStart: (event: DragEvent): void => {
+                      // Firefox starts a drag only once it carries data.
+                      event.dataTransfer.setData("text/plain", item.id);
+                      drag.start(item);
+                    },
+                    onEnd: drag.end,
+                  }
+                : undefined
+            }
             trailing={
               item.count !== undefined ||
               Boolean(item.badges?.length) ||
@@ -399,33 +419,97 @@ export function TableBlock(props: {
   );
 }
 
+/** The card's actions that run when it is dropped on another cell. */
+function dropActions(
+  item: RuntimeListItem,
+): readonly RuntimeOperatorActionControl[] {
+  return (item.actions ?? []).filter(
+    (action) => action.dropTarget !== undefined && action.disabled !== true,
+  );
+}
+
 export function MatrixBlock(props: {
   block: Extract<RuntimeStudioOperatorPanelBlock, { type: "matrix" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  /** The open card when this matrix is a detail master. */
+  openId?: string | undefined;
 }): ReactElement {
+  const host = useContext(OperatorRendererHostContext);
+  const [dragging, setDragging] = useState<RuntimeListItem | null>(null);
+  const [failure, setFailure] = useState("");
+  // Beside an open card there is room for one column of cards, not four.
+  const columns = props.openId !== undefined ? 1 : (props.block.columns ?? 2);
+  const drop = async (action: RuntimeOperatorActionControl): Promise<void> => {
+    setFailure("");
+    try {
+      const presented = presentedActionResult(
+        action,
+        await props.onAction(action),
+      );
+      if (presented) host.onDetachedActionResult?.(presented);
+    } catch (error) {
+      setFailure(actionFailureMessage(error));
+    }
+  };
   return (
-    <div {...stylex.props(rendererLayout.matrix(props.block.columns ?? 2))}>
-      {props.block.cells.map((cell) => (
-        <section
-          {...stylex.props(rendererLayout.cell)}
-          key={cell.id}
-          data-tone={cell.tone ?? "neutral"}
-        >
-          <h3 {...stylex.props(rendererLayout.caption)}>{cell.label}</h3>
-          {cell.items.length === 0 ? (
-            <p {...stylex.props(rendererLayout.empty)}>{cell.empty}</p>
-          ) : (
-            <ListItems
-              items={cell.items}
-              onAction={props.onAction}
-              onOpenEntity={props.onOpenEntity}
-              onLaunch={props.onLaunch}
-            />
-          )}
-        </section>
-      ))}
+    <div
+      {...stylex.props(rendererLayout.matrix(columns))}
+      data-columns={columns}
+    >
+      {failure && (
+        <p {...stylex.props(rendererLayout.error)} role="alert">
+          {failure}
+        </p>
+      )}
+      {props.block.cells.map((cell) => {
+        const action = dragging
+          ? dropActions(dragging).find(
+              (candidate) => candidate.dropTarget === cell.id,
+            )
+          : undefined;
+        return (
+          <section
+            {...stylex.props(
+              rendererLayout.cell,
+              action && rendererLayout.dropAllowed,
+            )}
+            key={cell.id}
+            data-tone={cell.tone ?? "neutral"}
+            data-drop={action ? "allowed" : undefined}
+            onDragOver={
+              action ? (event): void => event.preventDefault() : undefined
+            }
+            onDrop={
+              action
+                ? (event): void => {
+                    event.preventDefault();
+                    setDragging(null);
+                    void drop(action);
+                  }
+                : undefined
+            }
+          >
+            <h3 {...stylex.props(rendererLayout.caption)}>{cell.label}</h3>
+            {cell.items.length === 0 ? (
+              <p {...stylex.props(rendererLayout.empty)}>{cell.empty}</p>
+            ) : (
+              <ListItems
+                items={cell.items}
+                onAction={props.onAction}
+                onOpenEntity={props.onOpenEntity}
+                onLaunch={props.onLaunch}
+                openId={props.openId}
+                drag={{
+                  start: setDragging,
+                  end: (): void => setDragging(null),
+                }}
+              />
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }

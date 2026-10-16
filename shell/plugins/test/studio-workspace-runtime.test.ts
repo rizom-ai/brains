@@ -1449,6 +1449,67 @@ describe("operator detail composition", () => {
     });
   });
 
+  it("opens rows of a matrix master, so a board can show a card beside its columns", () => {
+    const board = {
+      type: "matrix",
+      id: "board",
+      columns: 2,
+      cells: [
+        {
+          id: "open",
+          label: "To do",
+          empty: "Nothing waiting.",
+          items: [
+            {
+              id: "card-1",
+              title: "Book the venue",
+              link: { detail: { itemId: "card-1" } },
+            },
+          ],
+        },
+        { id: "done", label: "Done", empty: "Nothing done.", items: [] },
+      ],
+    };
+    const result = safeParseRuntimeStudioOperatorView(
+      detailView(
+        {
+          forId: "card-1",
+          title: "Book the venue",
+          blocks: [{ type: "text", id: "card-text", text: "Venue for May." }],
+        },
+        board,
+      ),
+      { actions: [], permission: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "detail",
+            master: {
+              type: "matrix",
+              cells: [
+                {
+                  id: "open",
+                  items: [
+                    {
+                      id: "card-1",
+                      link: { kind: "detail", itemId: "card-1" },
+                    },
+                  ],
+                },
+                { id: "done" },
+              ],
+            },
+            open: { forId: "card-1", title: "Book the venue" },
+          },
+        ],
+      },
+    });
+  });
+
   it("keeps the open detail when its row is outside the current page", () => {
     // Paging or filtering can move the selected row out of the master. Losing
     // the reading pane because the operator turned a page would be worse than

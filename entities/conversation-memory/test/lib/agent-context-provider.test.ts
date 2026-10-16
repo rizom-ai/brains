@@ -1,13 +1,11 @@
+import { type ActionItemEntity } from "@brains/action-items";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AgentContextRequest } from "@brains/contracts";
 import { buildConversationMemoryAgentContext } from "../../src/lib/agent-context-provider";
 import { conversationMemorySearchEntitySchema } from "../../src/lib/conversation-memory-retriever";
 import type { SummaryEntity } from "../../src/schemas/summary";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
-} from "../../src/schemas/conversation-memory";
+import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 import {
   createMockActionItemEntity,

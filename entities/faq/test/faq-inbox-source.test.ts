@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type {
   ContentVisibility,
   EntityPluginContext,
+  InboxActionActor,
   InboxActor,
   InboxSource,
 } from "@brains/plugins";
@@ -17,6 +18,10 @@ import {
 } from "../src";
 
 const owner: InboxActor = { permissionLevel: "admin" };
+const ownerAction: InboxActionActor = {
+  ...owner,
+  actor: { kind: "user", userId: "usr_admin" },
+};
 
 // FAQs that need the owner come to the Inbox: a question captured as a draft,
 // to publish or decline, and a FAQ that was answered differently since, to
@@ -129,7 +134,7 @@ describe("FAQ inbox", () => {
   });
 
   it("publishes a new question", async () => {
-    await source.act("visitor-draft", "publish", owner);
+    await source.act("visitor-draft", "publish", ownerAction);
     expect((await read("visitor-draft"))?.status).toBe("published");
     expect((await source.list()).map((item) => item.id)).not.toContain(
       "visitor-draft",
@@ -137,12 +142,12 @@ describe("FAQ inbox", () => {
   });
 
   it("declines a new question by deleting it", async () => {
-    await source.act("visitor-draft", "decline", owner);
+    await source.act("visitor-draft", "decline", ownerAction);
     expect(await read("visitor-draft")).toBeNull();
   });
 
   it("settles a FAQ on the chosen answer, or the current one", async () => {
-    await source.act("answered-twice", "use-alternative-1", owner);
+    await source.act("answered-twice", "use-alternative-1", ownerAction);
     expect(await read("answered-twice")).toEqual({
       status: "published",
       answer: "A clearer answer.",
@@ -150,7 +155,7 @@ describe("FAQ inbox", () => {
     });
 
     await seed("kept", "published", "public", [{ answer: "Another." }]);
-    await source.act("kept", "keep-current", owner);
+    await source.act("kept", "keep-current", ownerAction);
     expect(await read("kept")).toEqual({
       status: "published",
       answer: "Answer kept.",
@@ -159,7 +164,10 @@ describe("FAQ inbox", () => {
   });
 
   it("acts only for the owner", async () => {
-    const trusted: InboxActor = { permissionLevel: "trusted" };
+    const trusted: InboxActionActor = {
+      permissionLevel: "trusted",
+      actor: { kind: "user", userId: "usr_trusted" },
+    };
     expect(source.act("visitor-draft", "publish", trusted)).rejects.toThrow(
       "admin",
     );

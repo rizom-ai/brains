@@ -1,3 +1,4 @@
+import type { ActorRef } from "@brains/contracts";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
 import { EntityMutationReceiptStore } from "./entity-mutation-receipt-store";
@@ -71,10 +72,12 @@ export async function validatePersist(
   registry: EntityRegistry,
   entity: BaseEntity,
   operation: "create" | "update",
+  actor?: ActorRef,
 ): Promise<void> {
   try {
     await registry.getPersistValidator(entity.entityType)?.(entity, {
       operation,
+      ...(actor ? { actor } : {}),
     });
   } catch (error) {
     // A validator that finds the content itself invalid says so with a
@@ -318,7 +321,12 @@ export class EntityMutations {
       entityWithDefaults,
     );
 
-    await validatePersist(this.entityRegistry, validatedEntity, "create");
+    await validatePersist(
+      this.entityRegistry,
+      validatedEntity,
+      "create",
+      options?.eventContext?.actor,
+    );
     options?.signal?.throwIfAborted();
 
     // Prepare entity for storage
@@ -558,7 +566,12 @@ export class EntityMutations {
       updatedEntity,
     );
 
-    await validatePersist(this.entityRegistry, validatedEntity, "update");
+    await validatePersist(
+      this.entityRegistry,
+      validatedEntity,
+      "update",
+      options?.eventContext?.actor,
+    );
     options?.signal?.throwIfAborted();
 
     const { markdown, metadata } =
