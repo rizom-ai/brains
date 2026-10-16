@@ -1,10 +1,10 @@
 # Plan: Generation voice precedence and prompt freshness
 
-Last updated: 2026-10-05
+Last updated: 2026-10-16
 
 ## Status
 
-**Proposed. Nothing implemented.** Research is complete; the four slices below are independent enough to land as separate PRs in the order given.
+**In progress. Slice 1 implemented; slices 2–4 not started.** Research is complete; the four slices below are independent enough to land as separate PRs in the order given.
 
 Trigger: on yeehaa.io, generated LinkedIn posts ignored the owner's style guide (one-sentence lines, engagement questions, takeaway structure) although the style guide asks for the opposite. The cause is not one bad prompt but four structural problems in how generation prompts are assembled and kept.
 
