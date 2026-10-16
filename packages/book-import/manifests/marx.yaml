@@ -2409,3 +2409,58 @@ books:
     author: Karl Marx
     year: 1849
     kind: work
+  - source: archive-ocr
+    item: socialismeutopiq00enge
+    citation: Socialisme utopique
+    firstPage: 5
+    lastPage: 7
+    # The page turns between paragraphs, which the scan does not tell.
+    paragraphs:
+      - { page: 6, opens: Pendant leur séjour }
+      - { page: 6, opens: "En 1847, Marx et Engels" }
+      - { page: 6, opens: "En 1850, à Londres" }
+      - { page: 7, opens: Après la reprise }
+      - { page: 7, opens: "En 1870, après" }
+      - { page: 7, opens: La série des }
+      - { page: 7, opens: P. L. }
+    slug: avant-propos-a-socialisme-utopique-et-socialisme-scientifique
+    title: Avant-propos à Socialisme utopique et socialisme scientifique
+    edition: Frédéric Engels, Socialisme utopique et socialisme scientifique (Paris, Derveaux, 1880), pp. 5–7, signed P. L.
+    author: Karl Marx
+    year: 1880
+    kind: work
+  - source: archive-ocr
+    item: resolutionsducon00inte
+    citation: Résolutions de La Haye
+    firstPage: 3
+    lastPage: 16
+    # The resolutions' titles, set in the text's type, each numbered by
+    # place as the edition numbers them, and the second's two sections.
+    headings:
+      - { page: 3, opens: Résolution relative aux statuts }
+      - { page: 4, opens: Résolutions relatives aux réglements }
+      - { page: 4, opens: 1. Pouvoirs du Conseil }
+      - { page: 7, opens: Résolutions relatives aux rapports }
+      - { page: 8, opens: Résolutions relatives à l’admission }
+      - { page: 11, opens: Vérification des comptes }
+      - { page: 11, opens: Pleins-pouvoirs donnés }
+      - { page: 12, opens: Résolutions relatives à l’Alliance }
+      - { page: 14, opens: Siége et composition }
+      - { page: 16, opens: Lieu du Congrès }
+      - { page: 16, opens: Commission pour la rédaction }
+    # A note the scan sets too close below the text to tell.
+    notes:
+      - { page: 12, opens: (1) La commission }
+    # The commission's signatures, set apart below the date.
+    paragraphs:
+      - { page: 16, opens: Sur la propoposition }
+      - { page: 16, opens: Ont été nommés }
+      - { page: 16, opens: "Londres, le 21" }
+      - { page: 16, opens: "La Commission :" }
+      - { page: 16, opens: E. Dupont }
+    slug: resolutions-du-congres-general-tenu-a-la-haye
+    title: Résolutions du Congrès général tenu à La Haye du 2 au 7 septembre 1872
+    edition: Résolutions du Congrès général tenu à La Haye du 2 au 7 septembre 1872 (Londres, Imprimerie De Graag, 1872)
+    author: Karl Marx und Friedrich Engels
+    year: 1872
+    kind: work
