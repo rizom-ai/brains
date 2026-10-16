@@ -7,6 +7,7 @@ import {
 } from "./corrections-file";
 import {
   firstOfEachVolume,
+  volumeKey,
   volumeHocr,
   parseManifest,
   scannedBooks,
@@ -599,7 +600,7 @@ async function main(): Promise<void> {
       async (done, book) => [
         ...(await done),
         [
-          book.item,
+          volumeKey(book),
           await volumeHocr(book, fetchText, importerPageOcr(fetchText)),
         ],
       ],
@@ -607,13 +608,13 @@ async function main(): Promise<void> {
     ),
   );
   const textOf = (book: (typeof books)[number]): PageOfText[] =>
-    workPages(hocrs.get(book.item) ?? "", book).flatMap((page) => {
+    workPages(hocrs.get(volumeKey(book)) ?? "", book).flatMap((page) => {
       try {
         return [
           {
             page,
             text: pageText(
-              hocrs.get(book.item) ?? "",
+              hocrs.get(volumeKey(book)) ?? "",
               page,
               corrections[book.item] ?? [],
             ),

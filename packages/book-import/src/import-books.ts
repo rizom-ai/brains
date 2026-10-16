@@ -508,7 +508,15 @@ export type ScannedBook = Extract<ManifestBook, { source: "archive-ocr" }>;
 export function firstOfEachVolume(books: ScannedBook[]): ScannedBook[] {
   return books.filter(
     (book, index) =>
-      books.findIndex((other) => other.item === book.item) === index,
+      books.findIndex((other) => volumeKey(other) === volumeKey(book)) ===
+      index,
+  );
+}
+
+/** A volume as read: its scan, and the model it is read anew with, if any. */
+export function volumeKey(book: ScannedBook): string {
+  return [book.item, book.ocr ?? "", book.binarise ? "binarised" : ""].join(
+    "|",
   );
 }
 

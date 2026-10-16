@@ -5,10 +5,13 @@ import { join } from "node:path";
 import { bookAdapter, bookSectionAdapter } from "@brains/book";
 import {
   fetchVolumeHocr,
+  firstOfEachVolume,
   importBooks,
   ocrVolumeHocr,
   parseCorrections,
   parseManifest,
+  scannedBooks,
+  volumeKey,
 } from "../src/import-books";
 
 const manifestYaml = `
@@ -1079,5 +1082,27 @@ describe("fetchVolumeHocr", () => {
     const roman = "<span class='ocrx_word'>Wort—</span>";
 
     expect(await fetchVolumeHocr("x", fetchHocr(roman))).toBe(roman);
+  });
+});
+
+describe("firstOfEachVolume", () => {
+  it("counts a scan read anew with another model as a volume of its own", () => {
+    const books = scannedBooks(
+      parseManifest(`
+source: archive-ocr
+books:
+  - { item: freud-1952-gw-1, citation: GW I, firstPage: 3, lastPage: 20, slug: a, title: A, edition: GW I, author: Sigmund Freud, year: 1886, kind: work }
+  - { item: freud-1952-gw-1, citation: GW I, ocr: fra, firstPage: 37, lastPage: 56, slug: b, title: B, edition: GW I, author: Sigmund Freud, year: 1893, kind: work }
+  - { item: freud-1952-gw-1, citation: GW I, firstPage: 57, lastPage: 75, slug: c, title: C, edition: GW I, author: Sigmund Freud, year: 1894, kind: work }
+`),
+    );
+
+    expect(firstOfEachVolume(books).map((book) => book.slug)).toEqual([
+      "a",
+      "b",
+    ]);
+    const [first, other, third] = books.map(volumeKey);
+    expect(first).toBe(third);
+    expect(first).not.toBe(other);
   });
 });

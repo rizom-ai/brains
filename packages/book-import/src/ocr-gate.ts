@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { pageLeaf, pageText, workPages } from "./adapters/archive-ocr";
 import {
   firstOfEachVolume,
+  volumeKey,
   parseManifest,
   scannedBooks,
   volumeHocr,
@@ -96,11 +97,12 @@ async function main(): Promise<void> {
     const pages = samplePages(
       item,
       books
-        .filter((book) => book.item === item)
+        .filter((book) => volumeKey(book) === volumeKey(first))
         .flatMap((book) => workPages(hocr, book)),
       PAGES_PER_VOLUME,
     );
-    const dir = join(outDir, item);
+    // A scan read anew with another model is a volume of its own.
+    const dir = join(outDir, first.ocr ? `${item}-${first.ocr}` : item);
     await mkdir(dir, { recursive: true });
     const rows = await pages.reduce<Promise<string[]>>(async (sheet, page) => {
       const rows = await sheet;
