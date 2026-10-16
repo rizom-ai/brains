@@ -165,6 +165,9 @@ describe("system instructions", () => {
       "An underspecified generation request still supplies a usable prompt",
     );
     expect(instructions).toContain(
+      "do not add voice, tone or engagement directions the user did not ask for",
+    );
+    expect(instructions).toContain(
       "including after an optional search returns no source",
     );
     expect(instructions).not.toContain(
