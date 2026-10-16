@@ -296,7 +296,9 @@ export function normalizeStudioBlock(
       const masterBlock = master.block;
       if (
         !masterBlock ||
-        (masterBlock.type !== "list" && masterBlock.type !== "table")
+        (masterBlock.type !== "list" &&
+          masterBlock.type !== "table" &&
+          masterBlock.type !== "matrix")
       ) {
         return { issues };
       }

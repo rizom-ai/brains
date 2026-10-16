@@ -669,7 +669,11 @@ const studioDetailBlockSchema = z
     /** Canonical query field the host writes with the open row's id. */
     queryKey: identifierSchema,
     empty: shortTextSchema,
-    master: z.union([studioListBlockSchema, studioTableBlockSchema]),
+    master: z.union([
+      studioListBlockSchema,
+      studioTableBlockSchema,
+      studioMatrixBlockSchema,
+    ]),
     open: z
       .object({
         forId: rowIdentifierSchema,

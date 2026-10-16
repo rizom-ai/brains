@@ -532,7 +532,9 @@ export interface RuntimeStudioOperatorDetailBlock {
   readonly queryKey: string;
   readonly empty: string;
   readonly master:
-    RuntimeStudioOperatorListBlock | RuntimeStudioOperatorTableBlock;
+    | RuntimeStudioOperatorListBlock
+    | RuntimeStudioOperatorTableBlock
+    | RuntimeOperatorMatrixBlock<RuntimeStudioOperatorListItem>;
   readonly open?:
     | {
         readonly forId: string;

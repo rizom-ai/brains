@@ -404,6 +404,8 @@ export function MatrixBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  /** The open card when this matrix is a detail master. */
+  openId?: string | undefined;
 }): ReactElement {
   return (
     <div {...stylex.props(rendererLayout.matrix(props.block.columns ?? 2))}>
@@ -422,6 +424,7 @@ export function MatrixBlock(props: {
               onAction={props.onAction}
               onOpenEntity={props.onOpenEntity}
               onLaunch={props.onLaunch}
+              openId={props.openId}
             />
           )}
         </section>

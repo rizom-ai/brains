@@ -878,7 +878,9 @@ export interface OperatorDetailBlock<
   /** Rendered in the detail region while nothing is open. */
   readonly empty: string;
   readonly master:
-    OperatorListBlock<TAction> | StudioOperatorTableBlock<TAction>;
+    | OperatorListBlock<TAction>
+    | StudioOperatorTableBlock<TAction>
+    | OperatorMatrixBlock<TAction>;
   readonly open?:
     | {
         readonly forId: string;
