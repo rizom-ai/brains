@@ -1,0 +1,48 @@
+id: note-tool-create-file-upload-verbatim
+name: Import a markdown upload unchanged when no rewrite is requested
+description: >-
+  Control for the upload rewrite regression: a request to preserve the original
+  markdown must still import the upload, not generate a replacement.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-note-upload-verbatim
+tags:
+  - note
+  - file-upload
+  - regression
+
+turns:
+  - userMessage: >-
+      Save the attached markdown as a note titled "Original Community Launch".
+      Keep the text exactly as it is, including the scratchpad.
+    attachments:
+      - kind: text
+        filename: community-launch.md
+        mediaType: text/markdown
+        content: |
+          # Community Launch
+
+          Launch day: Monday.
+          Owner: Unassigned.
+          Next step: Draft the agenda.
+
+          ## Scratchpad
+
+          RAW_ONLY_SCRATCHPAD: unrelated brainstorming to keep in this import.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000952
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+        source.kind: upload
+        source.upload.id: upload-00000000-0000-4000-8000-000000000952
+        source.transform: extract-markdown
+    - toolName: system_generate
+      shouldBeCalled: false
