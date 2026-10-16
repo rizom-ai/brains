@@ -3161,16 +3161,63 @@ function noteOpeningsOn(
 }
 
 /** A work's first page from the line it opens with, if the manifest names one. */
-function opened(page: Page, work: ArchiveOcrWork): Page {
+function opened(
+  page: Page,
+  work: ArchiveOcrWork,
+  label: string,
+): { page: Page; corrections: OcrCorrection[] } {
+  const corrections = work.corrections ?? [];
   const opening = work.opensWith;
-  if (opening === undefined) return page;
-  const at = page.lines.findIndex((line) =>
-    normalised(line.text).startsWith(opening),
+  if (opening === undefined) return { page, corrections };
+  const own = corrections.filter(
+    (correction) => String(correction.page) === label,
+  );
+  // The page's lines as its corrections leave them, each fixing the first
+  // line that holds its text, what an earlier one wrote too: the line the
+  // work opens with is read so or as the scan has it, which a correction
+  // may set right or leave out, as it does a title the manifest gives.
+  const lines = page.lines.map((line) => normalised(line.text));
+  const { fixed, touched } = own.reduce<{
+    fixed: string[];
+    touched: Map<OcrCorrection, number>;
+  }>(
+    (done, correction) => {
+      const line = done.fixed.findIndex((each) =>
+        each.includes(correction.from),
+      );
+      return line < 0
+        ? done
+        : {
+            fixed: done.fixed.map((each, index) =>
+              index === line
+                ? each.replace(correction.from, correction.to)
+                : each,
+            ),
+            touched: new Map([...done.touched, [correction, line]]),
+          };
+    },
+    { fixed: lines, touched: new Map() },
+  );
+  const at = fixed.findIndex(
+    (line, index) =>
+      line.startsWith(opening) || (lines[index] ?? "").startsWith(opening),
   );
   if (at < 0) {
     throw new Error(`No line opening "${opening}" on page ${work.firstPage}`);
   }
-  return { ...page, lines: page.lines.slice(at) };
+  // A correction to a line above the opening fixes a line the work leaves
+  // out, unless a line of the work holds its text too.
+  const outside = own.filter(
+    (correction) =>
+      (touched.get(correction) ?? at) < at &&
+      !lines.slice(at).some((line) => line.includes(correction.from)),
+  );
+  return {
+    page: { ...page, lines: page.lines.slice(at) },
+    corrections: corrections.filter(
+      (correction) => !outside.includes(correction),
+    ),
+  };
 }
 
 /** A gloss starts this share of the page's width left of the text column. */
@@ -3238,11 +3285,15 @@ export function parseArchiveOcrWork(
   const { cased } = volume.spelling;
   const pagesRead = pagesOfWork(read, work).map(
     ({ page, number, label }, index) => {
+      const first =
+        index === 0
+          ? opened(page, work, label)
+          : { page, corrections: work.corrections ?? [] };
       const own = (
         work.marginalia === true
           ? withoutMarginalia
           : (same: Page): Page => same
-      )(index === 0 ? opened(page, work) : page);
+      )(first.page);
       return {
         page: own,
         number,
@@ -3262,7 +3313,7 @@ export function parseArchiveOcrWork(
             ...paragraphOpeningsOn(work, label),
             ...noteOpeningsOn(work, label),
           },
-          work.corrections ?? [],
+          first.corrections,
           label,
         ),
       };

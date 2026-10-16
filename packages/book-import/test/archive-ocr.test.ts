@@ -294,6 +294,49 @@ describe("parseArchiveOcrWork on a work that opens mid-page", () => {
     expect(text).not.toContain("In der psychoanalytischen Theorie");
   });
 
+  it("corrects any line of its first page, the one it opens with too", async () => {
+    const hocr = (await fixture()).replace(
+      ">Es hat dabei für uns kein Interesse,",
+      ">Es hat dahei für uns kein Interesse,",
+    );
+    const units = parseArchiveOcrWork(hocr, {
+      ...work,
+      opensWith: "Es hat dabei für uns",
+      corrections: [
+        {
+          page: 3,
+          from: "In der psychoanalytischen Theorie nehmen",
+          to: "In der psychoanalytischen Theorie, nehmen",
+        },
+        { page: 3, from: "Es hat dahei für uns", to: "Es hat dabei für uns" },
+      ],
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(units[0]?.paragraphs[0]).toStartWith(
+      "Es hat dabei für uns kein Interesse",
+    );
+    expect(text).not.toContain("psychoanalytischen Theorie");
+  });
+
+  it("opens with the line a correction leaves out, as a title the manifest gives", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      opensWith: "Es hat dabei für uns",
+      corrections: [
+        {
+          page: 3,
+          from: "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit",
+          to: "",
+        },
+      ],
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(text).not.toContain("psychoanalytischen Theorie");
+    expect(text).not.toContain("kein Interesse");
+  });
+
   it("stops on an opening line its first page does not hold", async () => {
     const hocr = await fixture();
 
