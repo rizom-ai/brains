@@ -615,3 +615,31 @@ describe("help output", () => {
     expect(written.join("\n")).toContain("Brain commands: unavailable");
   });
 });
+
+describe("--remote on built-in commands", () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = mkdtempSync(join(tmpdir(), "brain-cli-remote-"));
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("refuses instead of booting a local brain next to the remote one", async () => {
+    const result = await runCommand(
+      {
+        command: "tool",
+        args: ["system_list", '{"entityType":"note"}'],
+        flags: { remote: "http://localhost:1" },
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("--remote");
+    expect(result.message).toContain("brain tool");
+    expect(existsSync(join(testDir, "data"))).toBe(false);
+  });
+});
