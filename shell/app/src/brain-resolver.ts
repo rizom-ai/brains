@@ -62,6 +62,7 @@ function applyPluginDefaults(
   options: {
     webserverEnabled: boolean;
     siteBuilderEnabled: boolean;
+    port: number | undefined;
     site: SitePackage | undefined;
     theme: string | undefined;
     anchor: NonNullable<BrainDefinition["anchor"]>;
@@ -71,6 +72,7 @@ function applyPluginDefaults(
   const {
     webserverEnabled,
     siteBuilderEnabled,
+    port,
     site,
     theme,
     anchor,
@@ -81,6 +83,8 @@ function applyPluginDefaults(
     const webserverExplicit = pluginOverrides["webserver"] ?? {};
     const webserverDefaults: Record<string, unknown> = {
       enablePreview: siteBuilderEnabled,
+      // brain.yaml's top-level port is the production server port.
+      ...(port !== undefined && { productionPort: port }),
     };
 
     pluginOverrides["webserver"] = deepMerge(
@@ -381,6 +385,7 @@ function resolveRuntimeDefinition(
   applyPluginDefaults(pluginOverrides, {
     webserverEnabled,
     siteBuilderEnabled,
+    port: overrides?.port,
     site,
     theme,
     anchor: effectiveAnchor,
