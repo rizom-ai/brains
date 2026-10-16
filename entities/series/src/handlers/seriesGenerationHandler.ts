@@ -3,6 +3,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
@@ -83,11 +84,15 @@ export class SeriesGenerationHandler implements JobHandler<
       data.prompt ??
       `Series name: ${series.metadata.title}\n\nContent in this series:\n${summaries.join("\n")}`;
 
+    const voiceGuidance = formatVoiceGuidance(
+      await fetchStyleGuide(this.context.entityService),
+    );
     const generated = await this.context.ai.generate(
       {
         prompt,
         templateName: "series:description",
         representedIdentity: "none",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       },
       generatedSeriesDescriptionSchema,
     );

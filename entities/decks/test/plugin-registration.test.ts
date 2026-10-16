@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
+import { createTestEntity } from "@brains/entity-service/test";
 import { DecksPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -52,12 +53,20 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("generation evals", () => {
-    it("keeps source-style-preserving description evals neutral", async () => {
+    it("passes voice guidance to description evals without injecting identity", async () => {
       let descriptionHandler: EvalHandler | undefined;
       const mockShell = harness.getMockShell();
       mockShell.registerEvalHandler = (_pluginId, handlerId, handler): void => {
         if (handlerId === "generateDescription") descriptionHandler = handler;
       };
+      spyOn(mockShell.getEntityService(), "getEntity").mockResolvedValue(
+        createTestEntity("style-guide", {
+          id: "style-guide",
+          content:
+            "---\nname: Voice\nvoice:\n  summary: Decisive and evidence-led\n---\n",
+          metadata: {},
+        }),
+      );
       const generateContent = spyOn(
         mockShell,
         "generateContent",
@@ -76,6 +85,9 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
         expect.objectContaining({
           templateName: "decks:description",
           representedIdentity: "none",
+          styleGuide: {
+            voice: expect.stringContaining("Decisive and evidence-led"),
+          },
         }),
         undefined,
       );

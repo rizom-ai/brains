@@ -1,3 +1,4 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
@@ -167,6 +168,35 @@ describe("BlogGenerationJobHandler", () => {
           prompt: expect.stringMatching(
             /My Title.*My content|My content.*My Title/s,
           ),
+        }),
+        generatedExcerptSchema,
+      );
+    });
+
+    it("passes voice guidance to the excerpt without injecting identity", async () => {
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValue(
+        createTestEntity("style-guide", {
+          id: "style-guide",
+          content:
+            "---\nname: Voice\nvoice:\n  summary: Plain and exact\n---\n",
+          metadata: {},
+        }),
+      );
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
+        excerpt: "AI generated excerpt",
+      });
+
+      await handler.process(
+        { title: "My Title", content: "My content" },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "blog:excerpt",
+          representedIdentity: "none",
+          styleGuide: { voice: expect.stringContaining("Plain and exact") },
         }),
         generatedExcerptSchema,
       );

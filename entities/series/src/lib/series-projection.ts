@@ -5,6 +5,7 @@ import {
   type ProjectionRule,
   type ProjectionWriteIntent,
 } from "@brains/plugins";
+import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createSeriesBodyFormatter } from "../schemas/series";
@@ -29,6 +30,7 @@ const existingSeriesSchema = z.object({
 const seriesProjectionInputSchema = z.object({
   members: z.array(seriesMemberSchema),
   existingSeries: z.array(existingSeriesSchema),
+  voiceGuidance: z.string(),
 });
 
 type SeriesProjectionInput = z.output<typeof seriesProjectionInputSchema>;
@@ -92,7 +94,14 @@ async function selectSeriesInput(
       };
     })
     .sort((left, right) => left.id.localeCompare(right.id));
-  return { members, existingSeries };
+  const styleGuideEntity = await context.entities.getEntity({
+    entityType: "style-guide",
+    id: "style-guide",
+  });
+  const voiceGuidance = styleGuideEntity
+    ? formatVoiceGuidance(parseStyleGuideContent(styleGuideEntity.content))
+    : "";
+  return { members, existingSeries, voiceGuidance };
 }
 
 async function deriveSeries(
@@ -131,6 +140,9 @@ async function deriveSeries(
           prompt: `Series name: ${seriesName}\n\nContent in this series:\n${memberSummaries.join("\n")}`,
           templateName: "series:description",
           representedIdentity: "none",
+          ...(input.voiceGuidance && {
+            styleGuide: { voice: input.voiceGuidance },
+          }),
         },
         z.object({ description: z.string() }),
       );

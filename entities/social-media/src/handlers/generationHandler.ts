@@ -180,7 +180,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
       const generated = await this.context.ai.generate(
         {
-          prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
+          prompt: `Write a ${platform} post to share this ${sourceEntityType}:
 
 Source: ${sourceEntityType}/${slug}
 

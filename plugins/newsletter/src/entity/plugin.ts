@@ -169,8 +169,8 @@ export class NewsletterPlugin extends EntityPlugin<
       const parsed: GenerationEvalInput =
         generationEvalInputSchema.parse(input);
       const generationPrompt = parsed.content
-        ? `Create an engaging newsletter based on this content:\n\n${parsed.content}`
-        : (parsed.prompt ?? "Write an engaging newsletter");
+        ? `Write a newsletter based on this content:\n\n${parsed.content}`
+        : (parsed.prompt ?? "Write a newsletter");
 
       const voiceGuidance = await fetchVoiceGuidance(context.entityService);
       return context.ai.generate(

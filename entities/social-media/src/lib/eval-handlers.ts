@@ -1,4 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { GenerationJobHandler } from "../handlers/generationHandler";
@@ -25,13 +26,18 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     const parsed: GenerationInput = generationInputSchema.parse(input);
 
     const generationPrompt = parsed.content
-      ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
-      : (parsed.prompt ?? "Write an engaging LinkedIn post");
+      ? `Write a LinkedIn post to share this content:\n\n${parsed.content}`
+      : (parsed.prompt ?? "Write a LinkedIn post");
 
+    const voiceGuidance = formatVoiceGuidance(
+      await fetchStyleGuide(context.entityService),
+    );
     return context.ai.generate(
       {
         prompt: generationPrompt,
         templateName: `social-media:${parsed.platform}`,
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       },
       z.object({ content: z.string() }),
     );

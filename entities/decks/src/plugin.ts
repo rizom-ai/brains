@@ -278,11 +278,15 @@ export class DecksPlugin extends EntityPlugin<
       async (input: unknown) => {
         const parsed: GenerateDescriptionEvalInput =
           generateDescriptionEvalInputSchema.parse(input);
+        const voiceGuidance = formatVoiceGuidance(
+          await fetchStyleGuide(context.entityService),
+        );
         return context.ai.generate(
           {
             prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
             templateName: "decks:description",
             representedIdentity: "none",
+            ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
           },
           z.object({ description: z.string() }),
         );

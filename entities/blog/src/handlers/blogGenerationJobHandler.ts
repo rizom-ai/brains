@@ -159,11 +159,15 @@ Add your conclusion here.`;
         message: "Generating excerpt with AI",
       });
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const excerptGenerated = await this.context.ai.generate(
         {
           prompt: `Title: ${title}\n\nContent:\n${content}`,
           templateName: "blog:excerpt",
           representedIdentity: "none",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
         },
         generatedExcerptSchema,
       );

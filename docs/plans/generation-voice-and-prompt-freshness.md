@@ -4,7 +4,7 @@ Last updated: 2026-10-16
 
 ## Status
 
-**In progress. Slices 1 and 2 implemented; slices 3 and 4 not started.** The restart and cache problems under slice 2 were already fixed upstream before it started (`resolvePrompt` reads the entity on every call). Research is complete; the four slices below are independent enough to land as separate PRs in the order given.
+**In progress. Slices 1–3 implemented; slice 4 started: the yeehaa.io style-guide principles were added on 2026-10-16; deleting the legacy prompt copies and regenerating wait for the release of slices 1–3.** The restart and cache problems under slice 2 were already fixed upstream before it started (`resolvePrompt` reads the entity on every call). Research is complete; the four slices below are independent enough to land as separate PRs in the order given.
 
 Trigger: on yeehaa.io, generated LinkedIn posts ignored the owner's style guide (one-sentence lines, engagement questions, takeaway structure) although the style guide asks for the opposite. The cause is not one bad prompt but four structural problems in how generation prompts are assembled and kept.
 
@@ -48,6 +48,8 @@ Found while researching, and fixed in the same slice as problem 4 because they b
 ### Slice 3 — Templates hold the task, the style guide holds the voice
 
 Rule: every template that produces public prose attributed to the brain or anchor receives the voice facet and contains no voice, tone or form rules of its own; extraction and classification templates (`link:extraction`, `topics:*`, `skill:skill-derivation`, `conversation-memory:ai-response`) receive no style guide.
+
+Identity and voice are separate: the source-derived short copy below keeps `representedIdentity: "none"` from the identity review (F6 in `identity-profiles-and-expression.md`), but its "match the voice of the source" rule is replaced by the voice facet, so the style guide governs it like all other public prose. Site sections get the voice facet only from a public style guide, since site copy is public.
 
 - `social-media:linkedin`: keep length, hashtag and URL rules; remove hook, line-break, structure, engagement-question and "drive engagement" wording, including the schema description.
 - `newsletter:generation`: remove tone, hook, paragraph-length and stock-closing rules; add the style-guide deferral; move the handler's voice phrasing out of the user prompt.

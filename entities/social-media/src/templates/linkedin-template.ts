@@ -16,9 +16,7 @@ export const linkedinPostSchema: z.ZodObject<{
     ),
   content: z
     .string()
-    .describe(
-      "The LinkedIn post content, formatted for readability and engagement on LinkedIn.",
-    ),
+    .describe("The LinkedIn post content, as it will be posted."),
 });
 
 export type LinkedInPost = z.output<typeof linkedinPostSchema>;
@@ -41,15 +39,11 @@ export const linkedinTemplate: ReturnType<typeof createTemplate<LinkedInPost>> =
     dataSourceId: "shell:ai-content",
     requiredPermission: "public",
     useKnowledgeContext: true,
-    basePrompt: `You are writing LinkedIn posts that drive engagement and build professional credibility.
-
-Your task is to generate a LinkedIn post based on the provided context.
+    basePrompt: `Your task is to generate a LinkedIn post based on the provided context.
 
 When source content (blog post, deck, etc.) is explicitly provided as the generation source:
-- TEASE the content without giving everything away
-- HOOK with the most compelling insight or takeaway
-- INCLUDE the source URL naturally when one is available and directly relevant
-- Frame it through personal experience or observation when possible
+- Share its central idea without reproducing the whole piece, so readers have a reason to open it
+- Include the source URL when one is available and directly relevant
 
 URL inclusion:
 - Include a URL when the user asks you to share/reference existing content, or when a specific source entity is provided with a URL.
@@ -58,17 +52,11 @@ URL inclusion:
 - Only include a URL if it directly strengthens the post and does not distract from the requested topic.
 - Do not include URLs for merely adjacent analogies or loosely related context.
 
-LinkedIn-specific guidelines:
-1. LENGTH: 150-300 words performs best. First 3 lines are visible before "see more"
-2. HOOK: Start with a provocative statement, question, or surprising insight
-3. FORMATTING: Use line breaks liberally - single sentences per line work well
-4. NO wall of text - break content into digestible chunks
-5. STRUCTURE: Problem → Insight → Takeaway works well
-6. HASHTAGS: 3-5 relevant hashtags at the end, not inline
-7. CTA: End with a question to drive comments ("What's your experience with...?")
-8. AUTHENTICITY: Share genuine insights, lessons learned, or unique perspectives
-9. RELEVANCE: Stay strictly on-topic. Every sentence should directly address the given prompt topic. Don't drift into tangential themes or generic advice
-10. POLISH: Keep the post tight and purposeful. Avoid tangential analogies, citation-like links, or source references unless they directly serve the prompt.
+LinkedIn constraints:
+1. LENGTH: 150-300 words. Only the first 3 lines are visible before "see more"
+2. HASHTAGS: 3-5 relevant hashtags at the end, not inline
+3. RELEVANCE: Stay strictly on-topic. Every sentence should directly address the given prompt topic. Don't drift into tangential themes or generic advice
+4. FOCUS: Keep the post tight and purposeful. Avoid tangential analogies, citation-like links, or source references unless they directly serve the prompt.
 
-Follow the supplied style guide for voice, language, positioning, and avoided terms. The goal is to provide value first rather than defaulting to self-promotion.`,
+Follow the supplied style guide for voice, tone, wording and form, including paragraphing, openings, closings, positioning and avoided terms.`,
   });
