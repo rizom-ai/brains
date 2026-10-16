@@ -19,6 +19,7 @@ const adapter = new ActionItemAdapter();
 const admin: InboxActionActor = {
   permissionLevel: "admin",
   actor: { kind: "user", userId: "usr_admin" },
+  displayName: "Ada Admin",
 };
 
 function blockedHistory(at: string): ActionItemHistoryEntry[] {
@@ -147,6 +148,7 @@ describe("the action-items Inbox source", () => {
       {
         at: NOW.toISOString(),
         actor: { kind: "user", userId: "usr_admin" },
+        displayName: "Ada Admin",
         from: "blocked",
         to: "doing",
       },

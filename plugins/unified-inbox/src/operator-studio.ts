@@ -508,6 +508,9 @@ export async function registerUnifiedInboxStudioWorkspace(
                 {
                   permissionLevel: caller.permission,
                   actor: { kind: "user", userId: caller.actor.id },
+                  ...(caller.actor.displayName
+                    ? { displayName: caller.actor.displayName }
+                    : {}),
                 },
               );
               if (outcome.kind !== "completed") {

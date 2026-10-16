@@ -188,6 +188,7 @@ export const actionItemStatusSchema: ActionItemStatusSchema = z.enum([
 type ActionItemHistoryEntrySchema = z.ZodObject<{
   at: z.ZodISODateTime;
   actor: typeof actorRefSchema;
+  displayName: z.ZodOptional<z.ZodString>;
   from: ActionItemStatusSchema;
   to: ActionItemStatusSchema;
 }>;
@@ -197,6 +198,8 @@ export const actionItemHistoryEntrySchema: ActionItemHistoryEntrySchema =
   z.object({
     at: z.iso.datetime(),
     actor: actorRefSchema,
+    /** The mover's name when they moved it; the actor stays authoritative. */
+    displayName: z.string().optional(),
     from: actionItemStatusSchema,
     to: actionItemStatusSchema,
   });

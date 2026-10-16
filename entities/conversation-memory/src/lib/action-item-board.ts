@@ -34,6 +34,8 @@ export interface ActionItemMove {
   from: ActionItemStatus;
   to: ActionItemStatus;
   actor: ActorRef;
+  /** The mover's name as the signed-in surface knows it. */
+  actorName?: string | undefined;
   at: string;
 }
 
@@ -83,6 +85,7 @@ export function applyMove(
   const entry: ActionItemHistoryEntry = {
     at: move.at,
     actor: move.actor,
+    ...(move.actorName ? { displayName: move.actorName } : {}),
     from: move.from,
     to: move.to,
   };
@@ -106,12 +109,20 @@ export function actionItemTitle(entity: ActionItemEntity): string {
   return title !== undefined && title.length > 0 ? title : entity.id;
 }
 
+/** The move that last brought a card into a status. */
+export function lastArrival(
+  entity: ActionItemEntity,
+  status: ActionItemStatus,
+): ActionItemHistoryEntry | undefined {
+  return [...(entity.metadata.history ?? [])]
+    .reverse()
+    .find((entry) => entry.to === status);
+}
+
 /** When a card last arrived in a status, from its history. */
 export function arrivedAt(
   entity: ActionItemEntity,
   status: ActionItemStatus,
 ): string | undefined {
-  return [...(entity.metadata.history ?? [])]
-    .reverse()
-    .find((entry) => entry.to === status)?.at;
+  return lastArrival(entity, status)?.at;
 }

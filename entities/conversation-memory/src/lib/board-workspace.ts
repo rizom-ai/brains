@@ -5,11 +5,12 @@ import {
   permissionToVisibilityScope,
   registerBuiltInStudioWorkspace,
   type EntityPluginContext,
+  type OperatorCaller,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
 import { moveActionItem } from "./action-item-moves";
-import { actionItemTitle, arrivedAt } from "./action-item-board";
+import { actionItemTitle, arrivedAt, lastArrival } from "./action-item-board";
 import { channelLabel, formatAge } from "./widgets/format";
 import {
   actionItemSchema,
@@ -79,6 +80,7 @@ const cardSchema = z.object({
   channel: z.string(),
   summaryId: z.string(),
   blockedFor: z.string().optional(),
+  blockedBy: z.string().optional(),
 });
 
 const dataSchema = z.object({ cards: z.array(cardSchema) });
@@ -190,7 +192,16 @@ function cardItem(card: BoardCard): {
       (segment) => segment.length > 0,
     ),
     ...(card.blockedFor
-      ? { badges: [{ label: `Blocked ${card.blockedFor}`, tone: "warn" }] }
+      ? {
+          badges: [
+            {
+              label: card.blockedBy
+                ? `Blocked by ${card.blockedBy} ${card.blockedFor}`
+                : `Blocked ${card.blockedFor}`,
+              tone: "warn",
+            },
+          ],
+        }
       : {}),
     ...(card.id.length <= LINKABLE_ID_LENGTH
       ? {
@@ -234,9 +245,9 @@ function cardItem(card: BoardCard): {
 }
 
 function toCard(entity: ActionItemEntity, now: Date): BoardCard {
-  const blockedAt =
+  const blocked =
     entity.metadata.status === "blocked"
-      ? arrivedAt(entity, "blocked")
+      ? lastArrival(entity, "blocked")
       : undefined;
   return {
     id: entity.id,
@@ -251,7 +262,8 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
       entity.metadata.channelId,
     ),
     summaryId: entity.metadata.sourceSummaryId,
-    ...(blockedAt ? { blockedFor: formatAge(blockedAt, now) } : {}),
+    ...(blocked ? { blockedFor: formatAge(blocked.at, now) } : {}),
+    ...(blocked?.displayName ? { blockedBy: blocked.displayName } : {}),
   };
 }
 
@@ -281,10 +293,7 @@ export async function registerBoardWorkspace(
   const now = (): Date => deps.now?.() ?? new Date();
 
   const move = async (
-    caller: {
-      actor: { id: string };
-      permission: Parameters<typeof permissionToVisibilityScope>[0];
-    } | null,
+    caller: OperatorCaller | null,
     request: { id: string; from: ActionItemStatus; to: ActionItemStatus },
   ): Promise<{ status: string }> => {
     if (!caller) throw new Error("Moving a card requires a signed-in member");
@@ -294,7 +303,11 @@ export async function registerBoardWorkspace(
         visibilityScope: permissionToVisibilityScope(caller.permission),
         now,
       },
-      { ...request, actor: { kind: "user", userId: caller.actor.id } },
+      {
+        ...request,
+        actor: { kind: "user", userId: caller.actor.id },
+        actorName: caller.actor.displayName,
+      },
     );
     // Outcomes travel as the action result: the host redacts thrown errors.
     switch (result.status) {

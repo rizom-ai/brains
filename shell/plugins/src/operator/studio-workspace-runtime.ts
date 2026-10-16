@@ -140,7 +140,10 @@ function validationDetail(
 
 function operatorCaller(actor: StudioWorkspaceActor): OperatorCaller {
   return Object.freeze({
-    actor: Object.freeze({ id: actor.userId }),
+    actor: Object.freeze({
+      id: actor.userId,
+      ...(actor.displayName ? { displayName: actor.displayName } : {}),
+    }),
     permission: actor.userPermissionLevel,
     isAnchor: actor.isAnchor,
   });

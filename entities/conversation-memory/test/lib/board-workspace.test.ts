@@ -24,6 +24,7 @@ const adapter = new ActionItemAdapter();
 const niels: StudioWorkspaceActor = {
   interfaceType: "studio",
   userId: "u-niels",
+  displayName: "Niels Ward",
   actor: { kind: "user", userId: "u-niels" },
   userPermissionLevel: "trusted",
   visibilityScope: "shared",
@@ -257,7 +258,7 @@ describe("the Board workspace", () => {
     expect(labels("blocked")).toEqual(["Resume", "Done", "Drop"]);
   });
 
-  it("marks how long a blocked card has waited", async () => {
+  it("marks who blocked a card and how long it has waited", async () => {
     const registration = await registered(
       await brain([
         {
@@ -265,12 +266,31 @@ describe("the Board workspace", () => {
           text: "Book the venue",
           status: "blocked",
           assignee: "Sam Rivera",
-          history: [move(daysAgo(2), "open", "blocked")],
+          history: [
+            {
+              ...move(daysAgo(2), "open", "blocked"),
+              displayName: "Sam Rivera",
+            },
+          ],
+        },
+        {
+          id: "unnamed",
+          text: "Order chairs",
+          status: "blocked",
+          history: [move(daysAgo(1), "open", "blocked")],
         },
       ]),
     );
-    const [card] = column(await board(registration), "blocked");
-    expect(card?.badges?.map((badge) => badge.label)).toEqual(["Blocked 2d"]);
+    const blocked = column(await board(registration), "blocked");
+    const card = blocked.find((item) => item.title === "Book the venue");
+    const unnamed = blocked.find((item) => item.title === "Order chairs");
+    expect(card?.badges?.map((badge) => badge.label)).toEqual([
+      "Blocked by Sam Rivera 2d",
+    ]);
+    // Moves recorded before names were kept still show their age.
+    expect(unnamed?.badges?.map((badge) => badge.label)).toEqual([
+      "Blocked 1d",
+    ]);
     expect(card?.metadata).toContain("Sam Rivera");
     expect(card?.metadata).toContain("#events");
   });
@@ -307,6 +327,7 @@ describe("the Board workspace", () => {
     expect(stored?.metadata.status).toBe("blocked");
     expect(stored?.metadata.history?.[0]).toMatchObject({
       actor: { kind: "user", userId: "u-niels" },
+      displayName: "Niels Ward",
       from: "open",
       to: "blocked",
     });

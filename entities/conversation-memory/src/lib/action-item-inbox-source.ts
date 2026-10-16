@@ -142,7 +142,13 @@ export class ActionItemInboxSource implements InboxSource {
         visibilityScope: "restricted",
         now: this.now,
       },
-      { id: itemId, from: "blocked", to, actor: actor.actor },
+      {
+        id: itemId,
+        from: "blocked",
+        to,
+        actor: actor.actor,
+        actorName: actor.displayName,
+      },
     );
     if (result.status !== "moved") throw new Error("Action item unavailable");
   }

@@ -227,13 +227,19 @@ export const inboxActorSchema: InboxActorSchema = z.strictObject({
 });
 
 type InboxActionActorSchema = z.ZodObject<
-  InboxActorSchema["shape"] & { actor: typeof actorRefSchema },
+  InboxActorSchema["shape"] & {
+    actor: typeof actorRefSchema;
+    displayName: z.ZodOptional<z.ZodString>;
+  },
   z.core.$strict
 >;
 
 /** An action is taken by someone: sources record who, not just their rank. */
 export const inboxActionActorSchema: InboxActionActorSchema =
-  inboxActorSchema.extend({ actor: actorRefSchema });
+  inboxActorSchema.extend({
+    actor: actorRefSchema,
+    displayName: z.string().trim().min(1).max(200).optional(),
+  });
 
 type InboxItemDetailSchema = z.ZodObject<
   { kind: z.ZodLiteral<"plain">; text: z.ZodString; truncated: z.ZodBoolean },

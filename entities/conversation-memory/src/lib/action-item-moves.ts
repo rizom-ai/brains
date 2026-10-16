@@ -24,6 +24,7 @@ export interface ActionItemMoveRequest {
   from: ActionItemStatus;
   to: ActionItemStatus;
   actor: ActorRef;
+  actorName?: string | undefined;
 }
 
 export type ActionItemMoveResult =
@@ -60,6 +61,7 @@ export async function moveActionItem(
       from: request.from,
       to: request.to,
       actor: request.actor,
+      actorName: request.actorName,
       at: (deps.now?.() ?? new Date()).toISOString(),
     });
     const result = await deps.entityService.updateEntity({
