@@ -150,7 +150,16 @@ brain-data/prompt/blog-generation.md
 Key frontmatter:
 
 - `title`
-- `target`: template name, such as `blog:generation` or `link:extraction`
+- `target`: template registry key, such as `blog:generation` or `link:extraction`
+- `defaultHash`: hash of the default body the copy was written from; written by the brain, not by hand
+
+At startup the brain writes a copy of every template default that has none, and keeps copies in step with their defaults:
+
+- a copy whose body still matches `defaultHash` is untouched and is replaced when its default changes;
+- an edited copy is kept, and logged once its default has changed;
+- a copy without `defaultHash` that equals the current default is stamped; one that differs is kept and logged as an unverified override.
+
+Delete a prompt to reset it: the current default is written back on the next start. Edits apply to the next generation without a restart.
 
 ### `link`
 

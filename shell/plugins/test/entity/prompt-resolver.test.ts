@@ -140,6 +140,21 @@ describe("resolvePrompt", () => {
       });
     });
 
+    it("records the hash of the default a created copy was written from", async () => {
+      mockGetEntity.mockResolvedValue(null);
+
+      await resolvePrompt(mockEntityService, "blog:generation", "Write.");
+
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("defaultHash: "),
+          metadata: expect.objectContaining({
+            defaultHash: expect.any(String),
+          }),
+        }),
+      });
+    });
+
     it("should not create entity when one already exists", async () => {
       mockGetEntity.mockResolvedValue({
         id: "blog-generation",
