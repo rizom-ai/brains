@@ -17,7 +17,9 @@ import type {
   ContentGenerationConfig,
 } from "@brains/plugins";
 import {
+  acquireExtractionLease,
   createRankedTopicJobHandler,
+  releaseExtractionLease,
   type TopicExtractionResult,
 } from "../../src/lib/ranked-topic-extraction";
 import { topicVoteSchema, type TopicVote } from "../../src/schemas/votes";
@@ -539,6 +541,46 @@ describe("bounded ranked topic extraction", () => {
     expect(f.entities.has("topic:compassion")).toBe(true);
   });
 
+  it("trims to the ceiling counting a merged topic's votes for the topic it joined", async () => {
+    const f = fixture(8, { mergeVerdict: "merge" });
+    await f.run();
+    const [seeded] = await f.store.list();
+    if (!seeded) throw new Error("missing vote");
+    const votesFor: [string, number][] = [
+      ["Alpha", 0.9],
+      ["Beta", 0.9],
+      ["Cee", 1],
+      ["Dee", 1],
+      ["Eee", 1],
+      ["Eff", 1],
+      ["Gee", 1],
+    ];
+    for (const [index, [title, relevanceScore]] of votesFor.entries()) {
+      f.addTopic(title);
+      await f.store.set(`note:note-00${index}`, {
+        ...seeded.value,
+        contentHash: `hash-${index}`,
+        supported: [{ slug: title.toLowerCase(), title, relevanceScore }],
+      });
+    }
+    neighbours(f, "alpha", "beta");
+    await f.run("merge");
+    // Beta's votes count for Alpha, so Alpha outranks every other topic: the
+    // weakest left is Cee, and Alpha keeps its description.
+    expect(mergeCalls(f)).toBe(1);
+    expect(
+      f.calls.filter(
+        ({ templateName }) => templateName === "topics:description",
+      ),
+    ).toHaveLength(0);
+    expect(f.service.deleteEntity).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: "alpha" }),
+    );
+    expect(f.service.deleteEntity).toHaveBeenCalledTimes(2);
+    expect(f.entities.has("topic:beta")).toBe(false);
+    expect(f.entities.has("topic:cee")).toBe(false);
+  });
+
   it("joins a topic that owns none of its sources to the one owning most, without asking", async () => {
     const f = fixture(8);
     f.addTopic("Bildung");
@@ -692,5 +734,64 @@ describe("bounded ranked topic extraction", () => {
     expect(
       (await f.store.list()).every(({ value }) => value.proposal === null),
     ).toBe(true);
+  });
+});
+
+describe("topic extraction lease", () => {
+  const setup = (): {
+    context: EntityPluginContext;
+    leases: IRuntimeStateStore<{ owner: string; expiresAt: number }>;
+  } => {
+    const context = createMockEntityPluginContext();
+    return {
+      context,
+      leases: context.runtimeState.scoped({
+        namespace: "topics.extraction",
+        schema: z.object({ owner: z.string(), expiresAt: z.number() }),
+      }),
+    };
+  };
+
+  it("takes a free lease and releases it", async () => {
+    const { context, leases } = setup();
+    const lease = await acquireExtractionLease(context, leases);
+    expect(lease).not.toBeNull();
+    expect(await leases.get("lease")).toEqual(lease);
+    if (lease) await releaseExtractionLease(leases, lease);
+    expect(await leases.get("lease")).toBeNull();
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("leaves a held lease alone and enqueues a delayed successor", async () => {
+    const { context, leases } = setup();
+    const held = { owner: "other-attempt", expiresAt: Date.now() + 60_000 };
+    await leases.set("lease", held);
+    expect(await acquireExtractionLease(context, leases)).toBeNull();
+    expect(await leases.get("lease")).toEqual(held);
+    expect(context.jobs.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "topics:extract",
+        options: expect.objectContaining({ delayMs: 30_000 }),
+      }),
+    );
+  });
+
+  it("takes over an expired lease", async () => {
+    const { context, leases } = setup();
+    await leases.set("lease", { owner: "dead-worker", expiresAt: 0 });
+    const lease = await acquireExtractionLease(context, leases);
+    expect(lease?.owner).not.toBe("dead-worker");
+    expect(await leases.get("lease")).toEqual(lease);
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("does not release a lease another worker took over", async () => {
+    const { context, leases } = setup();
+    const lease = await acquireExtractionLease(context, leases);
+    if (!lease) throw new Error("lease not acquired");
+    const successor = { owner: "successor", expiresAt: Date.now() + 60_000 };
+    await leases.set("lease", successor);
+    await releaseExtractionLease(leases, lease);
+    expect(await leases.get("lease")).toEqual(successor);
   });
 });

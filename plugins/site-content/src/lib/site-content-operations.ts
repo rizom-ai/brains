@@ -1,4 +1,8 @@
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import {
+  formatVoiceGuidance,
+  parseStyleGuideContent,
+  SITE_BUILDER_CHANNELS,
+} from "@brains/contracts";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { GenerateOptions } from "../schemas/generate-options";
@@ -24,6 +28,17 @@ export class SiteContentOperations {
   private readonly context: ServicePluginContext;
   constructor(context: ServicePluginContext) {
     this.context = context;
+  }
+
+  /** Site copy is public, so only a public style guide may shape it. */
+  private async fetchPublicVoiceGuidance(): Promise<string> {
+    const styleGuide = await this.context.entityService.getEntity({
+      entityType: "style-guide",
+      id: "style-guide",
+    });
+    return styleGuide?.visibility === "public"
+      ? formatVoiceGuidance(parseStyleGuideContent(styleGuide.content))
+      : "";
   }
 
   private async fetchRoutes(): Promise<SiteContentRoute[]> {
@@ -62,6 +77,8 @@ export class SiteContentOperations {
 
     const routes = await this.fetchRoutes();
     signal?.throwIfAborted();
+    const voiceGuidance = await this.fetchPublicVoiceGuidance();
+    signal?.throwIfAborted();
 
     let targetRoutes = routes;
     if (options.routeId) {
@@ -80,6 +97,7 @@ export class SiteContentOperations {
           routeTitle?: string;
           routeDescription?: string;
         };
+        styleGuide?: { voice: string };
       };
       destination: {
         entityType: "site-content";
@@ -118,6 +136,7 @@ export class SiteContentOperations {
                 routeDescription: route.description,
               }),
             },
+            ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
           },
           destination: {
             entityType: "site-content",

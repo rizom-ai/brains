@@ -42,6 +42,11 @@ function inputContext(
         (candidate) => candidate.entityType === request.entityType,
       );
     },
+    getEntityImpl: async ({ entityType, id }) =>
+      entities.find(
+        (candidate) =>
+          candidate.entityType === entityType && candidate.id === id,
+      ) ?? null,
   });
   return {
     entities: service,
@@ -86,6 +91,41 @@ describe("series projection rule", () => {
         entityType: "image",
         options: expect.objectContaining({ binaryContent: "reference" }),
       }),
+    );
+  });
+
+  it("passes voice guidance to series descriptions without injecting identity", async () => {
+    const rule = createSeriesProjectionRule();
+    const signal = new AbortController().signal;
+    const selected = await rule.selectInput(
+      { waveId: "wave-1", inputs: [] },
+      inputContext([
+        entity({
+          id: "style-guide",
+          entityType: "style-guide",
+          content:
+            "---\nname: Voice\nvoice:\n  summary: Plain and exact\n---\n",
+          metadata: {},
+        }),
+        entity({
+          id: "post-1",
+          entityType: "post",
+          metadata: { title: "Post one", seriesName: "Systems" },
+        }),
+      ]),
+      signal,
+    );
+    const { context, generate } = executionContext();
+
+    await rule.derive(selected, context, signal);
+
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateName: "series:description",
+        representedIdentity: "none",
+        styleGuide: { voice: expect.stringContaining("Plain and exact") },
+      }),
+      expect.anything(),
     );
   });
 

@@ -103,12 +103,17 @@ export function GuestBoxNotice(props: {
 /** Asks before starting a separate question; focuses Continue when shown. */
 export function GuestBoxFreshConfirmation(props: {
   busy: boolean;
+  /** The conversation region the confirmation is shown in. */
+  regionRef: RefObject<HTMLElement | null>;
   onContinue: () => void;
   onBack: () => void;
 }): ReactElement {
   const confirmation = useRef<HTMLButtonElement>(null);
   useLayoutEffect(() => {
     confirmation.current?.focus({ preventScroll: true });
+    // The confirmation opens at the end of the region, where it was asked for.
+    const region = props.regionRef.current;
+    if (region) region.scrollTop = region.scrollHeight;
   }, []);
   return (
     <section className="brain-box-notice">

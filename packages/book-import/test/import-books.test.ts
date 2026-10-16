@@ -259,3 +259,87 @@ books:
     ).toThrow();
   });
 });
+
+describe("importBooks with a year of the Nachlass", () => {
+  let brainData: string;
+  const nachlassYaml = `
+source: ekgwb
+books:
+  - slug: nachlass-1888
+    title: Nachgelassene Fragmente 1888
+    author: Erfundener Autor
+    year: 1888
+    kind: nachlass
+    published: false
+    parts:
+      - siglum: NF-1888,14
+      - siglum: NF-1888,15
+`;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-nachlass-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  /** The notebook fixture, renumbered to whichever group is asked for. */
+  async function fetchNotebook(url: string): Promise<string> {
+    const siglum = decodeURIComponent(url.split("/").at(-2) ?? "");
+    const group = siglum.split(",").at(-1) ?? "";
+    const html = await readFile(
+      join(import.meta.dir, "fixtures", "ekgwb-nachlass.html"),
+      "utf8",
+    );
+    return html
+      .replaceAll("NF-1888,14", siglum)
+      .replaceAll("[14 = W II 5.", `[${group} = W II 5.`);
+  }
+
+  it("files each notebook's fragments under the notebook's own label", async () => {
+    await importBooks(
+      parseManifest(nachlassYaml),
+      brainData,
+      ekgwbReader(fetchNotebook),
+    );
+    const root = join(brainData, "book/nachlass-1888");
+    const files = await readdir(root, { recursive: true });
+    const sections = (
+      await Promise.all(
+        files
+          .filter((file) => file.endsWith(".md"))
+          .map(async (file) =>
+            bookSectionAdapter.parseFrontMatter(
+              await readFile(join(root, file), "utf8"),
+              bookSectionAdapter.frontmatterSchema,
+            ),
+          ),
+      )
+    ).sort((left, right) => Number(left["order"]) - Number(right["order"]));
+
+    expect(sections.map((entry) => entry["section"])).toEqual([
+      "NF-1888,14[Datum]",
+      "NF-1888,14[1]",
+      "NF-1888,14[2]",
+      "NF-1888,15[Datum]",
+      "NF-1888,15[1]",
+      "NF-1888,15[2]",
+    ]);
+    expect(sections.map((entry) => entry["headings"])).toEqual([
+      ["14 = W II 5. Frühjahr 1888"],
+      ["14 = W II 5. Frühjahr 1888"],
+      ["14 = W II 5. Frühjahr 1888"],
+      ["15 = W II 5. Frühjahr 1888"],
+      ["15 = W II 5. Frühjahr 1888"],
+      ["15 = W II 5. Frühjahr 1888"],
+    ]);
+  });
+
+  it("takes a year with a single notebook", () => {
+    expect(
+      parseManifest(nachlassYaml.replace("      - siglum: NF-1888,15\n", ""))
+        .books[0]?.parts,
+    ).toEqual([{ siglum: "NF-1888,14" }]);
+  });
+});

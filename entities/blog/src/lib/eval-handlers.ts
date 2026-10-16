@@ -42,11 +42,15 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     const parsed: GenerateExcerptInput =
       generateExcerptInputSchema.parse(input);
 
+    const voiceGuidance = formatVoiceGuidance(
+      await fetchStyleGuide(context.entityService),
+    );
     return context.ai.generate(
       {
         prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
         templateName: "blog:excerpt",
         representedIdentity: "none",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       },
       z.object({ excerpt: z.string() }),
     );

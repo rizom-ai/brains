@@ -127,7 +127,19 @@ export class GitReconciliationService {
       };
     }
 
-    if (delta.files.length === 0 && delta.deletedFiles.length === 0) {
+    // Auto-sync commits the brain's own exports, so the delta lists them
+    // again; a file that is already its stored entity has nothing to import.
+    const files =
+      delta.files.length === 0
+        ? []
+        : await options.directorySync.withoutStoredEchoes(delta.files);
+    if (files.length === 0 && delta.deletedFiles.length === 0) {
+      if (delta.files.length > 0) {
+        options.directorySync.ignorePulledWatchPaths(
+          delta.files,
+          matchingHead(options.gitSync),
+        );
+      }
       await this.saveCheckpoint(delta.checkpoint);
       return {
         mode: delta.mode,
@@ -143,7 +155,7 @@ export class GitReconciliationService {
       options.context,
       options.source,
       options.metadata,
-      delta.files,
+      files,
       delta.deletedFiles,
     );
     if (batch) {
@@ -158,7 +170,7 @@ export class GitReconciliationService {
 
     return {
       mode: delta.mode,
-      files: delta.files,
+      files,
       deletedFiles: delta.deletedFiles,
       batch,
       checkpointAdvanced: batch !== null,

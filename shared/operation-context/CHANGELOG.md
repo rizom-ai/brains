@@ -1,5 +1,138 @@
 # @brains/operation-context
 
+## 0.2.0-alpha.561
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.561
+
+## 0.2.0-alpha.560
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.560
+
+## 0.2.0-alpha.559
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.559
+
+## 0.2.0-alpha.558
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.558
+
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.557
+
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.556
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.555
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.554
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.553
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.552
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.551
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.550
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.549
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.548
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.547
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.546
+
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.545
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.543
+
 ## 0.2.0-alpha.542
 
 ### Patch Changes

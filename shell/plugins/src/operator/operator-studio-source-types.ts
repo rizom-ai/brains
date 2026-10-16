@@ -1,6 +1,7 @@
 import type { SourceActionControl } from "./operator-action-normalization";
 import type {
   RuntimeOperatorActionControl,
+  RuntimeStudioOperatorListItem,
   RuntimeStudioOperatorView,
   RuntimeStudioOperatorRegionBlock,
 } from "./operator-view-runtime-types";
@@ -20,3 +21,6 @@ export type StudioViewSource = WithSourceActions<RuntimeStudioOperatorView>;
 export type StudioBlockSource = StudioViewSource["blocks"][number];
 export type StudioRegionSource =
   WithSourceActions<RuntimeStudioOperatorRegionBlock>;
+/** An item of a Studio list or of a Studio matrix cell. */
+export type StudioListItemSource =
+  WithSourceActions<RuntimeStudioOperatorListItem>;

@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   defineAccountSettings,
+  defineEntityCatalog,
   defineStudioWorkspace,
   defineDashboardWidget,
   defineServicePlugin,
@@ -324,5 +325,72 @@ describe("public operator definitions", () => {
         view: () => ({ blocks: [] }),
       }),
     ).toThrow('declares action "refresh" more than once');
+  });
+});
+
+describe("publication workspaces", () => {
+  const publicationActions = (
+    ["queue", "remove", "retry", "reorder", "publish"] as const
+  ).map((name) =>
+    defineWorkspaceAction({
+      name,
+      label: name,
+      permission: "trusted",
+      input: z.object({ entityType: z.string(), entityId: z.string() }),
+      output: z.object({ success: z.literal(true) }),
+    }),
+  );
+  const publishable = defineEntityCatalog({
+    id: "publishable",
+    label: "Publishable",
+  });
+
+  it("declares that it publishes the entity types it covers", () => {
+    const publishing = defineStudioWorkspace({
+      id: "publishing",
+      label: "Publishing",
+      permission: "trusted",
+      publishesEntityTypes: true,
+      entityCatalog: publishable,
+      data: z.object({}),
+      actions: publicationActions,
+      view: () => ({ blocks: [] }),
+    });
+
+    expect(publishing.publishesEntityTypes).toBe(true);
+    expect(workspace.publishesEntityTypes).toBeUndefined();
+  });
+
+  it("refuses a publication workspace that covers no entity types", () => {
+    expect(() =>
+      defineStudioWorkspace({
+        id: "publishing",
+        label: "Publishing",
+        permission: "trusted",
+        publishesEntityTypes: true,
+        data: z.object({}),
+        actions: publicationActions,
+        view: () => ({ blocks: [] }),
+      }),
+    ).toThrow(
+      'Studio workspace "publishing" publishes entity types but declares neither entities nor an entity catalog',
+    );
+  });
+
+  it("refuses a publication workspace missing a publication action", () => {
+    expect(() =>
+      defineStudioWorkspace({
+        id: "publishing",
+        label: "Publishing",
+        permission: "trusted",
+        publishesEntityTypes: true,
+        entityCatalog: publishable,
+        data: z.object({}),
+        actions: publicationActions.filter((action) => action.name !== "retry"),
+        view: () => ({ blocks: [] }),
+      }),
+    ).toThrow(
+      'Studio workspace "publishing" publishes entity types without declaring the "retry" action',
+    );
   });
 });

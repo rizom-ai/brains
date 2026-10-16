@@ -1,5 +1,8 @@
 import { describe, it, expect } from "bun:test";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import {
+  AgentAdapter,
+  type CreateAgentContentInput,
+} from "../src/adapters/agent-adapter";
 import type { AgentEntity } from "../src/schemas/agent";
 
 const adapter = new AgentAdapter();
@@ -128,6 +131,107 @@ describe("AgentAdapter", () => {
       expect(content).not.toContain("organization");
       expect(content).toContain("brainName: Minimal Brain");
       expect(content).not.toContain("did");
+    });
+  });
+
+  describe("rewriteAgentContent", () => {
+    const fullInput = (): CreateAgentContentInput => ({
+      name: "Peer",
+      kind: "organization",
+      organization: "Peer Org",
+      brainName: "Peer Brain",
+      url: "https://peer.example.com",
+      did: "did:web:peer.example.com",
+      repoDid: "did:plc:peer",
+      brainDid: "did:web:peer.example.com",
+      anchorDid: "did:plc:anchor",
+      cardUri: "at://did:plc:peer/ai.rizom.brain.card/self",
+      cardCid: "bafy-card",
+      cardObservedAt: "2026-07-22T08:00:00.000Z",
+      cardLastCheckedAt: "2026-07-22T09:00:00.000Z",
+      cardLastError: "temporary failure",
+      cardFailureCount: 2,
+      cardUnavailableAt: "2026-07-22T10:00:00.000Z",
+      cardStaleAfter: "2026-07-23T10:00:00.000Z",
+      a2aEndpoint: "https://peer.example.com/a2a",
+      status: "discovered",
+      discoveredAt: "2026-03-31T00:00:00.000Z",
+      introducedBy: ["ranger.rizom.ai"],
+      hops: 2,
+      about: "Peer brain.",
+      skills: [
+        {
+          name: "Research",
+          description: "Research topics",
+          tags: ["research"],
+        },
+      ],
+      notes: "Local note.",
+    });
+
+    function parse(content: string): ReturnType<AgentAdapter["parseEntity"]> {
+      return adapter.parseEntity({
+        id: "peer.example.com",
+        entityType: "agent",
+        content,
+        contentHash: "hash",
+        created: "2026-03-31T00:00:00.000Z",
+        updated: "2026-03-31T00:00:00.000Z",
+        visibility: "public",
+        metadata: {
+          name: "Peer",
+          url: "https://peer.example.com",
+          status: "discovered",
+          slug: "peer-example-com",
+        },
+      });
+    }
+
+    it("reproduces the content it was parsed from when given no patch", () => {
+      const content = adapter.createAgentContent(fullInput());
+
+      expect(adapter.rewriteAgentContent(parse(content))).toBe(content);
+    });
+
+    it("changes only the fields its patch names", () => {
+      const content = adapter.createAgentContent(fullInput());
+
+      const rewritten = adapter.rewriteAgentContent(parse(content), {
+        status: "archived",
+      });
+
+      expect(rewritten).toBe(
+        adapter.createAgentContent({ ...fullInput(), status: "archived" }),
+      );
+    });
+
+    it("drops a field its patch sets to undefined or an empty value", () => {
+      const content = adapter.createAgentContent(fullInput());
+
+      const rewritten = adapter.rewriteAgentContent(parse(content), {
+        cardUnavailableAt: undefined,
+        cardLastError: "",
+        introducedBy: [],
+        hops: undefined,
+      });
+      const frontmatter = parse(rewritten).frontmatter;
+
+      expect(frontmatter.cardUnavailableAt).toBeUndefined();
+      expect(frontmatter.cardLastError).toBeUndefined();
+      expect(frontmatter.introducedBy).toBeUndefined();
+      expect(frontmatter.hops).toBeUndefined();
+      expect(frontmatter.cardStaleAfter).toBe("2026-07-23T10:00:00.000Z");
+      expect(frontmatter.cardFailureCount).toBe(2);
+    });
+
+    it("keeps a zero failure count from its patch", () => {
+      const content = adapter.createAgentContent(fullInput());
+
+      const rewritten = adapter.rewriteAgentContent(parse(content), {
+        cardFailureCount: 0,
+      });
+
+      expect(parse(rewritten).frontmatter.cardFailureCount).toBe(0);
     });
   });
 

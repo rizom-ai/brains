@@ -21,7 +21,8 @@ export interface DirectoryOperationDepsOptions extends ImportLimits {
   coverImageConverter: FrontmatterImageConverter;
   inlineImageConverter: MarkdownImageConverter;
   pendingDeletes: PendingDeleteRegistry;
-  getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined;
+  getJobQueueCallback: () =>
+    ((job: JobRequest) => Promise<string | undefined>) | undefined;
 }
 
 export class DirectoryOperationDeps {

@@ -14,6 +14,7 @@ import { createShellServices } from "./service-factory";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import * as shellRegistration from "./shell-registration";
 import type { RuntimeProcessRole } from "../runtime-process-role";
+import type { PeerChannel } from "../peer-event-relay";
 
 export type { ShellServices } from "../types/shell-types";
 export type { PluginInitializeOptions } from "./shell-registration";
@@ -22,23 +23,27 @@ export class ShellInitializer {
   private readonly logger: Logger;
   private readonly config: ShellConfig;
   private readonly processRole: RuntimeProcessRole | undefined;
+  private readonly peerChannel: PeerChannel | undefined;
 
   public static createFresh(
     logger: Logger,
     config: ShellConfig,
     processRole?: RuntimeProcessRole,
+    peerChannel?: PeerChannel,
   ): ShellInitializer {
-    return new ShellInitializer(logger, config, processRole);
+    return new ShellInitializer(logger, config, processRole, peerChannel);
   }
 
   private constructor(
     logger: Logger,
     config: ShellConfig,
     processRole?: RuntimeProcessRole,
+    peerChannel?: PeerChannel,
   ) {
     this.logger = logger.child("ShellInitializer");
     this.config = config;
     this.processRole = processRole;
+    this.peerChannel = peerChannel;
   }
 
   public registerShellTemplates(templateRegistry: TemplateRegistry): void {
@@ -95,6 +100,7 @@ export class ShellInitializer {
       initializerLogger: this.logger,
       lifecycle,
       ...(this.processRole && { processRole: this.processRole }),
+      ...(this.peerChannel && { peerChannel: this.peerChannel }),
     });
   }
 

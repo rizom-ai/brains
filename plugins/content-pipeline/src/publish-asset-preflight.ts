@@ -1,5 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
+import type { RetryScope } from "@brains/utils/retry-backoff";
 import { slugify } from "@brains/utils/string-utils";
 import type {
   PublishAssetDefinition,
@@ -14,8 +15,13 @@ export interface PublishAssetPreflightResult {
 }
 
 export interface PublishAssetPreflightDeps {
-  context: Pick<ServicePluginContext, "attachments" | "jobs" | "logger">;
+  context: Pick<
+    ServicePluginContext,
+    "attachments" | "entityService" | "jobs" | "logger"
+  >;
   registry: PublishAssetRegistry;
+  /** Owns retries of refused preflights; without it a refusal is thrown. */
+  retries?: RetryScope | undefined;
 }
 
 /**
@@ -29,6 +35,38 @@ export class PublishAssetPreflight {
   private readonly deps: PublishAssetPreflightDeps;
   constructor(deps: PublishAssetPreflightDeps) {
     this.deps = deps;
+  }
+
+  /**
+   * Ensure assets for an entity a publish just touched, keeping the work when
+   * it is refused, as the job queue refuses an enqueue while another process
+   * holds its write lock. Each retry re-reads the entity, so one no longer
+   * published, or whose asset arrived meanwhile, queues nothing.
+   */
+  public async ensureOrRetry(entity: BaseEntity): Promise<void> {
+    try {
+      await this.ensureForEntity(entity);
+    } catch (error) {
+      if (!this.deps.retries) throw error;
+      const { entityType, id } = entity;
+      void this.deps.retries.retry(
+        () => this.ensureForCurrent(entityType, id),
+        error,
+        `queue publish assets for ${entityType}:${id}`,
+        `publish-assets:${entityType}:${id}`,
+      );
+    }
+  }
+
+  private async ensureForCurrent(
+    entityType: string,
+    id: string,
+  ): Promise<void> {
+    const current = await this.deps.context.entityService.getEntity({
+      entityType,
+      id,
+    });
+    if (current) await this.ensureForEntity(current);
   }
 
   public async ensureForEntity(

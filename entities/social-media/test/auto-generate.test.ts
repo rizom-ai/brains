@@ -1,9 +1,13 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { PluginCapabilities } from "@brains/plugins";
 import {
+  baseEntitySchema,
   createPluginHarness,
+  createTestEntityAdapter,
+  refuseEnqueues,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 import { SocialMediaPlugin } from "../src/plugin";
 
 async function install(config: {
@@ -63,5 +67,48 @@ describe("SocialMediaPlugin projection scheduling boundary", () => {
     });
 
     expect(enqueue).not.toHaveBeenCalled();
+  });
+});
+
+describe("SocialMediaPlugin scheduled generation", () => {
+  it("queues a scheduled generation the queue refused once it admits it", async () => {
+    const harness = createPluginHarness<SocialMediaPlugin>({
+      dataDir: "/tmp/test-social-media-refused-generation",
+    });
+    harness
+      .getEntityRegistry()
+      .registerEntityType(
+        "post",
+        baseEntitySchema,
+        createTestEntityAdapter("post"),
+      );
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "post",
+        content: "A post",
+        visibility: "public",
+        metadata: { status: "published" },
+      },
+    });
+    const shell = harness.getMockShell();
+    const queue = shell.getJobQueueService();
+    const refusals = refuseEnqueues(queue, 1);
+    await harness.installPlugin(new SocialMediaPlugin({}));
+
+    await harness.sendMessage("generate:execute", {
+      entityType: "social-post",
+    });
+    expect(refusals.count).toBe(1);
+
+    await waitUntil(
+      async () =>
+        (await queue.getActiveJobs()).some((job) =>
+          job.type.endsWith("social-post:generation"),
+        ),
+      "the refused generation to be queued",
+      { timeoutMs: 5_000 },
+    );
+    await harness.reset();
   });
 });

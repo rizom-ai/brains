@@ -187,11 +187,12 @@ function subscribeToEntityChangeMessages(
   }): Promise<{ success: boolean }> =>
     handleEntityChange(context, deps, msg.payload);
 
-  context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
+  // Observed: an entity the worker publishes needs its assets too.
+  context.messaging.observe<EntityChangePayload, { success: boolean }>(
     ENTITY_CHANNELS.created,
     handler,
   );
-  context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
+  context.messaging.observe<EntityChangePayload, { success: boolean }>(
     ENTITY_CHANNELS.updated,
     handler,
   );
@@ -273,7 +274,7 @@ async function handleEntityChange(
       return { success: true };
     }
 
-    await deps.publishAssetPreflight.ensureForEntity(entity);
+    await deps.publishAssetPreflight.ensureOrRetry(entity);
     return { success: true };
   } catch (error) {
     deps.logger.warn("Failed to run publish asset preflight for entity event", {

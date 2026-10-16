@@ -23,13 +23,13 @@ const channelSchema = z.object({
  * @example
  * ```typescript
  * // Define a channel
- * const EntityCreatedChannel = defineChannel(
- *   "entity:created",
+ * const PublishCompletedChannel = defineChannel(
+ *   "publish:completed",
  *   z.object({ entityId: z.string(), entityType: z.string() })
  * );
  *
  * // Subscribe with automatic validation
- * context.messaging.subscribe(EntityCreatedChannel, async (payload) => {
+ * context.messaging.subscribe(PublishCompletedChannel, async (payload) => {
  *   // payload is typed as { entityId: string, entityType: string }
  *   console.log(`Created: ${payload.entityId}`);
  *   return { success: true };
@@ -37,7 +37,7 @@ const channelSchema = z.object({
  *
  * // Send with type checking
  * context.messaging.send({
- *   type: EntityCreatedChannel.name,
+ *   type: PublishCompletedChannel.name,
  *   payload: {
  *     entityId: "123",
  *     entityType: "note"

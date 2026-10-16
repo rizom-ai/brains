@@ -302,5 +302,44 @@ Content here.`,
       expect(result.success).toBe(true);
       expect(capturedMetadata?.entityIds).toEqual(["post-1"]);
     });
+
+    it("asks for a newsletter from source posts without voice instructions of its own", async () => {
+      await context.entityService.createEntity({
+        entity: {
+          id: "post-1",
+          entityType: "post",
+          content: `---
+title: "First Post"
+slug: post-1
+status: published
+excerpt: "Introduction to the topic"
+---
+
+Content here.`,
+          metadata: {
+            title: "First Post",
+            slug: "post-1",
+            status: "published",
+            excerpt: "Introduction to the topic",
+          },
+        },
+      });
+      const generate = spyOn(context.ai, "generate").mockImplementation(
+        async (_config, schema) =>
+          schema.parse({ subject: "Digest", content: "Body" }),
+      );
+
+      await handler.process(
+        { sourceEntityIds: ["post-1"], sourceEntityType: "post" },
+        "job-123",
+        progressReporter,
+      );
+
+      const prompt = generate.mock.calls[0]?.[0].prompt ?? "";
+      expect(prompt).toContain("First Post");
+      for (const voiceRule of ["engaging", "compelling", "friendly sign-off"]) {
+        expect(prompt).not.toContain(voiceRule);
+      }
+    });
   });
 });

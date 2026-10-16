@@ -1,35 +1,17 @@
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
+import { normalizeTags } from "@brains/utils/string-utils";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
+
+export { normalizeTag, normalizeTags } from "@brains/utils/string-utils";
 
 const agentAdapter = new AgentAdapter();
 
 export interface TagVocabularyEntry {
   tag: string;
   count: number;
-}
-
-export function normalizeTag(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, "-");
-}
-
-export function normalizeTags(raw: string[]): string[] {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-
-  for (const tag of raw) {
-    const value = normalizeTag(tag);
-    if (!value || seen.has(value)) continue;
-    seen.add(value);
-    normalized.push(value);
-  }
-
-  return normalized;
 }
 
 function sortVocabulary(a: TagVocabularyEntry, b: TagVocabularyEntry): number {

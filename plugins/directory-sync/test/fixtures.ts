@@ -152,6 +152,7 @@ export function createMockDirectorySync(
     stopWatching: mock(() => Promise.resolve()),
     suppressWatchPaths: mock(() => {}),
     ignorePulledWatchPaths: mock(() => {}),
+    withoutStoredEchoes: mock(async (paths: string[]) => paths),
     recordPendingPullDeletes: mock(async () => {}),
     isPendingDelete: mock(() => false),
     completePendingDelete: mock(() => {}),

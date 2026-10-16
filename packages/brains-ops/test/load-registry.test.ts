@@ -179,6 +179,7 @@ domainOverride: rizom.work
 cloudflareZoneId: rizom-work-zone
 contentRepoOverride: rizom-ai/rizom-work-content
 profileKind: organization
+anchorKind: organization
 addOverride:
   - docs
 siteOverride:
@@ -199,6 +200,7 @@ discord:
     expect(registry.users[0]?.cloudflareZoneId).toBe("rizom-work-zone");
     expect(registry.users[0]?.contentRepo).toBe("rizom-ai/rizom-work-content");
     expect(registry.users[0]?.profileKind).toBe("organization");
+    expect(registry.users[0]?.anchorKind).toBe("organization");
     expect(registry.users[0]?.add).toEqual(["docs"]);
     expect(registry.users[0]?.siteOverride).toEqual({
       package: "@rizom/site-rizom-work",
@@ -251,6 +253,29 @@ discord:
         },
       }).success,
     ).toBe(true);
+  });
+
+  it("takes a bundled site package without a version pin", () => {
+    const baseUser = {
+      handle: "thefourth",
+      discord: { enabled: false },
+    };
+
+    expect(
+      userSchema.safeParse({
+        ...baseUser,
+        siteOverride: { package: "@brains/site-organization" },
+      }).success,
+    ).toBe(true);
+    expect(
+      userSchema.safeParse({
+        ...baseUser,
+        siteOverride: {
+          package: "@brains/site-organization",
+          version: "0.2.0-alpha.552",
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it("loads user-level ATProto identifier metadata", async () => {
@@ -483,6 +508,29 @@ describe("profile kind validation", () => {
       BUILT_IN_PROFILE_KINDS.map(
         (definition: { kind: string }) => definition.kind,
       ).sort(),
+    );
+  });
+});
+
+describe("anchor kind validation", () => {
+  it("rejects anchor kinds the auth service does not accept", () => {
+    const result = userSchema.safeParse({
+      handle: "thefourth",
+      discord: { enabled: false },
+      anchorKind: "collective",
+    });
+    expect(result.success).toBeFalse();
+    if (!result.success) {
+      expect(JSON.stringify(result.error.issues)).toContain("anchorKind");
+    }
+  });
+
+  it("stays in lockstep with the auth service's anchor config kinds", async () => {
+    const { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } =
+      await import("@brains/auth-service/admin-contracts");
+    const { ANCHOR_KINDS } = await import("../src/schema");
+    expect([...ANCHOR_KINDS].sort()).toEqual(
+      [...AUTH_BRAIN_ANCHOR_CONFIG_KINDS].sort(),
     );
   });
 });

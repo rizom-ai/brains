@@ -9,8 +9,8 @@ import {
 
 /**
  * Entity adapter for prompt entities.
- * Prompts are markdown files with title + target in frontmatter
- * and the prompt text as the body.
+ * Prompts are markdown files with title + target (and, for materialized
+ * defaults, defaultHash) in frontmatter and the prompt text as the body.
  */
 export class PromptAdapter extends BaseEntityAdapter<Prompt, PromptMetadata> {
   constructor() {
@@ -45,6 +45,9 @@ export class PromptAdapter extends BaseEntityAdapter<Prompt, PromptMetadata> {
         title: frontmatter.title,
         target: frontmatter.target,
         slug,
+        ...(frontmatter.defaultHash && {
+          defaultHash: frontmatter.defaultHash,
+        }),
       },
     };
   }

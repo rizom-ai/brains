@@ -1,8 +1,8 @@
 import { ServicePlugin as RuntimeServicePlugin } from "../service/service-plugin";
-import type { ServicePluginContext as RuntimeServicePluginContext } from "../service/context";
 import type { PluginConfigSchema } from "../config";
-import type { Resource, ServicePluginContext, Tool } from "./types";
+import type { ServicePluginContext } from "./types";
 import {
+  forwardCommonHooks,
   HookedPublicPlugin,
   type CommonPluginHooks,
   type PluginPackageJson,
@@ -11,11 +11,10 @@ import {
 
 type ServicePluginHooks = CommonPluginHooks<ServicePluginContext>;
 
-class ServicePluginDelegate<TConfig, TConfigInput> extends RuntimeServicePlugin<
-  TConfig,
-  TConfigInput
-> {
-  private readonly hooks: ServicePluginHooks;
+class ServicePluginDelegate<TConfig, TConfigInput> extends forwardCommonHooks(
+  RuntimeServicePlugin,
+)<TConfig, TConfigInput> {
+  protected readonly hooks: ServicePluginHooks;
 
   constructor(
     id: string,
@@ -26,34 +25,6 @@ class ServicePluginDelegate<TConfig, TConfigInput> extends RuntimeServicePlugin<
   ) {
     super(id, packageJson, config, configSchema);
     this.hooks = hooks;
-  }
-
-  protected override onRegister(
-    context: RuntimeServicePluginContext,
-  ): Promise<void> {
-    return this.hooks.onRegister(context);
-  }
-
-  protected override onReady(
-    context: RuntimeServicePluginContext,
-  ): Promise<void> {
-    return this.hooks.onReady(context);
-  }
-
-  protected override onShutdown(): Promise<void> {
-    return this.hooks.onShutdown();
-  }
-
-  protected override getTools(): Promise<Tool[]> {
-    return this.hooks.getTools();
-  }
-
-  protected override getResources(): Promise<Resource[]> {
-    return this.hooks.getResources();
-  }
-
-  protected override getInstructions(): Promise<string | undefined> {
-    return this.hooks.getInstructions();
   }
 }
 

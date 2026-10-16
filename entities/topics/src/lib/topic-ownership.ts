@@ -40,10 +40,12 @@ export function ownTopicSources(
 }
 
 /**
- * Topics that own none of their nearest sources, each with the topic that
- * owns most of them: on a tie, the owner of its closest source.
+ * Topics that duplicate another: they own none of their nearest sources, and
+ * one other topic owns at least half of them. Each joins that topic; on a
+ * tie, the one owning its closest source. A broad topic whose sources are
+ * spread over several topics stays.
  */
-export function ownerlessTopics(
+export function duplicateTopics(
   neighbourhoods: TopicNeighbourhood[],
 ): { topicId: string; into: string }[] {
   const owners = ownTopicSources(neighbourhoods);
@@ -66,6 +68,8 @@ export function ownerlessTopics(
       ([, left], [, right]) =>
         right.count - left.count || left.closest - right.closest,
     );
-    return into ? [{ topicId, into: into[0] }] : [];
+    return into && into[1].count * 2 >= sources.length
+      ? [{ topicId, into: into[0] }]
+      : [];
   });
 }

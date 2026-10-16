@@ -33,6 +33,11 @@ export {
   type WorkspacePackageLike,
 } from "./release-lanes";
 export {
+  migratePrereleaseHistory,
+  parsePrereleaseState,
+  readPrereleaseHistory,
+} from "./prerelease-history";
+export {
   assertPublishedCompatibilityMetadata,
   type PublishedCompatibilityTarget,
   type PublishedPackageManifest,

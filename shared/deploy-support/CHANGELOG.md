@@ -1,5 +1,139 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.561
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.561
+
+## 0.2.0-alpha.560
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.560
+
+## 0.2.0-alpha.559
+
+### Patch Changes
+
+- [#662](https://github.com/rizom-ai/brains/pull/662) [`312f2b4`](https://github.com/rizom-ai/brains/commit/312f2b4710a48939e5b8e8fb3cc0207a439f8129) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require reviewed per-image runtime manifests and Bun lockfiles for new fleet image builds. Add a planning-only `images:lock` command, pin the selector-parser security fix in generated manifests, and install production dependencies frozen with lifecycle scripts disabled. Existing published images remain immutable; adopting the scaffold or preparing locks does not replace running containers.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.559
+
+## 0.2.0-alpha.558
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.558
+
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.557
+
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.556
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.555
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.554
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.553
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- Updated dependencies [[`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333)]:
+  - @brains/utils@0.2.0-alpha.552
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.551
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.550
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.549
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.548
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.547
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.546
+
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.545
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.543
+
 ## 0.2.0-alpha.542
 
 ### Patch Changes

@@ -173,7 +173,9 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
+    // Entity changes arrive from both processes of the runtime; the
+    // projection follows every one of them.
+    context.messaging.observe(ENTITY_CHANNELS.updated, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
         void this.publishingTasks.run(entityTaskKey(payload.data), () =>
@@ -183,7 +185,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    context.messaging.subscribe(ENTITY_CHANNELS.deleted, async (message) => {
+    context.messaging.observe(ENTITY_CHANNELS.deleted, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {
         void this.publishingTasks.run(entityTaskKey(payload.data), () =>
@@ -200,7 +202,7 @@ export class AtprotoPlugin extends ServicePlugin<
       ENTITY_CHANNELS.updated,
       ENTITY_CHANNELS.deleted,
     ]) {
-      context.messaging.subscribe(channel, async (message) => {
+      context.messaging.observe(channel, async (message) => {
         const payload = entityTriggerPayloadSchema.safeParse(message.payload);
         if (
           this.brainCardTriggersArmed &&

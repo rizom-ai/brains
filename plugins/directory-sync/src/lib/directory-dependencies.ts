@@ -54,7 +54,8 @@ export function createDirectoryOperationDeps(
   dependencies: DirectorySyncDependencies,
   importLimits: ImportLimits,
   pendingDeletes: PendingDeleteRegistry,
-  getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined,
+  getJobQueueCallback: () =>
+    ((job: JobRequest) => Promise<string | undefined>) | undefined,
 ): DirectoryOperationDeps {
   return new DirectoryOperationDeps({
     entityService,

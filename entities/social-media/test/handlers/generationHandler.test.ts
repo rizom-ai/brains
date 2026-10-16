@@ -6,7 +6,8 @@ import {
   generationJobSchema,
   type GenerationJobData,
 } from "../../src/handlers/generationHandler";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
+import { RetryScope } from "@brains/utils/retry-backoff";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -524,4 +525,81 @@ describe("GenerationJobHandler", () => {
       expect(result.slug).toBe(result.entityId);
     });
   });
+});
+
+/**
+ * The image job is enqueued after the post is created. A refusal there (the
+ * job queue's write lock held by another process) failed the generation job
+ * although the post existed; the image is now retried and the job succeeds.
+ */
+describe("GenerationJobHandler image enqueues the queue refuses", () => {
+  function setup(): {
+    handler: GenerationJobHandler;
+    context: EntityPluginContext;
+    retries: RetryScope;
+    admitted: string[];
+    refusals: { count: number };
+    reporter: ProgressReporter;
+  } {
+    const logger = createSilentLogger();
+    const context = createPluginHarness().getEntityContext("social-media");
+    const retries = new RetryScope({ firstDelayMs: 10, logger });
+    const admitted: string[] = [];
+    const refusals = { count: 0 };
+    context.jobs.enqueue = async (request): Promise<string> => {
+      if (request.type === "image:image-generate" && refusals.count === 0) {
+        refusals.count += 1;
+        throw new Error("Failed to acquire atomic enqueue transaction");
+      }
+      admitted.push(request.type);
+      return "image-job";
+    };
+    const reporter = CallbackProgressReporter.from(async () => {});
+    if (!reporter) throw new Error("Failed to create progress reporter");
+    return {
+      handler: new GenerationJobHandler(logger, context, retries),
+      context,
+      retries,
+      admitted,
+      refusals,
+      reporter,
+    };
+  }
+
+  it.each([
+    ["the social image", { generateImage: true }],
+    ["the cover image", { coverImage: { generate: true } }],
+  ])(
+    "creates the post and queues %s once the queue admits it",
+    async (_label, request) => {
+      const { handler, context, retries, admitted, refusals, reporter } =
+        setup();
+
+      const result = await handler.process(
+        {
+          title: "Visual Post",
+          content: "Post content with an image",
+          platform: "linkedin",
+          addToQueue: false,
+          ...request,
+        },
+        "job-1",
+        reporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(refusals.count).toBe(1);
+      expect(
+        await context.entityService.getEntity({
+          entityType: "social-post",
+          id: "linkedin-visual-post",
+        }),
+      ).not.toBeNull();
+      await waitUntil(
+        () => admitted.includes("image:image-generate"),
+        "the refused image to be queued",
+      );
+      await retries.dispose();
+    },
+  );
 });

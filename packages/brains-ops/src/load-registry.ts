@@ -7,6 +7,7 @@ import {
 } from "@brains/utils/yaml";
 
 import {
+  type AnchorKind,
   type CohortConfig,
   cohortSchema,
   type PilotConfig,
@@ -94,7 +95,7 @@ export interface ResolvedPlaybooksConfig {
 
 export interface ResolvedSiteOverride {
   package: string;
-  version: string;
+  version?: string | undefined;
   theme?: string | undefined;
   themeVersion?: string | undefined;
 }
@@ -111,6 +112,7 @@ export interface ResolvedUserIdentity {
   cloudflareZoneId?: string | undefined;
   contentRepo: string;
   profileKind?: string | undefined;
+  anchorKind?: AnchorKind | undefined;
   embeddingEnabled?: boolean | undefined;
   plugins?: UserConfig["plugins"];
   topicExtractionEnabled?: boolean | undefined;
@@ -233,6 +235,9 @@ export async function loadPilotRegistry(
           `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
         ...(userFile.data.profileKind
           ? { profileKind: userFile.data.profileKind }
+          : {}),
+        ...(userFile.data.anchorKind
+          ? { anchorKind: userFile.data.anchorKind }
           : {}),
         ...(userFile.data.embeddingEnabled !== undefined
           ? { embeddingEnabled: userFile.data.embeddingEnabled }

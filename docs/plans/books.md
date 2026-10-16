@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`.
+In progress. Phases 1, 2 and 5 are live: Friedrich's published works (26 books) at `friedrich.rizom.ai`, Karl (46 books) at `karl.rizom.ai`. Phase 3 is imported: the Nachlass (20 books, 11,863 sections) and the letters (38 books, 2,900 sections). Phase 4 is not started.
 
 ## Goal
 
@@ -65,7 +65,7 @@ Body: the author's text, unchanged except for markdown conversion.
 
 ### Reading on a site
 
-The plugin ships `book-list`, `book-detail` and `book-section-detail` templates and a `book:entities` datasource. Generated routes: `/books` lists books; `/books/<book>` is a book's title page with the score of its sections; `/books/<book>/<order>` is a section with its citation, source attribution and prev/next in reading order. Every section carries `book`, `order` and a derived `slug` in metadata, so each page is a handful of indexed lookups regardless of book length. The site serving books sets `entityDisplay.book.paginate: false`, since the index lists books, and gives `book-section` the plural `books` so sections open under their book; `book-section` has no list template, so it gets detail routes only.
+The plugin ships `book-list`, `book-detail` and `book-section-detail` templates and a `book:entities` datasource. Generated routes: `/books` lists books; `/books/<book>` is a book's title page with the score of its sections; `/books/<book>/<order>` is a section with its citation, source attribution and prev/next in reading order. Every section carries `book`, `order` and a derived `slug` (`bookSectionSlug(book, order)`) in metadata. A page finds its section and its neighbours by slug, through the entity store's index on type and slug, so each page is a handful of index lookups whatever the size of the book or the brain. A site build holds every page's data at once, so a page carries only what it shows (`schemas/book-pages.ts`): its section's text once, its neighbours as links, its book's fields without the book's text. The site serving books sets `entityDisplay.book.paginate: false`, since the index lists books, and gives `book-section` the plural `books` so sections open under their book; `book-section` has no list template, so it gets detail routes only.
 
 ### Reading site
 
@@ -73,7 +73,7 @@ Book brains get a purpose-built reading site, not the default site with books ad
 
 Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` a book's score, `book-section-detail` the reading page. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode.
 
-Topics are the brain's interface to other brains: each is published as an `ai.rizom.brain.topic` record, and the brain's agent card derives its skills from their titles, which other brains match against when they look for expertise. A book brain's topics therefore use the default extraction prompt and name concepts in the network's shared language, so a brain asking about resentment finds Friedrich; the author's own terms (Mitleid, Ressentiment) belong to the reading pages, not to topic identity. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `book:theme` through `entityDisplay.topic.detailTemplate`). Both read related sections with `nearestToEntity`, one store query by cosine distance from a stored vector, so a full build stays linear: Nietzsche's 3,705 sections build in about a minute and a half.
+Topics are the brain's interface to other brains: each is published as an `ai.rizom.brain.topic` record, and the brain's agent card derives its skills from their titles, which other brains match against when they look for expertise. A book brain's topics therefore use the default extraction prompt and name concepts in the network's shared language, so a brain asking about resentment finds Friedrich; the author's own terms (Mitleid, Ressentiment) belong to the reading pages, not to topic identity. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `book:theme` through `entityDisplay.topic.detailTemplate`). Both read related sections with `nearestToEntity`, one store query by cosine distance from a stored vector to the entities of the requested type, which the same index finds, so a full build stays linear.
 
 Ask lives at `/ask` (`book:ask`): the guest box under the site's name, and a rail listing the passages an answer cites by siglum, book and year. A reading page offers "Ask about AC-2", which starts the question with the siglum. The books site marks only `book-section` citable, so a book's contents are never a source; a cited section is titled by its siglum (`pageTitle`). The book plugin's instructions tell the agent to search the sections first, cite by siglum and book, quote verbatim, and say when the books do not address a question. Turning Ask on for a deployed brain is the owner's budgeted switch in Studio.
 
@@ -90,8 +90,8 @@ Action policy is enforced in the `system_*` tools, Studio and the operator surfa
 Each brain gets an `anchor-profile` and a `brain-character`:
 
 - name: Friedrich / Karl / Sigmund
-- role: reading companion to the author's works
-- instructions: answer from book sections found by search; quote the German original; cite book, section and edition; say when the books have nothing on a question; answer in the user's language; do not speak as the author in the first person.
+- role: the author, answering from his works
+- instructions: speak as the author, in the first person and in his manner; claim only what the book sections found by search say; quote the German original; cite book, section and edition; say when the books have nothing on a question, never inventing what the author might have thought; answer in the user's language.
 
 ## Sources
 
@@ -106,7 +106,8 @@ Allowed: public-domain texts, CC BY-SA 4.0, and Nietzsche Source's CC BY-NC-ND 4
 | archive.org, Großoktavausgabe (1894–1926) scans | Philologica                                                                     | public domain (author text) | OCR                 |
 
 eKGWB terms: attribution with URL on every entry (`source`), no commercial use, text unchanged. Every eKGWB unit is addressed by its siglum (`/eKGWB/<siglum>`), which becomes `section`.
-Fetching: the importer requests each book's print page (`/eKGWB/<book>/print`) once, at most one request per second, caches every response and never refetches, and identifies itself with a User-Agent carrying a contact address. The operator has told Nietzsche Source about the import.
+Fetching: the importer requests each print page (`/eKGWB/<siglum>/print`) once — a published work, a Nachlass notebook (`NF-1888,14`) or a year of letters (`BVN-1888`) — at most one request per second, caches every response and never refetches, and identifies itself with a User-Agent carrying a contact address. The operator has told Nietzsche Source about the import.
+The Nachlass is one book per year, its notebooks as parts titled by the edition's group label (`14 = W II 5. Frühjahr 1888`); a fragment is titled by its number (`14[1]`). The letters are one book per year; a letter is titled by its addressee line (`969. An Paul Deussen in Berlin`). A page names a unit's siglum by the anchor before it, since some pages leave the block's own id empty.
 Not covered: Juvenilia, letters to Nietzsche.
 
 ### Karl
@@ -190,7 +191,8 @@ Each phase ships on its own PR, tests first.
 
 ### Phase 3 — Friedrich: Nachlass and letters
 
-- full local import of the Nachlass fragments 1869–1889 and Nietzsche's letters: measure import time, index-readiness time and DB size; the readiness gate must clear before deploy
+- `ekgwb` reads notebooks and years of letters; manifest entries for the 176 notebooks and 38 years of letters
+- section pages find sections by slug through the entity store's type-and-slug index, and carry only what they show
 - content repo updated, deploy, same verification
 - `dta-tei` and `archive-ocr` adapters with the OCR gate for Homer, Idyllen aus Messina and the Philologica
 
@@ -206,6 +208,6 @@ Each phase ships on its own PR, tests first.
 
 ## Risks
 
-- **Scale.** Directory-sync stress was proven to 700 files; the Nachlass, Nietzsche's letters and Marx each run past 10,000 entries. Phase 3's full local import is the measurement before any of them ships.
+- **Scale.** A site build renders a page per section and holds every page's data at once: a lookup that scans the store on every page grows a build with the square of the brain, and text a page does not show grows its memory with every page. Friedrich with the Nachlass and the letters holds 18,468 sections.
 - **OCR quality** of Fraktur scans: handled by the OCR gate; failing volumes become listed gaps.
 - **"Complete" is bounded by licensing.** The coverage note shows what is missing and why.

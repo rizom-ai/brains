@@ -113,7 +113,7 @@ describe("knowledge-map template registration", () => {
     // fetch itself is two lines of composition over the builder (fully
     // tested in knowledge-map-data.test.ts) and the schema parse; what the
     // registry depends on is the id contract.
-    const source = new KnowledgeMapDataSource();
+    const source = new KnowledgeMapDataSource(() => []);
     expect(source.id).toBe("topics:knowledge-map");
   });
 });

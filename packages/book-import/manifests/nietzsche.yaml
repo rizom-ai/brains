@@ -1,7 +1,8 @@
 # Friedrich: Nietzsche's works from eKGWB (nietzschesource.org), CC BY-NC-ND 4.0.
 # In eKGWB's order: published works and private prints, then the posthumous
-# writings. `year` is first publication, or the year of writing for works
-# published after 1889. The Nachlass and the letters are not imported yet.
+# writings, the Nachlass by year with its notebooks as parts, and the letters
+# by year. `year` is first publication, or the year of writing for works
+# published after 1889.
 source: ekgwb
 books:
   - siglum: GT
@@ -217,3 +218,643 @@ books:
     author: Friedrich Nietzsche
     year: 1873
     kind: work
+  - slug: nachgelassene-fragmente-1869
+    title: Nachgelassene Fragmente 1869
+    shortTitle: Nachlass 1869
+    published: false
+    author: Friedrich Nietzsche
+    year: 1869
+    kind: nachlass
+    parts:
+      - siglum: NF-1869,1
+      - siglum: NF-1869,2
+      - siglum: NF-1869,3
+  - slug: nachgelassene-fragmente-1870
+    title: Nachgelassene Fragmente 1870
+    shortTitle: Nachlass 1870
+    published: false
+    author: Friedrich Nietzsche
+    year: 1870
+    kind: nachlass
+    parts:
+      - siglum: NF-1870,4
+      - siglum: NF-1870,5
+      - siglum: NF-1870,6
+      - siglum: NF-1870,7
+      - siglum: NF-1870,8
+  - slug: nachgelassene-fragmente-1871
+    title: Nachgelassene Fragmente 1871
+    shortTitle: Nachlass 1871
+    published: false
+    author: Friedrich Nietzsche
+    year: 1871
+    kind: nachlass
+    parts:
+      - siglum: NF-1871,9
+      - siglum: NF-1871,10
+      - siglum: NF-1871,11
+      - siglum: NF-1871,12
+      - siglum: NF-1871,13
+      - siglum: NF-1871,14
+      - siglum: NF-1871,15
+      - siglum: NF-1871,16
+      - siglum: NF-1871,17
+      - siglum: NF-1871,18
+  - slug: nachgelassene-fragmente-1872
+    title: Nachgelassene Fragmente 1872
+    shortTitle: Nachlass 1872
+    published: false
+    author: Friedrich Nietzsche
+    year: 1872
+    kind: nachlass
+    parts:
+      - siglum: NF-1872,19
+      - siglum: NF-1872,20
+      - siglum: NF-1872,21
+      - siglum: NF-1872,22
+      - siglum: NF-1872,23
+      - siglum: NF-1872,24
+      - siglum: NF-1872,25
+  - slug: nachgelassene-fragmente-1873
+    title: Nachgelassene Fragmente 1873
+    shortTitle: Nachlass 1873
+    published: false
+    author: Friedrich Nietzsche
+    year: 1873
+    kind: nachlass
+    parts:
+      - siglum: NF-1873,26
+      - siglum: NF-1873,27
+      - siglum: NF-1873,28
+      - siglum: NF-1873,29
+      - siglum: NF-1873,30
+      - siglum: NF-1873,31
+  - slug: nachgelassene-fragmente-1874
+    title: Nachgelassene Fragmente 1874
+    shortTitle: Nachlass 1874
+    published: false
+    author: Friedrich Nietzsche
+    year: 1874
+    kind: nachlass
+    parts:
+      - siglum: NF-1874,32
+      - siglum: NF-1874,33
+      - siglum: NF-1874,34
+      - siglum: NF-1874,35
+      - siglum: NF-1874,36
+      - siglum: NF-1874,37
+      - siglum: NF-1874,38
+  - slug: nachgelassene-fragmente-1875
+    title: Nachgelassene Fragmente 1875
+    shortTitle: Nachlass 1875
+    published: false
+    author: Friedrich Nietzsche
+    year: 1875
+    kind: nachlass
+    parts:
+      - siglum: NF-1875,1
+      - siglum: NF-1875,2
+      - siglum: NF-1875,3
+      - siglum: NF-1875,4
+      - siglum: NF-1875,5
+      - siglum: NF-1875,6
+      - siglum: NF-1875,7
+      - siglum: NF-1875,8
+      - siglum: NF-1875,9
+      - siglum: NF-1875,10
+      - siglum: NF-1875,11
+      - siglum: NF-1875,12
+      - siglum: NF-1875,13
+      - siglum: NF-1875,14
+  - slug: nachgelassene-fragmente-1876
+    title: Nachgelassene Fragmente 1876
+    shortTitle: Nachlass 1876
+    published: false
+    author: Friedrich Nietzsche
+    year: 1876
+    kind: nachlass
+    parts:
+      - siglum: NF-1876,15
+      - siglum: NF-1876,16
+      - siglum: NF-1876,17
+      - siglum: NF-1876,18
+      - siglum: NF-1876,19
+      - siglum: NF-1876,20
+      - siglum: NF-1876,21
+      - siglum: NF-1876,23
+  - slug: nachgelassene-fragmente-1877
+    title: Nachgelassene Fragmente 1877
+    shortTitle: Nachlass 1877
+    published: false
+    author: Friedrich Nietzsche
+    year: 1877
+    kind: nachlass
+    parts:
+      - siglum: NF-1877,22
+      - siglum: NF-1877,24
+      - siglum: NF-1877,25
+      - siglum: NF-1877,26
+  - slug: nachgelassene-fragmente-1878
+    title: Nachgelassene Fragmente 1878
+    shortTitle: Nachlass 1878
+    published: false
+    author: Friedrich Nietzsche
+    year: 1878
+    kind: nachlass
+    parts:
+      - siglum: NF-1878,27
+      - siglum: NF-1878,28
+      - siglum: NF-1878,29
+      - siglum: NF-1878,30
+      - siglum: NF-1878,31
+      - siglum: NF-1878,32
+      - siglum: NF-1878,33
+      - siglum: NF-1878,34
+      - siglum: NF-1878,35
+      - siglum: NF-1878,36
+      - siglum: NF-1878,37
+      - siglum: NF-1878,38
+      - siglum: NF-1878,39
+  - slug: nachgelassene-fragmente-1879
+    title: Nachgelassene Fragmente 1879
+    shortTitle: Nachlass 1879
+    published: false
+    author: Friedrich Nietzsche
+    year: 1879
+    kind: nachlass
+    parts:
+      - siglum: NF-1879,40
+      - siglum: NF-1879,41
+      - siglum: NF-1879,42
+      - siglum: NF-1879,43
+      - siglum: NF-1879,44
+      - siglum: NF-1879,45
+      - siglum: NF-1879,46
+      - siglum: NF-1879,47
+  - slug: nachgelassene-fragmente-1880
+    title: Nachgelassene Fragmente 1880
+    shortTitle: Nachlass 1880
+    published: false
+    author: Friedrich Nietzsche
+    year: 1880
+    kind: nachlass
+    parts:
+      - siglum: NF-1880,1
+      - siglum: NF-1880,2
+      - siglum: NF-1880,3
+      - siglum: NF-1880,4
+      - siglum: NF-1880,5
+      - siglum: NF-1880,6
+      - siglum: NF-1880,7
+      - siglum: NF-1880,8
+      - siglum: NF-1880,9
+      - siglum: NF-1880,10
+  - slug: nachgelassene-fragmente-1881
+    title: Nachgelassene Fragmente 1881
+    shortTitle: Nachlass 1881
+    published: false
+    author: Friedrich Nietzsche
+    year: 1881
+    kind: nachlass
+    parts:
+      - siglum: NF-1881,11
+      - siglum: NF-1881,12
+      - siglum: NF-1881,13
+      - siglum: NF-1881,14
+      - siglum: NF-1881,15
+      - siglum: NF-1881,16
+  - slug: nachgelassene-fragmente-1882
+    title: Nachgelassene Fragmente 1882
+    shortTitle: Nachlass 1882
+    published: false
+    author: Friedrich Nietzsche
+    year: 1882
+    kind: nachlass
+    parts:
+      - siglum: NF-1882,17
+      - siglum: NF-1882,18
+      - siglum: NF-1882,19
+      - siglum: NF-1882,20
+      - siglum: NF-1882,21
+      - siglum: NF-1882,1
+      - siglum: NF-1882,2
+      - siglum: NF-1882,3
+      - siglum: NF-1882,4
+      - siglum: NF-1882,5
+      - siglum: NF-1882,6
+  - slug: nachgelassene-fragmente-1883
+    title: Nachgelassene Fragmente 1883
+    shortTitle: Nachlass 1883
+    published: false
+    author: Friedrich Nietzsche
+    year: 1883
+    kind: nachlass
+    parts:
+      - siglum: NF-1883,7
+      - siglum: NF-1883,8
+      - siglum: NF-1883,9
+      - siglum: NF-1883,10
+      - siglum: NF-1883,11
+      - siglum: NF-1883,12
+      - siglum: NF-1883,13
+      - siglum: NF-1883,14
+      - siglum: NF-1883,15
+      - siglum: NF-1883,16
+      - siglum: NF-1883,17
+      - siglum: NF-1883,18
+      - siglum: NF-1883,19
+      - siglum: NF-1883,20
+      - siglum: NF-1883,21
+      - siglum: NF-1883,22
+      - siglum: NF-1883,23
+      - siglum: NF-1883,24
+  - slug: nachgelassene-fragmente-1884
+    title: Nachgelassene Fragmente 1884
+    shortTitle: Nachlass 1884
+    published: false
+    author: Friedrich Nietzsche
+    year: 1884
+    kind: nachlass
+    parts:
+      - siglum: NF-1884,25
+      - siglum: NF-1884,26
+      - siglum: NF-1884,27
+      - siglum: NF-1884,28
+      - siglum: NF-1884,29
+      - siglum: NF-1884,30
+      - siglum: NF-1884,31
+      - siglum: NF-1884,32
+      - siglum: NF-1884,33
+  - slug: nachgelassene-fragmente-1885
+    title: Nachgelassene Fragmente 1885
+    shortTitle: Nachlass 1885
+    published: false
+    author: Friedrich Nietzsche
+    year: 1885
+    kind: nachlass
+    parts:
+      - siglum: NF-1885,34
+      - siglum: NF-1885,35
+      - siglum: NF-1885,36
+      - siglum: NF-1885,37
+      - siglum: NF-1885,38
+      - siglum: NF-1885,39
+      - siglum: NF-1885,40
+      - siglum: NF-1885,41
+      - siglum: NF-1885,42
+      - siglum: NF-1885,43
+      - siglum: NF-1885,44
+      - siglum: NF-1885,45
+      - siglum: NF-1885,1
+      - siglum: NF-1885,2
+  - slug: nachgelassene-fragmente-1886
+    title: Nachgelassene Fragmente 1886
+    shortTitle: Nachlass 1886
+    published: false
+    author: Friedrich Nietzsche
+    year: 1886
+    kind: nachlass
+    parts:
+      - siglum: NF-1886,3
+      - siglum: NF-1886,4
+      - siglum: NF-1886,5
+      - siglum: NF-1886,6
+      - siglum: NF-1886,7
+  - slug: nachgelassene-fragmente-1887
+    title: Nachgelassene Fragmente 1887
+    shortTitle: Nachlass 1887
+    published: false
+    author: Friedrich Nietzsche
+    year: 1887
+    kind: nachlass
+    parts:
+      - siglum: NF-1887,8
+      - siglum: NF-1887,9
+      - siglum: NF-1887,10
+      - siglum: NF-1887,11
+  - slug: nachgelassene-fragmente-1888
+    title: Nachgelassene Fragmente 1888
+    shortTitle: Nachlass 1888
+    published: false
+    author: Friedrich Nietzsche
+    year: 1888
+    kind: nachlass
+    parts:
+      - siglum: NF-1888,12
+      - siglum: NF-1888,13
+      - siglum: NF-1888,14
+      - siglum: NF-1888,15
+      - siglum: NF-1888,16
+      - siglum: NF-1888,17
+      - siglum: NF-1888,18
+      - siglum: NF-1888,19
+      - siglum: NF-1888,20
+      - siglum: NF-1888,21
+      - siglum: NF-1888,22
+      - siglum: NF-1888,23
+      - siglum: NF-1888,24
+      - siglum: NF-1888,25
+  - siglum: BVN-1850
+    slug: briefe-1850
+    title: Briefe 1850
+    shortTitle: Briefe 1850
+    published: false
+    author: Friedrich Nietzsche
+    year: 1850
+    kind: letters
+  - siglum: BVN-1851
+    slug: briefe-1851
+    title: Briefe 1851
+    shortTitle: Briefe 1851
+    published: false
+    author: Friedrich Nietzsche
+    year: 1851
+    kind: letters
+  - siglum: BVN-1854
+    slug: briefe-1854
+    title: Briefe 1854
+    shortTitle: Briefe 1854
+    published: false
+    author: Friedrich Nietzsche
+    year: 1854
+    kind: letters
+  - siglum: BVN-1855
+    slug: briefe-1855
+    title: Briefe 1855
+    shortTitle: Briefe 1855
+    published: false
+    author: Friedrich Nietzsche
+    year: 1855
+    kind: letters
+  - siglum: BVN-1856
+    slug: briefe-1856
+    title: Briefe 1856
+    shortTitle: Briefe 1856
+    published: false
+    author: Friedrich Nietzsche
+    year: 1856
+    kind: letters
+  - siglum: BVN-1857
+    slug: briefe-1857
+    title: Briefe 1857
+    shortTitle: Briefe 1857
+    published: false
+    author: Friedrich Nietzsche
+    year: 1857
+    kind: letters
+  - siglum: BVN-1858
+    slug: briefe-1858
+    title: Briefe 1858
+    shortTitle: Briefe 1858
+    published: false
+    author: Friedrich Nietzsche
+    year: 1858
+    kind: letters
+  - siglum: BVN-1859
+    slug: briefe-1859
+    title: Briefe 1859
+    shortTitle: Briefe 1859
+    published: false
+    author: Friedrich Nietzsche
+    year: 1859
+    kind: letters
+  - siglum: BVN-1860
+    slug: briefe-1860
+    title: Briefe 1860
+    shortTitle: Briefe 1860
+    published: false
+    author: Friedrich Nietzsche
+    year: 1860
+    kind: letters
+  - siglum: BVN-1861
+    slug: briefe-1861
+    title: Briefe 1861
+    shortTitle: Briefe 1861
+    published: false
+    author: Friedrich Nietzsche
+    year: 1861
+    kind: letters
+  - siglum: BVN-1862
+    slug: briefe-1862
+    title: Briefe 1862
+    shortTitle: Briefe 1862
+    published: false
+    author: Friedrich Nietzsche
+    year: 1862
+    kind: letters
+  - siglum: BVN-1863
+    slug: briefe-1863
+    title: Briefe 1863
+    shortTitle: Briefe 1863
+    published: false
+    author: Friedrich Nietzsche
+    year: 1863
+    kind: letters
+  - siglum: BVN-1864
+    slug: briefe-1864
+    title: Briefe 1864
+    shortTitle: Briefe 1864
+    published: false
+    author: Friedrich Nietzsche
+    year: 1864
+    kind: letters
+  - siglum: BVN-1865
+    slug: briefe-1865
+    title: Briefe 1865
+    shortTitle: Briefe 1865
+    published: false
+    author: Friedrich Nietzsche
+    year: 1865
+    kind: letters
+  - siglum: BVN-1866
+    slug: briefe-1866
+    title: Briefe 1866
+    shortTitle: Briefe 1866
+    published: false
+    author: Friedrich Nietzsche
+    year: 1866
+    kind: letters
+  - siglum: BVN-1867
+    slug: briefe-1867
+    title: Briefe 1867
+    shortTitle: Briefe 1867
+    published: false
+    author: Friedrich Nietzsche
+    year: 1867
+    kind: letters
+  - siglum: BVN-1868
+    slug: briefe-1868
+    title: Briefe 1868
+    shortTitle: Briefe 1868
+    published: false
+    author: Friedrich Nietzsche
+    year: 1868
+    kind: letters
+  - siglum: BVN-1869
+    slug: briefe-1869
+    title: Briefe 1869
+    shortTitle: Briefe 1869
+    published: false
+    author: Friedrich Nietzsche
+    year: 1869
+    kind: letters
+  - siglum: BVN-1870
+    slug: briefe-1870
+    title: Briefe 1870
+    shortTitle: Briefe 1870
+    published: false
+    author: Friedrich Nietzsche
+    year: 1870
+    kind: letters
+  - siglum: BVN-1871
+    slug: briefe-1871
+    title: Briefe 1871
+    shortTitle: Briefe 1871
+    published: false
+    author: Friedrich Nietzsche
+    year: 1871
+    kind: letters
+  - siglum: BVN-1872
+    slug: briefe-1872
+    title: Briefe 1872
+    shortTitle: Briefe 1872
+    published: false
+    author: Friedrich Nietzsche
+    year: 1872
+    kind: letters
+  - siglum: BVN-1873
+    slug: briefe-1873
+    title: Briefe 1873
+    shortTitle: Briefe 1873
+    published: false
+    author: Friedrich Nietzsche
+    year: 1873
+    kind: letters
+  - siglum: BVN-1874
+    slug: briefe-1874
+    title: Briefe 1874
+    shortTitle: Briefe 1874
+    published: false
+    author: Friedrich Nietzsche
+    year: 1874
+    kind: letters
+  - siglum: BVN-1875
+    slug: briefe-1875
+    title: Briefe 1875
+    shortTitle: Briefe 1875
+    published: false
+    author: Friedrich Nietzsche
+    year: 1875
+    kind: letters
+  - siglum: BVN-1876
+    slug: briefe-1876
+    title: Briefe 1876
+    shortTitle: Briefe 1876
+    published: false
+    author: Friedrich Nietzsche
+    year: 1876
+    kind: letters
+  - siglum: BVN-1877
+    slug: briefe-1877
+    title: Briefe 1877
+    shortTitle: Briefe 1877
+    published: false
+    author: Friedrich Nietzsche
+    year: 1877
+    kind: letters
+  - siglum: BVN-1878
+    slug: briefe-1878
+    title: Briefe 1878
+    shortTitle: Briefe 1878
+    published: false
+    author: Friedrich Nietzsche
+    year: 1878
+    kind: letters
+  - siglum: BVN-1879
+    slug: briefe-1879
+    title: Briefe 1879
+    shortTitle: Briefe 1879
+    published: false
+    author: Friedrich Nietzsche
+    year: 1879
+    kind: letters
+  - siglum: BVN-1880
+    slug: briefe-1880
+    title: Briefe 1880
+    shortTitle: Briefe 1880
+    published: false
+    author: Friedrich Nietzsche
+    year: 1880
+    kind: letters
+  - siglum: BVN-1881
+    slug: briefe-1881
+    title: Briefe 1881
+    shortTitle: Briefe 1881
+    published: false
+    author: Friedrich Nietzsche
+    year: 1881
+    kind: letters
+  - siglum: BVN-1882
+    slug: briefe-1882
+    title: Briefe 1882
+    shortTitle: Briefe 1882
+    published: false
+    author: Friedrich Nietzsche
+    year: 1882
+    kind: letters
+  - siglum: BVN-1883
+    slug: briefe-1883
+    title: Briefe 1883
+    shortTitle: Briefe 1883
+    published: false
+    author: Friedrich Nietzsche
+    year: 1883
+    kind: letters
+  - siglum: BVN-1884
+    slug: briefe-1884
+    title: Briefe 1884
+    shortTitle: Briefe 1884
+    published: false
+    author: Friedrich Nietzsche
+    year: 1884
+    kind: letters
+  - siglum: BVN-1885
+    slug: briefe-1885
+    title: Briefe 1885
+    shortTitle: Briefe 1885
+    published: false
+    author: Friedrich Nietzsche
+    year: 1885
+    kind: letters
+  - siglum: BVN-1886
+    slug: briefe-1886
+    title: Briefe 1886
+    shortTitle: Briefe 1886
+    published: false
+    author: Friedrich Nietzsche
+    year: 1886
+    kind: letters
+  - siglum: BVN-1887
+    slug: briefe-1887
+    title: Briefe 1887
+    shortTitle: Briefe 1887
+    published: false
+    author: Friedrich Nietzsche
+    year: 1887
+    kind: letters
+  - siglum: BVN-1888
+    slug: briefe-1888
+    title: Briefe 1888
+    shortTitle: Briefe 1888
+    published: false
+    author: Friedrich Nietzsche
+    year: 1888
+    kind: letters
+  - siglum: BVN-1889
+    slug: briefe-1889
+    title: Briefe 1889
+    shortTitle: Briefe 1889
+    published: false
+    author: Friedrich Nietzsche
+    year: 1889
+    kind: letters

@@ -298,11 +298,13 @@ describe("initPilotRepo", () => {
       "image: ${{ fromJson(needs.resolve.outputs.images_json) }}",
     );
     expect(buildWorkflow).toContain(
-      "BRAIN_VERSION=${{ matrix.image.brain_version }}",
+      "RUNTIME_IMAGE_TAG=${{ matrix.image.tag }}",
     );
+    expect(buildWorkflow).toContain("bun-version: 1.4.0");
     expect(buildWorkflow).toContain(
-      "SITE_PACKAGES=${{ matrix.image.site_packages }}",
+      "bun install --frozen-lockfile --ignore-scripts",
     );
+    expect(buildWorkflow).not.toContain("full fleet package union");
     expect(buildWorkflow).toContain("ghcr.io/${{ github.repository }}");
     expect(buildWorkflow).toContain("type=raw,value=${{ matrix.image.tag }}");
     expect(buildWorkflow).not.toContain("resolve-build-config");
@@ -699,10 +701,14 @@ describe("initPilotRepo", () => {
     expect(dockerfile).toContain("AS runtime");
     expect(dockerfile).toContain("AS standalone");
     expect(dockerfile).toContain("AS fleet");
-    expect(dockerfile).toContain("ARG BRAIN_VERSION");
-    expect(dockerfile).toContain("ARG SITE_PACKAGES");
-    expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
-    expect(dockerfile).toContain("$SITE_PACKAGES");
+    expect(dockerfile).toContain("ARG RUNTIME_IMAGE_TAG");
+    expect(dockerfile).toContain(
+      "deploy/runtime/${RUNTIME_IMAGE_TAG}/bun.lock",
+    );
+    expect(dockerfile).toContain(
+      "bun install --production --frozen-lockfile --ignore-scripts",
+    );
+    expect(dockerfile).not.toContain("bun add");
     expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
     expect(dockerfile).toContain("http://127.0.0.1:8080/health/live");

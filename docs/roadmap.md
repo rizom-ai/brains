@@ -83,6 +83,7 @@ Plans:
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
+- [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
 
 ### 2. The collective posture
 
@@ -92,6 +93,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
+- [action-item-board.md](./plans/action-item-board.md) — a Studio board over the shared action items: four status columns, attributed moves and notes that survive re-projection, blocked cards in the Inbox, Inbox items tracked as cards, and project filters through a Studio grouping.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 - [organization-site.md](./plans/organization-site.md) — a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.
 

@@ -1,5 +1,143 @@
 # @rizom/brain
 
+## 0.2.0-alpha.561
+
+### Patch Changes
+
+- [#668](https://github.com/rizom-ai/brains/pull/668) [`2abd6d1`](https://github.com/rizom-ai/brains/commit/2abd6d1e4434c1e119232d0f39441a355b4431a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync no longer re-imports the brain's own exports. Auto-sync commits what the brain writes, and the next periodic pull listed those files as changed and queued an import job for each, which could only skip. Changed markdown files whose content already matches their stored entity are now left out of the pull's import batch; a pull whose changes are all such echoes queues nothing and still advances its checkpoint.
+
+## 0.2.0-alpha.560
+
+### Patch Changes
+
+- [#661](https://github.com/rizom-ai/brains/pull/661) [`9881c9e`](https://github.com/rizom-ai/brains/commit/9881c9e2bb89e14ff06618567270d6b1a376545d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prompt copies follow their defaults. Each prompt the brain writes into `prompt/` now records the hash of the default it was written from (`defaultHash`). At startup an untouched copy is replaced when its default changes, so improvements to built-in prompts reach existing brains; an edited copy is kept and logged once its default has moved. Copies from before this change are stamped when they still equal the default and otherwise kept and logged as unverified overrides; delete one to restore its default. Copies are now stored under the template key generation reads, and stale copies written under a template's short name are removed.
+
+- [#659](https://github.com/rizom-ai/brains/pull/659) [`368d83e`](https://github.com/rizom-ai/brains/commit/368d83eb626bf8ec44433ddaef7353b5502f383e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generated content follows the style guide on voice and form. When a style guide is supplied, the system prompt now says that it governs voice, tone, wording and form, while the template governs the task, required content, length, platform constraints and output format; on a conflict about voice or form, the style guide wins. The template's instructions are no longer repeated at the top of the user prompt, which had doubled their weight against the style guide.
+
+- [#665](https://github.com/rizom-ai/brains/pull/665) [`8b1039d`](https://github.com/rizom-ai/brains/commit/8b1039d2e75edcdd0e76b365c439d72330bfccbf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generation templates hold the task and the style guide holds the voice. The LinkedIn, newsletter and portfolio templates no longer set their own tone, hooks, line breaks, structure, engagement questions or closings; they keep their length, hashtag, subject-line and format constraints and defer voice and form to the style guide. Blog excerpts, deck and series descriptions and generated site sections now receive the style guide's voice too (site sections only from a public style guide), still without identity injected. "Engaging" and "compelling" wording is gone from generation prompts, and the social-media generation eval runs with the style guide like real generation does.
+
+## 0.2.0-alpha.559
+
+No changes in this release.
+
+## 0.2.0-alpha.558
+
+### Patch Changes
+
+- [#658](https://github.com/rizom-ai/brains/pull/658) [`2ef9585`](https://github.com/rizom-ai/brains/commit/2ef9585165c575c4de60e41f659d7b51aaf6fe5a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Slugs keep the letters and digits of every script, so a Chinese, Japanese, Korean or Cyrillic title gets an id and URL of its own instead of an empty slug. Topic and skill ids derived from such titles are now the same on every run; before, each extraction gave them a new random id, replaced the entity and triggered itself again, an endless loop of embedding and extraction jobs. Text with no letters or digits at all is named by a stable hash of the text.
+
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- [#653](https://github.com/rizom-ai/brains/pull/653) [`7f2beaa`](https://github.com/rizom-ai/brains/commit/7f2beaa754bfb308cdaed240af773b2b21112ab3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An agent whose ATProto brain card is reported unavailable again, without a new stale deadline, keeps its deadline in place in the agent's frontmatter instead of having it moved to the end.
+
+- [#650](https://github.com/rizom-ai/brains/pull/650) [`4127492`](https://github.com/rizom-ai/brains/commit/41274926c24f76ae0f174905c7e4e280cfa43609) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a Git pull is interrupted, a startup that later fails during inherited-work reconciliation or Git initialization now records the recovery as failed, as connect, startup replay, and initial-sync failures already did. Before this fix, sync status kept showing a `pulling` run while directory sync was disabled.
+
+- [#654](https://github.com/rizom-ai/brains/pull/654) [`d031b9b`](https://github.com/rizom-ai/brains/commit/d031b9b14529fa4af6ed5e1fa0fc209b325c70db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface built on the public `MessageInterfacePlugin` now releases its progress tracking when it shuts down: pending delayed cleanup is interrupted and tracked progress events are cleared after the interface's own `onShutdown` runs.
+
+- [#657](https://github.com/rizom-ai/brains/pull/657) [`e365b80`](https://github.com/rizom-ai/brains/commit/e365b80df0149b3985ced660fd4b22387fdc6eb2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Work is no longer lost when the job queue refuses an enqueue because another process held the queue's write lock past the enqueue budget. Each of these is enqueued again until the queue admits it:
+
+  - A requested site build. It is retried first after one debounce window, then backing off to once a minute.
+  - A scheduled or catch-up recurring check run. It is retried until the next scheduled run supersedes it, or until the check is unregistered or stopped.
+  - A FAQ capture or fold, a topic extraction wakeup, and a scheduled social post or newsletter generation. These are retried until the plugin shuts down.
+  - A publish asset preflight. Each retry re-reads the entity, so nothing is queued for an entity that is no longer published or whose asset already exists.
+  - A watched file change in directory sync. It is retried until its sync generation stops.
+  - The embedding job of an entity just created or updated. The entity write now resolves without throwing, and the embedding is retried once per entity, with the latest content winning, until the entity service closes. The startup embedding backfill still covers a retry pending when the process exits. Directory sync's import wait no longer polls an empty job id until it times out.
+  - A generated post's cover or social image. The generation job now succeeds, because the post exists, and the image is retried until the plugin shuts down.
+
+  Retries start after a second and double up to a minute.
+
+- [#651](https://github.com/rizom-ai/brains/pull/651) [`b00fe78`](https://github.com/rizom-ai/brains/commit/b00fe7876f0ab8205eafabf782ed343a8ed4489d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Studio workspace can declare `publishesEntityTypes: true` to receive the editor's publication actions for the entity types it covers. Studio no longer assumes the content pipeline publishes; the Publishing workspace now says so itself.
+
+- [#647](https://github.com/rizom-ai/brains/pull/647) [`9cdf93e`](https://github.com/rizom-ai/brains/commit/9cdf93e68dedd27902954a6e679586f7c9c894e9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic that absorbs a near-duplicate keeps its place when topics are trimmed to the ceiling. The weakest topic is judged on the votes after the merge, so the topic that gained the duplicate's votes is no longer dropped and re-minted with a new description.
+
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- [#648](https://github.com/rizom-ai/brains/pull/648) [`ea68ab1`](https://github.com/rizom-ai/brains/commit/ea68ab15013bd88aac44d9593259e7115576b5be) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds stay linear in a brain's size: the entity store indexes entities by type and slug, so a page finds its entity and a section's themes without reading the whole store. A book's section page carries only what it shows, so a build of a large book brain holds the text once.
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- [#641](https://github.com/rizom-ai/brains/pull/641) [`6af4612`](https://github.com/rizom-ai/brains/commit/6af461268f80c8f17c54b5af5c557e0999295800) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Changes the worker makes, such as content synced from git, now reach every plugin that follows entity changes: site metadata, publish preflight, playbook evidence, AT Protocol projections and the brain card, and the git export. FAQ reconciles where the embedding was made. Plugins can no longer subscribe to entity or embedding events in one process only.
+
+## 0.2.0-alpha.554
+
+No changes in this release.
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- [#639](https://github.com/rizom-ai/brains/pull/639) [`d45f056`](https://github.com/rizom-ai/brains/commit/d45f056270ac84ef6a030bee787989ddc0056cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The web and worker processes tell each other about entity changes. A brain's identity, and Studio's activity feed, follow writes made in either process, such as content the worker syncs from git, without a restart.
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- [#632](https://github.com/rizom-ai/brains/pull/632) [`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace gray-matter's legacy YAML dependency chain with the existing maintained YAML 4 parser, removing sprintf-js from the runtime dependency graph. Preserve YAML/JSON frontmatter, existing octal/base-60 numeric meanings, custom fields, visibility handling, dates, binary values, and publishing-required colon-string quoting through an explicitly owned frontmatter schema.
+
+  Executable JavaScript frontmatter headers are now rejected, including empty executable-language blocks. Parsing is stateless, so document reads do not retain raw content or share mutable parsed objects. Regenerated YAML may use equivalent quoting or binary-tag notation; values and body text remain covered by old-reader round-trip controls.
+
+  This change does not ship downstream application overrides or establish published/deployed consumer adoption.
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- [#636](https://github.com/rizom-ai/brains/pull/636) [`37e7602`](https://github.com/rizom-ai/brains/commit/37e7602b6db26eeff2f3db48bee6a898b2b187b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site build may run for 30 minutes: Karl's 4,198 pages took 11 minutes, past the previous 10-minute deadline.
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- [#635](https://github.com/rizom-ai/brains/pull/635) [`f4be0fb`](https://github.com/rizom-ai/brains/commit/f4be0fb4157f48ef6b4dce551ea76bafdda15910) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job type can be exclusive: the queue claims a second job of it only once the first settles. Site builds are exclusive and get a 10-minute deadline, so a waiting build no longer runs out its deadline inside a claimed job.
+
+## 0.2.0-alpha.549
+
+No changes in this release.
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- [#633](https://github.com/rizom-ai/brains/pull/633) [`8ba21e3`](https://github.com/rizom-ai/brains/commit/8ba21e3956f5f5aaa13680c69152a0e9f49b770c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds take turns instead of running preview and production at once, and EPUBs are zipped with the runtime's native DEFLATE, which cuts the memory a book shelf's EPUBs leave behind by about two thirds.
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- [#630](https://github.com/rizom-ai/brains/pull/630) [`9d69e23`](https://github.com/rizom-ai/brains/commit/9d69e23a60a88de3732047af853c6d789906b8e2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A books site's work horizon fits its page: a long run of years without books folds into one break, year labels stand only under years with books and never widen the axis, the horizon appears from the narrowest screen its spines fit, and a shelf too crowded for full spines narrows them and leaves their titles to hover and the year list.
+
+- [#631](https://github.com/rizom-ai/brains/pull/631) [`2ad1b13`](https://github.com/rizom-ai/brains/commit/2ad1b13148f8edb7912327d96b0af8426a4bb067) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An EPUB's chapters are split in one pass, so a book of thousands of sections renders in a fraction of a second instead of blocking the worker.
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- [#628](https://github.com/rizom-ai/brains/pull/628) [`d69e206`](https://github.com/rizom-ai/brains/commit/d69e206da5761a8e4b5697a1148b50234959d318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every book with sections can be downloaded as an EPUB from its title page. The EPUB is the `epub` format of the registered `book:epub` view template, written into each site build at `/books/<id>.epub`.
+
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- [#627](https://github.com/rizom-ai/brains/pull/627) [`d886a56`](https://github.com/rizom-ai/brains/commit/d886a56a1636fd6da044ec07254069c13b00a33a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard's knowledge map draws every topic territory, not only the 18 largest.
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- [#626](https://github.com/rizom-ai/brains/pull/626) [`9e9caed`](https://github.com/rizom-ai/brains/commit/9e9caed4704a719678a9d0e618035007e54c168c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic merges only into a topic that owns at least half of its nearest sources; a broad topic whose sources are spread stays. The knowledge map measures territories against the types topics are drawn from, which the topics plugin now answers for other plugins.
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- [#624](https://github.com/rizom-ai/brains/pull/624) [`aff9cc4`](https://github.com/rizom-ai/brains/commit/aff9cc43804b2f6da52e0cd9b13beac0517aaf45) Thanks [@yeehaa123](https://github.com/yeehaa123)! - OG images, printable PDFs and deck carousels render from registered view templates: a template declares components per output format, and media attachment providers look their template up by name.
+
 ## 0.2.0-alpha.542
 
 ### Patch Changes

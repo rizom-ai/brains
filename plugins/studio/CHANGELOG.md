@@ -1,5 +1,271 @@
 # @brains/studio
 
+## 0.2.0-alpha.561
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.561
+  - @brains/console-theme@0.2.0-alpha.561
+  - @brains/contracts@0.2.0-alpha.561
+  - @brains/operator-view-react@0.2.0-alpha.561
+  - @brains/utils@0.2.0-alpha.561
+  - @brains/auth-service@0.2.0-alpha.561
+  - @brains/entity-service@0.2.0-alpha.561
+  - @brains/plugins@0.2.0-alpha.561
+
+## 0.2.0-alpha.560
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.560
+  - @brains/console-theme@0.2.0-alpha.560
+  - @brains/contracts@0.2.0-alpha.560
+  - @brains/operator-view-react@0.2.0-alpha.560
+  - @brains/utils@0.2.0-alpha.560
+  - @brains/auth-service@0.2.0-alpha.560
+  - @brains/entity-service@0.2.0-alpha.560
+  - @brains/plugins@0.2.0-alpha.560
+
+## 0.2.0-alpha.559
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.559
+  - @brains/console-theme@0.2.0-alpha.559
+  - @brains/contracts@0.2.0-alpha.559
+  - @brains/operator-view-react@0.2.0-alpha.559
+  - @brains/utils@0.2.0-alpha.559
+  - @brains/auth-service@0.2.0-alpha.559
+  - @brains/entity-service@0.2.0-alpha.559
+  - @brains/plugins@0.2.0-alpha.559
+
+## 0.2.0-alpha.558
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.558
+  - @brains/console-theme@0.2.0-alpha.558
+  - @brains/contracts@0.2.0-alpha.558
+  - @brains/operator-view-react@0.2.0-alpha.558
+  - @brains/utils@0.2.0-alpha.558
+  - @brains/auth-service@0.2.0-alpha.558
+  - @brains/entity-service@0.2.0-alpha.558
+  - @brains/plugins@0.2.0-alpha.558
+
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.557
+  - @brains/console-theme@0.2.0-alpha.557
+  - @brains/contracts@0.2.0-alpha.557
+  - @brains/operator-view-react@0.2.0-alpha.557
+  - @brains/utils@0.2.0-alpha.557
+  - @brains/auth-service@0.2.0-alpha.557
+  - @brains/entity-service@0.2.0-alpha.557
+  - @brains/plugins@0.2.0-alpha.557
+
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.556
+  - @brains/console-theme@0.2.0-alpha.556
+  - @brains/contracts@0.2.0-alpha.556
+  - @brains/operator-view-react@0.2.0-alpha.556
+  - @brains/utils@0.2.0-alpha.556
+  - @brains/auth-service@0.2.0-alpha.556
+  - @brains/entity-service@0.2.0-alpha.556
+  - @brains/plugins@0.2.0-alpha.556
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.555
+  - @brains/console-theme@0.2.0-alpha.555
+  - @brains/contracts@0.2.0-alpha.555
+  - @brains/operator-view-react@0.2.0-alpha.555
+  - @brains/utils@0.2.0-alpha.555
+  - @brains/auth-service@0.2.0-alpha.555
+  - @brains/entity-service@0.2.0-alpha.555
+  - @brains/plugins@0.2.0-alpha.555
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.554
+  - @brains/console-theme@0.2.0-alpha.554
+  - @brains/contracts@0.2.0-alpha.554
+  - @brains/operator-view-react@0.2.0-alpha.554
+  - @brains/utils@0.2.0-alpha.554
+  - @brains/auth-service@0.2.0-alpha.554
+  - @brains/entity-service@0.2.0-alpha.554
+  - @brains/plugins@0.2.0-alpha.554
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.553
+  - @brains/console-theme@0.2.0-alpha.553
+  - @brains/contracts@0.2.0-alpha.553
+  - @brains/operator-view-react@0.2.0-alpha.553
+  - @brains/utils@0.2.0-alpha.553
+  - @brains/auth-service@0.2.0-alpha.553
+  - @brains/entity-service@0.2.0-alpha.553
+  - @brains/plugins@0.2.0-alpha.553
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- Updated dependencies [[`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333)]:
+  - @brains/utils@0.2.0-alpha.552
+  - @brains/entity-service@0.2.0-alpha.552
+  - @brains/contracts@0.2.0-alpha.552
+  - @brains/operator-view-react@0.2.0-alpha.552
+  - @brains/auth-service@0.2.0-alpha.552
+  - @brains/plugins@0.2.0-alpha.552
+  - @brains/app-ui-react@0.2.0-alpha.552
+  - @brains/console-theme@0.2.0-alpha.552
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.551
+  - @brains/console-theme@0.2.0-alpha.551
+  - @brains/contracts@0.2.0-alpha.551
+  - @brains/operator-view-react@0.2.0-alpha.551
+  - @brains/utils@0.2.0-alpha.551
+  - @brains/auth-service@0.2.0-alpha.551
+  - @brains/entity-service@0.2.0-alpha.551
+  - @brains/plugins@0.2.0-alpha.551
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.550
+  - @brains/console-theme@0.2.0-alpha.550
+  - @brains/contracts@0.2.0-alpha.550
+  - @brains/operator-view-react@0.2.0-alpha.550
+  - @brains/utils@0.2.0-alpha.550
+  - @brains/auth-service@0.2.0-alpha.550
+  - @brains/entity-service@0.2.0-alpha.550
+  - @brains/plugins@0.2.0-alpha.550
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.549
+  - @brains/console-theme@0.2.0-alpha.549
+  - @brains/contracts@0.2.0-alpha.549
+  - @brains/operator-view-react@0.2.0-alpha.549
+  - @brains/utils@0.2.0-alpha.549
+  - @brains/auth-service@0.2.0-alpha.549
+  - @brains/entity-service@0.2.0-alpha.549
+  - @brains/plugins@0.2.0-alpha.549
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.548
+  - @brains/console-theme@0.2.0-alpha.548
+  - @brains/contracts@0.2.0-alpha.548
+  - @brains/operator-view-react@0.2.0-alpha.548
+  - @brains/utils@0.2.0-alpha.548
+  - @brains/auth-service@0.2.0-alpha.548
+  - @brains/entity-service@0.2.0-alpha.548
+  - @brains/plugins@0.2.0-alpha.548
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.547
+  - @brains/console-theme@0.2.0-alpha.547
+  - @brains/contracts@0.2.0-alpha.547
+  - @brains/operator-view-react@0.2.0-alpha.547
+  - @brains/utils@0.2.0-alpha.547
+  - @brains/auth-service@0.2.0-alpha.547
+  - @brains/entity-service@0.2.0-alpha.547
+  - @brains/plugins@0.2.0-alpha.547
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.546
+  - @brains/console-theme@0.2.0-alpha.546
+  - @brains/contracts@0.2.0-alpha.546
+  - @brains/operator-view-react@0.2.0-alpha.546
+  - @brains/utils@0.2.0-alpha.546
+  - @brains/auth-service@0.2.0-alpha.546
+  - @brains/entity-service@0.2.0-alpha.546
+  - @brains/plugins@0.2.0-alpha.546
+
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.545
+  - @brains/operator-view-react@0.2.0-alpha.545
+  - @brains/console-theme@0.2.0-alpha.545
+  - @brains/contracts@0.2.0-alpha.545
+  - @brains/utils@0.2.0-alpha.545
+  - @brains/auth-service@0.2.0-alpha.545
+  - @brains/entity-service@0.2.0-alpha.545
+  - @brains/plugins@0.2.0-alpha.545
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.544
+  - @brains/console-theme@0.2.0-alpha.544
+  - @brains/contracts@0.2.0-alpha.544
+  - @brains/operator-view-react@0.2.0-alpha.544
+  - @brains/utils@0.2.0-alpha.544
+  - @brains/auth-service@0.2.0-alpha.544
+  - @brains/entity-service@0.2.0-alpha.544
+  - @brains/plugins@0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.543
+  - @brains/console-theme@0.2.0-alpha.543
+  - @brains/contracts@0.2.0-alpha.543
+  - @brains/operator-view-react@0.2.0-alpha.543
+  - @brains/utils@0.2.0-alpha.543
+  - @brains/auth-service@0.2.0-alpha.543
+  - @brains/entity-service@0.2.0-alpha.543
+  - @brains/plugins@0.2.0-alpha.543
+
 ## 0.2.0-alpha.542
 
 ### Patch Changes

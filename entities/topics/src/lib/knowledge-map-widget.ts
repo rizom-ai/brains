@@ -113,8 +113,10 @@ const knowledgeMapWidget = defineDashboardWidget({
 /** Register the semantic corpus projection after the Dashboard host mounts. */
 export function registerKnowledgeMapDashboardWidget(params: {
   context: EntityPluginContext;
+  /** The entity types topics are drawn from. */
+  sourceTypes: () => string[];
 }): void {
-  const { context } = params;
+  const { context, sourceTypes } = params;
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
@@ -129,7 +131,10 @@ export function registerKnowledgeMapDashboardWidget(params: {
         },
         load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const data = await buildKnowledgeMapData(context, visibilityScope);
+          const data = await buildKnowledgeMapData(
+            { ...context, sourceTypes: async () => sourceTypes() },
+            visibilityScope,
+          );
           signal.throwIfAborted();
           return data;
         },

@@ -1,11 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
-import {
-  Button,
-  ConfirmDialog,
-  Input,
-  NativeSelect,
-} from "@brains/app-ui-react";
+import { Button, ConfirmDialog } from "@brains/app-ui-react";
 import { isRecord } from "@brains/utils/is-record";
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import {
@@ -19,8 +14,12 @@ import {
   removeGroupingDefinition,
   replaceGroupingDefinitionRow,
   type GroupingDefinitionDraft,
+  type GroupingDefinitionDraftRow,
 } from "./grouping-definition-draft";
-import { GroupingMembershipField } from "./grouping-membership-field";
+import {
+  GroupingDefinitionRow,
+  type GroupingDefinitionUsage,
+} from "./grouping-definition-row";
 import { StudioStatus } from "./studio-status";
 import { fieldStyles as f } from "./studio-fields.styles";
 import { groupingSharedStyles as v } from "./grouping-shared.styles";
@@ -31,11 +30,7 @@ export interface GroupingDefinitionEditorState {
   /** The host must block save AND guard navigation while this is true. */
   pendingChanges: boolean;
 }
-export interface GroupingDefinitionUsage {
-  /** Distinct entries, not the sum of per-value memberships. */
-  entries: number;
-  values: readonly { value: string; count: number }[];
-}
+type ConfirmationTarget = number | "reset";
 
 function groupingUsage(
   usage: Readonly<Record<string, GroupingDefinitionUsage>> | undefined,
@@ -59,7 +54,7 @@ export function StudioGroupingDefinitionsEditor(props: {
   const [draft, setDraft] = useState(() =>
     createGroupingDefinitionDraft(props.value, props.savedKeys),
   );
-  const [confirmation, setConfirmation] = useState<number | "reset" | null>(
+  const [confirmation, setConfirmation] = useState<ConfirmationTarget | null>(
     null,
   );
   const node = useRef<HTMLDivElement>(null);
@@ -72,9 +67,6 @@ export function StudioGroupingDefinitionsEditor(props: {
   const published = useRef(sourceDigest);
   const lastSaved = useRef(savedDigest);
   const reported = useRef<string | undefined>(undefined);
-  const eligibleTypes = new Set(
-    props.contributorTypes.map((type) => type.entityType),
-  );
   const result = inspectGroupingDefinitionDraft(draft);
   useEffect(() => {
     if (sourceDigest === published.current && savedDigest === lastSaved.current)
@@ -114,7 +106,7 @@ export function StudioGroupingDefinitionsEditor(props: {
     }
   }, [draft, confirmation]);
   const confirm = (
-    target: number | "reset",
+    target: ConfirmationTarget,
     button: HTMLButtonElement,
   ): void => {
     button.focus();
@@ -139,15 +131,6 @@ export function StudioGroupingDefinitionsEditor(props: {
     props.onStateChange(state);
   };
   const selected = draft.rows.find((row) => row.id === confirmation);
-  const selectedLabel =
-    selected &&
-    isRecord(selected.value) &&
-    typeof selected.value["label"] === "string"
-      ? selected.value["label"]
-      : selected?.key;
-  const selectedUsage = selected
-    ? groupingUsage(props.usage, selected.key)
-    : undefined;
   const issues = [...result.issues, ...(props.issues ?? [])];
   return (
     <div
@@ -198,300 +181,22 @@ export function StudioGroupingDefinitionsEditor(props: {
               </p>
             </section>
           )}
-          {draft.rows.map((row) => {
-            const entry = isRecord(row.value) ? row.value : undefined;
-            const saved = row.savedKey !== undefined;
-            const label =
-              typeof entry?.["label"] === "string" && entry["label"].length > 0
-                ? entry["label"]
-                : saved
-                  ? row.key
-                  : "New grouping";
-            const excludedTypes = Array.isArray(entry?.["excludeTypes"])
-              ? entry["excludeTypes"].filter(
-                  (type: unknown): type is string => typeof type === "string",
-                )
-              : [];
-            const visibleExclusions = excludedTypes.filter(
-              (type) => !props.systemTypes.includes(type),
-            );
-            const multiple = entry?.["multiple"];
-            const closed =
-              entry !== undefined && Object.hasOwn(entry, "values");
-            const usage = groupingUsage(props.usage, row.key);
-            const counts = usage
-              ? new Map(usage.values.map((value) => [value.value, value.count]))
-              : undefined;
-            const set = (field: string, value: unknown): void => {
-              if (!entry) return;
-              const next = { ...entry, [field]: value };
-              if (
-                field === "excludeTypes" &&
-                Array.isArray(value) &&
-                value.length === 0
-              )
-                delete next[field];
-              commit(
-                replaceGroupingDefinitionRow(draft, row.id, { value: next }),
-              );
-            };
-            const rowIssues = issues.filter(
-              (issue) => issue.path[1] === row.key,
-            );
-            return (
-              <section
-                key={row.id}
-                {...stylex.props(v.section)}
-                aria-label={label}
-                data-definition-row={row.id}
-              >
-                <div {...stylex.props(v.head)}>
-                  <h2 {...stylex.props(v.title)}>{label}</h2>
-                  {!props.readOnly && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      aria-label={`Remove ${label} grouping`}
-                      onClick={(event) => confirm(row.id, event.currentTarget)}
-                    >
-                      Remove grouping
-                    </Button>
-                  )}
-                </div>
-                {rowIssues.length > 0 && (
-                  <StudioStatus tone="error">
-                    {rowIssues.map((issue) => issue.message).join(" · ")}
-                  </StudioStatus>
-                )}
-                {!entry ? (
-                  <>
-                    <StudioStatus tone="error">
-                      This definition is not a mapping. Repair its source or
-                      explicitly remove the definition.
-                    </StudioStatus>
-                    <pre {...stylex.props(s.readOnly)}>
-                      {JSON.stringify(row.value, null, 2)}
-                    </pre>
-                  </>
-                ) : (
-                  <>
-                    <div {...stylex.props(s.grid)}>
-                      <label {...stylex.props(f.field)}>
-                        <span {...stylex.props(f.label)}>Label</span>
-                        {props.readOnly ? (
-                          <span {...stylex.props(s.readOnly)}>{label}</span>
-                        ) : (
-                          <Input
-                            aria-label={`${label} label`}
-                            value={
-                              typeof entry["label"] === "string"
-                                ? entry["label"]
-                                : ""
-                            }
-                            onChange={(event) =>
-                              set("label", event.currentTarget.value)
-                            }
-                            required
-                          />
-                        )}
-                      </label>
-                      <label {...stylex.props(f.field)}>
-                        <span {...stylex.props(f.label)}>Key</span>
-                        {props.readOnly ? (
-                          <code {...stylex.props(s.readOnly)}>{row.key}</code>
-                        ) : (
-                          <Input
-                            aria-label={`${label} key`}
-                            value={row.key}
-                            readOnly={saved}
-                            xstyle={saved ? f.readOnly : undefined}
-                            required
-                            onChange={(event) => {
-                              if (!saved)
-                                commit(
-                                  replaceGroupingDefinitionRow(draft, row.id, {
-                                    key: event.currentTarget.value,
-                                  }),
-                                );
-                            }}
-                          />
-                        )}
-                        <span {...stylex.props(f.listHelp, s.help)}>
-                          {saved
-                            ? "Fixed after creation"
-                            : "Lowercase letters, digits and hyphens. Fixed when saved."}
-                        </span>
-                      </label>
-                      <label {...stylex.props(f.field)}>
-                        <span {...stylex.props(f.label)}>Values per entry</span>
-                        {props.readOnly ? (
-                          <span {...stylex.props(s.readOnly)}>
-                            {multiple === true
-                              ? "Several"
-                              : multiple === false
-                                ? "One"
-                                : "Invalid cardinality"}
-                          </span>
-                        ) : (
-                          <NativeSelect
-                            aria-label={`${label} values per entry`}
-                            value={
-                              multiple === true
-                                ? "several"
-                                : multiple === false
-                                  ? "one"
-                                  : ""
-                            }
-                            onChange={(event) =>
-                              set(
-                                "multiple",
-                                event.currentTarget.value === "several",
-                              )
-                            }
-                            required
-                          >
-                            <option value="" disabled>
-                              Choose cardinality
-                            </option>
-                            <option value="one">One</option>
-                            <option value="several">Several</option>
-                          </NativeSelect>
-                        )}
-                      </label>
-                    </div>
-                    <details {...stylex.props(s.exclusions)}>
-                      <summary {...stylex.props(f.label, s.exclusionsSummary)}>
-                        Exclude types
-                        {visibleExclusions.length > 0
-                          ? ` (${visibleExclusions.length})`
-                          : ""}
-                      </summary>
-                      <p {...stylex.props(f.listHelp, s.help)}>
-                        Content types participate unless excluded. System types
-                        never participate.
-                      </p>
-                      {props.readOnly ? (
-                        <span {...stylex.props(s.readOnly)}>
-                          {visibleExclusions
-                            .map(
-                              (type) =>
-                                props.contributorTypes.find(
-                                  (candidate) => candidate.entityType === type,
-                                )?.label ?? `${type} (unavailable)`,
-                            )
-                            .join(", ") || "None"}
-                        </span>
-                      ) : (
-                        <fieldset {...stylex.props(s.choices)}>
-                          <legend {...stylex.props(f.label)}>
-                            Excluded content types
-                          </legend>
-                          {[
-                            ...props.contributorTypes,
-                            ...visibleExclusions
-                              .filter((type) => !eligibleTypes.has(type))
-                              .map((type) => ({
-                                entityType: type,
-                                label: `${type} (unavailable)`,
-                              })),
-                          ].map((type) => (
-                            <label
-                              key={type.entityType}
-                              {...stylex.props(s.choice)}
-                            >
-                              <input
-                                type="checkbox"
-                                aria-label={`Exclude ${type.label}`}
-                                {...stylex.props(v.checkbox)}
-                                checked={excludedTypes.includes(
-                                  type.entityType,
-                                )}
-                                onChange={(event) =>
-                                  set(
-                                    "excludeTypes",
-                                    event.currentTarget.checked
-                                      ? [...excludedTypes, type.entityType]
-                                      : excludedTypes.filter(
-                                          (value) => value !== type.entityType,
-                                        ),
-                                  )
-                                }
-                              />
-                              {type.label}
-                            </label>
-                          ))}
-                        </fieldset>
-                      )}
-                    </details>
-                    <fieldset {...stylex.props(s.choices, s.rule)}>
-                      <legend {...stylex.props(f.label)}>Allowed values</legend>
-                      {props.readOnly ? (
-                        <span {...stylex.props(s.readOnly)}>
-                          {closed ? "Only these values" : "Any value"}
-                        </span>
-                      ) : (
-                        <>
-                          {[false, true].map((list) => (
-                            <label
-                              key={String(list)}
-                              {...stylex.props(s.choice)}
-                            >
-                              <input
-                                type="radio"
-                                name={`${titleId}-${row.id}-allowed`}
-                                aria-label={`${label}: ${list ? "only these values" : "any value"}`}
-                                checked={closed === list}
-                                {...stylex.props(v.checkbox)}
-                                onChange={() => {
-                                  if (list) set("values", []);
-                                  else
-                                    commit(
-                                      replaceGroupingDefinitionRow(
-                                        draft,
-                                        row.id,
-                                        {
-                                          value: Object.fromEntries(
-                                            Object.entries(entry).filter(
-                                              ([field]) => field !== "values",
-                                            ),
-                                          ),
-                                        },
-                                      ),
-                                    );
-                                }}
-                              />
-                              {list ? "Only these values" : "Any value"}
-                            </label>
-                          ))}
-                        </>
-                      )}
-                    </fieldset>
-                    {closed && (
-                      <>
-                        <GroupingMembershipField
-                          label={`${label} allowed values`}
-                          purpose="allowed-values"
-                          definition={{ multiple: true }}
-                          value={entry["values"]}
-                          onChange={(values) => set("values", values)}
-                          readOnly={props.readOnly}
-                          counts={counts}
-                        />
-                        <p {...stylex.props(f.listHelp, s.help)}>
-                          {Array.isArray(entry["values"]) &&
-                          entry["values"].length === 0
-                            ? "Add at least one allowed value, or choose Any value."
-                            : usage
-                              ? "Numbers show current usage. Unused values remain available."
-                              : "Usage is unavailable until this grouping can be read."}
-                        </p>
-                      </>
-                    )}
-                  </>
-                )}
-              </section>
-            );
-          })}
+          {draft.rows.map((row) => (
+            <GroupingDefinitionRow
+              key={row.id}
+              row={row}
+              usage={groupingUsage(props.usage, row.key)}
+              contributorTypes={props.contributorTypes}
+              systemTypes={props.systemTypes}
+              readOnly={props.readOnly}
+              issues={issues.filter((issue) => issue.path[1] === row.key)}
+              allowedValuesName={`${titleId}-${row.id}-allowed`}
+              onUpdate={(update) =>
+                commit(replaceGroupingDefinitionRow(draft, row.id, update))
+              }
+              onRemove={(button) => confirm(row.id, button)}
+            />
+          ))}
           {!props.readOnly && (
             <div {...stylex.props(s.actions)}>
               <Button
@@ -527,21 +232,13 @@ export function StudioGroupingDefinitionsEditor(props: {
         </div>
       )}
       {confirmation !== null && !props.readOnly && (
-        <ConfirmDialog
-          mark="−"
-          title={
-            confirmation === "reset"
-              ? "Replace invalid definitions?"
-              : `Remove ${selectedLabel?.length ? selectedLabel : "unsaved"} grouping?`
+        <GroupingDefinitionConfirmation
+          target={confirmation}
+          row={selected}
+          usage={
+            selected ? groupingUsage(props.usage, selected.key) : undefined
           }
           titleId={titleId}
-          cancelLabel={
-            confirmation === "reset" ? "Keep definitions" : "Keep grouping"
-          }
-          confirmLabel={
-            confirmation === "reset" ? "Replace definitions" : "Remove grouping"
-          }
-          confirmVariant="danger"
           onCancel={() => setConfirmation(null)}
           onConfirm={() => {
             commit(
@@ -551,23 +248,54 @@ export function StudioGroupingDefinitionsEditor(props: {
             );
             setConfirmation(null);
           }}
-        >
-          <p>
-            {confirmation === "reset"
-              ? "This replaces the invalid definitions with an empty document when you save. "
-              : selectedUsage
-                ? selectedUsage.entries === 1
-                  ? "1 entry carries this grouping and keeps its values. "
-                  : `${selectedUsage.entries} entries carry this grouping and keep their values. `
-                : "Usage is unavailable. Existing entries keep their values. "}
-            No entries are deleted or moved. The change takes effect after
-            saving.
-          </p>
-          {confirmation !== "reset" && (
-            <p>Re-adding the same key can collect those values again.</p>
-          )}
-        </ConfirmDialog>
+        />
       )}
     </div>
+  );
+}
+
+/** Removing a definition or resetting malformed source never rewrites entries. */
+function GroupingDefinitionConfirmation(props: {
+  target: ConfirmationTarget;
+  /** The definition being removed; absent for a reset. */
+  row: GroupingDefinitionDraftRow | undefined;
+  usage: GroupingDefinitionUsage | undefined;
+  titleId: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}): ReactElement {
+  const { row, usage } = props;
+  const reset = props.target === "reset";
+  const label =
+    row && isRecord(row.value) && typeof row.value["label"] === "string"
+      ? row.value["label"]
+      : row?.key;
+  return (
+    <ConfirmDialog
+      mark="−"
+      title={
+        reset
+          ? "Replace invalid definitions?"
+          : `Remove ${label?.length ? label : "unsaved"} grouping?`
+      }
+      titleId={props.titleId}
+      cancelLabel={reset ? "Keep definitions" : "Keep grouping"}
+      confirmLabel={reset ? "Replace definitions" : "Remove grouping"}
+      confirmVariant="danger"
+      onCancel={props.onCancel}
+      onConfirm={props.onConfirm}
+    >
+      <p>
+        {reset
+          ? "This replaces the invalid definitions with an empty document when you save. "
+          : usage
+            ? usage.entries === 1
+              ? "1 entry carries this grouping and keeps its values. "
+              : `${usage.entries} entries carry this grouping and keep their values. `
+            : "Usage is unavailable. Existing entries keep their values. "}
+        No entries are deleted or moved. The change takes effect after saving.
+      </p>
+      {!reset && <p>Re-adding the same key can collect those values again.</p>}
+    </ConfirmDialog>
   );
 }

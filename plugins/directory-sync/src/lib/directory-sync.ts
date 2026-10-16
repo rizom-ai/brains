@@ -34,6 +34,7 @@ import {
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import { PendingDeleteRegistry } from "./pending-delete-registry";
 import { captureImportPlan } from "./import-plan";
+import { withoutStoredEchoes } from "./stored-echoes";
 import type { DirectoryImportPlan } from "../types/jobs";
 import { isDocumentSidecarFile } from "./document-file-utils";
 import {
@@ -77,7 +78,8 @@ export class DirectorySync implements IDirectorySync {
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
   private operationDeps: DirectoryOperationDeps;
-  private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
+  private jobQueueCallback?:
+    ((job: JobRequest) => Promise<string | undefined>) | undefined;
   private readonly pendingDeletes: PendingDeleteRegistry;
   private cleanupAdmission: (() => Promise<void>) | undefined;
 
@@ -117,7 +119,7 @@ export class DirectorySync implements IDirectorySync {
         maxAssetImportBytes: normalizedOptions.maxAssetImportBytes,
       },
       this.pendingDeletes,
-      (): ((job: JobRequest) => Promise<string>) | undefined =>
+      (): ((job: JobRequest) => Promise<string | undefined>) | undefined =>
         this.jobQueueCallback,
     );
 
@@ -140,7 +142,9 @@ export class DirectorySync implements IDirectorySync {
     await initializeDirectoryStructure(this.logger, this.syncPath);
   }
 
-  setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
+  setJobQueueCallback(
+    callback: (job: JobRequest) => Promise<string | undefined>,
+  ): void {
     this.jobQueueCallback = callback;
   }
 
@@ -359,6 +363,17 @@ export class DirectorySync implements IDirectorySync {
 
   ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void {
     this.fileWatcher?.ignorePulledPaths(paths, matchesHead);
+  }
+
+  withoutStoredEchoes(paths: string[]): Promise<string[]> {
+    return withoutStoredEchoes(
+      {
+        syncPath: this.syncPath,
+        entityService: this.entityService,
+        fileOperations: this.fileOperations,
+      },
+      paths,
+    );
   }
 
   async recordPendingPullDeletes(paths: string[]): Promise<void> {

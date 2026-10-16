@@ -15,6 +15,7 @@ import {
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import { STUDIO_CHAT_ROUTE_PATH } from "../../src/chat-workspace";
 import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../../src/overview-constants";
+import type { StudioWorkspaceInfo } from "./api";
 
 let studioRouterBasePath = "/studio";
 
@@ -26,13 +27,7 @@ export function resolveStudioWorkspaceAlias(
   basePath: string,
   requestedId: string,
   rawSearch: string,
-  workspaces: readonly {
-    readonly id: string;
-    readonly aliases?: readonly {
-      readonly id: string;
-      readonly query: Readonly<Record<string, string>>;
-    }[];
-  }[],
+  workspaces: readonly Pick<StudioWorkspaceInfo, "id" | "aliases">[],
 ): string | undefined {
   for (const workspace of workspaces) {
     const alias = workspace.aliases?.find((entry) => entry.id === requestedId);

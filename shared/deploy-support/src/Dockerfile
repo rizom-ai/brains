@@ -32,14 +32,8 @@ COPY package.json ./package.json
 RUN bun install --production --ignore-scripts
 COPY . .
 
-# --- fleet: install published brain at pinned version (ops deploy) ---
+# --- fleet: consume reviewed runtime dependencies without resolving updates ---
 FROM runtime AS fleet
-ARG BRAIN_VERSION
-ARG SITE_PACKAGES
-RUN test -n "$BRAIN_VERSION" \
- && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
- && if [ -n "$SITE_PACKAGES" ]; then \
-      bun add @rizom/brain@$BRAIN_VERSION $SITE_PACKAGES; \
-    else \
-      bun add @rizom/brain@$BRAIN_VERSION; \
-    fi
+ARG RUNTIME_IMAGE_TAG
+COPY deploy/runtime/${RUNTIME_IMAGE_TAG}/package.json deploy/runtime/${RUNTIME_IMAGE_TAG}/bun.lock ./
+RUN bun install --production --frozen-lockfile --ignore-scripts

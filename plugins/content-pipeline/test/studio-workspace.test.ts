@@ -200,6 +200,8 @@ describe("content-pipeline Studio workspace registration", () => {
       priority: 40,
     });
     if (!registration) throw new Error("Workspace was not registered");
+    // Studio's editor sends publication actions for these types here.
+    expect(registration.publishesEntityTypes).toBe(true);
     // Entity types resolve against the caller so descriptors never disclose
     // types the actor cannot act on.
     expect(

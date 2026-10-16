@@ -10,7 +10,9 @@ import {
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   ENTITY_CHANNELS,
+  TOPIC_SOURCE_TYPES_MESSAGE,
   TOPIC_TITLES_MESSAGE,
+  type TopicSourceTypesResponse,
   type TopicTitlesResponse,
 } from "@brains/contracts";
 import { getTopicTitle } from "./lib/topic-presenter";
@@ -37,10 +39,7 @@ import {
   createRankedTopicJobHandler,
   enqueueTopicExtraction,
 } from "./lib/ranked-topic-extraction";
-import {
-  includesTopicSourceType,
-  topicSourcePolicy,
-} from "./lib/topic-source-policy";
+import { isTopicSourceType, topicSourceTypes } from "./lib/topic-source-policy";
 import { topicVoteTemplate } from "./templates/vote-template";
 import { topicDescriptionTemplate } from "./templates/description-template";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
@@ -97,7 +96,9 @@ export class TopicsPlugin extends EntityPlugin<
   protected override getDataSources(): DataSource[] {
     return [
       new TopicsDataSource(this.logger.child("TopicsDataSource")),
-      new KnowledgeMapDataSource(),
+      new KnowledgeMapDataSource((entityService) =>
+        topicSourceTypes(entityService, this.config),
+      ),
     ];
   }
 
@@ -134,7 +135,9 @@ export class TopicsPlugin extends EntityPlugin<
         ENTITY_CHANNELS.deleted,
       ]) {
         // Execution subscriptions run in both processes, exactly once: worker
-        // imports need the same trigger as ordinary web-side mutations.
+        // imports need the same trigger as ordinary web-side mutations. A
+        // refused enqueue is retried until the queue admits it: the event is
+        // not delivered again, and one keyed retry stands for all of them.
         context.messaging.subscribeExecution(channel, async (message) => {
           const event = eventSchema.safeParse(message.payload);
           if (
@@ -144,9 +147,14 @@ export class TopicsPlugin extends EntityPlugin<
               context.entityService,
             )
           ) {
-            await enqueueTopicExtraction(
-              context,
-              this.config.sourceChangeBatchDelayMs,
+            await this.retries.run(
+              () =>
+                enqueueTopicExtraction(
+                  context,
+                  this.config.sourceChangeBatchDelayMs,
+                ),
+              "queue a topic extraction",
+              "topics:extract",
             );
           }
           return { success: true };
@@ -155,7 +163,11 @@ export class TopicsPlugin extends EntityPlugin<
       context.messaging.subscribe(
         SYSTEM_CHANNELS.startupContentSettled,
         async () => {
-          await enqueueTopicExtraction(context);
+          await this.retries.run(
+            () => enqueueTopicExtraction(context),
+            "queue a topic extraction",
+            "topics:extract",
+          );
           return { success: true };
         },
       );
@@ -180,6 +192,15 @@ export class TopicsPlugin extends EntityPlugin<
         return { success: true, data: { titles } };
       },
     );
+    // Which types topics are drawn from, for other plugins: a map of the
+    // corpus measures its territories against the same sources.
+    context.messaging.subscribe<unknown, TopicSourceTypesResponse>(
+      TOPIC_SOURCE_TYPES_MESSAGE,
+      async () => ({
+        success: true,
+        data: { types: topicSourceTypes(context.entityService, this.config) },
+      }),
+    );
     context.analytics.register(
       createTopicDistributionReport({
         isSourceType: (type, entityService) =>
@@ -190,7 +211,10 @@ export class TopicsPlugin extends EntityPlugin<
 
     // Dashboard widgets: the topic list and the knowledge map
     registerTopicsDashboardWidget({ context });
-    registerKnowledgeMapDashboardWidget({ context });
+    registerKnowledgeMapDashboardWidget({
+      context,
+      sourceTypes: () => topicSourceTypes(context.entityService, this.config),
+    });
 
     // Eval handlers
     registerTopicEvalHandlers({
@@ -218,10 +242,10 @@ export class TopicsPlugin extends EntityPlugin<
       getEntityTypeConfig: (type: string) => EntityTypeConfig;
     },
   ): boolean {
-    const typeConfig = entityService.getEntityTypeConfig(entityType);
-    return (
-      includesTopicSourceType(entityType, this.config, typeConfig) &&
-      topicSourcePolicy(entityType, this.config, typeConfig).weight > 0
+    return isTopicSourceType(
+      entityType,
+      this.config,
+      entityService.getEntityTypeConfig(entityType),
     );
   }
 

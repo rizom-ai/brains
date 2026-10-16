@@ -3,6 +3,11 @@ import type {
   DataSource,
   DataSourceSchema,
 } from "@brains/plugins";
+
+/** The entity types topics are drawn from, as the topics plugin decides. */
+type SourceTypesOf = (
+  entityService: BaseDataSourceContext["entityService"],
+) => string[];
 import { KNOWLEDGE_MAP_DATASOURCE_ID } from "../lib/constants";
 import { buildKnowledgeMapData } from "../lib/knowledge-map-data";
 
@@ -17,6 +22,12 @@ export class KnowledgeMapDataSource implements DataSource {
   readonly description =
     "Builds the public knowledge map: the corpus in semantic space with topic territories";
 
+  private readonly sourceTypesOf: SourceTypesOf;
+
+  constructor(sourceTypesOf: SourceTypesOf) {
+    this.sourceTypesOf = sourceTypesOf;
+  }
+
   async fetch<T>(
     _query: unknown,
     outputSchema: DataSourceSchema<T>,
@@ -27,6 +38,7 @@ export class KnowledgeMapDataSource implements DataSource {
     const data = await buildKnowledgeMapData(
       {
         entityService: context.entityService,
+        sourceTypes: async () => this.sourceTypesOf(context.entityService),
         semantic: {
           project: (request) =>
             context.entityService.projectSemanticSpace(request),

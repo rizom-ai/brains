@@ -48,7 +48,7 @@ export type {
   ContentTemplateSchemaParser,
   ResolutionOptions,
 } from "./types";
-export { ContentTemplateSchema } from "./types";
+export { ContentTemplateSchema, generationContextSchema } from "./types";
 
 export { ContentGenerationJobHandler } from "./handlers/contentGenerationJobHandler";
 export {

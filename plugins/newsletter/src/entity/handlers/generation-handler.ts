@@ -138,15 +138,11 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         )
         .join("\n\n---\n\n");
 
-      const baseInstructions = `Create an engaging newsletter that highlights these blog posts:
+      const baseInstructions = `Write a newsletter that presents these blog posts:
 
 ${postSummaries}
 
-The newsletter should:
-- Have a compelling subject line
-- Include a brief intro welcoming readers
-- Summarize each post with a call-to-action to read more
-- Have a friendly sign-off`;
+Summarize each post and link to it.`;
 
       const finalPrompt = prompt
         ? `${baseInstructions}\n\nAdditional instructions: ${prompt}`

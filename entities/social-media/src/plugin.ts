@@ -58,6 +58,7 @@ export class SocialMediaPlugin extends EntityPlugin<
     return new GenerationJobHandler(
       this.logger.child("GenerationJobHandler"),
       context,
+      this.retries,
     );
   }
 
@@ -98,7 +99,7 @@ export class SocialMediaPlugin extends EntityPlugin<
       this.logger.info("Scheduler-owned auto-generation enabled");
     }
 
-    subscribeToGenerateExecute(context, this.logger);
+    subscribeToGenerateExecute(context, this.logger, this.retries);
     registerEvalHandlers(context);
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(

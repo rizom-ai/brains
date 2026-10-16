@@ -169,15 +169,22 @@ export class FaqPlugin extends EntityPlugin<
       );
     }
 
+    // A refused enqueue is retried until the queue admits it (this.retries):
+    // these events are not delivered again, so a dropped job is never made.
+
     // A FAQ becomes findable by meaning once its embedding exists; that is
-    // when a duplicate captured moments earlier can be folded away.
-    context.messaging.subscribe(
+    // when a duplicate captured moments earlier can be folded away. The
+    // embedding is made where the job runs, so that process queues the fold.
+    context.messaging.subscribeExecution(
       ENTITY_CHANNELS.embeddingReady,
       async (message) => {
         const ready = embeddingReadySchema.safeParse(message.payload);
         if (ready.success && ready.data.entityType === "faq") {
           const data: FaqReconcileJobData = { entityId: ready.data.entityId };
-          await context.jobs.enqueue({ type: "faq-reconcile", data });
+          await this.retries.run(
+            () => context.jobs.enqueue({ type: "faq-reconcile", data }),
+            "queue a FAQ fold",
+          );
         }
         return { success: true };
       },
@@ -201,7 +208,10 @@ export class FaqPlugin extends EntityPlugin<
           userPermissionLevel: reply.data.metadata.userPermissionLevel,
           position,
         };
-        await context.jobs.enqueue({ type: "faq-capture", data });
+        await this.retries.run(
+          () => context.jobs.enqueue({ type: "faq-capture", data }),
+          "queue a FAQ capture",
+        );
         return { success: true };
       },
     );
@@ -219,7 +229,10 @@ export class FaqPlugin extends EntityPlugin<
           userPermissionLevel: "public",
           position: reply.data.position,
         };
-        await context.jobs.enqueue({ type: "faq-capture", data });
+        await this.retries.run(
+          () => context.jobs.enqueue({ type: "faq-capture", data }),
+          "queue a FAQ capture",
+        );
         return { success: true };
       },
     );
