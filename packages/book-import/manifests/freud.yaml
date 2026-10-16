@@ -13,7 +13,7 @@
 # Kindesalters (1893) and Die infantile Cerebrallähmung (1897); the Diplegien
 # are read anew from their scan (`ocr`), which has no archive text.
 # Their literature lists, tables of contents and publishers’ advertisements
-# are left out, and the dedication of the Aphasien. His papers of 1877–1895
+# are left out; the Aphasien keep their dedication. His papers of 1877–1895
 # that the edition does not print, in the Akademie's Sitzungsberichte and
 # the journals of anatomy, psychiatry and neurology, are read from scans of
 # their first printings, and Ueber Coca from its revised reprint of 1885.
@@ -638,7 +638,9 @@ books:
     kind: work
   - item: b28071852
     citation: Aphasien
-    firstPage: 1
+    # The title page is leaf 30, the dedication to Breuer its third page.
+    frontLeaf: 30
+    firstPage: III
     lastPage: 107
     # The sections' numerals, which the OCR lost or misread.
     headings:
@@ -650,6 +652,7 @@ books:
       - { page: 68, opens: "Unsere Vorstellung vom Aufbau", numeral: VI }
     # Pages whose figures and captions the OCR set among the lines of text.
     paragraphs:
+      - { page: III, opens: "Herrn Dr. Josef Breuer" }
       - { page: 5, opens: "Ich entlehne den Arbeiten" }
       - { page: 5, opens: "Fig. 2. Fig. 3 in Wernicke" }
       - { page: 5, opens: "Das Schema von Wernicke" }

@@ -159,6 +159,7 @@ const archiveOcrBookSchema: z.ZodObject<
       item: z.ZodString;
       citation: z.ZodString;
       ocr: z.ZodOptional<z.ZodString>;
+      frontLeaf: z.ZodOptional<z.ZodNumber>;
       scan: z.ZodOptional<typeof scanSchema>;
       binarise: z.ZodDefault<z.ZodBoolean>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
@@ -190,6 +191,8 @@ const archiveOcrBookSchema: z.ZodObject<
   citation: z.string().min(1),
   /** A Tesseract model to read the scan anew with, where the archive's text read the type wrong: frk for Fraktur. */
   ocr: z.string().min(1).optional(),
+  /** The scan's leaf that is the front matter's page I, where the edition prints no roman numbers: its front pages, such as a dedication, are then named by their numbers. */
+  frontLeaf: z.number().int().nonnegative().optional(),
   /** The scan, where another library holds it: `item` then names the scan for its corrections. */
   scan: scanSchema.optional(),
   /** The scan's paper is uneven in tone and its lines askew: each page is straightened and set black on white before it is read anew. */
@@ -894,16 +897,31 @@ export async function volumeHocr(
   fetchText: FetchText,
   pageOcr?: (reading: OcrReading) => PageOcr,
 ): Promise<string> {
-  if (!book.ocr) return fetchVolumeHocr(book.item, fetchText);
+  const front = (hocr: string): string =>
+    book.frontLeaf === undefined ? hocr : withFrontPage(hocr, book.frontLeaf);
+  if (!book.ocr) return front(await fetchVolumeHocr(book.item, fetchText));
   if (!pageOcr) {
     throw new Error(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
   const read = pageOcr({ model: book.ocr, binarise: book.binarise });
-  return book.scan
-    ? imagesHocr(book.scan.pages, read, book.scan.firstPage)
-    : ocrVolumeHocr(book.item, fetchText, read);
+  return front(
+    book.scan
+      ? await imagesHocr(book.scan.pages, read, book.scan.firstPage)
+      : await ocrVolumeHocr(book.item, fetchText, read),
+  );
+}
+
+/** A volume whose leaf the manifest names as the front matter's page I states it so. */
+function withFrontPage(hocr: string, leaf: number): string {
+  return hocr.replace(
+    new RegExp(
+      `(<div class=['"]ocr_page['"] id=(['"])page_0*${leaf}\\2[^>]*>)`,
+      "u",
+    ),
+    "$1<span class='ocr_pageno'>I</span>",
+  );
 }
 
 async function loadArchiveOcrBook(

@@ -1114,6 +1114,19 @@ describe("workPages", () => {
     );
   });
 
+  it("names the front matter's pages from the one the scan's reading states as page I, where the edition prints no roman numbers", () => {
+    const page = (leaf: number, pageno: string, text: string): string =>
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 3300 5300'>${pageno ? `<span class='ocr_pageno'>${pageno}</span>` : ""}
+ <p class='ocr_par'><span class='ocr_line' title='bbox 300 1400 3000 1480; x_size 70'>${text}</span></p>
+</div>`;
+    const hocr = `<html><body>${page(0, "I", "ZUR AUFFASSUNG DER APHASIEN")}${page(1, "", "Herrn Dr. Josef Breuer in freundschaftlicher Verehrung gewidmet.")}${page(2, "1", "Die Lehre von der Aphasie hat in den letzten Jahren")}${page(3, "2", "eine bedeutende Förderung erfahren und manches mehr")}</body></html>`;
+
+    expect(
+      workPages(hocr, { firstPage: "II", lastPage: 2, skipPages: [] }),
+    ).toEqual(["II", 1, 2]);
+    expect(pageText(hocr, "II")).toContain("freundschaftlicher Verehrung");
+  });
+
   it("numbers a page by the page number the scan's reading gives it, where its head reads as noise", () => {
     const page = (leaf: number, head: string): string =>
       `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 3300 5300'><span class='ocr_pageno'>${leaf + 10}</span>

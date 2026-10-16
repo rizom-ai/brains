@@ -11,6 +11,7 @@ import {
   parseCorrections,
   parseManifest,
   scannedBooks,
+  volumeHocr,
   volumeKey,
 } from "../src/import-books";
 
@@ -1250,6 +1251,46 @@ describe("fetchVolumeHocr, served leaves", () => {
     expect(read).not.toContain("card");
   });
 });
+
+describe("volumeHocr, front matter", () => {
+  it("states page I on the leaf the work names as the front matter's first page", async () => {
+    const [book] = scannedBooks(
+      parseManifest(`
+source: archive-ocr
+books:
+  - item: w
+    citation: Aphasien
+    frontLeaf: 1
+    firstPage: II
+    lastPage: 2
+    slug: w
+    title: W
+    edition: E
+    author: A
+    year: 1891
+    kind: work
+`),
+    );
+    const page = (id: number): string =>
+      `<div class='ocr_page' id='page_${String(id).padStart(6, "0")}' title='bbox 0 0 10 10'><span class='ocrx_word'>x</span></div>`;
+
+    const read = await volumeHocr(book ?? fail(), async (url) =>
+      url.includes("/metadata/")
+        ? JSON.stringify({ files: [{ name: "w_hocr.html", format: "hOCR" }] })
+        : `<html><body>${page(0)}${page(1)}${page(2)}</body></html>`,
+    );
+
+    expect(
+      read.match(/id='page_\d+'[^>]*><span class='ocr_pageno'>I<\/span>/g),
+    ).toEqual([
+      "id='page_000001' title='bbox 0 0 10 10'><span class='ocr_pageno'>I</span>",
+    ]);
+  });
+});
+
+function fail(): never {
+  throw new Error("no book");
+}
 
 describe("firstOfEachVolume", () => {
   it("counts a scan read anew with another model as a volume of its own", () => {

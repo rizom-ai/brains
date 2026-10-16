@@ -139,6 +139,8 @@ interface Page {
   leaf: number;
   /** The printed number the scan's reading gives the page, where it gives one. */
   pageno: number | null;
+  /** The front matter's roman number the scan's reading gives the page, where it gives one. */
+  frontPageno: number | null;
   width: number;
   height: number;
   lines: Line[];
@@ -472,13 +474,14 @@ function readPages(hocr: string): Page[] {
             })
             .filter((line) => line.text.length > 0),
         );
-        const pageno = Number.parseInt(
-          document.querySelector(".ocr_pageno")?.textContent ?? "",
-          10,
-        );
+        const stated = (
+          document.querySelector(".ocr_pageno")?.textContent ?? ""
+        ).trim();
+        const pageno = Number.parseInt(stated, 10);
         return {
           leaf: Number(/(\d+)$/.exec(page?.id ?? "")?.[1] ?? Number.NaN),
           pageno: Number.isNaN(pageno) ? null : pageno,
+          frontPageno: /^[IVXLC]+$/u.test(stated) ? romanValue(stated) : null,
           width,
           height,
           lines,
@@ -3053,11 +3056,12 @@ function withoutRescans(pages: Page[]): Page[] {
 }
 
 function readVolume(hocr: string): ReadVolume {
+  const read = readPages(hocr);
   const pages = withoutRescans(
-    withoutSignatures(
-      withUmlauts(withoutTopMargin(atOneScale(readPages(hocr)))),
-    ),
+    withoutSignatures(withUmlauts(withoutTopMargin(atOneScale(read)))),
   );
+  // A front page the scan's reading states counts, whatever the page holds.
+  const stated = read.find((page) => page.frontPageno !== null);
   const printed = printedPageNumbers(pages.map(readingOf));
   // The leaves before the first page are the front matter.
   const firstLeaf = Math.min(
@@ -3134,7 +3138,10 @@ function readVolume(hocr: string): ReadVolume {
       textSpelling,
     },
     // Pages before the first are the front matter, numbered in roman.
-    front: romanOffset(pages),
+    front:
+      stated?.frontPageno == null
+        ? romanOffset(pages)
+        : stated.frontPageno - stated.leaf,
   };
 }
 
