@@ -1435,16 +1435,33 @@ books:
     kind: work
   - source: archive-ocr
     # Rjasanoff's second volume collects the articles of 1854–1856 by Marx
-    # and by Engels. Engels' own articles are left out, as are four that
-    # neither MEW nor MECW attributes; MECW's attribution decides where MEW
-    # 10 differs (Zur Kritik der Belagerung Sebastopols, Engels).
+    # and by Engels. Kept are Marx's German articles for the Neue
+    # Oder-Zeitung; Luise Kautsky's translations of his English ones for the
+    # New-York Tribune and the People's Paper are left out, as are Engels'
+    # own articles and four that neither MEW nor MECW attributes; MECW's
+    # attribution decides where MEW 10 differs.
     item: gesammelteschrif02marxuoft
     citation: GS II
     ocr: frak2021
     firstPage: 1
     lastPage: 470
     datelined: true
+    # The Fall of Kars and Revolutionary Spain, translated from the English.
+    skipPages: [370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464]
     skipHeadings:
+      - Reden. — Saint-Arnaud.
+      - Der Stand des russischen Krieges.
+      - Der Krieg. — Parlamentsdebatte.
+      - Vertrag zwischen Österreich und der Türkei. — Die Moldau und die Walachei.
+      - Österreich und die Walachei.
+      - Der Kriegsschauplatz. — Die russische Note an die deutschen Mächte. — Serbien und Österreich.
+      - Die Türkei und Österreich. — Kriegsdebatte im Unterhaus.
+      - Der langweilige Krieg.
+      - Die Räumung der Donaufürstentümer.
+      - Die Einnahme von Bomarsund.
+      - Die Zustände in der Walachei. — Revolution in der Türkei.
+      - Der Fall des Ministeriums Aberdeen.
+      - Die Aussichten in Frankreich und England.
       - Die Belagerung von Silistria.
       - Der Angriff auf Sebastopol.
       - Die Militärmacht Rußlands.
@@ -1461,10 +1478,10 @@ books:
       - Napier und Graham.
       - Die Widerstandskraft Rußlands.
       - Zur Erstürmung Sebastopols.
-    slug: gesammelte-schriften-2
-    title: "Gesammelte Schriften 1852 bis 1862. Zweiter Band: Artikel 1854 bis 1856"
-    shortTitle: Gesammelte Schriften II
-    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, die Übersetzungen aus dem Englischen von Luise Kautsky, Zweiter Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    slug: artikel-in-der-neuen-oder-zeitung
+    title: Artikel in der „Neuen Oder-Zeitung“ 1855
+    shortTitle: Artikel in der „Neuen Oder-Zeitung“
+    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, Zweiter Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
     author: Karl Marx
     year: 1855
     kind: work
@@ -1533,35 +1550,6 @@ books:
     edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
     author: Karl Marx
     year: 1850
-    kind: work
-  - source: archive-ocr
-    # Rjasanoff's first volume collects the articles of 1852–1854 by Marx
-    # and by Engels. Engels' own articles are left out, and one that
-    # neither MEW nor MECW attributes (Preußische Politik).
-    item: gesammelteschrif01marxuoft
-    citation: GS I
-    ocr: frak2021
-    firstPage: 1
-    lastPage: 442
-    datelined: true
-    skipHeadings:
-      - Der wirkliche Streitpunkt in der Türkei.
-      - Die türkische Frage.
-      - Was soll aus der Europäischen Türkei werden?
-      - Der heilige Krieg.
-      - Der Krieg an der Donau.
-      - Sinope und Achalzych.
-      - Der europäische Krieg.
-      - Der russische Rückzug.
-      - Preußische Politik.
-      - Die Kriegstaten im Baltischen und im Schwarzen Meer. — Englisch-französisches Operationssystem.
-      - Der gegenwärtige Stand der englischen Armee. — Taktik. — Uniformen. — Verpflegungswesen usw.
-    slug: gesammelte-schriften-1
-    title: "Gesammelte Schriften 1852 bis 1862. Erster Band: Artikel 1852 bis 1854"
-    shortTitle: Gesammelte Schriften I
-    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, die Übersetzungen aus dem Englischen von Luise Kautsky, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
-    author: Karl Marx
-    year: 1853
     kind: work
   - source: archive-ocr
     # The critique of the Gotha programme as Engels first printed it, from
