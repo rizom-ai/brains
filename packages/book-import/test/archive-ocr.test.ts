@@ -959,6 +959,34 @@ describe("parseArchiveOcrWork on front matter", () => {
     expect(units[1]?.title).toStartWith("Der Traum ist das erste Glied");
   });
 
+  it("titles a section by the run-in title the manifest names, its line kept as text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        citation: "GW II/III",
+        firstPage: "V",
+        lastPage: "VI",
+        headings: [
+          {
+            page: "VI",
+            opens: "Der Traum ist das erste Glied",
+            runIn: "Der Traum",
+          },
+        ],
+      },
+    );
+
+    expect(units[1]?.title).toBe("Der Traum");
+    expect(units[1]?.paragraphs[0]).toStartWith(
+      "Der Traum ist das erste Glied",
+    );
+  });
+
   it("ends a work within the front matter at a roman page", async () => {
     const units = parseArchiveOcrWork(
       await readFile(

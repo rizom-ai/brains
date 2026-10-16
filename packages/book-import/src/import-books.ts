@@ -107,6 +107,7 @@ const headingLineSchema: z.ZodObject<{
   opens: z.ZodString;
   numeral: z.ZodOptional<z.ZodString>;
   unnumbered: z.ZodOptional<z.ZodBoolean>;
+  runIn: z.ZodOptional<z.ZodString>;
 }> = z.object({
   page: printedPageSchema,
   opens: z.string().min(1),
@@ -116,6 +117,8 @@ const headingLineSchema: z.ZodObject<{
     .optional(),
   /** A title the edition sets without a numeral: none is given it by place. */
   unnumbered: z.boolean().optional(),
+  /** A title the edition runs into the line, as a lexicon its headword: it heads a section, and the line stays its text. */
+  runIn: z.string().min(1).optional(),
 });
 
 const archiveOcrBookSchema: z.ZodObject<

@@ -57,6 +57,11 @@ export interface ArchiveOcrWork {
       numeral?: string | undefined;
       /** A title the edition sets without a numeral, which none is given. */
       unnumbered?: boolean | undefined;
+      /**
+       * A title the edition runs into the line, as a lexicon its headword:
+       * it heads a section there, and the line stays the section's text.
+       */
+      runIn?: string | undefined;
     }
   >;
   /**
@@ -1029,6 +1034,7 @@ interface Volume {
     opens: string;
     numeral?: string;
     unnumbered?: boolean;
+    runIn?: string;
   }>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
   paragraphOpenings?: string[];
@@ -1939,7 +1945,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       (opening) =>
         opening.numeral !== undefined && line.text.startsWith(opening.opens),
     )?.numeral;
-    const pieces: Piece[] =
+    const runIn = (volume.headingOpenings ?? []).find(
+      (opening) =>
+        opening.runIn !== undefined && line.text.startsWith(opening.opens),
+    )?.runIn;
+    const titled: Piece[] =
       lost === undefined
         ? earlier
         : [
@@ -1947,6 +1957,19 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
             {
               kind: "heading",
               lines: [{ kind: "chapter", numeral: lost }],
+              closed: true,
+            },
+          ];
+    const pieces: Piece[] =
+      runIn === undefined
+        ? titled
+        : [
+            ...titled,
+            {
+              kind: "heading",
+              lines: [
+                { kind: "caps", text: runIn, size: line.size, misread: true },
+              ],
               closed: true,
             },
           ];
@@ -2002,7 +2025,9 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // numbered by place; a chapter's title may run on.
     const declared = (volume.headingOpenings ?? []).find(
       (opening) =>
-        opening.numeral === undefined && line.text.startsWith(opening.opens),
+        opening.numeral === undefined &&
+        opening.runIn === undefined &&
+        line.text.startsWith(opening.opens),
     );
     if (declared?.unnumbered === true) {
       return [
@@ -3317,10 +3342,11 @@ export function parseArchiveOcrWork(
             ...volume,
             headingOpenings: (work.headings ?? [])
               .filter((heading) => String(heading.page) === label)
-              .map(({ opens, numeral, unnumbered }) => ({
+              .map(({ opens, numeral, unnumbered, runIn }) => ({
                 opens,
                 ...(numeral === undefined ? {} : { numeral }),
                 ...(unnumbered === true ? { unnumbered } : {}),
+                ...(runIn === undefined ? {} : { runIn }),
               })),
             ...paragraphOpeningsOn(work, label),
             ...noteOpeningsOn(work, label),

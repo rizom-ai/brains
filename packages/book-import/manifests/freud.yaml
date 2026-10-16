@@ -180,6 +180,228 @@ books:
     author: Sigmund Freud
     year: 1888
     kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 37
+    lastPage: 39
+    opensWith: Accessoriuskrampf.
+    closesWith: "Erregbarkeit (s,"
+    # The headwords, set in bold at the start of their articles' first lines,
+    # by those lines as the OCR read them.
+    headings:
+      - { page: 37, opens: Accessoriuskrampf., runIn: Accessoriuskrampf }
+      - { page: 38, opens: ACOOSSOI, runIn: Accessoriuslähmung }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    shortTitle: Artikel im Diagnostischen Lexikon
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 62
+    lastPage: 62
+    opensWith: Agraphie (
+    closesWith: Wurzelstück der zweiten
+    headings:
+      - { page: 62, opens: Agraphie (, runIn: Agraphie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 71
+    lastPage: 71
+    opensWith: Alalie (
+    closesWith: peripherische und centrale Ursachen
+    headings:
+      - { page: 71, opens: Alalie (, runIn: Alalie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 75
+    lastPage: 75
+    opensWith: Alexie (
+    closesWith: der alectischen Störungen
+    headings:
+      - { page: 75, opens: Alexie (, runIn: Alexie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 98
+    lastPage: 99
+    opensWith: Amnesie (
+    closesWith: von motorischer Aphasie und Anarthrie dar
+    headings:
+      - { page: 98, opens: Amnesie (, runIn: Amnesie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 126
+    lastPage: 127
+    opensWith: Anarthrie (
+    closesWith: etc.) erschlossen werden
+    headings:
+      - { page: 126, opens: Anarthrie (, runIn: Anarthrie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 148
+    lastPage: 149
+    opensWith: Anosmie (
+    closesWith: Intactheit der
+    headings:
+      - { page: 148, opens: Anosmie (, runIn: Anosmie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 170
+    lastPage: 177
+    opensWith: "Aph&Si"
+    closesWith: "beruhen, hier nicht abgehandelt"
+    headings:
+      - { page: 170, opens: Aph&Si, runIn: Aphasie }
+    # The caption of figure 24 on 172, set as one line, and the main text
+    # going on below it.
+    paragraphs:
+      - { page: 172, opens: "Bisher haben wir" }
+      - { page: 172, opens: "Die Zerstörung des centralen" }
+      - { page: 172, opens: "Fig. 24. Die schraffirten" }
+      - { page: 172, opens: "sollen. Die Zerstörung" }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 182
+    lastPage: 182
+    opensWith: Aphrasie (
+    closesWith: der Sprache aus Motiven
+    headings:
+      - { page: 182, opens: Aphrasie (, runIn: Aphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 478
+    lastPage: 478
+    opensWith: Bradylalie
+    closesWith: Rede in Folge von trägem
+    headings:
+      - { page: 478, opens: Bradylalie (, runIn: Bradylalie }
+      - { page: 478, opens: Bradyphrasie (, runIn: Bradyphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 808
+    lastPage: 808
+    opensWith: "DYS|H.IIG"
+    closesWith: eine Fernwirkung auf die für das Lesen
+    headings:
+      - { page: 808, opens: DYS H, runIn: Dyslalie }
+      - { page: 808, opens: "D)'SIB", runIn: Dyslexie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 817
+    lastPage: 817
+    opensWith: Dysphrasie (
+    closesWith: als psychische Aequivalente
+    headings:
+      - { page: 817, opens: Dysphrasie (, runIn: Dysphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 825
+    lastPage: 825
+    opensWith: Echolalie (
+    closesWith: mit E. verbundene Neurose
+    headings:
+      - { page: 825, opens: Echolalie (, runIn: Echolalie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: DiagnostischesLexikon3v4
+    citation: Diagn. Lex. III
+    firstPage: 614
+    lastPage: 614
+    opensWith: Paraphrasie
+    closesWith: Weise Platz anbietet
+    headings:
+      - { page: 614, opens: Paraphrasie, runIn: Paraphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. III (Urban & Schwarzenberg, Wien und Leipzig 1894), S. 614"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
   - item: 1895j_WKR_9_9
     citation: WKR 1895
     columns: true
