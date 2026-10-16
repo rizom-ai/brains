@@ -121,7 +121,7 @@ function clearSecretFormFields(
   }
 }
 
-function presentedActionResult(
+export function presentedActionResult(
   action: RuntimeOperatorActionControl,
   value: unknown,
 ): PresentedActionResult | null {

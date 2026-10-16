@@ -445,6 +445,8 @@ export interface RuntimeOperatorActionControl {
     | { readonly kind: "static"; readonly message: string }
     | { readonly kind: "prepared" }
     | undefined;
+  /** Matrix cards only: dropping the card on this cell runs the action. */
+  readonly dropTarget?: string | undefined;
   /** Host-only action transport state; never accepted from an author view. */
   readonly invocation?:
     | { readonly mode: "prepare" }

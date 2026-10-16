@@ -710,6 +710,20 @@ export interface StudioOperatorTableBlock<
   readonly rows: readonly StudioOperatorTableRow<TAction>[];
 }
 
+/** A card's action that also runs when the card is dropped on another cell. */
+export type OperatorMatrixActionControl<
+  TAction extends AnyWorkspaceActionDefinition,
+> = OperatorActionControl<TAction> & {
+  readonly dropTarget?: string | undefined;
+};
+
+export interface OperatorMatrixItem<
+  TAction extends AnyWorkspaceActionDefinition,
+> extends Omit<OperatorListItem<TAction>, "actions"> {
+  readonly actions?:
+    readonly OperatorMatrixActionControl<TAction>[] | undefined;
+}
+
 export interface OperatorMatrixCell<
   TAction extends AnyWorkspaceActionDefinition,
 > {
@@ -717,7 +731,7 @@ export interface OperatorMatrixCell<
   readonly label: string;
   readonly tone?: OperatorTone | undefined;
   readonly empty: string;
-  readonly items: readonly OperatorListItem<TAction>[];
+  readonly items: readonly OperatorMatrixItem<TAction>[];
 }
 
 export interface OperatorMatrixBlock<

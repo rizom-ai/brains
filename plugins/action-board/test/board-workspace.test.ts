@@ -116,7 +116,13 @@ const itemSchema = z.looseObject({
     .optional(),
   actionsLabel: z.string().optional(),
   actions: z
-    .array(z.object({ label: z.string().optional(), input: z.unknown() }))
+    .array(
+      z.object({
+        label: z.string().optional(),
+        input: z.unknown(),
+        dropTarget: z.string().optional(),
+      }),
+    )
     .optional(),
 });
 const matrixSchema = z.looseObject({
@@ -275,6 +281,25 @@ describe("the Board workspace", () => {
     expect(labels("open")).toEqual(["Start", "Block", "Done", "Drop"]);
     expect(column(matrix, "open")[0]?.actionsLabel).toBe("Move");
     expect(labels("blocked")).toEqual(["Resume", "Done", "Drop"]);
+  });
+
+  it("moves a card when it is dropped on another column; dropping it off the board stays in the menu", async () => {
+    const registration = await registered(
+      await brain([{ id: "a", text: "Draft the checklist", status: "open" }]),
+    );
+    const matrix = await board(registration);
+
+    expect(
+      (column(matrix, "open")[0]?.actions ?? []).map((action) => [
+        action.label,
+        action.dropTarget,
+      ]),
+    ).toEqual([
+      ["Start", "doing"],
+      ["Block", "blocked"],
+      ["Done", "done"],
+      ["Drop", undefined],
+    ]);
   });
 
   it("marks who blocked a card and how long it has waited", async () => {

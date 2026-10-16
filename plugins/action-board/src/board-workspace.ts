@@ -493,6 +493,8 @@ function cardItem(card: BoardCard): {
         label: string;
         input: { id: string; from: ActionItemStatus; to: ActionItemStatus };
         result: typeof moveResult;
+        /** Dropping the card on that column makes the same move. */
+        dropTarget: ActionItemStatus;
       }
     | {
         action: typeof dropAction;
@@ -554,6 +556,7 @@ function cardItem(card: BoardCard): {
         label: move.label,
         input: { id: card.id, from: card.status, to: move.to },
         result: moveResult,
+        dropTarget: move.to,
       })),
       {
         action: dropAction,
