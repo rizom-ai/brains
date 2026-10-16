@@ -676,6 +676,8 @@ export interface LeafReading {
   stated?: boolean;
   /** Words of running text; a plate's picture reads as next to none. */
   words: number;
+  /** Scanned across, wider than tall: a folded table's part or a plate set sideways, no page. */
+  across?: boolean;
 }
 
 /** A running head's number counts when a head this close by agrees with it. */
@@ -688,8 +690,19 @@ interface Anchor {
 
 /** A scan missing a leaf or two raises the offset that much. */
 const MISSING_LEAVES = 2;
-/** Plates bound in one place lower the offset by at most this many leaves. */
+/**
+ * Plates bound in one place lower the offset by this many leaves, whatever
+ * the leaves between read as; more, only where so many leaves between read
+ * as plates.
+ */
 const PLATE_LEAVES = 8;
+/** A leaf reading fewer words than this is a plate's picture, a blank or a title alone. */
+const PLATE_WORDS = 10;
+
+/** Whether a leaf reads as no page of text: scanned across, or next to no words. */
+function readsAsPlate(reading: LeafReading): boolean {
+  return reading.across === true || reading.words < PLATE_WORDS;
+}
 
 /** Anchors in runs of one offset, in reading order. */
 function runsOf(anchors: Anchor[]): Anchor[][] {
@@ -701,10 +714,27 @@ function runsOf(anchors: Anchor[]): Anchor[][] {
   }, []);
 }
 
-/** Whether one run of heads can follow another in the same volume. */
-function follows(before: Anchor[], after: Anchor[]): boolean {
+/**
+ * Whether one run of heads can follow another in the same volume: a missing
+ * leaf or two raises the offset, plates lower it, a folded table by as many
+ * leaves as it takes, where the leaves between read as plates.
+ */
+function follows(
+  before: Anchor[],
+  after: Anchor[],
+  readings: LeafReading[],
+): boolean {
   const drop = (before[0]?.offset ?? 0) - (after[0]?.offset ?? 0);
-  return drop >= -MISSING_LEAVES && drop <= PLATE_LEAVES;
+  if (drop < -MISSING_LEAVES) return false;
+  if (drop <= PLATE_LEAVES) return true;
+  const from = before.at(-1)?.leaf ?? 0;
+  const to = after[0]?.leaf ?? 0;
+  return (
+    readings.filter(
+      (reading) =>
+        reading.leaf > from && reading.leaf < to && readsAsPlate(reading),
+    ).length >= drop
+  );
 }
 
 /** The heaviest chain of runs ending at a run, and the run before it. */
@@ -719,12 +749,16 @@ interface Chain {
  * runs of running heads, the chain that moves only so keeps the most heads;
  * the rest are the OCR misreading a digit, however many pages it does so.
  */
-function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
+function withoutMisreadRuns(
+  anchors: Anchor[],
+  readings: LeafReading[],
+): Anchor[] {
   const runs = runsOf(anchors);
   const chains = runs.reduce<Chain[]>((done, run) => {
     const best = done.reduce<Chain>(
       (found, chain, at) =>
-        follows(runs[at] ?? [], run) && chain.weight + run.length > found.weight
+        follows(runs[at] ?? [], run, readings) &&
+        chain.weight + run.length > found.weight
           ? { weight: chain.weight + run.length, before: at }
           : found,
       { weight: run.length, before: null },
@@ -747,8 +781,10 @@ function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
 
 /**
  * Number the pages between two anchors whose offsets differ: the plates bound
- * in between take the leaves that read least and get no number; the other
- * leaves are numbered on from the first anchor.
+ * in between take the leaves scanned across, then those that read least, and
+ * get no number; the other leaves are numbered on from the first anchor. Of
+ * leaves that read alike, the plates are the later: a page's blank back stays
+ * beside it, and a fold's back follows the fold.
  */
 function numberGap(
   from: Anchor,
@@ -762,7 +798,12 @@ function numberGap(
   const plateCount = Math.max(0, to.leaf - from.leaf - 1 - pages);
   const plates = new Set(
     [...gap]
-      .sort((a, b) => a.words - b.words || a.leaf - b.leaf)
+      .sort(
+        (a, b) =>
+          Number(b.across === true) - Number(a.across === true) ||
+          a.words - b.words ||
+          b.leaf - a.leaf,
+      )
       .slice(0, plateCount)
       .map((reading) => reading.leaf),
   );
@@ -806,6 +847,7 @@ export function printedPageNumbers(
             Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
         ),
     ),
+    readings,
   );
   const first = anchors[0];
   const last = anchors.at(-1);
@@ -841,6 +883,7 @@ function readingOf(page: Page): LeafReading {
       (sum, line) => sum + (line.text.match(WORD)?.length ?? 0),
       0,
     ),
+    across: page.width > page.height,
   };
 }
 

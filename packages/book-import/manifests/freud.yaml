@@ -81,10 +81,8 @@ books:
     citation: Halbseitige Cerebrallähmung
     firstPage: 1
     lastPage: 212
-    # The folded table of chapter III (41–42), which the OCR cannot read,
-    # and the leaf the page numbering takes for page 40: its text is restored
-    # from the scan below page 39.
-    skipPages: [40, 41, 42]
+    # The folded table of chapter III, bound in after its title (41), which
+    # the OCR cannot read.
     skipHeadings: [Tabellarische Zusammenstellung der 35 vorstehenden Beobachtungen]
     # Chapters set in the text's type, their numerals taken off, and
     # subsections the page does not set apart.
@@ -96,7 +94,7 @@ books:
       - { page: 36, opens: "γ) Fälle ohne Anamnese" }
       - { page: 36, opens: "δ) Andere Uebergangsformen" }
       - { page: 37, opens: "ε) Fälle mit acutem Beginn" }
-      - { page: 39, opens: "Tabellarische Zusammenstellung" }
+      - { page: 41, opens: "Tabellarische Zusammenstellung" }
       - { page: 43, opens: "Charakteristik der einzelnen Fälle" }
       - { page: 52, opens: "Analyse der einzelnen Symptome" }
       - { page: 52, opens: "1. Geschlecht." }

@@ -1076,6 +1076,101 @@ describe("printedPageNumbers", () => {
 
     expect(pages.get(12)).toBe(3);
   });
+
+  /** A folded table's part, scanned across the leaf, its cells read as words. */
+  const across = (leaf: number): LeafReading => ({
+    leaf,
+    head: null,
+    words: 260,
+    across: true,
+  });
+  /** A page that opens a chapter: no running head, a full page of text. */
+  const opening = (leaf: number): LeafReading => text(leaf, null);
+
+  it("numbers the pages either side of a table folded over ten leaves, its leaves unnumbered", () => {
+    // Pages 37–40, the table's title on 41 and its blank back 42, five
+    // folds each scanned across with their blank backs, then 43 opening a
+    // chapter and 44–47.
+    const pages = printedPageNumbers([
+      ...[37, 38, 39, 40].map((page) => text(page + 9, page)),
+      { leaf: 50, head: null, words: 4 },
+      plate(51),
+      ...[52, 54, 56, 58, 60].flatMap((leaf) => [
+        across(leaf),
+        { leaf: leaf + 1, head: null, words: 0 },
+      ]),
+      opening(62),
+      ...[44, 45, 46, 47].map((page) => text(page + 19, page)),
+    ]);
+
+    expect(
+      Array.from({ length: 63 - 46 }, (_, index) => pages.get(46 + index)),
+    ).toEqual([
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      ...Array.from({ length: 10 }, () => null),
+      43,
+    ]);
+  });
+
+  it("numbers the first pages before a folded table from the heads before it", () => {
+    const pages = printedPageNumbers([
+      opening(10),
+      ...Array.from({ length: 30 }, (_, index) => text(11 + index, 2 + index)),
+      { leaf: 41, head: null, words: 4 },
+      plate(42),
+      ...[43, 45, 47, 49, 51].flatMap((leaf) => [
+        across(leaf),
+        plate(leaf + 1),
+      ]),
+      opening(53),
+      ...[35, 36, 37].map((page) => text(page + 19, page)),
+    ]);
+
+    expect([10, 11, 40, 41, 42, 53, 54].map((leaf) => pages.get(leaf))).toEqual(
+      [1, 2, 31, 32, 33, 34, 35],
+    );
+  });
+
+  it("numbers a page without a head before a folded table on from the page before", () => {
+    // Page 40 lost its head; the table's title on 41, its blank back 42, a
+    // fold's edge, five parts scanned across, then 43 opening a chapter.
+    const pages = printedPageNumbers([
+      ...[36, 37, 38, 39].map((page) => text(page + 3, page)),
+      { leaf: 43, head: null, words: 66 },
+      { leaf: 44, head: null, words: 4 },
+      { leaf: 45, head: null, words: 1 },
+      { leaf: 46, head: null, words: 1 },
+      ...[47, 48, 49, 50, 51].map(across),
+      opening(52),
+      ...[44, 45, 46].map((page) => text(page + 9, page)),
+    ]);
+
+    expect(
+      Array.from({ length: 53 - 43 }, (_, index) => pages.get(43 + index)),
+    ).toEqual([40, 41, 42, null, null, null, null, null, null, 43]);
+  });
+
+  it("still ignores a run of heads the OCR misread lower, with pages between", () => {
+    // 330 to 341 read as 310 to 321 at the volume's end, a run of pages
+    // between: no plates there to lower the numbering by twenty.
+    const pages = printedPageNumbers([
+      ...Array.from({ length: 40 }, (_, index) =>
+        text(10 + index, 290 + index),
+      ),
+      ...Array.from({ length: 12 }, (_, index) =>
+        text(50 + index, 310 + index),
+      ),
+    ]);
+
+    expect([49, 50, 61].map((leaf) => pages.get(leaf))).toEqual([
+      329, 330, 341,
+    ]);
+  });
 });
 
 describe("parseArchiveOcrWork on long chapters", () => {
