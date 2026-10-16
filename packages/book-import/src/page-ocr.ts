@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { importerCacheDir, type PoliteFetch } from "./polite-fetch";
 
@@ -131,6 +132,87 @@ export async function preparedImage(
   return new Uint8Array(prepared);
 }
 
+/** The part of a page a scan reads: left, top, width and height, as shares of the page. */
+export type Region = [number, number, number, number];
+
+/** A PDF's page as an image, and the part of it the scan reads. */
+export type RenderPdfPage = (
+  pdf: Uint8Array,
+  page: number,
+  region?: Region,
+) => Promise<Uint8Array>;
+
+/** A PDF page named as PDF viewers open one, its part after it: file.pdf#page=5&region=0.37,0.1,0.27,0.3. */
+const PDF_PAGE =
+  /^(.*\.pdf)#page=(\d+)(?:&region=([\d.]+),([\d.]+),([\d.]+),([\d.]+))?$/iu;
+
+/**
+ * A scan's page images: an image as fetched, or a PDF's page rendered and
+ * cut to the part the scan reads, each PDF fetched once.
+ */
+export function scanImages(
+  fetchBytes: (url: string) => Promise<Uint8Array>,
+  renderPdfPage: RenderPdfPage,
+): (url: string) => Promise<Uint8Array> {
+  const pdfs = new Map<string, Promise<Uint8Array>>();
+  return async (url) => {
+    const match = PDF_PAGE.exec(url);
+    if (!match?.[1]) return fetchBytes(url);
+    const pdf = pdfs.get(match[1]) ?? fetchBytes(match[1]);
+    pdfs.set(match[1], pdf);
+    const [, , , left, top, across, down] = match;
+    const region: Region | undefined =
+      left && top && across && down
+        ? [Number(left), Number(top), Number(across), Number(down)]
+        : undefined;
+    return renderPdfPage(await pdf, Number(match[2]), region);
+  };
+}
+
+async function run(command: string[], stdin?: Uint8Array): Promise<Uint8Array> {
+  const child = Bun.spawn(command, {
+    ...(stdin ? { stdin } : {}),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [out, errors, code] = await Promise.all([
+    new Response(child.stdout).arrayBuffer(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  if (code !== 0) throw new Error(`${command[0]} failed (${code}): ${errors}`);
+  return new Uint8Array(out);
+}
+
+/** A PDF's page at 300 dpi with poppler's pdftoppm, cut with ImageMagick; both must be on the path. */
+export const renderPdfPage: RenderPdfPage = async (pdf, page, region) => {
+  const dir = await mkdtemp(join(tmpdir(), "book-import-pdf-"));
+  try {
+    const file = join(dir, "scan.pdf");
+    await writeFile(file, pdf);
+    const png = await run([
+      "pdftoppm",
+      "-f",
+      String(page),
+      "-l",
+      String(page),
+      "-r",
+      "300",
+      "-png",
+      file,
+    ]);
+    if (!region) return png;
+    // A PNG gives its width and height in its header.
+    const header = new DataView(png.buffer, png.byteOffset, 24);
+    const [width, height] = [header.getUint32(16), header.getUint32(20)];
+    const [left, top, across, down] = region;
+    const crop = `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`;
+    return await run(["magick", "-", "-crop", crop, "+repage", "png:-"], png);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+};
+
 /** The importer's page OCR: Tesseract, images fetched in the importer's queue. */
 export function importerPageOcr(
   fetch: PoliteFetch,
@@ -142,7 +224,7 @@ export function importerPageOcr(
       cacheDir,
       model: reading.model,
       prepare: preparation.join(" "),
-      fetchImage: fetch.bytes,
+      fetchImage: scanImages(fetch.bytes, renderPdfPage),
       recognise: async (image, used) =>
         tesseractHocr(
           await preparedImage(image, preparation),

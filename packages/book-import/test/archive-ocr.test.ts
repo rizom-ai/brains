@@ -933,6 +933,13 @@ describe("workPages", () => {
     expect(
       workPages(hocr, { firstPage: 10, lastPage: 12, skipPages: [] }),
     ).toEqual([10, 11, 12]);
+    expect(
+      workPages(`<html><body>${page(0, "ds 14 0")}</body></html>`, {
+        firstPage: 10,
+        lastPage: 10,
+        skipPages: [],
+      }),
+    ).toEqual([10]);
   });
 });
 

@@ -672,6 +672,8 @@ function titledHeadIndex(page: Page, heads: Array<Set<string>>): number {
 export interface LeafReading {
   leaf: number;
   head: number | null;
+  /** The scan's reading states the page's number, which needs no other head to agree. */
+  stated?: boolean;
   /** Words of running text; a plate's picture reads as next to none. */
   words: number;
 }
@@ -785,16 +787,24 @@ export function printedPageNumbers(
   const heads = readings.flatMap((reading) =>
     reading.head === null
       ? []
-      : [{ leaf: reading.leaf, offset: reading.head - reading.leaf }],
+      : [
+          {
+            leaf: reading.leaf,
+            offset: reading.head - reading.leaf,
+            stated: reading.stated === true,
+          },
+        ],
   );
   const anchors = withoutMisreadRuns(
-    heads.filter((head) =>
-      heads.some(
-        (other) =>
-          other !== head &&
-          other.offset === head.offset &&
-          Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
-      ),
+    heads.filter(
+      (head) =>
+        head.stated ||
+        heads.some(
+          (other) =>
+            other !== head &&
+            other.offset === head.offset &&
+            Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
+        ),
     ),
   );
   const first = anchors[0];
@@ -826,6 +836,7 @@ function readingOf(page: Page): LeafReading {
   return {
     leaf: page.leaf,
     head: runningHeadNumber(page),
+    stated: page.pageno !== null,
     words: page.lines.reduce(
       (sum, line) => sum + (line.text.match(WORD)?.length ?? 0),
       0,

@@ -6,6 +6,7 @@ import {
   createPageOcr,
   frakturRead,
   preparationFor,
+  scanImages,
   tessdataFor,
   volumeOfPages,
   type PageOcr,
@@ -270,5 +271,53 @@ describe("frakturRead", () => {
     ).toBe(
       "<span class='ocrx_word'>Gesellschaft</span> <span class='ocrx_word'>etc.</span> <span class='ocrx_word'>ver-</span>",
     );
+  });
+});
+
+describe("scanImages", () => {
+  it("fetches a page image as it is", async () => {
+    const fetched: string[] = [];
+    const image = scanImages(
+      async (url) => {
+        fetched.push(url);
+        return new Uint8Array([1]);
+      },
+      async () => {
+        throw new Error("no PDF here");
+      },
+    );
+
+    expect(
+      await image("https://polona.pl/iiif/3/a/full/max/0/default.jpg"),
+    ).toEqual(new Uint8Array([1]));
+    expect(fetched).toEqual([
+      "https://polona.pl/iiif/3/a/full/max/0/default.jpg",
+    ]);
+  });
+
+  it("renders a PDF's page, the part of it the address names, fetching the PDF once", async () => {
+    const fetched: string[] = [];
+    const rendered: string[] = [];
+    const image = scanImages(
+      async (url) => {
+        fetched.push(url);
+        return new Uint8Array([37]);
+      },
+      async (pdf, page, region) => {
+        rendered.push(`${pdf[0]} ${page} ${region?.join(",") ?? "whole"}`);
+        return new Uint8Array([page]);
+      },
+    );
+
+    expect(
+      await image(
+        "http://iapsop.com/weekly.pdf#page=5&region=0.37,0.1,0.27,0.3",
+      ),
+    ).toEqual(new Uint8Array([5]));
+    expect(await image("http://iapsop.com/weekly.pdf#page=6")).toEqual(
+      new Uint8Array([6]),
+    );
+    expect(fetched).toEqual(["http://iapsop.com/weekly.pdf"]);
+    expect(rendered).toEqual(["37 5 0.37,0.1,0.27,0.3", "37 6 whole"]);
   });
 });

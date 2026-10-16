@@ -2401,6 +2401,26 @@ books:
     year: 1871
     kind: work
   - source: archive-ocr
+    # Marx's letter heading his daughter Jenny's account of the Lafargues'
+    # arrest, in the middle column of p. 5; her account is left out.
+    item: woodhull-1871-10-21
+    citation: Woodhull & Claflin's Weekly
+    ocr: eng
+    scan:
+      library: IAPSOP
+      url: http://iapsop.com/archive/materials/woodhull_and_claflins_weekly/
+      firstPage: 5
+      pages:
+        - http://iapsop.com/archive/materials/woodhull_and_claflins_weekly/woodhull_and_claflins_weekly_v3_n23_oct_21_1871.pdf#page=5&region=0.37,0.145,0.271,0.19
+    firstPage: 5
+    lastPage: 5
+    slug: to-the-editors-of-woodhull-and-claflins-weekly
+    title: To the Editors of Woodhull & Claflin's Weekly
+    edition: Woodhull & Claflin's Weekly, Vol. III, No. 23 (New York, 21 October 1871), p. 5
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
     # Kautsky's edition of Engels's revised text of 1891: Engels's additions
     # in square brackets, Marx's own wording of 1849 where Engels changed it
     # in the notes. Kautsky's preface and Engels's introduction are left out.
