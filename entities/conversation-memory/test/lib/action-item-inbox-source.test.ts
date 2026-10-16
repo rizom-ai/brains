@@ -154,6 +154,39 @@ describe("the action-items Inbox source", () => {
     expect(await source.list()).toEqual([]);
   });
 
+  it("shows an admin the item text and its moves", async () => {
+    const source = new ActionItemInboxSource(
+      await brain([
+        {
+          id: "venue",
+          text: "Book the venue for the spring gathering",
+          status: "blocked",
+          history: blockedHistory("2026-10-15T07:00:00.000Z"),
+        },
+      ]),
+      () => NOW,
+    );
+
+    const detail = await source.resolveDetail(
+      "venue",
+      { permissionLevel: "admin" },
+      new AbortController().signal,
+    );
+
+    expect(detail).toEqual({
+      kind: "plain",
+      text: "Book the venue for the spring gathering\n\nMoves:\n2026-10-15 07:00 · open → blocked",
+      truncated: false,
+    });
+    expect(
+      source.resolveDetail(
+        "venue",
+        { permissionLevel: "trusted" },
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow("admin");
+  });
+
   it("acts only for an admin", async () => {
     const context = await brain([
       { id: "venue", text: "Book the venue", status: "blocked" },

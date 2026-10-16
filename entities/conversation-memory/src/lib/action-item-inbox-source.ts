@@ -1,12 +1,18 @@
 import type {
   EntityPluginContext,
   InboxActionActor,
+  InboxActor,
   InboxItem,
+  InboxItemDetail,
   InboxSource,
 } from "@brains/plugins";
 import { truncateText } from "@brains/utils/string-utils";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { actionItemTitle, arrivedAt } from "./action-item-board";
+import {
+  actionItemBody,
+  actionItemTitle,
+  arrivedAt,
+} from "./action-item-board";
 import { moveActionItem } from "./action-item-moves";
 import { channelLabel, formatAge } from "./widgets/format";
 import {
@@ -20,6 +26,12 @@ const MOVES: Readonly<Record<string, ActionItemStatus>> = {
   done: "done",
   drop: "dropped",
 };
+
+function requireAdmin(actor: InboxActor): void {
+  if (actor.permissionLevel !== "admin") {
+    throw new Error("Action items inbox requires admin permission");
+  }
+}
 
 /** The Inbox holds at most this many blockers, newest first. */
 const LIST_LIMIT = 100;
@@ -85,14 +97,43 @@ export class ActionItemInboxSource implements InboxSource {
     });
   }
 
+  async resolveDetail(
+    itemId: string,
+    actor: InboxActor,
+    signal: AbortSignal,
+  ): Promise<InboxItemDetail> {
+    requireAdmin(actor);
+    signal.throwIfAborted();
+    const entity = await this.context.entityService.getEntity(
+      {
+        entityType: ACTION_ITEM_ENTITY_TYPE,
+        id: itemId,
+        visibilityScope: "restricted",
+      },
+      actionItemSchema,
+    );
+    signal.throwIfAborted();
+    if (!entity) throw new Error("Action item unavailable");
+    const text = actionItemBody(entity.content)
+      .replace(/^#\s+.+\n+/, "")
+      .trim();
+    const moves = (entity.metadata.history ?? []).map(
+      (entry) =>
+        `${entry.at.slice(0, 10)} ${entry.at.slice(11, 16)} · ${entry.from} → ${entry.to}`,
+    );
+    return {
+      kind: "plain",
+      text: moves.length > 0 ? `${text}\n\nMoves:\n${moves.join("\n")}` : text,
+      truncated: false,
+    };
+  }
+
   async act(
     itemId: string,
     actionId: string,
     actor: InboxActionActor,
   ): Promise<void> {
-    if (actor.permissionLevel !== "admin") {
-      throw new Error("Action items inbox requires admin permission");
-    }
+    requireAdmin(actor);
     const to = MOVES[actionId];
     if (!to) throw new Error("Invalid action-items inbox action");
     const result = await moveActionItem(
