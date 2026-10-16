@@ -1648,6 +1648,183 @@ books:
     author: Karl Marx
     year: 1848
     kind: work
+  - source: mlwerke
+    # MEW 5–6 (1959) as mlwerke.de published them, from the Internet
+    # Archive's last captures before the site went offline: Marx's articles
+    # in the Neue Rheinische Zeitung of 1848, those with Engels, and the
+    # editorials MEW prints unsigned that MECW 7–8 give to Marx or leave
+    # unsigned as Marx's or Engels'. Left out: Engels' own articles, the
+    # unsigned ones MECW gives to Engels (Hüser), and those Mehring's
+    # selection above already holds.
+    pages:
+      - https://web.archive.org/web/20240807081553id_/http://www.mlwerke.de/me/me05/me05_013.htm
+      - https://web.archive.org/web/20240917225457id_/http://mlwerke.de/me/me05/me05_022.htm
+      - https://web.archive.org/web/20250127003642id_/http://www.mlwerke.de/me/me05/me05_025.htm
+      - https://web.archive.org/web/20240812174046id_/http://www.mlwerke.de/me/me05/me05_032.htm
+      - https://web.archive.org/web/20240812163119id_/http://www.mlwerke.de/me/me05/me05_036.htm
+      - https://web.archive.org/web/20240812171143id_/http://www.mlwerke.de/me/me05/me05_037.htm
+      - https://web.archive.org/web/20240812163251id_/http://www.mlwerke.de/me/me05/me05_053.htm
+      - https://web.archive.org/web/20240812174605id_/http://www.mlwerke.de/me/me05/me05_057.htm
+      - https://web.archive.org/web/20240807090042id_/http://www.mlwerke.de/me/me05/me05_063.htm
+      - https://web.archive.org/web/20240812163924id_/http://www.mlwerke.de/me/me05/me05_078.htm
+      - https://web.archive.org/web/20240812173551id_/http://www.mlwerke.de/me/me05/me05_079.htm
+      - https://web.archive.org/web/20250121201752id_/http://www.mlwerke.de/me/me05/me05_083.htm
+      - https://web.archive.org/web/20240812164722id_/http://www.mlwerke.de/me/me05/me05_090.htm
+      - https://web.archive.org/web/20240812155651id_/http://www.mlwerke.de/me/me05/me05_102.htm
+      - https://web.archive.org/web/20240807091003id_/http://www.mlwerke.de/me/me05/me05_106.htm
+      - https://web.archive.org/web/20240917214431id_/http://mlwerke.de/me/me05/me05_110.htm
+      - https://web.archive.org/web/20240807093831id_/http://www.mlwerke.de/me/me05/me05_111.htm
+      - https://web.archive.org/web/20240812170119id_/http://www.mlwerke.de/me/me05/me05_116.htm
+      - https://web.archive.org/web/20240807101526id_/http://www.mlwerke.de/me/me05/me05_117.htm
+      - https://web.archive.org/web/20240812162815id_/http://www.mlwerke.de/me/me05/me05_157.htm
+      - https://web.archive.org/web/20240812170137id_/http://www.mlwerke.de/me/me05/me05_165.htm
+      - https://web.archive.org/web/20240807093126id_/http://www.mlwerke.de/me/me05/me05_175.htm
+      - https://web.archive.org/web/20240807085735id_/http://www.mlwerke.de/me/me05/me05_184.htm
+      - https://web.archive.org/web/20240812162708id_/http://www.mlwerke.de/me/me05/me05_189.htm
+      - https://web.archive.org/web/20240807101514id_/http://www.mlwerke.de/me/me05/me05_198.htm
+      - https://web.archive.org/web/20240917222143id_/http://mlwerke.de/me/me05/me05_213.htm
+      - https://web.archive.org/web/20240812155954id_/http://www.mlwerke.de/me/me05/me05_240.htm
+      - https://web.archive.org/web/20240807083311id_/http://www.mlwerke.de/me/me05/me05_260.htm
+      - https://web.archive.org/web/20240807100728id_/http://www.mlwerke.de/me/me05/me05_262.htm
+      - https://web.archive.org/web/20240812165551id_/http://www.mlwerke.de/me/me05/me05_293.htm
+      - https://web.archive.org/web/20240917231115id_/http://mlwerke.de/me/me05/me05_300.htm
+      - https://web.archive.org/web/20240812162944id_/http://www.mlwerke.de/me/me05/me05_303.htm
+      - https://web.archive.org/web/20240917211044id_/http://mlwerke.de/me/me05/me05_305.htm
+      - https://web.archive.org/web/20240917222634id_/http://mlwerke.de/me/me05/me05_315.htm
+      - https://web.archive.org/web/20240917230142id_/http://mlwerke.de/me/me05/me05_364.htm
+      - https://web.archive.org/web/20240812165521id_/http://www.mlwerke.de/me/me05/me05_382.htm
+      - https://web.archive.org/web/20240812162136id_/http://www.mlwerke.de/me/me05/me05_414.htm
+      - https://web.archive.org/web/20240807091639id_/http://www.mlwerke.de/me/me05/me05_415.htm
+      - https://web.archive.org/web/20240812175800id_/http://www.mlwerke.de/me/me05/me05_416.htm
+      - https://web.archive.org/web/20240812163629id_/http://www.mlwerke.de/me/me05/me05_417.htm
+      - https://web.archive.org/web/20240812161143id_/http://www.mlwerke.de/me/me05/me05_419.htm
+      - https://web.archive.org/web/20240812165319id_/http://www.mlwerke.de/me/me05/me05_422.htm
+      - https://web.archive.org/web/20240812175243id_/http://www.mlwerke.de/me/me05/me05_423.htm
+      - https://web.archive.org/web/20240807095509id_/http://www.mlwerke.de/me/me05/me05_428.htm
+      - https://web.archive.org/web/20240812174640id_/http://www.mlwerke.de/me/me05/me05_430.htm
+      - https://web.archive.org/web/20240807084149id_/http://www.mlwerke.de/me/me05/me05_431.htm
+      - https://web.archive.org/web/20240917223420id_/http://mlwerke.de/me/me05/me05_433.htm
+      - https://web.archive.org/web/20240807094855id_/http://www.mlwerke.de/me/me05/me05_435.htm
+      - https://web.archive.org/web/20240917222228id_/http://mlwerke.de/me/me05/me05_437.htm
+      - https://web.archive.org/web/20240812175438id_/http://www.mlwerke.de/me/me05/me05_440.htm
+      - https://web.archive.org/web/20240812174117id_/http://www.mlwerke.de/me/me05/me05_445.htm
+      - https://web.archive.org/web/20240812175701id_/http://www.mlwerke.de/me/me05/me05_448.htm
+      - https://web.archive.org/web/20240812163953id_/http://www.mlwerke.de/me/me05/me05_451.htm
+      - https://web.archive.org/web/20250216094115id_/http://www.mlwerke.de/me/me05/me05_453.htm
+      - https://web.archive.org/web/20240917232227id_/http://mlwerke.de/me/me06/me06_005.htm
+      - https://web.archive.org/web/20240917220419id_/http://mlwerke.de/me/me06/me06_019.htm
+      - https://web.archive.org/web/20240917230329id_/http://mlwerke.de/me/me06/me06_020.htm
+      - https://web.archive.org/web/20240917205657id_/http://mlwerke.de/me/me06/me06_021.htm
+      - https://web.archive.org/web/20240917221146id_/http://mlwerke.de/me/me06/me06_023.htm
+      - https://web.archive.org/web/20240917225422id_/http://mlwerke.de/me/me06/me06_024.htm
+      - https://web.archive.org/web/20240917231706id_/http://mlwerke.de/me/me06/me06_029.htm
+      - https://web.archive.org/web/20241101145834id_/http://www.mlwerke.de/me/me06/me06_030.htm
+      - https://web.archive.org/web/20240917221312id_/http://mlwerke.de/me/me06/me06_031.htm
+      - https://web.archive.org/web/20240917232221id_/http://mlwerke.de/me/me06/me06_033.htm
+      - https://web.archive.org/web/20240917231844id_/http://mlwerke.de/me/me06/me06_037.htm
+      - https://web.archive.org/web/20240917213058id_/http://mlwerke.de/me/me06/me06_038.htm
+      - https://web.archive.org/web/20240917220122id_/http://mlwerke.de/me/me06/me06_039.htm
+      - https://web.archive.org/web/20240917225952id_/http://mlwerke.de/me/me06/me06_040.htm
+      - https://web.archive.org/web/20240917213843id_/http://mlwerke.de/me/me06/me06_042.htm
+      - https://web.archive.org/web/20240917220917id_/http://mlwerke.de/me/me06/me06_043.htm
+      - https://web.archive.org/web/20240917232024id_/http://mlwerke.de/me/me06/me06_045.htm
+      - https://web.archive.org/web/20240917220514id_/http://mlwerke.de/me/me06/me06_055.htm
+      - https://web.archive.org/web/20240917224755id_/http://mlwerke.de/me/me06/me06_056.htm
+      - https://web.archive.org/web/20240917213730id_/http://mlwerke.de/me/me06/me06_062.htm
+      - https://web.archive.org/web/20240917231304id_/http://mlwerke.de/me/me06/me06_069.htm
+      - https://web.archive.org/web/20240917220251id_/http://mlwerke.de/me/me06/me06_075.htm
+      - https://web.archive.org/web/20240917224424id_/http://mlwerke.de/me/me06/me06_076.htm
+      - https://web.archive.org/web/20240917231452id_/http://mlwerke.de/me/me06/me06_077.htm
+      - https://web.archive.org/web/20240917232056id_/http://mlwerke.de/me/me06/me06_081.htm
+      - https://web.archive.org/web/20240917220446id_/http://mlwerke.de/me/me06/me06_083.htm
+      - https://web.archive.org/web/20240917224711id_/http://mlwerke.de/me/me06/me06_084.htm
+      - https://web.archive.org/web/20240917223124id_/http://mlwerke.de/me/me06/me06_101.htm
+      - https://web.archive.org/web/20240917221230id_/http://mlwerke.de/me/me06/me06_125.htm
+      - https://web.archive.org/web/20240917213652id_/http://mlwerke.de/me/me06/me06_128.htm
+      - https://web.archive.org/web/20240917220629id_/http://mlwerke.de/me/me06/me06_129.htm
+      - https://web.archive.org/web/20240917225108id_/http://mlwerke.de/me/me06/me06_138.htm
+      - https://web.archive.org/web/20240917221055id_/http://mlwerke.de/me/me06/me06_145.htm
+      - https://web.archive.org/web/20240917225306id_/http://mlwerke.de/me/me06/me06_146.htm
+    citation: NRZ 1848
+    articles: true
+    slug: artikel-aus-der-neuen-rheinischen-zeitung-1848
+    title: Artikel aus der Neuen Rheinischen Zeitung 1848
+    edition: "Marx-Engels-Werke, Bände 5 und 6 (Berlin, Dietz, 1959), as mlwerke.de published them"
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: mlwerke
+    # MEW 6 (1959) as mlwerke.de published it, from the Internet Archive's
+    # last captures before the site went offline: Marx's articles in the
+    # Neue Rheinische Zeitung of 1849, among them his two trial speeches of
+    # February, those with Engels, and the editorials MEW prints unsigned
+    # that MECW 8–9 give to Marx or leave unsigned as Marx's or Engels'.
+    # Left out: Engels' own articles and his defence speech at the first
+    # press trial, the unsigned ones MECW gives to Engels (Saedt) or does not
+    # print (the budget of the United States, 7 January), and those Mehring's
+    # selection above already holds.
+    pages:
+      - https://web.archive.org/web/20240612203810id_/http://www.mlwerke.de/me/me06/me06_151.htm
+      - https://web.archive.org/web/20230607080708id_/http://www.mlwerke.de/me/me06/me06_160.htm
+      - https://web.archive.org/web/20230408032344id_/http://www.mlwerke.de/me/me06/me06_182.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_199.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_209.htm
+      - https://web.archive.org/web/20230408153651id_/http://www.mlwerke.de/me/me06/me06_212.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_214.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_218.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_259.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_260.htm
+      - https://web.archive.org/web/20250219185437id_/http://www.mlwerke.de/me/me06/me06_261.htm
+      - https://web.archive.org/web/20240617094110id_/http://www.mlwerke.de/me/me06/me06_267.htm
+      - https://web.archive.org/web/20230409022646id_/http://www.mlwerke.de/me/me06/me06_223.htm
+      - https://web.archive.org/web/20230408095707id_/http://www.mlwerke.de/me/me06/me06_287.htm
+      - https://web.archive.org/web/20230407193818id_/http://www.mlwerke.de/me/me06/me06_298.htm
+      - https://web.archive.org/web/20230409022647id_/http://www.mlwerke.de/me/me06/me06_308.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_309.htm
+      - https://web.archive.org/web/20230407195312id_/http://www.mlwerke.de/me/me06/me06_312.htm
+      - https://web.archive.org/web/20241005040620id_/http://mlwerke.de/me/me06/me06_240.htm
+      - https://web.archive.org/web/20230408153654id_/http://www.mlwerke.de/me/me06/me06_314.htm
+      - https://web.archive.org/web/20230408173346id_/http://www.mlwerke.de/me/me06/me06_320.htm
+      - https://web.archive.org/web/20230409022648id_/http://www.mlwerke.de/me/me06/me06_326.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_332.htm
+      - https://web.archive.org/web/20230408032350id_/http://www.mlwerke.de/me/me06/me06_323.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_334.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_336.htm
+      - https://web.archive.org/web/20200107204718id_/http://www.mlwerke.de:80/me/me06/me06_339.htm
+      - https://web.archive.org/web/20200107200144id_/http://www.mlwerke.de:80/me/me06/me06_344.htm
+      - https://web.archive.org/web/20200108090631id_/http://www.mlwerke.de:80/me/me06/me06_346.htm
+      - https://web.archive.org/web/20200108092254id_/http://www.mlwerke.de:80/me/me06/me06_351.htm
+      - https://web.archive.org/web/20250125143536id_/http://www.mlwerke.de/me/me06/me06_353.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_357.htm
+      - https://web.archive.org/web/20200107213916id_/http://www.mlwerke.de:80/me/me06/me06_362.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_363.htm
+      - https://web.archive.org/web/20200107215238id_/http://www.mlwerke.de:80/me/me06/me06_364.htm
+      - https://web.archive.org/web/20191107230505id_/http://www.mlwerke.de:80/me/me06/me06_393.htm
+      - https://web.archive.org/web/20241009124649id_/http://mlwerke.de/me/me06/me06_426.htm
+      - https://web.archive.org/web/20240303151330id_/http://www.mlwerke.de/me/me06/me06_477.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_483.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_485.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_487.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_489.htm
+      - https://web.archive.org/web/20240430021200id_/http://www.mlwerke.de/me/me06/me06_490.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_491.htm
+      - https://web.archive.org/web/20200107202417id_/http://www.mlwerke.de:80/me/me06/me06_493.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_516.htm
+    citation: NRZ 1849
+    articles: true
+    skipHeadings:
+      - "[Verteidigungsrede von Friedrich Engels]"
+    # The page leaves the editors' cross-reference open.
+    fixes:
+      - page: "256"
+        from: " ⟨Siehe „[Aufforderung des Rheinischen Kreisausschusses der Demokraten zur Steuerverweigerung]“"
+        to: ""
+    slug: artikel-aus-der-neuen-rheinischen-zeitung-1849
+    title: Artikel aus der Neuen Rheinischen Zeitung 1849
+    edition: "Marx-Engels-Werke, Band 6 (Berlin, Dietz, 1959), as mlwerke.de published it"
+    author: Karl Marx
+    year: 1849
+    kind: work
   - source: archive-ocr
     # Gottfried Kinkel, the reviews and the two Revues, by Marx and Engels;
     # Engels' Reichsverfassungskampagne and Zehnstundenbill come before.
