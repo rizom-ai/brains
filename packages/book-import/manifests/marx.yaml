@@ -215,6 +215,96 @@ books:
     year: 1860
     kind: work
   - source: mlwerke
+    # MEW 15 (1961, 4th printing 1972) as mlwerke.de published it, from the
+    # Internet Archive's first captures: Marx's German articles for the Vienna
+    # Presse, two of them with Engels; those MEW translated from his English
+    # and Engels's own are left out.
+    pages:
+      - https://web.archive.org/web/20010517095245id_/http://www.mlwerke.de:80/me/me15/me15_329.htm
+      - https://web.archive.org/web/20010517095020id_/http://www.mlwerke.de:80/me/me15/me15_348.htm
+      - https://web.archive.org/web/20010121214300id_/http://www.mlwerke.de:80/me/me15/me15_357.htm
+      - https://web.archive.org/web/20010517094847id_/http://www.mlwerke.de:80/me/me15/me15_361.htm
+      - https://web.archive.org/web/20010517095145id_/http://www.mlwerke.de:80/me/me15/me15_374.htm
+      - https://web.archive.org/web/20010517095153id_/http://www.mlwerke.de:80/me/me15/me15_377.htm
+      - https://web.archive.org/web/20010118061300id_/http://www.mlwerke.de:80/me/me15/me15_381.htm
+      - https://web.archive.org/web/20010517095004id_/http://www.mlwerke.de:80/me/me15/me15_389.htm
+      - https://web.archive.org/web/20010518145722id_/http://www.mlwerke.de:80/me/me15/me15_392.htm
+      - https://web.archive.org/web/20010518145511id_/http://www.mlwerke.de:80/me/me15/me15_406.htm
+      - https://web.archive.org/web/20010518145717id_/http://www.mlwerke.de:80/me/me15/me15_409.htm
+      - https://web.archive.org/web/20010518145647id_/http://www.mlwerke.de:80/me/me15/me15_419.htm
+      - https://web.archive.org/web/20020721071601id_/http://mlwerke.de:80/me/me15/me15_421.htm
+      - https://web.archive.org/web/20010518145731id_/http://www.mlwerke.de:80/me/me15/me15_423.htm
+      - https://web.archive.org/web/20020721071704id_/http://mlwerke.de:80/me/me15/me15_427.htm
+      - https://web.archive.org/web/20010518145853id_/http://www.mlwerke.de:80/me/me15/me15_430.htm
+      - https://web.archive.org/web/20010518145625id_/http://www.mlwerke.de:80/me/me15/me15_434.htm
+      - https://web.archive.org/web/20011130020636id_/http://www.mlwerke.de:80/me/me15/me15_436.htm
+      - https://web.archive.org/web/20020319214516id_/http://www.mlwerke.de:80/me/me15/me15_445.htm
+      - https://web.archive.org/web/20020319214530id_/http://www.mlwerke.de:80/me/me15/me15_447.htm
+      - https://web.archive.org/web/20010121214800id_/http://www.mlwerke.de:80/me/me15/me15_451.htm
+      - https://web.archive.org/web/20020721071305id_/http://mlwerke.de:80/me/me15/me15_454.htm
+      - https://web.archive.org/web/20020319215531id_/http://www.mlwerke.de:80/me/me15/me15_458.htm
+      - https://web.archive.org/web/20020319215332id_/http://www.mlwerke.de:80/me/me15/me15_461.htm
+      - https://web.archive.org/web/20020319215044id_/http://www.mlwerke.de:80/me/me15/me15_464.htm
+      - https://web.archive.org/web/20010121215600id_/http://www.mlwerke.de:80/me/me15/me15_468.htm
+      - https://web.archive.org/web/20020319220533id_/http://www.mlwerke.de:80/me/me15/me15_478.htm
+      - https://web.archive.org/web/20010121220000id_/http://www.mlwerke.de:80/me/me15/me15_482.htm
+      - https://web.archive.org/web/20020319213707id_/http://www.mlwerke.de:80/me/me15/me15_486.htm
+      - https://web.archive.org/web/20020319214252id_/http://www.mlwerke.de:80/me/me15/me15_496.htm
+      - https://web.archive.org/web/20020319214719id_/http://www.mlwerke.de:80/me/me15/me15_499.htm
+      - https://web.archive.org/web/20020905213749id_/http://www.mlwerke.de:80/me/me15/me15_502.htm
+      - https://web.archive.org/web/20020721071920id_/http://mlwerke.de:80/me/me15/me15_504.htm
+      - https://web.archive.org/web/20020321084652id_/http://www.mlwerke.de:80/me/me15/me15_508.htm
+      - https://web.archive.org/web/20001207174900id_/http://www.mlwerke.de:80/me/me15/me15_514.htm
+      - https://web.archive.org/web/20020905214651id_/http://www.mlwerke.de:80/me/me15/me15_517.htm
+      - https://web.archive.org/web/20020721071242id_/http://mlwerke.de:80/me/me15/me15_521.htm
+      - https://web.archive.org/web/20020721071026id_/http://mlwerke.de:80/me/me15/me15_524.htm
+      - https://web.archive.org/web/20020321090122id_/http://www.mlwerke.de:80/me/me15/me15_527.htm
+      - https://web.archive.org/web/20030511032827id_/http://www.mlwerke.de:80/me/me15/me15_530.htm
+      - https://web.archive.org/web/20020721071834id_/http://mlwerke.de:80/me/me15/me15_541.htm
+      - https://web.archive.org/web/20020321084922id_/http://www.mlwerke.de:80/me/me15/me15_544.htm
+      - https://web.archive.org/web/20020905213526id_/http://www.mlwerke.de:80/me/me15/me15_548.htm
+      - https://web.archive.org/web/20010119140500id_/http://www.mlwerke.de:80/me/me15/me15_551.htm
+      - https://web.archive.org/web/20020321085326id_/http://www.mlwerke.de:80/me/me15/me15_554.htm
+      - https://web.archive.org/web/20020721071334id_/http://mlwerke.de:80/me/me15/me15_558.htm
+      - https://web.archive.org/web/20020321085340id_/http://www.mlwerke.de:80/me/me15/me15_562.htm
+      - https://web.archive.org/web/20010121220600id_/http://www.mlwerke.de:80/me/me15/me15_565.htm
+      - https://web.archive.org/web/20020321201951id_/http://www.mlwerke.de:80/me/me15/me15_567.htm
+      - https://web.archive.org/web/20020321201818id_/http://www.mlwerke.de:80/me/me15/me15_570.htm
+    citation: Presse
+    articles: true
+    slug: artikel-in-der-presse
+    title: Artikel in der Wiener „Presse“ 1861–1862
+    shortTitle: Artikel in der „Presse“
+    edition: "Marx-Engels-Werke, Band 15 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 329–573"
+    author: Karl Marx
+    year: 1861
+    kind: work
+  - source: mlwerke
+    # MEW 15, from the Internet Archive's first capture.
+    pages:
+      - https://web.archive.org/web/20020321200234id_/http://www.mlwerke.de:80/me/me15/me15_575.htm
+    citation: Berliner Reform
+    articles: true
+    slug: brief-an-die-redaktion-der-berliner-reform
+    title: Brief an die Redaktion der „Berliner Reform“
+    edition: "Marx-Engels-Werke, Band 15 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 575"
+    author: Karl Marx
+    year: 1863
+    kind: work
+  - source: mlwerke
+    # MEW 15, from the Internet Archive's first capture: the leaflet of
+    # October 1863.
+    pages:
+      - https://web.archive.org/web/20020321200421id_/http://www.mlwerke.de:80/me/me15/me15_576.htm
+    citation: Proklamation über Polen
+    articles: true
+    slug: proklamation-des-deutschen-bildungsvereins-ueber-polen
+    title: Proklamation des Deutschen Bildungsvereins für Arbeiter in London über Polen
+    edition: "Marx-Engels-Werke, Band 15 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 576–577"
+    author: Karl Marx
+    year: 1863
+    kind: work
+  - source: mlwerke
     # MEW 16 (1962, 6th printing 1975) as mlwerke.de published it, from the
     # Internet Archive's last capture: the German text of Der Social-Demokrat
     # of December 1864, the editors' variants from the English left out.

@@ -308,3 +308,61 @@ describe("parseMlwerkePages", () => {
     ).toEqual([]);
   });
 });
+
+describe("parseMlwerkePages, a volume's articles", () => {
+  const article = (
+    author: string,
+    title: string,
+    page: number,
+    text: string,
+  ): string =>
+    `<FONT SIZE=2><P>Seitenzahlen verweisen auf: Karl Marx/Friedrich Engels - Werke, Band 15. S. ${page}-${page + 2}.</P></FONT><H2>${author} </H2><H1>${title} </H1><P>Geschrieben im Oktober 1861.</P><P>["Die Presse" Nr. 293 vom 25. Oktober 1861]</P><B><P><A NAME="S${page}">&lt;${page}&gt;</A></B> ${text}</P>`;
+
+  it("titles each page's article by its own heading, its authors' line left out", () => {
+    const units = parseMlwerkePages(
+      [
+        {
+          url: "http://www.mlwerke.de/me/me15/me15_329.htm",
+          html: article(
+            "Karl Marx",
+            "Der nordamerikanische B&uuml;rgerkrieg",
+            329,
+            "Seit Monaten sind die Londoner Blätter erregt.",
+          ),
+        },
+        {
+          url: "http://www.mlwerke.de/me/me15/me15_486.htm",
+          html: article(
+            "Karl Marx/Friedrich Engels",
+            "Der Amerikanische B&uuml;rgerkrieg",
+            486,
+            "Von welchem Gesichtspunkt immer betrachtet.",
+          ),
+        },
+      ],
+      { citation: "Presse", articles: true },
+    );
+
+    expect(
+      units.map((unit) => [
+        unit.parents,
+        unit.title,
+        unit.section,
+        unit.paragraphs,
+      ]),
+    ).toEqual([
+      [
+        [],
+        "Der nordamerikanische Bürgerkrieg",
+        "Presse, 329",
+        ["Seit Monaten sind die Londoner Blätter erregt."],
+      ],
+      [
+        [],
+        "Der Amerikanische Bürgerkrieg",
+        "Presse, 486",
+        ["Von welchem Gesichtspunkt immer betrachtet."],
+      ],
+    ]);
+  });
+});

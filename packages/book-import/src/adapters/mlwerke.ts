@@ -27,6 +27,8 @@ export interface MlwerkeWork {
    * None listed, the pages' markup tells the headings.
    */
   headings?: MlwerkeHeading[];
+  /** Each page is an article of a volume, titled by the page's first-level heading. */
+  articles?: boolean | undefined;
 }
 
 export interface MlwerkeHeading {
@@ -80,6 +82,8 @@ interface Reading {
   kept: Map<string, { mark: string; place: Place }>;
   /** Every note's anchor on the page, the editors' included. */
   notes: Set<string>;
+  /** Levels the page's own headings stand below: one under an article's title. */
+  depth: number;
 }
 
 /** The site's navigation and the editors' title line, never the text. */
@@ -89,7 +93,7 @@ const APPARATUS =
 const EMPHASIS = new Set(["em", "i", "strong", "b", "u"]);
 /** A heading that only names the author, above the work's title. */
 const AUTHOR_LINE =
-  /^(?:Karl Marx|Friedrich Engels)(?:\s*[-–]\s*(?:Karl Marx|Friedrich Engels))?$/;
+  /^(?:Karl Marx|Friedrich Engels)(?:\s*[-–/]\s*(?:Karl Marx|Friedrich Engels))?$/;
 /** A MEW page number the older pages set in bold between bars, some starred: |203|, |204|*. */
 const BARRED_PAGE = /^\s*\|(\d+)\|\*?\s*$/;
 /** The same opening a bold run, the text set with it following. */
@@ -283,7 +287,7 @@ function addHeading(
 ): void {
   const title = titleCased(spaced(element.textContent));
   if (title.length === 0) return;
-  openHeading(kind === "part" ? 1 : 2, title, reading);
+  openHeading((kind === "part" ? 1 : 2) + reading.depth, title, reading);
 }
 
 /** A line's words as it reads, its line breaks as spaces. */
@@ -468,13 +472,22 @@ function sound(html: string): string {
 }
 
 /** Read one page into the reading: headings, paragraphs, the authors' notes. */
-function readPage(page: MlwerkePage, reading: Reading): void {
+function readPage(
+  page: MlwerkePage,
+  reading: Reading,
+  work: MlwerkeWork,
+): void {
   const window = new Window();
   try {
     const document = window.document;
     document.body.innerHTML = sound(
       TEXT_REGION.exec(page.html)?.[1] ?? page.html,
     );
+    // An article's title, which the apparatus would take for the site's.
+    const article =
+      work.articles === true
+        ? titleCased(spaced(document.querySelector("h1")?.textContent ?? ""))
+        : "";
     document.querySelectorAll(APPARATUS).forEach((element) => {
       element.remove();
     });
@@ -490,6 +503,7 @@ function readPage(page: MlwerkePage, reading: Reading): void {
     );
     const label = first?.[1] ?? first?.[2];
     if (label) turnPage(reading, label);
+    if (article.length > 0) openHeading(1, article, reading);
     reading.kept = new Map(
       notes.kept.map(([id, mark]) => [id, { mark, place: reading.place }]),
     );
@@ -560,8 +574,11 @@ export function parseMlwerkePages(
       : null,
     kept: new Map(),
     notes: new Set(),
+    depth: work.articles === true ? 1 : 0,
   };
-  pages.forEach((page) => readPage(page, reading));
+  pages.forEach((page) => {
+    readPage(page, reading, work);
+  });
   const missing = reading.listed?.headings[reading.listed.next];
   if (missing) {
     throw new Error(`No heading "${missing.title}" in the pages, in its order`);

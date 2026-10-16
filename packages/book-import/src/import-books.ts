@@ -318,10 +318,13 @@ const mlwerkeBookSchema: z.ZodObject<
           }>
         >
       >;
+      articles: z.ZodDefault<z.ZodBoolean>;
     }
   >
 > = z.object({
   ...bookFields,
+  /** Each page is an article of a volume, titled by the page's first-level heading. */
+  articles: z.boolean().default(false),
   /** The work's pages on mlwerke.de, in reading order, as the Internet Archive keeps them. */
   pages: z.array(z.url()).min(1),
   /** How a citation names the work before its MEW page: Manuskripte 1844, 471. */
