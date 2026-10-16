@@ -494,6 +494,40 @@ describe("JobQueueService", () => {
       });
     });
 
+    it("reports an attempt the claim terminally fails after its retries are spent", async () => {
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: { ...defaultEnqueueOptions, maxRetries: 0 },
+      });
+      const claim = {
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseDurationMs: 60_000,
+      };
+      await service.startWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+      );
+      await service.dequeue(claim);
+      await service.startWorkerSession("worker-a", "session-b");
+      const reclaimed: string[] = [];
+
+      const next = await service.dequeue({
+        ...claim,
+        workerSessionId: "session-b",
+        onTerminalReclaim: async (job) => {
+          reclaimed.push(`${job.id}:${job.status}:${job.lastError}`);
+        },
+      });
+
+      expect(next).toBeNull();
+      expect(reclaimed).toEqual([`${jobId}:failed:Attempt lease expired`]);
+      expect(await service.getStatus(jobId)).toMatchObject({
+        status: "failed",
+      });
+    });
+
     it("claims one job of an exclusive type at a time", async () => {
       const exclusive = Object.assign(new TestJobHandler(), {
         exclusive: true,

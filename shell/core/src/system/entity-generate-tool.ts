@@ -263,6 +263,19 @@ async function executePromptGenerate(
       data: { entityId: resolvedEntityId, status: "generating", jobId },
     };
   } catch (error) {
+    // No job will ever fill the stub; left behind it would stay "generating".
+    await entityService
+      .deleteEntity({
+        entityType: createInput.entityType,
+        id: resolvedEntityId,
+      })
+      .catch((cleanupError: unknown) => {
+        services.logger.warn("Failed to remove unqueued generation stub", {
+          entityType: createInput.entityType,
+          entityId: resolvedEntityId,
+          error: cleanupError,
+        });
+      });
     return {
       success: false,
       error: getErrorMessage(error, "Failed to queue generation job"),

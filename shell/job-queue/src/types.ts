@@ -32,6 +32,12 @@ export interface JobClaimOptions {
   workerSlotId: string;
   workerSessionId: string;
   leaseDurationMs: number;
+  /**
+   * Called for an expired attempt the claim fails terminally instead of
+   * reclaiming, because its retries are spent. Its handler never ran to the
+   * end, so this is the only place its terminal failure surfaces.
+   */
+  onTerminalReclaim?: ((job: JobInfo) => Promise<void>) | undefined;
 }
 
 type JobInfoSchema = z.ZodObject<{

@@ -1017,6 +1017,8 @@ export class JobQueueRepository {
    * Atomically claim the highest-priority executable pending or reclaimable job.
    * A superseded session is reclaimable immediately; any other attempt once
    * its lease expires, since a live worker renews the leases it still runs.
+   * A reclaim past the job's retries fails it instead and returns it with
+   * status failed, so the caller can surface that terminal failure.
    */
   public async claimNextReady(
     claim: JobAttemptClaim,
@@ -1121,7 +1123,8 @@ export class JobQueueRepository {
     );
 
     const claimed = result[0];
-    if (claimed?.status !== JOB_STATUS.PROCESSING) return null;
+    if (!claimed) return null;
+    if (claimed.status === JOB_STATUS.FAILED) return claimed;
 
     this.logger.debug("Job claimed", {
       jobId: claimed.id,
