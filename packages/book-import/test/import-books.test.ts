@@ -1148,6 +1148,76 @@ describe("fetchVolumeHocr", () => {
 
     expect(await fetchVolumeHocr("x", fetchHocr(roman))).toBe(roman);
   });
+
+  it("keeps the leaves the item serves, numbered as its pages are, where its OCR also read a cover it does not serve", async () => {
+    const page = (id: number, text: string): string =>
+      `<div class='ocr_page' id='page_${String(id).padStart(6, "0")}' title='bbox 0 0 10 10'><span class='ocrx_word'>${text}</span></div>`;
+    const volume = `<html><body>${page(0, "cover")}${page(1, "Titel")}${page(2, "Vorwort")}</body></html>`;
+
+    const read = await fetchVolumeHocr("y", async (url) => {
+      if (url.includes("/metadata/")) {
+        return JSON.stringify({
+          server: "ia800.us.archive.org",
+          dir: "/1/items/y",
+          files: [
+            { name: "y_hocr.html", format: "hOCR" },
+            { name: "y_page_numbers.json", format: "Page Numbers JSON" },
+          ],
+        });
+      }
+      if (url.endsWith("y_page_numbers.json")) {
+        return JSON.stringify({
+          pages: [1, 2].map((leafNum) => ({ leafNum, pageNumber: "" })),
+        });
+      }
+      return volume;
+    });
+
+    expect(read).not.toContain("cover");
+    expect(
+      read.match(/id='page_\d+'[^>]*><span class='ocrx_word'>\w+/g),
+    ).toEqual([
+      "id='page_000000' title='bbox 0 0 10 10'><span class='ocrx_word'>Titel",
+      "id='page_000001' title='bbox 0 0 10 10'><span class='ocrx_word'>Vorwort",
+    ]);
+  });
+});
+
+describe("fetchVolumeHocr, served leaves", () => {
+  it("takes the served leaves from the scandata, whose page numbers leave out a title page the scan serves", async () => {
+    const page = (id: number, text: string): string =>
+      `<div class='ocr_page' id='page_${String(id).padStart(6, "0")}' title='bbox 0 0 10 10'><span class='ocrx_word'>${text}</span></div>`;
+    const volume = `<html><body>${page(0, "Titel")}${page(1, "Vorwort")}${page(2, "card")}</body></html>`;
+
+    const read = await fetchVolumeHocr("z", async (url) => {
+      if (url.includes("/metadata/")) {
+        return JSON.stringify({
+          server: "ia800.us.archive.org",
+          dir: "/1/items/z",
+          files: [
+            { name: "z_hocr.html", format: "hOCR" },
+            { name: "z_page_numbers.json", format: "Page Numbers JSON" },
+            { name: "z_scandata.xml", format: "Scandata" },
+          ],
+        });
+      }
+      if (url.endsWith("z_page_numbers.json")) {
+        return JSON.stringify({ pages: [{ leafNum: 1, pageNumber: "1" }] });
+      }
+      if (url.endsWith("z_scandata.xml")) {
+        return `<book><pageData>${[true, true, false]
+          .map(
+            (access, leaf) =>
+              `<page leafNum="${leaf}"><addToAccessFormats>${access}</addToAccessFormats></page>`,
+          )
+          .join("")}</pageData></book>`;
+      }
+      return volume;
+    });
+
+    expect(read).toContain("Titel");
+    expect(read).not.toContain("card");
+  });
 });
 
 describe("firstOfEachVolume", () => {

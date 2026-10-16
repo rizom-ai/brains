@@ -711,7 +711,10 @@ export async function fetchVolumeHocr(
   );
   const hocr = metadata.files.find((file) => file.format === "hOCR");
   if (!hocr) throw new Error(`No hOCR file in ${item}`);
-  const text = await fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
+  const text = servedPages(
+    await fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`),
+    await servedLeaves(item, metadata, fetchText),
+  );
   // An OCR that read Fraktur prints its long s; it reads as roman type then.
   return /ſ/u.test(text) ? frakturRead(text) : text;
 }
@@ -749,18 +752,22 @@ async function loadDtaTeiBook(
   };
 }
 
-const pageNumbersSchema = z.object({ pages: z.array(z.unknown()) });
+const pageNumbersSchema = z.object({
+  pages: z.array(z.looseObject({ leafNum: z.number().int() })),
+});
 
 /**
- * The leaves a scan serves as page images: as many as its page numbers list,
- * or its scandata puts in the access formats; the image count also counts
- * colour cards and covers that are not served. Null where it has neither.
+ * The leaves a scan serves as page images, by their numbers in the scan:
+ * those its scandata puts in the access formats, else those its page
+ * numbers list, which leave out a served page without a number, such as a
+ * title page; the image count also counts colour cards that are not
+ * served. Null where it has neither.
  */
 async function servedLeaves(
   item: string,
   metadata: z.output<typeof archiveMetadataSchema>,
   fetchText: FetchText,
-): Promise<number | null> {
+): Promise<number[] | null> {
   // Read from the item's own server: the mirror a download is sent to may
   // fail on a file it holds.
   const folder =
@@ -773,16 +780,51 @@ async function servedLeaves(
       ? fetchText(`${folder}/${encodeURIComponent(file.name)}`)
       : null;
   };
-  const pageNumbers = fileOf("Page Numbers JSON");
-  if (pageNumbers) {
-    return pageNumbersSchema.parse(JSON.parse(await pageNumbers)).pages.length;
-  }
   const scandata = fileOf("Scandata");
-  if (!scandata) return null;
-  return (
-    (await scandata).match(/<addToAccessFormats>true<\/addToAccessFormats>/g)
-      ?.length ?? null
+  const served = scandata
+    ? Array.from(
+        (await scandata).matchAll(
+          /<page\b[^>]*\bleafNum="(\d+)"[\s\S]*?<\/page>/g,
+        ),
+      ).flatMap((page) =>
+        /<addToAccessFormats>true<\/addToAccessFormats>/.test(page[0])
+          ? [Number(page[1])]
+          : [],
+      )
+    : [];
+  if (served.length > 0) return served;
+  const pageNumbers = fileOf("Page Numbers JSON");
+  return pageNumbers
+    ? pageNumbersSchema
+        .parse(JSON.parse(await pageNumbers))
+        .pages.map((page) => page.leafNum)
+    : null;
+}
+
+/**
+ * The archive's OCR of the leaves the scan serves, numbered as the scan's
+ * page images are: an OCR that also read a cover or colour card the scan
+ * does not serve would number every later page one image too far.
+ */
+function servedPages(hocr: string, served: number[] | null): string {
+  const [head = "", ...pages] = hocr.split(/(?=<div class=['"]ocr_page['"])/);
+  if (
+    served === null ||
+    pages.length <= served.length ||
+    Math.max(...served) >= pages.length
+  ) {
+    return hocr;
+  }
+  const close = /<\/body>\s*<\/html>\s*$/u;
+  const kept = served.map((leaf, index) =>
+    (pages[leaf] ?? "")
+      .replace(close, "")
+      .replace(
+        /id=(['"])page_\d+\1/,
+        `id='page_${String(index).padStart(6, "0")}'`,
+      ),
   );
+  return `${head}${kept.join("")}</body></html>\n`;
 }
 
 /**
@@ -798,7 +840,7 @@ export async function ocrVolumeHocr(
     JSON.parse(await fetchText(`${ARCHIVE}/metadata/${item}`)),
   );
   const count =
-    (await servedLeaves(item, metadata, fetchText)) ??
+    (await servedLeaves(item, metadata, fetchText))?.length ??
     metadata.metadata?.imagecount;
   if (!count) throw new Error(`No image count for ${item}`);
   return imagesHocr(
