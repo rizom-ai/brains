@@ -20104,7 +20104,7 @@ Freud_Rie_1891_halbseitige_201606:
     by: scan
   - page: 15
     from: "4. Fälle mit unmerklichem Beginne und langsamem Anstieg ;"
-    to: "A. Fälle mit unmerklichem Beginne und langsamem Anstieg (primäre Athetose Oulmont.) ;"
+    to: "A. Fälle mit unmerklichem Beginne und langsamem Anstieg (primäre Athetose [Oulmont.])"
     by: scan
   - page: 15
     from: "Kind über (die Stiege gefallen, dabei sehr erschrocken sein, sich"
@@ -20858,9 +20858,29 @@ Freud_Rie_1891_halbseitige_201606:
     from: "XXXV. Antonie Kiekinger. Kind hatte nie Fraisen,"
     to: "Nachtrag. XXXV. Antonie Kickinger. Kind hatte nie Fraisen,"
     by: scan
-  - page: 39
-    from: "Herzgeräusche; beim Lachen und Zähnezeigen geringes aber deut-"
-    to: "Herzgeräusche; beim Lachen und Zähnezeigen geringes aber deut-\nliches Zurückbleiben des rechten Facialis. Gelegentlich bemerkt\nman unwillkürliche, wie schlürfende Bewegungen des Mundes. Die\nZunge wird gerade vorgestreckt. Der rechte Arm zeigt auch in der\nRuhe leichte Chorea, keine Contractur, Lähmung oder Ataxie.\nBeide Beine erscheinen bei passiven Bewegungsversuchen hyper-\ntonisch, mehr in den Streckern als in den Beugern; das linke Bein\nsogar stärker als das rechte. Das rechte Bein ist kühler, zeigt\neine mässige Atrophie, am Oberschenkel 1½ cm, an der Wade\n1 cm Unterschied, das Sprunggelenk ist rechts auffällig schlaff, der\nFuss meist in Spitzfussstellung. Schwiele am fünften Metatarso-\nphalangealgelenk. Gang mit besonderer Hebung im Knie: tritt\nauf den äussern Fussrand auf, Patellarreflex rechts lebhafter.\nTabellarische Zusammenstellung der 35 vorstehenden Beobachtungen."
+  - page: 40
+    from: "liches Zurückbleiben des rechten Facialis, Gelegentlich bemerkt"
+    to: "liches Zurückbleiben des rechten Facialis. Gelegentlich bemerkt"
+    by: scan
+  - page: 40
+    from: "Ruhe leichte Chorea, keine Contraetur, Lähmung oder Ataxie.,"
+    to: "Ruhe leichte Chorea, keine Contractur, Lähmung oder Ataxie."
+    by: scan
+  - page: 40
+    from: "eine mässige Atrophie, am Oberschenkel 1‘, em, an der Wade"
+    to: "eine mässige Atrophie, am Oberschenkel 1½ cm, an der Wade"
+    by: scan
+  - page: 40
+    from: "lcm Unterschied, Die Sprunggelenk ist rechts auffällig schlaff, der"
+    to: "1 cm Unterschied, das Sprunggelenk ist rechts auffällig schlaff, der"
+    by: scan
+  - page: 40
+    from: "Fuss meist in Spitzfussstellung. Schwiele am fünften Metatarso -"
+    to: "Fuss meist in Spitzfussstellung. Schwiele am fünften Metatarso-"
+    by: scan
+  - page: 41
+    from: "Ill. Tabellarische Zusammenstellung der 35 vorstehenden"
+    to: "Tabellarische Zusammenstellung der 35 vorstehenden"
     by: scan
   - page: 43
     from: "Fälle, welehe wohl alle die Bezeichnung „eerebrale Parese“ im Sinne"
@@ -28563,6 +28583,10 @@ Freud_1893_Diplegien:
     from: "genommen,"
     to: "ngenommen,"
     by: scan
+  - page: 28
+    from: "C. Unbestimmte Formen,"
+    to: "C. Unbestimmte Formen."
+    by: scan
   - page: 29
     from: "Keine Lähmung, Gang gut, aber noch überall eine Audeutung von Hypertonie,"
     to: "Keine Lähmung, Gang gut, aber noch überall eine Andeutung von Hypertonie,"
@@ -28582,6 +28606,10 @@ Freud_1893_Diplegien:
   - page: 29
     from: "selbst die Befriedigung seiner Bedürfnisse. Es ist in allen Bewegnngen langsam,"
     to: "selbst die Befriedigung seiner Bedürfnisse. Es ist in allen Bewegungen langsam,"
+    by: scan
+  - page: 29
+    from: "D. Uebergänge von allgemeiner zu paraplegischer Starre.,"
+    to: "D. Uebergänge von allgemeiner zu paraplegischer Starre."
     by: scan
   - page: 30
     from: "Status praesens, Kecht kümmerlich entwickelt, besm.1ders di.e Extrem1tät€fn"
@@ -28617,7 +28645,7 @@ Freud_1893_Diplegien:
     by: scan
   - page: 30
     from: "E, Paraplegische Staine"
-    to: "E, Paraplegische Starre"
+    to: "E. Paraplegische Starre."
     by: scan
   - page: 30
     from: "gewelnt,"
@@ -28754,6 +28782,10 @@ Freud_1893_Diplegien:
   - page: 33
     from: "bleiben des linken Facijalis?"
     to: "bleiben des linken Facialis?"
+    by: scan
+  - page: 33
+    from: "G, Combination von allgemeiner Starre mit Hemiparese."
+    to: "G. Combination von allgemeiner Starre mit Hemiparese."
     by: scan
   - page: 34
     from: "Kind sehr unruhig, trommelt beständig mit den Füssen, wobe!l d.1ehZehe.n"
@@ -28906,6 +28938,10 @@ Freud_1893_Diplegien:
   - page: 36
     from: "Die Extremitäten werden gleich gehbraucht, Füsse und Zehen in best ändiger"
     to: "Die Extremitäten werden gleich gebraucht, Füsse und Zehen in best"
+    by: scan
+  - page: 36
+    from: "/. Allgemeine Chorea.,"
+    to: "I. Allgemeine Chorea."
     by: scan
   - page: 37
     from: "53 Jahre spüter. Idiotisch und sehr ungeberdig."
@@ -31822,7 +31858,7 @@ b33778474:
     by: scan
   - page: 6
     from: "Ifa. Geschichte und Literatur der hemiplegischen"
-    to: "Ila. Geschichte und Literatur der hemiplegischen"
+    to: "IIa. Geschichte und Literatur der hemiplegischen"
     by: scan
   - page: 6
     from: "Grade die beiden Extremitäten, in geringerem die Gesichtsmuseulatur."

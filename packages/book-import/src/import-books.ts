@@ -101,19 +101,40 @@ const noteLineSchema: z.ZodObject<{
   runsOn: z.boolean().optional(),
 });
 
-/** A heading by the line that opens it, or the numeral the scan lost above that line. */
+/**
+ * A heading by the line that opens it, or the numeral the scan lost above
+ * that line. Where it names the heading's level, the line is the heading as
+ * printed: its label, if it has one, then its title.
+ */
 const headingLineSchema: z.ZodObject<{
   page: typeof printedPageSchema;
   opens: z.ZodString;
   numeral: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  page: printedPageSchema,
-  opens: z.string().min(1),
-  numeral: z
-    .string()
-    .regex(/^[IVXL]+$/)
-    .optional(),
-});
+  level: z.ZodOptional<z.ZodLiteral<0 | 1 | 2 | 3 | 4>>;
+  label: z.ZodOptional<z.ZodString>;
+}> = z
+  .object({
+    page: printedPageSchema,
+    opens: z.string().min(1),
+    numeral: z
+      .string()
+      .regex(/^[IVXL]+$/)
+      .optional(),
+    /** 0 a part, 1 a chapter, 2 its sections (A., 1.), 3 theirs (a)), 4 theirs (α)). */
+    level: z.literal([0, 1, 2, 3, 4]).optional(),
+    /** The label as printed, without the stop after it: IIa, B, a); none for a heading without one. */
+    label: z.string().min(1).optional(),
+  })
+  .refine(
+    (heading) => heading.label === undefined || heading.level !== undefined,
+    {
+      message: "A heading's label is named with its level",
+    },
+  )
+  .refine(
+    (heading) => heading.numeral === undefined || heading.level === undefined,
+    { message: "A heading named by its level prints its own label" },
+  );
 
 /** A scan another library holds: its page images, read with an OCR model. */
 const scanSchema: z.ZodObject<{
@@ -193,9 +214,11 @@ const archiveOcrBookSchema: z.ZodObject<
   skipNotes: z.array(pageLineSchema).default([]),
   /**
    * Headings the edition sets in the text's type, which their place on the
-   * page does not tell from the text, by the line that opens them: a
-   * numbered or lettered one keeps its label, one without opens a chapter
-   * numbered by place; a section's numeral the scan lost stands above it.
+   * page does not tell from the text, by the line that opens them: one with
+   * its level is what the manifest says, its label as printed or none;
+   * otherwise a numbered or lettered one keeps its label, one without opens
+   * a chapter numbered by place; a section's numeral the scan lost stands
+   * above it.
    */
   headings: z.array(headingLineSchema).default([]),
   /** Pages the OCR read too askew to tell paragraphs by their indent: on each, the lines that open one, by their opening words; no other line there opens one. */

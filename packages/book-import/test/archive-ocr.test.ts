@@ -60,6 +60,25 @@ describe("parseArchiveOcrWork", () => {
     );
   });
 
+  it.each(["² l. c.", "² A. a. O.", "²) l. c."])(
+    "keeps a note that only refers back, its mark set in superscript: %s",
+    async (note) => {
+      const hocr = (await fixture()).replace(
+        ">Ferenczi, Abraham, Simmel und E. Jones, 1919.</span>",
+        `>Ferenczi, Abraham, Simmel und E. Jones, 1919.</span>\n  <span class='ocr_line' title='bbox 182 4010 700 4070; x_size 60'>${note}</span>`,
+      );
+      const paragraphs = parseArchiveOcrWork(hocr, {
+        ...work,
+        notes: [
+          { page: 4, opens: "ı) Vgl." },
+          { page: 4, opens: note },
+        ],
+      }).flatMap((unit) => unit.paragraphs);
+
+      expect(paragraphs).toContain(note);
+    },
+  );
+
   it("runs a page opening in lower case on the sentence left open above a note read as text", async () => {
     const hocr = (await fixture())
       .replace(
@@ -301,6 +320,49 @@ describe("parseArchiveOcrWork on a work that opens mid-page", () => {
       "Es hat dabei für uns kein Interesse",
     );
     expect(text).not.toContain("In der psychoanalytischen Theorie");
+  });
+
+  it("corrects any line of its first page, the one it opens with too", async () => {
+    const hocr = (await fixture()).replace(
+      ">Es hat dabei für uns kein Interesse,",
+      ">Es hat dahei für uns kein Interesse,",
+    );
+    const units = parseArchiveOcrWork(hocr, {
+      ...work,
+      opensWith: "Es hat dabei für uns",
+      corrections: [
+        {
+          page: 3,
+          from: "In der psychoanalytischen Theorie nehmen",
+          to: "In der psychoanalytischen Theorie, nehmen",
+        },
+        { page: 3, from: "Es hat dahei für uns", to: "Es hat dabei für uns" },
+      ],
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(units[0]?.paragraphs[0]).toStartWith(
+      "Es hat dabei für uns kein Interesse",
+    );
+    expect(text).not.toContain("psychoanalytischen Theorie");
+  });
+
+  it("opens with the line a correction leaves out, as a title the manifest gives", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      opensWith: "Es hat dabei für uns",
+      corrections: [
+        {
+          page: 3,
+          from: "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit",
+          to: "",
+        },
+      ],
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(text).not.toContain("psychoanalytischen Theorie");
+    expect(text).not.toContain("kein Interesse");
   });
 
   it("stops on an opening line its first page does not hold", async () => {
@@ -836,6 +898,113 @@ describe("parseArchiveOcrWork on an essay's sections", () => {
   });
 });
 
+describe("parseArchiveOcrWork, a title its running heads misread", () => {
+  /** A page of text, its running head above it and its lines below. */
+  const page = (leaf: number, head: string, lines: string[]): string =>
+    `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 400 200 2000 270; x_size 62'>${head}</span></p>
+ <p class='ocr_par'>${lines
+   .map(
+     (text, line) =>
+       `<span class='ocr_line' title='bbox ${line % 3 === 0 ? 330 : 245} ${500 + line * 100} 2150 ${580 + line * 100}; x_size 78'>${text}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+  const text = [
+    "Die Krankheit der Kinder hat man lange nicht gekannt, und",
+    "die Aerzte haben die cerebralen Lähmungen der Kinder mit",
+    "den Lähmungen der Erwachsenen verwechselt, bis man sie sah.",
+    "Die eerebralen Formen der Lähmung sind bei Kindern häufig.",
+    "Die Geschichte der Kinderlähmung ist lang, wie man sieht.",
+  ];
+  /** The chapter set in the text's type on its first page, its title as printed. */
+  const opening = (title: string): string =>
+    `<div class='ocr_page' id='page_000010' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 500 400 1900 480; x_size 78'>${title}</span></p>
+ <p class='ocr_par'>${text
+   .map(
+     (line, at) =>
+       `<span class='ocr_line' title='bbox ${at % 3 === 0 ? 330 : 245} ${600 + at * 100} 2150 ${680 + at * 100}; x_size 78'>${line}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+  const hocr = (
+    title: string,
+    head = "Geschichte der eerebralen Kinderlähmung.",
+  ): string =>
+    `<html><body>${opening(title)}${[11, 12, 13]
+      .map((leaf) =>
+        page(
+          leaf,
+          leaf % 2 === 0 ? `${leaf - 9} ${head}` : `${head} ${leaf - 9}`,
+          text,
+        ),
+      )
+      .join("")}</body></html>`;
+  const work = {
+    item: "halbseitige",
+    title: "Klinische Studie",
+    citation: "Halbseitige",
+    firstPage: 1,
+    lastPage: 4,
+  };
+
+  it("titles a chapter by its heading as corrected, not by the heads that misread it", () => {
+    const units = parseArchiveOcrWork(
+      hocr("Geschichte der eerebralen Kinderlähmung."),
+      {
+        ...work,
+        headings: [{ page: 1, opens: "Geschichte der cerebralen" }],
+        corrections: [
+          {
+            page: 1,
+            from: "Geschichte der eerebralen Kinderlähmung.",
+            to: "Geschichte der cerebralen Kinderlähmung.",
+          },
+        ],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "I. Geschichte der cerebralen Kinderlähmung.",
+    ]);
+  });
+
+  it("takes the case of a heading set in capitals from its running head, though the OCR read a capital small", () => {
+    const units = parseArchiveOcrWork(
+      hocr(
+        "GESCHICHTE DER CEREBRALEN KINDERLäHMUNG",
+        "Geschichte der Cerebralen Kinderlähmung.",
+      ),
+      work,
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Geschichte der Cerebralen Kinderlähmung.",
+    ]);
+  });
+
+  it("titles a chapter whose heading the OCR could not read by its running head, as corrected", () => {
+    const units = parseArchiveOcrWork(
+      hocr("GESCHICHTE DER GEREBRALFN KINDERLAHMUNG"),
+      {
+        ...work,
+        corrections: [
+          {
+            page: 3,
+            from: "3 Geschichte der eerebralen Kinderlähmung.",
+            to: "3 Geschichte der cerebralen Kinderlähmung.",
+          },
+        ],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Geschichte der cerebralen Kinderlähmung.",
+    ]);
+  });
+});
+
 describe("parseArchiveOcrWork on a work's opening", () => {
   it("keeps an opening heading that is not the work's title", async () => {
     const units = parseArchiveOcrWork(
@@ -1085,6 +1254,125 @@ describe("printedPageNumbers", () => {
 
     expect(pages.get(12)).toBe(3);
   });
+
+  /** A folded table's part, scanned across the leaf, its cells read as words. */
+  const across = (leaf: number): LeafReading => ({
+    leaf,
+    head: null,
+    words: 260,
+    across: true,
+  });
+  /** A page that opens a chapter: no running head, a full page of text. */
+  const opening = (leaf: number): LeafReading => text(leaf, null);
+
+  it("numbers the pages either side of a table folded over ten leaves, its leaves unnumbered", () => {
+    // Pages 37–40, the table's title on 41 and its blank back 42, five
+    // folds each scanned across with their blank backs, then 43 opening a
+    // chapter and 44–47.
+    const pages = printedPageNumbers([
+      ...[37, 38, 39, 40].map((page) => text(page + 9, page)),
+      { leaf: 50, head: null, words: 4 },
+      plate(51),
+      ...[52, 54, 56, 58, 60].flatMap((leaf) => [
+        across(leaf),
+        { leaf: leaf + 1, head: null, words: 0 },
+      ]),
+      opening(62),
+      ...[44, 45, 46, 47].map((page) => text(page + 19, page)),
+    ]);
+
+    expect(
+      Array.from({ length: 63 - 46 }, (_, index) => pages.get(46 + index)),
+    ).toEqual([
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      ...Array.from({ length: 10 }, () => null),
+      43,
+    ]);
+  });
+
+  it("numbers the first pages before a folded table from the heads before it", () => {
+    const pages = printedPageNumbers([
+      opening(10),
+      ...Array.from({ length: 30 }, (_, index) => text(11 + index, 2 + index)),
+      { leaf: 41, head: null, words: 4 },
+      plate(42),
+      ...[43, 45, 47, 49, 51].flatMap((leaf) => [
+        across(leaf),
+        plate(leaf + 1),
+      ]),
+      opening(53),
+      ...[35, 36, 37].map((page) => text(page + 19, page)),
+    ]);
+
+    expect([10, 11, 40, 41, 42, 53, 54].map((leaf) => pages.get(leaf))).toEqual(
+      [1, 2, 31, 32, 33, 34, 35],
+    );
+  });
+
+  it("numbers a page without a head before a folded table on from the page before", () => {
+    // Page 40 lost its head; the table's title on 41, its blank back 42, a
+    // fold's edge, five parts scanned across, then 43 opening a chapter.
+    const pages = printedPageNumbers([
+      ...[36, 37, 38, 39].map((page) => text(page + 3, page)),
+      { leaf: 43, head: null, words: 66 },
+      { leaf: 44, head: null, words: 4 },
+      { leaf: 45, head: null, words: 1 },
+      { leaf: 46, head: null, words: 1 },
+      ...[47, 48, 49, 50, 51].map(across),
+      opening(52),
+      ...[44, 45, 46].map((page) => text(page + 9, page)),
+    ]);
+
+    expect(
+      Array.from({ length: 53 - 43 }, (_, index) => pages.get(43 + index)),
+    ).toEqual([40, 41, 42, null, null, null, null, null, null, 43]);
+  });
+
+  it("counts no plate for a leaf left out as a rescan", () => {
+    // A work's half-title (57) and its blank back (58), its first page (59)
+    // scanned twice, the rescan (leaf 74) left out, and a blank leaf
+    // between them.
+    const pages = printedPageNumbers([
+      ...[53, 54, 55].map((page) => text(page + 13, page)),
+      { leaf: 69, head: null, words: 1 },
+      plate(70),
+      { leaf: 71, head: null, words: 0 },
+      opening(72),
+      { leaf: 73, head: null, words: 0 },
+      ...[60, 61, 62].map((page) => text(page + 15, page)),
+    ]);
+
+    expect([69, 70, 71, 72, 73, 75].map((leaf) => pages.get(leaf))).toEqual([
+      56,
+      57,
+      58,
+      59,
+      null,
+      60,
+    ]);
+  });
+
+  it("still ignores a run of heads the OCR misread lower, with pages between", () => {
+    // 330 to 341 read as 310 to 321 at the volume's end, a run of pages
+    // between: no plates there to lower the numbering by twenty.
+    const pages = printedPageNumbers([
+      ...Array.from({ length: 40 }, (_, index) =>
+        text(10 + index, 290 + index),
+      ),
+      ...Array.from({ length: 12 }, (_, index) =>
+        text(50 + index, 310 + index),
+      ),
+    ]);
+
+    expect([49, 50, 61].map((leaf) => pages.get(leaf))).toEqual([
+      329, 330, 341,
+    ]);
+  });
 });
 
 describe("parseArchiveOcrWork on long chapters", () => {
@@ -1196,6 +1484,33 @@ describe("parseArchiveOcrWork, a chapter's numeral and title on one line", () =>
       "I. Die Schwefelbande.",
       "II. Die Bürstenheimer.",
     ]);
+  });
+
+  it("runs a title broken off at a hyphen on to the centred line below it", async () => {
+    const hocr = (
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-numbered-titles.html"),
+        "utf8",
+      )
+    )
+      .replace(
+        "<span class='ocr_line' title='bbox 620 250 1280 290; x_size 52'>II. Die Bürstenheimer.</span>",
+        "<span class='ocr_line' title='bbox 560 250 1340 290; x_size 52'>II. Die Bürsten-</span>\n  <span class='ocr_line' title='bbox 830 300 1070 340; x_size 52'>heimer.</span>",
+      )
+      .replace("der 25. Juni drang", "der 25. Juni drang den Bürstenheimer");
+    const units = parseArchiveOcrWork(hocr, {
+      item: "10067670bsb",
+      title: "Herr Vogt",
+      citation: "Herr Vogt",
+      firstPage: 20,
+      lastPage: 23,
+    });
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "I. Die Schwefelbande.",
+      "II. Die Bürstenheimer.",
+    ]);
+    expect(units[1]?.paragraphs[0]).toStartWith("Der 25. Februar");
   });
 });
 
@@ -2115,11 +2430,12 @@ describe("parseArchiveOcrWork, articles opening with their dateline", () => {
       },
     );
 
+    // The group is titled as its heading prints it; its running heads repeat it.
     expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
-      ["Das Ministerium Camphausen", "Köln, 3. Juni."],
-      ["Das Ministerium Camphausen", "Köln, 13. Juni."],
-      ["Die Polendebatte in Frankfurt", "Köln, 7. August."],
-      ["Die Polendebatte in Frankfurt", "Köln, im Januar."],
+      ["Das Ministerium Camphausen.", "Köln, 3. Juni."],
+      ["Das Ministerium Camphausen.", "Köln, 13. Juni."],
+      ["Die Polendebatte in Frankfurt.", "Köln, 7. August."],
+      ["Die Polendebatte in Frankfurt.", "Köln, im Januar."],
     ]);
     expect(units[0]?.paragraphs).toEqual([
       "** Köln, 3. Juni. Die Zeiten ändern sich, wir ändern uns mit ihnen, und die Herren Camphausen und Hansemann wissen davon zu erzählen.",
@@ -2450,6 +2766,36 @@ describe("parseArchiveOcrWork, headings set in the text's type", () => {
     expect(units[1]?.paragraphs[0]).toStartWith("Paris war das einzige");
   });
 
+  it("titles a heading without the mark of the note it carries", async () => {
+    const units = parseArchiveOcrWork(
+      (
+        await readFile(
+          join(
+            import.meta.dir,
+            "fixtures",
+            "archive-ocr-unnumbered-chapter.html",
+          ),
+          "utf8",
+        )
+      )
+        .replace(">chismus.</span>", ">chismus *).</span>")
+        .replace("Vorläufiges.", "Vorläufiges¹)."),
+      {
+        item: "10394216bsb",
+        title: "Enthüllungen über den Kommunisten-Prozeß zu Köln",
+        citation: "Enthüllungen",
+        firstPage: 3,
+        lastPage: 4,
+        headings: [{ page: 4, opens: "Das Begleit-Schreiben" }],
+      },
+    );
+
+    expect(units.map((unit) => unit.title).slice(0, 2)).toEqual([
+      "I. Vorläufiges.",
+      "II. Das Begleit-Schreiben des rothen Katechismus.",
+    ]);
+  });
+
   it("reads the line as text where the manifest names none", async () => {
     const units = await read();
 
@@ -2458,6 +2804,86 @@ describe("parseArchiveOcrWork, headings set in the text's type", () => {
       "II. Die Fraktion Willich-Schapper.",
       "Beilagen.",
     ]);
+  });
+});
+
+describe("parseArchiveOcrWork, headings the manifest names by level and label", () => {
+  /** A line of the page, set at the margin in the text's type, or in from it. */
+  const line = (text: string, y: number, x = 245): string =>
+    `<span class='ocr_line' title='bbox ${x} ${y} 2150 ${y + 80}; x_size 78'>${text}</span>`;
+  const paragraph = (y: number): string =>
+    [
+      line("Die Kinder leiden an einer Lähmung der einen Seite, die", y, 330),
+      line("schon früh beginnt und lange anhält, wie man es sieht.", y + 100),
+    ].join("\n");
+  const page = (leaf: number, lines: string[]): string =>
+    `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'>${lines.join("\n")}</p>
+</div>`;
+  const hocr = `<html><body>${[
+    page(10, [
+      line("Einleitung. Nosographische Stellung.", 500),
+      paragraph(600),
+      line("IIa. Geschichte der Lähmung.", 900),
+      paragraph(1000),
+    ]),
+    page(11, [
+      line("2 Typische Fälle der Lähmung.", 200, 900),
+      line("A. Typische Fälle der Lähmung.", 500),
+      paragraph(600),
+      line("B. Leichte Fälle der Lähmung.", 900),
+      paragraph(1000),
+    ]),
+    page(12, [
+      line("XI—XVI. 3", 200, 1800),
+      line("B. Leichte Fälle der Lähmung.", 300),
+      paragraph(500),
+      line("IIIb. Klinik der Lähmung.", 900),
+      paragraph(1000),
+      line("Pathologie der Lähmung.", 1300),
+      paragraph(1400),
+    ]),
+    // Its running head carries the words of the heading below it.
+    page(13, [
+      line("KLINIK DER STARRE 4", 200, 900),
+      line("KLINIK DER STARRE", 500),
+      paragraph(600),
+    ]),
+  ].join("")}</body></html>`;
+
+  it("opens chapters labelled as printed or unnumbered, and lettered sections, numbering on from the labels", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "infantile",
+      title: "Die infantile Cerebrallähmung",
+      citation: "Infantile",
+      firstPage: 1,
+      lastPage: 4,
+      headings: [
+        { page: 1, opens: "Einleitung. Nosographische", level: 1 },
+        { page: 1, opens: "IIa. Geschichte", level: 1, label: "IIa" },
+        { page: 2, opens: "A. Typische Fälle", level: 2, label: "A" },
+        { page: 2, opens: "B. Leichte Fälle", level: 2, label: "B" },
+        // A heading set high on its page is no running head.
+        { page: 3, opens: "B. Leichte Fälle", level: 2, label: "B" },
+        { page: 3, opens: "IIIb. Klinik", level: 1, label: "IIIb" },
+        { page: 3, opens: "Pathologie der Lähmung" },
+        { page: 4, opens: "KLINIK DER STARRE" },
+      ],
+    });
+
+    expect(
+      units.map((unit) => [...unit.parents, unit.title].join(" > ")),
+    ).toEqual([
+      "Einleitung. Nosographische Stellung.",
+      "IIa. Geschichte der Lähmung. > IIa. Geschichte der Lähmung.",
+      "IIa. Geschichte der Lähmung. > A. Typische Fälle der Lähmung.",
+      "IIa. Geschichte der Lähmung. > B. Leichte Fälle der Lähmung.",
+      "IIa. Geschichte der Lähmung. > B. Leichte Fälle der Lähmung.",
+      "IIIb. Klinik der Lähmung.",
+      "IV. Pathologie der Lähmung.",
+      "V. Klinik der Starre",
+    ]);
+    expect(units[4]?.paragraphs[0]).toStartWith("Die Kinder leiden");
   });
 });
 

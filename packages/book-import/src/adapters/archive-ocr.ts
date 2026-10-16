@@ -14,6 +14,7 @@ import {
   sameName,
   type Spelling,
   type Heading,
+  type HeadingLevel,
   type HeadingLine,
 } from "./archive-ocr-headings";
 import { tableCells, tabled } from "./tables";
@@ -49,11 +50,12 @@ export interface ArchiveOcrWork {
   /** Notes not the author's, such as an editor's, by page and opening words. */
   skipNotes?: PageLine[];
   /**
-   * Headings set in the text's type, by the line that opens them: a numbered
-   * or lettered one keeps its label, one without opens a chapter numbered by
-   * place; a section's numeral the scan lost stands above it.
+   * Headings set in the text's type, by the line that opens them: one named
+   * with its level is that heading, its label as printed or none; otherwise
+   * a numbered or lettered one keeps its label, one without opens a chapter
+   * numbered by place; a section's numeral the scan lost stands above it.
    */
-  headings?: Array<PageLine & { numeral?: string | undefined }>;
+  headings?: Array<PageLine & HeadingOpening>;
   /**
    * Pages the OCR read too askew to tell paragraphs by their indent: on each,
    * the lines that open one, by their opening words; no other line there
@@ -96,6 +98,16 @@ export interface ArchiveOcrWork {
    * work's end on that page, as a periodical prints it.
    */
   opensWith?: string | undefined;
+}
+
+/** What the manifest says of a heading set in the text's type. */
+interface HeadingOpening {
+  /** The numeral the scan lost above the line. */
+  numeral?: string | undefined;
+  /** Its level: 0 a part, 1 a chapter, 2 its sections, 3 and 4 below them. */
+  level?: HeadingLevel | undefined;
+  /** Its label as printed, without the stop after it; none where it prints none. */
+  label?: string | undefined;
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
@@ -173,15 +185,21 @@ const SCRAP_TOKENS = 3;
 const CITATION_TOKEN =
   /^[([„“]*(?:\p{L}{1,2}\.|[IVXLC]+\.?|\d+(?:[.,—–-]\d+)*[.,;:]?)[)\]“”.,;:]*$/u;
 
+/** A note's mark opening its line: a superscript figure, bracketed or not, or a figure or asterisks before a bracket. */
+const LEADING_NOTE_MARK = /^(?:[¹²³⁴⁵⁶⁷⁸⁹⁰]+\)?|ı\)|\d{1,2}\)|\*+\))\s+/u;
+
 /**
- * A citation set alone, all abbreviations and numbers: (l. c. S. 114, 115.)
- * A number without an abbreviation is a margin's page number.
+ * A citation set alone, all abbreviations and numbers: (l. c. S. 114, 115.),
+ * or a note that only refers back, after its mark: ¹ l. c.; ² A. a. O. A
+ * number without an abbreviation is a margin's page number.
  */
 function isCitation(text: string): boolean {
+  const marked = LEADING_NOTE_MARK.test(text);
+  const rest = text.replace(LEADING_NOTE_MARK, "");
   return (
-    /\d/.test(text) &&
-    /(?<![\p{L}\d])\p{L}{1,2}\./u.test(text) &&
-    text.split(" ").every((token) => CITATION_TOKEN.test(token))
+    (marked || /\d/.test(rest)) &&
+    /(?<![\p{L}\d])\p{L}{1,2}\./u.test(rest) &&
+    rest.split(" ").every((token) => CITATION_TOKEN.test(token))
   );
 }
 
@@ -676,6 +694,8 @@ export interface LeafReading {
   stated?: boolean;
   /** Words of running text; a plate's picture reads as next to none. */
   words: number;
+  /** Scanned across, wider than tall: a folded table's part or a plate set sideways, no page. */
+  across?: boolean;
 }
 
 /** A running head's number counts when a head this close by agrees with it. */
@@ -688,8 +708,19 @@ interface Anchor {
 
 /** A scan missing a leaf or two raises the offset that much. */
 const MISSING_LEAVES = 2;
-/** Plates bound in one place lower the offset by at most this many leaves. */
+/**
+ * Plates bound in one place lower the offset by this many leaves, whatever
+ * the leaves between read as; more, only where so many leaves between read
+ * as plates.
+ */
 const PLATE_LEAVES = 8;
+/** A leaf reading fewer words than this is a plate's picture, a blank or a title alone. */
+const PLATE_WORDS = 10;
+
+/** Whether a leaf reads as no page of text: scanned across, or next to no words. */
+function readsAsPlate(reading: LeafReading): boolean {
+  return reading.across === true || reading.words < PLATE_WORDS;
+}
 
 /** Anchors in runs of one offset, in reading order. */
 function runsOf(anchors: Anchor[]): Anchor[][] {
@@ -701,10 +732,27 @@ function runsOf(anchors: Anchor[]): Anchor[][] {
   }, []);
 }
 
-/** Whether one run of heads can follow another in the same volume. */
-function follows(before: Anchor[], after: Anchor[]): boolean {
+/**
+ * Whether one run of heads can follow another in the same volume: a missing
+ * leaf or two raises the offset, plates lower it, a folded table by as many
+ * leaves as it takes, where the leaves between read as plates.
+ */
+function follows(
+  before: Anchor[],
+  after: Anchor[],
+  readings: LeafReading[],
+): boolean {
   const drop = (before[0]?.offset ?? 0) - (after[0]?.offset ?? 0);
-  return drop >= -MISSING_LEAVES && drop <= PLATE_LEAVES;
+  if (drop < -MISSING_LEAVES) return false;
+  if (drop <= PLATE_LEAVES) return true;
+  const from = before.at(-1)?.leaf ?? 0;
+  const to = after[0]?.leaf ?? 0;
+  return (
+    readings.filter(
+      (reading) =>
+        reading.leaf > from && reading.leaf < to && readsAsPlate(reading),
+    ).length >= drop
+  );
 }
 
 /** The heaviest chain of runs ending at a run, and the run before it. */
@@ -719,12 +767,16 @@ interface Chain {
  * runs of running heads, the chain that moves only so keeps the most heads;
  * the rest are the OCR misreading a digit, however many pages it does so.
  */
-function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
+function withoutMisreadRuns(
+  anchors: Anchor[],
+  readings: LeafReading[],
+): Anchor[] {
   const runs = runsOf(anchors);
   const chains = runs.reduce<Chain[]>((done, run) => {
     const best = done.reduce<Chain>(
       (found, chain, at) =>
-        follows(runs[at] ?? [], run) && chain.weight + run.length > found.weight
+        follows(runs[at] ?? [], run, readings) &&
+        chain.weight + run.length > found.weight
           ? { weight: chain.weight + run.length, before: at }
           : found,
       { weight: run.length, before: null },
@@ -747,8 +799,10 @@ function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
 
 /**
  * Number the pages between two anchors whose offsets differ: the plates bound
- * in between take the leaves that read least and get no number; the other
- * leaves are numbered on from the first anchor.
+ * in between take the leaves scanned across, then those that read least, and
+ * get no number; the other leaves are numbered on from the first anchor. Of
+ * leaves that read alike, the plates are the later: a page's blank back stays
+ * beside it, and a fold's back follows the fold.
  */
 function numberGap(
   from: Anchor,
@@ -759,10 +813,16 @@ function numberGap(
     (reading) => reading.leaf > from.leaf && reading.leaf < to.leaf,
   );
   const pages = to.leaf + to.offset - (from.leaf + from.offset) - 1;
-  const plateCount = Math.max(0, to.leaf - from.leaf - 1 - pages);
+  // A leaf left out as a rescan of a page holds no plate.
+  const plateCount = Math.max(0, gap.length - pages);
   const plates = new Set(
     [...gap]
-      .sort((a, b) => a.words - b.words || a.leaf - b.leaf)
+      .sort(
+        (a, b) =>
+          Number(b.across === true) - Number(a.across === true) ||
+          a.words - b.words ||
+          b.leaf - a.leaf,
+      )
       .slice(0, plateCount)
       .map((reading) => reading.leaf),
   );
@@ -806,6 +866,7 @@ export function printedPageNumbers(
             Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
         ),
     ),
+    readings,
   );
   const first = anchors[0];
   const last = anchors.at(-1);
@@ -841,6 +902,7 @@ function readingOf(page: Page): LeafReading {
       (sum, line) => sum + (line.text.match(WORD)?.length ?? 0),
       0,
     ),
+    across: page.width > page.height,
   };
 }
 
@@ -879,7 +941,7 @@ interface Volume {
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
-  headingOpenings?: Array<{ opens: string; numeral?: string }>;
+  headingOpenings?: Array<{ opens: string } & HeadingOpening>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
   paragraphOpenings?: string[];
   /** The lines that open the page's notes, by their opening words, where the manifest names them. */
@@ -896,8 +958,6 @@ interface Volume {
   spelling: Spelling;
   /** The spelling of its running text alone, without the running heads. */
   textSpelling: Spelling;
-  /** Each page's running head, without its page number or numeral. */
-  headsByLeaf: Map<number, string>;
   /** The page number printed on each leaf, as the running heads number them. */
   printed: Map<number, number | null>;
   /** The words its text uses often, in small letters. */
@@ -908,14 +968,59 @@ interface Volume {
   numberedTitles: boolean;
 }
 
+/** The manifest's word on a heading that opens with this line, if it names one there. */
+function headingOpeningOf(
+  line: Line,
+  volume: Volume,
+): ({ opens: string } & HeadingOpening) | undefined {
+  return (volume.headingOpenings ?? []).find(
+    (opening) =>
+      opening.numeral === undefined && line.text.startsWith(opening.opens),
+  );
+}
+
+/**
+ * Where the page's running head stands, or -1: the scan's noise above it
+ * goes with it. A heading the manifest names is no running head, however
+ * high the page sets it, nor is any line below it; the head that carries
+ * the page's number is one, whatever words it repeats.
+ */
+function headIndex(page: Page, volume: Volume): number {
+  const front = volume.frontLeaves.has(page.leaf);
+  const low = lowHeadIndex(page, volume.printed.get(page.leaf) ?? null);
+  const head = Math.max(runningHeadIndex(page, volume.heads, front), low);
+  const numbered = Math.max(
+    numberedHead(page)?.index ?? -1,
+    romanHead(page, front)?.index ?? -1,
+    low,
+  );
+  const named = page.lines.findIndex(
+    (line, index) =>
+      index > numbered && headingOpeningOf(line, volume) !== undefined,
+  );
+  return named >= 0 ? Math.min(head, named - 1) : head;
+}
+
 /** Lines below the running head and the scan's noise above it. */
 function bodyLines(page: Page, volume: Volume): Line[] {
-  return page.lines.slice(
-    Math.max(
-      runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)),
-      lowHeadIndex(page, volume.printed.get(page.leaf) ?? null),
-    ) + 1,
-  );
+  return page.lines.slice(headIndex(page, volume) + 1);
+}
+
+/** A page's running head as the work's titles may read it: its words, and whether a correction set them. */
+interface RunningHead {
+  name: string;
+  corrected: boolean;
+}
+
+/** The running head of a page as read with its corrections, if it has one. */
+function runningHeadOf(page: Page, volume: Volume): RunningHead | null {
+  const line = page.lines[headIndex(page, volume)];
+  return line === undefined
+    ? null
+    : {
+        name: headName(normalised(line.text)),
+        corrected: line.corrected === true,
+      };
 }
 
 /** A token that reads as a word of three letters or more, with its punctuation. */
@@ -1065,6 +1170,8 @@ function headingLineText(line: HeadingLine): string {
       return line.numeral;
     case "letter":
       return line.letter;
+    case "named":
+      return line.label ?? "";
     // Its title is in the lines after it.
     case "article":
       return "";
@@ -1153,7 +1260,7 @@ export function pageText(
   const page = pages.find((each) => each.leaf === leaf);
   if (!page) throw new Error(`No page ${printedPage}`);
   return readPage(page, volume, corrections, String(printedPage))
-    .flatMap((piece) =>
+    .pieces.flatMap((piece) =>
       piece.kind === "heading"
         ? // A topic's or an article's mark prints nothing of its own.
           piece.lines.map(headingLineText).filter((text) => text !== "")
@@ -1251,19 +1358,25 @@ function correctedLines(
   };
 }
 
+/** A page as read: its pieces, and its running head with the corrections that reach it. */
+interface ReadPage {
+  pieces: Piece[];
+  head: RunningHead | null;
+}
+
 /**
  * A page read into pieces with its corrections. A correction whose text is
  * a whole line of the scan fixes that line before the page is read, so a
- * misread heading can be set right; any other fixes the text where it holds
- * it, else the scan's line that holds it, else what an earlier correction
- * wrote. A correction that finds nothing to fix is stale.
+ * misread heading or running head can be set right; any other fixes the
+ * text where it holds it, else the scan's line that holds it, else what an
+ * earlier correction wrote. A correction that finds nothing to fix is stale.
  */
 function readPage(
   page: Page,
   volume: Volume,
   corrections: OcrCorrection[],
   label: string,
-): Piece[] {
+): ReadPage {
   const own = corrections.filter(
     (correction) => String(correction.page) === label,
   );
@@ -1281,13 +1394,16 @@ function readPage(
       !texts.some((text) => text.includes(correction.from)) &&
       scanLines.some((line) => line.includes(correction.from)),
   );
-  return correctedPieces(
-    inScan.length === 0
-      ? pieces
-      : piecesOf(debarred(correctedLines(lined, inScan, label)), volume),
-    rest.filter((correction) => !inScan.includes(correction)),
-    label,
-  );
+  const read =
+    inScan.length === 0 ? lined : correctedLines(lined, inScan, label);
+  return {
+    pieces: correctedPieces(
+      inScan.length === 0 ? pieces : piecesOf(debarred(read), volume),
+      rest.filter((correction) => !inScan.includes(correction)),
+      label,
+    ),
+    head: runningHeadOf(debarred(read), volume),
+  };
 }
 
 /** No chapter opens below this share of the page's height. */
@@ -1398,9 +1514,16 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   ) {
     return [line];
   }
+  // The heading ends with its title, unless the title breaks off at a
+  // hyphen and runs on to the line below: Krankheits- / processe.
   return [
     { ...line, text: match[1], numbered: true },
-    { ...line, text: match[2], ends: true, numbered: true },
+    {
+      ...line,
+      text: match[2],
+      ends: !/\p{L}-$/u.test(match[2]),
+      numbered: true,
+    },
   ];
 }
 
@@ -1566,7 +1689,10 @@ function withArticleLine(
 function piecesOf(page: Page, volume: Volume): Piece[] {
   const headless = volume.numberedTitles
     ? bodyLines(page, volume).flatMap((line) =>
-        numberedTitleApart(line, page, volume),
+        // A heading the manifest names stays the line it names.
+        headingOpeningOf(line, volume) === undefined
+          ? numberedTitleApart(line, page, volume)
+          : [line],
       )
     : bodyLines(page, volume);
   if (isPicture(headless)) return [];
@@ -1853,14 +1979,34 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     const article = articleLines.get(index);
     if (article !== undefined) return withArticleLine(pieces, line, article);
     // A heading the edition sets in the text's type opens where the manifest
-    // says: a numbered piece by its number, a chapter without its numeral
-    // numbered by place; a chapter's title may run on.
-    if (
-      (volume.headingOpenings ?? []).some(
-        (opening) =>
-          opening.numeral === undefined && line.text.startsWith(opening.opens),
-      )
-    ) {
+    // says. Named with its level, it is that heading, its title after its
+    // label and the stop the label takes; a chapter's or part's title may
+    // run on, and so may a section's, to a centred line.
+    const opening = headingOpeningOf(line, volume);
+    if (opening?.level !== undefined) {
+      const label = opening.label ?? null;
+      const named: HeadingLine[] = [
+        { kind: "named", level: opening.level, label },
+        {
+          kind: "caps",
+          text:
+            label !== null && line.text.startsWith(label)
+              ? line.text.slice(label.length).replace(/^[.,:]?\s+/u, "")
+              : line.text,
+          size: line.size,
+          misread: true,
+        },
+      ];
+      return [
+        ...pieces,
+        opening.level >= 2
+          ? { kind: "heading", lines: named, closed: true, subsection: true }
+          : { kind: "heading", lines: named },
+      ];
+    }
+    // Otherwise a numbered piece opens by its number, a chapter without its
+    // numeral numbered by place; a chapter's title may run on.
+    if (opening !== undefined) {
       const labelled =
         NUMBERED_SUBSECTION.exec(line.text) ??
         BRACKETED_SUBSECTION.exec(line.text);
@@ -2392,6 +2538,19 @@ function addLine(
   ];
 }
 
+/** A title's letters this share in capitals at least are set in capitals, a few the OCR read small. */
+const CAPITALS = 0.7;
+
+/** Whether a title is set in capitals, which tell no case. */
+function inCapitals(title: string): boolean {
+  const letters = title.match(/\p{L}/gu) ?? [];
+  const capitals = title.match(/\p{Lu}/gu) ?? [];
+  return letters.length > 0 && capitals.length / letters.length >= CAPITALS;
+}
+
+/** A note's mark a title carries: *), **), or a superscript figure the OCR may read as a dotless i: ¹). */
+const TITLE_NOTE_MARK = /\s*(?:\*+|[ı¹²³⁴⁵⁶⁷⁸⁹⁰]+)\)/gu;
+
 /** A heading as it stands in the work: its level and its cased title. */
 interface PathStep {
   level: number;
@@ -2404,6 +2563,8 @@ interface PathStep {
   letter: string | null;
   /** A chapter numbered by its numeral. */
   numbered: boolean;
+  /** Its title set in capitals, which tell no case. */
+  capitals: boolean;
 }
 
 /** The text under one heading, with the headings above it. */
@@ -2438,8 +2599,9 @@ function titleOf(step: PathStep, name: string = step.name): string {
  */
 function levelOf(heading: Heading, path: PathStep[]): number {
   // A piece numbered with a bracket stands below the section numbered in
-  // roman above it: VIII. Nachtrag, 1) Beilage.
+  // roman above it: VIII. Nachtrag, 1) Beilage. The manifest's level stands.
   if (
+    !heading.printed &&
     heading.level === 2 &&
     /^\d+\)$/u.test(heading.label ?? "") &&
     /^[IVXL]+$/u.test(
@@ -2492,8 +2654,9 @@ function addHeading(
     );
   }
   // Inside a lettered subsection, a numbered one is an example, its number
-  // and name text: 5. Ein Traum bei Kindern.
+  // and name text: 5. Ein Traum bei Kindern; not one the manifest names.
   if (
+    !heading.printed &&
     heading.level === 2 &&
     /^\d+$/u.test(heading.label ?? "") &&
     path.some((step) => step.level === 2 && /^[A-H]$/u.test(step.letter ?? ""))
@@ -2512,6 +2675,7 @@ function addHeading(
   // section's numbers a list's item, its number and words text.
   const sibling = path.filter((step) => step.level === 2).at(-1)?.letter;
   if (
+    !heading.printed &&
     heading.level === 2 &&
     /^\d+$/u.test(heading.label ?? "") &&
     /^\d+$/u.test(sibling ?? "") &&
@@ -2539,7 +2703,16 @@ function addHeading(
   if (/^\d+$/u.test(heading.numeral ?? "") && heading.title.length === 0) {
     return state;
   }
-  const chapters = state.chapters + (heading.numbered ? 1 : 0);
+  // A chapter labelled as printed counts as the numeral its label opens
+  // with, IIIb as III: the next numbered by place follows it.
+  const printedNumeral =
+    heading.printed && heading.level === 1
+      ? /^[IVXL]+/u.exec(heading.label ?? "")?.[0]
+      : undefined;
+  const chapters =
+    printedNumeral === undefined
+      ? state.chapters + (heading.numbered ? 1 : 0)
+      : romanValue(printedNumeral);
   const level = levelOf(heading, path);
   // A section left out leaves out the sections under it.
   if (state.skipping !== null && level > state.skipping) {
@@ -2555,26 +2728,35 @@ function addHeading(
       ? roman(chapters)
       : heading.label === null
         ? null
-        : // A number, arabic or roman, or a bracketed label is no word to case.
-          /^(?:\d+|[IVX]+|\d+\)|[a-z]\)|[α-ω]\))$/u.test(heading.label)
+        : // A number, arabic or roman, or a bracketed label is no word to
+          // case, nor is a label as printed.
+          heading.printed ||
+            /^(?:\d+|[IVX]+|\d+\)|[a-z]\)|[α-ω]\))$/u.test(heading.label)
           ? heading.label
           : cased(heading.label),
     // A subtitle follows its title after one full stop, or after the comma
-    // it goes on from; the title is cased as a whole.
+    // it goes on from; the title is cased as a whole, without the marks of
+    // the notes it carries.
     name: cased(
-      heading.title.reduce(
-        (name, line) =>
-          name === ""
-            ? line
-            : /[.!?:,;]$/u.test(name)
-              ? `${name} ${line}`
-              : `${name}. ${line}`,
-        "",
-      ),
+      heading.title
+        .reduce(
+          (name, line) =>
+            name === ""
+              ? line
+              : /[.!?:,;]$/u.test(name)
+                ? `${name} ${line}`
+                : `${name}. ${line}`,
+          "",
+        )
+        .replace(TITLE_NOTE_MARK, ""),
     ),
     qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,
-    numbered: heading.numbered,
+    // A chapter labelled as printed is numbered by its label.
+    numbered:
+      heading.numbered ||
+      (heading.printed && level === 1 && heading.label !== null),
+    capitals: inCapitals(heading.title.join(" ")),
   };
   return {
     sections: [
@@ -2649,18 +2831,20 @@ function knownShare(name: string, spelling: Spelling): number {
 }
 
 /**
- * A heading's name as its running heads print it, where they do: in proper
- * case, which the capitals of the heading cannot tell. The head printed most
- * often over the heading's pages, and naming the same thing, wins unless the
- * OCR misread it where it read the heading right: the work's text must know
- * its words as well as the heading's own.
+ * A heading's name: the page's own heading, as corrected. The running heads
+ * over the heading's pages that name the same thing stand in for it only
+ * where the OCR could not read it, the work's text knowing their words
+ * better than the heading's; then the head a correction set right counts
+ * first, else the one printed most often. A heading set in capitals tells
+ * no case, and the OCR loses its umlauts: a head that reads as well stands
+ * in for it.
  */
 function namedByHeads(
   step: PathStep,
   sections: Section[],
-  volume: Volume,
+  headsByLeaf: Map<number, RunningHead>,
+  spelling: Spelling,
 ): string {
-  const { headsByLeaf, textSpelling: spelling } = volume;
   if (step.name === "") return step.name;
   const heads = sections
     .filter((section) => section.path.includes(step))
@@ -2676,22 +2860,28 @@ function namedByHeads(
       const head = headsByLeaf.get(leaf);
       // A head set in capitals tells no more of the case than the heading.
       return head !== undefined &&
-        /\p{Ll}/u.test(head) &&
-        sameName(head, step.name)
+        /\p{Ll}/u.test(head.name) &&
+        sameName(head.name, step.name)
         ? [head]
         : [];
     });
   const counts = heads.reduce(
-    (tally, head) => tally.set(head, (tally.get(head) ?? 0) + 1),
-    new Map<string, number>(),
+    (tally, head) =>
+      tally.set(head.name, {
+        count: (tally.get(head.name)?.count ?? 0) + 1,
+        corrected: (tally.get(head.name)?.corrected ?? false) || head.corrected,
+      }),
+    new Map<string, { count: number; corrected: boolean }>(),
   );
   const head = [...counts].sort(
-    (a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1),
+    (a, b) =>
+      Number(b[1].corrected) - Number(a[1].corrected) ||
+      b[1].count - a[1].count ||
+      (a[0] < b[0] ? -1 : 1),
   )[0]?.[0];
-  return head !== undefined &&
-    knownShare(head, spelling) >= knownShare(step.name, spelling)
-    ? head
-    : step.name;
+  if (head === undefined) return step.name;
+  const known = knownShare(head, spelling) - knownShare(step.name, spelling);
+  return known > 0 || (step.capitals && known === 0) ? head : step.name;
 }
 
 /** A volume as read once for all the works it holds. */
@@ -2942,12 +3132,6 @@ function readVolume(hocr: string): ReadVolume {
       textSize: median(fullLines.map((line) => line.size)),
       spelling,
       textSpelling,
-      headsByLeaf: new Map(
-        pages.flatMap((page): Array<[number, string]> => {
-          const line = page.lines[headOf(page)];
-          return line ? [[page.leaf, headName(line.text)]] : [];
-        }),
-      ),
     },
     // Pages before the first are the front matter, numbered in roman.
     front: romanOffset(pages),
@@ -3000,16 +3184,63 @@ function noteOpeningsOn(
 }
 
 /** A work's first page from the line it opens with, if the manifest names one. */
-function opened(page: Page, work: ArchiveOcrWork): Page {
+function opened(
+  page: Page,
+  work: ArchiveOcrWork,
+  label: string,
+): { page: Page; corrections: OcrCorrection[] } {
+  const corrections = work.corrections ?? [];
   const opening = work.opensWith;
-  if (opening === undefined) return page;
-  const at = page.lines.findIndex((line) =>
-    normalised(line.text).startsWith(opening),
+  if (opening === undefined) return { page, corrections };
+  const own = corrections.filter(
+    (correction) => String(correction.page) === label,
+  );
+  // The page's lines as its corrections leave them, each fixing the first
+  // line that holds its text, what an earlier one wrote too: the line the
+  // work opens with is read so or as the scan has it, which a correction
+  // may set right or leave out, as it does a title the manifest gives.
+  const lines = page.lines.map((line) => normalised(line.text));
+  const { fixed, touched } = own.reduce<{
+    fixed: string[];
+    touched: Map<OcrCorrection, number>;
+  }>(
+    (done, correction) => {
+      const line = done.fixed.findIndex((each) =>
+        each.includes(correction.from),
+      );
+      return line < 0
+        ? done
+        : {
+            fixed: done.fixed.map((each, index) =>
+              index === line
+                ? each.replace(correction.from, correction.to)
+                : each,
+            ),
+            touched: new Map([...done.touched, [correction, line]]),
+          };
+    },
+    { fixed: lines, touched: new Map() },
+  );
+  const at = fixed.findIndex(
+    (line, index) =>
+      line.startsWith(opening) || (lines[index] ?? "").startsWith(opening),
   );
   if (at < 0) {
     throw new Error(`No line opening "${opening}" on page ${work.firstPage}`);
   }
-  return { ...page, lines: page.lines.slice(at) };
+  // A correction to a line above the opening fixes a line the work leaves
+  // out, unless a line of the work holds its text too.
+  const outside = own.filter(
+    (correction) =>
+      (touched.get(correction) ?? at) < at &&
+      !lines.slice(at).some((line) => line.includes(correction.from)),
+  );
+  return {
+    page: { ...page, lines: page.lines.slice(at) },
+    corrections: corrections.filter(
+      (correction) => !outside.includes(correction),
+    ),
+  };
 }
 
 /** A gloss starts this share of the page's width left of the text column. */
@@ -3075,58 +3306,79 @@ export function parseArchiveOcrWork(
     datelined: work.datelined === true,
   };
   const { cased } = volume.spelling;
-  const { sections } = pagesOfWork(read, work)
-    .map(({ page, number, label }, index) => ({
-      page: (work.marginalia === true
-        ? withoutMarginalia
-        : (same: Page): Page => same)(index === 0 ? opened(page, work) : page),
-      number,
-      label,
-    }))
-    .reduce<WorkState>(
-      (state, { page, number, label }) =>
-        readPage(
-          page,
+  const pagesRead = pagesOfWork(read, work).map(
+    ({ page, number, label }, index) => {
+      const first =
+        index === 0
+          ? opened(page, work, label)
+          : { page, corrections: work.corrections ?? [] };
+      const own = (
+        work.marginalia === true
+          ? withoutMarginalia
+          : (same: Page): Page => same
+      )(first.page);
+      return {
+        page: own,
+        number,
+        label,
+        read: readPage(
+          own,
           {
             ...volume,
             headingOpenings: (work.headings ?? [])
               .filter((heading) => String(heading.page) === label)
-              .map(({ opens, numeral }) =>
-                numeral === undefined ? { opens } : { opens, numeral },
-              ),
+              .map(({ opens, numeral, level, label: printed }) => ({
+                opens,
+                ...(numeral === undefined ? {} : { numeral }),
+                ...(level === undefined ? {} : { level }),
+                ...(printed === undefined ? {} : { label: printed }),
+              })),
             ...paragraphOpeningsOn(work, label),
             ...noteOpeningsOn(work, label),
           },
-          work.corrections ?? [],
+          first.corrections,
           label,
-        ).reduce<WorkState>(
-          (done, piece) =>
-            piece.kind === "heading"
-              ? addHeading(
-                  done,
-                  headingOf(piece.lines),
-                  cased,
-                  {
-                    page: number,
-                    leaf: page.leaf,
-                    label,
-                  },
-                  work.title,
-                  work.skipHeadings ?? [],
-                )
-              : addPiece(done, piece, {
+        ),
+      };
+    },
+  );
+  // The running heads as corrected, which a title may stand in for.
+  const headsByLeaf = new Map(
+    pagesRead.flatMap(
+      ({ page, read: { head } }): Array<[number, RunningHead]> =>
+        head === null ? [] : [[page.leaf, head]],
+    ),
+  );
+  const { sections } = pagesRead.reduce<WorkState>(
+    (state, { page, number, label, read: { pieces } }) =>
+      pieces.reduce<WorkState>(
+        (done, piece) =>
+          piece.kind === "heading"
+            ? addHeading(
+                done,
+                headingOf(piece.lines),
+                cased,
+                {
                   page: number,
                   leaf: page.leaf,
                   label,
-                }),
-          state,
-        ),
-      {
-        sections: [],
-        chapters: (work.firstChapter ?? 1) - 1,
-        skipping: null,
-      },
-    );
+                },
+                work.title,
+                work.skipHeadings ?? [],
+              )
+            : addPiece(done, piece, {
+                page: number,
+                leaf: page.leaf,
+                label,
+              }),
+        state,
+      ),
+    {
+      sections: [],
+      chapters: (work.firstChapter ?? 1) - 1,
+      skipping: null,
+    },
+  );
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);
   const cite = (start: Block): { citation: string; source: string } => ({
@@ -3148,7 +3400,13 @@ export function parseArchiveOcrWork(
   const titles = new Map(
     steps.map((step) => [
       step,
-      titleOf(step, retitled(namedByHeads(step, filled, volume), uses)),
+      titleOf(
+        step,
+        retitled(
+          namedByHeads(step, filled, headsByLeaf, volume.textSpelling),
+          uses,
+        ),
+      ),
     ]),
   );
   // A ß the OCR read as B is read as ß again, words it ran together in

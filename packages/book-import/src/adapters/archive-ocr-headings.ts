@@ -8,6 +8,8 @@ export type HeadingLine =
       named?: boolean;
     }
   | { kind: "letter"; letter: string }
+  /** A heading the manifest names: its level, and its label as printed or none. */
+  | { kind: "named"; level: HeadingLevel; label: string | null }
   /** A newspaper article's title: a chapter by its words alone, not numbered. */
   | { kind: "article" }
   | { kind: "caps"; text: string; size: number; misread?: boolean }
@@ -35,6 +37,8 @@ export interface Heading {
   /** The title came from a line the OCR read in small letters. */
   misread: boolean;
   qualifiers: string[];
+  /** Its level and label as the manifest names them: no place numbers it, no casing changes its label. */
+  printed: boolean;
 }
 
 /** A part's name, its word for part however the OCR read it ("Tetl"), or as
@@ -145,8 +149,10 @@ const SUBTITLE_SIZE = 0.85;
 /** Read a block of heading lines as one heading. */
 export function headingOf(lines: HeadingLine[]): Heading {
   const heading = readHeading(lines);
-  // A lettered heading that names a part stands above the chapters.
+  // A lettered heading that names a part stands above the chapters, unless
+  // the manifest says what it is.
   return heading.level === 2 &&
+    !heading.printed &&
     heading.title.some((line) => PART_WORD.test(line))
     ? { ...heading, level: 0 }
     : heading;
@@ -178,6 +184,13 @@ function readHeading(lines: HeadingLine[]): Heading {
                 ? 3
                 : 2,
             label: line.letter,
+          };
+        case "named":
+          return {
+            ...heading,
+            level: line.level,
+            label: line.label,
+            printed: true,
           };
         case "article":
           return { ...heading, level: 1 };
@@ -214,6 +227,7 @@ function readHeading(lines: HeadingLine[]): Heading {
       title: [],
       misread: false,
       qualifiers: [],
+      printed: false,
       titleSize: null,
     },
   );

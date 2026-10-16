@@ -996,6 +996,37 @@ books:
     ]);
   });
 
+  it("names a heading's level and its label as printed, or a heading without one", () => {
+    const manifest = parseManifest(
+      ocrManifest +
+        '    headings:\n      - { page: 4, opens: "IIa. Geschichte", level: 1, label: IIa }\n      - { page: 5, opens: "B. Leichte", level: 2, label: B }\n      - { page: 6, opens: "Einleitung", level: 1 }\n      - { page: 7, opens: "Paris war", numeral: II }\n',
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].headings
+        : null,
+    ).toEqual([
+      { page: 4, opens: "IIa. Geschichte", level: 1, label: "IIa" },
+      { page: 5, opens: "B. Leichte", level: 2, label: "B" },
+      { page: 6, opens: "Einleitung", level: 1 },
+      { page: 7, opens: "Paris war", numeral: "II" },
+    ]);
+  });
+
+  it.each([
+    ["a label without its level", '{ page: 4, opens: "B. Leichte", label: B }'],
+    ["a level past the deepest", '{ page: 4, opens: "B. Leichte", level: 5 }'],
+    [
+      "a lost numeral beside a level",
+      '{ page: 4, opens: "Paris", level: 1, numeral: II }',
+    ],
+  ])("refuses a heading with %s", (_, heading) => {
+    expect(() =>
+      parseManifest(`${ocrManifest}    headings:\n      - ${heading}\n`),
+    ).toThrow();
+  });
+
   it("names an editor's signatures, whose notes are left out", () => {
     const manifest = parseManifest(ocrManifest + "    skipNotesSigned: [K.]\n");
 
