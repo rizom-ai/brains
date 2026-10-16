@@ -208,16 +208,35 @@ export type ActionItemHistoryEntry = z.output<
   typeof actionItemHistoryEntrySchema
 >;
 
+type ActionItemSourceRefSchema = z.ZodObject<{
+  sourceId: z.ZodString;
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+}>;
+
+/** The Inbox item a tracked action item came from. */
+export const actionItemSourceRefSchema: ActionItemSourceRefSchema = z.object({
+  sourceId: z.string().min(1),
+  entityType: z.string().min(1),
+  entityId: z.string().min(1),
+});
+
 type ActionItemMetadataSchema = z.ZodObject<{
-  conversationId: z.ZodString;
-  channelId: z.ZodString;
+  /** Absent on items projected before origins were recorded: a conversation. */
+  origin: z.ZodOptional<
+    z.ZodEnum<{ conversation: "conversation"; inbox: "inbox" }>
+  >;
+  conversationId: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
-  interfaceType: z.ZodString;
-  spaceId: z.ZodString;
-  timeRange: typeof summaryTimeRangeSchema;
-  sourceSummaryId: z.ZodString;
-  sourceMessageCount: z.ZodNumber;
-  projectionVersion: z.ZodNumber;
+  interfaceType: z.ZodOptional<z.ZodString>;
+  spaceId: z.ZodOptional<z.ZodString>;
+  timeRange: z.ZodOptional<typeof summaryTimeRangeSchema>;
+  sourceSummaryId: z.ZodOptional<z.ZodString>;
+  sourceMessageCount: z.ZodOptional<z.ZodNumber>;
+  projectionVersion: z.ZodOptional<z.ZodNumber>;
+  sourceRef: z.ZodOptional<ActionItemSourceRefSchema>;
+  capturedAt: z.ZodOptional<z.ZodISODateTime>;
   status: ActionItemStatusSchema;
   assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
   requestedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
@@ -225,23 +244,71 @@ type ActionItemMetadataSchema = z.ZodObject<{
   history: z.ZodOptional<z.ZodArray<ActionItemHistoryEntrySchema>>;
 }>;
 
-export const actionItemMetadataSchema: ActionItemMetadataSchema = z.object({
-  conversationId: z.string(),
-  channelId: z.string(),
+const CONVERSATION_FIELDS = [
+  "conversationId",
+  "channelId",
+  "interfaceType",
+  "spaceId",
+  "timeRange",
+  "sourceSummaryId",
+  "sourceMessageCount",
+  "projectionVersion",
+] as const;
+
+/** A conversation item carries its conversation; an Inbox item, its source. */
+function requireOriginFields(
+  metadata: Record<string, unknown>,
+  context: z.RefinementCtx,
+): void {
+  if (metadata["origin"] === "inbox") {
+    for (const field of ["sourceRef", "capturedAt"] as const) {
+      if (metadata[field] === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: `An action item tracked from the Inbox needs ${field}`,
+        });
+      }
+    }
+    return;
+  }
+  for (const field of CONVERSATION_FIELDS) {
+    if (metadata[field] === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: [field],
+        message: `An action item from a conversation needs ${field}`,
+      });
+    }
+  }
+}
+
+const originShape = {
+  origin: z.enum(["conversation", "inbox"]).optional(),
+  conversationId: z.string().optional(),
+  channelId: z.string().optional(),
   channelName: z.string().optional(),
-  interfaceType: z.string(),
-  spaceId: z.string(),
-  timeRange: summaryTimeRangeSchema,
-  sourceSummaryId: z.string(),
-  sourceMessageCount: z.number().int().min(0),
-  projectionVersion: z.number().int().min(1),
-  status: actionItemStatusSchema,
-  assignedTo: z.array(actionItemAssigneeSchema).optional(),
-  requestedBy: z.array(memoryActorReferenceSchema).optional(),
-  /** Body hash when the projector wrote the item; a different body is the board's. */
-  projectedBodyHash: z.string().optional(),
-  history: z.array(actionItemHistoryEntrySchema).optional(),
-});
+  interfaceType: z.string().optional(),
+  spaceId: z.string().optional(),
+  timeRange: summaryTimeRangeSchema.optional(),
+  sourceSummaryId: z.string().optional(),
+  sourceMessageCount: z.number().int().min(0).optional(),
+  projectionVersion: z.number().int().min(1).optional(),
+  sourceRef: actionItemSourceRefSchema.optional(),
+  capturedAt: z.iso.datetime().optional(),
+};
+
+export const actionItemMetadataSchema: ActionItemMetadataSchema = z
+  .object({
+    ...originShape,
+    status: actionItemStatusSchema,
+    assignedTo: z.array(actionItemAssigneeSchema).optional(),
+    requestedBy: z.array(memoryActorReferenceSchema).optional(),
+    /** Body hash when the projector wrote the item; a different body is the board's. */
+    projectedBodyHash: z.string().optional(),
+    history: z.array(actionItemHistoryEntrySchema).optional(),
+  })
+  .superRefine(requireOriginFields);
 
 const actionItemEntityMetadataParserSchema: z.ZodObject<
   Omit<ActionItemMetadataSchema["shape"], "assignedTo" | "requestedBy"> & {
@@ -252,28 +319,86 @@ const actionItemEntityMetadataParserSchema: z.ZodObject<
       z.ZodArray<typeof memoryActorReferenceParserSchema>
     >;
   }
-> = z.object({
-  conversationId: z.string(),
-  channelId: z.string(),
-  channelName: z.string().optional(),
-  interfaceType: z.string(),
-  spaceId: z.string(),
-  timeRange: summaryTimeRangeSchema,
-  sourceSummaryId: z.string(),
-  sourceMessageCount: z.number().int().min(0),
-  projectionVersion: z.number().int().min(1),
-  status: actionItemStatusSchema,
-  assignedTo: z.array(actionItemAssigneeParserSchema).optional(),
-  requestedBy: z.array(memoryActorReferenceParserSchema).optional(),
-  projectedBodyHash: z.string().optional(),
-  history: z.array(actionItemHistoryEntrySchema).optional(),
-});
+> = z
+  .object({
+    ...originShape,
+    status: actionItemStatusSchema,
+    assignedTo: z.array(actionItemAssigneeParserSchema).optional(),
+    requestedBy: z.array(memoryActorReferenceParserSchema).optional(),
+    projectedBodyHash: z.string().optional(),
+    history: z.array(actionItemHistoryEntrySchema).optional(),
+  })
+  .superRefine(requireOriginFields);
 
 /** Action item entity metadata, as parsed from stored (possibly legacy) records. */
 export type ActionItemMetadata = z.output<
   typeof actionItemEntityMetadataParserSchema
 >;
 export type ActionItemStatus = ActionItemMetadata["status"];
+export type ActionItemSourceRef = z.output<typeof actionItemSourceRefSchema>;
+
+export type ActionItemOrigin =
+  | {
+      kind: "conversation";
+      conversationId: string;
+      channelId: string;
+      channelName?: string;
+      interfaceType: string;
+      spaceId: string;
+      sourceSummaryId: string;
+      /** When the conversation it came from ended. */
+      capturedAt: string;
+    }
+  | { kind: "inbox"; sourceRef: ActionItemSourceRef; capturedAt: string };
+
+/** Where an action item came from; the schema guarantees one complete answer. */
+export function actionItemOrigin(
+  metadata: Pick<
+    ActionItemMetadata,
+    | "origin"
+    | "conversationId"
+    | "channelId"
+    | "channelName"
+    | "interfaceType"
+    | "spaceId"
+    | "timeRange"
+    | "sourceSummaryId"
+    | "sourceRef"
+    | "capturedAt"
+  >,
+): ActionItemOrigin {
+  if (
+    metadata.origin === "inbox" &&
+    metadata.sourceRef &&
+    metadata.capturedAt
+  ) {
+    return {
+      kind: "inbox",
+      sourceRef: metadata.sourceRef,
+      capturedAt: metadata.capturedAt,
+    };
+  }
+  if (
+    metadata.conversationId !== undefined &&
+    metadata.channelId !== undefined &&
+    metadata.interfaceType !== undefined &&
+    metadata.spaceId !== undefined &&
+    metadata.sourceSummaryId !== undefined &&
+    metadata.timeRange !== undefined
+  ) {
+    return {
+      kind: "conversation",
+      conversationId: metadata.conversationId,
+      channelId: metadata.channelId,
+      ...(metadata.channelName ? { channelName: metadata.channelName } : {}),
+      interfaceType: metadata.interfaceType,
+      spaceId: metadata.spaceId,
+      sourceSummaryId: metadata.sourceSummaryId,
+      capturedAt: metadata.timeRange.end,
+    };
+  }
+  throw new Error("Action item metadata names no complete origin");
+}
 
 export const actionItemSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{

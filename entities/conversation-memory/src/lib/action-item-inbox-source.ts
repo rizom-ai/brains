@@ -10,11 +10,13 @@ import { truncateText } from "@brains/utils/string-utils";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
   actionItemBody,
+  actionItemCapturedAt,
+  actionItemSource,
   actionItemTitle,
   arrivedAt,
 } from "./action-item-board";
 import { moveActionItem } from "./action-item-moves";
-import { channelLabel, formatAge } from "./widgets/format";
+import { formatAge } from "./widgets/format";
 import {
   actionItemSchema,
   type ActionItemStatus,
@@ -73,13 +75,13 @@ export class ActionItemInboxSource implements InboxSource {
     const now = this.now();
     return blocked.map((entity) => {
       const since =
-        arrivedAt(entity, "blocked") ?? entity.metadata.timeRange.end;
+        arrivedAt(entity, "blocked") ?? actionItemCapturedAt(entity);
       const summary = [
         `Blocked ${formatAge(since, now)}`,
         ...(entity.metadata.assignedTo ?? []).map(
           (assignee) => assignee.displayName,
         ),
-        channelLabel(entity.metadata.channelName, entity.metadata.channelId),
+        actionItemSource(entity).place,
       ].filter((segment) => segment.length > 0);
       return {
         id: entity.id,

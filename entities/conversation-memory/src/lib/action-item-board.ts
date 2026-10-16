@@ -4,8 +4,11 @@ import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
+import { SUMMARY_ENTITY_TYPE } from "./constants";
+import { channelLabel } from "./widgets/format";
 import {
   actionItemMetadataSchema,
+  actionItemOrigin,
   type ActionItemEntity,
   type ActionItemHistoryEntry,
   type ActionItemStatus,
@@ -152,4 +155,36 @@ export function applyNote(
     : `${ended}\n## Notes\n\n${line}`;
   const content = generateMarkdown(frontmatterFields(entity.content), next);
   return { ...entity, content, contentHash: computeContentHash(content) };
+}
+
+/** When an item was captured: its conversation's end, or when it was tracked. */
+export function actionItemCapturedAt(entity: ActionItemEntity): string {
+  return actionItemOrigin(entity.metadata).capturedAt;
+}
+
+export interface ActionItemSource {
+  /** Where the item came from, in a word: its channel, or the Inbox. */
+  place: string;
+  link: { label: string; entityType: string; entityId: string };
+}
+
+export function actionItemSource(entity: ActionItemEntity): ActionItemSource {
+  const origin = actionItemOrigin(entity.metadata);
+  return origin.kind === "conversation"
+    ? {
+        place: channelLabel(origin.channelName, origin.channelId),
+        link: {
+          label: "Conversation summary",
+          entityType: SUMMARY_ENTITY_TYPE,
+          entityId: origin.sourceSummaryId,
+        },
+      }
+    : {
+        place: "Inbox",
+        link: {
+          label: "Inbox source",
+          entityType: origin.sourceRef.entityType,
+          entityId: origin.sourceRef.entityId,
+        },
+      };
 }

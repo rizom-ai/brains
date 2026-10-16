@@ -14,7 +14,8 @@ import {
   type ActionItemStatus,
 } from "../../schemas/conversation-memory";
 import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
-import { channelLabel, formatAge } from "./format";
+import { formatAge } from "./format";
+import { actionItemCapturedAt, actionItemSource } from "../action-item-board";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "action-items";
@@ -149,15 +150,15 @@ export async function buildActionItemsWidgetData(
     const statusDiff =
       statusOrder(a.metadata.status) - statusOrder(b.metadata.status);
     if (statusDiff !== 0) return statusDiff;
-    return b.metadata.timeRange.end.localeCompare(a.metadata.timeRange.end);
+    return actionItemCapturedAt(b).localeCompare(actionItemCapturedAt(a));
   });
 
   return {
     items: sorted.slice(0, MAX_ITEMS).map((entity) => {
       const description = firstSentence(entityBody(entity));
       const meta = [
-        channelLabel(entity.metadata.channelName, entity.metadata.channelId),
-        formatAge(entity.metadata.timeRange.end, now),
+        actionItemSource(entity).place,
+        formatAge(actionItemCapturedAt(entity), now),
       ].filter((segment) => segment.length > 0);
       return {
         id: entity.id,

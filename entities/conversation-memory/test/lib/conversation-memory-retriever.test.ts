@@ -254,6 +254,46 @@ describe("ConversationMemoryRetriever", () => {
     ]);
   });
 
+  it("leaves action items tracked from the Inbox out of conversation memory", async () => {
+    const context = createMockEntityPluginContext();
+    const conversationItem = createActionItem({
+      id: "action-1",
+      channelId: "team",
+    });
+    const tracked: ActionItemEntity = {
+      ...createActionItem({ id: "inbox-1", channelId: "team" }),
+      metadata: {
+        origin: "inbox",
+        sourceRef: {
+          sourceId: "contact-requests",
+          entityType: "contact-request",
+          entityId: "req-1",
+        },
+        capturedAt: "2026-01-01T00:00:00.000Z",
+        status: "open",
+      },
+    };
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: tracked, score: 0.95, excerpt: "Reply to the request." },
+        {
+          entity: conversationItem,
+          score: 0.8,
+          excerpt: "Create action-item entities.",
+        },
+      ]),
+    );
+
+    const result = await new ConversationMemoryRetriever(context).retrieve({
+      query: "request",
+      interfaceType: "mcp",
+      channelId: "team",
+      includeOtherSpaces: true,
+    });
+
+    expect(result.results.map((memory) => memory.id)).toEqual(["action-1"]);
+  });
+
   it("derives retrieval space from conversation id", async () => {
     const context = createMockEntityPluginContext();
     spyOn(context.conversations, "get").mockResolvedValue(

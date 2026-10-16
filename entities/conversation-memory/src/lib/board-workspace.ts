@@ -9,15 +9,17 @@ import {
   type OperatorRegionBlock,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { ACTION_ITEM_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
+import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import { addActionItemNote, moveActionItem } from "./action-item-moves";
 import {
   actionItemBody,
+  actionItemCapturedAt,
+  actionItemSource,
   actionItemTitle,
   arrivedAt,
   lastArrival,
 } from "./action-item-board";
-import { channelLabel, formatAge, formatShortDate } from "./widgets/format";
+import { formatAge, formatShortDate } from "./widgets/format";
 import {
   actionItemSchema,
   actionItemStatusSchema,
@@ -83,8 +85,12 @@ const cardSchema = z.object({
   status: actionItemStatusSchema,
   assignees: z.array(z.string()),
   age: z.string(),
-  channel: z.string(),
-  summaryId: z.string(),
+  place: z.string(),
+  source: z.object({
+    label: z.string(),
+    entityType: z.string(),
+    id: z.string(),
+  }),
   blockedFor: z.string().optional(),
   blockedBy: z.string().optional(),
 });
@@ -313,7 +319,7 @@ function cardItem(card: BoardCard): {
   return {
     id: card.id,
     title: card.title,
-    metadata: [...card.assignees, card.age, card.channel].filter(
+    metadata: [...card.assignees, card.age, card.place].filter(
       (segment) => segment.length > 0,
     ),
     ...(card.blockedFor
@@ -342,14 +348,14 @@ function cardItem(card: BoardCard): {
             },
           ]
         : []),
-      ...(card.summaryId.length <= LINKABLE_ID_LENGTH
+      ...(card.source.id.length <= LINKABLE_ID_LENGTH
         ? [
             {
-              label: "Conversation summary",
+              label: card.source.label,
               target: {
                 catalog: boardSources,
-                entityType: SUMMARY_ENTITY_TYPE,
-                id: card.summaryId,
+                entityType: card.source.entityType,
+                id: card.source.id,
               },
             },
           ]
@@ -374,6 +380,7 @@ function cardItem(card: BoardCard): {
 }
 
 function toCard(entity: ActionItemEntity, now: Date): BoardCard {
+  const source = actionItemSource(entity);
   const blocked =
     entity.metadata.status === "blocked"
       ? lastArrival(entity, "blocked")
@@ -385,12 +392,13 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
     assignees: (entity.metadata.assignedTo ?? []).map(
       (assignee) => assignee.displayName,
     ),
-    age: formatAge(entity.metadata.timeRange.end, now),
-    channel: channelLabel(
-      entity.metadata.channelName,
-      entity.metadata.channelId,
-    ),
-    summaryId: entity.metadata.sourceSummaryId,
+    age: formatAge(actionItemCapturedAt(entity), now),
+    place: source.place,
+    source: {
+      label: source.link.label,
+      entityType: source.link.entityType,
+      id: source.link.entityId,
+    },
     ...(blocked ? { blockedFor: formatAge(blocked.at, now) } : {}),
     ...(blocked?.displayName ? { blockedBy: blocked.displayName } : {}),
   };
@@ -402,7 +410,7 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
  */
 function finishedAt(entity: ActionItemEntity): number {
   return new Date(
-    arrivedAt(entity, "done") ?? entity.metadata.timeRange.end,
+    arrivedAt(entity, "done") ?? actionItemCapturedAt(entity),
   ).getTime();
 }
 
@@ -432,10 +440,7 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
     requesters: (entity.metadata.requestedBy ?? []).flatMap((requester) =>
       requester.displayName ? [requester.displayName] : [],
     ),
-    channel: channelLabel(
-      entity.metadata.channelName,
-      entity.metadata.channelId,
-    ),
+    channel: actionItemSource(entity).place,
     history: [...(entity.metadata.history ?? [])].reverse().map((entry) => ({
       move: `${STATUS_LABELS[entry.from]} → ${STATUS_LABELS[entry.to]}`,
       who: entry.displayName ?? "",
@@ -495,7 +500,8 @@ export async function registerBoardWorkspace(
     definition: boardWorkspace,
     bind: (bindingContext) =>
       boardWorkspace.bind(bindingContext, {
-        listEntityTypes: () => [ACTION_ITEM_ENTITY_TYPE, SUMMARY_ENTITY_TYPE],
+        // A card links to whatever its source is: a summary or an Inbox item's entity.
+        listEntityTypes: () => context.entityService.getEntityTypes(),
         load: async ({ caller, query }) => {
           if (!caller) throw new Error("The board requires a signed-in member");
           const visibilityScope = permissionToVisibilityScope(
