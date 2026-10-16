@@ -4,13 +4,18 @@ import {
   defineWorkspaceAction,
   permissionToVisibilityScope,
   registerBuiltInStudioWorkspace,
+  type ContentVisibility,
   type EntityPluginContext,
   type OperatorCaller,
   type OperatorRegionBlock,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { addActionItemNote, moveActionItem } from "./action-item-moves";
+import {
+  addActionItemNote,
+  moveActionItem,
+  trackInboxItem,
+} from "./action-item-moves";
 import {
   actionItemBody,
   actionItemCapturedAt,
@@ -109,13 +114,30 @@ const openCardSchema = z.object({
   notes: z.string().optional(),
 });
 
+/** An Inbox item a follow-up asked to track, carried in the URL. */
+const trackSchema = z.object({
+  sourceId: z.string(),
+  entityType: z.string(),
+  entityId: z.string(),
+  title: z.string(),
+  summary: z.string(),
+});
+
 const dataSchema = z.object({
   cards: z.array(cardSchema),
   open: openCardSchema.optional(),
+  track: trackSchema.optional(),
 });
 
 /** The open card lives in the URL, so a reload reopens it. */
-const boardQuerySchema = z.object({ card: z.string().optional() });
+const boardQuerySchema = z.object({
+  card: z.string().optional(),
+  trackSource: z.string().optional(),
+  trackType: z.string().optional(),
+  trackId: z.string().optional(),
+  trackTitle: z.string().optional(),
+  trackSummary: z.string().optional(),
+});
 
 type OpenCard = z.output<typeof openCardSchema>;
 
@@ -160,6 +182,25 @@ const noteResult = {
   fields: { status: { label: "Outcome" } },
 } as const;
 
+const trackAction = defineWorkspaceAction({
+  name: "track",
+  label: "Track as action item",
+  input: z.object({
+    sourceId: z.string().min(1),
+    entityType: z.string().min(1),
+    entityId: z.string().min(1),
+    title: z.string().trim().min(1).max(500),
+    text: z.string().max(4_000),
+    assignee: z.string().max(200).optional(),
+  }),
+  output: moveResultSchema,
+});
+
+const trackResult = {
+  title: "Track",
+  fields: { status: { label: "Outcome" } },
+} as const;
+
 const dropAction = defineWorkspaceAction({
   name: "drop",
   label: "Drop",
@@ -172,7 +213,11 @@ const dropAction = defineWorkspaceAction({
   output: moveResultSchema,
 });
 
-type BoardAction = typeof moveAction | typeof dropAction | typeof noteAction;
+type BoardAction =
+  | typeof moveAction
+  | typeof dropAction
+  | typeof noteAction
+  | typeof trackAction;
 
 /** The open card's panels: its text, facts, recorded moves, notes, and a note form. */
 function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
@@ -247,11 +292,54 @@ const boardWorkspace = defineStudioWorkspace({
   entityCatalog: boardSources,
   query: boardQuerySchema,
   data: dataSchema,
-  actions: [moveAction, dropAction, noteAction],
+  actions: [moveAction, dropAction, noteAction, trackAction],
   view: ({ data }) => ({
     title: "Board",
     description: "Action items from the team's conversations.",
     blocks: [
+      ...(data.track
+        ? [
+            {
+              type: "card" as const,
+              id: "track",
+              label: "Track as action item",
+              presentation: "feature" as const,
+              blocks: [
+                {
+                  type: "text" as const,
+                  id: "track-source",
+                  text: `From the Inbox: ${data.track.title}`,
+                },
+                {
+                  type: "action" as const,
+                  id: "track-form",
+                  action: trackAction,
+                  label: "Track on the board",
+                  input: {
+                    sourceId: data.track.sourceId,
+                    entityType: data.track.entityType,
+                    entityId: data.track.entityId,
+                    title: data.track.title,
+                    text: data.track.summary,
+                  },
+                  form: {
+                    presentation: "inline" as const,
+                    submitLabel: "Track on the board",
+                    fields: {
+                      title: { label: "Title", control: "text" as const },
+                      text: { label: "Details", control: "text" as const },
+                      assignee: {
+                        label: "Assign to",
+                        control: "text" as const,
+                      },
+                    },
+                  },
+                  result: trackResult,
+                },
+              ],
+            },
+          ]
+        : []),
       {
         type: "detail",
         id: "board-detail",
@@ -456,12 +544,14 @@ function finishedRecently(entity: ActionItemEntity, now: Date): boolean {
 
 export interface BoardWorkspaceDeps {
   now?: () => Date;
+  /** The visibility the brain gives action items, for cards tracked from the Inbox. */
+  visibility: ContentVisibility;
 }
 
 /** Registers the Board workspace; a no-op where Studio does not run. */
 export async function registerBoardWorkspace(
   context: EntityPluginContext,
-  deps: BoardWorkspaceDeps = {},
+  deps: BoardWorkspaceDeps,
 ): Promise<string | undefined> {
   const now = (): Date => deps.now?.() ?? new Date();
 
@@ -527,7 +617,18 @@ export async function registerBoardWorkspace(
           const finished = done
             .filter((entity) => finishedRecently(entity, at))
             .sort((a, b) => finishedAt(b) - finishedAt(a));
-          const selected = query.get(boardQuerySchema).card;
+          const asked = query.get(boardQuerySchema);
+          const selected = asked.card;
+          const track =
+            asked.trackSource && asked.trackType && asked.trackId
+              ? {
+                  sourceId: asked.trackSource,
+                  entityType: asked.trackType,
+                  entityId: asked.trackId,
+                  title: asked.trackTitle ?? "",
+                  summary: asked.trackSummary ?? "",
+                }
+              : undefined;
           const opened = selected
             ? await context.entityService.getEntity(
                 {
@@ -543,6 +644,7 @@ export async function registerBoardWorkspace(
               toCard(entity, at),
             ),
             ...(opened ? { open: toOpenCard(opened) } : {}),
+            ...(track ? { track } : {}),
           };
         },
         actions: [
@@ -552,6 +654,36 @@ export async function registerBoardWorkspace(
           dropAction.bind(bindingContext, ({ caller, input }) =>
             move(caller, { ...input, to: "dropped" }),
           ),
+          trackAction.bind(bindingContext, async ({ caller, input }) => {
+            if (!caller) {
+              throw new Error("Tracking requires a signed-in member");
+            }
+            const result = await trackInboxItem(
+              {
+                entityService: context.entityService,
+                visibility: deps.visibility,
+                now,
+              },
+              {
+                sourceRef: {
+                  sourceId: input.sourceId,
+                  entityType: input.entityType,
+                  entityId: input.entityId,
+                },
+                title: input.title,
+                text: input.text,
+                assignee: input.assignee,
+                actor: { kind: "user", userId: caller.actor.id },
+                actorName: caller.actor.displayName,
+              },
+            );
+            return {
+              status:
+                result.status === "tracked"
+                  ? "Tracked on the board."
+                  : "This Inbox item is already on the board.",
+            };
+          }),
           noteAction.bind(bindingContext, async ({ caller, input }) => {
             if (!caller)
               throw new Error("Adding a note requires a signed-in member");
@@ -583,3 +715,24 @@ export async function registerBoardWorkspace(
   return result === false ? undefined : result.workspaceUrl;
 }
 export const BOARD_WORKSPACE_ID = "conversation-memory:board";
+
+/** The Board link a "Track as action item" follow-up opens, prefilled from the Inbox item. */
+export function trackHref(
+  boardUrl: string,
+  sourceId: string,
+  item: {
+    title: string;
+    summary?: string | undefined;
+    entityRef?: { entityType: string; entityId: string } | undefined;
+  },
+): string | undefined {
+  if (!item.entityRef) return undefined;
+  const query = new URLSearchParams({
+    trackSource: sourceId,
+    trackType: item.entityRef.entityType,
+    trackId: item.entityRef.entityId,
+    trackTitle: item.title.slice(0, 160),
+    trackSummary: (item.summary ?? "").slice(0, 500),
+  });
+  return `${boardUrl}?${query.toString()}`;
+}

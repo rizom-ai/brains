@@ -22,6 +22,7 @@ import {
 import {
   addActionItemNote,
   moveActionItem,
+  trackInboxItem,
 } from "../../src/lib/action-item-moves";
 import { createActionItemStatusValidator } from "../../src/lib/action-item-validator";
 import {
@@ -356,5 +357,69 @@ describe("noting a stored card", () => {
         { id: "missing", text: "Hello.", actor: niels },
       ),
     ).toEqual({ status: "not-found" });
+  });
+});
+
+describe("tracking an Inbox item", () => {
+  const request = {
+    sourceRef: {
+      sourceId: "contact-requests",
+      entityType: "contact-request",
+      entityId: "req-1",
+    },
+    title: "Reply about the field notes",
+    text: "Grace asks whether we would share our field notes.",
+    assignee: "Alex Morgan",
+    actor: niels,
+    actorName: "Niels Ward",
+  };
+
+  it("creates an open card from the Inbox, naming who tracked it", async () => {
+    const service = await brain();
+
+    const result = await trackInboxItem(
+      { entityService: service, now: at, visibility: "shared" },
+      request,
+    );
+
+    expect(result).toEqual({
+      status: "tracked",
+      id: "inbox:contact-requests:req-1",
+    });
+    const card = await service.getEntity(
+      {
+        entityType: "action-item",
+        id: "inbox:contact-requests:req-1",
+        visibilityScope: "restricted",
+      },
+      actionItemSchema,
+    );
+    expect(card?.visibility).toBe("shared");
+    expect(card?.metadata).toMatchObject({
+      origin: "inbox",
+      sourceRef: request.sourceRef,
+      capturedAt: "2026-10-15T08:02:00.000Z",
+      status: "open",
+      assignedTo: [{ displayName: "Alex Morgan" }],
+      requestedBy: [{ identity: niels, displayName: "Niels Ward" }],
+    });
+    expect(actionItemBody(card?.content ?? "")).toContain(
+      "# Action item: Reply about the field notes",
+    );
+  });
+
+  it("tracks an Inbox item once", async () => {
+    const service = await brain();
+    const deps = {
+      entityService: service,
+      now: at,
+      visibility: "shared" as const,
+    };
+    await trackInboxItem(deps, request);
+
+    expect(await trackInboxItem(deps, request)).toEqual({
+      status: "already-tracked",
+      id: "inbox:contact-requests:req-1",
+    });
   });
 });

@@ -101,7 +101,10 @@ async function registered(
       data: { workspaceUrl: "/studio/workspaces/conversation-memory%3Aboard" },
     };
   });
-  await registerBoardWorkspace(context, { now: () => NOW });
+  await registerBoardWorkspace(context, {
+    now: () => NOW,
+    visibility: "shared",
+  });
   if (!registration) throw new Error("Board was not registered");
   return registration;
 }
@@ -359,6 +362,55 @@ describe("the Board workspace", () => {
     expect(open).toContain("Sam Rivera");
     expect(open).toContain('"label":"Add a note"');
     expect(open).toContain('"control":"text"');
+  });
+
+  it("offers to track an Inbox item that a follow-up links to", async () => {
+    const registration = await registered(await brain([]));
+    const view = JSON.stringify(
+      await registration.dataProvider(niels, {
+        trackSource: "contact-requests",
+        trackType: "contact-request",
+        trackId: "req-1",
+        trackTitle: "Could we share your field notes?",
+        trackSummary: "Grace asks whether we would share our field notes.",
+      }),
+    );
+
+    expect(view).toContain('"label":"Track as action item"');
+    expect(view).toContain('"actionId":"track"');
+    expect(view).toContain('"title":"Could we share your field notes?"');
+    expect(view).toContain('"entityId":"req-1"');
+    expect(view).toContain('"label":"Assign to"');
+  });
+
+  it("tracks an Inbox item as a card that links back to it", async () => {
+    const registration = await registered(await brain([]));
+    if (!registration.actionHandler) throw new Error("Board has no actions");
+
+    expect(
+      await registration.actionHandler(
+        {
+          actionId: "track",
+          input: {
+            sourceId: "contact-requests",
+            entityType: "contact-request",
+            entityId: "req-1",
+            title: "Reply about the field notes",
+            text: "Grace asks whether we would share our field notes.",
+            assignee: "Alex Morgan",
+          },
+        },
+        niels,
+      ),
+    ).toEqual({ status: "Tracked on the board." });
+
+    const [card] = column(await board(registration), "open");
+    expect(card?.title).toBe("Reply about the field notes");
+    expect(card?.metadata).toContain("Inbox");
+    expect(card?.metadata).toContain("Alex Morgan");
+    const links = JSON.stringify(card?.links);
+    expect(links).toContain('"label":"Inbox source"');
+    expect(links).toContain('"entityType":"contact-request"');
   });
 
   it("adds a note under the signed-in name", async () => {

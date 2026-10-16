@@ -35,6 +35,7 @@ import { createActionItemStatusValidator } from "./lib/action-item-validator";
 import {
   BOARD_WORKSPACE_ID,
   registerBoardWorkspace,
+  trackHref,
 } from "./lib/board-workspace";
 import {
   ACTION_ITEM_ENTITY_TYPE,
@@ -53,7 +54,8 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryConfig,
   SummaryConfigInput
 > {
-  private boardRegistered = false;
+  /** Set once Studio has the Board; the track follow-up links to it. */
+  private boardUrl: string | undefined;
 
   readonly entityType: typeof SUMMARY_ENTITY_TYPE = SUMMARY_ENTITY_TYPE;
   readonly schema: typeof summarySchema = summarySchema;
@@ -111,7 +113,25 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       createActionItemStatusValidator(context.entityService),
     );
     if (!context.executionOnly) {
-      context.inbox.registerSource(new ActionItemInboxSource(context));
+      const inboxSource = new ActionItemInboxSource(context);
+      context.inbox.registerSource(inboxSource);
+      context.inboxFollowUps.registerKind({
+        kind: "track-as-action-item",
+        label: "Track as action item",
+        priority: 15,
+        mode: "universal",
+        permissionLevel: "trusted",
+        applies: ({ sourceId, item }) =>
+          this.boardUrl !== undefined &&
+          item.entityRef !== undefined &&
+          sourceId !== inboxSource.sourceId,
+        resolve: ({ sourceId, item }) => {
+          const href = this.boardUrl
+            ? trackHref(this.boardUrl, sourceId, item)
+            : undefined;
+          return href ? { href } : undefined;
+        },
+      });
     }
 
     registerActionItemsWidget({ context });
@@ -135,14 +155,15 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   protected override async onReady(
     context: EntityPluginContext,
   ): Promise<void> {
-    this.boardRegistered =
-      (await registerBoardWorkspace(context)) !== undefined;
+    this.boardUrl = await registerBoardWorkspace(context, {
+      visibility: this.config.memoryVisibility,
+    });
   }
 
   protected override async onShutdown(): Promise<void> {
-    if (!this.boardRegistered) return;
+    if (this.boardUrl === undefined) return;
+    this.boardUrl = undefined;
     await this.getContext().studio.unregisterWorkspace(BOARD_WORKSPACE_ID);
-    this.boardRegistered = false;
   }
 }
 

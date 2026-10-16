@@ -2,9 +2,13 @@ import type { ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import { applyMove, applyNote } from "./action-item-board";
+import { truncateText } from "@brains/utils/string-utils";
+import { ActionItemAdapter } from "../adapters/conversation-memory-adapters";
 import {
   actionItemSchema,
   type ActionItemEntity,
+  type ActionItemMetadata,
+  type ActionItemSourceRef,
   type ActionItemStatus,
 } from "../schemas/conversation-memory";
 
@@ -139,4 +143,74 @@ export async function addActionItemNote(
       }),
   );
   return outcome.status === "written" ? { status: "noted" } : outcome;
+}
+
+export interface TrackInboxItemDeps {
+  entityService: Pick<
+    EntityPluginContext["entityService"],
+    "getEntity" | "createEntity"
+  >;
+  /** The visibility the brain gives action items. */
+  visibility: ContentVisibility;
+  now?: () => Date;
+}
+
+export interface TrackInboxItemRequest {
+  sourceRef: ActionItemSourceRef;
+  title: string;
+  text: string;
+  /** Who should do it, by name. */
+  assignee?: string | undefined;
+  actor: ActorRef;
+  actorName?: string | undefined;
+}
+
+export type TrackInboxItemResult =
+  { status: "tracked"; id: string } | { status: "already-tracked"; id: string };
+
+const inboxItemAdapter = new ActionItemAdapter();
+
+/** Turn an Inbox item into an open card that points back at its source; once per item. */
+export async function trackInboxItem(
+  deps: TrackInboxItemDeps,
+  request: TrackInboxItemRequest,
+): Promise<TrackInboxItemResult> {
+  const id = `inbox:${request.sourceRef.sourceId}:${request.sourceRef.entityId}`;
+  const existing = await deps.entityService.getEntity({
+    entityType: ACTION_ITEM_ENTITY_TYPE,
+    id,
+    visibilityScope: "restricted",
+  });
+  if (existing) return { status: "already-tracked", id };
+
+  const assignee = request.assignee?.trim();
+  const metadata: ActionItemMetadata = {
+    origin: "inbox",
+    sourceRef: request.sourceRef,
+    capturedAt: (deps.now?.() ?? new Date()).toISOString(),
+    status: "open",
+    ...(assignee ? { assignedTo: [{ displayName: assignee }] } : {}),
+    requestedBy: [
+      {
+        identity: request.actor,
+        ...(request.actorName ? { displayName: request.actorName } : {}),
+      },
+    ],
+  };
+  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  await deps.entityService.createEntity({
+    entity: {
+      id,
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      visibility: deps.visibility,
+      content: inboxItemAdapter.composeContent(
+        `Action item: ${title}`,
+        request.text.trim() || title,
+        metadata,
+      ),
+      metadata,
+    },
+    options: { eventContext: { actor: request.actor } },
+  });
+  return { status: "tracked", id };
 }
