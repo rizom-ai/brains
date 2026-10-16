@@ -118,5 +118,8 @@ jobs:
       - name: Build site and theme packages
         run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'
 
+      - name: Install and import site packages from packed tarballs
+        run: bun run test:packed:sites
+
       - name: Run packed compatibility matrix
         run: bun run test:packed:compat
