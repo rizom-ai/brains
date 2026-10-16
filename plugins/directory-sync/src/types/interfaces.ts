@@ -92,6 +92,8 @@ export interface IDirectorySync {
   suppressWatchPaths(paths: string[]): void;
   /** Ignore the watcher's echoes of a pull while each path matches HEAD. */
   ignorePulledWatchPaths(paths: string[], matchesHead: MatchesHead): void;
+  /** The paths whose files are not already their stored entity's export. */
+  withoutStoredEchoes(paths: string[]): Promise<string[]>;
   recordPendingPullDeletes(paths: string[]): Promise<void>;
   isPendingDelete(entityType: string, entityId: string): boolean;
   completePendingDelete(
