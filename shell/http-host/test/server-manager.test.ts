@@ -299,6 +299,100 @@ describe("ServerManager (in-process)", () => {
     );
   });
 
+  it.each(["exact", "weak", "spaced-list", "wildcard"])(
+    "revalidates successful static GETs with %s validators",
+    async (kind) => {
+      const m = setup();
+      await m.start();
+      const url = m.getStatus().productionUrl;
+      if (!url) throw new Error("Host did not start");
+      // Keep compression's weak-tag conversion out of validator syntax tests.
+      const first = await fetch(url, {
+        headers: { "Accept-Encoding": "identity" },
+      });
+      expect(first.status).toBe(200);
+      expect(await first.text()).toBe("<h1>Hello</h1>");
+      const tag = first.headers.get("ETag");
+      if (!tag) throw new Error("Successful static response has no ETag");
+      const validator =
+        kind === "wildcard"
+          ? "*"
+          : kind === "spaced-list"
+            ? `"different", \tW/${tag} \t, "other"`
+            : kind === "weak"
+              ? `W/${tag}`
+              : tag;
+      const response = await fetch(url, {
+        headers: { "If-None-Match": validator, "Accept-Encoding": "identity" },
+      });
+      expect(response.status).toBe(304);
+      expect(response.headers.get("ETag")).toBe(tag);
+      expect(response.headers.get("Cache-Control")).toBe(
+        "public, max-age=3600",
+      );
+      expect(response.headers.get("Content-Type")).toBeNull();
+      expect(await response.text()).toBe("");
+    },
+  );
+
+  it.each(["POST", "PUT", "DELETE"])(
+    "does not turn a static %s response into a conditional GET response",
+    async (method) => {
+      const m = setup();
+      await m.start();
+      const url = m.getStatus().productionUrl;
+      if (!url) throw new Error("Host did not start");
+      const first = await fetch(url);
+      await first.text();
+      const tag = first.headers.get("ETag");
+      if (!tag) throw new Error("Successful static response has no ETag");
+      const response = await fetch(url, {
+        method,
+        headers: { "If-None-Match": tag },
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("ETag")).toBeNull();
+      expect(await response.text()).toBe("<h1>Hello</h1>");
+    },
+  );
+
+  it("preserves a missing static response even with a matching legacy validator", async () => {
+    const m = setup();
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Host did not start");
+    const digest = new Bun.CryptoHasher("sha1")
+      .update("Not Found")
+      .digest("hex");
+    const response = await fetch(`${url}/missing.txt`, {
+      headers: { "If-None-Match": `"${digest}"` },
+    });
+    expect(response.status).toBe(404);
+    expect(response.headers.get("ETag")).toBeNull();
+    expect(response.headers.get("Cache-Control")).toBe("no-cache");
+    expect(await response.text()).toBe("Not Found");
+  });
+
+  it("serves normal encoded filenames but refuses remaining percent static paths", async () => {
+    const m = setup();
+    const prodDir = join(testDir, "dist", "production");
+    for (const name of ["hello world.txt", "café.txt", "literal%.txt"]) {
+      writeFileSync(join(prodDir, name), `fixture:${name}`);
+    }
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Host did not start");
+    for (const name of ["hello world.txt", "café.txt"]) {
+      const response = await fetch(`${url}/${encodeURIComponent(name)}`);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe(`fixture:${name}`);
+    }
+    const refused = await fetch(`${url}/literal%25.txt`);
+    expect(refused.status).toBe(404);
+    expect(refused.headers.get("Cache-Control")).toBe("no-cache");
+    expect(await refused.text()).toBe("Not Found");
+  });
+
   it("should stop cleanly", async () => {
     const m = setup();
     await m.start();

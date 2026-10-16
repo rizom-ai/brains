@@ -435,7 +435,7 @@
         "@brains/http-signatures": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
-        "hono": "^4.12.25"
+        "hono": "^4.13.13"
       },
       "devDependencies": {
         "@brains/auth-service": "workspace:*",
@@ -2041,7 +2041,7 @@
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@hono/bun-compress": "^0.1.1",
-        "hono": "^4.12.25"
+        "hono": "^4.13.13"
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -11458,10 +11458,10 @@
       "sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw=="
     ],
     "hono": [
-      "hono@4.12.28",
+      "hono@4.13.13",
       "",
       {},
-      "sha512-YwUvVpSF7m1yOblFPrU3Hbo8XhPheBoiyfGuII6z19LnOr6JpDnyyp7LFNrfV56wS8tpvtBFGRISHN02pDdLOA=="
+      "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="
     ],
     "html-to-text": [
       "html-to-text@10.0.0",
