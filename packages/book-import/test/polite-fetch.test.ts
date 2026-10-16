@@ -189,6 +189,43 @@ describe("createPoliteFetch", () => {
     expect((calls[1] ?? 0) - (calls[0] ?? 0)).toBeGreaterThanOrEqual(15);
   });
 
+  it("asks again after a pause when the network briefly fails the request", async () => {
+    const calls: number[] = [];
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      retryDelayMs: 20,
+      fetchFn: async () => {
+        calls.push(Date.now());
+        if (calls.length === 1) {
+          throw new TypeError("getaddrinfo ETIMEOUT example.org");
+        }
+        return new Response("through", { status: 200 });
+      },
+    });
+
+    expect(await get("https://example.org/far")).toBe("through");
+    expect(calls).toHaveLength(2);
+    expect((calls[1] ?? 0) - (calls[0] ?? 0)).toBeGreaterThanOrEqual(15);
+  });
+
+  it("gives up with the network's error when the request keeps failing", () => {
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      retryDelayMs: 1,
+      fetchFn: async () => {
+        throw new TypeError("getaddrinfo ETIMEOUT example.org");
+      },
+    });
+
+    expect(get("https://example.org/gone")).rejects.toThrow(
+      "getaddrinfo ETIMEOUT example.org",
+    );
+  });
+
   it("gives up with the URL when the source stays unavailable", () => {
     const get = createPoliteFetch({
       cacheDir,

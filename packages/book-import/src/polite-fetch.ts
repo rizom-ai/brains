@@ -101,13 +101,20 @@ export function createPoliteFetch(options: PoliteFetchOptions): PoliteFetch {
     });
     // The interval runs from the request, not from before it.
     state.last = Date.now();
-    const response = await pending;
-    if (response.ok) return response;
-    if (retries > 0 && isTransient(response.status)) {
+    const again = async (): Promise<Response> => {
       const pause = retryDelayMs * 2 ** (RETRIES - retries);
       await new Promise((resolve) => setTimeout(resolve, pause));
       return request(url, retries - 1);
-    }
+    };
+    const response = await pending.catch((error: unknown) => {
+      // A request the network lost, its name not looked up in time or its
+      // connection reset, is asked again as a briefly unavailable source is.
+      if (retries > 0) return null;
+      throw error;
+    });
+    if (response === null) return again();
+    if (response.ok) return response;
+    if (retries > 0 && isTransient(response.status)) return again();
     throw new Error(`${response.status} ${url}`);
   };
 
