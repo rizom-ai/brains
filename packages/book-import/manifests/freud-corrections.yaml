@@ -53453,7 +53453,7 @@ wmw-1886-hemianaesthesie:
     by: scan
   - page: 1636
     from: melfeile ersichtliche materielle Erkrankung genügend erklärt.
-    to: am Trom- ersichtliche materielle Erkrankung genügend erklärt.
+    to: melfelle ersichtliche materielle Erkrankung genügend erklärt.
     by: scan
   - page: 1636
     from: seinem linken Daumen, Ellbogen, Schulter zu greifen. Kr
@@ -53505,7 +53505,7 @@ wmw-1886-hemianaesthesie:
     by: scan
   - page: 1638
     from: tung der elektrischen Empfindlichkeit gegen meine Absicht
-    to: Prü- der elektrischen Empfindlichkeit gegen meine Absicht
+    to: fung der elektrischen Empfindlichkeit gegen meine Absicht
     by: scan
   - page: 1638
     from: Labilität der Empfindungsstörung gründe ich die Hoftnung,
@@ -53530,7 +53530,7 @@ wmp-1893-mechanismus:
     by: scan
   - page: 121
     from: ständige war,
-    to: selbst-
+    to: ständige war.
     by: scan
   - page: 121
     from: Hälfte der Achtziger-Jahre angefangen, seit.e Aufmerksamkeit der
@@ -53693,8 +53693,12 @@ wmp-1893-mechanismus:
     to: litt eine Zeit lang an ganz unmotivirten, heftigen Schmerzen
     by: scan
   - page: 126
+    from: hatte, als sie zuerst in die Welt eingeführt wurde; es über
+    to: hatte, als sie zuerst in die Welt eingeführt wurde; es über-
+    by: scan
+  - page: 126
     from: kam sie damals die Angst, daß sic das „richtige“ oder „rechte
-    to: es über- damals die Angst, daß sie das „richtige“ oder „rechte
+    to: kam sie damals die Angst, daß sie das „richtige“ oder „rechte
     by: scan
   - page: 126
     from: leptiforme Convulsionen ete. ist es aber nicht möglich, einen
@@ -53745,8 +53749,12 @@ wmp-1893-mechanismus:
     to: derjenige, in dem dieses Symptom verschwindet. Wenn ein
     by: scan
   - page: 165
+    from: Erinnerung zu bringen, so sieht er die Dinge mit uraprüng-
+    to: Erinnerung zu bringen, so sieht er die Dinge mit ursprüng-
+    by: scan
+  - page: 165
     from: l1cher Wirklichkeit vor sich, man merkt, daß der Kranke
-    to: mit ursprüng- Wirklichkeit vor sich, man merkt, daß der Kranke
+    to: licher Wirklichkeit vor sich, man merkt, daß der Kranke
     by: scan
   - page: 165
     from: man ihn dann nöthigt, diesem Affecte Worte zu leihen, £o
@@ -53806,7 +53814,7 @@ wmp-1893-mechanismus:
     by: scan
   - page: 166
     from: Änderungen des eigenen Körpers, Weinen, Schimpfen , Toben
-    to: Ver- des eigenen Körpers, Weinen, Schimpfen, Toben
+    to: änderungen des eigenen Körpers, Weinen, Schimpfen, Toben
     by: scan
   - page: 166
     from: u. dgl. Je intensiver das psychische "Trauma, desto größer ist
@@ -53898,7 +53906,7 @@ wmp-1893-mechanismus:
     by: scan
   - page: 167
     from: Jledigte Reaction vollziehen lassen.
-    to: uner- Reaction vollziehen lassen.
+    to: ledigte Reaction vollziehen lassen.
     by: scan
   - page: 167
     from: Meinen. Sie nun nicht, daß damit für die Therapie der
@@ -53907,4 +53915,389 @@ wmp-1893-mechanismus:
   - page: 167
     from: welche der 'Therapie eine gewisse, oft sehr fühlbare Schranke
     to: welche der Therapie eine gewisse, oft sehr fühlbare Schranke
+    by: scan
+nc-1893-diplegien:
+  - page: 513
+    from: dieser Sippe ist sicherlich über dem Mittelmaass,
+    to: dieser Sippe ist sicherlich über dem Mittelmaass.
+    by: scan
+  - page: 513
+    from: angeblich an Rhachitis (?); es war von Anfang an gelähmt, theilnahmslos,. wie
+    to: angeblich an Rhachitis (?); es war von Anfang an gelähmt, theilnahmslos, wie
+    by: scan
+  - page: 513
+    from: es scheint, idiotisch. KEin sechstes war 3 Wochen zu früh geboren und lebte
+    to: es scheint, idiotisch. Ein sechstes war 3 Wochen zu früh geboren und lebte
+    by: scan
+  - page: 513
+    from: nur wenige Stunden, Die drei lebenden Kinder sind Knaben, das Geschlecht
+    to: nur wenige Stunden. Die drei lebenden Kinder sind Knaben, das Geschlecht
+    by: scan
+  - page: 513
+    from: wohlgenährt, fiel aber sofort durch seine Abnormität auf, Nie Convulsionen.
+    to: wohlgenährt, fiel aber sofort durch seine Abnormität auf. Nie Convulsionen.
+    by: scan
+  - page: 513
+    from: seine Sprache heute zeigt; mit 1'/, Jahren konnte es sitzen und Kkriechen;
+    to: seine Sprache heute zeigt; mit 1½ Jahren konnte es sitzen und kriechen;
+    by: scan
+  - page: 513
+    from: ohne Unterstützung gehen und stehen kann es noch heute nicht. Mit 1!/, Jahren
+    to: ohne Unterstützung gehen und stehen kann es noch heute nicht. Mit 1¼ Jahren
+    by: scan
+  - page: 513
+    from: jJüngerer Bruder auffällig verschont geblieben.
+    to: jüngerer Bruder auffällig verschont geblieben.
+    by: scan
+  - page: 513
+    from: compensatorische Ausweitung in einem Durchmesser. Kr ist eher gross, vorne
+    to: compensatorische Ausweitung in einem Durchmesser. Er ist eher gross, vorne
+    by: scan
+  - page: 514
+    from: sichtsfeldes, in der sich das fixirte Object befindet. Dr. KöniGsTEiIN constatirt
+    to: sichtsfeldes, in der sich das fixirte Object befindet. Dr. KÖNIGSTEIN constatirt
+    by: scan
+  - page: 514
+    from: Besserung des Sehvermögens zu erwarten steht, Das Kind erkennt übrigens
+    to: Besserung des Sehvermögens zu erwarten steht. Das Kind erkennt übrigens
+    by: scan
+  - page: 514
+    from: Die Kopfhaltung ist natürlich; bei Versuchen, den Kopf passiyr zu bewegen,
+    to: Die Kopfhaltung ist natürlich; bei Versuchen, den Kopf passiv zu bewegen,
+    by: scan
+  - page: 514
+    from: er sich mit der Annäherung anm’s Ziel nicht steigert. In früheren Jahren war
+    to: er sich mit der Annäherung an’s Ziel nicht steigert. In früheren Jahren war
+    by: scan
+  - page: 514
+    from: das Kind sehr ungeschickt mit den Händen, jetzt hat es selbst schreiben gelernt,
+    to: das Kind sehr ungeschickt mit den Händen, jetzt hat es selbst schreiben gelernt.
+    by: scan
+  - page: 514
+    from: Schritte wird durch eine Circumduetion in der Hüfte eingeleitet; übrigens keine
+    to: Schritte wird durch eine Circumduction in der Hüfte eingeleitet; übrigens keine
+    by: scan
+  - page: 514
+    from: Änderung bei der Locomotion.
+    to: änderung bei der Locomotion.
+    by: scan
+  - page: 514
+    from: thümliches Gepräge, Die Articulation des ganzen Wortes ist gedehnt, die Pausen
+    to: thümliches Gepräge. Die Articulation des ganzen Wortes ist gedehnt, die Pausen
+    by: scan
+  - page: 514
+    from: der Antworten noch weiterhin beiträgt,
+    to: der Antworten noch weiterhin beiträgt.
+    by: scan
+  - page: 514
+    from: "fragte, gab der eine zur Antwort: „6 Jahre und 5 Monate‘“; der andere: „5 Jahre"
+    to: "fragte, gab der eine zur Antwort: „6 Jahre und 5 Monate“; der andere: „5 Jahre"
+    by: scan
+  - page: 515
+    from: geschichte des jüngeren Knaben von der des älteren erkennen lässt,
+    to: geschichte des jüngeren Knaben von der des älteren erkennen lässt.
+    by: scan
+  - page: 515
+    from: aber beim Äälteren das Leiden von Geburt an bemerkt wurde, versichert die
+    to: aber beim älteren das Leiden von Geburt an bemerkt wurde, versichert die
+    by: scan
+  - page: 515
+    from: lich, entwickelte sich rasch zu ganz besonderer Intelligenz. KErst gegen Ende
+    to: lich, entwickelte sich rasch zu ganz besonderer Intelligenz. Erst gegen Ende
+    by: scan
+  - page: 515
+    from: nervi opticii nach KÖnrGsTEIN auch hier). Die Sprache hat denselben Charakter
+    to: nervi optici nach KÖNIGSTEIN auch hier). Die Sprache hat denselben Charakter
+    by: scan
+  - page: 515
+    from: ticoulation im Ganzen besser. Die Arme sind frei von Spannung und Bewegungs-
+    to: ticulation im Ganzen besser. Die Arme sind frei von Spannung und Bewegungs-
+    by: scan
+  - page: 515
+    from: Das Kind steht ohne Unterstützung, aber breit, mit vorgebeugtem Öber-
+    to: Das Kind steht ohne Unterstützung, aber breit, mit vorgebeugtem Ober-
+    by: scan
+  - page: 515
+    from: (Schluss folgt.)
+    to: ""
+    by: scan
+  - page: 542
+    from: bei eigenthümlich monotoner Stimme, und 3, spastische Bewegungsstörung der
+    to: bei eigenthümlich monotoner Stimme, und 3. spastische Bewegungsstörung der
+    by: scan
+  - page: 542
+    from: Knaben betriflt die Starre Arme und Beine, an den Armen ist Ungeschicklich-
+    to: Knaben betrifft die Starre Arme und Beine, an den Armen ist Ungeschicklich-
+    by: scan
+  - page: 542
+    from: den Beinen nicht nachzuweisen. Kine andere Differenz, der man zunächst ge-
+    to: den Beinen nicht nachzuweisen. Eine andere Differenz, der man zunächst ge-
+    by: scan
+  - page: 542
+    from: neigt wäre eine grosse Bedeutung beizulegen, betrifit die Entwickelung des Krank-
+    to: neigt wäre eine grosse Bedeutung beizulegen, betrifft die Entwickelung des Krank-
+    by: scan
+  - page: 543
+    from: Versucht man nun, das beschriebene in den beiden Fällen etwas varlirende
+    to: Versucht man nun, das beschriebene in den beiden Fällen etwas variirende
+    by: scan
+  - page: 543
+    from: zunächst die Aehnlichkeit auf, welche diese familiäre Affeetion mit der FrIED-
+    to: zunächst die Aehnlichkeit auf, welche diese familiäre Affection mit der FRIED-
+    by: scan
+  - page: 543
+    from: aufhebung, Ataxie der Beine — RomzBErRG’sches Symptom — wird aber hier
+    to: aufhebung, Ataxie der Beine — ROMBERG’sches Symptom — wird aber hier
+    by: scan
+  - page: 543
+    from: stellt sich geradezu als spastisches Gegenstück zur FriEDREICH’schen
+    to: stellt sich geradezu als spastisches Gegenstück zur FRIEDREICH’schen
+    by: scan
+  - page: 543
+    from: Vebrigens ist auch die Gangart eine verschiedene, es fehlt das bei der
+    to: Uebrigens ist auch die Gangart eine verschiedene, es fehlt das bei der
+    by: scan
+  - page: 543
+    from: ist eine weit frühere, der Verlauf scheint ein anderer zu sein, bei unserer Afleoc-
+    to: ist eine weit frühere, der Verlauf scheint ein anderer zu sein, bei unserer Affec-
+    by: scan
+  - page: 543
+    from: tion, so weit man es beurtheilen kann, stationär, bei der FRiEDREICH’schen Krank-
+    to: tion, so weit man es beurtheilen kann, stationär, bei der FRIEDREICH’schen Krank-
+    by: scan
+  - page: 543
+    from: anzuerkennen, Ferner unterliegt die Diagnose der multiplen Sklerose im Kindes-
+    to: anzuerkennen. Ferner unterliegt die Diagnose der multiplen Sklerose im Kindes-
+    by: scan
+  - page: 543
+    from: alter grossen Schwierigkeiten, sie ist bekanntlich hier durch keine einzige Seetion
+    to: alter grossen Schwierigkeiten, sie ist bekanntlich hier durch keine einzige Section
+    by: scan
+  - page: 543
+    from: (Vgl. UngEsn, Ueber multiple inselförmige Sklerose des Centralnervensystems im
+    to: (Vgl. UNGER, Ueber multiple inselförmige Sklerose des Centralnervensystems im
+    by: scan
+  - page: 543
+    from: fallen einsetzen, und zwischen denen sich Zeiten von Besserung und Krankheits-
+    to: fällen einsetzen, und zwischen denen sich Zeiten von Besserung und Krankheits-
+    by: scan
+  - page: 543
+    from: pausen geltend machen. KEin solcher Verlauf fehlt in unseren Fällen gänzlich;
+    to: pausen geltend machen. Ein solcher Verlauf fehlt in unseren Fällen gänzlich;
+    by: scan
+  - page: 543
+    from: in einer grösseren im Druck befindlichen Arbeit! eine Anzahl von Formen mit
+    to: in einer grösseren im Druck befindlichen Arbeit¹ eine Anzahl von Formen mit
+    by: scan
+  - page: 543
+    from: "' In: Beiträge zur Kinderheilkande, Heräusgegeben von M. Kassowitz. N.F. UL Franz"
+    to: "¹ In: Beiträge zur Kinderheilkunde, herausgegeben von M. Kassowitz. N. F. III. Franz"
+    by: scan
+  - page: 543
+    from: Deuticke. Wien 1898,
+    to: Deuticke. Wien 1893.
+    by: scan
+  - page: 544
+    from: schliessen, und deren Kern die Fälle von sog. LiTTLE’scher Krankheit bilden.
+    to: schliessen, und deren Kern die Fälle von sog. LITTLE’scher Krankheit bilden.
+    by: scan
+  - page: 544
+    from: "Ich unterscheide dort vier klinische Typen von cerebralen Diplegien: -1. die"
+    to: "Ich unterscheide dort vier klinische Typen von cerebralen Diplegien: 1. die"
+    by: scan
+  - page: 544
+    from: die sog. LirTLE’sche Krankheit, d. h. die Fälle von allgemeiner, paraplegischer
+    to: die sog. LITTLE’sche Krankheit, d. h. die Fälle von allgemeiner, paraplegischer
+    by: scan
+  - page: 544
+    from: welche wir bei unserer familiären Affeetion fanden, den cerebralen Diplegien
+    to: welche wir bei unserer familiären Affection fanden, den cerebralen Diplegien
+    by: scan
+  - page: 544
+    from: findet man bei Kindern, die, wie LiTTLE sich ausdrückte, den Eindruck eines
+    to: findet man bei Kindern, die, wie LITTLE sich ausdrückte, den Eindruck eines
+    by: scan
+  - page: 544
+    from: „tardigrade animal“ maächen, Muskelspannungen am ganzen Körper oder nur
+    to: „tardigrade animal“ machen, Muskelspannungen am ganzen Körper oder nur
+    by: scan
+  - page: 544
+    from: Ich bin so geneigt, unsere familiäre Affection den verebralen Diplegien zu-
+    to: Ich bin so geneigt, unsere familiäre Affection den cerebralen Diplegien zu-
+    by: scan
+  - page: 544
+    from: Es gieht nun in der Litteratur eine gewisse Anzahl von ähnlichen familiären Er-
+    to: Es giebt nun in der Litteratur eine gewisse Anzahl von ähnlichen familiären Er-
+    by: scan
+  - page: 545
+    from: "der Beobachtung von PEL1zÄUs.! Der Symptomcomplex umfasst hier wiederum:"
+    to: "der Beobachtung von PELIZÄUS.¹ Der Symptomcomplex umfasst hier wiederum:"
+    by: scan
+  - page: 545
+    from: Die Affection ist in der Beobachtung von PEL1ZÄUus nicht bloss familiär,
+    to: Die Affection ist in der Beobachtung von PELIZÄUS nicht bloss familiär,
+    by: scan
+  - page: 545
+    from: sondern. auch hereditär.‘ Sie konnte durch drei Generationen verfolgt werden,
+    to: sondern auch hereditär. Sie konnte durch drei Generationen verfolgt werden,
+    by: scan
+  - page: 545
+    from: PeuimzÄäus konnte Auskünfte über 5 Fälle sammeln. Der schwersterkrankte
+    to: PELIZÄUS konnte Auskünfte über 5 Fälle sammeln. Der schwersterkrankte
+    by: scan
+  - page: 545
+    from: Trotz mancher Unterschiede (die Fälle von P£e1mÄUs zeigten Schwachsinn,
+    to: Trotz mancher Unterschiede (die Fälle von PELIZÄUS zeigten Schwachsinn,
+    by: scan
+  - page: 545
+    from: 2, PriizÄäUs erwähnt bereits die Beobachtung zweier Brüder von Dresch-
+    to: 2. PELIZÄUS erwähnt bereits die Beobachtung zweier Brüder von Dresch-
+    by: scan
+  - page: 545
+    from: feld?, in deren Affection Tremor, Bulbärsymptome, schwankender Gang eine
+    to: feld², in deren Affection Tremor, Bulbärsymptome, schwankender Gang eine
+    by: scan
+  - page: 545
+    from: anderen im 4, Lebensjahr. Stetige Progression.
+    to: anderen im 4. Lebensjahr. Stetige Progression.
+    by: scan
+  - page: 545
+    from: 3, SACHS*? hat das familiäre Vorkommen der schwersten Form von cere-
+    to: 3. SACHS³ hat das familiäre Vorkommen der schwersten Form von cere-
+    by: scan
+  - page: 545
+    from: schlaffe, beim zweiten eine spastische,
+    to: schlaffe, beim zweiten eine spastische.
+    by: scan
+  - page: 545
+    from: "' Ueber eine eigenthümliche Form spastischer Lähmung mit Cerebralerscheinungen auf"
+    to: ¹ Ueber eine eigenthümliche Form spastischer Lähmung mit Cerebralerscheinungen auf
+    by: scan
+  - page: 545
+    from: '* Medical "Times and Gazette. 9. Februar 1878.'
+    to: ² Medical Times and Gazette. 9. Februar 1878.
+    by: scan
+  - page: 545
+    from: "* On arrested cerebral development, with special reference to its cortical pathology."
+    to: ³ On arrested cerebral development, with special reference to its cortical pathology.
+    by: scan
+  - page: 545
+    from: Journal of nerv, and ment, dis. 1887. — A further contribntion to the pathology of arrested
+    to: Journal of nerv. and ment. dis. 1887. — A further contribution to the pathology of arrested
+    by: scan
+  - page: 546
+    from: maler Entwickelung bis zum 6, Monat, blind, idiotisch und spastisch gelähmt
+    to: maler Entwickelung bis zum 6. Monat, blind, idiotisch und spastisch gelähmt
+    by: scan
+  - page: 546
+    from: der cerebralen Diplegien hat Fr. ScHULTZE! beschrieben. Es handelt sich in
+    to: der cerebralen Diplegien hat FR. SCHULTZE¹ beschrieben. Es handelt sich in
+    by: scan
+  - page: 546
+    from: schwer gewesen. KEin ältestes Kind, das völlig normal war, war auch leicht ge-
+    to: schwer gewesen. Ein ältestes Kind, das völlig normal war, war auch leicht ge-
+    by: scan
+  - page: 546
+    from: boren worden, Es liegt 'also nicht so sehr eine congenitale familiäre Affection,
+    to: boren worden. Es liegt also nicht so sehr eine congenitale familiäre Affection,
+    by: scan
+  - page: 546
+    from: sondern eine in derselben Familie drei Mal wiederholte LiTTLE’sche Starre vor.
+    to: sondern eine in derselben Familie drei Mal wiederholte LITTLE’sche Starre vor.
+    by: scan
+  - page: 546
+    from: Dies trifft für die 3 Geschwister mit spastischer Starre zu, die v. KRAFFT-EBInG*
+    to: Dies trifft für die 3 Geschwister mit spastischer Starre zu, die v. KRAFFT-EBING²
+    by: scan
+  - page: 546
+    from: kürzlich in Wien vorgestellt hat, v. KrArrt-EBInG entscheidet sich für die
+    to: kürzlich in Wien vorgestellt hat. v. KRAFFT-EBING entscheidet sich für die
+    by: scan
+  - page: 546
+    from: Diagnose eines Hydromyelus; die Analogie mit den Fällen Fr. SCHULTZE’S und
+    to: Diagnose eines Hydromyelus; die Analogie mit den Fällen FR. SCHULTZE’s und
+    by: scan
+  - page: 546
+    from: die Auffassung einer „cerebralen Starre‘“ als mindestens ebenso berechtigt er-
+    to: die Auffassung einer „cerebralen Starre“ als mindestens ebenso berechtigt er-
+    by: scan
+  - page: 546
+    from: unzutreffend, MLehrreich ist in den Fällen v, Krarrt’s die verschiedenartige
+    to: unzutreffend. Lehrreich ist in den Fällen v. KRAFFT’s die verschiedenartige
+    by: scan
+  - page: 546
+    from: lich congenital bedingte Affeetion für eine acquirirte zu halten.
+    to: lich congenital bedingte Affection für eine acquirirte zu halten.
+    by: scan
+  - page: 546
+    from: so darf man erwarten, dass auch der letzte T'ypus der cerebralen Diplegien, die
+    to: so darf man erwarten, dass auch der letzte Typus der cerebralen Diplegien, die
+    by: scan
+  - page: 546
+    from: congenitale Chorea und bilaterale Athetose, seine familiären Vertreter haben wird,
+    to: congenitale Chorea und bilaterale Athetose, seine familiären Vertreter haben wird.
+    by: scan
+  - page: 546
+    from: Dies ist in der "hat der Fall.
+    to: Dies ist in der That der Fall.
+    by: scan
+  - page: 546
+    from: MAssALONGO (bei AuDryY®) theilt die Beobachtung dreier Geschwister mit,
+    to: MASSALONGO (bei AUDRY³) theilt die Beobachtung dreier Geschwister mit,
+    by: scan
+  - page: 546
+    from: welche einem gesunden Elternpaar entsprossen und selhst normal geboren, auch
+    to: welche einem gesunden Elternpaar entsprossen und selbst normal geboren, auch
+    by: scan
+  - page: 546
+    from: "! Spastische Starre der Unterextremitäten bei drei Geschwistern, Deutsche med. Wochen-"
+    to: ¹ Spastische Starre der Unterextremitäten bei drei Geschwistern. Deutsche med. Wochen-
+    by: scan
+  - page: 546
+    from: schr. 1889. Nr.15,
+    to: schr. 1889. Nr. 15.
+    by: scan
+  - page: 546
+    from: "* v, Krarrrt-Enine, Familiäre spastische Spinalparalyse. Wiener klin. Wochenschrift."
+    to: ² v. KRAFFT-EBING, Familiäre spastische Spinalparalyse. Wiener klin. Wochenschrift.
+    by: scan
+  - page: 546
+    from: "> J/ath6tose double et les chor6es chroniques de Venfance. Lyon 1892."
+    to: ³ L’athétose double et les chorées chroniques de l’enfance. Lyon 1892.
+    by: scan
+  - page: 547
+    from: bis zum 7, Jahr normal entwickelt, von dieser Zeit an das Bild einer schweren
+    to: bis zum 7. Jahr normal entwickelt, von dieser Zeit an das Bild einer schweren
+    by: scan
+  - page: 547
+    from: 7. Man -kann sich ferner kaum der Meinung erwehren, dass die 5 Geschwister,
+    to: 7. Man kann sich ferner kaum der Meinung erwehren, dass die 5 Geschwister,
+    by: scan
+  - page: 547
+    from: welche UnvERrkicHT! in seiner Monographie über Myoclonie den Beispielen dieser
+    to: welche UNVERRICHT¹ in seiner Monographie über Myoclonie den Beispielen dieser
+    by: scan
+  - page: 547
+    from: Afflection voranstellt, hierher, ich meine zu den familiären Formen von Chorea
+    to: Affection voranstellt, hierher, ich meine zu den familiären Formen von Chorea
+    by: scan
+  - page: 547
+    from: und Athetose, gehören. UNnvERRICHT bezeichnet seine Fälle als Myoclonie,
+    to: und Athetose, gehören. UNVERRICHT bezeichnet seine Fälle als Myoclonie,
+    by: scan
+  - page: 547
+    from: Aber ich meine, die Sammlung UNvERRICHT’s ist ein gutes Argument, um
+    to: Aber ich meine, die Sammlung UNVERRICHT’s ist ein gutes Argument, um
+    by: scan
+  - page: 547
+    from: Die 5 Geschwister im Buche UnvErricHt’s stimmen in keinem anderen wesent-
+    to: Die 5 Geschwister im Buche UNVERRICHT’s stimmen in keinem anderen wesent-
+    by: scan
+  - page: 547
+    from: Wien, Mitte April 1893,
+    to: Wien, Mitte April 1893.
+    by: scan
+  - page: 547
+    from: "* Die Myoclonie, Wien 1891."
+    to: ¹ Die Myoclonie. Wien 1891.
     by: scan

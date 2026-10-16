@@ -1140,6 +1140,54 @@ books:
     author: Sigmund Freud
     year: 1893
     kind: work
+  - item: nc-1893-diplegien
+    citation: NC 1893
+    ocr: deu
+    # Two issues' pages; each part is read from below its title and byline,
+    # and the notes at the foot of its first pages, which close the article
+    # before it, are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/nc-12-1893-15
+      firstPage: 512
+      pages:
+        - https://archive.org/download/nc-12-1893-15/page/n7_w1600.jpg#region=0.05,0.607,0.9,0.27
+        - https://archive.org/download/nc-12-1893-15/page/n8_w1600.jpg
+        - https://archive.org/download/nc-12-1893-15/page/n9_w1600.jpg
+        - https://archive.org/download/nc-12-1893-15/page/n10_w1600.jpg
+        - url: https://archive.org/download/nc-12-1893-16/page/n5_w1600.jpg#region=0.05,0.44,0.9,0.457
+          page: 542
+        - https://archive.org/download/nc-12-1893-16/page/n6_w1600.jpg
+        - https://archive.org/download/nc-12-1893-16/page/n7_w1600.jpg
+        - https://archive.org/download/nc-12-1893-16/page/n8_w1600.jpg
+        - https://archive.org/download/nc-12-1893-16/page/n9_w1600.jpg
+        - https://archive.org/download/nc-12-1893-16/page/n10_w1600.jpg
+    firstPage: 512
+    lastPage: 547
+    # A page where a line set in with a dash opens no paragraph: the lines
+    # that open its paragraphs.
+    paragraphs:
+      - { page: 547, opens: 7. Man }
+      - { page: 547, opens: Aber ich meine }
+      - { page: 547, opens: Da eine sehr }
+      - { page: 547, opens: "Wien, Mitte" }
+    # The notes at the pages' foot, by their marks.
+    notes:
+      - { page: 543, opens: ¹ In }
+      - { page: 545, opens: ¹ Ueber }
+      - { page: 545, opens: ² Medical }
+      - { page: 545, opens: ³ On }
+      - { page: 546, opens: ¹ Spastische }
+      - { page: 546, opens: ² v. }
+      - { page: 546, opens: ³ L’athétose }
+      - { page: 547, opens: ¹ Die }
+    slug: ueber-familiaere-formen-von-cerebralen-diplegien
+    title: Ueber familiäre Formen von cerebralen Diplegien
+    shortTitle: Familiäre Formen von cerebralen Diplegien
+    edition: Neurologisches Centralblatt, XII. Jahrgang, Nr. 15 und 16 (Leipzig 1893), S. 512–515 und 542–547
+    author: Sigmund Freud
+    year: 1893
+    kind: work
   - item: cn-1895-14-11
     citation: Bernhardt’sche Sensibilitätsstörung
     ocr: deu
