@@ -981,15 +981,21 @@ function headingOpeningOf(
 /**
  * Where the page's running head stands, or -1: the scan's noise above it
  * goes with it. A heading the manifest names is no running head, however
- * high the page sets it, nor is any line below it.
+ * high the page sets it, nor is any line below it; the head that carries
+ * the page's number is one, whatever words it repeats.
  */
 function headIndex(page: Page, volume: Volume): number {
-  const head = Math.max(
-    runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)),
-    lowHeadIndex(page, volume.printed.get(page.leaf) ?? null),
+  const front = volume.frontLeaves.has(page.leaf);
+  const low = lowHeadIndex(page, volume.printed.get(page.leaf) ?? null);
+  const head = Math.max(runningHeadIndex(page, volume.heads, front), low);
+  const numbered = Math.max(
+    numberedHead(page)?.index ?? -1,
+    romanHead(page, front)?.index ?? -1,
+    low,
   );
   const named = page.lines.findIndex(
-    (line) => headingOpeningOf(line, volume) !== undefined,
+    (line, index) =>
+      index > numbered && headingOpeningOf(line, volume) !== undefined,
   );
   return named >= 0 ? Math.min(head, named - 1) : head;
 }

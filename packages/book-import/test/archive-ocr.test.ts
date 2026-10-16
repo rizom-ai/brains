@@ -2795,6 +2795,12 @@ describe("parseArchiveOcrWork, headings the manifest names by level and label", 
       line("Pathologie der Lähmung.", 1300),
       paragraph(1400),
     ]),
+    // Its running head carries the words of the heading below it.
+    page(13, [
+      line("KLINIK DER STARRE 4", 200, 900),
+      line("KLINIK DER STARRE", 500),
+      paragraph(600),
+    ]),
   ].join("")}</body></html>`;
 
   it("opens chapters labelled as printed or unnumbered, and lettered sections, numbering on from the labels", () => {
@@ -2803,7 +2809,7 @@ describe("parseArchiveOcrWork, headings the manifest names by level and label", 
       title: "Die infantile Cerebrallähmung",
       citation: "Infantile",
       firstPage: 1,
-      lastPage: 3,
+      lastPage: 4,
       headings: [
         { page: 1, opens: "Einleitung. Nosographische", level: 1 },
         { page: 1, opens: "IIa. Geschichte", level: 1, label: "IIa" },
@@ -2813,6 +2819,7 @@ describe("parseArchiveOcrWork, headings the manifest names by level and label", 
         { page: 3, opens: "B. Leichte Fälle", level: 2, label: "B" },
         { page: 3, opens: "IIIb. Klinik", level: 1, label: "IIIb" },
         { page: 3, opens: "Pathologie der Lähmung" },
+        { page: 4, opens: "KLINIK DER STARRE" },
       ],
     });
 
@@ -2826,6 +2833,7 @@ describe("parseArchiveOcrWork, headings the manifest names by level and label", 
       "IIa. Geschichte der Lähmung. > B. Leichte Fälle der Lähmung.",
       "IIIb. Klinik der Lähmung.",
       "IV. Pathologie der Lähmung.",
+      "V. Klinik der Starre",
     ]);
     expect(units[4]?.paragraphs[0]).toStartWith("Die Kinder leiden");
   });
