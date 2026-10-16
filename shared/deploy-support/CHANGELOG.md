@@ -1,5 +1,13 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.559
+
+### Patch Changes
+
+- [#662](https://github.com/rizom-ai/brains/pull/662) [`312f2b4`](https://github.com/rizom-ai/brains/commit/312f2b4710a48939e5b8e8fb3cc0207a439f8129) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require reviewed per-image runtime manifests and Bun lockfiles for new fleet image builds. Add a planning-only `images:lock` command, pin the selector-parser security fix in generated manifests, and install production dependencies frozen with lifecycle scripts disabled. Existing published images remain immutable; adopting the scaffold or preparing locks does not replace running containers.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.559
+
 ## 0.2.0-alpha.558
 
 ### Patch Changes

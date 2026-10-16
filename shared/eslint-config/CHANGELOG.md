@@ -1,5 +1,9 @@
 # @brains/eslint-config
 
+## 0.2.0-alpha.559
+
+No changes in this release.
+
 ## 0.2.0-alpha.558
 
 No changes in this release.
