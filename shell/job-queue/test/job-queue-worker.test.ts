@@ -270,6 +270,43 @@ describe("JobQueueWorker", () => {
       expect(worker.getStats().isHealthy).toBe(true);
     });
 
+    it("runs the handler's terminal error callback for an attempt the claim terminally fails", async () => {
+      const handler = createMockHandler();
+      mockService = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      const terminallyFailed: JobInfo = {
+        ...testJob,
+        status: "failed",
+        retryCount: 4,
+        lastError: "Attempt lease expired",
+      };
+      let calls = 0;
+      spyOn(mockService, "dequeue").mockImplementation(async (claim) => {
+        calls++;
+        if (calls === 1) await claim?.onTerminalReclaim?.(terminallyFailed);
+        return null;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 10 },
+      );
+
+      await worker.start();
+      await waitUntil(
+        () => handler.onTerminalError.mock.calls.length === 1,
+        "the terminal error callback for the reclaimed attempt",
+      );
+
+      expect(handler.onTerminalError.mock.calls[0]?.[0]).toEqual(
+        new Error("Attempt lease expired"),
+      );
+      expect(handler.onTerminalError.mock.calls[0]?.[2]).toBe(testJob.id);
+      expect(handler.process).not.toHaveBeenCalled();
+    });
+
     it("does not leave a durable processing row behind after a later claim error", async () => {
       const database = await createTestJobQueueDatabase();
       const service = JobQueueService.createFresh(
@@ -515,6 +552,7 @@ describe("JobQueueWorker", () => {
         workerSlotId: "stable-slot",
         workerSessionId: startCall[1],
         leaseDurationMs: 5_000,
+        onTerminalReclaim: expect.any(Function),
       });
 
       await worker.stop();

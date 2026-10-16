@@ -455,9 +455,21 @@ export abstract class BaseGenerationJobHandler<
     };
   }
 
+  /**
+   * The queue failed the job for good, possibly without process() settling
+   * (its process died mid-attempt). A stub still generating would otherwise
+   * stay generating forever; one already written is left alone.
+   */
+  async onTerminalError(error: Error, data: TInput): Promise<void> {
+    await this.markPreallocatedStubFailed(data, error.message, {
+      onlyWhileGenerating: true,
+    });
+  }
+
   private async markPreallocatedStubFailed(
     data: TInput,
     error: string,
+    options: { onlyWhileGenerating?: boolean } = {},
   ): Promise<void> {
     const entityId = getPreallocatedEntityId(data);
     if (!entityId) return;
@@ -469,6 +481,12 @@ export abstract class BaseGenerationJobHandler<
         visibilityScope: "restricted",
       });
       if (!existing) return;
+      if (
+        options.onlyWhileGenerating &&
+        existing.metadata["status"] !== "generating"
+      ) {
+        return;
+      }
 
       await this.context.entityService.updateEntity({
         entity: {

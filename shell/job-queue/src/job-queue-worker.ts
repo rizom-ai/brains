@@ -360,6 +360,7 @@ export class JobQueueWorker {
           workerSlotId: this.config.workerSlotId,
           workerSessionId,
           leaseDurationMs: this.config.leaseDurationMs,
+          onTerminalReclaim: (failed) => this.emitTerminalReclaim(failed),
         });
         if (!job) break;
 
@@ -926,6 +927,28 @@ export class JobQueueWorker {
       attemptId,
     );
 
+    await this.progressMonitor.handleJobStatusChange(
+      job.id,
+      "failed",
+      job.metadata,
+    );
+  }
+
+  /**
+   * A claim failed an expired attempt terminally: the attempt's process died
+   * before its handler settled, so no handler callback has run for it yet.
+   */
+  private async emitTerminalReclaim(job: JobInfo): Promise<void> {
+    const handler = this.jobQueueService.getHandler(job.type);
+    if (handler) {
+      await this.runHandlerErrorCallback(
+        "onTerminalError",
+        handler,
+        job,
+        new Error(job.lastError ?? "Attempt lease expired"),
+        job.attemptId ?? job.id,
+      );
+    }
     await this.progressMonitor.handleJobStatusChange(
       job.id,
       "failed",

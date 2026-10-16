@@ -3,7 +3,7 @@ import {
   expectToolError,
   expectToolSuccess,
 } from "@brains/mcp-service/test";
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach, spyOn } from "bun:test";
 import { authenticatedUserId } from "@brains/contracts";
 import { createSystemTools } from "../../src/system/tools";
 import {
@@ -1448,6 +1448,29 @@ status: draft
       prompt: "Rewritten prompt",
       title: "Rewritten Title",
     });
+  });
+
+  it("removes the generation stub when the job queue refuses the generation job", async () => {
+    spyOn(services.jobs, "enqueue").mockRejectedValue(
+      new Error("queue write refused"),
+    );
+
+    const result = await execGenerate({
+      entityType: "note",
+      prompt: "Write about refusals",
+      title: "Refused Note",
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "queue write refused",
+    });
+    expect(
+      await services.entityService.getEntity({
+        entityType: "note",
+        id: "refused-note",
+      }),
+    ).toBeNull();
   });
 
   it("should continue with rewritten input for direct create", async () => {

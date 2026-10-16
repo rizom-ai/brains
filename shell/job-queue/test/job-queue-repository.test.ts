@@ -860,7 +860,11 @@ describe("JobQueueRepository fenced attempts", () => {
       1,
     );
 
-    expect(reclaimed).toBeNull();
+    expect(reclaimed).toMatchObject({
+      id: job.id,
+      status: JOB_STATUS.FAILED,
+      lastError: "Attempt lease expired",
+    });
     expect(stored).toMatchObject({
       status: JOB_STATUS.FAILED,
       retryCount: 1,
