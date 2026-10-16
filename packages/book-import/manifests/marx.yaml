@@ -2442,3 +2442,301 @@ books:
     author: Karl Marx
     year: 1849
     kind: work
+  - source: archive-ocr
+    item: socialismeutopiq00enge
+    citation: Socialisme utopique
+    firstPage: 5
+    lastPage: 7
+    # The page turns between paragraphs, which the scan does not tell.
+    paragraphs:
+      - { page: 6, opens: Pendant leur séjour }
+      - { page: 6, opens: "En 1847, Marx et Engels" }
+      - { page: 6, opens: "En 1850, à Londres" }
+      - { page: 7, opens: Après la reprise }
+      - { page: 7, opens: "En 1870, après" }
+      - { page: 7, opens: La série des }
+      - { page: 7, opens: P. L. }
+    slug: avant-propos-a-socialisme-utopique-et-socialisme-scientifique
+    title: Avant-propos à Socialisme utopique et socialisme scientifique
+    edition: Frédéric Engels, Socialisme utopique et socialisme scientifique (Paris, Derveaux, 1880), pp. 5–7, signed P. L.
+    author: Karl Marx
+    year: 1880
+    kind: work
+  - source: archive-ocr
+    item: resolutionsducon00inte
+    citation: Résolutions de La Haye
+    firstPage: 3
+    lastPage: 16
+    # The resolutions' titles, set in the text's type, each numbered by
+    # place as the edition numbers them, and the second's two sections.
+    headings:
+      - { page: 3, opens: Résolution relative aux statuts }
+      - { page: 4, opens: Résolutions relatives aux réglements }
+      - { page: 4, opens: 1. Pouvoirs du Conseil }
+      - { page: 7, opens: Résolutions relatives aux rapports }
+      - { page: 8, opens: Résolutions relatives à l’admission }
+      - { page: 11, opens: Vérification des comptes }
+      - { page: 11, opens: Pleins-pouvoirs donnés }
+      - { page: 12, opens: Résolutions relatives à l’Alliance }
+      - { page: 14, opens: Siége et composition }
+      - { page: 16, opens: Lieu du Congrès }
+      - { page: 16, opens: Commission pour la rédaction }
+    # A note the scan sets too close below the text to tell.
+    notes:
+      - { page: 12, opens: (1) La commission }
+    # The commission's signatures, set apart below the date.
+    paragraphs:
+      - { page: 16, opens: Sur la propoposition }
+      - { page: 16, opens: Ont été nommés }
+      - { page: 16, opens: "Londres, le 21" }
+      - { page: 16, opens: "La Commission :" }
+      - { page: 16, opens: E. Dupont }
+    slug: resolutions-du-congres-general-tenu-a-la-haye
+    title: Résolutions du Congrès général tenu à La Haye du 2 au 7 septembre 1872
+    edition: Résolutions du Congrès général tenu à La Haye du 2 au 7 septembre 1872 (Londres, Imprimerie De Graag, 1872)
+    author: Karl Marx und Friedrich Engels
+    year: 1872
+    kind: work
+  - source: archive-ocr
+    # The report the Hague Congress ordered, which MEW 18 gives to Marx and
+    # Engels, read anew from Columbia's scan; its running quotation marks
+    # set lines in, so paragraphs are named where they mislead.
+    # The pièces justificatives it closes with are Bakunin's and his
+    # followers' own documents, left out.
+    item: ldpd_14857291_000
+    citation: Alliance
+    ocr: fra
+    firstPage: 1
+    lastPage: 118
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 1, opens: L’Association Internationale }
+      - { page: 1, opens: Au Congrès de la Haye }
+      - { page: 1, opens: 1. D’exclure }
+      - { page: 1, opens: 2. D’exclure }
+      - { page: 1, opens: 3. De publier }
+      - { page: 1, opens: Par suite de }
+      - { page: 7, opens: Les statuts secrets }
+      - { page: 7, opens: I. Les frères }
+      - { page: 16, opens: Les frères internationaux }
+      - { page: 16, opens: Le 22 Décembre }
+      - { page: 18, opens: À cette époque }
+      - { page: 18, opens: “ Il nous semble }
+      - { page: 18, opens: Croirait-on }
+      - { page: 18, opens: Dès leur naissance }
+      - { page: 18, opens: La secte frappa }
+      - { page: 25, opens: Bien loin }
+      - { page: 27, opens: Les hommes de l’Alliance }
+      - { page: 27, opens: Cette circulaire fut }
+      - { page: 30, opens: Après le Congrès de la Ligue }
+      - { page: 30, opens: Déjà au Congrès }
+      - { page: 41, opens: En Italie }
+      - { page: 41, opens: Sa familiarité }
+      - { page: 45, opens: Dans une lettre }
+      - { page: 47, opens: Que le Conseil général est }
+      - { page: 47, opens: Que la doctrine }
+      - { page: 47, opens: Que le Conseil général a usé }
+      - { page: 47, opens: Que le Conseil général a comblé }
+      - { page: 47, opens: Il serait difficile }
+      - { page: 47, opens: “ Le Conseil général se propose }
+      - { page: 47, opens: Que l’esprit }
+      - { page: 47, opens: Que le Conseil général, non }
+      - { page: 47, opens: Pour ces raisons }
+      - { page: 47, opens: La Conférence déclare }
+      - { page: 47, opens: Rimini, 6 août }
+      - { page: 50, opens: Nous nous abstenous }
+      - { page: 50, opens: Dans les villes }
+      - { page: 56, opens: En même temps que }
+      - { page: 56, opens: “ Vu que }
+      - { page: 56, opens: “ Que le Congrès }
+      - { page: 56, opens: “ Qu’une assemblée }
+      - { page: 56, opens: “ Le Conseil général de }
+      - { page: 56, opens: “ Toutes les fédérations }
+      - { page: 56, opens: En même temps il }
+      - { page: 56, opens: De leur côté }
+      - { page: 58, opens: “ L’Amérique }
+      - { page: 58, opens: “ Les Slaves }
+      - { page: 58, opens: Voilà à quoi }
+      - { page: 58, opens: Dans cet ordre }
+      - { page: 58, opens: Cependant l’Alliance }
+      - { page: 62, opens: Le peuple russe }
+      - { page: 62, opens: Pour bien remplir }
+      - { page: 70, opens: Les deux manifestants }
+      - { page: 70, opens: Personne n’osera }
+      - { page: 73, opens: Le 3 septembre }
+      - { page: 73, opens: Netchaieff commençait }
+      - { page: 75, opens: Ouspensky, Ivanoff }
+      - { page: 84, opens: Immédiatement après }
+      - { page: 84, opens: Mme Alexandrovsky }
+      - { page: 95, opens: “ § 25 }
+      - { page: 95, opens: “ § 26 }
+      - { page: 95, opens: Critiquer un tel }
+      - { page: 95, opens: Les trois dégrés }
+    # The chapters' titles, numbered by place as the edition numbers them,
+    # and the sections of the eighth.
+    headings:
+      - { page: 1, opens: INTRODUCTION. }
+      - { page: 4, opens: L’ALLIANCE SECRÈTE }
+      - { page: 15, opens: L’ALLIANCE EN SUISSE }
+      - { page: 30, opens: L’ALLIANCE EN ESPAGNE }
+      - { page: 41, opens: L’ALLIANCE EN ITALIE }
+      - { page: 49, opens: L’ALLIANCE EN FRANCE }
+      - { page: 53, opens: L’ALLIANCE DEPUIS }
+      - { page: 59, opens: L’ALLIANCE EN RUSSIE }
+      - { page: 59, opens: 1. LE PROCÈS }
+      - { page: 89, opens: 2. LE CATÉCHISME }
+      - { page: 96, opens: 3. L’APPEL DE BAKOUNINE }
+      - { page: 103, opens: CONCLUSION. }
+      - { page: 105, opens: APPENDICE. }
+      - { page: 105, opens: 1. L’HÉGIRE }
+      - { page: 107, opens: 2. LE MANIFESTE }
+      - { page: 118, opens: PIÈCES JUSTIFICATIVES. }
+      - { page: 118, opens: I. STATUTS SECRETS }
+    skipHeadings: [Pièces justificatives.]
+    # Notes the OCR set as the text, by the lines that open them.
+    notes:
+      - { page: 5, opens: "* Cette bible" }
+      - { page: 6, opens: "* Parmi les" }
+      - { page: 19, opens: "* Deux mois" }
+      - { page: 25, opens: "* Mazzini" }
+      - { page: 25, opens: "† Résolution" }
+      - { page: 27, opens: "* Procès de" }
+      - { page: 32, opens: "* Cette lettre" }
+      - { page: 33, opens: "“ Le Conseil général actuel", runsOn: true }
+      - { page: 40, opens: "* Sentinon" }
+      - { page: 41, opens: "la mer;", runsOn: true }
+      - { page: 41, opens: "(*) “ Un des" }
+      - { page: 41, opens: "(†) Fanelli" }
+      - { page: 42, opens: "que cela vous", runsOn: true }
+      - { page: 42, opens: "‡) Repoussé" }
+      - { page: 48, opens: "* Voici ce" }
+      - { page: 60, opens: "* Gazette" }
+      - { page: 62, opens: "* Il faut remarquer" }
+      - { page: 62, opens: "‡ La troisième" }
+      - { page: 65, opens: "* Pour mystifier" }
+      - { page: 67, opens: "* Bakounine et" }
+      - { page: 72, opens: "* Tous les faits" }
+      - { page: 73, opens: "* Nous devons" }
+      - { page: 74, opens: "ternational est la", runsOn: true }
+      - { page: 75, opens: "* Aucun des" }
+      - { page: 80, opens: "* Extraits" }
+      - { page: 81, opens: "jusque dans ses", runsOn: true }
+      - { page: 81, opens: "“ Mouravieff, cet" }
+      - { page: 85, opens: "* En 1868" }
+      - { page: 99, opens: "(*) Le lecteur" }
+      - { page: 112, opens: "* Le titre" }
+      - { page: 117, opens: "* Romanoff" }
+    slug: lalliance-de-la-democratie-socialiste-et-lassociation-internationale-des-travailleurs
+    title: L'Alliance de la démocratie socialiste et l'Association internationale des travailleurs
+    shortTitle: L'Alliance de la démocratie socialiste
+    edition: L'Alliance de la démocratie socialiste et l'Association internationale des travailleurs. Rapport et documents publiés par ordre du Congrès international de la Haye (Londres, A. Darson; Hambourg, Otto Meissner, 1873)
+    author: Karl Marx und Friedrich Engels
+    year: 1873
+    kind: work
+  - source: archive-ocr
+    # The Brussels Congress adopted the General Council's resolution on the
+    # working day as Marx drafted it (MEW 16, 317). Of his draft on machinery
+    # (MEW 16, 315) its resolution keeps only the first clause, and the rest
+    # of 1868 is not his.
+    item: resolutionsofcon00inte
+    citation: Resolutions 1866 and 1868
+    firstPage: 13
+    lastPage: 14
+    opensWith: A resolution having been
+    skipHeadings:
+      - War and Standing Armies.
+      - Reply to the Invitation of the League of Peace.
+    slug: reduction-of-the-hours-of-labour
+    title: Reduction of the Hours of Labour
+    edition: Resolutions of the Congress of Geneva, 1866, and the Congress of Brussels, 1868 (London, Westminster Printing Company, [1868]), pp. 13–14
+    author: Karl Marx
+    year: 1868
+    kind: work
+  - source: archive-ocr
+    # The preamble Marx dictated for the Parti ouvrier's programme (MEW 19,
+    # 238), read from the scan of the book fr.wikisource transcribes: the
+    # transcription sets the programme's dateline in the preamble's first
+    # paragraph, where the page tells them apart. The demands that follow
+    # are Guesde's.
+    item: lafrancesociali00terrgoog
+    citation: France socialiste
+    ocr: fra
+    firstPage: 101
+    lastPage: 102
+    opensWith: Considérant,
+    paragraphs:
+      - { page: 101, opens: "Considérant," }
+      - { page: 101, opens: Que l’émancipation }
+    slug: considerants-du-programme-du-parti-ouvrier
+    title: Considérants du programme du Parti ouvrier
+    edition: Gabriel Terrail (Mermeix), La France socialiste (Paris, F. Fetscherin et Chuit, 1886), pp. 101–102, the programme as the Congrès national du Havre confirmed it in November 1880
+    author: Karl Marx
+    year: 1880
+    kind: work
+  - source: archive-ocr
+    # The General Council's private circular (MEW 18, Marx and Engels), as
+    # Le Mouvement socialiste reprinted it, read anew from the scan; the
+    # volume binds tomes XXXIII and XXXIV, and the circular fills pp. 5–50
+    # of the second.
+    item: mouvementsociali3334pari
+    citation: Mouvement socialiste XXXIV
+    ocr: fra
+    firstPage: 5
+    lastPage: 50
+    # The review's notes on the circular, signed N. D. L. R., are its own.
+    notes:
+      - { page: 5, opens: (1) Le document }
+      - { page: 5, opens: (2) Les Prétendues }
+      - { page: 5, opens: (3) Ce manifeste }
+      - { page: 19, opens: (1) Les amis }
+      - { page: 20, opens: (1) Voici quelle }
+      - { page: 22, opens: (1) Peu de temps }
+      - { page: 31, opens: (1) Voici la résolution }
+      - { page: 31, opens: Vu les considérants }
+      - { page: 31, opens: Vu l’Adresse }
+      - { page: 32, opens: le plus d’obstacles, runsOn: true }
+      - { page: 32, opens: Vu la Résolution }
+      - { page: 32, opens: Vu la déclaration }
+      - { page: 32, opens: Attendu que }
+      - { page: 32, opens: En présence }
+      - { page: 32, opens: Considérant en outre }
+      - { page: 32, opens: Que contre ce }
+      - { page: 32, opens: Que cette constitution }
+      - { page: 32, opens: Que la coalition }
+      - { page: 32, opens: La Conférence rappelle }
+      - { page: 32, opens: Que dans l’état }
+      - { page: 34, opens: (1) Les travaux }
+      - { page: 38, opens: (1) Telles étaient }
+      - { page: 42, opens: (1) Les hommes }
+      - { page: 42, opens: Le Conseil général se propose }
+      - { page: 47, opens: (1) Sous le titre }
+      - { page: 47, opens: « Le jour }
+      - { page: 48, opens: été témoins, runsOn: true }
+      - { page: 48, opens: « Par leurs }
+      - { page: 48, opens: « De plus }
+      - { page: 48, opens: « Albert Richard }
+      - { page: 50, opens: (1) Dans le rapport }
+    skipNotes:
+      - { page: 5, opens: (1) Le document }
+      - { page: 5, opens: (2) Les Prétendues }
+      - { page: 5, opens: (3) Ce manifeste }
+    # The Council's signatures, set apart.
+    paragraphs:
+      - { page: 50, opens: "Le Conseil Général :" }
+      - { page: 50, opens: R. Applegarth }
+      - { page: 50, opens: "Secrétaires correspondants :" }
+      - { page: 50, opens: "Karl Marx, Allemagne" }
+      - { page: 50, opens: Charles Longuet }
+      - { page: 50, opens: Hemann Jung }
+      - { page: 50, opens: John Hales }
+      - { page: 50, opens: "33, Rathborne" }
+    # The fifth part's numeral, which the scan lost.
+    headings:
+      - { page: 40, opens: Après avoir fait justice, numeral: V }
+    slug: les-pretendues-scissions-dans-linternationale
+    title: Les prétendues scissions dans l'Internationale. Circulaire privée du Conseil général de l'Association internationale des travailleurs
+    shortTitle: Les prétendues scissions dans l'Internationale
+    edition: Le Mouvement socialiste, t. XXXIV, nos 253–254 (Paris, juillet–août 1913), pp. 5–50, after the first edition (Genève, Imprimerie coopérative, 1872)
+    author: Karl Marx und Friedrich Engels
+    year: 1872
+    kind: work
