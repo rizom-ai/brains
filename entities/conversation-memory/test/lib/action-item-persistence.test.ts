@@ -317,6 +317,33 @@ describe("the status validator", () => {
     ).rejects.toThrow("history");
   });
 
+  it("refuses a history entry that names someone other than the writer", async () => {
+    const service = await brain();
+    const entity = await stored(service);
+    const history = [
+      { at: "2026-10-15T08:02:00.000Z", actor: sam, from: "open", to: "done" },
+    ];
+    const content = generateMarkdown(
+      { ...frontmatterOf(entity.content), status: "done", history },
+      actionItemBody(entity.content),
+    );
+    const update = (writer: typeof niels | typeof sam): Promise<unknown> =>
+      service.updateEntity({
+        entity: {
+          ...entity,
+          content,
+          contentHash: computeContentHash(content),
+          metadata: { ...entity.metadata, status: "done", history },
+        },
+        options: { eventContext: { actor: writer } },
+      });
+
+    expect(update(niels)).rejects.toThrow("names u-sam");
+    expect((await stored(service)).metadata.status).toBe("open");
+    await update(sam);
+    expect((await stored(service)).metadata.status).toBe("done");
+  });
+
   it("lets edits that leave status alone through", async () => {
     const service = await brain();
     await group(service, "Field guide");

@@ -1,3 +1,4 @@
+import { actorRefKey } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import { actionItemSchema } from "../schemas/conversation-memory";
@@ -14,7 +15,7 @@ type PersistValidator = Parameters<
 export function createActionItemStatusValidator(
   entityService: Pick<EntityPluginContext["entityService"], "getEntity">,
 ): PersistValidator {
-  return async (entity, { operation }) => {
+  return async (entity, { operation, actor }) => {
     if (operation !== "update") return;
     // Shape errors are the schema's to report; this guards transitions only.
     const next = actionItemSchema.safeParse(entity);
@@ -40,6 +41,13 @@ export function createActionItemStatusValidator(
     if (!matches) {
       throw new Error(
         `Action item ${entity.id} moved from ${from} to ${to} without a matching history entry; move it on the board so the change is recorded`,
+      );
+    }
+    // A named writer must be the one the entry names; writes without an
+    // actor (imports, system jobs) are checked for the entry alone.
+    if (actor && actorRefKey(latest.actor) !== actorRefKey(actor)) {
+      throw new Error(
+        `Action item ${entity.id}: the recorded move names ${actorRefKey(latest.actor).replace(/^user:/, "")}, but ${actorRefKey(actor).replace(/^user:/, "")} is writing it`,
       );
     }
   };
