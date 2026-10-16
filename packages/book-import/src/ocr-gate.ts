@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { pageLeaf, pageText, workPages } from "./adapters/archive-ocr";
+import {
+  pageLeaf,
+  pageText,
+  scanPageUrl,
+  workPages,
+} from "./adapters/archive-ocr";
 import {
   firstOfEachVolume,
   volumeKey,
@@ -108,10 +113,12 @@ async function main(): Promise<void> {
       const rows = await sheet;
       const text = pageText(hocr, page);
       const leaf = pageLeaf(hocr, page);
+      const scanned = first.scan?.pages[leaf];
       await writeFile(join(dir, `${page}.txt`), `${text}\n`);
       await downloadScan(
-        first.scan?.pages[leaf] ??
-          `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
+        scanned
+          ? scanPageUrl(scanned)
+          : `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
         join(dir, `${page}.jpg`),
       );
       return [...rows, `| ${page} | ${leaf} | ${words(text)} | |`];

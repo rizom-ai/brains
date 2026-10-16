@@ -14,6 +14,8 @@ export interface PageOcrOptions {
   model: string;
   /** How the image is prepared before recognition, as named in the cache. */
   prepare?: string;
+  /** How a page's named parts are cut, as named in the cache: a page cut to its parts is read anew when they are cut otherwise. */
+  cut?: string;
   fetchImage: (url: string) => Promise<Uint8Array>;
   recognise: (image: Uint8Array, model: string) => Promise<string>;
 }
@@ -27,6 +29,9 @@ async function readCached(path: string): Promise<string | null> {
   }
 }
 
+/** A page address that names the parts of its image to read. */
+const REGION_NAMED = /[#&]region=/u;
+
 /**
  * Read scanned pages with a recognition model of our choosing, where the
  * archive's own text read the type with the wrong one; each page is fetched
@@ -34,8 +39,9 @@ async function readCached(path: string): Promise<string | null> {
  */
 export function createPageOcr(options: PageOcrOptions): PageOcr {
   return async (imageUrl) => {
+    const cut = REGION_NAMED.test(imageUrl) ? `\n${options.cut ?? ""}` : "";
     const key = createHash("sha256")
-      .update(`${options.model}\n${options.prepare ?? ""}\n${imageUrl}`)
+      .update(`${options.model}\n${options.prepare ?? ""}\n${imageUrl}${cut}`)
       .digest("hex");
     const path = join(options.cacheDir, `ocr-${key}.html`);
     const cached = await readCached(path);
@@ -141,23 +147,26 @@ export type RenderPdfPage = (
   page: number,
 ) => Promise<Uint8Array>;
 
-/** The part of an image a scan reads. */
+/** The parts of an image a scan reads, one below the other. */
 export type CropImage = (
   image: Uint8Array,
-  region: Region,
+  regions: Region[],
 ) => Promise<Uint8Array>;
 
 /**
  * A scan's page as addressed: an image, or a PDF's page named as PDF viewers
- * open one, either with the part of it to read after it:
- * file.pdf#page=5&region=0.37,0.1,0.27,0.3, page.jpg#region=0.5,0,0.5,1.
+ * open one, either with the parts of it to read after it, one below the
+ * other: file.pdf#page=5&region=0.37,0.1,0.27,0.3,
+ * page.jpg#region=0.5,0,0.5,1, page.jpg#region=0,0.6,0.5,0.4&region=0.5,0.6,0.5,0.4.
  */
 const SCAN_PAGE =
-  /^(.*?)(?:#page=(\d+))?(?:[#&]region=([\d.]+),([\d.]+),([\d.]+),([\d.]+))?$/u;
+  /^(.*?)(?:#page=(\d+))?((?:[#&]region=[\d.]+,[\d.]+,[\d.]+,[\d.]+)*)$/u;
+const REGION = /region=([\d.]+),([\d.]+),([\d.]+),([\d.]+)/gu;
 
 /**
  * A scan's page images: an image as fetched, or a PDF's page rendered, each
- * cut to the part the scan reads, such as one of a newspaper's columns;
+ * cut to the parts the scan reads, such as one of a newspaper's columns, or
+ * an article's two columns set one below the other as its printed page;
  * each PDF is fetched once.
  */
 export function scanImages(
@@ -167,8 +176,15 @@ export function scanImages(
 ): (url: string) => Promise<Uint8Array> {
   const pdfs = new Map<string, Promise<Uint8Array>>();
   return async (url) => {
-    const [, address = url, page, left, top, across, down] =
-      SCAN_PAGE.exec(url) ?? [];
+    const [, address = url, page, parts = ""] = SCAN_PAGE.exec(url) ?? [];
+    const regions = [...parts.matchAll(REGION)].map(
+      ([, left, top, across, down]): Region => [
+        Number(left),
+        Number(top),
+        Number(across),
+        Number(down),
+      ],
+    );
     const pdf =
       page === undefined ? null : (pdfs.get(address) ?? fetchBytes(address));
     if (pdf !== null) pdfs.set(address, pdf);
@@ -176,14 +192,7 @@ export function scanImages(
       pdf === null
         ? await fetchBytes(address)
         : await renderPdfPage(await pdf, Number(page));
-    return left && top && across && down
-      ? cropImage(image, [
-          Number(left),
-          Number(top),
-          Number(across),
-          Number(down),
-        ])
-      : image;
+    return regions.length > 0 ? cropImage(image, regions) : image;
   };
 }
 
@@ -224,15 +233,51 @@ export const renderPdfPage: RenderPdfPage = async (pdf, page) => {
   }
 };
 
-/** Part of an image, cut with ImageMagick, which must be on the path. */
-export const cropImage: CropImage = async (image, region) => {
+/**
+ * White margin set around each part of an image, in pixels: no letter cut
+ * close touches the image's edge, where the reader takes a lone glyph for the
+ * scan's shadow, and parts read one below the other stand apart.
+ */
+const PART_MARGIN = 40;
+
+/**
+ * Parts of an image, cut with ImageMagick, which must be on the path, each
+ * on a white margin and set one below the other, flush left.
+ */
+export const cropImage: CropImage = async (image, regions) => {
   const size = new TextDecoder().decode(
     await run(["magick", "identify", "-format", "%w %h", "-"], image),
   );
   const [width = 0, height = 0] = size.split(" ").map(Number);
-  const [left, top, across, down] = region;
-  const crop = `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`;
-  return run(["magick", "-", "-crop", crop, "+repage", "png:-"], image);
+  const parts = regions.flatMap(([left, top, across, down]) => [
+    "(",
+    "-clone",
+    "0",
+    "-crop",
+    `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`,
+    "+repage",
+    "-bordercolor",
+    "white",
+    "-border",
+    String(PART_MARGIN),
+    ")",
+  ]);
+  return run(
+    [
+      "magick",
+      "-",
+      ...parts,
+      "-delete",
+      "0",
+      "-background",
+      "white",
+      "-gravity",
+      "west",
+      "-append",
+      "png:-",
+    ],
+    image,
+  );
 };
 
 /** The importer's page OCR: Tesseract, images fetched in the importer's queue. */
@@ -246,6 +291,7 @@ export function importerPageOcr(
       cacheDir,
       model: reading.model,
       prepare: preparation.join(" "),
+      cut: `margin ${PART_MARGIN}`,
       fetchImage: scanImages(fetch.bytes, renderPdfPage, cropImage),
       recognise: async (image, used) =>
         tesseractHocr(
@@ -314,20 +360,24 @@ const SMALL_NOUN =
 /**
  * A volume's pages as one hOCR document, each page numbered by its leaf, the
  * order the scan holds them in, and by its printed number where the scan
- * states the first page's; Fraktur's long s read as s, its hyphen as one,
- * and its capital umlauts with their dots.
+ * states it; Fraktur's long s read as s, its hyphen as one, and its capital
+ * umlauts with their dots.
  */
-export function volumeOfPages(pages: string[], firstPage?: number): string {
-  const bodies = pages.map((page, leaf) =>
-    frakturRead(
+export function volumeOfPages(
+  pages: string[],
+  numbers: Array<number | undefined> = [],
+): string {
+  const bodies = pages.map((page, leaf) => {
+    const number = numbers[leaf];
+    return frakturRead(
       (/<body>([\s\S]*)<\/body>/.exec(page)?.[1] ?? "").replace(
         /<div class='ocr_page' id='page_\d+'([^>]*)>/,
-        firstPage === undefined
+        number === undefined
           ? `<div class='ocr_page' id='page_${leaf}'$1>`
-          : `<div class='ocr_page' id='page_${leaf}'$1><span class='ocr_pageno'>${firstPage + leaf}</span>`,
+          : `<div class='ocr_page' id='page_${leaf}'$1><span class='ocr_pageno'>${number}</span>`,
       ),
-    ),
-  );
+    );
+  });
   return `<html><body>\n${bodies.join("\n")}\n</body></html>\n`;
 }
 

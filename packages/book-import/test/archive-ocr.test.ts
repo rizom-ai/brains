@@ -957,6 +957,27 @@ describe("workPages", () => {
   });
 });
 
+describe("pageText, a page whose number the scan states", () => {
+  it("reads a line of text that opens with a number as text, not as the page's running head", () => {
+    const line = (y: number, text: string): string =>
+      `<span class='ocr_line' title='bbox 100 ${y} 2000 ${y + 60}; x_size 60'>${text}</span>`;
+    const hocr = `<html><body><div class='ocr_page' id='page_0' title='bbox 0 0 2100 3300'><span class='ocr_pageno'>246</span>
+ <p class='ocr_par'>${line(40, "Eine Aetherinjektion stellte den Kornealreflex für kurze Zeit")}
+ ${line(110, "wieder her.")}</p>
+ <p class='ocr_par'>${line(190, "Um 7 Uhr wurde die Beobachtung des Kranken abgebrochen.")}
+ ${line(260, "Tod ohne Konvulsionen um 8 Uhr Abends. Es schien die Dia-")}
+ ${line(330, "gnose gerechtfertigt: Scorbutus, Hæmorrhagia cerebri intermeninge-")}</p>
+</div></body></html>`;
+
+    expect(pageText(hocr, 246)).toStartWith(
+      "Eine Aetherinjektion stellte den Kornealreflex für kurze Zeit",
+    );
+    expect(pageText(hocr, 246)).toContain(
+      "Um 7 Uhr wurde die Beobachtung des Kranken abgebrochen.",
+    );
+  });
+});
+
 describe("printedPageNumbers", () => {
   /** A text page: its running head's number, or none where a chapter opens. */
   const text = (leaf: number, head: number | null): LeafReading => ({
@@ -1075,6 +1096,28 @@ describe("printedPageNumbers", () => {
     ]);
 
     expect(pages.get(12)).toBe(3);
+  });
+
+  it("keeps the number a scan states for a page, however far it jumps: a paper's next issue", () => {
+    const stated = (leaf: number, head: number): LeafReading => ({
+      leaf,
+      head,
+      stated: true,
+      words: 300,
+    });
+    const pages = printedPageNumbers([
+      stated(0, 244),
+      stated(1, 245),
+      stated(2, 246),
+      stated(3, 276),
+      stated(4, 277),
+      stated(5, 278),
+      stated(6, 279),
+    ]);
+
+    expect([0, 1, 2, 3, 4, 5, 6].map((leaf) => pages.get(leaf))).toEqual([
+      244, 245, 246, 276, 277, 278, 279,
+    ]);
   });
 });
 
@@ -2809,6 +2852,52 @@ describe("parseArchiveOcrWork on a page whose note the manifest names", () => {
     expect(units[0]?.paragraphs.slice(-2)).toEqual([
       "¹) Vgl. Zur Psychoanalyse der Kriegsneurosen. Mit Beiträgen von Ferenczi, Abraham, Simmel und E. Jones, 1919.",
       "Die Ich-Analyse beginnt hier. Ein Satz unten auf der Seite läuft weiter, und am Rand rutscht ein Wort nach unten.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, a note read by eye", () => {
+  it("keeps a note a correction read from the scan, however few its words: l. c.", () => {
+    const line = (y: number, size: number, text: string): string =>
+      `<span class='ocr_line' title='bbox 100 ${y} 2000 ${y + size}; x_size ${size}'>${text}</span>`;
+    const hocr = `<html><body><div class='ocr_page' id='page_0' title='bbox 0 0 2100 3300'><span class='ocr_pageno'>278</span>
+ <p class='ocr_par'>${line(100, 60, "Eine ähnliche Bevorzugung des Zentrums wäre vielleicht für den")}
+ ${line(170, 60, "Trismus geltend zu machen, der, wegen der vermuthlichen Innervation")}
+ ${line(240, 60, "der Kaumuskeln von beiden Hemisphären, keinen Hinweis geben kann.")}</p>
+ <p class='ocr_par'>${line(2900, 40, "%) Vergl. zu diesem Absatze Nothnagel’s Topische Diagnostik.")}
+ <span class='ocr_line' title='bbox 160 2960 400 3000; x_size 40'>I0O</span>
+ ${line(3020, 40, "ı2) Vergl. Wernicke II, p. 60 u. A.")}</p>
+</div></body></html>`;
+    const units = parseArchiveOcrWork(hocr, {
+      item: "wmw-1884-hirnblutung",
+      title: "Ein Fall von Hirnblutung",
+      citation: "WMW 1884",
+      firstPage: 278,
+      lastPage: 278,
+      corrections: [
+        {
+          page: 278,
+          from: "%) Vergl. zu diesem Absatze Nothnagel’s Topische Diagnostik.",
+          to: "⁹) Vergl. zu diesem Absatze Nothnagel’s Topische Diagnostik.",
+        },
+        { page: 278, from: "I0O", to: "¹⁰) l. c." },
+        {
+          page: 278,
+          from: "12) Vergl. Wernicke II, p. 60 u. A.",
+          to: "¹¹) Vergl. Wernicke II, p. 60 u. A.",
+        },
+      ],
+      notes: [
+        { page: 278, opens: "⁹) Vergl." },
+        { page: 278, opens: "¹⁰) l. c." },
+        { page: 278, opens: "¹¹) Vergl." },
+      ],
+    });
+
+    expect(units.flatMap((unit) => unit.paragraphs).slice(-3)).toEqual([
+      "⁹) Vergl. zu diesem Absatze Nothnagel’s Topische Diagnostik.",
+      "¹⁰) l. c.",
+      "¹¹) Vergl. Wernicke II, p. 60 u. A.",
     ]);
   });
 });
