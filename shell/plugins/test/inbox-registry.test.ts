@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
+  inboxActionActorSchema,
   InboxRegistry,
   inboxFacetDefinitionsSchema,
   inboxItemSchema,
+  type InboxActionActor,
   type InboxActor,
   type InboxItem,
   type InboxItemDetail,
@@ -29,7 +31,7 @@ function source(
     onAct?: (
       itemId: string,
       actionId: string,
-      actor: InboxActor,
+      actor: InboxActionActor,
     ) => Promise<void>;
     onDetail?: (
       itemId: string,
@@ -371,7 +373,7 @@ describe("InboxRegistry", () => {
     const actions: Array<{
       itemId: string;
       actionId: string;
-      actor: InboxActor;
+      actor: InboxActionActor;
     }> = [];
     const details: Array<{ itemId: string; actor: InboxActor }> = [];
     registry.registerSource(
@@ -405,16 +407,24 @@ describe("InboxRegistry", () => {
     expect(details).toEqual([
       { itemId: "mail-items-1", actor: { permissionLevel: "admin" } },
     ]);
+    // An action names who took it, so sources can record the change.
     await registered?.act("mail-items-1", "dismiss", {
       permissionLevel: "admin",
+      actor: { kind: "user", userId: "usr_admin" },
     });
     expect(actions).toEqual([
       {
         itemId: "mail-items-1",
         actionId: "dismiss",
-        actor: { permissionLevel: "admin" },
+        actor: {
+          permissionLevel: "admin",
+          actor: { kind: "user", userId: "usr_admin" },
+        },
       },
     ]);
+    expect(
+      inboxActionActorSchema.safeParse({ permissionLevel: "admin" }).success,
+    ).toBe(false);
 
     registry.unregisterPlugin("mail-plugin");
     expect(registry.listSources()).toEqual([]);

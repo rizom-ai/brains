@@ -505,7 +505,10 @@ export async function registerUnifiedInboxStudioWorkspace(
                   actionId: input.capability.id,
                   confirmed: true,
                 },
-                { permissionLevel: caller.permission },
+                {
+                  permissionLevel: caller.permission,
+                  actor: { kind: "user", userId: caller.actor.id },
+                },
               );
               if (outcome.kind !== "completed") {
                 throw new Error("Inbox action did not complete");

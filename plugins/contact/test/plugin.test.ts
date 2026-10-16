@@ -451,7 +451,10 @@ describe("contact runtime", () => {
     const inbox = registry.getSource("contact-requests");
     const [request] = (await inbox?.list()) ?? [];
     if (!inbox || !request) throw new Error("Missing Inbox request");
-    await inbox.act(request.id, "mark-handled", { permissionLevel: "admin" });
+    await inbox.act(request.id, "mark-handled", {
+      permissionLevel: "admin",
+      actor: { kind: "user", userId: "usr_admin" },
+    });
 
     expect(await intake()).toMatchObject({
       status: "healthy",
