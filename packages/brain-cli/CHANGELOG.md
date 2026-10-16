@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.564
+
+### Patch Changes
+
+- [#677](https://github.com/rizom-ai/brains/pull/677) [`00ca271`](https://github.com/rizom-ai/brains/commit/00ca2717771a96e3cb064d113cbce2cfbca596c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site build goes ahead of embeddings and projections in the job queue, so a new brain's site is built once its first import is stored instead of after every entity is embedded and read.
+
 ## 0.2.0-alpha.563
 
 ### Patch Changes
