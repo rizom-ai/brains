@@ -2,15 +2,12 @@
 
 ## Status
 
-In progress. Phases 1 and 2 are implemented; connecting each listed client to a brain remains. Copy and layout are drafted in [../onboarding-ai-tools-mockups.html](../onboarding-ai-tools-mockups.html).
+In progress. Phases 1 and 2 shipped in `@rizom/brain@0.2.0-alpha.486` (#514, #516): the Account AI tools tab with six client cards, and personal onboarding emails that link to it. Remaining: connecting each listed client to a brain (Phase 1 steps 3–4). All six cards are listed, and no client connection is recorded yet. Copy and layout are drafted in [../onboarding-ai-tools-mockups.html](../onboarding-ai-tools-mockups.html).
 
 ## Current state
 
-Brain alpha.485 sends one onboarding email per person, rendered by `renderOnboardingEmail` in `shell/auth-service/src/onboarding-emails.ts`: an anchor setup email and an invitation, each with its own opening and a shared body (first five minutes, Studio, MCP connection steps, footer).
-
-- The MCP steps (address, Claude Code command, Claude Desktop connector) live only in the email. No page in the brain shows the MCP address or how to connect a client, and an email cannot be corrected after it is sent.
-- The anchor email does not name the person. Neither email says what the brain is for.
-- The chat and Studio links are hardcoded as `/chat` and `/studio`, whatever the brain actually serves.
+- Studio's Account has an AI tools tab (`plugins/studio/ui-react/src/account/ai-tool-clients.ts`) showing the brain's MCP address and one card per client: Claude, ChatGPT, Claude Code, Cursor, VS Code, and other MCP clients.
+- `renderOnboardingEmail` (`shell/auth-service/src/onboarding-emails.ts`) greets the person by name when known, states the brain's purpose when one is set, and links to chat, Studio and the AI tools tab at the paths the brain serves.
 
 ## Decisions
 

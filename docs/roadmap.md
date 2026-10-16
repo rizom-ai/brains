@@ -80,7 +80,6 @@ Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
-- [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
 
@@ -94,7 +93,6 @@ Plans:
 
 - [action-item-board.md](./plans/action-item-board.md) — a Studio board over the shared action items: four status columns, attributed moves and notes that survive re-projection, blocked cards in the Inbox, Inbox items tracked as cards, and project filters through a Studio grouping.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
-- [organization-site.md](./plans/organization-site.md) — a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.
 
 ### 3. Trust and identity
 
@@ -103,7 +101,7 @@ The runtime identity boundary is shipped: private auth storage, distinct people,
 Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the shared subject, channel, provenance, and trust model.
-- [connected-channels.md](./plans/connected-channels.md) — finish registry-driven attach/detach and prove Slack end to end without schema or console changes.
+- [connected-channels.md](./plans/connected-channels.md) — make Slack's attached identities govern its messages, proving extensibility end to end.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — the broader private durable operator/security tier beyond shipped auth state.
 - [onboarding-ai-tools.md](./plans/onboarding-ai-tools.md) — an Account → AI tools tab with the MCP address and per-client steps, and shorter onboarding emails that greet the person, say what the brain is for, and link there.
 
@@ -114,7 +112,6 @@ Brains should be installable, maintainable, observable, and recoverable by an op
 Plans:
 
 - [bootstrap-secrets-bitwarden.md](./plans/bootstrap-secrets-bitwarden.md) — make `--push-to bitwarden` on the bootstrap commands store the secret in Bitwarden and map it in `.env.schema`, instead of pushing to GitHub.
-- [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit, recoverable hosted-user offboarding.
 - [artifacts-content-repos.md](./plans/artifacts-content-repos.md) — move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
@@ -126,10 +123,8 @@ Discord, Slack, standalone `/ask`, native Studio Chat, and the shared Chat proto
 Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
-- [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
-- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.
-- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with smoke-only test deployment still pending.
-- [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — implemented and locally validated: one administrator-owned document, runtime replacement/reprojection, independent cardinality and lists, unified controls, and exact source round trips. Authenticated app and unchanged visual gates pass; replacement release and smoke-only test deployment remain pending; no legacy conversion or rehearsal is required.
+- [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining release-candidate and manual accessibility acceptance, and the draft-recovery decision.
+- [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — document-owned groupings with convention-first type exclusions, shipped and deployed to smoke; live smoke acceptance remains.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
@@ -151,7 +146,6 @@ Plans:
 - [cross-brain-entity-sharing.md](./plans/cross-brain-entity-sharing.md) — proposed one-directional entity sharing between brains: visibility picks the transport, A2A carries `shared`, ATProto signals `public`.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — in-flight opportunity capture, ranking, focus, and state suggestions.
 - [lead-management.md](./plans/lead-management.md) — inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.
-- [rizom-ai-story-site.md](./plans/rizom-ai-story-site.md) — rizom.ai as one story: the live network and Ask on the homepage, one drawing language across Brain, Work and Foundation, Writing as an archive, one bar and a reading thread; Network and About dropped.
 
 ### 7. Keep the framework sustainable
 
@@ -162,9 +156,7 @@ Active cleanup and infrastructure plans:
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
-- [topics-ranked-selection.md](./plans/topics-ranked-selection.md) — topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
-- [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.
 - [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):
