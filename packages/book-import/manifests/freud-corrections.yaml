@@ -14903,6 +14903,78 @@ freud-1948-gw-14:
     from: heute i. eine
     to: heute 1. eine
     by: scan
+  - page: 558
+    from: "Zuerst verôffentlicht in dem Werk von Maxim Leroy:"
+    to: ""
+    by: scan
+  - page: 558
+    from: Descartes, le philosophe au masque. (Paris, Les Editions
+    to: ""
+    by: scan
+  - page: 558
+    from: Rieder, 1929.) Maxim Leroy hat dem Verfasser einen
+    to: ""
+    by: scan
+  - page: 558
+    from: Traum des Descartes zur Beurteilung vorgelegt;! der nach-
+    to: ""
+    by: scan
+  - page: 558
+    from: Jolgende Brief enthält die Antwort des Verfassers zu dem
+    to: ""
+    by: scan
+  - page: 558
+    from: ihm vorgelegten Material,
+    to: ""
+    by: scan
+  - page: 559
+    from: d’âÂme
+    to: d’âme
+    by: scan
+  - page: 559
+    from: Y a lieu
+    to: y a lieu
+    by: scan
+  - page: 559
+    from: ne saït que
+    to: ne sait que
+    by: scan
+  - page: 559
+    from: des <rêves d’en
+    to: des «rêves d’en
+    by: scan
+  - page: 559
+    from: les <rêves d’en haut>
+    to: les «rêves d’en haut»
+    by: scan
+  - page: 559
+    from: lui-même*
+    to: lui-même
+    by: scan
+  - page: 559
+    from: ——-——'—-—_—__—_—-—_—M—
+    to: ""
+    by: scan
+  - page: 560
+    from: nous conduise au delà. |
+    to: nous conduise au delà.
+    by: scan
+  - page: 560
+    from: du «<mauvais génie> (animus)
+    to: du «mauvais génie» (animus)
+    by: scan
+  - page: 560
+    from: «<le melon
+    to: «le melon
+    by: scan
+  - page: 560
+    from: d’un pays étranger>,
+    to: d’un pays étranger»,
+    by: scan
+  - page: 560
+    from: de la sorte <les charmes
+    to: de la sorte «les charmes
+    by: scan
 freud-1952-gw-1:
   - page: 10
     from: ER en a Eat ann
@@ -19699,7 +19771,7 @@ Freud_Rie_1891_halbseitige_201606:
     to: "Localisation dieser Bewegungsstörung, sowie mit der sie häufig"
     by: scan
   - page: 8
-    from: "anatomique, physiologique et elinique sur I’'h&michorde, I’hemiane-"
+    from: anatomique, physiologique et elinique sur I’h&michorde, I’hemiane-
     to: "anatomique, physiologique et clinique sur I’'h&michorée, I’hemiane-"
     by: scan
   - page: 8
@@ -32481,7 +32553,7 @@ b33778474:
     to: "„On comprendrait difficilement l’athetose double, et le lien qui la"
     by: scan
   - page: 35
-    from: "rattache a l’'h&miathetose symptomatique, si ’'hömiathetose primitive n'eta-"
+    from: rattache a l’h&miathetose symptomatique, si ’'hömiathetose primitive n'eta-
     to: "rattache a l’hémiathétose symptomatique, si ’'hémiathétose primitive n'eta-"
     by: scan
   - page: 35
@@ -32501,7 +32573,7 @@ b33778474:
     to: "qui réunissent les variet6s d’hémichorée et d’hemiathetose posthemorrha-"
     by: scan
   - page: 35
-    from: "giques, permettent sans trop d’audace, d’assimiler &galement I’'hömichoree"
+    from: giques, permettent sans trop d’audace, d’assimiler &galement I’hömichoree
     to: "giques, permettent sans trop d’audace, d’assimiler &également I’'hémichorée"
     by: scan
   - page: 35
@@ -45023,10 +45095,6 @@ Sitz_MN_1_1877_75:
     to: C Entwickeltes Lappenorgan.
     by: scan
   - page: 431
-    from: Müller'’scher
-    to: Müller’scher
-    by: scan
-  - page: 431
     from: p- E. polygonales Epitel.
     to: p. E. polygonales Epitel.
     by: scan
@@ -48040,10 +48108,6 @@ Sitz_MN_3_1878_78:
     to: die
     by: scan
   - page: 133
-    from: Kutschin’'s
-    to: Kutschin’s
-    by: scan
-  - page: 133
     from: gemacht, Er behauptet, dass obere (hintere) Wnrzeln
     to: gemacht. Er behauptet, dass obere (hintere) Wurzeln
     by: scan
@@ -49403,10 +49467,6 @@ Sitz_MN_3_1878_78:
     to: Bindegewebsgerüst,
     by: scan
   - page: 160
-    from: Deiters’'schen
-    to: Deiters’schen
-    by: scan
-  - page: 160
     from: YII. Über ein Nervennetz der Pia mater.
     to: VII. Über ein Nervennetz der Pia mater.
     by: scan
@@ -50593,10 +50653,6 @@ Arch_Anat_1884:
   - page: 454
     from: versapgten,
     to: versagten,
-    by: scan
-  - page: 454
-    from: Flechsig’'s
-    to: Flechsig’s
     by: scan
   - page: 454
     from: werthwvoll im Falle des Gelingens erwiee.

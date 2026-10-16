@@ -2426,6 +2426,11 @@ books:
     skipNotes:
       - { page: 558, opens: "1) Leroy gibt" }
       - { page: 559, opens: "1) Die hierauf" }
+    # The French reading sets the notes as large as the text; they are named.
+    notes:
+      - { page: 558, opens: "1) Leroy gibt" }
+      - { page: 559, opens: "1) Die hierauf" }
+      - { page: 560, opens: "gré, il fut assez hardi", runsOn: true }
     slug: brief-an-maxim-leroy-ueber-einen-traum-des-cartesius
     title: Brief an Maxim Leroy über einen Traum des Cartesius
     shortTitle: Brief an Maxim Leroy
