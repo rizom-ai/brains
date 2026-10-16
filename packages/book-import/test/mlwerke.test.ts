@@ -386,3 +386,147 @@ describe("parseMlwerkePages, an article whose page sets its title with its autho
     ]);
   });
 });
+
+describe("parseMlwerkePages, an article whose page leaves its heading open", () => {
+  it("closes the heading where its line ends, the text after it kept", () => {
+    const html = `<small>Seitenzahlen verweisen auf: Karl Marx - Friedrich Engels - Werke, Band 5, S. 453-454</small><h1>Die neuesten Nachrichten aus Wien</font></p><p><font size="2">["Neue Rheinische Zeitung" Nr. 135 vom 5. November 1848]</font></p><p><b><a name="S453">&lt;453&gt;</a></b> Köln, 4. November. Der Horizont lichtet sich.</p>`;
+    const units = parseMlwerkePages(
+      [{ url: "http://www.mlwerke.de/me/me05/me05_453.htm", html }],
+      { citation: "NRZ", articles: true },
+    );
+
+    expect(
+      units.map((unit) => [unit.title, unit.section, unit.paragraphs]),
+    ).toEqual([
+      [
+        "Die neuesten Nachrichten aus Wien",
+        "NRZ, 453",
+        ["Köln, 4. November. Der Horizont lichtet sich."],
+      ],
+    ]);
+  });
+});
+
+describe("parseMlwerkePages, an article whose page sets its title in large type", () => {
+  it("titles each article by its first large line, centred or not, the line left out of the text", () => {
+    const page = (title: string, align: string, label: string): string =>
+      `<SMALL>Seitenzahlen verweisen auf: Karl Marx - Friedrich Engels - Werke, Band 6, S. ${label}</SMALL></P><FONT SIZE=5><P${align}>${title}</P></FONT><FONT SIZE=2><P>["Neue Rheinische Zeitung" Nr. 239 vom 7. März 1849]</P></FONT><B><P>&lt;${label}&gt;</B> Köln, 6. März. Text ${label}.</P>`;
+    const units = parseMlwerkePages(
+      [
+        {
+          url: "http://www.mlwerke.de/me/me06/me06_326.htm",
+          html: page("Die Handelslage", ' ALIGN="CENTER"', "326"),
+        },
+        {
+          url: "http://www.mlwerke.de/me/me06/me06_332.htm",
+          html: page("Der Eid der englischen Soldaten", "", "332"),
+        },
+      ],
+      { citation: "NRZ", articles: true },
+    );
+
+    expect(
+      units.map((unit) => [unit.title, unit.section, unit.paragraphs]),
+    ).toEqual([
+      ["Die Handelslage", "NRZ, 326", ["Köln, 6. März. Text 326."]],
+      [
+        "Der Eid der englischen Soldaten",
+        "NRZ, 332",
+        ["Köln, 6. März. Text 332."],
+      ],
+    ]);
+  });
+});
+
+describe("parseMlwerkePages, an article the editors sign for its author", () => {
+  it("leaves the editors' line naming the author out of the text", () => {
+    const html = `<h1>Revolution in Wien</h1><p><b><a name="S417">&lt;417&gt;</a></b> Köln, 11. Oktober. Text.</p><p><font size="2">Geschrieben von Karl Marx.</font></p>`;
+    const units = parseMlwerkePages(
+      [{ url: "http://www.mlwerke.de/me/me05/me05_417.htm", html }],
+      { citation: "NRZ", articles: true },
+    );
+
+    expect(units.map((unit) => unit.paragraphs)).toEqual([
+      ["Köln, 11. Oktober. Text."],
+    ]);
+  });
+});
+
+describe("parseMlwerkePages, an article in parts the editors title in brackets", () => {
+  const html = `<FONT SIZE=5><P>Der erste Preßprozeß</P></FONT><FONT SIZE=2><P>["Neue Rheinische Zeitung" Nr. 221 vom 14. Februar 1849]</P></FONT><P ALIGN="CENTER">[<I>Verteidigungsrede von Karl Marx</I>]</P><P><B><A NAME="S223">&lt;223&gt;</A></B> Meine Herren Geschwornen!</P><P ALIGN="CENTER">[<I>Verteidigungsrede von Friedrich Engels</I>]</P><P><B><A NAME="S234">&lt;234&gt;</A></B> Meine Herren! Der vorige Redner.</P>`;
+  const page = { url: "http://www.mlwerke.de/me/me06/me06_223.htm", html };
+
+  it("heads each part by its bracketed line under the article's title", () => {
+    const units = parseMlwerkePages([page], {
+      citation: "NRZ",
+      articles: true,
+    });
+
+    expect(
+      units.map((unit) => [unit.parents, unit.title, unit.paragraphs]),
+    ).toEqual([
+      [
+        ["Der erste Preßprozeß"],
+        "[Verteidigungsrede von Karl Marx]",
+        ["Meine Herren Geschwornen!"],
+      ],
+      [
+        ["Der erste Preßprozeß"],
+        "[Verteidigungsrede von Friedrich Engels]",
+        ["Meine Herren! Der vorige Redner."],
+      ],
+    ]);
+  });
+
+  it("leaves out a part by its heading", () => {
+    const units = parseMlwerkePages([page], {
+      citation: "NRZ",
+      articles: true,
+      skipHeadings: ["[Verteidigungsrede von Friedrich Engels]"],
+    });
+
+    expect(units.map((unit) => [unit.title, unit.section])).toEqual([
+      ["[Verteidigungsrede von Karl Marx]", "NRZ, 223"],
+    ]);
+  });
+
+  it("refuses a heading to leave out that the pages do not have", () => {
+    expect(() =>
+      parseMlwerkePages([page], {
+        citation: "NRZ",
+        articles: true,
+        skipHeadings: ["[Verteidigungsrede von Heinrich Bürgers]"],
+      }),
+    ).toThrow('No heading "[Verteidigungsrede von Heinrich Bürgers]"');
+  });
+});
+
+describe("parseMlwerkePages, an article from a newspaper's supplement", () => {
+  it("leaves out the editors' bracketed source line, the supplement named after the year", () => {
+    const html = `<h1>[Nachrichten aus Paris]</h1><p><font size="2">["Neue Rheinische Zeitung" Nr. 25 vom 25. Juni 1848, Extrabeilage]</font></p><p><b><a name="S110">&lt;110&gt;</a></b> Köln, 24. Juni. Text.</p>`;
+    const units = parseMlwerkePages(
+      [{ url: "http://www.mlwerke.de/me/me05/me05_110.htm", html }],
+      { citation: "NRZ", articles: true },
+    );
+
+    expect(units.map((unit) => unit.paragraphs)).toEqual([
+      ["Köln, 24. Juni. Text."],
+    ]);
+  });
+});
+
+describe("parseMlwerkePages, the editors' cross-references", () => {
+  it("leaves out a gloss that refers the reader to MEW, keeping one that translates", () => {
+    const html = `<h1>Lassalle</h1><p><b><a name="S267">&lt;267&gt;</a></b> Wir versprachen gestern &lt;Siehe "Der Steuerverweigerungsprozeß", S. 259&gt;, auf Lassalle zurückzukommen. Nous verrons. &lt;Wir werden sehen.&gt;</p>`;
+    const units = parseMlwerkePages(
+      [{ url: "http://www.mlwerke.de/me/me06/me06_267.htm", html }],
+      { citation: "NRZ", articles: true },
+    );
+
+    expect(units.map((unit) => unit.paragraphs)).toEqual([
+      [
+        "Wir versprachen gestern, auf Lassalle zurückzukommen. Nous verrons. ⟨Wir werden sehen.⟩",
+      ],
+    ]);
+  });
+});

@@ -29,6 +29,8 @@ export interface MlwerkeWork {
   headings?: MlwerkeHeading[];
   /** Each page is an article of a volume, titled by the page's first-level heading. */
   articles?: boolean | undefined;
+  /** Headings of an article's parts left out with what they hold, such as a speech of Engels'. */
+  skipHeadings?: string[] | undefined;
 }
 
 export interface MlwerkeHeading {
@@ -243,9 +245,13 @@ function angledGlosses(text: string): string {
   );
 }
 
+/** The editors' gloss that refers the reader elsewhere in MEW: ⟨Siehe „Verhaftungen“⟩. */
+const CROSS_REFERENCE = /\s*⟨\s*(?:siehe|vgl\.)\s[^⟩]*⟩/giu;
+
 function spaced(text: string): string {
   return germanQuotes(
     angledGlosses(mergedEmphasis(text))
+      .replace(CROSS_REFERENCE, "")
       .replace(/\s+/g, " ")
       .replace(/\s+([,.;:!?)])/g, "$1")
       .trim(),
@@ -337,6 +343,11 @@ function openListed(element: Element, reading: Reading): boolean {
   return take(lineText(element).replace(/\s+/g, " ").trim(), false);
 }
 
+/** A centred line wholly in the editors' brackets: the title MEW gives a part of an article. */
+function isEditorsPart(element: Element): boolean {
+  return isCentred(element) && /^\[[^\]]+\]$/.test(spaced(element.textContent));
+}
+
 /** A line set at the centre, where a listed work's headings stand. */
 function isCentred(element: Element): boolean {
   return (element.getAttribute("align") ?? "").toLowerCase() === "center";
@@ -389,13 +400,21 @@ function headingKind(element: Element): "part" | "section" | null {
 
 /**
  * The editors' lines above a work the oldest pages set as text: when it was
- * written, and where it appeared, bracketed.
+ * written, and where it appeared, bracketed, a newspaper's supplement or
+ * edition named after the year.
  */
-const EDITORS_HEADER = /^(?:Geschrieben\s.{0,150}\d{4}\.?|\[[^\]]*\d{4}\.?\])$/;
+const EDITORS_HEADER =
+  /^(?:Geschrieben\s.{0,150}\d{4}\.?|\[[^\]]*\d{4}(?:,?\s+[^\]\d]{1,40})?\.?\])$/;
+/**
+ * The editors' line below an article MEW prints without its author's name,
+ * naming him: Geschrieben von Karl Marx. One page misspells it Mars.
+ */
+const EDITORS_SIGNATURE =
+  /^Geschrieben von (?:Karl Mar[xs]|Friedrich Engels)(?: und (?:Karl Marx|Friedrich Engels))?[.,]?$/;
 
 /**
  * The oldest pages' own apparatus set as text: the edition the page numbers
- * follow, the transcription's date, the editors' header, the site's path
+ * follow, the transcription's date, the editors' header and signature, the site's path
  * to the volume and the links to the work's other pages.
  */
 function isSiteApparatus(element: Element): boolean {
@@ -404,7 +423,8 @@ function isSiteApparatus(element: Element): boolean {
     /^(?:Seitenzahlen verweisen auf|Pfad:|\d+\.\s*Korrektur|Erstellt am)/.test(
       text,
     ) ||
-    EDITORS_HEADER.test(text)
+    EDITORS_HEADER.test(text) ||
+    EDITORS_SIGNATURE.test(text)
   ) {
     return true;
   }
@@ -454,7 +474,33 @@ function notesOf(blocks: Element[]): {
 }
 
 /**
- * The oldest pages' markup made sound: a heading set in large type at the
+ * A first-level heading the page leaves open, its line ended by a
+ * paragraph's end tag instead: <h1>Titel</font></p>. Left open, it would
+ * hold the whole page.
+ */
+const OPEN_HEADING = /<H1\b([^>]*)>((?:(?!<\/?H1\b|<P\b)[\s\S])*?)<\/P>/gi;
+/** A line set in large type: where a page without a first-level heading sets an article's title. */
+const LARGE_LINE = /<FONT SIZE=\+?[5-9]>\s*<P\b[^>]*>([\s\S]*?)<\/P>/i;
+/** A line that opens with its authors' names, which BYLINE_TITLE reads. */
+const BYLINE_OPENING = /^\s*\*?(?:Karl Marx|Friedrich Engels)\b/;
+
+/**
+ * An article's title the page sets as its first line in large type, made
+ * its first-level heading; a page with one, or whose line names the authors
+ * first, as it is.
+ */
+function articleTitled(html: string): string {
+  if (/<H1\b/i.test(html)) return html;
+  const line = LARGE_LINE.exec(html);
+  if (!line?.[1] || BYLINE_OPENING.test(line[1].replace(/<[^>]*>/g, ""))) {
+    return html;
+  }
+  return html.replace(LARGE_LINE, "<H1>$1</H1>");
+}
+
+/**
+ * The oldest pages' markup made sound: a first-level heading left open
+ * closed, a heading set in large type at the
  * centre made a heading, the type sizes dropped, and bold or emphasis opened before a
  * paragraph moved into it, which would otherwise close the paragraph at its
  * page number and leave the text after it out; a note's mark nested in the
@@ -462,6 +508,7 @@ function notesOf(blocks: Element[]): {
  */
 function sound(html: string): string {
   return html
+    .replace(OPEN_HEADING, "<H1$1>$2</H1>")
     .replace(
       /<FONT SIZE=\+?[5-9]>\s*<P ALIGN="?CENTER"?>([\s\S]*?)<\/P>/gi,
       "<H3>$1</H3>",
@@ -483,8 +530,9 @@ function readPage(
   const window = new Window();
   try {
     const document = window.document;
+    const text = TEXT_REGION.exec(page.html)?.[1] ?? page.html;
     document.body.innerHTML = sound(
-      TEXT_REGION.exec(page.html)?.[1] ?? page.html,
+      work.articles === true ? articleTitled(text) : text,
     );
     // An article's title, which the apparatus would take for the site's.
     const headed =
@@ -537,6 +585,14 @@ function readPage(
         if (region === "text") addParagraph(element, reading);
         if (region === "authors") addNote(element, reading);
         return region;
+      }
+      if (
+        work.articles === true &&
+        region === "text" &&
+        isEditorsPart(element)
+      ) {
+        addHeading(element, "part", reading);
+        return "text";
       }
       if (kind) {
         if (region !== "text") return "editors";
@@ -601,7 +657,18 @@ export function parseMlwerkePages(
     throw new Error(`No heading "${missing.title}" in the pages, in its order`);
   }
   (work.fixes ?? []).forEach((fix) => applyFix(reading.sections, fix));
-  return unitsOfSections(reading.sections, (start) => ({
+  const skipped = work.skipHeadings ?? [];
+  const absent = skipped.find(
+    (title) =>
+      !reading.sections.some((section) => section.titles.includes(title)),
+  );
+  if (absent !== undefined) {
+    throw new Error(`No heading "${absent}" in the pages to leave out`);
+  }
+  const kept = reading.sections.filter(
+    (section) => !section.titles.some((title) => skipped.includes(title)),
+  );
+  return unitsOfSections(kept, (start) => ({
     citation: `${work.citation}, ${start.label}`,
     source: start.url,
   }));
