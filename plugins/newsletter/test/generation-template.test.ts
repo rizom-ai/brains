@@ -64,5 +64,24 @@ describe("Newsletter Generation Template", () => {
     it("should use ai-content datasource", () => {
       expect(generationTemplate.dataSourceId).toBe("shell:ai-content");
     });
+
+    it("leaves voice and form to the style guide and keeps the task constraints", () => {
+      const prompt = generationTemplate.basePrompt ?? "";
+
+      expect(prompt).toContain(
+        "Follow the supplied style guide for voice, tone, wording and form",
+      );
+      for (const voiceRule of [
+        "Conversational",
+        "personal hook",
+        "Short paragraphs",
+        "Until next time",
+        "Reply and let me know",
+      ]) {
+        expect(prompt).not.toContain(voiceRule);
+      }
+      expect(prompt).toContain("40-60 characters");
+      expect(prompt).toContain("300-600 words");
+    });
   });
 });

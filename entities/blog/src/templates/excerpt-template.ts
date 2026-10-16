@@ -27,13 +27,10 @@ export const blogExcerptTemplate: ReturnType<
   schema: blogExcerptSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
-  basePrompt: `You are an expert at writing concise, compelling summaries.
+  basePrompt: `Your task is to create a short excerpt (1-2 sentences) that:
+1. Captures the central idea of the blog post, not just its topic
+2. Works well as a meta description for SEO
+3. Is between 120-160 characters ideally
 
-Your task is to create a short excerpt (1-2 sentences) that:
-1. Captures the main topic and value of the blog post
-2. Is engaging and makes readers want to read more
-3. Works well as a meta description for SEO
-4. Is between 120-160 characters ideally
-
-The excerpt should be clear, concise, and compelling.`,
+Follow the supplied style guide for voice, tone, wording and form.`,
 });

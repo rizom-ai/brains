@@ -2,6 +2,7 @@ import {
   createMockServicePluginContext,
   type MockServicePluginContext,
 } from "@brains/plugins/test";
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, test, expect, beforeEach, mock, spyOn } from "bun:test";
 import { SiteContentOperations } from "../../src/lib/site-content-operations";
 import type { MessageResponse, MessageSendRequest } from "@brains/plugins";
@@ -138,6 +139,43 @@ describe("SiteContentOperations", () => {
       queuedSections: 4,
       batchId: "batch-123",
     });
+  });
+
+  test("passes a public style guide's voice to every section", async () => {
+    spyOn(context.entityService, "getEntity").mockResolvedValue(
+      createTestEntity("style-guide", {
+        id: "style-guide",
+        content: "---\nname: Voice\nvoice:\n  summary: Plain and exact\n---\n",
+        metadata: {},
+        visibility: "public",
+      }),
+    );
+
+    await operations.generate({});
+
+    const targets = context.content.generate.mock.calls[0]?.[0].targets ?? [];
+    expect(targets).toHaveLength(4);
+    for (const target of targets) {
+      expect(target.context?.styleGuide?.voice).toContain("Plain and exact");
+    }
+  });
+
+  test("keeps a non-public style guide out of public site copy", async () => {
+    spyOn(context.entityService, "getEntity").mockResolvedValue(
+      createTestEntity("style-guide", {
+        id: "style-guide",
+        content: "---\nname: Voice\nvoice:\n  summary: Private voice\n---\n",
+        metadata: {},
+        visibility: "restricted",
+      }),
+    );
+
+    await operations.generate({});
+
+    const targets = context.content.generate.mock.calls[0]?.[0].targets ?? [];
+    for (const target of targets) {
+      expect(target.context?.styleGuide).toBeUndefined();
+    }
   });
 
   test("passes the tool context through so the runtime owns caller attribution", async () => {
