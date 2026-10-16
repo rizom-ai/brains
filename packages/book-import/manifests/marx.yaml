@@ -1064,6 +1064,32 @@ books:
     author: Karl Marx
     year: 1842
     kind: work
+  - source: archive-ocr
+    # The two poems Marx published, in the Athenäum of 23 January 1841, as
+    # MEW Ergänzungsband 1 (MEW 40) prints them among its appendices, read
+    # anew from the Internet Archive's scan of the volume.
+    item: mew-40-anhang
+    citation: MEW 40
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/Marx_Engels_Werke_MEW
+      firstPage: 604
+      pages:
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=656
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=657
+    firstPage: 604
+    lastPage: 605
+    verse: true
+    # The second poem's title opens its chapter; its numeral reads as noise.
+    headings:
+      - { page: 605, opens: "Nachtliebe" }
+    slug: wilde-lieder
+    title: Wilde Lieder
+    edition: "Marx-Engels-Werke, Ergänzungsband, Erster Teil (Berlin, Dietz, 1968), S. 604–605; first printed in Athenäum. Zeitschrift für das gebildete Deutschland, Nr. 4, 23. Januar 1841"
+    author: Karl Marx
+    year: 1841
+    kind: work
   - source: mlwerke
     # MEW 1 and 2 as mlwerke.de published them, from the Internet Archive's
     # last captures with the text: Marx's articles and statements of
@@ -1071,10 +1097,11 @@ books:
     # bundles the eight articles on the ban of the Leipziger Allgemeine
     # Zeitung, another the five of the Mosel defence. Luther als
     # Schiedsrichter zwischen Strauß und Feuerbach (MEW 1), which later
-    # research gives to Feuerbach, is left out, and so are the pieces only
-    # MEW's Ergänzungsband 1 prints, which mlwerke does not carry: the two
-    # poems in the Athenäum (1841), eleven pieces in the Rheinische Zeitung
-    # and the Deutsche Jahrbücher (1842–43), and one in Vorwärts! (1844).
+    # research gives to Feuerbach, is left out. The pieces only MEW's
+    # Ergänzungsband 1 prints, which mlwerke does not carry, are the books
+    # around this one: the two poems in the Athenäum (1841), and eleven
+    # pieces in the Rheinische Zeitung and the Deutsche Jahrbücher (1842–43)
+    # with one in Vorwärts! (1844).
     pages:
       - https://web.archive.org/web/20241106061710id_/http://www.mlwerke.de/me/me01/me01_148.htm
       - https://web.archive.org/web/20241106055132id_/http://www.mlwerke.de/me/me01/me01_152.htm
@@ -1086,6 +1113,110 @@ books:
     slug: artikel-1842-1846
     title: Artikel 1842–1846
     edition: "Marx-Engels-Werke, Band 1 (Berlin, Dietz, 1962 und 1976), S. 148–200, und Band 2 (Berlin, Dietz, 1972), S. 625"
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    # MEW Ergänzungsband 1 (MEW 40), read anew from the Internet Archive's
+    # scan of the volume: the pieces Marx published in the Deutsche
+    # Jahrbücher and the Rheinische Zeitung (1842–43) and in Vorwärts!
+    # (1844) that no other book here holds. Left out are MEW's manuscripts
+    # among them, the letter to Oberpräsident von Schaper (S. 394–397) and
+    # the marginal notes on the ministerial rescript (S. 420–425), and the
+    # statement in the Démocratie pacifique (S. 437), which MEW gives in
+    # German from the French; so are MEW's source lines, dates and notes,
+    # and the *) that tie the paper's editorial notes to articles not
+    # printed here. The running heads of pp. 439–441 shorten the last
+    # piece's title, so those pages are read without them.
+    item: mew-40
+    citation: MEW 40
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/Marx_Engels_Werke_MEW
+      firstPage: 381
+      pages:
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=427
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=428
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=429
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=430
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=431
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=432
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=433
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=434
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=435
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=436
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=437
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=438
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=439
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=440
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=441
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=442
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=443
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=444
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=445
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=446
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=447
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=448
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=449
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=450
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=451
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=452
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=453
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=454
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=455
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=456
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=457
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=458
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=459
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=460
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=461
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=462
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=463
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=464
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=465
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=466
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=467
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=468
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=469
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=470
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=471
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=472
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=473
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=474
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=475
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=476
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=477
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=478
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=479
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=480
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=481
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=482
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=483
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=484
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=485&region=0,0.11,1,0.89
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=486&region=0,0.11,1,0.89
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band40.pdf#page=487&region=0,0.11,1,0.89
+    firstPage: 381
+    lastPage: 441
+    skipPages: [394, 395, 396, 397, 420, 421, 422, 423, 424, 425, 437]
+    # Marx's initials close the piece on Gruppe, set apart at the foot of
+    # p. 384, and the OCR misses the indent that opens a paragraph below the
+    # king's words on p. 441.
+    paragraphs:
+      - { page: 384, opens: "Herrn Gruppes Schamlosigkeit" }
+      - { page: 384, opens: "„Es soll aber dabei" }
+      - { page: 384, opens: "Herr Gruppe sah ein" }
+      - { page: 384, opens: "„Wo bleiben also" }
+      - { page: 384, opens: "Wir zweifeln, ob" }
+      - { page: 384, opens: "Herr Gruppe sagt in" }
+      - { page: 384, opens: "„Mir ist während" }
+      - { page: 384, opens: "Soll dies ein" }
+      - { page: 384, opens: "K.M." }
+      - { page: 441, opens: "Man kann nicht" }
+    slug: weitere-artikel-1842-1844
+    title: Weitere Artikel 1842–1844
+    edition: "Marx-Engels-Werke, Ergänzungsband, Erster Teil (Berlin, Dietz, 1968), S. 381–441"
     author: Karl Marx
     year: 1842
     kind: work
@@ -2036,9 +2167,9 @@ books:
     # und Fould, the note on Eccarius's article, and the statements of 1850
     # and 1852. The Revue of January/February 1850 is the book above. Left
     # out: the preface to Blanqui's toast (1851), which MEW prints among its
-    # appendices, its authorship uncertain, and the statement on the Baronin
-    # von Beck (Kölnische Zeitung, 1851; MEW 8, S. 109), which mlwerke does
-    # not carry.
+    # appendices, its authorship uncertain. The statement on the Baronin von
+    # Beck (Kölnische Zeitung, 1851; MEW 8, S. 109), which mlwerke does not
+    # carry, is the book below.
     pages:
       - https://web.archive.org/web/20220129100354id_/http://www.mlwerke.de/me/me06/me06_527.htm
       - https://web.archive.org/web/20240807090712id_/http://www.mlwerke.de/me/me07/me07_005.htm
@@ -2055,6 +2186,34 @@ books:
     edition: "Marx-Engels-Werke, Band 6 (Berlin, Dietz, 1959), S. 527–528, Band 7 (Berlin, Dietz, 1960; 5. Auflage 1973), S. 5–416, und Band 8 (Berlin, Dietz, 1960; 3. Auflage 1972), S. 232"
     author: Karl Marx
     year: 1849
+    kind: work
+  - source: archive-ocr
+    # Marx's statement on the Baronin von Beck (Kölnische Zeitung, 9
+    # October 1851), which mlwerke does not carry, read anew from the
+    # Internet Archive's scan of MEW 8; MEW's source line and notes are
+    # left out.
+    item: mew-8
+    citation: MEW 8
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/Marx_Engels_Werke_MEW
+      firstPage: 109
+      pages:
+        - https://archive.org/download/Marx_Engels_Werke_MEW/mew_band08.pdf#page=135
+    firstPage: 109
+    lastPage: 109
+    # The place and date, and the signature, stand apart below the text.
+    paragraphs:
+      - { page: 109, opens: "Eine tiefsinnige" }
+      - { page: 109, opens: "London, 4." }
+      - { page: 109, opens: "Karl Marx" }
+    slug: erklaerung-zur-baronin-von-beck
+    title: Erklärung
+    shortTitle: Erklärung zur Baronin von Beck
+    edition: "Marx-Engels-Werke, Band 8 (Berlin, Dietz, 1960), S. 109; first printed in the Kölnische Zeitung, Nr. 242, 9. Oktober 1851"
+    author: Karl Marx
+    year: 1851
     kind: work
   - source: archive-ocr
     # The critique of the Gotha programme as Engels first printed it, from

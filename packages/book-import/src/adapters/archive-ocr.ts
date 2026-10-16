@@ -92,6 +92,11 @@ export interface ArchiveOcrWork {
    */
   datelined?: boolean;
   /**
+   * The work is verse: each line of the page stays a line of its own, and a
+   * stanza opens below the space it leaves.
+   */
+  verse?: boolean;
+  /**
    * The line its first page opens the work with, where it follows another
    * work's end on that page, as a periodical prints it.
    */
@@ -878,6 +883,8 @@ interface Volume {
   curved?: boolean;
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
+  /** Verse, its stanzas set apart by space. */
+  verse?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
   headingOpenings?: Array<{ opens: string; numeral?: string }>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
@@ -1735,6 +1742,14 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     if (named !== undefined) {
       return named.some((opens) => line.text.startsWith(opens));
     }
+    // A stanza opens below more space than its lines leave, however set in.
+    if (volume.verse === true) {
+      const above = textLines[index - 1];
+      return (
+        above !== undefined &&
+        line.y - above.bottom > bodyHeight * SECTION_SPACE
+      );
+    }
     // No paragraph opens in lower case but a list's lettered item: such a
     // line runs on the one above, a word it broke or a quotation set in. A
     // small umlaut opening a word may be a capital the Fraktur model read
@@ -2335,6 +2350,7 @@ function addLine(
   line: string,
   opens: boolean,
   place: Place,
+  verse = false,
 ): Block[] {
   const last = blocks.at(-1);
   // A table's row stands alone: it runs on no line, and no line on it.
@@ -2351,6 +2367,13 @@ function addLine(
         ...place,
         lastLeaf: place.leaf,
       },
+    ];
+  }
+  // A line of verse keeps its own line in its stanza.
+  if (verse) {
+    return [
+      ...blocks.slice(0, -1),
+      { ...last, text: `${last.text}  \n${line}`, lastLeaf: place.leaf },
     ];
   }
   // A page that opens on no paragraph runs on the sentence the page before
@@ -2589,6 +2612,7 @@ function addPiece(
   state: WorkState,
   piece: Extract<Piece, { kind: "text" | "note" }>,
   place: Place,
+  verse = false,
 ): WorkState {
   if (state.skipping !== null) return state;
   const current = state.sections.at(-1) ?? {
@@ -2611,7 +2635,13 @@ function addPiece(
         }
       : {
           ...current,
-          paragraphs: addLine(current.paragraphs, text, piece.opens, place),
+          paragraphs: addLine(
+            current.paragraphs,
+            text,
+            piece.opens,
+            place,
+            verse,
+          ),
         };
   return { ...state, sections: [...rest, section] };
 }
@@ -3068,6 +3098,7 @@ export function parseArchiveOcrWork(
     spacedNotes: work.spacedNotes === true,
     curved: work.curved === true,
     datelined: work.datelined === true,
+    verse: work.verse === true,
   };
   const { cased } = volume.spelling;
   const { sections } = pagesOfWork(read, work)
@@ -3109,11 +3140,16 @@ export function parseArchiveOcrWork(
                   work.title,
                   work.skipHeadings ?? [],
                 )
-              : addPiece(done, piece, {
-                  page: number,
-                  leaf: page.leaf,
-                  label,
-                }),
+              : addPiece(
+                  done,
+                  piece,
+                  {
+                    page: number,
+                    leaf: page.leaf,
+                    label,
+                  },
+                  volume.verse,
+                ),
           state,
         ),
       {

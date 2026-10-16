@@ -2666,6 +2666,36 @@ describe("parseArchiveOcrWork, a scan whose lines curve", () => {
   });
 });
 
+describe("parseArchiveOcrWork, a poem", () => {
+  it("keeps each line of verse, and opens a stanza below the space it leaves", () => {
+    const line = (x: number, y: number, text: string): string =>
+      `<span class='ocr_line' title='bbox ${x} ${y} ${x + 1000} ${y + 80}; x_size 80'>${text}</span>`;
+    const hocr = `<html><body><div class='ocr_page' id='page_0' title='bbox 0 0 3000 4500'><span class='ocr_pageno'>604</span>
+ <p class='ocr_par'>${[
+   line(880, 1260, "Spielmann streicht die Geigen,"),
+   line(880, 1348, "Die lichtbraunen Haare sich neigen,"),
+   line(1030, 1434, "Trägt einen Säbel an der Seit’,"),
+   line(880, 1610, "„Spielmann, Spielmann, was streichst du so sehr,"),
+   line(1030, 1698, "Zerreißt dir ja deinen Bogen.“"),
+ ].join("\n")}</p>
+</div></body></html>`;
+
+    const units = parseArchiveOcrWork(hocr, {
+      item: "mew-40",
+      title: "Wilde Lieder",
+      citation: "MEW 40",
+      firstPage: 604,
+      lastPage: 604,
+      verse: true,
+    });
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "Spielmann streicht die Geigen,  \nDie lichtbraunen Haare sich neigen,  \nTrägt einen Säbel an der Seit’,",
+      "„Spielmann, Spielmann, was streichst du so sehr,  \nZerreißt dir ja deinen Bogen.“",
+    ]);
+  });
+});
+
 describe("parseArchiveOcrWork, signs the Fraktur model misreads", () => {
   it("reads a plus, an equals sign and a pound after a figure as the print sets them", async () => {
     const units = parseArchiveOcrWork(
