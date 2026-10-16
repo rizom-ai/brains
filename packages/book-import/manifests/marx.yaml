@@ -114,6 +114,45 @@ books:
     year: 1894
     published: false
     kind: work
+  - source: mlwerke
+    # MEW 18, 19 and 23 as mlwerke.de published them, from the Internet
+    # Archive's last captures with the text: the preface Marx and Engels
+    # wrote for the Manifest of 1872, Marx's afterword to the second edition
+    # of Das Kapital (1873), and their preface to the second Russian
+    # Manifest (1882), from the German manuscript; Russian was its only
+    # printing in their lifetime. Marx's chapter in Anti-Dühring is its own
+    # book, below.
+    pages:
+      - https://web.archive.org/web/20241203231456id_/http://www.mlwerke.de/me/me18/me18_095.htm
+      - https://web.archive.org/web/20250304045814id_/http://www.mlwerke.de/me/me23/me23_018.htm
+      - https://web.archive.org/web/20250125053712id_/http://www.mlwerke.de/me/me19/me19_295.htm
+    citation: Vorworte
+    articles: true
+    slug: vorworte-1872-1882
+    title: Vorworte 1872–1882
+    edition: "Marx-Engels-Werke, Band 18 (Berlin, Dietz, 1962; 5. Auflage 1973), S. 95–96, Band 23 (Berlin, Dietz, 1968), S. 18–28, und Band 19 (Berlin, Dietz, 1962; 4. Auflage 1973), S. 295–296"
+    author: Karl Marx
+    year: 1872
+    kind: work
+  - source: mlwerke
+    # MEW 20 (1962) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: the chapter Marx wrote for Engels's
+    # Anti-Dühring, the tenth of its second part. The page holds the whole
+    # second part; Engels's chapters I to IX, read as one section, are left
+    # out with his notes to them.
+    pages:
+      - https://web.archive.org/web/20250212034655id_/http://www.mlwerke.de/me/me20/me20_136.htm
+    citation: Kritische Geschichte
+    headings:
+      - { level: 1, title: I. Gegenstand und Methode }
+      - { level: 1, title: X. Aus der »Kritischen Geschichte« }
+    skipHeadings: [I. Gegenstand und Methode]
+    slug: aus-der-kritischen-geschichte
+    title: Aus der „Kritischen Geschichte“
+    edition: "Friedrich Engels, Herrn Eugen Dühring's Umwälzung der Wissenschaft (Leipzig, 1878), Zweiter Abschnitt, Kapitel X, in: Marx-Engels-Werke, Band 20 (Berlin, Dietz, 1962), S. 210–238"
+    author: Karl Marx
+    year: 1878
+    kind: work
   - source: wikisource
     page: Ein Briefwechsel von 1843
     citation: Briefwechsel 1843
@@ -213,6 +252,45 @@ books:
     edition: "Marx-Engels-Werke, Band 14 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 381–686"
     author: Karl Marx
     year: 1860
+    kind: work
+  - source: mlwerke
+    # MEW 13 (1961, 7th printing 1971) and 14 (1961, 4th printing 1972) as
+    # mlwerke.de published them, from the Internet Archive's last captures
+    # with the text: Marx's articles for Das Volk (London, 1859) and his
+    # letters and statements to the papers in the Vogt affair (1859–1860).
+    # The Gatherings from the Press in Das Volk, which he compiled with
+    # Elard Biscamp, are left out.
+    pages:
+      - https://web.archive.org/web/20221128015841id_/http://mlwerke.de/me/me13/me13_391.htm
+      - https://web.archive.org/web/20240825085637id_/http://www.mlwerke.de/me/me13/me13_414.htm
+      - https://web.archive.org/web/20250219171346id_/http://www.mlwerke.de/me/me13/me13_444.htm
+      - https://web.archive.org/web/20221128024342id_/http://mlwerke.de/me/me13/me13_450.htm
+      - https://web.archive.org/web/20221205170109id_/http://mlwerke.de/me/me13/me13_487.htm
+      - https://web.archive.org/web/20240807095544id_/http://www.mlwerke.de/me/me14/me14_687.htm
+      - https://web.archive.org/web/20240807083916id_/http://www.mlwerke.de/me/me14/me14_688.htm
+      - https://web.archive.org/web/20240807101538id_/http://www.mlwerke.de/me/me14/me14_692.htm
+      - https://web.archive.org/web/20240807090901id_/http://www.mlwerke.de/me/me14/me14_696.htm
+      - https://web.archive.org/web/20240807101544id_/http://www.mlwerke.de/me/me14/me14_700.htm
+      - https://web.archive.org/web/20240807085805id_/http://www.mlwerke.de/me/me14/me14_701.htm
+    citation: Volk und Vogt
+    articles: true
+    # The four parts of Quid pro Quo, numbered on centred lines.
+    headings:
+      - { level: 2, title: I }
+      - { level: 2, title: II }
+      - { level: 2, title: III }
+      - { level: 2, title: IV }
+    # The Allgemeine Zeitung's own note to Marx's signature.
+    fixes:
+      - page: "687"
+        from: Redakteur der ehemaligen „Rheinischen Zeitung“ (Fußnote der Redaktion der „Allgemeinen Zeitung“)
+        to: ""
+    slug: artikel-im-volk-und-erklaerungen-zur-sache-vogt
+    title: Artikel im „Volk“ und Erklärungen zur Sache Vogt 1859–1860
+    shortTitle: Das Volk und die Sache Vogt
+    edition: "Marx-Engels-Werke, Band 13 (Berlin, Dietz, 1961; 7. Auflage 1971), S. 391–489, und Band 14 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 687–702"
+    author: Karl Marx
+    year: 1859
     kind: work
   - source: mlwerke
     # MEW 15 (1961, 4th printing 1972) as mlwerke.de published it, from the
@@ -712,6 +790,38 @@ books:
     author: Karl Marx und Friedrich Engels
     year: 1846
     kind: work
+  - source: mlwerke
+    # MEW 4 (1972) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: the whole circular, its resolutions and
+    # the five sections of its appendix, of which the book above holds
+    # Mehring's extract.
+    pages:
+      - https://web.archive.org/web/20240616060114id_/http://mlwerke.de/me/me04/me04_003.htm
+    citation: Zirkular
+    headings:
+      - level: 1
+        title: Erster Abschnitt. Verwandlung des Kommunismus in Liebesduselei
+        match: [ERSTER ABSCHNITT, Verwandlung des Kommunismus]
+      - level: 1
+        title: Zweiter Abschnitt. Ökonomie des „Volks-Tribunen“ und seine Stellung zum Jungen Amerika
+        match: [ZWEITER ABSCHNITT, Ökonomie des]
+      - level: 1
+        title: Dritter Abschnitt. Metaphysische Fanfaronnaden
+        match: [DRITTER ABSCHNITT, Metaphysische]
+      - level: 1
+        title: Vierter Abschnitt. Religiöse Tändeleien
+        match: [VIERTER ABSCHNITT, Religiöse]
+      - level: 1
+        title: Fünfter Abschnitt. Krieges persönliches Auftreten
+        match: [FÜNFTER ABSCHNITT, Krieges persönliches]
+    fixes:
+      - { page: "3", from: "Brüssel, den 1 l. Mai 846", to: "Brüssel, den 11. Mai 1846" }
+    slug: zirkular-gegen-kriege-1846
+    title: Zirkular gegen Kriege
+    edition: "Marx-Engels-Werke, Band 4 (Berlin, Dietz, 1972), S. 3–17"
+    author: Karl Marx und Friedrich Engels
+    year: 1846
+    kind: work
   - source: archive-ocr
     item: mehring-nachlass-2
     citation: Nachlass II
@@ -739,6 +849,34 @@ books:
     slug: die-moralisierende-kritik-und-die-kritisierende-moral
     title: Die moralisirende Kritik und die kritische Moral
     edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: mlwerke
+    # MEW 4 (1972) and 5 (1971) as mlwerke.de published them, from the
+    # Internet Archive's last captures with the text: Marx's pieces in the
+    # Deutsche-Brüsseler-Zeitung of 1847–48 (the statement against Grün,
+    # his speech on Poland, Lamartine und der Kommunismus, the reply to the
+    # Débat social) and the Forderungen der Kommunistischen Partei in
+    # Deutschland, the leaflet he wrote with Engels in March 1848. Engels's
+    # speech on Poland, printed with Marx's, is left out.
+    pages:
+      - https://web.archive.org/web/20240616070653id_/http://mlwerke.de/me/me04/me04_037.htm
+      - https://web.archive.org/web/20250125061246id_/http://www.mlwerke.de/me/me04/me04_416.htm
+      - https://web.archive.org/web/20240616050602id_/http://mlwerke.de/me/me04/me04_421.htm
+      - https://web.archive.org/web/20240616050828id_/http://mlwerke.de/me/me04/me04_511.htm
+      - https://web.archive.org/web/20240529063453id_/http://mlwerke.de/me/me05/me05_003.htm
+    citation: Brüssel 1847–48
+    articles: true
+    # The speeches on Poland, each under a centred line.
+    headings:
+      - { level: 2, title: "[Rede von Karl Marx]" }
+      - { level: 2, title: "[Rede von Friedrich Engels]" }
+    skipHeadings: ["[Rede von Friedrich Engels]"]
+    slug: artikel-aus-bruessel-und-forderungen-1847-1848
+    title: Artikel aus Brüssel und Forderungen der Kommunistischen Partei 1847–1848
+    shortTitle: Artikel aus Brüssel 1847–1848
+    edition: "Marx-Engels-Werke, Band 4 (Berlin, Dietz, 1972), S. 37–513, und Band 5 (Berlin, Dietz, 1971), S. 3–5"
     author: Karl Marx
     year: 1847
     kind: work
@@ -862,6 +1000,31 @@ books:
     slug: debatten-ueber-das-holzdiebstahlsgesetz
     title: Debatten über das Holzdiebstahlsgesetz
     edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: mlwerke
+    # MEW 1 and 2 as mlwerke.de published them, from the Internet Archive's
+    # last captures with the text: Marx's articles and statements of
+    # 1842–1846 that MEW prints and no other book here holds. One page
+    # bundles the eight articles on the ban of the Leipziger Allgemeine
+    # Zeitung, another the five of the Mosel defence. Luther als
+    # Schiedsrichter zwischen Strauß und Feuerbach (MEW 1), which later
+    # research gives to Feuerbach, is left out, and so are the pieces only
+    # MEW's Ergänzungsband 1 prints, which mlwerke does not carry: the two
+    # poems in the Athenäum (1841), eleven pieces in the Rheinische Zeitung
+    # and the Deutsche Jahrbücher (1842–43), and one in Vorwärts! (1844).
+    pages:
+      - https://web.archive.org/web/20241106061710id_/http://www.mlwerke.de/me/me01/me01_148.htm
+      - https://web.archive.org/web/20241106055132id_/http://www.mlwerke.de/me/me01/me01_152.htm
+      - https://web.archive.org/web/20241221081321id_/http://mlwerke.de/me/me01/me01_172.htm
+      - https://web.archive.org/web/20250125060945id_/http://www.mlwerke.de/me/me01/me01_200.htm
+      - https://web.archive.org/web/20240520151842id_/http://www.mlwerke.de/me/me02/me02_625.htm
+    citation: Artikel 1842–46
+    articles: true
+    slug: artikel-1842-1846
+    title: Artikel 1842–1846
+    edition: "Marx-Engels-Werke, Band 1 (Berlin, Dietz, 1962 und 1976), S. 148–200, und Band 2 (Berlin, Dietz, 1972), S. 625"
     author: Karl Marx
     year: 1842
     kind: work
@@ -1551,6 +1714,46 @@ books:
     author: Karl Marx
     year: 1850
     kind: work
+  - source: mlwerke
+    # MEW 7 (1960, 5th printing 1973) as mlwerke.de published it, from the
+    # Internet Archive's last capture with the text: the whole Revue of
+    # January/February 1850, of which the book above holds Mehring's extract.
+    pages:
+      - https://web.archive.org/web/20240807094646id_/http://www.mlwerke.de/me/me07/me07_213.htm
+    citation: Revue Januar/Februar 1850
+    slug: revue-januar-februar-1850
+    title: Revue. Januar/Februar 1850
+    edition: "Marx-Engels-Werke, Band 7 (Berlin, Dietz, 1960; 5. Auflage 1973), S. 213–225"
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: mlwerke
+    # MEW 6–8 as mlwerke.de published them, from the Internet Archive's last
+    # captures with the text: Der 13. Juni (Der Volksfreund, 1849), the
+    # Revue's announcement, the Revue of March/April 1850 and Louis-Napoleon
+    # und Fould, the note on Eccarius's article, and the statements of 1850
+    # and 1852. The Revue of January/February 1850 is the book above. Left
+    # out: the preface to Blanqui's toast (1851), which MEW prints among its
+    # appendices, its authorship uncertain, and the statement on the Baronin
+    # von Beck (Kölnische Zeitung, 1851; MEW 8, S. 109), which mlwerke does
+    # not carry.
+    pages:
+      - https://web.archive.org/web/20220129100354id_/http://www.mlwerke.de/me/me06/me06_527.htm
+      - https://web.archive.org/web/20240807090712id_/http://www.mlwerke.de/me/me07/me07_005.htm
+      - https://web.archive.org/web/20240807101425id_/http://www.mlwerke.de/me/me07/me07_292.htm
+      - https://web.archive.org/web/20240807090340id_/http://www.mlwerke.de/me/me07/me07_296.htm
+      - https://web.archive.org/web/20240807084501id_/http://www.mlwerke.de/me/me07/me07_323.htm
+      - https://web.archive.org/web/20240807081428id_/http://www.mlwerke.de/me/me07/me07_325.htm
+      - https://web.archive.org/web/20240807095044id_/http://www.mlwerke.de/me/me07/me07_416.htm
+      - https://web.archive.org/web/20231109175907id_/http://www.mlwerke.de/me/me08/me08_232.htm
+    citation: Revue und Erklärungen
+    articles: true
+    slug: revue-und-erklaerungen-1849-1852
+    title: Revue und Erklärungen 1849–1852
+    edition: "Marx-Engels-Werke, Band 6 (Berlin, Dietz, 1959), S. 527–528, Band 7 (Berlin, Dietz, 1960; 5. Auflage 1973), S. 5–416, und Band 8 (Berlin, Dietz, 1960; 3. Auflage 1972), S. 232"
+    author: Karl Marx
+    year: 1849
+    kind: work
   - source: archive-ocr
     # The critique of the Gotha programme as Engels first printed it, from
     # the manuscript with his omissions marked, in Die Neue Zeit; his preface
@@ -1684,6 +1887,78 @@ books:
     edition: Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck, mit Einleitung von Friedrich Engels, und Dokumenten (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
     author: Karl Marx
     year: 1853
+    kind: work
+  - source: mlwerke
+    # MEW 8 (1960, 3rd printing 1972) as mlwerke.de published it, from the
+    # Internet Archive's last captures with the text, a chapter a page: the
+    # pamphlet Marx and Engels finished in 1852 and left in manuscript; it
+    # was first printed in 1930, in Russian. The chapters are numbered on
+    # centred lines.
+    pages:
+      - https://web.archive.org/web/20221025024340id_/http://www.mlwerke.de/me/me08/me08_235.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_254.htm
+      - https://web.archive.org/web/20240630152235id_/http://www.mlwerke.de/me/me08/me08_261.htm
+      - https://web.archive.org/web/20221025024341id_/http://www.mlwerke.de/me/me08/me08_265.htm
+      - https://web.archive.org/web/20250123174151id_/http://www.mlwerke.de/me/me08/me08_268.htm
+      - https://web.archive.org/web/20221025024341id_/http://www.mlwerke.de/me/me08/me08_282.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_288.htm
+      - https://web.archive.org/web/20221025024341id_/http://www.mlwerke.de/me/me08/me08_289.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_292.htm
+      - https://web.archive.org/web/20221025024546id_/http://www.mlwerke.de/me/me08/me08_299.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_304.htm
+      - https://web.archive.org/web/20250120162843id_/http://www.mlwerke.de/me/me08/me08_312.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_318.htm
+      - https://web.archive.org/web/20221025024340id_/http://www.mlwerke.de/me/me08/me08_331.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_334.htm
+    citation: Große Männer
+    headings:
+      - { level: 1, title: I }
+      - { level: 1, title: II }
+      - { level: 1, title: III }
+      - { level: 1, title: IV }
+      - { level: 1, title: V }
+      - { level: 1, title: VI }
+      - { level: 1, title: VII }
+      - { level: 1, title: VIII }
+      - { level: 1, title: IX }
+      - { level: 1, title: X }
+      - { level: 1, title: XI }
+      - { level: 1, title: XII }
+      - { level: 1, title: XIII }
+      - { level: 1, title: XIV }
+      - { level: 1, title: XV }
+    slug: die-grossen-maenner-des-exils
+    title: Die großen Männer des Exils
+    edition: "Marx-Engels-Werke, Band 8 (Berlin, Dietz, 1960; 3. Auflage 1972), S. 233–335"
+    author: Karl Marx und Friedrich Engels
+    year: 1852
+    published: false
+    kind: work
+  - source: mlwerke
+    # MEW 9 (1960) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: Marx's reply in the Belletristisches
+    # Journal und New-Yorker Criminal-Zeitung, 5 May 1853.
+    pages:
+      - https://web.archive.org/web/20220119185911id_/http://www.mlwerke.de/me/me09/me09_039.htm
+    citation: Hirsch
+    slug: hirschs-selbstbekenntnisse
+    title: Hirschs Selbstbekenntnisse
+    edition: "Marx-Engels-Werke, Band 9 (Berlin, Dietz, 1960), S. 39–42"
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: mlwerke
+    # MEW 9 (1960) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: the pamphlet against Willich, New York,
+    # January 1854.
+    pages:
+      - https://web.archive.org/web/20220119192307id_/http://www.mlwerke.de/me/me09/me09_489.htm
+    citation: Ritter
+    slug: der-ritter-vom-edelmuetigen-bewusstsein
+    title: Der Ritter vom edelmütigen Bewußtsein
+    edition: "Marx-Engels-Werke, Band 9 (Berlin, Dietz, 1960), S. 489–518"
+    author: Karl Marx
+    year: 1854
     kind: work
   - source: archive-ocr
     # The first of the two addresses Engels appended to the Enthüllungen,

@@ -319,6 +319,7 @@ const mlwerkeBookSchema: z.ZodObject<
         >
       >;
       articles: z.ZodDefault<z.ZodBoolean>;
+      skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
   >
 > = z.object({
@@ -352,6 +353,8 @@ const mlwerkeBookSchema: z.ZodObject<
       }),
     )
     .default([]),
+  /** Sections to leave out by their headings, with what stands under them: another author's article. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
 const megaEtxBookSchema: z.ZodObject<
