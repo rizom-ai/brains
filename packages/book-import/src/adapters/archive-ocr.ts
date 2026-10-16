@@ -1499,9 +1499,16 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   ) {
     return [line];
   }
+  // The heading ends with its title, unless the title breaks off at a
+  // hyphen and runs on to the line below: Krankheits- / processe.
   return [
     { ...line, text: match[1], numbered: true },
-    { ...line, text: match[2], ends: true, numbered: true },
+    {
+      ...line,
+      text: match[2],
+      ends: !/\p{L}-$/u.test(match[2]),
+      numbered: true,
+    },
   ];
 }
 
@@ -2516,6 +2523,9 @@ function addLine(
   ];
 }
 
+/** A note's mark a title carries: *), **), or a superscript figure the OCR may read as a dotless i: ¹). */
+const TITLE_NOTE_MARK = /\s*(?:\*+|[ı¹²³⁴⁵⁶⁷⁸⁹⁰]+)\)/gu;
+
 /** A heading as it stands in the work: its level and its cased title. */
 interface PathStep {
   level: number;
@@ -2700,17 +2710,20 @@ function addHeading(
           ? heading.label
           : cased(heading.label),
     // A subtitle follows its title after one full stop, or after the comma
-    // it goes on from; the title is cased as a whole.
+    // it goes on from; the title is cased as a whole, without the marks of
+    // the notes it carries.
     name: cased(
-      heading.title.reduce(
-        (name, line) =>
-          name === ""
-            ? line
-            : /[.!?:,;]$/u.test(name)
-              ? `${name} ${line}`
-              : `${name}. ${line}`,
-        "",
-      ),
+      heading.title
+        .reduce(
+          (name, line) =>
+            name === ""
+              ? line
+              : /[.!?:,;]$/u.test(name)
+                ? `${name} ${line}`
+                : `${name}. ${line}`,
+          "",
+        )
+        .replace(TITLE_NOTE_MARK, ""),
     ),
     qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,

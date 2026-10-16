@@ -1375,6 +1375,33 @@ describe("parseArchiveOcrWork, a chapter's numeral and title on one line", () =>
       "II. Die Bürstenheimer.",
     ]);
   });
+
+  it("runs a title broken off at a hyphen on to the centred line below it", async () => {
+    const hocr = (
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-numbered-titles.html"),
+        "utf8",
+      )
+    )
+      .replace(
+        "<span class='ocr_line' title='bbox 620 250 1280 290; x_size 52'>II. Die Bürstenheimer.</span>",
+        "<span class='ocr_line' title='bbox 560 250 1340 290; x_size 52'>II. Die Bürsten-</span>\n  <span class='ocr_line' title='bbox 830 300 1070 340; x_size 52'>heimer.</span>",
+      )
+      .replace("der 25. Juni drang", "der 25. Juni drang den Bürstenheimer");
+    const units = parseArchiveOcrWork(hocr, {
+      item: "10067670bsb",
+      title: "Herr Vogt",
+      citation: "Herr Vogt",
+      firstPage: 20,
+      lastPage: 23,
+    });
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "I. Die Schwefelbande.",
+      "II. Die Bürstenheimer.",
+    ]);
+    expect(units[1]?.paragraphs[0]).toStartWith("Der 25. Februar");
+  });
 });
 
 describe("parseArchiveOcrWork, front matter numbered by a bare roman numeral", () => {
@@ -2627,6 +2654,36 @@ describe("parseArchiveOcrWork, headings set in the text's type", () => {
       "Beilagen.",
     ]);
     expect(units[1]?.paragraphs[0]).toStartWith("Paris war das einzige");
+  });
+
+  it("titles a heading without the mark of the note it carries", async () => {
+    const units = parseArchiveOcrWork(
+      (
+        await readFile(
+          join(
+            import.meta.dir,
+            "fixtures",
+            "archive-ocr-unnumbered-chapter.html",
+          ),
+          "utf8",
+        )
+      )
+        .replace(">chismus.</span>", ">chismus *).</span>")
+        .replace("Vorläufiges.", "Vorläufiges¹)."),
+      {
+        item: "10394216bsb",
+        title: "Enthüllungen über den Kommunisten-Prozeß zu Köln",
+        citation: "Enthüllungen",
+        firstPage: 3,
+        lastPage: 4,
+        headings: [{ page: 4, opens: "Das Begleit-Schreiben" }],
+      },
+    );
+
+    expect(units.map((unit) => unit.title).slice(0, 2)).toEqual([
+      "I. Vorläufiges.",
+      "II. Das Begleit-Schreiben des rothen Katechismus.",
+    ]);
   });
 
   it("reads the line as text where the manifest names none", async () => {
