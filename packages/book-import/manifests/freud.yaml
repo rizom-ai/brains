@@ -876,6 +876,9 @@ books:
     ocr: fra
     firstPage: 37
     lastPage: 56
+    # The editors' note on the title, not Freud's.
+    skipNotes:
+      - { page: 39, opens: "1) Les trois articles" }
     slug: quelques-considerations-pour-une-etude-comparative-des-paralysies-motrices-organiques-et-hysteriques
     title: "Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques"
     shortTitle: Paralysies motrices organiques et hystériques
@@ -920,8 +923,14 @@ books:
     ocr: fra
     firstPage: 345
     lastPage: 354
+    # The French reading sets the notes as large as the text; they are named.
+    notes:
+      - { page: 345, opens: "1) Je suis" }
+      - { page: 350, opens: "1) Voir aussi" }
+      - { page: 351, opens: "1) Neurologisches" }
     slug: obsessions-et-phobies
-    title: "Obsessions et phobies"
+    title: "Obsessions et phobies. Leur mécanisme psychique et leur étiologie"
+    shortTitle: Obsessions et phobies
     edition: Gesammelte Werke, Bd. I (Imago, London 1952)
     author: Sigmund Freud
     year: 1895
