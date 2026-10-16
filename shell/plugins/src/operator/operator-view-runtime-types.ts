@@ -40,6 +40,7 @@ export type RuntimeOperatorLaunchIntent =
   | { readonly target: "publishing" }
   | { readonly target: "site" }
   | { readonly target: "traffic" }
+  | { readonly target: "board" }
   | {
       readonly target: "inbox-open-entity";
       readonly entityType: string;

@@ -222,6 +222,11 @@ export function useStudioNavigationActions(
             studioWorkspacePath(studioBasePath, "analytics:traffic"),
           );
           return;
+        case "board":
+          history.push(
+            studioWorkspacePath(studioBasePath, "conversation-memory:board"),
+          );
+          return;
         case "inbox-open-entity":
           openWorkspaceEntity(launch.entityType, launch.entityId);
           return;

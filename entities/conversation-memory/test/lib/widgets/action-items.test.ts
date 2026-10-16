@@ -43,8 +43,20 @@ function createActionItem(overrides: {
 }
 
 describe("buildActionItemsWidgetData", () => {
-  it("sorts open first then by timeRange end desc, caps at 6", async () => {
+  it("lists unfinished items, blocked first, then doing, then open, newest first", async () => {
     const items: ActionItemEntity[] = [
+      createActionItem({
+        id: "doing",
+        title: "Doing",
+        status: "doing",
+        end: "2026-05-01T00:00:00.000Z",
+      }),
+      createActionItem({
+        id: "blocked",
+        title: "Blocked",
+        status: "blocked",
+        end: "2026-04-01T00:00:00.000Z",
+      }),
       createActionItem({
         id: "older-open",
         title: "Older open",
@@ -79,18 +91,33 @@ describe("buildActionItemsWidgetData", () => {
     );
 
     expect(data.items.map((item) => item.id)).toEqual([
+      "blocked",
+      "doing",
       "newer-open",
       "older-open",
-      "newer-done",
-      "dropped",
     ]);
-    const first = data.items[0];
-    expect(first?.name).toBe("Newer open");
-    expect(first?.description).toBe("Body sentence one.");
-    expect(first?.status).toBe("open");
-    expect(first?.meta).toEqual(["#design", "2d"]);
-    // openCount is uncapped and counts only open items.
-    expect(data.openCount).toBe(2);
+    const open = data.items[2];
+    expect(open?.name).toBe("Newer open");
+    expect(open?.description).toBe("Body sentence one.");
+    expect(open?.status).toBe("open");
+    expect(open?.meta).toEqual(["#design", "2d"]);
+    // Counts are uncapped; finished items count toward neither.
+    expect(data.unfinishedCount).toBe(4);
+    expect(data.blockedCount).toBe(1);
+  });
+
+  it("caps the list at six", async () => {
+    const items = Array.from({ length: 8 }, (_, index) =>
+      createActionItem({ id: `open-${index}`, title: `Open ${index}` }),
+    );
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
+
+    const data = await buildActionItemsWidgetData(context, "restricted");
+
+    expect(data.items).toHaveLength(6);
+    expect(data.unfinishedCount).toBe(8);
   });
 
   it("falls back to channelId when channelName is missing", async () => {
@@ -118,7 +145,10 @@ describe("buildActionItemsWidgetData", () => {
 describe("registerActionItemsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
     const context = createMockEntityPluginContext({
-      listEntitiesImpl: async () => [],
+      listEntitiesImpl: async () => [
+        createActionItem({ id: "stuck", title: "Stuck", status: "blocked" }),
+        createActionItem({ id: "next", title: "Next" }),
+      ],
     });
     context.messaging.subscribe(
       DASHBOARD_CHANNELS.registerWidget,
@@ -156,6 +186,15 @@ describe("registerActionItemsWidget", () => {
       rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       digestProvider: expect.any(Function),
     });
+    const data = await payload.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
+    // Blockers, not open work, ask for attention.
+    expect(digestProvider(data)).toMatchObject({ needsAttention: 1 });
+    const view = JSON.stringify(data);
+    expect(view).toContain('"label":"Open the board"');
+    expect(view).toContain('"target":"board"');
     expect(Object.hasOwn(payload, "component")).toBe(false);
     expect(Object.hasOwn(payload, "clientStyles")).toBe(false);
     expect(Object.hasOwn(payload, "clientScript")).toBe(false);
