@@ -2640,3 +2640,70 @@ books:
     author: Karl Marx
     year: 1880
     kind: work
+  - source: archive-ocr
+    # The General Council's private circular (MEW 18, Marx and Engels), as
+    # Le Mouvement socialiste reprinted it, read anew from the scan; the
+    # volume binds tomes XXXIII and XXXIV, and the circular fills pp. 5–50
+    # of the second.
+    item: mouvementsociali3334pari
+    citation: Mouvement socialiste XXXIV
+    ocr: fra
+    firstPage: 5
+    lastPage: 50
+    # The review's notes on the circular, signed N. D. L. R., are its own.
+    notes:
+      - { page: 5, opens: (1) Le document }
+      - { page: 5, opens: (2) Les Prétendues }
+      - { page: 5, opens: (3) Ce manifeste }
+      - { page: 19, opens: (1) Les amis }
+      - { page: 20, opens: (1) Voici quelle }
+      - { page: 22, opens: (1) Peu de temps }
+      - { page: 31, opens: (1) Voici la résolution }
+      - { page: 31, opens: Vu les considérants }
+      - { page: 31, opens: Vu l’Adresse }
+      - { page: 32, opens: le plus d’obstacles, runsOn: true }
+      - { page: 32, opens: Vu la Résolution }
+      - { page: 32, opens: Vu la déclaration }
+      - { page: 32, opens: Attendu que }
+      - { page: 32, opens: En présence }
+      - { page: 32, opens: Considérant en outre }
+      - { page: 32, opens: Que contre ce }
+      - { page: 32, opens: Que cette constitution }
+      - { page: 32, opens: Que la coalition }
+      - { page: 32, opens: La Conférence rappelle }
+      - { page: 32, opens: Que dans l’état }
+      - { page: 34, opens: (1) Les travaux }
+      - { page: 38, opens: (1) Telles étaient }
+      - { page: 42, opens: (1) Les hommes }
+      - { page: 42, opens: Le Conseil général se propose }
+      - { page: 47, opens: (1) Sous le titre }
+      - { page: 47, opens: « Le jour }
+      - { page: 48, opens: été témoins, runsOn: true }
+      - { page: 48, opens: « Par leurs }
+      - { page: 48, opens: « De plus }
+      - { page: 48, opens: « Albert Richard }
+      - { page: 50, opens: (1) Dans le rapport }
+    skipNotes:
+      - { page: 5, opens: (1) Le document }
+      - { page: 5, opens: (2) Les Prétendues }
+      - { page: 5, opens: (3) Ce manifeste }
+    # The Council's signatures, set apart.
+    paragraphs:
+      - { page: 50, opens: "Le Conseil Général :" }
+      - { page: 50, opens: R. Applegarth }
+      - { page: 50, opens: "Secrétaires correspondants :" }
+      - { page: 50, opens: "Karl Marx, Allemagne" }
+      - { page: 50, opens: Charles Longuet }
+      - { page: 50, opens: Hemann Jung }
+      - { page: 50, opens: John Hales }
+      - { page: 50, opens: "33, Rathborne" }
+    # The fifth part's numeral, which the scan lost.
+    headings:
+      - { page: 40, opens: Après avoir fait justice, numeral: V }
+    slug: les-pretendues-scissions-dans-linternationale
+    title: Les prétendues scissions dans l'Internationale. Circulaire privée du Conseil général de l'Association internationale des travailleurs
+    shortTitle: Les prétendues scissions dans l'Internationale
+    edition: Le Mouvement socialiste, t. XXXIV, nos 253–254 (Paris, juillet–août 1913), pp. 5–50, after the first edition (Genève, Imprimerie coopérative, 1872)
+    author: Karl Marx und Friedrich Engels
+    year: 1872
+    kind: work
