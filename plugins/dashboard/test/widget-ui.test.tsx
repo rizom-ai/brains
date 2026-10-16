@@ -213,9 +213,7 @@ describe("widget UI primitives", () => {
     );
     expect(html).toContain('href="/studio/workspaces/site-builder%3Asite"');
     expect(html).toContain('href="/studio/workspaces/analytics%3Atraffic"');
-    expect(html).toContain(
-      'href="/studio/workspaces/conversation-memory%3Aboard"',
-    );
+    expect(html).toContain('href="/studio/workspaces/action-board%3Aboard"');
     expect(html).toContain('href="/studio/workspaces/unified-inbox%3Ainbox"');
     expect(html).toContain(
       'href="/studio/workspaces/admin%3Aadministration?tab=invitations&amp;peerId=did%3Aweb%3Agrace.example&amp;displayName=Grace+Hopper"',

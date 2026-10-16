@@ -5,18 +5,13 @@ import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
-import { ActionItemAdapter } from "../../src/adapters/conversation-memory-adapters";
-import {
-  actionItemBody,
-  applyMove,
-  applyNote,
-  isBoardOwned,
-} from "../../src/lib/action-item-board";
+import { ActionItemAdapter } from "../src";
+import { actionItemBody, applyMove, applyNote, isBoardOwned } from "../src";
 import {
   actionItemSchema,
   type ActionItemEntity,
   type ActionItemMetadata,
-} from "../../src/schemas/conversation-memory";
+} from "../src";
 
 const adapter = new ActionItemAdapter();
 const niels = { kind: "user", userId: "u-niels" } as const;

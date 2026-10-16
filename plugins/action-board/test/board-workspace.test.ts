@@ -1,22 +1,22 @@
 import { describe, expect, it } from "bun:test";
 import {
-  createEntityPluginContext,
+  createServicePluginContext,
   createMockShell,
-  type EntityPluginContext,
+  type ServicePluginContext,
 } from "@brains/plugins/test";
 import type {
   StudioWorkspaceActor,
   StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { ActionItemAdapter } from "../../src/adapters/conversation-memory-adapters";
-import { registerBoardWorkspace } from "../../src/lib/board-workspace";
+import { ActionItemAdapter } from "@brains/action-items";
+import { registerBoardWorkspace } from "../src/board-workspace";
 import {
   actionItemSchema,
   type ActionItemHistoryEntry,
   type ActionItemMetadata,
   type ActionItemStatus,
-} from "../../src/schemas/conversation-memory";
+} from "@brains/action-items";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 const adapter = new ActionItemAdapter();
@@ -45,11 +45,8 @@ function daysAgo(days: number): string {
   return new Date(NOW.getTime() - days * 86_400_000).toISOString();
 }
 
-async function brain(cards: Card[]): Promise<EntityPluginContext> {
-  const context = createEntityPluginContext(
-    createMockShell(),
-    "conversation-memory",
-  );
+async function brain(cards: Card[]): Promise<ServicePluginContext> {
+  const context = createServicePluginContext(createMockShell(), "action-board");
   context.entities.register("action-item", actionItemSchema, adapter);
   for (const card of cards) {
     const metadata: ActionItemMetadata = {
@@ -88,7 +85,7 @@ async function brain(cards: Card[]): Promise<EntityPluginContext> {
 }
 
 async function registered(
-  context: EntityPluginContext,
+  context: ServicePluginContext,
 ): Promise<StudioWorkspaceRegistration> {
   let registration: StudioWorkspaceRegistration | undefined;
   context.messaging.subscribe<
@@ -98,7 +95,7 @@ async function registered(
     registration = message.payload;
     return {
       success: true,
-      data: { workspaceUrl: "/studio/workspaces/conversation-memory%3Aboard" },
+      data: { workspaceUrl: "/studio/workspaces/action-board%3Aboard" },
     };
   });
   await registerBoardWorkspace(context, {
@@ -188,7 +185,7 @@ const move = (
 describe("the Board workspace", () => {
   it("is the team's Trusted Board", async () => {
     const registration = await registered(await brain([]));
-    expect(registration.id).toBe("conversation-memory:board");
+    expect(registration.id).toBe("action-board:board");
     expect(registration.label).toBe("Board");
     expect(registration.permission).toBe("trusted");
   });

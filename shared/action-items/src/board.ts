@@ -4,15 +4,15 @@ import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
-import { SUMMARY_ENTITY_TYPE } from "./constants";
-import { channelLabel } from "./widgets/format";
+import { CONVERSATION_SUMMARY_ENTITY_TYPE } from "./constants";
+import { channelLabel } from "./format";
 import {
   actionItemMetadataSchema,
   actionItemOrigin,
   type ActionItemEntity,
   type ActionItemHistoryEntry,
   type ActionItemStatus,
-} from "../schemas/conversation-memory";
+} from "./schema";
 
 /** Frontmatter keys the action-item schema owns; any other key is an extension such as a grouping. */
 const OWNED_FIELDS: ReadonlySet<string> = new Set(
@@ -175,7 +175,7 @@ export function actionItemSource(entity: ActionItemEntity): ActionItemSource {
         place: channelLabel(origin.channelName, origin.channelId),
         link: {
           label: "Conversation summary",
-          entityType: SUMMARY_ENTITY_TYPE,
+          entityType: CONVERSATION_SUMMARY_ENTITY_TYPE,
           entityId: origin.sourceSummaryId,
         },
       }

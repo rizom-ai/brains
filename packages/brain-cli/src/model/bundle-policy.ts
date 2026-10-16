@@ -56,6 +56,11 @@ export const teamBundleConfig: BundleConfigContribution[] = [
     member: "conversation-memory",
     value: { memoryVisibility: "shared" },
   },
+  // Cards tracked from the Inbox share the team's action-item visibility.
+  {
+    member: "action-board",
+    value: { cardVisibility: "shared" },
+  },
 ];
 
 export const teamAgentInstructions: string[] = [

@@ -3,7 +3,7 @@ import {
   actionItemMetadataSchema,
   actionItemOrigin,
   actionItemSchema,
-} from "../../src/schemas/conversation-memory";
+} from "../src";
 
 const conversation = {
   conversationId: "conv-1",

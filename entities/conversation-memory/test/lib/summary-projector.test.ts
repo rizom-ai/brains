@@ -1,3 +1,4 @@
+import { actionItemBodyHash } from "@brains/action-items";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, spyOn } from "bun:test";
 import { summarySchema } from "../../src/schemas/summary";
@@ -9,7 +10,6 @@ import type {
 } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { actionItemBodyHash } from "../../src/lib/action-item-board";
 import {
   getActorsMentionedInText,
   SummaryProjector,

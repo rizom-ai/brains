@@ -1,3 +1,13 @@
+import {
+  ACTION_ITEM_ENTITY_TYPE,
+  ActionItemAdapter,
+  actionItemSchema,
+  type ActionItemEntity,
+  type ActionItemMetadata,
+  type MemoryActorReference,
+  actionItemBodyHash,
+  isBoardOwned,
+} from "@brains/action-items";
 import { actorRefKey } from "@brains/contracts";
 import {
   conversationMessageMetadataSchema,
@@ -9,24 +19,13 @@ import { type Logger } from "@brains/utils/logger";
 import { pLimit } from "@brains/utils/p-limit";
 import { truncateText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import {
-  ACTION_ITEM_ENTITY_TYPE,
-  DECISION_ENTITY_TYPE,
-  SUMMARY_ENTITY_TYPE,
-} from "./constants";
-import {
-  ActionItemAdapter,
-  DecisionAdapter,
-} from "../adapters/conversation-memory-adapters";
+import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
+import { DecisionAdapter } from "../adapters/conversation-memory-adapters";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import {
-  actionItemSchema,
   decisionSchema,
-  type ActionItemEntity,
-  type ActionItemMetadata,
   type DecisionEntity,
   type DecisionMetadata,
-  type MemoryActorReference,
 } from "../schemas/conversation-memory";
 import {
   summaryProjectionDecisionSchema,
@@ -51,7 +50,6 @@ import {
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
-import { actionItemBodyHash, isBoardOwned } from "./action-item-board";
 
 /** The text hash that ends a projected memory id; stable when extraction order shifts. */
 function textHashOf(id: string): string {

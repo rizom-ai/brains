@@ -1,5 +1,5 @@
 import type {
-  EntityPluginContext,
+  ServicePluginContext,
   InboxActionActor,
   InboxActor,
   InboxItem,
@@ -7,20 +7,17 @@ import type {
   InboxSource,
 } from "@brains/plugins";
 import { truncateText } from "@brains/utils/string-utils";
-import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
+import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import {
   actionItemBody,
   actionItemCapturedAt,
   actionItemSource,
   actionItemTitle,
   arrivedAt,
-} from "./action-item-board";
-import { moveActionItem } from "./action-item-moves";
-import { formatAge } from "./widgets/format";
-import {
-  actionItemSchema,
-  type ActionItemStatus,
-} from "../schemas/conversation-memory";
+} from "@brains/action-items";
+import { moveActionItem } from "@brains/action-items";
+import { formatAge } from "@brains/action-items";
+import { actionItemSchema, type ActionItemStatus } from "@brains/action-items";
 
 /** Inbox actions on a blocked card and the status each moves it to. */
 const MOVES: Readonly<Record<string, ActionItemStatus>> = {
@@ -46,11 +43,11 @@ const LIST_LIMIT = 100;
 export class ActionItemInboxSource implements InboxSource {
   readonly sourceId: string = "action-items";
   readonly displayName: string = "Action items";
-  private readonly context: Pick<EntityPluginContext, "entityService">;
+  private readonly context: Pick<ServicePluginContext, "entityService">;
   private readonly now: () => Date;
 
   constructor(
-    context: Pick<EntityPluginContext, "entityService">,
+    context: Pick<ServicePluginContext, "entityService">,
     now: () => Date = (): Date => new Date(),
   ) {
     this.context = context;

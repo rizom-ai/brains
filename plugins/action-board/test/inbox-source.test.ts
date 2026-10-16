@@ -1,18 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import {
-  createEntityPluginContext,
+  createServicePluginContext,
   createMockShell,
-  type EntityPluginContext,
+  type ServicePluginContext,
 } from "@brains/plugins/test";
 import { inboxItemSchema, type InboxActionActor } from "@brains/plugins";
-import { ActionItemAdapter } from "../../src/adapters/conversation-memory-adapters";
-import { ActionItemInboxSource } from "../../src/lib/action-item-inbox-source";
+import { ActionItemAdapter } from "@brains/action-items";
+import { ActionItemInboxSource } from "../src/inbox-source";
 import {
   actionItemSchema,
   type ActionItemHistoryEntry,
   type ActionItemMetadata,
   type ActionItemStatus,
-} from "../../src/schemas/conversation-memory";
+} from "@brains/action-items";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 const adapter = new ActionItemAdapter();
@@ -40,11 +40,8 @@ async function brain(
     status: ActionItemStatus;
     history?: ActionItemHistoryEntry[];
   }[],
-): Promise<EntityPluginContext> {
-  const context = createEntityPluginContext(
-    createMockShell(),
-    "conversation-memory",
-  );
+): Promise<ServicePluginContext> {
+  const context = createServicePluginContext(createMockShell(), "action-board");
   context.entities.register("action-item", actionItemSchema, adapter);
   for (const card of cards) {
     const metadata: ActionItemMetadata = {
@@ -82,7 +79,7 @@ async function brain(
 }
 
 async function stored(
-  context: EntityPluginContext,
+  context: ServicePluginContext,
   id: string,
 ): Promise<ActionItemMetadata | undefined> {
   return (

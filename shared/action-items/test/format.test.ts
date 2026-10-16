@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { formatAge } from "../../../src/lib/widgets/format";
+import { formatAge } from "../src";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 const ago = (ms: number): string => new Date(NOW.getTime() - ms).toISOString();

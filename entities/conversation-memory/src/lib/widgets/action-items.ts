@@ -1,3 +1,13 @@
+import {
+  actionItemSchema,
+  actionItemStatusSchema,
+  type ActionItemEntity,
+  type ActionItemStatus,
+  ACTION_ITEM_ENTITY_TYPE,
+  formatAge,
+  actionItemCapturedAt,
+  actionItemSource,
+} from "@brains/action-items";
 import type { ContentVisibility } from "@brains/plugins";
 import {
   SYSTEM_CHANNELS,
@@ -7,15 +17,6 @@ import {
 } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import {
-  actionItemSchema,
-  actionItemStatusSchema,
-  type ActionItemEntity,
-  type ActionItemStatus,
-} from "../../schemas/conversation-memory";
-import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
-import { formatAge } from "./format";
-import { actionItemCapturedAt, actionItemSource } from "../action-item-board";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "action-items";

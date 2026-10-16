@@ -13,23 +13,15 @@ import {
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
-import { ActionItemAdapter } from "../../src/adapters/conversation-memory-adapters";
-import {
-  actionItemBody,
-  actionItemBodyHash,
-  isBoardOwned,
-} from "../../src/lib/action-item-board";
-import {
-  addActionItemNote,
-  moveActionItem,
-  trackInboxItem,
-} from "../../src/lib/action-item-moves";
-import { createActionItemStatusValidator } from "../../src/lib/action-item-validator";
+import { ActionItemAdapter } from "../src";
+import { actionItemBody, actionItemBodyHash, isBoardOwned } from "../src";
+import { addActionItemNote, moveActionItem, trackInboxItem } from "../src";
+import { createActionItemStatusValidator } from "../src";
 import {
   actionItemSchema,
   type ActionItemEntity,
   type ActionItemMetadata,
-} from "../../src/schemas/conversation-memory";
+} from "../src";
 
 const adapter = new ActionItemAdapter();
 const niels = { kind: "user", userId: "u-niels" } as const;

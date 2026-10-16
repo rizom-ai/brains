@@ -1,16 +1,16 @@
 import type { ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { applyMove, applyNote } from "./action-item-board";
+import { applyMove, applyNote } from "./board";
 import { truncateText } from "@brains/utils/string-utils";
-import { ActionItemAdapter } from "../adapters/conversation-memory-adapters";
+import { ActionItemAdapter } from "./adapter";
 import {
   actionItemSchema,
   type ActionItemEntity,
   type ActionItemMetadata,
   type ActionItemSourceRef,
   type ActionItemStatus,
-} from "../schemas/conversation-memory";
+} from "./schema";
 
 export interface ActionItemMoveDeps {
   entityService: Pick<

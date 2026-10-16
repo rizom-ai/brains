@@ -1,7 +1,7 @@
 import { actorRefKey } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { actionItemSchema } from "../schemas/conversation-memory";
+import { actionItemSchema } from "./schema";
 
 type PersistValidator = Parameters<
   EntityPluginContext["entities"]["registerPersistValidator"]

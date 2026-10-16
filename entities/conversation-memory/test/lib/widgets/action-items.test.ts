@@ -1,3 +1,4 @@
+import { type ActionItemEntity } from "@brains/action-items";
 import { createTestEntity } from "@brains/entity-service/test";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
@@ -10,7 +11,6 @@ import {
   buildActionItemsWidgetData,
   registerActionItemsWidget,
 } from "../../../src/lib/widgets/action-items";
-import type { ActionItemEntity } from "../../../src/schemas/conversation-memory";
 
 function createActionItem(overrides: {
   id: string;

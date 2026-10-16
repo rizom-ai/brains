@@ -1,3 +1,4 @@
+import { type ActionItemEntity } from "@brains/action-items";
 import { describe, expect, it, spyOn } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, SearchResult } from "@brains/plugins";
@@ -7,10 +8,7 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-retriever";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
-} from "../../src/schemas/conversation-memory";
+import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 

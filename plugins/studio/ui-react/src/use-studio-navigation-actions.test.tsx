@@ -243,7 +243,7 @@ describe("useStudioNavigationActions", () => {
     );
 
     expect(decodeURIComponent(harness.history.location.pathname)).toBe(
-      "/studio/workspaces/conversation-memory:board",
+      "/studio/workspaces/action-board:board",
     );
   });
 });

@@ -224,7 +224,7 @@ export function useStudioNavigationActions(
           return;
         case "board":
           history.push(
-            studioWorkspacePath(studioBasePath, "conversation-memory:board"),
+            studioWorkspacePath(studioBasePath, "action-board:board"),
           );
           return;
         case "inbox-open-entity":

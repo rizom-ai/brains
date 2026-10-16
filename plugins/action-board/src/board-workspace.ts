@@ -5,18 +5,18 @@ import {
   permissionToVisibilityScope,
   registerBuiltInStudioWorkspace,
   type ContentVisibility,
-  type EntityPluginContext,
+  type ServicePluginContext,
   type OperatorCaller,
   type OperatorRegionBlock,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
+import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import {
   addActionItemNote,
   inboxCardId,
   moveActionItem,
   trackInboxItem,
-} from "./action-item-moves";
+} from "@brains/action-items";
 import {
   actionItemBody,
   actionItemCapturedAt,
@@ -24,14 +24,14 @@ import {
   actionItemTitle,
   arrivedAt,
   lastArrival,
-} from "./action-item-board";
-import { formatAge, formatShortDate } from "./widgets/format";
+} from "@brains/action-items";
+import { formatAge, formatShortDate } from "@brains/action-items";
 import {
   actionItemSchema,
   actionItemStatusSchema,
   type ActionItemEntity,
   type ActionItemStatus,
-} from "../schemas/conversation-memory";
+} from "@brains/action-items";
 
 const COLUMNS = [
   { status: "open", label: "To do", empty: "Nothing waiting to start." },
@@ -561,7 +561,7 @@ export interface BoardWorkspaceDeps {
 
 /** Registers the Board workspace; a no-op where Studio does not run. */
 export async function registerBoardWorkspace(
-  context: EntityPluginContext,
+  context: ServicePluginContext,
   deps: BoardWorkspaceDeps,
 ): Promise<string | undefined> {
   const now = (): Date => deps.now?.() ?? new Date();
@@ -735,7 +735,7 @@ export async function registerBoardWorkspace(
   });
   return result === false ? undefined : result.workspaceUrl;
 }
-export const BOARD_WORKSPACE_ID = "conversation-memory:board";
+export const BOARD_WORKSPACE_ID = "action-board:board";
 
 /** The Board link a "Track as action item" follow-up opens, prefilled from the Inbox item. */
 export function trackHref(

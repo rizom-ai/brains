@@ -44,6 +44,7 @@ const expectedCatalogIds = [
   "stock-photo",
   "atproto",
   "conversation-memory",
+  "action-board",
   "faq",
   "docs",
   "book",
