@@ -1,5 +1,6 @@
 import {
   contentVisibilitySchema,
+  entityGroupingSchema,
   ServicePlugin,
   type ServicePluginContext,
   type Tool,
@@ -16,9 +17,12 @@ import { createActionItemUpdateTool } from "./tools/action-item-update";
 
 const actionBoardConfigSchema: z.ZodObject<{
   cardVisibility: z.ZodDefault<typeof contentVisibilitySchema>;
+  projectGrouping: z.ZodDefault<z.ZodString>;
 }> = z.object({
   /** Visibility of cards tracked from the Inbox; match the brain's action items. */
   cardVisibility: contentVisibilitySchema.default("restricted"),
+  /** The Studio grouping whose values are projects on the board. */
+  projectGrouping: entityGroupingSchema.shape.key.default("projects"),
 });
 
 export type ActionBoardConfig = z.output<typeof actionBoardConfigSchema>;
@@ -75,6 +79,7 @@ export class ActionBoardPlugin extends ServicePlugin<
   ): Promise<void> {
     this.boardUrl = await registerBoardWorkspace(context, {
       visibility: this.config.cardVisibility,
+      projectGrouping: this.config.projectGrouping,
     });
   }
 

@@ -32,6 +32,11 @@ import {
   type ActionItemEntity,
   type ActionItemStatus,
 } from "@brains/action-items";
+import {
+  definedProjectGrouping,
+  projectMembers,
+  projectOptions,
+} from "./projects";
 
 const COLUMNS = [
   { status: "open", label: "To do", empty: "Nothing waiting to start." },
@@ -126,15 +131,40 @@ const trackSchema = z.object({
   tracked: z.boolean(),
 });
 
+/** The project the board is filtered to, rolled up. */
+const rollupSchema = z.object({
+  name: z.string(),
+  counts: z.array(
+    z.object({
+      status: actionItemStatusSchema,
+      label: z.string(),
+      count: z.number(),
+    }),
+  ),
+  blocked: z.array(
+    z.object({ id: z.string(), title: z.string(), blockedFor: z.string() }),
+  ),
+});
+
+const projectsSchema = z.object({
+  options: z.array(
+    z.object({ value: z.string(), label: z.string(), count: z.number() }),
+  ),
+  selected: rollupSchema.optional(),
+});
+
 const dataSchema = z.object({
   cards: z.array(cardSchema),
   open: openCardSchema.optional(),
   track: trackSchema.optional(),
+  /** Present when the brain defines a project grouping over action items. */
+  projects: projectsSchema.optional(),
 });
 
 /** The open card lives in the URL, so a reload reopens it. */
 const boardQuerySchema = z.object({
   card: z.string().optional(),
+  project: z.string().optional(),
   trackSource: z.string().optional(),
   trackType: z.string().optional(),
   trackId: z.string().optional(),
@@ -143,6 +173,8 @@ const boardQuerySchema = z.object({
 });
 
 type OpenCard = z.output<typeof openCardSchema>;
+
+type Projects = z.output<typeof projectsSchema>;
 
 type BoardCard = z.output<typeof cardSchema>;
 
@@ -222,6 +254,60 @@ type BoardAction =
   | typeof noteAction
   | typeof trackAction;
 
+/** The project filter and, once a project is chosen, its roll-up. */
+function projectBlocks(projects: Projects): OperatorRegionBlock<BoardAction>[] {
+  const selected = projects.selected;
+  return [
+    {
+      type: "query",
+      id: "board-projects",
+      controls: [
+        {
+          key: "project",
+          label: "Project",
+          allLabel: "All projects",
+          ...(selected ? { value: selected.name } : {}),
+          options: projects.options,
+        },
+      ],
+    },
+    ...(selected
+      ? [
+          {
+            type: "card" as const,
+            id: "project-rollup",
+            label: selected.name,
+            presentation: "section" as const,
+            blocks: [
+              {
+                type: "stats" as const,
+                id: "project-counts",
+                items: selected.counts.map(({ status, label, count }) => ({
+                  label,
+                  value: count,
+                  ...(status === "blocked" && count > 0
+                    ? { tone: "warn" as const }
+                    : {}),
+                })),
+              },
+              {
+                type: "list" as const,
+                id: "project-blocked",
+                presentation: "attention" as const,
+                empty: "Nothing in this project is blocked.",
+                items: selected.blocked.map((card) => ({
+                  id: card.id,
+                  title: card.title,
+                  metadata: [`Blocked ${card.blockedFor}`],
+                })),
+              },
+            ],
+          },
+        ]
+      : []),
+  ];
+}
+
 /** The open card's panels: its text, facts, recorded moves, notes, and a note form. */
 function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
   return [
@@ -300,6 +386,7 @@ const boardWorkspace = defineStudioWorkspace({
     title: "Board",
     description: "Action items from the team's conversations.",
     blocks: [
+      ...(data.projects ? projectBlocks(data.projects) : []),
       ...(data.track
         ? [
             {
@@ -549,12 +636,21 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
   };
 }
 
+/** A project's members, split into the board's columns in their stored order. */
+function byStatus(entities: ActionItemEntity[]): ActionItemEntity[][] {
+  return COLUMNS.map(({ status }) =>
+    entities.filter((entity) => entity.metadata.status === status),
+  );
+}
+
 function finishedRecently(entity: ActionItemEntity, now: Date): boolean {
   return now.getTime() - finishedAt(entity) <= DONE_WINDOW_DAYS * 86_400_000;
 }
 
 export interface BoardWorkspaceDeps {
   now?: () => Date;
+  /** The grouping whose values are projects; the board offers none until the brain defines it. */
+  projectGrouping?: string;
   /** The visibility the brain gives action items, for cards tracked from the Inbox. */
   visibility: ContentVisibility;
 }
@@ -609,26 +705,45 @@ export async function registerBoardWorkspace(
             caller.permission,
           );
           const at = now();
-          const columns = await Promise.all(
-            COLUMNS.map(({ status }) =>
-              context.entityService.listEntities(
-                {
-                  entityType: ACTION_ITEM_ENTITY_TYPE,
-                  options: {
-                    filter: { metadata: { status }, visibilityScope },
-                    sortFields: [{ field: "updated", direction: "desc" }],
-                    limit: COLUMN_LIMIT,
-                  },
-                },
-                actionItemSchema,
-              ),
-            ),
-          );
+          const asked = query.get(boardQuerySchema);
+          const grouping = deps.projectGrouping
+            ? await definedProjectGrouping(context, deps.projectGrouping)
+            : undefined;
+          const options = grouping
+            ? await projectOptions(context, grouping, visibilityScope)
+            : [];
+          const project = options.find(
+            (option) => option.value === asked.project,
+          )?.value;
+          const columns =
+            grouping && project
+              ? byStatus(
+                  await projectMembers(context, {
+                    grouping,
+                    value: project,
+                    visibilityScope,
+                  }),
+                )
+              : await Promise.all(
+                  COLUMNS.map(({ status }) =>
+                    context.entityService.listEntities(
+                      {
+                        entityType: ACTION_ITEM_ENTITY_TYPE,
+                        options: {
+                          filter: { metadata: { status }, visibilityScope },
+                          sortFields: [{ field: "updated", direction: "desc" }],
+                          limit: COLUMN_LIMIT,
+                        },
+                      },
+                      actionItemSchema,
+                    ),
+                  ),
+                );
           const [open = [], doing = [], blocked = [], done = []] = columns;
           const finished = done
             .filter((entity) => finishedRecently(entity, at))
             .sort((a, b) => finishedAt(b) - finishedAt(a));
-          const asked = query.get(boardQuerySchema);
+          const shown = [open, doing, blocked, finished];
           const selected = asked.card;
           const track =
             asked.trackSource && asked.trackType && asked.trackId
@@ -661,11 +776,39 @@ export async function registerBoardWorkspace(
               )
             : null;
           return {
-            cards: [...open, ...doing, ...blocked, ...finished].map((entity) =>
-              toCard(entity, at),
-            ),
+            cards: shown
+              .flatMap((cards) => cards.slice(0, COLUMN_LIMIT))
+              .map((entity) => toCard(entity, at)),
             ...(opened ? { open: toOpenCard(opened) } : {}),
             ...(track ? { track } : {}),
+            ...(grouping
+              ? {
+                  projects: {
+                    options,
+                    ...(project
+                      ? {
+                          selected: {
+                            name: project,
+                            counts: COLUMNS.map((column, index) => ({
+                              status: column.status,
+                              label: column.label,
+                              count: shown[index]?.length ?? 0,
+                            })),
+                            blocked: blocked.map((entity) => ({
+                              id: entity.id,
+                              title: actionItemTitle(entity),
+                              blockedFor: formatAge(
+                                lastArrival(entity, "blocked")?.at ??
+                                  actionItemCapturedAt(entity),
+                                at,
+                              ),
+                            })),
+                          },
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
           };
         },
         actions: [

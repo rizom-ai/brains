@@ -16,6 +16,16 @@ describe("ActionBoardPlugin", () => {
     plugin = new ActionBoardPlugin();
   });
 
+  it("takes its projects from a grouping key, `projects` unless configured", () => {
+    expect(() => new ActionBoardPlugin()).not.toThrow();
+    expect(
+      () => new ActionBoardPlugin({ projectGrouping: "initiatives" }),
+    ).not.toThrow();
+    expect(
+      () => new ActionBoardPlugin({ projectGrouping: "Our Projects" }),
+    ).toThrow();
+  });
+
   it("registers the action-item update tool for chat", async () => {
     const capabilities = await harness.installPlugin(plugin);
 
