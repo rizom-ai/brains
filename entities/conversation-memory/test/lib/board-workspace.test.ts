@@ -404,6 +404,18 @@ describe("the Board workspace", () => {
       ),
     ).toEqual({ status: "Tracked on the board." });
 
+    // The follow-up link still names the item: the board says it is tracked.
+    const after = JSON.stringify(
+      await registration.dataProvider(niels, {
+        trackSource: "contact-requests",
+        trackType: "contact-request",
+        trackId: "req-1",
+        trackTitle: "Could we share your field notes?",
+      }),
+    );
+    expect(after).toContain("This Inbox item is on the board.");
+    expect(after).not.toContain('"actionId":"track"');
+
     const [card] = column(await board(registration), "open");
     expect(card?.title).toBe("Reply about the field notes");
     expect(card?.metadata).toContain("Inbox");

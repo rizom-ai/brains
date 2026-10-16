@@ -13,6 +13,7 @@ import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
   addActionItemNote,
+  inboxCardId,
   moveActionItem,
   trackInboxItem,
 } from "./action-item-moves";
@@ -121,6 +122,8 @@ const trackSchema = z.object({
   entityId: z.string(),
   title: z.string(),
   summary: z.string(),
+  /** The item already has its card. */
+  tracked: z.boolean(),
 });
 
 const dataSchema = z.object({
@@ -304,39 +307,47 @@ const boardWorkspace = defineStudioWorkspace({
               id: "track",
               label: "Track as action item",
               presentation: "feature" as const,
-              blocks: [
-                {
-                  type: "text" as const,
-                  id: "track-source",
-                  text: `From the Inbox: ${data.track.title}`,
-                },
-                {
-                  type: "action" as const,
-                  id: "track-form",
-                  action: trackAction,
-                  label: "Track on the board",
-                  input: {
-                    sourceId: data.track.sourceId,
-                    entityType: data.track.entityType,
-                    entityId: data.track.entityId,
-                    title: data.track.title,
-                    text: data.track.summary,
-                  },
-                  form: {
-                    presentation: "inline" as const,
-                    submitLabel: "Track on the board",
-                    fields: {
-                      title: { label: "Title", control: "text" as const },
-                      text: { label: "Details", control: "text" as const },
-                      assignee: {
-                        label: "Assign to",
-                        control: "text" as const,
-                      },
+              blocks: data.track.tracked
+                ? [
+                    {
+                      type: "text" as const,
+                      id: "track-done",
+                      text: "This Inbox item is on the board.",
                     },
-                  },
-                  result: trackResult,
-                },
-              ],
+                  ]
+                : [
+                    {
+                      type: "text" as const,
+                      id: "track-source",
+                      text: `From the Inbox: ${data.track.title}`,
+                    },
+                    {
+                      type: "action" as const,
+                      id: "track-form",
+                      action: trackAction,
+                      label: "Track on the board",
+                      input: {
+                        sourceId: data.track.sourceId,
+                        entityType: data.track.entityType,
+                        entityId: data.track.entityId,
+                        title: data.track.title,
+                        text: data.track.summary,
+                      },
+                      form: {
+                        presentation: "inline" as const,
+                        submitLabel: "Track on the board",
+                        fields: {
+                          title: { label: "Title", control: "text" as const },
+                          text: { label: "Details", control: "text" as const },
+                          assignee: {
+                            label: "Assign to",
+                            control: "text" as const,
+                          },
+                        },
+                      },
+                      result: trackResult,
+                    },
+                  ],
             },
           ]
         : []),
@@ -627,6 +638,16 @@ export async function registerBoardWorkspace(
                   entityId: asked.trackId,
                   title: asked.trackTitle ?? "",
                   summary: asked.trackSummary ?? "",
+                  tracked:
+                    (await context.entityService.getEntity({
+                      entityType: ACTION_ITEM_ENTITY_TYPE,
+                      id: inboxCardId({
+                        sourceId: asked.trackSource,
+                        entityType: asked.trackType,
+                        entityId: asked.trackId,
+                      }),
+                      visibilityScope,
+                    })) !== null,
                 }
               : undefined;
           const opened = selected

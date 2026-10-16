@@ -170,12 +170,17 @@ export type TrackInboxItemResult =
 
 const inboxItemAdapter = new ActionItemAdapter();
 
+/** The card an Inbox item becomes; one per item. */
+export function inboxCardId(sourceRef: ActionItemSourceRef): string {
+  return `inbox:${sourceRef.sourceId}:${sourceRef.entityId}`;
+}
+
 /** Turn an Inbox item into an open card that points back at its source; once per item. */
 export async function trackInboxItem(
   deps: TrackInboxItemDeps,
   request: TrackInboxItemRequest,
 ): Promise<TrackInboxItemResult> {
-  const id = `inbox:${request.sourceRef.sourceId}:${request.sourceRef.entityId}`;
+  const id = inboxCardId(request.sourceRef);
   const existing = await deps.entityService.getEntity({
     entityType: ACTION_ITEM_ENTITY_TYPE,
     id,
