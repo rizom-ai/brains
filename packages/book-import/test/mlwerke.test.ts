@@ -366,3 +366,23 @@ describe("parseMlwerkePages, a volume's articles", () => {
     ]);
   });
 });
+
+describe("parseMlwerkePages, an article whose page sets its title with its authors' line", () => {
+  it("titles the article by the line under the authors' name, the line left out of the text", () => {
+    const html = `<FONT SIZE=2><P>Seitenzahlen verweisen auf: Karl Marx/Friedrich Engels - Werke, Band 16. S. 21.</P></FONT><B><FONT SIZE=5><P>Karl Marx <BR></FONT><FONT SIZE=6>[Brief an den Redakteur des "Beobachters"] </P></B></FONT><P><HR></P><FONT SIZE=2><P>["Der Beobachter" Nr. 282 vom 3. Dezember 1864] </P></FONT><B><P><A NAME="S21">|21|</A></B> Herr Redakteur! Ich ersuche Sie.</P>`;
+    const units = parseMlwerkePages(
+      [{ url: "http://www.mlwerke.de/me/me16/me16_021.htm", html }],
+      { citation: "Artikel", articles: true },
+    );
+
+    expect(
+      units.map((unit) => [unit.title, unit.section, unit.paragraphs]),
+    ).toEqual([
+      [
+        "[Brief an den Redakteur des „Beobachters“]",
+        "Artikel, 21",
+        ["Herr Redakteur! Ich ersuche Sie."],
+      ],
+    ]);
+  });
+});

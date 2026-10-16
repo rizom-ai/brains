@@ -94,6 +94,9 @@ const EMPHASIS = new Set(["em", "i", "strong", "b", "u"]);
 /** A heading that only names the author, above the work's title. */
 const AUTHOR_LINE =
   /^(?:Karl Marx|Friedrich Engels)(?:\s*[-–/]\s*(?:Karl Marx|Friedrich Engels))?$/;
+/** A line that names the authors and then the article: Karl Marx [Erklärung]. */
+const BYLINE_TITLE =
+  /^\*?(?:Karl Marx|Friedrich Engels)(?:\s*[-–/]\s*(?:Karl Marx|Friedrich Engels))?\s+(.+?)\*?$/;
 /** A MEW page number the older pages set in bold between bars, some starred: |203|, |204|*. */
 const BARRED_PAGE = /^\s*\|(\d+)\|\*?\s*$/;
 /** The same opening a bold run, the text set with it following. */
@@ -484,16 +487,30 @@ function readPage(
       TEXT_REGION.exec(page.html)?.[1] ?? page.html,
     );
     // An article's title, which the apparatus would take for the site's.
-    const article =
+    const headed =
       work.articles === true
         ? titleCased(spaced(document.querySelector("h1")?.textContent ?? ""))
         : "";
     document.querySelectorAll(APPARATUS).forEach((element) => {
       element.remove();
     });
-    const blocks = blocksOf(document.body).filter(
+    const listed = blocksOf(document.body).filter(
       (element) => !isSiteApparatus(element),
     );
+    // Some pages set an article's title in one line with its authors' names.
+    const byline =
+      work.articles === true && headed === ""
+        ? listed
+            .slice(0, 3)
+            .find((element) => BYLINE_TITLE.test(spaced(element.textContent)))
+        : undefined;
+    const article =
+      byline === undefined
+        ? headed
+        : titleCased(
+            spaced(byline.textContent).replace(BYLINE_TITLE, "$1").trim(),
+          );
+    const blocks = listed.filter((element) => element !== byline);
     const notes = notesOf(blocks);
     reading.url = page.url;
     // Text before a page's first number, such as a chapter's motto, is on
