@@ -45,6 +45,7 @@ import {
   waitForVisualStability,
 } from "./console-visual/page";
 import { runStudyStateCase } from "./console-visual/study-states";
+import { CASE_DEADLINE_MS, withDeadline } from "./console-visual/case-deadline";
 import {
   exerciseStudioChat,
   verifyChatAttachments,
@@ -211,53 +212,58 @@ try {
           continue;
         const plan = planSurface(surface, STUDY_STATE);
         if (plan.isStudioSecondary && viewport.width === 768) continue;
-        console.error(
-          `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
-        );
-        fixtureServer.state.reviewingSystem = plan.reviewingSystem;
-        const page = await openCapturePage(
-          viewport,
-          browserBackend,
-          fixtureServer.origin,
-          "responsive",
-        );
-        const visualCase: VisualCase = {
-          page,
-          surface,
-          viewport,
-          climate,
-          origin: fixtureServer.origin,
-        };
-        await navigateToNetworkIdle(
-          page,
-          `${fixtureServer.origin}${plan.route}?climate=${climate}${plan.workspaceQuery}`,
-        );
-        const systemFixture = systemFixtures.get(plan.systemType);
-        const emptySystemDocument =
-          plan.reviewingSystem &&
-          !plan.systemCollection &&
-          systemFixture?.hasBody &&
-          systemFixture.entity.body.trim() === "";
-        if (emptySystemDocument)
-          await waitForPage(
-            "Properties visible when the document has no body",
-            () =>
-              evaluatePage(
-                page,
+        const caseName = `${surface} ${viewport.width}x${viewport.height} ${climate}`;
+        console.error(`→ ${caseName}`);
+        await withDeadline(
+          (async (): Promise<void> => {
+            fixtureServer.state.reviewingSystem = plan.reviewingSystem;
+            const page = await openCapturePage(
+              viewport,
+              browserBackend,
+              fixtureServer.origin,
+              "responsive",
+            );
+            const visualCase: VisualCase = {
+              page,
+              surface,
+              viewport,
+              climate,
+              origin: fixtureServer.origin,
+            };
+            await navigateToNetworkIdle(
+              page,
+              `${fixtureServer.origin}${plan.route}?climate=${climate}${plan.workspaceQuery}`,
+            );
+            const systemFixture = systemFixtures.get(plan.systemType);
+            const emptySystemDocument =
+              plan.reviewingSystem &&
+              !plan.systemCollection &&
+              systemFixture?.hasBody &&
+              systemFixture.entity.body.trim() === "";
+            if (emptySystemDocument)
+              await waitForPage(
+                "Properties visible when the document has no body",
                 () =>
-                  document.querySelector<HTMLDetailsElement>(
-                    "details[data-studio-properties]",
-                  )?.open === true,
-              ),
-          );
-        if (STUDY_STATE) {
-          await runStudyStateCase(visualCase, STUDY_STATE);
-          page.close();
-          continue;
-        }
-        await exerciseSurface(visualCase, plan);
-        await captureSurface(visualCase, fixtureServer.state);
-        page.close();
+                  evaluatePage(
+                    page,
+                    () =>
+                      document.querySelector<HTMLDetailsElement>(
+                        "details[data-studio-properties]",
+                      )?.open === true,
+                  ),
+              );
+            if (STUDY_STATE) {
+              await runStudyStateCase(visualCase, STUDY_STATE);
+              page.close();
+              return;
+            }
+            await exerciseSurface(visualCase, plan);
+            await captureSurface(visualCase, fixtureServer.state);
+            page.close();
+          })(),
+          CASE_DEADLINE_MS,
+          caseName,
+        );
       }
     }
   }
