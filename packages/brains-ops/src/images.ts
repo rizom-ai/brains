@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { verifyRuntimeImage } from "./image-inventory";
+import { assertRuntimeImageLock } from "./runtime-image-lock";
 import type { RequiredImage } from "./image-types";
 export type { RequiredImage } from "./image-types";
 import { loadPilotRegistry, type ResolvedSiteOverride } from "./load-registry";
@@ -250,6 +251,14 @@ export async function runResolveMissingImages(
   });
 
   for (const image of builds) {
+    try {
+      await assertRuntimeImageLock(options.rootDir, image);
+    } catch (cause) {
+      throw new Error(
+        `Missing or invalid runtime lock for ${image.tag}; run brains-ops images:lock and commit its reviewed package.json and bun.lock before building.`,
+        { cause },
+      );
+    }
     log(
       `build needed: ${image.tag} (brain ${image.brainVersion}${
         image.sitePackages.length > 0

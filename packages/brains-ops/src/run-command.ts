@@ -18,7 +18,13 @@ import {
 import { runPilotAgeKeyBootstrap } from "./age-key-bootstrap";
 import { runPilotCertBootstrap } from "./cert-bootstrap";
 import { initPilotRepo } from "./init";
-import type { LoadPilotRegistryOptions } from "./load-registry";
+import {
+  loadPilotRegistry,
+  type LoadPilotRegistryOptions,
+} from "./load-registry";
+import { resolveImageBuilds } from "./images";
+import { lockRuntimeImage } from "./runtime-image-lock";
+import { exactVersionSchema } from "./schema";
 import {
   createObservedStatusResolver,
   type LookupHost,
@@ -62,6 +68,7 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   verificationRetryDelayMs?: number | undefined;
   sleep?: ((delayMs: number) => Promise<void>) | undefined;
   bootstrapRunCommand?: OpsRunCommand | undefined;
+  imageLockRunCommand?: OpsRunCommand | undefined;
   sshKeygen?: SshKeygen | undefined;
   directorySyncStressRunner?: typeof runDeployedDirectorySyncStress | undefined;
   directorySyncStressAccessRunner?:
@@ -141,6 +148,61 @@ const upgrade: OpsCommand = defineCommand({
         from === to
           ? `Already at @rizom/ops@${to}; scaffold refreshed`
           : `Upgraded @rizom/ops ${from} -> ${to}; scaffold refreshed`,
+    };
+  },
+});
+
+const imagesLock: OpsCommand = defineCommand({
+  name: "images:lock",
+  usage: "<repo> [--brain-version <version>] [--site-packages <pins>]",
+  description:
+    "Create immutable runtime dependency locks for operator review (no build or deploy)",
+  flags: {
+    "brain-version": {
+      type: "string",
+      placeholder: "<version>",
+      description: "Lock one exact Brain version instead of the declared fleet",
+    },
+    "site-packages": {
+      type: "string",
+      placeholder: "<pins>",
+      description: "Exact site/theme pins for an explicit Brain version",
+    },
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const brainVersionInput = getStringFlag(flags, "brain-version");
+    const sitePackagesInput = getStringFlag(flags, "site-packages");
+    if (!repo || (sitePackagesInput !== undefined && !brainVersionInput))
+      return usageFailure(imagesLock);
+    if (brainVersionInput !== undefined)
+      exactVersionSchema.parse(brainVersionInput);
+    const { users } = await loadPilotRegistry(repo);
+    // Planning only: no registry probing, image publication, or fleet access.
+    const images = await resolveImageBuilds({
+      users,
+      brainVersionInput,
+      sitePackagesInput,
+      imageExists: async () => false,
+      verifyImage: async () => {
+        throw new Error("Lock generation must not inspect images");
+      },
+    });
+    const lines: string[] = [];
+    for (const image of images) {
+      const result = await lockRuntimeImage(
+        repo,
+        image,
+        dependencies.imageLockRunCommand,
+      );
+      lines.push(`${result}: ${image.tag}`);
+    }
+    return {
+      success: true,
+      message: [
+        "Review and commit runtime dependency locks before building:",
+        ...lines,
+      ].join("\n"),
     };
   },
 });
@@ -892,6 +954,7 @@ export const commands: readonly CommandDefinition<
 >[] = [
   init,
   upgrade,
+  imagesLock,
   crossoverStage,
   render,
   userAdd,

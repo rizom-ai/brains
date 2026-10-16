@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       brain_version:
-        description: Build one Brain version with the full fleet package union
+        description: Build one Brain version from its checked-in runtime lock
         required: false
         type: string
       site_packages:
-        description: "Extra exact site/theme package pins for an explicit build. All builds include the full fleet package union; conflicting pins are rejected."
+        description: "Exact site/theme pins for an explicit build; a matching checked-in runtime lock is required."
         required: false
         type: string
       overwrite:
@@ -43,9 +43,11 @@ jobs:
           ref: ${{ github.sha }}
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
 
       - name: Install operator tooling
-        run: bun install
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -109,8 +111,7 @@ jobs:
           target: fleet
           push: true
           build-args: |
-            BRAIN_VERSION=${{ matrix.image.brain_version }}
-            SITE_PACKAGES=${{ matrix.image.site_packages }}
+            RUNTIME_IMAGE_TAG=${{ matrix.image.tag }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
             ${{ steps.meta.outputs.labels }}

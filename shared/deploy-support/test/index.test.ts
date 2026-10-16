@@ -34,6 +34,16 @@ describe("deploy templates", () => {
     const dockerfile = renderDockerfile();
     expect(dockerfile).toContain("ARG BUN_VERSION=1.4.0");
     expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).toContain(
+      "deploy/runtime/${RUNTIME_IMAGE_TAG}/package.json",
+    );
+    expect(dockerfile).toContain(
+      "deploy/runtime/${RUNTIME_IMAGE_TAG}/bun.lock",
+    );
+    expect(dockerfile).toContain(
+      "bun install --production --frozen-lockfile --ignore-scripts",
+    );
+    expect(dockerfile).not.toContain("bun add");
     const labelIndex = dockerfile.indexOf(
       'LABEL ai.rizom.brain.watchdog="true"',
     );
@@ -87,6 +97,25 @@ describe("deploy templates", () => {
         'CMD ["./node_modules/.bin/brain", "start"]',
       );
 
+    const priorFleetSection = `# --- fleet: install published brain at pinned version (ops deploy) ---
+FROM runtime AS fleet
+ARG BRAIN_VERSION
+ARG SITE_PACKAGES
+RUN test -n "$BRAIN_VERSION" \\
+ && printf '{"name":"rover-pilot-runtime","private":true}\\n' > package.json \\
+ && if [ -n "$SITE_PACKAGES" ]; then \\
+      bun add @rizom/brain@$BRAIN_VERSION $SITE_PACKAGES; \\
+    else \\
+      bun add @rizom/brain@$BRAIN_VERSION; \\
+    fi
+`;
+    const current = renderDockerfile();
+    const priorUnlockedFleet =
+      current.slice(0, current.indexOf("# --- fleet:")) + priorFleetSection;
+    expect(isStaleDeployDockerfile(priorUnlockedFleet)).toBe(true);
+    expect(
+      isStaleDeployDockerfile(`${priorUnlockedFleet}\nRUN echo custom\n`),
+    ).toBe(false);
     expect(isStaleDeployDockerfile(priorUncontainedRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(priorUnscopedRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(priorHealthlessRuntime)).toBe(true);

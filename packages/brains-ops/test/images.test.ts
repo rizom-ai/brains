@@ -1,8 +1,11 @@
 import { caughtError, createTempDir } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { describe, expect, it } from "bun:test";
+import { rejects } from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { lockRuntimeImage } from "../src/runtime-image-lock";
+import type { RequiredImage } from "../src/image-types";
 
 import {
   imageTagExists,
@@ -366,6 +369,17 @@ describe("resolveImageBuilds", () => {
 });
 
 describe("runResolveMissingImages", () => {
+  async function seedLock(root: string, image: RequiredImage): Promise<void> {
+    await lockRuntimeImage(root, image, async (_command, args, options) => {
+      if (args.includes("--lockfile-only")) {
+        await writeFile(
+          join(options?.cwd ?? root, "bun.lock"),
+          "test-resolver-lock\n",
+        );
+      }
+    });
+  }
+
   async function createPilotRepo(
     files: Record<string, string>,
   ): Promise<string> {
@@ -414,6 +428,17 @@ members:
 `,
     });
 
+    await seedLock(root, {
+      tag: runtimeImageTag("0.2.0-alpha.167", [
+        "@rizom/site-rizom-ai@0.2.0-alpha.167",
+        "@rizom/theme-rizom-ai@0.2.0-alpha.165",
+      ]),
+      brainVersion: "0.2.0-alpha.167",
+      sitePackages: [
+        "@rizom/site-rizom-ai@0.2.0-alpha.167",
+        "@rizom/theme-rizom-ai@0.2.0-alpha.165",
+      ],
+    });
     const outputs: Record<string, string> = {};
     const probed: string[] = [];
     const builds = await runResolveMissingImages({
@@ -481,25 +506,40 @@ discord:
 `,
       "cohorts/pilot.yaml": "members: [alice]\n",
     });
+    const explicitImage = {
+      tag: runtimeImageTag("0.2.0-alpha.169", [
+        "@rizom/site-rizom-ai@0.2.0-alpha.169",
+      ]),
+      brainVersion: "0.2.0-alpha.169",
+      sitePackages: ["@rizom/site-rizom-ai@0.2.0-alpha.169"],
+    };
     const outputs: Record<string, string> = {};
     const probed: string[] = [];
-    const builds = await runResolveMissingImages({
+    const options = {
       rootDir: root,
       imageRepository: "ghcr.io/rizom-ai/rover-pilot",
       env: {
         BRAIN_VERSION_INPUT: "0.2.0-alpha.169",
         SITE_PACKAGES_INPUT: "@rizom/site-rizom-ai@0.2.0-alpha.169",
       },
-      runCommand: async (command, args) => {
+      runCommand: async (command: string, args: string[]): Promise<void> => {
         probed.push(`${command} ${args.join(" ")}`);
         // The tag is free, reported the way runSubprocess reports it.
         throw new Error(`docker ${args.join(" ")} exited with code 1`);
       },
-      writeOutput: (key, value) => {
+      writeOutput: (key: string, value: string): void => {
         outputs[key] = value;
       },
-      log: () => {},
-    });
+      log: (): void => {},
+    } satisfies Parameters<typeof runResolveMissingImages>[0];
+    await rejects(
+      runResolveMissingImages(options),
+      /Missing or invalid runtime lock/,
+    );
+    expect(outputs).toEqual({});
+    await seedLock(root, explicitImage);
+    probed.length = 0;
+    const builds = await runResolveMissingImages(options);
 
     expect(builds).toHaveLength(1);
     expect(builds[0]?.tag).toBe(
