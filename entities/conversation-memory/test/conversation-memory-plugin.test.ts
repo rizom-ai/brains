@@ -40,6 +40,35 @@ describe("ConversationMemoryPlugin", () => {
     expect(register).toHaveBeenCalledWith("action-item", expect.any(Function));
   });
 
+  it("opens the Board in Studio when ready and closes it on shutdown", async () => {
+    await harness.installPlugin(plugin);
+    const bus = harness.getMockShell().getMessageBus();
+    const registered: string[] = [];
+    const unregistered: unknown[] = [];
+    bus.subscribe<{ id: string }, { workspaceUrl: string }>(
+      "studio:register-workspace",
+      async (message) => {
+        registered.push(message.payload.id);
+        return { success: true, data: { workspaceUrl: "/studio/board" } };
+      },
+    );
+    bus.subscribe("studio:unregister-workspace", async (message) => {
+      unregistered.push(message.payload);
+      return { success: true };
+    });
+
+    await plugin.ready();
+    await plugin.shutdown();
+
+    expect(registered).toEqual(["conversation-memory:board"]);
+    expect(unregistered).toEqual([
+      {
+        pluginId: "conversation-memory",
+        workspaceId: "conversation-memory:board",
+      },
+    ]);
+  });
+
   it("keeps memory entities immutable through entity CRUD", () => {
     expect(plugin.entityActionPolicy).toEqual({
       summary: {

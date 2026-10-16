@@ -32,6 +32,10 @@ import { registerConversationMemoryAgentContext } from "./lib/agent-context-prov
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import { createActionItemStatusValidator } from "./lib/action-item-validator";
 import {
+  BOARD_WORKSPACE_ID,
+  registerBoardWorkspace,
+} from "./lib/board-workspace";
+import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
@@ -48,6 +52,8 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryConfig,
   SummaryConfigInput
 > {
+  private boardRegistered = false;
+
   readonly entityType: typeof SUMMARY_ENTITY_TYPE = SUMMARY_ENTITY_TYPE;
   readonly schema: typeof summarySchema = summarySchema;
   readonly adapter: typeof summaryAdapter = summaryAdapter;
@@ -119,6 +125,20 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       logger: this.logger,
       config: this.config,
     });
+  }
+
+  // Studio runs in the web process, which alone has a ready phase.
+  protected override async onReady(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    this.boardRegistered =
+      (await registerBoardWorkspace(context)) !== undefined;
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    if (!this.boardRegistered) return;
+    await this.getContext().studio.unregisterWorkspace(BOARD_WORKSPACE_ID);
+    this.boardRegistered = false;
   }
 }
 
