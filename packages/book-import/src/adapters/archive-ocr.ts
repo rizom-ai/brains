@@ -813,7 +813,8 @@ function numberGap(
     (reading) => reading.leaf > from.leaf && reading.leaf < to.leaf,
   );
   const pages = to.leaf + to.offset - (from.leaf + from.offset) - 1;
-  const plateCount = Math.max(0, to.leaf - from.leaf - 1 - pages);
+  // A leaf left out as a rescan of a page holds no plate.
+  const plateCount = Math.max(0, gap.length - pages);
   const plates = new Set(
     [...gap]
       .sort(

@@ -1309,6 +1309,30 @@ describe("printedPageNumbers", () => {
     ).toEqual([40, 41, 42, null, null, null, null, null, null, 43]);
   });
 
+  it("counts no plate for a leaf left out as a rescan", () => {
+    // A work's half-title (57) and its blank back (58), its first page (59)
+    // scanned twice, the rescan (leaf 74) left out, and a blank leaf
+    // between them.
+    const pages = printedPageNumbers([
+      ...[53, 54, 55].map((page) => text(page + 13, page)),
+      { leaf: 69, head: null, words: 1 },
+      plate(70),
+      { leaf: 71, head: null, words: 0 },
+      opening(72),
+      { leaf: 73, head: null, words: 0 },
+      ...[60, 61, 62].map((page) => text(page + 15, page)),
+    ]);
+
+    expect([69, 70, 71, 72, 73, 75].map((leaf) => pages.get(leaf))).toEqual([
+      56,
+      57,
+      58,
+      59,
+      null,
+      60,
+    ]);
+  });
+
   it("still ignores a run of heads the OCR misread lower, with pages between", () => {
     // 330 to 341 read as 310 to 321 at the volume's end, a run of pages
     // between: no plates there to lower the numbering by twenty.
