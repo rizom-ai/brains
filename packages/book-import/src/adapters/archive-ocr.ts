@@ -939,8 +939,6 @@ interface Volume {
   spelling: Spelling;
   /** The spelling of its running text alone, without the running heads. */
   textSpelling: Spelling;
-  /** Each page's running head, without its page number or numeral. */
-  headsByLeaf: Map<number, string>;
   /** The page number printed on each leaf, as the running heads number them. */
   printed: Map<number, number | null>;
   /** The words its text uses often, in small letters. */
@@ -951,14 +949,34 @@ interface Volume {
   numberedTitles: boolean;
 }
 
+/** Where the page's running head stands, or -1: the scan's noise above it goes with it. */
+function headIndex(page: Page, volume: Volume): number {
+  return Math.max(
+    runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)),
+    lowHeadIndex(page, volume.printed.get(page.leaf) ?? null),
+  );
+}
+
 /** Lines below the running head and the scan's noise above it. */
 function bodyLines(page: Page, volume: Volume): Line[] {
-  return page.lines.slice(
-    Math.max(
-      runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)),
-      lowHeadIndex(page, volume.printed.get(page.leaf) ?? null),
-    ) + 1,
-  );
+  return page.lines.slice(headIndex(page, volume) + 1);
+}
+
+/** A page's running head as the work's titles may read it: its words, and whether a correction set them. */
+interface RunningHead {
+  name: string;
+  corrected: boolean;
+}
+
+/** The running head of a page as read with its corrections, if it has one. */
+function runningHeadOf(page: Page, volume: Volume): RunningHead | null {
+  const line = page.lines[headIndex(page, volume)];
+  return line === undefined
+    ? null
+    : {
+        name: headName(normalised(line.text)),
+        corrected: line.corrected === true,
+      };
 }
 
 /** A token that reads as a word of three letters or more, with its punctuation. */
@@ -1194,7 +1212,7 @@ export function pageText(
   const page = pages.find((each) => each.leaf === leaf);
   if (!page) throw new Error(`No page ${printedPage}`);
   return readPage(page, volume, corrections, String(printedPage))
-    .flatMap((piece) =>
+    .pieces.flatMap((piece) =>
       piece.kind === "heading"
         ? // A topic's or an article's mark prints nothing of its own.
           piece.lines.map(headingLineText).filter((text) => text !== "")
@@ -1292,19 +1310,25 @@ function correctedLines(
   };
 }
 
+/** A page as read: its pieces, and its running head with the corrections that reach it. */
+interface ReadPage {
+  pieces: Piece[];
+  head: RunningHead | null;
+}
+
 /**
  * A page read into pieces with its corrections. A correction whose text is
  * a whole line of the scan fixes that line before the page is read, so a
- * misread heading can be set right; any other fixes the text where it holds
- * it, else the scan's line that holds it, else what an earlier correction
- * wrote. A correction that finds nothing to fix is stale.
+ * misread heading or running head can be set right; any other fixes the
+ * text where it holds it, else the scan's line that holds it, else what an
+ * earlier correction wrote. A correction that finds nothing to fix is stale.
  */
 function readPage(
   page: Page,
   volume: Volume,
   corrections: OcrCorrection[],
   label: string,
-): Piece[] {
+): ReadPage {
   const own = corrections.filter(
     (correction) => String(correction.page) === label,
   );
@@ -1322,13 +1346,16 @@ function readPage(
       !texts.some((text) => text.includes(correction.from)) &&
       scanLines.some((line) => line.includes(correction.from)),
   );
-  return correctedPieces(
-    inScan.length === 0
-      ? pieces
-      : piecesOf(debarred(correctedLines(lined, inScan, label)), volume),
-    rest.filter((correction) => !inScan.includes(correction)),
-    label,
-  );
+  const read =
+    inScan.length === 0 ? lined : correctedLines(lined, inScan, label);
+  return {
+    pieces: correctedPieces(
+      inScan.length === 0 ? pieces : piecesOf(debarred(read), volume),
+      rest.filter((correction) => !inScan.includes(correction)),
+      label,
+    ),
+    head: runningHeadOf(debarred(read), volume),
+  };
 }
 
 /** No chapter opens below this share of the page's height. */
@@ -2445,6 +2472,8 @@ interface PathStep {
   letter: string | null;
   /** A chapter numbered by its numeral. */
   numbered: boolean;
+  /** Its title set in capitals, which tell no case. */
+  capitals: boolean;
 }
 
 /** The text under one heading, with the headings above it. */
@@ -2616,6 +2645,9 @@ function addHeading(
     qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,
     numbered: heading.numbered,
+    capitals:
+      /\p{Lu}/u.test(heading.title.join(" ")) &&
+      !/\p{Ll}/u.test(heading.title.join(" ")),
   };
   return {
     sections: [
@@ -2690,18 +2722,20 @@ function knownShare(name: string, spelling: Spelling): number {
 }
 
 /**
- * A heading's name as its running heads print it, where they do: in proper
- * case, which the capitals of the heading cannot tell. The head printed most
- * often over the heading's pages, and naming the same thing, wins unless the
- * OCR misread it where it read the heading right: the work's text must know
- * its words as well as the heading's own.
+ * A heading's name: the page's own heading, as corrected. The running heads
+ * over the heading's pages that name the same thing stand in for it only
+ * where the OCR could not read it, the work's text knowing their words
+ * better than the heading's; then the head a correction set right counts
+ * first, else the one printed most often. A heading set in capitals tells
+ * no case, and the OCR loses its umlauts: a head that reads as well stands
+ * in for it.
  */
 function namedByHeads(
   step: PathStep,
   sections: Section[],
-  volume: Volume,
+  headsByLeaf: Map<number, RunningHead>,
+  spelling: Spelling,
 ): string {
-  const { headsByLeaf, textSpelling: spelling } = volume;
   if (step.name === "") return step.name;
   const heads = sections
     .filter((section) => section.path.includes(step))
@@ -2717,22 +2751,28 @@ function namedByHeads(
       const head = headsByLeaf.get(leaf);
       // A head set in capitals tells no more of the case than the heading.
       return head !== undefined &&
-        /\p{Ll}/u.test(head) &&
-        sameName(head, step.name)
+        /\p{Ll}/u.test(head.name) &&
+        sameName(head.name, step.name)
         ? [head]
         : [];
     });
   const counts = heads.reduce(
-    (tally, head) => tally.set(head, (tally.get(head) ?? 0) + 1),
-    new Map<string, number>(),
+    (tally, head) =>
+      tally.set(head.name, {
+        count: (tally.get(head.name)?.count ?? 0) + 1,
+        corrected: (tally.get(head.name)?.corrected ?? false) || head.corrected,
+      }),
+    new Map<string, { count: number; corrected: boolean }>(),
   );
   const head = [...counts].sort(
-    (a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1),
+    (a, b) =>
+      Number(b[1].corrected) - Number(a[1].corrected) ||
+      b[1].count - a[1].count ||
+      (a[0] < b[0] ? -1 : 1),
   )[0]?.[0];
-  return head !== undefined &&
-    knownShare(head, spelling) >= knownShare(step.name, spelling)
-    ? head
-    : step.name;
+  if (head === undefined) return step.name;
+  const known = knownShare(head, spelling) - knownShare(step.name, spelling);
+  return known > 0 || (step.capitals && known === 0) ? head : step.name;
 }
 
 /** A volume as read once for all the works it holds. */
@@ -2983,12 +3023,6 @@ function readVolume(hocr: string): ReadVolume {
       textSize: median(fullLines.map((line) => line.size)),
       spelling,
       textSpelling,
-      headsByLeaf: new Map(
-        pages.flatMap((page): Array<[number, string]> => {
-          const line = page.lines[headOf(page)];
-          return line ? [[page.leaf, headName(line.text)]] : [];
-        }),
-      ),
     },
     // Pages before the first are the front matter, numbered in roman.
     front: romanOffset(pages),
@@ -3116,18 +3150,19 @@ export function parseArchiveOcrWork(
     datelined: work.datelined === true,
   };
   const { cased } = volume.spelling;
-  const { sections } = pagesOfWork(read, work)
-    .map(({ page, number, label }, index) => ({
-      page: (work.marginalia === true
-        ? withoutMarginalia
-        : (same: Page): Page => same)(index === 0 ? opened(page, work) : page),
-      number,
-      label,
-    }))
-    .reduce<WorkState>(
-      (state, { page, number, label }) =>
-        readPage(
-          page,
+  const pagesRead = pagesOfWork(read, work).map(
+    ({ page, number, label }, index) => {
+      const own = (
+        work.marginalia === true
+          ? withoutMarginalia
+          : (same: Page): Page => same
+      )(index === 0 ? opened(page, work) : page);
+      return {
+        page: own,
+        number,
+        label,
+        read: readPage(
+          own,
           {
             ...volume,
             headingOpenings: (work.headings ?? [])
@@ -3140,34 +3175,47 @@ export function parseArchiveOcrWork(
           },
           work.corrections ?? [],
           label,
-        ).reduce<WorkState>(
-          (done, piece) =>
-            piece.kind === "heading"
-              ? addHeading(
-                  done,
-                  headingOf(piece.lines),
-                  cased,
-                  {
-                    page: number,
-                    leaf: page.leaf,
-                    label,
-                  },
-                  work.title,
-                  work.skipHeadings ?? [],
-                )
-              : addPiece(done, piece, {
+        ),
+      };
+    },
+  );
+  // The running heads as corrected, which a title may stand in for.
+  const headsByLeaf = new Map(
+    pagesRead.flatMap(
+      ({ page, read: { head } }): Array<[number, RunningHead]> =>
+        head === null ? [] : [[page.leaf, head]],
+    ),
+  );
+  const { sections } = pagesRead.reduce<WorkState>(
+    (state, { page, number, label, read: { pieces } }) =>
+      pieces.reduce<WorkState>(
+        (done, piece) =>
+          piece.kind === "heading"
+            ? addHeading(
+                done,
+                headingOf(piece.lines),
+                cased,
+                {
                   page: number,
                   leaf: page.leaf,
                   label,
-                }),
-          state,
-        ),
-      {
-        sections: [],
-        chapters: (work.firstChapter ?? 1) - 1,
-        skipping: null,
-      },
-    );
+                },
+                work.title,
+                work.skipHeadings ?? [],
+              )
+            : addPiece(done, piece, {
+                page: number,
+                leaf: page.leaf,
+                label,
+              }),
+        state,
+      ),
+    {
+      sections: [],
+      chapters: (work.firstChapter ?? 1) - 1,
+      skipping: null,
+    },
+  );
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);
   const cite = (start: Block): { citation: string; source: string } => ({
@@ -3189,7 +3237,13 @@ export function parseArchiveOcrWork(
   const titles = new Map(
     steps.map((step) => [
       step,
-      titleOf(step, retitled(namedByHeads(step, filled, volume), uses)),
+      titleOf(
+        step,
+        retitled(
+          namedByHeads(step, filled, headsByLeaf, volume.textSpelling),
+          uses,
+        ),
+      ),
     ]),
   );
   // A ß the OCR read as B is read as ß again, words it ran together in

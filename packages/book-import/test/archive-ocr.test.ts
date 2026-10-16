@@ -827,6 +827,98 @@ describe("parseArchiveOcrWork on an essay's sections", () => {
   });
 });
 
+describe("parseArchiveOcrWork, a title its running heads misread", () => {
+  /** A page of text, its running head above it and its lines below. */
+  const page = (leaf: number, head: string, lines: string[]): string =>
+    `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 400 200 2000 270; x_size 62'>${head}</span></p>
+ <p class='ocr_par'>${lines
+   .map(
+     (text, line) =>
+       `<span class='ocr_line' title='bbox ${line % 3 === 0 ? 330 : 245} ${500 + line * 100} 2150 ${580 + line * 100}; x_size 78'>${text}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+  const text = [
+    "Die Krankheit der Kinder hat man lange nicht gekannt, und",
+    "die Aerzte haben die cerebralen Lähmungen der Kinder mit",
+    "den Lähmungen der Erwachsenen verwechselt, bis man sie sah.",
+    "Die eerebralen Formen der Lähmung sind bei Kindern häufig.",
+    "Die Geschichte der Kinderlähmung ist lang, wie man sieht.",
+  ];
+  /** The chapter set in the text's type on its first page, its title as printed. */
+  const opening = (title: string): string =>
+    `<div class='ocr_page' id='page_000010' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 500 400 1900 480; x_size 78'>${title}</span></p>
+ <p class='ocr_par'>${text
+   .map(
+     (line, at) =>
+       `<span class='ocr_line' title='bbox ${at % 3 === 0 ? 330 : 245} ${600 + at * 100} 2150 ${680 + at * 100}; x_size 78'>${line}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+  const hocr = (title: string): string =>
+    `<html><body>${opening(title)}${[11, 12, 13]
+      .map((leaf) =>
+        page(
+          leaf,
+          leaf % 2 === 0
+            ? `${leaf - 9} Geschichte der eerebralen Kinderlähmung.`
+            : `Geschichte der eerebralen Kinderlähmung. ${leaf - 9}`,
+          text,
+        ),
+      )
+      .join("")}</body></html>`;
+  const work = {
+    item: "halbseitige",
+    title: "Klinische Studie",
+    citation: "Halbseitige",
+    firstPage: 1,
+    lastPage: 4,
+  };
+
+  it("titles a chapter by its heading as corrected, not by the heads that misread it", () => {
+    const units = parseArchiveOcrWork(
+      hocr("Geschichte der eerebralen Kinderlähmung."),
+      {
+        ...work,
+        headings: [{ page: 1, opens: "Geschichte der cerebralen" }],
+        corrections: [
+          {
+            page: 1,
+            from: "Geschichte der eerebralen Kinderlähmung.",
+            to: "Geschichte der cerebralen Kinderlähmung.",
+          },
+        ],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "I. Geschichte der cerebralen Kinderlähmung.",
+    ]);
+  });
+
+  it("titles a chapter whose heading the OCR could not read by its running head, as corrected", () => {
+    const units = parseArchiveOcrWork(
+      hocr("GESCHICHTE DER GEREBRALFN KINDERLAHMUNG"),
+      {
+        ...work,
+        corrections: [
+          {
+            page: 3,
+            from: "3 Geschichte der eerebralen Kinderlähmung.",
+            to: "3 Geschichte der cerebralen Kinderlähmung.",
+          },
+        ],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Geschichte der cerebralen Kinderlähmung.",
+    ]);
+  });
+});
+
 describe("parseArchiveOcrWork on a work's opening", () => {
   it("keeps an opening heading that is not the work's title", async () => {
     const units = parseArchiveOcrWork(
@@ -2201,11 +2293,12 @@ describe("parseArchiveOcrWork, articles opening with their dateline", () => {
       },
     );
 
+    // The group is titled as its heading prints it; its running heads repeat it.
     expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
-      ["Das Ministerium Camphausen", "Köln, 3. Juni."],
-      ["Das Ministerium Camphausen", "Köln, 13. Juni."],
-      ["Die Polendebatte in Frankfurt", "Köln, 7. August."],
-      ["Die Polendebatte in Frankfurt", "Köln, im Januar."],
+      ["Das Ministerium Camphausen.", "Köln, 3. Juni."],
+      ["Das Ministerium Camphausen.", "Köln, 13. Juni."],
+      ["Die Polendebatte in Frankfurt.", "Köln, 7. August."],
+      ["Die Polendebatte in Frankfurt.", "Köln, im Januar."],
     ]);
     expect(units[0]?.paragraphs).toEqual([
       "** Köln, 3. Juni. Die Zeiten ändern sich, wir ändern uns mit ihnen, und die Herren Camphausen und Hansemann wissen davon zu erzählen.",
