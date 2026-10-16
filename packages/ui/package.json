@@ -23,7 +23,7 @@
     "@types/react-dom": "^19.0.3",
     "@types/sanitize-html": "^2.13.0",
     "eslint": "^10.5.0",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.29",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "rolldown": "^1.0.0",

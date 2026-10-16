@@ -11,7 +11,7 @@
     "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*",
     "@tailwindcss/postcss": "^4.3.1",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.29",
     "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
