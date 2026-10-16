@@ -1187,6 +1187,110 @@ freud-1940-gw-13:
     from: bieten kon
     to: bieten zu
     by: scan
+  - page: 439
+    from: enthält eine b- '
+    to: enthält eine b[…]
+    by: scan
+  - page: 439
+    from: "Die englische Ausgabe des Buches von V: N (The Psychology of Day-"
+    to: ""
+    by: scan
+  - page: 439
+    from: Dreams, George Allen & Unwin Ltd., London, 1927) enthält noch folgenden
+    to: ""
+    by: scan
+  - page: 439
+    from: "Abschnitt:"
+    to: ""
+    by: scan
+  - page: 439
+    from: It is not my intention to give a review of the author
+    to: ""
+    by: scan
+  - page: 439
+    from: myself with pointing to the significance of his work and will permit myself only
+    to: ""
+    by: scan
+  - page: 439
+    from: a remark concerning the terminology which he has adopted. He includes the
+    to: ""
+    by: scan
+  - page: 439
+    from: sort of thought-activity which he has observed in Bleuler
+    to: ""
+    by: scan
+  - page: 439
+    from: calls it, as a rule, fore-conscious thinking, according to the custom prevailing in
+    to: ""
+    by: scan
+  - page: 439
+    from: psycho-analysis. However, the autistic thinking of Bleuler does not by any
+    to: ""
+    by: scan
+  - page: 439
+    from: means correspond with the extension and the contents of the fore-conscious,
+    to: ""
+    by: scan
+  - page: 439
+    from: neither can I admit that the name used by Bleuler has been happily chosen.
+    to: ""
+    by: scan
+  - page: 439
+    from: thinking itself as a characteristic appears to
+    to: ""
+    by: scan
+  - page: 439
+    from: me misleading and unsatisfactory. The point in question is that the sort of
+    to: ""
+    by: scan
+  - page: 442
+    from: del Profeor S. FREUD
+    to: del Profesor S. FREUD
+    by: scan
+  - page: 442
+    from: me llevö a aprender
+    to: me llevó a aprender
+    by: scan
+  - page: 442
+    from: esta aficiön juvenil
+    to: esta afición juvenil
+    by: scan
+  - page: 442
+    from: su versiön espafiola de mis obras
+    to: su versión española de mis obras
+    by: scan
+  - page: 442
+    from: por la correctisima inter-
+    to: por la correctísima inter-
+    by: scan
+  - page: 442
+    from: pretaciön de mi pensamiento
+    to: pretación de mi pensamiento
+    by: scan
+  - page: 442
+    from: todo, cömo non siendo usted medico ni psiquiatra de profesiön
+    to: todo, cómo non siendo usted médico ni psiquiatra de profesión
+    by: scan
+  - page: 446
+    from: Maitre Charcot, & la Salpetriere, il y en a deux qui m’ont laisse une im-
+    to: Maître Charcot, à la Salpêtrière, il y en a deux qui m’ont laissé une im-
+    by: scan
+  - page: 446
+    from: se lasser de considerer
+    to: se lasser de considérer
+    by: scan
+  - page: 446
+    from: toujours ä nouveau les m&mes phenomenes
+    to: toujours à nouveau les mêmes phénomènes
+    by: scan
+  - page: 446
+    from: la plus generale quand on
+    to: la plus générale quand on
+    by: scan
+  - page: 446
+    from: a travaill&e d’une fagon sincere.
+    to: a travaillé d’une façon sincère.
+    by: scan
 freud-1940-gw-6:
   - page: 2
     from: A are
@@ -14786,6 +14890,18 @@ freud-1948-gw-14:
   - page: 572
     from: vervollkommnen. Ä
     to: vervollkommnen.
+    by: scan
+  - page: 564
+    from: KARL ABRAHAM 7
+    to: KARL ABRAHAM †
+    by: scan
+  - page: 570
+    from: Vol. XXXYVT, 1930.
+    to: Vol. XXXVI, 1930.
+    by: scan
+  - page: 300
+    from: heute i. eine
+    to: heute 1. eine
     by: scan
 freud-1952-gw-1:
   - page: 10

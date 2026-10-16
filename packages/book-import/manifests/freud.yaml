@@ -13,65 +13,25 @@ coverage:
   edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), read from the Internet Archive's scans
   license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
 gaps:
-  - citation: GW I
-    pages: 37–56
-    title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
-    year: 1893
-    reason: written in French
-  - citation: GW I
-    pages: 345–354
-    title: Obsessions et phobies
-    year: 1895
-    reason: written in French
-  - citation: GW I
-    pages: 405–424
-    title: L'hérédité et l'étiologie des névroses
-    year: 1896
-    reason: written in French
   - citation: GW XIII
     pages: 437–438
     title: Preface to J. J. Putnam, Addresses on Psycho-Analysis
     year: 1921
-    reason: written in English
-  - citation: GW XIII
-    pages: 439–440
-    title: Geleitwort zu J. Varendonck, Über das vorbewußte phantasierende Denken
-    year: 1921
-    reason: written in English
-  - citation: GW XIII
-    pages: "442"
-    title: Brief an Luis Lopez-Ballesteros y de Torres
-    year: 1923
-    reason: written in Spanish
-  - citation: GW XIII
-    pages: "446"
-    title: Zuschrift an die Zeitschrift „Le Disque Vert“
-    year: 1924
-    reason: written in French
-  - citation: GW XIV
-    pages: 297–308
-    title: Psycho-Analysis
-    year: 1926
-    reason: written in English
+    reason: printed in English; whether Freud wrote it so or it was translated is not established
   - citation: GW XIV
     pages: 556–557
     title: To the Opening of the Hebrew University
     year: 1925
-    reason: written in English
-  - citation: GW XIV
-    pages: 558–560
-    title: Brief an Maxime Leroy über einen Traum des Cartesius
-    year: 1929
-    reason: written in French
-  - citation: GW XVII
-    pages: 139–148
-    title: Some Elementary Lessons in Psycho-Analysis
-    year: 1938
-    reason: written in English
+    reason: printed in English; whether Freud wrote it so or it was translated is not established
   - title: Briefe
     reason: the letters are not in the Gesammelte Werke
+  - citation: GW VIII
+    pages: 429–440
+    title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
+    year: 1913
+    reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912)
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
-    reason: published in 1987 with an editorial apparatus still in copyright
+    reason: the texts are public domain, but no free scan of the volume exists
 books:
   - item: freud-1952-gw-1
     citation: GW I
@@ -90,6 +50,19 @@ books:
     lastPage: 36
     slug: charcot
     title: Charcot
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: freud-1952-gw-1
+    citation: GW I
+    # Freud's French, read anew with Tesseract's French model.
+    ocr: fra
+    firstPage: 37
+    lastPage: 56
+    slug: quelques-considerations-pour-une-etude-comparative-des-paralysies-motrices-organiques-et-hysteriques
+    title: "Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques"
+    shortTitle: Paralysies motrices organiques et hystériques
     edition: Gesammelte Werke, Bd. I (Imago, London 1952)
     author: Sigmund Freud
     year: 1893
@@ -127,6 +100,18 @@ books:
     kind: work
   - item: freud-1952-gw-1
     citation: GW I
+    # Freud's French, read anew with Tesseract's French model.
+    ocr: fra
+    firstPage: 345
+    lastPage: 354
+    slug: obsessions-et-phobies
+    title: "Obsessions et phobies"
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: freud-1952-gw-1
+    citation: GW I
     firstPage: 355
     lastPage: 376
     slug: zur-kritik-der-angstneurose
@@ -143,6 +128,18 @@ books:
     slug: weitere-bemerkungen-ueber-die-abwehr-neuropsychosen
     title: Weitere Bemerkungen über die Abwehr-Neuropsychosen
     shortTitle: Weitere Bemerkungen
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1896
+    kind: work
+  - item: freud-1952-gw-1
+    citation: GW I
+    # Freud's French, read anew with Tesseract's French model.
+    ocr: fra
+    firstPage: 405
+    lastPage: 424
+    slug: lheredite-et-letiologie-des-nevroses
+    title: "L'hérédité et l'étiologie des névroses"
     edition: Gesammelte Werke, Bd. I (Imago, London 1952)
     author: Sigmund Freud
     year: 1896
@@ -752,17 +749,6 @@ books:
     lastPage: 428
     slug: zwei-kinderluegen
     title: Zwei Kinderlügen
-    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
-    author: Sigmund Freud
-    year: 1913
-    kind: work
-  - item: freud-1943-gw-8
-    citation: GW VIII
-    firstPage: 429
-    lastPage: 440
-    slug: einige-bemerkungen-ueber-den-begriff-des-unbewussten-in-der-psychoanalyse
-    title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
-    shortTitle: Der Begriff des Unbewußten
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
     author: Sigmund Freud
     year: 1913
@@ -1400,8 +1386,10 @@ books:
   - item: freud-1940-gw-13
     citation: GW XIII
     firstPage: 435
-    lastPage: 445
-    skipPages: [437, 438, 439, 440, 442]
+    lastPage: 446
+    # Putnam's preface in English; the English paragraph of the Varendonck
+    # preface's English edition.
+    skipPages: [437, 438, 440]
     slug: gedenkworte-briefe-und-vorreden-19201924
     title: "Gedenkworte, Briefe und Vorreden 1920–1924"
     shortTitle: Gedenkworte, Briefe, Vorreden
@@ -1480,6 +1468,18 @@ books:
     slug: die-frage-der-laienanalyse
     title: Die Frage der Laienanalyse
     shortTitle: Laienanalyse
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1926
+    kind: work
+  - item: freud-1948-gw-14
+    citation: GW XIV
+    firstPage: 297
+    lastPage: 308
+    slug: psycho-analysis
+    title: "Psycho-Analysis"
+    # Freud's German text for the Encyclopaedia Britannica (1926), first printed
+    # in German in 1934; the English article was another's translation.
     edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
     author: Sigmund Freud
     year: 1926
@@ -1603,17 +1603,32 @@ books:
     citation: GW XIV
     firstPage: 551
     lastPage: 574
-    skipHeadings:
-      [
-        To the Opening of the Hebrew University,
-        Brief an Maxim Leroy über einen Traum des Cartesius,
-      ]
+    # The French letter to Leroy (558–560) is its own book, read with the French model.
+    skipPages: [558, 559, 560]
+    skipHeadings: [To the Opening of the Hebrew University]
     slug: gedenkworte-briefe-und-vorreden-19251931
     title: "Gedenkworte, Briefe und Vorreden 1925–1931"
     shortTitle: Gedenkworte, Briefe, Vorreden
     edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
     author: Sigmund Freud
     year: 1926
+    kind: work
+  - item: freud-1948-gw-14
+    citation: GW XIV
+    # Freud's French, read anew with Tesseract's French model; the editors'
+    # headnote and their notes quoting Leroy's book are left out.
+    ocr: fra
+    firstPage: 558
+    lastPage: 560
+    skipNotes:
+      - { page: 558, opens: "1) Leroy gibt" }
+      - { page: 559, opens: "1) Die hierauf" }
+    slug: brief-an-maxim-leroy-ueber-einen-traum-des-cartesius
+    title: Brief an Maxim Leroy über einen Traum des Cartesius
+    shortTitle: Brief an Maxim Leroy
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1929
     kind: work
   - item: freud-1940-gw-15
     citation: GW XV
@@ -1712,18 +1727,6 @@ books:
     kind: work
   - item: freud-1941-gw-17
     citation: GW XVII
-    firstPage: 3
-    lastPage: 18
-    slug: beitraege-zu-den-studien-ueber-hysterie
-    title: "Beiträge zu den „Studien über Hysterie“"
-    shortTitle: Beiträge zu den Studien
-    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
-    author: Sigmund Freud
-    year: 1892
-    kind: work
-    published: false
-  - item: freud-1941-gw-17
-    citation: GW XVII
     firstPage: 19
     lastPage: 24
     slug: eine-erfuellte-traumahnung
@@ -1792,10 +1795,11 @@ books:
     published: false
   - item: freud-1941-gw-17
     citation: GW XVII
-    firstPage: 149
-    lastPage: 152
-    slug: ergebnisse-ideen-probleme
-    title: Ergebnisse, Ideen, Probleme
+    firstPage: 139
+    lastPage: 148
+    slug: some-elementary-lessons-in-psycho-analysis
+    title: "Some Elementary Lessons in Psycho-Analysis"
+    # German text under an English title: an unfinished second version of the Abriss.
     edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
     author: Sigmund Freud
     year: 1938
