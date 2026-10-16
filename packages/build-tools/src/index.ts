@@ -4,6 +4,7 @@ export {
   stripDeclarationComments,
   type DeclarationLeakOptions,
 } from "./declaration-leaks";
+export { copyMigrations, type MigrationSource } from "./copy-migrations";
 export {
   assertProductionReactBundle,
   productionReactJsx,
