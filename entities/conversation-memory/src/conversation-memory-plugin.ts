@@ -30,6 +30,7 @@ import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-mem
 import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
+import { createActionItemStatusValidator } from "./lib/action-item-validator";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
@@ -97,6 +98,10 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       ACTION_ITEM_ENTITY_TYPE,
       actionItemSchema,
       actionItemAdapter,
+    );
+    context.entities.registerPersistValidator(
+      ACTION_ITEM_ENTITY_TYPE,
+      createActionItemStatusValidator(context.entityService),
     );
 
     registerActionItemsWidget({ context });
