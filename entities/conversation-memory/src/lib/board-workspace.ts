@@ -9,6 +9,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
 import { moveActionItem } from "./action-item-moves";
+import { actionItemTitle, arrivedAt } from "./action-item-board";
 import { channelLabel, formatAge } from "./widgets/format";
 import {
   actionItemSchema,
@@ -232,22 +233,6 @@ function cardItem(card: BoardCard): {
   };
 }
 
-function cardTitle(entity: ActionItemEntity): string {
-  const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
-  const title = heading?.replace(/^Action item:\s*/, "");
-  return title !== undefined && title.length > 0 ? title : entity.id;
-}
-
-/** When a card last arrived in a status, from its history. */
-function arrivedAt(
-  entity: ActionItemEntity,
-  status: ActionItemStatus,
-): string | undefined {
-  return [...(entity.metadata.history ?? [])]
-    .reverse()
-    .find((entry) => entry.to === status)?.at;
-}
-
 function toCard(entity: ActionItemEntity, now: Date): BoardCard {
   const blockedAt =
     entity.metadata.status === "blocked"
@@ -255,7 +240,7 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
       : undefined;
   return {
     id: entity.id,
-    title: cardTitle(entity),
+    title: actionItemTitle(entity),
     status: entity.metadata.status,
     assignees: (entity.metadata.assignedTo ?? []).map(
       (assignee) => assignee.displayName,

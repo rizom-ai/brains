@@ -98,3 +98,20 @@ export function applyMove(
     metadata: { ...entity.metadata, status: move.to, history },
   };
 }
+
+/** The card title: the item heading without its `Action item:` prefix. */
+export function actionItemTitle(entity: ActionItemEntity): string {
+  const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  const title = heading?.replace(/^Action item:\s*/, "");
+  return title !== undefined && title.length > 0 ? title : entity.id;
+}
+
+/** When a card last arrived in a status, from its history. */
+export function arrivedAt(
+  entity: ActionItemEntity,
+  status: ActionItemStatus,
+): string | undefined {
+  return [...(entity.metadata.history ?? [])]
+    .reverse()
+    .find((entry) => entry.to === status)?.at;
+}

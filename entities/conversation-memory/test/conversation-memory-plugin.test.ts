@@ -69,6 +69,14 @@ describe("ConversationMemoryPlugin", () => {
     ]);
   });
 
+  it("brings blocked action items to the Inbox", async () => {
+    await harness.installPlugin(plugin);
+    const inbox = harness.getMockShell().getInboxRegistry();
+    inbox.finalize();
+
+    expect(inbox.getSource("action-items")?.displayName).toBe("Action items");
+  });
+
   it("keeps memory entities immutable through entity CRUD", () => {
     expect(plugin.entityActionPolicy).toEqual({
       summary: {
