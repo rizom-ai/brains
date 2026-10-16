@@ -2619,3 +2619,24 @@ books:
     author: Karl Marx
     year: 1868
     kind: work
+  - source: archive-ocr
+    # The preamble Marx dictated for the Parti ouvrier's programme (MEW 19,
+    # 238), read from the scan of the book fr.wikisource transcribes: the
+    # transcription sets the programme's dateline in the preamble's first
+    # paragraph, where the page tells them apart. The demands that follow
+    # are Guesde's.
+    item: lafrancesociali00terrgoog
+    citation: France socialiste
+    ocr: fra
+    firstPage: 101
+    lastPage: 102
+    opensWith: Considérant,
+    paragraphs:
+      - { page: 101, opens: "Considérant," }
+      - { page: 101, opens: Que l’émancipation }
+    slug: considerants-du-programme-du-parti-ouvrier
+    title: Considérants du programme du Parti ouvrier
+    edition: Gabriel Terrail (Mermeix), La France socialiste (Paris, F. Fetscherin et Chuit, 1886), pp. 101–102, the programme as the Congrès national du Havre confirmed it in November 1880
+    author: Karl Marx
+    year: 1880
+    kind: work
