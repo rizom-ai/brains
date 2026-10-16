@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.560
+
+### Patch Changes
+
+- [#661](https://github.com/rizom-ai/brains/pull/661) [`9881c9e`](https://github.com/rizom-ai/brains/commit/9881c9e2bb89e14ff06618567270d6b1a376545d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prompt copies follow their defaults. Each prompt the brain writes into `prompt/` now records the hash of the default it was written from (`defaultHash`). At startup an untouched copy is replaced when its default changes, so improvements to built-in prompts reach existing brains; an edited copy is kept and logged once its default has moved. Copies from before this change are stamped when they still equal the default and otherwise kept and logged as unverified overrides; delete one to restore its default. Copies are now stored under the template key generation reads, and stale copies written under a template's short name are removed.
+
+- [#659](https://github.com/rizom-ai/brains/pull/659) [`368d83e`](https://github.com/rizom-ai/brains/commit/368d83eb626bf8ec44433ddaef7353b5502f383e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generated content follows the style guide on voice and form. When a style guide is supplied, the system prompt now says that it governs voice, tone, wording and form, while the template governs the task, required content, length, platform constraints and output format; on a conflict about voice or form, the style guide wins. The template's instructions are no longer repeated at the top of the user prompt, which had doubled their weight against the style guide.
+
+- [#665](https://github.com/rizom-ai/brains/pull/665) [`8b1039d`](https://github.com/rizom-ai/brains/commit/8b1039d2e75edcdd0e76b365c439d72330bfccbf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generation templates hold the task and the style guide holds the voice. The LinkedIn, newsletter and portfolio templates no longer set their own tone, hooks, line breaks, structure, engagement questions or closings; they keep their length, hashtag, subject-line and format constraints and defer voice and form to the style guide. Blog excerpts, deck and series descriptions and generated site sections now receive the style guide's voice too (site sections only from a public style guide), still without identity injected. "Engaging" and "compelling" wording is gone from generation prompts, and the social-media generation eval runs with the style guide like real generation does.
+
 ## 0.2.0-alpha.559
 
 No changes in this release.
