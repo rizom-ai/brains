@@ -1253,8 +1253,8 @@ function correctedLines(
  * A page read into pieces with its corrections. A correction whose text is
  * a whole line of the scan fixes that line before the page is read, so a
  * misread heading can be set right; any other fixes the text where it holds
- * it, else the scan's line that holds it. A correction that finds nothing to
- * fix is stale.
+ * it, else the scan's line that holds it, else what an earlier correction
+ * wrote. A correction that finds nothing to fix is stale.
  */
 function readPage(
   page: Page,
@@ -1273,8 +1273,11 @@ function readPage(
   const texts = pieces.flatMap((piece) =>
     piece.kind === "heading" ? [] : [normalised(piece.text)],
   );
+  const scanLines = lined.lines.map((line) => normalised(line.text));
   const inScan = rest.filter(
-    (correction) => !texts.some((text) => text.includes(correction.from)),
+    (correction) =>
+      !texts.some((text) => text.includes(correction.from)) &&
+      scanLines.some((line) => line.includes(correction.from)),
   );
   return correctedPieces(
     inScan.length === 0

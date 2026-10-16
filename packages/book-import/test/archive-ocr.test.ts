@@ -347,6 +347,20 @@ describe("parseArchiveOcrWork with corrections", () => {
     );
   });
 
+  it("lets a later correction fix what an earlier one wrote", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      corrections: [
+        { page: 5, from: "rutscht ein", to: "ruckt ein" },
+        { page: 5, from: "Rand ruckt", to: "Rand rückt" },
+      ],
+    });
+
+    expect(units[0]?.paragraphs[3]).toBe(
+      "Ein Satz unten auf der Seite läuft weiter, und am Rand rückt ein Wort nach unten.",
+    );
+  });
+
   it("drops a line a correction empties", async () => {
     const units = parseArchiveOcrWork(await fixture(), {
       ...work,
