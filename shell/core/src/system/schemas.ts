@@ -304,7 +304,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
           .string()
           .min(1)
           .describe(
-            "Prompt for creating new generated content. Do not use for saving/importing existing uploads or prior responses.",
+            "Prompt for creating new generated content, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Do not use for saving/importing existing uploads or prior responses.",
           ),
       })
       .strict(),
@@ -345,7 +345,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
           .string()
           .min(1)
           .describe(
-            "Prompt for creating new generated content from the resolved source. Do not use for saving/importing existing uploads or prior responses.",
+            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Do not use for saving/importing existing uploads or prior responses.",
           ),
       })
       .strict(),
