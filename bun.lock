@@ -530,7 +530,12 @@
       "name": "@brains/whitepaper",
       "version": "0.2.0-alpha.127",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "@brains/media-page-composer": "workspace:*",
+        "@brains/media-renderer": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {

@@ -3,6 +3,7 @@ import type {
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
+  DataSource,
   Template,
   CreateInput,
   CreateExecutionContext,
@@ -13,14 +14,17 @@ import { z } from "@brains/utils";
 import { whitepaperSchema, type Whitepaper } from "./schemas/whitepaper";
 import { whitepaperAdapter } from "./adapters/whitepaper-adapter";
 import { WhitepaperGenerationJobHandler } from "./handlers/whitepaperGenerationJobHandler";
-import { whitepaperGenerationTemplate } from "./templates/generation-template";
-import { whitepaperDraftExpansionTemplate } from "./templates/draft-expansion-template";
+import { WhitepaperDataSource } from "./datasources/whitepaper-datasource";
+import { getTemplates } from "./lib/register-templates";
+import { WhitepaperPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { WHITEPAPER_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
 import packageJson from "../package.json";
 
 export class WhitepaperPlugin extends EntityPlugin<Whitepaper> {
   readonly entityType = whitepaperAdapter.entityType;
   readonly schema = whitepaperSchema;
   readonly adapter = whitepaperAdapter;
+  private unregisterPrintableAttachmentProvider: (() => void) | undefined;
 
   constructor() {
     super("whitepaper", packageJson, {}, undefined);
@@ -95,10 +99,13 @@ export class WhitepaperPlugin extends EntityPlugin<Whitepaper> {
   }
 
   protected override getTemplates(): Record<string, Template> {
-    return {
-      generation: whitepaperGenerationTemplate,
-      "draft-expansion": whitepaperDraftExpansionTemplate,
-    };
+    return getTemplates();
+  }
+
+  protected override getDataSources(): DataSource[] {
+    return [
+      new WhitepaperDataSource(this.logger.child("WhitepaperDataSource")),
+    ];
   }
 
   protected override async getInstructions(): Promise<string> {
@@ -108,6 +115,12 @@ export class WhitepaperPlugin extends EntityPlugin<Whitepaper> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    this.unregisterPrintableAttachmentProvider = context.attachments.register(
+      "whitepaper",
+      WHITEPAPER_PRINTABLE_ATTACHMENT_TYPE,
+      new WhitepaperPrintableAttachmentProvider(context),
+    );
+
     const generatedSchema = z.object({
       prompt: z.string(),
       outline: z.string().optional(),
@@ -148,6 +161,11 @@ export class WhitepaperPlugin extends EntityPlugin<Whitepaper> {
         });
       },
     );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterPrintableAttachmentProvider?.();
+    this.unregisterPrintableAttachmentProvider = undefined;
   }
 }
 

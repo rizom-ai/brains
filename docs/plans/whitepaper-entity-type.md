@@ -7,7 +7,7 @@ Entity type: `whitepaper`.
 
 Technical exploration / foundation branch.
 
-This is **not ready to merge as a product MVP**. The current branch proves the entity foundation, outline-stage generation, and outline → draft expansion, but a useful white paper product workflow still needs document export/attachment decisions and review of the end-to-end authoring flow.
+This is **not ready to merge as a product MVP**. The current branch proves the entity foundation, outline-stage generation, outline → draft expansion, website rendering, and printable PDF attachment support, but a useful white paper product workflow still needs review of the end-to-end authoring flow.
 
 ## Context
 
@@ -204,7 +204,7 @@ These should be implemented after the initial entity type is stable:
 
 - optional revision/history handling for outline → draft expansion beyond normal git history
 - optional section/bundle mode if single-entity drafts become too large or need section-level review
-- document/PDF generation and attachment
+- richer document/PDF styling and export review
 - cover image generation/attachment
 - public site route and templates
 - social-post, newsletter, and deck/carousel derivatives
@@ -247,11 +247,13 @@ The implementation should follow the existing entity-type pattern rather than sp
 - Agent eval coverage verifies that white paper / strategic paper language maps to `entityType: whitepaper`, listing requests use `system_list`, and note/memo captures are not over-mapped to whitepaper.
 - Prompt-driven generation can create an outline whitepaper with `status: outline`.
 - Outline → draft expansion preserves the same whitepaper entity ID and changes status to `draft`.
+- Website rendering is available via `whitepaper-list` and `whitepaper-detail` templates backed by the `whitepaper:entities` datasource.
+- Printable PDF generation is available through the existing source-attachment/document flow.
 - Plugin eval coverage verifies generated outlines are structured, whitepaper-specific, do not become full prose drafts, and can be expanded into draft prose.
 
 ### Follow-up acceptance criteria
 
-- Whitepaper entities support cover images and generated document attachments using existing `coverImageId` and `documents: [{ id }]` conventions.
+- Whitepaper entities support cover images using the existing `coverImageId` convention.
 - Whitepaper can be used as a source for social-post and deck generation, even if the social-post schema does not store it as `sourceEntityType` initially.
 - Whitepaper can render publicly when a site template/config enables a route.
 

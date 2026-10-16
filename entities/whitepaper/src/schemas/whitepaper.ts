@@ -90,3 +90,19 @@ export const whitepaperWithDataSchema = whitepaperSchema.extend({
 });
 
 export type WhitepaperWithData = z.infer<typeof whitepaperWithDataSchema>;
+
+export const enrichedWhitepaperSchema = whitepaperWithDataSchema.extend({
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+});
+
+export const templateWhitepaperSchema = whitepaperWithDataSchema.extend({
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+});
+
+export type EnrichedWhitepaper = z.infer<typeof templateWhitepaperSchema>;
