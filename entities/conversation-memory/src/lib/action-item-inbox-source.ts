@@ -115,6 +115,7 @@ export class ActionItemInboxSource implements InboxSource {
     signal.throwIfAborted();
     if (!entity) throw new Error("Action item unavailable");
     const text = actionItemBody(entity.content)
+      .trimStart()
       .replace(/^#\s+.+\n+/, "")
       .trim();
     const moves = (entity.metadata.history ?? []).map(

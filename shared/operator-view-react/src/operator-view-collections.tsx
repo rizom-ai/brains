@@ -407,8 +407,13 @@ export function MatrixBlock(props: {
   /** The open card when this matrix is a detail master. */
   openId?: string | undefined;
 }): ReactElement {
+  // Beside an open card there is room for one column of cards, not four.
+  const columns = props.openId !== undefined ? 1 : (props.block.columns ?? 2);
   return (
-    <div {...stylex.props(rendererLayout.matrix(props.block.columns ?? 2))}>
+    <div
+      {...stylex.props(rendererLayout.matrix(columns))}
+      data-columns={columns}
+    >
       {props.block.cells.map((cell) => (
         <section
           {...stylex.props(rendererLayout.cell)}

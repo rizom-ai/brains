@@ -1581,6 +1581,18 @@ describe("OperatorViewRenderer master/detail", () => {
     expect(html).toContain("Venue for May.");
     expect(html).toContain("To do");
     expect(html).toContain('aria-current="true"');
+    // Beside an open card the columns stack, so cards stay readable.
+    expect(html).toContain('data-columns="1"');
+    expect(
+      renderToStaticMarkup(
+        createElement(OperatorViewRenderer, {
+          data: board(),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          query: {},
+        }),
+      ),
+    ).toContain('data-columns="2"');
 
     const queries: unknown[] = [];
     await act(async () => {

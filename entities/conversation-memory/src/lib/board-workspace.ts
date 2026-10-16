@@ -408,7 +408,9 @@ function finishedAt(entity: ActionItemEntity): number {
 
 /** The card text and its Notes section, from the markdown body. */
 function splitBody(entity: ActionItemEntity): { text: string; notes?: string } {
-  const body = actionItemBody(entity.content).replace(/^#\s+.+\n+/, "");
+  const body = actionItemBody(entity.content)
+    .trimStart()
+    .replace(/^#\s+.+\n+/, "");
   const [text = "", notes] = body.split(/^## Notes\s*$/m);
   const trimmedNotes = notes?.trim();
   return {

@@ -76,11 +76,10 @@ async function brain(cards: Card[]): Promise<EntityPluginContext> {
         id: card.id,
         entityType: "action-item",
         visibility: "shared",
-        content: adapter.composeContent(
-          `Action item: ${card.text}`,
-          card.text,
-          metadata,
-        ),
+        // Synced files keep a blank line between frontmatter and heading.
+        content: adapter
+          .composeContent(`Action item: ${card.text}`, card.text, metadata)
+          .replace(/\n---\n#/, "\n---\n\n#"),
         metadata,
       },
     });
@@ -354,6 +353,7 @@ describe("the Board workspace", () => {
     expect(detail.open?.title).toBe("Book the venue");
     const open = JSON.stringify(detail.open?.blocks);
     expect(open).toContain('"id":"card-text","text":"Book the venue"');
+    expect(open).not.toContain("# Action item");
     expect(open).toContain('"label":"Assigned to"');
     expect(open).toContain("To do → Blocked");
     expect(open).toContain("Sam Rivera");
