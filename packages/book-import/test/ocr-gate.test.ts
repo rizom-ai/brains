@@ -5,32 +5,28 @@ import { pageLeaf, pageText } from "../src/adapters/archive-ocr";
 import { samplePages } from "../src/ocr-gate";
 
 describe("samplePages", () => {
-  const ranges = [
-    { firstPage: 1, lastPage: 40, skipPages: [5] },
-    { firstPage: 51, lastPage: 60, skipPages: [] },
+  const pages: Array<number | string> = [
+    ...Array.from({ length: 40 }, (_, index) => index + 1).filter(
+      (page) => page !== 5,
+    ),
+    ...Array.from({ length: 10 }, (_, index) => index + 51),
   ];
 
-  it("draws the same pages for the same volume, all inside its works", () => {
-    const first = samplePages("freud-1940-gw-9", ranges, 20);
-    const again = samplePages("freud-1940-gw-9", ranges, 20);
+  it("draws the same pages for the same volume, all among its works', in their order", () => {
+    const first = samplePages("freud-1940-gw-9", pages, 20);
+    const again = samplePages("freud-1940-gw-9", pages, 20);
 
     expect(first).toEqual(again);
     expect(first).toHaveLength(20);
     expect(new Set(first).size).toBe(20);
-    expect(
-      first.every(
-        (page) =>
-          page !== 5 &&
-          ((page >= 1 && page <= 40) || (page >= 51 && page <= 60)),
-      ),
-    ).toBe(true);
-    expect(first).toEqual([...first].sort((a, b) => a - b));
+    expect(first.every((page) => pages.includes(page))).toBe(true);
+    expect(first).toEqual(
+      [...first].sort((a, b) => pages.indexOf(a) - pages.indexOf(b)),
+    );
   });
 
-  it("draws every page of a volume shorter than the sample", () => {
-    expect(
-      samplePages("x", [{ firstPage: 3, lastPage: 6, skipPages: [] }], 20),
-    ).toEqual([3, 4, 5, 6]);
+  it("draws every page of a volume shorter than the sample, front matter included", () => {
+    expect(samplePages("x", ["V", "VI", 1, 2], 20)).toEqual(["V", "VI", 1, 2]);
   });
 });
 

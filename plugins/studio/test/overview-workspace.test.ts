@@ -423,6 +423,28 @@ describe("Studio Overview workspace", () => {
     expect(payload).toContain("note/field-log updated");
   });
 
+  it("shows the entity changes the other process made, such as a git sync", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const cookie = await createSession(shell, "trusted");
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    await shell.getMessageBus().deliverPeer(ENTITY_CHANNELS.created, {
+      entityType: "note",
+      entityId: "synced-from-git",
+    });
+
+    const response = await findRoute(plugin, "/studio/api/workspace").handler(
+      request(
+        `/studio/api/workspace?id=${encodeURIComponent(STUDIO_OVERVIEW_WORKSPACE_ID)}`,
+        cookie,
+      ),
+    );
+    expect(JSON.stringify(await response.json())).toContain(
+      "note/synced-from-git created",
+    );
+  });
+
   it("unregisters re-homed contributions and reserves the Overview id", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const cookie = await createSession(shell, "trusted");

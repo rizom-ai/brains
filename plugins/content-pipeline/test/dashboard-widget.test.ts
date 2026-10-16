@@ -158,6 +158,29 @@ describe("dashboard widget registration", () => {
     });
   });
 
+  // Unscoped reads see public entities only: the admin's pipeline left out
+  // every shared or restricted draft.
+  it("counts drafts the caller may see, not only public ones", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "members-draft",
+        entityType: "social-post",
+        content: "draft",
+        metadata: { status: "draft", title: "Members draft" },
+        visibility: "shared",
+      },
+    });
+
+    await registerDashboardWidget(context, deps);
+    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
+
+    expect(data?.digest?.items).toContainEqual({
+      label: "Awaiting review",
+      value: "1 drafts",
+      tone: "warn",
+    });
+  });
+
   it("derives the host digest from normalized widget data", async () => {
     await registerDashboardWidget(context, deps);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);

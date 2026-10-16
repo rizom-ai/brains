@@ -186,6 +186,77 @@ export function createPluginScopedShell(
     originalHandler: unknown;
     stopAdmission(): void;
   }>();
+  /**
+   * Admit a plugin's handler until its scope closes: register hands the
+   * scoped handler to the bus, as a subscriber or an observer.
+   */
+  const scopedSubscription = <T, R>(
+    type: string,
+    handler: MessageHandler<T, R>,
+    register: (scopedHandler: MessageHandler<T, R>) => () => void,
+  ): (() => void) => {
+    resources.assertOpen();
+    let accepting = true;
+    const inFlight = new Set<Promise<void>>();
+    const scopedHandler: MessageHandler<T, R> = (message) => {
+      if (!accepting) return { noop: true };
+
+      // Message handlers have no cancellation contract. Track the admitted
+      // Promise so plugin teardown drains it instead of interrupting work
+      // that may already be mutating plugin-owned state.
+      let settleAdmitted!: () => void;
+      const admitted = new Promise<void>((resolve) => {
+        settleAdmitted = resolve;
+      });
+      inFlight.add(admitted);
+      const settle = (): void => {
+        inFlight.delete(admitted);
+        settleAdmitted();
+      };
+
+      let operation: Promise<Awaited<ReturnType<typeof handler>>>;
+      try {
+        operation = Promise.resolve(handler(message));
+      } catch (error) {
+        settle();
+        throw error;
+      }
+      return operation.then(
+        (result) => {
+          settle();
+          return result;
+        },
+        (error: unknown) => {
+          settle();
+          throw error;
+        },
+      );
+    };
+    const unsubscribe = register(scopedHandler);
+    const subscription = {
+      type,
+      originalHandler: handler,
+      stopAdmission: (): void => {
+        if (!accepting) return;
+        accepting = false;
+        unsubscribe();
+        messageSubscriptions.delete(subscription);
+      },
+    };
+    messageSubscriptions.add(subscription);
+    try {
+      resources.addIngress({
+        stopAdmission: subscription.stopAdmission,
+        drain: async (): Promise<void> => {
+          await Promise.all(inFlight);
+        },
+      });
+    } catch (error) {
+      subscription.stopAdmission();
+      throw error;
+    }
+    return subscription.stopAdmission;
+  };
   const scopedMessageBus: IMessageBus = {
     send: (request) => messageBus.send(request),
     hasHandlers: (type) => messageBus.hasHandlers?.(type) ?? false,
@@ -193,69 +264,18 @@ export function createPluginScopedShell(
       type: string,
       handler: MessageHandler<T, R>,
       filter?: Parameters<IMessageBus["subscribe"]>[2],
-    ): (() => void) => {
-      resources.assertOpen();
-      let accepting = true;
-      const inFlight = new Set<Promise<void>>();
-      const scopedHandler: MessageHandler<T, R> = (message) => {
-        if (!accepting) return { noop: true };
-
-        // Message handlers have no cancellation contract. Track the admitted
-        // Promise so plugin teardown drains it instead of interrupting work
-        // that may already be mutating plugin-owned state.
-        let settleAdmitted!: () => void;
-        const admitted = new Promise<void>((resolve) => {
-          settleAdmitted = resolve;
-        });
-        inFlight.add(admitted);
-        const settle = (): void => {
-          inFlight.delete(admitted);
-          settleAdmitted();
-        };
-
-        let operation: Promise<Awaited<ReturnType<typeof handler>>>;
-        try {
-          operation = Promise.resolve(handler(message));
-        } catch (error) {
-          settle();
-          throw error;
-        }
-        return operation.then(
-          (result) => {
-            settle();
-            return result;
-          },
-          (error: unknown) => {
-            settle();
-            throw error;
-          },
-        );
-      };
-      const unsubscribe = messageBus.subscribe(type, scopedHandler, filter);
-      const subscription = {
-        type,
-        originalHandler: handler,
-        stopAdmission: (): void => {
-          if (!accepting) return;
-          accepting = false;
-          unsubscribe();
-          messageSubscriptions.delete(subscription);
-        },
-      };
-      messageSubscriptions.add(subscription);
-      try {
-        resources.addIngress({
-          stopAdmission: subscription.stopAdmission,
-          drain: async (): Promise<void> => {
-            await Promise.all(inFlight);
-          },
-        });
-      } catch (error) {
-        subscription.stopAdmission();
-        throw error;
-      }
-      return subscription.stopAdmission;
-    },
+    ): (() => void) =>
+      scopedSubscription(type, handler, (scopedHandler) =>
+        messageBus.subscribe(type, scopedHandler, filter),
+      ),
+    observe: <T = unknown, R = unknown>(
+      type: string,
+      handler: MessageHandler<T, R>,
+    ): (() => void) =>
+      scopedSubscription(type, handler, (scopedHandler) =>
+        messageBus.observe(type, scopedHandler),
+      ),
+    deliverPeer: (type, payload) => messageBus.deliverPeer(type, payload),
     unsubscribe: (type, handler): void => {
       const subscriptions = [...messageSubscriptions].filter(
         (subscription) =>
@@ -364,15 +384,20 @@ export function createPluginScopedShell(
       }
     },
   );
-  const insightsRegistry = shell.getInsightsRegistry();
-  const scopedInsightsRegistry = scopeRegistry(
-    insightsRegistry,
+  const analyticsRegistry = shell.getAnalyticsRegistry();
+  const scopedAnalyticsRegistry = scopeRegistry(
+    analyticsRegistry,
     ["register"],
     resources,
     (args): void => {
-      const insightType = args[0];
-      if (typeof insightType === "string")
-        insightsRegistry.unregister(insightType);
+      const definition = args[0];
+      if (
+        typeof definition === "object" &&
+        definition !== null &&
+        "type" in definition &&
+        typeof definition.type === "string"
+      )
+        analyticsRegistry.unregister(definition.type);
     },
   );
 
@@ -408,8 +433,8 @@ export function createPluginScopedShell(
       if (property === "getAccountSettingsRegistry") {
         return () => scopedAccountSettingsRegistry;
       }
-      if (property === "getInsightsRegistry") {
-        return () => scopedInsightsRegistry;
+      if (property === "getAnalyticsRegistry") {
+        return () => scopedAnalyticsRegistry;
       }
       const value = reflectGet(target, property);
       return typeof value === "function" ? value.bind(target) : value;

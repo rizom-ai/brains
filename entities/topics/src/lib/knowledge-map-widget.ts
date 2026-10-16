@@ -4,6 +4,7 @@ import {
   registerBuiltInDashboardWidget,
   type EntityPluginContext,
 } from "@brains/plugins";
+import { computeContentHash } from "@brains/utils/hash";
 import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
@@ -15,8 +16,21 @@ import {
 
 export const KNOWLEDGE_MAP_WIDGET_ID = "topics-knowledge-map";
 
+/** The view's identifier limit; a deep id is kept apart by a short hash. */
+const MAX_VIEW_ID = 120;
+const MAX_VIEW_LABEL = 160;
+
 function knowledgePointId(entityType: string, id: string): string {
-  return `${entityType}:${id}`;
+  const full = `${entityType}:${id}`;
+  return full.length <= MAX_VIEW_ID
+    ? full
+    : `${entityType}:${computeContentHash(id).slice(0, 24)}`;
+}
+
+function viewLabel(label: string): string {
+  return label.length <= MAX_VIEW_LABEL
+    ? label
+    : `${label.slice(0, MAX_VIEW_LABEL - 1)}…`;
 }
 
 const knowledgeMapWidget = defineDashboardWidget({
@@ -43,11 +57,13 @@ const knowledgeMapWidget = defineDashboardWidget({
         description: `${data.counts.entities} projected entities arranged around ${data.counts.topics} topic zones. Published work, skills, high-signal knowledge, and background sources remain available in the text detail for this map.`,
         points: data.points.map((point) => ({
           id: knowledgePointId(point.entityType, point.id),
-          label: point.title,
+          label: viewLabel(point.title),
           category: point.kind === "pearl" ? "high-signal" : point.kind,
           x: point.x,
           y: point.y,
-          ...(point.zoneId ? { zoneId: `topic:${point.zoneId}` } : {}),
+          ...(point.zoneId
+            ? { zoneId: knowledgePointId("topic", point.zoneId) }
+            : {}),
           tone:
             point.kind === "published"
               ? "good"
@@ -57,8 +73,8 @@ const knowledgeMapWidget = defineDashboardWidget({
           details: [point.entityType],
         })),
         zones: data.zones.map((zone) => ({
-          id: `topic:${zone.id}`,
-          label: zone.name,
+          id: knowledgePointId("topic", zone.id),
+          label: viewLabel(zone.name),
           x: zone.x,
           y: zone.y,
           memberIds: data.points
@@ -76,7 +92,7 @@ const knowledgeMapWidget = defineDashboardWidget({
                 targetId: string;
                 tone: "neutral";
               } => ({
-                sourceId: `topic:${zone.id}`,
+                sourceId: knowledgePointId("topic", zone.id),
                 targetId: knowledgePointId(point.entityType, point.id),
                 tone: "neutral",
               }),
@@ -97,8 +113,10 @@ const knowledgeMapWidget = defineDashboardWidget({
 /** Register the semantic corpus projection after the Dashboard host mounts. */
 export function registerKnowledgeMapDashboardWidget(params: {
   context: EntityPluginContext;
+  /** The entity types topics are drawn from. */
+  sourceTypes: () => string[];
 }): void {
-  const { context } = params;
+  const { context, sourceTypes } = params;
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
@@ -111,9 +129,12 @@ export function registerKnowledgeMapDashboardWidget(params: {
           component: KnowledgeMapWidget,
           clientStyles: knowledgeMapStyles,
         },
-        load: async ({ signal }) => {
+        load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const data = await buildKnowledgeMapData(context);
+          const data = await buildKnowledgeMapData(
+            { ...context, sourceTypes: async () => sourceTypes() },
+            visibilityScope,
+          );
           signal.throwIfAborted();
           return data;
         },

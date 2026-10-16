@@ -1,60 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import defaultSite from "@brains/site-default";
-import {
-  App,
-  parseInstanceOverrides,
-  registerPackage,
-  resolve,
-} from "@brains/app";
+import { parseInstanceOverrides, resolve, type App } from "@brains/app";
+import { canonicalBrain } from "../src/model/canonical-brain";
 import { PROJECTION_RULE_JOB_TYPE } from "@brains/core";
-import defaultTheme from "@rizom/theme-default";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { canonicalBrain } from "../src/model/canonical-brain";
-
-registerPackage("@brains/site-default", defaultSite);
-registerPackage("@rizom/theme-default", defaultTheme);
-
-const fullPresetYaml = `brain: brain
-bundleContract: capability-bundles-v1
-anchor: person
-kind: professional
-bundles: [core, media, automation, web, chat, site, publishing, federation, team]
-site:
-  package: "@brains/site-default"
-  theme: "@rizom/theme-default"
-plugins:
-  directory-sync:
-    autoSync: false
-    initialSync: false
-    seedContent: false
-`;
-
-function createFullPresetApp(
-  dataDir: string,
-  presetYaml: string = fullPresetYaml,
-): App {
-  const config = resolve(
-    canonicalBrain,
-    { AI_API_KEY: "test-key" },
-    parseInstanceOverrides(presetYaml),
-  );
-  return App.create({
-    ...config,
-    shellConfig: {
-      ...config.shellConfig,
-      database: { url: `file:${dataDir}/entities.db` },
-      jobQueueDatabase: { url: `file:${dataDir}/jobs.db` },
-      conversationDatabase: { url: `file:${dataDir}/conversations.db` },
-      runtimeStateDatabase: { url: `file:${dataDir}/runtime-state.db` },
-      embeddingDatabase: { url: `file:${dataDir}/embeddings.db` },
-      embedding: { enabled: true },
-      dataDir: `${dataDir}/content`,
-      logging: { level: "error" },
-    },
-  });
-}
+import { createFullPresetApp, fullPresetYaml } from "./helpers/full-preset-app";
 
 describe("canonical durable job execution boundary", () => {
   const apps: App[] = [];
@@ -93,8 +44,9 @@ describe("canonical durable job execution boundary", () => {
     const webQueue = webApp.getShell().getJobQueueService();
     const workerShell = workerApp.getShell();
     const workerQueue = workerShell.getJobQueueService();
-    const webRegistrations = webQueue.getExecutionRegistrations();
-    const workerRegistrations = workerQueue.getExecutionRegistrations();
+    const webRegistrations = webQueue.getExecutionRegistrations() ?? [];
+    const workerRegistrations = workerQueue.getExecutionRegistrations() ?? [];
+    expect(workerRegistrations.length).toBeGreaterThan(0);
     const webTypes = webRegistrations.map(({ type }) => type).sort();
     const workerTypes = workerRegistrations.map(({ type }) => type).sort();
 

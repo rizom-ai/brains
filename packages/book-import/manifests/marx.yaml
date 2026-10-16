@@ -1,0 +1,2744 @@
+# Karl Marx's works, read from the Deutsches Textarchiv's TEI transcriptions
+# of their first editions (the Brumaire from the second, 1869), and from
+# Wikisource's transcriptions of the Deutsch-Französische Jahrbücher (1844)
+# and of the Thesen über Feuerbach as Engels first printed them (1888). The
+# Textarchiv's transcriptions are under CC BY-SA 4.0, the Manifest's under
+# CC BY-SA 2.0 DE; Wikisource's are of public-domain texts. Of the letters the
+# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept,
+# a published work; his other letters are not. The economic manuscripts of
+# 1857/58 and 1863–65 (the first book; the second is a draft Das Kapital II
+# supersedes) come from MEGAdigital's
+# transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
+# right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
+# apparatus is left out. A work Marx wrote in English or French is read in
+# his own words: Value, Price and Profit from the 1899 London edition, The
+# Civil War in France and the addresses on the Franco-Prussian War from
+# en.wikisource, the Misère de la philosophie and the Discours sur la
+# question du libre-échange from fr.wikisource's transcription of the 1896
+# Paris edition. Le Capital is the French edition Marx revised (1872–75).
+# The Secret Diplomatic History is Project Gutenberg's transcription.
+# Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
+# Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
+# of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
+# (1902), without his introductions and notes and without Engels' own pieces.
+# `year` is first publication. The second
+# and third volumes of Das Kapital appeared after Marx's death, edited by
+# Engels; Engels' prefaces to them are left out. The third volume is two
+# books, as printed, each paged on its own.
+source: dta-tei
+coverage:
+  author: Karl Marx
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, MEGAdigital and Wikisource or read from the Internet Archive's scans
+  license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
+gaps: []
+books:
+  - id: marx_manifestws_1848
+    citation: Manifest
+    slug: manifest-der-kommunistischen-partei
+    title: Manifest der Kommunistischen Partei
+    shortTitle: Kommunistisches Manifest
+    edition: "Manifest der Kommunistischen Partei (London: Office der „Bildungs-Gesellschaft für Arbeiter“, 1848)"
+    author: Karl Marx und Friedrich Engels
+    year: 1848
+    kind: work
+  - id: marx_bonaparte_1869
+    citation: Brumaire
+    slug: der-achtzehnte-brumaire-des-louis-bonaparte
+    title: Der achtzehnte Brumaire des Louis Bonaparte
+    shortTitle: Der achtzehnte Brumaire
+    edition: Der achtzehnte Brumaire des Louis Bonaparte, 2., überarbeitete Auflage (Hamburg, Otto Meißner, 1869)
+    author: Karl Marx
+    year: 1852
+    kind: work
+  - id: marx_kapital01_1867
+    citation: Kapital I
+    slug: das-kapital-1
+    title: "Das Kapital. Erster Band: Der Produktionsprocess des Kapitals"
+    shortTitle: Das Kapital I
+    edition: Das Kapital. Kritik der politischen Oekonomie, Erster Band (Hamburg, Otto Meissner, 1867)
+    author: Karl Marx
+    year: 1867
+    kind: work
+  # Marx revised Joseph Roy's translation himself, and rewrote parts of it.
+  - source: wikisource
+    page: Le Capital
+    pages:
+      - Le Capital/Préface
+      - Le Capital/Texte entier
+      - Le Capital/Avis au lecteur
+      - Le Capital/Postface
+    site: fr.wikisource.org
+    citation: Le Capital
+    nested: true
+    printedNotes: true
+    # Lachâtre's reply to Marx's letter, printed with it.
+    skipHeadings: [Au citoyen Karl Marx]
+    # The preface closes on Dante, set centred.
+    textHeadings: [Segui il tuo corso, e lascia dir le genti !]
+    slug: le-capital
+    title: Le Capital. Livre premier. Développement de la production capitaliste
+    shortTitle: Le Capital
+    edition: Le Capital, traduction de M. J. Roy, entièrement revisée par l'auteur (Paris, Maurice Lachâtre, 1872–1875)
+    author: Karl Marx
+    year: 1872
+    kind: work
+  - id: marx_kapital02_1885
+    citation: Kapital II
+    slug: das-kapital-2
+    title: "Das Kapital. Zweiter Band: Der Cirkulationsprocess des Kapitals"
+    shortTitle: Das Kapital II
+    edition: Das Kapital. Kritik der politischen Oekonomie, Zweiter Band, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1885)
+    author: Karl Marx
+    year: 1885
+    published: false
+    kind: work
+    skipHeadings: [Vorwort]
+  - id: marx_kapital0301_1894
+    citation: Kapital III.1
+    slug: das-kapital-3-1
+    title: "Das Kapital. Dritter Band, erster Theil: Der Gesammtprocess der kapitalistischen Produktion, Kapitel I bis XXVIII"
+    shortTitle: Das Kapital III.1
+    edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, erster Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
+    author: Karl Marx
+    year: 1894
+    published: false
+    kind: work
+    skipHeadings: [Vorwort]
+  - id: marx_kapital0302_1894
+    citation: Kapital III.2
+    slug: das-kapital-3-2
+    title: "Das Kapital. Dritter Band, zweiter Theil: Der Gesammtprocess der kapitalistischen Produktion, Kapitel XXIX bis LII"
+    shortTitle: Das Kapital III.2
+    edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, zweiter Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
+    author: Karl Marx
+    year: 1894
+    published: false
+    kind: work
+  - source: mlwerke
+    # MEW 18, 19 and 23 as mlwerke.de published them, from the Internet
+    # Archive's last captures with the text: the preface Marx and Engels
+    # wrote for the Manifest of 1872, Marx's afterword to the second edition
+    # of Das Kapital (1873), and their preface to the second Russian
+    # Manifest (1882), from the German manuscript; Russian was its only
+    # printing in their lifetime. Marx's chapter in Anti-Dühring is its own
+    # book, below.
+    pages:
+      - https://web.archive.org/web/20241203231456id_/http://www.mlwerke.de/me/me18/me18_095.htm
+      - https://web.archive.org/web/20250304045814id_/http://www.mlwerke.de/me/me23/me23_018.htm
+      - https://web.archive.org/web/20250125053712id_/http://www.mlwerke.de/me/me19/me19_295.htm
+    citation: Vorworte
+    articles: true
+    slug: vorworte-1872-1882
+    title: Vorworte 1872–1882
+    edition: "Marx-Engels-Werke, Band 18 (Berlin, Dietz, 1962; 5. Auflage 1973), S. 95–96, Band 23 (Berlin, Dietz, 1968), S. 18–28, und Band 19 (Berlin, Dietz, 1962; 4. Auflage 1973), S. 295–296"
+    author: Karl Marx
+    year: 1872
+    kind: work
+  - source: mlwerke
+    # MEW 20 (1962) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: the chapter Marx wrote for Engels's
+    # Anti-Dühring, the tenth of its second part. The page holds the whole
+    # second part; Engels's chapters I to IX, read as one section, are left
+    # out with his notes to them.
+    pages:
+      - https://web.archive.org/web/20250212034655id_/http://www.mlwerke.de/me/me20/me20_136.htm
+    citation: Kritische Geschichte
+    headings:
+      - { level: 1, title: I. Gegenstand und Methode }
+      - { level: 1, title: X. Aus der »Kritischen Geschichte« }
+    skipHeadings: [I. Gegenstand und Methode]
+    slug: aus-der-kritischen-geschichte
+    title: Aus der „Kritischen Geschichte“
+    edition: "Friedrich Engels, Herrn Eugen Dühring's Umwälzung der Wissenschaft (Leipzig, 1878), Zweiter Abschnitt, Kapitel X, in: Marx-Engels-Werke, Band 20 (Berlin, Dietz, 1962), S. 210–238"
+    author: Karl Marx
+    year: 1878
+    kind: work
+  - source: wikisource
+    page: Ein Briefwechsel von 1843
+    citation: Briefwechsel 1843
+    slug: briefe-aus-den-deutsch-franzoesischen-jahrbuechern
+    title: Briefe aus den Deutsch-Französischen Jahrbüchern
+    shortTitle: Briefe von 1843
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 17–40
+    author: Karl Marx
+    year: 1844
+    kind: letters
+    skipHeadings: [R. an M., B. an R., R. an B., F. an R.]
+  - source: wikisource
+    page: Zur Kritik der Hegel’schen Rechtsphilosophie
+    citation: Rechtsphilosophie
+    slug: zur-kritik-der-hegelschen-rechtsphilosophie-einleitung
+    title: Zur Kritik der Hegel’schen Rechts-Philosophie. Einleitung
+    shortTitle: Zur Kritik der Hegel’schen Rechtsphilosophie
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 71–85
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: wikisource
+    page: Zur Judenfrage
+    citation: Judenfrage
+    slug: zur-judenfrage
+    title: Zur Judenfrage
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 182–214
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: mlwerke
+    # MEW 1 (1976) as mlwerke.de published it, from the Internet Archive's
+    # last captures before the site went offline.
+    pages:
+      - https://web.archive.org/web/20230511014219id_/http://www.mlwerke.de/me/me01/me01_203.htm
+      - https://web.archive.org/web/20150602153519id_/http://www.mlwerke.de:80/me/me01/me01_234.htm
+      - https://web.archive.org/web/20150602153523id_/http://www.mlwerke.de:80/me/me01/me01_263.htm
+      - https://web.archive.org/web/20150318042826id_/http://www.mlwerke.de/me/me01/me01_288.htm
+      - https://web.archive.org/web/20150602153602id_/http://www.mlwerke.de:80/me/me01/me01_316.htm
+    citation: Staatsrecht
+    slug: kritik-des-hegelschen-staatsrechts
+    title: Zur Kritik der Hegelschen Rechtsphilosophie. Kritik des Hegelschen Staatsrechts
+    shortTitle: Kritik des Hegelschen Staatsrechts
+    edition: "Marx-Engels-Werke, Band 1 (Berlin, Dietz, 1976), S. 203–333"
+    author: Karl Marx
+    year: 1843
+    published: false
+    kind: work
+  - source: mlwerke
+    # MEW Ergänzungsband 1 (1968) as mlwerke.de published it, from the
+    # Internet Archive's last captures before the site went offline.
+    pages:
+      - https://web.archive.org/web/20161114142054id_/http://www.mlwerke.de/me/me40/me40_467.htm
+      - https://web.archive.org/web/20170725032312id_/http://www.mlwerke.de:80/me/me40/me40_471.htm
+      - https://web.archive.org/web/20161114142129id_/http://www.mlwerke.de/me/me40/me40_483.htm
+      - https://web.archive.org/web/20161031084248id_/http://www.mlwerke.de/me/me40/me40_497.htm
+      - https://web.archive.org/web/20161026040614id_/http://www.mlwerke.de:80/me/me40/me40_510.htm
+      - https://web.archive.org/web/20161026235311id_/http://www.mlwerke.de:80/me/me40/me40_523.htm
+      - https://web.archive.org/web/20161114142035id_/http://www.mlwerke.de/me/me40/me40_530.htm
+      - https://web.archive.org/web/20170115034703id_/http://www.mlwerke.de/me/me40/me40_533.htm
+      - https://web.archive.org/web/20161026235336id_/http://www.mlwerke.de:80/me/me40/me40_546.htm
+      - https://web.archive.org/web/20161026205325id_/http://www.mlwerke.de:80/me/me40/me40_562.htm
+      - https://web.archive.org/web/20161114142019id_/http://www.mlwerke.de/me/me40/me40_568.htm
+    citation: Manuskripte 1844
+    slug: oekonomisch-philosophische-manuskripte
+    title: Ökonomisch-philosophische Manuskripte aus dem Jahre 1844
+    shortTitle: Manuskripte 1844
+    edition: "Marx-Engels-Werke, Ergänzungsband, 1. Teil (Berlin, Dietz, 1968), S. 465–588"
+    author: Karl Marx
+    year: 1844
+    published: false
+    kind: work
+    # The Vorrede stands on page XXXIX of the third manuscript.
+    fixes:
+      - { page: "467", from: "||IXXXIX|", to: "||XXXIX|" }
+  - source: mlwerke
+    # MEW 14 (1961, 4th printing 1972) as mlwerke.de published it, from the
+    # Internet Archive's last captures; both scans of the London edition of
+    # 1860 read below the OCR gate.
+    pages:
+      - https://web.archive.org/web/20160320005304id_/http://mlwerke.de/me/me14/me14_385.htm
+      - https://web.archive.org/web/20160304202435id_/http://www.mlwerke.de/me/me14/me14_389.htm
+      - https://web.archive.org/web/20160304205627id_/http://www.mlwerke.de/me/me14/me14_398.htm
+      - https://web.archive.org/web/20160304204919id_/http://www.mlwerke.de/me/me14/me14_408.htm
+      - https://web.archive.org/web/20160320014845id_/http://mlwerke.de/me/me14/me14_435.htm
+      - https://web.archive.org/web/20160320012311id_/http://mlwerke.de/me/me14/me14_459.htm
+      - https://web.archive.org/web/20160320011253id_/http://mlwerke.de/me/me14/me14_461.htm
+      - https://web.archive.org/web/20160320011458id_/http://mlwerke.de/me/me14/me14_469.htm
+      - https://web.archive.org/web/20160320001309id_/http://mlwerke.de/me/me14/me14_490.htm
+      - https://web.archive.org/web/20160320001830id_/http://mlwerke.de/me/me14/me14_541.htm
+      - https://web.archive.org/web/20170113035927id_/http://www.mlwerke.de:80/me/me14/me14_570.htm
+      - https://web.archive.org/web/20160320001251id_/http://mlwerke.de/me/me14/me14_614.htm
+      - https://web.archive.org/web/20160321001404id_/http://mlwerke.de/me/me14/me14_650.htm
+    citation: Herr Vogt
+    slug: herr-vogt
+    title: Herr Vogt
+    edition: "Marx-Engels-Werke, Band 14 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 381–686"
+    author: Karl Marx
+    year: 1860
+    kind: work
+  - source: mlwerke
+    # MEW 13 (1961, 7th printing 1971) and 14 (1961, 4th printing 1972) as
+    # mlwerke.de published them, from the Internet Archive's last captures
+    # with the text: Marx's articles for Das Volk (London, 1859) and his
+    # letters and statements to the papers in the Vogt affair (1859–1860).
+    # The Gatherings from the Press in Das Volk, which he compiled with
+    # Elard Biscamp, are left out.
+    pages:
+      - https://web.archive.org/web/20221128015841id_/http://mlwerke.de/me/me13/me13_391.htm
+      - https://web.archive.org/web/20240825085637id_/http://www.mlwerke.de/me/me13/me13_414.htm
+      - https://web.archive.org/web/20250219171346id_/http://www.mlwerke.de/me/me13/me13_444.htm
+      - https://web.archive.org/web/20221128024342id_/http://mlwerke.de/me/me13/me13_450.htm
+      - https://web.archive.org/web/20221205170109id_/http://mlwerke.de/me/me13/me13_487.htm
+      - https://web.archive.org/web/20240807095544id_/http://www.mlwerke.de/me/me14/me14_687.htm
+      - https://web.archive.org/web/20240807083916id_/http://www.mlwerke.de/me/me14/me14_688.htm
+      - https://web.archive.org/web/20240807101538id_/http://www.mlwerke.de/me/me14/me14_692.htm
+      - https://web.archive.org/web/20240807090901id_/http://www.mlwerke.de/me/me14/me14_696.htm
+      - https://web.archive.org/web/20240807101544id_/http://www.mlwerke.de/me/me14/me14_700.htm
+      - https://web.archive.org/web/20240807085805id_/http://www.mlwerke.de/me/me14/me14_701.htm
+    citation: Volk und Vogt
+    articles: true
+    # The four parts of Quid pro Quo, numbered on centred lines.
+    headings:
+      - { level: 2, title: I }
+      - { level: 2, title: II }
+      - { level: 2, title: III }
+      - { level: 2, title: IV }
+    # The Allgemeine Zeitung's own note to Marx's signature.
+    fixes:
+      - page: "687"
+        from: Redakteur der ehemaligen „Rheinischen Zeitung“ (Fußnote der Redaktion der „Allgemeinen Zeitung“)
+        to: ""
+    slug: artikel-im-volk-und-erklaerungen-zur-sache-vogt
+    title: Artikel im „Volk“ und Erklärungen zur Sache Vogt 1859–1860
+    shortTitle: Das Volk und die Sache Vogt
+    edition: "Marx-Engels-Werke, Band 13 (Berlin, Dietz, 1961; 7. Auflage 1971), S. 391–489, und Band 14 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 687–702"
+    author: Karl Marx
+    year: 1859
+    kind: work
+  - source: mlwerke
+    # MEW 15 (1961, 4th printing 1972) as mlwerke.de published it, from the
+    # Internet Archive's first captures: Marx's German articles for the Vienna
+    # Presse, two of them with Engels; those MEW translated from his English
+    # and Engels's own are left out.
+    pages:
+      - https://web.archive.org/web/20010517095245id_/http://www.mlwerke.de:80/me/me15/me15_329.htm
+      - https://web.archive.org/web/20010517095020id_/http://www.mlwerke.de:80/me/me15/me15_348.htm
+      - https://web.archive.org/web/20010121214300id_/http://www.mlwerke.de:80/me/me15/me15_357.htm
+      - https://web.archive.org/web/20010517094847id_/http://www.mlwerke.de:80/me/me15/me15_361.htm
+      - https://web.archive.org/web/20010517095145id_/http://www.mlwerke.de:80/me/me15/me15_374.htm
+      - https://web.archive.org/web/20010517095153id_/http://www.mlwerke.de:80/me/me15/me15_377.htm
+      - https://web.archive.org/web/20010118061300id_/http://www.mlwerke.de:80/me/me15/me15_381.htm
+      - https://web.archive.org/web/20010517095004id_/http://www.mlwerke.de:80/me/me15/me15_389.htm
+      - https://web.archive.org/web/20010518145722id_/http://www.mlwerke.de:80/me/me15/me15_392.htm
+      - https://web.archive.org/web/20010518145511id_/http://www.mlwerke.de:80/me/me15/me15_406.htm
+      - https://web.archive.org/web/20010518145717id_/http://www.mlwerke.de:80/me/me15/me15_409.htm
+      - https://web.archive.org/web/20010518145647id_/http://www.mlwerke.de:80/me/me15/me15_419.htm
+      - https://web.archive.org/web/20020721071601id_/http://mlwerke.de:80/me/me15/me15_421.htm
+      - https://web.archive.org/web/20010518145731id_/http://www.mlwerke.de:80/me/me15/me15_423.htm
+      - https://web.archive.org/web/20020721071704id_/http://mlwerke.de:80/me/me15/me15_427.htm
+      - https://web.archive.org/web/20010518145853id_/http://www.mlwerke.de:80/me/me15/me15_430.htm
+      - https://web.archive.org/web/20010518145625id_/http://www.mlwerke.de:80/me/me15/me15_434.htm
+      - https://web.archive.org/web/20011130020636id_/http://www.mlwerke.de:80/me/me15/me15_436.htm
+      - https://web.archive.org/web/20020319214516id_/http://www.mlwerke.de:80/me/me15/me15_445.htm
+      - https://web.archive.org/web/20020319214530id_/http://www.mlwerke.de:80/me/me15/me15_447.htm
+      - https://web.archive.org/web/20010121214800id_/http://www.mlwerke.de:80/me/me15/me15_451.htm
+      - https://web.archive.org/web/20020721071305id_/http://mlwerke.de:80/me/me15/me15_454.htm
+      - https://web.archive.org/web/20020319215531id_/http://www.mlwerke.de:80/me/me15/me15_458.htm
+      - https://web.archive.org/web/20020319215332id_/http://www.mlwerke.de:80/me/me15/me15_461.htm
+      - https://web.archive.org/web/20020319215044id_/http://www.mlwerke.de:80/me/me15/me15_464.htm
+      - https://web.archive.org/web/20010121215600id_/http://www.mlwerke.de:80/me/me15/me15_468.htm
+      - https://web.archive.org/web/20020319220533id_/http://www.mlwerke.de:80/me/me15/me15_478.htm
+      - https://web.archive.org/web/20010121220000id_/http://www.mlwerke.de:80/me/me15/me15_482.htm
+      - https://web.archive.org/web/20020319213707id_/http://www.mlwerke.de:80/me/me15/me15_486.htm
+      - https://web.archive.org/web/20020319214252id_/http://www.mlwerke.de:80/me/me15/me15_496.htm
+      - https://web.archive.org/web/20020319214719id_/http://www.mlwerke.de:80/me/me15/me15_499.htm
+      - https://web.archive.org/web/20020905213749id_/http://www.mlwerke.de:80/me/me15/me15_502.htm
+      - https://web.archive.org/web/20020721071920id_/http://mlwerke.de:80/me/me15/me15_504.htm
+      - https://web.archive.org/web/20020321084652id_/http://www.mlwerke.de:80/me/me15/me15_508.htm
+      - https://web.archive.org/web/20001207174900id_/http://www.mlwerke.de:80/me/me15/me15_514.htm
+      - https://web.archive.org/web/20020905214651id_/http://www.mlwerke.de:80/me/me15/me15_517.htm
+      - https://web.archive.org/web/20020721071242id_/http://mlwerke.de:80/me/me15/me15_521.htm
+      - https://web.archive.org/web/20020721071026id_/http://mlwerke.de:80/me/me15/me15_524.htm
+      - https://web.archive.org/web/20020321090122id_/http://www.mlwerke.de:80/me/me15/me15_527.htm
+      - https://web.archive.org/web/20030511032827id_/http://www.mlwerke.de:80/me/me15/me15_530.htm
+      - https://web.archive.org/web/20020721071834id_/http://mlwerke.de:80/me/me15/me15_541.htm
+      - https://web.archive.org/web/20020321084922id_/http://www.mlwerke.de:80/me/me15/me15_544.htm
+      - https://web.archive.org/web/20020905213526id_/http://www.mlwerke.de:80/me/me15/me15_548.htm
+      - https://web.archive.org/web/20010119140500id_/http://www.mlwerke.de:80/me/me15/me15_551.htm
+      - https://web.archive.org/web/20020321085326id_/http://www.mlwerke.de:80/me/me15/me15_554.htm
+      - https://web.archive.org/web/20020721071334id_/http://mlwerke.de:80/me/me15/me15_558.htm
+      - https://web.archive.org/web/20020321085340id_/http://www.mlwerke.de:80/me/me15/me15_562.htm
+      - https://web.archive.org/web/20010121220600id_/http://www.mlwerke.de:80/me/me15/me15_565.htm
+      - https://web.archive.org/web/20020321201951id_/http://www.mlwerke.de:80/me/me15/me15_567.htm
+      - https://web.archive.org/web/20020321201818id_/http://www.mlwerke.de:80/me/me15/me15_570.htm
+    citation: Presse
+    articles: true
+    slug: artikel-in-der-presse
+    title: Artikel in der Wiener „Presse“ 1861–1862
+    shortTitle: Artikel in der „Presse“
+    edition: "Marx-Engels-Werke, Band 15 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 329–573"
+    author: Karl Marx
+    year: 1861
+    kind: work
+  - source: mlwerke
+    # MEW 15, from the Internet Archive's first capture.
+    pages:
+      - https://web.archive.org/web/20020321200234id_/http://www.mlwerke.de:80/me/me15/me15_575.htm
+    citation: Berliner Reform
+    articles: true
+    slug: brief-an-die-redaktion-der-berliner-reform
+    title: Brief an die Redaktion der „Berliner Reform“
+    edition: "Marx-Engels-Werke, Band 15 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 575"
+    author: Karl Marx
+    year: 1863
+    kind: work
+  - source: mlwerke
+    # MEW 15, from the Internet Archive's first capture: the leaflet of
+    # October 1863.
+    pages:
+      - https://web.archive.org/web/20020321200421id_/http://www.mlwerke.de:80/me/me15/me15_576.htm
+    citation: Proklamation über Polen
+    articles: true
+    slug: proklamation-des-deutschen-bildungsvereins-ueber-polen
+    title: Proklamation des Deutschen Bildungsvereins für Arbeiter in London über Polen
+    edition: "Marx-Engels-Werke, Band 15 (Berlin, Dietz, 1961; 4. Auflage 1972), S. 576–577"
+    author: Karl Marx
+    year: 1863
+    kind: work
+  - source: mlwerke
+    # MEW 16–18 as mlwerke.de published them, from the Internet Archive's
+    # last captures with content: Marx's German letters to editors,
+    # statements, the General Council's German statements he wrote, and his
+    # replies to Brentano, two with Engels.
+    articles: true
+    pages:
+      - https://web.archive.org/web/20240520145638id_/http://www.mlwerke.de/me/me16/me16_021.htm
+      - https://web.archive.org/web/20240520154124id_/http://www.mlwerke.de/me/me16/me16_022.htm
+      - https://web.archive.org/web/20200218113715id_/http://www.mlwerke.de:80/me/me16/me16_079.htm
+      - https://web.archive.org/web/20200218113640id_/http://www.mlwerke.de:80/me/me16/me16_084.htm
+      - https://web.archive.org/web/20200218152250id_/http://www.mlwerke.de:80/me/me16/me16_086.htm
+      - https://web.archive.org/web/20200218113916id_/http://www.mlwerke.de:80/me/me16/me16_090.htm
+      - https://web.archive.org/web/20250222022654id_/http://www.mlwerke.de/me/me16/me16_091.htm
+      - https://web.archive.org/web/20200218151801id_/http://www.mlwerke.de:80/me/me16/me16_164.htm
+      - https://web.archive.org/web/20221128010245id_/http://mlwerke.de/me/me16/me16_205.htm
+      - https://web.archive.org/web/20241212162204id_/http://www.mlwerke.de/me/me16/me16_221.htm
+      - https://web.archive.org/web/20200218113325id_/http://www.mlwerke.de:80/me/me16/me16_316.htm
+      - https://web.archive.org/web/20200218114006id_/http://www.mlwerke.de:80/me/me16/me16_331.htm
+      - https://web.archive.org/web/20220129112434id_/http://www.mlwerke.de/me/me16/me16_421.htm
+      - https://web.archive.org/web/20240812170809id_/http://www.mlwerke.de/me/me17/me17_298.htm
+      - https://web.archive.org/web/20240812175824id_/http://www.mlwerke.de/me/me17/me17_435.htm
+      - https://web.archive.org/web/20240812165856id_/http://www.mlwerke.de/me/me17/me17_466.htm
+      - https://web.archive.org/web/20221005150028id_/http://www.mlwerke.de/me/me18/me18_089.htm
+      - https://web.archive.org/web/20220129020724id_/http://www.mlwerke.de/me/me18/me18_082.htm
+      - https://web.archive.org/web/20220129020517id_/http://www.mlwerke.de/me/me18/me18_105.htm
+      - https://web.archive.org/web/20241009125507id_/http://mlwerke.de/me/me18/me18_108.htm
+      - https://web.archive.org/web/20241219161647id_/http://www.mlwerke.de/me/me18/me18_129.htm
+      - https://web.archive.org/web/20220129013112id_/http://www.mlwerke.de/me/me18/me18_180.htm
+      - https://web.archive.org/web/20240909223533id_/http://www.mlwerke.de/me/me18/me18_572.htm
+    citation: Artikel 1864–1875
+    slug: artikel-und-erklaerungen-1864-1875
+    title: Artikel und Erklärungen 1864–1875
+    edition: "Marx-Engels-Werke, Bände 16–18 (Berlin, Dietz, 1962–1964)"
+    author: Karl Marx
+    year: 1864
+    kind: work
+  - source: wikisource
+    # The Inaugural Address and the Provisional Rules in Marx's English, from
+    # the facsimile (1924) of the first edition (London, 1864).
+    page: Address and Provisional Rules of the International Working Men's Association
+    site: en.wikisource.org
+    citation: Address and Provisional Rules
+    from: ADDRESS, &c., &c.
+    # The 1924 facsimile's colophon.
+    skipHeadings: [Reprinted from the Original by Photographic "L.H." Reprint Process]
+    slug: address-and-provisional-rules-of-the-international-working-mens-association
+    title: Address and Provisional Rules of the International Working Men's Association
+    shortTitle: Inaugural Address and Provisional Rules
+    edition: Address and Provisional Rules of the Working Men's International Association (London, 1864), facsimile edition 1924
+    author: Karl Marx
+    year: 1864
+    kind: work
+  - source: mlwerke
+    # MEW 16 (1962, 6th printing 1975) as mlwerke.de published it, from the
+    # Internet Archive's last capture: the German text of Der Social-Demokrat
+    # of December 1864, the editors' variants from the English left out.
+    pages:
+      - https://web.archive.org/web/20150902095155id_/http://www.mlwerke.de:80/me/me16/me16_005.htm
+    citation: Inauguraladresse
+    slug: inauguraladresse-der-internationalen-arbeiter-assoziation
+    title: Inauguraladresse der Internationalen Arbeiter-Assoziation
+    edition: "Marx-Engels-Werke, Band 16 (Berlin, Dietz, 1962; 6. Auflage 1975), S. 5–13"
+    author: Karl Marx
+    year: 1864
+    kind: work
+  - source: wikisource
+    # Marx's Lord Palmerston articles (People's Paper and New-York Tribune,
+    # 1853), in his English, as Eleanor Marx reprinted them in 1899.
+    page: The Story of the Life of Lord Palmerston
+    pages:
+      - The Story of the Life of Lord Palmerston/Chapter 1
+      - The Story of the Life of Lord Palmerston/Chapter 2
+      - The Story of the Life of Lord Palmerston/Chapter 3
+      - The Story of the Life of Lord Palmerston/Chapter 4
+      - The Story of the Life of Lord Palmerston/Chapter 5
+      - The Story of the Life of Lord Palmerston/Chapter 6
+      - The Story of the Life of Lord Palmerston/Chapter 7
+      - The Story of the Life of Lord Palmerston/Chapter 8
+    site: en.wikisource.org
+    citation: Palmerston
+    # The first chapter's page repeats the book's title above it.
+    omitHeadings: [The Story of the Life of Lord Palmerston]
+    textHeadings: ["\"Sans teeth, sans eyes, sans taste, sans everything,\""]
+    slug: the-story-of-the-life-of-lord-palmerston
+    title: The Story of the Life of Lord Palmerston
+    edition: The Story of the Life of Lord Palmerston, edited by Eleanor Marx Aveling (London, Swan Sonnenschein, 1899)
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: gutenberg
+    # Marx's Revelations of the Diplomatic History of the 18th Century, in his
+    # English, as the Free Press printed them in 1856–57 and his daughter
+    # Eleanor reprinted them in 1899; the publisher's preface is left out.
+    ebook: 32370
+    citation: Diplomatic History
+    from: Chapter I
+    printedNotes: true
+    slug: secret-diplomatic-history-of-the-eighteenth-century
+    title: Secret Diplomatic History of the Eighteenth Century
+    edition: Secret Diplomatic History of the Eighteenth Century, edited by Eleanor Marx Aveling (London, Swan Sonnenschein, 1899)
+    author: Karl Marx
+    year: 1856
+    kind: work
+  - source: archive-ocr
+    # Marx's address to the General Council of the International (June
+    # 1865), in his English, as his daughter Eleanor first published it in
+    # 1898; the scan is of the 1899 London edition, reprinted photographically.
+    # Edward Aveling's preface and the editors' notes are left out; the
+    # chapters are as Aveling divided and named them, the first unheaded.
+    item: valuepriceprofit0000unse
+    citation: Value, Price and Profit
+    slug: value-price-and-profit
+    title: Value, Price and Profit
+    edition: "Value, Price and Profit, edited by his daughter Eleanor Marx Aveling (London, George Allen & Unwin, 1899)"
+    author: Karl Marx
+    year: 1898
+    published: false
+    kind: work
+    firstPage: 11
+    lastPage: 94
+    references:
+      - https://www.marxists.org/archive/marx/works/1865/value-price-profit/ch01.htm
+      - https://www.marxists.org/archive/marx/works/1865/value-price-profit/ch02.htm
+      - https://www.marxists.org/archive/marx/works/1865/value-price-profit/ch03.htm
+    headings:
+      - page: 11
+        opens: PRELIMINARY
+      - page: 13
+        opens: PRODUCTION, WAGES, PROFITS
+      - page: 37
+        opens: WAGES AND PRICES
+  - source: mlwerke
+    # MEW 3 (1969) as mlwerke.de published it, from the Internet Archive's
+    # last captures. The pages set headings and Stirner's schemas alike as
+    # centred lines, so the headings are listed, after MEW's contents.
+    pages:
+      - https://web.archive.org/web/20160310040155id_/http://www.mlwerke.de/me/me03/me03_011.htm
+      - https://web.archive.org/web/20150907140157id_/http://www.mlwerke.de:80/me/me03/me03_017.htm
+      - https://web.archive.org/web/20151115084849id_/http://www.mlwerke.de:80/me/me03/me03_078.htm
+      - https://web.archive.org/web/20151115055801id_/http://www.mlwerke.de:80/me/me03/me03_101.htm
+      - https://web.archive.org/web/20151115084905id_/http://www.mlwerke.de:80/me/me03/me03_168.htm
+      - https://web.archive.org/web/20151115084917id_/http://www.mlwerke.de:80/me/me03/me03_222.htm
+      - https://web.archive.org/web/20160322181945id_/http://mlwerke.de/me/me03/me03_282.htm
+      - https://web.archive.org/web/20150831172600id_/http://www.mlwerke.de:80/me/me03/me03_331.htm
+      - https://web.archive.org/web/20151124055635id_/http://www.mlwerke.de:80/me/me03/me03_380.htm
+      - https://web.archive.org/web/20151127065221id_/http://www.mlwerke.de:80/me/me03/me03_430.htm
+      - https://web.archive.org/web/20151127065349id_/http://www.mlwerke.de:80/me/me03/me03_439.htm
+      - https://web.archive.org/web/20151116014505id_/http://www.mlwerke.de:80/me/me03/me03_473.htm
+      - https://web.archive.org/web/20151127065354id_/http://www.mlwerke.de:80/me/me03/me03_521.htm
+    citation: Ideologie
+    slug: die-deutsche-ideologie
+    title: Die deutsche Ideologie
+    edition: "Marx-Engels-Werke, Band 3 (Berlin, Dietz, 1969), S. 9–530"
+    author: Karl Marx und Friedrich Engels
+    year: 1846
+    published: false
+    kind: work
+    headings:
+      - {
+          level: 1,
+          title: "I. Band. Kritik der neuesten deutschen Philosophie in ihren Repräsentanten Feuerbach, B. Bauer und Stirner",
+          match: ["I. Band"],
+        }
+      - { level: 2, title: Vorrede }
+      - {
+          level: 2,
+          title: "I. Feuerbach. Gegensatz von materialistischer und idealistischer Anschauung",
+          match: ["I Feuerbach", "Gegensatz von materialistischer"],
+        }
+      - { level: 3, title: "[Einleitung]" }
+      - {
+          level: 3,
+          title: "A. Die Ideologie überhaupt, namentlich die deutsche",
+        }
+      - { level: 4, title: "[1.] Geschichte" }
+      - { level: 4, title: "[2.] Über die Produktion des Bewußtseins" }
+      - { level: 3, title: "[B. Die wirkliche Basis der Ideologie]" }
+      - { level: 4, title: "[1.] Verkehr und Produktivkraft" }
+      - { level: 4, title: "[2.] Verhältnis von Staat und Recht zum Eigentum" }
+      - {
+          level: 4,
+          title: "[3.] Naturwüchsige und zivilisierte Produktionsinstrumente und Eigentumsformen",
+        }
+      - {
+          level: 3,
+          title: "[C.] Kommunismus. – Produktion der Verkehrsform selbst",
+          match: ["[C.] Kommunismus"],
+        }
+      - { level: 2, title: Das Leipziger Konzil }
+      - { level: 2, title: II. Sankt Bruno, match: ["II", "Sankt Bruno"] }
+      - {
+          level: 3,
+          title: "1. „Feldzug“ gegen Feuerbach",
+          match: ['1. "Feldzug"'],
+        }
+      - {
+          level: 3,
+          title: "2. Sankt Brunos Betrachtungen über den Kampf zwischen Feuerbach und Stirner",
+          match: ["2. Sankt Brunos"],
+        }
+      - {
+          level: 3,
+          title: "3. Sankt Bruno contra die Verfasser der „Heiligen Familie“",
+          match: ["3. Sankt Bruno contra"],
+        }
+      - { level: 3, title: "4. Nachruf an „M. Heß“", match: ["4. Nachruf"] }
+      - { level: 2, title: III. Sankt Max, match: ["III", "Sankt Max"] }
+      - { level: 3, title: 1. Der Einzige und sein Eigentum }
+      - { level: 4, title: "Altes Testament: Der Mensch" }
+      - { level: 5, title: "1. Genesis, d.i. Ein Menschenleben" }
+      - { level: 5, title: 2. Ökonomie des Alten Bundes }
+      - { level: 5, title: 3. Die Alten }
+      - { level: 5, title: 4. Die Neuen }
+      - { level: 6, title: A) Der Geist (Reine Geistergeschichte) }
+      - { level: 6, title: B) Die Besessenen (Unreine Geistergeschichte) }
+      - { level: 7, title: a) Der Spuk }
+      - { level: 7, title: b) Der Sparren }
+      - { level: 6, title: C) Unreine unreine Geistergeschichte }
+      - { level: 7, title: a) Neger und Mongolen }
+      - { level: 7, title: b) Katholizismus und Protestantismus }
+      - { level: 6, title: D) Die Hierarchie }
+      - { level: 5, title: "5. Der in seiner Konstruktion vergnügte Stirner" }
+      - { level: 5, title: 6. Die Freien }
+      - { level: 6, title: A) Der politische Liberalismus }
+      - { level: 6, title: B) Der Kommunismus }
+      - { level: 6, title: C) Der humane Liberalismus }
+      - {
+          level: 4,
+          title: "Neues Testament: „Ich“",
+          match: ["Neues Testament"],
+        }
+      - { level: 5, title: 1. Ökonomie des Neuen Bundes }
+      - {
+          level: 5,
+          title: "2. Phänomenologie des mit sich einigen Egoisten oder die Lehre von der Rechtfertigung",
+          match: ["2. Phänomenologie"],
+        }
+      - {
+          level: 5,
+          title: "3. Offenbarung Johannis des Theologen oder „die Logik der neuen Weisheit“",
+          match: ["3. Offenbarung"],
+        }
+      - { level: 5, title: 4. Die Eigenheit }
+      - { level: 5, title: 5. Der Eigner }
+      - { level: 6, title: A) Meine Macht }
+      - { level: 7, title: I. Das Recht }
+      - { level: 8, title: A) Kanonisation im Allgemeinen }
+      - { level: 8, title: B) Aneignung durch einfache Antithese }
+      - { level: 8, title: C) Aneignung durch zusammengesetzte Antithese }
+      - { level: 7, title: II. Das Gesetz }
+      - { level: 7, title: III. Das Verbrechen }
+      - { level: 8, title: A) Einfache Kanonisation von Verbrechen und Strafe }
+      - { level: 9, title: a) Verbrechen }
+      - { level: 9, title: b) Strafe }
+      - {
+          level: 8,
+          title: B) Aneignung von Verbrechen und Strafe durch Antithese,
+        }
+      - {
+          level: 8,
+          title: C) Das Verbrechen im gewöhnlichen und außergewöhnlichen Verstande,
+        }
+      - { level: 6, title: "[B) Mein Verkehr]", match: [] }
+      - { level: 7, title: "[I. Die Gesellschaft]", match: [] }
+      - { level: 8, title: 5. Die Gesellschaft als bürgerliche Gesellschaft }
+      - { level: 7, title: II. Die Empörung }
+      - { level: 7, title: III. Der Verein }
+      - { level: 8, title: 1. Grundeigentum }
+      - { level: 8, title: 2. Organisation der Arbeit }
+      - { level: 8, title: 3. Geld }
+      - { level: 8, title: 4. Staat }
+      - { level: 8, title: 5. Empörung }
+      - { level: 8, title: 6. Religion und Philosophie des Vereins }
+      - { level: 9, title: A. Eigentum }
+      - { level: 9, title: B. Vermögen }
+      - { level: 9, title: "C. Moral. Verkehr, Exploititionstheorie" }
+      - { level: 9, title: D. Religion }
+      - { level: 9, title: E. Nachträgliches zum Verein }
+      - { level: 6, title: C) Mein Selbstgenuß, match: ["C. Mein Selbstgenuß"] }
+      - { level: 5, title: 6. Das hohe Lied Salomonis oder Der Einzige }
+      - { level: 3, title: 2. Apologetischer Kommentar }
+      - { level: 2, title: Schluß des Leipziger Konzils }
+      - {
+          level: 1,
+          title: "II. Band. Kritik des deutschen Sozialismus in seinen verschiedenen Propheten",
+          match: ["II. Band"],
+        }
+      - { level: 2, title: Der wahre Sozialismus }
+      - {
+          level: 2,
+          title: "I. „Die Rheinischen Jahrbücher“ oder Die Philosophie des wahren Sozialismus",
+          match: ["I.", '"Die Rheinischen Jahrbücher"'],
+        }
+      - {
+          level: 3,
+          title: "A. „Communismus, Socialismus, Humanismus“",
+          match: ["A. Communismus"],
+        }
+      - {
+          level: 3,
+          title: "B) „Socialistische Bausteine“",
+          match: ['B) "Socialistische Bausteine"'],
+        }
+      - { level: 4, title: Erster Baustein }
+      - { level: 4, title: Zweiter Baustein }
+      - { level: 4, title: Dritter Baustein }
+      - {
+          level: 2,
+          title: "IV. Karl Grün: „Die soziale Bewegung in Frankreich und Belgien“ (Darmstadt 1845) oder Die Geschichtschreibung des wahren Sozialismus",
+          match: ["IV", "Karl Grün"],
+        }
+      - { level: 3, title: Saint-Simonismus }
+      - {
+          level: 4,
+          title: "1. „Lettres d'un habitant de Genève à ses contemporains“",
+          match: ['1."Lettres'],
+        }
+      - {
+          level: 4,
+          title: "2. „Catéchisme politique des industriels“",
+          match: ['2. "Catéchisme'],
+        }
+      - {
+          level: 4,
+          title: "3. „Nouveau christianisme“",
+          match: ['3. "Nouveau'],
+        }
+      - { level: 4, title: 4. Saint-simonistische Schule }
+      - { level: 3, title: Fourierismus }
+      - {
+          level: 3,
+          title: "Der „bornierte Papa Cabet“ und Herr Grün",
+          match: ['Der "bornierte Papa Cabet"'],
+        }
+      - { level: 3, title: Proudhon }
+      - {
+          level: 2,
+          title: "V. „Der Dr. Georg Kuhlmann aus Holstein“ oder Die Prophetie des wahren Sozialismus",
+          match: ['V "Der Dr. Georg Kuhlmann'],
+        }
+  - source: wikisource
+    page: Thesen über Feuerbach
+    citation: Feuerbach-Thesen
+    slug: thesen-ueber-feuerbach
+    title: Thesen über Feuerbach
+    edition: "Anhang zu Friedrich Engels, Ludwig Feuerbach und der Ausgang der klassischen deutschen Philosophie (Stuttgart, J. H. W. Dietz, 1888), S. 69–72"
+    author: Karl Marx
+    year: 1888
+    published: false
+    kind: work
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Bastiat und Carey
+    slug: bastiat-und-carey
+    title: Bastiat und Carey
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1 (Berlin, Dietz, 1976)
+    author: Karl Marx
+    year: 1904
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Einleitung zu den „Grundrissen der Kritik der politischen Ökonomie“
+    slug: einleitung-zur-kritik-der-politischen-oekonomie
+    title: Einleitung zur Kritik der politischen Ökonomie
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1 (Berlin, Dietz, 1976)
+    author: Karl Marx
+    year: 1903
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Erster Teil
+      - file: MEGA_A2_B001-02_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Zweiter Teil
+    slug: grundrisse-der-kritik-der-politischen-oekonomie
+    title: Grundrisse der Kritik der politischen Ökonomie
+    shortTitle: Grundrisse
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1–1.2 (Berlin, Dietz, 1976–1981)
+    author: Karl Marx
+    year: 1939
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/4.1
+    parts:
+      - file: MEGA_A2_B004-01_ETX.xml
+        text: Das Kapital (Ökonomisches Manuskript 1863-1865) Erstes Buch
+    slug: oekonomisches-manuskript-1863-1865-erstes-buch
+    title: "Das Kapital. Ökonomisches Manuskript 1863–1865, Erstes Buch"
+    shortTitle: Manuskript 1863–65, Erstes Buch
+    edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
+    author: Karl Marx
+    year: 1933
+    published: false
+    kind: nachlass
+  - source: archive-ocr
+    item: dieklassenkmpf00marxuoft
+    citation: Klassenkämpfe
+    ocr: frak2021
+    firstPage: 20
+    lastPage: 112
+    # MEW 7, Dietz 1960, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20170119094535id_/http://www.mlwerke.de/me/me07/me07_012.htm
+      - https://web.archive.org/web/20170119094121id_/http://www.mlwerke.de/me/me07/me07_035.htm
+      - https://web.archive.org/web/20170120003310id_/http://www.mlwerke.de/me/me07/me07_064.htm
+      - https://web.archive.org/web/20170119094540id_/http://www.mlwerke.de/me/me07/me07_095.htm
+    slug: die-klassenkaempfe-in-frankreich-1848-bis-1850
+    title: Die Klassenkämpfe in Frankreich 1848 bis 1850
+    shortTitle: Die Klassenkämpfe in Frankreich
+    edition: "Die Klassenkämpfe in Frankreich 1848 bis 1850, Abdruck aus der „Neuen Rheinischen Zeitung. Politisch-ökonomische Revue“, mit Einleitung von Friedrich Engels (Berlin, Vorwärts, 1895)"
+    author: Karl Marx
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 41
+    lastPage: 60
+    # MEW 1, Dietz 1976, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20160612182802id_/http://www.mlwerke.de/me/me01/me01_392.htm
+    slug: kritische-randglossen-zu-dem-artikel-der-koenig-von-preussen-und-die-sozialreform
+    title: "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform"
+    shortTitle: Kritische Randglossen
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 103
+    lastPage: 324
+    # MEW 2, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20000524185220id_/http://www.mlwerke.de:80/me/me02/me02_003.htm
+      - https://web.archive.org/web/20010123075700id_/http://www.mlwerke.de:80/me/me02/me02_007.htm
+      - https://web.archive.org/web/20010123081600id_/http://www.mlwerke.de:80/me/me02/me02_009.htm
+      - https://web.archive.org/web/20010123061800id_/http://www.mlwerke.de:80/me/me02/me02_012.htm
+      - https://web.archive.org/web/20010123082700id_/http://www.mlwerke.de:80/me/me02/me02_017.htm
+      - https://web.archive.org/web/20010425235247id_/http://www.mlwerke.de:80/me/me02/me02_019.htm
+      - https://web.archive.org/web/20001208130600id_/http://www.mlwerke.de:80/me/me02/me02_057.htm
+      - https://web.archive.org/web/20010123083300id_/http://www.mlwerke.de:80/me/me02/me02_082.htm
+      - https://web.archive.org/web/20001208131100id_/http://www.mlwerke.de:80/me/me02/me02_152.htm
+      - https://web.archive.org/web/20020704041655id_/http://mlwerke.de:80/me/me02/me02_172.htm
+      - https://web.archive.org/web/20010426000827id_/http://www.mlwerke.de:80/me/me02/me02_222.htm
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 302, opens: "Tabelle der" }
+      - { page: 302, opens: "Schon der alte Voß" }
+      - { page: 302, opens: "Das juristische Präventivmittel" }
+    slug: die-heilige-familie
+    title: Die heilige Familie oder Kritik der kritischen Kritik
+    shortTitle: Die heilige Familie
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx und Friedrich Engels
+    year: 1845
+    kind: work
+  - source: mlwerke
+    # MEW 4 (1972) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: the whole circular, its resolutions and
+    # the five sections of its appendix; Mehring’s Nachlass II prints only
+    # an extract.
+    pages:
+      - https://web.archive.org/web/20240616060114id_/http://mlwerke.de/me/me04/me04_003.htm
+    citation: Zirkular
+    headings:
+      - level: 1
+        title: Erster Abschnitt. Verwandlung des Kommunismus in Liebesduselei
+        match: [ERSTER ABSCHNITT, Verwandlung des Kommunismus]
+      - level: 1
+        title: Zweiter Abschnitt. Ökonomie des „Volks-Tribunen“ und seine Stellung zum Jungen Amerika
+        match: [ZWEITER ABSCHNITT, Ökonomie des]
+      - level: 1
+        title: Dritter Abschnitt. Metaphysische Fanfaronnaden
+        match: [DRITTER ABSCHNITT, Metaphysische]
+      - level: 1
+        title: Vierter Abschnitt. Religiöse Tändeleien
+        match: [VIERTER ABSCHNITT, Religiöse]
+      - level: 1
+        title: Fünfter Abschnitt. Krieges persönliches Auftreten
+        match: [FÜNFTER ABSCHNITT, Krieges persönliches]
+    fixes:
+      - { page: "3", from: "Brüssel, den 1 l. Mai 846", to: "Brüssel, den 11. Mai 1846" }
+    slug: zirkular-gegen-kriege-1846
+    title: Zirkular gegen Kriege
+    edition: "Marx-Engels-Werke, Band 4 (Berlin, Dietz, 1972), S. 3–17"
+    author: Karl Marx und Friedrich Engels
+    year: 1846
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 433
+    lastPage: 445
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20010531155020id_/http://www.mlwerke.de:80/me/me04/me04_191.htm
+    slug: der-kommunismus-des-rheinischen-beobachters
+    title: Der Kommunismus des Rheinischen Beobachters
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 454
+    lastPage: 477
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20010531161251id_/http://www.mlwerke.de:80/me/me04/me04_331.htm
+    slug: die-moralisierende-kritik-und-die-kritisierende-moral
+    title: Die moralisirende Kritik und die kritische Moral
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: mlwerke
+    # MEW 4 (1972) and 5 (1971) as mlwerke.de published them, from the
+    # Internet Archive's last captures with the text: Marx's pieces in the
+    # Deutsche-Brüsseler-Zeitung of 1847–48 (the statement against Grün,
+    # his speech on Poland, Lamartine und der Kommunismus, the reply to the
+    # Débat social) and the Forderungen der Kommunistischen Partei in
+    # Deutschland, the leaflet he wrote with Engels in March 1848. Engels's
+    # speech on Poland, printed with Marx's, is left out.
+    pages:
+      - https://web.archive.org/web/20240616070653id_/http://mlwerke.de/me/me04/me04_037.htm
+      - https://web.archive.org/web/20250125061246id_/http://www.mlwerke.de/me/me04/me04_416.htm
+      - https://web.archive.org/web/20240616050602id_/http://mlwerke.de/me/me04/me04_421.htm
+      - https://web.archive.org/web/20240616050828id_/http://mlwerke.de/me/me04/me04_511.htm
+      - https://web.archive.org/web/20240529063453id_/http://mlwerke.de/me/me05/me05_003.htm
+    citation: Brüssel 1847–48
+    articles: true
+    # The speeches on Poland, each under a centred line.
+    headings:
+      - { level: 2, title: "[Rede von Karl Marx]" }
+      - { level: 2, title: "[Rede von Friedrich Engels]" }
+    skipHeadings: ["[Rede von Friedrich Engels]"]
+    slug: artikel-aus-bruessel-und-forderungen-1847-1848
+    title: Artikel aus Brüssel und Forderungen der Kommunistischen Partei 1847–1848
+    shortTitle: Artikel aus Brüssel 1847–1848
+    edition: "Marx-Engels-Werke, Band 4 (Berlin, Dietz, 1972), S. 37–513, und Band 5 (Berlin, Dietz, 1971), S. 3–5"
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 67
+    lastPage: 118
+    # Marx's own table of contents.
+    skipPages: [69, 70]
+    slug: differenz-der-demokritischen-und-epikureischen-naturphilosophie
+    title: Differenz der demokritischen und epikureischen Naturphilosophie
+    shortTitle: Differenz der Naturphilosophie
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1902
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 142
+    lastPage: 166
+    # MEW 1, Dietz 1976, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20010219162044id_/http://www.mlwerke.de:80/me/me01/me01_003.htm
+    slug: bemerkungen-ueber-die-neueste-preussische-zensurinstruktion
+    title: Bemerkungen über die neueste preußische Zensurinstruktion
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1843
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 208
+    lastPage: 258
+    references:
+      - https://web.archive.org/web/20020114214805id_/http://www.mlwerke.de:80/me/me01/me01_028.htm
+      - https://web.archive.org/web/20020514182135id_/http://www.mlwerke.de:80/me/me01/me01_033.htm
+      - https://web.archive.org/web/20020725034046id_/http://www.mlwerke.de:80/me/me01/me01_041.htm
+      - https://web.archive.org/web/20030121150543id_/http://www.mlwerke.de:80/me/me01/me01_050.htm
+      - https://web.archive.org/web/20030121145506id_/http://www.mlwerke.de:80/me/me01/me01_060.htm
+      - https://web.archive.org/web/20020514182515id_/http://www.mlwerke.de:80/me/me01/me01_066.htm
+    slug: debatten-ueber-pressfreiheit
+    title: Debatten über Preßfreiheit und Publikation der landständischen Verhandlungen
+    shortTitle: Debatten über Preßfreiheit
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 259
+    lastPage: 267
+    references:
+      - https://web.archive.org/web/20020324155844id_/http://www.mlwerke.de:80/me/me01/me01_086.htm
+    slug: der-leitende-artikel-in-nr-179-der-koelnischen-zeitung
+    title: Der leitende Artikel in Nr. 179 der Kölnischen Zeitung
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 268
+    lastPage: 274
+    references:
+      - https://web.archive.org/web/20020114220020id_/http://www.mlwerke.de:80/me/me01/me01_078.htm
+    slug: das-philosophische-manifest-der-historischen-rechtsschule
+    title: Das philosophische Manifest der historischen Rechtsschule
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 275
+    lastPage: 279
+    references:
+      - https://web.archive.org/web/20001023213931id_/http://www.mlwerke.de:80/me/me01/me01_105.htm
+    # Names and the period's spellings the scan shows printed so.
+    printedWords:
+      [
+        Mephistopheles,
+        Baierin,
+        Sieyes,
+        Berl,
+        debutiren,
+        synthetisiren,
+        Considerant,
+        Glaceephrasen,
+      ]
+    slug: der-kommunismus-und-die-augsburger-allgemeine-zeitung
+    title: Ueber Kommunismus
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 280
+    lastPage: 321
+    references:
+      - https://web.archive.org/web/20020114221307id_/http://www.mlwerke.de:80/me/me01/me01_109.htm
+      - https://web.archive.org/web/20020725100845id_/http://www.mlwerke.de:80/me/me01/me01_116.htm
+      - https://web.archive.org/web/20020514183320id_/http://www.mlwerke.de:80/me/me01/me01_124.htm
+      - https://web.archive.org/web/20020725100928id_/http://www.mlwerke.de:80/me/me01/me01_131.htm
+      - https://web.archive.org/web/20030121150847id_/http://www.mlwerke.de:80/me/me01/me01_139.htm
+    slug: debatten-ueber-das-holzdiebstahlsgesetz
+    title: Debatten über das Holzdiebstahlsgesetz
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: mlwerke
+    # MEW 1 and 2 as mlwerke.de published them, from the Internet Archive's
+    # last captures with the text: Marx's articles and statements of
+    # 1842–1846 that MEW prints and no other book here holds. One page
+    # bundles the eight articles on the ban of the Leipziger Allgemeine
+    # Zeitung, another the five of the Mosel defence. Luther als
+    # Schiedsrichter zwischen Strauß und Feuerbach (MEW 1), which later
+    # research gives to Feuerbach, is left out, and so are the pieces only
+    # MEW's Ergänzungsband 1 prints, which mlwerke does not carry: the two
+    # poems in the Athenäum (1841), eleven pieces in the Rheinische Zeitung
+    # and the Deutsche Jahrbücher (1842–43), and one in Vorwärts! (1844).
+    pages:
+      - https://web.archive.org/web/20241106061710id_/http://www.mlwerke.de/me/me01/me01_148.htm
+      - https://web.archive.org/web/20241106055132id_/http://www.mlwerke.de/me/me01/me01_152.htm
+      - https://web.archive.org/web/20241221081321id_/http://mlwerke.de/me/me01/me01_172.htm
+      - https://web.archive.org/web/20250125060945id_/http://www.mlwerke.de/me/me01/me01_200.htm
+      - https://web.archive.org/web/20240520151842id_/http://www.mlwerke.de/me/me02/me02_625.htm
+    citation: Artikel 1842–46
+    articles: true
+    slug: artikel-1842-1846
+    title: Artikel 1842–1846
+    edition: "Marx-Engels-Werke, Band 1 (Berlin, Dietz, 1962 und 1976), S. 148–200, und Band 2 (Berlin, Dietz, 1972), S. 625"
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: ldpd_14861084_000
+    citation: Proudhon
+    firstPage: XXVI
+    lastPage: XXXVI
+    # MEW 16, Dietz 1962, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20030511031035id_/http://www.mlwerke.de:80/me/me16/me16_025.htm
+    slug: ueber-p-j-proudhon
+    title: Ueber P.-J. Proudhon
+    edition: Der Social-Demokrat Nr. 16–18 (Berlin, 1865), as reprinted in Das Elend der Philosophie (Stuttgart, J. H. W. Dietz, 1885), S. XXVI–XXXVI
+    author: Karl Marx
+    year: 1865
+    kind: work
+  # Marx wrote the Misère in French; the 1896 edition follows the first
+  # (Paris and Brussels, 1847) with the corrections in Marx's own copy.
+  - source: wikisource
+    page: Misère de la philosophie/Texte entier
+    site: fr.wikisource.org
+    citation: Misère
+    from: Avant-propos
+    until: Fin
+    textHeadings: [Et propter vitam vivendi perdere causas !, Variante.]
+    printedNotes: true
+    slug: misere-de-la-philosophie
+    title: Misère de la philosophie. Réponse à la Philosophie de la misère de M. Proudhon
+    shortTitle: Misère de la philosophie
+    edition: Misère de la philosophie. Réponse à la Philosophie de la misère de M. Proudhon (Paris, V. Giard & E. Brière, 1896), after the first edition (Paris, A. Frank; Bruxelles, C.-G. Vogler, 1847)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: wikisource
+    page: Misère de la philosophie/Texte entier
+    site: fr.wikisource.org
+    citation: Libre-échange
+    from: Discours
+    until: Table des matières
+    # The brochure's title page, set as text.
+    textHeadings:
+      - Prononcé
+      - À l’Association démocratique de Bruxelles
+      - Dans la séance publique du 9 janvier 1848
+      - Par Karl Marx
+      - (Imprimé aux frais de l’Association démocratique
+    printedNotes: true
+    skipNotes: [Le discours de Marx sur le libre échange]
+    slug: discours-sur-la-question-du-libre-echange
+    title: Discours sur la question du libre-échange
+    edition: Discours sur la question du libre-échange (Bruxelles, 1848), as reprinted in Misère de la philosophie (Paris, V. Giard & E. Brière, 1896)
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: archive-ocr
+    # Marx's speech in the brochure of the Brussels meeting, printed pp.
+    # 10–14 (Polona’s files 0018–0022, cropped to the page); the other
+    # speakers’ are left out.
+    item: polona-d6af54cc
+    citation: Célébration 1848
+    ocr: fra
+    scan:
+      library: Polona (Biblioteka Narodowa)
+      url: https://polona.pl/item-view/d6af54cc-a046-4310-a291-740319dabe9e
+      firstPage: 10
+      pages:
+        - https://polona.pl/iiif/3/076f6e33-1901-48f1-a132-c2c4eccc1584/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/9bbc2fea-3524-408c-b64b-0ebea78e4de0/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/051dc70e-4cc1-4c0b-a7ce-e7d0cc648437/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/2b215258-8266-4145-9bec-b7ea88f93d18/pct:9,5,84,90/max/0/default.jpg
+        - https://polona.pl/iiif/3/4f8cbdd6-105a-41f1-8acb-512658b35e6f/pct:9,5,84,90/max/0/default.jpg
+    firstPage: 10
+    lastPage: 14
+    slug: discours-sur-la-pologne
+    title: Discours de M. Karl Marx
+    shortTitle: Discours sur la Pologne
+    edition: "Célébration, à Bruxelles, du deuxième anniversaire de la révolution polonaise du 22 février 1846. Discours prononcés par MM. A.-J. Senault, Karl Marx, Lelewel, F. Engels et Louis Lubliner (Bruxelles, C. G. Vogler, 1848)"
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: archive-ocr
+    item: theorienberden01marxuoft
+    citation: Theorien I
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 428
+    # Kautsky sets his notes as large as the text and signs them K.
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 202, opens: "Spinnmaschine. Gesamtprodukt" }
+      - { page: 202, opens: "Konstantes Kapital |" }
+      - { page: 202, opens: "⅔ Ellen =" }
+      - { page: 202, opens: "Ferner ist die" }
+      - { page: 202, opens: "Ackerbaumaschine. Gesamtprodukt" }
+      - { page: 203, opens: "[Posten] |" }
+      - { page: 203, opens: "Gesamtprodukt |" }
+      - { page: 203, opens: "Konstantes Kapital |" }
+      - { page: 203, opens: "Zugesetzte Arbeit |" }
+      - { page: 203, opens: "Konsum |" }
+      - { page: 203, opens: "Nehmen wir also" }
+      - { page: 203, opens: "Worin löst" }
+      - { page: 210, opens: "Die Gesamtrechnung" }
+      - { page: 210, opens: "Konstantes Kapital des Maschinisten" }
+      - { page: 210, opens: "[Posten] |" }
+      - { page: 210, opens: "Für den Webstuhl |" }
+      - { page: 210, opens: "Für Spinnmaschine und Ackerbaugerät |" }
+      - { page: 210, opens: "Also |" }
+      - { page: 210, opens: "Zieht man die" }
+      - { page: 210, opens: "Auf seiten des" }
+      - { page: 210, opens: "Die Rechnung des" }
+      - { page: 210, opens: "Von den ⁴⁄₃" }
+      - { page: 212, opens: "Um die Sache" }
+      - { page: 212, opens: "Für Maschinerie hat zu ersetzen |" }
+      - { page: 212, opens: "der Weber |" }
+      - { page: 212, opens: "der Spinner |" }
+      - { page: 212, opens: "der Flachsbauer |" }
+      - { page: 212, opens: "der Eisen- und Holzproduzent |" }
+      - { page: 212, opens: "[Summe] |" }
+      - { page: 212, opens: "Summe der in" }
+      - { page: 212, opens: "Von diesen 4⅔" }
+      - { page: 212, opens: "Bleiben für konstantes" }
+      - { page: 212, opens: "Diese ⁷⁄₉ Ellen" }
+      - { page: 212, opens: "Es ist nun falsch" }
+      - { page: 193, opens: "Dieses ist der schöne" }
+      - { page: 193, opens: "Also um das Gesetz" }
+      - { page: 193, opens: "1. A¹. Produkt" }
+      - { page: 193, opens: "2. B¹⁻². Produkt" }
+      - { page: 193, opens: "6. C¹⁻⁶. Produkt" }
+      - { page: 193, opens: "18. D¹⁻¹⁸. Produkt" }
+      - { page: 193, opens: "54. E¹⁻⁵⁴. Produkt" }
+      - { page: 194, opens: "162. F¹⁻¹⁶². Produkt" }
+      - { page: 194, opens: "486. G¹⁻⁴⁸⁶. Produkt" }
+      - { page: 194, opens: "Hier hätten wir schon" }
+      - { page: 194, opens: "Aber nehmen wir an" }
+      - { page: 194, opens: "Es nützt nichts" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 210, opens: "¹) Marx nimmt hier an" }
+      - { page: 49, opens: "Seite 229" }
+      - { page: 401, opens: "Im Original" }
+      - { page: 59, opens: "1 Von Paoletti" }
+      - { page: 77, opens: "S. 438 —440" }
+      - { page: 164, opens: "1 S. 265" }
+      - { page: 231, opens: "1 Seite 379—390" }
+      - { page: 260, opens: "1 S. 304—314" }
+      - { page: 285, opens: "1 S. 315" }
+      - { page: 287, opens: "Dieser Paragraph ist" }
+      - { page: 325, opens: "Im Original steht" }
+      - { page: 382, opens: "Das Wort kann" }
+      - { page: 390, opens: "Ich habe dieses" }
+      - { page: 400, opens: "Im Manufkript steht" }
+      - { page: 404, opens: "Hier hat Marx" }
+      - { page: 407, opens: "Seite 1320—1331 des" }
+      - { page: 329, opens: "1 Und der freie" }
+      - { page: 329, opens: "2 An einer Stelle" }
+      - { page: 137, opens: "¹) [Zur Kritik" }
+      - { page: 137, opens: "²) S. 250" }
+      - { page: 308, opens: "1) Hier verwechselt" }
+    slug: theorien-ueber-den-mehrwert-1
+    title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
+    shortTitle: Theorien über den Mehrwert I
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Erster Band, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: p1theorienberden02marxuoft
+    citation: Theorien II.1
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 344
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 327, opens: "III." }
+      - { page: 327, opens: "Jahrzehnt |" }
+      - { page: 327, opens: "Jährlicher Durchschnitt für die 50 Jahre 1750" }
+      - { page: 327, opens: "45 Schilling" }
+      - { page: 327, opens: "IV." }
+      - { page: 327, opens: "Jährlicher Durchschnitt für die 50 Jahre 1800" }
+      - { page: 327, opens: "69 Schilling" }
+      - { page: 327, opens: "Jährlicher Durchschnitt für die 60" }
+      - { page: 327, opens: "Also jährliche" }
+      - { page: 327, opens: "Jahre |" }
+      - { page: 327, opens: "Vergleichen wir" }
+      - { page: 327, opens: "1750—1759 |" }
+      - { page: 327, opens: "1760—1769 |" }
+      - { page: 327, opens: "1770—1779 |" }
+      - { page: 327, opens: "1780—1789 |" }
+      - { page: 327, opens: "1790—1799 |" }
+      - { page: 327, opens: "1800—1809 |" }
+      - { page: 327, opens: "1810—1819 |" }
+      - { page: 327, opens: "1820—1829 |" }
+      - { page: 327, opens: "1830—1839 |" }
+      - { page: 327, opens: "1840—1849 |" }
+      - { page: 327, opens: "1850—1859 |" }
+      - { page: 327, opens: "1641—1649 |" }
+      - { page: 327, opens: "1650—1699 |" }
+      - { page: 327, opens: "1700—1749 |" }
+      - { page: 327, opens: "1750—1799 |" }
+      - { page: 327, opens: "1800—1849 |" }
+      - { page: 327, opens: "66 Schilling" }
+      - { page: 326, opens: "I." }
+      - { page: 326, opens: "Durchschnittliche Weizenpreise" }
+      - { page: 326, opens: "Die höchsten und" }
+      - { page: 326, opens: "Jahrzehnt |" }
+      - { page: 326, opens: "1641—1649 |" }
+      - { page: 326, opens: "1650—1659 |" }
+      - { page: 326, opens: "1660—1669 |" }
+      - { page: 326, opens: "1670—1679 |" }
+      - { page: 326, opens: "1680—1689 |" }
+      - { page: 326, opens: "1690—1699 |" }
+      - { page: 326, opens: "Zählen wir" }
+      - { page: 326, opens: "Während des" }
+      - { page: 326, opens: "II." }
+      - { page: 326, opens: "1700—1709 |" }
+      - { page: 326, opens: "1710—1719 |" }
+      - { page: 326, opens: "1720—1729 |" }
+      - { page: 326, opens: "1730—1739 |" }
+      - { page: 326, opens: "1740—1749 |" }
+      - { page: 326, opens: "Durchschnittspreis (jährlich)" }
+      - { page: 326, opens: "35 Schilling" }
+      - { page: 326, opens: "Bei dem Vergleichen" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 68, opens: "¹) Im Manuskript" }
+      - { page: 133, opens: "¹) Im Manuskript steht 108" }
+      - { page: 256, opens: "¹) Im Manuskript steht versehentlich" }
+      - { page: 264, opens: "¹) Sein Preis" }
+      - { page: 265, opens: "¹) Im Manuskript geht" }
+      - { page: 274, opens: "¹) Im Manuskript steht 430" }
+      - { page: 274, opens: "²) Hier ist ein Wort" }
+      - { page: 278, opens: "¹) Im Manuskript lautet" }
+      - { page: 282, opens: "¹) Im Manuskript steht surplusvalue" }
+      - { page: 283, opens: "1 Er meint" }
+      - { page: 75, opens: "Die eingeklammerte Stelle" }
+      - { page: 87, opens: "Im Manustript steht:" }
+      - { page: 214, opens: "Im Manufkript steht:" }
+      - { page: 300, opens: "1 Im 1." }
+      - { page: 331, opens: "2 Im Manuskript" }
+      - { page: 16, opens: "„Kapital“ „Produktionspreis“", runsOn: true }
+      - { page: 269, opens: "Im Manufskript steht hier" }
+    slug: theorien-ueber-den-mehrwert-2-1
+    title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
+    shortTitle: Theorien über den Mehrwert II.1
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Zweiter Band, Erster Teil, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: p2theorienberd02marx
+    citation: Theorien II.2
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 382
+    # The second part goes on with the first's chapter II.
+    firstChapter: 2
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 170, opens: "Profit |" }
+      - { page: 170, opens: "I. 80 c" }
+      - { page: 170, opens: "II. 60 c" }
+      - { page: 170, opens: "III. 85 c" }
+      - { page: 170, opens: "IV. 95 c" }
+      - { page: 170, opens: "Zusammen 400" }
+      - { page: 170, opens: "Das Durchschnittskapital" }
+      - { page: 170, opens: "Würde das Gesamtprodukt" }
+      - { page: 170, opens: "Wie aber hätte" }
+      - { page: 170, opens: "Für Kapital I haben" }
+      - { page: 170, opens: "Für Kapital II." }
+      - { page: 170, opens: "Für Kapital III." }
+      - { page: 32, opens: "Die 92½ Tonnen" }
+      - { page: 32, opens: "Stellen wir nun" }
+      - { page: 32, opens: "Tabelle A." }
+      - { page: 32, opens: "Klasse |" }
+      - { page: 32, opens: "I |" }
+      - { page: 32, opens: "II |" }
+      - { page: 32, opens: "III |" }
+      - { page: 32, opens: "Total |" }
+      - { page: 32, opens: "Der Gesamt-Tonnengehalt" }
+      - { page: 33, opens: "Tabelle B." }
+      - { page: 33, opens: "Klasse |" }
+      - { page: 33, opens: "II |" }
+      - { page: 33, opens: "III |" }
+      - { page: 33, opens: "IV |" }
+      - { page: 33, opens: "Total |" }
+      - { page: 33, opens: "Gesamtkapital" }
+      - { page: 33, opens: "Diese beiden Tabellen" }
+      - { page: 33, opens: "Zunächst sehen wir" }
+      - { page: 33, opens: "In II B" }
+      - { page: 33, opens: "Ehe wir nun" }
+      - { page: 34, opens: "[Der Produktionspreis" }
+      - { page: 34, opens: "Damit I A gar" }
+      - { page: 34, opens: "Was nun aber II" }
+      - { page: 100, opens: "Dieses ist richtig" }
+      - { page: 100, opens: "Dagegen berührt" }
+      - { page: 100, opens: "Gesetzt, wir nehmen" }
+      - { page: 100, opens: "Hier wird vorausgesetzt" }
+      - { page: 100, opens: "Klasse |" }
+      - { page: 100, opens: "I |" }
+      - { page: 100, opens: "II |" }
+      - { page: 100, opens: "III |" }
+      - { page: 100, opens: "Tot |" }
+      - { page: 171, opens: "Wir hätten also:" }
+      - { page: 171, opens: "Profit |" }
+      - { page: 171, opens: "I. 84" }
+      - { page: 171, opens: "II. 66" }
+      - { page: 171, opens: "III. 88" }
+      - { page: 171, opens: "IV. 90" }
+      - { page: 171, opens: "Zusammen 400 |" }
+      - { page: 171, opens: "Die Durchschnittsprofitrate" }
+      - { page: 183, opens: "Wir wollen nun" }
+      - { page: 183, opens: "Klasse |" }
+      - { page: 183, opens: "I |" }
+      - { page: 183, opens: "II |" }
+      - { page: 183, opens: "III |" }
+      - { page: 183, opens: "Würde diese Tabelle" }
+      - { page: 183, opens: "[Total]" }
+      - { page: 184, opens: "Wir hätten also:" }
+      - { page: 184, opens: "Klasse |" }
+      - { page: 184, opens: "III |" }
+      - { page: 184, opens: "In Tonnen ausgedrückt" }
+      - { page: 184, opens: "Nehmen wir nun an" }
+      - { page: 184, opens: "Es geht hier" }
+      - { page: 184, opens: "Dabei bleibt" }
+      - { page: 185, opens: "Da diese 20" }
+      - { page: 185, opens: "Da der Wert" }
+      - { page: 185, opens: "Da der Gesamtwert" }
+      - { page: 185, opens: "Nun verkauft" }
+      - { page: 185, opens: "Statt das Produkt" }
+      - { page: 185, opens: "Wir hätten also" }
+      - { page: 185, opens: "Klasse |" }
+      - { page: 185, opens: "III |" }
+      - { page: 186, opens: "Gehen wir nun zu" }
+      - { page: 186, opens: "Klasse |" }
+      - { page: 186, opens: "II |" }
+      - { page: 186, opens: "Arbeitslohn in Tonnen" }
+      - { page: 186, opens: "III |" }
+      - { page: 186, opens: "Gehen wir nun über" }
+      - { page: 186, opens: "Der Arbeitslohn in Tonnen" }
+      - { page: 187, opens: "III, obgleich" }
+      - { page: 187, opens: "Was II angeht" }
+      - { page: 187, opens: "Da aber der individuelle" }
+      - { page: 188, opens: "Klasse |" }
+      - { page: 188, opens: "III |" }
+      - { page: 188, opens: "II |" }
+      - { page: 188, opens: "I |" }
+      - { page: 188, opens: "Kurz, dieser Fall" }
+      - { page: 188, opens: "Gehen wir nun über" }
+      - { page: 188, opens: "Der Wert der Tonne ist gestiegen" }
+      - { page: 188, opens: "Da die organische" }
+      - { page: 188, opens: "Da aber der individuelle" }
+      - { page: 190, opens: "Klasse |" }
+      - { page: 190, opens: "III |" }
+      - { page: 190, opens: "II |" }
+      - { page: 190, opens: "I |" }
+      - { page: 190, opens: "Ib |" }
+      - { page: 190, opens: "Setzen wir endlich" }
+      - { page: 190, opens: "Hier steigt" }
+      - { page: 190, opens: "Da in III" }
+      - { page: 190, opens: "In II ist" }
+      - { page: 192, opens: "Klasse |" }
+      - { page: 192, opens: "III |" }
+      - { page: 192, opens: "II |" }
+      - { page: 192, opens: "I |" }
+      - { page: 192, opens: "Ib |" }
+      - { page: 192, opens: "Ia |" }
+      - { page: 192, opens: "In den vier" }
+      - { page: 192, opens: "Ferner zeigt" }
+      - { page: 192, opens: "Derselbe Widerspruch" }
+      - { page: 193, opens: "Ebenso in I," }
+      - { page: 193, opens: "Endlich in Ib" }
+      - { page: 193, opens: "Nun ist aber" }
+      - { page: 193, opens: "Das Rätsel" }
+      - { page: 193, opens: "Wenn 20 Mann" }
+      - { page: 194, opens: "Gang der Rente" }
+      - { page: 194, opens: "A. (Beste" }
+      - { page: 194, opens: "Klasse |" }
+      - { page: 194, opens: "III |" }
+      - { page: 194, opens: "II |" }
+      - { page: 194, opens: "I |" }
+      - { page: 194, opens: "Ib |" }
+      - { page: 194, opens: "Ia |" }
+      - { page: 194, opens: "Total |" }
+      - { page: 194, opens: "B. Zweite" }
+      - { page: 194, opens: "C. Dritte" }
+      - { page: 194, opens: "D. Vierte" }
+      - { page: 194, opens: "E. Fünfte" }
+      - { page: 40, opens: "A." }
+      - { page: 40, opens: "Klasse |" }
+      - { page: 40, opens: "I |" }
+      - { page: 40, opens: "II |" }
+      - { page: 40, opens: "III |" }
+      - { page: 40, opens: "IV |" }
+      - { page: 40, opens: "Total |" }
+      - { page: 40, opens: "B." }
+      - { page: 40, opens: "C." }
+      - { page: 40, opens: "D." }
+      - { page: 40, opens: "E." }
+      - { page: 102, opens: "A." }
+      - { page: 102, opens: "B." }
+      - { page: 102, opens: "C." }
+      - { page: 102, opens: "D." }
+      - { page: 102, opens: "Klasse |" }
+      - { page: 102, opens: "I |" }
+      - { page: 102, opens: "II |" }
+      - { page: 102, opens: "III |" }
+      - { page: 102, opens: "Total |" }
+      - { page: 102, opens: "Man sieht aus" }
+      - { page: 102, opens: "Ursprünglich bestand" }
+      - { page: 102, opens: "In B verwohlfeilert" }
+      - { page: 223, opens: "Konstantes Kapital |" }
+      - { page: 223, opens: "80 |" }
+      - { page: 223, opens: "Jetzt haben wir" }
+      - { page: 223, opens: "80 c stellt hier" }
+      - { page: 223, opens: "Nehmen wir ein" }
+      - { page: 223, opens: "Der Wert des Pfundes" }
+      - { page: 224, opens: "Klasse |" }
+      - { page: 224, opens: "I |" }
+      - { page: 224, opens: "II |" }
+      - { page: 224, opens: "[Nämlich ist" }
+      - { page: 224, opens: "Wäre nur die Baumwolle" }
+      - { page: 225, opens: "Das Verhältnis wäre" }
+      - { page: 225, opens: "Klasse |" }
+      - { page: 225, opens: "III |" }
+      - { page: 225, opens: "In diesem Falle" }
+      - { page: 225, opens: "In I verhält" }
+      - { page: 228, opens: "Wir kommen nun" }
+      - { page: 228, opens: "Das Pfund Garn" }
+      - { page: 228, opens: "Wir haben also" }
+      - { page: 228, opens: "Klasse |" }
+      - { page: 228, opens: "II |" }
+      - { page: 228, opens: "In diesen" }
+      - { page: 229, opens: "Nehmen wir nun an" }
+      - { page: 229, opens: "Jetzt zerfällt" }
+      - { page: 229, opens: "Klasse |" }
+      - { page: 229, opens: "IV |" }
+      - { page: 229, opens: "Von diesen" }
+      - { page: 229, opens: "Stellen wir nun" }
+      - { page: 229, opens: "Der Preis des Produkts" }
+      - { page: 230, opens: "Klasse |" }
+      - { page: 230, opens: "I |" }
+      - { page: 230, opens: "II |" }
+      - { page: 230, opens: "III |" }
+      - { page: 230, opens: "IV |" }
+      - { page: 230, opens: "Wie verhält sich" }
+      - { page: 230, opens: "Wäre nur der Arbeitslohn" }
+      - { page: 230, opens: "Soviel ergibt" }
+      - { page: 42, opens: "oder gleich dem Preise" }
+      - { page: 104, opens: "| Kapital" }
+      - { page: 104, opens: "A | 60" }
+      - { page: 104, opens: "B | 54" }
+      - { page: 104, opens: "C | 54" }
+      - { page: 104, opens: "D | 50" }
+      - { page: 104, opens: "Ricardo fährt" }
+      - { page: 104, opens: "In C haben" }
+      - { page: 104, opens: "In D tritt" }
+      - { page: 104, opens: "Also haben wir" }
+      - { page: 97, opens: "Derselbe Newman" }
+      - { page: 97, opens: "„Das Argument" }
+      - { page: 97, opens: "Überhaupt ist es" }
+      - { page: 97, opens: "Ricardo unterscheidet" }
+      - { page: 97, opens: "In diesem Falle muß" }
+      - { page: 97, opens: "„Wenn zum Beispiel" }
+      - { page: 97, opens: "70 und 100" }
+      - { page: 97, opens: "70 und 90" }
+      - { page: 97, opens: "70 und 80" }
+      - { page: 97, opens: "| | 70" }
+      - { page: 97, opens: "60 |" }
+      - { page: 97, opens: "und diese Rente bliebe" }
+      - { page: 98, opens: "95 und 125" }
+      - { page: 98, opens: "95 und 115" }
+      - { page: 98, opens: "95 und 105" }
+      - { page: 98, opens: "| | 95" }
+      - { page: 98, opens: "60 |" }
+      - { page: 98, opens: "Aber bei einer" }
+      - { page: 98, opens: "105 und 125" }
+      - { page: 98, opens: "105 und 115" }
+      - { page: 98, opens: "| | 105" }
+      - { page: 98, opens: "30 |" }
+      - { page: 98, opens: "indes die Nachfrage" }
+      - { page: 98, opens: "Abgesehen davon" }
+      - { page: 98, opens: "Sonst ist es" }
+      - { page: 98, opens: "Stiege er" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 171, opens: "¹) Mit Überschlagung" }
+      - { page: 188, opens: "¹) Im Manuskript" }
+      - { page: 223, opens: "¹) Im Manuskript steht 120" }
+      - { page: 223, opens: "²) Im Manuskript steht" }
+      - { page: 226, opens: "¹) Im Manuskript steht:" }
+      - { page: 230, opens: "¹) Im Manuskript steht IV" }
+      - { page: 360, opens: "2000" }
+      - { page: 360, opens: "Dieses ist absolut" }
+      - { page: 239, opens: "Nun ändere sich", runsOn: true }
+      - { page: 238, opens: "1 Das Beispiel" }
+      - { page: 23, opens: "Im Manufkript lautet" }
+      - { page: 35, opens: "²) Im Manuskript" }
+      - { page: 67, opens: "Im Manustript steht" }
+      - { page: 94, opens: "Im Original steht:" }
+      - { page: 180, opens: "3 Im Manufkript" }
+      - { page: 185, opens: "¹) Im Manuskript" }
+      - { page: 200, opens: "¹) Im Manuskript" }
+      - { page: 215, opens: "Im Manufskript steht:" }
+      - { page: 236, opens: "Der Satz lautet" }
+      - { page: 284, opens: "2 Im Manuskript" }
+      - { page: 343, opens: "Im Manuskript steht" }
+      - { page: 381, opens: "Im Original steht" }
+      - { page: 361, opens: "¹ Daher A. Smiths" }
+      - { page: 173, opens: "¹) Im Manuskript steht „fiele“" }
+      - { page: 173, opens: "²) Ich habe diesen Passus" }
+      - { page: 174, opens: "setzung des Kapitals", runsOn: true }
+      - { page: 180, opens: "Im Manufskript steht 40" }
+      - { page: 180, opens: "2 Im Manufkript" }
+      - { page: 284, opens: "1 Hier folgt" }
+    slug: theorien-ueber-den-mehrwert-2-2
+    title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
+    shortTitle: Theorien über den Mehrwert II.2
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Zweiter Band, Zweiter Teil, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: theorienberden03marxuoft
+    citation: Theorien III
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 600
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 248, opens: "Früher gaben" }
+      - { page: 248, opens: "Ausgelegtes Kapital |" }
+      - { page: 248, opens: "60 Quarters |" }
+      - { page: 248, opens: "10 Quarters |" }
+      - { page: 248, opens: "100 Quarters |" }
+      - { page: 248, opens: "Der Mehrwert ist also" }
+      - { page: 248, opens: "Betrachten wir ferner" }
+      - { page: 249, opens: "Wir hätten also" }
+      - { page: 249, opens: "Konstantes Kapital |" }
+      - { page: 249, opens: "66⅔ Quarters =" }
+      - { page: 249, opens: "Auf ein Gesamtprodukt" }
+      - { page: 358, opens: "Jahr |" }
+      - { page: 358, opens: "Erstes Jahr |" }
+      - { page: 358, opens: "Zweites Jahr |" }
+      - { page: 358, opens: "Drittes Jahr |" }
+      - { page: 358, opens: "Viertes Jahr |" }
+      - { page: 358, opens: "Fünftes Jahr |" }
+      - { page: 358, opens: "Sechstes Jahr |" }
+      - { page: 358, opens: "Siebentes Jahr |" }
+      - { page: 358, opens: "Achtes Jahr |" }
+      - { page: 358, opens: "Oder im achten" }
+      - { page: 400, opens: "Die Rechnung wäre" }
+      - { page: 400, opens: "1. Fall." }
+      - { page: 400, opens: "2. Fall." }
+      - { page: 400, opens: "3. Fall." }
+      - { page: 400, opens: "Der Wert des Produkts wäre" }
+      - { page: 259, opens: "Also ist zunächst" }
+      - { page: 259, opens: "Aber nehmen wir an" }
+      - { page: 259, opens: "Die realen Produktionskosten" }
+      - { page: 591, opens: "Man sieht aus dem Obigen" }
+      - { page: 591, opens: "In der besseren Zeit" }
+      - { page: 591, opens: "Luther hat dem Wucher" }
+      - { page: 591, opens: "Holland bietet die erste" }
+      - { page: 591, opens: "In England im siebzehnten" }
+      - { page: 591, opens: "Achtzehntes Jahrhundert" }
+      - { page: 591, opens: "Zins als Schadenersatz" }
+      - { page: 591, opens: "Luther fährt fort" }
+      - { page: 591, opens: "„Es kann geschehn" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 249, opens: "¹) Im Original steht" }
+      - { page: 400, opens: "¹) Im Original lautet" }
+      - { page: 223, opens: "Die Worte können" }
+      - { page: 255, opens: "Im Original steht" }
+      - { page: 272, opens: "Im Manufskript steht" }
+      - { page: 361, opens: "Im Manuskript steht:" }
+      - { page: 586, opens: "1 Proudhon bemerkt," }
+      - { page: 74, opens: "1 Folgende Rechnung" }
+    slug: theorien-ueber-den-mehrwert-3
+    title: "Theorien über den Mehrwert. Dritter Band: Von Ricardo zur Vulgärökonomie"
+    shortTitle: Theorien über den Mehrwert III
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Dritter Band (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1910
+    published: false
+    kind: work
+  - source: archive-ocr
+    # Rjasanoff's second volume collects the articles of 1854–1856 by Marx
+    # and by Engels. Kept are Marx's German articles for the Neue
+    # Oder-Zeitung; Luise Kautsky's translations of his English ones for the
+    # New-York Tribune and the People's Paper are left out, as are Engels'
+    # own articles and four that neither MEW nor MECW attributes; MECW's
+    # attribution decides where MEW 10 differs.
+    item: gesammelteschrif02marxuoft
+    citation: GS II
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 470
+    datelined: true
+    # The Fall of Kars and Revolutionary Spain, translated from the English.
+    skipPages: [370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464]
+    skipHeadings:
+      - Reden. — Saint-Arnaud.
+      - Der Stand des russischen Krieges.
+      - Der Krieg. — Parlamentsdebatte.
+      - Vertrag zwischen Österreich und der Türkei. — Die Moldau und die Walachei.
+      - Österreich und die Walachei.
+      - Der Kriegsschauplatz. — Die russische Note an die deutschen Mächte. — Serbien und Österreich.
+      - Die Türkei und Österreich. — Kriegsdebatte im Unterhaus.
+      - Der langweilige Krieg.
+      - Die Räumung der Donaufürstentümer.
+      - Die Einnahme von Bomarsund.
+      - Die Zustände in der Walachei. — Revolution in der Türkei.
+      - Der Fall des Ministeriums Aberdeen.
+      - Die Aussichten in Frankreich und England.
+      - Die Belagerung von Silistria.
+      - Der Angriff auf Sebastopol.
+      - Die Militärmacht Rußlands.
+      - Die Belagerung von Sebastopol.
+      - Die Desorganisation der englischen Militärverwaltung.
+      - Zur Kritik der Belagerung Sebastopols.
+      - Krimsche Angelegenheiten.
+      - Über die letzten Vorgänge in der Krim.
+      - Über die Situation in der Krim.
+      - Kritik des Napoleonischen Moniteurartikels.
+      - Deutschland und der Panslawismus.
+      - Die Organisation.
+      - Die Bewaffnung der britischen Soldaten.
+      - Napier und Graham.
+      - Die Widerstandskraft Rußlands.
+      - Zur Erstürmung Sebastopols.
+    slug: artikel-in-der-neuen-oder-zeitung
+    title: Artikel in der „Neuen Oder-Zeitung“ 1855
+    shortTitle: Artikel in der „Neuen Oder-Zeitung“
+    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, Zweiter Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    author: Karl Marx
+    year: 1855
+    kind: work
+  - source: mlwerke
+    # MEW 11 (1961) as mlwerke.de published it, from the Internet Archive's
+    # last captures with content: Marx's German articles for the Neue
+    # Oder-Zeitung that Rjasanoff's second volume does not print, three of
+    # them with Engels.
+    articles: true
+    pages:
+      - https://web.archive.org/web/20241009123817id_/http://mlwerke.de/me/me11/me11_158.htm
+      - https://web.archive.org/web/20241009140142id_/http://mlwerke.de/me/me11/me11_210.htm
+      - https://web.archive.org/web/20241009132424id_/http://mlwerke.de/me/me11/me11_303.htm
+      - https://web.archive.org/web/20241009135517id_/http://mlwerke.de/me/me11/me11_328.htm
+      - https://web.archive.org/web/20241009124500id_/http://mlwerke.de/me/me11/me11_338.htm
+      - https://web.archive.org/web/20241009122205id_/http://mlwerke.de/me/me11/me11_345.htm
+      - https://web.archive.org/web/20241009125020id_/http://mlwerke.de/me/me11/me11_362.htm
+      - https://web.archive.org/web/20241009121657id_/http://mlwerke.de/me/me11/me11_365.htm
+      - https://web.archive.org/web/20241009122123id_/http://mlwerke.de/me/me11/me11_373.htm
+      - https://web.archive.org/web/20241009140523id_/http://mlwerke.de/me/me11/me11_402.htm
+      - https://web.archive.org/web/20241009132217id_/http://mlwerke.de/me/me11/me11_481.htm
+      - https://web.archive.org/web/20241009135942id_/http://mlwerke.de/me/me11/me11_482.htm
+      - https://web.archive.org/web/20241009140102id_/http://mlwerke.de/me/me11/me11_490.htm
+      - https://web.archive.org/web/20241009135044id_/http://mlwerke.de/me/me11/me11_498.htm
+      - https://web.archive.org/web/20241009123742id_/http://mlwerke.de/me/me11/me11_501.htm
+      - https://web.archive.org/web/20241009122949id_/http://mlwerke.de/me/me11/me11_529.htm
+      - https://web.archive.org/web/20241009132018id_/http://mlwerke.de/me/me11/me11_539.htm
+      - https://web.archive.org/web/20241009140256id_/http://mlwerke.de/me/me11/me11_544.htm
+      - https://web.archive.org/web/20241009122744id_/http://mlwerke.de/me/me11/me11_557.htm
+      - https://web.archive.org/web/20241009131818id_/http://mlwerke.de/me/me11/me11_559.htm
+    citation: NOZ
+    slug: weitere-artikel-in-der-neuen-oder-zeitung
+    title: Weitere Artikel in der „Neuen Oder-Zeitung“ 1855
+    shortTitle: Weitere Artikel in der „Neuen Oder-Zeitung“
+    edition: "Marx-Engels-Werke, Band 11 (Berlin, Dietz, 1961)"
+    author: Karl Marx
+    year: 1855
+    kind: work
+  - source: archive-ocr
+    # Mehring's choice from the Neue Rheinische Zeitung, in his groups. The
+    # articles MECW gives to Engels alone are left out: the Frankfurt
+    # Assembly (31 May), the Prague rising, English conditions, and the
+    # groups on the Polish debate, Schleswig-Holstein, Hungary and
+    # democratic Panslavism. The rest are Marx's or the editors', as MEW 5–6
+    # and MECW 7–9 have them.
+    item: mehring-nachlass-3
+    citation: Nachlass III
+    ocr: frak2021
+    firstPage: 87
+    lastPage: 268
+    datelined: true
+    skipHeadings:
+      - Köln, 31. Mai.
+      - Köln, 17. Juni.
+      - Köln, 31. Juli.
+      - Die Polendebatte in Frankfurt.
+      - Der Krieg um Schleswig-Holstein.
+      - Ungarn.
+      - Der demokratische Panslavismus.
+    # MEW 5–6, Dietz 1959, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_029.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_039.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_064.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_085.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_098.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_100.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_104.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_133.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_159.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_166.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_202.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_243.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_278.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_398.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_405.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_455.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_007.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_102.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_148.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_503.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_519.htm
+    slug: aus-der-neuen-rheinischen-zeitung
+    title: Aus der Neuen Rheinischen Zeitung
+    shortTitle: Neue Rheinische Zeitung
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: mlwerke
+    # MEW 5–6 (1959) as mlwerke.de published them, from the Internet
+    # Archive's last captures before the site went offline: Marx's articles
+    # in the Neue Rheinische Zeitung of 1848, those with Engels, and the
+    # editorials MEW prints unsigned that MECW 7–8 give to Marx or leave
+    # unsigned as Marx's or Engels'. Left out: Engels' own articles, the
+    # unsigned ones MECW gives to Engels (Hüser), and those Mehring's
+    # selection above already holds.
+    pages:
+      - https://web.archive.org/web/20240807081553id_/http://www.mlwerke.de/me/me05/me05_013.htm
+      - https://web.archive.org/web/20240917225457id_/http://mlwerke.de/me/me05/me05_022.htm
+      - https://web.archive.org/web/20250127003642id_/http://www.mlwerke.de/me/me05/me05_025.htm
+      - https://web.archive.org/web/20240812174046id_/http://www.mlwerke.de/me/me05/me05_032.htm
+      - https://web.archive.org/web/20240812163119id_/http://www.mlwerke.de/me/me05/me05_036.htm
+      - https://web.archive.org/web/20240812171143id_/http://www.mlwerke.de/me/me05/me05_037.htm
+      - https://web.archive.org/web/20240812163251id_/http://www.mlwerke.de/me/me05/me05_053.htm
+      - https://web.archive.org/web/20240812174605id_/http://www.mlwerke.de/me/me05/me05_057.htm
+      - https://web.archive.org/web/20240807090042id_/http://www.mlwerke.de/me/me05/me05_063.htm
+      - https://web.archive.org/web/20240812163924id_/http://www.mlwerke.de/me/me05/me05_078.htm
+      - https://web.archive.org/web/20240812173551id_/http://www.mlwerke.de/me/me05/me05_079.htm
+      - https://web.archive.org/web/20250121201752id_/http://www.mlwerke.de/me/me05/me05_083.htm
+      - https://web.archive.org/web/20240812164722id_/http://www.mlwerke.de/me/me05/me05_090.htm
+      - https://web.archive.org/web/20240812155651id_/http://www.mlwerke.de/me/me05/me05_102.htm
+      - https://web.archive.org/web/20240917214431id_/http://mlwerke.de/me/me05/me05_110.htm
+      - https://web.archive.org/web/20240807093831id_/http://www.mlwerke.de/me/me05/me05_111.htm
+      - https://web.archive.org/web/20240812170119id_/http://www.mlwerke.de/me/me05/me05_116.htm
+      - https://web.archive.org/web/20240807101526id_/http://www.mlwerke.de/me/me05/me05_117.htm
+      - https://web.archive.org/web/20240812162815id_/http://www.mlwerke.de/me/me05/me05_157.htm
+      - https://web.archive.org/web/20240812170137id_/http://www.mlwerke.de/me/me05/me05_165.htm
+      - https://web.archive.org/web/20240807093126id_/http://www.mlwerke.de/me/me05/me05_175.htm
+      - https://web.archive.org/web/20240807085735id_/http://www.mlwerke.de/me/me05/me05_184.htm
+      - https://web.archive.org/web/20240812162708id_/http://www.mlwerke.de/me/me05/me05_189.htm
+      - https://web.archive.org/web/20240807101514id_/http://www.mlwerke.de/me/me05/me05_198.htm
+      - https://web.archive.org/web/20240917222143id_/http://mlwerke.de/me/me05/me05_213.htm
+      - https://web.archive.org/web/20240812155954id_/http://www.mlwerke.de/me/me05/me05_240.htm
+      - https://web.archive.org/web/20240807083311id_/http://www.mlwerke.de/me/me05/me05_260.htm
+      - https://web.archive.org/web/20240807100728id_/http://www.mlwerke.de/me/me05/me05_262.htm
+      - https://web.archive.org/web/20240812165551id_/http://www.mlwerke.de/me/me05/me05_293.htm
+      - https://web.archive.org/web/20240917231115id_/http://mlwerke.de/me/me05/me05_300.htm
+      - https://web.archive.org/web/20240812162944id_/http://www.mlwerke.de/me/me05/me05_303.htm
+      - https://web.archive.org/web/20240917211044id_/http://mlwerke.de/me/me05/me05_305.htm
+      - https://web.archive.org/web/20240917222634id_/http://mlwerke.de/me/me05/me05_315.htm
+      - https://web.archive.org/web/20240917230142id_/http://mlwerke.de/me/me05/me05_364.htm
+      - https://web.archive.org/web/20240812165521id_/http://www.mlwerke.de/me/me05/me05_382.htm
+      - https://web.archive.org/web/20240812162136id_/http://www.mlwerke.de/me/me05/me05_414.htm
+      - https://web.archive.org/web/20240807091639id_/http://www.mlwerke.de/me/me05/me05_415.htm
+      - https://web.archive.org/web/20240812175800id_/http://www.mlwerke.de/me/me05/me05_416.htm
+      - https://web.archive.org/web/20240812163629id_/http://www.mlwerke.de/me/me05/me05_417.htm
+      - https://web.archive.org/web/20240812161143id_/http://www.mlwerke.de/me/me05/me05_419.htm
+      - https://web.archive.org/web/20240812165319id_/http://www.mlwerke.de/me/me05/me05_422.htm
+      - https://web.archive.org/web/20240812175243id_/http://www.mlwerke.de/me/me05/me05_423.htm
+      - https://web.archive.org/web/20240807095509id_/http://www.mlwerke.de/me/me05/me05_428.htm
+      - https://web.archive.org/web/20240812174640id_/http://www.mlwerke.de/me/me05/me05_430.htm
+      - https://web.archive.org/web/20240807084149id_/http://www.mlwerke.de/me/me05/me05_431.htm
+      - https://web.archive.org/web/20240917223420id_/http://mlwerke.de/me/me05/me05_433.htm
+      - https://web.archive.org/web/20240807094855id_/http://www.mlwerke.de/me/me05/me05_435.htm
+      - https://web.archive.org/web/20240917222228id_/http://mlwerke.de/me/me05/me05_437.htm
+      - https://web.archive.org/web/20240812175438id_/http://www.mlwerke.de/me/me05/me05_440.htm
+      - https://web.archive.org/web/20240812174117id_/http://www.mlwerke.de/me/me05/me05_445.htm
+      - https://web.archive.org/web/20240812175701id_/http://www.mlwerke.de/me/me05/me05_448.htm
+      - https://web.archive.org/web/20240812163953id_/http://www.mlwerke.de/me/me05/me05_451.htm
+      - https://web.archive.org/web/20250216094115id_/http://www.mlwerke.de/me/me05/me05_453.htm
+      - https://web.archive.org/web/20240917232227id_/http://mlwerke.de/me/me06/me06_005.htm
+      - https://web.archive.org/web/20240917220419id_/http://mlwerke.de/me/me06/me06_019.htm
+      - https://web.archive.org/web/20240917230329id_/http://mlwerke.de/me/me06/me06_020.htm
+      - https://web.archive.org/web/20240917205657id_/http://mlwerke.de/me/me06/me06_021.htm
+      - https://web.archive.org/web/20240917221146id_/http://mlwerke.de/me/me06/me06_023.htm
+      - https://web.archive.org/web/20240917225422id_/http://mlwerke.de/me/me06/me06_024.htm
+      - https://web.archive.org/web/20240917231706id_/http://mlwerke.de/me/me06/me06_029.htm
+      - https://web.archive.org/web/20241101145834id_/http://www.mlwerke.de/me/me06/me06_030.htm
+      - https://web.archive.org/web/20240917221312id_/http://mlwerke.de/me/me06/me06_031.htm
+      - https://web.archive.org/web/20240917232221id_/http://mlwerke.de/me/me06/me06_033.htm
+      - https://web.archive.org/web/20240917231844id_/http://mlwerke.de/me/me06/me06_037.htm
+      - https://web.archive.org/web/20240917213058id_/http://mlwerke.de/me/me06/me06_038.htm
+      - https://web.archive.org/web/20240917220122id_/http://mlwerke.de/me/me06/me06_039.htm
+      - https://web.archive.org/web/20240917225952id_/http://mlwerke.de/me/me06/me06_040.htm
+      - https://web.archive.org/web/20240917213843id_/http://mlwerke.de/me/me06/me06_042.htm
+      - https://web.archive.org/web/20240917220917id_/http://mlwerke.de/me/me06/me06_043.htm
+      - https://web.archive.org/web/20240917232024id_/http://mlwerke.de/me/me06/me06_045.htm
+      - https://web.archive.org/web/20240917220514id_/http://mlwerke.de/me/me06/me06_055.htm
+      - https://web.archive.org/web/20240917224755id_/http://mlwerke.de/me/me06/me06_056.htm
+      - https://web.archive.org/web/20240917213730id_/http://mlwerke.de/me/me06/me06_062.htm
+      - https://web.archive.org/web/20240917231304id_/http://mlwerke.de/me/me06/me06_069.htm
+      - https://web.archive.org/web/20240917220251id_/http://mlwerke.de/me/me06/me06_075.htm
+      - https://web.archive.org/web/20240917224424id_/http://mlwerke.de/me/me06/me06_076.htm
+      - https://web.archive.org/web/20240917231452id_/http://mlwerke.de/me/me06/me06_077.htm
+      - https://web.archive.org/web/20240917232056id_/http://mlwerke.de/me/me06/me06_081.htm
+      - https://web.archive.org/web/20240917220446id_/http://mlwerke.de/me/me06/me06_083.htm
+      - https://web.archive.org/web/20240917224711id_/http://mlwerke.de/me/me06/me06_084.htm
+      - https://web.archive.org/web/20240917223124id_/http://mlwerke.de/me/me06/me06_101.htm
+      - https://web.archive.org/web/20240917221230id_/http://mlwerke.de/me/me06/me06_125.htm
+      - https://web.archive.org/web/20240917213652id_/http://mlwerke.de/me/me06/me06_128.htm
+      - https://web.archive.org/web/20240917220629id_/http://mlwerke.de/me/me06/me06_129.htm
+      - https://web.archive.org/web/20240917225108id_/http://mlwerke.de/me/me06/me06_138.htm
+      - https://web.archive.org/web/20240917221055id_/http://mlwerke.de/me/me06/me06_145.htm
+      - https://web.archive.org/web/20240917225306id_/http://mlwerke.de/me/me06/me06_146.htm
+    citation: NRZ 1848
+    articles: true
+    slug: artikel-aus-der-neuen-rheinischen-zeitung-1848
+    title: Artikel aus der Neuen Rheinischen Zeitung 1848
+    edition: "Marx-Engels-Werke, Bände 5 und 6 (Berlin, Dietz, 1959), as mlwerke.de published them"
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: mlwerke
+    # MEW 6 (1959) as mlwerke.de published it, from the Internet Archive's
+    # last captures before the site went offline: Marx's articles in the
+    # Neue Rheinische Zeitung of 1849, among them his two trial speeches of
+    # February, those with Engels, and the editorials MEW prints unsigned
+    # that MECW 8–9 give to Marx or leave unsigned as Marx's or Engels'.
+    # Left out: Engels' own articles and his defence speech at the first
+    # press trial, the unsigned ones MECW gives to Engels (Saedt) or does not
+    # print (the budget of the United States, 7 January), and those Mehring's
+    # selection above already holds.
+    pages:
+      - https://web.archive.org/web/20240612203810id_/http://www.mlwerke.de/me/me06/me06_151.htm
+      - https://web.archive.org/web/20230607080708id_/http://www.mlwerke.de/me/me06/me06_160.htm
+      - https://web.archive.org/web/20230408032344id_/http://www.mlwerke.de/me/me06/me06_182.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_199.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_209.htm
+      - https://web.archive.org/web/20230408153651id_/http://www.mlwerke.de/me/me06/me06_212.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_214.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_218.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_259.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_260.htm
+      - https://web.archive.org/web/20250219185437id_/http://www.mlwerke.de/me/me06/me06_261.htm
+      - https://web.archive.org/web/20240617094110id_/http://www.mlwerke.de/me/me06/me06_267.htm
+      - https://web.archive.org/web/20230409022646id_/http://www.mlwerke.de/me/me06/me06_223.htm
+      - https://web.archive.org/web/20230408095707id_/http://www.mlwerke.de/me/me06/me06_287.htm
+      - https://web.archive.org/web/20230407193818id_/http://www.mlwerke.de/me/me06/me06_298.htm
+      - https://web.archive.org/web/20230409022647id_/http://www.mlwerke.de/me/me06/me06_308.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_309.htm
+      - https://web.archive.org/web/20230407195312id_/http://www.mlwerke.de/me/me06/me06_312.htm
+      - https://web.archive.org/web/20241005040620id_/http://mlwerke.de/me/me06/me06_240.htm
+      - https://web.archive.org/web/20230408153654id_/http://www.mlwerke.de/me/me06/me06_314.htm
+      - https://web.archive.org/web/20230408173346id_/http://www.mlwerke.de/me/me06/me06_320.htm
+      - https://web.archive.org/web/20230409022648id_/http://www.mlwerke.de/me/me06/me06_326.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_332.htm
+      - https://web.archive.org/web/20230408032350id_/http://www.mlwerke.de/me/me06/me06_323.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_334.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_336.htm
+      - https://web.archive.org/web/20200107204718id_/http://www.mlwerke.de:80/me/me06/me06_339.htm
+      - https://web.archive.org/web/20200107200144id_/http://www.mlwerke.de:80/me/me06/me06_344.htm
+      - https://web.archive.org/web/20200108090631id_/http://www.mlwerke.de:80/me/me06/me06_346.htm
+      - https://web.archive.org/web/20200108092254id_/http://www.mlwerke.de:80/me/me06/me06_351.htm
+      - https://web.archive.org/web/20250125143536id_/http://www.mlwerke.de/me/me06/me06_353.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_357.htm
+      - https://web.archive.org/web/20200107213916id_/http://www.mlwerke.de:80/me/me06/me06_362.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_363.htm
+      - https://web.archive.org/web/20200107215238id_/http://www.mlwerke.de:80/me/me06/me06_364.htm
+      - https://web.archive.org/web/20191107230505id_/http://www.mlwerke.de:80/me/me06/me06_393.htm
+      - https://web.archive.org/web/20241009124649id_/http://mlwerke.de/me/me06/me06_426.htm
+      - https://web.archive.org/web/20240303151330id_/http://www.mlwerke.de/me/me06/me06_477.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_483.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_485.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_487.htm
+      - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_489.htm
+      - https://web.archive.org/web/20240430021200id_/http://www.mlwerke.de/me/me06/me06_490.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_491.htm
+      - https://web.archive.org/web/20200107202417id_/http://www.mlwerke.de:80/me/me06/me06_493.htm
+      - https://web.archive.org/web/20221025030600id_/http://www.mlwerke.de/me/me06/me06_516.htm
+    citation: NRZ 1849
+    articles: true
+    skipHeadings:
+      - "[Verteidigungsrede von Friedrich Engels]"
+    # The page leaves the editors' cross-reference open.
+    fixes:
+      - page: "256"
+        from: " ⟨Siehe „[Aufforderung des Rheinischen Kreisausschusses der Demokraten zur Steuerverweigerung]“"
+        to: ""
+    slug: artikel-aus-der-neuen-rheinischen-zeitung-1849
+    title: Artikel aus der Neuen Rheinischen Zeitung 1849
+    edition: "Marx-Engels-Werke, Band 6 (Berlin, Dietz, 1959), as mlwerke.de published it"
+    author: Karl Marx
+    year: 1849
+    kind: work
+  - source: archive-ocr
+    # Gottfried Kinkel, the reviews and the two Revues, by Marx and Engels;
+    # Engels' Reichsverfassungskampagne and Zehnstundenbill come before.
+    item: mehring-nachlass-3
+    citation: Nachlass III
+    ocr: frak2021
+    firstPage: 396
+    lastPage: 478
+    # Mehring’s extract of the Revue of January/February 1850 (443–445) is
+    # left out: the book after the next holds it whole, from MEW 7.
+    skipHeadings: [Revuen.]
+    slug: aus-der-neuen-rheinischen-revue
+    title: Aus der Neuen Rheinischen Zeitung. Politisch-ökonomische Revue
+    shortTitle: Neue Rheinische Revue
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
+    author: Karl Marx
+    year: 1850
+    kind: work
+  - source: mlwerke
+    # MEW 7 (1960, 5th printing 1973) as mlwerke.de published it, from the
+    # Internet Archive's last capture with the text: the whole Revue of
+    # January/February 1850, whose extract in Mehring’s Nachlass III is left
+    # out of the book above.
+    pages:
+      - https://web.archive.org/web/20240807094646id_/http://www.mlwerke.de/me/me07/me07_213.htm
+    citation: Revue Januar/Februar 1850
+    slug: revue-januar-februar-1850
+    title: Revue. Januar/Februar 1850
+    edition: "Marx-Engels-Werke, Band 7 (Berlin, Dietz, 1960; 5. Auflage 1973), S. 213–225"
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: mlwerke
+    # MEW 6–8 as mlwerke.de published them, from the Internet Archive's last
+    # captures with the text: Der 13. Juni (Der Volksfreund, 1849), the
+    # Revue's announcement, the Revue of March/April 1850 and Louis-Napoleon
+    # und Fould, the note on Eccarius's article, and the statements of 1850
+    # and 1852. The Revue of January/February 1850 is the book above. Left
+    # out: the preface to Blanqui's toast (1851), which MEW prints among its
+    # appendices, its authorship uncertain, and the statement on the Baronin
+    # von Beck (Kölnische Zeitung, 1851; MEW 8, S. 109), which mlwerke does
+    # not carry.
+    pages:
+      - https://web.archive.org/web/20220129100354id_/http://www.mlwerke.de/me/me06/me06_527.htm
+      - https://web.archive.org/web/20240807090712id_/http://www.mlwerke.de/me/me07/me07_005.htm
+      - https://web.archive.org/web/20240807101425id_/http://www.mlwerke.de/me/me07/me07_292.htm
+      - https://web.archive.org/web/20240807090340id_/http://www.mlwerke.de/me/me07/me07_296.htm
+      - https://web.archive.org/web/20240807084501id_/http://www.mlwerke.de/me/me07/me07_323.htm
+      - https://web.archive.org/web/20240807081428id_/http://www.mlwerke.de/me/me07/me07_325.htm
+      - https://web.archive.org/web/20240807095044id_/http://www.mlwerke.de/me/me07/me07_416.htm
+      - https://web.archive.org/web/20231109175907id_/http://www.mlwerke.de/me/me08/me08_232.htm
+    citation: Revue und Erklärungen
+    articles: true
+    slug: revue-und-erklaerungen-1849-1852
+    title: Revue und Erklärungen 1849–1852
+    edition: "Marx-Engels-Werke, Band 6 (Berlin, Dietz, 1959), S. 527–528, Band 7 (Berlin, Dietz, 1960; 5. Auflage 1973), S. 5–416, und Band 8 (Berlin, Dietz, 1960; 3. Auflage 1972), S. 232"
+    author: Karl Marx
+    year: 1849
+    kind: work
+  - source: archive-ocr
+    # The critique of the Gotha programme as Engels first printed it, from
+    # the manuscript with his omissions marked, in Die Neue Zeit; his preface
+    # before Marx's letter to Bracke is left out.
+    item: ao391_die_neue_zeit
+    citation: Neue Zeit IX.1
+    firstPage: 562
+    lastPage: 575
+    opensWith: London, 5. Mai 1875.
+    # The editors’ notes on how the congress worded each passage.
+    skipNotesSigned: [Die Redaktion.]
+    # MEW 19, Dietz 1962, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me19/me19_013.htm
+    slug: zur-kritik-des-sozialdemokratischen-parteiprogramms
+    title: Zur Kritik des sozialdemokratischen Parteiprogramms
+    shortTitle: Kritik des Gothaer Programms
+    edition: "Zur Kritik des sozialdemokratischen Parteiprogramms. Aus dem Nachlaß von Karl Marx, Die Neue Zeit, IX. Jahrgang, I. Band, Nr. 18 (Stuttgart, J. H. W. Dietz, 1891)"
+    author: Karl Marx
+    year: 1891
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: zur-kritik-der-politischen-okonomie
+    citation: Kritik
+    ocr: frak2021
+    firstPage: III
+    lastPage: 170
+    # Its notes are set a little smaller than the text, below a rule the OCR
+    # does not read, and run on from page to page.
+    spacedNotes: true
+    # The contents and the list of misprints, between the preface and the text.
+    skipPages: [1, 2]
+    # MEW 13, Dietz 1961, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_007.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_015.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_049.htm
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 55, opens: ") Locke sagt" }
+    slug: zur-kritik-der-politischen-oekonomie
+    title: Zur Kritik der politischen Oekonomie. Erstes Heft
+    shortTitle: Zur Kritik der politischen Oekonomie
+    edition: Zur Kritik der politischen Oekonomie, Erstes Heft (Berlin, Franz Duncker, 1859)
+    author: Karl Marx
+    year: 1859
+    kind: work
+  - source: archive-ocr
+    # Engels's edition, with what Marx added in 1875: his appendix to Herr
+    # Vogt on the Cologne trial and his afterword. Engels's history of the
+    # League that opens it is left out; the addresses of 1850 it appends
+    # follow as works of their own.
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 18
+    lastPage: 74
+    # The addition from Herr Vogt is titled in the text's type.
+    headings:
+      - { page: 64, opens: 1) Beilage 4 }
+    # Pages the OCR set askew, their paragraphs named.
+    paragraphs:
+      - { page: 18, opens: Nothjung wurde am }
+      - { page: 18, opens: Bei der Verhaftung }
+      - { page: 18, opens: Die ungewöhnliche Dauer }
+      - { page: 19, opens: Während dieser ganzen }
+      - { page: 19, opens: Vor dieser Jury }
+      - { page: 19, opens: Indeß die preußische Regierung }
+      - { page: 21, opens: Herr Schapper sagte }
+      - { page: 21, opens: "Man sieht:" }
+      - { page: 21, opens: Das bei den Angeklagten }
+      - { page: 22, opens: Aber wenn das Endziel }
+      - { page: 22, opens: Hat man die ersten }
+      - { page: 22, opens: Man konnte also }
+      - { page: 22, opens: Diesem Mißstand }
+      - { page: 22, opens: Während Stieber sich }
+      - { page: 22, opens: Das Archiv der Verschwörung? }
+      - { page: 23, opens: Stieber konnte nicht }
+      - { page: 23, opens: Stieber schwört nun }
+      - { page: 23, opens: Am 5. August 1851 }
+      - { page: 23, opens: En passant. }
+      - { page: 23, opens: Als Stieber sich }
+      - { page: 24, opens: Stieber konnte seinen }
+      - { page: 24, opens: Das nächste Resultat }
+      - { page: 24, opens: Stieber wußte indeß }
+      - { page: 24, opens: „Demgemäß reiste }
+      - { page: 24, opens: Im September reiste }
+      - { page: 53, opens: Das Original Protokollbuch }
+      - { page: 53, opens: Man war also }
+      - { page: 53, opens: In der Sitzung vom 27. }
+      - { page: 53, opens: In der Sitzung vom 28. }
+      - { page: 53, opens: „Bürger! }
+      - { page: 53, opens: Berlin, Mai 1852. }
+      - { page: 53, opens: Gruß und Bruderschaft. }
+      - { page: 53, opens: Zeuge Junkermann }
+      - { page: 53, opens: Polizei-Präsident Hinkeldey }
+      - { page: 58, opens: "Es war von" }
+      - { page: 58, opens: "Willich unterrichtet" }
+      - { page: 58, opens: "Willich gesteht" }
+      - { page: 58, opens: "Willich war notorisch" }
+      - { page: 58, opens: "Daß er erst" }
+      - { page: 58, opens: "Daß er in einer" }
+      - { page: 58, opens: "Daß er fortfuhr" }
+      - { page: 58, opens: "Daß Fleury" }
+      - { page: 58, opens: "Daß er dem Fleury" }
+      - { page: 58, opens: "Daß er den Fleury" }
+      - { page: 58, opens: "Daß er endlich" }
+      - { page: 25, opens: "Aber nicht genug" }
+      - { page: 25, opens: "So bereitwillig" }
+      - { page: 25, opens: "Beim Beginne" }
+      - { page: 25, opens: "„Cherval verübte" }
+      - { page: 25, opens: "In der Nacht vom 4" }
+      - { page: 25, opens: "Stieber sährt" }
+      - { page: 25, opens: "Stieber fährt" }
+      - { page: 44, opens: "Aber „Polizei-Lieutenant" }
+      - { page: 44, opens: "Also der Polizei-Lieutenant" }
+      - { page: 44, opens: "Unbeirrt durch seine" }
+      - { page: 44, opens: "Nachdem Goldheim bisher" }
+    # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_414.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_418.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_431.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_455.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_458.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_465.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me18/me18_568.htm
+    slug: enthuellungen-ueber-den-kommunisten-prozess-zu-koeln
+    title: Enthüllungen über den Kommunistenprozeß zu Köln
+    shortTitle: Enthüllungen
+    edition: Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck, mit Einleitung von Friedrich Engels, und Dokumenten (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: mlwerke
+    # MEW 8 (1960, 3rd printing 1972) as mlwerke.de published it, from the
+    # Internet Archive's last captures with the text, a chapter a page: the
+    # pamphlet Marx and Engels finished in 1852 and left in manuscript; it
+    # was first printed in 1930, in Russian. The chapters are numbered on
+    # centred lines.
+    pages:
+      - https://web.archive.org/web/20221025024340id_/http://www.mlwerke.de/me/me08/me08_235.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_254.htm
+      - https://web.archive.org/web/20240630152235id_/http://www.mlwerke.de/me/me08/me08_261.htm
+      - https://web.archive.org/web/20221025024341id_/http://www.mlwerke.de/me/me08/me08_265.htm
+      - https://web.archive.org/web/20250123174151id_/http://www.mlwerke.de/me/me08/me08_268.htm
+      - https://web.archive.org/web/20221025024341id_/http://www.mlwerke.de/me/me08/me08_282.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_288.htm
+      - https://web.archive.org/web/20221025024341id_/http://www.mlwerke.de/me/me08/me08_289.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_292.htm
+      - https://web.archive.org/web/20221025024546id_/http://www.mlwerke.de/me/me08/me08_299.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_304.htm
+      - https://web.archive.org/web/20250120162843id_/http://www.mlwerke.de/me/me08/me08_312.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_318.htm
+      - https://web.archive.org/web/20221025024340id_/http://www.mlwerke.de/me/me08/me08_331.htm
+      - https://web.archive.org/web/20221025024339id_/http://www.mlwerke.de/me/me08/me08_334.htm
+    citation: Große Männer
+    headings:
+      - { level: 1, title: I }
+      - { level: 1, title: II }
+      - { level: 1, title: III }
+      - { level: 1, title: IV }
+      - { level: 1, title: V }
+      - { level: 1, title: VI }
+      - { level: 1, title: VII }
+      - { level: 1, title: VIII }
+      - { level: 1, title: IX }
+      - { level: 1, title: X }
+      - { level: 1, title: XI }
+      - { level: 1, title: XII }
+      - { level: 1, title: XIII }
+      - { level: 1, title: XIV }
+      - { level: 1, title: XV }
+    slug: die-grossen-maenner-des-exils
+    title: Die großen Männer des Exils
+    edition: "Marx-Engels-Werke, Band 8 (Berlin, Dietz, 1960; 3. Auflage 1972), S. 233–335"
+    author: Karl Marx und Friedrich Engels
+    year: 1852
+    published: false
+    kind: work
+  - source: mlwerke
+    # MEW 9 (1960) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: Marx's reply in the Belletristisches
+    # Journal und New-Yorker Criminal-Zeitung, 5 May 1853.
+    pages:
+      - https://web.archive.org/web/20220119185911id_/http://www.mlwerke.de/me/me09/me09_039.htm
+    citation: Hirsch
+    slug: hirschs-selbstbekenntnisse
+    title: Hirschs Selbstbekenntnisse
+    edition: "Marx-Engels-Werke, Band 9 (Berlin, Dietz, 1960), S. 39–42"
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: mlwerke
+    # MEW 9 (1960) as mlwerke.de published it, from the Internet Archive's
+    # last capture with the text: the pamphlet against Willich, New York,
+    # January 1854.
+    pages:
+      - https://web.archive.org/web/20220119192307id_/http://www.mlwerke.de/me/me09/me09_489.htm
+    citation: Ritter
+    slug: der-ritter-vom-edelmuetigen-bewusstsein
+    title: Der Ritter vom edelmütigen Bewußtsein
+    edition: "Marx-Engels-Werke, Band 9 (Berlin, Dietz, 1960), S. 489–518"
+    author: Karl Marx
+    year: 1854
+    kind: work
+  - source: archive-ocr
+    # The first of the two addresses Engels appended to the Enthüllungen,
+    # the second left to its own entry.
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 75
+    lastPage: 83
+    opensWith: Die Zentralbehörde an den Bund.
+    skipHeadings:
+      [Ansprache derselben Zentralbehörde an den Bund vom Juni 1850.]
+    # Pages the OCR set askew, their paragraphs named.
+    paragraphs:
+      - { page: 76, opens: Die Reorganisation kann }
+      - { page: 76, opens: Wir sagten Euch }
+      - { page: 76, opens: Und die Rolle }
+      - { page: 76, opens: I. Aus den }
+      - { page: 76, opens: II. Aus den }
+    # MEW 7, Dietz 1960, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_244.htm
+    slug: ansprache-der-zentralbehoerde-an-den-bund-vom-maerz-1850
+    title: Ansprache der Zentralbehörde an den Bund vom März 1850
+    shortTitle: Ansprache vom März 1850
+    edition: Anhang zu Karl Marx, Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 83
+    lastPage: 88
+    opensWith: Die Zentralbehörde an den Bund.
+    # Its first section's title the OCR measures larger than the others.
+    headings:
+      - { page: 86, opens: I. Belgien }
+    # MEW 7, Dietz 1960, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_306.htm
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 84, opens: "In dem Maß" }
+    slug: ansprache-der-zentralbehoerde-an-den-bund-vom-juni-1850
+    title: Ansprache der Zentralbehörde an den Bund vom Juni 1850
+    shortTitle: Ansprache vom Juni 1850
+    edition: Anhang zu Karl Marx, Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  # The two addresses on the war Marx wrote in English, in the only edition
+  # transcribed: the American of 1902, without its editor's captions and notes.
+  - source: wikisource
+    page: The Paris Commune/First Manifesto
+    site: en.wikisource.org
+    citation: First Address
+    # The American edition's captions, not the address's.
+    omitHeadings:
+      - The International Workingmen's Association on the Franco-Prussian War
+      - The Declaration of War
+      - First manifesto of the General Council
+      - Issued on July 23, 1870, and addressed to the Members of the Association in Europe and the United States
+    slug: first-address-on-the-franco-prussian-war
+    title: The General Council of the International Working Men's Association on the War
+    shortTitle: First Address on the Franco-Prussian War
+    edition: The Paris Commune, edited by Lucien Sanial (New York, New York Labor News Company, 1902), in its American spelling; first issued by the General Council in London, July 23, 1870
+    author: Karl Marx
+    year: 1870
+    kind: work
+  - source: wikisource
+    page: The Paris Commune/Second Manifesto
+    site: en.wikisource.org
+    citation: Second Address
+    # The American edition's captions, not the address's.
+    omitHeadings:
+      - The International Workingmen's Association on the Franco-Prussian War
+      - After Sedan
+      - Second manifesto of the General Council
+      - Issued on September 9, 1870, and addressed to the Members of the Association in Europe and the United States
+    textHeadings: [Vive la République!]
+    slug: second-address-on-the-franco-prussian-war
+    title: Second Address of the General Council of the International Working Men's Association on the War
+    shortTitle: Second Address on the Franco-Prussian War
+    edition: The Paris Commune, edited by Lucien Sanial (New York, New York Labor News Company, 1902), in its American spelling; first issued by the General Council in London, September 9, 1870
+    author: Karl Marx
+    year: 1870
+    kind: work
+  # Marx wrote the address in English; the second edition is his revision.
+  - source: wikisource
+    page: The Civil War in France (1871)
+    pages:
+      - The Civil War in France (1871)/Chapter 1
+      - The Civil War in France (1871)/Chapter 2
+      - The Civil War in France (1871)/Chapter 3
+      - The Civil War in France (1871)/Chapter 4
+      - The Civil War in France (1871)/Notes
+    site: en.wikisource.org
+    citation: Civil War
+    # The address, its signatures and a letter in the notes, set centred.
+    textHeadings:
+      - To all the members of the Association in Europe and the United States.
+      - The General Council.
+      - Corresponding Secretaries.
+      - "\"To the editor of the 'Times.'"
+      - I am, Sir, your obedient servant, John Hales, Secretary to the General Council of the International Working Men's Association.
+    slug: the-civil-war-in-france
+    title: The Civil War in France. Address of the General Council of the International Working-Men's Association
+    shortTitle: The Civil War in France
+    edition: The Civil War in France. Address of the General Council of the International Working-Men's Association, second edition, revised (London, Edward Truelove, 1871)
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: wikisource
+    # The International's rules as Marx and Engels revised them for the
+    # London Conference of 1871, in English.
+    page: General Rules and Administrative Regulations of the International Working-Men's Association
+    site: en.wikisource.org
+    citation: General Rules
+    slug: general-rules-and-administrative-regulations-of-the-international-working-mens-association
+    title: General Rules and Administrative Regulations of the International Working-Men's Association
+    shortTitle: General Rules of the International
+    edition: General Rules and Administrative Regulations of the International Working-Men's Association (London, 1871)
+    author: Karl Marx und Friedrich Engels
+    year: 1871
+    kind: work
+  - source: wikisource
+    # The London Conference's resolutions as Marx drafted them, in English.
+    page: Resolutions of the Conference of Delegates of the International Working Men's Association
+    site: en.wikisource.org
+    citation: Conference Resolutions
+    slug: resolutions-of-the-conference-of-delegates-of-the-international-working-mens-association
+    title: Resolutions of the Conference of Delegates of the International Working Men's Association
+    shortTitle: London Conference Resolutions
+    edition: Resolutions of the Conference of Delegates of the International Working Men's Association, assembled at London from 17th to 23rd September 1871 (London, 1871)
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # Marx's letter heading his daughter Jenny's account of the Lafargues'
+    # arrest, in the middle column of p. 5; her account is left out.
+    item: woodhull-1871-10-21
+    citation: Woodhull & Claflin's Weekly
+    ocr: eng
+    scan:
+      library: IAPSOP
+      url: http://iapsop.com/archive/materials/woodhull_and_claflins_weekly/
+      firstPage: 5
+      pages:
+        - http://iapsop.com/archive/materials/woodhull_and_claflins_weekly/woodhull_and_claflins_weekly_v3_n23_oct_21_1871.pdf#page=5&region=0.37,0.145,0.271,0.19
+    firstPage: 5
+    lastPage: 5
+    slug: to-the-editors-of-woodhull-and-claflins-weekly
+    title: To the Editors of Woodhull & Claflin's Weekly
+    edition: Woodhull & Claflin's Weekly, Vol. III, No. 23 (New York, 21 October 1871), p. 5
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # Kautsky's edition of Engels's revised text of 1891: Engels's additions
+    # in square brackets, Marx's own wording of 1849 where Engels changed it
+    # in the notes. Kautsky's preface and Engels's introduction are left out.
+    item: lohnarbeitundka00marxgoog
+    citation: Lohnarbeit
+    ocr: frak2021
+    firstPage: 15
+    lastPage: 40
+    # Its notes are set nearly as large as the text, below a rule the OCR
+    # reads as specks.
+    spacedNotes: true
+    # MEW 6, Dietz 1959, as mlwerke.de published it: the text of 1849.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_397.htm
+    slug: lohnarbeit-und-kapital
+    title: Lohnarbeit und Kapital
+    shortTitle: Lohnarbeit und Kapital
+    edition: Lohnarbeit und Kapital, Separat-Abdruck aus der „Neuen Rheinischen Zeitung“ vom Jahre 1849, neu herausgegeben von K. Kautsky, mit einer Einleitung von Friedrich Engels (Berlin, Buchhandlung Vorwärts, 1908)
+    author: Karl Marx
+    year: 1849
+    kind: work
+  - source: archive-ocr
+    item: socialismeutopiq00enge
+    citation: Socialisme utopique
+    firstPage: 5
+    lastPage: 7
+    # The page turns between paragraphs, which the scan does not tell.
+    paragraphs:
+      - { page: 6, opens: Pendant leur séjour }
+      - { page: 6, opens: "En 1847, Marx et Engels" }
+      - { page: 6, opens: "En 1850, à Londres" }
+      - { page: 7, opens: Après la reprise }
+      - { page: 7, opens: "En 1870, après" }
+      - { page: 7, opens: La série des }
+      - { page: 7, opens: P. L. }
+    slug: avant-propos-a-socialisme-utopique-et-socialisme-scientifique
+    title: Avant-propos à Socialisme utopique et socialisme scientifique
+    edition: Frédéric Engels, Socialisme utopique et socialisme scientifique (Paris, Derveaux, 1880), pp. 5–7, signed P. L.
+    author: Karl Marx
+    year: 1880
+    kind: work
+  - source: archive-ocr
+    item: resolutionsducon00inte
+    citation: Résolutions de La Haye
+    firstPage: 3
+    lastPage: 16
+    # The resolutions' titles, set in the text's type, each numbered by
+    # place as the edition numbers them, and the second's two sections.
+    headings:
+      - { page: 3, opens: Résolution relative aux statuts }
+      - { page: 4, opens: Résolutions relatives aux réglements }
+      - { page: 4, opens: 1. Pouvoirs du Conseil }
+      - { page: 7, opens: Résolutions relatives aux rapports }
+      - { page: 8, opens: Résolutions relatives à l’admission }
+      - { page: 11, opens: Vérification des comptes }
+      - { page: 11, opens: Pleins-pouvoirs donnés }
+      - { page: 12, opens: Résolutions relatives à l’Alliance }
+      - { page: 14, opens: Siége et composition }
+      - { page: 16, opens: Lieu du Congrès }
+      - { page: 16, opens: Commission pour la rédaction }
+    # A note the scan sets too close below the text to tell.
+    notes:
+      - { page: 12, opens: (1) La commission }
+    # The commission's signatures, set apart below the date.
+    paragraphs:
+      - { page: 16, opens: Sur la propoposition }
+      - { page: 16, opens: Ont été nommés }
+      - { page: 16, opens: "Londres, le 21" }
+      - { page: 16, opens: "La Commission :" }
+      - { page: 16, opens: E. Dupont }
+    slug: resolutions-du-congres-general-tenu-a-la-haye
+    title: Résolutions du Congrès général tenu à La Haye du 2 au 7 septembre 1872
+    edition: Résolutions du Congrès général tenu à La Haye du 2 au 7 septembre 1872 (Londres, Imprimerie De Graag, 1872)
+    author: Karl Marx und Friedrich Engels
+    year: 1872
+    kind: work
+  - source: archive-ocr
+    # The report the Hague Congress ordered, which MEW 18 gives to Marx and
+    # Engels, read anew from Columbia's scan; its running quotation marks
+    # set lines in, so paragraphs are named where they mislead.
+    # The pièces justificatives it closes with are Bakunin's and his
+    # followers' own documents, left out.
+    item: ldpd_14857291_000
+    citation: Alliance
+    ocr: fra
+    firstPage: 1
+    lastPage: 118
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 1, opens: L’Association Internationale }
+      - { page: 1, opens: Au Congrès de la Haye }
+      - { page: 1, opens: 1. D’exclure }
+      - { page: 1, opens: 2. D’exclure }
+      - { page: 1, opens: 3. De publier }
+      - { page: 1, opens: Par suite de }
+      - { page: 7, opens: Les statuts secrets }
+      - { page: 7, opens: I. Les frères }
+      - { page: 16, opens: Les frères internationaux }
+      - { page: 16, opens: Le 22 Décembre }
+      - { page: 18, opens: À cette époque }
+      - { page: 18, opens: “ Il nous semble }
+      - { page: 18, opens: Croirait-on }
+      - { page: 18, opens: Dès leur naissance }
+      - { page: 18, opens: La secte frappa }
+      - { page: 25, opens: Bien loin }
+      - { page: 27, opens: Les hommes de l’Alliance }
+      - { page: 27, opens: Cette circulaire fut }
+      - { page: 30, opens: Après le Congrès de la Ligue }
+      - { page: 30, opens: Déjà au Congrès }
+      - { page: 41, opens: En Italie }
+      - { page: 41, opens: Sa familiarité }
+      - { page: 45, opens: Dans une lettre }
+      - { page: 47, opens: Que le Conseil général est }
+      - { page: 47, opens: Que la doctrine }
+      - { page: 47, opens: Que le Conseil général a usé }
+      - { page: 47, opens: Que le Conseil général a comblé }
+      - { page: 47, opens: Il serait difficile }
+      - { page: 47, opens: “ Le Conseil général se propose }
+      - { page: 47, opens: Que l’esprit }
+      - { page: 47, opens: Que le Conseil général, non }
+      - { page: 47, opens: Pour ces raisons }
+      - { page: 47, opens: La Conférence déclare }
+      - { page: 47, opens: Rimini, 6 août }
+      - { page: 50, opens: Nous nous abstenous }
+      - { page: 50, opens: Dans les villes }
+      - { page: 56, opens: En même temps que }
+      - { page: 56, opens: “ Vu que }
+      - { page: 56, opens: “ Que le Congrès }
+      - { page: 56, opens: “ Qu’une assemblée }
+      - { page: 56, opens: “ Le Conseil général de }
+      - { page: 56, opens: “ Toutes les fédérations }
+      - { page: 56, opens: En même temps il }
+      - { page: 56, opens: De leur côté }
+      - { page: 58, opens: “ L’Amérique }
+      - { page: 58, opens: “ Les Slaves }
+      - { page: 58, opens: Voilà à quoi }
+      - { page: 58, opens: Dans cet ordre }
+      - { page: 58, opens: Cependant l’Alliance }
+      - { page: 62, opens: Le peuple russe }
+      - { page: 62, opens: Pour bien remplir }
+      - { page: 70, opens: Les deux manifestants }
+      - { page: 70, opens: Personne n’osera }
+      - { page: 73, opens: Le 3 septembre }
+      - { page: 73, opens: Netchaieff commençait }
+      - { page: 75, opens: Ouspensky, Ivanoff }
+      - { page: 84, opens: Immédiatement après }
+      - { page: 84, opens: Mme Alexandrovsky }
+      - { page: 95, opens: “ § 25 }
+      - { page: 95, opens: “ § 26 }
+      - { page: 95, opens: Critiquer un tel }
+      - { page: 95, opens: Les trois dégrés }
+    # The chapters' titles, numbered by place as the edition numbers them,
+    # and the sections of the eighth.
+    headings:
+      - { page: 1, opens: INTRODUCTION. }
+      - { page: 4, opens: L’ALLIANCE SECRÈTE }
+      - { page: 15, opens: L’ALLIANCE EN SUISSE }
+      - { page: 30, opens: L’ALLIANCE EN ESPAGNE }
+      - { page: 41, opens: L’ALLIANCE EN ITALIE }
+      - { page: 49, opens: L’ALLIANCE EN FRANCE }
+      - { page: 53, opens: L’ALLIANCE DEPUIS }
+      - { page: 59, opens: L’ALLIANCE EN RUSSIE }
+      - { page: 59, opens: 1. LE PROCÈS }
+      - { page: 89, opens: 2. LE CATÉCHISME }
+      - { page: 96, opens: 3. L’APPEL DE BAKOUNINE }
+      - { page: 103, opens: CONCLUSION. }
+      - { page: 105, opens: APPENDICE. }
+      - { page: 105, opens: 1. L’HÉGIRE }
+      - { page: 107, opens: 2. LE MANIFESTE }
+      - { page: 118, opens: PIÈCES JUSTIFICATIVES. }
+      - { page: 118, opens: I. STATUTS SECRETS }
+    skipHeadings: [Pièces justificatives.]
+    # Notes the OCR set as the text, by the lines that open them.
+    notes:
+      - { page: 5, opens: "* Cette bible" }
+      - { page: 6, opens: "* Parmi les" }
+      - { page: 19, opens: "* Deux mois" }
+      - { page: 25, opens: "* Mazzini" }
+      - { page: 25, opens: "† Résolution" }
+      - { page: 27, opens: "* Procès de" }
+      - { page: 32, opens: "* Cette lettre" }
+      - { page: 33, opens: "“ Le Conseil général actuel", runsOn: true }
+      - { page: 40, opens: "* Sentinon" }
+      - { page: 41, opens: "la mer;", runsOn: true }
+      - { page: 41, opens: "(*) “ Un des" }
+      - { page: 41, opens: "(†) Fanelli" }
+      - { page: 42, opens: "que cela vous", runsOn: true }
+      - { page: 42, opens: "‡) Repoussé" }
+      - { page: 48, opens: "* Voici ce" }
+      - { page: 60, opens: "* Gazette" }
+      - { page: 62, opens: "* Il faut remarquer" }
+      - { page: 62, opens: "‡ La troisième" }
+      - { page: 65, opens: "* Pour mystifier" }
+      - { page: 67, opens: "* Bakounine et" }
+      - { page: 72, opens: "* Tous les faits" }
+      - { page: 73, opens: "* Nous devons" }
+      - { page: 74, opens: "ternational est la", runsOn: true }
+      - { page: 75, opens: "* Aucun des" }
+      - { page: 80, opens: "* Extraits" }
+      - { page: 81, opens: "jusque dans ses", runsOn: true }
+      - { page: 81, opens: "“ Mouravieff, cet" }
+      - { page: 85, opens: "* En 1868" }
+      - { page: 99, opens: "(*) Le lecteur" }
+      - { page: 112, opens: "* Le titre" }
+      - { page: 117, opens: "* Romanoff" }
+    slug: lalliance-de-la-democratie-socialiste-et-lassociation-internationale-des-travailleurs
+    title: L'Alliance de la démocratie socialiste et l'Association internationale des travailleurs
+    shortTitle: L'Alliance de la démocratie socialiste
+    edition: L'Alliance de la démocratie socialiste et l'Association internationale des travailleurs. Rapport et documents publiés par ordre du Congrès international de la Haye (Londres, A. Darson; Hambourg, Otto Meissner, 1873)
+    author: Karl Marx und Friedrich Engels
+    year: 1873
+    kind: work
+  - source: archive-ocr
+    # The Brussels Congress adopted the General Council's resolution on the
+    # working day as Marx drafted it (MEW 16, 317). Of his draft on machinery
+    # (MEW 16, 315) its resolution keeps only the first clause, and the rest
+    # of 1868 is not his.
+    item: resolutionsofcon00inte
+    citation: Resolutions 1866 and 1868
+    firstPage: 13
+    lastPage: 14
+    opensWith: A resolution having been
+    skipHeadings:
+      - War and Standing Armies.
+      - Reply to the Invitation of the League of Peace.
+    slug: reduction-of-the-hours-of-labour
+    title: Reduction of the Hours of Labour
+    edition: Resolutions of the Congress of Geneva, 1866, and the Congress of Brussels, 1868 (London, Westminster Printing Company, [1868]), pp. 13–14
+    author: Karl Marx
+    year: 1868
+    kind: work
+  - source: archive-ocr
+    # The preamble Marx dictated for the Parti ouvrier's programme (MEW 19,
+    # 238), read from the scan of the book fr.wikisource transcribes: the
+    # transcription sets the programme's dateline in the preamble's first
+    # paragraph, where the page tells them apart. The demands that follow
+    # are Guesde's.
+    item: lafrancesociali00terrgoog
+    citation: France socialiste
+    ocr: fra
+    firstPage: 101
+    lastPage: 102
+    opensWith: Considérant,
+    paragraphs:
+      - { page: 101, opens: "Considérant," }
+      - { page: 101, opens: Que l’émancipation }
+    slug: considerants-du-programme-du-parti-ouvrier
+    title: Considérants du programme du Parti ouvrier
+    edition: Gabriel Terrail (Mermeix), La France socialiste (Paris, F. Fetscherin et Chuit, 1886), pp. 101–102, the programme as the Congrès national du Havre confirmed it in November 1880
+    author: Karl Marx
+    year: 1880
+    kind: work
+  - source: archive-ocr
+    # The General Council's private circular (MEW 18, Marx and Engels), as
+    # Le Mouvement socialiste reprinted it, read anew from the scan; the
+    # volume binds tomes XXXIII and XXXIV, and the circular fills pp. 5–50
+    # of the second.
+    item: mouvementsociali3334pari
+    citation: Mouvement socialiste XXXIV
+    ocr: fra
+    firstPage: 5
+    lastPage: 50
+    # The review's notes on the circular, signed N. D. L. R., are its own.
+    notes:
+      - { page: 5, opens: (1) Le document }
+      - { page: 5, opens: (2) Les Prétendues }
+      - { page: 5, opens: (3) Ce manifeste }
+      - { page: 19, opens: (1) Les amis }
+      - { page: 20, opens: (1) Voici quelle }
+      - { page: 22, opens: (1) Peu de temps }
+      - { page: 31, opens: (1) Voici la résolution }
+      - { page: 31, opens: Vu les considérants }
+      - { page: 31, opens: Vu l’Adresse }
+      - { page: 32, opens: le plus d’obstacles, runsOn: true }
+      - { page: 32, opens: Vu la Résolution }
+      - { page: 32, opens: Vu la déclaration }
+      - { page: 32, opens: Attendu que }
+      - { page: 32, opens: En présence }
+      - { page: 32, opens: Considérant en outre }
+      - { page: 32, opens: Que contre ce }
+      - { page: 32, opens: Que cette constitution }
+      - { page: 32, opens: Que la coalition }
+      - { page: 32, opens: La Conférence rappelle }
+      - { page: 32, opens: Que dans l’état }
+      - { page: 34, opens: (1) Les travaux }
+      - { page: 38, opens: (1) Telles étaient }
+      - { page: 42, opens: (1) Les hommes }
+      - { page: 42, opens: Le Conseil général se propose }
+      - { page: 47, opens: (1) Sous le titre }
+      - { page: 47, opens: « Le jour }
+      - { page: 48, opens: été témoins, runsOn: true }
+      - { page: 48, opens: « Par leurs }
+      - { page: 48, opens: « De plus }
+      - { page: 48, opens: « Albert Richard }
+      - { page: 50, opens: (1) Dans le rapport }
+    skipNotes:
+      - { page: 5, opens: (1) Le document }
+      - { page: 5, opens: (2) Les Prétendues }
+      - { page: 5, opens: (3) Ce manifeste }
+    # The Council's signatures, set apart.
+    paragraphs:
+      - { page: 50, opens: "Le Conseil Général :" }
+      - { page: 50, opens: R. Applegarth }
+      - { page: 50, opens: "Secrétaires correspondants :" }
+      - { page: 50, opens: "Karl Marx, Allemagne" }
+      - { page: 50, opens: Charles Longuet }
+      - { page: 50, opens: Hemann Jung }
+      - { page: 50, opens: John Hales }
+      - { page: 50, opens: "33, Rathborne" }
+    # The fifth part's numeral, which the scan lost.
+    headings:
+      - { page: 40, opens: Après avoir fait justice, numeral: V }
+    slug: les-pretendues-scissions-dans-linternationale
+    title: Les prétendues scissions dans l'Internationale. Circulaire privée du Conseil général de l'Association internationale des travailleurs
+    shortTitle: Les prétendues scissions dans l'Internationale
+    edition: Le Mouvement socialiste, t. XXXIV, nos 253–254 (Paris, juillet–août 1913), pp. 5–50, after the first edition (Genève, Imprimerie coopérative, 1872)
+    author: Karl Marx und Friedrich Engels
+    year: 1872
+    kind: work

@@ -1,3 +1,4 @@
+import type { ContentVisibility } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -89,10 +90,12 @@ function toRow(entry: ExpandedEntry): SummaryEntryRow {
 
 export async function buildRecentConversationMemoryData(
   context: EntityPluginContext,
+  visibilityScope: ContentVisibility,
 ): Promise<RecentConversationMemoryData> {
   const summaries = await context.entityService.listEntities(
     {
       entityType: SUMMARY_ENTITY_TYPE,
+      options: { filter: { visibilityScope } },
     },
     summarySchema,
   );

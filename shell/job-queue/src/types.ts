@@ -135,6 +135,12 @@ export interface JobHandler<
   readonly executionTimeoutMs?: number | undefined;
 
   /**
+   * At most one job of this type runs at a time, across every worker: a
+   * second is not claimed while another holds a live lease.
+   */
+  readonly exclusive?: boolean | undefined;
+
+  /**
    * Process a job of this type
    * @param data - The job input data
    * @param jobId - Unique identifier for this job
@@ -262,8 +268,11 @@ export interface IJobQueueService {
   /** Freeze handler declarations before runtime services can admit work. */
   finalizeHandlerRegistrations(): readonly JobExecutionRegistration[];
 
-  /** Read the immutable handler declarations derived during boot. */
-  getExecutionRegistrations(): readonly JobExecutionRegistration[];
+  /**
+   * Read the immutable handler declarations derived during boot; undefined
+   * while plugins are still registering.
+   */
+  getExecutionRegistrations(): readonly JobExecutionRegistration[] | undefined;
 
   /**
    * Enqueue a job for processing

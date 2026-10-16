@@ -244,3 +244,80 @@ describe("public declarative Studio workspace", () => {
     expect(restored.status).toBe(200);
   });
 });
+
+const broken = defineStudioWorkspace({
+  id: "broken",
+  label: "Broken",
+  permission: "trusted",
+  data: z.object({ count: z.number() }),
+  actions: [],
+  view: ({ data }) => ({
+    blocks: [{ type: "stats", items: [{ label: "Saved", value: data.count }] }],
+  }),
+});
+
+const failingDefinition = defineServicePlugin({
+  id: "failing-operator",
+  config: z.object({}),
+  setup: () => ({}),
+  studioWorkspaces: (context) => [
+    broken.bind(context, {
+      actions: [],
+      load: () => {
+        throw new Error("Snapshots unreadable");
+      },
+    }),
+  ],
+});
+
+describe("a workspace whose data cannot be loaded", () => {
+  // A proxy in front of the brain (Cloudflare) replaces an origin 502 with
+  // its own HTML page, so the reason never reached Studio.
+  it("answers 500 with the reason, not a gateway error", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const auth = new AuthServicePlugin({
+      storageDir: await createTempDataDir("brains-failing-studio-auth-"),
+    });
+    await auth.register(shell);
+    authPlugins.push(auth);
+    const cookie = (await auth.getService().createAuthSession()).cookie;
+    const studio = studioPlugin();
+    await studio.register(shell);
+    const [service] = instantiatePluginPackageDefinition(
+      failingDefinition,
+      {},
+      { name: "@fixture/failing-operator", version: "0.1.0" },
+    );
+    if (!service) throw new Error("Service plugin was not created");
+    servicePlugins.push(service);
+    await service.register(shell);
+    await service.finalizeRegistration?.();
+
+    const headers = { Cookie: cookie };
+    const navigation = z
+      .object({
+        workspaces: z.array(z.object({ id: z.string(), label: z.string() })),
+      })
+      .parse(
+        await responseJson(
+          await findRoute(studio, "/studio/api/types").handler(
+            new Request("https://yeehaa.io/studio/api/types", { headers }),
+          ),
+        ),
+      );
+    const id = navigation.workspaces.find((w) => w.label === "Broken")?.id;
+    if (!id) throw new Error("Expected the Broken workspace");
+
+    const response = await findRoute(studio, "/studio/api/workspace").handler(
+      new Request(
+        `https://yeehaa.io/studio/api/workspace?id=${encodeURIComponent(id)}`,
+        { headers },
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await responseJson(response)).toEqual({
+      error: expect.stringContaining('workspace "broken" data loader failed'),
+    });
+  });
+});

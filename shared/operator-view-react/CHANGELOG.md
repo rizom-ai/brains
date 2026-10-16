@@ -1,5 +1,493 @@
 # @brains/operator-view-react
 
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.556
+  - @brains/plugins@0.2.0-alpha.556
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.555
+  - @brains/plugins@0.2.0-alpha.555
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.554
+  - @brains/plugins@0.2.0-alpha.554
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.553
+  - @brains/plugins@0.2.0-alpha.553
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.552
+  - @brains/app-ui-react@0.2.0-alpha.552
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.551
+  - @brains/plugins@0.2.0-alpha.551
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.550
+  - @brains/plugins@0.2.0-alpha.550
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.549
+  - @brains/plugins@0.2.0-alpha.549
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.548
+  - @brains/plugins@0.2.0-alpha.548
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.547
+  - @brains/plugins@0.2.0-alpha.547
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.546
+  - @brains/plugins@0.2.0-alpha.546
+
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.545
+  - @brains/plugins@0.2.0-alpha.545
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.544
+  - @brains/plugins@0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.543
+  - @brains/plugins@0.2.0-alpha.543
+
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.542
+  - @brains/plugins@0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.541
+  - @brains/plugins@0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.540
+  - @brains/plugins@0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.539
+  - @brains/plugins@0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.538
+  - @brains/plugins@0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.537
+  - @brains/plugins@0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.536
+  - @brains/plugins@0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.535
+  - @brains/plugins@0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.534
+  - @brains/plugins@0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.533
+  - @brains/plugins@0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.532
+  - @brains/plugins@0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.531
+  - @brains/plugins@0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.530
+  - @brains/plugins@0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.529
+  - @brains/plugins@0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.528
+  - @brains/plugins@0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.527
+  - @brains/plugins@0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.526
+  - @brains/plugins@0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.525
+  - @brains/plugins@0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.524
+  - @brains/plugins@0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.523
+  - @brains/plugins@0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.522
+  - @brains/plugins@0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.521
+  - @brains/plugins@0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.520
+  - @brains/plugins@0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.519
+  - @brains/plugins@0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.518
+  - @brains/plugins@0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.517
+  - @brains/app-ui-react@0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/app-ui-react@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.515
+  - @brains/plugins@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.514
+  - @brains/plugins@0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.513
+  - @brains/plugins@0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.512
+  - @brains/plugins@0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.511
+  - @brains/app-ui-react@0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.510
+  - @brains/plugins@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.509
+  - @brains/app-ui-react@0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.508
+  - @brains/plugins@0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.507
+  - @brains/plugins@0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.506
+  - @brains/plugins@0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.505
+  - @brains/app-ui-react@0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.504
+  - @brains/plugins@0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.503
+  - @brains/plugins@0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.502
+  - @brains/plugins@0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.501
+  - @brains/app-ui-react@0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.500
+  - @brains/app-ui-react@0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.499
+  - @brains/plugins@0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.498
+  - @brains/plugins@0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- Updated dependencies [[`769c063`](https://github.com/rizom-ai/brains/commit/769c063b4f2fa550a6f63548df8bbfe8e98630f5)]:
+  - @brains/plugins@0.2.0-alpha.497
+  - @brains/app-ui-react@0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.496
+  - @brains/plugins@0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ### Patch Changes

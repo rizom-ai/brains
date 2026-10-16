@@ -1,4 +1,7 @@
-import matter from "gray-matter";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import type { FrontmatterSchema } from "./types";
 
@@ -62,10 +65,8 @@ export function preserveSourceFrontmatter(
   groupingFields: readonly string[] = [],
 ): string {
   if (!ownerSchema) return serializedContent;
-  // Exports walk every entity once; an options object keeps these documents
-  // out of gray-matter's process-lifetime cache.
-  const source = matter(sourceContent, {});
-  const serialized = matter(serializedContent, {});
+  const source = readMarkdownFrontmatter(sourceContent);
+  const serialized = readMarkdownFrontmatter(serializedContent);
   const sourceFields = recordSchema.parse(source.data);
   const serializedFields = recordSchema.parse(serialized.data);
   const extensionKeys = new Set([
@@ -89,6 +90,6 @@ export function preserveSourceFrontmatter(
   for (const [key, value] of additions) result[key] = value;
   // Unlike the domain formatter, preserve explicit null in unclaimed fields.
   return Object.keys(result).length > 0
-    ? matter.stringify(serialized.content, result)
+    ? generateMarkdown(result, serialized.content)
     : serialized.content;
 }

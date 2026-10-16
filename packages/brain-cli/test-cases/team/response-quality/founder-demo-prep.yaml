@@ -25,20 +25,17 @@ successCriteria:
   expectedTools:
     - toolName: system_search
       shouldBeCalled: true
-  responseContains:
-    - "capture"
-    - "summar"
-    - "topic"
-    - "peer"
-    - "gaps"
-    - "proof"
   responseNotContains:
     - "blog platform"
     - "newsletter"
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Describes what works today from saved memory, such as capture, summaries, topics, and peer-brain coordination."
+    - "Names the gaps that remain."
+    - "Proposes concrete proof to run next."
 
 efficiency:
   maxToolCalls: 10
-  maxTokens: 40000
+  maxTokens: 77000

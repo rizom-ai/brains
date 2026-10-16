@@ -99,6 +99,23 @@ describe("sitePackagesFor", () => {
       }),
     ).toEqual(["@rizom/site-rizom-ai@0.2.0-alpha.167"]);
   });
+
+  // @brains/* sites ship inside @rizom/brain, pinned by the Brain version.
+  it("excludes a bundled (@brains) site package", () => {
+    expect(sitePackagesFor({ package: "@brains/site-organization" })).toEqual(
+      [],
+    );
+  });
+
+  it("installs only the external theme of a bundled site", () => {
+    expect(
+      sitePackagesFor({
+        package: "@brains/site-organization",
+        theme: "@rizom/theme-rizom-ai",
+        themeVersion: "0.2.0-alpha.235",
+      }),
+    ).toEqual(["@rizom/theme-rizom-ai@0.2.0-alpha.235"]);
+  });
 });
 
 describe("requiredImages", () => {

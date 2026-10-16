@@ -6,75 +6,851 @@
 # (II/III, 627–642). `year` is first publication; short pieces the edition
 # prints under a collective title are one book per volume. The scan of GW I
 # lacks pages 74–75 (a blank page and the half-title of Studien über
-# Hysterie).
+# Hysterie). Four neurological monographs the edition does not print are read
+# from scans of their first editions: Zur Auffassung der Aphasien (1891), the
+# Klinische Studie über die halbseitige Cerebrallähmung der Kinder written
+# with Oscar Rie (1891), Zur Kenntniss der cerebralen Diplegien des
+# Kindesalters (1893) and Die infantile Cerebrallähmung (1897); the Diplegien
+# are read anew from their scan (`ocr`), which has no archive text.
+# Their literature lists, tables of contents and publishers’ advertisements
+# are left out; the Aphasien keep their dedication. His papers of 1877–1895
+# that the edition does not print, in the Akademie's Sitzungsberichte and
+# the journals of anatomy, psychiatry and neurology, are read from scans of
+# their first printings, and Ueber Coca from its revised reprint of 1885.
 source: archive-ocr
 coverage:
   author: Sigmund Freud
-  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), read from the Internet Archive's scans
+  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), and for the papers and neurological monographs of 1877–1897 their first printings, read from the Internet Archive's scans
   license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
 gaps:
-  - volume: I
-    pages: 37–56
-    title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
-    year: 1893
-    reason: written in French
-  - volume: I
-    pages: 345–354
-    title: Obsessions et phobies
-    year: 1895
-    reason: written in French
-  - volume: I
-    pages: 405–424
-    title: L'hérédité et l'étiologie des névroses
-    year: 1896
-    reason: written in French
-  - volume: XIII
+  - citation: GW XIII
     pages: 437–438
     title: Preface to J. J. Putnam, Addresses on Psycho-Analysis
     year: 1921
-    reason: written in English
-  - volume: XIII
-    pages: 439–440
-    title: Geleitwort zu J. Varendonck, Über das vorbewußte phantasierende Denken
-    year: 1921
-    reason: written in English
-  - volume: XIII
-    pages: "442"
-    title: Brief an Luis Lopez-Ballesteros y de Torres
-    year: 1923
-    reason: written in Spanish
-  - volume: XIII
-    pages: "446"
-    title: Zuschrift an die Zeitschrift „Le Disque Vert“
-    year: 1924
-    reason: written in French
-  - volume: XIV
-    pages: 297–308
-    title: Psycho-Analysis
-    year: 1926
-    reason: written in English
-  - volume: XIV
+    reason: printed in English; whether Freud wrote it so or it was translated is not established
+  - citation: GW XIV
     pages: 556–557
     title: To the Opening of the Hebrew University
     year: 1925
-    reason: written in English
-  - volume: XIV
-    pages: 558–560
-    title: Brief an Maxime Leroy über einen Traum des Cartesius
-    year: 1929
-    reason: written in French
-  - volume: XVII
-    pages: 139–148
-    title: Some Elementary Lessons in Psycho-Analysis
-    year: 1938
-    reason: written in English
+    reason: printed in English; whether Freud wrote it so or it was translated is not established
   - title: Briefe
     reason: the letters are not in the Gesammelte Werke
+  - citation: GW VIII
+    pages: 429–440
+    title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
+    year: 1913
+    reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912)
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
-    reason: published in 1987 with an editorial apparatus still in copyright
+    reason: the texts are public domain, but no free scan of the volume exists
 books:
+  - item: Sitz_MN_1_1877_75
+    citation: Lappenorgane
+    ocr: deu
+    firstPage: 419
+    lastPage: 431
+    # Its note, which the OCR sets as text.
+    notes:
+      - { page: 429, opens: ¹ Diese }
+    # The legend to the plate, an entry to each line.
+    paragraphs:
+      - { page: 431, opens: Erklärung der Abbildungen. }
+      - { page: 431, opens: Fig. 1. }
+      - { page: 431, opens: A Lappenloses }
+      - { page: 431, opens: B Organ }
+      - { page: 431, opens: C Entwickeltes }
+      - { page: 431, opens: Fig. 2. }
+      - { page: 431, opens: p. E. }
+      - { page: 431, opens: sp. E. }
+      - { page: 431, opens: Fig. 3. }
+      - { page: 431, opens: a drei }
+      - { page: 431, opens: b zwei }
+      - { page: 431, opens: c Kerne }
+      - { page: 431, opens: d zwei }
+      - { page: 431, opens: e Bindegewebszelle }
+      - { page: 431, opens: f Bindegewebszelle }
+      - { page: 431, opens: g Bindegewebskörper }
+      - { page: 431, opens: h Ungewöhnliche }
+      - { page: 431, opens: Fig. 4. }
+      - { page: 431, opens: Fig. 5. }
+      - { page: 431, opens: sp. Spindelzellen. }
+      - { page: 431, opens: b. Bindegewebskörper. }
+      - { page: 431, opens: z. Zellen }
+      - { page: 431, opens: hz. Zellen }
+    slug: beobachtungen-ueber-gestaltung-und-feineren-bau-der-als-hoden-beschriebenen-lappenorgane-des-aals
+    title: Beobachtungen über Gestaltung und feineren Bau der als Hoden beschriebenen Lappenorgane des Aals
+    shortTitle: Die Lappenorgane des Aals
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXV, I. Abtheilung (Wien 1877), S. 419–431
+    author: Sigmund Freud
+    year: 1877
+    kind: work
+  - item: Sitz_MN_3_1877_75
+    citation: Ammocoetes
+    ocr: deu
+    firstPage: 15
+    lastPage: 27
+    # The legend to the plate, an entry to each line.
+    paragraphs:
+      - { page: 27, opens: Erklärung der Abbildungen. }
+      - { page: 27, opens: Fig. 1. }
+      - { page: 27, opens: c. Centralkanal, }
+      - { page: 27, opens: h. Hinterzelle, }
+      - { page: 27, opens: hzf. }
+      - { page: 27, opens: M. f. Müller’sche Faser, }
+      - { page: 27, opens: r. Vorderhorn. }
+      - { page: 27, opens: Fig. 2. }
+      - { page: 27, opens: Ch. Chorda }
+      - { page: 27, opens: Chs. }
+      - { page: 27, opens: d. Dura }
+      - { page: 27, opens: p. Pia }
+      - { page: 27, opens: ar. Zellen }
+      - { page: 27, opens: m. Muskelsegmente. }
+      - { page: 27, opens: n. l. }
+      - { page: 27, opens: M. f. Müller’sche Faser. }
+      - { page: 27, opens: c. Centralkanal. }
+      - { page: 27, opens: h. Hinterzelle. }
+      - { page: 27, opens: h. f. }
+      - { page: 27, opens: Daneben }
+      - { page: 27, opens: f. die }
+      - { page: 27, opens: h. w. }
+      - { page: 27, opens: s. G. }
+    slug: ueber-den-ursprung-der-hinteren-nervenwurzeln-im-rueckenmark-von-ammocoetes
+    title: Über den Ursprung der hinteren Nervenwurzeln im Rückenmark von Ammocoetes (Petromyzon Planeri)
+    shortTitle: Hintere Nervenwurzeln von Ammocoetes
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXV, III. Abtheilung (Wien 1877), S. 15–27
+    author: Sigmund Freud
+    year: 1877
+    kind: work
+  - item: Sitz_MN_3_1878_78
+    citation: Petromyzon
+    ocr: deu
+    firstPage: 81
+    lastPage: 167
+    # The legend to the plates, an entry to each line.
+    paragraphs:
+      - { page: 163, opens: "Ich sah einigemale," }
+      - { page: 163, opens: "Die feinen Fasern" }
+      - { page: 163, opens: "Erklärung der Abbildungen." }
+      - { page: 163, opens: "Tafel I." }
+      - { page: 163, opens: "Fig. 1. Spinalganglion" }
+      - { page: 163, opens: "Spinalganglion mit 15" }
+      - { page: 163, opens: "Der centrale Fortsatz" }
+      - { page: 163, opens: "Ein Zellkern ist" }
+      - { page: 163, opens: "Im ventralen Ast" }
+      - { page: 163, opens: "HW = hintere" }
+      - { page: 163, opens: "v A =" }
+      - { page: 163, opens: "kz = Kleinzelle." }
+      - { page: 163, opens: "d A =" }
+      - { page: 163, opens: "gz = Grosszelle." }
+      - { page: 163, opens: "zf = Zellenfasern." }
+      - { page: 163, opens: "ang, ang' =" }
+      - { page: 163, opens: "s A =" }
+      - { page: 163, opens: "dz = breite" }
+      - { page: 163, opens: "dz' = mittelstarke" }
+      - { page: 163, opens: "wf = um" }
+      - { page: 163, opens: "RZ = Ranvier’sche" }
+      - { page: 163, opens: "Fig. 2. Spinalganglion" }
+      - { page: 164, opens: "Die Doppelzelle zeigte," }
+      - { page: 164, opens: "gf = Gefäss." }
+      - { page: 164, opens: "s a =" }
+      - { page: 164, opens: "dz' = durchziehende" }
+      - { page: 164, opens: "hw = hintere" }
+      - { page: 164, opens: "ang = angelehnte" }
+      - { page: 164, opens: "Fig. 3. Spinalganglion," }
+      - { page: 164, opens: "hw = hintere" }
+      - { page: 164, opens: "gza = Grosszellenast." }
+      - { page: 164, opens: "dz′ = durchziehende" }
+      - { page: 164, opens: "kza = Kleinzellenast." }
+      - { page: 164, opens: "Rz, Rz′ =" }
+      - { page: 164, opens: "az = scheinbar" }
+      - { page: 164, opens: "ang = angelehnte" }
+      - { page: 164, opens: "Fig. 4A. Ranvier’sche" }
+      - { page: 164, opens: "Fig. 4. B—F." }
+      - { page: 164, opens: "B bipolare Zelle" }
+      - { page: 164, opens: "C tripolare Zelle" }
+      - { page: 164, opens: "D Ranvier’sche Zelle;" }
+      - { page: 164, opens: "E Zwei anscheinend" }
+      - { page: 164, opens: "F Ranvier" }
+      - { page: 164, opens: "Tafel II." }
+      - { page: 164, opens: "Fig. 1. Spinalganglion," }
+      - { page: 164, opens: "Gez. bei Hartnack" }
+      - { page: 164, opens: "h W =" }
+      - { page: 164, opens: "dz = breite" }
+      - { page: 164, opens: "dz′ = durchziehende" }
+      - { page: 164, opens: "zf = Zellenfaser." }
+      - { page: 165, opens: "Th = Theilungen" }
+      - { page: 165, opens: "Th′ = Theilung" }
+      - { page: 165, opens: "ang = angelehnte" }
+      - { page: 165, opens: "Fig. 2. Rückenmark" }
+      - { page: 165, opens: "Vordere oberflächliche Faserkreuzung." }
+      - { page: 165, opens: "C = Centralcanal." }
+      - { page: 165, opens: "Mf = die" }
+      - { page: 165, opens: "Vhz = Vorderhornzellen." }
+      - { page: 165, opens: "Cmf = Vordere" }
+      - { page: 165, opens: "Th = Theilungen" }
+      - { page: 165, opens: "Fig. 3. Eine" }
+      - { page: 165, opens: "h W =" }
+      - { page: 165, opens: "zf = Zellenfaser." }
+      - { page: 165, opens: "ohz = oberflächliche" }
+      - { page: 165, opens: "auf. f =" }
+      - { page: 165, opens: "Fig. 4. Vordere" }
+      - { page: 165, opens: "v W =" }
+      - { page: 165, opens: "d = dorsaler" }
+      - { page: 165, opens: "v = ventraler" }
+      - { page: 165, opens: "kz = kleine," }
+      - { page: 165, opens: "Tafel III." }
+      - { page: 165, opens: "Fig. 1. Flächenschnitt" }
+      - { page: 165, opens: "hw¹ — hw⁵" }
+      - { page: 165, opens: "ohz = oberflächliche" }
+      - { page: 165, opens: "auf. f =" }
+      - { page: 165, opens: "qhz = in" }
+      - { page: 165, opens: "FZ = Faserzusammensetzungen" }
+      - { page: 165, opens: "Fig. 2. Flächenschnitt" }
+      - { page: 165, opens: "Zellen in den" }
+      - { page: 165, opens: "sk G =" }
+      - { page: 165, opens: "D = Dura" }
+      - { page: 165, opens: "Ar = Arachnoidealraum." }
+      - { page: 165, opens: "Spg = Spinalganglion." }
+      - { page: 165, opens: "G = Gefässdurchschnitt." }
+      - { page: 166, opens: "M = Muskel." }
+      - { page: 166, opens: "h W =" }
+      - { page: 166, opens: "U = Umbiegung" }
+      - { page: 166, opens: "v W =" }
+      - { page: 166, opens: "Gf = Gefäss." }
+      - { page: 166, opens: "qhz = querliegende," }
+      - { page: 166, opens: "Fig. 3. Hintere" }
+      - { page: 166, opens: "h W =" }
+      - { page: 166, opens: "auf. f =" }
+      - { page: 166, opens: "ohz = oberflächliche" }
+      - { page: 166, opens: "Fig. 4. Isolirte" }
+      - { page: 166, opens: "ohz = oberflächliche" }
+      - { page: 166, opens: "zf = Wurzelfortsatz" }
+      - { page: 166, opens: "hw = Umbiegung" }
+      - { page: 166, opens: "c = centraler" }
+      - { page: 166, opens: "Tafel IV." }
+      - { page: 166, opens: "Fig. 1. Ventraler" }
+      - { page: 166, opens: "spz = äusserste" }
+      - { page: 166, opens: "v A =" }
+      - { page: 166, opens: "sz = sympathische" }
+      - { page: 166, opens: "ez = in" }
+      - { page: 166, opens: "a A =" }
+      - { page: 166, opens: "gbf = gefässbegleitende" }
+      - { page: 166, opens: "z = Zweig" }
+      - { page: 166, opens: "ff = feine" }
+      - { page: 166, opens: "Fig. 2. Spinalganglion," }
+      - { page: 166, opens: "Sp G =" }
+      - { page: 166, opens: "d = dorsaler," }
+      - { page: 166, opens: "v = ventraler" }
+      - { page: 166, opens: "s = sympathischer" }
+      - { page: 166, opens: "ang = angelehnte" }
+      - { page: 166, opens: "dz′ = durchziehende" }
+      - { page: 166, opens: "Th = Theilung" }
+      - { page: 166, opens: "a A =" }
+      - { page: 167, opens: "sz = sympathische" }
+      - { page: 167, opens: "sdz = sympathische" }
+      - { page: 167, opens: "G A =" }
+      - { page: 167, opens: "ff = feine" }
+      - { page: 167, opens: "Gf = Gefäss." }
+      - { page: 167, opens: "gbf = gefässbegleitende" }
+      - { page: 167, opens: "zs = Spinalganglienzelle," }
+      - { page: 167, opens: "Fig. 3. Feines" }
+      - { page: 167, opens: "PM = Pia" }
+      - { page: 167, opens: "Rmk = Rückenmark." }
+      - { page: 167, opens: "Wz = Wurzel." }
+      - { page: 167, opens: "G = Gefäss" }
+      - { page: 167, opens: "nf = Nervenfasern," }
+      - { page: 167, opens: "A = ein" }
+    # A section heading the OCR measures as the text.
+    headings:
+      - { page: 106, opens: III. Über das Wesentliche }
+    # The notes, by their marks: the OCR sets some as text.
+    notes:
+      - { page: 83, opens: "¹ Polaillon," }
+      - { page: 83, opens: "² Bidder," }
+      - { page: 84, opens: "¹ R." }
+      - { page: 84, opens: "² ibid." }
+      - { page: 84, opens: "³ ibid." }
+      - { page: 84, opens: "⁴ ibid." }
+      - { page: 85, opens: "¹ Kölliker," }
+      - { page: 85, opens: "² ibid." }
+      - { page: 86, opens: "¹ Schwalbe," }
+      - { page: 86, opens: "² ibid." }
+      - { page: 87, opens: "¹ Arndt," }
+      - { page: 87, opens: "² Holl," }
+      - { page: 87, opens: "³ ibid." }
+      - { page: 88, opens: "¹ Schramm," }
+      - { page: 88, opens: "² l." }
+      - { page: 88, opens: "³ l." }
+      - { page: 88, opens: "⁴ Bericht" }
+      - { page: 88, opens: "⁵ Sigm." }
+      - { page: 89, opens: "¹ On" }
+      - { page: 89, opens: "² l." }
+      - { page: 90, opens: "¹ l." }
+      - { page: 90, opens: "² l." }
+      - { page: 90, opens: "³ l." }
+      - { page: 90, opens: "⁴ Leydig," }
+      - { page: 90, opens: "⁵ Stannius," }
+      - { page: 91, opens: "¹ l." }
+      - { page: 91, opens: "² l." }
+      - { page: 92, opens: "¹ Axmann," }
+      - { page: 92, opens: "² l." }
+      - { page: 92, opens: "³ l." }
+      - { page: 92, opens: "⁴ l." }
+      - { page: 92, opens: "⁵ l." }
+      - { page: 92, opens: "⁶ Courvoisier," }
+      - { page: 93, opens: "¹ l." }
+      - { page: 93, opens: "² Fräntzel," }
+      - { page: 93, opens: "³ Thanhoffer," }
+      - { page: 93, opens: "⁴ Ranvier," }
+      - { page: 94, opens: "¹ Axel" }
+      - { page: 94, opens: "² Tafel" }
+      - { page: 94, opens: "³ ibid." }
+      - { page: 94, opens: "⁴ ibid." }
+      - { page: 94, opens: "⁵ Stannius," }
+      - { page: 95, opens: "¹ ibid." }
+      - { page: 95, opens: "² R." }
+      - { page: 95, opens: "³ Remak," }
+      - { page: 95, opens: "⁴ Leydig," }
+      - { page: 96, opens: "¹ l." }
+      - { page: 96, opens: "² Küttner," }
+      - { page: 97, opens: "¹ Stannius," }
+      - { page: 97, opens: "² In" }
+      - { page: 97, opens: "³ Langerhans," }
+      - { page: 98, opens: "¹ l." }
+      - { page: 98, opens: "² l." }
+      - { page: 99, opens: "¹ Joh." }
+      - { page: 99, opens: "² Vergl." }
+      - { page: 101, opens: "¹ Joh." }
+      - { page: 102, opens: "¹ Königstein," }
+      - { page: 103, opens: "¹ J." }
+      - { page: 104, opens: "¹ Langerhans," }
+      - { page: 104, opens: "² Stannius," }
+      - { page: 104, opens: "³ Vergl." }
+      - { page: 105, opens: "¹ Meine" }
+      - { page: 105, opens: "² l." }
+      - { page: 111, opens: "¹ Vergl." }
+      - { page: 113, opens: "¹ l." }
+      - { page: 117, opens: "¹ Henle," }
+      - { page: 119, opens: "¹ Joh." }
+      - { page: 127, opens: "¹ Stannius" }
+      - { page: 127, opens: "² Stannius," }
+      - { page: 127, opens: "³ Sigm." }
+      - { page: 129, opens: "¹ Neurologische" }
+      - { page: 131, opens: "¹ Langerhans," }
+      - { page: 131, opens: "² Beale," }
+      - { page: 133, opens: "¹ Max" }
+      - { page: 134, opens: "¹ Kutschin," }
+      - { page: 134, opens: "² Vergl." }
+      - { page: 134, opens: "³ Über" }
+      - { page: 135, opens: "¹ l." }
+      - { page: 135, opens: "² Stilling," }
+      - { page: 139, opens: "¹ Hensen," }
+      - { page: 139, opens: "² Schenk," }
+      - { page: 139, opens: "³ l." }
+      - { page: 139, opens: "⁴ Balfour," }
+      - { page: 142, opens: "¹ Stannius," }
+      - { page: 147, opens: "¹ Königstein," }
+      - { page: 154, opens: "¹ Stannius," }
+      - { page: 154, opens: "² ibid." }
+      - { page: 154, opens: "³ ibid." }
+      - { page: 154, opens: "⁴ Volkmann," }
+      - { page: 154, opens: "⁵ Vergl." }
+      - { page: 154, opens: "⁶ Langerhans," }
+      - { page: 155, opens: "¹ Mémoires" }
+      - { page: 155, opens: "² l." }
+      - { page: 156, opens: "¹ Stannius" }
+      - { page: 157, opens: "¹ Neue" }
+      - { page: 158, opens: "¹ Reissner," }
+      - { page: 158, opens: "² Referate" }
+      - { page: 160, opens: "¹ l." }
+    slug: ueber-spinalganglien-und-rueckenmark-des-petromyzon
+    title: Über Spinalganglien und Rückenmark des Petromyzon
+    shortTitle: Spinalganglien und Rückenmark des Petromyzon
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXVIII, III. Abtheilung (Wien 1878), S. 81–167
+    author: Sigmund Freud
+    year: 1878
+    kind: work
+  - item: sb-1882-85-1-2
+    citation: Flusskrebs
+    ocr: deu
+    firstPage: 9
+    lastPage: 46
+    # The plate legend, set with hanging figure numbers.
+    paragraphs:
+      - { page: 46, opens: Erklärung der Tafel. }
+      - { page: 46, opens: Fig. 1. }
+      - { page: 46, opens: Fig. 2. }
+      - { page: 46, opens: Fig. 3. }
+      - { page: 46, opens: s Die dicke }
+      - { page: 46, opens: ks Die Kerne }
+      - { page: 46, opens: hm Stark }
+      - { page: 46, opens: f Eine }
+      - { page: 46, opens: Dieselbe Vergrösserung. }
+      - { page: 46, opens: Fig. 4. }
+      - { page: 46, opens: Fig. 5. }
+    # The notes, which the OCR sets as text, by their marks.
+    notes:
+      - { page: 11, opens: ¹ Helmholtz }
+      - { page: 11, opens: ² Remak }
+      - { page: 12, opens: ¹ Remak }
+      - { page: 12, opens: ² Haeckel }
+      - { page: 12, opens: ³ Haeckel }
+      - { page: 13, opens: ¹ Waldeyer }
+      - { page: 13, opens: ² Leydig }
+      - { page: 14, opens: ¹ l. }
+      - { page: 14, opens: ² Leydig }
+      - { page: 14, opens: ³ Ebendaselbst }
+      - { page: 14, opens: ⁴ Walter }
+      - { page: 15, opens: ¹ Hannover }
+      - { page: 15, opens: ² Owsjannikow }
+      - { page: 15, opens: ³ Lemoine }
+      - { page: 15, opens: ⁴ De }
+      - { page: 16, opens: ¹ Yung }
+      - { page: 16, opens: ² Krieger }
+      - { page: 17, opens: ¹ Huxley }
+      - { page: 18, opens: ¹ Remak }
+      - { page: 19, opens: ¹ Dietl }
+      - { page: 21, opens: ¹ l. }
+      - { page: 21, opens: ² Claus }
+      - { page: 21, opens: ³ J. }
+      - { page: 21, opens: ⁴ l. }
+      - { page: 22, opens: ¹ Histologie }
+      - { page: 22, opens: ² l. }
+      - { page: 23, opens: ¹ Müller’s }
+      - { page: 23, opens: ² l. }
+      - { page: 23, opens: ³ l. }
+      - { page: 24, opens: ¹ l. }
+      - { page: 24, opens: ² l. }
+      - { page: 29, opens: ¹ Müller’s }
+      - { page: 30, opens: ¹ Leydig }
+      - { page: 33, opens: ¹ H. }
+      - { page: 34, opens: ¹ E. }
+      - { page: 34, opens: ² Solbrig }
+      - { page: 34, opens: ³ Vgl. }
+      - { page: 35, opens: ¹ Remak }
+      - { page: 35, opens: ² l. }
+      - { page: 35, opens: ³ H. }
+      - { page: 35, opens: ⁴ Jahresbericht }
+      - { page: 35, opens: ⁵ Arndt }
+      - { page: 36, opens: ¹ Fleischl }
+      - { page: 36, opens: ² Boll }
+      - { page: 36, opens: ³ Ich }
+      - { page: 36, opens: ⁴ Bemerkungen }
+      - { page: 37, opens: ¹ Über }
+      - { page: 37, opens: ² l. }
+      - { page: 37, opens: ³ Schwalbe }
+      - { page: 38, opens: ¹ Schwalbe }
+      - { page: 38, opens: ² Leydig }
+      - { page: 38, opens: ³ Boll }
+      - { page: 38, opens: ⁴ Observationes }
+      - { page: 39, opens: "¹ „Fibrillae" }
+      - { page: 40, opens: ¹ Amtlicher }
+      - { page: 41, opens: ¹ Bemerkungen }
+      - { page: 42, opens: ¹ Ebendaselbst }
+      - { page: 42, opens: ² l. }
+      - { page: 42, opens: ³ C. }
+      - { page: 42, opens: ⁴ Heitzmann }
+      - { page: 43, opens: ¹ C. }
+      - { page: 43, opens: ² Vgl. }
+      - { page: 44, opens: ¹ Schleicher }
+      - { page: 44, opens: ² Vgl. }
+      - { page: 44, opens: ³ Leydig }
+      - { page: 45, opens: ¹ Claus }
+      - { page: 45, opens: ² Vgl. }
+    slug: ueber-den-bau-der-nervenfasern-und-nervenzellen-beim-flusskrebs
+    title: Über den Bau der Nervenfasern und Nervenzellen beim Flusskrebs
+    shortTitle: Nervenfasern und Nervenzellen beim Flusskrebs
+    edition: Sitzungsberichte der kaiserlichen Akademie der Wissenschaften, mathematisch-naturwissenschaftliche Classe, Bd. LXXXV, III. Abtheilung (Wien 1882), S. 9–46
+    author: Sigmund Freud
+    year: 1882
+    kind: work
+  - item: JfPsychiatrie_1884_5
+    citation: Structur der Elemente
+    ocr: deu
+    firstPage: 221
+    lastPage: 229
+    opensWith: (Nach einem im psychiatrischen Vereine
+    slug: die-structur-der-elemente-des-nervensystems
+    title: Die Structur der Elemente des Nervensystems
+    edition: Jahrbücher für Psychiatrie, V. Band (Wien 1884), S. 221–229
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+    notes:
+      - { page: 221, opens: ¹ Wiener }
+      - { page: 222, opens: ¹ Untersuchungen }
+      - { page: 222, opens: ² Der }
+      - { page: 223, opens: ¹ Wissenschaftl. }
+      - { page: 223, opens: ² Ueber }
+      - { page: 223, opens: ³ Ueber }
+      - { page: 226, opens: ¹ Festgabe }
+      - { page: 227, opens: ¹ Ueber }
+      - { page: 227, opens: ² Ueber }
+      - { page: 227, opens: ³ Sitzungsb. }
+      - { page: 227, opens: ⁴ Bemerkungen }
+      - { page: 229, opens: ¹ Comptes }
+      - { page: 229, opens: ² Studien }
+      - { page: 229, opens: ³ Sitzungsb. }
+      - { page: 229, opens: ⁴ Vergl. }
+  - item: Freud_1885_Coca
+    citation: Coca
+    ocr: deu
+    firstPage: 3
+    lastPage: 26
+    # Headings set in the text's type.
+    headings:
+      - { page: 3, opens: II. Geschichte, level: 1, label: II }
+      - { page: 6, opens: III. Die Cocablätter, level: 1, label: III }
+    # The notes, set below a rule the OCR does not read, by their marks.
+    notes:
+      - { page: 3, opens: ¹ O. }
+      - { page: 3, opens: ² Nach }
+      - { page: 3, opens: ³ Diese }
+      - { page: 3, opens: ⁴ Weddel }
+      - { page: 4, opens: ¹ Scrivener }
+      - { page: 4, opens: ² Garcilasso }
+      - { page: 4, opens: ³ Christison }
+      - { page: 4, opens: ⁴ Mantegazza }
+      - { page: 4, opens: ⁵ Scrivener }
+      - { page: 4, opens: ⁶ Nach }
+      - { page: 5, opens: ¹ Systema }
+      - { page: 5, opens: ² Essai }
+      - { page: 5, opens: ³ Vgl. }
+      - { page: 5, opens: ⁴ Viagem }
+      - { page: 5, opens: ⁵ Expedition }
+      - { page: 5, opens: ⁶ Reise }
+      - { page: 5, opens: ⁷ l. c. }
+      - { page: 5, opens: ⁸ Reiseskizzen }
+      - { page: 5, opens: ⁹ l. c. }
+      - { page: 5, opens: ¹⁰ Reise }
+      - { page: 5, opens: ¹¹ Travels }
+      - { page: 5, opens: ¹² Reise }
+      - { page: 6, opens: ¹ Disertacion }
+      - { page: 6, opens: ² Historical }
+      - { page: 6, opens: ³ Fronmüller }
+      - { page: 6, opens: ⁴ The }
+      - { page: 6, opens: ⁵ Disertacion }
+      - { page: 6, opens: ⁶ Memoria }
+      - { page: 7, opens: ¹ Sulle }
+      - { page: 7, opens: ² Annal. }
+      - { page: 7, opens: ³ Annalen }
+      - { page: 7, opens: ⁴ Ueber }
+      - { page: 7, opens: ⁵ Husemann }
+      - { page: 8, opens: ¹ Für }
+      - { page: 9, opens: ¹ Der }
+      - { page: 9, opens: ² Ueber }
+      - { page: 9, opens: ³ Vorläufige }
+      - { page: 9, opens: ⁴ Recherches }
+      - { page: 9, opens: ⁵ Cocaïn }
+      - { page: 9, opens: ⁶ Beitrag }
+      - { page: 9, opens: ⁷ Ueber }
+      - { page: 9, opens: ⁸ An }
+      - { page: 9, opens: ⁹ Coca }
+      - { page: 10, opens: ¹ Bei }
+      - { page: 11, opens: ¹ Ich }
+      - { page: 12, opens: ¹ Finska }
+      - { page: 12, opens: ² De }
+      - { page: 12, opens: ³ Sur }
+      - { page: 12, opens: ⁴ Essai }
+      - { page: 12, opens: ⁵ Note }
+      - { page: 12, opens: ⁶ Die }
+      - { page: 13, opens: ¹ Mit }
+      - { page: 13, opens: ² Observations }
+      - { page: 14, opens: ¹ Erfahrungen }
+      - { page: 14, opens: ² J. }
+      - { page: 14, opens: ³ Erythroxylon }
+      - { page: 14, opens: ⁴ Die }
+      - { page: 14, opens: ⁵ l. c. }
+      - { page: 15, opens: ¹ Ploss }
+      - { page: 16, opens: ¹ Philadelphia }
+      - { page: 17, opens: ¹ Detroit }
+      - { page: 17, opens: ² Review }
+      - { page: 17, opens: ³ Ricerche }
+      - { page: 17, opens: ⁴ Ihre }
+      - { page: 17, opens: ⁵ Pharmakologisch }
+      - { page: 17, opens: ⁶ l. c. }
+      - { page: 17, opens: ⁷ Mantegazza }
+      - { page: 17, opens: ⁸ Mittheilung }
+      - { page: 19, opens: ¹ Erythroxylon }
+      - { page: 19, opens: ² Detroit }
+      - { page: 19, opens: ³ Coca }
+      - { page: 19, opens: ⁴ Detroit }
+      - { page: 19, opens: ⁵ Marvaud }
+      - { page: 20, opens: ¹ Physiologie }
+      - { page: 20, opens: ² Erythroxylon }
+      - { page: 20, opens: ³ Comptes }
+      - { page: 20, opens: ⁴ Bei }
+      - { page: 21, opens: ¹ Pathology }
+      - { page: 21, opens: ² l. c. }
+      - { page: 21, opens: ³ Erythroxylon }
+      - { page: 22, opens: ¹ J. }
+      - { page: 22, opens: ² E. }
+      - { page: 22, opens: ³ R. }
+      - { page: 22, opens: ⁴ T. }
+      - { page: 23, opens: ¹ W. }
+      - { page: 23, opens: ² Travels }
+      - { page: 23, opens: ³ The }
+      - { page: 24, opens: ¹ T. }
+      - { page: 24, opens: ² De }
+    slug: ueber-coca
+    title: Über Coca
+    edition: "Über Coca, neu durchgesehener und vermehrter Separat-Abdruck aus dem „Centralblatt für die gesammte Therapie“ (Wien, Moritz Perles, 1885)"
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+  - item: Arch_Anat_1884
+    citation: Faserverlauf
+    ocr: deu
+    firstPage: 453
+    lastPage: 460
+    slug: eine-neue-methode-zum-studium-des-faserverlaufs-im-centralnervensystem
+    title: Eine neue Methode zum Studium des Faserverlaufs im Centralnervensystem
+    shortTitle: Eine neue Methode zum Studium des Faserverlaufs
+    edition: Archiv für Anatomie und Physiologie, Anatomische Abtheilung, Jahrgang 1884, S. 453–460
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+    notes:
+      - { page: 454, opens: ¹ A. a. O. }
+      - { page: 454, opens: ² Meinem }
+      - { page: 459, opens: ¹ Ich konnte }
+  - item: nc_4_1885_12
+    citation: Olivenzwischenschicht
+    ocr: deu
+    firstPage: 268
+    lastPage: 270
+    opensWith: 2. Zur Kenntniss der Olivenzwischenschicht.
+    # The notes at the foot of its first page close the article before it.
+    notes:
+      - { page: 268, opens: ı Vgl. meine }
+      - { page: 268, opens: "? Eine nochmals" }
+    skipNotes:
+      - { page: 268, opens: i Vgl. meine }
+      - { page: 268, opens: "? Eine nochmals" }
+    # The journal's reviews after its end.
+    headings:
+      - { page: 270, opens: II. Referate. }
+    skipHeadings: [Referate.]
+    slug: zur-kenntniss-der-olivenzwischenschicht
+    title: Zur Kenntniss der Olivenzwischenschicht
+    edition: Neurologisches Centralblatt, IV. Jahrgang, Nr. 12 (Leipzig 1885), S. 268–270
+    author: Sigmund Freud
+    year: 1885
+    kind: work
+  - item: b28071852
+    citation: Aphasien
+    # The title page is leaf 30, the dedication to Breuer its third page.
+    frontLeaf: 30
+    firstPage: III
+    lastPage: 107
+    # The sections' numerals, which the OCR lost or misread.
+    headings:
+      - { page: 1, opens: "Wenn ich, ohne über", numeral: I }
+      - { page: 10, opens: "Die Anschauung, dass die in der Klinik", numeral: II }
+      - { page: 19, opens: "Während wir uns herauszufinden", numeral: III }
+      - { page: 34, opens: "Etwa gleichzeitig mit jener", numeral: IV }
+      - { page: 45, opens: "Wir haben in einem der vorstehenden", numeral: V }
+      - { page: 68, opens: "Unsere Vorstellung vom Aufbau", numeral: VI }
+    # Pages whose figures and captions the OCR set among the lines of text.
+    paragraphs:
+      - { page: III, opens: "Herrn Dr. Josef Breuer" }
+      - { page: 5, opens: "Ich entlehne den Arbeiten" }
+      - { page: 5, opens: "Fig. 2. Fig. 3 in Wernicke" }
+      - { page: 5, opens: "Das Schema von Wernicke" }
+      - { page: 6, opens: "In demselben bedeuten" }
+      - { page: 6, opens: "Fig. 3. Fig. 1 in Lichtheim" }
+      - { page: 8, opens: "6. Die transcorticale" }
+      - { page: 8, opens: "3. Die Leitungsaphasie" }
+      - { page: 8, opens: "Ich setze noch" }
+      - { page: 8, opens: "Fig. 4. Fig. 2 in Lichtheim" }
+      - { page: 8, opens: "Wenn man erfährt" }
+      - { page: 95, opens: "Fig. 10. Wernicke" }
+      - { page: 95, opens: "Das Copiren unterscheidet" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 72, opens: "9 Nachschrift beider Correctur" }
+      - { page: 73, opens: "Sprachstörung) mir grosse", runsOn: true }
+    slug: zur-auffassung-der-aphasien
+    title: Zur Auffassung der Aphasien. Eine kritische Studie
+    shortTitle: Zur Auffassung der Aphasien
+    edition: Zur Auffassung der Aphasien. Eine kritische Studie (Leipzig und Wien, Franz Deuticke, 1891)
+    author: Sigmund Freud
+    year: 1891
+    kind: work
+  - item: Freud_Rie_1891_halbseitige_201606
+    citation: Halbseitige Cerebrallähmung
+    firstPage: 1
+    lastPage: 212
+    # The folded table of chapter III, bound in after its title (41), which
+    # the OCR cannot read.
+    skipHeadings: [Tabellarische Zusammenstellung der 35 vorstehenden Beobachtungen]
+    # Chapters set in the text's type, their numerals taken off, and
+    # subsections the page does not set apart.
+    headings:
+      - { page: 1, opens: "Geschichte und Literatur der cerebralen" }
+      - { page: 13, opens: "Eigene Beobachtungen." }
+      - { page: 15, opens: "A. Fälle mit unmerklichem", level: 2, label: A }
+      - { page: 34, opens: "α) Bloss Facialparese" }
+      - { page: 35, opens: "β) Facialis- und Beinparese" }
+      - { page: 36, opens: "γ) Fälle ohne Anamnese" }
+      - { page: 36, opens: "δ) Andere Uebergangsformen" }
+      - { page: 37, opens: "ε) Fälle mit acutem Beginn" }
+      - { page: 41, opens: "Tabellarische Zusammenstellung" }
+      - { page: 43, opens: "Charakteristik der einzelnen Fälle" }
+      - { page: 52, opens: "Analyse der einzelnen Symptome" }
+      - { page: 52, opens: "1. Geschlecht." }
+      - { page: 52, opens: "2. Beziehung zur Körperseite." }
+      - { page: 52, opens: "3. Alter bei der Erkrankung" }
+      - { page: 57, opens: "4. Allgemeiner Gesundheitszustand." }
+      - { page: 57, opens: "5. Heredität." }
+      - { page: 71, opens: "7. Initialerscheinungen." }
+      - { page: 86, opens: "9. Contracturen" }
+      - { page: 152, opens: "Pathologische Anatomie der cerebralen" }
+      - { page: 171, opens: "Cerebrale Kinderlähmung und Epilepsie" }
+      - { page: 180, opens: "Cerebrale Kinderlähmung und Poliomyelitis" }
+      - { page: 191, opens: "Zur Differentialdiagnose der cerebralen" }
+      - { page: 196, opens: "Zur Therapie der cerebralen" }
+      - { page: 199, opens: "a) Fälle von nicht traumatischer" }
+      - { page: 204, opens: "c) Fälle von nicht traumatischer" }
+      - { page: 206, opens: "d) Fälle von traumatischer" }
+      - { page: 207, opens: "e) Fälle von traumatischer" }
+    slug: klinische-studie-ueber-die-halbseitige-cerebrallaehmung-der-kinder
+    title: Klinische Studie über die halbseitige Cerebrallähmung der Kinder
+    shortTitle: Halbseitige Cerebrallähmung der Kinder
+    edition: Klinische Studie über die halbseitige Cerebrallähmung der Kinder (Wien, Moritz Perles, 1891; Beiträge zur Kinderheilkunde, III. Heft)
+    author: Sigmund Freud und Oscar Rie
+    year: 1891
+    kind: work
+  - item: Freud_1893_Diplegien
+    citation: Diplegien
+    ocr: deu
+    firstPage: 1
+    lastPage: 165
+    # The table of chapter III, folded in at the volume's end, is left out.
+    skipHeadings: [Tabellarische Zusammenstellung der 53 vorstehenden Beobachtungen]
+    # Chapters whose numerals the OCR read apart from their titles, and the
+    # lettered sections of chapter II the page does not set apart.
+    headings:
+      - { page: 27, opens: "B. Leichte allgemeine Starre", level: 2, label: B }
+      - { page: 28, opens: "C. Unbestimmte Formen", level: 2, label: C }
+      - { page: 29, opens: "D. Uebergänge von allgemeiner", level: 2, label: D }
+      - { page: 30, opens: "E. Paraplegische Starre", level: 2, label: E }
+      - { page: 33, opens: "G. Combination von allgemeiner", level: 2, label: G }
+      - { page: 36, opens: "I. Allgemeine Chorea", level: 2, label: I }
+      - { page: 38, opens: "K. Bilaterale Athetose", level: 2, label: K }
+      - { page: 39, opens: "L. Spastische Chorea", level: 2, label: L }
+      - { page: 43, opens: "Tabellarische Zusammenstellung" }
+      - { page: 45, opens: "Allgemeine Charakteristik der beschriebenen" }
+      - { page: 57, opens: "Specielle Analyse der einzelnen" }
+      - { page: 104, opens: "Zur pathologischen Anatomie" }
+      - { page: 121, opens: "Zur pathologischen Physiologie" }
+      - { page: 137, opens: "Hereditäre und familiäre Formen" }
+      - { page: 151, opens: "Differentialdiagnose, Verlauf, Therapie" }
+      - { page: 161, opens: "Einige Ergebnisse über die Cerebrallähmungen" }
+    # Pages whose lists the importer takes for headings: each opening line.
+    paragraphs:
+      - { page: 65, opens: "Erörtern wir diese Tabelle" }
+      - { page: 65, opens: "1. Allgemeine Starre" }
+      - { page: 65, opens: "In der Aetiologie der allgemeinen" }
+      - { page: 65, opens: "2. Paraplegische Starre" }
+      - { page: 65, opens: "In der Aetiologie der paraplegischen" }
+      - { page: 65, opens: "3. Choreatische Formen" }
+      - { page: 65, opens: "In der Gruppe der choreatischen" }
+      - { page: 65, opens: "Ich verkenne nat" }
+      - { page: 66, opens: "a) Mütterliche Ursachen" }
+      - { page: 66, opens: "Psychische Affection der Mutter" }
+      - { page: 66, opens: "Trauma oder häufiger Krankheit" }
+      - { page: 66, opens: "Alle diese F" }
+      - { page: 66, opens: "b) Frühgeburt findet sich" }
+      - { page: 66, opens: "Mehr als die Hälfte der Frühgeburten" }
+      - { page: 66, opens: "c) Asphyxie oder erschwerte" }
+      - { page: 96, opens: "1. Idiotie als Symptom" }
+      - { page: 96, opens: "2. Idiotie als Symptom" }
+      - { page: 96, opens: "3. Idiotie in Folge" }
+      - { page: 96, opens: "4. Idiotie in Folge" }
+      - { page: 96, opens: "5. Idiotie bei knolliger" }
+      - { page: 96, opens: "6. Id" }
+      - { page: 96, opens: "7. Id" }
+      - { page: 96, opens: "8. Idiotie bei Myx" }
+      - { page: 96, opens: "Es ist, wie man sieht" }
+      - { page: 96, opens: "Ueber die Sprachentwickelung" }
+    slug: zur-kenntniss-der-cerebralen-diplegien-des-kindesalters
+    title: Zur Kenntniss der cerebralen Diplegien des Kindesalters (im Anschluss an die Little’sche Krankheit)
+    shortTitle: Cerebrale Diplegien des Kindesalters
+    edition: Zur Kenntniss der cerebralen Diplegien des Kindesalters (im Anschluss an die Little’sche Krankheit) (Leipzig und Wien, Franz Deuticke, 1893; Beiträge zur Kinderheilkunde, Neue Folge III)
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: cn-1895-14-11
+    citation: Bernhardt’sche Sensibilitätsstörung
+    ocr: deu
+    firstPage: 491
+    lastPage: 492
+    # Its note the OCR set as text.
+    notes:
+      - { page: 492, opens: "¹ W. HAGER" }
+    slug: ueber-die-bernhardtsche-sensibilitaetsstoerung-am-oberschenkel
+    title: Ueber die Bernhardt’sche Sensibilitätsstörung am Oberschenkel
+    shortTitle: Die Bernhardt’sche Sensibilitätsstörung
+    edition: Neurologisches Centralblatt, XIV. Jahrgang, Nr. 11 (Leipzig 1895), S. 491–492
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: b33778474
+    citation: Infantile Cerebrallähmung
+    firstPage: 1
+    lastPage: 312
+    # Chapters the page does not set apart: the introduction, numbered I by
+    # its place, and chapters IIa, IIb, IIIa and IIIb, labelled as printed.
+    headings:
+      - { page: 1, opens: "Einleitung. Nosographische" }
+      - { page: 6, opens: "IIa. Geschichte und Literatur", level: 1, label: IIa }
+      - { page: 19, opens: "IIb. Geschichte und Literatur", level: 1, label: IIb }
+      - { page: 41, opens: "IIIa. Klinik der hemiplegischen", level: 1, label: IIIa }
+      - { page: 109, opens: "IIIb. Klinik der diplegischen", level: 1, label: IIIb }
+    # Pages whose lists and case numbers the importer takes for headings: each opening line.
+    paragraphs:
+      - { page: 123, opens: "König resumirt" }
+      - { page: 123, opens: "Sie kommt häufiger" }
+      - { page: 123, opens: "Das Vorkommen des Nystagmus" }
+      - { page: 123, opens: "Oeulomotoriusparesen" }
+      - { page: 123, opens: "Einigermassen abweichend" }
+      - { page: 123, opens: "Strabismus bei Diplegien" }
+      - { page: 123, opens: "a) Strabismus" }
+      - { page: 123, opens: "b) Strabismus" }
+      - { page: 123, opens: "c) einseitige" }
+      - { page: 123, opens: "d) doppelseitige" }
+      - { page: 123, opens: "Dabei neunmal" }
+      - { page: 123, opens: "In vereinzelten" }
+      - { page: 123, opens: "Störungen der anderen" }
+      - { page: 206, opens: "Autopsie: Meningoencephalitis" }
+      - { page: 206, opens: "II. Bourneville und Leflaive" }
+      - { page: 206, opens: "6jähriges Kind" }
+      - { page: 206, opens: ".‚6jähriges Kind" }
+      - { page: 206, opens: "Autopsie: Herde" }
+      - { page: 206, opens: "IV. Bourneville und Baumgarten" }
+      - { page: 206, opens: "4jähriges Kind" }
+      - { page: 206, opens: "Autopsie: Herdweise" }
+      - { page: 206, opens: "Uebersehaut man" }
+      - { page: 206, opens: "Die Beziehungen der Meningoencephalitis" }
+      - { page: 206, opens: "Dies ist nieht der Fall" }
+      - { page: 258, opens: "4. Mehr oder minder" }
+      - { page: 258, opens: "5. Rascher Ablauf" }
+      - { page: 258, opens: "Inconstant war" }
+      - { page: 258, opens: "Die anatomische Kenntniss" }
+      - { page: 258, opens: "Als Aetiologie der Erkrankung" }
+      - { page: 258, opens: "Sachs erhebt" }
+      - { page: 258, opens: "Besonders häufig" }
+      - { page: 258, opens: "Ösler erwähnt" }
+      - { page: 258, opens: "Fr. Schultze" }
+      - { page: 258, opens: "Von den vier Kindern" }
+    slug: die-infantile-cerebrallaehmung
+    title: Die infantile Cerebrallähmung
+    edition: Die infantile Cerebrallähmung (Wien, Alfred Hölder, 1897; Nothnagels Specielle Pathologie und Therapie, IX. Band, II. Theil, II. Abtheilung)
+    author: Sigmund Freud
+    year: 1897
+    kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 3
     lastPage: 20
     slug: ein-fall-von-hypnotischer-heilung
@@ -85,7 +861,7 @@ books:
     year: 1892
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 21
     lastPage: 36
     slug: charcot
@@ -95,7 +871,23 @@ books:
     year: 1893
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
+    # Freud's French, read anew with Tesseract's French model.
+    ocr: fra
+    firstPage: 37
+    lastPage: 56
+    # The editors' note on the title, not Freud's.
+    skipNotes:
+      - { page: 39, opens: "1) Les trois articles" }
+    slug: quelques-considerations-pour-une-etude-comparative-des-paralysies-motrices-organiques-et-hysteriques
+    title: "Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques"
+    shortTitle: Paralysies motrices organiques et hystériques
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: freud-1952-gw-1
+    citation: GW I
     firstPage: 57
     lastPage: 75
     slug: die-abwehr-neuropsychosen
@@ -105,7 +897,7 @@ books:
     year: 1894
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 77
     lastPage: 312
     slug: studien-ueber-hysterie
@@ -115,7 +907,7 @@ books:
     year: 1895
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 313
     lastPage: 344
     slug: ueber-die-berechtigung-von-der-neurasthenie-die-angstneurose-abzutrennen
@@ -126,7 +918,25 @@ books:
     year: 1895
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
+    # Freud's French, read anew with Tesseract's French model.
+    ocr: fra
+    firstPage: 345
+    lastPage: 354
+    # The French reading sets the notes as large as the text; they are named.
+    notes:
+      - { page: 345, opens: "1) Je suis" }
+      - { page: 350, opens: "1) Voir aussi" }
+      - { page: 351, opens: "1) Neurologisches" }
+    slug: obsessions-et-phobies
+    title: "Obsessions et phobies. Leur mécanisme psychique et leur étiologie"
+    shortTitle: Obsessions et phobies
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: freud-1952-gw-1
+    citation: GW I
     firstPage: 355
     lastPage: 376
     slug: zur-kritik-der-angstneurose
@@ -137,7 +947,7 @@ books:
     year: 1895
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 377
     lastPage: 404
     slug: weitere-bemerkungen-ueber-die-abwehr-neuropsychosen
@@ -148,7 +958,19 @@ books:
     year: 1896
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
+    # Freud's French, read anew with Tesseract's French model.
+    ocr: fra
+    firstPage: 405
+    lastPage: 424
+    slug: lheredite-et-letiologie-des-nevroses
+    title: "L'hérédité et l'étiologie des névroses"
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1896
+    kind: work
+  - item: freud-1952-gw-1
+    citation: GW I
     firstPage: 425
     lastPage: 460
     slug: zur-aetiologie-der-hysterie
@@ -158,7 +980,7 @@ books:
     year: 1896
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 461
     lastPage: 490
     slug: inhaltsangaben-der-wissenschaftlichen-arbeiten
@@ -169,7 +991,7 @@ books:
     year: 1897
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 491
     lastPage: 516
     slug: die-sexualitaet-in-der-aetiologie-der-neurosen
@@ -180,7 +1002,7 @@ books:
     year: 1898
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 517
     lastPage: 530
     slug: zum-psychischen-mechanismus-der-vergesslichkeit
@@ -191,7 +1013,7 @@ books:
     year: 1898
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 531
     lastPage: 556
     slug: ueber-deckerinnerungen
@@ -201,7 +1023,7 @@ books:
     year: 1899
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 557
     lastPage: 560
     slug: vorwort-zur-sammlung-kleiner-schriften-zur-neurosenlehre
@@ -212,7 +1034,7 @@ books:
     year: 1906
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 561
     lastPage: 574
     slug: einige-nachtraege-zum-ganzen-der-traumdeutung
@@ -223,18 +1045,22 @@ books:
     year: 1925
     kind: work
   - item: freud-1942-gw-2-3
-    volume: "II/III"
+    citation: GW II/III
     firstPage: VII
     lastPage: 626
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 447, opens: "Satz, daß die Träume", runsOn: true }
+      - { page: 244, opens: "” Rank hat" }
     slug: die-traumdeutung
-    reference: https://www.gutenberg.org/cache/epub/40739/pg40739.txt
+    references: [https://www.gutenberg.org/cache/epub/40739/pg40739.txt]
     title: Die Traumdeutung
     edition: "Gesammelte Werke, Bd. II/III (Imago, London 1942)"
     author: Sigmund Freud
     year: 1900
     kind: work
   - item: freud-1942-gw-2-3
-    volume: "II/III"
+    citation: GW II/III
     firstPage: 643
     lastPage: 700
     slug: ueber-den-traum
@@ -244,11 +1070,20 @@ books:
     year: 1901
     kind: work
   - item: freud-1941-gw-4
-    volume: IV
+    citation: GW IV
     firstPage: 1
     lastPage: 310
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 107, opens: "Ein schönes Beispiel" }
+      - { page: 107, opens: "QUESTENBERG" }
+      - { page: 107, opens: "OCTAVIO" }
+      - { page: 107, opens: "Dies kleine Versprechen" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 305, opens: "verhalten. Die indifferent" }
     slug: zur-psychopathologie-des-alltagslebens
-    reference: https://www.gutenberg.org/cache/epub/24429/pg24429.txt
+    references: [https://www.gutenberg.org/cache/epub/24429/pg24429.txt]
     title: Zur Psychopathologie des Alltagslebens
     shortTitle: Psychopathologie des Alltagslebens
     edition: Gesammelte Werke, Bd. IV (Imago, London 1941)
@@ -256,7 +1091,7 @@ books:
     year: 1901
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 1
     lastPage: 10
     slug: die-freudsche-psychoanalytische-methode
@@ -267,7 +1102,7 @@ books:
     year: 1904
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 11
     lastPage: 26
     slug: ueber-psychotherapie
@@ -277,11 +1112,13 @@ books:
     year: 1905
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 27
     lastPage: 146
+    # Freud glosses its paragraphs in the margin.
+    marginalia: true
     slug: drei-abhandlungen-zur-sexualtheorie
-    reference: https://www.gutenberg.org/cache/epub/39938/pg39938.txt
+    references: [https://www.gutenberg.org/cache/epub/39938/pg39938.txt]
     title: Drei Abhandlungen zur Sexualtheorie
     shortTitle: Drei Abhandlungen
     edition: Gesammelte Werke, Bd. V (Imago, London 1942)
@@ -289,7 +1126,7 @@ books:
     year: 1905
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 147
     lastPage: 160
     slug: meine-ansichten-ueber-die-rolle-der-sexualitaet
@@ -300,7 +1137,7 @@ books:
     year: 1906
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 161
     lastPage: 286
     slug: bruchstueck-einer-hysterie-analyse
@@ -311,7 +1148,7 @@ books:
     year: 1905
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 287
     lastPage: 316
     slug: psychische-behandlung
@@ -322,11 +1159,11 @@ books:
     year: 1890
     kind: work
   - item: freud-1940-gw-6
-    volume: VI
+    citation: GW VI
     firstPage: 1
     lastPage: 270
     slug: der-witz-und-seine-beziehung-zum-unbewussten
-    reference: https://www.gutenberg.org/cache/epub/76423/pg76423.txt
+    references: [https://www.gutenberg.org/cache/epub/76423/pg76423.txt]
     title: Der Witz und seine Beziehung zum Unbewußten
     shortTitle: Der Witz
     edition: Gesammelte Werke, Bd. VI (Imago, London 1940)
@@ -334,7 +1171,7 @@ books:
     year: 1905
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 1
     lastPage: 16
     slug: tatbestandsdiagnostik-und-psychoanalyse
@@ -345,7 +1182,7 @@ books:
     year: 1906
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 17
     lastPage: 28
     slug: zur-sexuellen-aufklaerung-der-kinder
@@ -356,11 +1193,11 @@ books:
     year: 1907
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 29
     lastPage: 126
     slug: der-wahn-und-die-traeume-in-w-jensens-gradiva
-    reference: https://www.gutenberg.org/cache/epub/35549/pg35549.txt
+    references: [https://www.gutenberg.org/cache/epub/35549/pg35549.txt]
     title: "Der Wahn und die Träume in W. Jensens „Gradiva“"
     shortTitle: Gradiva
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
@@ -368,7 +1205,7 @@ books:
     year: 1907
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 127
     lastPage: 140
     slug: zwangshandlungen-und-religionsuebungen
@@ -379,7 +1216,7 @@ books:
     year: 1907
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 141
     lastPage: 168
     slug: die-kulturelle-sexualmoral-und-die-moderne-nervositaet
@@ -390,7 +1227,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 169
     lastPage: 188
     slug: ueber-infantile-sexualtheorien
@@ -401,7 +1238,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 189
     lastPage: 200
     slug: hysterische-phantasien-und-ihre-beziehung-zur-bisexualitaet
@@ -412,7 +1249,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 201
     lastPage: 210
     slug: charakter-und-analerotik
@@ -422,11 +1259,11 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 211
     lastPage: 224
     slug: der-dichter-und-das-phantasieren
-    reference: https://www.gutenberg.org/cache/epub/28863/pg28863.txt
+    references: [https://www.gutenberg.org/cache/epub/28863/pg28863.txt]
     title: Der Dichter und das Phantasieren
     shortTitle: Der Dichter
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
@@ -434,7 +1271,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 225
     lastPage: 232
     slug: der-familienroman-der-neurotiker
@@ -445,7 +1282,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 233
     lastPage: 240
     slug: allgemeines-ueber-den-hysterischen-anfall
@@ -456,7 +1293,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 241
     lastPage: 378
     slug: analyse-der-phobie-eines-fuenfjaehrigen-knaben
@@ -467,7 +1304,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 379
     lastPage: 466
     slug: bemerkungen-ueber-einen-fall-von-zwangsneurose
@@ -478,7 +1315,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 467
     lastPage: 470
     slug: vorreden-19061909
@@ -489,18 +1326,18 @@ books:
     year: 1908
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 1
     lastPage: 61
     slug: ueber-psychoanalyse
-    reference: https://www.gutenberg.org/cache/epub/20613/pg20613.txt
+    references: [https://www.gutenberg.org/cache/epub/20613/pg20613.txt]
     title: Über Psychoanalyse
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
     author: Sigmund Freud
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 62
     lastPage: 64
     slug: zur-einleitung-der-selbstmord-diskussion
@@ -511,9 +1348,10 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 65
     lastPage: 92
+    skipPages: [65]
     slug: beitraege-zur-psychologie-des-liebeslebens
     title: Beiträge zur Psychologie des Liebeslebens
     shortTitle: Psychologie des Liebeslebens
@@ -522,7 +1360,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 93
     lastPage: 102
     slug: die-psychogene-sehstoerung-in-psychoanalytischer-auffassung
@@ -533,7 +1371,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 103
     lastPage: 116
     slug: die-zukuenftigen-chancen-der-psychoanalytischen-therapie
@@ -544,7 +1382,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 117
     lastPage: 126
     slug: ueber-wilde-psychoanalyse
@@ -555,11 +1393,32 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 127
     lastPage: 212
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 173, opens: "Silberbrokat" }
+      - { page: 173, opens: "Roten Samt" }
+      - { page: 173, opens: "Schnüre" }
+      - { page: 173, opens: "Knöpfe" }
+      - { page: 175, opens: "„Auslagen" }
+      - { page: 175, opens: "3 Pfund" }
+      - { page: 175, opens: "Für das Tragen" }
+      - { page: 175, opens: "Katafalk" }
+      - { page: 175, opens: "Leichenträger" }
+      - { page: 175, opens: "An 4 Geistliche" }
+      - { page: 175, opens: "Glockenläuten" }
+      - { page: 175, opens: "Den Totengräbern" }
+      - { page: 175, opens: "Für die Genehmigung" }
+      - { page: 175, opens: "Summa ..." }
+      - { page: 175, opens: "Frühere Auslagen" }
+      - { page: 175, opens: "Dem Arzt" }
+      - { page: 175, opens: "Für Zucker" }
+      - { page: 175, opens: "Summa Summarum" }
+      - { page: 175, opens: "Der Dichter Mereschkowski" }
     slug: eine-kindheitserinnerung-des-leonardo-da-vinci
-    reference: https://www.gutenberg.org/cache/epub/75455/pg75455.txt
+    references: [https://www.gutenberg.org/cache/epub/75455/pg75455.txt]
     title: Eine Kindheitserinnerung des Leonardo da Vinci
     shortTitle: Leonardo da Vinci
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
@@ -567,7 +1426,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 213
     lastPage: 222
     slug: ueber-den-gegensinn-der-urworte
@@ -578,7 +1437,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 223
     lastPage: 226
     slug: brief-an-friedrich-s-krauss-ueber-die-anthropophyteia
@@ -589,7 +1448,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 227
     lastPage: 228
     slug: beispiele-des-verrats-pathogener-phantasien-bei-neurotikern
@@ -600,7 +1459,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 229
     lastPage: 238
     slug: formulierungen-ueber-die-zwei-prinzipien-des-psychischen-geschehens
@@ -611,7 +1470,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 239
     lastPage: 320
     slug: psychoanalytische-bemerkungen-ueber-einen-fall-von-paranoia
@@ -622,7 +1481,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 321
     lastPage: 331
     slug: ueber-neurotische-erkrankungstypen
@@ -633,7 +1492,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 332
     lastPage: 346
     slug: zur-einleitung-der-onanie-diskussion
@@ -644,7 +1503,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 347
     lastPage: 348
     slug: die-bedeutung-der-vokalfolge
@@ -655,7 +1514,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 349
     lastPage: 358
     slug: die-handhabung-der-traumdeutung-in-der-psychoanalyse
@@ -666,7 +1525,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 359
     lastPage: 362
     slug: gross-ist-die-diana-der-epheser
@@ -677,7 +1536,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 363
     lastPage: 374
     slug: zur-dynamik-der-uebertragung
@@ -688,7 +1547,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 375
     lastPage: 388
     slug: ratschlaege-fuer-den-arzt-bei-der-psychoanalytischen-behandlung
@@ -699,7 +1558,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 389
     lastPage: 421
     slug: das-interesse-an-der-psychoanalyse
@@ -710,7 +1569,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 422
     lastPage: 428
     slug: zwei-kinderluegen
@@ -720,18 +1579,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
-    firstPage: 429
-    lastPage: 440
-    slug: einige-bemerkungen-ueber-den-begriff-des-unbewussten-in-der-psychoanalyse
-    title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
-    shortTitle: Der Begriff des Unbewußten
-    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
-    author: Sigmund Freud
-    year: 1913
-    kind: work
-  - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 441
     lastPage: 452
     slug: die-disposition-zur-zwangsneurose
@@ -742,7 +1590,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 453
     lastPage: 478
     slug: zur-einleitung-der-behandlung
@@ -753,18 +1601,18 @@ books:
     year: 1913
     kind: work
   - item: freud-1940-gw-9
-    volume: IX
+    citation: GW IX
     firstPage: 1
     lastPage: 194
     slug: totem-und-tabu
-    reference: https://www.gutenberg.org/cache/epub/37065/pg37065.txt
+    references: [https://www.gutenberg.org/cache/epub/37065/pg37065.txt]
     title: Totem und Tabu
     edition: Gesammelte Werke, Bd. IX (Imago, London 1940)
     author: Sigmund Freud
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 2
     lastPage: 10
     slug: maerchenstoffe-in-traeumen
@@ -774,7 +1622,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 11
     lastPage: 22
     slug: ein-traum-als-beweismittel
@@ -784,11 +1632,11 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 23
     lastPage: 38
     slug: das-motiv-der-kaestchenwahl
-    reference: https://www.gutenberg.org/cache/epub/24017/pg24017.txt
+    references: [https://www.gutenberg.org/cache/epub/24017/pg24017.txt]
     title: Das Motiv der Kästchenwahl
     shortTitle: Die Kästchenwahl
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -796,7 +1644,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 39
     lastPage: 42
     slug: erfahrungen-und-beispiele-aus-der-analytischen-praxis
@@ -807,7 +1655,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 43
     lastPage: 115
     slug: zur-geschichte-der-psychoanalytischen-bewegung
@@ -818,7 +1666,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 116
     lastPage: 124
     slug: ueber-fausse-reconnaissance
@@ -829,7 +1677,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 125
     lastPage: 136
     slug: erinnern-wiederholen-und-durcharbeiten
@@ -840,7 +1688,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 137
     lastPage: 170
     slug: zur-einfuehrung-des-narzissmus
@@ -851,18 +1699,18 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 171
     lastPage: 202
     slug: der-moses-des-michelangelo
-    reference: https://www.gutenberg.org/cache/epub/30762/pg30762.txt
+    references: [https://www.gutenberg.org/cache/epub/30762/pg30762.txt]
     title: Der Moses des Michelangelo
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
     author: Sigmund Freud
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 203
     lastPage: 208
     slug: zur-psychologie-des-gymnasiasten
@@ -873,7 +1721,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 209
     lastPage: 233
     slug: triebe-und-triebschicksale
@@ -883,7 +1731,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 234
     lastPage: 246
     slug: mitteilung-eines-widersprechenden-falles-von-paranoia
@@ -894,7 +1742,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 247
     lastPage: 263
     slug: die-verdraengung
@@ -904,7 +1752,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 264
     lastPage: 305
     slug: das-unbewusste
@@ -914,7 +1762,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 306
     lastPage: 322
     slug: bemerkungen-ueber-die-uebertragungsliebe
@@ -925,11 +1773,11 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 323
     lastPage: 357
     slug: zeitgemaesses-ueber-krieg-und-tod
-    reference: https://www.gutenberg.org/cache/epub/29941/pg29941.txt
+    references: [https://www.gutenberg.org/cache/epub/29941/pg29941.txt]
     title: Zeitgemäßes über Krieg und Tod
     shortTitle: Krieg und Tod
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -937,22 +1785,22 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 358
     lastPage: 362
     slug: vergaenglichkeit
-    reference: https://www.gutenberg.org/cache/epub/29514/pg29514.txt
+    references: [https://www.gutenberg.org/cache/epub/29514/pg29514.txt]
     title: Vergänglichkeit
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
     author: Sigmund Freud
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 363
     lastPage: 392
     slug: einige-charaktertypen-aus-der-psychoanalytischen-arbeit
-    reference: https://www.gutenberg.org/cache/epub/29101/pg29101.txt
+    references: [https://www.gutenberg.org/cache/epub/29101/pg29101.txt]
     title: Einige Charaktertypen aus der psychoanalytischen Arbeit
     shortTitle: Charaktertypen
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -960,7 +1808,7 @@ books:
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 393
     lastPage: 396
     slug: eine-beziehung-zwischen-einem-symbol-und-einem-symptom
@@ -971,7 +1819,7 @@ books:
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 397
     lastPage: 400
     slug: mythologische-parallele-zu-einer-plastischen-zwangsvorstellung
@@ -982,7 +1830,7 @@ books:
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 401
     lastPage: 411
     slug: ueber-triebumsetzungen-insbesondere-der-analerotik
@@ -993,7 +1841,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 412
     lastPage: 427
     slug: metapsychologische-ergaenzung-zur-traumlehre
@@ -1004,7 +1852,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 428
     lastPage: 447
     slug: trauer-und-melancholie
@@ -1014,7 +1862,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 448
     lastPage: 456
     slug: vorreden-19131917
@@ -1025,9 +1873,15 @@ books:
     year: 1913
     kind: work
   - item: freud-1940-gw-11
-    volume: XI
+    citation: GW XI
     firstPage: 3
     lastPage: 482
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 376, opens: "Verursachung der Neurose" }
+      - { page: 376, opens: "Disposition durch Libidofixierung:" }
+      - { page: 376, opens: "Die hereditäre" }
+      - { page: 376, opens: "Die Libidofixierung des Erwachsenen" }
     slug: vorlesungen-zur-einfuehrung-in-die-psychoanalyse
     title: Vorlesungen zur Einführung in die Psychoanalyse
     shortTitle: Vorlesungen
@@ -1036,11 +1890,11 @@ books:
     year: 1916
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 1
     lastPage: 14
     slug: eine-schwierigkeit-der-psychoanalyse
-    reference: https://www.gutenberg.org/cache/epub/29097/pg29097.txt
+    references: [https://www.gutenberg.org/cache/epub/29097/pg29097.txt]
     title: Eine Schwierigkeit der Psychoanalyse
     shortTitle: Eine Schwierigkeit
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
@@ -1048,11 +1902,11 @@ books:
     year: 1917
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 15
     lastPage: 26
     slug: eine-kindheitserinnerung-aus-dichtung-und-wahrheit
-    reference: https://www.gutenberg.org/cache/epub/29946/pg29946.txt
+    references: [https://www.gutenberg.org/cache/epub/29946/pg29946.txt]
     title: "Eine Kindheitserinnerung aus „Dichtung und Wahrheit“"
     shortTitle: Dichtung und Wahrheit
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
@@ -1060,7 +1914,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 27
     lastPage: 160
     slug: aus-der-geschichte-einer-infantilen-neurose
@@ -1071,7 +1925,7 @@ books:
     year: 1918
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 161
     lastPage: 180
     slug: das-tabu-der-virginitaet
@@ -1081,7 +1935,7 @@ books:
     year: 1918
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 181
     lastPage: 194
     slug: wege-der-psychoanalytischen-therapie
@@ -1092,7 +1946,7 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 195
     lastPage: 228
     slug: ein-kind-wird-geschlagen
@@ -1103,18 +1957,18 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 229
     lastPage: 268
     slug: das-unheimliche
-    reference: https://www.gutenberg.org/cache/epub/34222/pg34222.txt
+    references: [https://www.gutenberg.org/cache/epub/34222/pg34222.txt]
     title: Das Unheimliche
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
     author: Sigmund Freud
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 269
     lastPage: 304
     slug: ueber-die-psychogenese-eines-falles-von-weiblicher-homosexualitaet
@@ -1125,7 +1979,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 305
     lastPage: 306
     slug: gedankenassoziation-eines-vierjaehrigen-kindes
@@ -1136,7 +1990,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 307
     lastPage: 314
     slug: zur-vorgeschichte-der-analytischen-technik
@@ -1147,7 +2001,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 315
     lastPage: 320
     slug: gedenkworte-1919
@@ -1158,7 +2012,7 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 321
     lastPage: 330
     slug: vorreden-19171920
@@ -1169,7 +2023,7 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 331
     lastPage: 337
     slug: psychoanalytischer-verlag-und-preiszuteilungen
@@ -1180,22 +2034,22 @@ books:
     year: 1919
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 1
     lastPage: 70
     slug: jenseits-des-lustprinzips
-    reference: https://www.gutenberg.org/cache/epub/28220/pg28220.txt
+    references: [https://www.gutenberg.org/cache/epub/28220/pg28220.txt]
     title: Jenseits des Lustprinzips
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud
     year: 1920
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 71
     lastPage: 162
     slug: massenpsychologie-und-ich-analyse
-    reference: https://www.gutenberg.org/cache/epub/30843/pg30843.txt
+    references: [https://www.gutenberg.org/cache/epub/30843/pg30843.txt]
     title: Massenpsychologie und Ich-Analyse
     shortTitle: Massenpsychologie
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
@@ -1203,18 +2057,18 @@ books:
     year: 1921
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 163
     lastPage: 194
     slug: traum-und-telepathie
-    reference: https://www.gutenberg.org/cache/epub/31560/pg31560.txt
+    references: [https://www.gutenberg.org/cache/epub/31560/pg31560.txt]
     title: Traum und Telepathie
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud
     year: 1922
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 195
     lastPage: 208
     slug: ueber-einige-neurotische-mechanismen-bei-eifersucht-paranoia-und-homosexualitaet
@@ -1225,7 +2079,7 @@ books:
     year: 1922
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 209
     lastPage: 234
     slug: psychoanalyse-und-libidotheorie
@@ -1236,7 +2090,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 235
     lastPage: 290
     slug: das-ich-und-das-es
@@ -1246,7 +2100,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 291
     lastPage: 300
     slug: die-infantile-genitalorganisation
@@ -1257,7 +2111,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 301
     lastPage: 314
     slug: bemerkungen-zur-theorie-und-praxis-der-traumdeutung
@@ -1268,7 +2122,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 315
     lastPage: 354
     slug: eine-teufelsneurose-im-siebzehnten-jahrhundert
@@ -1279,7 +2133,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 355
     lastPage: 362
     slug: josef-popper-lynkeus-und-die-theorie-des-traumes
@@ -1290,7 +2144,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 363
     lastPage: 368
     slug: der-realitaetsverlust-bei-neurose-und-psychose
@@ -1301,7 +2155,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 369
     lastPage: 384
     slug: das-oekonomische-problem-des-masochismus
@@ -1312,7 +2166,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 385
     lastPage: 392
     slug: neurose-und-psychose
@@ -1322,7 +2176,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 393
     lastPage: 402
     slug: der-untergang-des-oedipuskomplexes
@@ -1333,7 +2187,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 403
     lastPage: 428
     slug: kurzer-abriss-der-psychoanalyse
@@ -1344,7 +2198,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 429
     lastPage: 434
     slug: nachschrift-zur-analyse-des-kleinen-hans
@@ -1355,10 +2209,12 @@ books:
     year: 1922
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 435
-    lastPage: 445
-    skipPages: [437, 438, 439, 440, 442]
+    lastPage: 446
+    # Putnam's preface in English; the English paragraph of the Varendonck
+    # preface's English edition.
+    skipPages: [437, 438, 440]
     slug: gedenkworte-briefe-und-vorreden-19201924
     title: "Gedenkworte, Briefe und Vorreden 1920–1924"
     shortTitle: Gedenkworte, Briefe, Vorreden
@@ -1367,7 +2223,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 3
     lastPage: 8
     slug: notiz-ueber-den-wunderblock
@@ -1378,7 +2234,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 9
     lastPage: 16
     slug: die-verneinung
@@ -1388,7 +2244,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 17
     lastPage: 30
     slug: einige-psychische-folgen-des-anatomischen-geschlechtsunterschieds
@@ -1399,7 +2255,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 31
     lastPage: 98
     slug: selbstdarstellung
@@ -1410,7 +2266,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 99
     lastPage: 110
     slug: die-widerstaende-gegen-die-psychoanalyse
@@ -1421,7 +2277,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 111
     lastPage: 208
     slug: hemmung-symptom-und-angst
@@ -1431,7 +2287,7 @@ books:
     year: 1926
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 209
     lastPage: 296
     slug: die-frage-der-laienanalyse
@@ -1442,7 +2298,19 @@ books:
     year: 1926
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
+    firstPage: 297
+    lastPage: 308
+    slug: psycho-analysis
+    title: "Psycho-Analysis"
+    # Freud's German text for the Encyclopaedia Britannica (1926), first printed
+    # in German in 1934; the English article was another's translation.
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1926
+    kind: work
+  - item: freud-1948-gw-14
+    citation: GW XIV
     firstPage: 309
     lastPage: 320
     slug: fetischismus
@@ -1452,7 +2320,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 321
     lastPage: 322
     slug: nachtrag-zur-arbeit-ueber-den-moses-des-michelangelo
@@ -1463,7 +2331,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 323
     lastPage: 382
     slug: die-zukunft-einer-illusion
@@ -1473,7 +2341,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 383
     lastPage: 390
     slug: der-humor
@@ -1483,7 +2351,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 391
     lastPage: 396
     slug: ein-religioeses-erlebnis
@@ -1493,7 +2361,7 @@ books:
     year: 1928
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 397
     lastPage: 418
     slug: dostojewski-und-die-vatertoetung
@@ -1504,7 +2372,7 @@ books:
     year: 1928
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 419
     lastPage: 508
     slug: das-unbehagen-in-der-kultur
@@ -1514,7 +2382,7 @@ books:
     year: 1930
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 509
     lastPage: 516
     slug: ueber-libidinoese-typen
@@ -1525,7 +2393,7 @@ books:
     year: 1931
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 517
     lastPage: 540
     slug: ueber-die-weibliche-sexualitaet
@@ -1536,7 +2404,7 @@ books:
     year: 1931
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 541
     lastPage: 542
     slug: das-fakultaetsgutachten-im-prozess-halsmann
@@ -1547,7 +2415,7 @@ books:
     year: 1931
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 543
     lastPage: 550
     slug: goethe-preis-1930
@@ -1557,10 +2425,12 @@ books:
     year: 1930
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 551
     lastPage: 574
-    skipHeadings: [To the Opening of the Hebrew University, Brief an Maxim Leroy über einen Traum des Cartesius]
+    # The French letter to Leroy (558–560) is its own book, read with the French model.
+    skipPages: [558, 559, 560]
+    skipHeadings: [To the Opening of the Hebrew University]
     slug: gedenkworte-briefe-und-vorreden-19251931
     title: "Gedenkworte, Briefe und Vorreden 1925–1931"
     shortTitle: Gedenkworte, Briefe, Vorreden
@@ -1568,8 +2438,30 @@ books:
     author: Sigmund Freud
     year: 1926
     kind: work
+  - item: freud-1948-gw-14
+    citation: GW XIV
+    # Freud's French, read anew with Tesseract's French model; the editors'
+    # headnote and their notes quoting Leroy's book are left out.
+    ocr: fra
+    firstPage: 558
+    lastPage: 560
+    skipNotes:
+      - { page: 558, opens: "1) Leroy gibt" }
+      - { page: 559, opens: "1) Die hierauf" }
+    # The French reading sets the notes as large as the text; they are named.
+    notes:
+      - { page: 558, opens: "1) Leroy gibt" }
+      - { page: 559, opens: "1) Die hierauf" }
+      - { page: 560, opens: "gré, il fut assez hardi", runsOn: true }
+    slug: brief-an-maxim-leroy-ueber-einen-traum-des-cartesius
+    title: Brief an Maxim Leroy über einen Traum des Cartesius
+    shortTitle: Brief an Maxim Leroy
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1929
+    kind: work
   - item: freud-1940-gw-15
-    volume: XV
+    citation: GW XV
     firstPage: 3
     lastPage: 197
     firstChapter: 29
@@ -1581,7 +2473,7 @@ books:
     year: 1933
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 1
     lastPage: 10
     slug: zur-gewinnung-des-feuers
@@ -1591,7 +2483,7 @@ books:
     year: 1932
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 11
     lastPage: 28
     slug: warum-krieg
@@ -1601,7 +2493,7 @@ books:
     year: 1933
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 29
     lastPage: 34
     slug: nachschrift-zur-selbstdarstellung
@@ -1612,7 +2504,7 @@ books:
     year: 1935
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 35
     lastPage: 40
     slug: die-feinheit-einer-fehlhandlung
@@ -1622,7 +2514,7 @@ books:
     year: 1935
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 41
     lastPage: 58
     slug: konstruktionen-in-der-analyse
@@ -1632,7 +2524,7 @@ books:
     year: 1937
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 59
     lastPage: 100
     slug: die-endliche-und-die-unendliche-analyse
@@ -1642,7 +2534,7 @@ books:
     year: 1937
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 101
     lastPage: 248
     slug: der-mann-moses-und-die-monotheistische-religion
@@ -1653,7 +2545,7 @@ books:
     year: 1939
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 249
     lastPage: 278
     slug: briefe-gedenkworte-vorreden-19321939
@@ -1664,19 +2556,7 @@ books:
     year: 1935
     kind: work
   - item: freud-1941-gw-17
-    volume: XVII
-    firstPage: 3
-    lastPage: 18
-    slug: beitraege-zu-den-studien-ueber-hysterie
-    title: "Beiträge zu den „Studien über Hysterie“"
-    shortTitle: Beiträge zu den Studien
-    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
-    author: Sigmund Freud
-    year: 1892
-    kind: work
-    published: false
-  - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 19
     lastPage: 24
     slug: eine-erfuellte-traumahnung
@@ -1687,7 +2567,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 25
     lastPage: 44
     slug: psychoanalyse-und-telepathie
@@ -1698,7 +2578,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 45
     lastPage: 48
     slug: das-medusenhaupt
@@ -1709,7 +2589,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 49
     lastPage: 56
     slug: ansprache-an-die-mitglieder-des-vereins-bnai-brith
@@ -1721,7 +2601,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 57
     lastPage: 62
     slug: die-ichspaltung-im-abwehrvorgang
@@ -1733,7 +2613,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 63
     lastPage: 138
     slug: abriss-der-psychoanalyse
@@ -1744,11 +2624,12 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
-    firstPage: 149
-    lastPage: 152
-    slug: ergebnisse-ideen-probleme
-    title: Ergebnisse, Ideen, Probleme
+    citation: GW XVII
+    firstPage: 139
+    lastPage: 148
+    slug: some-elementary-lessons-in-psycho-analysis
+    title: "Some Elementary Lessons in Psycho-Analysis"
+    # German text under an English title: an unfinished second version of the Abriss.
     edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
     author: Sigmund Freud
     year: 1938

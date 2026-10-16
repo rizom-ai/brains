@@ -178,6 +178,52 @@ describe("bundled process supervisor", () => {
     expect(clearInterval).toHaveBeenCalledWith(7);
   });
 
+  it("hands each role the entity changes the other made", async () => {
+    const harness = createHarness();
+    const supervised = supervise(harness);
+    const web = harness.children[0];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[1];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+    const peerMessages = (child: TestChild): unknown[] =>
+      child.send.mock.calls
+        .map(([message]) => message)
+        .filter(
+          (message) =>
+            typeof message === "object" &&
+            message !== null &&
+            "type" in message &&
+            message.type === "peer-event",
+        );
+    const imported = {
+      type: "peer-event",
+      event: {
+        type: "entity:updated",
+        payload: { entityType: "brain-character", entityId: "brain-character" },
+      },
+    };
+    const edited = {
+      type: "peer-event",
+      event: {
+        type: "entity:created",
+        payload: { entityType: "note", entityId: "typed-in-studio" },
+      },
+    };
+
+    worker.emit("message", imported);
+    web.emit("message", edited);
+
+    expect(peerMessages(web)).toEqual([imported]);
+    expect(peerMessages(worker)).toEqual([edited]);
+
+    harness.processEvents.emit("SIGTERM");
+    worker.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
   it("starts no broker for a Brain without Git", async () => {
     const harness = createHarness();
     const supervised = supervise(harness);

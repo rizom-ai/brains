@@ -54,6 +54,20 @@ export const profileKindSchema: z.ZodEnum<{
   organization: "organization";
 }> = z.enum(PROFILE_KINDS);
 
+/**
+ * Who owns the brain in its auth service. "person" (the runtime default) makes
+ * the first passkey holder a permanent owner; "team" and "organization" make
+ * the brain collectively owned, so admins can be replaced. Kept in lockstep
+ * with @brains/auth-service AUTH_BRAIN_ANCHOR_CONFIG_KINDS by a test.
+ */
+export const ANCHOR_KINDS = ["person", "team", "organization"] as const;
+export const anchorKindSchema: z.ZodEnum<{
+  person: "person";
+  team: "team";
+  organization: "organization";
+}> = z.enum(ANCHOR_KINDS);
+export type AnchorKind = z.output<typeof anchorKindSchema>;
+
 const canonicalBundlesSchema: z.ZodArray<typeof canonicalBundleIdSchema> = z
   .array(canonicalBundleIdSchema)
   .min(1);
@@ -247,7 +261,7 @@ const atprotoSchema: z.ZodObject<{
 export const siteOverrideSchema: z.ZodObject<
   {
     package: z.ZodString;
-    version: z.ZodString;
+    version: z.ZodOptional<z.ZodString>;
     theme: z.ZodOptional<z.ZodString>;
     themeVersion: z.ZodOptional<z.ZodString>;
   },
@@ -255,11 +269,27 @@ export const siteOverrideSchema: z.ZodObject<
 > = z
   .strictObject({
     package: z.string().min(1),
-    version: exactVersionSchema,
+    version: exactVersionSchema.optional(),
     theme: z.string().min(1).optional(),
     themeVersion: exactVersionSchema.optional(),
   })
   .superRefine((value, context) => {
+    // @brains/* sites ship inside @rizom/brain, pinned by its version.
+    const hasExternalPackage = value.package.startsWith("@rizom/");
+    if (hasExternalPackage && value.version === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["version"],
+        message: "external @rizom site packages require an exact version pin",
+      });
+    }
+    if (!hasExternalPackage && value.version !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["version"],
+        message: "version is valid only for external @rizom site packages",
+      });
+    }
     const hasExternalTheme = value.theme?.startsWith("@rizom/") === true;
     if (hasExternalTheme && value.themeVersion === undefined) {
       context.addIssue({
@@ -303,6 +333,7 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
   contentRepoOverride: z.ZodOptional<z.ZodString>;
   profileKind: z.ZodOptional<typeof profileKindSchema>;
+  anchorKind: z.ZodOptional<typeof anchorKindSchema>;
   plugins: z.ZodOptional<typeof userPluginsSchema>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -327,6 +358,7 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.string().min(1).optional(),
   contentRepoOverride: z.string().min(1).optional(),
   profileKind: profileKindSchema.optional(),
+  anchorKind: anchorKindSchema.optional(),
   plugins: userPluginsSchema.optional(),
   embeddingEnabled: z.boolean().optional(),
   topicExtractionEnabled: z.boolean().optional(),

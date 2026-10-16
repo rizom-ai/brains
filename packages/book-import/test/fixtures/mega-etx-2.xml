@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xmlns:m="http://www.w3.org/1998/Math/MathML" xml:lang="de-DE">
+<teiHeader type="text"><fileDesc><titleStmt><title>MEGA, Zweite Abteilung, Band 1, Teil 2</title></titleStmt>
+<publicationStmt><availability status="restricted"><p>copyright Akademie Verlag Berlin</p></availability><date>1981</date></publicationStmt></fileDesc></teiHeader>
+<text n="2/1"><group><text n="2"><group>
+<text><front><pb n="311"/><div type="editorialHead"><p rendition="c"><lb/>Grundrisse der Kritik der politischen Ökonomie<lb/>Zweiter Teil</p></div></front>
+<body><div1 rend="fwl(Grundrisse...Das Kapitel vom Kapital · Heft IV)">
+<p><lb n="1"/>Das Capital ist also nicht einfache Arbeit.</p>
+</div1></body></text>
+</group></text></group></text></TEI>

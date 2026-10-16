@@ -22,7 +22,6 @@ const NOTE_ENTITY_TYPE = "note";
  */
 export interface EntityDisplayLabel {
   label?: string | undefined;
-  pluralName?: string | undefined;
 }
 
 export type StudioEntityDisplayMap = Partial<
@@ -100,21 +99,19 @@ export function studioTypeHierarchy(entityType: string): StudioTypeHierarchy {
 
 /**
  * Resolve the display labels for an entity type, honouring any
- * entityDisplay override.
+ * entityDisplay label. A site's pluralName is the path its pages live under,
+ * not a name: book sections open under /books but are sections.
  */
 export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
   if (entityType === "grouping-definitions")
-    return {
-      label: display?.label ?? "Groupings",
-      pluralLabel: display?.pluralName ?? "Groupings",
-    };
+    return { label: display?.label ?? "Groupings", pluralLabel: "Groupings" };
   const defaultLabel =
     entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
   const label = display?.label ?? defaultLabel;
-  return { label, pluralLabel: display?.pluralName ?? pluralizeLabel(label) };
+  return { label, pluralLabel: pluralizeLabel(label) };
 }
 
 function readStudioCondition(

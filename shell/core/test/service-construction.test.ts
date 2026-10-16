@@ -13,6 +13,8 @@ import { BunSchedulerBackend } from "@brains/scheduler";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { deferred } from "@brains/utils/deferred";
 import { DaemonRegistry } from "../src/daemon-registry";
+import { ENTITY_CHANNELS } from "@brains/contracts";
+import type { PeerChannel, PeerEvent } from "../src/peer-event-relay";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {
@@ -164,6 +166,40 @@ describe("Shell service construction", () => {
       await testDir.cleanup();
     }
   });
+  it("tells its peer process about entity changes until it shuts down", async () => {
+    const testDir = await createTestDirectory();
+    const sent: PeerEvent[] = [];
+    const peerChannel: PeerChannel = {
+      send: (event) => {
+        sent.push(event);
+      },
+      onEvent: () => () => {},
+    };
+    const shell = Shell.createFresh(
+      createTestConfig(testDir.dir),
+      { logger: createSilentLogger() },
+      { processRole: "worker", peerChannel },
+    );
+    const changed = (): Promise<unknown> =>
+      shell.getMessageBus().send({
+        type: ENTITY_CHANNELS.updated,
+        payload: { entityType: "brain-character", entityId: "brain-character" },
+        sender: "entity-service",
+        broadcast: true,
+      });
+    try {
+      await changed();
+      expect(sent.map((event) => event.type)).toEqual([
+        ENTITY_CHANNELS.updated,
+      ]);
+    } finally {
+      await shell.shutdown();
+      await testDir.cleanup();
+    }
+    await changed();
+    expect(sent).toHaveLength(1);
+  });
+
   it("closes acquired services when later construction fails", async () => {
     const testDir = await createTestDirectory();
     const constructionError = new Error("shell wiring failed");

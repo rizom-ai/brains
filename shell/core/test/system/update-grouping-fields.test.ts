@@ -131,7 +131,10 @@ test("extension updates confirm source values and persist through owner strippin
   const input = {
     entityType: "entry",
     id: "same",
-    fields: { clients: ["Beta"], projects: null },
+    operation: {
+      kind: "fields",
+      fields: { clients: ["Beta"], projects: null },
+    },
   };
   const proposed = await exec(input);
   expect(proposed).toMatchObject({ needsConfirmation: true });
@@ -177,7 +180,11 @@ test("extension updates confirm source values and persist through owner strippin
   expect(service.serializeEntity(saved)).toContain("unclaimed: null");
   expect(service.serializeEntity(saved)).not.toContain("projects:");
   const removal = confirmation.parse(
-    await exec({ entityType: "entry", id: "same", fields: { clients: null } }),
+    await exec({
+      entityType: "entry",
+      id: "same",
+      operation: { kind: "fields", fields: { clients: null } },
+    }),
   );
   expect(removal.preview).toContain('clients: ["Beta"] → (removed)');
   expect(await exec(removal.args)).toMatchObject({ success: true });
@@ -200,7 +207,7 @@ test("a persist policy changed after confirmation preparation refuses the tool w
     await exec({
       entityType: "entry",
       id: "same",
-      fields: { clients: ["Beta"] },
+      operation: { kind: "fields", fields: { clients: ["Beta"] } },
     }),
   );
   registry.registerPersistValidator("entry", async () => {
@@ -231,7 +238,7 @@ test.each([null, "Acme", { name: "Acme" }, [3]])(
       await exec({
         entityType: "entry",
         id: "same",
-        fields: { clients: ["Beta"] },
+        operation: { kind: "fields", fields: { clients: ["Beta"] } },
       }),
     );
     expect(result.preview).toContain(
@@ -242,7 +249,10 @@ test.each([null, "Acme", { name: "Acme" }, [3]])(
       await exec({
         entityType: "entry",
         id: "same",
-        content: "---\ntitle: Brief\n---\n\nReplacement",
+        operation: {
+          kind: "content",
+          content: "---\ntitle: Brief\n---\n\nReplacement",
+        },
       }),
     );
     expect(await exec(replacement.args)).toMatchObject({ success: true });
@@ -260,7 +270,11 @@ test("invalid extension writes cannot request confirmation or change source", as
   const { service, exec } = await fixture();
   const original = await service.getEntity({ entityType: "entry", id: "same" });
   expect(
-    await exec({ entityType: "entry", id: "same", fields: { clients: [12] } }),
+    await exec({
+      entityType: "entry",
+      id: "same",
+      operation: { kind: "fields", fields: { clients: [12] } },
+    }),
   ).toMatchObject({ success: false });
   expect(
     (await service.getEntity({ entityType: "entry", id: "same" }))?.content,

@@ -1,5 +1,5 @@
 import { generateMarkdownWithFrontmatter } from "@brains/plugins";
-import { bookEntrySlug, type BookFrontmatter } from "@brains/book";
+import { bookSectionSlug, type BookFrontmatter } from "@brains/book";
 import { slugify } from "@brains/utils/string-utils";
 
 /** One unit of the author's or edition's own structure, in reading order. */
@@ -100,6 +100,8 @@ interface PlacedEntry {
   body: string;
   order: number;
   folders: string[];
+  /** Continues the entry before: a later piece of a unit split for length. */
+  continues: boolean;
 }
 
 /**
@@ -124,6 +126,7 @@ function placeEntries(units: BookUnit[]): PlacedEntry[] {
         body,
         order: firstOrder + index,
         folders,
+        continues: index > 0,
       }));
       return { entries: [...state.entries, ...placed], folders: state.folders };
     },
@@ -131,35 +134,40 @@ function placeEntries(units: BookUnit[]): PlacedEntry[] {
   ).entries;
 }
 
-/** Top-level parts, each linked at its first entry. */
+/**
+ * Top-level parts, each linked at its first entry; a part's later entries
+ * follow it, and a title repeated further on is another part.
+ */
 function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
-  const lines = entries.reduce<{ seen: Set<string>; lines: string[] }>(
+  const lines = entries.reduce<{ last: string | null; lines: string[] }>(
     (state, entry) => {
       const heading = entry.unit.parents[0] ?? entry.unit.title;
-      if (state.seen.has(heading)) return state;
-      state.seen.add(heading);
-      const href = `/books/${bookEntrySlug(book.slug, entry.order)}`;
+      if (heading === state.last) return state;
+      const href = `/books/${bookSectionSlug(book.slug, entry.order)}`;
       return {
-        seen: state.seen,
+        last: heading,
         lines: [...state.lines, `- [${heading}](${href})`],
       };
     },
-    { seen: new Set(), lines: [] },
+    { last: null, lines: [] },
   ).lines;
   return `## Contents\n\n${lines.join("\n")}\n`;
 }
 
-/** Render a book's entries as markdown files, deterministically. */
+/** Where a book is written: the book itself, and beside it the folder of its sections. */
+export function bookPaths(slug: string): { book: string; sections: string } {
+  return { book: `book/${slug}.md`, sections: `book/${slug}` };
+}
+
+/** Render a book and its sections as markdown files, deterministically. */
 export function renderBook({ book, units }: BookSource): BookFile[] {
   const entries = placeEntries(units);
-  const root = `book/${book.slug}`;
+  const paths = bookPaths(book.slug);
 
   const title: BookFile = {
-    path: `${root}/${padded(0)}-titel.md`,
+    path: paths.book,
     markdown: generateMarkdownWithFrontmatter(tableOfContents(book, entries), {
       title: book.title,
-      book: book.slug,
-      order: 0,
       source: book.source,
       author: book.author,
       year: book.year,
@@ -169,14 +177,17 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
       attribution: book.attribution,
       published: book.published,
       shortTitle: book.shortTitle,
-      sections: entries.length,
+      sections: entries.filter((entry) => !entry.continues).length,
+      continuations: entries
+        .filter((entry) => entry.continues)
+        .map((entry) => entry.order),
       length: entries.reduce((sum, entry) => sum + bytes(entry.body), 0),
     }),
   };
 
   const sections = entries.map((entry): BookFile => ({
     path: [
-      root,
+      paths.sections,
       ...entry.folders,
       `${padded(entry.order)}-${germanSlug(entry.unit.title)}.md`,
     ].join("/"),
@@ -186,7 +197,7 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
       order: entry.order,
       section: entry.unit.section,
       page: entry.unit.page,
-      part: entry.unit.parents[0] ?? null,
+      headings: entry.unit.parents,
       source: entry.unit.source,
     }),
   }));

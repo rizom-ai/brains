@@ -1,5 +1,163 @@
 # @brains/ops
 
+## 0.2.0-alpha.556
+
+No changes in this release.
+
+## 0.2.0-alpha.555
+
+No changes in this release.
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- [#640](https://github.com/rizom-ai/brains/pull/640) [`9c96128`](https://github.com/rizom-ai/brains/commit/9c961285cba5fd275782580f9e8953aa7982a588) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A pilot user's `siteOverride` can select a site bundled in `@rizom/brain` (any `@brains/*` package, such as `@brains/site-organization`) without a version pin; the Brain version pins it, and it is never npm-installed into the image. External `@rizom/*` site packages still require an exact `version`, and a `version` on a bundled package is rejected.
+
+## 0.2.0-alpha.553
+
+No changes in this release.
+
+## 0.2.0-alpha.552
+
+No changes in this release.
+
+## 0.2.0-alpha.551
+
+No changes in this release.
+
+## 0.2.0-alpha.550
+
+No changes in this release.
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- [#634](https://github.com/rizom-ai/brains/pull/634) [`d304970`](https://github.com/rizom-ai/brains/commit/d30497070d804dd3a25484d9f4bd6a9c2fa6a3b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional per-user `anchorKind` (`person`, `team` or `organization`) to pilot user config, rendered as `anchor:` in the instance `brain.yaml`. A `team` or `organization` anchor makes the brain collectively owned, so its admins can be replaced; left unset, the runtime keeps its `person` default and existing instances are unchanged.
+
+## 0.2.0-alpha.548
+
+No changes in this release.
+
+## 0.2.0-alpha.547
+
+No changes in this release.
+
+## 0.2.0-alpha.546
+
+No changes in this release.
+
+## 0.2.0-alpha.545
+
+No changes in this release.
+
+## 0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- [#563](https://github.com/rizom-ai/brains/pull/563) [`c12dde7`](https://github.com/rizom-ai/brains/commit/c12dde78b36fddb67d4995110dd30c472c8133fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Deploy finalize no longer conflicts when another deploy lands first: it carries only the generated `users/` config across the reset to the latest main and renders `views/users.md` there, instead of 3-way merging a stale copy of the generated view.
+
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- [#580](https://github.com/rizom-ai/brains/pull/580) [`dbaa3b1`](https://github.com/rizom-ai/brains/commit/dbaa3b11b0f4888bea6956e2cd7efa26e388617d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy snapshot's refusal "job queue is not idle" now names the queue it saw (pending, processing and abandoned counts) and says to rerun once it drains, so a deploy that stops on a busy brain explains itself in the workflow log.
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ## 0.2.0-alpha.494

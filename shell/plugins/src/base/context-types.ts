@@ -4,7 +4,9 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
+import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
+import type { ENTITY_CHANNELS } from "@brains/contracts";
 import type {
   GetMessagesOptions,
   ListConversationsOptions,
@@ -16,7 +18,9 @@ import type {
   ProfileKindDefinition,
   ResolvedProfileSelection,
 } from "@brains/identity-service";
-import type { EvalHandler, InsightHandler } from "../contracts/handlers";
+import type { EvalHandler } from "../contracts/handlers";
+import type { z } from "@brains/utils/zod";
+import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type {
   ChannelDeliveryProvider,
@@ -43,12 +47,27 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 /**
  * Messaging namespace — inter-plugin communication
  */
+/** The entity and embedding events every process of the runtime raises. */
+type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
+
 export interface IMessagingNamespace {
   /** Send a message to other plugins */
   send: MessageSender;
 
   /**
-   * Subscribe to messages on a channel
+   * Send a message and gather one answer from every subscriber. For
+   * contributions read when they are used, such as the head scripts a site
+   * build asks for: it works in every process and in any registration order.
+   */
+  collect: MessageCollector;
+
+  /**
+   * Subscribe to messages on a channel in this process.
+   *
+   * Entity and embedding events are refused: every process of the runtime
+   * raises them, so a subscription hears only part of them. Use observe for
+   * what the web process owns, subscribeExecution for work each process does
+   * for its own changes.
    *
    * @example String-based (untyped)
    * ```typescript
@@ -69,8 +88,8 @@ export interface IMessagingNamespace {
    */
   subscribe: {
     // String-based (existing behavior)
-    <T = unknown, R = unknown>(
-      channel: string,
+    <T = unknown, R = unknown, C extends string = string>(
+      channel: C extends EntityChannel ? never : C,
       handler: MessageHandler<T, R>,
     ): () => void;
 
@@ -81,8 +100,23 @@ export interface IMessagingNamespace {
     ): () => void;
   };
 
-  /** Register an internal subscription required by durable job execution. */
+  /**
+   * Subscribe in every process, each handling the messages it raises itself:
+   * for work tied to where an event happens, such as the job that follows an
+   * embedding the worker made.
+   */
   subscribeExecution: <T = unknown, R = unknown>(
+    channel: string,
+    handler: MessageHandler<T, R>,
+  ) => () => void;
+
+  /**
+   * Follow a channel from the web process, hearing what every process of the
+   * runtime raises: for caches, views and work the web process owns, such as
+   * publishing or exporting a change wherever it was made. A worker owns none
+   * of these, so it observes nothing.
+   */
+  observe: <T = unknown, R = unknown>(
     channel: string,
     handler: MessageHandler<T, R>,
   ) => () => void;
@@ -183,11 +217,13 @@ export interface IEvalNamespace {
 }
 
 /**
- * Insights namespace — register domain-specific insight handlers
+ * Analytics namespace — add reports to `system_analytics`
  */
-export interface IInsightsNamespace {
-  /** Register a named insight handler */
-  register: (type: string, handler: InsightHandler) => void;
+export interface IAnalyticsNamespace {
+  /** Register a report; one with the same type replaces it */
+  register: <TParams extends z.ZodObject>(
+    definition: AnalyticsReportDefinition<TParams>,
+  ) => void;
 }
 
 export interface IPermissionsNamespace {

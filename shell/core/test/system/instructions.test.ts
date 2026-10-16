@@ -81,7 +81,9 @@ describe("system instructions", () => {
     const services = createMockSystemServices();
     const instructions = createSystemInstructions(services);
 
-    expect(instructions).toContain("Use `fields` for title, status");
+    expect(instructions).toContain(
+      'Use `operation.kind: "fields"` for title, status',
+    );
     expect(instructions).toContain("system_update");
     expect(instructions).toContain(
       "For explicit publish requests, use the publishing tool",
@@ -90,7 +92,9 @@ describe("system instructions", () => {
 
   it("directs small content edits through exact patches instead of full regeneration", () => {
     const instructions = createSystemInstructions(createMockSystemServices());
-    expect(instructions).toContain("Use `edits` for small content changes");
+    expect(instructions).toContain(
+      'Use `operation.kind: "edits"` for small content changes',
+    );
     expect(instructions).toContain("oldText");
     expect(instructions).toContain(
       "Never replace unchanged content with placeholders",
@@ -100,11 +104,19 @@ describe("system instructions", () => {
   it("routes large user-supplied rewrites through a verbatim source", () => {
     const instructions = createSystemInstructions(createMockSystemServices());
     expect(instructions).toContain(
-      'when the user supplies the replacement text, use `source: { kind: "user-message", startAfter, endBefore }`',
+      'when the user supplies the replacement text, use `operation: { kind: "source", source: { kind: "user-message", startAfter, endBefore } }`',
     );
     expect(instructions).toContain(
       "Text without frontmatter replaces the body and keeps the stored frontmatter",
     );
+  });
+
+  it("describes system_update as exactly one typed operation", () => {
+    const instructions = createSystemInstructions(createMockSystemServices());
+    expect(instructions).toContain(
+      'Required `operation` union: `{ kind: "fields", fields }`, `{ kind: "content", content }`, `{ kind: "edits", edits }`, or `{ kind: "source", source }`.',
+    );
+    expect(instructions).not.toContain("Use only one of `fields`");
   });
 
   it("tells agents to create pending confirmations by calling mutating tools", () => {

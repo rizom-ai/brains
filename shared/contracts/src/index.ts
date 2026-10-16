@@ -112,6 +112,11 @@ export {
   type AgentContextResponse,
 } from "./agent-context";
 export {
+  ASSISTANT_TURN_METADATA_KEY,
+  assistantTurnSchema,
+  type AssistantTurn,
+} from "./assistant-turn";
+export {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
@@ -272,6 +277,11 @@ export {
   topicTitlesResponseSchema,
   type TopicTitlesResponse,
 } from "./topic-titles";
+export {
+  TOPIC_SOURCE_TYPES_MESSAGE,
+  topicSourceTypesResponseSchema,
+  type TopicSourceTypesResponse,
+} from "./topic-source-types";
 export {
   NOTE_CAPTURE_MESSAGE,
   noteCaptureRequestSchema,

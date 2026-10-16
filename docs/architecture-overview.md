@@ -169,7 +169,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 | Package                    | Purpose                                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `plugins/analytics`        | Analytics integration and insights                                                                 |
+| `plugins/analytics`        | Analytics integration and reports                                                                  |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
@@ -307,7 +307,7 @@ Service plugins provide the system's operational surface area:
 - external integrations
 - background job handlers
 - publishing pipelines
-- specialized tools such as sync, stock photo search, or analytics insights
+- specialized tools such as sync, stock photo search, or analytics reports
 
 ### InterfacePlugin behavior
 

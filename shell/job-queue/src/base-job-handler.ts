@@ -20,6 +20,8 @@ export interface BaseJobHandlerConfig<TInput> {
   jobTypeName: string;
   /** Optional per-type execution deadline in milliseconds. */
   executionTimeoutMs?: number;
+  /** At most one job of this type runs at a time, across every worker. */
+  exclusive?: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ export abstract class BaseJobHandler<
   protected readonly schema: JobDataSchema<TInput> | undefined;
   protected readonly jobTypeName: string;
   public readonly executionTimeoutMs: number | undefined;
+  public readonly exclusive: boolean | undefined;
 
   /**
    * Create a new BaseJobHandler
@@ -82,6 +85,7 @@ export abstract class BaseJobHandler<
     this.schema = config.schema;
     this.jobTypeName = config.jobTypeName;
     this.executionTimeoutMs = config.executionTimeoutMs;
+    this.exclusive = config.exclusive;
   }
 
   /**

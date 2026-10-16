@@ -15,8 +15,12 @@ import type {
   IEntityService,
   IEntitiesNamespace,
 } from "@brains/entity-service";
-import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
-import type { IPromptsNamespace } from "./namespaces";
+import {
+  createEntitiesNamespace,
+  createPromptsNamespace,
+  createViewsNamespace,
+} from "./namespaces";
+import type { IPromptsNamespace, IViewsNamespace } from "./namespaces";
 export type { IEntitiesNamespace };
 export type { IPromptsNamespace };
 export type { AIGenerationSchema, IEntityAINamespace } from "./ai-types";
@@ -50,8 +54,10 @@ export function createAINamespace(shell: IShell): IEntityAINamespace {
     generate: async <T>(
       config: ContentGenerationConfig,
       schema: AIGenerationSchema<T>,
+      signal?: AbortSignal,
     ): Promise<T> => {
-      return schema.parse(await shell.generateContent(config));
+      signal?.throwIfAborted();
+      return schema.parse(await shell.generateContent(config, signal));
     },
     generateObject: async <T>(
       prompt: string,
@@ -75,8 +81,9 @@ export function createAINamespace(shell: IShell): IEntityAINamespace {
 /**
  * Context for entity plugins.
  *
- * Includes: entity registration, AI generation, prompt resolution, messaging, jobs.
- * Excludes: templates, views, MCP registration, transport.
+ * Includes: entity registration, AI generation, prompt resolution, view
+ * templates (read-only), messaging, jobs.
+ * Excludes: template registration, MCP registration, transport.
  */
 export interface EntityPluginContext
   extends
@@ -86,6 +93,7 @@ export interface EntityPluginContext
   readonly entities: EntityPluginEntitiesNamespace;
   readonly ai: IEntityAINamespace;
   readonly prompts: IPromptsNamespace;
+  readonly views: IViewsNamespace;
   readonly permissions: IPermissionsNamespace;
 }
 
@@ -114,6 +122,8 @@ export function createEntityPluginContext(
     ai: createAINamespace(shell),
 
     prompts: createPromptsNamespace(entityService),
+
+    views: createViewsNamespace(shell),
 
     permissions: baseContext.permissions,
   };

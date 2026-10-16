@@ -3,7 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
-  priceOpenAiGuestTurn,
+  openAiGuestPricing,
   type ChatAttachment,
   type EmbeddingUsageMeter,
   type ChatAttachmentSource,
@@ -30,9 +30,10 @@ import {
   CanonicalIdentityService,
 } from "@brains/identity-service";
 import type { IMCPService } from "@brains/mcp-service";
-import type {
-  ResolvedRuntimeUpload,
-  RuntimeUploadRegistry,
+import {
+  SYSTEM_CHANNELS,
+  type ResolvedRuntimeUpload,
+  type RuntimeUploadRegistry,
 } from "@brains/plugins";
 import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
@@ -84,8 +85,10 @@ function subscribeToEntityCacheInvalidation(
     ENTITY_CHANNELS.deleted,
   ] as const;
 
+  // Observed, not subscribed: the identity follows writes from the runtime's
+  // other process too, such as content the worker syncs from git.
   return events.map((event) =>
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+    messageBus.observe<{ entityType: string; entityId: string }, void>(
       event,
       async (message) => {
         if (
@@ -99,6 +102,34 @@ function subscribeToEntityCacheInvalidation(
         return { success: true };
       },
     ),
+  );
+}
+
+/**
+ * Refresh an identity cache on its entity's lifecycle events, then broadcast
+ * identityChanged. Consumers react to the signal rather than to the entity
+ * events, so they never read the identity before its cache holds it.
+ */
+export function subscribeToIdentityRefresh(
+  messageBus: IMessageBus,
+  entityType: string,
+  refreshCache: () => Promise<void>,
+  logger: Logger,
+): (() => void)[] {
+  return subscribeToEntityCacheInvalidation(
+    messageBus,
+    entityType,
+    entityType,
+    async () => {
+      await refreshCache();
+      await messageBus.send({
+        type: SYSTEM_CHANNELS.identityChanged,
+        payload: { entityType },
+        sender: "shell",
+        broadcast: true,
+      });
+    },
+    logger,
   );
 }
 
@@ -188,9 +219,8 @@ export function initializeIdentityAndAgentServices(
 
   // Both roles follow the stored character: the worker imports it at startup.
   disposables.push(
-    ...subscribeToEntityCacheInvalidation(
+    ...subscribeToIdentityRefresh(
       messageBus,
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
       SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
       () => identityService.refreshCache(),
       logger,
@@ -224,10 +254,7 @@ export function initializeIdentityAndAgentServices(
   const agentFactory = createBrainAgentFactory({
     // Guest turns are priced where the model's published rates are known;
     // otherwise their cost is unknown and charged the answer cap.
-    guestPricing:
-      aiService.getConfig().model === "gpt-5.6-luna"
-        ? priceOpenAiGuestTurn
-        : undefined,
+    guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
@@ -240,6 +267,13 @@ export function initializeIdentityAndAgentServices(
 
   // Entity links and citability, read from the site display the shell resolved.
   const entityUrls = new EntityUrlGenerator(config.entityDisplay);
+  const entityLinks = {
+    isCitable: (entityType: string): boolean =>
+      entityUrls.isCitable(entityType),
+    urlFor: (entityType: string, slug: string): string =>
+      entityUrls.generateUrl(entityType, slug),
+    siteBaseUrl: config.siteBaseUrl,
+  };
 
   const agentService = AgentService.createFresh(
     mcpService,
@@ -250,6 +284,8 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      // A turn's sources link to the pages the site shows them on.
+      entityLinks,
       ...(options.embeddingUsage
         ? { embeddingUsage: options.embeddingUsage }
         : {}),
@@ -260,10 +296,7 @@ export function initializeIdentityAndAgentServices(
             // A visitor's sources are found by meaning, so only with embeddings.
             guestAnswerSources: createGuestAnswerSources({
               entityService,
-              isCitable: (entityType) => entityUrls.isCitable(entityType),
-              urlFor: (entityType, slug) =>
-                entityUrls.generateUrl(entityType, slug),
-              siteBaseUrl: config.siteBaseUrl,
+              ...entityLinks,
             }),
           }
         : {}),
@@ -302,9 +335,8 @@ export function initializeIdentityAndAgentServices(
   );
 
   disposables.push(
-    ...subscribeToEntityCacheInvalidation(
+    ...subscribeToIdentityRefresh(
       messageBus,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
       SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
       () => profileService.refreshCache(),
       logger,
@@ -312,22 +344,14 @@ export function initializeIdentityAndAgentServices(
   );
 
   if (!executionOnly) {
-    // Invalidate cached agent when identity or profile changes.
-    // Next conversation will rebuild with fresh data.
-    for (const entityType of [
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-    ]) {
-      disposables.push(
-        ...subscribeToEntityCacheInvalidation(
-          messageBus,
-          entityType,
-          entityType,
-          async () => agentService.invalidateAgent(),
-          logger,
-        ),
-      );
-    }
+    // Invalidate the cached agent once the identity caches hold the change,
+    // so the next conversation cannot rebuild it from the old identity.
+    disposables.push(
+      messageBus.subscribe(SYSTEM_CHANNELS.identityChanged, async () => {
+        agentService.invalidateAgent();
+        return { success: true };
+      }),
+    );
   }
 
   return {

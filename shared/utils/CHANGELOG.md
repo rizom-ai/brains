@@ -1,5 +1,165 @@
 # @brains/utils
 
+## 0.2.0-alpha.556
+
+No changes in this release.
+
+## 0.2.0-alpha.555
+
+No changes in this release.
+
+## 0.2.0-alpha.554
+
+No changes in this release.
+
+## 0.2.0-alpha.553
+
+No changes in this release.
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- [#632](https://github.com/rizom-ai/brains/pull/632) [`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace gray-matter's legacy YAML dependency chain with the existing maintained YAML 4 parser, removing sprintf-js from the runtime dependency graph. Preserve YAML/JSON frontmatter, existing octal/base-60 numeric meanings, custom fields, visibility handling, dates, binary values, and publishing-required colon-string quoting through an explicitly owned frontmatter schema.
+
+  Executable JavaScript frontmatter headers are now rejected, including empty executable-language blocks. Parsing is stateless, so document reads do not retain raw content or share mutable parsed objects. Regenerated YAML may use equivalent quoting or binary-tag notation; values and body text remain covered by old-reader round-trip controls.
+
+  This change does not ship downstream application overrides or establish published/deployed consumer adoption.
+
+## 0.2.0-alpha.551
+
+No changes in this release.
+
+## 0.2.0-alpha.550
+
+No changes in this release.
+
+## 0.2.0-alpha.549
+
+No changes in this release.
+
+## 0.2.0-alpha.548
+
+No changes in this release.
+
+## 0.2.0-alpha.547
+
+No changes in this release.
+
+## 0.2.0-alpha.546
+
+No changes in this release.
+
+## 0.2.0-alpha.545
+
+No changes in this release.
+
+## 0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+## 0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
+## 0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ### Patch Changes

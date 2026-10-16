@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { SeriesBlock } from "./operator-series";
 import { OperatorCard } from "./operator-card";
 import { OperatorColumns } from "./operator-columns";
 import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layout.styles";
@@ -68,6 +69,8 @@ function PanelBlock(props: {
       return <FlowBlock block={props.block} />;
     case "meters":
       return <MetersBlock block={props.block} />;
+    case "series":
+      return <SeriesBlock block={props.block} />;
     case "progress":
       return <ProgressBlock block={props.block} />;
     case "query":

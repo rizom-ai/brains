@@ -85,6 +85,13 @@
       "when": 1790869149572,
       "tag": "0011_entity_mutation_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792059209487,
+      "tag": "0012_entities_type_slug_idx",
+      "breakpoints": true
     }
   ]
 }

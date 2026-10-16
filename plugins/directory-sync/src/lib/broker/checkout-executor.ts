@@ -1,5 +1,4 @@
-import simpleGit from "simple-git";
-import type { SimpleGit } from "simple-git";
+import { simpleGit, type SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils/logger";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { commitGitChanges, pushGitChanges } from "./git-commit";

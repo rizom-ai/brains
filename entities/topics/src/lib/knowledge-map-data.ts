@@ -1,9 +1,17 @@
+import type { ContentVisibility } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  SOURCES_PER_TOPIC,
+  ownTopicSources,
+  type NearSource,
+} from "./topic-ownership";
 
 /**
  * Knowledge map data.
  *
- * A centerless 2D projection of the whole corpus. Topics become zones —
+ * A centerless 2D projection of the corpus. A corpus beyond a few hundred
+ * sources is drawn as its topics and the sources nearest each of them, so
+ * the map stays bounded however large it grows. Topics become zones —
  * territories that hold the entities filed into them — and every other
  * projected entity becomes a point with a render kind. Membership is
  * decided in the projected plane (nearest zone within a radius), so a
@@ -28,6 +36,9 @@ const KIND_BY_TYPE: Record<string, KnowledgeMapPoint["kind"]> = {
  * can sit, in the projected plane, and still be filed under it.
  */
 const ZONE_RADIUS = 0.16;
+
+/** Up to this many sources the map draws the whole corpus. */
+const FULL_MAP_SOURCES = 600;
 
 const knowledgeMapPointSchema: z.ZodObject<{
   id: z.ZodString;
@@ -102,14 +113,46 @@ interface ListedEntity {
   id: string;
   entityType: string;
   content: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface EntityReference {
+  entityType: string;
+  entityId: string;
 }
 
 export interface KnowledgeMapDataContext {
   semantic: {
-    project(request: Record<string, never>): Promise<ProjectionResult>;
+    project(request: {
+      visibilityScope: ContentVisibility;
+      entities?: EntityReference[];
+    }): Promise<ProjectionResult>;
   };
+  /**
+   * The entity types topics are drawn from: a large corpus is counted and
+   * each topic's nearest sources are measured among these alone.
+   */
+  sourceTypes(): Promise<string[]>;
   entityService: {
-    listEntities(request: { entityType: string }): Promise<ListedEntity[]>;
+    listEntities(request: {
+      entityType: string;
+      options: { filter: { visibilityScope: ContentVisibility } };
+    }): Promise<ListedEntity[]>;
+    countEntities(request: {
+      entityType: string;
+      options: { filter: { visibilityScope: ContentVisibility } };
+    }): Promise<number>;
+    nearestToEntity(request: {
+      origin: EntityReference;
+      types: string[];
+      limit: number;
+      visibilityScope: ContentVisibility;
+    }): Promise<NearSource[]>;
+    getEntity(request: {
+      entityType: string;
+      id: string;
+      visibilityScope: ContentVisibility;
+    }): Promise<ListedEntity | null>;
   };
 }
 
@@ -199,34 +242,189 @@ function spreadLayout(
   return fitted;
 }
 
-/** First markdown heading, or the id with its dashes opened up. */
-function displayTitle(content: string | undefined, id: string): string {
+/**
+ * First markdown heading, else the name the entity's page carries (a
+ * section's siglum), else the id with its dashes opened up.
+ */
+function displayTitle(
+  content: string | undefined,
+  id: string,
+  metadata?: Record<string, unknown>,
+): string {
   const heading = content?.match(/^#\s+(.+)$/m);
   if (heading?.[1]) return heading[1].trim();
+  for (const key of ["pageTitle", "title"]) {
+    const value = metadata?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
   return id.replace(/[-_]+/g, " ").trim();
 }
 
-export async function buildKnowledgeMapData(
-  context: KnowledgeMapDataContext,
-): Promise<KnowledgeMapData> {
-  const projection = await context.semantic.project({});
+/** Projected points and their titles, before layout. */
+interface ProjectedCorpus {
+  projection: ProjectionResult;
+  titleById: Map<string, string>;
+  /**
+   * The topic each source sits closest to, keyed by type and id. Without it,
+   * a source joins the topic it lands beside on the plane.
+   */
+  topicBySource?: Map<string, string>;
+}
 
-  // Titles come from the entities themselves, one list call per type present.
+/** Every embedded entity, titled from one list call per type present. */
+async function projectWholeCorpus(
+  context: KnowledgeMapDataContext,
+  visibilityScope: ContentVisibility,
+): Promise<ProjectedCorpus> {
+  const projection = await context.semantic.project({ visibilityScope });
   const types = [
     ...new Set(projection.points.map((point) => point.entityType)),
   ];
   const titleById = new Map<string, string>();
   await Promise.all(
     types.map(async (entityType) => {
-      const entities = await context.entityService.listEntities({ entityType });
+      const entities = await context.entityService.listEntities({
+        entityType,
+        options: { filter: { visibilityScope } },
+      });
       for (const entity of entities) {
         titleById.set(
           `${entityType}:${entity.id}`,
-          displayTitle(entity.content, entity.id),
+          displayTitle(entity.content, entity.id, entity.metadata),
         );
       }
     }),
   );
+  return { projection, titleById };
+}
+
+/**
+ * The topics, each topic's nearest sources by stored embedding (a store
+ * query each, no API call), and whatever the caller must always show.
+ */
+async function projectAroundTopics(
+  context: KnowledgeMapDataContext,
+  visibilityScope: ContentVisibility,
+  sourceTypes: string[],
+  include: EntityReference[],
+): Promise<ProjectedCorpus> {
+  const topics = await context.entityService.listEntities({
+    entityType: TOPIC_TYPE,
+    options: { filter: { visibilityScope } },
+  });
+  const nearest = await Promise.all(
+    topics.map((topic) =>
+      context.entityService.nearestToEntity({
+        origin: { entityType: TOPIC_TYPE, entityId: topic.id },
+        types: sourceTypes,
+        limit: SOURCES_PER_TOPIC,
+        visibilityScope,
+      }),
+    ),
+  );
+  const topicBySource = ownTopicSources(
+    topics.map((topic, index) => ({
+      topicId: topic.id,
+      sources: nearest[index] ?? [],
+    })),
+  );
+  const references = [
+    ...topics.map((topic) => ({ entityType: TOPIC_TYPE, entityId: topic.id })),
+    ...nearest
+      .flat()
+      .map(({ entityType, entityId }) => ({ entityType, entityId })),
+    ...include,
+  ].filter(
+    (reference, index, all) =>
+      all.findIndex(
+        (other) =>
+          other.entityType === reference.entityType &&
+          other.entityId === reference.entityId,
+      ) === index,
+  );
+  const projection = await context.semantic.project({
+    visibilityScope,
+    entities: references.map(({ entityType, entityId }) => ({
+      entityType,
+      entityId,
+    })),
+  });
+  const titleById = new Map<string, string>(
+    topics.map((topic) => [
+      `${TOPIC_TYPE}:${topic.id}`,
+      displayTitle(topic.content, topic.id),
+    ]),
+  );
+  await Promise.all(
+    projection.points
+      .filter((point) => point.entityType !== TOPIC_TYPE)
+      .map(async (point) => {
+        const entity = await context.entityService.getEntity({
+          entityType: point.entityType,
+          id: point.entityId,
+          visibilityScope,
+        });
+        if (entity) {
+          titleById.set(
+            `${point.entityType}:${point.entityId}`,
+            displayTitle(entity.content, entity.id, entity.metadata),
+          );
+        }
+      }),
+  );
+  return {
+    projection,
+    titleById,
+    topicBySource,
+  };
+}
+
+/** The topic a point lands beside on the plane, within the zone radius. */
+function nearestZone(
+  zones: KnowledgeMapZone[],
+  x: number,
+  y: number,
+): string | null {
+  let zoneId: string | null = null;
+  let best = ZONE_RADIUS;
+  for (const zone of zones) {
+    const distance = Math.hypot(zone.x - x, zone.y - y);
+    if (distance <= best) {
+      best = distance;
+      zoneId = zone.id;
+    }
+  }
+  return zoneId;
+}
+
+export async function buildKnowledgeMapData(
+  context: KnowledgeMapDataContext,
+  visibilityScope: ContentVisibility,
+  options: {
+    /** Entities the map must show, whatever the corpus size. */
+    include?: EntityReference[];
+  } = {},
+): Promise<KnowledgeMapData> {
+  const sourceTypes = await context.sourceTypes();
+  const sources = (
+    await Promise.all(
+      sourceTypes.map((entityType) =>
+        context.entityService.countEntities({
+          entityType,
+          options: { filter: { visibilityScope } },
+        }),
+      ),
+    )
+  ).reduce((sum, count) => sum + count, 0);
+  const { projection, titleById, topicBySource } =
+    sources <= FULL_MAP_SOURCES
+      ? await projectWholeCorpus(context, visibilityScope)
+      : await projectAroundTopics(
+          context,
+          visibilityScope,
+          sourceTypes,
+          options.include ?? [],
+        );
 
   // Layout: PCA output is outlier-heavy — a dense knot plus a few far
   // points, which raw min/max normalization would crush into a corner.
@@ -261,15 +459,9 @@ export async function buildKnowledgeMapData(
     .filter(({ point }) => point.entityType !== TOPIC_TYPE)
     .map(({ point, index }) => {
       const { x, y } = norm(index);
-      let zoneId: string | null = null;
-      let best = ZONE_RADIUS;
-      for (const zone of zones) {
-        const distance = Math.hypot(zone.x - x, zone.y - y);
-        if (distance <= best) {
-          best = distance;
-          zoneId = zone.id;
-        }
-      }
+      const zoneId = topicBySource
+        ? (topicBySource.get(`${point.entityType}:${point.entityId}`) ?? null)
+        : nearestZone(zones, x, y);
       return {
         id: point.entityId,
         entityType: point.entityType,

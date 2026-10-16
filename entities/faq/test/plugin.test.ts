@@ -5,7 +5,8 @@ import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/plugins";
 import { GUEST_ASKED_BEFORE_CHANNEL } from "@brains/contracts";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createMockShell, createPluginHarness } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { FaqPlugin } from "../src";
 
 describe("FaqPlugin", () => {
@@ -257,5 +258,28 @@ describe("FaqPlugin evals", () => {
       "faq:classifyExchange",
       "faq:sameQuestion",
     ]);
+  });
+
+  // Embeddings are computed in the worker, so the worker hears the event.
+  it("queues the reconcile in the worker, where the embedding was made", async () => {
+    const shell = createMockShell({
+      logger: createSilentLogger("faq-worker-test"),
+      dataDir: `/tmp/test-faq-worker-${randomUUID()}`,
+    });
+    await new FaqPlugin().register(shell, { executionOnly: true });
+
+    await shell.getMessageBus().send({
+      type: "entity:embedding:ready",
+      payload: { entityType: "faq", entityId: "faq-1" },
+      sender: "embedding",
+      broadcast: true,
+    });
+
+    const jobs = await shell.getJobQueueService().getActiveJobs();
+    expect(
+      jobs
+        .filter((job) => job.type.endsWith("faq-reconcile"))
+        .map((job) => JSON.parse(job.data)),
+    ).toEqual([{ entityId: "faq-1" }]);
   });
 });

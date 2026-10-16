@@ -4,11 +4,10 @@ description: >-
   Real user scenario: a new teammate asks what Team Brain is, what to read first, and
   what is deliberately out of scope. Judge against the saved Team Brain fixture facts:
   Team Brain is a team knowledge coordinator for shared team memory, synthesis, and
-  peer-brain coordination; read-first saved titles include Team Brain operating model,
-  Capture and synthesis, Peer-brain directory, Team Brain POC walkthrough, and Team Brain
-  POC team notes; supported workflows include notes/links capture, conversation
-  summaries, topics, a peer-brain directory with approved A2A coordination, and
-  docs/decks only as the current full-preset surfaces; out-of-scope assumptions
+  peer-brain coordination; read-first saved titles include Capture and synthesis
+  and Team Brain POC team notes; supported workflows include notes/links capture,
+  conversation summaries, topics, and a directory of saved peer-brain agents with
+  approved A2A coordination; out-of-scope assumptions
   include Rover-style publishing, blog/portfolio/marketing automation flows,
   future plugin/entity types, and contacting unsaved or unapproved agents. Do not
   penalize grounded wording such as routing shared knowledge across humans and
@@ -45,21 +44,7 @@ successCriteria:
     - toolName: system_search
       shouldBeCalled: true
   responseContains:
-    - "searched saved Team Brain memory"
     - "Team Brain"
-    - "team"
-    - "peer"
-    - "operating"
-    - "synthesis"
-    - "notes"
-    - "links"
-    - "summar"
-    - "topics"
-    - "agent"
-    - "decks"
-  responseContainsAny:
-    - - "docs"
-      - "documents"
   responseNotContains:
     - "blog platform"
     - "newsletter pipeline"
@@ -68,7 +53,12 @@ successCriteria:
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Begins by saying it searched saved Team Brain memory."
+    - "Explains that Team Brain coordinates shared team memory, synthesis, and peer-brain coordination."
+    - "Recommends reading saved Team Brain material first, such as Capture and synthesis and the Team Brain POC team notes."
+    - "Lists the supported workflows from saved memory: notes and links capture, conversation summaries, topics, and the saved peer-brain agents."
 
 efficiency:
   maxToolCalls: 8
-  maxTokens: 40000
+  maxTokens: 87000

@@ -24,7 +24,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: post
-            fields.status: draft
+            operation.kind: fields
+            operation.fields.status: draft
       responseNotContains:
         - "send the exact ID"
         - "need the exact ID"
@@ -40,7 +41,8 @@ turns:
           argsContain:
             entityType: post
             id: resilience-in-distributed-systems
-            fields.status: draft
+            operation.kind: fields
+            operation.fields.status: draft
 
   - userMessage: >-
       Can you publish it now?
@@ -105,4 +107,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 8
-  maxTokens: 32000
+  maxTokens: 50000

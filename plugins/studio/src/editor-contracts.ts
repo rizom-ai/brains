@@ -42,6 +42,8 @@ export interface StudioEntityTypeInfo {
   count: number;
   capabilities: StudioTypeCapabilities;
   hierarchy: StudioTypeHierarchy;
+  /** The type this one lives in; Studio shows it inside that type, not on its own. */
+  containedIn?: string | undefined;
 }
 
 export interface EditorRouteOptions {

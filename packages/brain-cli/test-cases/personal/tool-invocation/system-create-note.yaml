@@ -24,12 +24,12 @@ permissions:
         shouldBeCalled: false
     responseNotContains:
       - "Confirmation required"
-      - "created"
       - "I've saved"
       - "I saved"
       - "saved it"
       - "successfully saved"
-      - "done"
+    responseCriteria:
+      - "Does not claim that anything was created, or that the request is done."
   trusted:
     expectedTools:
       - toolName: system_create
@@ -42,12 +42,12 @@ permissions:
     # first, so a trusted caller reaching that prompt is correct behaviour. What
     # must not appear is a claim the note was already saved.
     responseNotContains:
-      - "created"
       - "I've saved"
       - "I saved"
       - "saved it"
       - "successfully saved"
-      - "done"
+    responseCriteria:
+      - "Does not claim that anything was created, or that the request is done."
   admin:
     expectedTools:
       - toolName: system_create
@@ -69,4 +69,4 @@ permissions:
 
 efficiency:
   maxToolCalls: 6
-  maxTokens: 25000
+  maxTokens: 18000

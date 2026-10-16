@@ -9,10 +9,12 @@ import {
   isNull,
   lte,
   notExists,
+  notInArray,
   or,
   sql,
   type SQL,
 } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
@@ -44,6 +46,8 @@ export interface JobAttemptClaim {
   workerSessionId: string;
   leaseDurationMs: number;
   executableTypes: readonly string[];
+  /** Types claimed only while no other job of the type holds a live lease. */
+  exclusiveTypes?: readonly string[] | undefined;
 }
 
 export interface RetireUnownedActiveJobRequest {
@@ -1024,6 +1028,7 @@ export class JobQueueRepository {
       workerSessionId,
       leaseDurationMs,
       executableTypes,
+      exclusiveTypes = [],
     } = claim;
 
     const claimingSession = this.db
@@ -1053,6 +1058,27 @@ export class JobQueueRepository {
         lte(jobQueue.leaseExpiresAt, now),
       ),
     );
+    // Another job of the same type running under a live lease: an exclusive
+    // type waits in the queue until it settles or its lease lapses.
+    const running = alias(jobQueue, "running");
+    const liveSibling = this.db
+      .select({ id: running.id })
+      .from(running)
+      .where(
+        and(
+          eq(running.type, jobQueue.type),
+          eq(running.status, JOB_STATUS.PROCESSING),
+          gt(running.leaseExpiresAt, now),
+          sql`${running.id} <> ${jobQueue.id}`,
+        ),
+      );
+    const exclusiveFree =
+      exclusiveTypes.length === 0
+        ? undefined
+        : or(
+            notInArray(jobQueue.type, [...exclusiveTypes]),
+            notExists(liveSibling),
+          );
     const terminalReclaim = sql`${jobQueue.status} = ${JOB_STATUS.PROCESSING} AND ${jobQueue.retryCount} + 1 > ${jobQueue.maxRetries}`;
 
     const candidate = this.db
@@ -1061,6 +1087,7 @@ export class JobQueueRepository {
       .where(
         and(
           inArray(jobQueue.type, executableTypes),
+          exclusiveFree,
           or(
             and(
               eq(jobQueue.status, JOB_STATUS.PENDING),

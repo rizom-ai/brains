@@ -63,7 +63,7 @@ export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   readPromptOverride,
-  resetPromptCache,
+  resetPromptMaterialization,
   materializePrompts,
 } from "./entity/prompt-resolver";
 export {
@@ -172,8 +172,8 @@ export type {
   ServicePluginContext,
   ServiceEntityService,
   IServiceTemplatesNamespace,
-  IViewsNamespace,
 } from "./service/context";
+export type { IViewsNamespace } from "./entity/namespaces";
 export {
   AttachmentRegistry,
   createAttachmentsNamespace,
@@ -208,7 +208,7 @@ export type {
   IIdentityNamespace,
   IConversationsNamespace,
   IEvalNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IProfileKindsNamespace,
   IChannelsNamespace,
   IInboxNamespace,
@@ -377,8 +377,6 @@ export type {
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
-  IInsightsRegistry,
-  InsightHandler,
   QueryContext,
   JudgeInput,
   IMCPTransport,
@@ -486,6 +484,7 @@ export {
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,
@@ -547,11 +546,14 @@ export type {
   ComponentType,
   ViewTemplate,
   OutputFormat,
+  MediaFormat,
+  FormatComponents,
   UserPermissionLevel,
   PermissionLookupContext,
 } from "@brains/templates";
 export {
   createTemplate,
+  toViewTemplate,
   OutputFormatSchema,
   PermissionService,
   UserPermissionLevelSchema,
@@ -638,6 +640,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
@@ -660,6 +663,7 @@ export {
 export type { ConversationMessageActor } from "@brains/conversation-service";
 
 export type { IAgentService } from "@brains/ai-service";
+export { resolveTextProvider } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
@@ -993,3 +997,14 @@ export {
   type ConsoleSurface,
   type SurfacePermissionLevel,
 } from "./console-surfaces";
+
+export { AnalyticsRegistry } from "./analytics-registry";
+export type {
+  IAnalyticsRegistry,
+  RunAnalyticsReportRequest,
+} from "./analytics-registry";
+export { defineAnalyticsReport } from "./contracts/analytics";
+export type {
+  AnalyticsReportContext,
+  AnalyticsReportDefinition,
+} from "./contracts/analytics";

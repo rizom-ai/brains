@@ -1,0 +1,1805 @@
+<!doctype html>
+<html lang="en" data-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Action-item Board — Design Pass</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Tokens and frame follow studio-hierarchical-navigation-mockups.html,
+         which samples the committed console captures. */
+      :root {
+        --display: "Fraunces", Georgia, "Times New Roman", serif;
+        --ui: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --deck: #24201b;
+        --deck-deep: #151310;
+        --deck-ink: #f6efe3;
+        --deck-dim: rgba(246, 239, 227, 0.58);
+        --deck-rule: rgba(246, 239, 227, 0.15);
+      }
+
+      [data-climate="instrument"] {
+        --bg: #15122c;
+        --frame: #15122c;
+        --card: #181433;
+        --card-soft: #1c1739;
+        --rail: #1c1739;
+        --leaf: #181433;
+        --col: #120f27;
+        --ink: #ffffff;
+        --dim: rgba(255, 255, 255, 0.66);
+        --muted: rgba(255, 255, 255, 0.45);
+        --faint: rgba(255, 255, 255, 0.24);
+        --rule: rgba(255, 255, 255, 0.09);
+        --rule-strong: rgba(255, 255, 255, 0.16);
+        --accent: #fe8b3e;
+        --accent-soft: rgba(254, 139, 62, 0.14);
+        --accent-line: rgba(254, 139, 62, 0.48);
+        --on-accent: #1a1024;
+        --ok: #4ade80;
+        --ok-soft: rgba(74, 222, 128, 0.12);
+        --err: #ff7a6b;
+        --err-soft: rgba(255, 122, 107, 0.12);
+        --err-line: rgba(255, 122, 107, 0.45);
+        color-scheme: dark;
+      }
+
+      [data-climate="paper"] {
+        --bg: #faf4e6;
+        --frame: #faf4e6;
+        --card: #fffaf0;
+        --card-soft: #f0e8d4;
+        --rail: #ebe2cb;
+        --leaf: #f0e8d4;
+        --col: #f3ecda;
+        --ink: #393446;
+        --dim: rgba(57, 52, 70, 0.72);
+        --muted: rgba(57, 52, 70, 0.5);
+        --faint: rgba(57, 52, 70, 0.26);
+        --rule: rgba(57, 52, 70, 0.12);
+        --rule-strong: rgba(57, 52, 70, 0.2);
+        --accent: #b8420d;
+        --accent-soft: rgba(184, 66, 13, 0.1);
+        --accent-line: rgba(184, 66, 13, 0.42);
+        --on-accent: #f9f3e5;
+        --ok: #2f7351;
+        --ok-soft: rgba(47, 115, 81, 0.1);
+        --err: #a8321f;
+        --err-soft: rgba(168, 50, 31, 0.08);
+        --err-line: rgba(168, 50, 31, 0.4);
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--deck-deep);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--deck-ink);
+        font-family: var(--ui);
+        background:
+          radial-gradient(
+            circle at 17% 0%,
+            rgba(232, 93, 41, 0.13),
+            transparent 32rem
+          ),
+          linear-gradient(145deg, var(--deck), var(--deck-deep) 68%);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        color: inherit;
+        font: inherit;
+      }
+
+      /* ---- presentation ------------------------------------------------ */
+
+      .presentation {
+        width: min(1512px, 100%);
+        margin: 0 auto;
+        padding: 54px 32px 96px;
+      }
+
+      .presentation-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 28px;
+        padding-bottom: 26px;
+        border-bottom: 1px solid var(--deck-rule);
+      }
+
+      .presentation-head > div:first-child {
+        max-width: 62ch;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: rgba(255, 168, 112, 0.9);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .presentation-head h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(30px, 3.4vw, 44px);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.08;
+      }
+
+      .lede {
+        margin: 16px 0 0;
+        color: var(--deck-dim);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+        justify-items: end;
+      }
+
+      .control-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 5px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.22);
+      }
+
+      .control-group button {
+        min-height: 32px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+
+      .control-group button[aria-pressed="true"] {
+        background: rgba(246, 239, 227, 0.1);
+        color: var(--deck-ink);
+      }
+
+      .states {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 28px;
+      }
+
+      .states button {
+        display: grid;
+        gap: 3px;
+        min-width: 150px;
+        padding: 10px 14px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--deck-dim);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .states button small {
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 168, 112, 0.75);
+      }
+
+      .states button[aria-pressed="true"] {
+        border-color: rgba(255, 168, 112, 0.55);
+        background: rgba(246, 239, 227, 0.08);
+        color: var(--deck-ink);
+      }
+
+      .stage-label {
+        display: grid;
+        gap: 6px;
+        margin: 30px 0 14px;
+        max-width: 90ch;
+      }
+
+      .stage-label b {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .stage-label span {
+        color: var(--deck-dim);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .stage {
+        display: flex;
+        justify-content: center;
+        padding: 26px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.26);
+        overflow-x: auto;
+      }
+
+      /* ---- studio frame ------------------------------------------------ */
+
+      .app {
+        width: 1440px;
+        max-width: 100%;
+        height: 900px;
+        display: grid;
+        grid-template-rows: 56px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--rule-strong);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--ink);
+        box-shadow: 0 40px 110px rgba(0, 0, 0, 0.5);
+      }
+
+      [data-viewport="phone"] .app {
+        width: 390px;
+        height: 844px;
+        grid-template-rows: 56px minmax(0, 1fr) 62px;
+        border-radius: 26px;
+      }
+
+      .chrome {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 18px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--rule);
+        background: var(--frame);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--accent-line);
+        border-radius: 50%;
+        color: var(--accent);
+        font-size: 10px;
+      }
+
+      .brand .slash {
+        color: var(--faint);
+      }
+
+      .location {
+        padding-left: 18px;
+        border-left: 1px solid var(--rule);
+        color: var(--dim);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .chrome-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-self: end;
+      }
+
+      .command-chip {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        min-height: 32px;
+        padding: 0 9px 0 12px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .command-chip kbd {
+        padding: 1px 5px;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .chip-round {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .body {
+        display: grid;
+        grid-template-columns: 124px 219px minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      [data-viewport="phone"] .body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      [data-viewport="phone"] .desktop-only,
+      [data-viewport="desktop"] .phone-only {
+        display: none !important;
+      }
+
+      .area-rail {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 14px 11px;
+        border-right: 1px solid var(--rule);
+        background: var(--rail);
+      }
+
+      .area-title {
+        margin-bottom: 14px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .area-link {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        min-height: 34px;
+        padding: 0 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: var(--dim);
+        font-size: 12.5px;
+      }
+
+      .area-link .ord {
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .area-link[aria-current="true"] {
+        border-color: var(--rule-strong);
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .area-link[aria-current="true"] .ord {
+        color: var(--accent);
+      }
+
+      .badge {
+        min-width: 18px;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        text-align: center;
+      }
+
+      .leaf-rail {
+        border-right: 1px solid var(--rule);
+        background: var(--leaf);
+      }
+
+      .leaf-head {
+        padding: 26px 20px 18px;
+      }
+
+      .leaf-head h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 25px;
+        font-weight: 500;
+      }
+
+      .leaf-label {
+        padding: 0 20px 8px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .leaf-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 37px;
+        padding: 0 20px;
+        border-left: 2px solid transparent;
+        color: var(--dim);
+        font-size: 13px;
+      }
+
+      .leaf-link[aria-current="page"] {
+        border-left-color: var(--accent);
+        background: var(--card-soft);
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .leaf-link .new {
+        padding: 1px 6px;
+        border: 1px solid var(--accent-line);
+        border-radius: 999px;
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 8.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .browse {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 1px solid var(--rule);
+        background: var(--frame);
+      }
+
+      .browse span {
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .browse span[aria-current="true"] {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      /* ---- pane -------------------------------------------------------- */
+
+      .pane {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        padding: 26px 30px 30px;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        background: var(--bg);
+      }
+
+      [data-viewport="phone"] .pane {
+        padding: 20px 16px 16px;
+        overflow-y: auto;
+      }
+
+      .page-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 12px;
+        padding-bottom: 18px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .page-head h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+      }
+
+      [data-viewport="phone"] .page-head h1 {
+        font-size: 29px;
+      }
+
+      .page-meta {
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      .page-meta b {
+        color: var(--err);
+        font-weight: 600;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 0;
+      }
+
+      .select {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 11px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--dim);
+        font-size: 12px;
+      }
+
+      .select b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .select[data-on="true"] {
+        border-color: var(--accent-line);
+        background: var(--accent-soft);
+      }
+
+      .toolbar .hint {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 6px 13px;
+        border: 1px solid var(--accent);
+        border-radius: 7px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-quiet {
+        border-color: var(--rule-strong);
+        background: var(--card-soft);
+        color: var(--ink);
+      }
+
+      .btn-ghost {
+        border-color: transparent;
+        background: transparent;
+        color: var(--dim);
+      }
+
+      /* ---- board ------------------------------------------------------- */
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        min-height: 0;
+      }
+
+      .workspace[data-detail="true"] {
+        grid-template-columns: minmax(0, 1fr) 380px;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        min-height: 0;
+      }
+
+      .column {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        background: var(--col);
+      }
+
+      .column[data-drop="true"] {
+        border: 1.5px dashed var(--accent-line);
+        background: var(--accent-soft);
+      }
+
+      .column-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .column-head h2 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .column-head .n {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .column[data-status="blocked"] .column-head h2 {
+        color: var(--err);
+      }
+
+      .cards {
+        display: grid;
+        align-content: start;
+        gap: 9px;
+        padding: 10px;
+        overflow-y: auto;
+      }
+
+      .column-foot {
+        margin-top: auto;
+        padding: 10px 14px 12px;
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .column-foot a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 11px 12px 10px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 8px;
+        background: var(--card);
+      }
+
+      .card[aria-current="true"] {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+
+      .card[data-status="blocked"] {
+        border-left: 3px solid var(--err);
+      }
+
+      .card[data-status="done"] .card-title {
+        color: var(--dim);
+      }
+
+      .card[data-ghost="true"] {
+        opacity: 0.35;
+        border-style: dashed;
+      }
+
+      .card[data-lifted="true"] {
+        position: absolute;
+        z-index: 3;
+        width: 250px;
+        transform: rotate(-2deg);
+        box-shadow: 0 22px 50px rgba(0, 0, 0, 0.35);
+        border-color: var(--accent);
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.38;
+      }
+
+      .card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 9px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .who {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--dim);
+      }
+
+      .avatar {
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--card-soft);
+        border: 1px solid var(--rule-strong);
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 7.5px;
+        font-weight: 600;
+      }
+
+      .source {
+        color: var(--muted);
+        text-decoration: underline;
+        text-decoration-color: var(--faint);
+        text-underline-offset: 2px;
+      }
+
+      .tag {
+        padding: 1px 7px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 999px;
+        color: var(--dim);
+        font-size: 10.5px;
+      }
+
+      .blocked-by {
+        color: var(--err);
+        font-size: 11px;
+      }
+
+      .moves {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding-top: 7px;
+        border-top: 1px solid var(--rule);
+      }
+
+      .move {
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--dim);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .move:hover {
+        border-color: var(--accent-line);
+        color: var(--ink);
+      }
+
+      .move.more {
+        margin-left: auto;
+        border-color: transparent;
+        color: var(--muted);
+      }
+
+      .phone-status {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        padding: 4px;
+        margin-bottom: 12px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 9px;
+        background: var(--card);
+      }
+
+      .phone-status span {
+        display: grid;
+        justify-items: center;
+        gap: 1px;
+        padding: 6px 0;
+        border-radius: 6px;
+        color: var(--dim);
+        font-size: 11px;
+      }
+
+      .phone-status span b {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+
+      .phone-status span[aria-current="true"] {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      [data-viewport="phone"] .board {
+        display: block;
+      }
+
+      [data-viewport="phone"] .pane {
+        display: block;
+      }
+
+      [data-viewport="phone"] .workspace > div:not(.phone-status) {
+        display: block !important;
+      }
+
+      [data-viewport="phone"] .rollup {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      [data-viewport="phone"] .detail {
+        overflow: visible;
+      }
+
+      [data-viewport="phone"] .detail-body {
+        overflow: visible;
+      }
+
+      [data-viewport="phone"] .workspace[data-detail="true"] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      /* ---- notices + rollup ------------------------------------------- */
+
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 11px 14px;
+        border: 1px solid var(--err-line);
+        border-radius: 8px;
+        background: var(--err-soft);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      .notice b {
+        display: block;
+        color: var(--err);
+      }
+
+      .notice .btn {
+        margin-left: auto;
+        flex: none;
+      }
+
+      .rollup {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr);
+        gap: 0;
+        margin-bottom: 12px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 10px;
+        background: var(--card);
+      }
+
+      .rollup > div {
+        padding: 12px 14px;
+        border-right: 1px solid var(--rule);
+      }
+
+      .rollup > div:last-child {
+        border-right: 0;
+      }
+
+      .rollup small {
+        display: block;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .rollup strong {
+        font-family: var(--display);
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      .rollup .is-blocked strong,
+      .rollup .is-blocked small {
+        color: var(--err);
+      }
+
+      .rollup ul {
+        margin: 4px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .rollup li::before {
+        content: "▪ ";
+        color: var(--err);
+      }
+
+      /* ---- detail ------------------------------------------------------ */
+
+      .detail {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        border: 1px solid var(--rule-strong);
+        border-radius: 10px;
+        background: var(--card);
+        overflow: hidden;
+      }
+
+      .detail-head {
+        display: grid;
+        gap: 8px;
+        padding: 16px 18px 14px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .detail-head .kicker {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .detail-head h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+
+      .detail-body {
+        display: grid;
+        align-content: start;
+        gap: 16px;
+        padding: 16px 18px;
+        overflow-y: auto;
+      }
+
+      .detail-body p {
+        margin: 0;
+        color: var(--dim);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 7px 10px;
+        margin: 0;
+        font-size: 12.5px;
+      }
+
+      .kv dt {
+        color: var(--muted);
+      }
+
+      .kv dd {
+        margin: 0;
+      }
+
+      .section-label {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 7px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 12px;
+      }
+
+      .timeline li {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .timeline time {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10.5px;
+      }
+
+      .arrow {
+        color: var(--muted);
+      }
+
+      .note {
+        padding: 9px 11px;
+        border-left: 2px solid var(--rule-strong);
+        background: var(--card-soft);
+        border-radius: 0 6px 6px 0;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      .note small {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--muted);
+        font-size: 10.5px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--dim);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .field input,
+      .field textarea,
+      .field .fake-select {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--bg);
+        font-size: 13px;
+      }
+
+      .field textarea {
+        min-height: 70px;
+        resize: none;
+        line-height: 1.5;
+      }
+
+      .field .hint {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .detail-foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: auto;
+        padding: 12px 18px;
+        border-top: 1px solid var(--rule);
+      }
+
+      .linked {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 8px;
+        background: var(--card-soft);
+        font-size: 12.5px;
+      }
+
+      .linked small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .linked .src {
+        padding: 2px 7px;
+        border-radius: 5px;
+        background: var(--bg);
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      /* ---- inbox ------------------------------------------------------- */
+
+      .inbox {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 420px;
+        gap: 18px;
+        min-height: 0;
+      }
+
+      [data-viewport="phone"] .inbox {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .rows {
+        display: grid;
+        align-content: start;
+        border-top: 1px solid var(--rule);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 108px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        padding: 13px 10px;
+        border-bottom: 1px solid var(--rule);
+        font-size: 13px;
+      }
+
+      [data-viewport="phone"] .row {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      [data-viewport="phone"] .row .src-col {
+        display: none;
+      }
+
+      .row[aria-current="true"] {
+        background: var(--card-soft);
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+
+      .row .src-col {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .row .title b {
+        display: block;
+        font-weight: 500;
+      }
+
+      .row .title small {
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      .row .when {
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .urgency {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-right: 6px;
+        border-radius: 50%;
+        background: var(--faint);
+      }
+
+      .urgency[data-level="high"] {
+        background: var(--err);
+      }
+
+      .followups {
+        display: grid;
+        gap: 6px;
+      }
+
+      .followup {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        font-size: 12.5px;
+      }
+
+      .followup[data-new="true"] {
+        border-color: var(--accent-line);
+        background: var(--accent-soft);
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .followup span {
+        color: var(--muted);
+      }
+
+      /* ---- overlay (create form over board) --------------------------- */
+
+      .scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        display: flex;
+        justify-content: flex-end;
+        background: rgba(10, 8, 20, 0.28);
+      }
+
+      .sheet {
+        width: 440px;
+        height: 100%;
+        border-radius: 0;
+        border-width: 0 0 0 1px;
+      }
+
+      [data-viewport="phone"] .sheet {
+        width: 100%;
+      }
+
+      .annot {
+        position: absolute;
+        z-index: 5;
+        max-width: 230px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #ffd166;
+        color: #2a2116;
+        font-size: 11.5px;
+        line-height: 1.4;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      }
+
+      @media (max-width: 760px) {
+        .presentation {
+          padding: 32px 16px 60px;
+        }
+        .controls {
+          justify-items: start;
+        }
+        .stage {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="presentation">
+      <header class="presentation-head">
+        <div>
+          <p class="eyebrow">docs/plans/action-item-board.md · design pass</p>
+          <h1>Action-item board</h1>
+          <p class="lede">
+            A Studio workspace over the brain's shared action items, built only
+            from the host's declarative blocks (columns, list, card, actions,
+            detail, forms) until phase 7 adds drag. Eight states follow the
+            plan's phases.
+          </p>
+        </div>
+        <div class="controls">
+          <div class="control-group" role="group" aria-label="Climate">
+            <button data-climate="paper" aria-pressed="true">Paper</button>
+            <button data-climate="instrument" aria-pressed="false">
+              Instrument
+            </button>
+          </div>
+          <div class="control-group" role="group" aria-label="Viewport">
+            <button data-viewport="desktop" aria-pressed="true">Desktop</button>
+            <button data-viewport="phone" aria-pressed="false">Phone</button>
+          </div>
+        </div>
+      </header>
+
+      <nav class="states" id="states" aria-label="States"></nav>
+
+      <div class="stage-label">
+        <b id="stageTitle"></b>
+        <span id="stageNote"></span>
+      </div>
+
+      <div class="stage" id="stage" data-viewport="desktop">
+        <div class="app">
+          <header class="chrome">
+            <span class="brand"
+              ><span class="mark">◎</span>Team brain<span class="slash">/</span
+              >Studio</span
+            >
+            <span class="location desktop-only" id="location">Work · Board</span>
+            <span></span>
+            <div class="chrome-tools">
+              <span class="command-chip desktop-only"
+                >Search or run a command… <kbd>⌘K</kbd></span
+              >
+              <span class="chip-round">AM</span>
+            </div>
+          </header>
+          <div class="body">
+            <aside class="area-rail desktop-only">
+              <div class="area-title">Studio</div>
+              <span class="area-link"><b class="ord">00</b>Overview</span>
+              <span class="area-link"><b class="ord">01</b>Chat</span>
+              <span class="area-link"><b class="ord">02</b>Library</span>
+              <span class="area-link" aria-current="true"
+                ><b class="ord">03</b>Work<span class="badge" id="workBadge"
+                  >2</span
+                ></span
+              >
+              <span class="area-link"><b class="ord">04</b>Admin</span>
+              <span class="area-link"><b class="ord">05</b>System</span>
+            </aside>
+            <aside class="leaf-rail desktop-only">
+              <div class="leaf-head"><h2>Work</h2></div>
+              <div class="leaf-label">Workspaces</div>
+              <span class="leaf-link" data-leaf="board"
+                >Board <span class="new">new</span></span
+              >
+              <span class="leaf-link" data-leaf="inbox"
+                >Inbox <span class="badge">5</span></span
+              >
+              <span class="leaf-link">Publishing</span>
+              <span class="leaf-link">Site</span>
+            </aside>
+            <main class="pane" id="pane"></main>
+          </div>
+          <nav class="browse phone-only">
+            <span>Overview</span><span>Chat</span><span aria-current="true"
+              >Work</span
+            ><span>Browse</span>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const people = {
+        AM: "Alex Morgan",
+        SR: "Sam Rivera",
+        GH: "Grace Hopper",
+        MO: "Mira Okafor",
+      };
+
+      const items = [
+        { id: 1, s: "open", t: "Draft the onboarding checklist for new collaborators", who: "MO", age: "2d", src: "#team-sync", proj: "Field guide" },
+        { id: 2, s: "open", t: "Collect three examples of decisions we revisited", who: "GH", age: "4d", src: "Weekly call", proj: "Field guide" },
+        { id: 3, s: "open", t: "Ask the venue about accessibility for the spring gathering", who: "SR", age: "5d", src: "#events", proj: "Spring gathering" },
+        { id: 4, s: "open", t: "Reply to the question about field notes", who: "AM", age: "1h", src: "Inbox · Contact", proj: null, inbox: true },
+        { id: 5, s: "doing", t: "Prototype a shared board over action items", who: "AM", age: "1d", src: "Exec meeting 6 Oct", proj: null },
+        { id: 6, s: "doing", t: "Write the spring gathering invitation", who: "SR", age: "3d", src: "#events", proj: "Spring gathering" },
+        { id: 7, s: "blocked", t: "Publish the field guide chapter on decisions", who: "GH", age: "6d", src: "Weekly call", proj: "Field guide", by: "Grace Hopper", since: "2d" },
+        { id: 8, s: "blocked", t: "Book the venue for the spring gathering", who: "SR", age: "8d", src: "#events", proj: "Spring gathering", by: "Sam Rivera", since: "5h" },
+        { id: 9, s: "done", t: "Share last week's call summary", who: "MO", age: "2d", src: "Weekly call", proj: null },
+        { id: 10, s: "done", t: "Pick a date for the spring gathering", who: "SR", age: "9d", src: "#events", proj: "Spring gathering" },
+      ];
+
+      const columns = [
+        { s: "open", label: "To do" },
+        { s: "doing", label: "Doing" },
+        { s: "blocked", label: "Blocked" },
+        { s: "done", label: "Done" },
+      ];
+
+      const moves = {
+        open: ["Start", "Block", "Done"],
+        doing: ["Block", "Done", "To do"],
+        blocked: ["Resume", "Done"],
+        done: ["Reopen"],
+      };
+
+      function card(item, opts = {}) {
+        const attrs = [
+          `data-status="${item.s}"`,
+          opts.current ? 'aria-current="true"' : "",
+          opts.ghost ? 'data-ghost="true"' : "",
+          opts.lifted ? 'data-lifted="true"' : "",
+          opts.style ? `style="${opts.style}"` : "",
+        ].join(" ");
+        const blocked = item.by
+          ? `<span class="blocked-by">Blocked by ${item.by} · ${item.since} ago</span>`
+          : "";
+        const proj =
+          opts.showProject && item.proj
+            ? `<span class="tag">${item.proj}</span>`
+            : "";
+        if (opts.compact) {
+          return `<article class="card" ${attrs}>
+          <p class="card-title">${item.t}</p>
+          <div class="card-meta"><span class="avatar">${item.who}</span><span>${item.age}</span>${item.by ? `<span class="blocked-by">Blocked ${item.since}</span>` : ""}</div>
+        </article>`;
+        }
+        const actions = opts.noActions
+          ? ""
+          : `<div class="moves">${moves[item.s]
+              .map((m) => `<button class="move">${m}</button>`)
+              .join("")}<button class="move more" aria-label="More actions">Drop</button></div>`;
+        return `<article class="card" ${attrs}>
+          <p class="card-title">${item.t}</p>
+          <div class="card-meta">
+            <span class="who"><span class="avatar">${item.who}</span>${people[item.who]}</span>
+            <span>${item.age}</span>
+            <span class="source">${item.src}</span>
+            ${proj}
+          </div>
+          ${blocked}
+          ${actions}
+        </article>`;
+      }
+
+      function board(list, opts = {}) {
+        const phoneColumn = opts.phoneColumn || "blocked";
+        const phoneTabs = `<div class="phone-status phone-only">${columns
+          .map(
+            (c) =>
+              `<span ${c.s === phoneColumn ? 'aria-current="true"' : ""}>${c.label}<b>${list.filter((i) => i.s === c.s).length}</b></span>`,
+          )
+          .join("")}</div>`;
+        const cols = columns
+          .map((c) => {
+            const cards = list.filter((i) => i.s === c.s);
+            const foot =
+              c.s === "done"
+                ? `<div class="column-foot">Last 14 days · <a href="#">Older in Library →</a></div>`
+                : "";
+            const hidePhone = c.s !== phoneColumn ? "desktop-only" : "";
+            return `<section class="column ${hidePhone}" data-status="${c.s}" ${opts.drop === c.s ? 'data-drop="true"' : ""}>
+              <header class="column-head desktop-only"><h2>${c.label}</h2><span class="n">${cards.length}</span></header>
+              <div class="cards">${cards
+                .map((i) =>
+                  card(i, {
+                    current: opts.current === i.id,
+                    showProject: opts.showProject,
+                    ghost: opts.ghost === i.id,
+                    noActions: opts.noActions,
+                    compact: opts.compact,
+                  }),
+                )
+                .join("")}${opts.extra && opts.extra[c.s] ? opts.extra[c.s] : ""}</div>
+              ${foot}
+            </section>`;
+          })
+          .join("");
+        return `${phoneTabs}<div class="board">${cols}</div>`;
+      }
+
+      function head(title, meta) {
+        return `<div class="page-head"><h1>${title}</h1><span class="page-meta">${meta}</span></div>`;
+      }
+
+      function boardMeta(list = items) {
+        const unfinished = list.filter((i) => i.s !== "done").length;
+        const blocked = list.filter((i) => i.s === "blocked").length;
+        return `${unfinished} unfinished · <b>${blocked} blocked</b> · shared with the team`;
+      }
+
+      function toolbar(extra = "") {
+        return `<div class="toolbar">
+          <span class="select">Assignee <b>Anyone</b> ▾</span>
+          ${extra}
+          <span class="hint desktop-only">Cards come from conversations and the Inbox</span>
+        </div>`;
+      }
+
+      function detail(item) {
+        return `<aside class="detail">
+          <div class="detail-head">
+            <div class="kicker"><span>Action item · Blocked</span><span>✕</span></div>
+            <h2>${item.t}</h2>
+          </div>
+          <div class="detail-body">
+            <p>Grace will publish the chapter once the two revisited decisions are confirmed with the people who made them; she is waiting on replies from both.</p>
+            <dl class="kv">
+              <dt>Assigned to</dt><dd>${people[item.who]}</dd>
+              <dt>Requested by</dt><dd>Mira Okafor</dd>
+              <dt>Source</dt><dd><span class="source">Weekly call · summary</span></dd>
+              <dt>Project</dt><dd><span class="tag">Field guide</span></dd>
+            </dl>
+            <div>
+              <p class="section-label">History</p>
+              <ol class="timeline">
+                <li><time>13 Oct 14:02</time><span>Grace Hopper · To do <span class="arrow">→</span> Doing</span></li>
+                <li><time>15 Oct 09:40</time><span>Grace Hopper · Doing <span class="arrow">→</span> Blocked</span></li>
+              </ol>
+            </div>
+            <div>
+              <p class="section-label">Notes</p>
+              <div class="note"><small>15 Oct · Grace Hopper</small>Waiting on Sam and Alex to confirm the decision dates.</div>
+            </div>
+            <div class="field">
+              <label for="addNote">Add a note</label>
+              <textarea id="addNote" placeholder="Visible to the team and kept on the action item"></textarea>
+            </div>
+          </div>
+          <div class="detail-foot">
+            <button class="btn btn-quiet">Add note</button>
+            <span style="flex:1"></span>
+            <button class="btn btn-ghost">Resume</button>
+            <button class="btn btn-ghost">Done</button>
+            <button class="btn btn-ghost">Drop</button>
+          </div>
+        </aside>`;
+      }
+
+      const inboxRows = [
+        { src: "Action items", t: "Book the venue for the spring gathering", sub: "Blocked by Sam Rivera · 5h", when: "5h", u: "normal", key: "ai" },
+        { src: "Recurring checks", t: "Preview build failed twice", sub: "Site · preview", when: "2h", u: "high" },
+        { src: "Contact", t: "Could we share your field notes?", sub: "Grace Hopper · Email", when: "Today 10:12", u: "normal", key: "contact" },
+        { src: "Action items", t: "Publish the field guide chapter on decisions", sub: "Blocked by Grace Hopper · 2d", when: "2d", u: "normal" },
+        { src: "Mail triage", t: "Invoice for the September hosting", sub: "billing@ · needs a decision", when: "Yesterday", u: "normal" },
+      ];
+
+      function inboxList(selected) {
+        return `<div class="rows">${inboxRows
+          .map(
+            (r) => `<div class="row" ${r.key === selected ? 'aria-current="true"' : ""}>
+              <span class="src-col">${r.src}</span>
+              <span class="title"><b><span class="urgency" data-level="${r.u}"></span>${r.t}</b><small>${r.sub}</small></span>
+              <span class="when">${r.when}</span>
+            </div>`,
+          )
+          .join("")}</div>`;
+      }
+
+      function inboxToolbar() {
+        return `<div class="toolbar">
+          <span class="select">Source <b>All</b> ▾</span>
+          <span class="select">Urgency <b>Any</b> ▾</span>
+          <span class="hint desktop-only">Admin · 5 open</span>
+        </div>`;
+      }
+
+      const conflicted = items.map((i) =>
+        i.id === 6 ? { ...i, s: "done", age: "now" } : i,
+      );
+      const tracked = items.filter((i) => !i.inbox);
+
+      const states = [
+        {
+          key: "board",
+          phase: "Phase 1",
+          label: "Board",
+          leaf: "board",
+          note: "Four columns over the team's shared action items. Each card carries assignee, age and a link to its source; moves are typed actions on the card, with Drop under the quiet trailing action. Done shows the last 14 days and links to the Library for the rest. On phone the columns become a status switch above one column.",
+          render: () =>
+            head("Board", boardMeta()) +
+            toolbar() +
+            `<div class="workspace">${board(items)}</div>`,
+        },
+        {
+          key: "detail",
+          phase: "Phases 1 + 3",
+          label: "Card detail",
+          leaf: "board",
+          note: "Selecting a card opens the detail block beside the board: full text, requester, source, project, the attributed history (typed frontmatter) and the notes (markdown body), with the add-note form. The footer repeats the card's moves.",
+          render: () =>
+            head("Board", boardMeta()) +
+            toolbar() +
+            `<div class="workspace" data-detail="true"><div class="desktop-only" style="min-height:0;display:grid">${board(items, { current: 7, compact: true })}</div>${detail(items[6])}</div>`,
+        },
+        {
+          key: "conflict",
+          phase: "Phase 1",
+          label: "Move conflict",
+          leaf: "board",
+          note: "A move is conditional on the version it read. The service re-reads and reapplies once; if the card still changed underneath (here: someone moved it to Done meanwhile) the board reports it, reloads, and leaves the decision to the person.",
+          render: () =>
+            head("Board", boardMeta(conflicted)) +
+            toolbar() +
+            `<div class="workspace"><div style="display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0">
+              <div class="notice" role="status"><div><b>“Write the spring gathering invitation” changed while you moved it</b>Sam Rivera marked it Done a moment ago. Your move to Blocked was not applied.</div><button class="btn btn-quiet">Move to Blocked anyway</button></div>
+              ${board(conflicted, { current: 6, phoneColumn: "done" })}
+            </div></div>`,
+        },
+        {
+          key: "inbox-blocked",
+          phase: "Phase 2",
+          label: "Blocked in Inbox",
+          leaf: "inbox",
+          note: "The action-items Inbox source lists only blocked cards, beside the other sources. Its actions are the card's moves and go through the same write path, so the admin's Resume lands in the card's history. The follow-up opens the card on the board.",
+          render: () =>
+            head("Inbox", "Admin · live from 5 sources") +
+            inboxToolbar() +
+            `<div class="inbox"><div class="desktop-only">${inboxList("ai")}</div>
+            <aside class="detail">
+              <div class="detail-head"><div class="kicker"><span>Action items · Blocked</span><span>5h</span></div><h2>Book the venue for the spring gathering</h2></div>
+              <div class="detail-body">
+                <p>Blocked by Sam Rivera 5 hours ago. Assigned to Sam Rivera. Project: Spring gathering.</p>
+                <div class="note"><small>Today · Sam Rivera</small>Venue wants a deposit before Friday; who can approve it?</div>
+                <div><p class="section-label">Follow up</p><div class="followups">
+                  <div class="followup">Open on board <span>→</span></div>
+                  <div class="followup">Discuss in chat <span>→</span></div>
+                </div></div>
+              </div>
+              <div class="detail-foot"><button class="btn">Resume</button><button class="btn btn-quiet">Done</button><span style="flex:1"></span><button class="btn btn-ghost">Drop</button></div>
+            </aside></div>`,
+        },
+        {
+          key: "inbox-track",
+          phase: "Phase 4",
+          label: "Track from Inbox",
+          leaf: "inbox",
+          note: "Any Inbox item with a source entity offers “Track as action item” next to Capture as note and Discuss in chat. Like every follow-up it only launches another surface; the Inbox item stays with its source.",
+          render: () =>
+            head("Inbox", "Admin · live from 5 sources") +
+            inboxToolbar() +
+            `<div class="inbox"><div class="desktop-only">${inboxList("contact")}</div>
+            <aside class="detail">
+              <div class="detail-head"><div class="kicker"><span>Contact · Email</span><span>Today 10:12</span></div><h2>Could we share your field notes?</h2></div>
+              <div class="detail-body">
+                <p>Grace Hopper asks whether the team would share its field notes on running decision reviews with a partner group, and what format would suit.</p>
+                <div><p class="section-label">Follow up</p><div class="followups">
+                  <div class="followup" data-new="true">Track as action item <span>→</span></div>
+                  <div class="followup">Capture as note <span>→</span></div>
+                  <div class="followup">Discuss in chat <span>→</span></div>
+                  <div class="followup">Open source entity <span>→</span></div>
+                </div></div>
+              </div>
+              <div class="detail-foot"><button class="btn btn-quiet">Mark handled</button></div>
+            </aside></div>`,
+        },
+        {
+          key: "create",
+          phase: "Phase 4",
+          label: "Create from Inbox",
+          leaf: "board",
+          note: "The follow-up lands on the board's create form, prefilled with the Inbox title, summary and source. Saving creates an inbox-origin card in To do, linked back to the contact message; the projector never touches it.",
+          render: () =>
+            head("Board", boardMeta(tracked)) +
+            toolbar() +
+            `<div class="workspace">${board(tracked, { phoneColumn: "open" })}</div>
+            <div class="scrim"><aside class="detail sheet">
+              <div class="detail-head"><div class="kicker"><span>New action item · from Inbox</span><span>✕</span></div><h2>Track as action item</h2></div>
+              <div class="detail-body">
+                <div class="linked"><span class="src">Contact</span><div>Could we share your field notes?<small>Grace Hopper · Email · Today 10:12</small></div></div>
+                <div class="field"><label>Title</label><input value="Reply to the question about field notes" /></div>
+                <div class="field"><label>Details</label><textarea>Grace Hopper asks whether the team would share its field notes on running decision reviews with a partner group, and what format would suit.</textarea></div>
+                <div class="field"><label>Assign to</label><div class="fake-select">Alex Morgan ▾</div></div>
+                <div class="field"><label>Project</label><div class="fake-select">Field guide ▾</div><span class="hint">Values from the Projects grouping</span></div>
+                <p>The card starts in To do. The contact message stays in the Inbox until its source resolves it.</p>
+              </div>
+              <div class="detail-foot"><button class="btn">Create card</button><button class="btn btn-ghost">Cancel</button></div>
+            </aside></div>`,
+        },
+        {
+          key: "projects",
+          phase: "Phase 6",
+          label: "Project view",
+          leaf: "board",
+          note: "Projects are values of the Studio Projects grouping. Filtering to one project shows its cards and a roll-up: counts per column and every blocked card under it.",
+          render: () => {
+            const list = items.filter((i) => i.proj === "Spring gathering");
+            return (
+              head("Board", "Spring gathering · 5 cards") +
+              toolbar(`<span class="select" data-on="true">Project <b>Spring gathering</b> ▾</span>`) +
+              `<div class="workspace"><div style="display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0">
+                <div class="rollup">
+                  ${columns
+                    .map(
+                      (c) =>
+                        `<div class="${c.s === "blocked" ? "is-blocked" : ""}"><small>${c.label}</small><strong>${list.filter((i) => i.s === c.s).length}</strong></div>`,
+                    )
+                    .join("")}
+                  <div class="desktop-only"><small>Blocked in this project</small><ul><li>Book the venue · Sam Rivera · 5h</li></ul></div>
+                </div>
+                ${board(list, { showProject: false })}
+              </div></div>`
+            );
+          },
+        },
+        {
+          key: "drag",
+          phase: "Phase 7",
+          label: "Drag",
+          leaf: "board",
+          note: "The shared board block adds drag: the lifted card leaves a ghost, the target column highlights, and the drop calls the same move. The per-card actions stay for keyboard and phone.",
+          render: () =>
+            head("Board", boardMeta()) +
+            toolbar() +
+            `<div class="workspace" style="position:relative">${board(items, { ghost: 5, drop: "blocked", phoneColumn: "doing" })}
+              <div class="desktop-only">${card(items[4], { lifted: true, style: "left:56%;top:250px", noActions: true })}</div>
+            </div>`,
+        },
+      ];
+
+      let current = 0;
+      const stage = document.getElementById("stage");
+      const pane = document.getElementById("pane");
+
+      function show(index) {
+        current = index;
+        const state = states[index];
+        pane.innerHTML = state.render();
+        document.getElementById("stageTitle").textContent =
+          `${state.phase} · ${state.label}`;
+        document.getElementById("stageNote").textContent = state.note;
+        document.getElementById("location").textContent =
+          state.leaf === "inbox" ? "Work · Inbox" : "Work · Board";
+        document.querySelectorAll("[data-leaf]").forEach((el) => {
+          if (el.dataset.leaf === state.leaf) el.setAttribute("aria-current", "page");
+          else el.removeAttribute("aria-current");
+        });
+        document
+          .querySelectorAll("#states button")
+          .forEach((b, i) => b.setAttribute("aria-pressed", String(i === index)));
+      }
+
+      document.getElementById("states").innerHTML = states
+        .map(
+          (s, i) =>
+            `<button data-index="${i}" aria-pressed="false"><small>${s.phase}</small>${s.label}</button>`,
+        )
+        .join("");
+
+      document.getElementById("states").addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (button) show(Number(button.dataset.index));
+      });
+
+      document.querySelectorAll("[data-climate]").forEach((button) => {
+        if (button.tagName !== "BUTTON") return;
+        button.addEventListener("click", () => {
+          document.documentElement.dataset.climate = button.dataset.climate;
+          document
+            .querySelectorAll("button[data-climate]")
+            .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+        });
+      });
+
+      document.querySelectorAll("button[data-viewport]").forEach((button) => {
+        button.addEventListener("click", () => {
+          stage.dataset.viewport = button.dataset.viewport;
+          document
+            .querySelectorAll("button[data-viewport]")
+            .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+        });
+      });
+
+      show(0);
+    </script>
+  </body>
+</html>

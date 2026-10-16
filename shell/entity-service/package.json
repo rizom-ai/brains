@@ -1,7 +1,7 @@
 {
   "name": "@brains/entity-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.495",
+  "version": "0.2.0-alpha.556",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "dependencies": {
     "@brains/assets": "workspace:*",
@@ -11,8 +11,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",
-    "drizzle-orm": "^0.45.2",
-    "gray-matter": "^4.0.3"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

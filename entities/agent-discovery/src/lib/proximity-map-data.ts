@@ -1,3 +1,4 @@
+import type { ContentVisibility } from "@brains/plugins";
 import type {
   EntitySchema,
   ISemanticNamespace,
@@ -69,11 +70,13 @@ function isSighting(frontmatter: AgentFrontmatter): boolean {
 
 export async function buildProximityMapData(
   context: ProximityMapDataContext,
+  visibilityScope: ContentVisibility,
 ): Promise<ProximityMapData> {
   const [agents, projection] = await Promise.all([
     context.entityService.listEntities(
       {
         entityType: AGENT_ENTITY_TYPE,
+        options: { filter: { visibilityScope } },
       },
       agentEntitySchema,
     ),
@@ -81,6 +84,7 @@ export async function buildProximityMapData(
       types: [AGENT_ENTITY_TYPE],
       origin: BRAIN_CHARACTER_REFERENCE,
       maxNeighborDistance: PROXIMITY_NEIGHBOR_DISTANCE,
+      visibilityScope,
     }),
   ]);
 

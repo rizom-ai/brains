@@ -48,6 +48,13 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
               itemType: "string",
             },
             {
+              key: "provenBy",
+              label: "Proven By",
+              type: "custom",
+              formatter: formatOptionalList,
+              parser: parseOptionalList,
+            },
+            {
               key: "transitions",
               label: "Transitions",
               type: "array",
@@ -108,6 +115,18 @@ function formatOptionalString(value: unknown): string {
 function parseOptionalString(text: string): string | undefined {
   const trimmed = text.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function formatOptionalList(value: unknown): string {
+  return Array.isArray(value) ? value.join(", ") : "";
+}
+
+function parseOptionalList(text: string): string[] | undefined {
+  const items = text
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return items.length > 0 ? items : undefined;
 }
 
 function formatOptionalBoolean(value: unknown): string {

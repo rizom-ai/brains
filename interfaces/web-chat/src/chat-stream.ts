@@ -64,8 +64,7 @@ async function deniedArtifactCardIds(
     cards: response.cards,
     userLevel,
     displayBaseUrl: deps.displayBaseUrl,
-    getEntity: (ref) => deps.entityService.getEntity(ref),
-    getVisibleEntity: (ref, visibilityScope) =>
+    getEntity: (ref, visibilityScope) =>
       deps.entityService.getEntity({ ...ref, visibilityScope }),
   });
 }

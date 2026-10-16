@@ -96,8 +96,8 @@ import {
   ShellBootloader,
   type BootMode,
 } from "./initialization/shellBootloader";
-import { createInsightsRegistry } from "./system/insights";
-import type { IInsightsRegistry } from "@brains/plugins";
+import { createAnalyticsRegistry } from "./system/analytics";
+import type { IAnalyticsRegistry } from "@brains/plugins";
 import type { HttpRouteManifestEntry } from "@brains/plugins/internal/http-routes";
 import { EndpointRegistry } from "./endpoint-registry";
 import { InteractionRegistry } from "./interaction-registry";
@@ -128,7 +128,7 @@ export class Shell implements IShell {
   private bootMode: BootMode | undefined;
   private bootPromise: Promise<void> | null = null;
   private shutdownPromise: Promise<void> | null = null;
-  private readonly insightsRegistry: IInsightsRegistry;
+  private readonly analyticsRegistry: IAnalyticsRegistry;
   private readonly bootTime = Date.now();
   private readonly endpointRegistry = new EndpointRegistry();
   private readonly interactionRegistry = new InteractionRegistry();
@@ -158,6 +158,7 @@ export class Shell implements IShell {
       constructionLogger,
       this.config,
       runtimeOptions?.processRole,
+      runtimeOptions?.peerChannel,
     );
 
     try {
@@ -171,7 +172,7 @@ export class Shell implements IShell {
         this.services.jobQueueService,
       );
 
-      this.insightsRegistry = createInsightsRegistry(
+      this.analyticsRegistry = createAnalyticsRegistry(
         this.services.entityRegistry,
       );
       this.bootloader = new ShellBootloader(
@@ -192,7 +193,7 @@ export class Shell implements IShell {
             registerShellSystemCapabilities({
               services: this.services,
               jobs: this.jobs,
-              insights: this.insightsRegistry,
+              analytics: this.analyticsRegistry,
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
             }),
@@ -246,8 +247,8 @@ export class Shell implements IShell {
 
   // Lifecycle
 
-  public getInsightsRegistry(): IInsightsRegistry {
-    return this.insightsRegistry;
+  public getAnalyticsRegistry(): IAnalyticsRegistry {
+    return this.analyticsRegistry;
   }
 
   /**
@@ -369,9 +370,10 @@ export class Shell implements IShell {
    */
   public async generateContent(
     config: ContentGenerationConfig,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     this.requireInitialized("Shell content generation");
-    return generateShellContent(this.services, config);
+    return generateShellContent(this.services, config, signal);
   }
 
   public async query(

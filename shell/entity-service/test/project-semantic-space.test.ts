@@ -137,6 +137,27 @@ describe("projectSemanticSpace", () => {
     ]);
   });
 
+  test("projects only the listed entities", async () => {
+    await seedEmbedding({ id: "a", values: [1, 0] });
+    await seedEmbedding({ id: "b", values: [0, 1] });
+    await seedEmbedding({ id: "c", values: [1, 1] });
+    await seedEmbedding({ id: "img", entityType: "image", values: [0, 1] });
+
+    const result = await ctx.entityService.projectSemanticSpace({
+      entities: [
+        { entityType: "test", entityId: "a" },
+        { entityType: "image", entityId: "img" },
+        { entityType: "test", entityId: "missing" },
+      ],
+    });
+
+    expect(
+      result.points
+        .map(({ entityType, entityId }) => `${entityType}:${entityId}`)
+        .sort(),
+    ).toEqual(["image:img", "test:a"]);
+  });
+
   test("measures points from an origin of another type, within the scope", async () => {
     await seedEmbedding({ id: "origin", values: [1, 0] });
     await seedEmbedding({ id: "other", values: [0, 1] });

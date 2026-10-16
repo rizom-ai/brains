@@ -1,5 +1,5 @@
 import assembleReleasePlan from "@changesets/assemble-release-plan";
-import { read as readChangesetsConfig } from "@changesets/config";
+import { readConfig } from "@changesets/config";
 import { getPackages } from "@manypkg/get-packages";
 import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -19,6 +19,17 @@ import { z } from "@brains/utils/zod";
 import { caughtError } from "@brains/test-utils";
 
 const repositoryRoot = join(import.meta.dir, "../../..");
+
+async function readChangesetsConfig(
+  root: string,
+  packages: Awaited<ReturnType<typeof getPackages>>,
+): Promise<NonNullable<Awaited<ReturnType<typeof readConfig>>["config"]>> {
+  const result = await readConfig(root, packages);
+  if (result.config === undefined) {
+    throw new Error(result.errors.join("\n"));
+  }
+  return result.config;
+}
 
 /**
  * The manifest fields these release checks read.

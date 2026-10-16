@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
 import { buildEntityFilePath, parseEntityPath } from "../src/lib/entity-paths";
 
+/** No contained types: every type in a folder of its own. */
+const NO_CONTAINMENT: ReadonlyMap<string, string> = new Map();
+
 // Historical diagnostic paths, not approval of unsafe IDs. Type prefixes now
 // remain literal (owner decision); invalid IDs are refused at filesystem effects.
 describe("existing directory-sync path compatibility", () => {
@@ -89,8 +92,16 @@ describe("existing directory-sync path compatibility", () => {
   ])(
     "pins %s ID %s",
     (entityType, entityId, filePath, importedType, importedId) => {
-      expect(buildEntityFilePath("/sync", entityId, entityType)).toBe(filePath);
-      expect(parseEntityPath("/sync", filePath)).toEqual({
+      expect(
+        buildEntityFilePath(
+          "/sync",
+          entityId,
+          entityType,
+          ".md",
+          NO_CONTAINMENT,
+        ),
+      ).toBe(filePath);
+      expect(parseEntityPath("/sync", filePath, NO_CONTAINMENT)).toEqual({
         entityType: importedType,
         id: importedId,
       });
@@ -101,7 +112,11 @@ describe("existing directory-sync path compatibility", () => {
     "strips recognized extension %s",
     (extension) => {
       expect(
-        parseEntityPath("/sync", `book-section/intro${extension}`),
+        parseEntityPath(
+          "/sync",
+          `book-section/intro${extension}`,
+          NO_CONTAINMENT,
+        ),
       ).toEqual({
         entityType: "book-section",
         id: "intro",
@@ -110,24 +125,36 @@ describe("existing directory-sync path compatibility", () => {
   );
 
   test("retains unrecognized extensions and literal colons on import", () => {
-    expect(parseEntityPath("/sync", "book-section/intro.txt").id).toBe(
-      "intro.txt",
-    );
-    expect(parseEntityPath("/sync", "book-section/intro:part.md").id).toBe(
-      "intro:part",
-    );
+    expect(
+      parseEntityPath("/sync", "book-section/intro.txt", NO_CONTAINMENT).id,
+    ).toBe("intro.txt");
+    expect(
+      parseEntityPath("/sync", "book-section/intro:part.md", NO_CONTAINMENT).id,
+    ).toBe("intro:part");
     // Export interprets the colon as hierarchy, unlike the imported filename.
-    expect(buildEntityFilePath("/sync", "intro:part", "book-section")).toBe(
-      "/sync/book-section/intro/part.md",
-    );
+    expect(
+      buildEntityFilePath(
+        "/sync",
+        "intro:part",
+        "book-section",
+        ".md",
+        NO_CONTAINMENT,
+      ),
+    ).toBe("/sync/book-section/intro/part.md");
   });
 
   test("round-trips the supported structured book example without migration", () => {
     const segments = ["book-1", "part-1", "chapter-2"] as const;
     const id = encodeEntityIdPath(segments);
-    const path = buildEntityFilePath("/sync", id, "book-section");
+    const path = buildEntityFilePath(
+      "/sync",
+      id,
+      "book-section",
+      ".md",
+      NO_CONTAINMENT,
+    );
     expect(path).toBe("/sync/book-section/book-1/part-1/chapter-2.md");
-    const imported = parseEntityPath("/sync", path);
+    const imported = parseEntityPath("/sync", path, NO_CONTAINMENT);
     expect(imported).toEqual({ entityType: "book-section", id });
     expect(decodeEntityIdPath(imported.id)).toEqual([...segments]);
   });

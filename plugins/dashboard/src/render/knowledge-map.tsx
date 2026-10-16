@@ -29,7 +29,6 @@ const WIDTH = 820;
 const HEIGHT = 480;
 const PAD_X = 76;
 const PAD_Y = 58;
-const MAX_TERRITORIES = 18;
 const INDEX_TERRITORIES = 8;
 const LABELED_TERRITORIES = 7;
 
@@ -301,7 +300,8 @@ function territoryThreads(
 }
 
 function buildAtlasLayout(block: CartesianMapBlock): AtlasLayout {
-  const sortedZones = sortTerritories(block.zones).slice(0, MAX_TERRITORIES);
+  // Every topic is drawn: the topic ceiling already bounds how many there are.
+  const sortedZones = sortTerritories(block.zones);
   const territories = relaxTerritories(initialTerritories(sortedZones));
   const territoriesById = new Map(
     territories.map((territory) => [territory.zone.id, territory]),

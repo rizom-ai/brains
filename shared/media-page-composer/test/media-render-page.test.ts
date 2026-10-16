@@ -4,12 +4,9 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { createElement as h, type JSX } from "react";
 import { normalizeRendererHtml } from "@brains/test-utils";
-import { z } from "@brains/utils/zod";
-import {
-  startStaticRenderServer,
-  writeMediaRenderPage,
-  type MediaPageTemplate,
-} from "../src";
+import { startStaticRenderServer, writeMediaRenderPage } from "../src";
+import type { ViewTemplate } from "@brains/plugins";
+import { viewTemplate } from "./view-template";
 import { containsTraversal } from "../src/media-render-page";
 
 const tempDirs: string[] = [];
@@ -18,15 +15,8 @@ function PdfComponent(props: Record<string, unknown>): JSX.Element {
   return h("article", { className: "carousel-slide" }, String(props["title"]));
 }
 
-function createTemplate(): MediaPageTemplate {
-  return {
-    name: "carousel-template",
-    pluginId: "test",
-    schema: z.object({ title: z.string() }),
-    renderers: {
-      pdf: PdfComponent,
-    },
-  };
+function createTemplate(): ViewTemplate {
+  return viewTemplate("carousel-template", { pdf: PdfComponent });
 }
 
 async function createTempDir(): Promise<string> {

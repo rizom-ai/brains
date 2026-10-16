@@ -25,7 +25,7 @@ const dollars = (usd: number): number => Math.round(usd * 1_000_000);
 
 /** The managed preview policy, as GuestAccessControl builds it. */
 function budgeted(origin = "https://preview.brain.test"): EnabledGuestPolicy {
-  const defaults = createDefaultGuestPolicy(origin);
+  const defaults = createDefaultGuestPolicy(origin, "gpt-5.6-luna");
   if (!defaults.enabled) throw new Error("Expected shared guest defaults");
   return { ...defaults, budgeted: true };
 }

@@ -72,6 +72,18 @@
       "targetRelease": "0.3.0"
     },
     {
+      "id": "changesets-prerelease-history-transition",
+      "paths": ["packages/build-tools/src/prerelease-history.ts"],
+      "symbol": "StoredPrereleaseState initialVersions/changesets transition",
+      "owner": "@brains/build-tools",
+      "class": "offline-migration",
+      "behavior": "Read-only checks recognize the current Changesets 2 prerelease state; a reviewed version operation exclusively moves consumed Markdown into the Changesets 3 archive and commits the new state last, rolling back ordinary failures.",
+      "currentConsumers": "The canonical repository's pre-transition pre.json and the parent Git revision used by release-mode classification during the first transition cycle.",
+      "removalPrerequisite": "Verify the first canonical Changesets 3 version transition and a subsequent release-mode cycle using only the new state shape; then remove the retired state fields and decoder branch.",
+      "rollbackDependency": "Failure rollback preserves the old state and source bytes. After a successful transition, a tooling downgrade requires a separately reviewed restoration of the old state and archived Markdown; the old CLI cannot consume the new metadata directly.",
+      "targetRelease": "post-Changesets-3-transition, after one verified release-mode cycle"
+    },
+    {
       "id": "public-brain-config-migration",
       "paths": ["packages/brain-cli/src/lib/brain-config-migration.ts"],
       "symbol": "brain config migrate",
@@ -283,6 +295,18 @@
       "removalPrerequisite": "Verify every completed image stores a valid asset reference and legacy materialization telemetry remains at zero through the migration soak.",
       "rollbackDependency": "The transitional release must read and update pre-migration image rows while the pre-cutover database remains the rollback source.",
       "targetRelease": "post-image-migration-soak"
+    },
+    {
+      "id": "frontmatter-yaml-scalar-semantics",
+      "paths": ["shared/utils/src/frontmatter-schema.ts"],
+      "symbol": "frontmatterSchema scalar grammar, colon-string quoting, and binary representation",
+      "owner": "@brains/utils",
+      "class": "durable-data-compatibility",
+      "behavior": "Retains YAML 3 frontmatter octal/base-60 numeric meanings, colon-string quoting required by publishing consumers, and binary value representation while using the maintained YAML 4 parser; no executable engines or removed-API fallback.",
+      "currentConsumers": "Durable and custom frontmatter authored under gray-matter's YAML 3 schema, including external supported content sources.",
+      "removalPrerequisite": "Approve a durable-frontmatter format migration, verify equivalent values across supported content sources and rollback targets, and observe zero dependence on the previous scalar grammar.",
+      "rollbackDependency": "Removing the schema without that migration reinterprets bare values such as 012, 0o12, and 12:34 in existing documents.",
+      "targetRelease": "after-approved-frontmatter-format-migration"
     }
   ],
   "exemptions": [

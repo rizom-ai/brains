@@ -16,6 +16,7 @@ import {
   MockLoadAIService,
   MockLoadEmbeddingService,
   MockLoadTracker,
+  diffCounts,
   type MockLoadSnapshot,
 } from "./helpers/mocked-ai-load-services";
 import {
@@ -95,6 +96,7 @@ interface PhaseAICalls {
   completedUpdateEmbeddingCalls: number;
   objectCalls: number;
   objectCallsByProjection: Record<string, number>;
+  sourceReads: Record<string, number>;
   textCalls: number;
 }
 
@@ -214,18 +216,6 @@ async function writeImportedNotes(
   }
 }
 
-function diffCounts(
-  before: Record<string, number>,
-  after: Record<string, number>,
-): Record<string, number> {
-  return Object.fromEntries(
-    [...new Set([...Object.keys(before), ...Object.keys(after)])]
-      .sort()
-      .map((key) => [key, (after[key] ?? 0) - (before[key] ?? 0)])
-      .filter(([, count]) => count !== 0),
-  );
-}
-
 function diffAI(
   before: MockLoadSnapshot,
   after: MockLoadSnapshot,
@@ -245,6 +235,7 @@ function diffAI(
       before.objectCallsByProjection,
       after.objectCallsByProjection,
     ),
+    sourceReads: diffCounts(before.sourceReads, after.sourceReads),
     textCalls: after.textCalls - before.textCalls,
   };
 }
@@ -635,8 +626,8 @@ describe("directory import burst with locally mocked AI features", () => {
 
       console.info(`MOCKED_AI_LOAD_REPORT ${JSON.stringify(report)}`);
 
-      // One explicit Directory Sync mutation boundary admits one settled topic
-      // scan. Eight calls remain for bounded non-topic projection work.
+      // Topic votes read four sources per call; a batch split across extraction
+      // jobs and bounded non-topic projection work share the eight spare calls.
       const maxObjectCallsPerPhase = Math.ceil(IMPORT_COUNT / 4) + 8;
       const assertPhase = (
         phase: FeatureLoadPhaseReport,
@@ -652,18 +643,15 @@ describe("directory import burst with locally mocked AI features", () => {
         expect(phase.ai.objectCalls).toBeLessThanOrEqual(
           maxObjectCallsPerPhase,
         );
-        expect(phase.ai.objectCallsByProjection["topics-projection"]).toBe(
-          phase.ai.objectCalls,
+        // Each imported or updated source costs exactly one topic vote read.
+        expect(phase.ai.sourceReads).toEqual(
+          Object.fromEntries(
+            Array.from({ length: IMPORT_COUNT }, (_unused, index) => [
+              `note:mocked-feature-load-${index.toString().padStart(4, "0")}`,
+              1,
+            ]),
+          ),
         );
-        const topicDerives = phase.projectionDiagnostics.filter(
-          (entry) =>
-            entry.ruleId === "topics-projection" &&
-            entry.event === "derive-completed",
-        );
-        expect(topicDerives).toHaveLength(1);
-        expect(new Set(topicDerives.map(({ waveId }) => waveId)).size).toBe(1);
-        expect(topicDerives[0]?.attemptNumber).toBe(1);
-        expect(topicDerives[0]?.inputFingerprint).toMatch(/^[a-f0-9]{64}$/);
         expect(phase.queue.maxPending).toBeLessThanOrEqual(IMPORT_COUNT + 3);
         expect(phase.queue.maxProcessing).toBeLessThanOrEqual(4);
         expect(phase.queue.maxEmbeddingOutstanding).toBeLessThanOrEqual(

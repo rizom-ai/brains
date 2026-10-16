@@ -556,10 +556,7 @@ export class EntityQueries {
     if (metadataFilter) {
       for (const [key, value] of Object.entries(metadataFilter)) {
         if (value !== undefined) {
-          const jsonPath = `$.${key}`;
-          conditions.push(
-            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
-          );
+          conditions.push(sql`${metadataField(key)} = ${value}`);
         }
       }
     }
@@ -706,6 +703,15 @@ export class EntityQueries {
     return result.length > 0;
   }
 
+  /** The ids of a type's stored rows, whether or not the type is registered. */
+  public async listStoredIds(entityType: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: entities.id })
+      .from(entities)
+      .where(eq(entities.entityType, entityType));
+    return rows.map((row) => row.id);
+  }
+
   /**
    * Delete an entity by type and ID
    */
@@ -743,4 +749,19 @@ export class EntityQueries {
     this.logger.debug(`Deleted entity of type ${entityType} with ID ${id}`);
     return true;
   }
+}
+
+/** A metadata key is a name, or names joined by dots for a nested field. */
+const METADATA_KEY = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
+
+/**
+ * A metadata field as SQL. The path is written into the statement, not bound:
+ * SQLite uses an index on an expression only where the query repeats it
+ * exactly, and a bound path never does. The key's shape keeps the literal safe.
+ */
+function metadataField(key: string): SQL {
+  if (!METADATA_KEY.test(key)) {
+    throw new Error(`Invalid metadata filter key: ${key}`);
+  }
+  return sql`json_extract(${entities.metadata}, ${sql.raw(`'$.${key}'`)})`;
 }

@@ -296,7 +296,7 @@ async function setup(
         },
       );
   }
-  const defaults = resolveGuestPreset("local-test");
+  const defaults = resolveGuestPreset("local-test", "gpt-5.6-luna");
   if (!defaults.enabled) throw new Error("Expected shared guest defaults");
   const plugin = new WebChatInterface(
     {},

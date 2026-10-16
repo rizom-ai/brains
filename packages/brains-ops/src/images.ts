@@ -43,9 +43,9 @@ export function runtimeImageTag(
 
 /**
  * The npm packages a site override contributes to every new fleet image.
- * A @rizom-scoped theme is independently published and installs at its own
- * explicit version; @brains/* themes are bundled inside @rizom/brain and must
- * not be npm-installed.
+ * @rizom-scoped sites and themes are independently published and install at
+ * their own explicit versions; @brains/* sites and themes are bundled inside
+ * @rizom/brain and must not be npm-installed.
  */
 export function sitePackagesFor(
   siteOverride: ResolvedSiteOverride | undefined,
@@ -53,16 +53,23 @@ export function sitePackagesFor(
   if (!siteOverride) {
     return [];
   }
-  if (!siteOverride.theme?.startsWith("@rizom/")) {
-    return [`${siteOverride.package}@${siteOverride.version}`];
-  }
-  if (siteOverride.themeVersion === undefined) {
-    throw new Error(`Theme ${siteOverride.theme} has no explicit version pin`);
-  }
   return [
-    `${siteOverride.package}@${siteOverride.version}`,
-    `${siteOverride.theme}@${siteOverride.themeVersion}`,
-  ];
+    externalPin(siteOverride.package, siteOverride.version),
+    externalPin(siteOverride.theme, siteOverride.themeVersion),
+  ].filter((pin): pin is string => pin !== undefined);
+}
+
+function externalPin(
+  packageName: string | undefined,
+  version: string | undefined,
+): string | undefined {
+  if (!packageName?.startsWith("@rizom/")) {
+    return undefined;
+  }
+  if (version === undefined) {
+    throw new Error(`Package ${packageName} has no explicit version pin`);
+  }
+  return `${packageName}@${version}`;
 }
 
 /** The per-user slice of the registry that determines which image it runs. */

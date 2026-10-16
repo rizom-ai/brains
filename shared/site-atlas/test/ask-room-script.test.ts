@@ -82,7 +82,7 @@ function room(options: { narrow?: boolean; closedList?: boolean } = {}): void {
         <li data-ask-source="post:first"><a href="#">First</a></li></ul></details>`
     : `<ul>
         <li data-ask-source="post:first"><a href="#">First</a></li>
-        <li data-ask-source="network-piece:becca/post/handoffs"><a href="#">Handoffs</a></li>
+        <li data-ask-source="post:handoffs"><a href="#">Handoffs</a></li>
         <li data-ask-source="post:jo"><a href="#">Jo's piece</a></li></ul>`;
   window.document.body.innerHTML = `
     <main data-ask-room>
@@ -174,7 +174,7 @@ function room(options: { narrow?: boolean; closedList?: boolean } = {}): void {
 }
 
 const becca: Source = {
-  id: "network-piece:becca/post/handoffs",
+  id: "post:handoffs",
   brain: { name: "Becca", url: "https://becca.rizom.ai" },
 };
 const jo: Source = { id: "post:jo", brain: { name: "Jo" } };
