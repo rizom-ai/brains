@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 // On a phone the drawing stands in a strip above the words; the opening's
 // box has to land on the first screen under it, so the strip and the
-// opening's type are sized for that (see docs/plans/rizom-ai-story-site.md).
+// opening's type are sized for that.
 const css = readFileSync(join(import.meta.dir, "../../src/story.css"), "utf8");
 const phone = css.split("@media (max-width: 60rem)").slice(1).join("\n");
 

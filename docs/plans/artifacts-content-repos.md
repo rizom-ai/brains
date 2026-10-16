@@ -146,8 +146,8 @@ target keeps working until Phase 5.
   repository and keeps the repository. Inspection reports "already retired" when no
   active tokens remain, so reruns are idempotent.
 - Tests: plan and apply against a fake client, including the rerun.
-- Update the retirement scope in `user-offboarding-plan.md` and the operator
-  playbook.
+- Update the retirement scope of `brains-ops user:offboard`
+  (`packages/brains-ops/src/user-offboard.ts`) and the operator playbook.
 - Acceptance: offboarding a disposable Artifacts smoke user leaves the repository
   readable through the REST API and no active tokens.
 
