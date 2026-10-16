@@ -907,6 +907,69 @@ books:
     author: Sigmund Freud
     year: 1886
     kind: work
+  - item: wmw-1886-hemianaesthesie
+    citation: WMW 1886
+    ocr: deu
+    # The paper's columns, each read as a page: the Wochenschrift numbers
+    # its columns. The lecture is read from below its title and byline; the
+    # journal's note on where it was given is left out. Its close in the
+    # next issue (Nr. 50, Sp. 1674–1676) is Königstein's examination of the
+    # patient's eyes, not Freud's, and is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-36-1886-49
+      firstPage: 1633
+      pages:
+        - https://archive.org/download/wmw-36-1886-49/page/n2_w1600.jpg#region=0.095,0.581,0.429,0.33
+        - https://archive.org/download/wmw-36-1886-49/page/n2_w1600.jpg#region=0.531,0.079,0.414,0.868
+        - https://archive.org/download/wmw-36-1886-49/page/n3_w1600.jpg#region=0.06,0.066,0.433,0.891
+        - https://archive.org/download/wmw-36-1886-49/page/n3_w1600.jpg#region=0.5,0.066,0.436,0.891
+        - https://archive.org/download/wmw-36-1886-49/page/n4_w1600.jpg#region=0.092,0.073,0.417,0.884
+        - https://archive.org/download/wmw-36-1886-49/page/n4_w1600.jpg#region=0.515,0.073,0.412,0.169
+    firstPage: 1633
+    lastPage: 1638
+    # A column where a line set in with a dash opens no paragraph: the
+    # lines that open its paragraphs.
+    paragraphs:
+      - { page: 1635, opens: Betrachten Sie }
+    # Its note at the column's foot.
+    notes:
+      - { page: 1637, opens: ¹) Vergl. }
+    slug: beobachtung-einer-hochgradigen-hemianaesthesie-bei-einem-hysterischen-manne
+    title: Beobachtung einer hochgradigen Hemianästhesie bei einem hysterischen Manne
+    shortTitle: Hemianästhesie bei einem hysterischen Manne
+    edition: "Beiträge zur Kasuistik der Hysterie, I, Wiener Medizinische Wochenschrift, 36. Jahrgang, Nr. 49 (Wien, 4. Dezember 1886), Sp. 1633–1638"
+    author: Sigmund Freud
+    year: 1886
+    kind: work
+  - item: wmw-1887-cocainsucht
+    citation: WMW 1887
+    ocr: deu
+    # The paper's columns, each read as a page: the Wochenschrift numbers
+    # its columns. The paper is read from below its title and byline, which
+    # the series it opens heads: Beiträge über die Anwendung des Cocaïn.
+    # Zweite Serie. I.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-37-1887-28
+      firstPage: 929
+      pages:
+        - https://archive.org/download/wmw-37-1887-28/page/n2_w1600.jpg#region=0.1,0.16,0.428,0.768
+        - https://archive.org/download/wmw-37-1887-28/page/n2_w1600.jpg#region=0.533,0.053,0.425,0.872
+        - https://archive.org/download/wmw-37-1887-28/page/n3_w1600.jpg#region=0.063,0.05,0.434,0.885
+        - https://archive.org/download/wmw-37-1887-28/page/n3_w1600.jpg#region=0.503,0.0465,0.44,0.648
+    firstPage: 929
+    lastPage: 932
+    # Its note at the column's foot.
+    notes:
+      - { page: 931, opens: ¹) Vielfach }
+    slug: bemerkungen-ueber-cocainsucht-und-cocainfurcht
+    title: Bemerkungen über Cocaïnsucht und Cocaïnfurcht mit Beziehung auf einen Vortrag W. A. Hammond’s
+    shortTitle: Bemerkungen über Cocaïnsucht und Cocaïnfurcht
+    edition: Wiener Medizinische Wochenschrift, 37. Jahrgang, Nr. 28 (Wien, 9. Juli 1887), Sp. 929–932
+    author: Sigmund Freud
+    year: 1887
+    kind: work
   - item: b28071852
     citation: Aphasien
     firstPage: 1
