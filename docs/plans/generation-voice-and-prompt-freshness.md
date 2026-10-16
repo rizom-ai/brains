@@ -4,7 +4,7 @@ Last updated: 2026-10-16
 
 ## Status
 
-**In progress. Slices 1–3 implemented; slice 4 not started.** The restart and cache problems under slice 2 were already fixed upstream before it started (`resolvePrompt` reads the entity on every call). Research is complete; the four slices below are independent enough to land as separate PRs in the order given.
+**In progress. Slices 1–3 implemented; slice 4 started: the yeehaa.io style-guide principles were added on 2026-10-16; deleting the legacy prompt copies and regenerating wait for the release of slices 1–3.** The restart and cache problems under slice 2 were already fixed upstream before it started (`resolvePrompt` reads the entity on every call). Research is complete; the four slices below are independent enough to land as separate PRs in the order given.
 
 Trigger: on yeehaa.io, generated LinkedIn posts ignored the owner's style guide (one-sentence lines, engagement questions, takeaway structure) although the style guide asks for the opposite. The cause is not one bad prompt but four structural problems in how generation prompts are assembled and kept.
 
