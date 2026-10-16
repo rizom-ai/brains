@@ -2536,6 +2536,16 @@ function addLine(
   ];
 }
 
+/** A title's letters this share in capitals at least are set in capitals, a few the OCR read small. */
+const CAPITALS = 0.7;
+
+/** Whether a title is set in capitals, which tell no case. */
+function inCapitals(title: string): boolean {
+  const letters = title.match(/\p{L}/gu) ?? [];
+  const capitals = title.match(/\p{Lu}/gu) ?? [];
+  return letters.length > 0 && capitals.length / letters.length >= CAPITALS;
+}
+
 /** A note's mark a title carries: *), **), or a superscript figure the OCR may read as a dotless i: ¹). */
 const TITLE_NOTE_MARK = /\s*(?:\*+|[ı¹²³⁴⁵⁶⁷⁸⁹⁰]+)\)/gu;
 
@@ -2744,9 +2754,7 @@ function addHeading(
     numbered:
       heading.numbered ||
       (heading.printed && level === 1 && heading.label !== null),
-    capitals:
-      /\p{Lu}/u.test(heading.title.join(" ")) &&
-      !/\p{Ll}/u.test(heading.title.join(" ")),
+    capitals: inCapitals(heading.title.join(" ")),
   };
   return {
     sections: [

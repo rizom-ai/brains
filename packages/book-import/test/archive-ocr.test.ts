@@ -919,14 +919,15 @@ describe("parseArchiveOcrWork, a title its running heads misread", () => {
    )
    .join("\n")}</p>
 </div>`;
-  const hocr = (title: string): string =>
+  const hocr = (
+    title: string,
+    head = "Geschichte der eerebralen Kinderlähmung.",
+  ): string =>
     `<html><body>${opening(title)}${[11, 12, 13]
       .map((leaf) =>
         page(
           leaf,
-          leaf % 2 === 0
-            ? `${leaf - 9} Geschichte der eerebralen Kinderlähmung.`
-            : `Geschichte der eerebralen Kinderlähmung. ${leaf - 9}`,
+          leaf % 2 === 0 ? `${leaf - 9} ${head}` : `${head} ${leaf - 9}`,
           text,
         ),
       )
@@ -957,6 +958,20 @@ describe("parseArchiveOcrWork, a title its running heads misread", () => {
 
     expect(units.map((unit) => unit.title)).toEqual([
       "I. Geschichte der cerebralen Kinderlähmung.",
+    ]);
+  });
+
+  it("takes the case of a heading set in capitals from its running head, though the OCR read a capital small", () => {
+    const units = parseArchiveOcrWork(
+      hocr(
+        "GESCHICHTE DER CEREBRALEN KINDERLäHMUNG",
+        "Geschichte der Cerebralen Kinderlähmung.",
+      ),
+      work,
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Geschichte der Cerebralen Kinderlähmung.",
     ]);
   });
 
