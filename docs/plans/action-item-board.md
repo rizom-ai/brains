@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Origin: Executive Team Meeting 2026-10-06, action "surface tasks and projects in a shared Kanban board"; first scoped in three PRDs by Niels (board, shared and attributed board, project layer).
+Phase 1 (walking skeleton) shipped: the Board workspace, attributed moves, board-owned items surviving re-projection, the status validator and the Overview widget. Phases 2–7 remain. Origin: Executive Team Meeting 2026-10-06, action "surface tasks and projects in a shared Kanban board"; first scoped in three PRDs by Niels (board, shared and attributed board, project layer).
 
 Mockups: [action-item-board-mockups.html](../action-item-board-mockups.html) (eight states by phase; desktop and phone; paper and instrument).
 
@@ -20,16 +20,16 @@ A team board over the brain's action items. Cards sit in four columns, move betw
 
 ## Baseline
 
-- `action-item` lives in `entities/conversation-memory`. The summary projector extracts it from conversation summaries. Metadata carries `status` (`open | done | dropped`), `assignedTo` and `requestedBy` actors, and the required conversation fields `conversationId`, `channelId`, `interfaceType`, `spaceId`, `timeRange` and `sourceSummaryId`. The body is `# Action item: <first 80 characters>` followed by the extracted text.
-- Action-item ids are `<conversationId>:action-item:<index>:<text hash>`.
-- When a conversation summary updates, the projector deletes every action item of that conversation and recreates each as `open` (`summary-projector.ts`, `deleteConversationMemory` → `upsertConversationMemory`). Any status, note or membership set after projection is lost.
-- Directory-sync import sets `updated` from file mtime and `created` from the stored row or file birthtime, so timestamps cannot mark which items were edited.
-- The `team` bundle sets `memoryVisibility: "shared"`, so a team brain already holds one shared set of action items. Cross-interface identities have shipped: one person resolves to one identity across chat and web.
-- The dashboard `action-items` widget is a read-only list.
-- Plugins register Studio workspaces with `defineStudioWorkspace()`. The vocabulary is closed and host-rendered: `columns`, `list`, `card`, `actions`, `detail` and forms exist; there is no drag primitive. Action handlers receive the acting `ActorRef`.
-- Entity-service updates accept `expectedContentHash`. Mutation events carry an actor, but no per-entity change history is stored. `PersistValidator` receives `(entity, { operation })`: it can reject a write, but it cannot rewrite it and does not see the actor.
+- `action-item` lives in `entities/conversation-memory`. The summary projector extracts it from conversation summaries. Metadata carries `status` (`open | doing | blocked | done | dropped`), `assignedTo` and `requestedBy` actors, the conversation fields (`conversationId`, `channelId`, `interfaceType`, `spaceId`, `timeRange`, `sourceSummaryId`), `projectedBodyHash` and a Zod-typed `history` of `{ at, actor, from, to }`. The body is `# Action item: <first 80 characters>` followed by the extracted text. Ids are `<conversationId>:action-item:<index>:<text hash>`.
+- An item is board-owned once its status leaves `open`, it gains a grouping membership, or its body hash differs from `projectedBodyHash`; all three are read from stored content, so ownership survives export and import. Replacing a conversation's memory deletes only untouched items, and a re-extracted item whose text hash matches a board-owned one is skipped (`summary-projector.ts`, `action-item-board.ts`).
+- `moveActionItem` is the one status write path: it sets `status`, appends a history entry naming the mover, and writes conditionally on the `contentHash` it read. An unrelated concurrent edit is reapplied once; a card already moved by someone else is reported, never overridden. A `PersistValidator` refuses any status change without its matching history entry, so Studio saves, the generic update tool and file imports cannot move a card silently.
+- conversation-memory registers a Trusted **Board** workspace under Work (`conversation-memory:board`) from `onReady`. A four-column `matrix` block holds To do, Doing, Blocked and Done; Done shows items finished in the last 14 days, falling back to capture time for items finished before moves were recorded. Each card shows assignees, age, channel and how long it has been blocked, links to the action item and its source summary, and offers its column's moves plus a confirmed Drop under a **Move** action sheet. A move's outcome, including a conflict, returns as the action result, because the host redacts thrown errors.
+- The `action-items` dashboard widget is Trusted: Studio Overview lists blocked items under Needs you, its attention count is the number of blocked items, and it links to the board through the `board` launch target.
+- Studio workspace actions receive only the caller's user id (`OperatorCaller.actor`), so history records `{ kind: "user", userId }` and the board cannot yet show who moved a card by name.
+- The shared `detail` block accepts only a `list` or `table` master; an in-board detail panel next to the `matrix` needs that vocabulary widened.
+- The `team` bundle sets `memoryVisibility: "shared"`, so a team brain holds one shared set of action items. Cross-interface identities have shipped.
 - The unified Inbox aggregates `InboxSource` registrations (recurring checks, contact, mail triage, FAQ, agent sightings). A source lists only items it still considers open and owns every transition through `act(itemId, actionId, actor)`. Plugins register follow-up kinds through `context.inboxFollowUps.registerKind`. A follow-up launches another surface with prefilled state and never resolves the item; Studio's **Capture as note** is the model.
-- Studio groupings (`grouping-definitions`) add exact-value frontmatter membership fields to eligible content types. By the Studio contract `action-item` is eligible; phase 1 proves it with a test.
+- `action-item` is an eligible grouping contributor (proved against a real entity database), so a `projects` grouping can hold memberships on it.
 
 ## Design
 
@@ -69,56 +69,19 @@ Explore a plugin/prototype to surface tasks/projects in a shared Kanban board.
 
 Metadata becomes a discriminated union on `origin`. Stored records without `origin` parse as `conversation`, so no migration is needed. An `inbox` item carries `sourceRef` (`{ sourceId, entityType, entityId }`, from the Inbox item's source and `entityRef`) in place of the conversation fields. `history` is a Zod-typed frontmatter list of `{ at, actor, from, to }`. Notes stay in the body because they are prose for people.
 
-### Status vocabulary
-
-`status` becomes `open | doing | blocked | done | dropped`; every stored value stays valid.
-
-| Column  | Status    |
-| ------- | --------- |
-| To do   | `open`    |
-| Doing   | `doing`   |
-| Blocked | `blocked` |
-| Done    | `done`    |
-
-`dropped` has no column; a card's **Drop** action sets it and the card leaves the board. Done shows items finished in the last 14 days and links to the Library for older ones. The dashboard widget counts unfinished items (`open`, `doing`, `blocked`), highlights blocked ones, and launches the board.
-
-### Board-owned items survive re-projection
-
-When creating an item, the projector stores the body's hash as `projectedBodyHash`. An item is board-owned when any of these holds:
-
-- its `status` is not `open`;
-- it has a grouping membership;
-- its body hash differs from `projectedBodyHash`, which covers notes and Studio text edits.
-
-All three are read from stored content, so the rule survives export and import. `inbox`-origin items are never projected and need no rule.
-
-On a summary update the projector:
-
-1. deletes and recreates only items that are not board-owned;
-2. never deletes or overwrites a board-owned item;
-3. skips a re-extracted item whose text hash matches a board-owned item of the same conversation, so reordering creates no duplicate.
-
-A re-extraction that rewords an item yields a new `open` card beside the board-owned original; the person drops whichever is redundant.
-
 ### One write path
 
 All writes go through one conversation-memory service:
 
-- `move(id, status, actor)` sets `metadata.status` and appends one `history` entry;
+- `move(id, from, to, actor)` (shipped);
 - `addNote(id, text, actor)` appends one dated, attributed line under `## Notes`;
 - `createFromInbox(input, actor)` creates an `inbox`-origin item.
 
-Each update is conditional on the `contentHash` it read. On a conflict the service re-reads and reapplies once, then reports the conflict. No write replaces body text or touches any other metadata field.
+Every write is conditional on the `contentHash` it read, reapplies once after an unrelated concurrent edit, and never replaces body text or touches another metadata field. Phase 5 extends `PersistValidator`'s context with the mutation actor; the validator then also requires the entry's actor to match the writer.
 
-The action-item `PersistValidator` refuses a status change whose newest `history` entry does not record that exact transition, so Studio saves and the generic update tool cannot change status silently. Phase 5 extends `PersistValidator`'s context with the mutation actor; the validator then also requires the entry's actor to match the writer.
+### Card detail
 
-### Surface
-
-conversation-memory registers a **Board** workspace under Work at the Trusted floor, composed from `columns`, `list`, `card`, `actions`, `detail` and forms:
-
-- **Card:** title, assignees, age, and a link to its source. That is the summary in the Library for `conversation` items, the source entity for `inbox` items.
-- **Card actions:** move to each other column, and Drop.
-- **Detail:** full text, requester, notes, history, and an add-note form.
+Phase 3 widens the shared `detail` block to accept a `matrix` master, so selecting a card opens a panel beside the board: full text, requester, source, notes, history with names, and an add-note form. History names come from resolving each entry's user id to its display name when the board loads; entries keep the id.
 
 ### Inbox
 
@@ -143,36 +106,21 @@ A project is a value of a `projects` grouping on action items, set in the brain'
 
 Each phase ships with its tests and is verified in the running `team` app (`bun start:team` from `packages/brain-cli`).
 
-### Phase 1: Walking skeleton (see, move, keep)
-
-- Status enum; `history` and `projectedBodyHash` fields.
-- Board workspace with move and Drop actions; the 14-day Done window.
-- `move` with attributed history; the projector follows the board-owned rule.
-- Validator refuses status changes without a matching history entry.
-- Dashboard widget links to the board.
-- Tests:
-  - schema accepts all five statuses and stored records without `origin`, `history` or `projectedBodyHash`;
-  - a stored `action-item` takes a grouping membership through entity-service and keeps it;
-  - the provider groups fixtures into four columns, omits `dropped`, and bounds Done to 14 days;
-  - a move changes only `status` and `history`, and both the body and the other fields stay byte-identical;
-  - history records the board actor;
-  - a stale `contentHash` produces one retry, then a reported conflict;
-  - a moved item survives re-projection;
-  - an untouched item is still replaced;
-  - a reordered board-owned item creates no duplicate;
-  - a reworded item yields a new `open` card;
-  - an exported-then-imported board-owned item stays board-owned;
-  - a Studio save that changes status without history is refused.
-
 ### Phase 2: Blockers in the Inbox
 
 - `action-items` Inbox source with Resume, Done and Drop through `move`.
 - Tests: the source lists only blocked items; each action records the admin in history; a resolved item leaves the source list; non-admin `act` is refused.
 
-### Phase 3: Notes
+### Phase 3: Card detail and notes
 
+- The shared `detail` block accepts a `matrix` master; the Board opens a card's detail beside the columns.
+- History and blocked badges show names, resolved from the stored user ids.
 - `addNote` and the detail form.
-- Tests: a note appends a dated, attributed line under `## Notes`; earlier body text and metadata stay byte-identical; a noted item is board-owned.
+- Tests:
+  - the detail block validates and renders with a `matrix` master in Studio;
+  - history and the blocked badge show the mover's display name;
+  - a note appends a dated, attributed line under `## Notes`; earlier body text and metadata stay byte-identical;
+  - a noted item is board-owned.
 
 ### Phase 4: Inbox items become cards
 

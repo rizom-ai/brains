@@ -102,6 +102,33 @@ describe("board ownership", () => {
     expect(isBoardOwned(withContent(item, noted))).toBe(true);
   });
 
+  it("keeps every ownership signal through a markdown export and import", () => {
+    const item = projected();
+    const owned = [
+      projected({ status: "doing" }),
+      withContent(
+        item,
+        generateMarkdown(
+          { ...frontmatterOf(item.content), projects: ["Spring gathering"] },
+          actionItemBody(item.content),
+        ),
+      ),
+      withContent(
+        item,
+        `${item.content}\n## Notes\n\n- Waiting on the deposit.\n`,
+      ),
+    ];
+    for (const entity of owned) {
+      const imported = adapter.fromMarkdown(adapter.toMarkdown(entity));
+      const roundTripped = actionItemSchema.parse({ ...entity, ...imported });
+      expect(isBoardOwned(roundTripped)).toBe(true);
+    }
+    const untouched = adapter.fromMarkdown(adapter.toMarkdown(item));
+    expect(
+      isBoardOwned(actionItemSchema.parse({ ...item, ...untouched })),
+    ).toBe(false);
+  });
+
   it("treats an item projected before the board as projector-owned until moved or grouped", () => {
     const content = adapter.composeContent(
       "Action item: Book the venue",
