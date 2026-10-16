@@ -3471,5 +3471,16 @@ export function parseArchiveOcrWork(
     })),
     cite,
     options.entryBytes,
+    // A note's paragraph without a mark runs on the note before, onto the
+    // pages that follow.
+    (note) => !NOTE_MARK.test(note.text),
   );
 }
+
+/**
+ * A note's mark at its start: ¹), ¹, (1), 1), 19a), *), †, a number set
+ * apart from the note's first word (1 Also), or a mark the OCR misread
+ * before its bracket, or lost: !), Ei ), ).
+ */
+const NOTE_MARK =
+  /^(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+[a-z]?\)?|\(\d{1,3}[a-z]?\)|\d{1,3}[a-z]?\)|\d{1,3}\s(?=\p{Lu})|\*+\)?|†|\S{0,2}\s?\))/u;

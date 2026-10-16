@@ -75,6 +75,7 @@ export function unitsOfSections<Block extends PlacedText>(
   sections: TitledSection<Block>[],
   cite: (start: Block) => Citation,
   entryBytes: number = ENTRY_BYTES,
+  runsOn: (note: Block) => boolean = () => false,
 ): BookUnit[] {
   const filled = sections.filter((section) => section.paragraphs.length > 0);
   return filled.flatMap((section) => {
@@ -87,19 +88,27 @@ export function unitsOfSections<Block extends PlacedText>(
       ? section.titles
       : section.titles.slice(0, -1);
     const parts = partsOf(section.paragraphs, entryBytes);
-    // A note goes with the last part that starts on or before its page.
-    const partOfNote = (note: Block): number =>
+    // A note goes with the last part that starts on or before its page; a
+    // paragraph that runs on the note before stays with it.
+    const partOfPage = (page: number): number =>
       parts.reduce(
         (found, part, partIndex) =>
-          (part[0]?.page ?? Infinity) <= note.page ? partIndex : found,
+          (part[0]?.page ?? Infinity) <= page ? partIndex : found,
         0,
       );
+    const noteParts = section.notes.reduce<number[]>(
+      (found, note, index) => [
+        ...found,
+        index > 0 && runsOn(note) ? (found.at(-1) ?? 0) : partOfPage(note.page),
+      ],
+      [],
+    );
     return parts.flatMap((part, partIndex) => {
       const start = part[0];
       if (!start) return [];
       const { citation, source } = cite(start);
       const notes = section.notes.filter(
-        (note) => partOfNote(note) === partIndex,
+        (_note, index) => noteParts[index] === partIndex,
       );
       return [
         {
