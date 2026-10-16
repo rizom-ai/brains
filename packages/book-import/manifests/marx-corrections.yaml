@@ -2524,18 +2524,6 @@ mehring-nachlass-2:
     from: dicturus? ete.
     to: dicturus? etc.
     by: scan
-  - page: 418
-    from: von New ork, gegen die
-    to: von New York, gegen die
-    by: reference
-  - page: 418
-    from: lionen Aeres nordamerikanischer
-    to: lionen Acres nordamerikanischer
-    by: scan
-  - page: 428
-    from: und Zweifel (ef. Nr. 14 Antwort
-    to: und Zweifel (cf. Nr. 14 Antwort
-    by: reference
   - page: 434
     from: ebenso (I) höchst (I1)
     to: ebenso (!) höchst (!!)
@@ -18312,6 +18300,22 @@ mehring-nachlass-3:
   - page: 478
     from: ihren speziellen Beruf zum Zahlen erklärt. Holland in Nothl
     to: ihren speziellen Beruf zum Zahlen erklärt. Holland in Noth!
+    by: scan
+  - page: 445
+    from: Liberté, Egalité, Fraternité.
+    to: Mai bis Oktober.
+    by: scan
+  - page: 445
+    from: "* *"
+    to: ""
+    by: scan
+  - page: 445
+    from: "2."
+    to: ""
+    by: scan
+  - page: 445
+    from: mai bis Oktober.
+    to: ""
     by: scan
 ao391_die_neue_zeit:
   - page: 562

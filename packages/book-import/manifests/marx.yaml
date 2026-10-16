@@ -851,27 +851,11 @@ books:
     author: Karl Marx und Friedrich Engels
     year: 1845
     kind: work
-  - source: archive-ocr
-    item: mehring-nachlass-2
-    citation: Nachlass II
-    ocr: frak2021
-    firstPage: 414
-    lastPage: 428
-    # MEW 4, Dietz 1972, as mlwerke.de published it.
-    references:
-      - https://web.archive.org/web/20001001093635id_/http://www.mlwerke.de:80/me/me04/me04_003.htm
-    slug: zirkular-gegen-kriege
-    title: Der Volkstribun, redigirt von Hermann Kriege in New York
-    shortTitle: Zirkular gegen Kriege
-    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
-    author: Karl Marx und Friedrich Engels
-    year: 1846
-    kind: work
   - source: mlwerke
     # MEW 4 (1972) as mlwerke.de published it, from the Internet Archive's
     # last capture with the text: the whole circular, its resolutions and
-    # the five sections of its appendix, of which the book above holds
-    # Mehring's extract.
+    # the five sections of its appendix; Mehring’s Nachlass II prints only
+    # an extract.
     pages:
       - https://web.archive.org/web/20240616060114id_/http://mlwerke.de/me/me04/me04_003.htm
     citation: Zirkular
@@ -1834,7 +1818,6 @@ books:
       - https://web.archive.org/web/20250121201752id_/http://www.mlwerke.de/me/me05/me05_083.htm
       - https://web.archive.org/web/20240812164722id_/http://www.mlwerke.de/me/me05/me05_090.htm
       - https://web.archive.org/web/20240812155651id_/http://www.mlwerke.de/me/me05/me05_102.htm
-      - https://web.archive.org/web/20240807091003id_/http://www.mlwerke.de/me/me05/me05_106.htm
       - https://web.archive.org/web/20240917214431id_/http://mlwerke.de/me/me05/me05_110.htm
       - https://web.archive.org/web/20240807093831id_/http://www.mlwerke.de/me/me05/me05_111.htm
       - https://web.archive.org/web/20240812170119id_/http://www.mlwerke.de/me/me05/me05_116.htm
@@ -1996,6 +1979,9 @@ books:
     ocr: frak2021
     firstPage: 396
     lastPage: 478
+    # Mehring’s extract of the Revue of January/February 1850 (443–445) is
+    # left out: the book after the next holds it whole, from MEW 7.
+    skipHeadings: [Revuen.]
     slug: aus-der-neuen-rheinischen-revue
     title: Aus der Neuen Rheinischen Zeitung. Politisch-ökonomische Revue
     shortTitle: Neue Rheinische Revue
@@ -2006,7 +1992,8 @@ books:
   - source: mlwerke
     # MEW 7 (1960, 5th printing 1973) as mlwerke.de published it, from the
     # Internet Archive's last capture with the text: the whole Revue of
-    # January/February 1850, of which the book above holds Mehring's extract.
+    # January/February 1850, whose extract in Mehring’s Nachlass III is left
+    # out of the book above.
     pages:
       - https://web.archive.org/web/20240807094646id_/http://www.mlwerke.de/me/me07/me07_213.htm
     citation: Revue Januar/Februar 1850
