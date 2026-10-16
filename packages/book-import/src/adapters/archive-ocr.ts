@@ -14,6 +14,7 @@ import {
   sameName,
   type Spelling,
   type Heading,
+  type HeadingLevel,
   type HeadingLine,
 } from "./archive-ocr-headings";
 import { tableCells, tabled } from "./tables";
@@ -49,11 +50,12 @@ export interface ArchiveOcrWork {
   /** Notes not the author's, such as an editor's, by page and opening words. */
   skipNotes?: PageLine[];
   /**
-   * Headings set in the text's type, by the line that opens them: a numbered
-   * or lettered one keeps its label, one without opens a chapter numbered by
-   * place; a section's numeral the scan lost stands above it.
+   * Headings set in the text's type, by the line that opens them: one named
+   * with its level is that heading, its label as printed or none; otherwise
+   * a numbered or lettered one keeps its label, one without opens a chapter
+   * numbered by place; a section's numeral the scan lost stands above it.
    */
-  headings?: Array<PageLine & { numeral?: string | undefined }>;
+  headings?: Array<PageLine & HeadingOpening>;
   /**
    * Pages the OCR read too askew to tell paragraphs by their indent: on each,
    * the lines that open one, by their opening words; no other line there
@@ -96,6 +98,16 @@ export interface ArchiveOcrWork {
    * work's end on that page, as a periodical prints it.
    */
   opensWith?: string | undefined;
+}
+
+/** What the manifest says of a heading set in the text's type. */
+interface HeadingOpening {
+  /** The numeral the scan lost above the line. */
+  numeral?: string | undefined;
+  /** Its level: 0 a part, 1 a chapter, 2 its sections, 3 and 4 below them. */
+  level?: HeadingLevel | undefined;
+  /** Its label as printed, without the stop after it; none where it prints none. */
+  label?: string | undefined;
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
@@ -922,7 +934,7 @@ interface Volume {
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
-  headingOpenings?: Array<{ opens: string; numeral?: string }>;
+  headingOpenings?: Array<{ opens: string } & HeadingOpening>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
   paragraphOpenings?: string[];
   /** The lines that open the page's notes, by their opening words, where the manifest names them. */
@@ -949,12 +961,31 @@ interface Volume {
   numberedTitles: boolean;
 }
 
-/** Where the page's running head stands, or -1: the scan's noise above it goes with it. */
+/** The manifest's word on a heading that opens with this line, if it names one there. */
+function headingOpeningOf(
+  line: Line,
+  volume: Volume,
+): ({ opens: string } & HeadingOpening) | undefined {
+  return (volume.headingOpenings ?? []).find(
+    (opening) =>
+      opening.numeral === undefined && line.text.startsWith(opening.opens),
+  );
+}
+
+/**
+ * Where the page's running head stands, or -1: the scan's noise above it
+ * goes with it. A heading the manifest names is no running head, however
+ * high the page sets it, nor is any line below it.
+ */
 function headIndex(page: Page, volume: Volume): number {
-  return Math.max(
+  const head = Math.max(
     runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)),
     lowHeadIndex(page, volume.printed.get(page.leaf) ?? null),
   );
+  const named = page.lines.findIndex(
+    (line) => headingOpeningOf(line, volume) !== undefined,
+  );
+  return named >= 0 ? Math.min(head, named - 1) : head;
 }
 
 /** Lines below the running head and the scan's noise above it. */
@@ -1124,6 +1155,8 @@ function headingLineText(line: HeadingLine): string {
       return line.numeral;
     case "letter":
       return line.letter;
+    case "named":
+      return line.label ?? "";
     // Its title is in the lines after it.
     case "article":
       return "";
@@ -1634,7 +1667,10 @@ function withArticleLine(
 function piecesOf(page: Page, volume: Volume): Piece[] {
   const headless = volume.numberedTitles
     ? bodyLines(page, volume).flatMap((line) =>
-        numberedTitleApart(line, page, volume),
+        // A heading the manifest names stays the line it names.
+        headingOpeningOf(line, volume) === undefined
+          ? numberedTitleApart(line, page, volume)
+          : [line],
       )
     : bodyLines(page, volume);
   if (isPicture(headless)) return [];
@@ -1921,14 +1957,34 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     const article = articleLines.get(index);
     if (article !== undefined) return withArticleLine(pieces, line, article);
     // A heading the edition sets in the text's type opens where the manifest
-    // says: a numbered piece by its number, a chapter without its numeral
-    // numbered by place; a chapter's title may run on.
-    if (
-      (volume.headingOpenings ?? []).some(
-        (opening) =>
-          opening.numeral === undefined && line.text.startsWith(opening.opens),
-      )
-    ) {
+    // says. Named with its level, it is that heading, its title after its
+    // label and the stop the label takes; a chapter's or part's title may
+    // run on, and so may a section's, to a centred line.
+    const opening = headingOpeningOf(line, volume);
+    if (opening?.level !== undefined) {
+      const label = opening.label ?? null;
+      const named: HeadingLine[] = [
+        { kind: "named", level: opening.level, label },
+        {
+          kind: "caps",
+          text:
+            label !== null && line.text.startsWith(label)
+              ? line.text.slice(label.length).replace(/^[.,:]?\s+/u, "")
+              : line.text,
+          size: line.size,
+          misread: true,
+        },
+      ];
+      return [
+        ...pieces,
+        opening.level >= 2
+          ? { kind: "heading", lines: named, closed: true, subsection: true }
+          : { kind: "heading", lines: named },
+      ];
+    }
+    // Otherwise a numbered piece opens by its number, a chapter without its
+    // numeral numbered by place; a chapter's title may run on.
+    if (opening !== undefined) {
       const labelled =
         NUMBERED_SUBSECTION.exec(line.text) ??
         BRACKETED_SUBSECTION.exec(line.text);
@@ -2508,8 +2564,9 @@ function titleOf(step: PathStep, name: string = step.name): string {
  */
 function levelOf(heading: Heading, path: PathStep[]): number {
   // A piece numbered with a bracket stands below the section numbered in
-  // roman above it: VIII. Nachtrag, 1) Beilage.
+  // roman above it: VIII. Nachtrag, 1) Beilage. The manifest's level stands.
   if (
+    !heading.printed &&
     heading.level === 2 &&
     /^\d+\)$/u.test(heading.label ?? "") &&
     /^[IVXL]+$/u.test(
@@ -2562,8 +2619,9 @@ function addHeading(
     );
   }
   // Inside a lettered subsection, a numbered one is an example, its number
-  // and name text: 5. Ein Traum bei Kindern.
+  // and name text: 5. Ein Traum bei Kindern; not one the manifest names.
   if (
+    !heading.printed &&
     heading.level === 2 &&
     /^\d+$/u.test(heading.label ?? "") &&
     path.some((step) => step.level === 2 && /^[A-H]$/u.test(step.letter ?? ""))
@@ -2582,6 +2640,7 @@ function addHeading(
   // section's numbers a list's item, its number and words text.
   const sibling = path.filter((step) => step.level === 2).at(-1)?.letter;
   if (
+    !heading.printed &&
     heading.level === 2 &&
     /^\d+$/u.test(heading.label ?? "") &&
     /^\d+$/u.test(sibling ?? "") &&
@@ -2609,7 +2668,16 @@ function addHeading(
   if (/^\d+$/u.test(heading.numeral ?? "") && heading.title.length === 0) {
     return state;
   }
-  const chapters = state.chapters + (heading.numbered ? 1 : 0);
+  // A chapter labelled as printed counts as the numeral its label opens
+  // with, IIIb as III: the next numbered by place follows it.
+  const printedNumeral =
+    heading.printed && heading.level === 1
+      ? /^[IVXL]+/u.exec(heading.label ?? "")?.[0]
+      : undefined;
+  const chapters =
+    printedNumeral === undefined
+      ? state.chapters + (heading.numbered ? 1 : 0)
+      : romanValue(printedNumeral);
   const level = levelOf(heading, path);
   // A section left out leaves out the sections under it.
   if (state.skipping !== null && level > state.skipping) {
@@ -2625,8 +2693,10 @@ function addHeading(
       ? roman(chapters)
       : heading.label === null
         ? null
-        : // A number, arabic or roman, or a bracketed label is no word to case.
-          /^(?:\d+|[IVX]+|\d+\)|[a-z]\)|[α-ω]\))$/u.test(heading.label)
+        : // A number, arabic or roman, or a bracketed label is no word to
+          // case, nor is a label as printed.
+          heading.printed ||
+            /^(?:\d+|[IVX]+|\d+\)|[a-z]\)|[α-ω]\))$/u.test(heading.label)
           ? heading.label
           : cased(heading.label),
     // A subtitle follows its title after one full stop, or after the comma
@@ -2644,7 +2714,10 @@ function addHeading(
     ),
     qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,
-    numbered: heading.numbered,
+    // A chapter labelled as printed is numbered by its label.
+    numbered:
+      heading.numbered ||
+      (heading.printed && level === 1 && heading.label !== null),
     capitals:
       /\p{Lu}/u.test(heading.title.join(" ")) &&
       !/\p{Ll}/u.test(heading.title.join(" ")),
@@ -3167,9 +3240,12 @@ export function parseArchiveOcrWork(
             ...volume,
             headingOpenings: (work.headings ?? [])
               .filter((heading) => String(heading.page) === label)
-              .map(({ opens, numeral }) =>
-                numeral === undefined ? { opens } : { opens, numeral },
-              ),
+              .map(({ opens, numeral, level, label: printed }) => ({
+                opens,
+                ...(numeral === undefined ? {} : { numeral }),
+                ...(level === undefined ? {} : { level }),
+                ...(printed === undefined ? {} : { label: printed }),
+              })),
             ...paragraphOpeningsOn(work, label),
             ...noteOpeningsOn(work, label),
           },

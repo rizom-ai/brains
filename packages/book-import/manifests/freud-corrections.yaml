@@ -20032,7 +20032,7 @@ Freud_Rie_1891_halbseitige_201606:
     by: scan
   - page: 15
     from: "4. Fälle mit unmerklichem Beginne und langsamem Anstieg ;"
-    to: "A. Fälle mit unmerklichem Beginne und langsamem Anstieg (primäre Athetose Oulmont.) ;"
+    to: "A. Fälle mit unmerklichem Beginne und langsamem Anstieg (primäre Athetose [Oulmont.])"
     by: scan
   - page: 15
     from: "Kind über (die Stiege gefallen, dabei sehr erschrocken sein, sich"
@@ -28511,6 +28511,10 @@ Freud_1893_Diplegien:
     from: "genommen,"
     to: "ngenommen,"
     by: scan
+  - page: 28
+    from: "C. Unbestimmte Formen,"
+    to: "C. Unbestimmte Formen."
+    by: scan
   - page: 29
     from: "Keine Lähmung, Gang gut, aber noch überall eine Audeutung von Hypertonie,"
     to: "Keine Lähmung, Gang gut, aber noch überall eine Andeutung von Hypertonie,"
@@ -28530,6 +28534,10 @@ Freud_1893_Diplegien:
   - page: 29
     from: "selbst die Befriedigung seiner Bedürfnisse. Es ist in allen Bewegnngen langsam,"
     to: "selbst die Befriedigung seiner Bedürfnisse. Es ist in allen Bewegungen langsam,"
+    by: scan
+  - page: 29
+    from: "D. Uebergänge von allgemeiner zu paraplegischer Starre.,"
+    to: "D. Uebergänge von allgemeiner zu paraplegischer Starre."
     by: scan
   - page: 30
     from: "Status praesens, Kecht kümmerlich entwickelt, besm.1ders di.e Extrem1tät€fn"
@@ -28565,7 +28573,7 @@ Freud_1893_Diplegien:
     by: scan
   - page: 30
     from: "E, Paraplegische Staine"
-    to: "E, Paraplegische Starre"
+    to: "E. Paraplegische Starre."
     by: scan
   - page: 30
     from: "gewelnt,"
@@ -28702,6 +28710,10 @@ Freud_1893_Diplegien:
   - page: 33
     from: "bleiben des linken Facijalis?"
     to: "bleiben des linken Facialis?"
+    by: scan
+  - page: 33
+    from: "G, Combination von allgemeiner Starre mit Hemiparese."
+    to: "G. Combination von allgemeiner Starre mit Hemiparese."
     by: scan
   - page: 34
     from: "Kind sehr unruhig, trommelt beständig mit den Füssen, wobe!l d.1ehZehe.n"
@@ -28854,6 +28866,10 @@ Freud_1893_Diplegien:
   - page: 36
     from: "Die Extremitäten werden gleich gehbraucht, Füsse und Zehen in best ändiger"
     to: "Die Extremitäten werden gleich gebraucht, Füsse und Zehen in best"
+    by: scan
+  - page: 36
+    from: "/. Allgemeine Chorea.,"
+    to: "I. Allgemeine Chorea."
     by: scan
   - page: 37
     from: "53 Jahre spüter. Idiotisch und sehr ungeberdig."
@@ -31770,7 +31786,7 @@ b33778474:
     by: scan
   - page: 6
     from: "Ifa. Geschichte und Literatur der hemiplegischen"
-    to: "Ila. Geschichte und Literatur der hemiplegischen"
+    to: "IIa. Geschichte und Literatur der hemiplegischen"
     by: scan
   - page: 6
     from: "Grade die beiden Extremitäten, in geringerem die Gesichtsmuseulatur."

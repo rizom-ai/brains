@@ -2640,6 +2640,78 @@ describe("parseArchiveOcrWork, headings set in the text's type", () => {
   });
 });
 
+describe("parseArchiveOcrWork, headings the manifest names by level and label", () => {
+  /** A line of the page, set at the margin in the text's type, or in from it. */
+  const line = (text: string, y: number, x = 245): string =>
+    `<span class='ocr_line' title='bbox ${x} ${y} 2150 ${y + 80}; x_size 78'>${text}</span>`;
+  const paragraph = (y: number): string =>
+    [
+      line("Die Kinder leiden an einer Lähmung der einen Seite, die", y, 330),
+      line("schon früh beginnt und lange anhält, wie man es sieht.", y + 100),
+    ].join("\n");
+  const page = (leaf: number, lines: string[]): string =>
+    `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'>${lines.join("\n")}</p>
+</div>`;
+  const hocr = `<html><body>${[
+    page(10, [
+      line("Einleitung. Nosographische Stellung.", 500),
+      paragraph(600),
+      line("IIa. Geschichte der Lähmung.", 900),
+      paragraph(1000),
+    ]),
+    page(11, [
+      line("2 Typische Fälle der Lähmung.", 200, 900),
+      line("A. Typische Fälle der Lähmung.", 500),
+      paragraph(600),
+      line("B. Leichte Fälle der Lähmung.", 900),
+      paragraph(1000),
+    ]),
+    page(12, [
+      line("XI—XVI. 3", 200, 1800),
+      line("B. Leichte Fälle der Lähmung.", 300),
+      paragraph(500),
+      line("IIIb. Klinik der Lähmung.", 900),
+      paragraph(1000),
+      line("Pathologie der Lähmung.", 1300),
+      paragraph(1400),
+    ]),
+  ].join("")}</body></html>`;
+
+  it("opens chapters labelled as printed or unnumbered, and lettered sections, numbering on from the labels", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "infantile",
+      title: "Die infantile Cerebrallähmung",
+      citation: "Infantile",
+      firstPage: 1,
+      lastPage: 3,
+      headings: [
+        { page: 1, opens: "Einleitung. Nosographische", level: 1 },
+        { page: 1, opens: "IIa. Geschichte", level: 1, label: "IIa" },
+        { page: 2, opens: "A. Typische Fälle", level: 2, label: "A" },
+        { page: 2, opens: "B. Leichte Fälle", level: 2, label: "B" },
+        // A heading set high on its page is no running head.
+        { page: 3, opens: "B. Leichte Fälle", level: 2, label: "B" },
+        { page: 3, opens: "IIIb. Klinik", level: 1, label: "IIIb" },
+        { page: 3, opens: "Pathologie der Lähmung" },
+      ],
+    });
+
+    expect(
+      units.map((unit) => [...unit.parents, unit.title].join(" > ")),
+    ).toEqual([
+      "Einleitung. Nosographische Stellung.",
+      "IIa. Geschichte der Lähmung. > IIa. Geschichte der Lähmung.",
+      "IIa. Geschichte der Lähmung. > A. Typische Fälle der Lähmung.",
+      "IIa. Geschichte der Lähmung. > B. Leichte Fälle der Lähmung.",
+      "IIa. Geschichte der Lähmung. > B. Leichte Fälle der Lähmung.",
+      "IIIb. Klinik der Lähmung.",
+      "IV. Pathologie der Lähmung.",
+    ]);
+    expect(units[4]?.paragraphs[0]).toStartWith("Die Kinder leiden");
+  });
+});
+
 describe("parseArchiveOcrWork, leaves scanned at two sizes", () => {
   it("reads every page at one scale, its running head below a wide margin", async () => {
     const units = parseArchiveOcrWork(

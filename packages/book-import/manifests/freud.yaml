@@ -89,6 +89,7 @@ books:
     headings:
       - { page: 1, opens: "Geschichte und Literatur der cerebralen" }
       - { page: 13, opens: "Eigene Beobachtungen." }
+      - { page: 15, opens: "A. Fälle mit unmerklichem", level: 2, label: A }
       - { page: 34, opens: "α) Bloss Facialparese" }
       - { page: 35, opens: "β) Facialis- und Beinparese" }
       - { page: 36, opens: "γ) Fälle ohne Anamnese" }
@@ -127,8 +128,17 @@ books:
     lastPage: 165
     # The table of chapter III, folded in at the volume's end, is left out.
     skipHeadings: [Tabellarische Zusammenstellung der 53 vorstehenden Beobachtungen]
-    # Chapters whose numerals the OCR read apart from their titles.
+    # Chapters whose numerals the OCR read apart from their titles, and the
+    # lettered sections of chapter II the page does not set apart.
     headings:
+      - { page: 27, opens: "B. Leichte allgemeine Starre", level: 2, label: B }
+      - { page: 28, opens: "C. Unbestimmte Formen", level: 2, label: C }
+      - { page: 29, opens: "D. Uebergänge von allgemeiner", level: 2, label: D }
+      - { page: 30, opens: "E. Paraplegische Starre", level: 2, label: E }
+      - { page: 33, opens: "G. Combination von allgemeiner", level: 2, label: G }
+      - { page: 36, opens: "I. Allgemeine Chorea", level: 2, label: I }
+      - { page: 38, opens: "K. Bilaterale Athetose", level: 2, label: K }
+      - { page: 39, opens: "L. Spastische Chorea", level: 2, label: L }
       - { page: 43, opens: "Tabellarische Zusammenstellung" }
       - { page: 45, opens: "Allgemeine Charakteristik der beschriebenen" }
       - { page: 57, opens: "Specielle Analyse der einzelnen" }
@@ -175,12 +185,14 @@ books:
     citation: Infantile Cerebrallähmung
     firstPage: 1
     lastPage: 312
-    # Chapters the page does not set apart: IIa and IIIa are numbered II
-    # and III by their place, IIb and IIIb follow them unnumbered.
+    # Chapters the page does not set apart: the introduction, numbered I by
+    # its place, and chapters IIa, IIb, IIIa and IIIb, labelled as printed.
     headings:
       - { page: 1, opens: "Einleitung. Nosographische" }
-      - { page: 6, opens: "IIa. Geschichte und Literatur", numeral: II }
-      - { page: 41, opens: "IIIa. Klinik der hemiplegischen" }
+      - { page: 6, opens: "IIa. Geschichte und Literatur", level: 1, label: IIa }
+      - { page: 19, opens: "IIb. Geschichte und Literatur", level: 1, label: IIb }
+      - { page: 41, opens: "IIIa. Klinik der hemiplegischen", level: 1, label: IIIa }
+      - { page: 109, opens: "IIIb. Klinik der diplegischen", level: 1, label: IIIb }
     # Pages whose lists and case numbers the importer takes for headings: each opening line.
     paragraphs:
       - { page: 123, opens: "König resumirt" }
