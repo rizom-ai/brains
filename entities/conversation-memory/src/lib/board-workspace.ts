@@ -162,6 +162,7 @@ function cardItem(card: BoardCard): {
   metadata: string[];
   badges?: { label: string; tone: "warn" }[];
   link?: { catalog: typeof boardSources; entityType: string; id: string };
+  actionsLabel: string;
   links?: {
     label: string;
     target: { catalog: typeof boardSources; entityType: string; id: string };
@@ -213,6 +214,7 @@ function cardItem(card: BoardCard): {
           ],
         }
       : {}),
+    actionsLabel: "Move",
     actions: [
       ...MOVES[card.status].map((move) => ({
         action: moveAction,
@@ -268,12 +270,18 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
   };
 }
 
+/**
+ * When a card was finished. Items finished before moves were recorded fall
+ * back to when they were captured: `updated` moves with every import.
+ */
+function finishedAt(entity: ActionItemEntity): number {
+  return new Date(
+    arrivedAt(entity, "done") ?? entity.metadata.timeRange.end,
+  ).getTime();
+}
+
 function finishedRecently(entity: ActionItemEntity, now: Date): boolean {
-  const finished = arrivedAt(entity, "done") ?? entity.updated;
-  return (
-    now.getTime() - new Date(finished).getTime() <=
-    DONE_WINDOW_DAYS * 86_400_000
-  );
+  return now.getTime() - finishedAt(entity) <= DONE_WINDOW_DAYS * 86_400_000;
 }
 
 export interface BoardWorkspaceDeps {
@@ -343,15 +351,14 @@ export async function registerBoardWorkspace(
               ),
             ),
           );
+          const [open = [], doing = [], blocked = [], done = []] = columns;
+          const finished = done
+            .filter((entity) => finishedRecently(entity, at))
+            .sort((a, b) => finishedAt(b) - finishedAt(a));
           return {
-            cards: columns
-              .flat()
-              .filter(
-                (entity) =>
-                  entity.metadata.status !== "done" ||
-                  finishedRecently(entity, at),
-              )
-              .map((entity) => toCard(entity, at)),
+            cards: [...open, ...doing, ...blocked, ...finished].map((entity) =>
+              toCard(entity, at),
+            ),
           };
         },
         actions: [

@@ -180,6 +180,8 @@ describe("registerActionItemsWidget", () => {
     expect(payload).toMatchObject({
       id: "action-items",
       title: "Open action items",
+      // Members read it in Studio Overview, where blockers ask for attention.
+      visibility: "trusted",
       group: "knowledge",
       section: "secondary",
       priority: 25,
@@ -187,7 +189,11 @@ describe("registerActionItemsWidget", () => {
       digestProvider: expect.any(Function),
     });
     const data = await payload.dataProvider({
-      caller: null,
+      caller: {
+        actor: { id: "u-niels" },
+        permission: "trusted",
+        isAnchor: false,
+      },
       signal: new AbortController().signal,
     });
     // Blockers, not open work, ask for attention.

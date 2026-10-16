@@ -35,7 +35,8 @@ interface Card {
   text: string;
   status: ActionItemStatus;
   history?: ActionItemHistoryEntry[];
-  updated?: string;
+  /** When the conversation it came from ended. */
+  capturedDaysAgo?: number;
   assignee?: string;
 }
 
@@ -56,7 +57,10 @@ async function brain(cards: Card[]): Promise<EntityPluginContext> {
       channelName: "events",
       interfaceType: "discord",
       spaceId: "discord:events",
-      timeRange: { start: daysAgo(6), end: daysAgo(5) },
+      timeRange: {
+        start: daysAgo((card.capturedDaysAgo ?? 5) + 1),
+        end: daysAgo(card.capturedDaysAgo ?? 5),
+      },
       sourceSummaryId: "conv-1",
       sourceMessageCount: 3,
       projectionVersion: 1,
@@ -77,9 +81,6 @@ async function brain(cards: Card[]): Promise<EntityPluginContext> {
           metadata,
         ),
         metadata,
-        ...(card.updated
-          ? { created: card.updated, updated: card.updated }
-          : {}),
       },
     });
   }
@@ -113,6 +114,7 @@ const itemSchema = z.looseObject({
   links: z
     .array(z.object({ label: z.string(), target: z.unknown() }))
     .optional(),
+  actionsLabel: z.string().optional(),
   actions: z
     .array(z.object({ label: z.string().optional(), input: z.unknown() }))
     .optional(),
@@ -217,18 +219,26 @@ describe("the Board workspace", () => {
           status: "done",
           history: [move(daysAgo(20), "doing", "done")],
         },
+        // Finished before moves were recorded, and re-imported today: its
+        // capture date, not the import, places it.
         {
           id: "old-unrecorded",
           text: "Close the old survey",
           status: "done",
-          updated: daysAgo(30),
+          capturedDaysAgo: 162,
+        },
+        {
+          id: "recent-unrecorded",
+          text: "Send the agenda",
+          status: "done",
+          capturedDaysAgo: 4,
         },
       ]),
     );
 
     expect(
       column(await board(registration), "done").map((card) => card.title),
-    ).toEqual(["Share the call summary"]);
+    ).toEqual(["Share the call summary", "Send the agenda"]);
   });
 
   it("offers each card the moves its column allows", async () => {
@@ -243,6 +253,7 @@ describe("the Board workspace", () => {
     const labels = (status: string): (string | undefined)[] =>
       (column(matrix, status)[0]?.actions ?? []).map((action) => action.label);
     expect(labels("open")).toEqual(["Start", "Block", "Done", "Drop"]);
+    expect(column(matrix, "open")[0]?.actionsLabel).toBe("Move");
     expect(labels("blocked")).toEqual(["Resume", "Done", "Drop"]);
   });
 

@@ -54,7 +54,9 @@ const actionItemsWidget = defineDashboardWidget({
   group: "knowledge",
   placement: "secondary",
   priority: 25,
-  permission: "public",
+  // Action items are shared or restricted memory; members read them in Studio
+  // Overview, where blocked items ask for attention.
+  permission: "trusted",
   data: actionItemsWidgetDataSchema,
   digest: ({ data }) => ({
     items: [
