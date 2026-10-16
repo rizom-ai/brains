@@ -491,6 +491,55 @@ books:
       - { page: 229, opens: ² Studien }
       - { page: 229, opens: ³ Sitzungsb. }
       - { page: 229, opens: ⁴ Vergl. }
+  - item: wmw-1884-hirnblutung
+    citation: WMW 1884
+    ocr: deu
+    # The paper's columns, each read as a page: the Wochenschrift numbers
+    # its columns. Each part is read from below its title and byline, the
+    # second, in the next issue, from below its repeated title; the article
+    # set between its text and its notes in column 279 is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-34-1884-9
+      firstPage: 244
+      pages:
+        - https://archive.org/download/wmw-34-1884-9/page/n1_w1600.jpg#region=0.504,0.18,0.436,0.79
+        - https://archive.org/download/wmw-34-1884-9/page/n2_w1600.jpg#region=0.05,0.065,0.447,0.89
+        - https://archive.org/download/wmw-34-1884-9/page/n2_w1600.jpg#region=0.506,0.065,0.434,0.547
+        - url: https://archive.org/download/wmw-34-1884-10/page/n1_w1600.jpg#region=0.5145,0.31,0.4255,0.655
+          page: 276
+        - https://archive.org/download/wmw-34-1884-10/page/n2_w1600.jpg#region=0.04,0.065,0.4495,0.91
+        - https://archive.org/download/wmw-34-1884-10/page/n2_w1600.jpg#region=0.4975,0.065,0.4425,0.893
+        - https://archive.org/download/wmw-34-1884-10/page/n3_w1600.jpg#region=0.05,0.085,0.4495,0.62&region=0.05,0.903,0.4495,0.08
+    firstPage: 244
+    lastPage: 279
+    # The notes at the columns' foot, by their marks.
+    notes:
+      - { page: 277, opens: ¹) Zur }
+      - { page: 277, opens: ²) Vetter }
+      - { page: 277, opens: ³) Archives }
+      - { page: 277, opens: ⁴) Etudes }
+      - { page: 277, opens: ⁵) Grasset }
+      - { page: 277, opens: ⁶) Landouzy }
+      - { page: 277, opens: ⁷) Lehrbuch }
+      - { page: 277, opens: ⁸) Exner }
+      - { page: 278, opens: ⁹) Vergl. }
+      - { page: 278, opens: ¹⁰) l. c. }
+      - { page: 278, opens: ¹¹) l. c. }
+      - { page: 278, opens: ¹²) Vergl. }
+      - { page: 278, opens: ¹³) Vergl. }
+      - { page: 279, opens: ¹⁴) Vergl. }
+      - { page: 279, opens: ¹⁵) l. c. }
+      - { page: 279, opens: ¹⁶) Archiv }
+      - { page: 279, opens: ¹⁷) Zur }
+      - { page: 279, opens: ¹⁸) Zur }
+    slug: ein-fall-von-hirnblutung-mit-indirekten-basalen-herdsymptomen-bei-skorbut
+    title: Ein Fall von Hirnblutung mit indirekten basalen Herdsymptomen bei Skorbut
+    shortTitle: Hirnblutung bei Skorbut
+    edition: Wiener Medizinische Wochenschrift, 34. Jahrgang, Nr. 9 und 10 (Wien, 1. und 8. März 1884), Sp. 244–246 und 276–279
+    author: Sigmund Freud
+    year: 1884
+    kind: work
   - item: Freud_1885_Coca
     citation: Coca
     ocr: deu
