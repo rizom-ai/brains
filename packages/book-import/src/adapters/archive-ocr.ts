@@ -748,7 +748,8 @@ function numberGap(
     (reading) => reading.leaf > from.leaf && reading.leaf < to.leaf,
   );
   const pages = to.leaf + to.offset - (from.leaf + from.offset) - 1;
-  const plateCount = Math.max(0, to.leaf - from.leaf - 1 - pages);
+  // A leaf the volume left out, a rescan, is neither page nor plate.
+  const plateCount = Math.max(0, gap.length - pages);
   const plates = new Set(
     [...gap]
       .sort((a, b) => a.words - b.words || a.leaf - b.leaf)
@@ -809,6 +810,61 @@ export function printedPageNumbers(
     }),
   );
 }
+
+/** A running head numbering both columns of its page: 723 HYPNOSE. 724. */
+const COLUMN_HEAD = /^(?:\S{1,2}\s+)?(\d+)\s+\S.*\S\s+(\d+)(?:\s+\S{1,2})?$/u;
+
+/**
+ * Printed numbers by leaf, in a volume that numbers its columns, two to a
+ * page, as a lexicon does: a page is numbered by its first column. Where
+ * most numbered heads number two columns, the pages are numbered in pairs
+ * of columns and each named by the first; else as their heads number them.
+ */
+function numberedColumns(
+  pages: Page[],
+  readings: LeafReading[],
+): Map<number, number | null> {
+  // The OCR may read the head as one line or as its numbers and its title
+  // apart.
+  const firsts = pages.flatMap((page) => {
+    const numbers = page.lines
+      .slice(0, HEAD_LINES)
+      .filter((line) => line.y <= page.height * HEAD_ZONE)
+      .flatMap((line) => {
+        const both = COLUMN_HEAD.exec(line.text);
+        if (both) return [Number(both[1]), Number(both[2])];
+        const number = headNumber(line.text);
+        return number === null ? [] : [number];
+      });
+    const first = numbers.find((number) => numbers.includes(number + 1));
+    return first === undefined ? [] : [first];
+  });
+  const numbered = readings.filter((reading) => reading.head !== null);
+  if (firsts.length < COLUMN_HEADS || firsts.length * 2 < numbered.length) {
+    return printedPageNumbers(readings);
+  }
+  // The first column's number is odd, or even, throughout.
+  const parity =
+    firsts.filter((first) => first % 2 === 1).length * 2 >= firsts.length
+      ? 1
+      : 0;
+  const pairs = printedPageNumbers(
+    readings.map((reading) => ({
+      ...reading,
+      head:
+        reading.head === null ? null : Math.floor((reading.head - parity) / 2),
+    })),
+  );
+  return new Map(
+    [...pairs].map(([leaf, pair]) => [
+      leaf,
+      pair === null ? null : pair * 2 + parity,
+    ]),
+  );
+}
+
+/** So many heads numbering two columns tell a volume that numbers its columns. */
+const COLUMN_HEADS = 3;
 
 /** Words of four or more small letters: running text, not a picture's noise. */
 const WORD = /\p{Ll}{4,}/gu;
@@ -2843,7 +2899,7 @@ function readVolume(hocr: string): ReadVolume {
       withUmlauts(withoutTopMargin(atOneScale(readPages(hocr)))),
     ),
   );
-  const printed = printedPageNumbers(pages.map(readingOf));
+  const printed = numberedColumns(pages, pages.map(readingOf));
   // The leaves before the first page are the front matter.
   const firstLeaf = Math.min(
     ...pages

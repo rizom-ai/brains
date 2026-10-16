@@ -73,6 +73,69 @@ gaps:
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
     reason: published in 1987 with an editorial apparatus still in copyright
 books:
+  - item: b21293181
+    citation: Charcot 1886
+    firstPage: III
+    lastPage: IV
+    slug: vorwort-des-uebersetzers-zu-charcot-neue-vorlesungen
+    title: Vorwort des Übersetzers
+    shortTitle: Vorwort zu Charcot (1886)
+    edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886), S. III–IV"
+    author: Sigmund Freud
+    year: 1886
+    kind: work
+  - item: buchheim-1887-diagnostik
+    citation: Buchheim 1887
+    firstPage: 188
+    lastPage: 207
+    # The paragraphs of two pages the OCR misreads: on 194 a dash it read
+    # before a line, on 195 a run-in head it reads as a title.
+    paragraphs:
+      - { page: 194, opens: Erwänenswert }
+      - { page: 194, opens: 2. Spannung }
+      - { page: 194, opens: 3. Lähmung }
+      - { page: 195, opens: "Die Lähmungen aus peripherer Ursache," }
+      - { page: 195, opens: Die Lähmungen aus peripherer Ursache können }
+      - { page: 195, opens: Findet man }
+      - { page: 195, opens: a) Ausbreitung }
+      - { page: 195, opens: b) Atrophie }
+    slug: das-nervensystem
+    title: Das Nervensystem
+    edition: "Eduard Buchheim, Ärztliche Versicherungs-Diagnostik, fünfter Abschnitt (Wien 1887), S. 188–207"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: bernheim-1888-suggestion
+    citation: Bernheim 1888
+    firstPage: III
+    lastPage: XII
+    # The OCR read page IV askew: its paragraphs, by their lines as read.
+    paragraphs:
+      # "Die Sache des Hypnotismus", which the OCR read as "ee 7 sl".
+      - { page: IV, opens: ee 7 sl }
+      - { page: IV, opens: Ein Standpunkt }
+      - { page: IV, opens: Ein anderer }
+    notes:
+      - { page: IX, opens: ¹) Archives }
+      - { page: IX, opens: ²) Die Beziehungen }
+    slug: vorrede-des-uebersetzers-zu-bernheim-die-suggestion
+    title: Vorrede des Übersetzers
+    shortTitle: Vorrede zu Bernheim
+    edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1888), S. III–XII"
+    author: Sigmund Freud
+    year: 1888
+    kind: work
+  - item: bernheim-1896-suggestion
+    citation: Bernheim 1896
+    firstPage: III
+    lastPage: IV
+    slug: vorwort-zur-zweiten-deutschen-auflage-von-bernheim-die-suggestion
+    title: Vorwort zur zweiten deutschen Auflage
+    shortTitle: Vorwort zu Bernheim (1896)
+    edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud, zweite, umgearbeitete Auflage besorgt von Dr. Max Kahane (Franz Deuticke, Leipzig und Wien 1896), S. III–IV"
+    author: Sigmund Freud
+    year: 1896
+    kind: work
   - item: freud-1952-gw-1
     citation: GW I
     firstPage: 3
@@ -1766,7 +1829,8 @@ books:
     author: Sigmund Freud
     year: 1926
     kind: work
-    published: false
+    # Read out at the lodge Wien on 8 May 1926 and printed in the B'nai
+    # B'rith Mitteilungen für Österreich 26, Heft 5 (Mai 1926), S. 103–105.
   - item: freud-1941-gw-17
     citation: GW XVII
     firstPage: 57

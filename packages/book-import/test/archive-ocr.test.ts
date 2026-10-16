@@ -972,6 +972,20 @@ describe("printedPageNumbers", () => {
     ]);
   });
 
+  it("counts no plate for leaves left out as rescans, which the pages skip", () => {
+    const pages = printedPageNumbers([
+      text(10, 1),
+      text(11, 2),
+      text(12, null),
+      // Leaves 13 and 14 scanned 11 and 12 again.
+      text(15, null),
+      text(16, 5),
+      text(17, 6),
+    ]);
+
+    expect([12, 15, 16].map((leaf) => pages.get(leaf))).toEqual([3, 4, 5]);
+  });
+
   it("ignores a run of page numbers the OCR misread alike", () => {
     // 335 and 338 both read with a 5 for the 3.
     const pages = printedPageNumbers([
@@ -3084,5 +3098,50 @@ describe("parseArchiveOcrWork, pages alike", () => {
 
   it("keeps pages alike in their words whose heads number them apart, as an index's are", () => {
     expect(paragraphs(["466", "467"])).toHaveLength(12);
+  });
+});
+
+describe("a volume that numbers its columns", () => {
+  /** A page of two columns, its head numbering both: 723 … 724. */
+  const columnPage = (leaf: number, left: number | null): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      `<span class='ocr_line' title='bbox 100 100 1900 160; x_size 50'>${
+        left === null
+          ? "STICHWORT — STICHWORT."
+          : `${left} STICHWORT — STICHWORT. ${left + 1}`
+      }</span>`,
+      ...Array.from(
+        { length: 8 },
+        (_, line) =>
+          `<span class='ocr_line' title='bbox 100 ${300 + line * 80} 950 ${350 + line * 80}; x_size 50'>Spalte auf Blatt ${leaf} mit Text in der Zeile ${line} hier</span>`,
+      ),
+      "</div>",
+    ].join("\n");
+  const hocr = `<html><body>\n${[
+    columnPage(0, 719),
+    columnPage(1, 721),
+    columnPage(2, 723),
+    columnPage(3, null),
+    columnPage(4, 727),
+    columnPage(5, 729),
+  ].join("\n")}\n</body></html>`;
+
+  it("numbers each page by its first column, two to a page", () => {
+    expect(workPages(hocr, { firstPage: 721, lastPage: 727 })).toEqual([
+      721, 723, 725, 727,
+    ]);
+    expect(pageText(hocr, 725)).toContain("Spalte auf Blatt 3");
+  });
+
+  it("knows a head the OCR read as its two numbers and its title apart", () => {
+    const apart = hocr.replace(
+      /(<span class='ocr_line' title='bbox 100 100 1900 160; x_size 50'>)(\d+) (STICHWORT — STICHWORT\.) (\d+)<\/span>/gu,
+      "<span class='ocr_line' title='bbox 100 100 300 160; x_size 50'>$2</span>\n<span class='ocr_line' title='bbox 700 100 1300 160; x_size 50'>$3</span>\n<span class='ocr_line' title='bbox 1700 100 1900 160; x_size 50'>$4</span>",
+    );
+
+    expect(workPages(apart, { firstPage: 721, lastPage: 727 })).toEqual([
+      721, 723, 725, 727,
+    ]);
   });
 });

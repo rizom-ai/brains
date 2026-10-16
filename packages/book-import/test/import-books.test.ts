@@ -883,6 +883,99 @@ books:
     expect(texts.join("\n")).toContain("rückt ein Wort");
   });
 
+  const piecesManifest = `
+source: archive-ocr
+books:
+  - item: freud-1940-gw-13
+    citation: GW XIII
+    firstPage: 3
+    lastPage: 6
+    slug: kleine-schriften
+    title: Kleine Schriften
+    edition: Zeitschrift, Bd. I–II
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+  - item: zeitschrift-2
+    citation: Z II
+    firstPage: 7
+    lastPage: 10
+    slug: kleine-schriften
+    title: Kleine Schriften
+    edition: Zeitschrift, Bd. I–II
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+`;
+
+  async function fetchTwoVolumes(url: string): Promise<string> {
+    if (url === "https://archive.org/metadata/zeitschrift-2") {
+      requested.push(url);
+      return JSON.stringify({
+        files: [{ name: "z2_hocr.html", format: "hOCR" }],
+      });
+    }
+    return fetchArchive(url);
+  }
+
+  it("joins the entries that share a slug into one book, read from each one's volume in turn", async () => {
+    const results = await importBooks(
+      parseManifest(piecesManifest),
+      brainData,
+      fetchTwoVolumes,
+    );
+    const files = await Array.fromAsync(
+      new Bun.Glob("book/kleine-schriften/*.md").scan(brainData),
+    );
+    const sections = await Promise.all(
+      files
+        .sort()
+        .map(async (file) =>
+          bookSectionAdapter.parseFrontMatter(
+            await readFile(join(brainData, file), "utf8"),
+            bookSectionAdapter.frontmatterSchema,
+          ),
+        ),
+    );
+
+    expect(results).toEqual([
+      { slug: "kleine-schriften", entries: sections.length + 1 },
+    ]);
+    expect(requested).toContain(
+      "https://archive.org/download/zeitschrift-2/z2_hocr.html",
+    );
+    expect(sections[0]?.["page"]).toBe("GW XIII, 3");
+    expect(sections.at(-1)?.["source"]).toStartWith(
+      "https://archive.org/details/zeitschrift-2/",
+    );
+  });
+
+  it("credits the scan of each volume a book is read from", async () => {
+    await importBooks(
+      parseManifest(piecesManifest),
+      brainData,
+      fetchTwoVolumes,
+    );
+    const title = await readFile(
+      join(brainData, "book/kleine-schriften.md"),
+      "utf8",
+    );
+
+    expect(title).toContain("archive.org/details/freud-1940-gw-13");
+    expect(title).toContain("archive.org/details/zeitschrift-2");
+  });
+
+  it("rejects entries that share a slug but not the book's title", () => {
+    expect(() =>
+      parseManifest(
+        piecesManifest.replace(
+          /(zeitschrift-2[\s\S]*?title: )Kleine Schriften/u,
+          "$1Andere",
+        ),
+      ),
+    ).toThrow("share a slug");
+  });
+
   it("names the transcriptions of a work to check its OCR against", () => {
     const manifest = parseManifest(
       ocrManifest +
@@ -1082,6 +1175,51 @@ describe("fetchVolumeHocr", () => {
     const roman = "<span class='ocrx_word'>Wort—</span>";
 
     expect(await fetchVolumeHocr("x", fetchHocr(roman))).toBe(roman);
+  });
+
+  const page = (leaf: number, word: string): string =>
+    `<div class='ocr_page' id='page_${leaf}'><span class='ocrx_word'>${word}</span></div>`;
+  const scanned = (served: boolean[]): string =>
+    `<book><pageData>${served
+      .map(
+        (each, leaf) =>
+          `<page leafNum="${leaf}"><addToAccessFormats>${each}</addToAccessFormats></page>`,
+      )
+      .join("")}</pageData></book>`;
+  const fetchScanned =
+    (hocr: string, scandata: string) =>
+    async (url: string): Promise<string> =>
+      url.includes("/metadata/")
+        ? JSON.stringify({
+            files: [
+              { name: "x_hocr.html", format: "hOCR" },
+              { name: "x_scandata.xml", format: "Scandata" },
+            ],
+          })
+        : url.endsWith("_scandata.xml")
+          ? scandata
+          : hocr;
+
+  it("leaves out the pages of a scan it does not serve, a colour card, so its leaves are the served images", async () => {
+    const hocr = [page(0, "Farbkarte"), page(1, "Titel"), page(2, "Text")];
+
+    expect(
+      await fetchVolumeHocr(
+        "x",
+        fetchScanned(hocr.join("\n"), scanned([false, true, true])),
+      ),
+    ).toBe([page(0, "Titel"), page(1, "Text")].join("\n"));
+  });
+
+  it("keeps every page where the scandata counts other leaves than the OCR read", async () => {
+    const hocr = [page(0, "Titel"), page(1, "Text")].join("\n");
+
+    expect(
+      await fetchVolumeHocr(
+        "x",
+        fetchScanned(hocr, scanned([false, true, true])),
+      ),
+    ).toBe(hocr);
   });
 });
 

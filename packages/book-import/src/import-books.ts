@@ -500,7 +500,22 @@ const manifestSchema: z.ZodObject<{
   source: z.enum(SOURCES).optional(),
   coverage: coverageSchema.optional(),
   gaps: z.array(gapSchema).default([]),
-  books: z.array(bookSchema).min(1),
+  /** Entries that share a slug are one book, read from each in turn: short pieces from several volumes. */
+  books: z
+    .array(bookSchema)
+    .min(1)
+    .refine(
+      (books) =>
+        books.every((book) =>
+          books.every(
+            (other) =>
+              other.slug !== book.slug ||
+              ("title" in other ? other.title : undefined) ===
+                ("title" in book ? book.title : undefined),
+          ),
+        ),
+      { message: "Entries that share a slug share the book's title" },
+    ),
 });
 
 export type Manifest = z.output<typeof manifestSchema>;
@@ -677,6 +692,19 @@ async function loadEkgwbBook(
   };
 }
 
+/**
+ * Where an item's files are read from: its own server, as the mirror a
+ * download is sent to may fail on a file it holds.
+ */
+function itemFolder(
+  item: string,
+  metadata: z.output<typeof archiveMetadataSchema>,
+): string {
+  return metadata.server && metadata.dir
+    ? `https://${metadata.server}${metadata.dir}`
+    : `${ARCHIVE}/download/${item}`;
+}
+
 /** A scanned volume's hOCR, the file its item's metadata names. */
 export async function fetchVolumeHocr(
   item: string,
@@ -687,10 +715,55 @@ export async function fetchVolumeHocr(
   );
   const hocr = metadata.files.find((file) => file.format === "hOCR");
   if (!hocr) throw new Error(`No hOCR file in ${item}`);
-  const text = await fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
+  const read = await fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
+  const scandata = metadata.files.find((file) => file.format === "Scandata");
+  const text = scandata
+    ? servedPages(
+        read,
+        await fetchText(
+          `${itemFolder(item, metadata)}/${encodeURIComponent(scandata.name)}`,
+        ),
+      )
+    : read;
   // An OCR that read Fraktur prints its long s; it reads as roman type then.
   return /ſ/u.test(text) ? frakturRead(text) : text;
 }
+
+/**
+ * An hOCR without the pages its scan does not serve as images, a colour
+ * card, so that its pages are numbered by the leaves the scan's page images
+ * are, and its pages numbered so; where the scandata counts other leaves than the hOCR holds, it is
+ * left as read.
+ */
+function servedPages(hocr: string, scandata: string): string {
+  const served = [
+    ...scandata.matchAll(
+      /<page leafNum="\d+">[\s\S]*?<addToAccessFormats>(\w+)</gu,
+    ),
+  ].map((match) => match[1] !== "false");
+  const chunks = hocr.split(/(?=<div class=['"]ocr_page['"])/u);
+  const pages = chunks.filter((chunk) => PAGE.test(chunk));
+  if (pages.length !== served.length || served.every(Boolean)) return hocr;
+  const unserved = new Set(pages.filter((_, leaf) => served[leaf] === false));
+  return chunks
+    .filter((chunk) => !unserved.has(chunk))
+    .reduce<{ kept: string[]; leaf: number }>(
+      ({ kept, leaf }, chunk) =>
+        PAGE.test(chunk)
+          ? {
+              kept: [
+                ...kept,
+                chunk.replace(/(?<=\bid=['"]page_)\d+/u, String(leaf)),
+              ],
+              leaf: leaf + 1,
+            }
+          : { kept: [...kept, chunk], leaf },
+      { kept: [], leaf: 0 },
+    )
+    .kept.join("");
+}
+
+const PAGE = /^<div class=['"]ocr_page['"]/u;
 
 const DTA = "https://www.deutschestextarchiv.de/book/";
 
@@ -737,12 +810,7 @@ async function servedLeaves(
   metadata: z.output<typeof archiveMetadataSchema>,
   fetchText: FetchText,
 ): Promise<number | null> {
-  // Read from the item's own server: the mirror a download is sent to may
-  // fail on a file it holds.
-  const folder =
-    metadata.server && metadata.dir
-      ? `https://${metadata.server}${metadata.dir}`
-      : `${ARCHIVE}/download/${item}`;
+  const folder = itemFolder(item, metadata);
   const fileOf = (format: string): Promise<string> | null => {
     const file = metadata.files.find((each) => each.format === format);
     return file
@@ -1001,6 +1069,31 @@ function loadersOf(
   });
 }
 
+/**
+ * One book read from the entries that share its slug, each in turn: its
+ * details are the first entry's, and it credits every source.
+ */
+async function loadJoined(
+  loads: Array<() => Promise<LoadedBook>>,
+): Promise<LoadedBook> {
+  const loaded = await loads.reduce<Promise<LoadedBook[]>>(
+    async (done, load) => [...(await done), await load()],
+    Promise.resolve([]),
+  );
+  const [first] = loaded;
+  if (!first) throw new Error("A book needs an entry");
+  const attributions = [
+    ...new Set(loaded.flatMap(({ book }) => book.attribution ?? [])),
+  ];
+  return {
+    book: {
+      ...first.book,
+      attribution: attributions.length > 0 ? attributions.join("; ") : null,
+    },
+    units: loaded.flatMap(({ units }) => units),
+  };
+}
+
 /** Import the manifest's books one after another into brain-data. */
 export async function importBooks(
   manifest: Manifest,
@@ -1008,11 +1101,13 @@ export async function importBooks(
   fetchText: FetchText,
   options: ImportOptions = {},
 ): Promise<ImportResult[]> {
-  return loadersOf(manifest, fetchText, options).reduce<
-    Promise<ImportResult[]>
-  >(async (done, load) => {
+  const loaders = loadersOf(manifest, fetchText, options);
+  const slugs = [...new Set(manifest.books.map((entry) => entry.slug))];
+  return slugs.reduce<Promise<ImportResult[]>>(async (done, slug) => {
     const results = await done;
-    const { book, units } = await load();
+    const { book, units } = await loadJoined(
+      loaders.filter((_, index) => manifest.books[index]?.slug === slug),
+    );
     if (units.length === 0) {
       throw new Error(`No sections found for ${book.slug}`);
     }
