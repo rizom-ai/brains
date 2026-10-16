@@ -2065,6 +2065,8 @@ books:
     firstPage: 562
     lastPage: 575
     opensWith: London, 5. Mai 1875.
+    # The editors’ notes on how the congress worded each passage.
+    skipNotesSigned: [Die Redaktion.]
     # MEW 19, Dietz 1962, as mlwerke.de published it: to check the OCR against.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me19/me19_013.htm

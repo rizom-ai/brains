@@ -18450,6 +18450,18 @@ ao391_die_neue_zeit:
     from: fixirt, die fie
     to: fixirt, die sie
     by: scan
+  - page: 563
+    from: „Gesellschaftsgliedern.“ *)
+    to: „Gesellschaftsgliedern.“
+    by: scan
+  - page: 568
+    from: reaktionäre Masse find.” *)
+    to: reaktionäre Masse sind.”
+    by: scan
+  - page: 570
+    from: und politischen Ungleichheit.“ *)
+    to: und politischen Ungleichheit.“
+    by: scan
 zur-kritik-der-politischen-okonomie:
   - page: -1
     from: "Proudhon gerichteten Schrift: „Misère de la Philosophie ete.“"
