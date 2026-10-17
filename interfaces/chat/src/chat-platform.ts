@@ -24,6 +24,20 @@ export function chunkForChannel(
   return limit ? chunkMessage(message, limit) : [message];
 }
 
+/**
+ * Text for `thread.post` and `SentMessage.edit`. The Slack adapter sends a
+ * plain string as Slack's `text`, which Slack shows verbatim, so `**bold**`
+ * and `## headings` reach the channel as typed. Only `{ markdown }` goes out
+ * as `markdown_text`, which Slack renders. Discord renders Markdown in a
+ * plain string, so it keeps the string.
+ */
+export function toPlatformText(
+  channelId: string | null,
+  text: string,
+): string | { markdown: string } {
+  return parseChatPlatform(channelId) === "slack" ? { markdown: text } : text;
+}
+
 /** Whether this interface owns an event for a configured chat adapter. */
 export function ownsChatPlatform(
   interfaceType: string | undefined,

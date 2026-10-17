@@ -256,7 +256,9 @@ describe("ChatInterface tool status and progress", () => {
     expect(statusMessage.edit).not.toHaveBeenCalledWith(
       expect.objectContaining({ fallbackText: "Tool completed: create" }),
     );
-    expect(thread.post).toHaveBeenLastCalledWith("The upload is unavailable.");
+    expect(thread.post).toHaveBeenLastCalledWith({
+      markdown: "The upload is unavailable.",
+    });
   });
 
   it("ignores non-Discord progress events even when a Discord thread is tracked", async () => {

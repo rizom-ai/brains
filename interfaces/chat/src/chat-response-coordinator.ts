@@ -20,7 +20,7 @@ import type { FileUpload, SentMessage } from "chat";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
 import { ChatCardBuilder } from "./chat-cards";
-import { chunkForChannel } from "./chat-platform";
+import { chunkForChannel, toPlatformText } from "./chat-platform";
 import {
   formatChatNoticePayload,
   toChatCardOutput,
@@ -524,7 +524,7 @@ export class ChatResponseCoordinator {
               markdown: chunk || "Generated artifacts attached.",
               files: input.files,
             }
-          : chunk,
+          : toPlatformText(input.channelId, chunk),
       );
       this.deps.threadRegistry.trackMessage(input.channelId, lastSent);
     }
