@@ -37279,10 +37279,6 @@ sim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1:
     by: scan
 new-american-cyclopaedia:
   - page: 105
-    from: opaniards.
-    to: ""
-    by: scan
-  - page: 105
     from: ARMADA, Spanisna,
     to: ARMADA, Spanish,
     by: scan
@@ -37371,10 +37367,6 @@ new-american-cyclopaedia:
     to: 790 round shot and 5,175 cwt.
     by: scan
   - page: 105
-    from: charge of 4] 1bs.
-    to: charge of 4½ lbs.
-    by: scan
-  - page: 105
     from: 8,062 sailors
     to: 8,052 sailors
     by: scan
@@ -37415,14 +37407,6 @@ new-american-cyclopaedia:
     to: of 18,500
     by: scan
   - page: 105
-    from: to a M8, in
-    to: to a MS. in
-    by: scan
-  - page: 105
-    from: titled * Details
-    to: titled “Details
-    by: scan
-  - page: 105
     from: Spanish Arrhada,”
     to: Spanish Armada,”
     by: scan
@@ -37445,10 +37429,6 @@ new-american-cyclopaedia:
   - page: 105
     from: de Riocalde,
     to: de Ricalde,
-    by: scan
-  - page: 105
-    from: stores, May 29, 1588, the fleet was dis
-    to: stores, May 29, 1588, the fleet was dispersed by
     by: scan
   - page: 105
     from: with t.he exception
@@ -37515,16 +37495,8 @@ new-american-cyclopaedia:
     to: severe loss. The junction
     by: scan
   - page: 106
-    from: Parma’s rts having
-    to: Parma’s transports having
-    by: scan
-  - page: 106
     from: a l.andu:iI in England
     to: a landing in England
-    by: scan
-  - page: 106
-    from: had been consumed, and as access to
-    to: board had been consumed, and as access to
     by: scan
   - page: 106
     from: Bpanish Flanders
@@ -37579,10 +37551,6 @@ new-american-cyclopaedia:
     to: of Peru; pop. 131,921.
     by: scan
   - page: 424
-    from: also named Ayaoncho,
-    to: also named Ayacucho,
-    by: scan
-  - page: 424
     from: the independenoce of Span-
     to: the independence of Span-
     by: scan
@@ -37591,54 +37559,12 @@ new-american-cyclopaedia:
     to: (Aug. 6, 1824), the Spanish viceroy, Gen. La
     by: scan
   - page: 424
-    from: attempted [ manceuvring to oat off the
-    to: Serna, attempted by manœuvring to cut off the
-    by: scan
-  - page: 424
     from: ocommunications of the
     to: communications of the
     by: scan
   - page: 424
     from: Gen, Sucre. Unsucceesful in this,
     to: Gen. Sucre. Unsuccessful in this,
-    by: scan
-  - page: 424
-    from: where the toock up a defensive
-    to: where the Spaniards took up a defensive posi-
-    by: scan
-  - page: 424
-    from: tionon a Thqnmbuedlahﬁhg
-    to: tion on a height. They numbered 13 battalions
-    by: scan
-  - page: 424
-    from: ofinfnntrymth and , in all
-    to: of infantry, with artillery and cavalry, in all
-    by: scan
-  - page: 424
-    from: 9,810 men.
-    to: 9,310 men.
-    by: scan
-  - page: 424
-    from: of both
-    to: |-
-      guards of both armies became engaged, and on
-      the following day Sucre advanced with 5,780
-      men to the attack. The 2d Colombian division,
-      under Gen. Cordova, attacked the Spanish left,
-      and at once threw it into disorder. The Peru-
-      vian division on the left, under Gen. Llamar,
-      met with a more obstinate resistance, and could
-      make no progress until the reserve, under Gen.
-      Lara, came up. The enemy’s retreat now be-
-      coming general, the cavalry was launched in
-      pursuit, dispersing the Spanish horse and com-
-      pleting the defeat of the infantry. The Span-
-      iards lost 6 generals killed and 2,600 killed,
-      wounded, and prisoners, among the latter the
-    by: scan
-  - page: 424
-    from: vioeroy. American loss was 1 gen-
-    to: viceroy. The South American loss was 1 gen-
     by: scan
   - page: 424
     from: eral and 808 officers
@@ -37653,32 +37579,12 @@ new-american-cyclopaedia:
     to: a capitulation, by which not
     by: scan
   - page: 424
-    from: onlyheandallhisu'oopssnn'endmdpnsoners
-    to: only he and all his troops surrendered prisoners
-    by: scan
-  - page: 424
-    from: :lflwar bntlbodlthoﬂpan:(tllmopomPa'%
-    to: of war, but also all the Spanish troops in Peru,
-    by: scan
-  - page: 424
-    from: military posts, artillery, magazines, an
-    to: all military posts, artillery, and magazines, and
-    by: scan
-  - page: 424
     from: it (Cuzoo, Arequipa, Puno, Qnilca., bo.), were
     to: it (Cuzco, Arequipa, Puno, Quilca, &c.), were
     by: scan
   - page: 424
-    from: and on Ang. 23,
-    to: and on Aug. 25,
-    by: scan
-  - page: 424
     from: mdepandmce of the
     to: independence of the
-    by: scan
-  - page: 424
-    from: has in Spein been given to
-    to: name Ayacuchos has in Spain been given to
     by: scan
   - page: 424
     from: Spain.
@@ -37698,10 +37604,6 @@ new-american-cyclopaedia:
     to: the report has
     by: scan
   - page: 424
-    from: so assiduocusly read that even now itis
-    to: so assiduously spread that even now it is
-    by: scan
-  - page: 424
     from: credited in Espartero not only
     to: credited in Spain. Espartero not only
     by: scan
@@ -37710,56 +37612,16 @@ new-american-cyclopaedia:
     to: the battle of
     by: scan
   - page: 424
-    from: whither Vioceroy
-    to: whither Viceroy
-    by: scan
-  - page: 424
-    from: sent hizn with
-    to: sent him with
-    by: scan
-  - page: 424
     from: dinand VIL.
     to: dinand VII.
-    by: scan
-  - page: 424
-    from: b, 1824, in
-    to: 5, 1824, in
-    by: scan
-  - page: 424
-    from: Oadiz Sept. 28, and at id Oot. 18, and
-    to: Cadiz Sept. 28, and at Madrid Oct. 12, and
     by: scan
   - page: 424
     from: Bordeaux on 'that
     to: Bordeaux on that
     by: scan
-  - page: 424
-    from: the battle ot'
-    to: the battle of
-    by: scan
-  - page: 424
-    from: Ayacucho was fonght. (See Don Juan
-    to: Ayacucho was fought. (See Don Juan Segundo
-    by: scan
-  - page: 424
-    from: Florez, Madrid, 1844, 4 vols, and
-    to: Florez, Espartero, Madrid, 1844, 4 vols., and
-    by: scan
-  - page: 424
-    from: Principe, l[adnd, 1848.)
-    to: Principe, Espartero, Madrid, 1848.)
-    by: scan
-  - page: 624
-    from: wiporal fow er 01 ulo poi)e.
-    to: ""
-    by: scan
   - page: 624
     from: BARCLAY DE TOLLY, MicuzL, Russisn
     to: BARCLAY DE TOLLY, Michel, Russian
-    by: scan
-  - page: 624
-    from: rince and field-marshal, born in Livoniain 1759,
-    to: prince and field-marshal, born in Livonia in 1759,
     by: scan
   - page: 624
     from: led at Insterburg,
@@ -37776,10 +37638,6 @@ new-american-cyclopaedia:
   - page: 624
     from: when, at head
     to: when, at the head
-    by: scan
-  - page: 624
-    from: ard of that town. In 1808 he forced the
-    to: yard of that town. In 1808 he forced the
     by: scan
   - page: 624
     from: wedes back into Carelia,
@@ -37860,14 +37718,6 @@ new-american-cyclopaedia:
   - page: 625
     from: position of (zhatsk,
     to: position of Gzhatsk,
-    by: scan
-  - page: 625
-    from: sailed in the front‘:)nd to be turned only My
-    to: sailed in the front, and to be turned only by very
-    by: scan
-  - page: 625
-    from: ways. He had y
-    to: ways. He had already
     by: scan
   - page: 625
     from: placed the st:freme command.
@@ -38030,10 +37880,6 @@ new-american-cyclopaedia:
     to: about 2 months later
     by: scan
   - page: 113
-    from: andacious manaeu
-    to: audacious manœuvres,
-    by: scan
-  - page: 113
     from: being oonteat
     to: being content
     by: scan
@@ -38070,28 +37916,12 @@ new-american-cyclopaedia:
     to: cavalry and
     by: scan
   - page: 114
-    from: mancuvres, the expedition
-    to: manœuvres, the expedition
-    by: scan
-  - page: 114
     from: numerically strong army
     to: numerically strong army,
     by: scan
   - page: 114
     from: uoed no lasting effect,
     to: produced no lasting effect,
-    by: scan
-  - page: 114
-    from: il; hmdxsbl bHemg tied by the ooOperatio; ofak the
-    to: his hands being tied by the coöperation of the
-    by: scan
-  - page: 114
-    from: oapable un?ﬁmn gene must be taken
-    to: incapable Hungarian general, must be taken
-    by: scan
-  - page: 114
-    from: jnto account. irruptiol:l' into Transylvania
-    to: into account. The irruption into Transylvania
     by: scan
   - page: 114
     from: Russian foroes,
@@ -38108,18 +37938,6 @@ new-american-cyclopaedia:
   - page: 114
     from: July 29, at Schissburg, by
     to: July 29, at Schässburg, by
-    by: scan
-  - page: 114
-    from: "32:: times stronger Rmhu;selt?o?sbm“l; La-"
-    to: the 3 times stronger Russian forces under Lü-
-    by: scan
-  - page: 114
-    from: escaping captivity hi only by a plunge
-    to: ders, escaping captivity himself only by a plunge
-    by: scan
-  - page: 114
-    from: into 8 morass from which some disperseg Mag-
-    to: into a morass from which some dispersed Mag-
     by: scan
   - page: 114
     from: oollected the remainder
@@ -38142,10 +37960,6 @@ new-american-cyclopaedia:
     to: what remained
     by: scan
   - page: 114
-    from: he reéntered Transylva-
-    to: he reëntered Transylva-
-    by: scan
-  - page: 114
     from: whelmit;g forces,
     to: whelming forces,
     by: scan
@@ -38164,14 +37978,6 @@ new-american-cyclopaedia:
   - page: 114
     from: there suoceeded in
     to: there succeeded in
-    by: scan
-  - page: 133
-    from: fuli oI grace and imagination,
-    to: ""
-    by: scan
-  - page: 133
-    from: BENNINGSEN, Lzvin Avevsr TaHRO
-    to: BENNINGSEN, Levin August Theophile,
     by: scan
   - page: 133
     from: Feb. 10, 1746, where
@@ -38234,10 +38040,6 @@ new-american-cyclopaedia:
     to: siege of Otchakov,
     by: scan
   - page: 133
-    from: 1798-'94, he commanded
-    to: 1793–’94, he commanded
-    by: scan
-  - page: 133
     from: by Oatharine II.
     to: by Catharine II.
     by: scan
@@ -38252,10 +38054,6 @@ new-american-cyclopaedia:
   - page: 133
     from: from Catharine Il after
     to: from Catharine II., after
-    by: scan
-  - page: 133
-    from: whosee death
-    to: whose death
     by: scan
   - page: 133
     from: her sucoessor.
@@ -38276,10 +38074,6 @@ new-american-cyclopaedia:
   - page: 133
     from: ningsen who Paunl from
     to: ningsen who dragged Paul from
-    by: scan
-  - page: 133
-    from: to abdioat& Benningsen exclaimed, *Enough
-    to: to abdicate, Benningsen exclaimed, “Enough
     by: scan
   - page: 133
     from: talk.” untied
@@ -38326,10 +38120,6 @@ new-american-cyclopaedia:
     to: Kamenski and Buxhövden, soon
     by: scan
   - page: 134
-    from: Benningsen was forced to
-    to: Benningsen was forced to accept,
-    by: scan
-  - page: 134
     from: ocourred on Feb. 8.
     to: occurred on Feb. 8.
     by: scan
@@ -38360,10 +38150,6 @@ new-american-cyclopaedia:
   - page: 134
     from: of Dantzio; but, after the fall of Dantzia,
     to: of Dantzic; but, after the fall of Dantzic,
-    by: scan
-  - page: 134
-    from: hird part only of his own numerical foroe, he
-    to: third part only of his own numerical force, he
     by: scan
   - page: 134
     from: soon mancsuvred back
@@ -38410,16 +38196,8 @@ new-american-cyclopaedia:
     to: 1813, he commanded a Russian army
     by: scan
   - page: 134
-    from: was oreated ocount by
-    to: was created count by
-    by: scan
-  - page: 134
     from: of Leipsio. eiving afterward
     to: of Leipsic. Receiving afterward
-    by: scan
-  - page: 134
-    from: he ered it until
-    to: he beleaguered it until
     by: scan
   - page: 134
     from: the ul occupation
@@ -38436,14 +38214,6 @@ new-american-cyclopaedia:
   - page: 134
     from: leavinrg_nhis ohildren poor in the Russian servioe.
     to: leaving his children poor in the Russian service.
-    by: scan
-  - page: 134
-    from: RY INQTON tha nama of a annnév and
-    to: ""
-    by: scan
-  - page: 161
-    from: ol0v,
-    to: ""
     by: scan
   - page: 161
     from: BERESFORD, Wmiiax Oarg, viscount
@@ -38502,10 +38272,6 @@ new-american-cyclopaedia:
     to: (he never took
     by: scan
   - page: 162
-    from: anr{, in 1814,
-    to: and, in 1814,
-    by: scan
-  - page: 162
     from: 1828 he was advanced
     to: 1823 he was advanced
     by: scan
@@ -38553,14 +38319,6 @@ new-american-cyclopaedia:
     from: lionsaire banker, and author of ius.”
     to: lionaire banker, and author of “Anastasius.”
     by: scan
-  - page: 162
-    from: at his death. @ .
-    to: at his death.
-    by: scan
-  - page: 177
-    from: 1851, 26,340,
-    to: ""
-    by: scan
   - page: 177
     from: BERﬁADO’ITE, JEAN BarTieTe J mar-
     to: BERNADOTTE, Jean Baptiste Jules, mar-
@@ -38602,10 +38360,6 @@ new-american-cyclopaedia:
     to: Jülich, and the
     by: scan
   - page: 177
-    from: in the oamga.lgn of 1795—
-    to: in the campaign of 1795–
-    by: scan
-  - page: 177
     from: "'36 against the A ustrian generals Olairfait,"
     to: ’96 against the Austrian generals Clairfait,
     by: scan
@@ -38644,10 +38398,6 @@ new-american-cyclopaedia:
   - page: 177
     from: so~-called revolution of the 18th E"ructidor,
     to: so-called revolution of the 18th Fructidor,
-    by: scan
-  - page: 177
-    from: ~ecoup d'état ; but
-    to: coup d’état; but
     by: scan
   - page: 177
     from: the folowing day
@@ -38692,10 +38442,6 @@ new-american-cyclopaedia:
   - page: 178
     from: Marseilles merchan
     to: Marseilles merchant,
-    by: scan
-  - page: 178
-    from: and J oseph Bonaparte’s sister-in-law, seeme
-    to: and Joseph Bonaparte’s sister-in-law, seemed
     by: scan
   - page: 178
     from: ocommander of the army
@@ -38746,10 +38492,6 @@ new-american-cyclopaedia:
     to: and Prussians. He was
     by: scan
   - page: 178
-    from: "{glau, {o observe the movements of Archduke"
-    to: Iglau, to observe the movements of Archduke
-    by: scan
-  - page: 178
     from: erdinand in Bohemia;
     to: Ferdinand in Bohemia;
     by: scan
@@ -38796,10 +38538,6 @@ new-american-cyclopaedia:
   - page: 178
     from: command. The latter
     to: command. The latter,
-    by: scan
-  - page: 178
-    from: interpretation o
-    to: interpretation of
     by: scan
   - page: 178
     from: whole day ; while
@@ -38866,10 +38604,6 @@ new-american-cyclopaedia:
     to: maña. Bernadotte
     by: scan
   - page: 178
-    from: his stay in
-    to: his stay in Seeland.
-    by: scan
-  - page: 178
     from: between Kranoe and
     to: between France and
     by: scan
@@ -38888,14 +38622,6 @@ new-american-cyclopaedia:
   - page: 178
     from: by Barnadotte,
     to: by Bernadotte,
-    by: scan
-  - page: 178
-    from: "to<:1 late, and too weakly. Attackh?; in %:::"
-    to: too late, and too weakly. Attacked in front
-    by: scan
-  - page: 178
-    from: Eugdne was roughly thrown
-    to: Eugène was roughly thrown back
     by: scan
   - page: 178
     from: dotte's lnkewarmness,
@@ -38944,10 +38670,6 @@ new-american-cyclopaedia:
   - page: 179
     from: (July 80, 1809)
     to: (July 30, 1809)
-    by: scan
-  - page: 179
-    from: part unnecessary ; but
-    to: part unnecessary; but
     by: scan
   - page: 179
     from: the proEer means
@@ -39010,44 +38732,20 @@ new-american-cyclopaedia:
     to: taking care to conceal their proceedings from
     by: scan
   - page: 179
-    from: artfully rekaleft up
-    to: artfully kept up
-    by: scan
-  - page: 179
     from: latter was y the
     to: latter was really the
-    by: scan
-  - page: 179
-    from: candidate of alt:.goleon. On June 29,
-    to: candidate of Napoleon. On June 29,
     by: scan
   - page: 179
     from: Wrede Seigneul sent' despatches
     to: Wrede and Seigneul sent despatches
     by: scan
   - page: 179
-    from: foreign irs, both
-    to: foreign affairs, both
-    by: scan
-  - page: 179
     from: leasure, sce the royal
     to: pleasure, see the royal
     by: scan
   - page: 179
-    from: Een tenant and relative,
-    to: lieutenant and relative.
-    by: scan
-  - page: 179
     from: Charles XIII,, the diet
     to: Charles XIII., the diet
-    by: scan
-  - page: 179
-    from: the offered dignig; Leaving
-    to: the offered dignity. Leaving
-    by: scan
-  - page: 179
-    from: ab{ured the Oatholiz(frofemion, entered Stook-
-    to: abjured the Catholic profession, entered Stock-
     by: scan
   - page: 179
     from: to exist,’
@@ -39070,10 +38768,6 @@ new-american-cyclopaedia:
     to: to accede to
     by: scan
   - page: 179
-    from: a Frenc grince;
-    to: a French prince;
-    by: scan
-  - page: 179
     from: despatches direotly addressed to him‘
     to: despatches directly addressed to him,
     by: scan
@@ -39092,10 +38786,6 @@ new-american-cyclopaedia:
   - page: 179
     from: decided npon.
     to: decided upon.
-    by: scan
-  - page: 179
-    from: he adznltbed to
-    to: he admitted to
     by: scan
   - page: 179
     from: Swedes for ha
@@ -39168,10 +38858,6 @@ new-american-cyclopaedia:
   - page: 180
     from: Mecklenburg, Btettin,
     to: Mecklenburg, Stettin,
-    by: scan
-  - page: 180
-    from: Bernadotte m.ight have
-    to: Bernadotte might have
     by: scan
   - page: 180
     from: and oocupied St.
@@ -39266,10 +38952,6 @@ new-american-cyclopaedia:
     to: When Blücher, in order
     by: scan
   - page: 180
-    from: by Bir Charles Stewart, the Enﬁlish
-    to: by Sir Charles Stewart, the English
-    by: scan
-  - page: 180
     from: oommissary in his camp,
     to: commissary in his camp,
     by: scan
@@ -39280,10 +38962,6 @@ new-american-cyclopaedia:
   - page: 180
     from: pearanoe’ sake only,
     to: pearance’ sake only,
-    by: scan
-  - page: 180
-    from: "%gn lost not 200 men"
-    to: paign lost not 200 men
     by: scan
   - page: 180
     from: en the allies entered Franoce,
@@ -39342,10 +39020,6 @@ new-american-cyclopaedia:
     to: a constitution still
     by: scan
   - page: 180
-    from: E.ln;ient state
-    to: pendent state
-    by: scan
-  - page: 180
     from: isvold, carried
     to: Edisvold, carried
     by: scan
@@ -39390,14 +39064,6 @@ new-american-cyclopaedia:
     to: diplomatic agents at Stockholm,
     by: scan
   - page: 181
-    from: "thought of me #” The changed aspect of Euro"
-    to: thought of me?” The changed aspect of Europe,
-    by: scan
-  - page: 181
-    from: insurrection, inspir
-    to: insurrection, inspired
-    by: scan
-  - page: 181
     from: by conclading, June 28, 1834,
     to: by concluding, June 28, 1834,
     by: scan
@@ -39432,14 +39098,6 @@ new-american-cyclopaedia:
   - page: 181
     from: Bweden, during
     to: Sweden, during
-    by: scan
-  - page: 181
-    from: peaceo
-    to: peace.
-    by: scan
-  - page: 199
-    from: oral ovnor workxs.
-    to: ""
     by: scan
   - page: 199
     from: BERTHIER, Louis ArLExANDRE, marshal of
@@ -39478,10 +39136,6 @@ new-american-cyclopaedia:
     to: Louis XVI. appointed
     by: scan
   - page: 199
-    from: Feb, 19, 17901,
-    to: Feb. 19, 1791,
-    by: scan
-  - page: 199
     from: service fo the royal
     to: service to the royal
     by: scan
@@ -39514,10 +39168,6 @@ new-american-cyclopaedia:
     to: before Bonaparte singled
     by: scan
   - page: 199
-    from: of 1796-'7, he also t‘Eroved
-    to: of 1796–’7, he also proved
-    by: scan
-  - page: 199
     from: 23. 1796), Lodi, (May 10, 1796), Codogno
     to: 22, 1796), Lodi, (May 10, 1796), Codogno
     by: scan
@@ -39528,14 +39178,6 @@ new-american-cyclopaedia:
   - page: 199
     from: oulean strength
     to: culean strength
-    by: scan
-  - page: 200
-    from: him-todwork during f?,conaecntivo nights, of &
-    to: him to work during 8 consecutive nights, of a
-    by: scan
-  - page: 200
-    from: details of mili operations,
-    to: details of military operations,
     by: scan
   - page: 200
     from: "cantonmen:"
@@ -39568,10 +39210,6 @@ new-american-cyclopaedia:
   - page: 200
     from: issaries and purveyors,
     to: missaries and purveyors,
-    by: scan
-  - page: 200
-    from: and lasting
-    to: and lasting pas-
     by: scan
   - page: 200
     from: sion for whom cansed him
@@ -39612,14 +39250,6 @@ new-american-cyclopaedia:
   - page: 200
     from: concluded «an armistice
     to: concluded an armistice
-    by: scan
-  - page: 200
-    from: of mgjor-general
-    to: of major-general
-    by: scan
-  - page: 200
-    from: snied a8 chief
-    to: panied as chief
     by: scan
   - page: 200
     from: 18 campaigns.
@@ -39732,20 +39362,12 @@ new-american-cyclopaedia:
     to: of 34,000 florins.
     by: scan
   - page: 200
-    from: On N%eon’s return from KElba,
-    to: On Napoleon’s return from Elba,
-    by: scan
-  - page: 200
     from: Louis X VIIL to Ghent.
     to: Louis XVIII. to Ghent.
     by: scan
   - page: 200
     from: in consequenoce
     to: in consequence
-    by: scan
-  - page: 208
-    from: "r hand. :"
-    to: ""
     by: scan
   - page: 208
     from: BESSIERES, Jeaw BaprisTe, marshal of
@@ -39831,14 +39453,6 @@ new-american-cyclopaedia:
     from: the army
     to: the army.
     by: scan
-  - page: 209
-    from: "s r e 2228 adan: nt T PN o NP DI"
-    to: ""
-    by: scan
-  - page: 386
-    from: mutudes.
-    to: ""
-    by: scan
   - page: 386
     from: ince of Wahlstadt, Prussian field-marshal
     to: |-
@@ -39888,14 +39502,6 @@ new-american-cyclopaedia:
   - page: 386
     from: "to Frederic IL: *Sire,"
     to: "to Frederic II.: “Sire,"
-    by: scan
-  - page: 386
-    from: Jagersfeld, who possesses no merit bat that of
-    to: Jägersfeld, who possesses no merit but that of
-    by: scan
-  - page: 386
-    from: the ma.rﬁrave of
-    to: the margrave of
     by: scan
   - page: 386
     from: ﬁra.nt my dismissal.” Inreply Fredericll.ordered
@@ -39984,10 +39590,6 @@ new-american-cyclopaedia:
   - page: 386
     from: overnor, Erfurt, Mahlhaunsen, and Munster.
     to: governor, Erfurt, Mühlhausen, and Münster.
-    by: scan
-  - page: 386
-    from: n 1806 a small corps was «collected under
-    to: In 1805 a small corps was collected under
     by: scan
   - page: 386
     from: to watoch the
@@ -40162,16 +39764,8 @@ new-american-cyclopaedia:
     to: as Müffling says,
     by: scan
   - page: 387
-    from: it, orj whether it was or bad.”
-    to: it, or judge whether it was good or bad.”
-    by: scan
-  - page: 387
     from: "osed of 8 corpe darmée: 40,000"
     to: "posed of 3 corps d’armée: 40,000"
-    by: scan
-  - page: 387
-    from: ant Lnn%eron; 16,000
-    to: Count Langeron; 16,000
     by: scan
   - page: 387
     from: Sacken ; and a Prussian corps of 40,000 men nnder
@@ -40458,10 +40052,6 @@ new-american-cyclopaedia:
     to: cross the Saale at
     by: scan
   - page: 388
-    from: there. Oect. 11,
-    to: there. Oct. 11,
-    by: scan
-  - page: 388
     from: Just crossing
     to: just crossing
     by: scan
@@ -40494,20 +40084,12 @@ new-american-cyclopaedia:
     to: bridge constructed
     by: scan
   - page: 388
-    from: day, Oot. 18, he
-    to: day, Oct. 13, he
-    by: scan
-  - page: 388
     from: informed Blticher that
     to: informed Blücher that
     by: scan
   - page: 388
     from: (Bliacher) under
     to: (Blücher) under
-    by: scan
-  - page: 388
-    from: ight bank of the Elbe with
-    to: right bank of the Elbe with
     by: scan
   - page: 388
     from: Had Blucher
@@ -40658,10 +40240,6 @@ new-american-cyclopaedia:
     to: drove Marmont beyond
     by: scan
   - page: 389
-    from: in the valley of the Moselle, posted
-    to: Sarre, in the valley of the Moselle, posted
-    by: scan
-  - page: 389
     from: of Backen’s corps
     to: of Sacken’s corps
     by: scan
@@ -40704,10 +40282,6 @@ new-american-cyclopaedia:
   - page: 389
     from: of Chdtillon,
     to: of Châtillon,
-    by: scan
-  - page: 389
-    from: ted to gain time. In fact, after the juno-
-    to: pected to gain time. In fact, after the junc-
     by: scan
   - page: 389
     from: of the Bilesian army
@@ -40902,10 +40476,6 @@ new-american-cyclopaedia:
     to: the corps of Kleist
     by: scan
   - page: 390
-    from: kept bim back, the other dmshed him
-    to: kept him back, the other pushed him
-    by: scan
-  - page: 390
     from: Champanbert, and routed him. Blocher,
     to: Champaubert, and routed him. Blücher,
     by: scan
@@ -40986,10 +40556,6 @@ new-american-cyclopaedia:
     to: bert. During its
     by: scan
   - page: 390
-    from: might have reached E
-    to: might have reached Etoges
-    by: scan
-  - page: 390
     from: if Bliicher had not
     to: if Blücher had not
     by: scan
@@ -41060,10 +40626,6 @@ new-american-cyclopaedia:
   - page: 391
     from: Schwartzenberg to give battle
     to: Schwartzenberg to give battle,
-    by: scan
-  - page: 391
-    from: if the gran
-    to: if the grand
     by: scan
   - page: 391
     from: Bwitzerland, had already
@@ -41174,16 +40736,8 @@ new-american-cyclopaedia:
     to: army. Blücher originally
     by: scan
   - page: 391
-    from: Berry-au-Ba¢, in order to e({)am the
-    to: Berry-au-Bac, in order to pass the
-    by: scan
-  - page: 391
     from: ition, iminediately
     to: position, immediately
-    by: scan
-  - page: 391
-    from: B(:rry-au-Bao, so
-    to: Berry-au-Bac, so
     by: scan
   - page: 391
     from: already poeted his foroes,
@@ -41236,10 +40790,6 @@ new-american-cyclopaedia:
   - page: 392
     from: disabled Blticher,
     to: disabled Blücher,
-    by: scan
-  - page: 392
-    from: mained in 8 Gﬁrovocatory attitude,
-    to: mained in a provocatory attitude,
     by: scan
   - page: 392
     from: mped the advance
@@ -41298,10 +40848,6 @@ new-american-cyclopaedia:
     to: cross; the prince
     by: scan
   - page: 392
-    from: mrtrait, and the universitinof Oxford the
-    to: his portrait, and the university of Oxford the
-    by: scan
-  - page: 392
     from: emical degree of LL. D. 1815 he again
     to: academical degree of LL. D. In 1815 he again
     by: scan
@@ -41340,10 +40886,6 @@ new-american-cyclopaedia:
   - page: 392
     from: ug, and the restitution
     to: up, and the restitution
-    by: scan
-  - page: 392
-    from: gambli n% tables for rouge-et-notr.
-    to: gambling tables for rouge-et-noir.
     by: scan
   - page: 392
     from: a publio
@@ -41394,16 +40936,8 @@ new-american-cyclopaedia:
     to: of 1813–’15, which
     by: scan
   - page: 392
-    from: warfare,
-    to: warfare.
-    by: scan
-  - page: 392
     from: at Paris 8 months,
     to: at Paris 3 months,
-    by: scan
-  - page: 396
-    from: miuiee.
-    to: ""
     by: scan
   - page: 396
     from: BLUM, RoBert, one
@@ -41597,14 +41131,6 @@ new-american-cyclopaedia:
     from: dischgriitz, quietly
     to: dischgrätz, quietly
     by: scan
-  - page: 397
-    from: commauted to
-    to: commuted to
-    by: scan
-  - page: 440
-    from: Of wWnoill 4,10V WOI's 8lavos,
-    to: ""
-    by: scan
   - page: 440
     from: BOLIVAR Y PONTE, Siuorw, the “libera-
     to: BOLIVAR Y PONTE, Simon, the “libera-
@@ -41638,10 +41164,6 @@ new-american-cyclopaedia:
     to: giving notice to
     by: scan
   - page: 441
-    from: hisown troops, arrived at daybreak at La Guayrs,
-    to: his own troops, arrived at daybreak at La Guayra,
-    by: scan
-  - page: 441
     from: the suthority of
     to: the authority of
     by: scan
@@ -41652,10 +41174,6 @@ new-american-cyclopaedia:
   - page: 441
     from: Mirandaarrived at La Guayra, where heintended
     to: Miranda arrived at La Guayra, where he intended
-    by: scan
-  - page: 441
-    from: gn.ny, among whom were Don Miguel Pefia and
-    to: pany, among whom were Don Miguel Peña and
     by: scan
   - page: 441
     from: imon Bolivar,
@@ -41704,10 +41222,6 @@ new-american-cyclopaedia:
   - page: 441
     from: gions as to the supreme
     to: sions as to the supreme
-    by: scan
-  - page: 441
-    from: Castillo’s exaur:(i)le,
-    to: Castillo’s example,
     by: scan
   - page: 441
     from: retuarn to Oarthagena,
@@ -41874,10 +41388,6 @@ new-american-cyclopaedia:
     to: against a place provided with about 80 guns.
     by: scan
   - page: 442
-    from: e afterward converted
-    to: He afterward converted
-    by: scan
-  - page: 442
     from: a great SBpanish
     to: a great Spanish
     by: scan
@@ -41902,20 +41412,12 @@ new-american-cyclopaedia:
     to: lamation, representing
     by: scan
   - page: 442
-    from: approaching S({mninrds as a
-    to: approaching Spaniards as a
-    by: scan
-  - page: 442
     from: stay - at Kingston, the generals he bad left
     to: stay at Kingston, the generals he had left
     by: scan
   - page: 442
     from: arms. DBut Ribas,
     to: arms. But Ribas,
-    by: scan
-  - page: 443
-    from: there aptpenred in his stead
-    to: there appeared in his stead
     by: scan
   - page: 443
     from: Qarthagena with
@@ -42022,10 +41524,6 @@ new-american-cyclopaedia:
     to: at the neighboring bay, jumped
     by: scan
   - page: 443
-    from: leaving all his companions
-    to: and leaving all his companions
-    by: scan
-  - page: 443
     from: rebukes and .
     to: rebukes and
     by: scan
@@ -42074,10 +41572,6 @@ new-american-cyclopaedia:
     to: of a capitulation,
     by: scan
   - page: 443
-    from: "] Piar, aman of ocolor and native of Curagoa,"
-    to: iards. Piar, a man of color and native of Curaçoa,
-    by: scan
-  - page: 443
     from: his gun-beats.
     to: his gun-boats.
     by: scan
@@ -42122,20 +41616,12 @@ new-american-cyclopaedia:
     to: deprived of Piar,
     by: scan
   - page: 444
-    from: he, in 8 most abject letter, publicly calumnia
-    to: he, in a most abject letter, publicly calumniated
-    by: scan
-  - page: 444
     from: Bolivar’s inexhaunstible fund
     to: Bolivar’s inexhaustible fund
     by: scan
   - page: 444
     from: Qalabozo as “armies
     to: Calabozo as “armies
-    by: scan
-  - page: 444
-    from: "{lunction had not"
-    to: junction had not
     by: scan
   - page: 444
     from: e mustered more
@@ -42250,20 +41736,12 @@ new-american-cyclopaedia:
     to: his European troops
     by: scan
   - page: 444
-    from: referred protracting the war for b years longer.
-    to: preferred protracting the war for 5 years longer.
-    by: scan
-  - page: 444
     from: n October, 1819, the congress of Angosturs
     to: In October, 1819, the congress of Angostura
     by: scan
   - page: 444
     from: Angostura, surprised -
     to: Angostura, surprised
-    by: scan
-  - page: 444
-    from: centralized Sgwer, led
-    to: centralized power, led
     by: scan
   - page: 444
     from: the ¢ republic of Colombia,”
@@ -42340,10 +41818,6 @@ new-american-cyclopaedia:
   - page: 445
     from: Dec. 17, Morillo
     to: Dec. 17, Morillo,
-    by: scan
-  - page: 445
-    from: Spain, embark
-    to: Spain, embarked
     by: scan
   - page: 445
     from: at Puerto Oabello, leaving
@@ -42468,10 +41942,6 @@ new-american-cyclopaedia:
   - page: 445
     from: of Oolombia by
     to: of Colombia by
-    by: scan
-  - page: 445
-    from: Here, where Bucre’s
-    to: Here, where Sucre’s
     by: scan
   - page: 445
     from: ¢ Bolivian Code,” an imitation of the Code
@@ -42622,10 +42092,6 @@ new-american-cyclopaedia:
     to: April 27, 1830.
     by: scan
   - page: 446
-    from: influence of his '
-    to: influence of his partisans,
-    by: scan
-  - page: 446
     from: quersa, the new
     to: quera, the new
     by: scan
@@ -42666,10 +42132,6 @@ new-american-cyclopaedia:
     to: of hearing
     by: scan
   - page: 446
-    from: so-called beau possesses
-    to: so-called beau monde, possesses
-    by: scan
-  - page: 446
     from: almost Asiatio talent
     to: almost Asiatic talent
     by: scan
@@ -42678,28 +42140,12 @@ new-american-cyclopaedia:
     to: 1842 to Caracas,
     by: scan
   - page: 446
-    from: honor.—8ee Histoire
-    to: honor.—See Histoire
-    by: scan
-  - page: 446
-    from: Duooudrey-Holstein, continuées jusqu’d sa mord,
-    to: Ducoudrey-Holstein, continuée jusqu’à sa mort,
-    by: scan
-  - page: 446
     from: par Alphonss Viollet (Paris, 1881), “ Memoirs
     to: par Alphonse Viollet (Paris, 1831), “Memoirs
     by: scan
   - page: 446
     from: Eublio of Perun),” Ool. Hippisley's “ Account of
     to: public of Peru),” Col. Hippisley’s “Account of
-    by: scan
-  - page: 446
-    from: is Journey to
-    to: his Journey to
-    by: scan
-  - page: 543
-    from: Ualgna.l, meriaian,
-    to: ""
     by: scan
   - page: 543
     from: OSQUET, Marre Josepmr, a marshal of
@@ -42746,10 +42192,6 @@ new-american-cyclopaedia:
     to: campaign of Kabylia
     by: scan
   - page: 544
-    from: toward fonis Napoleon,
-    to: toward Louis Napoleon,
-    by: scan
-  - page: 544
     from: when troogs were
     to: when troops were
     by: scan
@@ -42776,18 +42218,6 @@ new-american-cyclopaedia:
   - page: 544
     from: Bosctuet constantly
     to: Bosquet constantly
-    by: scan
-  - page: 544
-    from: made amarshal,
-    to: made a marshal,
-    by: scan
-  - page: 589
-    from: "&M DASSAUOr ab Lilds court."
-    to: ""
-    by: scan
-  - page: 589
-    from: BOURRIENNE, Louis ANTOINE FAUVELET
-    to: BOURRIENNE, Louis Antoine Fauvelet
     by: scan
   - page: 589
     from: na private secretary of Napoleon,
@@ -42829,21 +42259,9 @@ new-american-cyclopaedia:
     from: eared, and Bourrienne
     to: peared, and Bourrienne
     by: scan
-  - page: 589
-    from: . In 1805 he
-    to: burg. In 1805 he
-    by: scan
-  - page: 589
-    from: ruined maa.xii he
-    to: ruined man, he
-    by: scan
   - page: 590
     from: Louis XVIIL, and at
     to: Louis XVIII., and at
-    by: scan
-  - page: 590
-    from: first ramor of
-    to: first rumor of
     by: scan
   - page: 590
     from: lice, & post he held
@@ -42852,10 +42270,6 @@ new-american-cyclopaedia:
   - page: 590
     from: Fe?on, in his decree
     to: leon, in his decree
-    by: scan
-  - page: 590
-    from: the ﬁnera.l amnesty,
-    to: the general amnesty,
     by: scan
   - page: 590
     from: to Hamburg, created,
@@ -42876,14 +42290,6 @@ new-american-cyclopaedia:
   - page: 590
     from: (10 vols, 8vo),
     to: (10 vols. 8vo),
-    by: scan
-  - page: 590
-    from: L (o W ol o o aatft o B VU 4 . e Y . o R B
-    to: ""
-    by: scan
-  - page: 15
-    from: DHUNDUDIUM., D500 DRINDIBL
-    to: ""
     by: scan
   - page: 15
     from: BRUNE, GuiLLavMz MARIRE ANNE, 8 marshal
@@ -42910,10 +42316,6 @@ new-american-cyclopaedia:
   - page: 16
     from: edjgtant-mqior. He served under Dumouries
     to: adjutant-major. He served under Dumouriez
-    by: scan
-  - page: 16
-    from: in Belgium ; was sent
-    to: in Belgium; was sent
     by: scan
   - page: 16
     from: Osalvados, advancing
@@ -42996,14 +42398,6 @@ new-american-cyclopaedia:
     to: the coup d’état of
     by: scan
   - page: 16
-    from: newly oreat-
-    to: newly creat-
-    by: scan
-  - page: 16
-    from: oouncil of state,
-    to: ed council of state,
-    by: scan
-  - page: 16
     from: Brittany. nt in 1800
     to: Brittany. Sent in 1800
     by: scan
@@ -43018,14 +42412,6 @@ new-american-cyclopaedia:
   - page: 16
     from: delay its exeocution
     to: delay its execution
-    by: scan
-  - page: 16
-    from: superior Austrian foroes.
-    to: superior Austrian forces.
-    by: scan
-  - page: 16
-    from: blander led to his recall
-    to: blunder led to his recall
     by: scan
   - page: 16
     from: cut & sorry figure as ambaseador at
@@ -43070,10 +42456,6 @@ new-american-cyclopaedia:
   - page: 16
     from: e island of Rigen to the French,
     to: the island of Rügen to the French,
-    by: scan
-  - page: 16
-    from: to the agmemeng without
-    to: to the agreement, without
     by: scan
   - page: 16
     from: to his ‘imperial and royal majesty.”
@@ -43134,10 +42516,6 @@ new-american-cyclopaedia:
       meeting with difficulties, Brune gave orders to
     by: scan
   - page: 82
-    from: Vid 1085400,
-    to: ""
-    by: scan
-  - page: 82
     from: RoBerT, duc d’Isly,
     to: Robert, duc d’Isly,
     by: scan
@@ -43192,10 +42570,6 @@ new-american-cyclopaedia:
   - page: 83
     from: of the ‘* ex-gaoler of Blaye.”
     to: of the “ex-gaoler of Blaye.”
-    by: scan
-  - page: 83
-    from: ing the debates of the chamber
-    to: During the debates of the chamber
     by: scan
   - page: 83
     from: on Jan. 18, 1834,
@@ -43326,20 +42700,12 @@ new-american-cyclopaedia:
     to: consequently placed in other hands, and Bu-
     by: scan
   - page: 83
-    from: g;xisional government.
-    to: provisional government.
-    by: scan
-  - page: 83
     from: me president he
     to: became president he
     by: scan
   - page: 83
     from: chiefly of Algeria,
     to: chiefly of Algeria.
-    by: scan
-  - page: 83
-    from: native town.,
-    to: native town.
     by: scan
   - page: 82
     from: BUGEAUD DE LA PICONNERIE, Taoxas
@@ -43412,6 +42778,672 @@ new-american-cyclopaedia:
   - page: 83
     from: chief of the army of the Alps
     to: of the army of the Alps
+    by: scan
+  - page: 105
+    from: Bpaniards.
+    to: ""
+    by: scan
+  - page: 105
+    from: of 4] 1bs, The
+    to: charge of 4½ lbs. The
+    by: scan
+  - page: 105
+    from: ing to a MBS, in
+    to: According to a MS. in
+    by: scan
+  - page: 105
+    from: titled ¢ Details of
+    to: titled “Details of
+    by: scan
+  - page: 105
+    from: Spanish shi’?e whenever
+    to: Spanish ships whenever
+    by: scan
+  - page: 424
+    from: ouU D
+    to: ""
+    by: scan
+  - page: 424
+    from: AYAOUOHO & department in the republic
+    to: AYACUCHO, a department in the republic
+    by: scan
+  - page: 424
+    from: named Ayaonch the
+    to: also named Ayacucho, the
+    by: scan
+  - page: 424
+    from: attem by manceuvring to cat off
+    to: Serna, attempted by manœuvring to cut off
+    by: scan
+  - page: 424
+    from: toock up a defensive
+    to: where the Spaniards took up a defensive position on a height. They numbered 13 battalions of infantry, with artillery and cavalry, in all 9,310 men. On Dec. 8, 1824, the advanced guards of both armies became engaged, and on the following day Sucre advanced with 5,780 men to the attack. The 2d Colombian division, under Gen. Cordova, attacked the Spanish left, and at once threw it into disorder. The Peruvian division on the left, under Gen. Llamar, met with a more obstinate resistance, and could make no progress until the reserve, under Gen. Lara, came up. The enemy’s retreat now becoming general, the cavalry was launched in pursuit, dispersing the Spanish horse and com-
+    by: scan
+  - page: 424
+    from: t Thgynnm.:edlahﬂ:h.g
+    to: ""
+    by: scan
+  - page: 424
+    from: purmt,s‘:perang
+    to: ""
+    by: scan
+  - page: 424
+    from: plﬁnﬁ:o defeat of the infantry. The 8
+    to: pleting the defeat of the infantry. The Span-
+    by: scan
+  - page: 424
+    from: "iards 6 generals killed and 2,600 hm:"
+    to: iards lost 6 generals killed and 2,600 killed,
+    by: scan
+  - page: 424
+    from: The American
+    to: The South American
+    by: scan
+  - page: 424
+    from: onlyheandallhnu'oopssnn'endmdpnsoners
+    to: only he and all his troops surrendered prisoners
+    by: scan
+  - page: 424
+    from: 1:.1{1'::',bntl]aoalltlmBpa.:::tll1:l'oopomPer :i
+    to: of war, but also all the Spanish troops in Peru,
+    by: scan
+  - page: 424
+    from: military posts, artillery, magarines, an
+    to: all military posts, artillery, and magazines, and
+    by: scan
+  - page: 424
+    from: in Spein been
+    to: in Spain been
+    by: scan
+  - page: 424
+    from: besidoby
+    to: ""
+    by: scan
+  - page: 424
+    from: interests.
+    to: mutual interests.
+    by: scan
+  - page: 424
+    from: been 80 assiduously read that
+    to: been so assiduously spread that
+    by: scan
+  - page: 424
+    from: whither Vioeroy
+    to: whither Viceroy
+    by: scan
+  - page: 424
+    from: b, 1894,m the
+    to: 5, 1824, in the
+    by: scan
+  - page: 424
+    from: Oadiz Sept. 28, and at id Oct. 138, snd
+    to: Cadiz Sept. 28, and at Madrid Oct. 12, and
+    by: scan
+  - page: 424
+    from: was fonght. (See
+    to: was fought. (See
+    by: scan
+  - page: 424
+    from: Florez, adrid, 1844, 4 vols, and
+    to: Florez, Espartero, Madrid, 1844, 4 vols., and
+    by: scan
+  - page: 424
+    from: Principe, l[adnd, 1848)
+    to: Principe, Espartero, Madrid, 1848.)
+    by: scan
+  - page: 624
+    from: vemporal power OI tne poi)e.
+    to: ""
+    by: scan
+  - page: 624
+    from: g:-ince and field-marshal, born in Livoniain 1759,
+    to: prince and field-marshal, born in Livonia in 1759,
+    by: scan
+  - page: 624
+    from: ard of that town. In 1808 he foroed the
+    to: yard of that town. In 1808 he forced the
+    by: scan
+  - page: 624
+    from: to Prinoe
+    to: to Prince Bagra-
+    by: scan
+  - page: 625
+    from: the front‘:)nd to
+    to: the front, and to
+    by: scan
+  - page: 625
+    from: had Jready
+    to: had already
+    by: scan
+  - page: 625
+    from: the onlg general
+    to: the only general
+    by: scan
+  - page: 112
+    from: ried Nin O, 8% & SIal pisce 1N jenin,
+    to: ""
+    by: scan
+  - page: 113
+    from: it on, forms the most important portion of
+    to: carry it on, forms the most important portion of
+    by: scan
+  - page: 113
+    from: surprises, andacious manmuvres,
+    to: surprises, audacious manœuvres,
+    by: scan
+  - page: 113
+    from: his troofps by
+    to: his troops by
+    by: scan
+  - page: 114
+    from: manau the
+    to: manœuvres, the
+    by: scan
+  - page: 114
+    from: is hands being tied by the oodperation of
+    to: his hands being tied by the coöperation of
+    by: scan
+  - page: 114
+    from: inoapable H ian general,
+    to: incapable Hungarian general,
+    by: scan
+  - page: 114
+    from: jnto account. e irruption
+    to: into account. The irruption
+    by: scan
+  - page: 114
+    from: the 8 times stronger Russian foroes under Li-
+    to: the 3 times stronger Russian forces under Lü-
+    by: scan
+  - page: 114
+    from: only bmlungo
+    to: only by a plunge
+    by: scan
+  - page: 114
+    from: into 8 morass from which some dispe Mag-
+    to: into a morass from which some dispersed Mag-
+    by: scan
+  - page: 114
+    from: steps vo Hungary,
+    to: steps to Hungary,
+    by: scan
+  - page: 114
+    from: he re&ntered Transylva-
+    to: he reëntered Transylva-
+    by: scan
+  - page: 114
+    from: committed duri
+    to: committed during
+    by: scan
+  - page: 114
+    from: sllow no medical sd.
+    to: allow no medical aid.
+    by: scan
+  - page: 133
+    from: full of grace and imagination.
+    to: ""
+    by: scan
+  - page: 133
+    from: BENNINGSEN, Leviv Aveusr THROPHILE,
+    to: BENNINGSEN, Levin August Theophile,
+    by: scan
+  - page: 133
+    from: expenditure fgot'. hopelessly
+    to: expenditure got hopelessly
+    by: scan
+  - page: 133
+    from: ??wﬁ-%eneml. Iﬁ e1‘;1h<ai i’olinhf %mgﬁpaign of
+    to: brigadier-general. In the Polish campaign of
+    by: scan
+  - page: 133
+    from: e commanded a corps of light troops;
+    to: 1793–’94, he commanded a corps of light troops;
+    by: scan
+  - page: 133
+    from: was oreated general after t.he?ﬂB‘airs of Orschanl
+    to: was created general after the affairs of Orschani
+    by: scan
+  - page: 133
+    from: exclaimed, * Enough
+    to: exclaimed, “Enough
+    by: scan
+  - page: 134
+    from: to acoept,
+    to: to accept,
+    by: scan
+  - page: 134
+    from: still ooonFied with
+    to: still occupied with
+    by: scan
+  - page: 134
+    from: was coreated oount bﬁe%lexander, on
+    to: was created count by Alexander, on
+    by: scan
+  - page: 134
+    from: RENNINGTON. tha nama of a2 annntv and
+    to: ""
+    by: scan
+  - page: 161
+    from: enoce.
+    to: ""
+    by: scan
+  - page: 161
+    from: (under Abercrombg), the
+    to: (under Abercromby), the
+    by: scan
+  - page: 162
+    from: 1814, vigorouslg supporting
+    to: 1814, vigorously supporting
+    by: scan
+  - page: 162
+    from: death. .
+    to: death.
+    by: scan
+  - page: 177
+    from: of 1795—
+    to: of 1795–
+    by: scan
+  - page: 177
+    from: "- coup d'état ; but"
+    to: coup d’état; but
+    by: scan
+  - page: 178
+    from: Joseph Bonaparte's sister-in-law, seeme
+    to: Joseph Bonaparte’s sister-in-law, seemed
+    by: scan
+  - page: 178
+    from: au, to
+    to: Iglau, to
+    by: scan
+  - page: 178
+    from: and Sk, Eugine was Toughly thrown
+    to: and flank, Eugène was roughly thrown
+    by: scan
+  - page: 178
+    from: an dne was ro thrown
+    to: ""
+    by: scan
+  - page: 178
+    from: Austrians -
+    to: Austrians
+    by: scan
+  - page: 179
+    from: intrigaes with
+    to: intrigues with
+    by: scan
+  - page: 179
+    from: part ; but
+    to: part unnecessary; but
+    by: scan
+  - page: 179
+    from: kept wup
+    to: kept up
+    by: scan
+  - page: 179
+    from: jentenant and relative, In
+    to: lieutenant and relative. In
+    by: scan
+  - page: 179
+    from: ab{ured the Oatholiz(frofemion, entered
+    to: abjured the Catholic profession, entered
+    by: scan
+  - page: 179
+    from: he tted to
+    to: he admitted to
+    by: scan
+  - page: 179
+    from: the pe«tagle, threat-
+    to: the people, threat-
+    by: scan
+  - page: 180
+    from: peace of Bucharest, he enabled the Russian ad-
+    to: of Bucharest, he enabled the Russian ad-
+    by: scan
+  - page: 180
+    from: ﬁtirited and
+    to: spirited and
+    by: scan
+  - page: 180
+    from: by Bir Charles Stewart, the Englllish
+    to: by Sir Charles Stewart, the English
+    by: scan
+  - page: 180
+    from: aign lost
+    to: paign lost
+    by: scan
+  - page: 180
+    from: Ex;ient state
+    to: pendent state
+    by: scan
+  - page: 181
+    from: "of me #” The changed aspect of Eml:i"
+    to: of me?” The changed aspect of Europe,
+    by: scan
+  - page: 181
+    from: insurrection, inspi
+    to: insurrection, inspired
+    by: scan
+  - page: 181
+    from: aco. .
+    to: peace.
+    by: scan
+  - page: 199
+    from: eral other WOTKS.
+    to: ""
+    by: scan
+  - page: 199
+    from: 19, 1701,
+    to: 19, 1791,
+    by: scan
+  - page: 199
+    from: of 1796-"7, he also t‘Eroved himself
+    to: of 1796–’7, he also proved himself
+    by: scan
+  - page: 200
+    from: himstodwork during f?,mm nights, of &
+    to: him to work during 8 consecutive nights, of a
+    by: scan
+  - page: 200
+    from: stu ous memory
+    to: stupendous memory
+    by: scan
+  - page: 200
+    from: thepgztails of mili operations,
+    to: the details of military operations,
+    by: scan
+  - page: 200
+    from: u?on, orderly
+    to: upon, orderly
+    by: scan
+  - page: 200
+    from: mili movements,
+    to: military movements,
+    by: scan
+  - page: 200
+    from: of mgor-general of
+    to: of major-general of
+    by: scan
+  - page: 200
+    from: anied as chief of the ﬁeneral during
+    to: panied as chief of the general staff during
+    by: scan
+  - page: 200
+    from: On N%eon’s return from Klba, he
+    to: On Napoleon’s return from Elba, he
+    by: scan
+  - page: 208
+    from: master hand. -
+    to: ""
+    by: scan
+  - page: 208
+    from: of éalamanoa, he
+    to: of Salamanca, he
+    by: scan
+  - page: 386
+    from: latitudes.
+    to: ""
+    by: scan
+  - page: 386
+    from: Jigersfelci, who
+    to: Jägersfeld, who
+    by: scan
+  - page: 386
+    from: fn 1806 a small corps was scollected under
+    to: In 1805 a small corps was collected under
+    by: scan
+  - page: 387
+    from: other distixgnisiled Prus-
+    to: other distinguished Prus-
+    by: scan
+  - page: 387
+    from: or jud,g whether it was or
+    to: or judge whether it was good or
+    by: scan
+  - page: 387
+    from: ant n; 16,000
+    to: Count Langeron; 16,000
+    by: scan
+  - page: 388
+    from: at Akea while, on the same day, Oot. 18, hhe
+    to: at Aken, while, on the same day, Oct. 13, he
+    by: scan
+  - page: 389
+    from: Barre, in
+    to: Sarre, in
+    by: scan
+  - page: 389
+    from: the juno-
+    to: the junc-
+    by: scan
+  - page: 389
+    from: of G{Tulay (12,-
+    to: of Gyulay (12,-
+    by: scan
+  - page: 390
+    from: five kept bim back,
+    to: tive kept him back,
+    by: scan
+  - page: 390
+    from: him. lgeeaten with
+    to: him. Beaten with
+    by: scan
+  - page: 390
+    from: the d army,
+    to: the grand army,
+    by: scan
+  - page: 391
+    from: the granci
+    to: the grand
+    by: scan
+  - page: 391
+    from: and, havin%epassed the
+    to: and, having passed the
+    by: scan
+  - page: 391
+    from: the Bilesian
+    to: the Silesian
+    by: scan
+  - page: 391
+    from: erry-au-Bac, so
+    to: Berry-au-Bac, so
+    by: scan
+  - page: 391
+    from: numerical alt]:})erioﬁty, the
+    to: numerical superiority, the
+    by: scan
+  - page: 392
+    from: in 8 Girovocatory attitude,
+    to: in a provocatory attitude,
+    by: scan
+  - page: 392
+    from: mrtrait, and the univerdity of
+    to: his portrait, and the university of
+    by: scan
+  - page: 392
+    from: warfare. =
+    to: warfare.
+    by: scan
+  - page: 396
+    from: mittee.
+    to: ""
+    by: scan
+  - page: 397
+    from: a 1Pnnishmenl; commuted
+    to: a punishment commuted
+    by: scan
+  - page: 397
+    from: the Brigittenaun.
+    to: the Brigittenau.
+    by: scan
+  - page: 440
+    from: OI WDOIN %,150 Were 8laves.
+    to: ""
+    by: scan
+  - page: 441
+    from: . hisown troops, arrived at daybreak at La Guayrs,
+    to: his own troops, arrived at daybreak at La Guayra,
+    by: scan
+  - page: 441
+    from: y, among whom were Don Miguel Pefia and
+    to: pany, among whom were Don Miguel Peña and
+    by: scan
+  - page: 441
+    from: western grovinces. The only serious resist-’
+    to: western provinces. The only serious resist-
+    by: scan
+  - page: 441
+    from: than 1,600 Spaniards
+    to: than 1,500 Spaniards
+    by: scan
+  - page: 442
+    from: ge afterward converted the siege into & block-
+    to: He afterward converted the siege into a block-
+    by: scan
+  - page: 443
+    from: there aptpemd in
+    to: there appeared in
+    by: scan
+  - page: 443
+    from: a foreigoner unable
+    to: a foreigner unable
+    by: scan
+  - page: 443
+    from: aud leaving
+    to: and leaving
+    by: scan
+  - page: 443
+    from: town o
+    to: town of
+    by: scan
+  - page: 443
+    from: Piar, aman of ocolor and native of Curacoa,
+    to: Piar, a man of color and native of Curaçoa,
+    by: scan
+  - page: 443
+    from: and exeocuted the
+    to: and executed the
+    by: scan
+  - page: 443
+    from: political section,
+    to: political section.
+    by: scan
+  - page: 444
+    from: in 8 most
+    to: in a most
+    by: scan
+  - page: 444
+    from: unction had
+    to: junction had
+    by: scan
+  - page: 444
+    from: "}vreferred protractini the war for b years"
+    to: preferred protracting the war for 5 years
+    by: scan
+  - page: 445
+    from: had ex];lressl y forbidden
+    to: had expressly forbidden
+    by: scan
+  - page: 445
+    from: anxions to play his part in Spainp, embarked
+    to: anxious to play his part in Spain, embarked
+    by: scan
+  - page: 445
+    from: of ugper Peru,
+    to: of upper Peru,
+    by: scan
+  - page: 445
+    from: Bolivia. ﬁeere, where Bucre’s bayonets
+    to: Bolivia. Here, where Sucre’s bayonets
+    by: scan
+  - page: 446
+    from: gain power by the influence of his partisans
+    to: gain power by the influence of his partisans,
+    by: scan
+  - page: 446
+    from: Maults t]t:ndm- the g::nm man edu-
+    to: |-
+      his faults under the politeness of a man edu-
+      cated in the so-called beau monde, possesses
+    by: scan
+  - page: 446
+    from: in the so-call % possesses
+    to: ""
+    by: scan
+  - page: 446
+    from: his honor.H-Seeh Histoire de Bolioarapar Gén.
+    to: his honor.—See Histoire de Bolivar, par Gén.
+    by: scan
+  - page: 446
+    from: rey-Holstetn, continuée jusqu’d sa mord,
+    to: Ducoudrey-Holstein, continuée jusqu’à sa mort,
+    by: scan
+  - page: 446
+    from: is Journey to the Oringct?” (Lond.
+    to: his Journey to the Orinoco” (Lond.
+    by: scan
+  - page: 543
+    from: Ualgna.l, Merician.
+    to: ""
+    by: scan
+  - page: 589
+    from: "&IN DASSAGOr &t that court."
+    to: ""
+    by: scan
+  - page: 589
+    from: BOURRIENNE, Louvis ANTOINE FAUVELET
+    to: BOURRIENNE, Louis Antoine Fauvelet
+    by: scan
+  - page: 589
+    from: B . In
+    to: burg. In
+    by: scan
+  - page: 589
+    from: Thus, a disgraced and ruined ma:h he
+    to: ry. Thus, a disgraced and ruined man, he
+    by: scan
+  - page: 15
+    from: the irotection of
+    to: the protection of
+    by: scan
+  - page: 16
+    from: in i]gum; was
+    to: in Belgium; was
+    by: scan
+  - page: 16
+    from: :gpointed Brune 8 member of the newly aoreat-
+    to: appointed Brune a member of the newly creat-
+    by: scan
+  - page: 16
+    from: oouncil of state, and then deeg:tched him
+    to: ed council of state, and then despatched him
+    by: scan
+  - page: 16
+    from: jor Austrian foroes. It
+    to: superior Austrian forces. It
+    by: scan
+  - page: 16
+    from: blander led to his reecall to Paris. From 1803
+    to: blunder led to his recall to Paris. From 1802
+    by: scan
+  - page: 16
+    from: the sgreement, without
+    to: the agreement, without
+    by: scan
+  - page: 82
+    from: Viq 1 estament.
+    to: ""
+    by: scan
+  - page: 83
+    from: rovisional government.
+    to: provisional government.
+    by: scan
+  - page: 178
+    from: ported by Bernadotte, who engaged his troops
+    to: ported by Bernadotte, who engaged his troops too late, and too weakly. Attacked in front
+    by: scan
+  - page: 590
+    from: and caused a great deal of excitement. He
+    to: and caused a great deal of excitement. He died in a lunatic hospital.
     by: scan
 mega-i-25:
   - page: 151
