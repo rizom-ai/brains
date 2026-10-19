@@ -1255,6 +1255,35 @@ books:
     author: Sigmund Freud
     year: 1897
     kind: work
+  - item: zukunft-1938-antisemitismus
+    citation: Zukunft 1938
+    ocr: deu
+    # The paper numbers its pages, each of three columns: the two columns
+    # of page 2 below the article's title are read one below the other as
+    # that page, below the editors' note introducing it, which is left out;
+    # its close is read from the foot of page 3's first column.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zukunft-1-1938-7
+      firstPage: 2
+      pages:
+        - https://archive.org/download/zukunft-1-1938-7/page/n1_w1600.jpg#region=0.398,0.605,0.306,0.345&region=0.708,0.605,0.292,0.345
+        - https://archive.org/download/zukunft-1-1938-7/page/n2_w1600.jpg#region=0,0.753,0.3,0.212
+    firstPage: 2
+    lastPage: 3
+    # The page whose two columns are read one below the other: the lines
+    # that open its paragraphs.
+    paragraphs:
+      - { page: 2, opens: Während ich }
+      - { page: 2, opens: „Ich meine }
+      - { page: 2, opens: „Ich gestehe }
+      - { page: 2, opens: Eine so entschiedene }
+    slug: ein-wort-zum-antisemitismus
+    title: Ein Wort zum Antisemitismus
+    edition: "Die Zukunft. Ein neues Deutschland, ein neues Europa, Nr. 7, Sondernummer England–Deutschland (Paris, 25. November 1938), S. 2–3"
+    author: Sigmund Freud
+    year: 1938
+    kind: work
   - item: freud-1952-gw-1
     citation: GW I
     firstPage: 3
