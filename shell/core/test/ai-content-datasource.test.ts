@@ -328,13 +328,31 @@ describe("AIContentDataSource", () => {
       const systemPrompt = getSystemPrompt();
       expect(systemPrompt).toContain("# Precedence");
       expect(systemPrompt).toContain(
-        "When they conflict on voice or form, follow the style guide.",
+        "When either conflicts with the style guide on voice or form, follow the style guide.",
       );
       expect(systemPrompt.indexOf("# Style Guide")).toBeLessThan(
         systemPrompt.indexOf("# Precedence"),
       );
       expect(systemPrompt.indexOf("# Precedence")).toBeLessThan(
         systemPrompt.indexOf("# Instructions"),
+      );
+    });
+
+    it("puts the request's additional instructions under the style guide on voice and form", async () => {
+      await generate(
+        "Make it engaging with a compelling hook",
+        "test-template",
+        undefined,
+        {
+          styleGuide: { voice: "Voice: full paragraphs" },
+        },
+      );
+
+      expect(getSystemPrompt()).toContain(
+        "The instructions below and any additional instructions in the request govern the task",
+      );
+      expect(getUserPrompt()).toContain(
+        "Additional instructions: Make it engaging with a compelling hook",
       );
     });
 
