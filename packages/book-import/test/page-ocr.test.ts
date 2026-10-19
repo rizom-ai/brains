@@ -60,12 +60,23 @@ describe("volumeOfPages, numbered", () => {
   it("gives each page its printed number, counted from the first page's, where the scan states it", () => {
     const volume = volumeOfPages(
       [tesseractPage("Messieurs"), tesseractPage("communisme")],
-      10,
+      [10, 11],
     );
 
     expect(volume.match(/<span class='ocr_pageno'>\d+<\/span>/g)).toEqual([
       "<span class='ocr_pageno'>10</span>",
       "<span class='ocr_pageno'>11</span>",
+    ]);
+  });
+
+  it("leaves a page the scan does not number to its running head", () => {
+    const volume = volumeOfPages(
+      [tesseractPage("Messieurs"), tesseractPage("communisme")],
+      [undefined, 7],
+    );
+
+    expect(volume.match(/<span class='ocr_pageno'>\d+<\/span>/g)).toEqual([
+      "<span class='ocr_pageno'>7</span>",
     ]);
   });
 });
@@ -208,6 +219,32 @@ describe("createPageOcr", () => {
     expect(recognised).toEqual(["gray 2x", "gray 3x"]);
   });
 
+  it("recognises a page cut to its parts again when the parts are cut differently, and a whole page not", async () => {
+    const recognised: string[] = [];
+    const ocrWith = (cut: string): PageOcr =>
+      createPageOcr({
+        cacheDir,
+        model: "deu",
+        prepare: "gray 2x",
+        cut,
+        fetchImage: async () => new Uint8Array([1]),
+        recognise: async () => {
+          recognised.push(cut);
+          return tesseractPage(cut);
+        },
+      });
+    const whole = "https://archive.org/download/item/page/n3_w1600.jpg";
+    const column = `${whole}#region=0.5,0,0.5,1`;
+
+    await ocrWith("margin 0")(whole);
+    await ocrWith("margin 40")(whole);
+    await ocrWith("margin 0")(column);
+    await ocrWith("margin 0")(column);
+    await ocrWith("margin 40")(column);
+
+    expect(recognised).toEqual(["margin 0", "margin 0", "margin 40"]);
+  });
+
   it("fetches a model Tesseract lacks once, and leaves its own models to it", async () => {
     const fetched: string[] = [];
     const fetchModel = async (url: string): Promise<Uint8Array> => {
@@ -310,8 +347,10 @@ describe("scanImages", () => {
         return new Uint8Array([2]);
       },
       noPdf,
-      async (whole, region) => {
-        cut.push(`${whole[0]} ${region.join(",")}`);
+      async (whole, regions) => {
+        cut.push(
+          `${whole[0]} ${regions.map((region) => region.join(",")).join(" ")}`,
+        );
         return new Uint8Array([3]);
       },
     );
@@ -327,6 +366,27 @@ describe("scanImages", () => {
     expect(cut).toEqual(["2 0.5,0,0.5,1"]);
   });
 
+  it("reads the parts an address names one below the other, as an article's two columns on one printed page", async () => {
+    const cut: string[] = [];
+    const image = scanImages(
+      async () => new Uint8Array([4]),
+      noPdf,
+      async (whole, regions) => {
+        cut.push(
+          `${whole[0]} ${regions.map((region) => region.join(",")).join(" ")}`,
+        );
+        return new Uint8Array([5]);
+      },
+    );
+
+    expect(
+      await image(
+        "https://archive.org/download/zukunft/page/n1_w1600.jpg#region=0.33,0.6,0.33,0.4&region=0.66,0.6,0.34,0.4",
+      ),
+    ).toEqual(new Uint8Array([5]));
+    expect(cut).toEqual(["4 0.33,0.6,0.33,0.4 0.66,0.6,0.34,0.4"]);
+  });
+
   it("renders a PDF's page, cut to the part the address names, fetching the PDF once", async () => {
     const fetched: string[] = [];
     const rendered: string[] = [];
@@ -340,8 +400,10 @@ describe("scanImages", () => {
         rendered.push(`${pdf[0]} ${page}`);
         return new Uint8Array([page]);
       },
-      async (whole, region) => {
-        cut.push(`${whole[0]} ${region.join(",")}`);
+      async (whole, regions) => {
+        cut.push(
+          `${whole[0]} ${regions.map((region) => region.join(",")).join(" ")}`,
+        );
         return new Uint8Array([99]);
       },
     );

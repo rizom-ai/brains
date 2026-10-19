@@ -2,7 +2,7 @@ import { parse as parseYaml } from "yaml";
 import { bookKindSchema } from "@brains/book";
 import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
-import { parseArchiveOcrWork } from "./adapters/archive-ocr";
+import { parseArchiveOcrWork, scanPageUrl } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
 import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
 import {
@@ -136,22 +136,59 @@ const headingLineSchema: z.ZodObject<{
     { message: "A heading named by its level prints its own label" },
   );
 
+/**
+ * A scan's page image with its printed number, where the numbering breaks
+ * off: a paper's next issue, which goes on many columns later.
+ */
+const numberedScanPageSchema: z.ZodObject<{
+  url: z.ZodURL;
+  page: z.ZodNumber;
+}> = z.object({
+  url: z.url(),
+  page: z.number().int().positive(),
+});
+
 /** A scan another library holds: its page images, read with an OCR model. */
 const scanSchema: z.ZodObject<{
   library: z.ZodString;
   url: z.ZodURL;
-  pages: z.ZodArray<z.ZodURL>;
+  pages: z.ZodArray<
+    z.ZodUnion<readonly [z.ZodURL, typeof numberedScanPageSchema]>
+  >;
   firstPage: z.ZodOptional<z.ZodNumber>;
 }> = z.object({
   /** The library, as the attribution names it: Polona. */
   library: z.string().min(1),
   /** The scanned item's page in the library. */
   url: z.url(),
-  /** The scan's page images, in the order the scan holds them. */
-  pages: z.array(z.url()).min(1),
+  /** The scan's page images, in the order the scan holds them, each with its printed number where the numbering breaks off. */
+  pages: z.array(z.union([z.url(), numberedScanPageSchema])).min(1),
   /** The printed number of the first image's page, where the scan's own page numbers read as noise: the pages follow it one by one. */
   firstPage: z.number().int().positive().optional(),
 });
+
+/** A scan's page as listed. */
+export type ScanPage = z.output<typeof scanSchema>["pages"][number];
+
+/**
+ * The printed number of each of a scan's images: the one it names, else the
+ * one after the image before it, the first image's the scan's first page;
+ * an image before any number is left to its running head.
+ */
+export function scanPageNumbers(
+  scan: Pick<z.output<typeof scanSchema>, "pages" | "firstPage">,
+): Array<number | undefined> {
+  return scan.pages.reduce<Array<number | undefined>>((numbers, page) => {
+    const before = numbers.length === 0 ? undefined : numbers.at(-1);
+    const next =
+      numbers.length === 0
+        ? scan.firstPage
+        : before === undefined
+          ? undefined
+          : before + 1;
+    return [...numbers, typeof page === "string" ? next : page.page];
+  }, []);
+}
 
 const archiveOcrBookSchema: z.ZodObject<
   Shape<
@@ -882,13 +919,13 @@ export async function ocrVolumeHocr(
 async function imagesHocr(
   images: string[],
   pageOcr: PageOcr,
-  firstPage?: number,
+  numbers?: Array<number | undefined>,
 ): Promise<string> {
   const pages = await images.reduce<Promise<string[]>>(
     async (done, image) => [...(await done), await pageOcr(image)],
     Promise.resolve([]),
   );
-  return volumeOfPages(pages, firstPage);
+  return volumeOfPages(pages, numbers);
 }
 
 /** A scanned book's volume: the archive's hOCR, or the scan read anew. */
@@ -908,7 +945,11 @@ export async function volumeHocr(
   const read = pageOcr({ model: book.ocr, binarise: book.binarise });
   return front(
     book.scan
-      ? await imagesHocr(book.scan.pages, read, book.scan.firstPage)
+      ? await imagesHocr(
+          book.scan.pages.map(scanPageUrl),
+          read,
+          scanPageNumbers(book.scan),
+        )
       : await ocrVolumeHocr(book.item, fetchText, read),
   );
 }

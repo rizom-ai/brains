@@ -1313,3 +1313,62 @@ books:
     expect(first).not.toBe(other);
   });
 });
+
+describe("volumeHocr, a scan's printed pages", () => {
+  it("numbers each image by the page it names, the images after it one by one: a paper's columns in two issues", async () => {
+    const [book] = scannedBooks(
+      parseManifest(`
+source: archive-ocr
+books:
+  - item: wmw-1884-hirnblutung
+    citation: WMW 1884
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-34-1884-9
+      firstPage: 244
+      pages:
+        - https://archive.org/download/wmw-34-1884-9/page/n1_w1600.jpg#region=0.5,0,0.5,1
+        - https://archive.org/download/wmw-34-1884-9/page/n2_w1600.jpg#region=0,0,0.5,1
+        - url: https://archive.org/download/wmw-34-1884-10/page/n1_w1600.jpg#region=0.5,0,0.5,1
+          page: 276
+        - https://archive.org/download/wmw-34-1884-10/page/n2_w1600.jpg#region=0,0,0.5,1
+    firstPage: 244
+    lastPage: 277
+    slug: a
+    title: A
+    edition: WMW
+    author: Sigmund Freud
+    year: 1884
+    kind: work
+`),
+    );
+    if (!book) throw new Error("no book");
+    const read: string[] = [];
+
+    const hocr = await volumeHocr(
+      book,
+      async () => {
+        throw new Error("nothing to fetch");
+      },
+      () =>
+        async (url: string): Promise<string> => {
+          read.push(url);
+          return "<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 10 10'></div></body></html>";
+        },
+    );
+
+    expect(read).toEqual([
+      "https://archive.org/download/wmw-34-1884-9/page/n1_w1600.jpg#region=0.5,0,0.5,1",
+      "https://archive.org/download/wmw-34-1884-9/page/n2_w1600.jpg#region=0,0,0.5,1",
+      "https://archive.org/download/wmw-34-1884-10/page/n1_w1600.jpg#region=0.5,0,0.5,1",
+      "https://archive.org/download/wmw-34-1884-10/page/n2_w1600.jpg#region=0,0,0.5,1",
+    ]);
+    expect(hocr.match(/<span class='ocr_pageno'>\d+<\/span>/g)).toEqual([
+      "<span class='ocr_pageno'>244</span>",
+      "<span class='ocr_pageno'>245</span>",
+      "<span class='ocr_pageno'>276</span>",
+      "<span class='ocr_pageno'>277</span>",
+    ]);
+  });
+});

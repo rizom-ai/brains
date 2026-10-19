@@ -26,12 +26,17 @@ export interface OcrCorrection {
   to: string;
 }
 
+/** A scan's page image, listed alone or with its printed number. */
+export function scanPageUrl(page: string | { url: string }): string {
+  return typeof page === "string" ? page : page.url;
+}
+
 /** A work inside a scanned volume, by its printed pages. */
 export interface ArchiveOcrWork {
   /** The archive.org item, e.g. `freud-1940-gw-13`, or the name of a scan another library holds. */
   item: string;
   /** A scan another library holds: its page images, in the scan's order. */
-  scan?: { pages: string[] } | undefined;
+  scan?: { pages: Array<string | { url: string }> } | undefined;
   /** The work's title, which its opening heading may print. */
   title: string;
   /** How a citation names the volume before its page: GW XIII. */
@@ -570,7 +575,14 @@ function headNumber(text: string): number | null {
   return number === undefined ? null : Number(number);
 }
 
-/** The page's running head that carries its page number, and where it stands. */
+/** A line as wide as this share of the page is the text's, not a head. */
+const TEXT_LINE_WIDTH = 0.6;
+
+/**
+ * The page's running head that carries its page number, and where it stands.
+ * On a page whose number the scan states, a line of text as wide as the page
+ * that opens with another number is the text's: Um 7 Uhr wurde …
+ */
 function numberedHead(page: Page): { index: number; number: number } | null {
   return page.lines.reduce<{ index: number; number: number } | null>(
     (found, line, index) => {
@@ -578,7 +590,11 @@ function numberedHead(page: Page): { index: number; number: number } | null {
         return found;
       }
       const number = headNumber(line.text);
-      return number === null ? null : { index, number };
+      const text =
+        page.pageno !== null &&
+        number !== page.pageno &&
+        line.width > page.width * TEXT_LINE_WIDTH;
+      return number === null || text ? null : { index, number };
     },
     null,
   );
@@ -842,7 +858,8 @@ function numberGap(
  * Printed page numbers by scan leaf. Running heads anchor the numbering where
  * a nearby head agrees; pages that open a chapter carry none and run on from
  * their neighbours. Plates bound between the pages shift the numbering and
- * get no number themselves.
+ * get no number themselves. A page whose number the scan states keeps it,
+ * however far it jumps, as a paper's next issue does.
  */
 export function printedPageNumbers(
   readings: LeafReading[],
@@ -883,6 +900,9 @@ export function printedPageNumbers(
   const gapPages = new Map(gaps);
   return new Map(
     readings.map((reading): [number, number | null] => {
+      if (reading.stated === true && reading.head !== null) {
+        return [reading.leaf, reading.head];
+      }
       const gapPage = gapPages.get(reading.leaf);
       if (gapPage !== undefined) return [reading.leaf, gapPage];
       const before = anchors
@@ -1935,12 +1955,15 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
             },
           ];
     if (index >= noteFrom) {
+      // A line a correction read from the scan is the note's, however few
+      // its words: l. c.
       if (
         !/\p{L}/u.test(line.text) ||
         isRule(line, bodySize) ||
         SIGNATURE.test(line.text) ||
-        isEdgeNoise(line.text) ||
-        (!isTableRow(line) && isScraps(line.text))
+        (line.corrected !== true &&
+          (isEdgeNoise(line.text) ||
+            (!isTableRow(line) && isScraps(line.text))))
       ) {
         return pieces;
       }
@@ -3388,12 +3411,15 @@ export function parseArchiveOcrWork(
   );
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);
-  const cite = (start: Block): { citation: string; source: string } => ({
-    citation: `${work.citation}, ${start.label}`,
-    source:
-      work.scan?.pages[start.leaf] ??
-      `https://archive.org/details/${work.item}/page/n${start.leaf}`,
-  });
+  const cite = (start: Block): { citation: string; source: string } => {
+    const scanned = work.scan?.pages[start.leaf];
+    return {
+      citation: `${work.citation}, ${start.label}`,
+      source: scanned
+        ? scanPageUrl(scanned)
+        : `https://archive.org/details/${work.item}/page/n${start.leaf}`,
+    };
+  };
   const steps = [...new Set(filled.flatMap((section) => section.path))];
   // A title is spelled as the running text spells it, its misread type too.
   const running = filled
