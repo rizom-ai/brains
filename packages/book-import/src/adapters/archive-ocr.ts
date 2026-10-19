@@ -51,9 +51,13 @@ export interface ArchiveOcrWork {
   /**
    * Headings set in the text's type, by the line that opens them: a numbered
    * or lettered one keeps its label, one without opens a chapter numbered by
-   * place; a section's numeral the scan lost stands above it.
+   * place; a section's numeral the scan lost stands above it. A dictionary's
+   * article, its headword run into its first line, is titled by the
+   * headword, the line staying its text.
    */
-  headings?: Array<PageLine & { numeral?: string | undefined }>;
+  headings?: Array<
+    PageLine & { numeral?: string | undefined; title?: string | undefined }
+  >;
   /**
    * Pages the OCR read too askew to tell paragraphs by their indent: on each,
    * the lines that open one, by their opening words; no other line there
@@ -800,10 +804,12 @@ export function printedPageNumbers(
           },
         ],
   );
-  const anchors = withoutMisreadRuns(
+  // A number the scan states for its page holds however far it lies from
+  // its neighbours'; a head read from the page needs a nearby one to agree.
+  const read = withoutMisreadRuns(
     heads.filter(
       (head) =>
-        head.stated ||
+        !head.stated &&
         heads.some(
           (other) =>
             other !== head &&
@@ -811,6 +817,9 @@ export function printedPageNumbers(
             Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
         ),
     ),
+  );
+  const anchors = [...heads.filter((head) => head.stated), ...read].sort(
+    (a, b) => a.leaf - b.leaf,
   );
   const first = anchors[0];
   const last = anchors.at(-1);
@@ -886,7 +895,7 @@ interface Volume {
   /** Verse, its stanzas set apart by space. */
   verse?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
-  headingOpenings?: Array<{ opens: string; numeral?: string }>;
+  headingOpenings?: Array<{ opens: string; numeral?: string; title?: string }>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
   paragraphOpenings?: string[];
   /** The lines that open the page's notes, by their opening words, where the manifest names them. */
@@ -1851,6 +1860,26 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       line.width < volume.column / 2
     ) {
       return pieces;
+    }
+    // A dictionary's article opens where the manifest names its headword,
+    // which titles it; the line stays its first.
+    const headword = (volume.headingOpenings ?? []).find(
+      (opening) =>
+        opening.title !== undefined && line.text.startsWith(opening.opens),
+    )?.title;
+    if (headword !== undefined) {
+      return [
+        ...pieces,
+        {
+          kind: "heading",
+          lines: [
+            { kind: "article" },
+            { kind: "caps", text: headword, size: line.size },
+          ],
+          closed: true,
+        },
+        { kind: "text", text: line.text, opens: true },
+      ];
     }
     // A table's row is text, however large the OCR read the line it fixes,
     // and so is a line the manifest names as opening a paragraph.
@@ -3117,9 +3146,11 @@ export function parseArchiveOcrWork(
             ...volume,
             headingOpenings: (work.headings ?? [])
               .filter((heading) => String(heading.page) === label)
-              .map(({ opens, numeral }) =>
-                numeral === undefined ? { opens } : { opens, numeral },
-              ),
+              .map(({ opens, numeral, title }) => ({
+                opens,
+                ...(numeral === undefined ? {} : { numeral }),
+                ...(title === undefined ? {} : { title }),
+              })),
             ...paragraphOpeningsOn(work, label),
             ...noteOpeningsOn(work, label),
           },

@@ -135,37 +135,57 @@ export async function preparedImage(
 /** The part of a page a scan reads: left, top, width and height, as shares of the page. */
 export type Region = [number, number, number, number];
 
-/** A PDF's page as an image, and the part of it the scan reads. */
+/** A PDF's page as an image. */
 export type RenderPdfPage = (
   pdf: Uint8Array,
   page: number,
-  region?: Region,
 ) => Promise<Uint8Array>;
 
-/** A PDF page named as PDF viewers open one, its part after it: file.pdf#page=5&region=0.37,0.1,0.27,0.3. */
-const PDF_PAGE =
-  /^(.*\.pdf)#page=(\d+)(?:&region=([\d.]+),([\d.]+),([\d.]+),([\d.]+))?$/iu;
+/** An image cut to its parts, set one below the other. */
+export type CutImage = (
+  image: Uint8Array,
+  regions: Region[],
+) => Promise<Uint8Array>;
+
+/** A share of a page, a number from 0 to 1. */
+const SHARE = /^(?:0|1|0?\.\d+)$/u;
+
+function regionOf(text: string): Region {
+  const shares = text.split(",");
+  if (shares.length !== 4 || !shares.every((share) => SHARE.test(share))) {
+    throw new Error(`A region is four shares of the page: ${text}`);
+  }
+  const [left = 0, top = 0, across = 0, down = 0] = shares.map(Number);
+  return [left, top, across, down];
+}
 
 /**
- * A scan's page images: an image as fetched, or a PDF's page rendered and
- * cut to the part the scan reads, each PDF fetched once.
+ * A scan's page images: an image as fetched, or a PDF's page rendered, named
+ * as PDF viewers open one (file.pdf#page=5), each PDF fetched once; either
+ * cut to the parts the scan reads (#region=0.37,0.1,0.27,0.3), several set
+ * one below the other, as a page's columns are read in turn.
  */
 export function scanImages(
   fetchBytes: (url: string) => Promise<Uint8Array>,
   renderPdfPage: RenderPdfPage,
+  cutImage: CutImage,
 ): (url: string) => Promise<Uint8Array> {
   const pdfs = new Map<string, Promise<Uint8Array>>();
   return async (url) => {
-    const match = PDF_PAGE.exec(url);
-    if (!match?.[1]) return fetchBytes(url);
-    const pdf = pdfs.get(match[1]) ?? fetchBytes(match[1]);
-    pdfs.set(match[1], pdf);
-    const [, , , left, top, across, down] = match;
-    const region: Region | undefined =
-      left && top && across && down
-        ? [Number(left), Number(top), Number(across), Number(down)]
-        : undefined;
-    return renderPdfPage(await pdf, Number(match[2]), region);
+    const at = url.indexOf("#");
+    if (at < 0) return fetchBytes(url);
+    const file = url.slice(0, at);
+    const named = new URLSearchParams(url.slice(at + 1));
+    const page = named.get("page");
+    const regions = named.getAll("region").map(regionOf);
+    const whole = async (): Promise<Uint8Array> => {
+      if (page === null || !/\.pdf$/iu.test(file)) return fetchBytes(file);
+      const pdf = pdfs.get(file) ?? fetchBytes(file);
+      pdfs.set(file, pdf);
+      return renderPdfPage(await pdf, Number(page));
+    };
+    const image = await whole();
+    return regions.length === 0 ? image : cutImage(image, regions);
   };
 }
 
@@ -184,13 +204,13 @@ async function run(command: string[], stdin?: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(out);
 }
 
-/** A PDF's page at 300 dpi with poppler's pdftoppm, cut with ImageMagick; both must be on the path. */
-export const renderPdfPage: RenderPdfPage = async (pdf, page, region) => {
+/** A PDF's page at 300 dpi with poppler's pdftoppm, which must be on the path. */
+export const renderPdfPage: RenderPdfPage = async (pdf, page) => {
   const dir = await mkdtemp(join(tmpdir(), "book-import-pdf-"));
   try {
     const file = join(dir, "scan.pdf");
     await writeFile(file, pdf);
-    const png = await run([
+    return await run([
       "pdftoppm",
       "-f",
       String(page),
@@ -201,16 +221,30 @@ export const renderPdfPage: RenderPdfPage = async (pdf, page, region) => {
       "-png",
       file,
     ]);
-    if (!region) return png;
-    // A PNG gives its width and height in its header.
-    const header = new DataView(png.buffer, png.byteOffset, 24);
-    const [width, height] = [header.getUint32(16), header.getUint32(20)];
-    const [left, top, across, down] = region;
-    const crop = `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`;
-    return await run(["magick", "-", "-crop", crop, "+repage", "png:-"], png);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+};
+
+/** An image's parts cut and set one below the other with ImageMagick, which must be on the path. */
+export const cutImage: CutImage = async (image, regions) => {
+  const size = new TextDecoder().decode(
+    await run(["magick", "identify", "-format", "%w %h", "-"], image),
+  );
+  const [width = 0, height = 0] = size.split(" ").map(Number);
+  const parts = regions.flatMap(([left, top, across, down]) => [
+    "(",
+    "-clone",
+    "0",
+    "-crop",
+    `${Math.round(across * width)}x${Math.round(down * height)}+${Math.round(left * width)}+${Math.round(top * height)}`,
+    "+repage",
+    ")",
+  ]);
+  return run(
+    ["magick", "-", ...parts, "-delete", "0", "-append", "png:-"],
+    image,
+  );
 };
 
 /** The importer's page OCR: Tesseract, images fetched in the importer's queue. */
@@ -224,7 +258,7 @@ export function importerPageOcr(
       cacheDir,
       model: reading.model,
       prepare: preparation.join(" "),
-      fetchImage: scanImages(fetch.bytes, renderPdfPage),
+      fetchImage: scanImages(fetch.bytes, renderPdfPage, cutImage),
       recognise: async (image, used) =>
         tesseractHocr(
           await preparedImage(image, preparation),
@@ -291,21 +325,25 @@ const SMALL_NOUN =
 
 /**
  * A volume's pages as one hOCR document, each page numbered by its leaf, the
- * order the scan holds them in, and by its printed number where the scan
- * states the first page's; Fraktur's long s read as s, its hyphen as one,
+ * order the scan holds them in, and by the printed number the scan states
+ * for it, where it states one; Fraktur's long s read as s, its hyphen as one,
  * and its capital umlauts with their dots.
  */
-export function volumeOfPages(pages: string[], firstPage?: number): string {
-  const bodies = pages.map((page, leaf) =>
-    frakturRead(
+export function volumeOfPages(
+  pages: string[],
+  printed: Array<number | undefined> = [],
+): string {
+  const bodies = pages.map((page, leaf) => {
+    const number = printed[leaf];
+    return frakturRead(
       (/<body>([\s\S]*)<\/body>/.exec(page)?.[1] ?? "").replace(
         /<div class='ocr_page' id='page_\d+'([^>]*)>/,
-        firstPage === undefined
+        number === undefined
           ? `<div class='ocr_page' id='page_${leaf}'$1>`
-          : `<div class='ocr_page' id='page_${leaf}'$1><span class='ocr_pageno'>${firstPage + leaf}</span>`,
+          : `<div class='ocr_page' id='page_${leaf}'$1><span class='ocr_pageno'>${number}</span>`,
       ),
-    ),
-  );
+    );
+  });
   return `<html><body>\n${bodies.join("\n")}\n</body></html>\n`;
 }
 

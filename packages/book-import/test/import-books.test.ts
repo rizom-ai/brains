@@ -11,6 +11,7 @@ import {
   parseCorrections,
   parseManifest,
   scannedBooks,
+  volumeHocr,
   volumeKey,
 } from "../src/import-books";
 
@@ -848,6 +849,37 @@ books:
     ).toMatch(
       /source: 'https:\/\/polona\.pl\/iiif\/3\/leaf-\d+\/full\/max\/0\/default\.jpg'/,
     );
+  });
+
+  it("numbers a scan's pages as the work lists them, pages of several volumes among them", async () => {
+    const [book] = scannedBooks(
+      parseManifest(
+        ocrManifest +
+          "    ocr: eng\n    scan:\n      library: Internet Archive\n      url: https://archive.org/details/cyclopaedia\n      pages:\n" +
+          "        - { url: 'https://archive.org/download/cyclopaedia-2/page/n117.jpg#region=0.1,0.5,0.4,0.4', page: 105 }\n" +
+          "        - { url: 'https://archive.org/download/cyclopaedia-3/page/n120.jpg', page: 108 }\n",
+      ),
+    );
+    if (!book) throw new Error("No scanned book");
+    const read: string[] = [];
+    const hocr = await volumeHocr(
+      book,
+      fetchArchive,
+      () =>
+        async (url): Promise<string> => {
+          read.push(url);
+          return "<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 100 100'></div></body></html>";
+        },
+    );
+
+    expect(read).toEqual([
+      "https://archive.org/download/cyclopaedia-2/page/n117.jpg#region=0.1,0.5,0.4,0.4",
+      "https://archive.org/download/cyclopaedia-3/page/n120.jpg",
+    ]);
+    expect(hocr.match(/<span class='ocr_pageno'>\d+<\/span>/g)).toEqual([
+      "<span class='ocr_pageno'>105</span>",
+      "<span class='ocr_pageno'>108</span>",
+    ]);
   });
 
   it("will not read a scan another library holds without an OCR model", () => {

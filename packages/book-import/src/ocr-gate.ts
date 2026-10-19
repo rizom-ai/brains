@@ -7,6 +7,7 @@ import {
   parseManifest,
   scannedBooks,
   volumeHocr,
+  imageOf,
 } from "./import-books";
 import { importerPageOcr } from "./page-ocr";
 import { createImporterFetch } from "./polite-fetch";
@@ -109,9 +110,11 @@ async function main(): Promise<void> {
       const text = pageText(hocr, page);
       const leaf = pageLeaf(hocr, page);
       await writeFile(join(dir, `${page}.txt`), `${text}\n`);
+      const scanned = first.scan?.pages[leaf];
       await downloadScan(
-        first.scan?.pages[leaf] ??
-          `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
+        scanned === undefined
+          ? `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`
+          : imageOf(scanned),
         join(dir, `${page}.jpg`),
       );
       return [...rows, `| ${page} | ${leaf} | ${words(text)} | |`];

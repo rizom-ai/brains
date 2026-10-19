@@ -448,6 +448,61 @@ books:
     author: Karl Marx
     year: 1864
     kind: work
+  - source: archive-ocr
+    # The International's address on Lincoln's re-election, which Marx
+    # wrote in English, as the Anti-Slavery Reporter printed it on 2 January
+    # 1865, from the left column of p. 10 (the Internet Archive's leaf 9,
+    # cut to the column). en.wikisource's page names no edition and does
+    # not render whole.
+    item: sim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1
+    citation: Anti-Slavery Reporter 1865
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/sim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1
+      firstPage: 10
+      pages:
+        - https://iiif.archive.org/image/iiif/3/sim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1%2fsim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1_jp2.zip%2fsim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1_jp2%2fsim_anti-slavery-reporter-and-aborigines-friend_1865-01-01_13_1_0009.jp2/pct:14,7.5,40,84/max/0/default.jpg
+    firstPage: 10
+    lastPage: 10
+    slug: address-of-the-international-working-mens-association-to-abraham-lincoln
+    title: Address of the International Working Men's Association to Abraham Lincoln, President of the United States of America
+    shortTitle: Address to Abraham Lincoln
+    edition: The Anti-Slavery Reporter, under the sanction of the British and Foreign Anti-Slavery Society, Vol. 13, No. 1, New Series (London, 2 January 1865), p. 10
+    author: Karl Marx
+    year: 1865
+    kind: work
+  - source: archive-ocr
+    # Marx's reply to Howell, which he wrote in English for the Secular
+    # Chronicle of 4 August 1878, as MEGA² I/25 gives it from that print:
+    # the Internet Archive's PDF of the volume, each page cut to its text
+    # beside the line numbers, the facsimile plate (pp. 153–154) left out.
+    item: mega-i-25
+    citation: MEGA² I/25
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=157&region=0.299,0.44,0.406,0.279
+          page: 151
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=158&region=0.29,0.281,0.408,0.449
+          page: 152
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=160&region=0.2755,0.2706,0.41,0.4534
+          page: 155
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=161&region=0.315,0.2748,0.405,0.45
+          page: 156
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=162&region=0.297,0.268,0.408,0.404
+          page: 157
+    firstPage: 151
+    lastPage: 157
+    slug: mr-george-howells-history-of-the-international-working-mens-association
+    title: Mr. George Howell's History of the International Working-Men's Association
+    shortTitle: Howell's History of the International
+    edition: "Karl Marx, Artikel, Entwürfe, Mai 1875 bis Mai 1883, MEGA² I/25 (Berlin, Dietz, 1985), S. 151–157; first printed in The Secular Chronicle, Vol. X, No. 5 (London, 4 August 1878)"
+    author: Karl Marx
+    year: 1878
+    kind: work
   - source: wikisource
     # Marx's Lord Palmerston articles (People's Paper and New-York Tribune,
     # 1853), in his English, as Eleanor Marx reprinted them in 1899.
@@ -485,6 +540,141 @@ books:
     edition: Secret Diplomatic History of the Eighteenth Century, edited by Eleanor Marx Aveling (London, Swan Sonnenschein, 1899)
     author: Karl Marx
     year: 1856
+    kind: work
+  - source: archive-ocr
+    # Marx's articles in the New American Cyclopaedia, read anew from the
+    # Internet Archive's copies of Google's scans of vols. II (Armada to
+    # Barclay de Tolly), III (Bem to Bourrienne) and IV (Brune, Bugeaud).
+    # MEW 14 gives Armada, Ayacucho, Barclay de Tolly, Bem, Bennigsen,
+    # Beresford, Blücher and Bosquet to Marx and Engels, the rest to Marx.
+    # Each page is read as one column, its columns' parts below each
+    # other, from an article's headword to the next.
+    item: new-american-cyclopaedia
+    citation: New American Cyclopaedia
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/newamericancycl21danagoog
+      pages:
+        - { url: "https://archive.org/download/newamericancycl13riplgoog/page/n117.jpg#region=0.085,0.216,0.402,0.704&region=0.487,0.096,0.4,0.824", page: 105 }
+        - { url: "https://archive.org/download/newamericancycl13riplgoog/page/n118.jpg#region=0.119,0.098,0.399,0.456", page: 106 }
+        - { url: "https://archive.org/download/newamericancycl13riplgoog/page/n436.jpg#region=0.118,0.768,0.408,0.152&region=0.526,0.098,0.405,0.767", page: 424 }
+        - { url: "https://archive.org/download/newamericancycl13riplgoog/page/n634.jpg#region=0.544,0.288,0.422,0.632", page: 624 }
+        - { url: "https://archive.org/download/newamericancycl13riplgoog/page/n635.jpg#region=0.048,0.098,0.419,0.576", page: 625 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n120.jpg#region=0.536,0.852,0.406,0.068", page: 112 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n121.jpg#region=0.05,0.104,0.414,0.816&region=0.464,0.104,0.405,0.816", page: 113 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n122.jpg#region=0.126,0.099,0.405,0.672", page: 114 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n141.jpg#region=0.102,0.848,0.411,0.072&region=0.513,0.106,0.404,0.814", page: 133 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n142.jpg#region=0.098,0.102,0.408,0.818&region=0.506,0.103,0.407,0.254", page: 134 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n169.jpg#region=0.487,0.684,0.406,0.236", page: 161 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n170.jpg#region=0.109,0.096,0.403,0.607", page: 162 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n185.jpg#region=0.08,0.758,0.411,0.162&region=0.491,0.093,0.406,0.827", page: 177 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n186.jpg#region=0.101,0.098,0.405,0.822&region=0.506,0.098,0.408,0.822", page: 178 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n187.jpg#region=0.071,0.103,0.413,0.817&region=0.484,0.103,0.406,0.817", page: 179 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n188.jpg#region=0.111,0.102,0.405,0.818&region=0.516,0.102,0.407,0.818", page: 180 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n189.jpg#region=0.082,0.106,0.41,0.405", page: 181 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n207.jpg#region=0.49,0.444,0.403,0.476", page: 199 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n208.jpg#region=0.104,0.097,0.404,0.823&region=0.508,0.108,0.406,0.683", page: 200 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n216.jpg#region=0.533,0.552,0.405,0.368", page: 208 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n217.jpg#region=0.057,0.105,0.409,0.224", page: 209 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n394.jpg#region=0.126,0.595,0.404,0.325&region=0.53,0.106,0.412,0.814", page: 386 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n395.jpg#region=0.052,0.111,0.411,0.809&region=0.463,0.111,0.406,0.809", page: 387 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n396.jpg#region=0.125,0.109,0.405,0.811&region=0.53,0.109,0.409,0.811", page: 388 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n397.jpg#region=0.059,0.111,0.408,0.809&region=0.467,0.111,0.405,0.809", page: 389 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n398.jpg#region=0.129,0.105,0.406,0.815&region=0.535,0.105,0.412,0.815", page: 390 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n399.jpg#region=0.078,0.106,0.407,0.814&region=0.485,0.106,0.406,0.814", page: 391 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n400.jpg#region=0.118,0.105,0.404,0.815&region=0.522,0.105,0.408,0.752", page: 392 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n404.jpg#region=0.09,0.568,0.405,0.352&region=0.495,0.104,0.409,0.816", page: 396 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n405.jpg#region=0.074,0.108,0.408,0.367", page: 397 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n448.jpg#region=0.516,0.741,0.406,0.179", page: 440 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n449.jpg#region=0.064,0.108,0.407,0.812&region=0.471,0.108,0.406,0.812", page: 441 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n450.jpg#region=0.118,0.097,0.407,0.823&region=0.525,0.097,0.41,0.823", page: 442 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n451.jpg#region=0.084,0.106,0.41,0.814&region=0.494,0.106,0.405,0.814", page: 443 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n452.jpg#region=0.112,0.101,0.404,0.819&region=0.516,0.101,0.41,0.819", page: 444 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n453.jpg#region=0.063,0.107,0.408,0.813&region=0.471,0.107,0.406,0.813", page: 445 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n454.jpg#region=0.114,0.108,0.404,0.812&region=0.518,0.108,0.408,0.646", page: 446 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n551.jpg#region=0.467,0.68,0.405,0.24", page: 543 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n552.jpg#region=0.121,0.103,0.405,0.464", page: 544 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n597.jpg#region=0.453,0.365,0.406,0.555", page: 589 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n598.jpg#region=0.12,0.104,0.407,0.235", page: 590 }
+        - { url: "https://archive.org/download/newamericancycl19danagoog/page/n21.jpg#region=0.472,0.597,0.416,0.323", page: 15 }
+        - { url: "https://archive.org/download/newamericancycl19danagoog/page/n22.jpg#region=0.129,0.099,0.418,0.821&region=0.547,0.1,0.414,0.741", page: 16 }
+        - { url: "https://archive.org/download/newamericancycl19danagoog/page/n88.jpg#region=0.525,0.595,0.416,0.325", page: 82 }
+        - { url: "https://archive.org/download/newamericancycl19danagoog/page/n89.jpg#region=0.042,0.09,0.421,0.83&region=0.463,0.09,0.415,0.707", page: 83 }
+    firstPage: 15
+    lastPage: 625
+    # The articles are printed without indented paragraphs: on every page
+    # only the article's headword opens one.
+    paragraphs:
+      - { page: 105, opens: "ARMADA" }
+      - { page: 106, opens: "ARMADA" }
+      - { page: 424, opens: "AYACUCHO" }
+      - { page: 624, opens: "BARCLAY" }
+      - { page: 625, opens: "BARCLAY" }
+      - { page: 112, opens: "BEM," }
+      - { page: 113, opens: "BEM," }
+      - { page: 114, opens: "BEM," }
+      - { page: 133, opens: "BENNINGSEN" }
+      - { page: 134, opens: "BENNINGSEN" }
+      - { page: 161, opens: "BERESFORD" }
+      - { page: 162, opens: "BERESFORD" }
+      - { page: 177, opens: "BERNADOTTE" }
+      - { page: 178, opens: "BERNADOTTE" }
+      - { page: 179, opens: "BERNADOTTE" }
+      - { page: 180, opens: "BERNADOTTE" }
+      - { page: 181, opens: "BERNADOTTE" }
+      - { page: 199, opens: "BERTHIER" }
+      - { page: 200, opens: "BERTHIER" }
+      - { page: 208, opens: "BESSIÈRES" }
+      - { page: 209, opens: "BESSIÈRES" }
+      - { page: 386, opens: "BLÜCHER" }
+      - { page: 387, opens: "BLÜCHER" }
+      - { page: 388, opens: "BLÜCHER" }
+      - { page: 389, opens: "BLÜCHER" }
+      - { page: 390, opens: "BLÜCHER" }
+      - { page: 391, opens: "BLÜCHER" }
+      - { page: 392, opens: "BLÜCHER" }
+      - { page: 396, opens: "BLUM," }
+      - { page: 397, opens: "BLUM," }
+      - { page: 440, opens: "BOLIVAR" }
+      - { page: 441, opens: "BOLIVAR" }
+      - { page: 442, opens: "BOLIVAR" }
+      - { page: 443, opens: "BOLIVAR" }
+      - { page: 444, opens: "BOLIVAR" }
+      - { page: 445, opens: "BOLIVAR" }
+      - { page: 446, opens: "BOLIVAR" }
+      - { page: 543, opens: "BOSQUET" }
+      - { page: 544, opens: "BOSQUET" }
+      - { page: 589, opens: "BOURRIENNE" }
+      - { page: 590, opens: "BOURRIENNE" }
+      - { page: 15, opens: "BRUNE," }
+      - { page: 16, opens: "BRUNE," }
+      - { page: 82, opens: "BUGEAUD" }
+      - { page: 83, opens: "BUGEAUD" }
+    # Each article opens at its headword, which titles it.
+    headings:
+      - { page: 105, opens: "ARMADA", title: Armada }
+      - { page: 424, opens: "AYACUCHO", title: Ayacucho }
+      - { page: 624, opens: "BARCLAY DE TOLLY", title: Barclay de Tolly }
+      - { page: 112, opens: "BEM,", title: Bem }
+      - { page: 133, opens: "BENNINGSEN", title: Benningsen }
+      - { page: 161, opens: "BERESFORD", title: Beresford }
+      - { page: 177, opens: "BERNADOTTE", title: Bernadotte }
+      - { page: 199, opens: "BERTHIER", title: Berthier }
+      - { page: 208, opens: "BESSIÈRES", title: Bessières }
+      - { page: 386, opens: "BLÜCHER", title: Blücher }
+      - { page: 396, opens: "BLUM,", title: Blum }
+      - { page: 440, opens: "BOLIVAR Y PONTE", title: Bolivar y Ponte }
+      - { page: 543, opens: "BOSQUET", title: Bosquet }
+      - { page: 589, opens: "BOURRIENNE", title: Bourrienne }
+      - { page: 15, opens: "BRUNE,", title: Brune }
+      - { page: 82, opens: "BUGEAUD", title: Bugeaud de la Piconnerie }
+    slug: articles-in-the-new-american-cyclopaedia
+    title: Articles in the New American Cyclopaedia
+    shortTitle: New American Cyclopaedia
+    edition: "The New American Cyclopaedia: A Popular Dictionary of General Knowledge, edited by George Ripley and Charles A. Dana, Vols. II–IV (New York, D. Appleton, 1858–1859)"
+    author: Karl Marx
+    year: 1858
     kind: work
   - source: archive-ocr
     # Marx's address to the General Council of the International (June

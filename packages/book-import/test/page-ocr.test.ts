@@ -57,10 +57,14 @@ describe("volumeOfPages", () => {
 });
 
 describe("volumeOfPages, numbered", () => {
-  it("gives each page its printed number, counted from the first page's, where the scan states it", () => {
+  it("gives each page the printed number the scan states for it", () => {
     const volume = volumeOfPages(
-      [tesseractPage("Messieurs"), tesseractPage("communisme")],
-      10,
+      [
+        tesseractPage("Messieurs"),
+        tesseractPage("communisme"),
+        tesseractPage("Kapital"),
+      ],
+      [10, 11, undefined],
     );
 
     expect(volume.match(/<span class='ocr_pageno'>\d+<\/span>/g)).toEqual([
@@ -285,6 +289,9 @@ describe("scanImages", () => {
       async () => {
         throw new Error("no PDF here");
       },
+      async () => {
+        throw new Error("nothing to cut");
+      },
     );
 
     expect(
@@ -298,14 +305,21 @@ describe("scanImages", () => {
   it("renders a PDF's page, the part of it the address names, fetching the PDF once", async () => {
     const fetched: string[] = [];
     const rendered: string[] = [];
+    const cut: string[] = [];
     const image = scanImages(
       async (url) => {
         fetched.push(url);
         return new Uint8Array([37]);
       },
-      async (pdf, page, region) => {
-        rendered.push(`${pdf[0]} ${page} ${region?.join(",") ?? "whole"}`);
+      async (pdf, page) => {
+        rendered.push(`${pdf[0]} ${page}`);
         return new Uint8Array([page]);
+      },
+      async (whole, regions) => {
+        cut.push(
+          `${whole[0]} ${regions.map((region) => region.join(",")).join(" ")}`,
+        );
+        return new Uint8Array([whole[0] ?? 0, regions.length]);
       },
     );
 
@@ -313,11 +327,40 @@ describe("scanImages", () => {
       await image(
         "http://iapsop.com/weekly.pdf#page=5&region=0.37,0.1,0.27,0.3",
       ),
-    ).toEqual(new Uint8Array([5]));
+    ).toEqual(new Uint8Array([5, 1]));
     expect(await image("http://iapsop.com/weekly.pdf#page=6")).toEqual(
       new Uint8Array([6]),
     );
     expect(fetched).toEqual(["http://iapsop.com/weekly.pdf"]);
-    expect(rendered).toEqual(["37 5 0.37,0.1,0.27,0.3", "37 6 whole"]);
+    expect(rendered).toEqual(["37 5", "37 6"]);
+    expect(cut).toEqual(["5 0.37,0.1,0.27,0.3"]);
+  });
+
+  it("cuts a page image to its parts, one below the other, as a page of one column", async () => {
+    const fetched: string[] = [];
+    const cut: string[] = [];
+    const image = scanImages(
+      async (url) => {
+        fetched.push(url);
+        return new Uint8Array([9]);
+      },
+      async () => {
+        throw new Error("no PDF here");
+      },
+      async (whole, regions) => {
+        cut.push(regions.map((region) => region.join(",")).join(" "));
+        return new Uint8Array([whole[0] ?? 0, regions.length]);
+      },
+    );
+
+    expect(
+      await image(
+        "https://archive.org/download/cyclopaedia/page/n117.jpg#region=0.1,0.5,0.4,0.4&region=0.5,0.08,0.4,0.85",
+      ),
+    ).toEqual(new Uint8Array([9, 2]));
+    expect(fetched).toEqual([
+      "https://archive.org/download/cyclopaedia/page/n117.jpg",
+    ]);
+    expect(cut).toEqual(["0.1,0.5,0.4,0.4 0.5,0.08,0.4,0.85"]);
   });
 });

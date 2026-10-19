@@ -106,6 +106,7 @@ const headingLineSchema: z.ZodObject<{
   page: typeof printedPageSchema;
   opens: z.ZodString;
   numeral: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
 }> = z.object({
   page: printedPageSchema,
   opens: z.string().min(1),
@@ -113,21 +114,34 @@ const headingLineSchema: z.ZodObject<{
     .string()
     .regex(/^[IVXL]+$/)
     .optional(),
+  /** A dictionary article's headword, which titles the article its line opens. */
+  title: z.string().min(1).optional(),
 });
+
+/** A scan's page image, and the printed number of its page, where the work states it. */
+const scanPageSchema: z.ZodUnion<
+  [z.ZodURL, z.ZodObject<{ url: z.ZodURL; page: z.ZodNumber }>]
+> = z.union([
+  z.url(),
+  z.object({ url: z.url(), page: z.number().int().positive() }),
+]);
 
 /** A scan another library holds: its page images, read with an OCR model. */
 const scanSchema: z.ZodObject<{
   library: z.ZodString;
   url: z.ZodURL;
-  pages: z.ZodArray<z.ZodURL>;
+  pages: z.ZodArray<typeof scanPageSchema>;
   firstPage: z.ZodOptional<z.ZodNumber>;
 }> = z.object({
   /** The library, as the attribution names it: Polona. */
   library: z.string().min(1),
   /** The scanned item's page in the library. */
   url: z.url(),
-  /** The scan's page images, in the order the scan holds them. */
-  pages: z.array(z.url()).min(1),
+  /**
+   * The scan's page images, in the order the work reads them, each with its
+   * page's printed number where the work takes pages from several volumes.
+   */
+  pages: z.array(scanPageSchema).min(1),
   /** The printed number of the first image's page, where the scan's own page numbers read as noise: the pages follow it one by one. */
   firstPage: z.number().int().positive().optional(),
 });
@@ -197,6 +211,8 @@ const archiveOcrBookSchema: z.ZodObject<
    * page does not tell from the text, by the line that opens them: a
    * numbered or lettered one keeps its label, one without opens a chapter
    * numbered by place; a section's numeral the scan lost stands above it.
+   * A dictionary's article, its headword run into its first line, is titled
+   * by the headword.
    */
   headings: z.array(headingLineSchema).default([]),
   /** Pages the OCR read too askew to tell paragraphs by their indent: on each, the lines that open one, by their opening words; no other line there opens one. */
@@ -817,13 +833,37 @@ export async function ocrVolumeHocr(
 async function imagesHocr(
   images: string[],
   pageOcr: PageOcr,
-  firstPage?: number,
+  printed: Array<number | undefined> = [],
 ): Promise<string> {
   const pages = await images.reduce<Promise<string[]>>(
     async (done, image) => [...(await done), await pageOcr(image)],
     Promise.resolve([]),
   );
-  return volumeOfPages(pages, firstPage);
+  return volumeOfPages(pages, printed);
+}
+
+type ScanPage = z.output<typeof scanPageSchema>;
+
+/** A scan page's image. */
+export function imageOf(page: ScanPage): string {
+  return typeof page === "string" ? page : page.url;
+}
+
+/**
+ * Each scan page's printed number: the one the work states for it, else the
+ * first page's counted on.
+ */
+function printedOf(
+  pages: ScanPage[],
+  firstPage: number | undefined,
+): Array<number | undefined> {
+  return pages.map((page, leaf) =>
+    typeof page === "string"
+      ? firstPage === undefined
+        ? undefined
+        : firstPage + leaf
+      : page.page,
+  );
 }
 
 /** A scanned book's volume: the archive's hOCR, or the scan read anew. */
@@ -840,7 +880,11 @@ export async function volumeHocr(
   }
   const read = pageOcr({ model: book.ocr, binarise: book.binarise });
   return book.scan
-    ? imagesHocr(book.scan.pages, read, book.scan.firstPage)
+    ? imagesHocr(
+        book.scan.pages.map(imageOf),
+        read,
+        printedOf(book.scan.pages, book.scan.firstPage),
+      )
     : ocrVolumeHocr(book.item, fetchText, read);
 }
 
@@ -852,6 +896,7 @@ async function loadArchiveOcrBook(
   const hocr = await volumeHocr(entry, fetchText, options.pageOcr);
   const units = parseArchiveOcrWork(hocr, {
     ...entry,
+    scan: entry.scan && { pages: entry.scan.pages.map(imageOf) },
     corrections: options.corrections?.[entry.item] ?? [],
   });
   return {
