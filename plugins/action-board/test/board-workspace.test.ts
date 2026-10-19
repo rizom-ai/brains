@@ -15,6 +15,7 @@ import {
   actionItemSchema,
   type ActionItemHistoryEntry,
   type ActionItemMetadata,
+  type ActionItemNoteEntry,
   type ActionItemStatus,
 } from "@brains/action-items";
 
@@ -36,6 +37,7 @@ interface Card {
   text: string;
   status: ActionItemStatus;
   history?: ActionItemHistoryEntry[];
+  notes?: ActionItemNoteEntry[];
   /** When the conversation it came from ended. */
   capturedDaysAgo?: number;
   assignee?: string;
@@ -67,6 +69,7 @@ async function brain(cards: Card[]): Promise<ServicePluginContext> {
         ? { assignedTo: [{ displayName: card.assignee }] }
         : {}),
       ...(card.history ? { history: card.history } : {}),
+      ...(card.notes ? { notes: card.notes } : {}),
     };
     await context.entityService.createEntity({
       entity: {
@@ -386,6 +389,69 @@ describe("the Board workspace", () => {
     expect(open).toContain('"control":"text"');
   });
 
+  it("lists an open card's notes in the order they were written, with who wrote them and when", async () => {
+    const registration = await registered(
+      await brain([
+        {
+          id: "c",
+          text: "Book the venue\n\n## Notes\n\nBring the floor plan.",
+          status: "blocked",
+          notes: [
+            {
+              at: daysAgo(2),
+              actor: { kind: "user", userId: "u-sam" },
+              displayName: "Sam Rivera",
+              text: "Venue wants a deposit.",
+            },
+            {
+              at: daysAgo(1),
+              actor: { kind: "user", userId: "u-mira" },
+              text: "Deposit paid.",
+            },
+          ],
+        },
+      ]),
+    );
+
+    const detail = await boardDetail(registration, { card: "c" });
+    const notes = z
+      .looseObject({
+        items: z.array(
+          z.looseObject({
+            title: z.string(),
+            description: z.string(),
+            metadata: z.array(z.string()),
+          }),
+        ),
+      })
+      .parse(
+        (detail.open?.blocks ?? [])
+          .flatMap((block) => [
+            block,
+            ...z
+              .looseObject({ blocks: z.array(z.unknown()).default([]) })
+              .parse(block).blocks,
+          ])
+          .find(
+            (block) =>
+              z.looseObject({ id: z.string().optional() }).parse(block).id ===
+              "card-notes",
+          ),
+      );
+
+    expect(
+      notes.items.map(({ title, description }) => [title, description]),
+    ).toEqual([
+      ["Sam Rivera", "Venue wants a deposit."],
+      ["A team member", "Deposit paid."],
+    ]);
+    expect(notes.items[0]?.metadata).toEqual(["Oct 13"]);
+    // The body is the card's text, headings and all; notes live in the frontmatter.
+    expect(JSON.stringify(detail.open?.blocks)).toContain(
+      "Bring the floor plan.",
+    );
+  });
+
   it("offers to track an Inbox item that a follow-up links to", async () => {
     const registration = await registered(await brain([]));
     const view = JSON.stringify(
@@ -465,8 +531,14 @@ describe("the Board workspace", () => {
       { entityType: "action-item", id: "a", visibilityScope: "restricted" },
       actionItemSchema,
     );
-    expect(stored?.content).toContain("— Started a draft.");
-    expect(stored?.content).toContain("Niels Ward");
+    expect(stored?.metadata.notes).toEqual([
+      {
+        at: NOW.toISOString(),
+        actor: { kind: "user", userId: "u-niels" },
+        displayName: "Niels Ward",
+        text: "Started a draft.",
+      },
+    ]);
     const detail = await boardDetail(registration, { card: "a" });
     expect(JSON.stringify(detail.open?.blocks)).toContain("Started a draft.");
   });

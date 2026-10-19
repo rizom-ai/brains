@@ -117,7 +117,9 @@ const openCardSchema = z.object({
   history: z.array(
     z.object({ move: z.string(), who: z.string(), when: z.string() }),
   ),
-  notes: z.string().optional(),
+  notes: z.array(
+    z.object({ who: z.string(), when: z.string(), text: z.string() }),
+  ),
 });
 
 /** An Inbox item a follow-up asked to track, carried in the URL. */
@@ -346,13 +348,26 @@ function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
         },
       ],
     },
-    ...(card.notes
+    ...(card.notes.length > 0
       ? [
           {
-            type: "text" as const,
-            id: "card-notes",
+            type: "card" as const,
+            id: "card-notes-section",
             label: "Notes",
-            text: card.notes,
+            presentation: "section" as const,
+            blocks: [
+              {
+                type: "list" as const,
+                id: "card-notes",
+                empty: "No notes yet.",
+                items: card.notes.map((note, index) => ({
+                  id: `note-${index}`,
+                  title: note.who,
+                  description: note.text,
+                  metadata: [note.when],
+                })),
+              },
+            ],
           },
         ]
       : []),
@@ -603,21 +618,16 @@ function finishedAt(entity: ActionItemEntity): number {
   ).getTime();
 }
 
-/** The card text and its Notes section, from the markdown body. */
-function splitBody(entity: ActionItemEntity): { text: string; notes?: string } {
-  const body = actionItemBody(entity.content)
+/** The card text: the markdown body below its title heading. */
+function cardText(entity: ActionItemEntity): string {
+  return actionItemBody(entity.content)
     .trimStart()
-    .replace(/^#\s+.+\n+/, "");
-  const [text = "", notes] = body.split(/^## Notes\s*$/m);
-  const trimmedNotes = notes?.trim();
-  return {
-    text: text.trim(),
-    ...(trimmedNotes ? { notes: trimmedNotes } : {}),
-  };
+    .replace(/^#\s+.+\n+/, "")
+    .trim();
 }
 
 function toOpenCard(entity: ActionItemEntity): OpenCard {
-  const { text, notes } = splitBody(entity);
+  const text = cardText(entity);
   return {
     id: entity.id,
     title: actionItemTitle(entity),
@@ -635,7 +645,11 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
       who: entry.displayName ?? "",
       when: formatShortDate(entry.at),
     })),
-    ...(notes ? { notes } : {}),
+    notes: (entity.metadata.notes ?? []).map((note) => ({
+      who: note.displayName ?? "A team member",
+      when: formatShortDate(note.at),
+      text: note.text,
+    })),
   };
 }
 

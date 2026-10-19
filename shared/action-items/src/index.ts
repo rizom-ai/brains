@@ -6,6 +6,7 @@ export {
   actionItemAssigneeParserSchema,
   actionItemAssigneeSchema,
   actionItemHistoryEntrySchema,
+  actionItemNoteEntrySchema,
   actionItemMetadataSchema,
   actionItemOrigin,
   actionItemSchema,
@@ -17,6 +18,7 @@ export {
   type ActionItemAssignee,
   type ActionItemEntity,
   type ActionItemHistoryEntry,
+  type ActionItemNoteEntry,
   type ActionItemMetadata,
   type ActionItemOrigin,
   type ActionItemSourceRef,
@@ -54,5 +56,5 @@ export {
   type TrackInboxItemRequest,
   type TrackInboxItemResult,
 } from "./write";
-export { createActionItemStatusValidator } from "./validator";
+export { createActionItemValidator } from "./validator";
 export { channelLabel, formatAge, formatShortDate } from "./format";

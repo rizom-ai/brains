@@ -16,7 +16,7 @@ import { z } from "@brains/utils/zod";
 import { ActionItemAdapter } from "../src";
 import { actionItemBody, actionItemBodyHash, isBoardOwned } from "../src";
 import { addActionItemNote, moveActionItem, trackInboxItem } from "../src";
-import { createActionItemStatusValidator } from "../src";
+import { createActionItemValidator } from "../src";
 import {
   actionItemSchema,
   type ActionItemEntity,
@@ -84,7 +84,7 @@ async function brain(): Promise<EntityService> {
   await service.initialize();
   registry.registerPersistValidator(
     "action-item",
-    createActionItemStatusValidator(service),
+    createActionItemValidator(service),
   );
   close = async (): Promise<void> => {
     service.close();
@@ -345,6 +345,62 @@ describe("the status validator", () => {
   });
 });
 
+describe("the note validator", () => {
+  const note = (actor: typeof niels | typeof sam, text: string): object => ({
+    at: "2026-10-15T08:02:00.000Z",
+    actor,
+    text,
+  });
+
+  async function writeNotes(
+    service: EntityService,
+    notes: object[],
+    writer?: typeof niels | typeof sam,
+  ): Promise<unknown> {
+    const entity = await stored(service);
+    const content = generateMarkdown(
+      { ...frontmatterOf(entity.content), notes },
+      actionItemBody(entity.content),
+    );
+    return service.updateEntity({
+      entity: {
+        ...entity,
+        content,
+        contentHash: computeContentHash(content),
+        metadata: actionItemSchema.shape.metadata.parse({
+          ...entity.metadata,
+          notes,
+        }),
+      },
+      ...(writer ? { options: { eventContext: { actor: writer } } } : {}),
+    });
+  }
+
+  it("refuses a note that names someone other than the writer", async () => {
+    const service = await brain();
+
+    expect(
+      writeNotes(service, [note(sam, "Venue wants a deposit.")], niels),
+    ).rejects.toThrow("names u-sam");
+    expect((await stored(service)).metadata.notes).toBeUndefined();
+    await writeNotes(service, [note(sam, "Venue wants a deposit.")], sam);
+    expect((await stored(service)).metadata.notes).toHaveLength(1);
+  });
+
+  it("refuses changing or removing a note once it is written", async () => {
+    const service = await brain();
+    await writeNotes(service, [note(sam, "Venue wants a deposit.")], sam);
+
+    expect(
+      writeNotes(service, [note(sam, "Venue is free.")], sam),
+    ).rejects.toThrow("notes");
+    expect(writeNotes(service, [], sam)).rejects.toThrow("notes");
+    expect((await stored(service)).metadata.notes?.[0]).toMatchObject({
+      text: "Venue wants a deposit.",
+    });
+  });
+});
+
 describe("noting a stored card", () => {
   it("keeps the note, passes the status validator, and claims the card for the board", async () => {
     const service = await brain();
@@ -361,8 +417,16 @@ describe("noting a stored card", () => {
 
     expect(result).toEqual({ status: "noted" });
     const after = await stored(service);
-    expect(actionItemBody(after.content)).toContain(
-      "## Notes\n\n- 2026-10-15 · Niels Ward — Venue wants a deposit.\n",
+    expect(after.metadata.notes).toEqual([
+      {
+        at: "2026-10-15T08:02:00.000Z",
+        actor: niels,
+        displayName: "Niels Ward",
+        text: "Venue wants a deposit.",
+      },
+    ]);
+    expect(actionItemBody(after.content)).toBe(
+      actionItemBody(projectedContent()),
     );
     expect(after.metadata.status).toBe("open");
     expect(isBoardOwned(after)).toBe(true);

@@ -138,6 +138,7 @@ export async function addActionItemNote(
     (entity, at) =>
       applyNote(entity, {
         text: request.text,
+        actor: request.actor,
         actorName: request.actorName,
         at,
       }),

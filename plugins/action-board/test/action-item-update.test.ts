@@ -57,9 +57,12 @@ async function brain(
   return context;
 }
 
-async function stored(
-  context: ServicePluginContext,
-): Promise<{ status: string; history?: unknown; content: string }> {
+async function stored(context: ServicePluginContext): Promise<{
+  status: string;
+  history?: unknown;
+  notes?: unknown;
+  content: string;
+}> {
   const entity = await context.entityService.getEntity(
     { entityType: "action-item", id: "venue", visibilityScope: "restricted" },
     actionItemSchema,
@@ -68,6 +71,7 @@ async function stored(
   return {
     status: entity.metadata.status,
     history: entity.metadata.history,
+    notes: entity.metadata.notes,
     content: entity.content,
   };
 }
@@ -99,9 +103,14 @@ describe("the action_item_update tool", () => {
 
     await tool.handler({ id: "venue", note: "Deposit due Friday." }, chat);
 
-    expect((await stored(context)).content).toContain(
-      "- 2026-10-15 · Niels Ward — Deposit due Friday.",
-    );
+    expect((await stored(context)).notes).toEqual([
+      {
+        at: NOW.toISOString(),
+        actor: { kind: "user", userId: "usr_niels" },
+        displayName: "Niels Ward",
+        text: "Deposit due Friday.",
+      },
+    ]);
   });
 
   it("does not reach a card the caller cannot see", async () => {

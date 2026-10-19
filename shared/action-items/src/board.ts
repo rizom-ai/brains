@@ -11,6 +11,7 @@ import {
   actionItemOrigin,
   type ActionItemEntity,
   type ActionItemHistoryEntry,
+  type ActionItemNoteEntry,
   type ActionItemStatus,
 } from "./schema";
 
@@ -65,6 +66,7 @@ export function actionItemBodyHash(content: string): string {
  */
 export function isBoardOwned(entity: ActionItemEntity): boolean {
   if (entity.metadata.status !== "open") return true;
+  if ((entity.metadata.notes?.length ?? 0) > 0) return true;
   const fields = Object.keys(frontmatterFields(entity.content));
   if (fields.some((field) => !OWNED_FIELDS.has(field))) return true;
   const projected = entity.metadata.projectedBodyHash;
@@ -132,29 +134,36 @@ export function arrivedAt(
 
 export interface ActionItemNote {
   text: string;
+  actor: ActorRef;
   /** The writer's name as the signed-in surface knows it. */
   actorName?: string | undefined;
   at: string;
 }
 
-/**
- * Append one dated, named line under the body's Notes section, creating the
- * section once. Earlier body text and every frontmatter field stay as stored.
- */
+/** Record a note and who wrote it. The body and every other field stay as stored. */
 export function applyNote(
   entity: ActionItemEntity,
   note: ActionItemNote,
 ): ActionItemEntity {
-  const text = note.text.replace(/\s+/g, " ").trim();
+  const text = note.text.trim();
   if (text.length === 0) throw new Error("A note needs text");
-  const line = `- ${note.at.slice(0, 10)} · ${note.actorName ?? "A team member"} — ${text}\n`;
-  const body = actionItemBody(entity.content);
-  const ended = body.endsWith("\n") ? body : `${body}\n`;
-  const next = /^## Notes$/m.test(body)
-    ? `${ended}${line}`
-    : `${ended}\n## Notes\n\n${line}`;
-  const content = generateMarkdown(frontmatterFields(entity.content), next);
-  return { ...entity, content, contentHash: computeContentHash(content) };
+  const entry: ActionItemNoteEntry = {
+    at: note.at,
+    actor: note.actor,
+    ...(note.actorName ? { displayName: note.actorName } : {}),
+    text,
+  };
+  const notes = [...(entity.metadata.notes ?? []), entry];
+  const content = generateMarkdown(
+    { ...frontmatterFields(entity.content), notes },
+    actionItemBody(entity.content),
+  );
+  return {
+    ...entity,
+    content,
+    contentHash: computeContentHash(content),
+    metadata: { ...entity.metadata, notes },
+  };
 }
 
 /** When an item was captured: its conversation's end, or when it was tracked. */
