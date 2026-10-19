@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.565
+
+### Patch Changes
+
+- [#679](https://github.com/rizom-ai/brains/pull/679) [`3f08d82`](https://github.com/rizom-ai/brains/commit/3f08d8286b54505da81814eabffd77f92b8ac55e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The style guide also wins over voice wording in a generation request. The precedence statement now covers the request's additional instructions as well as the template's, and the agent is told to write `system_generate` prompts from what the user asked for, without adding "engaging", "a compelling hook", "invite discussion" or other voice directions of its own.
+
 ## 0.2.0-alpha.564
 
 ### Patch Changes
