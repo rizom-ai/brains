@@ -322,6 +322,36 @@ describe("parseArchiveOcrWork on notes set to another's text", () => {
     ]);
   });
 
+  it("finds a note's passage in the section before, where a heading falls between", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notesOnly: true,
+      headings: [{ page: 4, opens: "zu solchen Annahmen", unnumbered: true }],
+    });
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit wir uns mit der Aufstellung des Lustprinzips einem bestimmten, historisch festgelegten System angenähert haben.",
+    ]);
+  });
+
+  it("finds no notes but those the manifest names, where it names them all", async () => {
+    expect(
+      parseArchiveOcrWork(await fixture(), {
+        ...work,
+        notesOnly: true,
+        notesNamed: true,
+      }),
+    ).toEqual([]);
+    expect(
+      parseArchiveOcrWork(await fixture(), {
+        ...work,
+        notesOnly: true,
+        notesNamed: true,
+        notes: [{ page: 4, opens: "ı) Vgl. Zur" }],
+      }),
+    ).toHaveLength(1);
+  });
+
   it("keeps only the notes signed as the manifest names", async () => {
     const units = parseArchiveOcrWork(await fixture(), {
       ...work,
@@ -3324,13 +3354,33 @@ describe("a volume set in two columns", () => {
       line(100, [[1700, String(left + 1)]]),
       ...Array.from({ length: 8 }, (_, row) => {
         const y = 300 + row * 80;
-        // The OCR runs the third row of both columns together.
+        // The OCR runs the third row of both columns together, and on the
+        // fourth the right column starts left of where it mostly does.
         return row === 2
           ? line(y, [...column(100, "Links", y), ...column(1100, "Rechts", y)])
-          : [
-              line(y, column(100, "Links", y)),
-              line(y, column(1100, "Rechts", y)),
-            ].join("\n");
+          : row === 4
+            ? [
+                line(y, column(100, "Links", y)),
+                // A right column's line set out left of the others.
+                line(y, [
+                  [1000, "Rechts"],
+                  [1300, "Spalte"],
+                  [1600, `Zeile${y}`],
+                ]),
+              ].join("\n")
+            : row === 3
+              ? line(y, [
+                  [100, "Links"],
+                  [400, "Spalte"],
+                  [700, "breit"],
+                  [1040, "Rechts"],
+                  [1340, "Spalte"],
+                  [1640, `Zeile${y}`],
+                ])
+              : [
+                  line(y, column(100, "Links", y)),
+                  line(y, column(1100, "Rechts", y)),
+                ].join("\n");
       }),
       "</div>",
     ].join("\n");
@@ -3351,6 +3401,219 @@ describe("a volume set in two columns", () => {
     expect(lines).toHaveLength(16);
     expect(workPages(hocr, { firstPage: 721, lastPage: 725 })).toEqual([
       721, 723, 725,
+    ]);
+  });
+});
+
+describe("a note that runs on below the next page's heading", () => {
+  const line = (y: number, text: string): string =>
+    `<span class='ocr_line' title='bbox 200 ${y} 1800 ${y + 50}; x_size 50'>${text}</span>`;
+  const textPage = (leaf: number, head: number, lines: string[]): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(100, `— ${head} —`),
+      ...lines.map((text, at) => line(300 + at * 80, text)),
+      "</div>",
+    ].join("\n");
+  const filler = (leaf: number): string[] =>
+    Array.from(
+      { length: 6 },
+      (_, at) =>
+        `Der Vortrag auf Blatt ${leaf} geht in der Zeile ${at} weiter.`,
+    );
+  const hocr = `<html><body>\n${[
+    textPage(0, 9, filler(0)),
+    textPage(1, 10, [
+      ...filler(1),
+      "So endet der Satz, den die Anmerkung erklärt¹).",
+      "¹) Eine Anmerkung des Übersetzers, die auf",
+    ]),
+    textPage(2, 11, [
+      "Zweite Vorlesung.",
+      ...filler(2),
+      "der nächsten Seite weitergeht.",
+    ]),
+    textPage(3, 12, filler(3)),
+  ].join("\n")}\n</body></html>`;
+
+  it("joins the line to the note it runs on, under that note's passage", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vortraege",
+      title: "Anmerkungen",
+      citation: "Vorträge",
+      firstPage: 10,
+      lastPage: 11,
+      notesOnly: true,
+      notesNamed: true,
+      headings: [{ page: 11, opens: "Zweite Vorlesung", unnumbered: true }],
+      notes: [
+        { page: 10, opens: "¹) Eine Anmerkung" },
+        { page: 11, opens: "der nächsten Seite", runsOn: true },
+      ],
+    });
+
+    expect(units.map((unit) => unit.paragraphs)).toEqual([
+      [
+        "¹) Eine Anmerkung des Übersetzers, die auf der nächsten Seite weitergeht.",
+      ],
+    ]);
+  });
+});
+
+describe("a note's passage that holds an abbreviation", () => {
+  const line = (y: number, text: string): string =>
+    `<span class='ocr_line' title='bbox 200 ${y} 1800 ${y + 50}; x_size 50'>${text}</span>`;
+  const textPage = (leaf: number, head: number, lines: string[]): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(100, `— ${head} —`),
+      ...lines.map((text, at) => line(300 + at * 80, text)),
+      "</div>",
+    ].join("\n");
+  const filler = (leaf: number): string[] =>
+    Array.from(
+      { length: 6 },
+      (_, at) =>
+        `Der Vortrag auf Blatt ${leaf} geht in der Zeile ${at} weiter.`,
+    );
+  const hocr = `<html><body>\n${[
+    textPage(0, 9, filler(0)),
+    textPage(1, 10, [
+      ...filler(1),
+      "Sie thun im Schlaf, was sie sonst thun, wie z. B. ihre Aufgaben schreiben¹).",
+      "Selten zögert sie bis zum 15. Jahr und ist dann besonders²).",
+      "¹) Die Heinzelmännchen!",
+      "²) Eine zweite Anmerkung.",
+    ]),
+    textPage(2, 11, filler(2)),
+  ].join("\n")}\n</body></html>`;
+
+  it("runs the passage on past a stop that ends an abbreviation or an ordinal", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vortraege",
+      title: "Anmerkungen",
+      citation: "Vorträge",
+      firstPage: 10,
+      lastPage: 10,
+      notesOnly: true,
+      notesNamed: true,
+      notes: [
+        { page: 10, opens: "¹) Die Heinzel" },
+        { page: 10, opens: "²) Eine zweite" },
+      ],
+    });
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Sie thun im Schlaf, was sie sonst thun, wie z. B. ihre Aufgaben schreiben",
+      "Selten zögert sie bis zum 15. Jahr und ist dann besonders",
+    ]);
+  });
+});
+
+describe("a note set to a heading, its mark a bare superscript", () => {
+  const line = (y: number, text: string, size = 50): string =>
+    `<span class='ocr_line' title='bbox 200 ${y} 1800 ${y + size}; x_size ${size}'>${text}</span>`;
+  const hocr = `<html><body>\n${[
+    [
+      "<div class='ocr_page' id='page_0' title='bbox 0 0 2000 3000'>",
+      line(100, "— 9 —"),
+      ...Array.from({ length: 6 }, (_, at) =>
+        line(
+          300 + at * 80,
+          `Der Vortrag auf Blatt 0 geht in der Zeile ${at} weiter.`,
+        ),
+      ),
+      "</div>",
+    ].join("\n"),
+    [
+      "<div class='ocr_page' id='page_1' title='bbox 0 0 2000 3000'>",
+      line(100, "— 10 —"),
+      line(300, "Ueber einen Fall von Wortblindheit.¹", 80),
+      ...Array.from({ length: 6 }, (_, at) =>
+        line(
+          500 + at * 80,
+          `Meine Herren, der Vortrag geht in der Zeile ${at} weiter.`,
+        ),
+      ),
+      line(1100, "¹ Die beiden Vorlesungen sind die ersten einer Reihe."),
+      line(1180, "Anmerkung des Uebersetzers."),
+      "</div>",
+    ].join("\n"),
+  ].join("\n")}\n</body></html>`;
+
+  it("sets the note under the heading that holds its mark", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vorlesungen",
+      title: "Anmerkungen",
+      citation: "Vorlesungen",
+      firstPage: 10,
+      lastPage: 10,
+      notesOnly: true,
+      notesNamed: true,
+      notesSigned: ["Anmerkung des Uebersetzers."],
+      headings: [{ page: 10, opens: "Ueber einen Fall", unnumbered: true }],
+      notes: [{ page: 10, opens: "¹ Die beiden" }],
+    });
+
+    expect(units.map((unit) => [unit.title, unit.paragraphs])).toEqual([
+      [
+        "Ueber einen Fall von Wortblindheit.",
+        [
+          "¹ Die beiden Vorlesungen sind die ersten einer Reihe. Anmerkung des Uebersetzers.",
+        ],
+      ],
+    ]);
+  });
+});
+
+describe("named notes beside specks at the page's edge", () => {
+  const line = (x: number, y: number, text: string): string =>
+    `<span class='ocr_line' title='bbox ${x} ${y} ${x === 20 ? 30 : 1800} ${y + 50}; x_size 50'>${text}</span>`;
+  const textPage = (leaf: number, head: number, lines: string[]): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(200, 100, `— ${head} —`),
+      ...lines,
+      "</div>",
+    ].join("\n");
+  const filler = (leaf: number): string[] =>
+    Array.from({ length: 6 }, (_, at) =>
+      line(
+        200,
+        300 + at * 80,
+        `Der Vortrag auf Blatt ${leaf} geht in der Zeile ${at} weiter.`,
+      ),
+    );
+  const hocr = `<html><body>\n${[
+    textPage(0, 9, filler(0)),
+    textPage(1, 10, [
+      ...filler(1),
+      line(200, 800, "So schliesst der Vortrag, vorstellen kann.¹"),
+      line(200, 1000, "¹ Der Kranke entzog sich bald darauf der Behandlung."),
+      line(20, 1020, "I"),
+      line(200, 1080, "Anmerkung des Uebersetzers."),
+      line(20, 1100, "i"),
+      line(200, 1140, "ELE ET"),
+      line(200, 1200, "lllllll.llllllllllll AA L}"),
+    ]),
+    textPage(2, 11, filler(2)),
+  ].join("\n")}\n</body></html>`;
+
+  it("leaves out a line without a word the OCR read among the notes", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vorlesungen",
+      title: "Anmerkungen",
+      citation: "Vorlesungen",
+      firstPage: 10,
+      lastPage: 10,
+      notesOnly: true,
+      notesNamed: true,
+      notesSigned: ["Anmerkung des Uebersetzers."],
+      notes: [{ page: 10, opens: "¹ Der Kranke" }],
+    });
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "¹ Der Kranke entzog sich bald darauf der Behandlung. Anmerkung des Uebersetzers.",
     ]);
   });
 });

@@ -72,6 +72,14 @@ gaps:
     reason: the letters are not in the Gesammelte Werke
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
     reason: published in 1987 with an editorial apparatus still in copyright
+  - citation: Villaret I
+    pages: "892"
+    title: Hysteroepilepsie
+    year: 1888
+    reason: unsigned, as all the dictionary's articles are; only its footnote, which corrects the article's own account by Charcot's newer view and points to Hysterie, reads as Freud's; attribution not certain
+  - title: Articles in Villaret, Handwörterbuch der gesamten Medizin (Gehirn, Aphasie, Abducens, Accessorius, Facialis, Facialiskrampf, Lähmung, Lokalisation)
+    year: 1888
+    reason: unsigned, and nothing in the articles or the volumes ties them to Freud; attribution not certain
   - title: Anzeige der „Schriften zur angewandten Seelenkunde“ (second version)
     year: 1908
     reason: an unsigned publisher's announcement on the series' wrappers; attribution not certain
@@ -114,6 +122,33 @@ books:
     title: Vorwort des Übersetzers
     shortTitle: Vorwort zu Charcot (1886)
     edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886), S. III–IV"
+    author: Sigmund Freud
+    year: 1886
+    kind: work
+  - item: b21293181
+    ocr: deu
+    citation: Charcot 1886
+    firstPage: 1
+    lastPage: 357
+    # The translator's notes, each signed so, under the passages they are
+    # set to; the lectures are Charcot's.
+    notesOnly: true
+    notesSigned: [Anmerkung des Uebersetzers.]
+    # The OCR loses the rule above the notes and reads figures as text:
+    # the notes are those named, by their openings, those that run on from
+    # the page before named too.
+    notesNamed: true
+    notes:
+      - { page: 124, opens: "¹ Die beiden" }
+      - { page: 245, opens: "¹ Charcot ist" }
+      - { page: 246, opens: "Lähmungen anzusehen", runsOn: true }
+      - { page: 300, opens: "¹ Der Kranke Pin" }
+      - { page: 301, opens: "erheblich sank", runsOn: true }
+      - { page: 330, opens: "¹ Der Kranke, ein" }
+    slug: anmerkungen-des-uebersetzers-zu-charcot-neue-vorlesungen
+    title: Anmerkungen des Übersetzers
+    shortTitle: Anmerkungen zu Charcot (1886)
+    edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886)"
     author: Sigmund Freud
     year: 1886
     kind: work
@@ -179,6 +214,201 @@ books:
     edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1888), S. III–XII"
     author: Sigmund Freud
     year: 1888
+    kind: work
+  - item: Villaret1888Handwoerterbuch
+    ocr: deu
+    citation: Villaret I
+    # Two columns to a page, the page numbered once.
+    columns: true
+    firstPage: 886
+    lastPage: 892
+    opensWith: "Hysterie, die"
+    closesWith: "scher Natur."
+    # Where the scan sits askew the right column's lines read as set in:
+    # the paragraphs of those pages by their openings.
+    paragraphs:
+      - { page: 887, opens: "2. Hysterogene" }
+      - { page: 887, opens: "3. Störungen" }
+      - { page: 887, opens: "In allen diesen" }
+      - { page: 887, opens: "4. Störungen" }
+      - { page: 888, opens: "5. Lähmungen" }
+      - { page: 888, opens: "6. Kontrakturen. Bei" }
+      - { page: 888, opens: "Bei schwereren Formen" }
+      - { page: 888, opens: "7. Allgemeine" }
+      - { page: 889, opens: "Neben den physischen" }
+      - { page: 889, opens: "Die H. ist zu betrachten" }
+      - { page: 890, opens: "Verlauf der Hysterie" }
+      - { page: 890, opens: "IV. Verlauf" }
+      - { page: 890, opens: "Die H. kann sich" }
+      - { page: 890, opens: "V. Die Therapie" }
+    # Unsigned, as the dictionary's articles are; Freud is among its
+    # contributors ("Dozent Dr. Freud in Wien"), and the article reports
+    # Breuer's cathartic method before anyone but Freud had printed it.
+    slug: hysterie
+    title: Hysterie
+    edition: "Handwörterbuch der gesamten Medizin, hg. von A. Villaret, Bd. I (Ferdinand Enke, Stuttgart 1888), S. 886–892"
+    author: Sigmund Freud
+    year: 1888
+    kind: work
+  - item: therapeutischesl00buma
+    ocr: deu
+    citation: Bum 1891
+    # Two columns to a page, each numbered: a page is cited by its first.
+    columns: true
+    firstPage: 723
+    lastPage: 731
+    opensWith: "HYPIIOSG- Es wäre"
+    # Freud's signature follows, then the next article.
+    closesWith: Stande sein werde
+    slug: hypnose
+    title: Hypnose
+    edition: "Therapeutisches Lexikon für praktische Ärzte, hg. von Anton Bum (Urban & Schwarzenberg, Wien und Leipzig 1891), Sp. 724–732"
+    author: Sigmund Freud
+    year: 1891
+    kind: work
+  - item: b21499792
+    ocr: deu
+    citation: Charcot 1892
+    # The front matter has no roman heads the OCR reads.
+    frontPage: { leaf: 6, page: III }
+    firstPage: III
+    lastPage: VI
+    slug: vorwort-des-uebersetzers-zu-charcot-poliklinische-vortraege
+    title: Vorwort des Übersetzers
+    shortTitle: Vorwort zu Charcot (1892)
+    edition: "J. M. Charcot, Poliklinische Vorträge, I. Band, Schuljahr 1887/88, übersetzt von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1892), S. III–VI"
+    author: Sigmund Freud
+    year: 1892
+    kind: work
+  - item: b21499792
+    ocr: deu
+    citation: Charcot 1892
+    frontPage: { leaf: 6, page: III }
+    firstPage: 1
+    lastPage: 469
+    # The translator's notes, each under the passage it is set to; the
+    # lectures are Charcot's, and so are the notes he signed.
+    notesOnly: true
+    skipNotesSigned:
+      ["(Ch.)", "(Ch.).", "[Ch.]", "(Charcot.)", "(Charcot)", "(Charcot)."]
+    # The OCR loses the rule above the notes, and reads a figure's scraps and
+    # caption as notes: the notes are those named, by their openings.
+    notesNamed: true
+    notes:
+      - { page: 2, opens: "') Ein Citat aus" }
+      - { page: 4, opens: "‘') Die Lehre von" }
+      - { page: 5, opens: "*) Leichte Bethei" }
+      - { page: 6, opens: "') E. Neumann, Du" }
+      - { page: 8, opens: "*) Ich bin seiner" }
+      - { page: 9, opens: "‘) Es ist unläugb" }
+      - { page: 26, opens: "‘) Ich weiss nich" }
+      - { page: 29, opens: ".‘; So richtig die" }
+      - { page: 37, opens: "1y Eine interessa" }
+      - { page: 49, opens: "1y Siehe darüber:" }
+      - { page: 52, opens: "ıy Der französisc" }
+      - { page: 53, opens: "iy So übersetze i" }
+      - { page: 53, opens: "der Jletzteren bedienen", runsOn: true }
+      - { page: 56, opens: "') Ich halte dies" }
+      - { page: 57, opens: "Charcot’s loyale", runsOn: true }
+      - { page: 65, opens: "i) Ich habe die b" }
+      - { page: 74, opens: "') Nach Erb (Dyst" }
+      - { page: 75, opens: "ıy Zur Erläuterun" }
+      - { page: 80, opens: "') Ohrenärzte hab" }
+      - { page: 84, opens: "ı) Dieser Kranke" }
+      - { page: 87, opens: "‘) pag. 57 in den" }
+      - { page: 89, opens: "iy Die Folge hat" }
+      - { page: 90, opens: "') Diese Arbeit i" }
+      - { page: 98, opens: "!) Wir haben neue" }
+      - { page: 100, opens: "ı) Dies ist die b" }
+      - { page: 106, opens: "') Eine Terminolo" }
+      - { page: 107, opens: "ıy P. Richer, Etu" }
+      - { page: 108, opens: "') Charcot und se" }
+      - { page: 114, opens: "') Ich glaube, ic" }
+      - { page: 124, opens: "') Die Heinzelmän" }
+      - { page: 126, opens: "') Wer die Fourni" }
+      - { page: 128, opens: "') Die Fortsetzun" }
+      - { page: 134, opens: "'ı Wer Meister Ch" }
+      - { page: 135, opens: "5y Bourneville ma" }
+      - { page: 137, opens: "ıy Ob es wohl zuf" }
+      - { page: 140, opens: "‘)' Vgl. Blocq: Le" }
+      - { page: 141, opens: "') \\nm de Dieu." }
+      - { page: 142, opens: "') Ich will hier" }
+      - { page: 147, opens: "') Es sind zumeis" }
+      - { page: 147, opens: "’) Man überzengt" }
+      - { page: 148, opens: "ı) Paralysis agit" }
+      - { page: 149, opens: "‘) Mit wenigen Au" }
+      - { page: 154, opens: "‘') Es ist mir sei" }
+      - { page: 170, opens: "‘) Es ist wohl ni" }
+      - { page: 173, opens: "’) Die acut und s" }
+      - { page: 199, opens: "') Goldene Worte," }
+      - { page: 204, opens: "') S0 lange Dauer" }
+      - { page: 206, opens: "‘) In Betreff der" }
+      - { page: 210, opens: "') Ich will das s" }
+      - { page: 211, opens: "Begründung und sind", runsOn: true }
+      - { page: 214, opens: "¹) Ich glaube mic" }
+      - { page: 215, opens: "falls bleibt das", runsOn: true }
+      - { page: 216, opens: "') Streng genomme" }
+      - { page: 222, opens: "') Die später vor" }
+      - { page: 224, opens: "') Ich wage hier" }
+      - { page: 228, opens: "') In späteren Vo" }
+      - { page: 228, opens: "?) Vgl. den IV. B" }
+      - { page: 237, opens: "ı) Mir ist kürzli" }
+      - { page: 237, opens: "?) Mancher Leser" }
+      - { page: 240, opens: "‘) In einer eben" }
+      - { page: 249, opens: "_ *y Die später vor" }
+      - { page: 260, opens: "') Eine Heldentha" }
+      - { page: 261, opens: "Strom und rettete", runsOn: true }
+      - { page: 268, opens: "*) Als ich 1886 d" }
+      - { page: 286, opens: "ı) Mit diesen wei" }
+      - { page: 293, opens: "') Eine am nächst" }
+      - { page: 297, opens: "') Deutsch von P," }
+      - { page: 312, opens: "') Ausser den ang" }
+      - { page: 314, opens: "ı) Es ist &en Les" }
+      - { page: 319, opens: "*) Vgl. dort den" }
+      - { page: 329, opens: "') Einige Tage sp" }
+      - { page: 338, opens: "‘1) Man gibt. das" }
+      - { page: 351, opens: "1) Richtiger wohl" }
+      - { page: 352, opens: "!} Functionelle u" }
+      - { page: 352, opens: "?) Der Kranke kam" }
+      - { page: 353, opens: "') Einer der Kran" }
+      - { page: 357, opens: "') Vgl. die Polik" }
+      - { page: 357, opens: "f ’) [(Charcot" }
+      - { page: 364, opens: "') Vgl. die Polik" }
+      - { page: 368, opens: "') In einer klein" }
+      - { page: 368, opens: "?) Vgl. die Polik" }
+      - { page: 370, opens: "ı) So geschah es" }
+      - { page: 371, opens: "‘) Man missverste" }
+      - { page: 371, opens: "?) Vgl. einen ähn" }
+      - { page: 372, opens: "ı) In letzter Zei" }
+      - { page: 377, opens: "‘) Es ist sehr zu" }
+      - { page: 396, opens: "') Diese ganze th" }
+      - { page: 397, opens: ") Vgl. über das" }
+      - { page: 399, opens: "') Alle diese äti" }
+      # On 404 the note Charcot signed runs on in one of the translator's own.
+      - { page: 404, opens: "Die Lehre von der Famille" }
+      - { page: 407, opens: "') Bei Reizung mi" }
+      - { page: 407, opens: "?) Alle diese hie" }
+      - { page: 417, opens: "‘) Wir würden hie" }
+      - { page: 422, opens: "') Die sehr inter" }
+      - { page: 423, opens: "‘) Anffällig ist." }
+      - { page: 424, opens: "‘) Nicht jede tar" }
+      - { page: 425, opens: "‘5) Raymond stellt" }
+      - { page: 426, opens: "') Charcot. — La" }
+      - { page: 426, opens: "es streng genommen", runsOn: true }
+      - { page: 427, opens: "ıy Wir kennen wen" }
+      - { page: 429, opens: "ıy Dieser Bruder" }
+      - { page: 436, opens: "ı) Alle diese Bem" }
+      - { page: 437, opens: "Kommen und Verschwinden", runsOn: true }
+      - { page: 447, opens: "ı» Vergl, Anbang:" }
+      - { page: 452, opens: "‘) Daher die Bere" }
+      - { page: 452, opens: "°) Die vollständi" }
+      - { page: 460, opens: "*‘) Vergl. hierzu:" }
+    slug: anmerkungen-des-uebersetzers-zu-charcot-poliklinische-vortraege
+    title: Anmerkungen des Übersetzers
+    shortTitle: Anmerkungen zu Charcot (1892)
+    edition: "J. M. Charcot, Poliklinische Vorträge, I. Band, Schuljahr 1887/88, übersetzt von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1892)"
+    author: Sigmund Freud
+    year: 1892
     kind: work
   - item: Diagnostisches1v4K
     citation: Diagn. Lex. I

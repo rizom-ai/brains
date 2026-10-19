@@ -144,6 +144,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       notesOnly: z.ZodDefault<z.ZodBoolean>;
       notesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      notesNamed: z.ZodDefault<z.ZodBoolean>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       curved: z.ZodDefault<z.ZodBoolean>;
       marginalia: z.ZodDefault<z.ZodBoolean>;
@@ -205,6 +206,8 @@ const archiveOcrBookSchema: z.ZodObject<
   notesOnly: z.boolean().default(false),
   /** Of such notes, only those ending in one of these signatures are the author's. */
   notesSigned: z.array(z.string().min(1)).default([]),
+  /** The manifest names every note of the work by its opening: a page whose notes it does not name has none. */
+  notesNamed: z.boolean().default(false),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
   spacedNotes: z.boolean().default(false),
   /** The scan's lines curve, so their starts tell no indent: a paragraph opens only below a sentence's end. */

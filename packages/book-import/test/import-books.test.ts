@@ -1275,7 +1275,7 @@ describe("a scanned work set among others' texts", () => {
     parseManifest(`
 source: archive-ocr
 books:
-  - { item: wmw, citation: WMW, columns: true, firstPage: 137, lastPage: 137, opensWith: Die akute, closesWith: behandelt sind, notesOnly: true, notesSigned: [Der Herausgeber.], slug: a, title: A, edition: WMW, author: Sigmund Freud, year: 1887, kind: work }
+  - { item: wmw, citation: WMW, columns: true, firstPage: 137, lastPage: 137, opensWith: Die akute, closesWith: behandelt sind, notesOnly: true, notesSigned: [Der Herausgeber.], notesNamed: true, slug: a, title: A, edition: WMW, author: Sigmund Freud, year: 1887, kind: work }
 `),
   );
 
@@ -1285,6 +1285,7 @@ books:
       closesWith: "behandelt sind",
       notesOnly: true,
       notesSigned: ["Der Herausgeber."],
+      notesNamed: true,
     });
   });
 });

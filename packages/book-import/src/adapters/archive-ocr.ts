@@ -91,6 +91,11 @@ export interface ArchiveOcrWork {
   /** Of such notes, only those ending in one of these signatures are the author's. */
   notesSigned?: string[];
   /**
+   * The manifest names every note of the work by its opening: a page whose
+   * notes it does not name has none.
+   */
+  notesNamed?: boolean;
+  /**
    * The edition sets its notes as large as the text, below a rule the OCR
    * does not read; full lines below a gap in the page's lower half are notes.
    */
@@ -143,6 +148,8 @@ interface Line {
   corrected?: boolean;
   /** Where each of its words starts, as the OCR placed them. */
   starts?: number[];
+  /** Where each of its words ends, as the OCR placed them. */
+  wordEnds?: number[];
 }
 
 interface Page {
@@ -288,6 +295,7 @@ function joinSplitLines(lines: Line[]): Line[] {
             bottom: Math.max(last.bottom, line.bottom),
             text: `${last.text} ${line.text}`,
             starts: [...(last.starts ?? []), ...(line.starts ?? [])],
+            wordEnds: [...(last.wordEnds ?? []), ...(line.wordEnds ?? [])],
           },
         ];
       }
@@ -422,6 +430,10 @@ function isEdgeShadow(
 const COLUMN_LINES = 3;
 /** The gutter's share of the page's width, left of the right column. */
 const GUTTER = 0.01;
+/** A space between words this near the gutter, as a share of the page's width, may part the columns. */
+const GUTTER_NEAR = 0.08;
+/** The space between columns is at least this many times a line's usual space between words. */
+const COLUMN_SPACE = 2;
 
 /**
  * A page set in two columns as one column, read down the left, then the
@@ -442,8 +454,14 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
       : width / 2;
   const top = Math.min(...lines.map((line) => line.y));
   const rowHeight = median(lines.map((line) => line.bottom - line.y));
+  // The left column ends where its lines mostly do; a line that starts
+  // past it, though left of the gutter, is the right column's, set out.
+  const leftEnds = lines
+    .filter((line) => line.x < width * 0.3 && line.x + line.width < gutter)
+    .map((line) => line.x + line.width);
+  const leftEnd = leftEnds.length >= COLUMN_LINES ? median(leftEnds) : gutter;
   const crosses = (line: Line): boolean =>
-    line.x < gutter && line.x + line.width > gutter;
+    line.x < Math.min(gutter, leftEnd) && line.x + line.width > gutter;
   // The head's row: the topmost, where a line runs across the gutter or a
   // page number stands alone.
   const headRow = lines.filter(
@@ -458,7 +476,26 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
     .flatMap((line): Array<{ line: Line; right: boolean }> => {
       const words = line.text.split(" ");
       const starts = line.starts ?? [];
-      const at = starts.findIndex((start) => start >= gutter);
+      const ends = line.wordEnds ?? [];
+      // Where the scan sits askew, the right column may start left of the
+      // gutter: a line parts at a space between words near the gutter well
+      // wider than its others, else where a word starts past the gutter.
+      const spaces = starts.map((start, index) => ({
+        index,
+        space: start - (ends[index - 1] ?? start),
+      }));
+      const usual = median(
+        spaces.filter(({ index }) => index > 0).map(({ space }) => space),
+      );
+      const widest = spaces
+        .filter(
+          ({ index, space }) =>
+            index > 0 &&
+            space > usual * COLUMN_SPACE &&
+            Math.abs((starts[index] ?? 0) - gutter) < width * GUTTER_NEAR,
+        )
+        .sort((a, b) => b.space - a.space)[0];
+      const at = widest?.index ?? starts.findIndex((start) => start >= gutter);
       if (!crosses(line) || at <= 0 || starts.length !== words.length) {
         return [{ line, right: line.x + line.width / 2 >= gutter }];
       }
@@ -470,6 +507,7 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
             width: gutter - line.x,
             text: words.slice(0, at).join(" "),
             starts: starts.slice(0, at),
+            wordEnds: ends.slice(0, at),
           },
           right: false,
         },
@@ -480,6 +518,7 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
             width: line.x + line.width - split,
             text: words.slice(at).join(" "),
             starts: starts.slice(at),
+            wordEnds: ends.slice(at),
           },
           right: true,
         },
@@ -502,6 +541,7 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
       y: y(line.y),
       bottom: y(line.bottom),
       ...(line.starts ? { starts: line.starts.map(x) } : {}),
+      ...(line.wordEnds ? { wordEnds: line.wordEnds.map(x) } : {}),
     };
   };
   return [
@@ -553,6 +593,12 @@ function readPages(hocr: string, columns = false): Page[] {
                   (word) =>
                     numbers(word.getAttribute("title") ?? "", "bbox")[0] ?? x0,
                 ),
+              wordEnds: kept
+                .filter((word) => word.textContent.trim() !== "")
+                .map(
+                  (word) =>
+                    numbers(word.getAttribute("title") ?? "", "bbox")[2] ?? x1,
+                ),
               text: (kept.length < read.length
                 ? kept.map((word) => word.textContent).join(" ")
                 : element.textContent
@@ -603,6 +649,7 @@ function atOneScale(pages: Page[]): Page[] {
         width: scaled(line.width),
         size: line.size * factor,
         ...(line.starts ? { starts: line.starts.map(scaled) } : {}),
+        ...(line.wordEnds ? { wordEnds: line.wordEnds.map(scaled) } : {}),
       })),
     };
   });
@@ -1040,6 +1087,8 @@ interface Volume {
   paragraphOpenings?: string[];
   /** The lines that open the page's notes, by their opening words, where the manifest names them. */
   noteOpenings?: string[];
+  /** The manifest names every note: no line but a named one opens a page's notes. */
+  notesNamed?: boolean;
   /** Of the named notes' lines, those that run on the note before rather than open one. */
   noteRunsOn?: string[];
   /** Words of the numbered running heads, which know a head without its number. */
@@ -1798,7 +1847,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   const footAt = headless.findIndex(
     (line, index) =>
       noteNamed(line) ||
-      (!named(line) &&
+      (volume.notesNamed !== true &&
+        !named(line) &&
         line.y > page.height * (isRule(line, footSize) ? RULE_ZONE : 0.5) &&
         (isRule(line, footSize)
           ? notesBelowRule(line, index)
@@ -1979,7 +2029,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         isRule(line, bodySize) ||
         SIGNATURE.test(line.text) ||
         isEdgeNoise(line.text) ||
-        (!isTableRow(line) && isScraps(line.text))
+        (!isTableRow(line) && isScraps(line.text)) ||
+        // Where the manifest names the notes, a line among them without a
+        // word is a speck or a picture's scrap the OCR read as letters.
+        (volume.notesNamed === true && isWordless(line.text))
       ) {
         return pieces;
       }
@@ -2784,6 +2837,28 @@ function addPiece(
   };
   const rest = state.sections.length > 0 ? state.sections.slice(0, -1) : [];
   const text = normalised(piece.text);
+  // A note runs on below a heading its next page opens with: the line
+  // belongs to the note of the section before.
+  const runsOnAt =
+    piece.kind === "note" && !piece.opens && current.notes.length === 0
+      ? (state.sections
+          .map((section, index) => ({ section, index }))
+          .filter(
+            ({ section }) =>
+              (section.notes.at(-1)?.lastLeaf ?? -2) >= place.leaf - 1,
+          )
+          .at(-1)?.index ?? -1)
+      : -1;
+  if (runsOnAt >= 0) {
+    return {
+      ...state,
+      sections: state.sections.map((section, index) =>
+        index === runsOnAt
+          ? { ...section, notes: addLine(section.notes, text, false, place) }
+          : section,
+      ),
+    };
+  }
   // A note runs on only from the page before; one ended pages back takes
   // no lines from a note the reader found without its mark.
   const lastNote = current.notes.at(-1);
@@ -3317,6 +3392,7 @@ export function parseArchiveOcrWork(
   const volume = {
     ...read.volume,
     spacedNotes: work.spacedNotes === true,
+    notesNamed: work.notesNamed === true,
     curved: work.curved === true,
     datelined: work.datelined === true,
   };
@@ -3460,8 +3536,8 @@ export function parseArchiveOcrWork(
   );
 }
 
-/** A note's mark as it opens the note: ¹), 2), *). */
-const NOTE_MARK = /^(\*+\)|[¹²³⁴⁵⁶⁷⁸⁹⁰]+\)|\d{1,2}\))\s*/u;
+/** A note's mark as it opens the note: ¹), 2), *), or a bare superscript ¹. */
+const NOTE_MARK = /^(\*+\)|[¹²³⁴⁵⁶⁷⁸⁹⁰]+\)?|\d{1,2}\))\s*/u;
 
 /**
  * Notes set to another's text, each alone under the passage it is set to:
@@ -3483,6 +3559,9 @@ function notesUnderPassages<
     (signature) =>
       new RegExp(`(?:^|[^\\p{Ll}])${RegExp.escape(signature)}$`, "u"),
   );
+  // A heading may fall between a note and its mark: the passage is sought
+  // in the text of every section.
+  const text = sections.flatMap((section) => section.paragraphs);
   return sections.flatMap((section) =>
     section.notes
       .filter(
@@ -3492,15 +3571,22 @@ function notesUnderPassages<
       )
       .map((note) => ({
         path: [{}],
-        titles: [passageOf(note, section.paragraphs)],
+        titles: [passageOf(note, text, section.titles)],
         paragraphs: [note],
         notes: [],
       })),
   );
 }
 
-/** The sentence of the text on a note's page that ends in the note's mark. */
-function passageOf(note: Block, paragraphs: Block[]): string {
+/**
+ * The sentence of the text on a note's page that ends in the note's mark,
+ * or the heading of its section that holds the mark.
+ */
+function passageOf(
+  note: Block,
+  paragraphs: Block[],
+  headings: string[],
+): string {
   const mark = NOTE_MARK.exec(note.text)?.[1];
   if (mark === undefined) {
     throw new Error(`No mark opens the note "${note.text.slice(0, 40)}"`);
@@ -3512,6 +3598,10 @@ function passageOf(note: Block, paragraphs: Block[]): string {
       paragraph.text.includes(mark),
   );
   const paragraph = holding[0];
+  const heading = headings.find((title) => title.includes(mark));
+  if (paragraph === undefined && heading !== undefined) {
+    return heading.slice(0, heading.indexOf(mark)).trim();
+  }
   if (paragraph === undefined) {
     throw new Error(
       `No passage on page ${note.label} holds the mark ${mark} of the note "${note.text.slice(0, 40)}"`,
@@ -3525,9 +3615,13 @@ function passageOf(note: Block, paragraphs: Block[]): string {
   const before = paragraph.text.slice(0, at);
   const start = Math.max(
     0,
-    ...[...before.matchAll(/[.!?][“”"»)]?\s+(?=[\p{Lu}„»«])/gu)].map(
-      (end) => end.index + end[0].length,
-    ),
+    // A stop after a lone letter ends an abbreviation (z. B.), and after a
+    // number of one or two digits an ordinal (15. Jahr), not a sentence.
+    ...[
+      ...before.matchAll(
+        /(?<!(?:^|[^\p{L}\d])(?:\p{L}|\d{1,2}))[.!?][“”"»)]?\s+(?=[\p{Lu}„»«])/gu,
+      ),
+    ].map((end) => end.index + end[0].length),
   );
   return before.slice(start).trim();
 }
