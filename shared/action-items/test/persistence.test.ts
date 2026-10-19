@@ -28,16 +28,9 @@ const at = (): Date => new Date("2026-10-15T08:02:00.000Z");
 
 const metadata: ActionItemMetadata = {
   conversationId: "conv-1",
-  channelId: "cli-terminal",
   interfaceType: "cli",
-  spaceId: "cli:cli-terminal",
-  timeRange: {
-    start: "2026-01-01T00:00:00.000Z",
-    end: "2026-01-01T00:01:00.000Z",
-  },
-  sourceSummaryId: "conv-1",
-  sourceMessageCount: 2,
-  projectionVersion: 1,
+  channelId: "cli-terminal",
+  capturedAt: "2026-01-01T00:01:00.000Z",
   status: "open",
 };
 
@@ -317,8 +310,8 @@ describe("tracking an Inbox item", () => {
       sourceRef: request.sourceRef,
       capturedAt: "2026-10-15T08:02:00.000Z",
       status: "open",
-      assignedTo: [{ displayName: "Alex Morgan" }],
-      requestedBy: [{ identity: niels, displayName: "Niels Ward" }],
+      assignedTo: [{ name: "Alex Morgan" }],
+      requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
     });
     expect(actionItemBody(card?.content ?? "")).toContain(
       "# Action item: Reply about the field notes",

@@ -1,4 +1,4 @@
-import type { ActorRef } from "@brains/contracts";
+import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import { applyMove, applyNote } from "./board";
@@ -171,11 +171,11 @@ export async function trackInboxItem(
     sourceRef: request.sourceRef,
     capturedAt: (deps.now?.() ?? new Date()).toISOString(),
     status: "open",
-    ...(assignee ? { assignedTo: [{ displayName: assignee }] } : {}),
+    ...(assignee ? { assignedTo: [{ name: assignee }] } : {}),
     requestedBy: [
       {
-        identity: request.actor,
-        ...(request.actorName ? { displayName: request.actorName } : {}),
+        ...(request.actorName ? { name: request.actorName } : {}),
+        id: actorRefKey(request.actor),
       },
     ],
   };

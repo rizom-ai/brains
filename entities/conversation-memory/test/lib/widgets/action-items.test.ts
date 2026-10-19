@@ -32,11 +32,7 @@ function createActionItem(overrides: {
       channelId: overrides.channelId ?? "c1-channel",
       channelName: overrides.channelName ?? "design",
       interfaceType: "cli",
-      spaceId: "cli:design",
-      timeRange: { start: "2026-04-30T23:00:00.000Z", end },
-      sourceSummaryId: "s1",
-      sourceMessageCount: 4,
-      projectionVersion: 1,
+      capturedAt: end,
       status,
     },
   });

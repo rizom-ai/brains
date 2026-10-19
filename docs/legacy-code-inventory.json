@@ -19,6 +19,18 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "action-item-retired-fields",
+      "paths": ["shared/action-items/src/stored-shape.ts"],
+      "symbol": "action-item stored metadata read path",
+      "owner": "@brains/action-items",
+      "class": "durable-data-compatibility",
+      "behavior": "Reads action items stored before the frontmatter trim: takes capturedAt from timeRange.end, flattens nested or legacy-actorId people to { name, id, aliases }, and ignores spaceId, sourceSummaryId, sourceMessageCount and projectionVersion. The next write stores the trimmed shape.",
+      "currentConsumers": "Action items stored in deployed brains before the trim, and eval fixtures seeding legacy people.",
+      "removalPrerequisite": "Observe zero stored action items carrying a retired field or a nested person across supported upgrade sources, or rewrite them in place.",
+      "rollbackDependency": "A brain rolled back to a release before the trim reads only the old shape; items rewritten in the trimmed shape need the forward release.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "faq-ambiguous-capture-claims",
       "paths": [
         "entities/faq/src/handlers/faq-capture-handler.ts",

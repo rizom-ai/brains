@@ -52,18 +52,9 @@ async function brain(cards: Card[]): Promise<ServicePluginContext> {
       channelId: "events",
       channelName: "events",
       interfaceType: "discord",
-      spaceId: "discord:events",
-      timeRange: {
-        start: daysAgo((card.capturedDaysAgo ?? 5) + 1),
-        end: daysAgo(card.capturedDaysAgo ?? 5),
-      },
-      sourceSummaryId: "conv-1",
-      sourceMessageCount: 3,
-      projectionVersion: 1,
+      capturedAt: daysAgo(card.capturedDaysAgo ?? 5),
       status: card.status,
-      ...(card.assignee
-        ? { assignedTo: [{ displayName: card.assignee }] }
-        : {}),
+      ...(card.assignee ? { assignedTo: [{ name: card.assignee }] } : {}),
     };
     await context.entityService.createEntity({
       entity: {

@@ -533,7 +533,7 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
     title: actionItemTitle(entity),
     status: entity.metadata.status,
     assignees: (entity.metadata.assignedTo ?? []).map(
-      (assignee) => assignee.displayName,
+      (assignee) => assignee.name,
     ),
     age: formatAge(actionItemCapturedAt(entity), now),
     place: source.place,
@@ -566,10 +566,10 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
     text: text.length > 0 ? text : actionItemTitle(entity),
     status: entity.metadata.status,
     assignees: (entity.metadata.assignedTo ?? []).map(
-      (assignee) => assignee.displayName,
+      (assignee) => assignee.name,
     ),
     requesters: (entity.metadata.requestedBy ?? []).flatMap((requester) =>
-      requester.displayName ? [requester.displayName] : [],
+      requester.name ? [requester.name] : [],
     ),
     channel: actionItemSource(entity).place,
     ...(notes ? { notes } : {}),

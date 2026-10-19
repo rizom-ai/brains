@@ -2,7 +2,7 @@ import { actionItemBodyHash } from "@brains/action-items";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, spyOn } from "bun:test";
 import { summarySchema } from "../../src/schemas/summary";
-import { createExternalActorId } from "@brains/contracts";
+import { actorRefKey, createExternalActorId } from "@brains/contracts";
 import type {
   Conversation,
   ConversationMessageActor,
@@ -380,14 +380,14 @@ describe("SummaryProjector", () => {
     expect(actionItemEntity?.entityType).toBe("action-item");
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
       {
-        identity: externalIdentity("discord:user-daniel"),
-        displayName: "Daniel",
+        name: "Daniel",
+        id: actorRefKey(externalIdentity("discord:user-daniel")),
       },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
       {
-        identity: externalIdentity("discord:user-daniel"),
-        displayName: "Daniel",
+        name: "Daniel",
+        id: actorRefKey(externalIdentity("discord:user-daniel")),
       },
     ]);
   });
@@ -468,15 +468,27 @@ describe("SummaryProjector", () => {
     const actionItemEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
       {
-        identity: externalIdentity("discord:user-daniel"),
-        displayName: "Daniel",
+        name: "Daniel",
+        id: actorRefKey(externalIdentity("discord:user-daniel")),
       },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
       {
-        identity: externalIdentity("discord:user-mira"),
-        displayName: "Mira Ops",
+        name: "Mira Ops",
+        id: actorRefKey(externalIdentity("discord:user-mira")),
       },
+    ]);
+    // The card names its conversation and when it was captured, nothing more.
+    expect(Object.keys(actionItemEntity?.metadata ?? {}).sort()).toEqual([
+      "assignedTo",
+      "capturedAt",
+      "channelId",
+      "channelName",
+      "conversationId",
+      "interfaceType",
+      "projectedBodyHash",
+      "requestedBy",
+      "status",
     ]);
   });
 
@@ -545,24 +557,10 @@ describe("SummaryProjector", () => {
 
     const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
-      {
-        identity: {
-          kind: "user",
-          userId: "usr_daniel",
-          canonicalId: "person:daniel",
-        },
-        displayName: "Daniel D.",
-      },
+      { name: "Daniel D.", id: "user:usr_daniel" },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
-      {
-        identity: {
-          kind: "user",
-          userId: "usr_daniel",
-          canonicalId: "person:daniel",
-        },
-        displayName: "Daniel D.",
-      },
+      { name: "Daniel D.", id: "user:usr_daniel" },
     ]);
   });
 

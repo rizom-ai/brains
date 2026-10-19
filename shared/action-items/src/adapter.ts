@@ -8,6 +8,7 @@ import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
   actionItemMetadataSchema,
+  actionItemStoredMetadataSchema,
   actionItemSchema,
   type ActionItemEntity,
   type ActionItemMetadata,
@@ -89,7 +90,7 @@ export class ActionItemAdapter extends MemoryEntityAdapter<
       purpose: "An action item captured from a conversation.",
       schema: actionItemSchema,
       metadataSchema: actionItemMetadataSchema,
-      parseMetadata: actionItemMetadataSchema,
+      parseMetadata: actionItemStoredMetadataSchema,
     });
   }
 }

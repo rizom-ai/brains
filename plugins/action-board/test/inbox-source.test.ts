@@ -35,16 +35,9 @@ async function brain(
       channelId: "events",
       channelName: "events",
       interfaceType: "discord",
-      spaceId: "discord:events",
-      timeRange: {
-        start: "2026-10-10T10:00:00.000Z",
-        end: "2026-10-10T10:20:00.000Z",
-      },
-      sourceSummaryId: "conv-1",
-      sourceMessageCount: 3,
-      projectionVersion: 1,
+      capturedAt: "2026-10-10T10:20:00.000Z",
       status: card.status,
-      assignedTo: [{ displayName: "Sam Rivera" }],
+      assignedTo: [{ name: "Sam Rivera" }],
     };
     await context.entityService.createEntity({
       entity: {

@@ -5,6 +5,7 @@ import {
 } from "@brains/utils/markdown-frontmatter";
 import { CONVERSATION_SUMMARY_ENTITY_TYPE } from "./constants";
 import { channelLabel } from "./format";
+import { ACTION_ITEM_RETIRED_FIELDS } from "./stored-shape";
 import {
   actionItemMetadataSchema,
   actionItemOrigin,
@@ -16,6 +17,7 @@ import {
 const OWNED_FIELDS: ReadonlySet<string> = new Set(
   Object.keys(actionItemMetadataSchema.shape),
 );
+const RETIRED_FIELDS: ReadonlySet<string> = new Set(ACTION_ITEM_RETIRED_FIELDS);
 
 /** A card's status moved underneath the person moving it. */
 export class StaleActionItemStatusError extends Error {
@@ -43,6 +45,21 @@ function frontmatterFields(content: string): Record<string, unknown> {
     : {};
 }
 
+/**
+ * The frontmatter a write produces: the owned fields from parsed metadata,
+ * in their current shape, then every extension (a grouping) as stored.
+ * Retired fields are not written back.
+ */
+function frontmatterToWrite(entity: ActionItemEntity): Record<string, unknown> {
+  const owned = Object.entries(entity.metadata).filter(
+    ([, value]) => value !== undefined,
+  );
+  const extensions = Object.entries(frontmatterFields(entity.content)).filter(
+    ([key]) => !OWNED_FIELDS.has(key) && !RETIRED_FIELDS.has(key),
+  );
+  return Object.fromEntries([...owned, ...extensions]);
+}
+
 /** The markdown body after the frontmatter, untrimmed. */
 export function actionItemBody(content: string): string {
   return readMarkdownFrontmatter(content).content;
@@ -60,7 +77,12 @@ export function actionItemBodyHash(content: string): string {
 export function isBoardOwned(entity: ActionItemEntity): boolean {
   if (entity.metadata.status !== "open") return true;
   const fields = Object.keys(frontmatterFields(entity.content));
-  if (fields.some((field) => !OWNED_FIELDS.has(field))) return true;
+  if (
+    fields.some(
+      (field) => !OWNED_FIELDS.has(field) && !RETIRED_FIELDS.has(field),
+    )
+  )
+    return true;
   const projected = entity.metadata.projectedBodyHash;
   return (
     projected !== undefined && actionItemBodyHash(entity.content) !== projected
@@ -80,7 +102,7 @@ export function applyMove(
     throw new Error(`Action item is already ${move.to}`);
   }
   const content = generateMarkdown(
-    { ...frontmatterFields(entity.content), status: move.to },
+    { ...frontmatterToWrite(entity), status: move.to },
     actionItemBody(entity.content),
   );
   return {
@@ -121,7 +143,7 @@ export function applyNote(
   const next = /^## Notes$/m.test(body)
     ? `${ended}${line}`
     : `${ended}\n## Notes\n\n${line}`;
-  const content = generateMarkdown(frontmatterFields(entity.content), next);
+  const content = generateMarkdown(frontmatterToWrite(entity), next);
   return { ...entity, content, contentHash: computeContentHash(content) };
 }
 
@@ -144,7 +166,8 @@ export function actionItemSource(entity: ActionItemEntity): ActionItemSource {
         link: {
           label: "Conversation summary",
           entityType: CONVERSATION_SUMMARY_ENTITY_TYPE,
-          entityId: origin.sourceSummaryId,
+          // A conversation's summary has the conversation's id.
+          entityId: origin.conversationId,
         },
       }
     : {

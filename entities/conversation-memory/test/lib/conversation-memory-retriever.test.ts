@@ -103,14 +103,7 @@ function createActionItem(params: {
       conversationId: "conv-action",
       channelId: params.channelId,
       interfaceType: "mcp",
-      spaceId: `mcp:${params.channelId}`,
-      timeRange: {
-        start: "2026-01-01T00:00:00.000Z",
-        end: "2026-01-01T00:01:00.000Z",
-      },
-      sourceSummaryId: "conv-action",
-      sourceMessageCount: 2,
-      projectionVersion: 1,
+      capturedAt: "2026-01-01T00:01:00.000Z",
       status: "open",
       ...(params.assignedTo ? { assignedTo: params.assignedTo } : {}),
       ...(params.requestedBy ? { requestedBy: params.requestedBy } : {}),
@@ -469,7 +462,7 @@ describe("ConversationMemoryRetriever", () => {
       id: "action-mcp-daniel",
       channelId: "mcp-team",
       content: "# Action item\n\nDaniel will update the MCP checklist.",
-      assignedTo: [{ identity: userIdentity, displayName: "Daniel" }],
+      assignedTo: [{ name: "Daniel", id: "user:usr_daniel" }],
     });
     const unlinkedDaniel = createDecision({
       id: "decision-unlinked-daniel",

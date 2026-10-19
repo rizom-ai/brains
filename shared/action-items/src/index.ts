@@ -3,13 +3,14 @@ export {
   CONVERSATION_SUMMARY_ENTITY_TYPE,
 } from "./constants";
 export {
-  actionItemAssigneeParserSchema,
   actionItemAssigneeSchema,
   actionItemMetadataSchema,
   actionItemOrigin,
+  actionItemRequesterSchema,
   actionItemSchema,
   actionItemSourceRefSchema,
   actionItemStatusSchema,
+  actionItemStoredMetadataSchema,
   memoryActorReferenceParserSchema,
   memoryActorReferenceSchema,
   memoryTimeRangeSchema,
@@ -17,10 +18,12 @@ export {
   type ActionItemEntity,
   type ActionItemMetadata,
   type ActionItemOrigin,
+  type ActionItemRequester,
   type ActionItemSourceRef,
   type ActionItemStatus,
   type MemoryActorReference,
 } from "./schema";
+export { ACTION_ITEM_RETIRED_FIELDS } from "./stored-shape";
 export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
 export {
   actionItemBody,

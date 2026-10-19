@@ -236,32 +236,35 @@ export class ConversationMemoryRetriever {
     input: Pick<RetrieveConversationMemoryInput, "identity">,
   ): boolean {
     if (!input.identity) return true;
-    const expectedKey = actorRefKey(input.identity);
-    return this.getIdentityReferences(entity).some((reference) =>
-      [reference.identity, ...(reference.identityAliases ?? [])].some(
-        (identity) =>
-          identity !== undefined && actorRefKey(identity) === expectedKey,
-      ),
-    );
+    return this.identityKeys(entity).includes(actorRefKey(input.identity));
   }
 
-  private getIdentityReferences(entity: ConversationMemorySearchEntity): Array<{
-    identity?: ActorRef | undefined;
-    identityAliases?: ActorRef[] | undefined;
-  }> {
-    if (this.isSummaryEntity(entity)) {
-      return entity.metadata.participants ?? [];
-    }
-    if (this.isDecisionEntity(entity)) {
-      return [
-        ...(entity.metadata.decidedBy ?? []),
-        ...(entity.metadata.mentionedBy ?? []),
-      ];
+  /** Every actor id a memory names, aliases included. */
+  private identityKeys(entity: ConversationMemorySearchEntity): string[] {
+    if (this.isSummaryEntity(entity) || this.isDecisionEntity(entity)) {
+      const references: Array<{
+        identity?: ActorRef | undefined;
+        identityAliases?: ActorRef[] | undefined;
+      }> = this.isSummaryEntity(entity)
+        ? (entity.metadata.participants ?? [])
+        : [
+            ...(entity.metadata.decidedBy ?? []),
+            ...(entity.metadata.mentionedBy ?? []),
+          ];
+      return references
+        .flatMap((reference) => [
+          reference.identity,
+          ...(reference.identityAliases ?? []),
+        ])
+        .flatMap((identity) => (identity ? [actorRefKey(identity)] : []));
     }
     return [
       ...(entity.metadata.assignedTo ?? []),
       ...(entity.metadata.requestedBy ?? []),
-    ];
+    ].flatMap((person) => [
+      ...(person.id ? [person.id] : []),
+      ...(person.aliases ?? []),
+    ]);
   }
 
   private buildContextContent(
@@ -332,7 +335,7 @@ export class ConversationMemoryRetriever {
       if (origin.kind !== "conversation") return undefined;
       return {
         conversationId: origin.conversationId,
-        spaceId: origin.spaceId,
+        spaceId: getConversationSpaceId(origin),
         channelId: origin.channelId,
         ...(origin.channelName ? { channelName: origin.channelName } : {}),
         interfaceType: origin.interfaceType,

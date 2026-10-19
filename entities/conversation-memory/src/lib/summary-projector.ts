@@ -117,6 +117,23 @@ export function getActorsMentionedInText(
   return matches;
 }
 
+/** An actor as a card names them: an id, its aliases, and a name when known. */
+function flatPerson(actor: MemoryActorReference): {
+  id: string;
+  name?: string;
+  aliases?: string[];
+} {
+  const id = actorRefKey(actor.identity);
+  const aliases = (actor.identityAliases ?? [])
+    .map(actorRefKey)
+    .filter((alias) => alias !== id);
+  return {
+    id,
+    ...(actor.displayName ? { name: actor.displayName } : {}),
+    ...(aliases.length > 0 ? { aliases } : {}),
+  };
+}
+
 export class SummaryProjector {
   private readonly context: EntityPluginContext;
   private readonly logger: Logger;
@@ -542,21 +559,19 @@ export class SummaryProjector {
         ? { channelName: summaryMetadata.channelName }
         : {}),
       interfaceType: summaryMetadata.interfaceType,
-      spaceId: this.getSpaceId(summaryMetadata),
-      timeRange: item.timeRange,
-      sourceSummaryId: summaryMetadata.conversationId,
-      sourceMessageCount: item.sourceMessageCount,
-      projectionVersion: summaryMetadata.projectionVersion,
+      capturedAt: item.timeRange.end,
       status: "open",
       ...(assignedActors.length > 0
         ? {
             assignedTo: assignedActors.map((actor) => ({
-              identity: actor.identity,
-              displayName: actor.displayName ?? actorRefKey(actor.identity),
+              ...flatPerson(actor),
+              name: actor.displayName ?? actorRefKey(actor.identity),
             })),
           }
         : {}),
-      ...(requesterActors.length > 0 ? { requestedBy: requesterActors } : {}),
+      ...(requesterActors.length > 0
+        ? { requestedBy: requesterActors.map(flatPerson) }
+        : {}),
     };
     const title = this.titleForMemory("Action item", item.text);
     const projectedBodyHash = actionItemBodyHash(

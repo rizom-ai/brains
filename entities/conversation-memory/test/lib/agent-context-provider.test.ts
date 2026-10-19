@@ -336,7 +336,6 @@ function createActionItem(id: string, channelId: string): ActionItemEntity {
       interfaceType: "mcp",
       channelId,
       channelName: "Relay Team",
-      spaceId: `mcp:${channelId}`,
     },
   };
 }

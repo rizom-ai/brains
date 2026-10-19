@@ -17,6 +17,15 @@ const adapter = new ActionItemAdapter();
 
 const baseMetadata: ActionItemMetadata = {
   conversationId: "conv-1",
+  interfaceType: "cli",
+  channelId: "cli-terminal",
+  capturedAt: "2026-01-01T00:01:00.000Z",
+  status: "open",
+};
+
+/** Frontmatter as the projector wrote it before the trim. */
+const storedBeforeTrim = {
+  conversationId: "conv-1",
   channelId: "cli-terminal",
   interfaceType: "cli",
   spaceId: "cli:cli-terminal",
@@ -28,7 +37,29 @@ const baseMetadata: ActionItemMetadata = {
   sourceMessageCount: 2,
   projectionVersion: 1,
   status: "open",
+  assignedTo: [
+    { identity: { kind: "user", userId: "u-sam" }, displayName: "Sam Rivera" },
+  ],
 };
+
+function storedItem(frontmatter: Record<string, unknown>): ActionItemEntity {
+  const body = "# Action item: Book the venue\n\nBook the venue.\n";
+  const stored = {
+    ...frontmatter,
+    projectedBodyHash: computeContentHash(body),
+  };
+  const content = generateMarkdown(stored, body);
+  return actionItemSchema.parse({
+    id: "conv-1:action-item:1:abc123abc123",
+    entityType: "action-item",
+    content,
+    contentHash: computeContentHash(content),
+    visibility: "shared",
+    created: "2026-01-01T00:01:00.000Z",
+    updated: "2026-01-01T00:01:00.000Z",
+    metadata: stored,
+  });
+}
 
 function projected(
   metadata: Partial<ActionItemMetadata> = {},
@@ -124,6 +155,14 @@ describe("board ownership", () => {
     ).toBe(false);
   });
 
+  it("leaves an untouched item stored before the trim to the projector", () => {
+    const item = storedItem(storedBeforeTrim);
+    expect(actionItemBody(item.content)).toBe(
+      "# Action item: Book the venue\n\nBook the venue.\n",
+    );
+    expect(isBoardOwned(item)).toBe(false);
+  });
+
   it("treats an item projected before the board as projector-owned until moved or grouped", () => {
     const content = adapter.composeContent(
       "Action item: Book the venue",
@@ -158,6 +197,28 @@ describe("moving a card", () => {
       status: "blocked",
     });
     expect(moved.metadata).toEqual({ ...grouped.metadata, status: "blocked" });
+  });
+
+  it("writes an item stored before the trim in the trimmed shape, keeping its groupings", () => {
+    const moved = applyMove(
+      storedItem({ ...storedBeforeTrim, projects: ["Spring gathering"] }),
+      { from: "open", to: "doing" },
+    );
+
+    const { projectedBodyHash, ...frontmatter } = frontmatterOf(moved.content);
+    expect(typeof projectedBodyHash).toBe("string");
+    expect(frontmatter).toEqual({
+      conversationId: "conv-1",
+      channelId: "cli-terminal",
+      interfaceType: "cli",
+      capturedAt: "2026-01-01T00:01:00.000Z",
+      status: "doing",
+      assignedTo: [{ name: "Sam Rivera", id: "user:u-sam" }],
+      projects: ["Spring gathering"],
+    });
+    expect(actionItemBody(moved.content)).toBe(
+      "# Action item: Book the venue\n\nBook the venue.\n",
+    );
   });
 
   it("refuses a move from a status the card no longer has", () => {

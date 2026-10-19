@@ -62,9 +62,7 @@ export class ActionItemInboxSource implements InboxSource {
     );
     return blocked.map((entity) => {
       const summary = [
-        ...(entity.metadata.assignedTo ?? []).map(
-          (assignee) => assignee.displayName,
-        ),
+        ...(entity.metadata.assignedTo ?? []).map((assignee) => assignee.name),
         actionItemSource(entity).place,
       ].filter((segment) => segment.length > 0);
       return {
