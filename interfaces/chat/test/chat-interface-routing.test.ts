@@ -81,7 +81,10 @@ describe("ChatInterface message routing", () => {
         }),
       }),
     );
-    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+    // Slack shows a plain string verbatim; only { markdown } is rendered.
+    expect(thread.post).toHaveBeenCalledWith({
+      markdown: "Agent response text.",
+    });
   });
 
   it("routes subscribed Slack thread follow-ups after an app mention", async () => {

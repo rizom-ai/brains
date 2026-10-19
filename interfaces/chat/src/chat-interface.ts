@@ -26,7 +26,11 @@ import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import { buildProgressCard } from "./chat-cards";
-import { chunkForChannel, parseChatPlatform } from "./chat-platform";
+import {
+  chunkForChannel,
+  parseChatPlatform,
+  toPlatformText,
+} from "./chat-platform";
 import { ChatResponseCoordinator } from "./chat-response-coordinator";
 import { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import { toPlatformPostOutput, type ChatCardOutput } from "./chat-output";
@@ -320,7 +324,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     }
     if (typeof message !== "string") return;
     for (const chunk of chunkForChannel(channelId, message)) {
-      thread.post(chunk).catch((error: unknown) =>
+      thread.post(toPlatformText(channelId, chunk)).catch((error: unknown) =>
         this.logger.error("Failed to send chat message", {
           error,
           channelId,
@@ -347,7 +351,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     if (typeof message !== "string") return undefined;
     let lastSent: SentMessage | undefined;
     for (const chunk of chunkForChannel(channelId, message)) {
-      lastSent = await thread.post(chunk);
+      lastSent = await thread.post(toPlatformText(channelId, chunk));
       this.threadRegistry.trackMessage(thread.id, lastSent);
     }
     return lastSent?.id;
@@ -367,7 +371,10 @@ export class ChatInterface extends MessageInterfacePlugin<
     try {
       const edited = await sent.edit(
         this.toPlatformPostOutput(channelId, newMessage) ??
-          (typeof newMessage === "string" ? newMessage : ""),
+          toPlatformText(
+            channelId,
+            typeof newMessage === "string" ? newMessage : "",
+          ),
       );
       if (channelId) this.threadRegistry.trackMessage(channelId, edited);
       return true;
