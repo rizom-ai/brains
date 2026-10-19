@@ -14,7 +14,6 @@ import {
 } from "../src";
 
 const adapter = new ActionItemAdapter();
-const niels = { kind: "user", userId: "u-niels" } as const;
 
 const baseMetadata: ActionItemMetadata = {
   conversationId: "conv-1",
@@ -94,20 +93,8 @@ describe("board ownership", () => {
 
   it("claims an item whose body changed after projection", () => {
     const item = projected();
-    const edited = `${item.content}\nAlso confirm the caterer.\n`;
-    expect(isBoardOwned(withContent(item, edited))).toBe(true);
-  });
-
-  it("claims an item someone has written a note on", () => {
-    const noted = applyNote(projected(), {
-      text: "Waiting on the deposit.",
-      actor: niels,
-      at: "2026-10-15T08:02:00.000Z",
-    });
-    expect(actionItemBody(noted.content)).toBe(
-      actionItemBody(projected().content),
-    );
-    expect(isBoardOwned(noted)).toBe(true);
+    const noted = `${item.content}\n## Notes\n\n- 2026-10-15 · Niels — Waiting on the deposit.\n`;
+    expect(isBoardOwned(withContent(item, noted))).toBe(true);
   });
 
   it("keeps every ownership signal through a markdown export and import", () => {
@@ -121,12 +108,10 @@ describe("board ownership", () => {
           actionItemBody(item.content),
         ),
       ),
-      withContent(item, `${item.content}\nAlso confirm the caterer.\n`),
-      applyNote(item, {
-        text: "Waiting on the deposit.",
-        actor: niels,
-        at: "2026-10-15T08:02:00.000Z",
-      }),
+      withContent(
+        item,
+        `${item.content}\n## Notes\n\n- Waiting on the deposit.\n`,
+      ),
     ];
     for (const entity of owned) {
       const imported = adapter.fromMarkdown(adapter.toMarkdown(entity));
@@ -155,7 +140,7 @@ describe("board ownership", () => {
 });
 
 describe("moving a card", () => {
-  it("changes only status and history, keeping the body and every other field", () => {
+  it("changes only status, keeping the body and every other field", () => {
     const item = projected();
     const grouped = withContent(
       item,
@@ -165,142 +150,61 @@ describe("moving a card", () => {
       ),
     );
 
-    const moved = applyMove(grouped, {
-      from: "open",
-      to: "blocked",
-      actor: niels,
-      at: "2026-10-15T08:02:00.000Z",
-    });
+    const moved = applyMove(grouped, { from: "open", to: "blocked" });
 
     expect(actionItemBody(moved.content)).toBe(actionItemBody(grouped.content));
-    const { status, history, ...rest } = frontmatterOf(moved.content);
-    const {
-      status: previousStatus,
-      history: previousHistory,
-      ...previousRest
-    } = frontmatterOf(grouped.content);
-    expect(rest).toEqual(previousRest);
-    expect(previousStatus).toBe("open");
-    expect(previousHistory).toBeUndefined();
-    expect(status).toBe("blocked");
-    expect(history).toEqual([
-      {
-        at: "2026-10-15T08:02:00.000Z",
-        actor: niels,
-        from: "open",
-        to: "blocked",
-      },
-    ]);
-    expect(moved.metadata.status).toBe("blocked");
-    expect(moved.metadata.history).toEqual([
-      {
-        at: "2026-10-15T08:02:00.000Z",
-        actor: niels,
-        from: "open",
-        to: "blocked",
-      },
-    ]);
-  });
-
-  it("appends to existing history", () => {
-    const first = applyMove(projected(), {
-      from: "open",
-      to: "doing",
-      actor: niels,
-      at: "2026-10-13T14:02:00.000Z",
+    expect(frontmatterOf(moved.content)).toEqual({
+      ...frontmatterOf(grouped.content),
+      status: "blocked",
     });
-    const second = applyMove(withContent(first, first.content), {
-      from: "doing",
-      to: "done",
-      actor: { kind: "user", userId: "u-sam" },
-      at: "2026-10-15T09:40:00.000Z",
-    });
-    expect(second.metadata.history?.map((entry) => entry.to)).toEqual([
-      "doing",
-      "done",
-    ]);
+    expect(moved.metadata).toEqual({ ...grouped.metadata, status: "blocked" });
   });
 
   it("refuses a move from a status the card no longer has", () => {
     expect(() =>
-      applyMove(projected({ status: "done" }), {
-        from: "open",
-        to: "blocked",
-        actor: niels,
-        at: "2026-10-15T08:02:00.000Z",
-      }),
+      applyMove(projected({ status: "done" }), { from: "open", to: "blocked" }),
     ).toThrow("done");
   });
 
   it("refuses a move to the status the card already has", () => {
     expect(() =>
-      applyMove(projected(), {
-        from: "open",
-        to: "open",
-        actor: niels,
-        at: "2026-10-15T08:02:00.000Z",
-      }),
+      applyMove(projected(), { from: "open", to: "open" }),
     ).toThrow();
   });
 });
 
 describe("adding a note", () => {
-  const sam = { kind: "user", userId: "u-sam" } as const;
-
-  it("records who wrote it and when, leaving the body and every other field alone", () => {
+  it("appends a dated, named line under Notes, keeping the text and every field", () => {
     const item = projected({ status: "blocked" });
     const noted = applyNote(item, {
-      text: "  Waiting on the deposit.\nCall them Friday.  ",
-      actor: sam,
+      text: "Waiting on the\n deposit.",
       actorName: "Sam Rivera",
       at: "2026-10-15T08:02:00.000Z",
     });
-    const note = {
-      at: "2026-10-15T08:02:00.000Z",
-      actor: sam,
-      displayName: "Sam Rivera",
-      text: "Waiting on the deposit.\nCall them Friday.",
-    };
+    expect(actionItemBody(noted.content)).toBe(
+      `${actionItemBody(item.content)}\n## Notes\n\n- 2026-10-15 · Sam Rivera — Waiting on the deposit.\n`,
+    );
+    expect(frontmatterOf(noted.content)).toEqual(frontmatterOf(item.content));
+    expect(noted.metadata).toEqual(item.metadata);
+    expect(
+      isBoardOwned({
+        ...noted,
+        metadata: { ...noted.metadata, status: "open" },
+      }),
+    ).toBe(true);
 
-    expect(noted.metadata).toEqual({ ...item.metadata, notes: [note] });
-    expect(frontmatterOf(noted.content)).toEqual({
-      ...frontmatterOf(item.content),
-      notes: [note],
-    });
-    expect(actionItemBody(noted.content)).toBe(actionItemBody(item.content));
-  });
-
-  it("keeps notes in the order they were written", () => {
-    const once = applyNote(projected(), {
-      text: "Waiting on the deposit.",
-      actor: sam,
-      actorName: "Sam Rivera",
-      at: "2026-10-15T08:02:00.000Z",
-    });
-    const twice = applyNote(once, {
+    const twice = applyNote(noted, {
       text: "Deposit paid.",
-      actor: niels,
       at: "2026-10-16T09:00:00.000Z",
     });
-
-    expect(twice.metadata.notes?.map((note) => note.text)).toEqual([
-      "Waiting on the deposit.",
-      "Deposit paid.",
-    ]);
-    expect(twice.metadata.notes?.[1]).toEqual({
-      at: "2026-10-16T09:00:00.000Z",
-      actor: niels,
-      text: "Deposit paid.",
-    });
+    expect(actionItemBody(twice.content)).toBe(
+      `${actionItemBody(noted.content)}- 2026-10-16 · A team member — Deposit paid.\n`,
+    );
   });
 
   it("refuses an empty note", () => {
     expect(() =>
-      applyNote(projected(), {
-        text: "  ",
-        actor: niels,
-        at: "2026-10-15T08:02:00.000Z",
-      }),
+      applyNote(projected(), { text: "  ", at: "2026-10-15T08:02:00.000Z" }),
     ).toThrow("text");
   });
 });

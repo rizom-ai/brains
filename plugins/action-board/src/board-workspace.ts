@@ -22,10 +22,8 @@ import {
   actionItemCapturedAt,
   actionItemSource,
   actionItemTitle,
-  arrivedAt,
-  lastArrival,
 } from "@brains/action-items";
-import { formatAge, formatShortDate } from "@brains/action-items";
+import { formatAge } from "@brains/action-items";
 import {
   actionItemSchema,
   actionItemStatusSchema,
@@ -55,7 +53,8 @@ const COLUMNS = [
 
 /** A matrix cell holds at most 100 items. */
 const COLUMN_LIMIT = 100;
-const DONE_WINDOW_DAYS = 14;
+/** Done shows only the most recently finished cards. */
+const DONE_LIMIT = 20;
 /** Catalog links accept entity ids up to this length. */
 const LINKABLE_ID_LENGTH = 120;
 
@@ -102,8 +101,6 @@ const cardSchema = z.object({
     entityType: z.string(),
     id: z.string(),
   }),
-  blockedFor: z.string().optional(),
-  blockedBy: z.string().optional(),
 });
 
 const openCardSchema = z.object({
@@ -114,12 +111,7 @@ const openCardSchema = z.object({
   assignees: z.array(z.string()),
   requesters: z.array(z.string()),
   channel: z.string(),
-  history: z.array(
-    z.object({ move: z.string(), who: z.string(), when: z.string() }),
-  ),
-  notes: z.array(
-    z.object({ who: z.string(), when: z.string(), text: z.string() }),
-  ),
+  notes: z.string().optional(),
 });
 
 /** An Inbox item a follow-up asked to track, carried in the URL. */
@@ -143,9 +135,7 @@ const rollupSchema = z.object({
       count: z.number(),
     }),
   ),
-  blocked: z.array(
-    z.object({ id: z.string(), title: z.string(), blockedFor: z.string() }),
-  ),
+  blocked: z.array(z.object({ id: z.string(), title: z.string() })),
 });
 
 const projectsSchema = z.object({
@@ -300,7 +290,6 @@ function projectBlocks(projects: Projects): OperatorRegionBlock<BoardAction>[] {
                 items: selected.blocked.map((card) => ({
                   id: card.id,
                   title: card.title,
-                  metadata: [`Blocked ${card.blockedFor}`],
                 })),
               },
             ],
@@ -310,7 +299,7 @@ function projectBlocks(projects: Projects): OperatorRegionBlock<BoardAction>[] {
   ];
 }
 
-/** The open card's panels: its text, facts, recorded moves, notes, and a note form. */
+/** The open card's panels: its text, facts, notes, and a note form. */
 function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
   return [
     { type: "text", id: "card-text", text: card.text },
@@ -328,46 +317,13 @@ function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
         { label: "From", value: card.channel },
       ],
     },
-    {
-      type: "card",
-      id: "card-history",
-      label: "History",
-      presentation: "section",
-      blocks: [
-        {
-          type: "list",
-          id: "card-moves",
-          empty: "No moves recorded yet.",
-          items: card.history.map((entry, index) => ({
-            id: `move-${index}`,
-            title: entry.move,
-            metadata: [entry.who, entry.when].filter(
-              (segment) => segment.length > 0,
-            ),
-          })),
-        },
-      ],
-    },
-    ...(card.notes.length > 0
+    ...(card.notes
       ? [
           {
-            type: "card" as const,
-            id: "card-notes-section",
+            type: "text" as const,
+            id: "card-notes",
             label: "Notes",
-            presentation: "section" as const,
-            blocks: [
-              {
-                type: "list" as const,
-                id: "card-notes",
-                empty: "No notes yet.",
-                items: card.notes.map((note, index) => ({
-                  id: `note-${index}`,
-                  title: note.who,
-                  description: note.text,
-                  metadata: [note.when],
-                })),
-              },
-            ],
+            text: card.notes,
           },
         ]
       : []),
@@ -485,7 +441,7 @@ const boardWorkspace = defineStudioWorkspace({
       {
         type: "text",
         id: "board-done-window",
-        text: `Done shows the last ${DONE_WINDOW_DAYS} days; older action items stay in the Library.`,
+        text: `Done shows the ${DONE_LIMIT} most recently finished cards; older ones stay in the Library.`,
       },
     ],
   }),
@@ -495,7 +451,6 @@ function cardItem(card: BoardCard): {
   id: string;
   title: string;
   metadata: string[];
-  badges?: { label: string; tone: "warn" }[];
   link: { detail: { itemId: string } };
   actionsLabel: string;
   links: {
@@ -525,18 +480,6 @@ function cardItem(card: BoardCard): {
     metadata: [...card.assignees, card.age, card.place].filter(
       (segment) => segment.length > 0,
     ),
-    ...(card.blockedFor
-      ? {
-          badges: [
-            {
-              label: card.blockedBy
-                ? `Blocked by ${card.blockedBy} ${card.blockedFor}`
-                : `Blocked ${card.blockedFor}`,
-              tone: "warn",
-            },
-          ],
-        }
-      : {}),
     link: { detail: { itemId: card.id } },
     links: [
       ...(card.id.length <= LINKABLE_ID_LENGTH
@@ -585,10 +528,6 @@ function cardItem(card: BoardCard): {
 
 function toCard(entity: ActionItemEntity, now: Date): BoardCard {
   const source = actionItemSource(entity);
-  const blocked =
-    entity.metadata.status === "blocked"
-      ? lastArrival(entity, "blocked")
-      : undefined;
   return {
     id: entity.id,
     title: actionItemTitle(entity),
@@ -603,31 +542,24 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
       entityType: source.link.entityType,
       id: source.link.entityId,
     },
-    ...(blocked ? { blockedFor: formatAge(blocked.at, now) } : {}),
-    ...(blocked?.displayName ? { blockedBy: blocked.displayName } : {}),
   };
 }
 
-/**
- * When a card was finished. Items finished before moves were recorded fall
- * back to when they were captured: `updated` moves with every import.
- */
-function finishedAt(entity: ActionItemEntity): number {
-  return new Date(
-    arrivedAt(entity, "done") ?? actionItemCapturedAt(entity),
-  ).getTime();
-}
-
-/** The card text: the markdown body below its title heading. */
-function cardText(entity: ActionItemEntity): string {
-  return actionItemBody(entity.content)
+/** The card text and its Notes section, from the markdown body. */
+function splitBody(entity: ActionItemEntity): { text: string; notes?: string } {
+  const body = actionItemBody(entity.content)
     .trimStart()
-    .replace(/^#\s+.+\n+/, "")
-    .trim();
+    .replace(/^#\s+.+\n+/, "");
+  const [text = "", notes] = body.split(/^## Notes\s*$/m);
+  const trimmedNotes = notes?.trim();
+  return {
+    text: text.trim(),
+    ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+  };
 }
 
 function toOpenCard(entity: ActionItemEntity): OpenCard {
-  const text = cardText(entity);
+  const { text, notes } = splitBody(entity);
   return {
     id: entity.id,
     title: actionItemTitle(entity),
@@ -640,16 +572,7 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
       requester.displayName ? [requester.displayName] : [],
     ),
     channel: actionItemSource(entity).place,
-    history: [...(entity.metadata.history ?? [])].reverse().map((entry) => ({
-      move: `${STATUS_LABELS[entry.from]} → ${STATUS_LABELS[entry.to]}`,
-      who: entry.displayName ?? "",
-      when: formatShortDate(entry.at),
-    })),
-    notes: (entity.metadata.notes ?? []).map((note) => ({
-      who: note.displayName ?? "A team member",
-      when: formatShortDate(note.at),
-      text: note.text,
-    })),
+    ...(notes ? { notes } : {}),
   };
 }
 
@@ -658,10 +581,6 @@ function byStatus(entities: ActionItemEntity[]): ActionItemEntity[][] {
   return COLUMNS.map(({ status }) =>
     entities.filter((entity) => entity.metadata.status === status),
   );
-}
-
-function finishedRecently(entity: ActionItemEntity, now: Date): boolean {
-  return now.getTime() - finishedAt(entity) <= DONE_WINDOW_DAYS * 86_400_000;
 }
 
 export interface BoardWorkspaceDeps {
@@ -690,11 +609,7 @@ export async function registerBoardWorkspace(
         visibilityScope: permissionToVisibilityScope(caller.permission),
         now,
       },
-      {
-        ...request,
-        actor: { kind: "user", userId: caller.actor.id },
-        actorName: caller.actor.displayName,
-      },
+      request,
     );
     // Outcomes travel as the action result: the host redacts thrown errors.
     switch (result.status) {
@@ -757,9 +672,8 @@ export async function registerBoardWorkspace(
                   ),
                 );
           const [open = [], doing = [], blocked = [], done = []] = columns;
-          const finished = done
-            .filter((entity) => finishedRecently(entity, at))
-            .sort((a, b) => finishedAt(b) - finishedAt(a));
+          // Both reads come newest first, so Done keeps the latest finished.
+          const finished = done.slice(0, DONE_LIMIT);
           const shown = [open, doing, blocked, finished];
           const selected = asked.card;
           const track =
@@ -814,11 +728,6 @@ export async function registerBoardWorkspace(
                             blocked: blocked.map((entity) => ({
                               id: entity.id,
                               title: actionItemTitle(entity),
-                              blockedFor: formatAge(
-                                lastArrival(entity, "blocked")?.at ??
-                                  actionItemCapturedAt(entity),
-                                at,
-                              ),
                             })),
                           },
                         }
@@ -877,7 +786,6 @@ export async function registerBoardWorkspace(
               {
                 id: input.id,
                 text: input.text,
-                actor: { kind: "user", userId: caller.actor.id },
                 actorName: caller.actor.displayName,
               },
             );

@@ -54,18 +54,6 @@ function metadataFor(status: ActionItemStatus): ActionItemMetadata {
     sourceMessageCount: 3,
     projectionVersion: 1,
     status,
-    ...(status === "done"
-      ? {
-          history: [
-            {
-              at: "2026-10-14T09:00:00.000Z",
-              actor: { kind: "user", userId: "u-sam" },
-              from: "doing",
-              to: "done",
-            },
-          ],
-        }
-      : {}),
   };
 }
 

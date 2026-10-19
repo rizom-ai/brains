@@ -9,12 +9,10 @@ import { ActionItemAdapter } from "@brains/action-items";
 import { ActionItemInboxSource } from "../src/inbox-source";
 import {
   actionItemSchema,
-  type ActionItemHistoryEntry,
   type ActionItemMetadata,
   type ActionItemStatus,
 } from "@brains/action-items";
 
-const NOW = new Date("2026-10-15T12:00:00.000Z");
 const adapter = new ActionItemAdapter();
 const admin: InboxActionActor = {
   permissionLevel: "admin",
@@ -22,23 +20,11 @@ const admin: InboxActionActor = {
   displayName: "Ada Admin",
 };
 
-function blockedHistory(at: string): ActionItemHistoryEntry[] {
-  return [
-    {
-      at,
-      actor: { kind: "user", userId: "u-sam" },
-      from: "open",
-      to: "blocked",
-    },
-  ];
-}
-
 async function brain(
   cards: {
     id: string;
     text: string;
     status: ActionItemStatus;
-    history?: ActionItemHistoryEntry[];
   }[],
 ): Promise<ServicePluginContext> {
   const context = createServicePluginContext(createMockShell(), "action-board");
@@ -59,7 +45,6 @@ async function brain(
       projectionVersion: 1,
       status: card.status,
       assignedTo: [{ displayName: "Sam Rivera" }],
-      ...(card.history ? { history: card.history } : {}),
     };
     await context.entityService.createEntity({
       entity: {
@@ -92,19 +77,17 @@ async function stored(
 
 describe("the action-items Inbox source", () => {
   it("lists blocked items only, as valid Inbox items pointing at the card", async () => {
-    const source = new ActionItemInboxSource(
-      await brain([
-        {
-          id: "venue",
-          text: "Book the venue",
-          status: "blocked",
-          history: blockedHistory("2026-10-15T07:00:00.000Z"),
-        },
-        { id: "invite", text: "Write the invitation", status: "doing" },
-        { id: "date", text: "Pick a date", status: "done" },
-      ]),
-      () => NOW,
-    );
+    const context = await brain([
+      { id: "venue", text: "Book the venue", status: "blocked" },
+      { id: "invite", text: "Write the invitation", status: "doing" },
+      { id: "date", text: "Pick a date", status: "done" },
+    ]);
+    const source = new ActionItemInboxSource(context);
+    const venue = await context.entityService.getEntity({
+      entityType: "action-item",
+      id: "venue",
+      visibilityScope: "restricted",
+    });
 
     const items = await source.list();
 
@@ -114,8 +97,9 @@ describe("the action-items Inbox source", () => {
     expect(inboxItemSchema.parse(item)).toEqual(item);
     expect(item).toMatchObject({
       title: "Book the venue",
-      summary: "Blocked 5h · Sam Rivera · #events",
-      receivedAt: "2026-10-15T07:00:00.000Z",
+      summary: "Sam Rivera · #events",
+      // When the card last changed: for a blocked card, when it was blocked.
+      receivedAt: venue?.updated,
       urgency: "normal",
       entityRef: { entityType: "action-item", entityId: "venue" },
     });
@@ -126,13 +110,13 @@ describe("the action-items Inbox source", () => {
     ]);
   });
 
-  it("moves the card through the board's write path, naming the admin", async () => {
+  it("moves the card through the board's write path", async () => {
     const context = await brain([
       { id: "venue", text: "Book the venue", status: "blocked" },
       { id: "tables", text: "Rent tables", status: "blocked" },
       { id: "chairs", text: "Rent chairs", status: "blocked" },
     ]);
-    const source = new ActionItemInboxSource(context, () => NOW);
+    const source = new ActionItemInboxSource(context);
 
     await source.act("venue", "resume", admin);
     await source.act("tables", "done", admin);
@@ -141,29 +125,18 @@ describe("the action-items Inbox source", () => {
     expect((await stored(context, "venue"))?.status).toBe("doing");
     expect((await stored(context, "tables"))?.status).toBe("done");
     expect((await stored(context, "chairs"))?.status).toBe("dropped");
-    expect((await stored(context, "venue"))?.history).toEqual([
-      {
-        at: NOW.toISOString(),
-        actor: { kind: "user", userId: "usr_admin" },
-        displayName: "Ada Admin",
-        from: "blocked",
-        to: "doing",
-      },
-    ]);
     expect(await source.list()).toEqual([]);
   });
 
-  it("shows an admin the item text and its moves", async () => {
+  it("shows an admin the item text", async () => {
     const source = new ActionItemInboxSource(
       await brain([
         {
           id: "venue",
           text: "Book the venue for the spring gathering",
           status: "blocked",
-          history: blockedHistory("2026-10-15T07:00:00.000Z"),
         },
       ]),
-      () => NOW,
     );
 
     const detail = await source.resolveDetail(
@@ -174,7 +147,7 @@ describe("the action-items Inbox source", () => {
 
     expect(detail).toEqual({
       kind: "plain",
-      text: "Book the venue for the spring gathering\n\nMoves:\n2026-10-15 07:00 · open → blocked",
+      text: "Book the venue for the spring gathering",
       truncated: false,
     });
     expect(
@@ -190,7 +163,7 @@ describe("the action-items Inbox source", () => {
     const context = await brain([
       { id: "venue", text: "Book the venue", status: "blocked" },
     ]);
-    const source = new ActionItemInboxSource(context, () => NOW);
+    const source = new ActionItemInboxSource(context);
 
     expect(
       source.act("venue", "resume", {
@@ -206,7 +179,7 @@ describe("the action-items Inbox source", () => {
       { id: "venue", text: "Book the venue", status: "blocked" },
       { id: "invite", text: "Write the invitation", status: "doing" },
     ]);
-    const source = new ActionItemInboxSource(context, () => NOW);
+    const source = new ActionItemInboxSource(context);
 
     expect(source.act("venue", "archive", admin)).rejects.toThrow(
       "Invalid action-items inbox action",

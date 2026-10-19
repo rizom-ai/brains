@@ -13,9 +13,7 @@ import { ActionItemAdapter } from "@brains/action-items";
 import { registerBoardWorkspace } from "../src/board-workspace";
 import {
   actionItemSchema,
-  type ActionItemHistoryEntry,
   type ActionItemMetadata,
-  type ActionItemNoteEntry,
   type ActionItemStatus,
 } from "@brains/action-items";
 
@@ -36,8 +34,6 @@ interface Card {
   id: string;
   text: string;
   status: ActionItemStatus;
-  history?: ActionItemHistoryEntry[];
-  notes?: ActionItemNoteEntry[];
   /** When the conversation it came from ended. */
   capturedDaysAgo?: number;
   assignee?: string;
@@ -68,8 +64,6 @@ async function brain(cards: Card[]): Promise<ServicePluginContext> {
       ...(card.assignee
         ? { assignedTo: [{ displayName: card.assignee }] }
         : {}),
-      ...(card.history ? { history: card.history } : {}),
-      ...(card.notes ? { notes: card.notes } : {}),
     };
     await context.entityService.createEntity({
       entity: {
@@ -180,17 +174,6 @@ function column(
   return matrix.cells.find((cell) => cell.id === status)?.items ?? [];
 }
 
-const move = (
-  at: string,
-  from: ActionItemStatus,
-  to: ActionItemStatus,
-): ActionItemHistoryEntry => ({
-  at,
-  actor: { kind: "user", userId: "u-sam" },
-  from,
-  to,
-});
-
 describe("the Board workspace", () => {
   it("is the team's Trusted Board", async () => {
     const registration = await registered(await brain([]));
@@ -205,12 +188,7 @@ describe("the Board workspace", () => {
         { id: "a", text: "Draft the checklist", status: "open" },
         { id: "b", text: "Write the invitation", status: "doing" },
         { id: "c", text: "Book the venue", status: "blocked" },
-        {
-          id: "d",
-          text: "Pick a date",
-          status: "done",
-          history: [move(daysAgo(2), "open", "done")],
-        },
+        { id: "d", text: "Pick a date", status: "done" },
         { id: "e", text: "Rent a boat", status: "dropped" },
       ]),
     );
@@ -233,43 +211,19 @@ describe("the Board workspace", () => {
     expect(JSON.stringify(matrix)).not.toContain("Rent a boat");
   });
 
-  it("shows only cards finished in the last 14 days", async () => {
+  it("shows the 20 most recently finished cards", async () => {
     const registration = await registered(
-      await brain([
-        {
-          id: "recent",
-          text: "Share the call summary",
-          status: "done",
-          history: [move(daysAgo(3), "doing", "done")],
-        },
-        {
-          id: "old",
-          text: "Pick last year's date",
-          status: "done",
-          history: [move(daysAgo(20), "doing", "done")],
-        },
-        // Finished before moves were recorded, and re-imported today: its
-        // capture date, not the import, places it.
-        {
-          id: "old-unrecorded",
-          text: "Close the old survey",
-          status: "done",
-          capturedDaysAgo: 162,
-        },
-        {
-          id: "recent-unrecorded",
-          text: "Send the agenda",
-          status: "done",
-          capturedDaysAgo: 4,
-        },
-      ]),
+      await brain(
+        Array.from({ length: 21 }, (_, index) => ({
+          id: `done-${index}`,
+          text: `Finished task ${index}`,
+          status: "done" as const,
+        })),
+      ),
     );
 
-    expect(
-      column(await board(registration), "done").map((card) => card.title),
-    ).toEqual(["Share the call summary", "Send the agenda"]);
+    expect(column(await board(registration), "done")).toHaveLength(20);
   });
-
   it("offers each card the moves its column allows", async () => {
     const registration = await registered(
       await brain([
@@ -305,7 +259,7 @@ describe("the Board workspace", () => {
     ]);
   });
 
-  it("marks who blocked a card and how long it has waited", async () => {
+  it("shows who is on a blocked card and where it came from", async () => {
     const registration = await registered(
       await brain([
         {
@@ -313,35 +267,13 @@ describe("the Board workspace", () => {
           text: "Book the venue",
           status: "blocked",
           assignee: "Sam Rivera",
-          history: [
-            {
-              ...move(daysAgo(2), "open", "blocked"),
-              displayName: "Sam Rivera",
-            },
-          ],
-        },
-        {
-          id: "unnamed",
-          text: "Order chairs",
-          status: "blocked",
-          history: [move(daysAgo(1), "open", "blocked")],
         },
       ]),
     );
-    const blocked = column(await board(registration), "blocked");
-    const card = blocked.find((item) => item.title === "Book the venue");
-    const unnamed = blocked.find((item) => item.title === "Order chairs");
-    expect(card?.badges?.map((badge) => badge.label)).toEqual([
-      "Blocked by Sam Rivera 2d",
-    ]);
-    // Moves recorded before names were kept still show their age.
-    expect(unnamed?.badges?.map((badge) => badge.label)).toEqual([
-      "Blocked 1d",
-    ]);
+    const [card] = column(await board(registration), "blocked");
     expect(card?.metadata).toContain("Sam Rivera");
     expect(card?.metadata).toContain("#events");
   });
-
   it("opens a card in place and links it to its editor and source summary", async () => {
     const registration = await registered(
       await brain([{ id: "a", text: "Draft the checklist", status: "open" }]),
@@ -356,7 +288,7 @@ describe("the Board workspace", () => {
     expect(links).toContain('"entityType":"action-item"');
   });
 
-  it("shows an open card's text, facts, named history, notes and a note form", async () => {
+  it("shows an open card's text, facts, notes and a note form", async () => {
     const registration = await registered(
       await brain([
         {
@@ -364,12 +296,6 @@ describe("the Board workspace", () => {
           text: "Book the venue",
           status: "blocked",
           assignee: "Sam Rivera",
-          history: [
-            {
-              ...move(daysAgo(2), "open", "blocked"),
-              displayName: "Sam Rivera",
-            },
-          ],
         },
       ]),
     );
@@ -383,73 +309,10 @@ describe("the Board workspace", () => {
     expect(open).toContain('"id":"card-text","text":"Book the venue"');
     expect(open).not.toContain("# Action item");
     expect(open).toContain('"label":"Assigned to"');
-    expect(open).toContain("To do → Blocked");
+    expect(open).not.toContain("History");
     expect(open).toContain("Sam Rivera");
     expect(open).toContain('"label":"Add a note"');
     expect(open).toContain('"control":"text"');
-  });
-
-  it("lists an open card's notes in the order they were written, with who wrote them and when", async () => {
-    const registration = await registered(
-      await brain([
-        {
-          id: "c",
-          text: "Book the venue\n\n## Notes\n\nBring the floor plan.",
-          status: "blocked",
-          notes: [
-            {
-              at: daysAgo(2),
-              actor: { kind: "user", userId: "u-sam" },
-              displayName: "Sam Rivera",
-              text: "Venue wants a deposit.",
-            },
-            {
-              at: daysAgo(1),
-              actor: { kind: "user", userId: "u-mira" },
-              text: "Deposit paid.",
-            },
-          ],
-        },
-      ]),
-    );
-
-    const detail = await boardDetail(registration, { card: "c" });
-    const notes = z
-      .looseObject({
-        items: z.array(
-          z.looseObject({
-            title: z.string(),
-            description: z.string(),
-            metadata: z.array(z.string()),
-          }),
-        ),
-      })
-      .parse(
-        (detail.open?.blocks ?? [])
-          .flatMap((block) => [
-            block,
-            ...z
-              .looseObject({ blocks: z.array(z.unknown()).default([]) })
-              .parse(block).blocks,
-          ])
-          .find(
-            (block) =>
-              z.looseObject({ id: z.string().optional() }).parse(block).id ===
-              "card-notes",
-          ),
-      );
-
-    expect(
-      notes.items.map(({ title, description }) => [title, description]),
-    ).toEqual([
-      ["Sam Rivera", "Venue wants a deposit."],
-      ["A team member", "Deposit paid."],
-    ]);
-    expect(notes.items[0]?.metadata).toEqual(["Oct 13"]);
-    // The body is the card's text, headings and all; notes live in the frontmatter.
-    expect(JSON.stringify(detail.open?.blocks)).toContain(
-      "Bring the floor plan.",
-    );
   });
 
   it("offers to track an Inbox item that a follow-up links to", async () => {
@@ -531,14 +394,8 @@ describe("the Board workspace", () => {
       { entityType: "action-item", id: "a", visibilityScope: "restricted" },
       actionItemSchema,
     );
-    expect(stored?.metadata.notes).toEqual([
-      {
-        at: NOW.toISOString(),
-        actor: { kind: "user", userId: "u-niels" },
-        displayName: "Niels Ward",
-        text: "Started a draft.",
-      },
-    ]);
+    expect(stored?.content).toContain("— Started a draft.");
+    expect(stored?.content).toContain("Niels Ward");
     const detail = await boardDetail(registration, { card: "a" });
     expect(JSON.stringify(detail.open?.blocks)).toContain("Started a draft.");
   });
@@ -562,12 +419,6 @@ describe("the Board workspace", () => {
       actionItemSchema,
     );
     expect(stored?.metadata.status).toBe("blocked");
-    expect(stored?.metadata.history?.[0]).toMatchObject({
-      actor: { kind: "user", userId: "u-niels" },
-      displayName: "Niels Ward",
-      from: "open",
-      to: "blocked",
-    });
   });
 
   it("drops a card off the board", async () => {
@@ -589,14 +440,7 @@ describe("the Board workspace", () => {
 
   it("reports a move from a column the card has already left", async () => {
     const registration = await registered(
-      await brain([
-        {
-          id: "a",
-          text: "Write the invitation",
-          status: "done",
-          history: [move(daysAgo(0), "doing", "done")],
-        },
-      ]),
+      await brain([{ id: "a", text: "Write the invitation", status: "done" }]),
     );
     if (!registration.actionHandler) throw new Error("Board has no actions");
 

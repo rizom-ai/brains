@@ -7,7 +7,6 @@ import {
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils/hash";
 import {
   generateMarkdown,
   readMarkdownFrontmatter,
@@ -16,7 +15,6 @@ import { z } from "@brains/utils/zod";
 import { ActionItemAdapter } from "../src";
 import { actionItemBody, actionItemBodyHash, isBoardOwned } from "../src";
 import { addActionItemNote, moveActionItem, trackInboxItem } from "../src";
-import { createActionItemValidator } from "../src";
 import {
   actionItemSchema,
   type ActionItemEntity,
@@ -25,7 +23,6 @@ import {
 
 const adapter = new ActionItemAdapter();
 const niels = { kind: "user", userId: "u-niels" } as const;
-const sam = { kind: "user", userId: "u-sam" } as const;
 const ID = "conv-1:action-item:1:abc123abc123";
 const at = (): Date => new Date("2026-10-15T08:02:00.000Z");
 
@@ -82,10 +79,6 @@ async function brain(): Promise<EntityService> {
     },
   });
   await service.initialize();
-  registry.registerPersistValidator(
-    "action-item",
-    createActionItemValidator(service),
-  );
   close = async (): Promise<void> => {
     service.close();
     await directory.cleanup();
@@ -150,20 +143,12 @@ describe("moving a stored card", () => {
 
     const result = await moveActionItem(
       { entityService: service, now: at, visibilityScope: "restricted" },
-      { id: ID, from: "open", to: "blocked", actor: niels },
+      { id: ID, from: "open", to: "blocked" },
     );
 
     expect(result.status).toBe("moved");
     const after = await stored(service);
     expect(after.metadata.status).toBe("blocked");
-    expect(after.metadata.history).toEqual([
-      {
-        at: "2026-10-15T08:02:00.000Z",
-        actor: niels,
-        from: "open",
-        to: "blocked",
-      },
-    ]);
     expect(actionItemBody(after.content)).toBe(actionItemBody(before.content));
     expect(frontmatterOf(after.content)["projects"]).toEqual([
       "Spring gathering",
@@ -183,12 +168,12 @@ describe("moving a stored card", () => {
     const service = await brain();
     await moveActionItem(
       { entityService: service, now: at, visibilityScope: "restricted" },
-      { id: ID, from: "open", to: "done", actor: sam },
+      { id: ID, from: "open", to: "done" },
     );
 
     const result = await moveActionItem(
       { entityService: service, now: at, visibilityScope: "restricted" },
-      { id: ID, from: "open", to: "blocked", actor: niels },
+      { id: ID, from: "open", to: "blocked" },
     );
 
     expect(result).toEqual({ status: "conflict", current: "done" });
@@ -213,7 +198,7 @@ describe("moving a stored card", () => {
 
     const result = await moveActionItem(
       { entityService: racing, now: at, visibilityScope: "restricted" },
-      { id: ID, from: "open", to: "doing", actor: niels },
+      { id: ID, from: "open", to: "doing" },
     );
 
     expect(result.status).toBe("moved");
@@ -242,7 +227,7 @@ describe("moving a stored card", () => {
 
     const result = await moveActionItem(
       { entityService: contested, now: at, visibilityScope: "restricted" },
-      { id: ID, from: "open", to: "doing", actor: niels },
+      { id: ID, from: "open", to: "doing" },
     );
 
     expect(result).toEqual({ status: "conflict", current: "open" });
@@ -253,156 +238,14 @@ describe("moving a stored card", () => {
     const service = await brain();
     const result = await moveActionItem(
       { entityService: service, now: at, visibilityScope: "restricted" },
-      { id: "missing", from: "open", to: "doing", actor: niels },
+      { id: "missing", from: "open", to: "doing" },
     );
     expect(result).toEqual({ status: "not-found" });
   });
 });
 
-describe("the status validator", () => {
-  it("refuses a status change that carries no history entry", async () => {
-    const service = await brain();
-    const entity = await stored(service);
-    const content = generateMarkdown(
-      { ...frontmatterOf(entity.content), status: "done" },
-      actionItemBody(entity.content),
-    );
-
-    expect(
-      service.updateEntity({
-        entity: {
-          ...entity,
-          content,
-          contentHash: computeContentHash(content),
-          metadata: { ...entity.metadata, status: "done" },
-        },
-      }),
-    ).rejects.toThrow("history");
-    expect((await stored(service)).metadata.status).toBe("open");
-  });
-
-  it("refuses a history entry that records a different transition", async () => {
-    const service = await brain();
-    const entity = await stored(service);
-    const history = [
-      {
-        at: "2026-10-15T08:02:00.000Z",
-        actor: niels,
-        from: "doing",
-        to: "done",
-      },
-    ];
-    const content = generateMarkdown(
-      { ...frontmatterOf(entity.content), status: "done", history },
-      actionItemBody(entity.content),
-    );
-
-    expect(
-      service.updateEntity({
-        entity: {
-          ...entity,
-          content,
-          contentHash: computeContentHash(content),
-          metadata: { ...entity.metadata, status: "done" },
-        },
-      }),
-    ).rejects.toThrow("history");
-  });
-
-  it("refuses a history entry that names someone other than the writer", async () => {
-    const service = await brain();
-    const entity = await stored(service);
-    const history = [
-      { at: "2026-10-15T08:02:00.000Z", actor: sam, from: "open", to: "done" },
-    ];
-    const content = generateMarkdown(
-      { ...frontmatterOf(entity.content), status: "done", history },
-      actionItemBody(entity.content),
-    );
-    const update = (writer: typeof niels | typeof sam): Promise<unknown> =>
-      service.updateEntity({
-        entity: {
-          ...entity,
-          content,
-          contentHash: computeContentHash(content),
-          metadata: { ...entity.metadata, status: "done", history },
-        },
-        options: { eventContext: { actor: writer } },
-      });
-
-    expect(update(niels)).rejects.toThrow("names u-sam");
-    expect((await stored(service)).metadata.status).toBe("open");
-    await update(sam);
-    expect((await stored(service)).metadata.status).toBe("done");
-  });
-
-  it("lets edits that leave status alone through", async () => {
-    const service = await brain();
-    await group(service, "Field guide");
-    expect(frontmatterOf((await stored(service)).content)["projects"]).toEqual([
-      "Field guide",
-    ]);
-  });
-});
-
-describe("the note validator", () => {
-  const note = (actor: typeof niels | typeof sam, text: string): object => ({
-    at: "2026-10-15T08:02:00.000Z",
-    actor,
-    text,
-  });
-
-  async function writeNotes(
-    service: EntityService,
-    notes: object[],
-    writer?: typeof niels | typeof sam,
-  ): Promise<unknown> {
-    const entity = await stored(service);
-    const content = generateMarkdown(
-      { ...frontmatterOf(entity.content), notes },
-      actionItemBody(entity.content),
-    );
-    return service.updateEntity({
-      entity: {
-        ...entity,
-        content,
-        contentHash: computeContentHash(content),
-        metadata: actionItemSchema.shape.metadata.parse({
-          ...entity.metadata,
-          notes,
-        }),
-      },
-      ...(writer ? { options: { eventContext: { actor: writer } } } : {}),
-    });
-  }
-
-  it("refuses a note that names someone other than the writer", async () => {
-    const service = await brain();
-
-    expect(
-      writeNotes(service, [note(sam, "Venue wants a deposit.")], niels),
-    ).rejects.toThrow("names u-sam");
-    expect((await stored(service)).metadata.notes).toBeUndefined();
-    await writeNotes(service, [note(sam, "Venue wants a deposit.")], sam);
-    expect((await stored(service)).metadata.notes).toHaveLength(1);
-  });
-
-  it("refuses changing or removing a note once it is written", async () => {
-    const service = await brain();
-    await writeNotes(service, [note(sam, "Venue wants a deposit.")], sam);
-
-    expect(
-      writeNotes(service, [note(sam, "Venue is free.")], sam),
-    ).rejects.toThrow("notes");
-    expect(writeNotes(service, [], sam)).rejects.toThrow("notes");
-    expect((await stored(service)).metadata.notes?.[0]).toMatchObject({
-      text: "Venue wants a deposit.",
-    });
-  });
-});
-
 describe("noting a stored card", () => {
-  it("keeps the note, passes the status validator, and claims the card for the board", async () => {
+  it("keeps the note and claims the card for the board", async () => {
     const service = await brain();
 
     const result = await addActionItemNote(
@@ -410,23 +253,14 @@ describe("noting a stored card", () => {
       {
         id: ID,
         text: "Venue wants a deposit.",
-        actor: niels,
         actorName: "Niels Ward",
       },
     );
 
     expect(result).toEqual({ status: "noted" });
     const after = await stored(service);
-    expect(after.metadata.notes).toEqual([
-      {
-        at: "2026-10-15T08:02:00.000Z",
-        actor: niels,
-        displayName: "Niels Ward",
-        text: "Venue wants a deposit.",
-      },
-    ]);
-    expect(actionItemBody(after.content)).toBe(
-      actionItemBody(projectedContent()),
+    expect(actionItemBody(after.content)).toContain(
+      "## Notes\n\n- 2026-10-15 · Niels Ward — Venue wants a deposit.\n",
     );
     expect(after.metadata.status).toBe("open");
     expect(isBoardOwned(after)).toBe(true);
@@ -437,7 +271,7 @@ describe("noting a stored card", () => {
     expect(
       await addActionItemNote(
         { entityService: service, now: at, visibilityScope: "restricted" },
-        { id: "missing", text: "Hello.", actor: niels },
+        { id: "missing", text: "Hello." },
       ),
     ).toEqual({ status: "not-found" });
   });

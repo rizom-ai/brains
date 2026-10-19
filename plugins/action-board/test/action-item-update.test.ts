@@ -57,12 +57,9 @@ async function brain(
   return context;
 }
 
-async function stored(context: ServicePluginContext): Promise<{
-  status: string;
-  history?: unknown;
-  notes?: unknown;
-  content: string;
-}> {
+async function stored(
+  context: ServicePluginContext,
+): Promise<{ status: string; content: string }> {
   const entity = await context.entityService.getEntity(
     { entityType: "action-item", id: "venue", visibilityScope: "restricted" },
     actionItemSchema,
@@ -70,14 +67,12 @@ async function stored(context: ServicePluginContext): Promise<{
   if (!entity) throw new Error("Missing card");
   return {
     status: entity.metadata.status,
-    history: entity.metadata.history,
-    notes: entity.metadata.notes,
     content: entity.content,
   };
 }
 
 describe("the action_item_update tool", () => {
-  it("moves a card from chat, recording who moved it", async () => {
+  it("moves a card from chat", async () => {
     const context = await brain();
     const tool = createActionItemUpdateTool(context, () => NOW);
 
@@ -86,15 +81,6 @@ describe("the action_item_update tool", () => {
     expect(result).toMatchObject({ success: true });
     const card = await stored(context);
     expect(card.status).toBe("blocked");
-    expect(card.history).toEqual([
-      {
-        at: NOW.toISOString(),
-        actor: { kind: "user", userId: "usr_niels" },
-        displayName: "Niels Ward",
-        from: "open",
-        to: "blocked",
-      },
-    ]);
   });
 
   it("adds a note from chat under the caller's name", async () => {
@@ -103,14 +89,9 @@ describe("the action_item_update tool", () => {
 
     await tool.handler({ id: "venue", note: "Deposit due Friday." }, chat);
 
-    expect((await stored(context)).notes).toEqual([
-      {
-        at: NOW.toISOString(),
-        actor: { kind: "user", userId: "usr_niels" },
-        displayName: "Niels Ward",
-        text: "Deposit due Friday.",
-      },
-    ]);
+    expect((await stored(context)).content).toContain(
+      "- 2026-10-15 · Niels Ward — Deposit due Friday.",
+    );
   });
 
   it("does not reach a card the caller cannot see", async () => {

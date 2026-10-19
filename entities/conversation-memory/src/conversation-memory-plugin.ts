@@ -16,7 +16,6 @@ import {
   ACTION_ITEM_ENTITY_TYPE,
   ActionItemAdapter,
   actionItemSchema,
-  createActionItemValidator,
 } from "@brains/action-items";
 import { DecisionAdapter } from "./adapters/conversation-memory-adapters";
 import { decisionSchema } from "./schemas/conversation-memory";
@@ -96,10 +95,6 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       ACTION_ITEM_ENTITY_TYPE,
       actionItemSchema,
       actionItemAdapter,
-    );
-    context.entities.registerPersistValidator(
-      ACTION_ITEM_ENTITY_TYPE,
-      createActionItemValidator(context.entityService),
     );
 
     registerActionItemsWidget({ context });

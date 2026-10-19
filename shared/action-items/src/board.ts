@@ -1,4 +1,3 @@
-import type { ActorRef } from "@brains/contracts";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   generateMarkdown,
@@ -10,8 +9,6 @@ import {
   actionItemMetadataSchema,
   actionItemOrigin,
   type ActionItemEntity,
-  type ActionItemHistoryEntry,
-  type ActionItemNoteEntry,
   type ActionItemStatus,
 } from "./schema";
 
@@ -37,10 +34,6 @@ export interface ActionItemMove {
   /** The status the person saw on the card. */
   from: ActionItemStatus;
   to: ActionItemStatus;
-  actor: ActorRef;
-  /** The mover's name as the signed-in surface knows it. */
-  actorName?: string | undefined;
-  at: string;
 }
 
 function frontmatterFields(content: string): Record<string, unknown> {
@@ -66,7 +59,6 @@ export function actionItemBodyHash(content: string): string {
  */
 export function isBoardOwned(entity: ActionItemEntity): boolean {
   if (entity.metadata.status !== "open") return true;
-  if ((entity.metadata.notes?.length ?? 0) > 0) return true;
   const fields = Object.keys(frontmatterFields(entity.content));
   if (fields.some((field) => !OWNED_FIELDS.has(field))) return true;
   const projected = entity.metadata.projectedBodyHash;
@@ -75,7 +67,7 @@ export function isBoardOwned(entity: ActionItemEntity): boolean {
   );
 }
 
-/** Set status and record the change; the body and every other field stay as stored. */
+/** Set status; the body and every other field stay as stored. */
 export function applyMove(
   entity: ActionItemEntity,
   move: ActionItemMove,
@@ -87,23 +79,15 @@ export function applyMove(
   if (move.to === move.from) {
     throw new Error(`Action item is already ${move.to}`);
   }
-  const entry: ActionItemHistoryEntry = {
-    at: move.at,
-    actor: move.actor,
-    ...(move.actorName ? { displayName: move.actorName } : {}),
-    from: move.from,
-    to: move.to,
-  };
-  const history = [...(entity.metadata.history ?? []), entry];
   const content = generateMarkdown(
-    { ...frontmatterFields(entity.content), status: move.to, history },
+    { ...frontmatterFields(entity.content), status: move.to },
     actionItemBody(entity.content),
   );
   return {
     ...entity,
     content,
     contentHash: computeContentHash(content),
-    metadata: { ...entity.metadata, status: move.to, history },
+    metadata: { ...entity.metadata, status: move.to },
   };
 }
 
@@ -114,56 +98,31 @@ export function actionItemTitle(entity: ActionItemEntity): string {
   return title !== undefined && title.length > 0 ? title : entity.id;
 }
 
-/** The move that last brought a card into a status. */
-export function lastArrival(
-  entity: ActionItemEntity,
-  status: ActionItemStatus,
-): ActionItemHistoryEntry | undefined {
-  return [...(entity.metadata.history ?? [])]
-    .reverse()
-    .find((entry) => entry.to === status);
-}
-
-/** When a card last arrived in a status, from its history. */
-export function arrivedAt(
-  entity: ActionItemEntity,
-  status: ActionItemStatus,
-): string | undefined {
-  return lastArrival(entity, status)?.at;
-}
-
 export interface ActionItemNote {
   text: string;
-  actor: ActorRef;
   /** The writer's name as the signed-in surface knows it. */
   actorName?: string | undefined;
   at: string;
 }
 
-/** Record a note and who wrote it. The body and every other field stay as stored. */
+/**
+ * Append one dated, named line under the body's Notes section, creating the
+ * section once. Earlier body text and every frontmatter field stay as stored.
+ */
 export function applyNote(
   entity: ActionItemEntity,
   note: ActionItemNote,
 ): ActionItemEntity {
-  const text = note.text.trim();
+  const text = note.text.replace(/\s+/g, " ").trim();
   if (text.length === 0) throw new Error("A note needs text");
-  const entry: ActionItemNoteEntry = {
-    at: note.at,
-    actor: note.actor,
-    ...(note.actorName ? { displayName: note.actorName } : {}),
-    text,
-  };
-  const notes = [...(entity.metadata.notes ?? []), entry];
-  const content = generateMarkdown(
-    { ...frontmatterFields(entity.content), notes },
-    actionItemBody(entity.content),
-  );
-  return {
-    ...entity,
-    content,
-    contentHash: computeContentHash(content),
-    metadata: { ...entity.metadata, notes },
-  };
+  const line = `- ${note.at.slice(0, 10)} · ${note.actorName ?? "A team member"} — ${text}\n`;
+  const body = actionItemBody(entity.content);
+  const ended = body.endsWith("\n") ? body : `${body}\n`;
+  const next = /^## Notes$/m.test(body)
+    ? `${ended}${line}`
+    : `${ended}\n## Notes\n\n${line}`;
+  const content = generateMarkdown(frontmatterFields(entity.content), next);
+  return { ...entity, content, contentHash: computeContentHash(content) };
 }
 
 /** When an item was captured: its conversation's end, or when it was tracked. */

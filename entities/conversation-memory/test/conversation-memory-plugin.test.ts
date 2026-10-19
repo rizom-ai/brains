@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { ConversationMemoryPlugin } from "../src";
 import {
   createPluginHarness,
@@ -28,16 +28,6 @@ describe("ConversationMemoryPlugin", () => {
     );
     expect(capabilities.projectionRules).toBeUndefined();
     expect("projections" in capabilities).toBe(false);
-  });
-
-  it("guards action-item status changes with a persist validator", async () => {
-    const register = spyOn(
-      harness.getEntityRegistry(),
-      "registerPersistValidator",
-    );
-    await harness.installPlugin(plugin);
-
-    expect(register).toHaveBeenCalledWith("action-item", expect.any(Function));
   });
 
   it("keeps memory entities immutable through entity CRUD", () => {

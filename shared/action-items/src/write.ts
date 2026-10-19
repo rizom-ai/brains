@@ -27,8 +27,6 @@ export interface ActionItemMoveRequest {
   /** The status the mover saw on the card. */
   from: ActionItemStatus;
   to: ActionItemStatus;
-  actor: ActorRef;
-  actorName?: string | undefined;
 }
 
 export type ActionItemMoveResult =
@@ -39,7 +37,7 @@ export type ActionItemMoveResult =
 export interface ActionItemNoteRequest {
   id: string;
   text: string;
-  actor: ActorRef;
+  /** The writer's name, as it appears on the note. */
   actorName?: string | undefined;
 }
 
@@ -61,7 +59,6 @@ type WriteOutcome =
 async function writeActionItem(
   deps: ActionItemMoveDeps,
   id: string,
-  actor: ActorRef,
   change: (
     entity: ActionItemEntity,
     at: string,
@@ -83,10 +80,7 @@ async function writeActionItem(
     }
     const result = await deps.entityService.updateEntity({
       entity: changed,
-      options: {
-        expectedContentHash: entity.contentHash,
-        eventContext: { actor },
-      },
+      options: { expectedContentHash: entity.contentHash },
     });
     if (result.skipReason !== "content-conflict") {
       return { status: "written", entity: changed };
@@ -98,28 +92,15 @@ async function writeActionItem(
   return attempt(2);
 }
 
-/**
- * Move a card through the one write path that records who moved it. A card
- * someone else already moved is reported, never overridden.
- */
+/** Move a card. A card someone else already moved is reported, never overridden. */
 export async function moveActionItem(
   deps: ActionItemMoveDeps,
   request: ActionItemMoveRequest,
 ): Promise<ActionItemMoveResult> {
-  const outcome = await writeActionItem(
-    deps,
-    request.id,
-    request.actor,
-    (entity, at) =>
-      entity.metadata.status === request.from
-        ? applyMove(entity, {
-            from: request.from,
-            to: request.to,
-            actor: request.actor,
-            actorName: request.actorName,
-            at,
-          })
-        : { refused: entity.metadata.status },
+  const outcome = await writeActionItem(deps, request.id, (entity) =>
+    entity.metadata.status === request.from
+      ? applyMove(entity, { from: request.from, to: request.to })
+      : { refused: entity.metadata.status },
   );
   return outcome.status === "written"
     ? { status: "moved", entity: outcome.entity }
@@ -131,17 +112,12 @@ export async function addActionItemNote(
   deps: ActionItemMoveDeps,
   request: ActionItemNoteRequest,
 ): Promise<ActionItemNoteResult> {
-  const outcome = await writeActionItem(
-    deps,
-    request.id,
-    request.actor,
-    (entity, at) =>
-      applyNote(entity, {
-        text: request.text,
-        actor: request.actor,
-        actorName: request.actorName,
-        at,
-      }),
+  const outcome = await writeActionItem(deps, request.id, (entity, at) =>
+    applyNote(entity, {
+      text: request.text,
+      actorName: request.actorName,
+      at,
+    }),
   );
   return outcome.status === "written" ? { status: "noted" } : outcome;
 }

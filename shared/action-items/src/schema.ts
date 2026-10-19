@@ -125,47 +125,6 @@ export const actionItemStatusSchema: ActionItemStatusSchema = z.enum([
   "dropped",
 ]);
 
-type ActionItemHistoryEntrySchema = z.ZodObject<{
-  at: z.ZodISODateTime;
-  actor: typeof actorRefSchema;
-  displayName: z.ZodOptional<z.ZodString>;
-  from: ActionItemStatusSchema;
-  to: ActionItemStatusSchema;
-}>;
-
-/** One status change and who made it. */
-export const actionItemHistoryEntrySchema: ActionItemHistoryEntrySchema =
-  z.object({
-    at: z.iso.datetime(),
-    actor: actorRefSchema,
-    /** The mover's name when they moved it; the actor stays authoritative. */
-    displayName: z.string().optional(),
-    from: actionItemStatusSchema,
-    to: actionItemStatusSchema,
-  });
-
-export type ActionItemHistoryEntry = z.output<
-  typeof actionItemHistoryEntrySchema
->;
-
-type ActionItemNoteEntrySchema = z.ZodObject<{
-  at: z.ZodISODateTime;
-  actor: typeof actorRefSchema;
-  displayName: z.ZodOptional<z.ZodString>;
-  text: z.ZodString;
-}>;
-
-/** One note on a card and who wrote it. */
-export const actionItemNoteEntrySchema: ActionItemNoteEntrySchema = z.object({
-  at: z.iso.datetime(),
-  actor: actorRefSchema,
-  /** The writer's name when they wrote it; the actor stays authoritative. */
-  displayName: z.string().optional(),
-  text: z.string().min(1).max(4_000),
-});
-
-export type ActionItemNoteEntry = z.output<typeof actionItemNoteEntrySchema>;
-
 type ActionItemSourceRefSchema = z.ZodObject<{
   sourceId: z.ZodString;
   entityType: z.ZodString;
@@ -199,8 +158,6 @@ type ActionItemMetadataSchema = z.ZodObject<{
   assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
   requestedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
   projectedBodyHash: z.ZodOptional<z.ZodString>;
-  history: z.ZodOptional<z.ZodArray<ActionItemHistoryEntrySchema>>;
-  notes: z.ZodOptional<z.ZodArray<ActionItemNoteEntrySchema>>;
 }>;
 
 const CONVERSATION_FIELDS = [
@@ -265,8 +222,6 @@ export const actionItemMetadataSchema: ActionItemMetadataSchema = z
     requestedBy: z.array(memoryActorReferenceSchema).optional(),
     /** Body hash when the projector wrote the item; a different body is the board's. */
     projectedBodyHash: z.string().optional(),
-    history: z.array(actionItemHistoryEntrySchema).optional(),
-    notes: z.array(actionItemNoteEntrySchema).optional(),
   })
   .superRefine(requireOriginFields);
 
@@ -286,8 +241,6 @@ const actionItemEntityMetadataParserSchema: z.ZodObject<
     assignedTo: z.array(actionItemAssigneeParserSchema).optional(),
     requestedBy: z.array(memoryActorReferenceParserSchema).optional(),
     projectedBodyHash: z.string().optional(),
-    history: z.array(actionItemHistoryEntrySchema).optional(),
-    notes: z.array(actionItemNoteEntrySchema).optional(),
   })
   .superRefine(requireOriginFields);
 

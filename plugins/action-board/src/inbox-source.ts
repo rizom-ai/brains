@@ -10,13 +10,10 @@ import { truncateText } from "@brains/utils/string-utils";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import {
   actionItemBody,
-  actionItemCapturedAt,
   actionItemSource,
   actionItemTitle,
-  arrivedAt,
 } from "@brains/action-items";
 import { moveActionItem } from "@brains/action-items";
-import { formatAge } from "@brains/action-items";
 import { actionItemSchema, type ActionItemStatus } from "@brains/action-items";
 
 /** Inbox actions on a blocked card and the status each moves it to. */
@@ -37,21 +34,15 @@ const LIST_LIMIT = 100;
 
 /**
  * Blocked action items as Inbox items, so blockers reach the admin's triage
- * and daily digest. Every action goes through the board's move path, so the
- * card's history names the admin who acted.
+ * and daily digest. Every action goes through the board's move path.
  */
 export class ActionItemInboxSource implements InboxSource {
   readonly sourceId: string = "action-items";
   readonly displayName: string = "Action items";
   private readonly context: Pick<ServicePluginContext, "entityService">;
-  private readonly now: () => Date;
 
-  constructor(
-    context: Pick<ServicePluginContext, "entityService">,
-    now: () => Date = (): Date => new Date(),
-  ) {
+  constructor(context: Pick<ServicePluginContext, "entityService">) {
     this.context = context;
-    this.now = now;
   }
 
   async list(): Promise<InboxItem[]> {
@@ -69,12 +60,8 @@ export class ActionItemInboxSource implements InboxSource {
       },
       actionItemSchema,
     );
-    const now = this.now();
     return blocked.map((entity) => {
-      const since =
-        arrivedAt(entity, "blocked") ?? actionItemCapturedAt(entity);
       const summary = [
-        `Blocked ${formatAge(since, now)}`,
         ...(entity.metadata.assignedTo ?? []).map(
           (assignee) => assignee.displayName,
         ),
@@ -84,7 +71,8 @@ export class ActionItemInboxSource implements InboxSource {
         id: entity.id,
         title: truncateText(actionItemTitle(entity), 160),
         summary: summary.join(" · "),
-        receivedAt: since,
+        // A blocked card's last change is, as a rule, its blocking.
+        receivedAt: entity.updated,
         urgency: "normal",
         entityRef: { entityType: ACTION_ITEM_ENTITY_TYPE, entityId: entity.id },
         actions: [
@@ -117,15 +105,7 @@ export class ActionItemInboxSource implements InboxSource {
       .trimStart()
       .replace(/^#\s+.+\n+/, "")
       .trim();
-    const moves = (entity.metadata.history ?? []).map(
-      (entry) =>
-        `${entry.at.slice(0, 10)} ${entry.at.slice(11, 16)} · ${entry.from} → ${entry.to}`,
-    );
-    return {
-      kind: "plain",
-      text: moves.length > 0 ? `${text}\n\nMoves:\n${moves.join("\n")}` : text,
-      truncated: false,
-    };
+    return { kind: "plain", text, truncated: false };
   }
 
   async act(
@@ -140,15 +120,8 @@ export class ActionItemInboxSource implements InboxSource {
       {
         entityService: this.context.entityService,
         visibilityScope: "restricted",
-        now: this.now,
       },
-      {
-        id: itemId,
-        from: "blocked",
-        to,
-        actor: actor.actor,
-        actorName: actor.displayName,
-      },
+      { id: itemId, from: "blocked", to },
     );
     if (result.status !== "moved") throw new Error("Action item unavailable");
   }

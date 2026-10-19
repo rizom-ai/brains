@@ -5,8 +5,6 @@ export {
 export {
   actionItemAssigneeParserSchema,
   actionItemAssigneeSchema,
-  actionItemHistoryEntrySchema,
-  actionItemNoteEntrySchema,
   actionItemMetadataSchema,
   actionItemOrigin,
   actionItemSchema,
@@ -17,8 +15,6 @@ export {
   memoryTimeRangeSchema,
   type ActionItemAssignee,
   type ActionItemEntity,
-  type ActionItemHistoryEntry,
-  type ActionItemNoteEntry,
   type ActionItemMetadata,
   type ActionItemOrigin,
   type ActionItemSourceRef,
@@ -34,9 +30,7 @@ export {
   actionItemTitle,
   applyMove,
   applyNote,
-  arrivedAt,
   isBoardOwned,
-  lastArrival,
   StaleActionItemStatusError,
   type ActionItemMove,
   type ActionItemNote,
@@ -56,5 +50,4 @@ export {
   type TrackInboxItemRequest,
   type TrackInboxItemResult,
 } from "./write";
-export { createActionItemValidator } from "./validator";
 export { channelLabel, formatAge, formatShortDate } from "./format";
