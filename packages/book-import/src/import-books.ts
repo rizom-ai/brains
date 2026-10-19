@@ -112,6 +112,7 @@ const headingLineSchema: z.ZodObject<{
   numeral: z.ZodOptional<z.ZodString>;
   level: z.ZodOptional<z.ZodLiteral<0 | 1 | 2 | 3 | 4>>;
   label: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
 }> = z
   .object({
     page: printedPageSchema,
@@ -124,6 +125,8 @@ const headingLineSchema: z.ZodObject<{
     level: z.literal([0, 1, 2, 3, 4]).optional(),
     /** The label as printed, without the stop after it: IIa, B, a); none for a heading without one. */
     label: z.string().min(1).optional(),
+    /** A dictionary article's headword, which titles the article its line opens. */
+    title: z.string().min(1).optional(),
   })
   .refine(
     (heading) => heading.label === undefined || heading.level !== undefined,
@@ -217,6 +220,7 @@ const archiveOcrBookSchema: z.ZodObject<
       curved: z.ZodDefault<z.ZodBoolean>;
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
+      verse: z.ZodDefault<z.ZodBoolean>;
       opensWith: z.ZodOptional<z.ZodString>;
     }
   >
@@ -275,6 +279,8 @@ const archiveOcrBookSchema: z.ZodObject<
   marginalia: z.boolean().default(false),
   /** A volume of newspaper articles, each titled above its dateline: London, 9. Juni 1854. */
   datelined: z.boolean().default(false),
+  /** The work is verse: its lines stay lines, and a stanza opens below the space it leaves. */
+  verse: z.boolean().default(false),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
 });

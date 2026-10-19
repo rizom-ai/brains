@@ -1197,6 +1197,26 @@ describe("printedPageNumbers", () => {
     ]);
   });
 
+  it("keeps every number the scan states, however far the pages lie apart", () => {
+    const stated = (leaf: number, head: number): LeafReading => ({
+      leaf,
+      head,
+      stated: true,
+      words: 300,
+    });
+    const pages = printedPageNumbers([
+      stated(0, 105),
+      stated(1, 106),
+      stated(2, 424),
+      stated(3, 112),
+      stated(4, 15),
+    ]);
+
+    expect([0, 1, 2, 3, 4].map((leaf) => pages.get(leaf))).toEqual([
+      105, 106, 424, 112, 15,
+    ]);
+  });
+
   it("leaves a plate between the pages unnumbered and numbers on after it", () => {
     const pages = printedPageNumbers([
       text(10, 1),
@@ -3167,6 +3187,84 @@ describe("parseArchiveOcrWork, a scan whose lines curve", () => {
       "V. Das erste, was si",
       "D Die erste Frage, d",
       "Also: Am selben Aben",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, a poem", () => {
+  it("keeps each line of verse, and opens a stanza below the space it leaves", () => {
+    const line = (x: number, y: number, text: string): string =>
+      `<span class='ocr_line' title='bbox ${x} ${y} ${x + 1000} ${y + 80}; x_size 80'>${text}</span>`;
+    const hocr = `<html><body><div class='ocr_page' id='page_0' title='bbox 0 0 3000 4500'><span class='ocr_pageno'>604</span>
+ <p class='ocr_par'>${[
+   line(880, 1260, "Spielmann streicht die Geigen,"),
+   line(880, 1348, "Die lichtbraunen Haare sich neigen,"),
+   line(1030, 1434, "Trägt einen Säbel an der Seit’,"),
+   line(880, 1610, "„Spielmann, Spielmann, was streichst du so sehr,"),
+   line(1030, 1698, "Zerreißt dir ja deinen Bogen.“"),
+ ].join("\n")}</p>
+</div></body></html>`;
+
+    const units = parseArchiveOcrWork(hocr, {
+      item: "mew-40",
+      title: "Wilde Lieder",
+      citation: "MEW 40",
+      firstPage: 604,
+      lastPage: 604,
+      verse: true,
+    });
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "Spielmann streicht die Geigen,  \nDie lichtbraunen Haare sich neigen,  \nTrägt einen Säbel an der Seit’,",
+      "„Spielmann, Spielmann, was streichst du so sehr,  \nZerreißt dir ja deinen Bogen.“",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, a dictionary's articles", () => {
+  it("titles an article by the headword the manifest names, the line staying its text, though it names the line's paragraph too", () => {
+    const line = (x: number, y: number, text: string): string =>
+      `<span class='ocr_line' title='bbox ${x} ${y} ${x + 1300} ${y + 60}; x_size 60'>${text}</span>`;
+    const hocr = `<html><body><div class='ocr_page' id='page_0' title='bbox 0 0 1500 3000'><span class='ocr_pageno'>105</span>
+ <p class='ocr_par'>${[
+   line(100, 200, "the Austrians, and was pillaged by the French."),
+   line(140, 270, "ARMADA, Spanish, the great naval arma-"),
+   line(100, 340, "ment sent by King Philip II. of Spain, in 1588."),
+   line(140, 410, "The fleet consisted of 130 vessels."),
+   line(140, 480, "AYACUCHO, a department of Peru, where"),
+   line(100, 550, "the Spaniards were defeated in 1824."),
+ ].join("\n")}</p>
+</div></body></html>`;
+
+    const units = parseArchiveOcrWork(hocr, {
+      item: "cyclopaedia",
+      title: "Articles",
+      citation: "Cyclopaedia",
+      firstPage: 105,
+      lastPage: 105,
+      opensWith: "ARMADA",
+      headings: [
+        { page: 105, opens: "ARMADA, Spanish", title: "Armada" },
+        { page: 105, opens: "AYACUCHO", title: "Ayacucho" },
+      ],
+      // Its articles set no paragraphs in: only a headword opens one.
+      paragraphs: [
+        { page: 105, opens: "ARMADA" },
+        { page: 105, opens: "AYACUCHO" },
+      ],
+    });
+
+    expect(
+      units.map((unit) => [unit.title, unit.paragraphs.join(" / ")]),
+    ).toEqual([
+      [
+        "Armada",
+        "ARMADA, Spanish, the great naval armament sent by King Philip II. of Spain, in 1588. The fleet consisted of 130 vessels.",
+      ],
+      [
+        "Ayacucho",
+        "AYACUCHO, a department of Peru, where the Spaniards were defeated in 1824.",
+      ],
     ]);
   });
 });
