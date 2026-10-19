@@ -30,7 +30,1667 @@ coverage:
   author: Karl Marx
   edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, MEGAdigital and Wikisource or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
-gaps: []
+gaps:
+  # Anekdota, 1843.
+  - citation: Anekdota zur neuesten deutschen Philosophie und Publicistik, Bd. II, 1843
+    title: Luther als Schiedsrichter zwischen Strauß und Feuerbach
+    year: 1843
+    reason: later research gives it to Ludwig Feuerbach
+  # La Démocratie pacifique, 1843.
+  - citation: La Démocratie pacifique, 11 Dec 1843
+    title: Declaration, with Arnold Ruge
+    year: 1843
+    reason: La Démocratie pacifique is on Gallica, which refuses scripted access
+  # The Northern Star, 1846.
+  - citation: Northern Star, 25 Jul 1846
+    title: Address of the German Democratic Communists of Brussels to Mr. Feargus O'Connor
+    year: 1846
+    reason: the Northern Star is in the Nineteenth-Century Serials Edition, whose search did not answer a scripted request; the issue is not yet located
+  # Brussels, 1847: a speech Marx gave in French.
+  - citation: speech, Brussels, Sep 1847
+    title: The Protectionists, the Free Traders and the Working Class
+    year: 1847
+    reason: Marx's French text is lost; only Joseph Weydemeyer's German translation was printed
+  # Deutsche-Brüsseler-Zeitung, 1847: a note Marx wrote in French.
+  - citation: Deutsche-Brüsseler-Zeitung, 19 Dec 1847
+    title: Remarks on the Article by M. Adolphe Bartels
+    year: 1847
+    reason: no scan of the Deutsche-Brüsseler-Zeitung was found
+  # La Réforme, 1848.
+  - citation: La Réforme, 8 Mar 1848
+    title: To the Editor of La Réforme
+    year: 1848
+    reason: La Réforme is on Gallica, which refuses scripted access
+  - citation: La Réforme, 12 Mar 1848
+    title: Persecution of Foreigners in Brussels
+    year: 1848
+    reason: La Réforme is on Gallica, which refuses scripted access
+  # Neue Rheinische Zeitung, 1848–1849: editorials MEW prints without an author.
+  - citation: Neue Rheinische Zeitung, 1 Jun 1848
+    title: Hüser
+    year: 1848
+    reason: MECW gives it to Engels
+  - citation: Neue Rheinische Zeitung, 7 Jan 1849
+    title: Das Budget der Vereinigten Staaten und das christlich-germanische
+    year: 1849
+    reason: MECW leaves it out, so Marx's authorship is not established
+  - citation: Neue Rheinische Zeitung, 18 Feb 1849
+    title: Saedt
+    year: 1849
+    reason: MECW gives it to Engels
+  # L'Alba, 1848.
+  - citation: L'Alba, 29 Jun 1848
+    title: To the Editor of the Newspaper L'Alba
+    year: 1848
+    reason: printed only in Italian, translated by others; Marx's text is lost
+  # La Presse, 1849.
+  - citation: La Presse, 30 Jul 1849
+    title: To the Editor of the Newspaper La Presse
+    year: 1849
+    reason: La Presse is on Gallica, which refuses scripted access
+  # The Sun (London), 1850.
+  - citation: The Sun (London), 5 Jun 1850
+    title: The Prussian Refugees
+    year: 1850
+    reason: no free scan of The Sun was found
+  # The Spectator, 1850.
+  - citation: The Spectator, 15 Jun 1850
+    title: Prussian Spies in London
+    year: 1850
+    reason: the Spectator's archive refuses scripted access, and no other scan was found
+  # A leaflet of the Communist League, 1851.
+  - citation: leaflet, London, 1851
+    title: Vorbemerkung zur deutschen Übersetzung des Toastes von L.-A. Blanqui
+    year: 1851
+    reason: MEW prints it among its appendices; Marx's authorship is uncertain
+  # Notes to the People, 1851.
+  - citation: Notes to the People, 14 Jun 1851
+    title: The Constitution of the French Republic Adopted November 4, 1848
+    year: 1851
+    reason: the only scan, a 1967 facsimile on the Internet Archive, is lent and not downloadable
+  # New-York Daily Tribune, 1852–1862: Marx's articles, written in English, under the English titles MECW gives them.
+  - citation: New-York Daily Tribune, 21 Aug 1852
+    title: The Elections in England.—Tories and Whigs
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Aug 1852
+    title: The Chartists
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Sep 1852
+    title: Corruption at Elections
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 Sep 1852
+    title: Result of the Elections
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 19 Oct 1852
+    title: Movements of Mazzini and Kossuth.—League with Louis Napoleon.—Palmerston
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Nov 1852
+    title: Pauperism and Free Trade.—The Approaching Commercial Crisis
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 2 Nov 1852
+    title: Political Consequences of the Commercial Excitement
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Nov 1852
+    title: Attempts to Form a New Opposition Party
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 29 Nov 1852
+    title: Political Parties and Prospects
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Dec 1852
+    title: Kossuth, Mazzini, and Louis Napoleon
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Dec 1852
+    title: Parliament.—Vote of November 26.—Disraeli's Budget
+    year: 1852
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Jan 1853
+    title: A Reply to Kossuth's "Secretary"
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Jan 1853
+    title: The Defeat of the Ministry
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Jan 1853
+    title: A Superannuated Administration.—Prospects of the Coalition Ministry, &c
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 2 Feb 1853
+    title: Political Prospects.—Commercial Prosperity.—Case of Starvation
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 Feb 1853
+    title: Elections.—Financial Clouds.—The Duchess of Sutherland and Slavery
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 18 Feb 1853
+    title: Capital Punishment.—Mr. Cobden's Pamphlet.—Regulations of the Bank of England
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Feb 1853
+    title: Defense.—Finances.—Decrease of the Aristocracy.—Politics
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Feb 1853
+    title: The Italian Insurrection.—British Politics
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 Mar 1853
+    title: The Attack on Francis Joseph.—The Milan Riot.—British Politics.—Disraeli's Speech.—Napoleon's Will
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Mar 1853
+    title: Parliamentary Debates.—The Clergy Against Socialism.—Starvation
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Mar 1853
+    title: Forced Emigration.—Kossuth and Mazzini.—The Refugee Question.—Election Bribery in England.—Mr. Cobden
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Apr 1853
+    title: Kossuth and Mazzini.—Intrigues of the Prussian Government.—Austro-Prussian Commercial Treaty.—The Times and the Refugees
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Apr 1853
+    title: British Politics.—Disraeli.—The Refugees.—Mazzini in London.—Turkey
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 11 Apr 1853
+    title: The London Press.—Policy of Napoleon on the Turkish Question
+    year: 1853
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 18 Apr 1853
+    title: The Berlin Conspiracy
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Apr 1853
+    title: The Berlin Conspiracy.—London Police.—Mazzini.—Radetzky
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Apr 1853
+    title: Achievements of the Ministry
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 May 1853
+    title: Feargus O'Connor.—Ministerial Defeats.—The Budget
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 May 1853
+    title: Riot at Constantinople.—German Table Moving.—The Budget
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 May 1853
+    title: The Rocket Affair.—The Swiss Insurrection
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 Jun 1853
+    title: Affairs in Holland.—Denmark.—Conversion of the British Debt.—India, Turkey and Russia
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 10 Jun 1853
+    title: Mazzini.—Switzerland and Austria.—The Turkish Question
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 14 Jun 1853
+    title: Revolution in China and in Europe
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Jun 1853
+    title: The Turkish Question.—The Times.—Russian Aggrandizement
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 22 Jun 1853
+    title: The Russian Humbug.—Gladstone's Failure.—Sir Charles Wood's East Indian Reforms
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 25 Jun 1853
+    title: The British Rule in India
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Jul 1853
+    title: English Prosperity.—Strikes.—The Turkish Question.—India
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 8 Jul 1853
+    title: Turkey and Russia.—Connivance of the Aberdeen Ministry with Russia.—The Budget.—Tax on Newspaper Supplements.—Parliamentary Corruption
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 11 Jul 1853
+    title: The East India Company—Its History and Results
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 Jul 1853
+    title: The Indian Question.—Irish Tenant Right
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Jul 1853
+    title: Russian Policy Against Turkey.—Chartism
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 20 Jul 1853
+    title: The Turkish War Question.—The New-York Tribune in the House of Commons.—The Government of India
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 22 Jul 1853
+    title: Layard's Motion.—Struggle Over the Ten Hours' Bill
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 25 Jul 1853
+    title: The Russo-Turkish Difficulty.—Ducking and Dodging of the British Cabinet.—Nesselrode's Last Note.—The East India Question
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 30 Jul 1853
+    title: War in Burma.—The Russian Question.—Curious Diplomatic Correspondence
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 5 Aug 1853
+    title: The War Question.—Doings of Parliament.—India
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 8 Aug 1853
+    title: The Future Results of British Rule in India
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Aug 1853
+    title: Financial Failure of Government.—Cabs.—Ireland.—The Russian Question
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 16 Aug 1853
+    title: In the House of Commons.—The Press on the Eastern Question.—The Czar's Manifesto.—Denmark
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 19 Aug 1853
+    title: Advertisement Duty.—Russian Movements.—Denmark.—The United States in Europe
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 24 Aug 1853
+    title: The War Question.—British Population and Trade Returns.—Doings of Parliament
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 1 Sep 1853
+    title: Urquhart.—Bem.—The Turkish Question in the House of Lords
+    year: 1853
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 2 Sep 1853
+    title: The Turkish Question in the Commons
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 5 Sep 1853
+    title: Affairs Continental and English
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 15 Sep 1853
+    title: Rise in the Price of Corn.—Cholera.—Strikes.—Sailors' Movement
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Sep 1853
+    title: The Vienna Note.—The United States and Europe.—Letters from Shumla.—Peel's Bank Act
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 30 Sep 1853
+    title: Political Movements.—Scarcity of Bread in Europe
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Oct 1853
+    title: The Western Powers and Turkey.—Imminent Economic Crisis.—Railway Construction in India
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 7 Oct 1853
+    title: The Western Powers and Turkey.—Symptoms of Economic Crisis
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 17 Oct 1853
+    title: Panic on the London Stock Exchange.—Strikes
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 21 Oct 1853
+    title: The War Question.—Financial Matters.—Strikes
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 31 Oct 1853
+    title: The Turkish Manifesto.—France's Economic Position
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 5 Nov 1853
+    title: Arrest of Delescluze.—Denmark.—Austria.—The Times on the Prospects of War Against Russia
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 15 Nov 1853
+    title: War.—Strikes.—Dearth
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 18 Nov 1853
+    title: Persian Expedition in Afghanistan and Russian Expedition in Central Asia.—Denmark.—The Fighting on the Danube and in Asia.—Wigan Colliers
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 28 Nov 1853
+    title: The Labor Question
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Nov 1853
+    title: Prosperity.—The Labor Question
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Dec 1853
+    title: Manteuffel's Speech.—Religious Movement in Prussia.—Mazzini's Address.—London Corporation.—Russell's Reform.—Labor Parliament
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Dec 1853
+    title: The Turkish War.—Industrial Distress
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 26 Dec 1853
+    title: The Quadruple Convention.—England and the War
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 27 Dec 1853
+    title: The Russian Victory.—Position of England and France
+    year: 1853
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 31 Dec 1853
+    title: Palmerston's Resignation
+    year: 1853
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 28 Jan 1854
+    title: The Western Powers and Turkey
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 8 Feb 1854
+    title: The Fighting in the East.—Finances of Austria and France.—Fortification of Constantinople
+    year: 1854
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 11 Feb 1854
+    title: The Czar's Views.—Prince Albert
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 16 Feb 1854
+    title: Fortification of Constantinople.—Denmark's Neutrality.—Composition of British Parliament.—Crop Failure in Europe
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 20 Feb 1854
+    title: Count Orlov's Mission.—Russian Finances During the War
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 21 Feb 1854
+    title: Blue Books.—Parliamentary Debates on February 6.—Count Orlov's Mission.—Operations of the Allied Fleet.—The Irish Brigade.—Concerning the Convocation of the Labor Parliament
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 27 Feb 1854
+    title: Russian Diplomacy.—The Blue Book on the Eastern Question.—Montenegro
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 9 Mar 1854
+    title: Declaration of the Prussian Cabinet.—Napoleon's Plans.—Prussia's Policy
+    year: 1854
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 9 Mar 1854
+    title: Debates in Parliament
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 13 Mar 1854
+    title: Parliamentary Debates of February 22.—Pozzo di Borgo's Dispatch.—The Policy of the Western Powers
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 18 Mar 1854
+    title: English and French War Plans.—Greek Insurrection.—Spain.—China
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 22 Mar 1854
+    title: Austrian Bankruptcy
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Mar 1854
+    title: Opening of the Labor Parliament.—English War Budget
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 29 Mar 1854
+    title: The Labor Parliament
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 29 Mar 1854
+    title: The Greek Insurrection
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 5 Apr 1854
+    title: The Documents on the Partition of Turkey
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 11 Apr 1854
+    title: The Secret Diplomatic Correspondence
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 15 Apr 1854
+    title: Declaration of War.—On the History of the Eastern Question
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 17 Apr 1854
+    title: The War Debate in Parliament
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 21 Apr 1854
+    title: Russia and the German Powers.—Corn Prices
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 2 May 1854
+    title: Reshid Pasha's Note.—An Italian Newspaper on the Eastern Question
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 6 May 1854
+    title: Greece and Turkey.—Turkey and the Western Powers.—Falling Off in Wheat Sales in England
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 15 May 1854
+    title: The Greek Insurrection.—The Polish Emigration.—The Austro-Prussian Treaty.—Russian Documents
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 16 May 1854
+    title: The Bombardment of Odessa.—Greece.—Proclamation of Prince Daniel of Montenegro.—Manteuffel's Speech
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 23 May 1854
+    title: British Finances
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 2 Jun 1854
+    title: Attack Upon Sevastopol.—Clearing of Estates in Scotland
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Jun 1854
+    title: The Treaty Between Austria and Prussia.—Parliamentary Debates of May 29
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Jun 1854
+    title: The Formation of a Special Ministry of War in Britain.—The War on the Danube.—The Economic Situation
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 24 Jun 1854
+    title: Reorganisation of the British War Administration.—The Austrian Summons.—Britain's Economic Situation.—St. Arnaud
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 8 Jul 1854
+    title: State of the Russian War
+    year: 1854
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 10 Jul 1854
+    title: The Russian Retreat
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 10 Jul 1854
+    title: The War.—Debate in Parliament
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 19 Jul 1854
+    title: The Insurrection at Madrid.—The Austro-Turkish Treaty.—Moldavia and Wallachia
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 21 Jul 1854
+    title: The Details of the Insurrection at Madrid.—The Austro-Prussian Summons.—The New Austrian Loan.—Wallachia
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 28 Jul 1854
+    title: Excitement in Italy.—The Events in Spain.—The Position of the German States.—British Magistrates
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 1 Aug 1854
+    title: The English Middle Class
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 Aug 1854
+    title: A Congress at Vienna.—The Austrian Loan.—Proclamations of Dulce and O'Donnell.—The Ministerial Crisis in Britain
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 4 Aug 1854
+    title: The Spanish Revolution.—Greece and Turkey
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Aug 1854
+    title: The War Debates in Parliament
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 9 Aug 1854
+    title: The Policy of Austria.—The War Debates in the House of Commons
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 17 Aug 1854
+    title: That Bore of a War
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 19 Aug 1854
+    title: Espartero
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Aug 1854
+    title: Evacuation of the Danubian Principalities.—The Events in Spain.—A New Danish Constitution.—The Chartists
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 25 Aug 1854
+    title: Evacuation of Moldavia and Wallachia.—Poland.—Demands of the Spanish People
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 1 Sep 1854
+    title: The Eastern Question.—The Revolution in Spain.—The Madrid Press
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 4 Sep 1854
+    title: Revolution in Spain.—Bomarsund
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 9 Sep 1854
+    title: Revolutionary Spain
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Sep 1854
+    title: The Reaction in Spain
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Sep 1854
+    title: The Rumours about Mazzini's Arrest.—The Austrian Compulsory Loan.—Spain.—The Situation in Wallachia
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 2 Oct 1854
+    title: The Actions of the Allied Fleet.—The Situation in the Danubian Principalities.—Spain.—British Foreign Trade
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 21 Oct 1854
+    title: The Sevastopol Hoax
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Oct 1854
+    title: The Sevastopol Hoax.—General News
+    year: 1854
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Jan 1855
+    title: Progress of the War
+    year: 1855
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 26 Jan 1855
+    title: The Commercial Crisis in Britain
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 Feb 1855
+    title: Fall of the Aberdeen Ministry
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Feb 1855
+    title: The Late British Government
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Mar 1855
+    title: The Crisis in England
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Apr 1855
+    title: The British Army
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Apr 1855
+    title: Prospect in France and England
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 10 Jul 1855
+    title: Eccentricities of Politics
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 13 Sep 1855
+    title: Austria and the War
+    year: 1855
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 24 Sep 1855
+    title: Another British Revelation
+    year: 1855
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 12 Jan 1856
+    title: Traditional English Policy
+    year: 1856
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: New-York Daily Tribune, 25 Feb 1856
+    title: The American Difficulty.—Affairs of France
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 5 May 1856
+    title: Prussia
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Jun 1856
+    title: The French Credit Mobilier. I
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Jun 1856
+    title: The French Credit Mobilier. II
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 Jul 1856
+    title: The French Credit Mobilier. III
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 Aug 1856
+    title: Revolution in Spain
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 18 Aug 1856
+    title: Revolution in Spain
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 Oct 1856
+    title: The Economic Crisis in Europe
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Oct 1856
+    title: The Monetary Crisis in Europe
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Oct 1856
+    title: The Causes of the Monetary Crisis in Europe
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Nov 1856
+    title: Monetary Crisis in Europe.—From the History of Money Circulation
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Nov 1856
+    title: The Economic Crisis in France
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 Dec 1856
+    title: The European Crisis
+    year: 1856
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Jan 1857
+    title: Der englisch-persische Krieg (MEW's title)
+    year: 1857
+    reason: MECW leaves it out, so Marx's authorship is not established
+  - citation: New-York Daily Tribune, 9 Jan 1857
+    title: The Maritime Commerce of Austria
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Jan 1857
+    title: The Anglo-Chinese Conflict
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Feb 1857
+    title: The War Against Persia
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 Mar 1857
+    title: The New English Budget
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Mar 1857
+    title: Parliamentary Debates on the Chinese Hostilities
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Mar 1857
+    title: Defeat of the Palmerston Ministry
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 31 Mar 1857
+    title: The Coming Election in England
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 Apr 1857
+    title: The English Election
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Apr 1857
+    title: Russian Trade with China
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 10 Apr 1857
+    title: English Atrocities in China
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 Apr 1857
+    title: The Defeat of Cobden. Bright and Gibson
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Apr 1857
+    title: Result of the Election
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Apr 1857
+    title: Condition of Factory Laborers
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Apr 1857
+    title: The English Factory System
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 May 1857
+    title: The British Wild-Cats
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 May 1857
+    title: Credit Mobilier
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Jun 1857
+    title: Interesting Revelations
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 20 Jun 1857
+    title: The New French Bank Act
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Jun 1857
+    title: The Persian Treaty
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Jul 1857
+    title: The Revolt in the Indian Army
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Jul 1857
+    title: State of Europe.—Financial State of France
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Aug 1857
+    title: The Maritime Commerce of Austria (Second Article)
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Aug 1857
+    title: The Revolt in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Aug 1857
+    title: The Indian Question
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Aug 1857
+    title: Indian News
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 18 Aug 1857
+    title: State of the Indian Insurrection
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Aug 1857
+    title: The Oriental Question
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 29 Aug 1857
+    title: The Indian Insurrection
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 5 Sep 1857
+    title: Political Situation in Europe
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Sep 1857
+    title: The Revolt in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Sep 1857
+    title: The Indian Revolt
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 Sep 1857
+    title: Investigation of Tortures in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Sep 1857
+    title: British Incomes in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 26 Sep 1857
+    title: The French Credit Mobilier
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 Oct 1857
+    title: The Revolt in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 13 Oct 1857
+    title: The Revolt in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Oct 1857
+    title: The Revolt in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Nov 1857
+    title: The Revolt in India
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Nov 1857
+    title: The Bank Act of 1844 and the Monetary Crisis in England
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Nov 1857
+    title: The British Revulsion
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Dec 1857
+    title: The Trade Crisis in England
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Dec 1857
+    title: The Financial Crisis in Europe
+    year: 1857
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 5 Jan 1858
+    title: The Crisis in Europe
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Jan 1858
+    title: The French Crisis
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 Feb 1858
+    title: British Commerce
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 Feb 1858
+    title: The Approaching Indian Loan
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Feb 1858
+    title: The Attempt Upon the Life of Bonaparte
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Mar 1858
+    title: The Economic Crisis in France
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Mar 1858
+    title: The Rule of the Pretorians
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Mar 1858
+    title: The Derby Ministry.—Palmerston's Sham Resignation
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Mar 1858
+    title: Portents of the Day
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Apr 1858
+    title: Bonaparte's Present Position
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Apr 1858
+    title: Pelissier's Mission to England
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Apr 1858
+    title: The French Trials in London
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Apr 1858
+    title: The Financial State of France
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 May 1858
+    title: Mr. Disraeli's Budget
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 May 1858
+    title: The English Alliance
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 May 1858
+    title: Mazzini and Napoleon
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 20 May 1858
+    title: Important British Documents
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 May 1858
+    title: Details of the Attack on Lucknow
+    year: 1858
+    reason: MECW gives it to Engels
+  - citation: New-York Daily Tribune, 28 May 1858
+    title: The Annexation of Oude
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Jun 1858
+    title: Bonaparte's Financial Manoeuvres.—Military Despotism
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Jun 1858
+    title: Lord Canning's Proclamation and Land Tenure in India
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Jun 1858
+    title: A Curious Piece of History
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Jun 1858
+    title: The State of British Commerce
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Jun 1858
+    title: Political Parties in England.—Situation in Europe
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 2 Jul 1858
+    title: The British Government and the Slave Trade
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Jul 1858
+    title: Taxation in India
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Jul 1858
+    title: The Indian Bill
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Aug 1858
+    title: Imprisonment of Lady Bulwer-Lytton
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 20 Aug 1858
+    title: The Increase of Lunacy in Great Britain
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Aug 1858
+    title: The English Bank Act of 1844
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Aug 1858
+    title: Commercial Crises and Currency in Britain
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 20 Sep 1858
+    title: History of the Opium Trade
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Sep 1858
+    title: Another Strange Chapter of Modern History
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Sep 1858
+    title: History of the Opium Trade
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Oct 1858
+    title: British Commerce and Finance
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 5 Oct 1858
+    title: The Anglo-Chinese Treaty
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 13 Oct 1858
+    title: Mazzini's New Manifesto
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Oct 1858
+    title: The British and Chinese Treaty
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 19 Oct 1858
+    title: The Question of the Abolition of Serfdom in Russia
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Oct 1858
+    title: The King of Prussia's Insanity
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Oct 1858
+    title: The King of Prussia's Insanity
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Oct 1858
+    title: The Prussian Regency
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 Nov 1858
+    title: Affairs in Prussia
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 Nov 1858
+    title: Affairs in Prussia
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Nov 1858
+    title: The Prosecution of Montalembert
+    year: 1858
+    reason: MECW gives it to Engels
+  - citation: New-York Daily Tribune, 24 Nov 1858
+    title: The New Ministry
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Nov 1858
+    title: The New Ministry
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 Dec 1858
+    title: Affairs in Prussia
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 13 Dec 1858
+    title: Affairs in Prussia
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Dec 1858
+    title: Project for the Regulation of the Price of Bread in France
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Dec 1858
+    title: Affairs in Prussia
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 Jan 1859
+    title: Question of the Ionian Islands
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 Jan 1859
+    title: The Excitement in Ireland
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 Jan 1859
+    title: The Emancipation Question
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Jan 1859
+    title: On Italian Unity
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 31 Jan 1859
+    title: The War Prospect in Europe
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Feb 1859
+    title: Affairs in Prussia
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Feb 1859
+    title: The Money Panic in Europe
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 18 Feb 1859
+    title: Louis Napoleon's Position
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Mar 1859
+    title: The State of British Manufactures
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 Mar 1859
+    title: The New British Reform Bill
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Mar 1859
+    title: The State of British Manufactures
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Mar 1859
+    title: Peace or War
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 26 Mar 1859
+    title: A Sigh from the Tuileries
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 31 Mar 1859
+    title: The War Prospect in France
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 31 Mar 1859
+    title: The War Prospect in Prussia
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 31 Mar 1859
+    title: A Historic Parallel
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Apr 1859
+    title: Great Trouble in Indian Finances
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Apr 1859
+    title: The Proposed Peace Congress
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 May 1859
+    title: The State of the Question.—Germany Arming
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 May 1859
+    title: The Financial Panic
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 18 May 1859
+    title: Fair Professions
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 May 1859
+    title: Austria, Prussia and Germany in the War
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 Jun 1859
+    title: Highly Important from Vienna
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 10 Jun 1859
+    title: A Prussian View of the War
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 Jun 1859
+    title: Mazzini's Manifesto
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Jul 1859
+    title: What has Italy Gained?
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Jul 1859
+    title: The Peace
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Aug 1859
+    title: The Treaty of Villafranca
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Aug 1859
+    title: Truth Testified
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 12 Aug 1859
+    title: The French Disarmament
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 19 Aug 1859
+    title: British Commerce
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 29 Aug 1859
+    title: Louis Napoleon and Italy
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Sep 1859
+    title: Population, Crime, and Pauperism
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Sep 1859
+    title: Manufactures and Commerce
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 24 Sep 1859
+    title: Kossuth and Louis Napoleon
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 27 Sep 1859
+    title: The New Chinese War
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Nov 1859
+    title: Electoral Corruption in England
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 Nov 1859
+    title: A Radical View of the Peace
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 2 Dec 1859
+    title: Trouble in Germany
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 3 Dec 1859
+    title: Trade with China
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 9 Dec 1859
+    title: The Invasion Panic in England
+    year: 1859
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Feb 1860
+    title: Affairs in France
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Feb 1860
+    title: English Politics
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Feb 1860
+    title: The New Treaty between France and England
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Feb 1860
+    title: The English Budget
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Apr 1860
+    title: Public Feeling in Berlin
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 17 May 1860
+    title: Sicily and the Sicilians
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 19 May 1860
+    title: Preparations for Napoleon's Coming War on the Rhine
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Jun 1860
+    title: Garibaldi in Sicily.—Affairs in Prussia
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 30 Jun 1860
+    title: Interesting from Prussia
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Jul 1860
+    title: British Commerce
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 Aug 1860
+    title: The State of British Manufacturing Industry
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 Aug 1860
+    title: Interesting from Sicily.—Garibaldi's Quarrel with La Farina.—A Letter from Garibaldi
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 Aug 1860
+    title: Events in Syria.—Session of the British Parliament.—The State of British Commerce
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 16 Aug 1860
+    title: The Russo-French Alliance
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Aug 1860
+    title: The Paper Tax.—The Emperor's Letter
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 28 Aug 1860
+    title: The New Sardinian Loan.—The Impending French and Indian Loans
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 6 Sep 1860
+    title: The Crops in Europe
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 10 Sep 1860
+    title: Corn Prices.—European Finances and War Preparations.—The Oriental Question
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 29 Sep 1860
+    title: British Commerce
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 10 Oct 1860
+    title: Russia Using Austria.—The Meeting at Warsaw
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 15 Oct 1860
+    title: Affairs in Prussia.—Prussia, France and Italy
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 8 Nov 1860
+    title: Preparations for War in Prussia
+    year: 1860
+    reason: MECW gives it to Engels
+  - citation: New-York Daily Tribune, 24 Nov 1860
+    title: Great Britain—A Money Stringency
+    year: 1860
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 11 Oct 1861
+    title: The American Question in England
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 14 Oct 1861
+    title: The British Cotton Trade
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 21 Oct 1861
+    title: The London Times and Lord Palmerston
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 7 Nov 1861
+    title: The London Times on the Orleans Princes in America
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Nov 1861
+    title: British Commerce
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 23 Nov 1861
+    title: The Intervention in Mexico
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 19 Dec 1861
+    title: The News and Its Effect in London
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 25 Dec 1861
+    title: Progress of Feeling in England
+    year: 1861
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 1 Feb 1862
+    title: English Public Opinion
+    year: 1862
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 10 Mar 1862
+    title: The Mexican Imbroglio
+    year: 1862
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  # The People's Paper, 1852–1856.
+  - citation: The People's Paper, 30 Oct 1852
+    title: Public Statement to the Editors of the English Press
+    year: 1852
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 16 Apr 1853
+    title: The New Financial Juggle; or Gladstone and the Pennies
+    year: 1853
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 23 Apr 1853
+    title: L. S. D., or Class Budgets, and Who's Relieved by Them
+    year: 1853
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 30 Apr 1853
+    title: Soap for the People, a Sop for The Times.—The Coalition Budget
+    year: 1853
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 10 Sep 1853
+    title: To the Editor of The People's Paper
+    year: 1853
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 18 Mar 1854
+    title: Letter to the Labour Parliament
+    year: 1854
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 5 Apr 1856
+    title: The France of Bonaparte the Little
+    year: 1856
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 5 Apr 1856
+    title: The Fall of Kars
+    year: 1856
+    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+  - citation: The People's Paper, 19 Apr 1856
+    title: Speech at the Anniversary of The People's Paper
+    year: 1856
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 26 Apr 1856
+    title: The House of Lords and the Duke of York's Monument
+    year: 1856
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 17 May 1856
+    title: Sardinia
+    year: 1856
+    reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 13 Dec 1856
+    title: The Right Divine of the Hohenzollerns
+    year: 1856
+    reason: no free scan of the People's Paper was found
+  # The Morning Advertiser, 1852–1871.
+  - citation: The Morning Advertiser, 2 Nov 1852
+    title: The Trials at Cologne. To the Editor of The Morning Advertiser
+    year: 1852
+    reason: no free scan of the Morning Advertiser was found
+  - citation: The Morning Advertiser, 29 Nov 1852
+    title: A Final Declaration on the Late Cologne Trials
+    year: 1852
+    reason: no free scan of the Morning Advertiser was found
+  - citation: The Morning Advertiser, 2 Sep 1853
+    title: Michael Bakunin
+    year: 1853
+    reason: no free scan of the Morning Advertiser was found
+  - citation: The Morning Advertiser, 13 Jul 1871
+    title: To the Editor of The Morning Advertiser
+    year: 1871
+    reason: no free scan of the Morning Advertiser was found
+  # De Zuid-Afrikaan, 1854.
+  - citation: Zuid Afrikaan, 6 Mar 1854
+    title: The War in the East
+    year: 1854
+    reason: no free scan of the Zuid Afrikaan was found
+  # The Free Press, 1857–1860.
+  - citation: The Free Press, 1 Apr 1857
+    title: A Traitor in Circassia
+    year: 1857
+    reason: no free scan of the Free Press was found
+  - citation: The Free Press, Feb 1860
+    title: Prosecution of the Augsburg Gazette
+    year: 1860
+    reason: no free scan of the Free Press was found
+  # Das Volk, 1859.
+  - citation: Das Volk, 4 Jun 1859
+    title: Gatherings from the Press
+    year: 1859
+    reason: compiled with Elard Biscamp; Marx's share is uncertain
+  # Die Presse, 1861.
+  - citation: Die Presse, 7 Nov 1861
+    title: Der Bürgerkrieg in den Vereinigten Staaten
+    year: 1861
+    reason: Die Presse printed it in German, translated by others from Marx's English
+  # The Bee-Hive, 1865.
+  - citation: The Bee-Hive, 20 May 1865
+    title: Address from the Working Men's International Association to President Johnson
+    year: 1865
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # Głos Wolny, 1867.
+  - citation: Głos Wolny, 10 Feb 1867
+    title: Speech at the Polish Meeting in London, January 22, 1867
+    year: 1867
+    reason: printed only in Polish, translated by others
+  # The International Courier, 1867.
+  - citation: The International Courier, 20 Feb and 13 Mar 1867
+    title: Instructions for the Delegates of the Provisional General Council. The Different Questions
+    year: 1867
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # The General Council's leaflets, reports and statements, 1868–1872.
+  - citation: General Council, London, 1868
+    title: Declaration of the General Council Concerning the British Government's Attitude Towards Tsarist Russia
+    year: 1868
+    reason: no printing of it was found, and Documents of the First International does not include it
+  - citation: General Council, London, 1868
+    title: The Fourth Annual Report of the General Council of the International Working Men's Association
+    year: 1868
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: leaflet, London, 1869
+    title: The Belgian Massacres. To the Workmen of Europe and the United States
+    year: 1869
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: leaflet, London, 1869
+    title: Address to the National Labour Union of the United States
+    year: 1869
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: leaflet, London, 1869
+    title: The Lock-Out of the Building Trades at Geneva
+    year: 1869
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: leaflet, London, 1871
+    title: Mr. Washburne, the American Ambassador in Paris
+    year: 1871
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: General Council, London, Mar 1872
+    title: Resolutions on the Split in the United States' Federation Passed by the General Council of the I.W.A. in Its Sittings of 5th and 12th March, 1872
+    year: 1872
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: General Council, London, 1872
+    title: Declaration of the General Council of the International Working Men's Association Concerning Cochrane's Speech in the House of Commons
+    year: 1872
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: British Federal Council, London, 1872
+    title: Address of the British Federal Council to the Sections, Branches, Affiliated Societies and Members of the International Working Men's Association
+    year: 1872
+    reason: no printing of it was found, and Documents of the First International does not include it
+  # The Brussels Congress, 1868.
+  - citation: Brussels Congress, Sep 1868
+    title: Draft Resolution on the Consequences of Using Machinery under Capitalism
+    year: 1868
+    reason: the congress adopted only the first clause of Marx's draft, so the printed resolution is not his text
+  # The Diplomatic Review, 1868.
+  - citation: The Diplomatic Review, 2 Dec 1868
+    title: How Mr. Gladstone's Bank Letter of 1866 Procured a Loan of Six Millions for Russia
+    year: 1868
+    reason: no free scan of the Diplomatic Review was found
+  # The Basle Congress, 1869: the General Council's reports.
+  - citation: Basle Congress, Sep 1869
+    title: Report of the General Council on the Right of Inheritance
+    year: 1869
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: Basle Congress, Sep 1869
+    title: Report of the General Council to the Fourth Annual Congress of the International Working Men's Association
+    year: 1869
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # L'Internationale (Brussels), 1870.
+  - citation: L'Internationale, 16 Jan 1870
+    title: Obituary
+    year: 1870
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: L'Internationale, 27 Feb 1870
+    title: The English Government and the Fenian Prisoners
+    year: 1870
+    reason: no scan of L'Internationale was found, and Gallica, which refuses scripted access, could not be searched
+  # Narodnoye Dyelo, 1870.
+  - citation: Narodnoye Dyelo, 15 Apr 1870
+    title: The General Council of the International Working Men's Association to Committee Members of the Russian Section in Geneva
+    year: 1870
+    reason: printed only in Russian, translated by others
+  # Le Mirabeau, 1870.
+  - citation: Le Mirabeau, 24 Jul 1870
+    title: General Council Resolution on the Federal Committee of Romance Switzerland
+    year: 1870
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # The Pall Mall Gazette, 1870–1871.
+  - citation: The Pall Mall Gazette, 15 Sep 1870
+    title: Concerning the Arrest of the Members of the Central Committee of the Social-Democratic Workers' Party
+    year: 1870
+    reason: no free scan of the Pall Mall Gazette was found
+  - citation: The Pall Mall Gazette, 9 Jun 1871
+    title: To the Editor of The Pall Mall Gazette
+    year: 1871
+    reason: no free scan of the Pall Mall Gazette was found
+  # The Daily News, 1871–1878.
+  - citation: The Daily News, 19 Jan 1871
+    title: On the Freedom of the Press and Meetings in Germany
+    year: 1871
+    reason: no free scan of the Daily News was found
+  - citation: The Daily News, 18 Sep 1872
+    title: To the Editor of The Daily News
+    year: 1872
+    reason: no free scan of the Daily News was found
+  - citation: The Daily News, 13 Jun 1878
+    title: Herr Bucher
+    year: 1878
+    reason: no free scan of the Daily News was found
+  # The Times, 1871–1873.
+  - citation: The Times, 4 Apr 1871
+    title: To the Editor of The Times
+    year: 1871
+    reason: no free scan of The Times was found
+  - citation: The Times, 13 Jun 1871
+    title: Statement by the General Council on Jules Favre's Circular
+    year: 1871
+    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  - citation: The Times, 3 Jan 1873
+    title: To the Editor of The Times
+    year: 1873
+    reason: no free scan of The Times was found
+  # The Eastern Post, 1871–1872.
+  - citation: The Eastern Post, 1 Jul 1871
+    title: To the Editor of The Daily News
+    year: 1871
+    reason: no free scan of the Eastern Post was found
+  - citation: The Eastern Post, 8 Jul 1871
+    title: Letter to Frederick Greenwood, the Editor of The Pall Mall Gazette
+    year: 1871
+    reason: no free scan of the Eastern Post was found
+  - citation: The Eastern Post, 23 Dec 1871
+    title: To the Editor of The Eastern Post
+    year: 1871
+    reason: no free scan of the Eastern Post was found
+  - citation: The Eastern Post, 20 Jan 1872
+    title: To the Editor of The Eastern Post
+    year: 1872
+    reason: no free scan of the Eastern Post was found
+  - citation: The Eastern Post, 28 Jan 1872
+    title: To the Editor of The Eastern Post
+    year: 1872
+    reason: no free scan of the Eastern Post was found
+  - citation: The Eastern Post, 24 Feb 1872
+    title: Declaration of the General Council of the International Working Men's Association
+    year: 1872
+    reason: no free scan of the Eastern Post was found
+  # The Standard, 1871.
+  - citation: The Standard, 17 Jul 1871
+    title: To the Editor of The Standard
+    year: 1871
+    reason: no free scan of the Standard was found
+  # Public Opinion, 1871.
+  - citation: Public Opinion, 26 Aug 1871
+    title: To the Editor of Public Opinion
+    year: 1871
+    reason: no free scan of Public Opinion was found
+  # Le Gaulois, 1871.
+  - citation: Le Gaulois, 27 Aug 1871
+    title: To the Editor of Le Gaulois
+    year: 1871
+    reason: Le Gaulois is on Gallica, which refuses scripted access
+  # The Evening Standard, 1871.
+  - citation: The Evening Standard, 6 Sep 1871
+    title: To the Editor of The Evening Standard
+    year: 1871
+    reason: no free scan of the Evening Standard was found
+  # The Sun (New York), 1871.
+  - citation: The Sun (New York), 9 Sep 1871
+    title: Letter to the Editor of The Sun, Charles Dana
+    year: 1871
+    reason: the only complete source, the Library of Congress's scans of The Sun, refuses scripted access
+  # L'Égalité (Geneva), 1871.
+  - citation: L'Égalité, 21 Oct 1871
+    title: Resolution of the London Conference Relating to the Split in Romance Switzerland
+    year: 1871
+    reason: no scan of L'Égalité was found, and Gallica, which refuses scripted access, could not be searched
+  # La Liberté (Brussels), 1872.
+  - citation: La Liberté, 17 Mar 1872
+    title: To the Editor of La Liberté
+    year: 1872
+    reason: no scan of La Liberté was found, and Gallica, which refuses scripted access, could not be searched
+  # Gazzettino Rosa, 1872.
+  - citation: Gazzettino Rosa, 28 May 1872
+    title: Stefanoni and the International Again
+    year: 1872
+    reason: printed only in Italian, translated by others
+  # Le Corsaire, 1872.
+  - citation: Le Corsaire, 15 Sep 1872
+    title: To the Editor of Le Corsaire
+    year: 1872
+    reason: no scan of Le Corsaire was found, and Gallica, which refuses scripted access, could not be searched
+  # The International Herald, 1872–1873.
+  - citation: The International Herald, 21 Dec 1872
+    title: To the Editor of The International Herald
+    year: 1872
+    reason: no free scan of the International Herald was found
+  - citation: The International Herald, 25 Jan 1873
+    title: Reply to the Second Circular of the Self-Styled Majority of the British Federal Council
+    year: 1873
+    reason: no free scan of the International Herald was found
+  # Almanacco Repubblicano, 1874.
+  - citation: Almanacco Repubblicano per l'anno 1874
+    title: Political Indifferentism
+    year: 1874
+    reason: printed only in Italian, translated by others
+  # L'Égalité (Paris), 1880.
+  - citation: L'Égalité, Apr 1880
+    title: Note on The Poverty of Philosophy
+    year: 1880
+    reason: no scan of L'Égalité was found, and Gallica, which refuses scripted access, could not be searched
+  # La Revue socialiste, 1880.
+  - citation: La Revue socialiste, 20 Apr 1880
+    title: Workers' Questionnaire
+    year: 1880
+    reason: La Revue socialiste is on Gallica, which refuses scripted access
+  # Geneva, 1881: the report of the meeting for the Polish revolution of 1830.
+  - citation: Sprawozdanie z międzynarodowego zebrania, Geneva, 1881
+    title: To the Meeting in Geneva Held to Commemorate the 50th Anniversary of the Polish Revolution of 1830
+    year: 1881
+    reason: printed only in Polish, translated by others
 books:
   - id: marx_manifestws_1848
     citation: Manifest

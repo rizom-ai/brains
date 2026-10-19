@@ -42,7 +42,8 @@ function section(heading: string, lines: string[]): string {
 /**
  * The coverage note of a brain read from many sources: every work by the
  * decade it appeared in, with the edition it comes from, imported or a gap
- * with its reason; gaps without a year close the note.
+ * with its reason and, where cited, where it appeared; gaps without a year
+ * close the note.
  */
 function renderBySource(manifest: Manifest): string {
   const entries = [
@@ -56,7 +57,7 @@ function renderBySource(manifest: Manifest): string {
         : [
             {
               year: gap.year,
-              line: `- ${gap.title} (${gap.year}) — gap: ${gap.reason}`,
+              line: `- ${gap.title} (${gap.citation ?? gap.year}) — gap: ${gap.reason}`,
             },
           ],
     ),

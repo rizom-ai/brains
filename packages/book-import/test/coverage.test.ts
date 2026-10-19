@@ -148,4 +148,31 @@ books:
       ].join("\n"),
     );
   });
+
+  it("names where a gap appeared when the manifest cites it", () => {
+    const cited = parseManifest(`
+source: dta-tei
+coverage:
+  author: Karl Marx
+  edition: first editions
+  license: The author's text is in the public domain.
+gaps:
+  - citation: New-York Daily Tribune, 21 Aug 1852
+    title: The Elections in England.—Tories and Whigs
+    year: 1852
+    reason: the only complete source refuses scripted access
+books:
+  - id: marx_manifestws_1848
+    citation: Manifest
+    slug: manifest-der-kommunistischen-partei
+    title: Manifest der Kommunistischen Partei
+    edition: Manifest der Kommunistischen Partei (London, 1848)
+    author: Karl Marx und Friedrich Engels
+    year: 1848
+    kind: work
+`);
+    expect(renderCoverage(cited)).toContain(
+      "- The Elections in England.—Tories and Whigs (New-York Daily Tribune, 21 Aug 1852) — gap: the only complete source refuses scripted access",
+    );
+  });
 });
