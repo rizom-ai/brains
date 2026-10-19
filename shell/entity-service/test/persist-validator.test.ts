@@ -51,44 +51,6 @@ describe("EntityRegistry persist validators", () => {
     });
   });
 
-  test("tells validators who is writing, when the write names them", async () => {
-    const seen: unknown[] = [];
-    ctx.entityRegistry.registerPersistValidator(
-      "note",
-      async (_entity, context) => {
-        seen.push(context);
-      },
-    );
-    const writer = { kind: "user" as const, userId: "usr_writer" };
-    const created = await ctx.entityService.createEntity({
-      entity: createNoteInput({ title: "Note", content: "First", tags: [] }),
-      options: { eventContext: { actor: writer } },
-    });
-    const stored = await ctx.entityService.getEntity({
-      entityType: "note",
-      id: created.entityId,
-      visibilityScope: "restricted",
-    });
-    if (!stored) throw new Error("Missing note");
-    await ctx.entityService.updateEntity({
-      entity: { ...stored, content: stored.content.replace("First", "Second") },
-      options: { eventContext: { actor: writer } },
-    });
-    await ctx.entityService.createEntity({
-      entity: createNoteInput({
-        title: "Anonymous",
-        content: "Body",
-        tags: [],
-      }),
-    });
-
-    expect(seen).toEqual([
-      { operation: "create", actor: writer },
-      { operation: "update", actor: writer },
-      { operation: "create" },
-    ]);
-  });
-
   test("createEntity invokes the registered validator and rejects on throw", async () => {
     ctx.entityRegistry.registerPersistValidator("note", async () => {
       throw new Error("nope");

@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import type {
   IInboxFollowUpRegistry,
   IInboxRegistry,
-  InboxActionActor,
   InboxActor,
   InboxSource,
 } from "@brains/plugins";
@@ -208,7 +207,7 @@ export class InboxOperatorService {
 
   async act(
     request: InboxActionRequest,
-    actor: InboxActionActor,
+    actor: InboxActor,
   ): Promise<InboxActionOutcome> {
     const source = this.registry.getSource(request.sourceId);
     const offered = source

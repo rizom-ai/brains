@@ -6,7 +6,6 @@ import {
   createServicePluginContext,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
-  type InboxActionActor,
   type InboxActor,
   type InboxItem,
 } from "@brains/plugins";
@@ -82,7 +81,7 @@ async function setup(options?: {
   adminHref?: string | false;
 }): Promise<{
   workspace: StudioWorkspaceRegistration;
-  actors: InboxActionActor[];
+  actors: InboxActor[];
   detailActors: InboxActor[];
   withdraw(): void;
 }> {
@@ -113,7 +112,7 @@ async function setup(options?: {
       },
     );
   let open = true;
-  const actors: InboxActionActor[] = [];
+  const actors: InboxActor[] = [];
   const detailActors: InboxActor[] = [];
   const registry = new InboxRegistry();
   registry.registerSource("mail-plugin", {
@@ -349,7 +348,7 @@ describe("unified inbox Studio registration", () => {
     expect(fixture.actors).toEqual([]);
   });
 
-  it("maps only the Studio permission and acting user, and fixes source exceptions", async () => {
+  it("maps only the Studio permission and fixes source exceptions", async () => {
     const fixture = await setup({ failAction: true });
     if (!fixture.workspace.actionHandler)
       throw new Error("Missing action handler");
@@ -379,12 +378,7 @@ describe("unified inbox Studio registration", () => {
         admin,
       ),
     ).rejects.toThrow('action "run-inbox-action" failed');
-    expect(fixture.actors).toEqual([
-      {
-        permissionLevel: "admin",
-        actor: { kind: "user", userId: "admin-user" },
-      },
-    ]);
+    expect(fixture.actors).toEqual([{ permissionLevel: "admin" }]);
     expect(
       fixture.workspace.actionHandler({ type: "private" }, admin),
     ).rejects.toThrow("invalid action request");

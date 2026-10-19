@@ -246,7 +246,6 @@ Prioritize collaboration connected to Project Aurora.`,
     ).toEqual([]);
     await inboxSource.act(itemId, "mark-reviewed", {
       permissionLevel: "admin",
-      actor: { kind: "user", userId: "usr_admin" },
     });
     expect(await inboxSource.list()).toEqual([]);
     expect(

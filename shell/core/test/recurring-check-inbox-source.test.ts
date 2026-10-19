@@ -46,16 +46,10 @@ describe("recurring-check Inbox source", () => {
     const { source, resolved } = createFixture();
 
     const permissionError = await source
-      .act(openAlert.id, "resolve", {
-        permissionLevel: "trusted",
-        actor: { kind: "user", userId: "usr_trusted" },
-      })
+      .act(openAlert.id, "resolve", { permissionLevel: "trusted" })
       .catch((error: unknown) => error);
     const actionError = await source
-      .act(openAlert.id, "dismiss", {
-        permissionLevel: "admin",
-        actor: { kind: "user", userId: "usr_admin" },
-      })
+      .act(openAlert.id, "dismiss", { permissionLevel: "admin" })
       .catch((error: unknown) => error);
     expect(permissionError).toEqual(new Error("Admin permission required"));
     expect(actionError).toEqual(
@@ -63,10 +57,7 @@ describe("recurring-check Inbox source", () => {
     );
     expect(resolved).toEqual([]);
 
-    await source.act(openAlert.id, "resolve", {
-      permissionLevel: "admin",
-      actor: { kind: "user", userId: "usr_admin" },
-    });
+    await source.act(openAlert.id, "resolve", { permissionLevel: "admin" });
     expect(resolved).toEqual([openAlert.id]);
   });
 });

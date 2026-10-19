@@ -4,7 +4,7 @@ import {
   createMockShell,
   type ServicePluginContext,
 } from "@brains/plugins/test";
-import { inboxItemSchema, type InboxActionActor } from "@brains/plugins";
+import { inboxItemSchema, type InboxActor } from "@brains/plugins";
 import { ActionItemAdapter } from "@brains/action-items";
 import { ActionItemInboxSource } from "../src/inbox-source";
 import {
@@ -14,10 +14,8 @@ import {
 } from "@brains/action-items";
 
 const adapter = new ActionItemAdapter();
-const admin: InboxActionActor = {
+const admin: InboxActor = {
   permissionLevel: "admin",
-  actor: { kind: "user", userId: "usr_admin" },
-  displayName: "Ada Admin",
 };
 
 async function brain(
@@ -159,10 +157,7 @@ describe("the action-items Inbox source", () => {
     const source = new ActionItemInboxSource(context);
 
     expect(
-      source.act("venue", "resume", {
-        permissionLevel: "trusted",
-        actor: { kind: "user", userId: "usr_trusted" },
-      }),
+      source.act("venue", "resume", { permissionLevel: "trusted" }),
     ).rejects.toThrow("admin");
     expect((await stored(context, "venue"))?.status).toBe("blocked");
   });

@@ -1,6 +1,5 @@
 import type {
   ServicePluginContext,
-  InboxActionActor,
   InboxActor,
   InboxItem,
   InboxItemDetail,
@@ -109,7 +108,7 @@ export class ActionItemInboxSource implements InboxSource {
   async act(
     itemId: string,
     actionId: string,
-    actor: InboxActionActor,
+    actor: InboxActor,
   ): Promise<void> {
     requireAdmin(actor);
     const to = MOVES[actionId];
