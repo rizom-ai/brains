@@ -116,6 +116,7 @@ Plans:
 - [artifacts-content-repos.md](./plans/artifacts-content-repos.md) — move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
+- [git-sync-credentials.md](./plans/git-sync-credentials.md) — revalidate optional remote configuration and replace fleet-wide static Git credentials with short-lived, repository-scoped GitHub App tokens.
 
 ### 5. Interfaces
 
