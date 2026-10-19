@@ -45,7 +45,7 @@ gaps:
   - citation: Northern Star, 25 Jul 1846
     title: Address of the German Democratic Communists of Brussels to Mr. Feargus O'Connor
     year: 1846
-    reason: the Northern Star is in the Nineteenth-Century Serials Edition, whose search did not answer a scripted request; the issue is not yet located
+    reason: the Northern Star is in the Nineteenth-Century Serials Edition (ncse.ac.uk), whose robots.txt disallows every path to every client but Google's and Bing's crawlers, and those its periodicals and search; the Internet Archive holds no 1846 issue
   # Brussels, 1847: a speech Marx gave in French.
   - citation: speech, Brussels, Sep 1847
     title: The Protectionists, the Free Traders and the Working Class
@@ -208,7 +208,7 @@ gaps:
   - citation: New-York Daily Tribune, 11 Apr 1853
     title: The London Press.—Policy of Napoleon on the Turkish Question
     year: 1853
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) gives the Courier de Marseille's report of the Russian note only in the editors' summary
   - citation: New-York Daily Tribune, 18 Apr 1853
     title: The Berlin Conspiracy
     year: 1853
@@ -320,7 +320,7 @@ gaps:
   - citation: New-York Daily Tribune, 1 Sep 1853
     title: Urquhart.—Bem.—The Turkish Question in the House of Lords
     year: 1853
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) gives Bem's letter to Reshid Pasha only in the editors' summary
   - citation: New-York Daily Tribune, 2 Sep 1853
     title: The Turkish Question in the Commons
     year: 1853
@@ -397,10 +397,6 @@ gaps:
     title: The Russian Victory.—Position of England and France
     year: 1853
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
-  - citation: New-York Daily Tribune, 31 Dec 1853
-    title: Palmerston's Resignation
-    year: 1853
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
   - citation: New-York Daily Tribune, 28 Jan 1854
     title: The Western Powers and Turkey
     year: 1854
@@ -408,7 +404,7 @@ gaps:
   - citation: New-York Daily Tribune, 8 Feb 1854
     title: The Fighting in the East.—Finances of Austria and France.—Fortification of Constantinople
     year: 1854
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) leaves out the finances of Austria and France and gives the Augsburger Zeitung and the Daily News only in the editors' summaries
   - citation: New-York Daily Tribune, 11 Feb 1854
     title: The Czar's Views.—Prince Albert
     year: 1854
@@ -429,10 +425,6 @@ gaps:
     title: Russian Diplomacy.—The Blue Book on the Eastern Question.—Montenegro
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
-  - citation: New-York Daily Tribune, 9 Mar 1854
-    title: Declaration of the Prussian Cabinet.—Napoleon's Plans.—Prussia's Policy
-    year: 1854
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
   - citation: New-York Daily Tribune, 9 Mar 1854
     title: Debates in Parliament
     year: 1854
@@ -517,10 +509,6 @@ gaps:
     title: Reorganisation of the British War Administration.—The Austrian Summons.—Britain's Economic Situation.—St. Arnaud
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
-  - citation: New-York Daily Tribune, 8 Jul 1854
-    title: State of the Russian War
-    year: 1854
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
   - citation: New-York Daily Tribune, 10 Jul 1854
     title: The Russian Retreat
     year: 1854
@@ -609,10 +597,6 @@ gaps:
     title: The Sevastopol Hoax.—General News
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
-  - citation: New-York Daily Tribune, 1 Jan 1855
-    title: Progress of the War
-    year: 1855
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
   - citation: New-York Daily Tribune, 26 Jan 1855
     title: The Commercial Crisis in Britain
     year: 1855
@@ -644,15 +628,7 @@ gaps:
   - citation: New-York Daily Tribune, 13 Sep 1855
     title: Austria and the War
     year: 1855
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
-  - citation: New-York Daily Tribune, 24 Sep 1855
-    title: Another British Revelation
-    year: 1855
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
-  - citation: New-York Daily Tribune, 12 Jan 1856
-    title: Traditional English Policy
-    year: 1856
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) gives Palmerston's answer in the Commons only in the editors' summary and cuts the speeches of Clarendon and Ellenborough
   - citation: New-York Daily Tribune, 25 Feb 1856
     title: The American Difficulty.—Affairs of France
     year: 1856
@@ -1406,10 +1382,6 @@ gaps:
     title: The France of Bonaparte the Little
     year: 1856
     reason: no free scan of the People's Paper was found
-  - citation: The People's Paper, 5 Apr 1856
-    title: The Fall of Kars
-    year: 1856
-    reason: not yet imported from The Eastern Question (London, 1897), which reprints it
   - citation: The People's Paper, 19 Apr 1856
     title: Speech at the Anniversary of The People's Paper
     year: 1856
@@ -2335,6 +2307,165 @@ books:
     edition: "The New American Cyclopaedia: A Popular Dictionary of General Knowledge, edited by George Ripley and Charles A. Dana, Vols. II–IV (New York, D. Appleton, 1858–1859)"
     author: Karl Marx
     year: 1858
+    kind: work
+  - source: archive-ocr
+    # Marx's leaders for the New-York Daily Tribune, two of them with
+    # Engels, and his Fall of Kars for the People's Paper, in his English, as
+    # his daughter Eleanor and Edward Aveling reprinted them in 1897: only
+    # the pieces the reprint gives whole, without the editors' summaries of
+    # quotations or cuts, and which MECW gives to Marx or to Marx and
+    # Engels. The editors' introduction, notes and linking text are left
+    # out, and so are the brackets in which they set the close of
+    # Palmerston's Resignation, which they took for the Tribune's own. The
+    # scan is read from the Internet Archive's page images of those pages
+    # alone.
+    item: cu31924102205253
+    citation: Eastern Question
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/cu31924102205253
+      pages:
+        - url: https://archive.org/download/cu31924102205253/page/n211_w1600.jpg
+          page: 190
+        - https://archive.org/download/cu31924102205253/page/n212_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n213_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n214_w1600.jpg
+        - url: https://archive.org/download/cu31924102205253/page/n274_w1600.jpg
+          page: 253
+        - https://archive.org/download/cu31924102205253/page/n275_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n276_w1600.jpg
+        - url: https://archive.org/download/cu31924102205253/page/n400_w1600.jpg
+          page: 379
+        - https://archive.org/download/cu31924102205253/page/n401_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n402_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n403_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n404_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n405_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n406_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n407_w1600.jpg
+        - url: https://archive.org/download/cu31924102205253/page/n519_w1600.jpg
+          page: 498
+        - https://archive.org/download/cu31924102205253/page/n520_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n521_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n522_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n523_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n524_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n525_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n526_w1600.jpg
+        - url: https://archive.org/download/cu31924102205253/page/n594_w1600.jpg
+          page: 573
+        - https://archive.org/download/cu31924102205253/page/n595_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n596_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n597_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n598_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n599_w1600.jpg
+        - url: https://archive.org/download/cu31924102205253/page/n628_w1600.jpg
+          page: 607
+        - https://archive.org/download/cu31924102205253/page/n629_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n630_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n631_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n632_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n633_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n634_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n635_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n636_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n637_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n638_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n639_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n640_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n641_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n642_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n643_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n644_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n645_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n646_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n647_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n648_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n649_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n650_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n651_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n652_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n653_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n654_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n655_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n656_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n657_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n658_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n659_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n660_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n661_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n662_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n663_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n664_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n665_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n666_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n667_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n668_w1600.jpg
+        - https://archive.org/download/cu31924102205253/page/n669_w1600.jpg
+    firstPage: 190
+    lastPage: 648
+    # Each piece under its title in the reprint, without the reprint's
+    # numeral; the Fall of Kars in its four parts.
+    headings:
+      - { page: 190, opens: "Palmerston’s Resignation", level: 1 }
+      - { page: 253, opens: "Count Orloff", level: 1 }
+      - { page: 379, opens: "State of the Russian War", level: 1 }
+      - { page: 498, opens: "Progress of the War", level: 1 }
+      - { page: 573, opens: "Napier and Graham", level: 1 }
+      - { page: 607, opens: "Traditional English Policy", level: 1 }
+      - { page: 611, opens: "The Fall of Kars", level: 1 }
+      - { page: 611, opens: "I", level: 2, label: "I" }
+      - { page: 620, opens: "II", level: 2, label: "II" }
+      - { page: 631, opens: "III", level: 2, label: "III" }
+      - { page: 641, opens: "IV", level: 2, label: "IV" }
+    # The Tribune's or the People's Paper's date stands apart above each
+    # piece, whose first line is not set in.
+    paragraphs:
+      - { page: 190, opens: "Leader, N. Y. T." }
+      - { page: 190, opens: "The most interesting" }
+      - { page: 193, opens: "Besides the general" }
+      - { page: 193, opens: "We learn" }
+      - { page: 253, opens: "Leader, N. Y. T." }
+      - { page: 253, opens: "The following information" }
+      - { page: 253, opens: "I. On the 3rd" }
+      - { page: 253, opens: "“1." }
+      - { page: 253, opens: "“2." }
+      - { page: 253, opens: "“3." }
+      - { page: 379, opens: "Leader, N. Y. T." }
+      - { page: 379, opens: "Besides the curious" }
+      - { page: 498, opens: "Leader, N. Y. T." }
+      - { page: 498, opens: "The sun of Austerlitz" }
+      - { page: 498, opens: "The Russians hitherto" }
+      - { page: 573, opens: "Leader, N. Y. T." }
+      - { page: 573, opens: "With the single" }
+      - { page: 573, opens: "In this controversy" }
+      - { page: 607, opens: "Leader, N. Y. T." }
+      - { page: 607, opens: "Concerning the foreign" }
+      - { page: 607, opens: "In the diary" }
+      - { page: 611, opens: "The People’s Paper" }
+      - { page: 611, opens: "The fall of Kars" }
+      - { page: 611, opens: "Towards the end" }
+      - { page: 620, opens: "The People’s Paper" }
+      - { page: 620, opens: "The strategical" }
+      - { page: 620, opens: "No notice was" }
+      - { page: 631, opens: "The People’s Paper" }
+      - { page: 631, opens: "On August 2" }
+      - { page: 631, opens: "“Telegraphic" }
+      - { page: 631, opens: "“Paris, August" }
+      - { page: 631, opens: "Notwithstanding" }
+      - { page: 631, opens: "“August 4th" }
+      - { page: 641, opens: "The People’s Paper" }
+      - { page: 641, opens: "Clarendon had now" }
+      - { page: 641, opens: "(Enclosure" }
+      - { page: 641, opens: "“Kars, September 1" }
+      - { page: 641, opens: "Clarendon, having made" }
+    slug: articles-from-the-eastern-question
+    title: Articles from The Eastern Question
+    shortTitle: The Eastern Question
+    edition: "The Eastern Question. A Reprint of Letters written 1853–1856 dealing with the events of the Crimean War, edited by Eleanor Marx Aveling and Edward Aveling (London, Swan Sonnenschein, 1897)"
+    author: Karl Marx
+    year: 1853
     kind: work
   - source: archive-ocr
     # Marx's address to the General Council of the International (June
