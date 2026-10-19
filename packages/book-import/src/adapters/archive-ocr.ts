@@ -2521,6 +2521,21 @@ function joinLine(before: string, line: string): string {
   return `${before} ${line}`;
 }
 
+/**
+ * A dash a line ended with, set close to its word, joined to the next
+ * line's word as the work sets its dashes: close (vigor—one) where most of
+ * its dashes stand so, else apart from both words (war — und).
+ */
+function dashing(texts: string[]): <B extends { text: string }>(block: B) => B {
+  const close = texts.join("\n").match(/\p{L}[—–]\p{L}/gu)?.length ?? 0;
+  const apart = texts.join("\n").match(/\p{L} [—–] \p{L}/gu)?.length ?? 0;
+  const joined = close > apart ? "$1" : " $1 ";
+  return (block) => ({
+    ...block,
+    text: block.text.replace(/(?<=\p{L})([—–]) (?=\p{L})/gu, joined),
+  });
+}
+
 /** A paragraph or note, and where its text starts. */
 /** A sentence's end, its quotation closed or its bracket. */
 const SENTENCE_END = /[.!?][“”"»)]?$/u;
@@ -3537,6 +3552,11 @@ export function parseArchiveOcrWork(
       );
     }
   });
+  const dash = dashing(
+    filled.flatMap((section) =>
+      [...section.paragraphs, ...section.notes].map((block) => block.text),
+    ),
+  );
   return unitsOfSections(
     filled.map((section) => ({
       ...section,
@@ -3550,8 +3570,8 @@ export function parseArchiveOcrWork(
               ),
           ),
         ),
-      ),
-      notes: parted(section.notes.filter((note) => !skipped(note))),
+      ).map(dash),
+      notes: parted(section.notes.filter((note) => !skipped(note))).map(dash),
       titles: section.path.map((step) => titles.get(step) ?? ""),
     })),
     cite,

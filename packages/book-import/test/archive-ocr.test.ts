@@ -406,6 +406,51 @@ describe("parseArchiveOcrWork on a page whose paragraphs the manifest names", ()
   });
 });
 
+describe("parseArchiveOcrWork, a dash at a line's end", () => {
+  const paragraphOf = (lines: string[]): string => {
+    const page = (leaf: number): string =>
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 3300 5300'><span class='ocr_pageno'>${leaf + 1}</span>
+ <p class='ocr_par'>${lines
+   .map(
+     (text, index) =>
+       `<span class='ocr_line' title='bbox ${index === 0 ? 400 : 300} ${1000 + index * 90} 3000 ${1080 + index * 90}; x_size 70'>${text}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+    return parseArchiveOcrWork(`<html><body>${page(0)}</body></html>`, {
+      item: "dash",
+      title: "Dash",
+      citation: "D",
+      firstPage: 1,
+      lastPage: 1,
+    })
+      .flatMap((unit) => unit.paragraphs)
+      .join("\n");
+  };
+
+  it("joins a dash set close to its word to the next line's word, where the work sets its dashes so", () => {
+    expect(
+      paragraphOf([
+        "The operations—which had begun in May—were",
+        "renewed in the autumn of that year, and were",
+        "carried on with vigor—",
+        "one by one the forts fell.",
+      ]),
+    ).toContain("carried on with vigor—one by one");
+  });
+
+  it("sets a dash apart from both words, where the work sets its dashes apart", () => {
+    expect(
+      paragraphOf([
+        "Die Lage war schwierig — doch wir gingen weiter",
+        "und kamen — trotz allem — bald an das Ziel",
+        "unserer Reise, wie es geplant war—",
+        "und blieben dort lange Zeit.",
+      ]),
+    ).toContain("wie es geplant war — und blieben");
+  });
+});
+
 describe("parseArchiveOcrWork with corrections", () => {
   it("replaces a line's misread words on the page the correction names", async () => {
     const units = parseArchiveOcrWork(await fixture(), {
