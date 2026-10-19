@@ -627,7 +627,12 @@ async function main(): Promise<void> {
         return [];
       }
     });
-  const texts = new Map(books.map((book) => [book.slug, textOf(book)]));
+  // A book read from several volumes holds the pages of each.
+  const texts = books.reduce(
+    (read, book) =>
+      read.set(book.slug, [...(read.get(book.slug) ?? []), ...textOf(book)]),
+    new Map<string, PageOfText[]>(),
+  );
   const uses = [...texts.values()]
     .flat()
     .flatMap(({ text }) => wordsOf(text))

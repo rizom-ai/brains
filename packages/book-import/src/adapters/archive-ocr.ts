@@ -1,4 +1,5 @@
 import { Window } from "happy-dom";
+import { z } from "@brains/utils/zod";
 import type { BookUnit } from "../render-book";
 import { unitsOfSections } from "../sections";
 import { closedBrackets } from "./brackets";
@@ -80,6 +81,19 @@ export interface ArchiveOcrWork {
    */
   skipNotesSigned?: string[];
   /**
+   * The work is the notes the author set to another's text, as a
+   * translator's or an editor's: the text is left out, and each note stands
+   * under the passage it is set to.
+   */
+  notesOnly?: boolean;
+  /** Of such notes, only those ending in one of these signatures are the author's. */
+  notesSigned?: string[];
+  /**
+   * The manifest names every note of the work by its opening: a page whose
+   * notes it does not name has none.
+   */
+  notesNamed?: boolean;
+  /**
    * The edition sets its notes as large as the text, below a rule the OCR
    * does not read; full lines below a gap in the page's lower half are notes.
    */
@@ -108,6 +122,11 @@ export interface ArchiveOcrWork {
    * work's end on that page, as a periodical prints it.
    */
   opensWith?: string | undefined;
+  /**
+   * The line its last page closes the work with, where another work begins
+   * below it on that page.
+   */
+  closesWith?: string | undefined;
 }
 
 /** What the manifest says of a heading set in the text's type. */
@@ -144,6 +163,8 @@ interface Line {
   corrected?: boolean;
   /** Where each of its words starts, as the OCR placed them. */
   starts?: number[];
+  /** Where each of its words ends, as the OCR placed them. */
+  wordEnds?: number[];
 }
 
 interface Page {
@@ -299,6 +320,7 @@ function joinSplitLines(lines: Line[]): Line[] {
             bottom: Math.max(last.bottom, line.bottom),
             text: `${last.text} ${line.text}`,
             starts: [...(last.starts ?? []), ...(line.starts ?? [])],
+            wordEnds: [...(last.wordEnds ?? []), ...(line.wordEnds ?? [])],
           },
         ];
       }
@@ -429,8 +451,132 @@ function isEdgeShadow(
     : right >= width * (1 - SCAN_EDGE);
 }
 
+/** So many lines starting right of the page's middle tell where its right column starts. */
+const COLUMN_LINES = 3;
+/** The gutter's share of the page's width, left of the right column. */
+const GUTTER = 0.01;
+/** A space between words this near the gutter, as a share of the page's width, may part the columns. */
+const GUTTER_NEAR = 0.08;
+/** The space between columns is at least this many times a line's usual space between words. */
+const COLUMN_SPACE = 2;
+
+/**
+ * A page set in two columns as one column, read down the left, then the
+ * right: the head across the top stays as it stands; every other line goes
+ * to the column it is set in, a line the OCR ran across both parted at the
+ * gutter. The columns are stacked on half the page's height, the right
+ * set where the left is, so the page reads as one narrow column.
+ */
+function inColumns(lines: Line[], width: number, height: number): Line[] {
+  // The gutter stands just left of where the right column's lines start,
+  // which the scan's margins may set off the page's middle.
+  const rightStarts = lines
+    .map((line) => line.x)
+    .filter((x) => x > width * 0.3 && x < width * 0.8);
+  const gutter =
+    rightStarts.length >= COLUMN_LINES
+      ? median(rightStarts) - width * GUTTER
+      : width / 2;
+  const top = Math.min(...lines.map((line) => line.y));
+  const rowHeight = median(lines.map((line) => line.bottom - line.y));
+  // The left column ends where its lines mostly do; a line that starts
+  // past it, though left of the gutter, is the right column's, set out.
+  const leftEnds = lines
+    .filter((line) => line.x < width * 0.3 && line.x + line.width < gutter)
+    .map((line) => line.x + line.width);
+  const leftEnd = leftEnds.length >= COLUMN_LINES ? median(leftEnds) : gutter;
+  const crosses = (line: Line): boolean =>
+    line.x < Math.min(gutter, leftEnd) && line.x + line.width > gutter;
+  // The head's row: the topmost, where a line runs across the gutter or a
+  // page number stands alone.
+  const headRow = lines.filter(
+    (line) =>
+      line.y < top + rowHeight * SAME_LINE && line.y < height * HEAD_ZONE,
+  );
+  const head = headRow.some((line) => crosses(line) || /^\d+$/u.test(line.text))
+    ? headRow
+    : [];
+  const parted = lines
+    .filter((line) => !head.includes(line))
+    .flatMap((line): Array<{ line: Line; right: boolean }> => {
+      const words = line.text.split(" ");
+      const starts = line.starts ?? [];
+      const ends = line.wordEnds ?? [];
+      // Where the scan sits askew, the right column may start left of the
+      // gutter: a line parts at a space between words near the gutter well
+      // wider than its others, else where a word starts past the gutter.
+      const spaces = starts.map((start, index) => ({
+        index,
+        space: start - (ends[index - 1] ?? start),
+      }));
+      const usual = median(
+        spaces.filter(({ index }) => index > 0).map(({ space }) => space),
+      );
+      const widest = spaces
+        .filter(
+          ({ index, space }) =>
+            index > 0 &&
+            space > usual * COLUMN_SPACE &&
+            Math.abs((starts[index] ?? 0) - gutter) < width * GUTTER_NEAR,
+        )
+        .sort((a, b) => b.space - a.space)[0];
+      const at = widest?.index ?? starts.findIndex((start) => start >= gutter);
+      if (!crosses(line) || at <= 0 || starts.length !== words.length) {
+        return [{ line, right: line.x + line.width / 2 >= gutter }];
+      }
+      const split = starts[at] ?? gutter;
+      return [
+        {
+          line: {
+            ...line,
+            width: gutter - line.x,
+            text: words.slice(0, at).join(" "),
+            starts: starts.slice(0, at),
+            wordEnds: ends.slice(0, at),
+          },
+          right: false,
+        },
+        {
+          line: {
+            ...line,
+            x: split,
+            width: line.x + line.width - split,
+            text: words.slice(at).join(" "),
+            starts: starts.slice(at),
+            wordEnds: ends.slice(at),
+          },
+          right: true,
+        },
+      ];
+    });
+  const margin = (right: boolean): number =>
+    Math.min(
+      ...parted
+        .filter((part) => part.right === right)
+        .map((part) => part.line.x),
+    );
+  const shift = margin(true) - margin(false);
+  const placed = (line: Line, right: boolean): Line => {
+    const y = (value: number): number =>
+      Math.round(value / 2 + (right ? height / 2 : 0));
+    const x = (value: number): number => (right ? value - shift : value);
+    return {
+      ...line,
+      x: x(line.x),
+      y: y(line.y),
+      bottom: y(line.bottom),
+      ...(line.starts ? { starts: line.starts.map(x) } : {}),
+      ...(line.wordEnds ? { wordEnds: line.wordEnds.map(x) } : {}),
+    };
+  };
+  return [
+    ...head.map((line) => placed(line, false)),
+    ...parted.map(({ line, right }) => placed(line, right)),
+  ];
+}
+
 /** The scan's pages, each with its lines, position and type size. */
-function readPages(hocr: string): Page[] {
+function readPages(hocr: string, columns = false): Page[] {
   const window = new Window();
   try {
     const document = window.document;
@@ -444,59 +590,63 @@ function readPages(hocr: string): Page[] {
           page?.getAttribute("title") ?? "",
           "bbox",
         );
-        const lines = joinSplitLines(
-          Array.from(document.querySelectorAll(LINE_SELECTOR))
-            .map((element) => {
-              const title = element.getAttribute("title") ?? "";
-              const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = numbers(title, "bbox");
-              const read = Array.from(element.querySelectorAll(".ocrx_word"));
-              const kept = read.filter(
-                (word, index) => !isEdgeShadow(word, index, read, width),
-              );
-              // A stray mark beside the line would move its edges; its words
-              // of letters and digits place it.
-              const words = kept
-                .filter((word) => /[\p{L}\d]/u.test(word.textContent))
-                .map((word) =>
-                  numbers(word.getAttribute("title") ?? "", "bbox"),
-                );
-              const left = Math.min(...words.map(([x = x0]) => x), x1);
-              const right = Math.max(...words.map(([, , x = x1]) => x), x0);
-              const placed = words.length > 0 && right > left;
-              return {
-                x: placed ? left : x0,
-                y: y0,
-                bottom: y1,
-                width: placed ? right - left : x1 - x0,
-                size: numbers(title, "x_size")[0] ?? 0,
-                starts: kept
-                  .filter((word) => word.textContent.trim() !== "")
-                  .map(
-                    (word) =>
-                      numbers(word.getAttribute("title") ?? "", "bbox")[0] ??
-                      x0,
-                  ),
-                text: (kept.length < read.length
-                  ? kept.map((word) => word.textContent).join(" ")
-                  : element.textContent
-                )
-                  .replace(/\s+/g, " ")
-                  .trim(),
-              };
-            })
-            .filter((line) => line.text.length > 0),
-        );
+        const read = Array.from(document.querySelectorAll(LINE_SELECTOR))
+          .map((element) => {
+            const title = element.getAttribute("title") ?? "";
+            const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = numbers(title, "bbox");
+            const read = Array.from(element.querySelectorAll(".ocrx_word"));
+            const kept = read.filter(
+              (word, index) => !isEdgeShadow(word, index, read, width),
+            );
+            // A stray mark beside the line would move its edges; its words
+            // of letters and digits place it.
+            const words = kept
+              .filter((word) => /[\p{L}\d]/u.test(word.textContent))
+              .map((word) => numbers(word.getAttribute("title") ?? "", "bbox"));
+            const left = Math.min(...words.map(([x = x0]) => x), x1);
+            const right = Math.max(...words.map(([, , x = x1]) => x), x0);
+            const placed = words.length > 0 && right > left;
+            return {
+              x: placed ? left : x0,
+              y: y0,
+              bottom: y1,
+              width: placed ? right - left : x1 - x0,
+              size: numbers(title, "x_size")[0] ?? 0,
+              starts: kept
+                .filter((word) => word.textContent.trim() !== "")
+                .map(
+                  (word) =>
+                    numbers(word.getAttribute("title") ?? "", "bbox")[0] ?? x0,
+                ),
+              wordEnds: kept
+                .filter((word) => word.textContent.trim() !== "")
+                .map(
+                  (word) =>
+                    numbers(word.getAttribute("title") ?? "", "bbox")[2] ?? x1,
+                ),
+              text: (kept.length < read.length
+                ? kept.map((word) => word.textContent).join(" ")
+                : element.textContent
+              )
+                .replace(/\s+/g, " ")
+                .trim(),
+            };
+          })
+          .filter((line) => line.text.length > 0);
         const stated = (
           document.querySelector(".ocr_pageno")?.textContent ?? ""
         ).trim();
         const pageno = Number.parseInt(stated, 10);
+        const columned = columns && read.length > 0;
         return {
           leaf: Number(/(\d+)$/.exec(page?.id ?? "")?.[1] ?? Number.NaN),
           pageno: Number.isNaN(pageno) ? null : pageno,
           frontPageno: /^[IVXLC]+$/u.test(stated) ? romanValue(stated) : null,
-          width,
+          width: columned ? width / 2 : width,
           height,
-          lines,
+          lines: joinSplitLines(
+            columned ? inColumns(read, width, height) : read,
+          ),
         };
       });
   } finally {
@@ -530,6 +680,7 @@ function atOneScale(pages: Page[]): Page[] {
         width: scaled(line.width),
         size: line.size * factor,
         ...(line.starts ? { starts: line.starts.map(scaled) } : {}),
+        ...(line.wordEnds ? { wordEnds: line.wordEnds.map(scaled) } : {}),
       })),
     };
   });
@@ -920,6 +1071,61 @@ export function printedPageNumbers(
   );
 }
 
+/** A running head numbering both columns of its page: 723 HYPNOSE. 724. */
+const COLUMN_HEAD = /^(?:\S{1,2}\s+)?(\d+)\s+\S.*\S\s+(\d+)(?:\s+\S{1,2})?$/u;
+
+/**
+ * Printed numbers by leaf, in a volume that numbers its columns, two to a
+ * page, as a lexicon does: a page is numbered by its first column. Where
+ * most numbered heads number two columns, the pages are numbered in pairs
+ * of columns and each named by the first; else as their heads number them.
+ */
+function numberedColumns(
+  pages: Page[],
+  readings: LeafReading[],
+): Map<number, number | null> {
+  // The OCR may read the head as one line or as its numbers and its title
+  // apart.
+  const firsts = pages.flatMap((page) => {
+    const numbers = page.lines
+      .slice(0, HEAD_LINES)
+      .filter((line) => line.y <= page.height * HEAD_ZONE)
+      .flatMap((line) => {
+        const both = COLUMN_HEAD.exec(line.text);
+        if (both) return [Number(both[1]), Number(both[2])];
+        const number = headNumber(line.text);
+        return number === null ? [] : [number];
+      });
+    const first = numbers.find((number) => numbers.includes(number + 1));
+    return first === undefined ? [] : [first];
+  });
+  const numbered = readings.filter((reading) => reading.head !== null);
+  if (firsts.length < COLUMN_HEADS || firsts.length * 2 < numbered.length) {
+    return printedPageNumbers(readings);
+  }
+  // The first column's number is odd, or even, throughout.
+  const parity =
+    firsts.filter((first) => first % 2 === 1).length * 2 >= firsts.length
+      ? 1
+      : 0;
+  const pairs = printedPageNumbers(
+    readings.map((reading) => ({
+      ...reading,
+      head:
+        reading.head === null ? null : Math.floor((reading.head - parity) / 2),
+    })),
+  );
+  return new Map(
+    [...pairs].map(([leaf, pair]) => [
+      leaf,
+      pair === null ? null : pair * 2 + parity,
+    ]),
+  );
+}
+
+/** So many heads numbering two columns tell a volume that numbers its columns. */
+const COLUMN_HEADS = 3;
+
 /** Words of four or more small letters: running text, not a picture's noise. */
 const WORD = /\p{Ll}{4,}/gu;
 
@@ -978,6 +1184,8 @@ interface Volume {
   paragraphOpenings?: string[];
   /** The lines that open the page's notes, by their opening words, where the manifest names them. */
   noteOpenings?: string[];
+  /** The manifest names every note: no line but a named one opens a page's notes. */
+  notesNamed?: boolean;
   /** Of the named notes' lines, those that run on the note before rather than open one. */
   noteRunsOn?: string[];
   /** Words of the numbered running heads, which know a head without its number. */
@@ -1805,7 +2013,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   const footAt = headless.findIndex(
     (line, index) =>
       noteNamed(line) ||
-      (!named(line) &&
+      (volume.notesNamed !== true &&
+        !named(line) &&
         line.y > page.height * (isRule(line, footSize) ? RULE_ZONE : 0.5) &&
         (isRule(line, footSize)
           ? notesBelowRule(line, index)
@@ -1980,7 +2189,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         SIGNATURE.test(line.text) ||
         (line.corrected !== true &&
           (isEdgeNoise(line.text) ||
-            (!isTableRow(line) && isScraps(line.text))))
+            (!isTableRow(line) && isScraps(line.text)) ||
+            // Where the manifest names the notes, a line among them without
+            // a word is a speck or a picture's scrap the OCR read as letters.
+            (volume.notesNamed === true && isWordless(line.text))))
       ) {
         return pieces;
       }
@@ -2872,6 +3084,28 @@ function addPiece(
   };
   const rest = state.sections.length > 0 ? state.sections.slice(0, -1) : [];
   const text = normalised(piece.text);
+  // A note runs on below a heading its next page opens with: the line
+  // belongs to the note of the section before.
+  const runsOnAt =
+    piece.kind === "note" && !piece.opens && current.notes.length === 0
+      ? (state.sections
+          .map((section, index) => ({ section, index }))
+          .filter(
+            ({ section }) =>
+              (section.notes.at(-1)?.lastLeaf ?? -2) >= place.leaf - 1,
+          )
+          .at(-1)?.index ?? -1)
+      : -1;
+  if (runsOnAt >= 0) {
+    return {
+      ...state,
+      sections: state.sections.map((section, index) =>
+        index === runsOnAt
+          ? { ...section, notes: addLine(section.notes, text, false, place) }
+          : section,
+      ),
+    };
+  }
   // A note runs on only from the page before; one ended pages back takes
   // no lines from a note the reader found without its mark.
   const lastNote = current.notes.at(-1);
@@ -3145,14 +3379,45 @@ function withoutRescans(pages: Page[]): Page[] {
   return pages.filter((_page, index) => !repeats(index));
 }
 
+/**
+ * How a volume is read where its scan does not tell: whether it sets its
+ * pages in two columns.
+ */
+const volumeReadingSchema: z.ZodObject<{
+  columns: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
+  columns: z.boolean().optional(),
+});
+
+export type VolumeReading = z.input<typeof volumeReadingSchema>;
+
+/** The mark a volume's hOCR carries of how it is read. */
+const READING = /^<meta name='volume-reading' content='([^']*)'>\n/u;
+
+/** A volume's hOCR marked with how it is read, which the pages' reading takes from it. */
+export function withVolumeReading(
+  hocr: string,
+  reading: VolumeReading,
+): string {
+  return reading.columns !== true
+    ? hocr
+    : `<meta name='volume-reading' content='${JSON.stringify(reading)}'>\n${hocr}`;
+}
+
+function readingOfVolume(hocr: string): VolumeReading {
+  const mark = READING.exec(hocr)?.[1];
+  return mark === undefined ? {} : volumeReadingSchema.parse(JSON.parse(mark));
+}
+
 function readVolume(hocr: string): ReadVolume {
-  const read = readPages(hocr);
+  const reading = readingOfVolume(hocr);
+  const read = readPages(hocr, reading.columns === true);
   const pages = withoutRescans(
     withoutSignatures(withUmlauts(withoutTopMargin(atOneScale(read)))),
   );
   // A front page the scan's reading states counts, whatever the page holds.
   const stated = read.find((page) => page.frontPageno !== null);
-  const printed = printedPageNumbers(pages.map(readingOf));
+  const printed = numberedColumns(pages, pages.map(readingOf));
   // The leaves before the first page are the front matter.
   const firstLeaf = Math.min(
     ...pages
@@ -3227,10 +3492,11 @@ function readVolume(hocr: string): ReadVolume {
       spelling,
       textSpelling,
     },
-    // Pages before the first are the front matter, numbered in roman.
+    // Pages before the first are the front matter, numbered in roman: as
+    // the scan's reading states one of them, or as their heads do.
     front:
       stated?.frontPageno == null
-        ? romanOffset(pages)
+        ? romanOffset(pages.filter((page) => frontLeaves.has(page.leaf)))
         : stated.frontPageno - stated.leaf,
   };
 }
@@ -3340,6 +3606,24 @@ function opened(
   };
 }
 
+/** A work's last page up to the line it closes with, if the manifest names one. */
+function closed(
+  page: Page,
+  work: Pick<ArchiveOcrWork, "closesWith" | "lastPage">,
+): Page {
+  const closing = work.closesWith;
+  if (closing === undefined) return page;
+  const at = page.lines.findIndex((line) =>
+    normalised(line.text).startsWith(closing),
+  );
+  if (at < 0) {
+    throw new Error(
+      `No line opening "${closing}" on page ${String(work.lastPage)}`,
+    );
+  }
+  return { ...page, lines: page.lines.slice(0, at + 1) };
+}
+
 /** A gloss starts this share of the page's width left of the text column. */
 const MARGIN = 0.04;
 
@@ -3399,13 +3683,14 @@ export function parseArchiveOcrWork(
   const volume = {
     ...read.volume,
     spacedNotes: work.spacedNotes === true,
+    notesNamed: work.notesNamed === true,
     curved: work.curved === true,
     datelined: work.datelined === true,
     verse: work.verse === true,
   };
   const { cased } = volume.spelling;
   const pagesRead = pagesOfWork(read, work).map(
-    ({ page, number, label }, index) => {
+    ({ page, number, label }, index, all) => {
       const first =
         index === 0
           ? opened(page, work, label)
@@ -3414,7 +3699,12 @@ export function parseArchiveOcrWork(
         work.marginalia === true
           ? withoutMarginalia
           : (same: Page): Page => same
-      )(first.page);
+      )(
+        closed(
+          first.page,
+          index === all.length - 1 ? work : { lastPage: label },
+        ),
+      );
       return {
         page: own,
         number,
@@ -3557,23 +3847,22 @@ export function parseArchiveOcrWork(
       [...section.paragraphs, ...section.notes].map((block) => block.text),
     ),
   );
-  return unitsOfSections(
-    filled.map((section) => ({
-      ...section,
-      // A signed note the page set as text is the editor's too.
-      paragraphs: tabled(
-        parted(
-          section.paragraphs.filter(
-            (paragraph) =>
-              !signed.some((signature) =>
-                signature.test(paragraph.text.trim()),
-              ),
-          ),
+  const sectioned = filled.map((section) => ({
+    ...section,
+    // A signed note the page set as text is the editor's too.
+    paragraphs: tabled(
+      parted(
+        section.paragraphs.filter(
+          (paragraph) =>
+            !signed.some((signature) => signature.test(paragraph.text.trim())),
         ),
-      ).map(dash),
-      notes: parted(section.notes.filter((note) => !skipped(note))).map(dash),
-      titles: section.path.map((step) => titles.get(step) ?? ""),
-    })),
+      ),
+    ).map(dash),
+    notes: parted(section.notes.filter((note) => !skipped(note))).map(dash),
+    titles: section.path.map((step) => titles.get(step) ?? ""),
+  }));
+  return unitsOfSections(
+    work.notesOnly === true ? notesUnderPassages(sectioned, work) : sectioned,
     cite,
     options.entryBytes,
     // A note's paragraph without a mark runs on the note before, onto the
@@ -3589,3 +3878,93 @@ export function parseArchiveOcrWork(
  */
 const NOTE_MARK =
   /^(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+[a-z]?\)?|\(\d{1,3}[a-z]?\)|\d{1,3}[a-z]?\)|\d{1,3}\s(?=\p{Lu})|\*+\)?|†|\S{0,2}\s?\))/u;
+
+/** The mark a passage holds, as it opens its note: ¹), 2), *), or a bare superscript ¹. */
+const PASSAGE_MARK = /^(\*+\)|[¹²³⁴⁵⁶⁷⁸⁹⁰]+\)?|\d{1,2}\))\s*/u;
+
+/**
+ * Notes set to another's text, each alone under the passage it is set to:
+ * the sentence of the text on its page that ends in its mark. Only notes
+ * signed as the manifest names are kept, where it names signatures.
+ */
+function notesUnderPassages<
+  Titled extends { paragraphs: Block[]; notes: Block[]; titles: string[] },
+>(
+  sections: Titled[],
+  work: Pick<ArchiveOcrWork, "notesSigned">,
+): Array<{
+  path: object[];
+  titles: string[];
+  paragraphs: Block[];
+  notes: Block[];
+}> {
+  const signatures = (work.notesSigned ?? []).map(
+    (signature) =>
+      new RegExp(`(?:^|[^\\p{Ll}])${RegExp.escape(signature)}$`, "u"),
+  );
+  // A heading may fall between a note and its mark: the passage is sought
+  // in the text of every section.
+  const text = sections.flatMap((section) => section.paragraphs);
+  return sections.flatMap((section) =>
+    section.notes
+      .filter(
+        (note) =>
+          signatures.length === 0 ||
+          signatures.some((signature) => signature.test(note.text.trim())),
+      )
+      .map((note) => ({
+        path: [{}],
+        titles: [passageOf(note, text, section.titles)],
+        paragraphs: [note],
+        notes: [],
+      })),
+  );
+}
+
+/**
+ * The sentence of the text on a note's page that ends in the note's mark,
+ * or the heading of its section that holds the mark.
+ */
+function passageOf(
+  note: Block,
+  paragraphs: Block[],
+  headings: string[],
+): string {
+  const mark = PASSAGE_MARK.exec(note.text)?.[1];
+  if (mark === undefined) {
+    throw new Error(`No mark opens the note "${note.text.slice(0, 40)}"`);
+  }
+  const holding = paragraphs.filter(
+    (paragraph) =>
+      paragraph.leaf <= note.leaf &&
+      paragraph.lastLeaf >= note.leaf &&
+      paragraph.text.includes(mark),
+  );
+  const paragraph = holding[0];
+  const heading = headings.find((title) => title.includes(mark));
+  if (paragraph === undefined && heading !== undefined) {
+    return heading.slice(0, heading.indexOf(mark)).trim();
+  }
+  if (paragraph === undefined) {
+    throw new Error(
+      `No passage on page ${note.label} holds the mark ${mark} of the note "${note.text.slice(0, 40)}"`,
+    );
+  }
+  // A paragraph begun on an earlier page holds the note's mark last.
+  const at =
+    paragraph.leaf === note.leaf
+      ? paragraph.text.indexOf(mark)
+      : paragraph.text.lastIndexOf(mark);
+  const before = paragraph.text.slice(0, at);
+  const start = Math.max(
+    0,
+    // A stop after a lone letter ends an abbreviation (z. B.), and after a
+    // number of one or two digits an ordinal (15. Jahr), not a sentence.
+    ...[
+      ...before.matchAll(
+        /(?<!(?:^|[^\p{L}\d])(?:\p{L}|\d{1,2}))[.!?][“”"»)]?\s+(?=[\p{Lu}„»«])/gu,
+      ),
+    ].map((end) => end.index + end[0].length),
+  );
+  return before.slice(start).trim();
+}

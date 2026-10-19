@@ -6,6 +6,7 @@ import {
   parseArchiveOcrWork,
   workPages,
   printedPageNumbers,
+  withVolumeReading,
   type LeafReading,
 } from "../src/adapters/archive-ocr";
 
@@ -371,6 +372,86 @@ describe("parseArchiveOcrWork on a work that opens mid-page", () => {
     expect(() =>
       parseArchiveOcrWork(hocr, { ...work, opensWith: "Nicht da" }),
     ).toThrow('No line opening "Nicht da" on page 3');
+  });
+});
+
+describe("parseArchiveOcrWork on notes set to another's text", () => {
+  it("keeps the notes alone, each under the passage it is set to", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notesOnly: true,
+    });
+
+    expect(units.map((unit) => [unit.title, unit.page])).toEqual([
+      [
+        "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit wir uns mit der Aufstellung des Lustprinzips einem bestimmten, historisch festgelegten System angenähert haben.",
+        "GW XIII, 4",
+      ],
+    ]);
+    expect(units[0]?.paragraphs).toEqual([
+      "¹) Vgl. Zur Psychoanalyse der Kriegsneurosen. Mit Beiträgen von Ferenczi, Abraham, Simmel und E. Jones, 1919.",
+    ]);
+  });
+
+  it("finds a note's passage in the section before, where a heading falls between", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notesOnly: true,
+      headings: [{ page: 4, opens: "zu solchen Annahmen", level: 1 }],
+    });
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit wir uns mit der Aufstellung des Lustprinzips einem bestimmten, historisch festgelegten System angenähert haben.",
+    ]);
+  });
+
+  it("finds no notes but those the manifest names, where it names them all", async () => {
+    expect(
+      parseArchiveOcrWork(await fixture(), {
+        ...work,
+        notesOnly: true,
+        notesNamed: true,
+      }),
+    ).toEqual([]);
+    expect(
+      parseArchiveOcrWork(await fixture(), {
+        ...work,
+        notesOnly: true,
+        notesNamed: true,
+        notes: [{ page: 4, opens: "ı) Vgl. Zur" }],
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("keeps only the notes signed as the manifest names", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notesOnly: true,
+      notesSigned: ["Anmerkung des Übersetzers."],
+    });
+
+    expect(units).toEqual([]);
+  });
+});
+
+describe("parseArchiveOcrWork on a work that closes mid-page", () => {
+  it("reads its last page up to the line it closes with, before another begins", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      closesWith: "Ein volles Verständnis",
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(text).toContain("Ein volles Verständnis ist bisher");
+    expect(text).not.toContain("nicht erzielt worden");
+  });
+
+  it("stops on a closing line its last page does not hold", async () => {
+    const hocr = await fixture();
+
+    expect(() =>
+      parseArchiveOcrWork(hocr, { ...work, closesWith: "Nicht da" }),
+    ).toThrow('No line opening "Nicht da" on page 10');
   });
 });
 
@@ -1120,6 +1201,59 @@ describe("parseArchiveOcrWork on front matter", () => {
     ]);
   });
 
+  it("titles a heading the manifest names by its level alone as the edition sets it", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        citation: "GW II/III",
+        firstPage: "V",
+        lastPage: "VI",
+        headings: [
+          {
+            page: "VI",
+            opens: "Der Traum ist das erste Glied",
+            level: 1,
+          },
+        ],
+      },
+    );
+
+    expect(units[1]?.title).toStartWith("Der Traum ist das erste Glied");
+  });
+
+  it("titles a section by the headword the manifest names, its line kept as text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        citation: "GW II/III",
+        firstPage: "V",
+        lastPage: "VI",
+        headings: [
+          {
+            page: "VI",
+            opens: "Der Traum ist das erste Glied",
+            title: "Der Traum",
+          },
+        ],
+      },
+    );
+
+    expect(units[1]?.title).toBe("Der Traum");
+    expect(units[1]?.paragraphs[0]).toStartWith(
+      "Der Traum ist das erste Glied",
+    );
+  });
+
   it("ends a work within the front matter at a roman page", async () => {
     const units = parseArchiveOcrWork(
       await readFile(
@@ -1281,6 +1415,20 @@ describe("printedPageNumbers", () => {
       4,
       5,
     ]);
+  });
+
+  it("counts no plate for leaves left out as rescans, which the pages skip", () => {
+    const pages = printedPageNumbers([
+      text(10, 1),
+      text(11, 2),
+      text(12, null),
+      // Leaves 13 and 14 scanned 11 and 12 again.
+      text(15, null),
+      text(16, 5),
+      text(17, 6),
+    ]);
+
+    expect([12, 15, 16].map((leaf) => pages.get(leaf))).toEqual([3, 4, 5]);
   });
 
   it("ignores a run of page numbers the OCR misread alike", () => {
@@ -3798,5 +3946,389 @@ describe("parseArchiveOcrWork, pages alike", () => {
 
   it("keeps pages alike in their words whose heads number them apart, as an index's are", () => {
     expect(paragraphs(["466", "467"])).toHaveLength(12);
+  });
+});
+
+describe("a volume that numbers its columns", () => {
+  /** A page of two columns, its head numbering both: 723 … 724. */
+  const columnPage = (leaf: number, left: number | null): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      `<span class='ocr_line' title='bbox 100 100 1900 160; x_size 50'>${
+        left === null
+          ? "STICHWORT — STICHWORT."
+          : `${left} STICHWORT — STICHWORT. ${left + 1}`
+      }</span>`,
+      ...Array.from(
+        { length: 8 },
+        (_, line) =>
+          `<span class='ocr_line' title='bbox 100 ${300 + line * 80} 950 ${350 + line * 80}; x_size 50'>Spalte auf Blatt ${leaf} mit Text in der Zeile ${line} hier</span>`,
+      ),
+      "</div>",
+    ].join("\n");
+  const hocr = `<html><body>\n${[
+    columnPage(0, 719),
+    columnPage(1, 721),
+    columnPage(2, 723),
+    columnPage(3, null),
+    columnPage(4, 727),
+    columnPage(5, 729),
+  ].join("\n")}\n</body></html>`;
+
+  it("numbers each page by its first column, two to a page", () => {
+    expect(workPages(hocr, { firstPage: 721, lastPage: 727 })).toEqual([
+      721, 723, 725, 727,
+    ]);
+    expect(pageText(hocr, 725)).toContain("Spalte auf Blatt 3");
+  });
+
+  it("knows a head the OCR read as its two numbers and its title apart", () => {
+    const apart = hocr.replace(
+      /(<span class='ocr_line' title='bbox 100 100 1900 160; x_size 50'>)(\d+) (STICHWORT — STICHWORT\.) (\d+)<\/span>/gu,
+      "<span class='ocr_line' title='bbox 100 100 300 160; x_size 50'>$2</span>\n<span class='ocr_line' title='bbox 700 100 1300 160; x_size 50'>$3</span>\n<span class='ocr_line' title='bbox 1700 100 1900 160; x_size 50'>$4</span>",
+    );
+
+    expect(workPages(apart, { firstPage: 721, lastPage: 727 })).toEqual([
+      721, 723, 725, 727,
+    ]);
+  });
+});
+
+describe("a volume whose front matter no head numbers", () => {
+  /** A page of text, its running head numbering it where it has one. */
+  const textPage = (leaf: number, head: string | null, words: string): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      ...(head === null
+        ? []
+        : [
+            `<span class='ocr_line' title='bbox 200 100 1800 160; x_size 50'>${head}</span>`,
+          ]),
+      ...Array.from(
+        { length: 8 },
+        (_, line) =>
+          `<span class='ocr_line' title='bbox 200 ${300 + line * 80} 1800 ${350 + line * 80}; x_size 50'>${words} in der Zeile ${line} und noch mehr Worte hier</span>`,
+      ),
+      "</div>",
+    ].join("\n");
+  const hocr = `<html><body>\n${[
+    textPage(0, null, "Titelblatt"),
+    textPage(1, null, "Vorwort zur zweiten Auflage"),
+    textPage(2, null, "Erstes Kapitel"),
+    textPage(3, "2 Die sexuellen Abirrungen.", "Weiter im Text"),
+    textPage(4, "Die sexuellen Abirrungen. 3", "Noch weiter"),
+    // A line of the text the OCR read with a roman numeral before it.
+    textPage(5, null, "I großen Verbreitung"),
+    textPage(6, "Die sexuellen Abirrungen. 5", "Am Ende"),
+  ].join("\n")}\n</body></html>`;
+
+  it("numbers its pages in roman from the page the scan's reading states", () => {
+    const named = hocr.replace(
+      "id='page_1' title='bbox 0 0 2000 3000'>",
+      "$&<span class='ocr_pageno'>III</span>",
+    );
+
+    expect(workPages(named, { firstPage: "III", lastPage: "III" })).toEqual([
+      "III",
+    ]);
+    expect(pageText(named, "III")).toContain("Vorwort zur zweiten Auflage");
+  });
+
+  it("takes no line of the text for a roman head", () => {
+    expect(() => workPages(hocr, { firstPage: "I", lastPage: "I" })).toThrow(
+      "No page I",
+    );
+  });
+});
+
+describe("a volume set in two columns", () => {
+  /** A line of words, each placed where the OCR read it. */
+  const line = (y: number, words: Array<[number, string]>): string => {
+    const right = (words.at(-1)?.[0] ?? 0) + 300;
+    return `<span class='ocr_line' title='bbox ${words[0]?.[0] ?? 0} ${y} ${right} ${y + 50}; x_size 50'>${words
+      .map(
+        ([x, word]) =>
+          `<span class='ocrx_word' title='bbox ${x} ${y} ${x + 280} ${y + 50}'>${word}</span>`,
+      )
+      .join(" ")}</span>`;
+  };
+  const column = (
+    x: number,
+    side: string,
+    y: number,
+  ): Array<[number, string]> => [
+    [x, side],
+    [x + 300, "Spalte"],
+    [x + 600, `Zeile${y}`],
+  ];
+  const page = (leaf: number, left: number): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(100, [[100, String(left)]]),
+      line(100, [[800, "STICHWORT."]]),
+      line(100, [[1700, String(left + 1)]]),
+      ...Array.from({ length: 8 }, (_, row) => {
+        const y = 300 + row * 80;
+        // The OCR runs the third row of both columns together, and on the
+        // fourth the right column starts left of where it mostly does.
+        return row === 2
+          ? line(y, [...column(100, "Links", y), ...column(1100, "Rechts", y)])
+          : row === 4
+            ? [
+                line(y, column(100, "Links", y)),
+                // A right column's line set out left of the others.
+                line(y, [
+                  [1000, "Rechts"],
+                  [1300, "Spalte"],
+                  [1600, `Zeile${y}`],
+                ]),
+              ].join("\n")
+            : row === 3
+              ? line(y, [
+                  [100, "Links"],
+                  [400, "Spalte"],
+                  [700, "breit"],
+                  [1040, "Rechts"],
+                  [1340, "Spalte"],
+                  [1640, `Zeile${y}`],
+                ])
+              : [
+                  line(y, column(100, "Links", y)),
+                  line(y, column(1100, "Rechts", y)),
+                ].join("\n");
+      }),
+      "</div>",
+    ].join("\n");
+  const hocr = withVolumeReading(
+    `<html><body>\n${[page(0, 719), page(1, 721), page(2, 723), page(3, 725)].join("\n")}\n</body></html>`,
+    { columns: true },
+  );
+
+  it("reads each page down its left column, then its right", () => {
+    const lines = pageText(hocr, 723).split("\n");
+
+    expect(lines.slice(0, 8).every((text) => text.startsWith("Links"))).toBe(
+      true,
+    );
+    expect(lines.slice(8).every((text) => text.startsWith("Rechts"))).toBe(
+      true,
+    );
+    expect(lines).toHaveLength(16);
+    expect(workPages(hocr, { firstPage: 721, lastPage: 725 })).toEqual([
+      721, 723, 725,
+    ]);
+  });
+});
+
+describe("a note that runs on below the next page's heading", () => {
+  const line = (y: number, text: string): string =>
+    `<span class='ocr_line' title='bbox 200 ${y} 1800 ${y + 50}; x_size 50'>${text}</span>`;
+  const textPage = (leaf: number, head: number, lines: string[]): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(100, `— ${head} —`),
+      ...lines.map((text, at) => line(300 + at * 80, text)),
+      "</div>",
+    ].join("\n");
+  const filler = (leaf: number): string[] =>
+    Array.from(
+      { length: 6 },
+      (_, at) =>
+        `Der Vortrag auf Blatt ${leaf} geht in der Zeile ${at} weiter.`,
+    );
+  const hocr = `<html><body>\n${[
+    textPage(0, 9, filler(0)),
+    textPage(1, 10, [
+      ...filler(1),
+      "So endet der Satz, den die Anmerkung erklärt¹).",
+      "¹) Eine Anmerkung des Übersetzers, die auf",
+    ]),
+    textPage(2, 11, [
+      "Zweite Vorlesung.",
+      ...filler(2),
+      "der nächsten Seite weitergeht.",
+    ]),
+    textPage(3, 12, filler(3)),
+  ].join("\n")}\n</body></html>`;
+
+  it("joins the line to the note it runs on, under that note's passage", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vortraege",
+      title: "Anmerkungen",
+      citation: "Vorträge",
+      firstPage: 10,
+      lastPage: 11,
+      notesOnly: true,
+      notesNamed: true,
+      headings: [{ page: 11, opens: "Zweite Vorlesung", level: 1 }],
+      notes: [
+        { page: 10, opens: "¹) Eine Anmerkung" },
+        { page: 11, opens: "der nächsten Seite", runsOn: true },
+      ],
+    });
+
+    expect(units.map((unit) => unit.paragraphs)).toEqual([
+      [
+        "¹) Eine Anmerkung des Übersetzers, die auf der nächsten Seite weitergeht.",
+      ],
+    ]);
+  });
+});
+
+describe("a note's passage that holds an abbreviation", () => {
+  const line = (y: number, text: string): string =>
+    `<span class='ocr_line' title='bbox 200 ${y} 1800 ${y + 50}; x_size 50'>${text}</span>`;
+  const textPage = (leaf: number, head: number, lines: string[]): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(100, `— ${head} —`),
+      ...lines.map((text, at) => line(300 + at * 80, text)),
+      "</div>",
+    ].join("\n");
+  const filler = (leaf: number): string[] =>
+    Array.from(
+      { length: 6 },
+      (_, at) =>
+        `Der Vortrag auf Blatt ${leaf} geht in der Zeile ${at} weiter.`,
+    );
+  const hocr = `<html><body>\n${[
+    textPage(0, 9, filler(0)),
+    textPage(1, 10, [
+      ...filler(1),
+      "Sie thun im Schlaf, was sie sonst thun, wie z. B. ihre Aufgaben schreiben¹).",
+      "Selten zögert sie bis zum 15. Jahr und ist dann besonders²).",
+      "¹) Die Heinzelmännchen!",
+      "²) Eine zweite Anmerkung.",
+    ]),
+    textPage(2, 11, filler(2)),
+  ].join("\n")}\n</body></html>`;
+
+  it("runs the passage on past a stop that ends an abbreviation or an ordinal", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vortraege",
+      title: "Anmerkungen",
+      citation: "Vorträge",
+      firstPage: 10,
+      lastPage: 10,
+      notesOnly: true,
+      notesNamed: true,
+      notes: [
+        { page: 10, opens: "¹) Die Heinzel" },
+        { page: 10, opens: "²) Eine zweite" },
+      ],
+    });
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Sie thun im Schlaf, was sie sonst thun, wie z. B. ihre Aufgaben schreiben",
+      "Selten zögert sie bis zum 15. Jahr und ist dann besonders",
+    ]);
+  });
+});
+
+describe("a note set to a heading, its mark a bare superscript", () => {
+  const line = (y: number, text: string, size = 50): string =>
+    `<span class='ocr_line' title='bbox 200 ${y} 1800 ${y + size}; x_size ${size}'>${text}</span>`;
+  const hocr = `<html><body>\n${[
+    [
+      "<div class='ocr_page' id='page_0' title='bbox 0 0 2000 3000'>",
+      line(100, "— 9 —"),
+      ...Array.from({ length: 6 }, (_, at) =>
+        line(
+          300 + at * 80,
+          `Der Vortrag auf Blatt 0 geht in der Zeile ${at} weiter.`,
+        ),
+      ),
+      "</div>",
+    ].join("\n"),
+    [
+      "<div class='ocr_page' id='page_1' title='bbox 0 0 2000 3000'>",
+      line(100, "— 10 —"),
+      line(300, "Ueber einen Fall von Wortblindheit.¹", 80),
+      ...Array.from({ length: 6 }, (_, at) =>
+        line(
+          500 + at * 80,
+          `Meine Herren, der Vortrag geht in der Zeile ${at} weiter.`,
+        ),
+      ),
+      line(1100, "¹ Die beiden Vorlesungen sind die ersten einer Reihe."),
+      line(1180, "Anmerkung des Uebersetzers."),
+      "</div>",
+    ].join("\n"),
+  ].join("\n")}\n</body></html>`;
+
+  it("sets the note under the heading that holds its mark", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vorlesungen",
+      title: "Anmerkungen",
+      citation: "Vorlesungen",
+      firstPage: 10,
+      lastPage: 10,
+      notesOnly: true,
+      notesNamed: true,
+      notesSigned: ["Anmerkung des Uebersetzers."],
+      headings: [{ page: 10, opens: "Ueber einen Fall", level: 1 }],
+      notes: [{ page: 10, opens: "¹ Die beiden" }],
+    });
+
+    expect(units.map((unit) => [unit.title, unit.paragraphs])).toEqual([
+      [
+        "Ueber einen Fall von Wortblindheit.",
+        [
+          "¹ Die beiden Vorlesungen sind die ersten einer Reihe. Anmerkung des Uebersetzers.",
+        ],
+      ],
+    ]);
+  });
+});
+
+describe("named notes beside specks at the page's edge", () => {
+  const line = (x: number, y: number, text: string): string =>
+    `<span class='ocr_line' title='bbox ${x} ${y} ${x === 20 ? 30 : 1800} ${y + 50}; x_size 50'>${text}</span>`;
+  const textPage = (leaf: number, head: number, lines: string[]): string =>
+    [
+      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 2000 3000'>`,
+      line(200, 100, `— ${head} —`),
+      ...lines,
+      "</div>",
+    ].join("\n");
+  const filler = (leaf: number): string[] =>
+    Array.from({ length: 6 }, (_, at) =>
+      line(
+        200,
+        300 + at * 80,
+        `Der Vortrag auf Blatt ${leaf} geht in der Zeile ${at} weiter.`,
+      ),
+    );
+  const hocr = `<html><body>\n${[
+    textPage(0, 9, filler(0)),
+    textPage(1, 10, [
+      ...filler(1),
+      line(200, 800, "So schliesst der Vortrag, vorstellen kann.¹"),
+      line(200, 1000, "¹ Der Kranke entzog sich bald darauf der Behandlung."),
+      line(20, 1020, "I"),
+      line(200, 1080, "Anmerkung des Uebersetzers."),
+      line(20, 1100, "i"),
+      line(200, 1140, "ELE ET"),
+      line(200, 1200, "lllllll.llllllllllll AA L}"),
+    ]),
+    textPage(2, 11, filler(2)),
+  ].join("\n")}\n</body></html>`;
+
+  it("leaves out a line without a word the OCR read among the notes", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      item: "vorlesungen",
+      title: "Anmerkungen",
+      citation: "Vorlesungen",
+      firstPage: 10,
+      lastPage: 10,
+      notesOnly: true,
+      notesNamed: true,
+      notesSigned: ["Anmerkung des Uebersetzers."],
+      notes: [{ page: 10, opens: "¹ Der Kranke" }],
+    });
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "¹ Der Kranke entzog sich bald darauf der Behandlung. Anmerkung des Uebersetzers.",
+    ]);
   });
 });

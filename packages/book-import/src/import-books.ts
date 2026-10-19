@@ -2,7 +2,11 @@ import { parse as parseYaml } from "yaml";
 import { bookKindSchema } from "@brains/book";
 import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
-import { parseArchiveOcrWork, scanPageUrl } from "./adapters/archive-ocr";
+import {
+  parseArchiveOcrWork,
+  scanPageUrl,
+  withVolumeReading,
+} from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
 import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
 import {
@@ -216,12 +220,17 @@ const archiveOcrBookSchema: z.ZodObject<
       paragraphs: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       notes: z.ZodDefault<z.ZodArray<typeof noteLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      notesOnly: z.ZodDefault<z.ZodBoolean>;
+      notesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      notesNamed: z.ZodDefault<z.ZodBoolean>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       curved: z.ZodDefault<z.ZodBoolean>;
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
       verse: z.ZodDefault<z.ZodBoolean>;
       opensWith: z.ZodOptional<z.ZodString>;
+      closesWith: z.ZodOptional<z.ZodString>;
+      columns: z.ZodDefault<z.ZodBoolean>;
     }
   >
 > = z.object({
@@ -271,6 +280,16 @@ const archiveOcrBookSchema: z.ZodObject<
   notes: z.array(noteLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
+  /**
+   * The work is the notes the author set to another's text, as a translator
+   * or an editor: the text is left out, and each note stands under the
+   * passage it is set to.
+   */
+  notesOnly: z.boolean().default(false),
+  /** Of such notes, only those ending in one of these signatures are the author's. */
+  notesSigned: z.array(z.string().min(1)).default([]),
+  /** The manifest names every note of the work by its opening: a page whose notes it does not name has none. */
+  notesNamed: z.boolean().default(false),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
   spacedNotes: z.boolean().default(false),
   /** The scan's lines curve, so their starts tell no indent: a paragraph opens only below a sentence's end. */
@@ -283,6 +302,10 @@ const archiveOcrBookSchema: z.ZodObject<
   verse: z.boolean().default(false),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
+  /** The line the last page closes the work with, before another work begins. */
+  closesWith: z.string().min(1).optional(),
+  /** The edition sets its pages in two columns, as a lexicon does: each is read down its left column, then its right. */
+  columns: z.boolean().default(false),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */
@@ -593,7 +616,22 @@ const manifestSchema: z.ZodObject<{
   source: z.enum(SOURCES).optional(),
   coverage: coverageSchema.optional(),
   gaps: z.array(gapSchema).default([]),
-  books: z.array(bookSchema).min(1),
+  /** Entries that share a slug are one book, read from each in turn: short pieces from several volumes. */
+  books: z
+    .array(bookSchema)
+    .min(1)
+    .refine(
+      (books) =>
+        books.every((book) =>
+          books.every(
+            (other) =>
+              other.slug !== book.slug ||
+              ("title" in other ? other.title : undefined) ===
+                ("title" in book ? book.title : undefined),
+          ),
+        ),
+      { message: "Entries that share a slug share the book's title" },
+    ),
 });
 
 export type Manifest = z.output<typeof manifestSchema>;
@@ -611,9 +649,13 @@ export function firstOfEachVolume(books: ScannedBook[]): ScannedBook[] {
 
 /** A volume as read: its scan, and the model it is read anew with, if any. */
 export function volumeKey(book: ScannedBook): string {
-  return [book.item, book.ocr ?? "", book.binarise ? "binarised" : ""].join(
-    "|",
-  );
+  return [
+    book.item,
+    book.ocr ?? "",
+    book.binarise ? "binarised" : "",
+    book.frontLeaf === undefined ? "" : `I@${book.frontLeaf}`,
+    book.columns ? "columns" : "",
+  ].join("|");
 }
 
 /** The manifest's books read from scanned volumes. */
@@ -940,16 +982,20 @@ export async function volumeHocr(
   fetchText: FetchText,
   pageOcr?: (reading: OcrReading) => PageOcr,
 ): Promise<string> {
-  const front = (hocr: string): string =>
-    book.frontLeaf === undefined ? hocr : withFrontPage(hocr, book.frontLeaf);
-  if (!book.ocr) return front(await fetchVolumeHocr(book.item, fetchText));
+  // The volume as read carries how to read what its scan does not tell.
+  const marked = (hocr: string): string =>
+    withVolumeReading(
+      book.frontLeaf === undefined ? hocr : withFrontPage(hocr, book.frontLeaf),
+      book.columns ? { columns: true } : {},
+    );
+  if (!book.ocr) return marked(await fetchVolumeHocr(book.item, fetchText));
   if (!pageOcr) {
     throw new Error(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
   const read = pageOcr({ model: book.ocr, binarise: book.binarise });
-  return front(
+  return marked(
     book.scan
       ? await imagesHocr(
           book.scan.pages.map(scanPageUrl),
@@ -1166,6 +1212,31 @@ function loadersOf(
   });
 }
 
+/**
+ * One book read from the entries that share its slug, each in turn: its
+ * details are the first entry's, and it credits every source.
+ */
+async function loadJoined(
+  loads: Array<() => Promise<LoadedBook>>,
+): Promise<LoadedBook> {
+  const loaded = await loads.reduce<Promise<LoadedBook[]>>(
+    async (done, load) => [...(await done), await load()],
+    Promise.resolve([]),
+  );
+  const [first] = loaded;
+  if (!first) throw new Error("A book needs an entry");
+  const attributions = [
+    ...new Set(loaded.flatMap(({ book }) => book.attribution ?? [])),
+  ];
+  return {
+    book: {
+      ...first.book,
+      attribution: attributions.length > 0 ? attributions.join("; ") : null,
+    },
+    units: loaded.flatMap(({ units }) => units),
+  };
+}
+
 /** Import the manifest's books one after another into brain-data. */
 export async function importBooks(
   manifest: Manifest,
@@ -1173,11 +1244,13 @@ export async function importBooks(
   fetchText: FetchText,
   options: ImportOptions = {},
 ): Promise<ImportResult[]> {
-  return loadersOf(manifest, fetchText, options).reduce<
-    Promise<ImportResult[]>
-  >(async (done, load) => {
+  const loaders = loadersOf(manifest, fetchText, options);
+  const slugs = [...new Set(manifest.books.map((entry) => entry.slug))];
+  return slugs.reduce<Promise<ImportResult[]>>(async (done, slug) => {
     const results = await done;
-    const { book, units } = await load();
+    const { book, units } = await loadJoined(
+      loaders.filter((_, index) => manifest.books[index]?.slug === slug),
+    );
     if (units.length === 0) {
       throw new Error(`No sections found for ${book.slug}`);
     }

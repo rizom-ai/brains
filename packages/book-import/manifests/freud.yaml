@@ -42,6 +42,47 @@ gaps:
     reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912)
   - title: Nachtragsband (Texte aus den Jahren 1885–1938)
     reason: the texts are public domain, but no free scan of the volume exists
+  - citation: Villaret I
+    pages: "892"
+    title: Hysteroepilepsie
+    year: 1888
+    reason: unsigned, as all the dictionary's articles are; only its footnote, which corrects the article's own account by Charcot's newer view and points to Hysterie, reads as Freud's; attribution not certain
+  - title: Articles in Villaret, Handwörterbuch der gesamten Medizin (Gehirn, Aphasie, Abducens, Accessorius, Facialis, Facialiskrampf, Lähmung, Lokalisation)
+    year: 1888
+    reason: unsigned, and nothing in the articles or the volumes ties them to Freud; attribution not certain
+  - title: Anzeige der „Schriften zur angewandten Seelenkunde“ (second version)
+    year: 1908
+    reason: an unsigned publisher's announcement on the series' wrappers; attribution not certain
+  - citation: Zbl. I
+    pages: "137"
+    title: Note to J. J. Putnam, Über Ätiologie und Behandlung der Psychoneurosen
+    year: 1911
+    reason: an unsigned editorial note; attribution not certain
+  - citation: Zbl. II
+    pages: "676"
+    title: Note to E. Jones, Psycho-Analyse Roosevelts
+    year: 1912
+    reason: signed "Die Redaktion"; attribution not certain
+  - title: Ergänzungen zur Traumlehre
+    year: 1920
+    reason: an unsigned abstract in the third person in the congress report (IZ VI, 397–398); attribution not certain
+  - title: Etwas vom Unbewußten
+    year: 1922
+    reason: an unsigned abstract in the third person in the congress report (IZ VIII, 486); attribution not certain
+  - title: Note on E. Hering, in I. Levine, Das Unbewußte
+    year: 1926
+    reason: signed "Anmerkung des Übersetzers", and Anna Freud translated the book; attribution not certain
+  - title: Unser Orden
+    year: 1926
+    reason: not in the one 1926 number of the B'nai B'rith Mitteilungen on archive.org (Heft 5), nor on its LBI reel
+  - title: Zum Ableben Professor Brauns
+    year: 1936
+    reason: the B'nai B'rith Mitteilungen for 1936 are not on archive.org; the LBI reel holds 1925, 1928–1930, 1932–1934 and the index of 1937
+  - title: Short pieces of 1927–1939 (Festschrift Emanuel Löwy; Rundfragen on Magnus Hirschfeld and on geistige Vererbung; for Frederik van Eeden; Unbesiegbarer Lebenswille; Der Thomas Mann-Fonds; Vorwort to Bardi; Glückwunsch to the Argentinisches Tageblatt)
+    reason: not located on archive.org
+  - title: Geleitwort zu P. Federn und H. Meng, Das psychoanalytische Volksbuch
+    year: 1939
+    reason: not in the first (1926) or the third (1939) edition on archive.org
 books:
   - item: Sitz_MN_1_1877_75
     citation: Lappenorgane
@@ -942,6 +983,44 @@ books:
     author: Sigmund Freud
     year: 1886
     kind: work
+  - item: b21293181
+    citation: Charcot 1886
+    firstPage: III
+    lastPage: IV
+    slug: vorwort-des-uebersetzers-zu-charcot-neue-vorlesungen
+    title: Vorwort des Übersetzers
+    shortTitle: Vorwort zu Charcot (1886)
+    edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886), S. III–IV"
+    author: Sigmund Freud
+    year: 1886
+    kind: work
+  - item: b21293181
+    ocr: deu
+    citation: Charcot 1886
+    firstPage: 1
+    lastPage: 357
+    # The translator's notes, each signed so, under the passages they are
+    # set to; the lectures are Charcot's.
+    notesOnly: true
+    notesSigned: [Anmerkung des Uebersetzers.]
+    # The OCR loses the rule above the notes and reads figures as text:
+    # the notes are those named, by their openings, those that run on from
+    # the page before named too.
+    notesNamed: true
+    notes:
+      - { page: 124, opens: "¹ Die beiden" }
+      - { page: 245, opens: "¹ Charcot ist" }
+      - { page: 246, opens: "Lähmungen anzusehen", runsOn: true }
+      - { page: 300, opens: "¹ Der Kranke Pin" }
+      - { page: 301, opens: "erheblich sank", runsOn: true }
+      - { page: 330, opens: "¹ Der Kranke, ein" }
+    slug: anmerkungen-des-uebersetzers-zu-charcot-neue-vorlesungen
+    title: Anmerkungen des Übersetzers
+    shortTitle: Anmerkungen zu Charcot (1886)
+    edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886)"
+    author: Sigmund Freud
+    year: 1886
+    kind: work
   - item: wmw-1887-cocainsucht
     citation: WMW 1887
     ocr: deu
@@ -969,6 +1048,104 @@ books:
     edition: Wiener Medizinische Wochenschrift, 37. Jahrgang, Nr. 28 (Wien, 9. Juli 1887), Sp. 929–932
     author: Sigmund Freud
     year: 1887
+    kind: work
+  - item: buchheim-1887-diagnostik
+    citation: Buchheim 1887
+    firstPage: 188
+    lastPage: 207
+    # The paragraphs of two pages the OCR misreads: on 194 a dash it read
+    # before a line, on 195 a run-in head it reads as a title.
+    paragraphs:
+      - { page: 194, opens: Erwänenswert }
+      - { page: 194, opens: 2. Spannung }
+      - { page: 194, opens: 3. Lähmung }
+      - { page: 195, opens: "Die Lähmungen aus peripherer Ursache," }
+      - { page: 195, opens: Die Lähmungen aus peripherer Ursache können }
+      - { page: 195, opens: Findet man }
+      - { page: 195, opens: a) Ausbreitung }
+      - { page: 195, opens: b) Atrophie }
+    slug: das-nervensystem
+    title: Das Nervensystem
+    edition: "Eduard Buchheim, Ärztliche Versicherungs-Diagnostik, fünfter Abschnitt (Wien 1887), S. 188–207"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: wmw-37-1887-5
+    citation: WMW 1887
+    # Two columns to a page, each numbered: a page is cited by its first.
+    columns: true
+    firstPage: 137
+    lastPage: 137
+    opensWith: Die akute Neurasthenie
+    closesWith: Sinne des viel
+    # Each review opens with the title of the book it reviews, set on two
+    # or three short lines.
+    paragraphs:
+      - { page: 137, opens: Die akute Neurasthenie }
+      - { page: 137, opens: Wie wenig }
+      - { page: 137, opens: Die Behandlung gewisser }
+      - { page: 137, opens: Das Heilverfahren }
+    slug: besprechungen-von-averbeck-und-weir-mitchell
+    title: "Besprechungen von Averbeck, Die akute Neurasthenie, und Weir Mitchell, Die Behandlung gewisser Formen von Neurasthenie und Hysterie"
+    shortTitle: Averbeck und Weir Mitchell
+    edition: "Wiener Medizinische Wochenschrift 37, Nr. 5 (29. Jänner 1887), Sp. 138"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: bernheim-1888-suggestion
+    citation: Bernheim 1888
+    firstPage: III
+    lastPage: XII
+    # The OCR read page IV askew: its paragraphs, by their lines as read.
+    paragraphs:
+      # "Die Sache des Hypnotismus", which the OCR read as "ee 7 sl".
+      - { page: IV, opens: ee 7 sl }
+      - { page: IV, opens: Ein Standpunkt }
+      - { page: IV, opens: Ein anderer }
+    notes:
+      - { page: IX, opens: ¹) Archives }
+      - { page: IX, opens: ²) Die Beziehungen }
+    slug: vorrede-des-uebersetzers-zu-bernheim-die-suggestion
+    title: Vorrede des Übersetzers
+    shortTitle: Vorrede zu Bernheim
+    edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1888), S. III–XII"
+    author: Sigmund Freud
+    year: 1888
+    kind: work
+  - item: Villaret1888Handwoerterbuch
+    ocr: deu
+    citation: Villaret I
+    # Two columns to a page, the page numbered once.
+    columns: true
+    firstPage: 886
+    lastPage: 892
+    opensWith: "Hysterie, die"
+    closesWith: "scher Natur."
+    # Where the scan sits askew the right column's lines read as set in:
+    # the paragraphs of those pages by their openings.
+    paragraphs:
+      - { page: 887, opens: "2. Hysterogene" }
+      - { page: 887, opens: "3. Störungen" }
+      - { page: 887, opens: "In allen diesen" }
+      - { page: 887, opens: "4. Störungen" }
+      - { page: 888, opens: "5. Lähmungen" }
+      - { page: 888, opens: "6. Kontrakturen. Bei" }
+      - { page: 888, opens: "Bei schwereren Formen" }
+      - { page: 888, opens: "7. Allgemeine" }
+      - { page: 889, opens: "Neben den physischen" }
+      - { page: 889, opens: "Die H. ist zu betrachten" }
+      - { page: 890, opens: "Verlauf der Hysterie" }
+      - { page: 890, opens: "IV. Verlauf" }
+      - { page: 890, opens: "Die H. kann sich" }
+      - { page: 890, opens: "V. Die Therapie" }
+    # Unsigned, as the dictionary's articles are; Freud is among its
+    # contributors ("Dozent Dr. Freud in Wien"), and the article reports
+    # Breuer's cathartic method before anyone but Freud had printed it.
+    slug: hysterie
+    title: Hysterie
+    edition: "Handwörterbuch der gesamten Medizin, hg. von A. Villaret, Bd. I (Ferdinand Enke, Stuttgart 1888), S. 886–892"
+    author: Sigmund Freud
+    year: 1888
     kind: work
   - item: b28071852
     citation: Aphasien
@@ -1053,6 +1230,166 @@ books:
     edition: Klinische Studie über die halbseitige Cerebrallähmung der Kinder (Wien, Moritz Perles, 1891; Beiträge zur Kinderheilkunde, III. Heft)
     author: Sigmund Freud und Oscar Rie
     year: 1891
+    kind: work
+  - item: therapeutischesl00buma
+    ocr: deu
+    citation: Bum 1891
+    # Two columns to a page, each numbered: a page is cited by its first.
+    columns: true
+    firstPage: 723
+    lastPage: 731
+    opensWith: "HYPIIOSG- Es wäre"
+    # Freud's signature follows, then the next article.
+    closesWith: Stande sein werde
+    slug: hypnose
+    title: Hypnose
+    edition: "Therapeutisches Lexikon für praktische Ärzte, hg. von Anton Bum (Urban & Schwarzenberg, Wien und Leipzig 1891), Sp. 724–732"
+    author: Sigmund Freud
+    year: 1891
+    kind: work
+  - item: b21499792
+    ocr: deu
+    citation: Charcot 1892
+    # The front matter has no roman heads the OCR reads.
+    frontLeaf: 4
+    firstPage: III
+    lastPage: VI
+    slug: vorwort-des-uebersetzers-zu-charcot-poliklinische-vortraege
+    title: Vorwort des Übersetzers
+    shortTitle: Vorwort zu Charcot (1892)
+    edition: "J. M. Charcot, Poliklinische Vorträge, I. Band, Schuljahr 1887/88, übersetzt von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1892), S. III–VI"
+    author: Sigmund Freud
+    year: 1892
+    kind: work
+  - item: b21499792
+    ocr: deu
+    citation: Charcot 1892
+    frontLeaf: 4
+    firstPage: 1
+    lastPage: 469
+    # The translator's notes, each under the passage it is set to; the
+    # lectures are Charcot's, and so are the notes he signed.
+    notesOnly: true
+    skipNotesSigned:
+      ["(Ch.)", "(Ch.).", "[Ch.]", "(Charcot.)", "(Charcot)", "(Charcot)."]
+    # The OCR loses the rule above the notes, and reads a figure's scraps and
+    # caption as notes: the notes are those named, by their openings.
+    notesNamed: true
+    notes:
+      - { page: 2, opens: "') Ein Citat aus" }
+      - { page: 4, opens: "‘') Die Lehre von" }
+      - { page: 5, opens: "*) Leichte Bethei" }
+      - { page: 6, opens: "') E. Neumann, Du" }
+      - { page: 8, opens: "*) Ich bin seiner" }
+      - { page: 9, opens: "‘) Es ist unläugb" }
+      - { page: 26, opens: "‘) Ich weiss nich" }
+      - { page: 29, opens: ".‘; So richtig die" }
+      - { page: 37, opens: "1y Eine interessa" }
+      - { page: 49, opens: "1y Siehe darüber:" }
+      - { page: 52, opens: "ıy Der französisc" }
+      - { page: 53, opens: "iy So übersetze i" }
+      - { page: 53, opens: "der Jletzteren bedienen", runsOn: true }
+      - { page: 56, opens: "') Ich halte dies" }
+      - { page: 57, opens: "Charcot’s loyale", runsOn: true }
+      - { page: 65, opens: "i) Ich habe die b" }
+      - { page: 74, opens: "') Nach Erb (Dyst" }
+      - { page: 75, opens: "ıy Zur Erläuterun" }
+      - { page: 80, opens: "') Ohrenärzte hab" }
+      - { page: 84, opens: "ı) Dieser Kranke" }
+      - { page: 87, opens: "‘) pag. 57 in den" }
+      - { page: 89, opens: "iy Die Folge hat" }
+      - { page: 90, opens: "') Diese Arbeit i" }
+      - { page: 98, opens: "!) Wir haben neue" }
+      - { page: 100, opens: "ı) Dies ist die b" }
+      - { page: 106, opens: "') Eine Terminolo" }
+      - { page: 107, opens: "ıy P. Richer, Etu" }
+      - { page: 108, opens: "') Charcot und se" }
+      - { page: 114, opens: "') Ich glaube, ic" }
+      - { page: 124, opens: "') Die Heinzelmän" }
+      - { page: 126, opens: "') Wer die Fourni" }
+      - { page: 128, opens: "') Die Fortsetzun" }
+      - { page: 134, opens: "'ı Wer Meister Ch" }
+      - { page: 135, opens: "5y Bourneville ma" }
+      - { page: 137, opens: "ıy Ob es wohl zuf" }
+      - { page: 140, opens: "‘)' Vgl. Blocq: Le" }
+      - { page: 141, opens: "') \\nm de Dieu." }
+      - { page: 142, opens: "') Ich will hier" }
+      - { page: 147, opens: "') Es sind zumeis" }
+      - { page: 147, opens: "’) Man überzengt" }
+      - { page: 148, opens: "ı) Paralysis agit" }
+      - { page: 149, opens: "‘) Mit wenigen Au" }
+      - { page: 154, opens: "‘') Es ist mir sei" }
+      - { page: 170, opens: "‘) Es ist wohl ni" }
+      - { page: 173, opens: "’) Die acut und s" }
+      - { page: 199, opens: "') Goldene Worte," }
+      - { page: 204, opens: "') S0 lange Dauer" }
+      - { page: 206, opens: "‘) In Betreff der" }
+      - { page: 210, opens: "') Ich will das s" }
+      - { page: 211, opens: "Begründung und sind", runsOn: true }
+      - { page: 214, opens: "¹) Ich glaube mic" }
+      - { page: 215, opens: "falls bleibt das", runsOn: true }
+      - { page: 216, opens: "') Streng genomme" }
+      - { page: 222, opens: "') Die später vor" }
+      - { page: 224, opens: "') Ich wage hier" }
+      - { page: 228, opens: "') In späteren Vo" }
+      - { page: 228, opens: "?) Vgl. den IV. B" }
+      - { page: 237, opens: "ı) Mir ist kürzli" }
+      - { page: 237, opens: "?) Mancher Leser" }
+      - { page: 240, opens: "‘) In einer eben" }
+      - { page: 249, opens: "_ *y Die später vor" }
+      - { page: 260, opens: "') Eine Heldentha" }
+      - { page: 261, opens: "Strom und rettete", runsOn: true }
+      - { page: 268, opens: "*) Als ich 1886 d" }
+      - { page: 286, opens: "ı) Mit diesen wei" }
+      - { page: 293, opens: "') Eine am nächst" }
+      - { page: 297, opens: "') Deutsch von P," }
+      - { page: 312, opens: "') Ausser den ang" }
+      - { page: 314, opens: "ı) Es ist &en Les" }
+      - { page: 319, opens: "*) Vgl. dort den" }
+      - { page: 329, opens: "') Einige Tage sp" }
+      - { page: 338, opens: "‘1) Man gibt. das" }
+      - { page: 351, opens: "1) Richtiger wohl" }
+      - { page: 352, opens: "!} Functionelle u" }
+      - { page: 352, opens: "?) Der Kranke kam" }
+      - { page: 353, opens: "') Einer der Kran" }
+      - { page: 357, opens: "') Vgl. die Polik" }
+      - { page: 357, opens: "f ’) [(Charcot" }
+      - { page: 364, opens: "') Vgl. die Polik" }
+      - { page: 368, opens: "') In einer klein" }
+      - { page: 368, opens: "?) Vgl. die Polik" }
+      - { page: 370, opens: "ı) So geschah es" }
+      - { page: 371, opens: "‘) Man missverste" }
+      - { page: 371, opens: "?) Vgl. einen ähn" }
+      - { page: 372, opens: "ı) In letzter Zei" }
+      - { page: 377, opens: "‘) Es ist sehr zu" }
+      - { page: 396, opens: "') Diese ganze th" }
+      - { page: 397, opens: ") Vgl. über das" }
+      - { page: 399, opens: "') Alle diese äti" }
+      # On 404 the note Charcot signed runs on in one of the translator's own.
+      - { page: 404, opens: "Die Lehre von der Famille" }
+      - { page: 407, opens: "') Bei Reizung mi" }
+      - { page: 407, opens: "?) Alle diese hie" }
+      - { page: 417, opens: "‘) Wir würden hie" }
+      - { page: 422, opens: "') Die sehr inter" }
+      - { page: 423, opens: "‘) Anffällig ist." }
+      - { page: 424, opens: "‘) Nicht jede tar" }
+      - { page: 425, opens: "‘5) Raymond stellt" }
+      - { page: 426, opens: "') Charcot. — La" }
+      - { page: 426, opens: "es streng genommen", runsOn: true }
+      - { page: 427, opens: "ıy Wir kennen wen" }
+      - { page: 429, opens: "ıy Dieser Bruder" }
+      - { page: 436, opens: "ı) Alle diese Bem" }
+      - { page: 437, opens: "Kommen und Verschwinden", runsOn: true }
+      - { page: 447, opens: "ı» Vergl, Anbang:" }
+      - { page: 452, opens: "‘) Daher die Bere" }
+      - { page: 452, opens: "°) Die vollständi" }
+      - { page: 460, opens: "*‘) Vergl. hierzu:" }
+    slug: anmerkungen-des-uebersetzers-zu-charcot-poliklinische-vortraege
+    title: Anmerkungen des Übersetzers
+    shortTitle: Anmerkungen zu Charcot (1892)
+    edition: "J. M. Charcot, Poliklinische Vorträge, I. Band, Schuljahr 1887/88, übersetzt von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1892)"
+    author: Sigmund Freud
+    year: 1892
     kind: work
   - item: Freud_1893_Diplegien
     citation: Diplegien
@@ -1199,6 +1536,228 @@ books:
     author: Sigmund Freud
     year: 1893
     kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 37
+    lastPage: 39
+    opensWith: Accessoriuskrampf.
+    closesWith: "Erregbarkeit (s,"
+    # The headwords, set in bold at the start of their articles' first lines,
+    # by those lines as the OCR read them.
+    headings:
+      - { page: 37, opens: Accessoriuskrampf., title: Accessoriuskrampf }
+      - { page: 38, opens: ACOOSSOI, title: Accessoriuslähmung }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    shortTitle: Artikel im Diagnostischen Lexikon
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 62
+    lastPage: 62
+    opensWith: Agraphie (
+    closesWith: Wurzelstück der zweiten
+    headings:
+      - { page: 62, opens: Agraphie (, title: Agraphie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 71
+    lastPage: 71
+    opensWith: Alalie (
+    closesWith: peripherische und centrale Ursachen
+    headings:
+      - { page: 71, opens: Alalie (, title: Alalie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 75
+    lastPage: 75
+    opensWith: Alexie (
+    closesWith: der alectischen Störungen
+    headings:
+      - { page: 75, opens: Alexie (, title: Alexie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 98
+    lastPage: 99
+    opensWith: Amnesie (
+    closesWith: von motorischer Aphasie und Anarthrie dar
+    headings:
+      - { page: 98, opens: Amnesie (, title: Amnesie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 126
+    lastPage: 127
+    opensWith: Anarthrie (
+    closesWith: etc.) erschlossen werden
+    headings:
+      - { page: 126, opens: Anarthrie (, title: Anarthrie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 148
+    lastPage: 149
+    opensWith: Anosmie (
+    closesWith: Intactheit der
+    headings:
+      - { page: 148, opens: Anosmie (, title: Anosmie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 170
+    lastPage: 177
+    opensWith: "Aph&Si"
+    closesWith: "beruhen, hier nicht abgehandelt"
+    headings:
+      - { page: 170, opens: Aph&Si, title: Aphasie }
+    # The caption of figure 24 on 172, set as one line, and the main text
+    # going on below it.
+    paragraphs:
+      - { page: 172, opens: "Bisher haben wir" }
+      - { page: 172, opens: "Die Zerstörung des centralen" }
+      - { page: 172, opens: "Fig. 24. Die schraffirten" }
+      - { page: 172, opens: "sollen. Die Zerstörung" }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 182
+    lastPage: 182
+    opensWith: Aphrasie (
+    closesWith: der Sprache aus Motiven
+    headings:
+      - { page: 182, opens: Aphrasie (, title: Aphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 478
+    lastPage: 478
+    opensWith: Bradylalie
+    closesWith: Rede in Folge von trägem
+    headings:
+      - { page: 478, opens: Bradylalie (, title: Bradylalie }
+      - { page: 478, opens: Bradyphrasie (, title: Bradyphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 808
+    lastPage: 808
+    opensWith: "DYS|H.IIG"
+    closesWith: eine Fernwirkung auf die für das Lesen
+    headings:
+      - { page: 808, opens: DYS H, title: Dyslalie }
+      - { page: 808, opens: "D)'SIB", title: Dyslexie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 817
+    lastPage: 817
+    opensWith: Dysphrasie (
+    closesWith: als psychische Aequivalente
+    headings:
+      - { page: 817, opens: Dysphrasie (, title: Dysphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: Diagnostisches1v4K
+    citation: Diagn. Lex. I
+    ocr: deu
+    firstPage: 825
+    lastPage: 825
+    opensWith: Echolalie (
+    closesWith: mit E. verbundene Neurose
+    headings:
+      - { page: 825, opens: Echolalie (, title: Echolalie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. I (Urban & Schwarzenberg, Wien und Leipzig 1893) und Bd. III (1894)"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: DiagnostischesLexikon3v4
+    citation: Diagn. Lex. III
+    firstPage: 614
+    lastPage: 614
+    opensWith: Paraphrasie
+    closesWith: Weise Platz anbietet
+    headings:
+      - { page: 614, opens: Paraphrasie, title: Paraphrasie }
+    slug: artikel-im-diagnostischen-lexikon
+    title: Artikel im Diagnostischen Lexikon für praktische Ärzte
+    edition: "Diagnostisches Lexikon für praktische Ärzte, hg. von Anton Bum und M. T. Schnirer, Bd. III (Urban & Schwarzenberg, Wien und Leipzig 1894), S. 614"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
   - item: cn-1895-14-11
     citation: Bernhardt’sche Sensibilitätsstörung
     ocr: deu
@@ -1213,6 +1772,39 @@ books:
     edition: Neurologisches Centralblatt, XIV. Jahrgang, Nr. 11 (Leipzig 1895), S. 491–492
     author: Sigmund Freud
     year: 1895
+    kind: work
+  - item: 1895j_WKR_9_9
+    citation: WKR 1895
+    columns: true
+    firstPage: 140
+    lastPage: 141
+    opensWith: Die Migräne. Von G. J.
+    closesWith: sieht. Sigm. Freud.
+    # The OCR read the paragraphs of the review's first page askew.
+    paragraphs:
+      - { page: 140, opens: Die Migräne. Von }
+      - { page: 140, opens: Die Reihe }
+      - { page: 140, opens: Dieses Büchlein }
+      - { page: 140, opens: Es wäre verlockend }
+      - { page: 140, opens: Ich kenne }
+      - { page: 140, opens: Wie man sieht, ist }
+    slug: besprechung-von-moebius-die-migraene
+    title: "Die Migräne. Von G. J. Moebius"
+    shortTitle: Moebius, Die Migräne
+    edition: "Wiener klinische Rundschau 9, Nr. 9 (3. März 1895), S. 140–141"
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: bernheim-1896-suggestion
+    citation: Bernheim 1896
+    firstPage: III
+    lastPage: IV
+    slug: vorwort-zur-zweiten-deutschen-auflage-von-bernheim-die-suggestion
+    title: Vorwort zur zweiten deutschen Auflage
+    shortTitle: Vorwort zu Bernheim (1896)
+    edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud, zweite, umgearbeitete Auflage besorgt von Dr. Max Kahane (Franz Deuticke, Leipzig und Wien 1896), S. III–IV"
+    author: Sigmund Freud
+    year: 1896
     kind: work
   - item: b33778474
     citation: Infantile Cerebrallähmung
@@ -1267,6 +1859,192 @@ books:
     edition: Die infantile Cerebrallähmung (Wien, Alfred Hölder, 1897; Nothnagels Specielle Pathologie und Therapie, IX. Band, II. Theil, II. Abtheilung)
     author: Sigmund Freud
     year: 1897
+    kind: work
+  - item: Freud_1907_Gradiva
+    citation: Gradiva 1907
+    # The archive's OCR lost the notice's title.
+    ocr: deu
+    firstPage: 82
+    lastPage: 82
+    # Signed by the publisher and by Freud as the series' editor.
+    closesWith: schaft Ausdruck geben
+    headings:
+      - { page: 82, opens: Anzeige., level: 1 }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    shortTitle: Mitteilungen 1907–1914
+    edition: "Der Wahn und die Träume in W. Jensens „Gradiva“ (Schriften zur angewandten Seelenkunde 1, 1907), S. [82]; Zentralblatt für Psychoanalyse 1–2 (1911–12); Internationale Zeitschrift für ärztliche Psychoanalyse 1–2 (1913–14)"
+    author: Sigmund Freud
+    year: 1907
+    kind: work
+  - item: zb119111011
+    citation: Zbl. I
+    firstPage: 495
+    lastPage: 495
+    # Freud's note, signed "Der Herausgeber", to Stekel's article on exhibitionism.
+    notesOnly: true
+    notesSigned: [Der Herausgeber.]
+    # The OCR sets the note as the text.
+    notes:
+      - { page: 495, opens: "... »)" }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 10/11 (1911), S. 495"
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: zb2191212
+    citation: Zbl. II
+    firstPage: 680
+    lastPage: 680
+    opensWith: Offener Sprechsaal
+    closesWith: die in den Kinderjahren selbst
+    headings:
+      - { page: 680, opens: Offener Sprechsaal, level: 1 }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Zentralblatt für Psychoanalyse 2, Heft 12 (1912), S. 680"
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: z119131
+    citation: IZ I
+    firstPage: 79
+    lastPage: 79
+    opensWith: Kindheitsträume mit
+    closesWith: sich ein größeres Material
+    headings:
+      - { page: 79, opens: Kindheitsträume mit, level: 1 }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 1, Heft 1 (1913), S. 79"
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: z219144
+    citation: IZ II
+    firstPage: 384
+    lastPage: 385
+    opensWith: Darstellung der
+    closesWith: welche ihn in die weibliche
+    headings:
+      - { page: 384, opens: Darstellung der, level: 1 }
+    slug: mitteilungen-und-anmerkungen-19071914
+    title: "Mitteilungen und Anmerkungen 1907–1914"
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 2, Heft 4 (1914), S. 384–385"
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: Freud_1910_Drei_Abhandlungen_2te
+    citation: Drei Abhandlungen 1910
+    ocr: deu
+    # The preface's page is unnumbered: the third of the front matter.
+    frontLeaf: 2
+    firstPage: III
+    lastPage: III
+    slug: vorwort-zur-zweiten-auflage-der-drei-abhandlungen-zur-sexualtheorie
+    title: Vorwort zur zweiten Auflage
+    shortTitle: Vorwort zu den Drei Abhandlungen (1910)
+    edition: "Drei Abhandlungen zur Sexualtheorie, zweite Auflage (Franz Deuticke, Leipzig und Wien 1910), S. [III]"
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: zb1191156
+    citation: Zbl. I
+    firstPage: 187
+    lastPage: 192
+    opensWith: Einige Beispiele
+    closesWith: Scherz im Wachen
+    # Its two parts' titles, set in the text's type, and the first of the
+    # symbols' numbered titles.
+    headings:
+      - { page: 187, opens: Einige Beispiele, level: 1 }
+      - { page: 187, opens: 1. Der Hut }
+      - { page: 191, opens: Einige seltenere, level: 1 }
+    slug: nachtraege-zur-traumdeutung
+    title: Nachträge zur Traumdeutung
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 5/6 (1911), S. 187–192"
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: z419161
+    citation: IZ IV
+    firstPage: 42
+    lastPage: 42
+    # Freud's note, signed, to Ernest Jones' reply to Pierre Janet.
+    notesOnly: true
+    notesSigned: [Freud.]
+    # The OCR sets the note as the text.
+    notes:
+      - { page: 42, opens: "‘) Anmerkung" }
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    shortTitle: Mitteilungen 1916–1939
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 4–5 (1916–19); Internationale Zeitschrift für Psychoanalyse 7–10 (1921–24); Internationale Zeitschrift für Psychoanalyse und Imago 24 (1939)"
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: z519194
+    citation: IZ V
+    firstPage: 308
+    lastPage: 308
+    opensWith: E. T. A. Hoffmann über
+    closesWith: Ausfuhr ist verboten
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für ärztliche Psychoanalyse 5, Heft 4 (1919), S. 308"
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: z719213
+    citation: IZ VII
+    firstPage: 381
+    lastPage: 381
+    opensWith: Preiszuteilungen
+    closesWith: Mark. Freud.
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse 7, Heft 3 (1921), S. 381"
+    author: Sigmund Freud
+    year: 1921
+    kind: work
+  - item: z819224
+    citation: IZ VIII
+    firstPage: 527
+    lastPage: 527
+    opensWith: Preisausschreibung
+    closesWith: Wien, IX., Berggasse 19.
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse 8, Heft 4 (1922), S. 527"
+    author: Sigmund Freud
+    year: 1922
+    kind: work
+  - item: z1019244
+    citation: IZ X
+    firstPage: 373
+    lastPage: 373
+    opensWith: Mitteilung des Herausgebers
+    closesWith: (Direktor A. J.
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse 10, Heft 4 (1924), S. 373"
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: z24193912
+    citation: IZ XXIV
+    firstPage: 5
+    lastPage: 5
+    opensWith: Vorbemerkung
+    closesWith: unverändert fortsetzen
+    headings:
+      - { page: 5, opens: Vorbemerkung, level: 1 }
+    slug: mitteilungen-und-anmerkungen-19161939
+    title: "Mitteilungen und Anmerkungen 1916–1939"
+    edition: "Internationale Zeitschrift für Psychoanalyse und Imago 24, Heft 1/2 (1939), S. [5]"
+    author: Sigmund Freud
+    year: 1939
     kind: work
   - item: zukunft-1938-antisemitismus
     citation: Zukunft 1938
@@ -3047,7 +3825,8 @@ books:
     author: Sigmund Freud
     year: 1926
     kind: work
-    published: false
+    # Read out at the lodge Wien on 8 May 1926 and printed in the B'nai
+    # B'rith Mitteilungen für Österreich 26, Heft 5 (Mai 1926), S. 103–105.
   - item: freud-1941-gw-17
     citation: GW XVII
     firstPage: 57

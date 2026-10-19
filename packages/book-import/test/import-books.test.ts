@@ -980,6 +980,99 @@ books:
     expect(texts.join("\n")).toContain("rückt ein Wort");
   });
 
+  const piecesManifest = `
+source: archive-ocr
+books:
+  - item: freud-1940-gw-13
+    citation: GW XIII
+    firstPage: 3
+    lastPage: 6
+    slug: kleine-schriften
+    title: Kleine Schriften
+    edition: Zeitschrift, Bd. I–II
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+  - item: zeitschrift-2
+    citation: Z II
+    firstPage: 7
+    lastPage: 10
+    slug: kleine-schriften
+    title: Kleine Schriften
+    edition: Zeitschrift, Bd. I–II
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+`;
+
+  async function fetchTwoVolumes(url: string): Promise<string> {
+    if (url === "https://archive.org/metadata/zeitschrift-2") {
+      requested.push(url);
+      return JSON.stringify({
+        files: [{ name: "z2_hocr.html", format: "hOCR" }],
+      });
+    }
+    return fetchArchive(url);
+  }
+
+  it("joins the entries that share a slug into one book, read from each one's volume in turn", async () => {
+    const results = await importBooks(
+      parseManifest(piecesManifest),
+      brainData,
+      fetchTwoVolumes,
+    );
+    const files = await Array.fromAsync(
+      new Bun.Glob("book/kleine-schriften/*.md").scan(brainData),
+    );
+    const sections = await Promise.all(
+      files
+        .sort()
+        .map(async (file) =>
+          bookSectionAdapter.parseFrontMatter(
+            await readFile(join(brainData, file), "utf8"),
+            bookSectionAdapter.frontmatterSchema,
+          ),
+        ),
+    );
+
+    expect(results).toEqual([
+      { slug: "kleine-schriften", entries: sections.length + 1 },
+    ]);
+    expect(requested).toContain(
+      "https://archive.org/download/zeitschrift-2/z2_hocr.html",
+    );
+    expect(sections[0]?.["page"]).toBe("GW XIII, 3");
+    expect(sections.at(-1)?.["source"]).toStartWith(
+      "https://archive.org/details/zeitschrift-2/",
+    );
+  });
+
+  it("credits the scan of each volume a book is read from", async () => {
+    await importBooks(
+      parseManifest(piecesManifest),
+      brainData,
+      fetchTwoVolumes,
+    );
+    const title = await readFile(
+      join(brainData, "book/kleine-schriften.md"),
+      "utf8",
+    );
+
+    expect(title).toContain("archive.org/details/freud-1940-gw-13");
+    expect(title).toContain("archive.org/details/zeitschrift-2");
+  });
+
+  it("rejects entries that share a slug but not the book's title", () => {
+    expect(() =>
+      parseManifest(
+        piecesManifest.replace(
+          /(zeitschrift-2[\s\S]*?title: )Kleine Schriften/u,
+          "$1Andere",
+        ),
+      ),
+    ).toThrow("share a slug");
+  });
+
   it("names the transcriptions of a work to check its OCR against", () => {
     const manifest = parseManifest(
       ocrManifest +
@@ -1401,5 +1494,42 @@ books:
       "<span class='ocr_pageno'>276</span>",
       "<span class='ocr_pageno'>277</span>",
     ]);
+  });
+});
+
+describe("a volume whose front matter no head numbers", () => {
+  const books = scannedBooks(
+    parseManifest(`
+source: archive-ocr
+books:
+  - { item: drei, citation: DA, firstPage: III, lastPage: III, frontLeaf: 2, slug: vorwort, title: Vorwort, edition: DA, author: Sigmund Freud, year: 1910, kind: work }
+  - { item: drei, citation: DA, firstPage: 1, lastPage: 2, slug: text, title: Text, edition: DA, author: Sigmund Freud, year: 1910, kind: work }
+`),
+  );
+
+  it("reads it as a volume of its own, its leaves numbered from the one the manifest names", () => {
+    const [vorwort, text] = books.map(volumeKey);
+
+    expect(vorwort).not.toBe(text);
+  });
+});
+
+describe("a scanned work set among others' texts", () => {
+  const [book] = scannedBooks(
+    parseManifest(`
+source: archive-ocr
+books:
+  - { item: wmw, citation: WMW, columns: true, firstPage: 137, lastPage: 137, opensWith: Die akute, closesWith: behandelt sind, notesOnly: true, notesSigned: [Der Herausgeber.], notesNamed: true, slug: a, title: A, edition: WMW, author: Sigmund Freud, year: 1887, kind: work }
+`),
+  );
+
+  it("names its columns, its closing line and the notes that are its own", () => {
+    expect(book).toMatchObject({
+      columns: true,
+      closesWith: "behandelt sind",
+      notesOnly: true,
+      notesSigned: ["Der Herausgeber."],
+      notesNamed: true,
+    });
   });
 });
