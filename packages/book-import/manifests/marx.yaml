@@ -31,6 +31,23 @@ coverage:
   edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, MEGAdigital and Wikisource or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
+  # Rheinische Zeitung and Trier'sche Zeitung, 1842–1843: pieces MEGA² I/1 gives to Marx that MEW leaves out.
+  - citation: Rheinische Zeitung, 8 Nov 1842
+    title: Die Kommunalreform und die „Kölnische Zeitung“
+    year: 1842
+    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
+  - citation: Rheinische Zeitung, 17 Nov 1842
+    title: Ein Korrespondent der „Kölnischen Zeitung“ und die „Rheinische Zeitung“
+    year: 1842
+    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
+  - citation: Rheinische Zeitung, 18 Dec 1842
+    title: Über Adolph Stahr
+    year: 1842
+    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
+  - citation: Trier'sche Zeitung, 25 Feb 1843
+    title: Zum Ausbleiben der Fortsetzung der „Rechtfertigung des ††-Korrespondenten von der Mosel“
+    year: 1843
+    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
   # Anekdota, 1843.
   - citation: Anekdota zur neuesten deutschen Philosophie und Publicistik, Bd. II, 1843
     title: Luther als Schiedsrichter zwischen Strauß und Feuerbach
@@ -41,6 +58,25 @@ gaps:
     title: Declaration, with Arnold Ruge
     year: 1843
     reason: La Démocratie pacifique is on Gallica, which refuses scripted access
+  # Allgemeine Zeitung (Augsburg), 1844.
+  - citation: Allgemeine Zeitung, 20 Apr 1844
+    title: Erklärung
+    year: 1844
+    reason: not yet imported from MEGA² I/2 (1982), whose scan on the Internet Archive is past the edition right
+  # Vorwärts! (Paris), 1845.
+  - citation: Vorwärts!, 1 Jan 1845
+    title: Erklärung zur Unterstützung von Heinrich Heine
+    year: 1845
+    reason: no free scan of the Paris Vorwärts! was found; only in MEGA² I/4 (2022), within the edition right
+  # Gesellschaftsspiegel, 1846: Marx's piece and one with Engels.
+  - citation: Gesellschaftsspiegel, Bd. 2, H. 7, Jan 1846
+    title: "Peuchet: Vom Selbstmord"
+    year: 1846
+    reason: no free scan of the Gesellschaftsspiegel was found; only in MEGA² I/4 (2022), within the edition right
+  - citation: Gesellschaftsspiegel, Bd. 2, H. 7, Jan 1846
+    title: Gegen Bruno Bauer
+    year: 1846
+    reason: no free scan of the Gesellschaftsspiegel was found; only in MEGA² I/4 (2022), within the edition right
   # The Northern Star, 1846.
   - citation: Northern Star, 25 Jul 1846
     title: Address of the German Democratic Communists of Brussels to Mr. Feargus O'Connor
@@ -78,6 +114,143 @@ gaps:
     title: Saedt
     year: 1849
     reason: MECW gives it to Engels
+  # Neue Rheinische Zeitung, 1848–1849: pieces MEGA² I/7–I/9 give to Marx, alone or with Engels, that MEW leaves out, prints unattributed among its appendices, or gives to Engels.
+  - citation: press notice, Cologne, May 1848
+    title: Anzeige über das Erscheinen der „Neuen Rheinischen Zeitung“
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right
+  - citation: Neue Rheinische Zeitung, Jun 1848
+    title: Reichensperger
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 8 Jul 1848
+    title: Gerichtliche Untersuchung gegen die „Neue Rheinische Zeitung“
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Aug 1848
+    title: Französisches Gesetz über Diffamation
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Aug 1848
+    title: Bakunin
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Aug 1848
+    title: Erwiderung des Staatsprokurators Hecker
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Aug 1848
+    title: Herr Hecker und die „Neue Rheinische Zeitung“
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Aug 1848
+    title: Die Montags-Nummer
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 5 Aug 1848
+    title: Die gerichtliche Verfolgung gegen die „Neue Rheinische Zeitung“
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Sep 1848
+    title: Kontrerevolutionärer Feldzug in Köln
+    year: 1848
+    reason: only in MEGA² I/7 (2016), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Nov 1848
+    title: Die Wiener Nachrichten
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Nov 1848
+    title: Wiener Nachrichten
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 12 Nov 1848
+    title: Extra-Blatt zu Nr. 141 der „Neuen Rheinischen Zeitung“
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Nov 1848
+    title: Erscheinungsbefehl für Karl Marx
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Nov 1848
+    title: Vernehmungen
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Nov 1848
+    title: Geöffnete Briefe
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 6 Dec 1848
+    title: Prozesse der „Neuen Rheinischen Zeitung“
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Dec 1848
+    title: Ein Presseprozess gegen die „Neue Rheinische Zeitung“ vertagt
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Dec 1848
+    title: Drigalskis Prozess gegen die „Neue Rheinische Zeitung“
+    year: 1848
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Jan 1849
+    title: Eine Entgegnung des Oberlandesgerichtsrats Rintelen
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 24 Jan 1849
+    title: Die Wahlen
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 25 Jan 1849
+    title: Die Wahlen
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Jan 1849
+    title: Urwahl-Erfahrungen
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Wesendonck
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, 9 Feb 1849
+    title: Freisprechung der „Neuen Rheinischen Zeitung“
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Erwiderung Hugo Wesendoncks
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Verfolgung gegen die Steuerverweigerer
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Neues Zeitungskartell
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Anton Gladbach
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Dreigestirn gegen Dreieck
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Feb 1849
+    title: Anton Gladbach und Joseph DuMont
+    year: 1849
+    reason: only in MEGA² I/8 (2020), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Mar 1849
+    title: Der Prozess gegen Lassalle
+    year: 1849
+    reason: only in MEGA² I/9 (2025), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Mar 1849
+    title: Der Adressentwurf der Zweiten Kammer
+    year: 1849
+    reason: only in MEGA² I/9 (2025), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
+  - citation: Neue Rheinische Zeitung, Apr 1849
+    title: Redaktionelle Anmerkung zur Anschuldigung gegen Röhrdanz
+    year: 1849
+    reason: only in MEGA² I/9 (2025), within the edition right; the Deutsches Textarchiv's transcription of the paper is under CC BY-NC
   # L'Alba, 1848.
   - citation: L'Alba, 29 Jun 1848
     title: To the Editor of the Newspaper L'Alba
@@ -88,6 +261,24 @@ gaps:
     title: To the Editor of the Newspaper La Presse
     year: 1849
     reason: La Presse is on Gallica, which refuses scripted access
+  # Neue Rheinische Zeitung. Politisch-ökonomische Revue, 1850: editorial notes with Engels.
+  - citation: Neue Rheinische Zeitung. Politisch-ökonomische Revue, H. 4, Apr 1850
+    title: Vorbemerkung zum Abdruck des Gedichts „Jambes“ von Louis Ménard
+    year: 1850
+    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
+  - citation: Neue Rheinische Zeitung. Politisch-ökonomische Revue, H. 4, Apr 1850
+    title: Redaktionelle Bemerkung
+    year: 1850
+    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
+  - citation: Neue Rheinische Zeitung. Politisch-ökonomische Revue, H. 5/6, May–Oct 1850
+    title: Fußnote zum Teilabdruck des „Manifestes der Kommunistischen Partei“
+    year: 1850
+    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
+  # The Times, 1850: with Engels, for the refugee committee.
+  - citation: The Times, 28 May 1850
+    title: To the Editor of The Times
+    year: 1850
+    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
   # The Sun (London), 1850.
   - citation: The Sun (London), 5 Jun 1850
     title: The Prussian Refugees
@@ -108,6 +299,20 @@ gaps:
     title: The Constitution of the French Republic Adopted November 4, 1848
     year: 1851
     reason: the only scan, a 1967 facsimile on the Internet Archive, is lent and not downloadable
+  # Morgenblatt für gebildete Leser, 1852.
+  - citation: Morgenblatt für gebildete Leser, 7 Mar 1852
+    title: Freiligrath gegen Kinkel
+    year: 1852
+    reason: not yet imported from MEGA² I/11 (1985), whose scan on the Internet Archive is past the edition right
+  # New-Yorker Criminal-Zeitung, 1852–1853: Marx's German texts on the Cologne trial.
+  - citation: New-Yorker Criminal-Zeitung, 10 Dec 1852
+    title: Erklärung zum Abschluß des Kölner Prozesses
+    year: 1852
+    reason: not yet imported from MEGA² I/11 (1985), whose scan on the Internet Archive is past the edition right
+  - citation: New-Yorker Criminal-Zeitung, 21 Jan 1853
+    title: Aufruf zur Unterstützung der in Köln verurteilten Vertreter des Proletariats und ihrer Familien
+    year: 1853
+    reason: not yet imported from MEGA² I/11 (1985), whose scan on the Internet Archive is past the edition right
   # New-York Daily Tribune, 1852–1862: Marx's articles, written in English, under the English titles MECW gives them.
   - citation: New-York Daily Tribune, 21 Aug 1852
     title: The Elections in England.—Tories and Whigs
@@ -425,6 +630,10 @@ gaps:
     title: Russian Diplomacy.—The Blue Book on the Eastern Question.—Montenegro
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 6 Mar 1854
+    title: The War Question in Europe
+    year: 1854
+    reason: not yet imported from MEGA² I/13 (1985), whose scan on the Internet Archive is past the edition right
   - citation: New-York Daily Tribune, 9 Mar 1854
     title: Debates in Parliament
     year: 1854
@@ -469,10 +678,18 @@ gaps:
     title: The War Debate in Parliament
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 17 Apr 1854
+    title: The European War
+    year: 1854
+    reason: not yet imported from MEGA² I/13 (1985), whose scan on the Internet Archive is past the edition right
   - citation: New-York Daily Tribune, 21 Apr 1854
     title: Russia and the German Powers.—Corn Prices
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Semi-Weekly Tribune, 21 Apr 1854
+    title: British Finances.—The Troubles at Preston
+    year: 1854
+    reason: not yet imported from MEGA² I/13 (1985), whose scan on the Internet Archive is past the edition right
   - citation: New-York Daily Tribune, 2 May 1854
     title: Reshid Pasha's Note.—An Italian Newspaper on the Eastern Question
     year: 1854
@@ -525,6 +742,10 @@ gaps:
     title: The Details of the Insurrection at Madrid.—The Austro-Prussian Summons.—The New Austrian Loan.—Wallachia
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) reprints only part of it
+  - citation: New-York Daily Tribune, 25 Jul 1854
+    title: The War on the Danube
+    year: 1854
+    reason: not yet imported from MEGA² I/13 (1985), whose scan on the Internet Archive is past the edition right
   - citation: New-York Daily Tribune, 28 Jul 1854
     title: Excitement in Italy.—The Events in Spain.—The Position of the German States.—British Magistrates
     year: 1854
@@ -581,6 +802,10 @@ gaps:
     title: The Reaction in Spain
     year: 1854
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 22 Sep 1854
+    title: Progress of the War
+    year: 1854
+    reason: not yet imported from MEGA² I/13 (1985), whose scan on the Internet Archive is past the edition right
   - citation: New-York Daily Tribune, 30 Sep 1854
     title: The Rumours about Mazzini's Arrest.—The Austrian Compulsory Loan.—Spain.—The Situation in Wallachia
     year: 1854
@@ -629,6 +854,10 @@ gaps:
     title: Austria and the War
     year: 1855
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; The Eastern Question (London, 1897) gives Palmerston's answer in the Commons only in the editors' summary and cuts the speeches of Clarendon and Ellenborough
+  - citation: New-York Daily Tribune, 28 Sep 1855
+    title: The Fall of Sevastopol
+    year: 1855
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; MEGA² I/14 (2001) is within the edition right until the end of 2026
   - citation: New-York Daily Tribune, 25 Feb 1856
     title: The American Difficulty.—Affairs of France
     year: 1856
@@ -861,6 +1090,10 @@ gaps:
     title: The French Crisis
     year: 1858
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, Jan 1858
+    title: The Commercial and Industrial State of England
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; only in MEGA² I/16 (2018), within the edition right
   - citation: New-York Daily Tribune, 3 Feb 1858
     title: British Commerce
     year: 1858
@@ -965,6 +1198,14 @@ gaps:
     title: Imprisonment of Lady Bulwer-Lytton
     year: 1858
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, Aug 1858
+    title: Imprisonment of Lady Bulwer-Lytton (Second Article)
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; only in MEGA² I/16 (2018), within the edition right
+  - citation: New-York Daily Tribune, Aug 1858
+    title: How the Indian War Has Been Mismanaged
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; only in MEGA² I/16 (2018), within the edition right
   - citation: New-York Daily Tribune, 20 Aug 1858
     title: The Increase of Lunacy in Great Britain
     year: 1858
@@ -1005,6 +1246,10 @@ gaps:
     title: The British and Chinese Treaty
     year: 1858
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, Oct 1858
+    title: A New French Revolutionary Manifesto
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; only in MEGA² I/16 (2018), within the edition right
   - citation: New-York Daily Tribune, 19 Oct 1858
     title: The Question of the Abolition of Serfdom in Russia
     year: 1858
@@ -1029,6 +1274,14 @@ gaps:
     title: Affairs in Prussia
     year: 1858
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, Nov 1858
+    title: Russia in China
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; only in MEGA² I/16 (2018), within the edition right
+  - citation: New-York Daily Tribune, Nov 1858
+    title: Mr. John Bright
+    year: 1858
+    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access; only in MEGA² I/16 (2018), within the edition right
   - citation: New-York Daily Tribune, 24 Nov 1858
     title: The Prosecution of Montalembert
     year: 1858
@@ -1257,6 +1510,10 @@ gaps:
     title: Interesting from Prussia
     year: 1860
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
+  - citation: New-York Daily Tribune, 4 Jul 1860
+    title: The Conference at Baden-Baden
+    year: 1860
+    reason: not yet imported from MEGA² I/18 (1984), whose scan on the Internet Archive is past the edition right
   - citation: New-York Daily Tribune, 16 Jul 1860
     title: British Commerce
     year: 1860
@@ -1358,6 +1615,10 @@ gaps:
     title: Public Statement to the Editors of the English Press
     year: 1852
     reason: no free scan of the People's Paper was found
+  - citation: The People's Paper, 26 Mar 1853
+    title: Kossuth and General Pierce.—The Refugees and the London Police
+    year: 1853
+    reason: not yet imported from MEGA² I/12 (1984), whose scan on the Internet Archive is past the edition right
   - citation: The People's Paper, 16 Apr 1853
     title: The New Financial Juggle; or Gladstone and the Pennies
     year: 1853
@@ -1420,6 +1681,87 @@ gaps:
     title: The War in the East
     year: 1854
     reason: no free scan of the Zuid Afrikaan was found
+  # Neue Oder-Zeitung, 1855: pieces MEGA² I/14 gives to Marx, most of them with Engels, that MEW leaves out or gives to Engels.
+  - citation: Neue Oder-Zeitung, 23 Jan 1855
+    title: Zur Kritik der Belagerung Sevastopol's
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 19 Mar 1855
+    title: Krimsche Angelegenheiten
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 26 Mar 1855
+    title: Über die letzten Vorgänge in der Krim
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 2 Apr 1855
+    title: Über die Situation in der Krim
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 17 Apr 1855
+    title: Kritik des Napoleonischen Moniteur-Artikels
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 18 Apr 1855
+    title: Die Affäre vom 23. März
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 11 May 1855
+    title: Die Belagerung von Sevastopol'
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 14 May 1855
+    title: Der Feldzug in der Krim
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 11 Jun 1855
+    title: Zur Kritik der Vorgänge in der Krim
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 15 Jun 1855
+    title: Kritik der Krimschen Unternehmungen
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 2 Jul 1855
+    title: Über die Ereignisse in der Krim
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 11 Jul 1855
+    title: Über den Sturm vom 18ten
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 28 Aug 1855
+    title: Die britische Armee
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 1 Sep 1855
+    title: Uniformierung und Equipierung des britischen Soldaten
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 3 Sep 1855
+    title: Über die Schlacht an der Černaja
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 14 Sep 1855
+    title: Zur Einnahme von Sevastopol'
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 29 Sep 1855
+    title: Die Widerstandskraft Rußlands
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 4 Oct 1855
+    title: Zur Erstürmung Sevastopol's
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 5 Oct 1855
+    title: Diplomatische Unschicklichkeit
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
+  - citation: Neue Oder-Zeitung, 11 Oct 1855
+    title: Das Komitee zu Newcastle upon Tyne
+    year: 1855
+    reason: no scan of the Neue Oder-Zeitung was found; only in MEGA² I/14 (2001), whose edition right runs to the end of 2026
   # The Free Press, 1857–1860.
   - citation: The Free Press, 1 Apr 1857
     title: A Traitor in Circassia
@@ -1429,6 +1771,16 @@ gaps:
     title: Prosecution of the Augsburg Gazette
     year: 1860
     reason: no free scan of the Free Press was found
+  # The New American Cyclopaedia, 1858.
+  - citation: The New American Cyclopaedia, Vol. III, 1858
+    title: Brown
+    year: 1858
+    reason: not yet imported from the Internet Archive's scan of Vol. III (newamericancycl21danagoog), which the other Cyclopaedia articles come from
+  # Die Neue Zeit (London), 1858.
+  - citation: Die Neue Zeit, Jul 1858
+    title: An den Redakteur der „Neuen Zeit“
+    year: 1858
+    reason: no scan of the London Neue Zeit was found; only in MEGA² I/16 (2018), within the edition right
   # Das Volk, 1859.
   - citation: Das Volk, 4 Jun 1859
     title: Gatherings from the Press
@@ -1439,6 +1791,11 @@ gaps:
     title: Der Bürgerkrieg in den Vereinigten Staaten
     year: 1861
     reason: Die Presse printed it in German, translated by others from Marx's English
+  # Londoner Anzeiger, 1865.
+  - citation: Londoner Anzeiger, 17 Mar 1865
+    title: Notiz über Friedrich Engels' Broschüre „Die preußische Militärfrage und die deutsche Arbeiterpartei“
+    year: 1865
+    reason: not yet imported from MEGA² I/20 (1992), whose scan on the Internet Archive is past the edition right
   # The Bee-Hive, 1865.
   - citation: The Bee-Hive, 20 May 1865
     title: Address from the Working Men's International Association to President Johnson
@@ -1454,6 +1811,11 @@ gaps:
     title: Instructions for the Delegates of the Provisional General Council. The Different Questions
     year: 1867
     reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # Le Courrier français, 1867.
+  - citation: Le Courrier français, 6 Sep 1867
+    title: Le statisticien Otto Hübner sur la misère de masse en Allemagne
+    year: 1867
+    reason: not yet imported from MEGA² I/20 (1992), whose scan on the Internet Archive is past the edition right
   # The General Council's leaflets, reports and statements, 1868–1872.
   - citation: General Council, London, 1868
     title: Declaration of the General Council Concerning the British Government's Attitude Towards Tsarist Russia
@@ -1524,11 +1886,30 @@ gaps:
     title: The General Council of the International Working Men's Association to Committee Members of the Russian Section in Geneva
     year: 1870
     reason: printed only in Russian, translated by others
+  # La Marseillaise, 1870.
+  - citation: La Marseillaise, 7 May 1870
+    title: Déclaration du Conseil Général de l'Association Internationale des Travailleurs « à l'occasion du dernier soi-disant complot »
+    year: 1870
+    reason: no free scan of La Marseillaise was found; only in MEGA² I/21 (2009), within the edition right
+  # Der Volksstaat, 1870: the General Council's notices on the Mainz congress.
+  - citation: Der Volksstaat, 25 May 1870
+    title: Bekanntmachung des Generalrats der Internationalen Arbeiterassoziation zur Einberufung des Jahreskongresses nach Mainz
+    year: 1870
+    reason: no free scan of the Volksstaat was found; only in MEGA² I/21 (2009), within the edition right
+  - citation: Der Volksstaat, 13 Aug 1870
+    title: Programmvorschlag des Generalrats für den fünften Kongreß der Internationalen Arbeiterassoziation
+    year: 1870
+    reason: no free scan of the Volksstaat was found; only in MEGA² I/21 (2009), within the edition right
   # Le Mirabeau, 1870.
   - citation: Le Mirabeau, 24 Jul 1870
     title: General Council Resolution on the Federal Committee of Romance Switzerland
     year: 1870
     reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # Die Arbeiter-Union (New York), 1870.
+  - citation: Die Arbeiter-Union, 23 Aug 1870
+    title: Über Karl Blind
+    year: 1870
+    reason: no free scan of the Arbeiter-Union was found; only in MEGA² I/21 (2009), within the edition right
   # The Pall Mall Gazette, 1870–1871.
   - citation: The Pall Mall Gazette, 15 Sep 1870
     title: Concerning the Arrest of the Members of the Central Committee of the Social-Democratic Workers' Party
@@ -1552,6 +1933,10 @@ gaps:
     year: 1878
     reason: no free scan of the Daily News was found
   # The Times, 1871–1873.
+  - citation: The Times, 23 Mar 1871
+    title: Statement by the General Council to the Editor of The Times and Other Papers
+    year: 1871
+    reason: not yet imported from MEGA² I/22 (1978), whose scan on the Internet Archive is past the edition right
   - citation: The Times, 4 Apr 1871
     title: To the Editor of The Times
     year: 1871
@@ -1589,6 +1974,11 @@ gaps:
     title: Declaration of the General Council of the International Working Men's Association
     year: 1872
     reason: no free scan of the Eastern Post was found
+  # Neue Freie Presse, 1871.
+  - citation: Neue Freie Presse, 4 Jul 1871
+    title: An die Redaktion der „Neuen Freien Presse“
+    year: 1871
+    reason: not yet imported from MEGA² I/22 (1978), whose scan on the Internet Archive is past the edition right
   # The Standard, 1871.
   - citation: The Standard, 17 Jul 1871
     title: To the Editor of The Standard
@@ -1604,6 +1994,11 @@ gaps:
     title: To the Editor of Le Gaulois
     year: 1871
     reason: Le Gaulois is on Gallica, which refuses scripted access
+  # The Examiner, 1871.
+  - citation: The Examiner, 2 Sep 1871
+    title: The Commune and Archbishop Darboy
+    year: 1871
+    reason: not yet imported from MEGA² I/22 (1978), whose scan on the Internet Archive is past the edition right
   # The Evening Standard, 1871.
   - citation: The Evening Standard, 6 Sep 1871
     title: To the Editor of The Evening Standard
@@ -1643,6 +2038,15 @@ gaps:
     title: Reply to the Second Circular of the Self-Styled Majority of the British Federal Council
     year: 1873
     reason: no free scan of the International Herald was found
+  # Der Volksstaat and the British Federal Council, 1873.
+  - citation: Der Volksstaat, 1873
+    title: Die Republik in Spanien
+    year: 1873
+    reason: MEGA² I/24 (1984) is past the edition right, but no scan of it was found
+  - citation: British Federal Council, London, 1873
+    title: Official Declaration of the British Federal Council of the International Working Men's Association on the Paris Commune of 1871
+    year: 1873
+    reason: MEGA² I/24 (1984) is past the edition right, but no scan of it was found
   # Almanacco Repubblicano, 1874.
   - citation: Almanacco Repubblicano per l'anno 1874
     title: Political Indifferentism
@@ -1663,6 +2067,11 @@ gaps:
     title: To the Meeting in Geneva Held to Commemorate the 50th Anniversary of the Polish Revolution of 1830
     year: 1881
     reason: printed only in Polish, translated by others
+  # The Daily News, 1881: with Engels.
+  - citation: The Daily News, 1 Apr 1881
+    title: To the Editor of The Daily News
+    year: 1881
+    reason: not yet imported from MEGA² I/25 (1985), whose scan on the Internet Archive is past the edition right
 books:
   - id: marx_manifestws_1848
     citation: Manifest
