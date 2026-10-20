@@ -111,8 +111,9 @@ export async function persistImportEntity(
       existing,
     );
     // The file and the database disagree about a non-public tier, and the
-    // database wins. Auto-sync will rewrite the file with the retained value,
-    // so surface the override rather than letting an edit vanish silently.
+    // database wins. The import is an ordinary write, so auto-sync rewrites
+    // the file with the retained value; surface the override too, rather
+    // than letting an edit vanish silently.
     if (retainedFrom) {
       deps.logger.debug(
         "Retained stored visibility; imported file declared none",
@@ -143,7 +144,10 @@ export async function persistImportEntity(
     // The brain keeps none of a field its stored form drops, such as one the
     // type has retired. Such a file is written back in its stored form, so it
     // stops showing what the brain no longer holds.
-    const writeBack = dropsFrontmatterFields(rawEntity.content, stored);
+    // A retained tier is written back too, so the file stops understating it.
+    const writeBack =
+      retainedFrom !== undefined ||
+      dropsFrontmatterFields(rawEntity.content, stored);
 
     if (
       entity.entityType !== rawEntity.entityType ||

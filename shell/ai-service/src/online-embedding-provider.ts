@@ -167,6 +167,9 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     texts: string[],
     signal?: AbortSignal,
   ): Promise<BatchEmbeddingResult> {
+    const scopedSignal = this.usage?.currentSignal();
+    if (scopedSignal)
+      signal = signal ? AbortSignal.any([signal, scopedSignal]) : scopedSignal;
     signal?.throwIfAborted();
     if (texts.length === 0) {
       return { embeddings: [], usage: { tokens: 0 } };
@@ -187,14 +190,18 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     >(
       async (previous, values) => {
         const done = await previous;
+        const measurement = this.usage?.begin(this.model);
         const { embeddings, usage } = await embedMany({
           model: this.openai.embedding(this.model),
           values,
+          ...(measurement ? { maxRetries: 0 } : {}),
           ...(signal ? { abortSignal: signal } : {}),
           providerOptions: {
             openai: { dimensions: this.dimensions },
           },
         });
+        // Preserve this request's usage even if a later group fails.
+        measurement?.finish(usage.tokens);
         return {
           vectors: [...done.vectors, ...embeddings],
           tokens: done.tokens + usage.tokens,
@@ -203,7 +210,6 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       Promise.resolve({ vectors: [], tokens: 0 }),
     );
 
-    this.usage?.record(this.model, results.tokens);
     const embeddings = chunked.reduce<{
       vectors: Float32Array[];
       next: number;
