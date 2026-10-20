@@ -312,6 +312,7 @@ export class EntityService implements IEntityService {
         this.logger,
         embeddingsEnabled,
         () => this.declaredPublishGates(),
+        () => this.entityRegistry.getAllEntityTypes(),
       );
       this.entityMutations = new EntityMutations({
         db: this.db,

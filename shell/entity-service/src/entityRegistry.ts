@@ -164,9 +164,7 @@ export class EntityRegistry implements IEntityRegistry {
   getSchema(type: string): UnknownEntitySchema {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
-      throw new Error(
-        `Entity type registration failed for ${type}: No schema registered for entity type`,
-      );
+      throw new Error(`Unknown entity type ${type}: no schema registered`);
     }
     return schema;
   }
@@ -178,9 +176,7 @@ export class EntityRegistry implements IEntityRegistry {
   getAdapter(type: string): EntityAdapter<BaseEntity> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
-      throw new Error(
-        `Entity type registration failed for ${type}: No adapter registered for entity type`,
-      );
+      throw new Error(`Unknown entity type ${type}: no adapter registered`);
     }
 
     const effectiveSchema = this.mergeExtensions(
