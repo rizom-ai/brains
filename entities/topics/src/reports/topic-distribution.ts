@@ -61,17 +61,19 @@ function sourceTypes(
     .filter((type) => options.isSourceType(type, entityService));
 }
 
-/**
- * One type's sources that are both visible to the caller and read by
- * extraction, by key; paged so only keys and hashes are held.
- */
+/** A source visible to the caller, and whether extraction reads it. */
+interface ScannedSource extends CountedSource {
+  eligible: boolean;
+}
+
+/** One type's visible sources by key, paged so only keys and hashes are held. */
 async function readSourcePages(
   entityService: AnalyticsEntityService,
   options: TopicDistributionOptions,
   entityType: string,
   visibilityScope: ContentVisibility,
   offset = 0,
-): Promise<CountedSource[]> {
+): Promise<ScannedSource[]> {
   const page = await entityService.listEntities({
     entityType,
     options: {
@@ -81,9 +83,10 @@ async function readSourcePages(
       sortFields: [{ field: "id", direction: "asc" }],
     },
   });
-  const refs = page.filter(options.isEligibleSource).map((source) => ({
+  const refs = page.map((source) => ({
     key: sourceKey(source),
     contentHash: source.contentHash,
+    eligible: options.isEligibleSource(source),
   }));
   if (page.length < SOURCE_PAGE_SIZE) return refs;
   return [
@@ -98,13 +101,32 @@ async function readSourcePages(
   ];
 }
 
+async function readSources(
+  entityService: AnalyticsEntityService,
+  options: TopicDistributionOptions,
+  visibilityScope: ContentVisibility,
+): Promise<ScannedSource[]> {
+  return (
+    await Promise.all(
+      sourceTypes(entityService, options).map((entityType) =>
+        readSourcePages(entityService, options, entityType, visibilityScope),
+      ),
+    )
+  ).flat();
+}
+
+function entityCount(count: number): string {
+  return `${count} visible ${count === 1 ? "entity exists" : "entities exist"}`;
+}
+
 /**
  * The topic-distribution report.
  * Returns topics with the number of visible sources supporting each, most
  * supported first, and how many of the visible sources extraction reads are
- * still pending. With no
- * visible topics but visible source content, it says so: extraction runs in
- * the background, and an empty list would otherwise read as "nothing written".
+ * still pending. With no visible topics but visible source content, it says
+ * so: extraction runs in the background, and an empty list would otherwise
+ * read as "nothing written". When extraction reads none of that content, it
+ * points to search instead of promising topics.
  */
 export function createTopicDistributionReport(
   options: TopicDistributionOptions,
@@ -112,7 +134,7 @@ export function createTopicDistributionReport(
   return defineAnalyticsReport({
     type: "topic-distribution",
     description:
-      "The topics the brain's content covers, most supported first: each topic's title and `sources`, the visible source entities whose current extraction votes support it (a source may support several topics). `coverage` counts the visible source entities topic extraction reads (`sourceEntities`), those it has read in their current version (`attributed`), and those pending extraction (`unattributed`). Entities extraction never reads, such as content outside its visibility or drafts it skips, are left out of `coverage`.",
+      "The topics the brain's content covers, most supported first: each topic's title and `sources`, the visible source entities whose current extraction votes support it (a source may support several topics). `coverage` counts the visible source entities topic extraction reads (`sourceEntities`), those it has read in their current version (`attributed`), and those pending extraction (`unattributed`). Entities extraction never reads, such as content outside its visibility or drafts it skips, are left out of `coverage`. With no topics, `unextracted` or `outsideExtraction` carries a hint to answer from `system_search`.",
     params: noParams,
     handler: async (_params, { entityService, visibilityScope }) => {
       if (!entityService.hasEntityType(TOPIC_ENTITY_TYPE)) {
@@ -126,20 +148,16 @@ export function createTopicDistributionReport(
         },
         topicEntitySchema,
       );
+      const visible = await readSources(
+        entityService,
+        options,
+        visibilityScope,
+      );
+      const sources = visible.flatMap(({ key, contentHash, eligible }) =>
+        eligible ? [{ key, contentHash }] : [],
+      );
 
       if (topics.length > 0) {
-        const sources = (
-          await Promise.all(
-            sourceTypes(entityService, options).map((entityType) =>
-              readSourcePages(
-                entityService,
-                options,
-                entityType,
-                visibilityScope,
-              ),
-            ),
-          )
-        ).flat();
         const counts = await options.countSources(sources);
         const distribution: TopicDistributionEntry[] = topics
           .map((topic) => {
@@ -165,16 +183,16 @@ export function createTopicDistributionReport(
         };
       }
 
-      const counts = await Promise.all(
-        sourceTypes(entityService, options).map((entityType) =>
-          entityService.countEntities({
-            entityType,
-            options: sourceScope(visibilityScope),
-          }),
-        ),
-      );
-      const sourceEntities = counts.reduce((sum, count) => sum + count, 0);
-      if (sourceEntities === 0) return { topics: [] };
+      if (visible.length === 0) return { topics: [] };
+      if (sources.length === 0) {
+        return {
+          topics: [],
+          outsideExtraction: {
+            sourceEntities: visible.length,
+            hint: `Topics are not drawn from the content visible here. ${entityCount(visible.length)}: use system_search to answer from the content itself.`,
+          },
+        };
+      }
 
       const reason = options.autoExtraction
         ? "Topics have not been extracted yet; extraction runs in the background."
@@ -182,8 +200,8 @@ export function createTopicDistributionReport(
       return {
         topics: [],
         unextracted: {
-          sourceEntities,
-          hint: `${reason} ${sourceEntities} visible ${sourceEntities === 1 ? "entity exists" : "entities exist"}: use system_search to answer from the content itself.`,
+          sourceEntities: sources.length,
+          hint: `${reason} ${entityCount(sources.length)} that topics are drawn from: use system_search to answer from the content itself.`,
         },
       };
     },

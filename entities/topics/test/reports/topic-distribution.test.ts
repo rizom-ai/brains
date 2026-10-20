@@ -415,20 +415,72 @@ describe("topic-distribution report", () => {
       makeTopicEntity("private-topic", "Private Topic", "restricted"),
       makeNote("public-draft", "public", "draft"),
     ]);
+    const draftsExtracted = extractionOptions(
+      [],
+      topicsPluginConfigSchema.parse({
+        extractableStatuses: ["published", "draft"],
+      }),
+    );
 
-    const publicResult = await runReport(options)(
+    const publicResult = await runReport(draftsExtracted)(
       shell.getEntityService(),
       "public",
     );
     expect(publicResult).toEqual({ topics: [] });
 
-    const sharedResult = await runReport(options)(
+    const sharedResult = await runReport(draftsExtracted)(
       shell.getEntityService(),
       "shared",
     );
     expect(
       unextractedSchema.parse(sharedResult["unextracted"]).sourceEntities,
     ).toBe(1);
+  });
+
+  it("counts only sources extraction reads as not extracted yet", async () => {
+    const shell = topicShell([
+      makeTopicEntity("private-topic", "Private Topic", "restricted"),
+      makeNote("public-note"),
+      makeNote("shared-note", "shared"),
+      makeNote("public-draft", "public", "draft"),
+    ]);
+
+    const result = await runReport(options)(shell.getEntityService(), "shared");
+
+    expect(unextractedSchema.parse(result["unextracted"]).sourceEntities).toBe(
+      1,
+    );
+    expect(result["outsideExtraction"]).toBeUndefined();
+  });
+
+  it("points to search, not extraction, when no visible content is extracted from", async () => {
+    // Extraction reads public, published sources: this caller sees only others.
+    const shell = topicShell([
+      makeTopicEntity("private-topic", "Private Topic", "restricted"),
+      makeNote("shared-note", "shared"),
+      makeNote("public-draft", "public", "draft"),
+    ]);
+
+    const result = await runReport(options)(shell.getEntityService(), "shared");
+
+    expect(getTopicDistribution(result)).toEqual([]);
+    expect(result["unextracted"]).toBeUndefined();
+    const outside = unextractedSchema.parse(result["outsideExtraction"]);
+    expect(outside.sourceEntities).toBe(2);
+    expect(outside.hint).toContain("not drawn from the content visible here");
+    expect(outside.hint).not.toContain("extracted yet");
+    expect(outside.hint).toContain("system_search");
+  });
+
+  it("returns only an empty list when no content is visible", async () => {
+    const shell = topicShell([
+      makeTopicEntity("private-topic", "Private Topic", "restricted"),
+      makeNote("private-note", "restricted"),
+    ]);
+
+    const result = await runReport(options)(shell.getEntityService(), "shared");
+
+    expect(result).toEqual({ topics: [] });
   });
 
   it("says extraction is off when automatic extraction is disabled", async () => {
