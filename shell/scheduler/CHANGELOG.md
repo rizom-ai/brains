@@ -1,5 +1,12 @@
 # @brains/scheduler
 
+## 0.2.0-alpha.570
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.570
+
 ## 0.2.0-alpha.569
 
 ### Patch Changes

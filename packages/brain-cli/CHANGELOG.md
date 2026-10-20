@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.570
+
+### Patch Changes
+
+- [#687](https://github.com/rizom-ai/brains/pull/687) [`d343cb9`](https://github.com/rizom-ai/brains/commit/d343cb9e486841acd8741d48783a408fb618f089) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Slack member an Admin has attached to a person now speaks with that person's role, the same way an attached Discord user does. A revoked or suspended binding drops the speaker to public; unbound Slack members still follow `slack:*` permission rules.
+
+- [#689](https://github.com/rizom-ai/brains/pull/689) [`b445dc9`](https://github.com/rizom-ai/brains/commit/b445dc94e3a7e72c6977647aba2b573132c0add1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `topic-distribution` report is now a distribution. Each topic carries `sources`: the visible source entities whose current extraction votes support it, merged topics folded in, so a source may count for several topics. Topics are sorted by that count. A new `coverage` counts the visible source entities that extraction reads, how many it has read in their current version (`attributed`), and how many are pending extraction (`unattributed`), so a partly extracted brain does not read as a settled one. With no topics, `unextracted` now counts only the sources extraction reads; when a caller sees source content but extraction reads none of it, the report returns `outsideExtraction` instead, pointing to `system_search` without saying topics are on their way. Content extraction never reads, such as entities outside its visibility or drafts it skips, is left out of `coverage`. Previously the report listed topic ids and titles only, and the agent could not say which topics were most common.
+
 ## 0.2.0-alpha.569
 
 ### Patch Changes
