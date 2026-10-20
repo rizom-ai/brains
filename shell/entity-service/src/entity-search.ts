@@ -90,6 +90,11 @@ export class EntitySearch {
   private readonly embeddingsEnabled: boolean;
   /** Published statuses by entity type, for the types that declare them. */
   private readonly publishGates: () => Record<string, string[]>;
+  /**
+   * The types this brain loads. Rows of any other type, left by a plugin the
+   * brain no longer runs, cannot be read back, so search never returns them.
+   */
+  private readonly registeredTypes: (() => readonly string[]) | undefined;
 
   constructor(
     db: EntitySearchDB,
@@ -98,6 +103,7 @@ export class EntitySearch {
     logger: Logger,
     embeddingsEnabled = true,
     publishGates: () => Record<string, string[]> = () => ({}),
+    registeredTypes?: () => readonly string[],
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
@@ -105,6 +111,15 @@ export class EntitySearch {
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
     this.publishGates = publishGates;
+    this.registeredTypes = registeredTypes;
+  }
+
+  /** The requested types, or every type, narrowed to those the brain loads. */
+  private searchableTypes(requested: string[]): string[] {
+    const registered = this.registeredTypes?.();
+    if (!registered) return requested;
+    const candidates = requested.length > 0 ? requested : registered;
+    return candidates.filter((type) => registered.includes(type));
   }
 
   /**
@@ -117,7 +132,7 @@ export class EntitySearch {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
     const {
       offset,
-      types,
+      types: requestedTypes,
       excludeTypes,
       weight,
       visibilityScope,
@@ -128,6 +143,8 @@ export class EntitySearch {
       limit,
     } = validatedOptions;
     signal?.throwIfAborted();
+    const types = this.searchableTypes(requestedTypes);
+    if (this.registeredTypes && types.length === 0) return [];
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
