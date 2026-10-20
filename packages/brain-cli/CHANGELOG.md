@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.571
+
+### Patch Changes
+
+- [#691](https://github.com/rizom-ai/brains/pull/691) [`b0ae327`](https://github.com/rizom-ai/brains/commit/b0ae32764292843a6c211c198a2a75f2aee917e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A passkey setup link that cannot register says why: its delivery has not been confirmed, it was already used or expired, or its delivery address is no longer valid. It used to report every case as "Passkey registration user is unavailable".
+
 ## 0.2.0-alpha.570
 
 ### Patch Changes
