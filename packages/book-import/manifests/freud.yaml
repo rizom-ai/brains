@@ -2200,6 +2200,301 @@ books:
     author: Sigmund Freud
     year: 1895
     kind: work
+  - item: ikr-1893-39-referate
+    citation: IKR VII
+    ocr: deu
+    # Single issues, each column cropped to Freud's reviews, signed "F."
+    # (one "SFd."), the signature left out. The journal numbers its columns.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-39
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-39/page/n9_w1600.jpg#region=0.508,0.700,0.470,0.243
+          page: 1484
+    firstPage: 1484
+    lastPage: 1484
+    headings:
+      - { page: 1484, opens: Bulkley, title: Tonsillenschanker }
+      - { page: 1484, opens: "Phediuretin, (", title: Phediuretin }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    shortTitle: "Internationale Klinische Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 39 (Wien 1893), Sp. 1484"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-41-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-41
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-41/page/n8_w1600.jpg#region=0.045,0.800,0.465,0.140
+          page: 1553
+    firstPage: 1553
+    lastPage: 1553
+    headings:
+      - { page: 1553, opens: Bibliographie, title: Bibliographie der klinischen Helminthologie }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 41 (Wien 1893), Sp. 1553"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-42-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-42
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-42/page/n12_w1600.jpg#region=0.515,0.165,0.465,0.227
+          page: 1602
+    firstPage: 1602
+    lastPage: 1602
+    headings:
+      - { page: 1602, opens: Mikroskopie, title: Mikroskopie und Chemie am Krankenbett }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 42 (Wien 1893), Sp. 1602"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-44-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-44
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-44/page/n8_w1600.jpg#region=0.053,0.262,0.460,0.201
+          page: 1673
+    firstPage: 1673
+    lastPage: 1673
+    headings:
+      - { page: 1673, opens: Der Tabak, title: Der Tabak und seine Einwirkung auf den menschlichen Organismus }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 44 (Wien 1893), Sp. 1673"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-45-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-45
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-45/page/n9_w1600.jpg#region=0.054,0.659,0.460,0.243
+          page: 1707
+    firstPage: 1707
+    lastPage: 1707
+    headings:
+      - { page: 1707, opens: Klinische Terminologie, title: Klinische Terminologie }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 45 (Wien 1893), Sp. 1707"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-47-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-47
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-47/page/n9_w1600.jpg#region=0.518,0.528,0.472,0.209
+          page: 1788
+        - url: https://archive.org/download/ikr-7-1893-47/page/n11_w1600.jpg#region=0.508,0.474,0.475,0.460
+          page: 1792
+        - https://archive.org/download/ikr-7-1893-47/page/n12_w1600.jpg#region=0.054,0.068,0.460,0.406
+    firstPage: 1788
+    lastPage: 1793
+    headings:
+      - { page: 1788, opens: Sanitätsbericht, title: "Sanitätsbericht über die königlich preussische Armee, das XII. (königlich sächsische) und das XIII. (königlich württembergische) Armeecorps" }
+      - { page: 1792, opens: Dr. Heinrich Kayser, title: Ueber den Einfluss des Salipyrins bei Gebärmutterblutungen }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 47 (Wien 1893), Sp. 1788–1793"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-51-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-51
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-51/page/n13_w1600.jpg#region=0.059,0.708,0.470,0.202
+          page: 1947
+    firstPage: 1947
+    lastPage: 1947
+    headings:
+      - { page: 1947, opens: Dr. med. Paul Klemm, title: Indicationen zur Operation der Perityphlitis }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 51 (Wien 1893), Sp. 1947"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-52-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-52
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-52/page/n7_w1600.jpg#region=0.053,0.739,0.457,0.200
+          page: 1975
+    firstPage: 1975
+    lastPage: 1975
+    headings:
+      - { page: 1975, opens: Lehrbuch, title: Lehrbuch der Psychiatrie }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 52 (Wien 1893), Sp. 1975"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-53-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-53
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-53/page/n8_w1600.jpg#region=0.031,0.246,0.462,0.270
+          page: 2009
+    firstPage: 2009
+    lastPage: 2009
+    headings:
+      - { page: 2009, opens: P. J. Möbius, title: Ueber Tabes bei Weibern }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 53 (Wien 1893), Sp. 2009"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1894-2-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-2
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-2/page/n10_w1600.jpg#region=0.497,0.140,0.465,0.398
+          page: 54
+    firstPage: 54
+    lastPage: 54
+    headings:
+      - { page: 54, opens: Dr. J. J. Platonnow, title: Zur Frage über die allgemeine progressive Paralyse der Irren und ihre Behandlung bei den Syphilitikern }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 2 (Wien 1894), Sp. 54"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-9-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-9
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-9/page/n12_w1600.jpg#region=0.062,0.333,0.448,0.473
+          page: 321
+    firstPage: 321
+    lastPage: 321
+    headings:
+      - { page: 321, opens: Dr. Emil Hougberg, title: Beiträge zur Kenntniss der Aetiologie der progressiven Paralyse mit besonderer Berücksichtigung der Syphilis }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 9 (Wien 1894), Sp. 321"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-21-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-21
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-21/page/n13_w1600.jpg#region=0.517,0.744,0.455,0.164
+          page: 772
+    firstPage: 772
+    lastPage: 772
+    headings:
+      - { page: 772, opens: Zur Hydrologie, title: Zur Hydrologie des Bezirkes Konjica in der Hercegovina }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 21 (Wien 1894), Sp. 772"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-31-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-31
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-31/page/n9_w1600.jpg#region=0.062,0.666,0.450,0.267
+          page: 1131
+        - https://archive.org/download/ikr-8-1894-31/page/n9_w1600.jpg#region=0.513,0.036,0.450,0.101
+    firstPage: 1131
+    lastPage: 1132
+    headings:
+      - { page: 1131, opens: Atlas, title: Atlas des menschlichen Gehirns und des Faserverlaufes }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 31 (Wien 1894), Sp. 1131–1132"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-41-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-41
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-41/page/n13_w1600.jpg#region=0.510,0.781,0.470,0.152
+          page: 1492
+        - https://archive.org/download/ikr-8-1894-41/page/n14_w1600.jpg#region=0.031,0.044,0.455,0.096
+    firstPage: 1492
+    lastPage: 1493
+    headings:
+      - { page: 1492, opens: Jahrbuch, title: Jahrbuch der praktischen Medicin }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 41 (Wien 1894), Sp. 1492–1493"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-42-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-42
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-42/page/n10_w1600.jpg#region=0.486,0.069,0.459,0.287
+          page: 1526
+    firstPage: 1526
+    lastPage: 1526
+    headings:
+      - { page: 1526, opens: Lehrbuch, title: Lehrbuch der Kinderkrankheiten }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 42 (Wien 1894), Sp. 1526"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
   - item: wkr-1895-edinger
     citation: WKR 1895
     ocr: deu
