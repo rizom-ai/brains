@@ -78,12 +78,8 @@ export class TrafficSnapshotAdapter extends BaseEntityAdapter<
   metadataFor(
     frontmatter: TrafficSnapshotFrontmatter,
   ): TrafficSnapshotMetadata {
-    const week = weekOf(frontmatter);
     return {
-      title: `Traffic ${week.id}`,
-      week: week.id,
-      start: week.start,
-      end: week.end,
+      title: `Traffic ${weekOf(frontmatter).id}`,
       ...weekTotals(frontmatter),
     };
   }

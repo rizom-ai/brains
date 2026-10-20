@@ -57,9 +57,6 @@ export type TrafficSnapshotFrontmatter = z.output<
 
 type TrafficSnapshotMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  week: z.ZodString;
-  start: z.ZodString;
-  end: z.ZodString;
   pageviews: z.ZodNumber;
   visits: z.ZodNumber;
 }>;
@@ -67,9 +64,6 @@ type TrafficSnapshotMetadataSchema = z.ZodObject<{
 export const trafficSnapshotMetadataSchema: TrafficSnapshotMetadataSchema =
   z.object({
     title: z.string(),
-    week: z.string(),
-    start: isoDate,
-    end: isoDate,
     pageviews: count,
     visits: count,
   });

@@ -49,17 +49,15 @@ describe("traffic snapshot adapter", () => {
   it("derives the week's title and totals as metadata", () => {
     const markdown = trafficSnapshotAdapter.createContent(frontmatter);
 
-    expect(trafficSnapshotAdapter.fromMarkdown(markdown)).toMatchObject({
+    const parsed = trafficSnapshotAdapter.fromMarkdown(markdown);
+    expect(parsed).toMatchObject({
       entityType: "traffic-snapshot",
       visibility: "restricted",
-      metadata: {
-        title: "Traffic 2026-W41",
-        week: "2026-W41",
-        start: "2026-10-05",
-        end: "2026-10-11",
-        pageviews: 169,
-        visits: 50,
-      },
+    });
+    expect(parsed.metadata).toEqual({
+      title: "Traffic 2026-W41",
+      pageviews: 169,
+      visits: 50,
     });
   });
 
@@ -72,10 +70,10 @@ describe("traffic snapshot adapter", () => {
       );
 
     expect(trafficSnapshotAdapter.parseContent(stored)).toEqual(frontmatter);
-    expect(trafficSnapshotAdapter.fromMarkdown(stored).metadata).toMatchObject({
-      week: "2026-W41",
-      start: "2026-10-05",
-      end: "2026-10-11",
+    expect(trafficSnapshotAdapter.fromMarkdown(stored).metadata).toEqual({
+      title: "Traffic 2026-W41",
+      pageviews: 169,
+      visits: 50,
     });
   });
 
@@ -110,9 +108,6 @@ describe("traffic snapshot adapter", () => {
       visibility: "restricted",
       metadata: {
         title: "Traffic 2026-W41",
-        week: "2026-W41",
-        start: "2026-10-05",
-        end: "2026-10-11",
         pageviews: 169,
         visits: 50,
       },

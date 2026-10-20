@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import { EntityRegistry } from "@brains/entity-service";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { TrafficSnapshotPlugin } from "../src/entity/plugin";
 import { trafficSnapshotAdapter } from "../src/entity/adapter";
+import { trafficSnapshotSchema } from "../src/entity/schema";
 
 describe("TrafficSnapshotPlugin", () => {
   it("registers a restricted, non-indexed, non-projection entity", async () => {
@@ -26,6 +29,15 @@ describe("TrafficSnapshotPlugin", () => {
       retiredFields: ["week", "start", "end"],
     });
     expect(capabilities.tools).toEqual([]);
+    // A brain's registry refuses to retire a field the metadata still needs.
+    expect(() =>
+      EntityRegistry.createFresh(createSilentLogger()).registerEntityType(
+        "traffic-snapshot",
+        trafficSnapshotSchema,
+        trafficSnapshotAdapter,
+        registry.getEntityTypeConfig("traffic-snapshot"),
+      ),
+    ).not.toThrow();
 
     // A snapshot is the capture's record of what Cloudflare counted: it sits
     // with the system's records, and no one creates, edits or deletes it.
