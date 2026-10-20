@@ -34,7 +34,10 @@ import type {
   ScoreEntry,
   Theme,
 } from "../schemas/book-pages";
-import { bookSectionSlug } from "../adapters/book-section-adapter";
+import {
+  bookSectionSlug,
+  bookSectionSlugPrefix,
+} from "../adapters/book-section-adapter";
 
 /** A book as its pages show it, without its text. */
 function fieldsOf(book: BookWithData): BookFields {
@@ -113,7 +116,9 @@ export async function listBookSections(
     {
       entityType: "book-section",
       options: {
-        filter: { metadata: { book } },
+        // A book's sections share its slug prefix, which the store reads as an
+        // index range: the cost of the book, not of every book's sections.
+        filter: { metadataPrefix: { slug: bookSectionSlugPrefix(book) } },
         sortFields: [{ field: "order", direction: "asc" }],
         limit: 100000,
       },
@@ -245,7 +250,9 @@ export class BookDataSource extends BaseEntityDataSource<
       book.frontmatter.sections ??
         entityService.countEntities({
           entityType: "book-section",
-          options: { filter: { metadata: { book: bookId } } },
+          options: {
+            filter: { metadataPrefix: { slug: bookSectionSlugPrefix(bookId) } },
+          },
         }),
     ]);
     const pieces = entries.filter(

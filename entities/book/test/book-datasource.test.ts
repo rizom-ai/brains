@@ -84,6 +84,46 @@ describe("BookDataSource", () => {
     ).toBe(true);
   });
 
+  it("reads a book's sections by their slug prefix, the book alone", async () => {
+    const listEntities = spyOn(shell.getEntityService(), "listEntities");
+
+    const result = await datasource.fetch(
+      { entityType: "book", query: { id: "erstes" } },
+      bookDetailPageSchema,
+      context,
+    );
+
+    expect(result.score.map((entry) => entry.slug)).toEqual([
+      "erstes/1",
+      "erstes/2",
+      "erstes/3",
+    ]);
+    const sectionFilters = listEntities.mock.calls
+      .filter(([request]) => request.entityType === "book-section")
+      .map(([request]) => request.options?.filter);
+    expect(sectionFilters).toContainEqual({
+      metadataPrefix: { slug: "erstes/" },
+    });
+    expect(
+      sectionFilters.some((filter) => filter?.metadata?.["book"] !== undefined),
+    ).toBe(false);
+  });
+
+  it("counts a book's sections by their slug prefix when the book has no count", async () => {
+    const countEntities = spyOn(shell.getEntityService(), "countEntities");
+
+    const result = await datasource.fetch(
+      { entityType: "book-section", query: { id: "erstes/2" } },
+      bookSectionPageSchema,
+      context,
+    );
+
+    expect(result.total).toBe(3);
+    expect(
+      countEntities.mock.calls.map(([request]) => request.options),
+    ).toEqual([{ filter: { metadataPrefix: { slug: "erstes/" } } }]);
+  });
+
   it("carries what the page shows: its text once, links to its neighbours, its book without text", async () => {
     const result = await datasource.fetch(
       { entityType: "book-section", query: { id: "erstes/2" } },

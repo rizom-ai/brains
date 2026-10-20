@@ -126,6 +126,15 @@ export function createMockEntityService(
         filterEntries.every(([key, value]) => e.metadata[key] === value),
       );
     }
+    const prefixEntries = Object.entries(
+      request.options?.filter?.metadataPrefix ?? {},
+    );
+    results = results.filter((e) =>
+      prefixEntries.every(([key, prefix]) => {
+        const value = e.metadata[key];
+        return typeof value === "string" && value.startsWith(prefix);
+      }),
+    );
     return results;
   }
 

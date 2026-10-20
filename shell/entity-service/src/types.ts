@@ -593,6 +593,8 @@ export interface ListOptions<
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** String metadata fields that start with a prefix, e.g. `{ slug: "book/" }`: an index range on an indexed field. */
+    metadataPrefix?: Record<string, string> | undefined;
     /** Literal substring search through serialized content, including frontmatter. */
     contentContains?: string | undefined;
     /** Exact visibility, intersected with visibilityScope rather than widening it. */

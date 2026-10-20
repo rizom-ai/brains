@@ -79,6 +79,7 @@ const listOptionsSchema: z.ZodObject<{
   filter: z.ZodOptional<
     z.ZodObject<{
       metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+      metadataPrefix: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
       contentContains: z.ZodOptional<z.ZodString>;
       visibility: z.ZodOptional<
         z.ZodEnum<{
@@ -105,6 +106,8 @@ const listOptionsSchema: z.ZodObject<{
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
+      /** String metadata fields that start with a prefix, found by range. */
+      metadataPrefix: z.record(z.string(), z.string().min(1)).optional(),
       contentContains: z.string().max(200).optional(),
       visibility: z.enum(["public", "shared", "restricted"]).optional(),
       visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
@@ -264,6 +267,7 @@ export class EntityQueries {
       publishedStatuses,
       filter?.contentContains,
       filter?.visibility,
+      filter?.metadataPrefix,
     );
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
@@ -450,6 +454,7 @@ export class EntityQueries {
       undefined,
       filter?.contentContains,
       filter?.visibility,
+      filter?.metadataPrefix,
     );
     conditions.push(path.withinPrefix);
 
@@ -538,6 +543,7 @@ export class EntityQueries {
     publishedStatuses?: string[],
     contentContains?: string,
     visibility?: ContentVisibility,
+    metadataPrefix?: Record<string, string>,
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
@@ -565,6 +571,10 @@ export class EntityQueries {
         }
       }
     }
+
+    Object.entries(metadataPrefix ?? {}).forEach(([key, prefix]) =>
+      conditions.push(metadataPrefixCondition(key, prefix)),
+    );
 
     return conditions;
   }
@@ -632,6 +642,7 @@ export class EntityQueries {
       filter?:
         | {
             metadata?: Record<string, unknown> | undefined;
+            metadataPrefix?: Record<string, string> | undefined;
             contentContains?: string | undefined;
             visibility?: ContentVisibility | undefined;
             visibilityScope?: ContentVisibility | undefined;
@@ -649,6 +660,7 @@ export class EntityQueries {
       publishedStatuses,
       validatedOptions.filter?.contentContains,
       validatedOptions.filter?.visibility,
+      validatedOptions.filter?.metadataPrefix,
     );
 
     const result = await this.db
@@ -807,4 +819,34 @@ function metadataField(key: string): SQL {
     throw new Error(`Invalid metadata filter key: ${key}`);
   }
   return sql`json_extract(${entities.metadata}, ${sql.raw(`'$.${key}'`)})`;
+}
+
+/**
+ * A string metadata field that starts with a prefix, as a range: SQLite uses
+ * an index on the field for `>=` and `<`, never for `LIKE` on an expression.
+ * A book's sections are found by their slugs this way, at the cost of the
+ * book alone rather than every section of every book.
+ */
+function metadataPrefixCondition(key: string, prefix: string): SQL {
+  const field = metadataField(key);
+  const upper = prefixUpperBound(prefix);
+  return upper === null
+    ? sql`${field} >= ${prefix}`
+    : sql`${field} >= ${prefix} AND ${field} < ${upper}`;
+}
+
+/**
+ * The least string above every string that starts with the prefix, in
+ * SQLite's binary order of UTF-8 text, which is code point order. Null when
+ * no string is (a prefix of only the last code point).
+ */
+function prefixUpperBound(prefix: string): string | null {
+  const codePoints = Array.from(prefix);
+  const last = codePoints.at(-1)?.codePointAt(0);
+  if (last === undefined) return null;
+  const head = codePoints.slice(0, -1).join("");
+  if (last === 0x10ffff) return head === "" ? null : prefixUpperBound(head);
+  // Surrogate code points are not characters; the next one is U+E000.
+  const next = last + 1 === 0xd800 ? 0xe000 : last + 1;
+  return head + String.fromCodePoint(next);
 }
