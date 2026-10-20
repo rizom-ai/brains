@@ -17,6 +17,7 @@ import { collectionControlStyles as styles } from "./studio-collection-controls.
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioSearchField } from "./studio-search-field";
 import type { HierarchyKind } from "./studio-hierarchy";
+import { optionLabel } from "./ui-utils";
 
 /** Presentation only: Library and Chat retain their own query contracts. */
 export function StudioCollectionBar(props: {
@@ -254,7 +255,7 @@ export function StudioCollectionControls(props: {
               <option value="">All statuses</option>
               {statuses.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {optionLabel(status)}
                 </option>
               ))}
             </NativeSelect>

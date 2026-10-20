@@ -233,7 +233,7 @@ describe("Field", () => {
     const html = renderField(selectField, "draft");
     expect(html).toContain("<select");
     expect(html).toContain('value="draft"');
-    expect(html).toContain(">published<");
+    expect(html).toContain('<option value="published">Published</option>');
   });
 
   it("renders ISO datetimes with a native local date-time control", () => {
@@ -294,7 +294,7 @@ describe("field assists", () => {
   };
 
   it("maps long text and string-list fields to prompt variants", () => {
-    expect(fieldAssistVariant(textField)).toBe("summarise");
+    expect(fieldAssistVariant(textField)).toBe("summarize");
     expect(fieldAssistVariant(tagsField)).toBe("tag-suggest");
     expect(fieldAssistVariant(stringField)).toBeNull();
     expect(fieldAssistVariant(booleanField)).toBeNull();
@@ -325,7 +325,7 @@ describe("field assists", () => {
         onDiscard: () => {},
       }),
     );
-    expect(summaryIdle).toContain("Summarise body");
+    expect(summaryIdle).toContain("Summarize body");
 
     const tagsIdle = renderToStaticMarkup(
       createElement(FieldAssistControls, {
@@ -414,6 +414,7 @@ describe("TypeSwitcher", () => {
       entityType: "post",
       classification: "content",
       label: "Posts",
+      singularLabel: "Post",
       isSingleton: false,
       hasBody: true,
       count: 12,
@@ -424,6 +425,7 @@ describe("TypeSwitcher", () => {
       entityType: "site-info",
       classification: "system",
       label: "Site Info",
+      singularLabel: "Site Info",
       isSingleton: true,
       hasBody: false,
       count: 1,
@@ -604,6 +606,7 @@ describe("TypeSwitcher", () => {
         entityType: "prompt",
         classification: "system",
         label: "Prompts",
+        singularLabel: "Prompt",
         isSingleton: false,
         hasBody: true,
         count: 16,
@@ -614,6 +617,7 @@ describe("TypeSwitcher", () => {
         entityType: "agent",
         classification: "system",
         label: "Agents",
+        singularLabel: "Agent",
         isSingleton: false,
         hasBody: false,
         count: 2,
@@ -624,6 +628,7 @@ describe("TypeSwitcher", () => {
         entityType: "brain-character",
         classification: "system",
         label: "Brain Characters",
+        singularLabel: "Brain Character",
         isSingleton: true,
         hasBody: true,
         count: 1,
@@ -634,6 +639,7 @@ describe("TypeSwitcher", () => {
         entityType: "style-guide",
         classification: "system",
         label: "Style Guide",
+        singularLabel: "Style Guide",
         isSingleton: true,
         hasBody: true,
         count: 1,
@@ -702,6 +708,7 @@ function renderCapabilityView(
     entityType,
     classification: "content",
     label: entityType === "site-content" ? "Site content" : "Posts",
+    singularLabel: entityType === "site-content" ? "Site content" : "Post",
     isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
     count: page.total ?? 1,

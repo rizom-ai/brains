@@ -57,8 +57,12 @@ const LONG_TEXT_FIELDS = new Set([
   "story",
 ]);
 
+/** Words a label names as an amount, not as countable items. */
+const MASS_NOUNS = new Set(["content", "info", "information", "data", "media"]);
+
 function pluralizeLabel(label: string): string {
-  if (label.endsWith("s")) return label;
+  const last = label.split(" ").at(-1)?.toLowerCase() ?? "";
+  if (label.endsWith("s") || MASS_NOUNS.has(last)) return label;
   return pluralize(label);
 }
 

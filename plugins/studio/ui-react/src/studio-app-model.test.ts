@@ -17,6 +17,7 @@ function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
     entityType: "note",
     classification: "content",
     label: "Notes",
+    singularLabel: "Note",
     isSingleton: false,
     hasBody: true,
     count: 0,
@@ -642,10 +643,42 @@ describe("deriveEditorHead", () => {
     );
 
     expect(head).toMatchObject({
-      heading: "New Notes",
+      heading: "New note",
       publicationState: null,
-      editorHead: { title: "New Notes", metadata: ["Note · new"] },
+      editorHead: { title: "New note", metadata: ["Note · new"] },
     });
+  });
+
+  it.each([
+    [
+      { entityType: "series", label: "Series", singularLabel: "Series" },
+      "New series",
+      "Series",
+    ],
+    [
+      { entityType: "faq", label: "FAQs", singularLabel: "FAQ" },
+      "New FAQ",
+      "FAQ",
+    ],
+    [
+      {
+        entityType: "ask-content",
+        label: "Ask Content",
+        singularLabel: "Ask Content",
+      },
+      "New ask content",
+      "Ask Content",
+    ],
+  ])("names a new %o entry by its singular label", (type, heading, entry) => {
+    const head = deriveEditorHead(
+      {
+        ...viewProps({ entityType: type.entityType }),
+        ...withMode({ kind: "create" }),
+      },
+      { ...context, activeType: typeInfo(type) },
+    );
+
+    expect(head).toMatchObject({ heading, entryLabel: entry });
   });
 
   it("names a singleton by its singular label under its area", () => {
@@ -653,6 +686,7 @@ describe("deriveEditorHead", () => {
       entityType: "anchor-profile",
       classification: "system",
       label: "Profiles",
+      singularLabel: "Profile",
       isSingleton: true,
     });
     const head = deriveEditorHead(

@@ -188,10 +188,37 @@ export function formatLabel(name: string): string {
   return name
     .replace(/[-_]/g, " ")
     .replace(/([A-Z])/g, " $1")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .replace(/\s+/g, " ")
-    .trim();
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(
+      (word) =>
+        LABEL_WORDS[word.toLowerCase()] ??
+        word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(" ");
 }
+
+/** Words whose usual written form is not plain title case. */
+const LABEL_WORDS: Record<string, string> = {
+  ai: "AI",
+  api: "API",
+  atproto: "AT Protocol",
+  css: "CSS",
+  cta: "CTA",
+  faq: "FAQ",
+  github: "GitHub",
+  html: "HTML",
+  id: "ID",
+  json: "JSON",
+  linkedin: "LinkedIn",
+  og: "OG",
+  pdf: "PDF",
+  rss: "RSS",
+  seo: "SEO",
+  ui: "UI",
+  uri: "URI",
+  url: "URL",
+};
 
 /**
  * Convert a kebab-case entity type to a human-friendly display name.

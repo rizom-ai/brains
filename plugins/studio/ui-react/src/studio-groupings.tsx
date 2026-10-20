@@ -26,7 +26,7 @@ import { editorClassName, editorStyles } from "./studio-editor.styles";
 import { libraryStyles } from "./studio-library.styles";
 import { groupingStyles } from "./studio-groupings.styles";
 import { headStyles } from "./studio-page-head.styles";
-import { entityTitle, formatUpdated, singularLabel } from "./ui-utils";
+import { entityTitle, formatUpdated } from "./ui-utils";
 import { studioGroupingPath } from "../../src/studio-paths";
 import { groupingSearch } from "./grouping-url-query";
 
@@ -341,11 +341,9 @@ export function StudioGroupingContent(
                 >
                   {entityTitle(entity, entity.path?.at(-1))}
                   <span className={editorClassName("", groupingStyles.badge)}>
-                    {singularLabel(
-                      props.types.find(
-                        (type) => type.entityType === entity.entityType,
-                      )?.label ?? formatLabel(entity.entityType),
-                    )}
+                    {props.types.find(
+                      (type) => type.entityType === entity.entityType,
+                    )?.singularLabel ?? formatLabel(entity.entityType)}
                   </span>
                 </span>
                 <time

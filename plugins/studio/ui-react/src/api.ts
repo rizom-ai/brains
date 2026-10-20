@@ -269,7 +269,7 @@ function apiErrorPayload(payload: unknown): {
 
 export type FieldAssistResponse =
   | {
-      variant: "summarise";
+      variant: "summarize";
       targetField: string;
       suggestion: string;
     }
@@ -550,7 +550,7 @@ export class StudioApi {
   }
 
   async requestFieldAssist(input: {
-    variant: "summarise" | "tag-suggest";
+    variant: "summarize" | "tag-suggest";
     entityType: string;
     id: string;
     targetField: string;

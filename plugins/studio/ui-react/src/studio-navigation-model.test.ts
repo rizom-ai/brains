@@ -12,6 +12,7 @@ function type(
     entityType,
     classification,
     label: entityType,
+    singularLabel: entityType,
     isSingleton: false,
     hasBody: true,
     count: 1,

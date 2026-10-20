@@ -94,6 +94,7 @@ const typeListPayloadSchema = z.object({
     z.looseObject({
       entityType: z.string(),
       label: z.string().optional(),
+      singularLabel: z.string().optional(),
       isSingleton: z.boolean(),
       hasBody: z.boolean(),
       count: z.number().optional(),
@@ -799,7 +800,7 @@ describe("studio editor api", () => {
         cookie,
         method: "POST",
         body: {
-          variant: "summarise",
+          variant: "summarize",
           entityType: "post",
           id: "hello-world",
           targetField: "summary",
@@ -810,7 +811,7 @@ describe("studio editor api", () => {
     );
     expect(summary.status).toBe(200);
     expect(await summary.json()).toEqual({
-      variant: "summarise",
+      variant: "summarize",
       targetField: "summary",
       suggestion: "A concise summary.",
     });
@@ -855,7 +856,7 @@ describe("studio editor api", () => {
 
     for (const body of [
       {
-        variant: "summarise",
+        variant: "summarize",
         entityType: "post",
         id: "hello-world",
         targetField: "tags",
@@ -1073,6 +1074,7 @@ describe("studio editor api", () => {
       entityType: "post",
       classification: "content",
       label: "Posts",
+      singularLabel: "Post",
       isSingleton: false,
       hasBody: true,
       count: 1,
@@ -1105,6 +1107,9 @@ describe("studio editor api", () => {
     expect(payload.types.find((t) => t.entityType === "post")?.label).toBe(
       "Essays",
     );
+    expect(
+      payload.types.find((t) => t.entityType === "post")?.singularLabel,
+    ).toBe("Essay");
   });
 
   it("returns field descriptors for a type", async () => {

@@ -21,7 +21,12 @@ import {
   type StudioPageHeadModel,
 } from "./studio-page-head";
 import { folderLabel } from "./studio-hierarchy";
-import { entityPublicationState, entityTitle, singularLabel } from "./ui-utils";
+import {
+  entityPublicationState,
+  entityTitle,
+  sentenceLabel,
+  singularLabel,
+} from "./ui-utils";
 import type { StudioAppViewProps } from "./app-view-props";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 
@@ -203,14 +208,16 @@ export function deriveEditorHead(
   const { mode } = props.editor;
   const { activeType, entitySchema, systemDesign } = context;
   const typeLabel = activeType?.label ?? entityType;
+  const typeEntryLabel =
+    activeType?.singularLabel ?? singularLabel(typeLabel ?? "Entry");
   const singletonLabel = activeType?.isSingleton
-    ? singularLabel(activeType.label)
+    ? activeType.singularLabel
     : undefined;
   const heading =
     mode.kind === "edit"
       ? (singletonLabel ?? entityTitle(mode.entity))
       : mode.kind === "create"
-        ? `New ${typeLabel}`
+        ? `New ${sentenceLabel(typeEntryLabel)}`
         : typeLabel;
   const collectionLabel =
     context.activeWorkspace?.label ??
@@ -218,7 +225,10 @@ export function deriveEditorHead(
     singletonLabel ??
     typeLabel ??
     "Studio";
-  const entryLabel = singularLabel(collectionLabel);
+  const entryLabel =
+    context.activeWorkspace || systemDesign
+      ? singularLabel(collectionLabel)
+      : typeEntryLabel;
   const publicationState =
     mode.kind === "edit" && typeHasPublicationField(entitySchema.fields)
       ? entityPublicationState(mode.entity)

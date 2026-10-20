@@ -19,6 +19,7 @@ const noteType: EntityTypeInfo = {
   entityType: "note",
   classification: "content",
   label: "Notes",
+  singularLabel: "Note",
   isSingleton: false,
   hasBody: true,
   count: 1,

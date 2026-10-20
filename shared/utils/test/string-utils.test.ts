@@ -4,6 +4,7 @@ import {
   truncateSlug,
   generateIdFromText,
   pluralize,
+  formatLabel,
   toDisplayName,
   normalizeTag,
   normalizeTags,
@@ -215,6 +216,28 @@ describe("string-utils", () => {
     it("should only pluralize the last word", () => {
       expect(toDisplayName("anchor-profile")).toBe("Anchor Profiles");
       expect(toDisplayName("brain-character")).toBe("Brain Characters");
+    });
+  });
+
+  describe("formatLabel", () => {
+    it("title-cases identifiers", () => {
+      expect(formatLabel("social-post")).toBe("Social Post");
+      expect(formatLabel("publishedAt")).toBe("Published At");
+      expect(formatLabel("series_name")).toBe("Series Name");
+    });
+
+    it("keeps acronyms and brand names in their usual form", () => {
+      expect(formatLabel("faq")).toBe("FAQ");
+      expect(formatLabel("ogImage")).toBe("OG Image");
+      expect(formatLabel("canonicalUrl")).toBe("Canonical URL");
+      expect(formatLabel("atprotoUri")).toBe("AT Protocol URI");
+      expect(formatLabel("cta")).toBe("CTA");
+      expect(formatLabel("conversation-memory-ai-response")).toBe(
+        "Conversation Memory AI Response",
+      );
+      expect(formatLabel("social-media-linkedin")).toBe(
+        "Social Media LinkedIn",
+      );
     });
   });
 

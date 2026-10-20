@@ -6,6 +6,7 @@ import {
 import type { TemplateRegistry } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
+import { formatLabel } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
 function targetToEntityId(target: string): string {
@@ -13,10 +14,7 @@ function targetToEntityId(target: string): string {
 }
 
 function targetToTitle(target: string): string {
-  return target
-    .split(/[:.-]/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return formatLabel(target.replace(/[:.]/g, " "));
 }
 
 const promptFrontmatterSchema = z.record(z.string(), z.unknown());

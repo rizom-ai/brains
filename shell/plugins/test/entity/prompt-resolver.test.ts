@@ -192,6 +192,24 @@ describe("resolvePrompt", () => {
       expect(result).toBe("fallback prompt");
     });
 
+    it("keeps acronyms in titles derived from a target", async () => {
+      mockGetEntity.mockResolvedValue(null);
+
+      await resolvePrompt(
+        mockEntityService,
+        "conversation-memory:ai-response",
+        "fallback",
+      );
+
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          metadata: expect.objectContaining({
+            title: "Conversation Memory AI Response",
+          }),
+        }),
+      });
+    });
+
     it("should generate correct title from target", async () => {
       mockGetEntity.mockResolvedValue(null);
 
@@ -204,7 +222,7 @@ describe("resolvePrompt", () => {
       expect(mockCreateEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
-            title: "Social Media Linkedin",
+            title: "Social Media LinkedIn",
           }),
         }),
       });

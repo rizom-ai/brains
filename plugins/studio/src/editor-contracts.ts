@@ -36,7 +36,10 @@ export interface StudioTypeCapabilities {
 export interface StudioEntityTypeInfo {
   entityType: string;
   classification: EntityTypeClassification;
+  /** What the collection is called, e.g. "Notes". */
   label: string;
+  /** What one entry is called, e.g. "Note"; singletons use it as their name. */
+  singularLabel: string;
   isSingleton: boolean;
   hasBody: boolean;
   count: number;
