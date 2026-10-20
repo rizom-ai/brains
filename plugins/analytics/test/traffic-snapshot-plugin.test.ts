@@ -22,6 +22,8 @@ describe("TrafficSnapshotPlugin", () => {
       fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
+      // A snapshot's days fix its week; the stored copies are retired.
+      retiredFields: ["week", "start", "end"],
     });
     expect(capabilities.tools).toEqual([]);
 
@@ -44,10 +46,18 @@ describe("TrafficSnapshotPlugin", () => {
       entityType: "traffic-snapshot",
       visibility: "restricted" as const,
       content: trafficSnapshotAdapter.createContent({
-        week: "2026-W41",
-        start: "2026-10-05",
-        end: "2026-10-11",
-        days: [],
+        days: [
+          {
+            date: "2026-10-05",
+            pageviews: 1,
+            visits: 1,
+            estimated: false,
+            paths: [],
+            referrers: [],
+            pathReferrers: [],
+            countries: [],
+          },
+        ],
       }),
       metadata: {},
       contentHash: "hash",

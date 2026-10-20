@@ -15,3 +15,5 @@ Decisions and action items retire `spaceId`, `sourceSummaryId`, `sourceMessageCo
 Conversation summaries retire `conversationId` (the summary's id is its conversation), `entryCount` (counted from the body) and `projectionVersion` (already part of the source hash).
 
 Links retire `domain`; the link list, link page and ATProto record take the hostname from the URL.
+
+Traffic snapshots retire `week`, `start` and `end`: a snapshot's days fix its ISO week and dates.
