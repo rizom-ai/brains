@@ -13,3 +13,5 @@ Docs retire `sourcePath`, and site content retires `routeId` and `sectionId`, wh
 Decisions and action items retire `spaceId`, `sourceSummaryId`, `sourceMessageCount` and `projectionVersion`. An action item is now written in its trimmed shape on any save, so the rewrite on start migrates stored cards completely.
 
 Conversation summaries retire `conversationId` (the summary's id is its conversation), `entryCount` (counted from the body) and `projectionVersion` (already part of the source hash).
+
+Links retire `domain`; the link list, link page and ATProto record take the hostname from the URL.

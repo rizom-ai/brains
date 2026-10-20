@@ -3,7 +3,6 @@ status: draft
 title: ActivityPub specification
 url: "https://www.w3.org/TR/activitypub/"
 description: W3C specification for decentralized social networking and federated server-to-server activity delivery.
-domain: www.w3.org
 capturedAt: "2026-05-06T09:00:00.000Z"
 source:
   ref: "discord:team-poc:architecture"

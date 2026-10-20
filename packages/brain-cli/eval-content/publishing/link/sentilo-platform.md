@@ -8,7 +8,6 @@ keywords:
   - iot
   - open-source
   - barcelona
-domain: sentilo.io
 capturedAt: "2025-09-20T00:00:00.000Z"
 source:
   ref: "cli:local"

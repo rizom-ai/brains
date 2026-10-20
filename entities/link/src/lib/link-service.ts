@@ -190,7 +190,6 @@ export class LinkService {
         url,
         description: extractionResult.description,
         summary: extractionResult.summary,
-        domain: new URL(url).hostname,
         capturedAt,
         source,
       });
@@ -219,7 +218,6 @@ export class LinkService {
       url,
       description: extractionResult.description,
       summary: extractionResult.summary,
-      domain: new URL(url).hostname,
       capturedAt,
       source,
     });
@@ -279,7 +277,7 @@ export class LinkService {
         ...(frontmatter.description && {
           description: frontmatter.description,
         }),
-        domain: frontmatter.domain,
+        domain: new URL(frontmatter.url).hostname,
         capturedAt: frontmatter.capturedAt,
       };
     });
@@ -324,7 +322,7 @@ export class LinkService {
         ...(frontmatter.description && {
           description: frontmatter.description,
         }),
-        domain: frontmatter.domain,
+        domain: new URL(frontmatter.url).hostname,
         capturedAt: frontmatter.capturedAt,
       };
     });
@@ -360,7 +358,7 @@ export class LinkService {
       url: frontmatter.url,
       ...(frontmatter.description && { description: frontmatter.description }),
       ...(summary && { summary }),
-      domain: frontmatter.domain,
+      domain: new URL(frontmatter.url).hostname,
       capturedAt: frontmatter.capturedAt,
       status: readLinkStatus(entity.metadata),
     };
