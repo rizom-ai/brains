@@ -39,7 +39,17 @@ import {
   createRankedTopicJobHandler,
   enqueueTopicExtraction,
 } from "./lib/ranked-topic-extraction";
-import { isTopicSourceType, topicSourceTypes } from "./lib/topic-source-policy";
+import {
+  isTopicSourceEligible,
+  isTopicSourceType,
+  topicSourceTypes,
+} from "./lib/topic-source-policy";
+import {
+  storeEntries,
+  topicExtractionStores,
+  topicVotePromptVersion,
+} from "./lib/topic-extraction-run";
+import { countTopicSources } from "./lib/topic-source-counts";
 import { topicVoteTemplate } from "./templates/vote-template";
 import { topicDescriptionTemplate } from "./templates/description-template";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
@@ -201,11 +211,29 @@ export class TopicsPlugin extends EntityPlugin<
         data: { types: topicSourceTypes(context.entityService, this.config) },
       }),
     );
+    const extractionStores = topicExtractionStores(context);
     context.analytics.register(
       createTopicDistributionReport({
         isSourceType: (type, entityService) =>
           this.shouldProcessEntityType(type, entityService),
+        isEligibleSource: (entity) =>
+          isTopicSourceEligible(entity, this.config),
         autoExtraction: this.config.enableAutoExtraction,
+        // Counted from extraction's votes, read as extraction reads them.
+        countSources: async (sources) => {
+          const [votes, aliases, promptVersion] = await Promise.all([
+            storeEntries(extractionStores.votes),
+            storeEntries(extractionStores.aliases),
+            topicVotePromptVersion(context),
+          ]);
+          return countTopicSources({
+            sources,
+            votes,
+            aliases,
+            promptVersion,
+            config: this.config,
+          });
+        },
       }),
     );
 
