@@ -451,6 +451,39 @@ describe("parseArchiveOcrWork, a dash at a line's end", () => {
   });
 });
 
+describe("parseArchiveOcrWork, a numeral that opens a paragraph", () => {
+  it("keeps the numeral of a paragraph that fills the column, a list's in the text", () => {
+    const lines = [
+      "Citizens,—The General Council of the Association consider it their duty to",
+      "communicate publicly to you evidence on the conduct, during the French",
+      "Civil War, of Mr. Washburne, the American Ambassador.",
+      "I. The following statement is made by Mr. Robert Reid, a Scotchman who",
+      "has lived for seventeen years in Paris, and acted during the Civil War as a",
+      "correspondent for the London Daily Telegraph and the New York Herald.",
+    ];
+    const page = `<div class='ocr_page' id='page_0' title='bbox 0 0 3300 5300'><span class='ocr_pageno'>1</span>
+ <p class='ocr_par'>${lines
+   .map(
+     (text, index) =>
+       `<span class='ocr_line' title='bbox ${index === 0 || index === 3 ? 400 : 300} ${1000 + index * 90} 3000 ${1080 + index * 90}; x_size 70'>${text}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+    const units = parseArchiveOcrWork(`<html><body>${page}</body></html>`, {
+      item: "numeral",
+      title: "Numeral",
+      citation: "N",
+      firstPage: 1,
+      lastPage: 1,
+    });
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "Citizens,—The General Council of the Association consider it their duty to communicate publicly to you evidence on the conduct, during the French Civil War, of Mr. Washburne, the American Ambassador.",
+      "I. The following statement is made by Mr. Robert Reid, a Scotchman who has lived for seventeen years in Paris, and acted during the Civil War as a correspondent for the London Daily Telegraph and the New York Herald.",
+    ]);
+  });
+});
+
 describe("parseArchiveOcrWork with corrections", () => {
   it("replaces a line's misread words on the page the correction names", async () => {
     const units = parseArchiveOcrWork(await fixture(), {
