@@ -1,6 +1,6 @@
 # Plan: Frontmatter hygiene
 
-Last updated: 2026-10-19
+Last updated: 2026-10-20
 
 ## Status
 
@@ -31,11 +31,13 @@ The second point is why trimming needs a mechanism: removing a field from a sche
 
 ### Retired fields
 
-`EntityTypeConfig.retiredFields` lists the keys a type no longer owns. The serializer:
+`EntityTypeConfig.retiredFields` lists the keys a type no longer owns: a top-level key, or a key one level inside an object as `parent.key` (mail items retire `source.senderKey`). The serializer:
 
 - parses stored frontmatter past them, so strict schemas accept old files;
 - never writes them back: `preserveSourceFrontmatter` skips them, and they leave the metadata column;
 - leaves files without them byte for byte as before.
+
+Creates, updates and projection writes drop retired fields from the content before validation, so a persist validator that parses the file accepts an entity stored before a retirement.
 
 A field whose value moves rather than disappears (an id derived differently, a nested shape flattened) keeps a read-time translation in the owning package, as action items do for `timeRange` → `capturedAt` and nested people.
 
