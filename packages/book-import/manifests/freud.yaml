@@ -1999,6 +1999,28 @@ books:
     author: Sigmund Freud
     year: 1893
     kind: work
+  - item: nc-1893-enuresis
+    citation: NC 1893
+    ocr: deu
+    # The volume's three pages, the first read from below the title and
+    # byline, the last down to the date.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/1893_NZ_12
+      firstPage: 735
+      pages:
+        - https://archive.org/download/1893_NZ_12/page/n742_w1600.jpg#region=0.13,0.555,0.75,0.325
+        - https://archive.org/download/1893_NZ_12/page/n743_w1600.jpg#region=0.13,0.100,0.75,0.775
+        - https://archive.org/download/1893_NZ_12/page/n744_w1600.jpg#region=0.13,0.100,0.75,0.585
+    firstPage: 735
+    lastPage: 737
+    slug: ueber-ein-symptom-das-haeufig-die-enuresis-nocturna-der-kinder-begleitet
+    title: Ueber ein Symptom, das häufig die Enuresis nocturna der Kinder begleitet
+    shortTitle: Ein Symptom der Enuresis nocturna
+    edition: Neurologisches Centralblatt, XII. Jahrgang, Nr. 21 (Leipzig, 1. November 1893), S. 735–737
+    author: Sigmund Freud
+    year: 1893
+    kind: work
   - item: Diagnostisches1v4K
     citation: Diagn. Lex. I
     ocr: deu
@@ -2233,6 +2255,29 @@ books:
     title: Ueber die Bernhardt’sche Sensibilitätsstörung am Oberschenkel
     shortTitle: Die Bernhardt’sche Sensibilitätsstörung
     edition: Neurologisches Centralblatt, XIV. Jahrgang, Nr. 11 (Leipzig 1895), S. 491–492
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: nc-1895-zwangsvorstellungen
+    citation: NC 1895
+    ocr: deu
+    # Freud's abstract of his lecture to the Verein für Psychiatrie und
+    # Neurologie in Wien (15 January 1895), headed "Autorreferat" in the
+    # society's report: read from its run-in title to its end, before
+    # Krafft-Ebing's demonstration.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/NZ_1895_XIV
+      firstPage: 699
+      pages:
+        - https://archive.org/download/NZ_1895_XIV/page/n700_w1600.jpg#region=0.07,0.331,0.83,0.602
+        - https://archive.org/download/NZ_1895_XIV/page/n701_w1600.jpg#region=0.10,0.055,0.81,0.585
+    firstPage: 699
+    lastPage: 700
+    slug: ueber-den-mechanismus-der-zwangsvorstellung-und-phobien
+    title: Ueber den Mechanismus der Zwangsvorstellung und Phobien
+    shortTitle: Mechanismus der Zwangsvorstellung und Phobien
+    edition: Neurologisches Centralblatt, XIV. Jahrgang, Nr. 15 (Leipzig, 1. August 1895), S. 699–700
     author: Sigmund Freud
     year: 1895
     kind: work
@@ -3699,6 +3744,34 @@ books:
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
     author: Sigmund Freud
     year: 1913
+    kind: work
+  - item: imago119121
+    citation: Imago I
+    ocr: deu
+    # The opening of the first Imago essay, which Totem und Tabu leaves
+    # out: read from below the essay's title and part title to the
+    # paragraph the book opens with, its note kept; the margin's summary
+    # glosses are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/imago119121
+      firstPage: 17
+      pages:
+        - https://archive.org/download/imago119121/page/n22_w1600.jpg#region=0.115,0.219,0.69,0.652
+        - https://archive.org/download/imago119121/page/n23_w1600.jpg#region=0.175,0.090,0.70,0.383&region=0.195,0.473,0.68,0.096&region=0.175,0.569,0.70,0.177&region=0.18,0.776,0.69,0.085
+    firstPage: 17
+    lastPage: 18
+    # The first page's drop capital sets its lines in: its paragraphs named.
+    paragraphs:
+      - { page: 17, opens: Von allem Anfang }
+      - { page: 17, opens: In den seither }
+      - { page: 17, opens: Eine Schwierigkeit }
+    slug: ueber-einige-uebereinstimmungen-im-seelenleben-der-wilden-und-der-neurotiker
+    title: Über einige Übereinstimmungen im Seelenleben der Wilden und der Neurotiker
+    shortTitle: Übereinstimmungen im Seelenleben der Wilden und der Neurotiker
+    edition: "Imago. Zeitschrift für Anwendung der Psychoanalyse auf die Geisteswissenschaften, I. Jahrgang, Heft 1 (Leipzig und Wien, März 1912), S. 17–18"
+    author: Sigmund Freud
+    year: 1912
     kind: work
   - item: freud-1940-gw-9
     citation: GW IX
