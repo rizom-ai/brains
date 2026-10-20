@@ -1,4 +1,8 @@
-import type { LayoutComponent, PreparedSiteBuild } from "@brains/site-engine";
+import type {
+  LayoutComponent,
+  PreparedRoute,
+  PreparedSiteBuild,
+} from "@brains/site-engine";
 import { sha256Hex } from "@brains/utils/hash";
 import { randomUUID } from "crypto";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -19,6 +23,14 @@ export interface SiteInputFingerprintOptions {
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   sendMessage: SiteBuilderServices["sendMessage"];
   rendererIdentity: string;
+}
+
+/** One page's renderer input as a hash. A site's fingerprint is built from
+ *  its pages' hashes, so no build is ever serialized whole: a book brain's
+ *  thousands of pages would otherwise make one string as large as the build,
+ *  several times over. */
+export function fingerprintPreparedRoute(route: PreparedRoute): string {
+  return sha256Hex(stableSerialize(route));
 }
 
 /** Hash all serializable renderer inputs, the selected renderer functions and
@@ -45,9 +57,12 @@ export function computeSiteInputFingerprint(
 
   return sha256Hex(
     stableSerialize({
-      version: 2,
+      version: 3,
       rendererIdentity: options.rendererIdentity,
-      preparedInput,
+      preparedInput: {
+        ...preparedInput,
+        routes: preparedInput.routes.map(fingerprintPreparedRoute),
+      },
       layouts: Object.fromEntries(
         Object.entries(options.layouts)
           .sort(([left], [right]) => left.localeCompare(right))
