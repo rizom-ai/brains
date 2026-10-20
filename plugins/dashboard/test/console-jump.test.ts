@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildConsoleJumpGroups } from "../src/console-jump";
+import { buildConsoleJumpGroups, jumpEntityHit } from "../src/console-jump";
 
 describe("buildConsoleJumpGroups", () => {
   it("maps the People console jump into its Studio workspace", () => {
@@ -39,9 +39,9 @@ describe("buildConsoleJumpGroups", () => {
     expect(groups[0]?.items[0]).toEqual({
       id: "note/verdigris-pigments",
       title: "Verdigris pigments",
-      sub: "note",
+      sub: "Note",
       href: "/studio/entities/note/verdigris-pigments",
-      tag: "edit in studio",
+      tag: "studio",
     });
   });
 
@@ -101,5 +101,37 @@ describe("buildConsoleJumpGroups", () => {
         .find((group) => group.id === "tabs")
         ?.items.map((item) => item.href),
     ).toEqual(["/dashboard#system"]);
+  });
+});
+
+describe("jumpEntityHit", () => {
+  it("names a hit by the title, name or question in its metadata", () => {
+    expect(
+      jumpEntityHit({
+        entityType: "post",
+        id: "resilience",
+        metadata: { title: "Resilience Is Not Redundancy" },
+      }).title,
+    ).toBe("Resilience Is Not Redundancy");
+    expect(
+      jumpEntityHit({
+        entityType: "skill",
+        id: "design-resilient-systems",
+        metadata: { name: "Design resilient systems" },
+      }).title,
+    ).toBe("Design resilient systems");
+    expect(
+      jumpEntityHit({
+        entityType: "faq",
+        id: "which-posts",
+        metadata: { question: "Which posts are published?" },
+      }).title,
+    ).toBe("Which posts are published?");
+  });
+
+  it("falls back to the id when the entry has no readable name", () => {
+    expect(
+      jumpEntityHit({ entityType: "note", id: "untitled", metadata: {} }),
+    ).toEqual({ entityType: "note", id: "untitled", title: "untitled" });
   });
 });

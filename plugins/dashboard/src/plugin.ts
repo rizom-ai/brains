@@ -28,6 +28,7 @@ import {
 import { deriveConsoleSurfaces } from "@brains/plugins";
 import {
   buildConsoleJumpGroups,
+  jumpEntityHit,
   type ConsoleJumpEntityHit,
 } from "./console-jump";
 import type { DashboardAssetUrls } from "./render/types";
@@ -401,14 +402,7 @@ export class DashboardPlugin extends ServicePlugin<
             }
 
             if (results) {
-              entities = results.map((result) => {
-                const title = Reflect.get(result.entity, "title");
-                return {
-                  entityType: result.entity.entityType,
-                  id: result.entity.id,
-                  title: typeof title === "string" ? title : result.entity.id,
-                };
-              });
+              entities = results.map((result) => jumpEntityHit(result.entity));
             }
           }
 

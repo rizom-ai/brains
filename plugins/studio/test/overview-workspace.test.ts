@@ -88,6 +88,29 @@ it("combines an empty attention/activity state without hiding standing runtime i
   expect(JSON.stringify(active)).toContain('"id":"overview-activity"');
 });
 
+it("names entity activity by its title and readable type", () => {
+  const registry = new StudioOverviewRegistry();
+  registry.recordEntity(
+    "updated",
+    {
+      entityType: "post",
+      entityId: "resilience-in-distributed-systems",
+      entity: { metadata: { title: "Resilience Is Not Redundancy" } },
+    },
+    (entityType, entity) => ({
+      title: entity ? "Resilience Is Not Redundancy" : undefined,
+      typeLabel: entityType === "post" ? "Post" : entityType,
+    }),
+  );
+  registry.recordEntity("deleted", { entityType: "faq", entityId: "gone" });
+
+  const [deleted, updated] = registry.listActivity();
+  expect(updated?.title).toBe("Resilience Is Not Redundancy");
+  expect(updated?.metadata[0]).toBe("Post updated");
+  expect(deleted?.title).toBe("gone");
+  expect(deleted?.metadata[0]).toBe("FAQ deleted");
+});
+
 const authPlugins: AuthServicePlugin[] = [];
 
 afterEach(async () => {
@@ -420,7 +443,8 @@ describe("Studio Overview workspace", () => {
     expect(payload).toContain("site:build completed");
     expect(payload).toContain("newsletter:dispatch failed");
     expect(payload).toContain("Transport rejected the payload");
-    expect(payload).toContain("note/field-log updated");
+    expect(payload).toContain('"title":"field-log"');
+    expect(payload).toContain("Note updated");
   });
 
   it("shows the entity changes the other process made, such as a git sync", async () => {
@@ -440,9 +464,9 @@ describe("Studio Overview workspace", () => {
         cookie,
       ),
     );
-    expect(JSON.stringify(await response.json())).toContain(
-      "note/synced-from-git created",
-    );
+    const synced = JSON.stringify(await response.json());
+    expect(synced).toContain('"title":"synced-from-git"');
+    expect(synced).toContain("Note created");
   });
 
   it("unregisters re-homed contributions and reserves the Overview id", async () => {

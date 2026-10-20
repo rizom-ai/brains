@@ -232,7 +232,13 @@ export class StudioPlugin extends ServicePlugin<
         registry: this.overviewRegistry,
       }),
     );
-    registerStudioOverviewActivity(context, this.overviewRegistry);
+    registerStudioOverviewActivity(
+      context,
+      this.overviewRegistry,
+      () =>
+        this.config.entityDisplay ??
+        parseEntityDisplay(this.getContext().entityDisplay),
+    );
     context.messaging.subscribe<StudioOverviewContributionRegistration>(
       STUDIO_OVERVIEW_REGISTER_MESSAGE,
       (message) => {

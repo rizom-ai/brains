@@ -5,6 +5,7 @@ import {
   generateIdFromText,
   pluralize,
   formatLabel,
+  displayTitleFrom,
   toDisplayName,
   normalizeTag,
   normalizeTags,
@@ -238,6 +239,25 @@ describe("string-utils", () => {
       expect(formatLabel("social-media-linkedin")).toBe(
         "Social Media LinkedIn",
       );
+    });
+  });
+
+  describe("displayTitleFrom", () => {
+    it("prefers a title, then a name, then a question", () => {
+      expect(displayTitleFrom({ title: "A post", name: "post" })).toBe(
+        "A post",
+      );
+      expect(displayTitleFrom({ name: "Design resilient systems" })).toBe(
+        "Design resilient systems",
+      );
+      expect(displayTitleFrom({ question: "Which posts are published?" })).toBe(
+        "Which posts are published?",
+      );
+    });
+
+    it("has no title when none of them is readable text", () => {
+      expect(displayTitleFrom({ title: "  ", name: 3 })).toBeUndefined();
+      expect(displayTitleFrom({})).toBeUndefined();
     });
   });
 

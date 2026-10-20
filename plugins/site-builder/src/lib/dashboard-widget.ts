@@ -301,7 +301,7 @@ function presentEnvironment(
   if (environment.lastFailure) {
     const retained =
       environment.publication?.state === "published"
-        ? ` Published generation ${environment.publication.buildId} remains active.`
+        ? " The last published version is still live."
         : "";
     return {
       state: "failed",

@@ -303,12 +303,11 @@ describe("DashboardPlugin", () => {
       const titledNote = {
         id: "verdigris-pigments",
         entityType: "note",
-        title: "Verdigris pigments",
         content: "",
         created: "",
         updated: "",
         visibility: "public" as const,
-        metadata: {},
+        metadata: { title: "Verdigris pigments" },
         contentHash: "",
       };
       const untitledNote = {
@@ -361,16 +360,16 @@ describe("DashboardPlugin", () => {
         {
           id: "note/verdigris-pigments",
           title: "Verdigris pigments",
-          sub: "note",
+          sub: "Note",
           href: "/studio/entities/note/verdigris-pigments",
-          tag: "edit in studio",
+          tag: "studio",
         },
         {
           id: "note/untitled-note",
           title: "untitled-note",
-          sub: "note",
+          sub: "Note",
           href: "/studio/entities/note/untitled-note",
-          tag: "edit in studio",
+          tag: "studio",
         },
       ]);
     });

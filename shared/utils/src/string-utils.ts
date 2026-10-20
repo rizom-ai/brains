@@ -198,6 +198,20 @@ export function formatLabel(name: string): string {
     .join(" ");
 }
 
+/** Metadata keys that name an entry, in the order people expect to read them. */
+const TITLE_KEYS = ["title", "name", "question"] as const;
+
+/** The readable name in an entry's metadata, if it has one. */
+export function displayTitleFrom(
+  metadata: Record<string, unknown>,
+): string | undefined {
+  for (const key of TITLE_KEYS) {
+    const value = metadata[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
 /** Words whose usual written form is not plain title case. */
 const LABEL_WORDS: Record<string, string> = {
   ai: "AI",

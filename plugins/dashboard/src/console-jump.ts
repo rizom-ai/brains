@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { displayTitleFrom, formatLabel } from "@brains/utils/string-utils";
 
 export interface ConsoleJumpItem {
   id: string;
@@ -52,6 +53,19 @@ export interface ConsoleJumpEntityHit {
   title: string;
 }
 
+/** A search result as the palette names it: its title, else its id. */
+export function jumpEntityHit(entity: {
+  entityType: string;
+  id: string;
+  metadata: Record<string, unknown>;
+}): ConsoleJumpEntityHit {
+  return {
+    entityType: entity.entityType,
+    id: entity.id,
+    title: displayTitleFrom(entity.metadata) ?? entity.id,
+  };
+}
+
 /**
  * Grouped doors for the cross-surface ⌘K palette. Entities open at canonical
  * Studio detail paths, so the group exists only when a Studio is registered; tabs
@@ -95,9 +109,9 @@ export function buildConsoleJumpGroups(options: {
       items: options.entities.map((hit) => ({
         id: `${hit.entityType}/${hit.id}`,
         title: hit.title,
-        sub: hit.entityType,
+        sub: formatLabel(hit.entityType),
         href: `${studioPath === "/" ? "" : studioPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
-        tag: "edit in studio",
+        tag: "studio",
       })),
     });
   }

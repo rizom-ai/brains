@@ -21,6 +21,9 @@ import {
 } from "@brains/plugins";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { isRecord } from "@brains/utils/is-record";
+import { displayTitleFrom } from "@brains/utils/string-utils";
+import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import {
   STUDIO_OVERVIEW_REFRESH_MS,
   STUDIO_OVERVIEW_WORKSPACE_ID,
@@ -134,6 +137,18 @@ void expectContributionInput;
 const entityActivityPayloadSchema = z.object({
   entityType: z.string().trim().min(1).max(120),
   entityId: z.string().trim().min(1).max(300),
+  entity: z.looseObject({}).optional(),
+});
+
+/** How the activity feed names an entry and its type. */
+export type DescribeEntityActivity = (
+  entityType: string,
+  entity: Record<string, unknown> | undefined,
+) => { title: string | undefined; typeLabel: string };
+
+const describeByType: DescribeEntityActivity = (entityType) => ({
+  title: undefined,
+  typeLabel: entityTypeLabels(entityType).label,
 });
 
 const jobProgressPayloadSchema = z.object({
@@ -464,17 +479,22 @@ export class StudioOverviewRegistry {
   recordEntity(
     action: "created" | "updated" | "deleted",
     payload: unknown,
+    describe: DescribeEntityActivity = describeByType,
   ): void {
     const parsed = entityActivityPayloadSchema.safeParse(payload);
     if (!parsed.success) return;
     const timestamp = new Date(Date.now()).toISOString();
+    const { title, typeLabel } = describe(
+      parsed.data.entityType,
+      parsed.data.entity,
+    );
     const next: OverviewActivity = {
       id: boundedId(
         "entity",
         `${timestamp}-${action}-${parsed.data.entityType}-${parsed.data.entityId}`,
       ),
-      title: `${parsed.data.entityType}/${parsed.data.entityId} ${action}`,
-      metadata: ["Entity activity", timestamp],
+      title: title ?? parsed.data.entityId,
+      metadata: [`${typeLabel} ${action}`, timestamp],
       tone:
         action === "deleted"
           ? "warn"
@@ -695,19 +715,29 @@ export function createStudioOverviewWorkspace(input: {
 export function registerStudioOverviewActivity(
   context: ServicePluginContext,
   registry: StudioOverviewRegistry,
+  getEntityDisplay: () =>
+    Partial<Record<string, EntityDisplayLabel>> | undefined = () => undefined,
 ): void {
+  const describe: DescribeEntityActivity = (entityType, entity) => ({
+    title:
+      entity && isRecord(entity["metadata"])
+        ? displayTitleFrom(entity["metadata"])
+        : undefined,
+    typeLabel: entityTypeLabels(entityType, getEntityDisplay()?.[entityType])
+      .label,
+  });
   // Observed: the feed shows changes from either process, such as the
   // worker syncing content from git.
   context.messaging.observe(ENTITY_CHANNELS.created, (message) => {
-    registry.recordEntity("created", message.payload);
+    registry.recordEntity("created", message.payload, describe);
     return { success: true };
   });
   context.messaging.observe(ENTITY_CHANNELS.updated, (message) => {
-    registry.recordEntity("updated", message.payload);
+    registry.recordEntity("updated", message.payload, describe);
     return { success: true };
   });
   context.messaging.observe(ENTITY_CHANNELS.deleted, (message) => {
-    registry.recordEntity("deleted", message.payload);
+    registry.recordEntity("deleted", message.payload, describe);
     return { success: true };
   });
   context.messaging.subscribe(JOB_CHANNELS.progress, (message) => {
