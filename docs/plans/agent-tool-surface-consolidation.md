@@ -45,7 +45,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 
 ### 1. Finish analytics consolidation — done
 
-Complete the typed report registry in [system-analytics-tool.md](./system-analytics-tool.md), fold Cloudflare traffic reporting into it, and prove no duplicate LLM-callable analytics surface remains. Raw provider queries may remain direct-MCP-only for diagnostics.
+Complete the typed report registry (see [Analytics reports](../../shell/plugins/README.md#analytics-reports)), fold Cloudflare traffic reporting into it, and prove no duplicate LLM-callable analytics surface remains. Raw provider queries may remain direct-MCP-only for diagnostics.
 
 ### 2. Re-measure the canonical composition
 
