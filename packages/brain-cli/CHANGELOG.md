@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.572
+
+### Patch Changes
+
+- [#692](https://github.com/rizom-ai/brains/pull/692) [`34154cf`](https://github.com/rizom-ai/brains/commit/34154cfc4f6126be21349515372c4c934c91f8ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Search returns only entity types the brain loads. Rows left by a plugin the brain no longer runs used to take result slots and log an error on every search. An unknown entity type now reports itself as unknown rather than as a failed registration.
+
 ## 0.2.0-alpha.571
 
 ### Patch Changes

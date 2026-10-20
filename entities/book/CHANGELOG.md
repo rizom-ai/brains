@@ -1,5 +1,18 @@
 # @brains/book
 
+## 0.2.0-alpha.572
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.572
+  - @brains/media-page-composer@0.2.0-alpha.572
+  - @brains/site-atlas@0.2.0-alpha.572
+  - @brains/ui-library@0.2.0-alpha.572
+  - @brains/utils@0.2.0-alpha.572
+  - @brains/plugins@0.2.0-alpha.572
+  - @brains/templates@0.2.0-alpha.572
+
 ## 0.2.0-alpha.571
 
 ### Patch Changes
