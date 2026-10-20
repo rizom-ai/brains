@@ -1029,6 +1029,46 @@ books:
     author: Sigmund Freud und L. Darkschewitsch
     year: 1886
     kind: work
+  - item: mfo-1886-acusticus
+    citation: MfO 1886
+    ocr: deu
+    # The two issues' pages, the first of each read from below the title
+    # and byline; the figures and their legends are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/monatsschriftfu01unkngoog
+      firstPage: 245
+      pages:
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n253_w1600.jpg#region=0.02,0.607,0.82,0.277
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n254_w1600.jpg#region=0.15,0.085,0.82,0.799
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n255_w1600.jpg#region=0.05,0.090,0.83,0.800
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n256_w1600.jpg#region=0.15,0.105,0.76,0.462
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n257_w1600.jpg#region=0.09,0.133,0.76,0.446
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n258_w1600.jpg#region=0.11,0.130,0.82,0.357&region=0.11,0.802,0.82,0.086
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n259_w1600.jpg#region=0.04,0.128,0.82,0.071&region=0.04,0.530,0.82,0.291
+        - url: https://archive.org/download/monatsschriftfu01unkngoog/page/n285_w1600.jpg#region=0.05,0.638,0.82,0.258
+          page: 277
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n286_w1600.jpg#region=0.14,0.095,0.82,0.791
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n287_w1600.jpg#region=0.03,0.108,0.82,0.791
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n288_w1600.jpg#region=0.15,0.105,0.82,0.794
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n289_w1600.jpg#region=0.03,0.372,0.82,0.498
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n290_w1600.jpg#region=0.15,0.088,0.82,0.787
+    firstPage: 245
+    lastPage: 282
+    # The paper's parts, numbered.
+    headings:
+      - { page: 245, opens: Der ehrenvollen, title: I. }
+      - { page: 247, opens: Wir verfolgen den Verlauf, title: II. }
+      - { page: 280, opens: Ich habe Eingangs, title: III. }
+    notes:
+      - { page: 247, opens: "*) Zur" }
+    slug: ueber-den-ursprung-des-n-acusticus
+    title: Ueber den Ursprung des N. acusticus
+    shortTitle: Ursprung des N. acusticus
+    edition: "Monatsschrift für Ohrenheilkunde, XX. Jahrgang, Nr. 8 und 9 (Berlin, August und September 1886), S. 245–251 und 277–282"
+    author: Sigmund Freud
+    year: 1886
+    kind: work
   - item: wmw-1886-hemianaesthesie
     citation: WMW 1886
     ocr: deu
@@ -1996,6 +2036,35 @@ books:
     title: Ueber familiäre Formen von cerebralen Diplegien
     shortTitle: Familiäre Formen von cerebralen Diplegien
     edition: Neurologisches Centralblatt, XII. Jahrgang, Nr. 15 und 16 (Leipzig 1893), S. 512–515 und 542–547
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: revue-neurologique-1893-diplegies
+    citation: Revue neurologique 1893
+    # Freud's French, read with Tesseract's French model.
+    ocr: fra
+    # The issue's pages, the first read from below the title and byline;
+    # the running heads are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/BIUSante_130135x1893
+      firstPage: 177
+      pages:
+        - https://archive.org/download/BIUSante_130135x1893/page/n180_w1600.jpg#region=0.05,0.733,0.88,0.186
+        - https://archive.org/download/BIUSante_130135x1893/page/n181_w1600.jpg#region=0.05,0.064,0.90,0.860
+        - https://archive.org/download/BIUSante_130135x1893/page/n182_w1600.jpg#region=0.04,0.062,0.90,0.862
+        - https://archive.org/download/BIUSante_130135x1893/page/n183_w1600.jpg#region=0.05,0.064,0.92,0.860
+        - https://archive.org/download/BIUSante_130135x1893/page/n184_w1600.jpg#region=0.04,0.062,0.92,0.862
+        - https://archive.org/download/BIUSante_130135x1893/page/n185_w1600.jpg#region=0.05,0.066,0.92,0.860
+        - https://archive.org/download/BIUSante_130135x1893/page/n186_w1600.jpg#region=0.04,0.064,0.92,0.835
+    firstPage: 177
+    lastPage: 183
+    notes:
+      - { page: 177, opens: (1) Beiträge }
+    slug: les-diplegies-cerebrales-infantiles
+    title: Les diplégies cérébrales infantiles
+    shortTitle: Les diplégies cérébrales infantiles
+    edition: "Revue neurologique, 1re année, nº 8 (Paris, 30 avril 1893), p. 177–183"
     author: Sigmund Freud
     year: 1893
     kind: work
