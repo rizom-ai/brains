@@ -993,6 +993,42 @@ books:
     author: Sigmund Freud
     year: 1886
     kind: work
+  - item: nc-1886-strickkoerper
+    citation: NC 1886
+    ocr: deu
+    # The issue's pages, the first read from the paper's title, the last
+    # down to its end.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/NZ_1888_V_5
+      firstPage: 121
+      pages:
+        - https://archive.org/download/NZ_1888_V_5/page/n128_w1600.jpg#region=0.10,0.745,0.80,0.215
+        - https://archive.org/download/NZ_1888_V_5/page/n129_w1600.jpg
+        - https://archive.org/download/NZ_1888_V_5/page/n130_w1600.jpg#region=0.10,0.075,0.80,0.535&region=0.10,0.772,0.80,0.105
+        - https://archive.org/download/NZ_1888_V_5/page/n131_w1600.jpg#region=0.15,0.075,0.80,0.262&region=0.15,0.745,0.80,0.130
+        - https://archive.org/download/NZ_1888_V_5/page/n132_w1600.jpg#region=0.10,0.085,0.80,0.245&region=0.10,0.666,0.80,0.214
+        - https://archive.org/download/NZ_1888_V_5/page/n133_w1600.jpg#region=0.15,0.080,0.80,0.155&region=0.565,0.234,0.31,0.522&region=0.15,0.754,0.80,0.124
+        - https://archive.org/download/NZ_1888_V_5/page/n134_w1600.jpg#region=0.10,0.085,0.80,0.190&region=0.10,0.600,0.80,0.280
+        - https://archive.org/download/NZ_1888_V_5/page/n135_w1600.jpg
+        - https://archive.org/download/NZ_1888_V_5/page/n136_w1600.jpg#region=0.08,0.07,0.84,0.51
+    firstPage: 121
+    lastPage: 129
+    notes:
+      - { page: 122, opens: ¹ Dieses }
+      - { page: 122, opens: ² l. c. }
+      - { page: 122, opens: ³ Plan }
+      - { page: 123, opens: ¹ Dieses }
+      - { page: 123, opens: ² Experimenteller }
+      - { page: 128, opens: ¹ Arch. }
+    # The figures and their legends are left out.
+    slug: ueber-die-beziehung-des-strickkoerpers-zum-hinterstrang-und-hinterstrangskern
+    title: Ueber die Beziehung des Strickkörpers zum Hinterstrang und Hinterstrangskern nebst Bemerkungen über zwei Felder der Oblongata
+    shortTitle: Die Beziehung des Strickkörpers zum Hinterstrang
+    edition: "Neurologisches Centralblatt, V. Jahrgang, Nr. 6 (Leipzig 1886), S. 121–129"
+    author: Sigmund Freud und L. Darkschewitsch
+    year: 1886
+    kind: work
   - item: wmw-1886-hemianaesthesie
     citation: WMW 1886
     ocr: deu
@@ -3858,7 +3894,7 @@ books:
       url: https://archive.org/details/zweimonatsberichreel01
       firstPage: 41
       pages:
-        - https://archive.org/download/zweimonatsberichreel01/page/n25_w3600.jpg#region=0.550,0.241,0.325,0.576
+        - https://archive.org/download/zweimonatsberichreel01/page/n25_w3600.jpg#region=0.550,0.241,0.325,0.605
         - https://archive.org/download/zweimonatsberichreel01/page/n26_w3600.jpg#region=0.145,0.149,0.325,0.670
         - https://archive.org/download/zweimonatsberichreel01/page/n26_w3600.jpg#region=0.545,0.164,0.325,0.666
         - https://archive.org/download/zweimonatsberichreel01/page/n27_w3600.jpg#region=0.155,0.147,0.320,0.669
@@ -3871,6 +3907,11 @@ books:
         - https://archive.org/download/zweimonatsberichreel01/page/n30_w3600.jpg#region=0.543,0.153,0.320,0.269
     firstPage: 41
     lastPage: 51
+    # Specks after lines on p. 42 read as paragraph ends: its paragraphs named.
+    paragraphs:
+      - { page: 42, opens: In der psycho-analytischen }
+      - { page: 42, opens: Mit dem Tode eines }
+      - { page: 42, opens: Dies unser Verhältnis }
     slug: wir-und-der-tod
     title: Wir und der Tod
     edition: "Zweimonats-Bericht für die Mitglieder der österr. israel. Humanitätsvereine „B’nai B’rith“, XVIII. Jahrgang, Nr. 1 (Wien 1915), S. 41–51"
