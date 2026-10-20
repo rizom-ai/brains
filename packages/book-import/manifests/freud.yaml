@@ -786,6 +786,38 @@ books:
     author: Sigmund Freud
     year: 1885
     kind: work
+  - item: vlp-lit29498
+    citation: ZfT 1885
+    ocr: deu
+    # The lecture's three pages in the Max Planck Institute's Virtual
+    # Laboratory, each column cropped to the text: read from below the
+    # title and byline to the end, before the next article.
+    scan:
+      library: Virtual Laboratory (MPIWG)
+      url: https://vlp.mpiwg-berlin.mpg.de/references?id=lit29498
+      firstPage: 49
+      pages:
+        - https://digilib.mpiwg-berlin.mpg.de/digitallibrary/servlet/Scaler?fn=/permanent/vlp/lit29498/pages/p0049&dw=2000#region=0.05,0.424,0.445,0.564&region=0.50,0.29,0.45,0.70
+        - https://digilib.mpiwg-berlin.mpg.de/digitallibrary/servlet/Scaler?fn=/permanent/vlp/lit29498/pages/p0050&dw=2000#region=0.03,0.035,0.48,0.955&region=0.50,0.035,0.48,0.955
+        - https://digilib.mpiwg-berlin.mpg.de/digitallibrary/servlet/Scaler?fn=/permanent/vlp/lit29498/pages/p0051&dw=2000#region=0.03,0.04,0.48,0.945&region=0.50,0.04,0.47,0.49
+    firstPage: 49
+    lastPage: 51
+    # The columns' crops lose the indents: every paragraph named.
+    paragraphs:
+      - { page: 49, opens: Ich habe mich im vorigen }
+      - { page: 49, opens: Mit der }
+      - { page: 49, opens: Ich kann die Wirkung }
+      - { page: 50, opens: In meiner Abhandlung }
+      - { page: 50, opens: Ich wurde auch auf }
+      - { page: 51, opens: Ich komme nun zu }
+      - { page: 51, opens: Bestimmter kann man }
+    slug: ueber-die-allgemeinwirkung-des-cocains
+    title: Ueber die Allgemeinwirkung des Cocains
+    shortTitle: Allgemeinwirkung des Cocains
+    edition: "Zeitschrift für Therapie mit Einbeziehung der Electro- und Hydrotherapie, III. Jahrgang, Nr. 7 (Wien, 1. April 1885), S. 49–51"
+    author: Sigmund Freud
+    year: 1885
+    kind: work
   - item: wmw-1885-syringomyelie
     citation: WMW 1885
     ocr: deu
