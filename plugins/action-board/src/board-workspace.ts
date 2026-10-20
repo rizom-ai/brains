@@ -16,6 +16,7 @@ import {
   inboxCardId,
   moveActionItem,
   trackInboxItem,
+  createBoardCard,
 } from "@brains/action-items";
 import {
   actionItemBody,
@@ -96,11 +97,14 @@ const cardSchema = z.object({
   assignees: z.array(z.string()),
   age: z.string(),
   place: z.string(),
-  source: z.object({
-    label: z.string(),
-    entityType: z.string(),
-    id: z.string(),
-  }),
+  /** The entity the card came from; a card added on the board has none. */
+  source: z
+    .object({
+      label: z.string(),
+      entityType: z.string(),
+      id: z.string(),
+    })
+    .optional(),
 });
 
 const openCardSchema = z.object({
@@ -223,6 +227,22 @@ const trackAction = defineWorkspaceAction({
   output: moveResultSchema,
 });
 
+const createAction = defineWorkspaceAction({
+  name: "create",
+  label: "New card",
+  input: z.object({
+    title: z.string().trim().min(1).max(500),
+    text: z.string().max(4_000).optional(),
+    assignee: z.string().max(200).optional(),
+  }),
+  output: moveResultSchema,
+});
+
+const createResult = {
+  title: "New card",
+  fields: { status: { label: "Outcome" } },
+} as const;
+
 const trackResult = {
   title: "Track",
   fields: { status: { label: "Outcome" } },
@@ -244,7 +264,8 @@ type BoardAction =
   | typeof moveAction
   | typeof dropAction
   | typeof noteAction
-  | typeof trackAction;
+  | typeof trackAction
+  | typeof createAction;
 
 /** The project filter and, once a project is chosen, its roll-up. */
 function projectBlocks(projects: Projects): OperatorRegionBlock<BoardAction>[] {
@@ -352,7 +373,7 @@ const boardWorkspace = defineStudioWorkspace({
   entityCatalog: boardSources,
   query: boardQuerySchema,
   data: dataSchema,
-  actions: [moveAction, dropAction, noteAction, trackAction],
+  actions: [moveAction, dropAction, noteAction, trackAction, createAction],
   view: ({ data }) => ({
     title: "Board",
     description: "Action items from the team's conversations.",
@@ -409,6 +430,23 @@ const boardWorkspace = defineStudioWorkspace({
             },
           ]
         : []),
+      {
+        type: "action" as const,
+        id: "new-card",
+        action: createAction,
+        label: "New card",
+        input: {},
+        form: {
+          presentation: "disclosure" as const,
+          submitLabel: "Add to To do",
+          fields: {
+            title: { label: "Title", control: "text" as const },
+            text: { label: "Details", control: "text" as const },
+            assignee: { label: "Assign to", control: "text" as const },
+          },
+        },
+        result: createResult,
+      },
       {
         type: "detail",
         id: "board-detail",
@@ -494,7 +532,7 @@ function cardItem(card: BoardCard): {
             },
           ]
         : []),
-      ...(card.source.id.length <= LINKABLE_ID_LENGTH
+      ...(card.source && card.source.id.length <= LINKABLE_ID_LENGTH
         ? [
             {
               label: card.source.label,
@@ -537,11 +575,15 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
     ),
     age: formatAge(actionItemCapturedAt(entity), now),
     place: source.place,
-    source: {
-      label: source.link.label,
-      entityType: source.link.entityType,
-      id: source.link.entityId,
-    },
+    ...(source.link
+      ? {
+          source: {
+            label: source.link.label,
+            entityType: source.link.entityType,
+            id: source.link.entityId,
+          },
+        }
+      : {}),
   };
 }
 
@@ -773,6 +815,26 @@ export async function registerBoardWorkspace(
                   ? "Tracked on the board."
                   : "This Inbox item is already on the board.",
             };
+          }),
+          createAction.bind(bindingContext, async ({ caller, input }) => {
+            if (!caller) {
+              throw new Error("Adding a card requires a signed-in member");
+            }
+            await createBoardCard(
+              {
+                entityService: context.entityService,
+                visibility: deps.visibility,
+                now,
+              },
+              {
+                title: input.title,
+                text: input.text ?? "",
+                assignee: input.assignee,
+                actor: { kind: "user", userId: caller.actor.id },
+                actorName: caller.actor.displayName,
+              },
+            );
+            return { status: "Added to To do." };
           }),
           noteAction.bind(bindingContext, async ({ caller, input }) => {
             if (!caller)

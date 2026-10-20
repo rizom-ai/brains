@@ -44,6 +44,7 @@ export {
 } from "./board";
 export {
   addActionItemNote,
+  createBoardCard,
   inboxCardId,
   moveActionItem,
   trackInboxItem,
@@ -52,6 +53,8 @@ export {
   type ActionItemMoveResult,
   type ActionItemNoteRequest,
   type ActionItemNoteResult,
+  type CreateBoardCardRequest,
+  type CreateBoardCardResult,
   type TrackInboxItemDeps,
   type TrackInboxItemRequest,
   type TrackInboxItemResult,

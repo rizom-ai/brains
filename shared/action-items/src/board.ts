@@ -161,13 +161,15 @@ export function actionItemCapturedAt(entity: ActionItemEntity): string {
 }
 
 export interface ActionItemSource {
-  /** Where the item came from, in a word: its channel, or the Inbox. */
+  /** Where the item came from, in a word: its channel, the Inbox, or the Board. */
   place: string;
-  link: { label: string; entityType: string; entityId: string };
+  /** The entity it came from; a card added on the board has none. */
+  link?: { label: string; entityType: string; entityId: string };
 }
 
 export function actionItemSource(entity: ActionItemEntity): ActionItemSource {
   const origin = actionItemOrigin(entity.metadata);
+  if (origin.kind === "board") return { place: "Board" };
   return origin.kind === "conversation"
     ? {
         place: channelLabel(origin.channelName, origin.channelId),

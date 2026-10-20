@@ -14,7 +14,13 @@ import {
 import { z } from "@brains/utils/zod";
 import { ActionItemAdapter } from "../src";
 import { actionItemBody, actionItemBodyHash, isBoardOwned } from "../src";
-import { addActionItemNote, moveActionItem, trackInboxItem } from "../src";
+import {
+  actionItemSource,
+  addActionItemNote,
+  createBoardCard,
+  moveActionItem,
+  trackInboxItem,
+} from "../src";
 import {
   actionItemSchema,
   type ActionItemEntity,
@@ -331,5 +337,68 @@ describe("tracking an Inbox item", () => {
       status: "already-tracked",
       id: "inbox:contact-requests:req-1",
     });
+  });
+});
+
+describe("creating a card on the board", () => {
+  it("creates an open card that names who added it and comes from no conversation", async () => {
+    const service = await brain();
+
+    const result = await createBoardCard(
+      { entityService: service, now: at, visibility: "shared" },
+      {
+        title: "Order name badges",
+        text: "Two hundred, with the new logo.",
+        assignee: "Alex Morgan",
+        actor: niels,
+        actorName: "Niels Ward",
+      },
+    );
+
+    expect(result.status).toBe("created");
+    expect(result.id).toMatch(/^board:/);
+    const card = await service.getEntity(
+      {
+        entityType: "action-item",
+        id: result.id,
+        visibilityScope: "restricted",
+      },
+      actionItemSchema,
+    );
+    if (!card) throw new Error("The card was not stored");
+    expect(card.visibility).toBe("shared");
+    expect(card.metadata).toEqual({
+      origin: "board",
+      capturedAt: "2026-10-15T08:02:00.000Z",
+      status: "open",
+      assignedTo: [{ name: "Alex Morgan" }],
+      requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
+    });
+    expect(actionItemBody(card.content)).toContain(
+      "# Action item: Order name badges",
+    );
+    expect(actionItemBody(card.content)).toContain(
+      "Two hundred, with the new logo.",
+    );
+    expect(actionItemSource(card)).toEqual({ place: "Board" });
+  });
+
+  it("uses the title as the text when no details are given", async () => {
+    const service = await brain();
+
+    const { id } = await createBoardCard(
+      { entityService: service, now: at, visibility: "shared" },
+      { title: "Book the venue", text: "  ", actor: niels },
+    );
+
+    const card = await service.getEntity(
+      { entityType: "action-item", id, visibilityScope: "restricted" },
+      actionItemSchema,
+    );
+    if (!card) throw new Error("The card was not stored");
+    expect(card.metadata).not.toHaveProperty("assignedTo");
+    expect(actionItemBody(card.content)).toBe(
+      "# Action item: Book the venue\n\nBook the venue\n",
+    );
   });
 });
