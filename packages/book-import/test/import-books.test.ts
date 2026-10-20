@@ -11,6 +11,7 @@ import {
   parseCorrections,
   parseManifest,
   scannedBooks,
+  type ScannedBook,
   volumeHocr,
   volumeKey,
 } from "../src/import-books";
@@ -1373,6 +1374,67 @@ describe("fetchVolumeHocr, served leaves", () => {
 
     expect(read).toContain("Titel");
     expect(read).not.toContain("card");
+  });
+});
+
+describe("volumeHocr, models", () => {
+  const book = (ocr: string): ScannedBook | undefined =>
+    scannedBooks(
+      parseManifest(`
+source: archive-ocr
+books:
+  - item: e
+    citation: E
+    ocr: ${ocr}
+    scan:
+      library: L
+      url: https://example.org/e
+      pages: [https://example.org/e/1.jpg]
+    firstPage: 1
+    lastPage: 1
+    slug: e
+    title: E
+    edition: E
+    author: A
+    year: 1854
+    kind: work
+`),
+    )[0];
+  const page =
+    "<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 10 10'><span class='ocrx_word'>vigor—</span></div></body></html>";
+
+  it("keeps the dash a word ends with where the scan was read with a model for roman type", async () => {
+    const read = await volumeHocr(
+      book("eng") ?? fail(),
+      async (): Promise<string> => "",
+      () => async (): Promise<string> => page,
+    );
+
+    expect(read).toContain(">vigor—</span>");
+  });
+
+  it("reads the German model's dash or equals sign at a word's end as its hyphen, but leaves its capitals and umlauts", async () => {
+    const german =
+      "<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 10 10'><span class='ocrx_word'>Kennt—</span> <span class='ocrx_word'>ge=</span> <span class='ocrx_word'>Uber</span></div></body></html>";
+    const read = await volumeHocr(
+      book("deu") ?? fail(),
+      async (): Promise<string> => "",
+      () => async (): Promise<string> => german,
+    );
+
+    expect(read).toContain(">Kennt-</span>");
+    expect(read).toContain(">ge-</span>");
+    expect(read).toContain(">Uber</span>");
+  });
+
+  it("reads the Fraktur model's dash at a word's end as its hyphen", async () => {
+    const read = await volumeHocr(
+      book("frak2021") ?? fail(),
+      async (): Promise<string> => "",
+      () => async (): Promise<string> => page,
+    );
+
+    expect(read).toContain(">vigor-</span>");
   });
 });
 

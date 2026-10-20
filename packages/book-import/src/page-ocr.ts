@@ -366,10 +366,11 @@ const SMALL_NOUN =
 export function volumeOfPages(
   pages: string[],
   numbers: Array<number | undefined> = [],
+  read: (hocr: string) => string = frakturRead,
 ): string {
   const bodies = pages.map((page, leaf) => {
     const number = numbers[leaf];
-    return frakturRead(
+    return read(
       (/<body>([\s\S]*)<\/body>/.exec(page)?.[1] ?? "").replace(
         /<div class='ocr_page' id='page_\d+'([^>]*)>/,
         number === undefined
@@ -386,7 +387,7 @@ export function volumeOfPages(
  * and hyphens as such, and its capital umlauts with their dots.
  */
 export function frakturRead(hocr: string): string {
-  return (
+  return hyphenRead(
     hocr
       .replace(/ſ/g, "s")
       // Fraktur's etc., ꝛc., the model reads now and then as ꝛe. or ꝛ2c.
@@ -396,9 +397,18 @@ export function frakturRead(hocr: string): string {
       .replace(
         DOTLESS,
         (word) => `${UMLAUT[word.charAt(0)] ?? word.charAt(0)}${word.slice(1)}`,
-      )
-      // Fraktur models print a word's hyphen as a dash, a double hyphen or
-      // an equals sign, at times two of them.
+      ),
+  );
+}
+
+/**
+ * A German reading's hyphens as such: the models print a word's hyphen as a
+ * dash, a double hyphen or an equals sign, at times two of them, where a
+ * German print sets its dashes apart from the words.
+ */
+export function hyphenRead(hocr: string): string {
+  return (
+    hocr
       .replace(/(\p{L})[—⸗=-]+(?=<\/span>)/gu, "$1-")
       // A double hyphen is a hyphen wherever it stands: inside a word, and
       // ending one before a comma (Wechsel⸗, Aktien⸗ und Schiffshändler).

@@ -56,6 +56,19 @@ describe("volumeOfPages", () => {
   });
 });
 
+describe("volumeOfPages, roman type", () => {
+  it("reads a page another model read as it reads, its dash a dash, where the scan is not Fraktur", () => {
+    const volume = volumeOfPages(
+      [tesseractPage("vigor—"), tesseractPage("Uber")],
+      [],
+      (hocr) => hocr,
+    );
+
+    expect(volume).toContain(">vigor—</span>");
+    expect(volume).toContain(">Uber</span>");
+  });
+});
+
 describe("volumeOfPages, numbered", () => {
   it("gives each page its printed number, counted from the first page's, where the scan states it", () => {
     const volume = volumeOfPages(

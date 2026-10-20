@@ -18,6 +18,7 @@ import {
 import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
   frakturRead,
+  hyphenRead,
   volumeOfPages,
   type OcrReading,
   type PageOcr,
@@ -946,6 +947,7 @@ export async function ocrVolumeHocr(
   item: string,
   fetchText: FetchText,
   pageOcr: PageOcr,
+  read: (hocr: string) => string = frakturRead,
 ): Promise<string> {
   const metadata = archiveMetadataSchema.parse(
     JSON.parse(await fetchText(`${ARCHIVE}/metadata/${item}`)),
@@ -960,6 +962,8 @@ export async function ocrVolumeHocr(
       (_, leaf) => `${ARCHIVE}/download/${item}/page/n${leaf}_w1600.jpg`,
     ),
     pageOcr,
+    [],
+    read,
   );
 }
 
@@ -968,12 +972,13 @@ async function imagesHocr(
   images: string[],
   pageOcr: PageOcr,
   numbers?: Array<number | undefined>,
+  read: (hocr: string) => string = frakturRead,
 ): Promise<string> {
   const pages = await images.reduce<Promise<string[]>>(
     async (done, image) => [...(await done), await pageOcr(image)],
     Promise.resolve([]),
   );
-  return volumeOfPages(pages, numbers);
+  return volumeOfPages(pages, numbers, read);
 }
 
 /** A scanned book's volume: the archive's hOCR, or the scan read anew. */
@@ -995,16 +1000,27 @@ export async function volumeHocr(
     );
   }
   const read = pageOcr({ model: book.ocr, binarise: book.binarise });
+  // A Fraktur model's reading is read as roman type sets it, a German one's
+  // hyphens as hyphens; an English or French print's dashes stay dashes.
+  const reading = FRAKTUR_MODEL.test(book.ocr)
+    ? frakturRead
+    : /^deu/u.test(book.ocr)
+      ? hyphenRead
+      : (hocr: string): string => hocr;
   return marked(
     book.scan
       ? await imagesHocr(
           book.scan.pages.map(scanPageUrl),
           read,
           scanPageNumbers(book.scan),
+          reading,
         )
-      : await ocrVolumeHocr(book.item, fetchText, read),
+      : await ocrVolumeHocr(book.item, fetchText, read, reading),
   );
 }
+
+/** Tesseract's models for Fraktur: frk, deu_frak, UB Mannheim's frak2021. */
+const FRAKTUR_MODEL = /fra?k|fraktur/iu;
 
 /** A volume whose leaf the manifest names as the front matter's page I states it so. */
 function withFrontPage(hocr: string, leaf: number): string {

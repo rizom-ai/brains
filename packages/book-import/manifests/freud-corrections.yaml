@@ -29708,10 +29708,6 @@ Freud_1893_Diplegien:
     to: "ausdruck, sehr aufmerksam auf Alles, spricht sehr deutlich und reichlich."
     by: scan
   - page: 40
-    from: "Öbere Extremitäten zeigen keine Lähmung, keine Hypertonie, eine sehr"
-    to: "Obere Extremitäten zeigen keine Lähmung, keine Hypertonie, eine sehr"
-    by: scan
-  - page: 40
     from: "erhebliche Ueberstreckbarkeit iin allen Gelenken (Rhachitis). Die Beine zeigen"
     to: "erhebliche Ueberstreckbarkeit in allen Gelenken (Rhachitis). Die Beine zeigen"
     by: scan
@@ -30568,8 +30564,8 @@ Freud_1893_Diplegien:
     to: "man, dass von zwei Zwillingsfrüchten die eine in utero jedem mög-"
     by: scan
   - page: 81
-    from: "allgemeine Starre . ND H- WD —"
-    to: "allgemeine Starre . . 1"
+    from: allgemeine Starre . ND H- WD —
+    to: allgemeine Starre . . 1
     by: scan
   - page: 81
     from: "bilaterale spastische Lahmung"
@@ -31404,8 +31400,8 @@ Freud_1893_Diplegien:
     to: "leicht eingesunken und Pia dort verdickt und adhärent. Hirnbasis normal. Mikro-"
     by: scan
   - page: 117
-    from: "Änderungen nachweist. Es findet siich nur leichtes Einsinken der"
-    to: "Änderungen nachweist. Es findet sich nur leichtes Einsinken der"
+    from: änderungen nachweist. Es findet siich nur leichtes Einsinken der
+    to: änderungen nachweist. Es findet sich nur leichtes Einsinken der
     by: scan
   - page: 118
     from: "Veränderungen scheinen nächst dem Scheitel am deutlichsten zu seln."
@@ -31450,10 +31446,6 @@ Freud_1893_Diplegien:
   - page: 119
     from: "nach rückwärts gezogen, und cs trat ein so ausgesprochener Öpisthotonus ein,"
     to: "nach rückwärts gezogen, und es trat ein so ausgesprochener Opisthotonus ein,"
-    by: scan
-  - page: 119
-    from: "Öbjecten mit den Augen und zeigte Spuren geistiger Entwickelung."
-    to: "Objecten mit den Augen und zeigte Spuren geistiger Entwickelung."
     by: scan
   - page: 119
     from: "Die Beme waren vollständig gelähmt und immer in spastisch gekreuzter"
@@ -32422,6 +32414,18 @@ Freud_1893_Diplegien:
   - page: 96
     from: "5. Icdiotie bei knolliger Sklerose (Sclerose tubereuse)."
     to: "5. Idiotie bei knolliger Sklerose (Sclérose tubéreuse)."
+    by: scan
+  - page: 40
+    from: Öbere Extremitäten zeigen keine Lähmung, keine Hypertonie, eine sehr
+    to: Obere Extremitäten zeigen keine Lähmung, keine Hypertonie, eine sehr
+    by: scan
+  - page: 119
+    from: Öbjecten mit den Augen und zeigte Spuren geistiger Entwickelung.
+    to: Objecten mit den Augen und zeigte Spuren geistiger Entwickelung.
+    by: scan
+  - page: 139
+    from: einwandfreien KEr-
+    to: einwandfreien Er-
     by: scan
 b33778474:
   - page: 1
@@ -42114,10 +42118,6 @@ Freud_1885_Coca:
     to: beschwerden nach
     by: scan
   - page: 18
-    from: dem Ärzte genau
-    to: dem Arzte genau
-    by: scan
-  - page: 18
     from: Epigastrium ; dann
     to: Epigastrium; dann
     by: scan
@@ -43931,7 +43931,7 @@ sb-1882-85-1-2:
     to: Hartnack 3/8. Vergrösserung
     by: scan
   - page: 46
-    from: . Überlebende Nervenzelle aus einem Abdominalganglion mit kegel-
+    from: . Uberlebende Nervenzelle aus einem Abdominalganglion mit kegel-
     to: Fig. 2. Überlebende Nervenzelle aus einem Abdominalganglion mit kegel-
     by: scan
   - page: 46
@@ -44528,10 +44528,6 @@ Sitz_MN_3_1877_75:
     to: dreissig.
     by: scan
   - page: 22
-    from: Öbgleich
-    to: Obgleich
-    by: scan
-  - page: 22
     from: Fasermenzen
     to: Fasermengen
     by: scan
@@ -44966,6 +44962,14 @@ Sitz_MN_3_1877_75:
   - page: 27
     from: Ial Trr
     to: ""
+    by: scan
+  - page: 22
+    from: Öbgleich
+    to: Obgleich
+    by: scan
+  - page: 19
+    from: Ubertreten auf die andere Seite
+    to: Übertreten auf die andere Seite
     by: scan
 Sitz_MN_1_1877_75:
   - page: 419
@@ -45561,7 +45565,7 @@ Sitz_MN_1_1877_75:
     to: Gerüste.
     by: scan
   - page: 427
-    from: Überall
+    from: Uberall
     to: überall
     by: scan
   - page: 427
@@ -45627,10 +45631,6 @@ Sitz_MN_1_1877_75:
   - page: 428
     from: Gerlüste
     to: Gerüste
-    by: scan
-  - page: 428
-    from: Örganen
-    to: Organen
     by: scan
   - page: 428
     from: 68 Syrski bei bis 430””
@@ -45845,6 +45845,10 @@ Sitz_MN_1_1877_75:
   - page: 431
     from: wiezb. d. matbem.-saturw, CL LXXV., Bd, J. Abth.
     to: ""
+    by: scan
+  - page: 428
+    from: Örganen
+    to: Organen
     by: scan
 Sitz_MN_3_1878_78:
   - page: 81
@@ -47806,10 +47810,6 @@ Sitz_MN_3_1878_78:
     to: nur
     by: scan
   - page: 112
-    from: Öberfläche
-    to: Oberfläche
-    by: scan
-  - page: 112
     from: apringen,
     to: springen,
     by: scan
@@ -47852,10 +47852,6 @@ Sitz_MN_3_1878_78:
   - page: 113
     from: Ran vier’schen
     to: Ranvier’schen
-    by: scan
-  - page: 113
-    from: Übertragen,
-    to: übertragen,
     by: scan
   - page: 113
     from: hbei
@@ -48644,7 +48640,7 @@ Sitz_MN_3_1878_78:
     to: Äste
     by: scan
   - page: 130
-    from: Über
+    from: Uber
     to: über
     by: scan
   - page: 130
@@ -48886,10 +48882,6 @@ Sitz_MN_3_1878_78:
   - page: 135
     from: aucht
     to: sucht
-    by: scan
-  - page: 135
-    from: Ärt,
-    to: Art,
     by: scan
   - page: 135
     from: seben.
@@ -50011,10 +50003,6 @@ Sitz_MN_3_1878_78:
     to: Commissur
     by: scan
   - page: 158
-    from: Äusseren
-    to: äusseren
-    by: scan
-  - page: 158
     from: gur angehören,
     to: sur angehören,
     by: scan
@@ -50704,6 +50692,30 @@ Sitz_MN_3_1878_78:
     from: A = ein Punkt, von welchem die sich auflösenden Nerrenfasern und.
     to: A = ein Punkt, von welchem die sich auflösenden Nervenfasern und
     by: scan
+  - page: 112
+    from: Öberfläche
+    to: Oberfläche
+    by: scan
+  - page: 113
+    from: Übertragen,
+    to: übertragen,
+    by: scan
+  - page: 135
+    from: Ärt,
+    to: Art,
+    by: scan
+  - page: 158
+    from: Äusseren
+    to: äusseren
+    by: scan
+  - page: 131
+    from: auffällige Anderung im
+    to: auffällige Änderung im
+    by: scan
+  - page: 135
+    from: hat. Ahnlich, wenn
+    to: hat. Ähnlich, wenn
+    by: scan
 JfPsychiatrie_1884_5:
   - page: 221
     from: können. Ks
@@ -50728,10 +50740,6 @@ JfPsychiatrie_1884_5:
   - page: 221
     from: Lösun’g
     to: Lösung
-    by: scan
-  - page: 221
-    from: Öbject
-    to: Object
     by: scan
   - page: 221
     from: OÖrgane
@@ -51082,10 +51090,6 @@ JfPsychiatrie_1884_5:
     to: Kupffer³
     by: scan
   - page: 227
-    from: Änsicht
-    to: Ansicht
-    by: scan
-  - page: 227
     from: Ilebensfrischen
     to: lebensfrischen
     by: scan
@@ -51248,6 +51252,14 @@ JfPsychiatrie_1884_5:
   - page: 229
     from: ‘ Vergl. Schwalbe's Lehrbuch der Neurologie, 1881.
     to: ⁴ Vergl. Schwalbe's Lehrbuch der Neurologie, 1881.
+    by: scan
+  - page: 221
+    from: Öbject
+    to: Object
+    by: scan
+  - page: 227
+    from: Änsicht
+    to: Ansicht
     by: scan
 Arch_Anat_1884:
   - page: 453
@@ -51930,10 +51942,6 @@ wmw-1884-hirnblutung:
     to: und solche
     by: scan
   - page: 276
-    from: Änderungen des Krankheitsbildes
-    to: änderungen des Krankheitsbildes
-    by: scan
-  - page: 276
     from: tehlende
     to: fehlende
     by: scan
@@ -51956,10 +51964,6 @@ wmw-1884-hirnblutung:
   - page: 277
     from: Jlag,
     to: lag,
-    by: scan
-  - page: 277
-    from: Öberflächenblutung kann
-    to: Oberflächenblutung kann
     by: scan
   - page: 277
     from: Muskelgefühles ®)
@@ -52032,10 +52036,6 @@ wmw-1884-hirnblutung:
   - page: 278
     from: auf so. vielfachen
     to: auf so vielfachen
-    by: scan
-  - page: 278
-    from: Änderungen seines
-    to: änderungen seines
     by: scan
   - page: 278
     from: Bevorzugung, des
@@ -52236,6 +52236,10 @@ wmw-1884-hirnblutung:
   - page: 277
     from: N 5) Exner, Untersuchung über die Lokalisation, etc. 1881, Fall 58
     to: ⁸) Exner, Untersuchung über die Lokalisation, etc. 1881, Fall 58
+    by: scan
+  - page: 277
+    from: Öberflächenblutung kann
+    to: Oberflächenblutung kann
     by: scan
 wmp-1885-parke:
   - page: 1036
@@ -54341,10 +54345,6 @@ wmp-1893-mechanismus:
     to: eine schwere und complicirte Hysterie mit Lähmungen, Con-
     by: scan
   - page: 123
-    from: denn er war der erste Fall, wo es dem Ärzte gelang, alle
-    to: denn er war der erste Fall, wo es dem Arzte gelang, alle
-    by: scan
-  - page: 123
     from: im Jahre 1886 von einem Studienaufenthalt bei CHARCOT zurück -
     to: im Jahre 1886 von einem Studienaufenthalt bei CHARCOT zurück-
     by: scan
@@ -54545,7 +54545,7 @@ wmp-1893-mechanismus:
     to: wurde. Nun gibt es verschiedene Arten dieser Reaction. Für
     by: scan
   - page: 166
-    from: Änderungen des eigenen Körpers, Weinen, Schimpfen , Toben
+    from: änderungen des eigenen Körpers, Weinen, Schimpfen , Toben
     to: änderungen des eigenen Körpers, Weinen, Schimpfen, Toben
     by: scan
   - page: 166
@@ -54708,10 +54708,6 @@ nc-1893-diplegien:
   - page: 514
     from: Schritte wird durch eine Circumduetion in der Hüfte eingeleitet; übrigens keine
     to: Schritte wird durch eine Circumduction in der Hüfte eingeleitet; übrigens keine
-    by: scan
-  - page: 514
-    from: Änderung bei der Locomotion.
-    to: änderung bei der Locomotion.
     by: scan
   - page: 514
     from: thümliches Gepräge, Die Articulation des ganzen Wortes ist gedehnt, die Pausen
@@ -57822,10 +57818,6 @@ Diagnostisches1v4K:
     from: BRocA’sche
     to: BROCA’sche
     by: scan
-  - page: 174
-    from: Änderung seiner Miene
-    to: änderung seiner Miene
-    by: scan
   - page: 177
     from: Arteritis, Verschluss
     to: Arteritis. Verschluss
@@ -59048,16 +59040,12 @@ b21499792:
     from: 8-—15
     to: 8–15
     by: scan
-  - page: 9
-    from: Änderungen früher
-    to: änderungen früher
-    by: scan
   - page: 26
     from: ILaesion
     to: Laesion
     by: scan
   - page: 26
-    from: Ürkrankung
+    from: ürkrankung
     to: Erkrankung
     by: scan
   - page: 26
@@ -60854,10 +60842,6 @@ Villaret1888Handwoerterbuch:
     to: aufhörliche Tussis
     by: scan
   - page: 891
-    from: Änderungen an den Genitalien
-    to: änderungen an den Genitalien
-    by: scan
-  - page: 891
     from: versichert , dass
     to: versichert, dass
     by: scan
@@ -60872,10 +60856,6 @@ Villaret1888Handwoerterbuch:
   - page: 892
     from: Kinwir-
     to: Einwir-
-    by: scan
-  - page: 886
-    from: Änderung charakterisiert ist
-    to: änderung charakterisiert ist
     by: scan
   - page: 887
     from: tudes passionnelles“ zeichnet
@@ -60969,10 +60949,6 @@ therapeutischesl00buma:
   - page: 725
     from: ertheilenden Suggestion niicht immer zur Mit-
     to: ertheilenden Suggestion nicht immer zur Mit-
-    by: scan
-  - page: 725
-    from: Ärzte hypnotisiren lässt, der ihr nicht des
-    to: Ärzte hypnotisiren lässt. der ihr nicht des
     by: scan
   - page: 725
     from: psvclnsche1 Bere1tschaft der ihn seinerselts
@@ -61423,14 +61399,6 @@ therapeutischesl00buma:
     to: auch eignet sich der Inhalt der in der H. zu
     by: scan
   - page: 725
-    from: Fälle unmöglich wird. Da es dem Ärzte vor
-    to: Fälle unmöglich wird. Da es dem Arzte vor
-    by: scan
-  - page: 725
-    from: Ärzte hypnotisiren lässt. der ihr nicht des
-    to: Arzte hypnotisiren lässt, der ihr nicht des
-    by: scan
-  - page: 725
     from: tiischen Versuchen beiwohnen lassen. Kann
     to: tischen Versuchen beiwohnen lassen. Kann
     by: scan
@@ -61497,10 +61465,6 @@ therapeutischesl00buma:
   - page: 729
     from: bemerkt und ungünstig verwerthet ; man lasse
     to: bemerkt und ungünstig verwerthet; man lasse
-    by: scan
-  - page: 731
-    from: können es auch hier dem Ärzte erleichtern,
-    to: können es auch hier dem Arzte erleichtern,
     by: scan
   - page: 731
     from: der Arzt das Leiden in Abrede ‚stellt. Bei
