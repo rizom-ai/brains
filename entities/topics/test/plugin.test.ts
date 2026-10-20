@@ -194,6 +194,12 @@ describe("topic-distribution report wiring", () => {
         visibility: "public",
         metadata: {},
       }),
+      // Extraction reads public sources only, so it never reads this one.
+      createTestEntity("note", {
+        id: "private",
+        visibility: "restricted",
+        metadata: {},
+      }),
     ]);
     const stores = topicExtractionStores(context);
     await stores.votes.set("note:read", {

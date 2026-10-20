@@ -88,11 +88,11 @@ There is no manual extract/rebuild tool.
 The plugin registers the `topic-distribution` report in `system_analytics`. It takes no params and returns:
 
 - `topics`: each visible topic's `topic` id, `title` and `sources`, sorted by `sources` descending, then title.
-- `coverage`: `sourceEntities` (visible source entities), `attributed` (those with a fresh vote) and `unattributed` (those without one).
+- `coverage`: `sourceEntities` (visible sources that extraction reads), `attributed` (those with a fresh vote) and `unattributed` (those pending extraction: no fresh vote yet). A source with a fresh vote that supports no listed topic is attributed.
 
 A visible source counts for a topic when its fresh vote supports the topic's slug at or above `minRelevanceScore`, with merged slugs folded into the topic that absorbed them. A fresh vote is one that extraction itself would use: cast for the source's current content hash, under the current votes prompt, at the current `extractionVisibility`. A source counts at most once per topic and may support several topics. A topic matches by the slug of its title.
 
-Sources are the topic source types visible to the caller, and published only for a public caller. When no topic is visible but source content is, the report returns an empty `topics` list with `unextracted`: the number of visible sources and a hint to answer from `system_search`.
+Sources are those both visible to the caller and read by extraction: a topic source type, eligible under the rule extraction applies to its own source scan (`isTopicSourceEligible`: within `extractionVisibility`, with an extractable status), and published only for a public caller. A wider caller does not see content outside `extractionVisibility`, or drafts extraction skips, as unattributed. When no topic is visible but source content is, the report returns an empty `topics` list with `unextracted`: the number of visible sources and a hint to answer from `system_search`.
 
 ## Shared system tool surface
 

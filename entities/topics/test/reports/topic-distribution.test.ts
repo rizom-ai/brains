@@ -10,7 +10,11 @@ import { generateIdFromText } from "@brains/utils/string-utils";
 
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 import { countTopicSources } from "../../src/lib/topic-source-counts";
-import { topicsPluginConfigSchema } from "../../src/schemas/config";
+import { isTopicSourceEligible } from "../../src/lib/topic-source-policy";
+import {
+  topicsPluginConfigSchema,
+  type TopicsPluginConfig,
+} from "../../src/schemas/config";
 import type { TopicVote } from "../../src/schemas/votes";
 
 const topicDistributionSchema = z.array(
@@ -99,25 +103,38 @@ function vote(source: BaseEntity, ...titles: string[]): [string, TopicVote] {
   ];
 }
 
-/** Counts read from these votes, as the plugin counts from its ledger. */
-function countingFrom(
-  votes: [string, TopicVote][],
-): Parameters<typeof createTopicDistributionReport>[0]["countSources"] {
-  return async (sources) =>
-    countTopicSources({
-      sources,
-      votes: new Map(votes),
-      aliases: new Map(),
-      promptVersion: PROMPT,
-      config,
-    });
+/** The vote as cast under another extraction visibility. */
+function stampedAt(
+  visibility: TopicVote["visibility"],
+  [key, cast]: [string, TopicVote],
+): [string, TopicVote] {
+  return [key, { ...cast, visibility }];
 }
 
-const options = {
-  isSourceType: (type: string): boolean => type !== "topic",
-  autoExtraction: true,
-  countSources: countingFrom([]),
-};
+/**
+ * The report wired as the plugin wires it: extraction's eligibility rule,
+ * and counts read from these votes under this extraction config.
+ */
+function extractionOptions(
+  votes: [string, TopicVote][] = [],
+  extraction: TopicsPluginConfig = config,
+): Parameters<typeof createTopicDistributionReport>[0] {
+  return {
+    isSourceType: (type: string): boolean => type !== "topic",
+    isEligibleSource: (entity) => isTopicSourceEligible(entity, extraction),
+    autoExtraction: true,
+    countSources: async (sources) =>
+      countTopicSources({
+        sources,
+        votes: new Map(votes),
+        aliases: new Map(),
+        promptVersion: PROMPT,
+        config: extraction,
+      }),
+  };
+}
+
+const options = extractionOptions();
 
 const unextractedSchema = z.object({
   sourceEntities: z.number(),
@@ -166,14 +183,13 @@ describe("topic-distribution report", () => {
       third,
     ]);
 
-    const result = await runReport({
-      ...options,
-      countSources: countingFrom([
+    const result = await runReport(
+      extractionOptions([
         vote(first, "TypeScript", "Education"),
         vote(second, "TypeScript"),
         vote(third),
       ]),
-    })(shell.getEntityService(), "public");
+    )(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)).toEqual([
       { topic: "typescript", title: "TypeScript", sources: 2 },
@@ -184,25 +200,27 @@ describe("topic-distribution report", () => {
   });
 
   it("counts only public published sources for a public caller", async () => {
+    const extraction = topicsPluginConfigSchema.parse({
+      extractionVisibility: "shared",
+      extractableStatuses: ["published", "draft"],
+    });
     const published = makeNote("published");
     const draft = makeNote("draft", "public", "draft");
     const shared = makeNote("shared", "shared");
-    const restricted = makeNote("restricted", "restricted");
     const shell = topicShell([
       makeTopicEntity("education", "Education"),
       published,
       draft,
       shared,
-      restricted,
     ]);
-    const report = runReport({
-      ...options,
-      countSources: countingFrom(
-        [published, draft, shared, restricted].map((note) =>
-          vote(note, "Education"),
+    const report = runReport(
+      extractionOptions(
+        [published, draft, shared].map((note) =>
+          stampedAt("shared", vote(note, "Education")),
         ),
+        extraction,
       ),
-    });
+    );
 
     const publicResult = await report(shell.getEntityService(), "public");
     expect(getTopicDistribution(publicResult)[0]?.sources).toBe(1);
@@ -219,7 +237,79 @@ describe("topic-distribution report", () => {
     );
   });
 
-  it("reports how many visible sources extraction has read", async () => {
+  it("leaves sources extraction never reads out of a wider caller's coverage", async () => {
+    const published = makeNote("published");
+    const shell = topicShell([
+      makeTopicEntity("education", "Education"),
+      published,
+      makeNote("shared", "shared"),
+      makeNote("restricted", "restricted"),
+    ]);
+
+    const result = await runReport(
+      extractionOptions([vote(published, "Education")]),
+    )(shell.getEntityService(), "restricted");
+
+    expect(coverageSchema.parse(result["coverage"])).toEqual({
+      sourceEntities: 1,
+      attributed: 1,
+      unattributed: 0,
+    });
+  });
+
+  it("counts drafts in coverage only when extraction reads drafts", async () => {
+    const published = makeNote("published");
+    const draft = makeNote("draft", "public", "draft");
+    const shell = topicShell([
+      makeTopicEntity("education", "Education"),
+      published,
+      draft,
+    ]);
+    const votes = [vote(published, "Education")];
+
+    const publishedOnly = await runReport(extractionOptions(votes))(
+      shell.getEntityService(),
+      "shared",
+    );
+    expect(coverageSchema.parse(publishedOnly["coverage"])).toEqual({
+      sourceEntities: 1,
+      attributed: 1,
+      unattributed: 0,
+    });
+
+    const withDrafts = await runReport(
+      extractionOptions(
+        votes,
+        topicsPluginConfigSchema.parse({
+          extractableStatuses: ["published", "draft"],
+        }),
+      ),
+    )(shell.getEntityService(), "shared");
+    expect(coverageSchema.parse(withDrafts["coverage"])).toEqual({
+      sourceEntities: 2,
+      attributed: 1,
+      unattributed: 1,
+    });
+  });
+
+  it("counts a read source that supports no listed topic as attributed", async () => {
+    const read = makeNote("read");
+    const shell = topicShell([makeTopicEntity("education", "Education"), read]);
+
+    const result = await runReport(extractionOptions([vote(read, "Zoology")]))(
+      shell.getEntityService(),
+      "public",
+    );
+
+    expect(getTopicDistribution(result)[0]?.sources).toBe(0);
+    expect(coverageSchema.parse(result["coverage"])).toEqual({
+      sourceEntities: 1,
+      attributed: 1,
+      unattributed: 0,
+    });
+  });
+
+  it("reports how many eligible sources extraction has read", async () => {
     const read = makeNote("read");
     const edited = makeNote("edited");
     const unread = makeNote("unread");
@@ -230,13 +320,12 @@ describe("topic-distribution report", () => {
       unread,
     ]);
 
-    const result = await runReport({
-      ...options,
-      countSources: countingFrom([
+    const result = await runReport(
+      extractionOptions([
         vote(read, "Education"),
         vote({ ...edited, contentHash: "before-the-edit" }, "Education"),
       ]),
-    })(shell.getEntityService(), "public");
+    )(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)[0]?.sources).toBe(1);
     expect(coverageSchema.parse(result["coverage"])).toEqual({
@@ -255,10 +344,9 @@ describe("topic-distribution report", () => {
       ...notes,
     ]);
 
-    const result = await runReport({
-      ...options,
-      countSources: countingFrom(notes.map((note) => vote(note, "Education"))),
-    })(shell.getEntityService(), "public");
+    const result = await runReport(
+      extractionOptions(notes.map((note) => vote(note, "Education"))),
+    )(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)[0]?.sources).toBe(101);
     expect(coverageSchema.parse(result["coverage"]).sourceEntities).toBe(101);

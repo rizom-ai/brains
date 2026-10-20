@@ -39,7 +39,11 @@ import {
   createRankedTopicJobHandler,
   enqueueTopicExtraction,
 } from "./lib/ranked-topic-extraction";
-import { isTopicSourceType, topicSourceTypes } from "./lib/topic-source-policy";
+import {
+  isTopicSourceEligible,
+  isTopicSourceType,
+  topicSourceTypes,
+} from "./lib/topic-source-policy";
 import {
   storeEntries,
   topicExtractionStores,
@@ -212,6 +216,8 @@ export class TopicsPlugin extends EntityPlugin<
       createTopicDistributionReport({
         isSourceType: (type, entityService) =>
           this.shouldProcessEntityType(type, entityService),
+        isEligibleSource: (entity) =>
+          isTopicSourceEligible(entity, this.config),
         autoExtraction: this.config.enableAutoExtraction,
         // Counted from extraction's votes, read as extraction reads them.
         countSources: async (sources) => {
