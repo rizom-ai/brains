@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.568
+
+### Patch Changes
+
+- [#685](https://github.com/rizom-ai/brains/pull/685) [`45caedb`](https://github.com/rizom-ai/brains/commit/45caedbbd913f88f32461f38c023278c3db41307) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a synced file omits its visibility, the brain keeps the entity's stored non-public tier and now writes it back into the file, so the file no longer understates who can see the entity.
+
 ## 0.2.0-alpha.567
 
 ### Patch Changes
