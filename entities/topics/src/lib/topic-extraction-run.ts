@@ -56,6 +56,7 @@ import {
   type VoteLedger,
 } from "./topic-extraction-decisions";
 import { TopicAdapter } from "./topic-adapter";
+import { readTopicSourcePages } from "./topic-source-pages";
 import { TopicService } from "./topic-service";
 import { TopicMergeSynthesizer } from "./topic-merge-synthesizer";
 import {
@@ -67,7 +68,6 @@ import { topicVoteTemplate } from "../templates/vote-template";
 
 const MAX_AI_CALLS = 10;
 const MAX_SOURCE_ATTEMPTS = 3;
-const SOURCE_PAGE_SIZE = 100;
 
 export interface TopicExtractionStores {
   votes: IRuntimeStateStore<TopicVote>;
@@ -145,44 +145,6 @@ export function topicExtractionDeps(
   };
 }
 
-async function readSourcePages(
-  context: EntityPluginContext,
-  config: TopicsPluginConfig,
-  entityType: string,
-  signal: AbortSignal,
-  offset = 0,
-): Promise<SourceRef[]> {
-  const page = await context.entityService.listEntities({
-    entityType,
-    options: {
-      limit: SOURCE_PAGE_SIZE,
-      offset,
-      sortFields: [{ field: "id", direction: "asc" }],
-      filter: { visibilityScope: config.extractionVisibility },
-      signal,
-    },
-  });
-  const refs = page
-    .filter((source) => isTopicSourceEligible(source, config))
-    .map((source) => ({
-      key: sourceKey(source),
-      entityType: source.entityType,
-      id: source.id,
-      contentHash: source.contentHash,
-    }));
-  if (page.length < SOURCE_PAGE_SIZE) return refs;
-  return [
-    ...refs,
-    ...(await readSourcePages(
-      context,
-      config,
-      entityType,
-      signal,
-      offset + SOURCE_PAGE_SIZE,
-    )),
-  ];
-}
-
 /** Eligible sources by key, paged so a large corpus is never held in memory. */
 async function readSources(
   context: EntityPluginContext,
@@ -193,7 +155,27 @@ async function readSources(
   const types = topicSourceTypes(context.entityService, config);
   const refs: SourceRef[] = [];
   for (const entityType of types) {
-    refs.push(...(await readSourcePages(context, config, entityType, signal)));
+    refs.push(
+      ...(await readTopicSourcePages(
+        context.entityService,
+        {
+          entityType,
+          filter: { visibilityScope: config.extractionVisibility },
+          signal,
+        },
+        (source) =>
+          isTopicSourceEligible(source, config)
+            ? [
+                {
+                  key: sourceKey(source),
+                  entityType: source.entityType,
+                  id: source.id,
+                  contentHash: source.contentHash,
+                },
+              ]
+            : [],
+      )),
+    );
   }
   signal.throwIfAborted();
   return refs.sort((left, right) => left.key.localeCompare(right.key));

@@ -146,6 +146,7 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 - `src/lib/ranked-topic-extraction.ts` — bounded extraction jobs and durable checkpoints
 - `src/lib/topic-selection.ts` — role-weighted tally and replacement policy
 - `src/lib/topic-source-policy.ts` — shared source eligibility and role policy
+- `src/lib/topic-source-pages.ts` — paged source reads shared by extraction and the report
 - `src/lib/topic-source-counts.ts` — per-topic source counts from fresh votes
 - `src/reports/topic-distribution.ts` — the `topic-distribution` analytics report
 - `src/schemas/votes.ts` — persisted votes and validated AI responses

@@ -12,12 +12,12 @@ import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { getTopicTitle } from "../lib/topic-presenter";
 import { sourceKey, type SourceRef } from "../lib/topic-extraction-decisions";
 import type { TopicSourceCounts } from "../lib/topic-source-counts";
+import { readTopicSourcePages } from "../lib/topic-source-pages";
 
 type AnalyticsEntityService = AnalyticsReportContext["entityService"];
 type CountedSource = Pick<SourceRef, "key" | "contentHash">;
 
 const noParams: z.ZodObject<Record<string, never>> = z.object({});
-const SOURCE_PAGE_SIZE = 100;
 
 export interface TopicDistributionEntry {
   topic: string;
@@ -66,41 +66,6 @@ interface ScannedSource extends CountedSource {
   eligible: boolean;
 }
 
-/** One type's visible sources by key, paged so only keys and hashes are held. */
-async function readSourcePages(
-  entityService: AnalyticsEntityService,
-  options: TopicDistributionOptions,
-  entityType: string,
-  visibilityScope: ContentVisibility,
-  offset = 0,
-): Promise<ScannedSource[]> {
-  const page = await entityService.listEntities({
-    entityType,
-    options: {
-      ...sourceScope(visibilityScope),
-      limit: SOURCE_PAGE_SIZE,
-      offset,
-      sortFields: [{ field: "id", direction: "asc" }],
-    },
-  });
-  const refs = page.map((source) => ({
-    key: sourceKey(source),
-    contentHash: source.contentHash,
-    eligible: options.isEligibleSource(source),
-  }));
-  if (page.length < SOURCE_PAGE_SIZE) return refs;
-  return [
-    ...refs,
-    ...(await readSourcePages(
-      entityService,
-      options,
-      entityType,
-      visibilityScope,
-      offset + SOURCE_PAGE_SIZE,
-    )),
-  ];
-}
-
 async function readSources(
   entityService: AnalyticsEntityService,
   options: TopicDistributionOptions,
@@ -109,7 +74,17 @@ async function readSources(
   return (
     await Promise.all(
       sourceTypes(entityService, options).map((entityType) =>
-        readSourcePages(entityService, options, entityType, visibilityScope),
+        readTopicSourcePages(
+          entityService,
+          { entityType, ...sourceScope(visibilityScope) },
+          (source) => [
+            {
+              key: sourceKey(source),
+              contentHash: source.contentHash,
+              eligible: options.isEligibleSource(source),
+            },
+          ],
+        ),
       ),
     )
   ).flat();
