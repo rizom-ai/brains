@@ -2825,6 +2825,70 @@ books:
     author: Sigmund Freud
     year: 1897
     kind: work
+  - item: jbnp-1897-kinderlaehmung
+    citation: JbNP I
+    ocr: deu
+    # Freud's report in the Jahresbericht's first volume, read from its
+    # first part title below the list of the year's literature, which is
+    # left out, to its end; the running heads, the scan's stamps and the
+    # reviews signed by others (Flatau's of Muratow (24), Valentin's of
+    # Massalongo and of Buccelli) are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898
+      firstPage: 614
+      pages:
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n631_w1600.jpg#region=0.12,0.718,0.80,0.197
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n632_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n633_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n634_w1600.jpg#region=0.12,0.101,0.80,0.205&region=0.12,0.336,0.80,0.579
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n635_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n636_w1600.jpg#region=0.12,0.101,0.80,0.452
+        - url: https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n638_w1600.jpg#region=0.12,0.272,0.80,0.643
+          page: 621
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n639_w1600.jpg#region=0.12,0.101,0.80,0.044&region=0.12,0.476,0.80,0.439
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n640_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n641_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n642_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n643_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n644_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n645_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n646_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n647_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n648_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n649_w1600.jpg#region=0.12,0.101,0.80,0.814
+    firstPage: 614
+    lastPage: 632
+    # The report's parts, set in spaced type.
+    headings:
+      - { page: 614, opens: A. Hemiplegien., level: 1 }
+      - { page: 617, opens: B. Diplegien., level: 1 }
+      - { page: 626, opens: C. Familiäre Formen., level: 1 }
+      - { page: 628, opens: Vermischtes., level: 1 }
+    # Pages where the crop's specks mislead: their paragraphs named.
+    paragraphs:
+      - { page: 615, opens: Epileptiforme Zufälle }
+      - { page: 615, opens: Einzelne Fälle }
+      - { page: 615, opens: Ferner werden }
+      - { page: 615, opens: Endlich einige }
+      - { page: 615, opens: Ledermann (18) }
+      - { page: 617, opens: Die Section ergab }
+      - { page: 617, opens: B. Sachs (28) }
+      - { page: 617, opens: Der Autor räth }
+      - { page: 617, opens: Van Gehuchten (11) }
+      - { page: 626, opens: v. Aschen (2) }
+      - { page: 626, opens: Ein zweites }
+      - { page: 626, opens: Ein drittes }
+      - { page: 626, opens: Das vierte }
+      - { page: 626, opens: Im Anschluss }
+      - { page: 626, opens: Dercum (8) }
+    slug: berichte-ueber-die-cerebrale-kinderlaehmung-18971899
+    title: Berichte über die cerebrale Kinderlähmung 1897–1899
+    shortTitle: Berichte über die cerebrale Kinderlähmung
+    edition: "Jahresbericht über die Leistungen und Fortschritte auf dem Gebiete der Neurologie und Psychiatrie, I. Jahrgang: Bericht über das Jahr 1897 (Berlin 1898), S. 613–632"
+    author: Sigmund Freud
+    year: 1898
+    kind: work
   - item: Freud_1907_Gradiva
     citation: Gradiva 1907
     # The archive's OCR lost the notice's title.
