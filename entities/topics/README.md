@@ -83,6 +83,17 @@ Selection sums role weight × relevance for each slug. Below the cap, the best q
 
 There is no manual extract/rebuild tool.
 
+## Topic distribution report
+
+The plugin registers the `topic-distribution` report in `system_analytics`. It takes no params and returns:
+
+- `topics`: each visible topic's `topic` id, `title` and `sources`, sorted by `sources` descending, then title.
+- `coverage`: `sourceEntities` (visible source entities), `attributed` (those with a fresh vote) and `unattributed` (those without one).
+
+A visible source counts for a topic when its fresh vote supports the topic's slug at or above `minRelevanceScore`, with merged slugs folded into the topic that absorbed them. A fresh vote is one that extraction itself would use: cast for the source's current content hash, under the current votes prompt, at the current `extractionVisibility`. A source counts at most once per topic and may support several topics. A topic matches by the slug of its title.
+
+Sources are the topic source types visible to the caller, and published only for a public caller. When no topic is visible but source content is, the report returns an empty `topics` list with `unextracted`: the number of visible sources and a hint to answer from `system_search`.
+
 ## Shared system tool surface
 
 The topics package does **not** expose its own CRUD or extraction tools.
@@ -131,6 +142,8 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 - `src/lib/ranked-topic-extraction.ts` — bounded extraction jobs and durable checkpoints
 - `src/lib/topic-selection.ts` — role-weighted tally and replacement policy
 - `src/lib/topic-source-policy.ts` — shared source eligibility and role policy
+- `src/lib/topic-source-counts.ts` — per-topic source counts from fresh votes
+- `src/reports/topic-distribution.ts` — the `topic-distribution` analytics report
 - `src/schemas/votes.ts` — persisted votes and validated AI responses
 - `src/lib/topic-presenter.ts` — shared topic presentation/projection helpers
 - `src/lib/dashboard-widget.ts` — dashboard widget registration
