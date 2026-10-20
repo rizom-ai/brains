@@ -235,7 +235,6 @@ export class EmailReplyDraftOperator {
       const frontmatter = {
         ...parsed.frontmatter,
         status: "sent" as const,
-        updatedAt: sentAt,
         sentAt,
         ...(result.providerDeliveryId
           ? { providerDeliveryId: result.providerDeliveryId }
@@ -299,7 +298,6 @@ export class EmailReplyDraftOperator {
       mailItemId,
       revision,
       status: "draft" as const,
-      updatedAt,
     };
     const content = emailReplyDraftAdapter.createContent(
       frontmatter,
@@ -475,7 +473,7 @@ function toDraftView(entity: EmailReplyDraftEntity): DraftView {
     text: parsed.replyText,
     revision: parsed.frontmatter.revision,
     status: parsed.frontmatter.status,
-    updatedAt: parsed.frontmatter.updatedAt,
+    updatedAt: entity.updated,
     ...(parsed.frontmatter.sentAt ? { sentAt: parsed.frontmatter.sentAt } : {}),
   });
 }
