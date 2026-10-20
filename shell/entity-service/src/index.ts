@@ -183,6 +183,7 @@ export type {
   FoldEntityRequest,
   ApplyEntityMutationOnceRequest,
   UpsertEntityRequest,
+  NearestEntity,
   NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,

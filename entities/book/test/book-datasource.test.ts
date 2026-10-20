@@ -301,23 +301,25 @@ describe("BookDataSource", () => {
       entityType: "topic",
       distance,
     });
-    const nearestToEntity = nearestStore([
-      near("fern", 0.7),
-      near("mitleid", 0.3),
-      near("macht", 0.55),
-      near("leben", 0.5),
-      near("schwaeche", 0.58),
-    ]);
+    const topics = ["fern", "mitleid", "macht", "leben", "schwaeche"].map(
+      (id) => topic(id, id.toUpperCase()),
+    );
+    const nearestToEntity = nearestStore(
+      [
+        near("fern", 0.7),
+        near("mitleid", 0.3),
+        near("macht", 0.55),
+        near("leben", 0.5),
+        near("schwaeche", 0.58),
+      ],
+      topics,
+    );
     const themeSchema = z.object({
       themes: z.array(z.object({ id: z.string(), title: z.string() })),
     });
 
     beforeEach(() => {
-      shell.addEntities(
-        ["fern", "mitleid", "macht", "leben", "schwaeche"].map((id) =>
-          topic(id, id.toUpperCase()),
-        ),
-      );
+      shell.addEntities(topics);
     });
 
     it("finds a section's nearest themes, closest first, three at most", async () => {
