@@ -119,6 +119,17 @@ describe("retired frontmatter fields", () => {
   });
 });
 
+describe("registering retired fields", () => {
+  it("refuses a field the type's metadata still declares", () => {
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    expect(() =>
+      registry.registerEntityType("post", postSchema, new PostAdapter(), {
+        retiredFields: ["title"],
+      }),
+    ).toThrow("post retires title, which its metadata schema still declares");
+  });
+});
+
 describe("rewriting stored entities that still carry retired fields", () => {
   let context: EntityServiceTestContext | undefined;
   afterEach(async () => {

@@ -37,6 +37,8 @@ The second point is why trimming needs a mechanism: removing a field from a sche
 - never writes them back: `preserveSourceFrontmatter` skips them, and they leave the metadata column;
 - leaves files without them byte for byte as before.
 
+A retired field leaves the metadata column too, so registration refuses a type whose metadata schema still declares one.
+
 Creates, updates and projection writes drop retired fields from the content before validation, so a persist validator that parses the file accepts an entity stored before a retirement.
 
 A field whose value moves rather than disappears (an id derived differently, a nested shape flattened) keeps a read-time translation in the owning package, as action items do for `timeRange` → `capturedAt` and nested people.
@@ -76,7 +78,7 @@ Each trim is verified against current readers. "Drop" means: add to `retiredFiel
 - **doc:** drop `sourcePath` (written only by `scripts/sync-docs-content.ts`).
 - **site-content:** drop `routeId` and `sectionId` (the resolver looks entities up by the `route:section` id), including in the team recipe's seed content.
 - **link:** drop `domain` (always the URL's hostname; its readers, `link-list/layout.tsx` and the ATProto projection, derive it).
-- **traffic-snapshot:** drop `start`, `end` and `week` (all derived from the id, an ISO week; the adapter takes the title week from the id).
+- **traffic-snapshot:** drop `start`, `end` and `week` from frontmatter and metadata (all follow from the snapshot's days; the adapter takes the title week from them).
 - **mail-item:** drop `source.senderKey` and `source.domain` (written, never read).
 - **email-reply-draft:** drop `updatedAt`; its one reader, `operator.ts`, switches to the entity's `updated`.
 

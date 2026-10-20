@@ -112,6 +112,16 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
 
+    const declared = declaredMetadataKeys(schema);
+    const stillDeclared = (config?.retiredFields ?? []).find((field) =>
+      declared.has(field),
+    );
+    if (stillDeclared !== undefined) {
+      throw new Error(
+        `Entity type registration failed: ${type} retires ${stillDeclared}, which its metadata schema still declares`,
+      );
+    }
+
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
@@ -708,4 +718,18 @@ export class EntityRegistry implements IEntityRegistry {
       }
     });
   }
+}
+
+/**
+ * The top-level metadata keys an entity schema declares. A retired field is
+ * dropped from stored metadata, so the schema must not require it.
+ */
+function declaredMetadataKeys(
+  schema: UnknownEntitySchema,
+): ReadonlySet<string> {
+  if (!(schema instanceof z.ZodObject)) return new Set();
+  const metadata: unknown = schema.shape["metadata"];
+  return metadata instanceof z.ZodObject
+    ? new Set(Object.keys(metadata.shape))
+    : new Set();
 }
