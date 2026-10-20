@@ -47,11 +47,9 @@ export const mailThreadOrdinalSchema: z.ZodNumber = z
 type MailItemSourceSchema = z.ZodObject<
   {
     ref: z.ZodString;
-    senderKey: z.ZodString;
     threadKey: z.ZodOptional<typeof mailThreadKeySchema>;
     threadOrdinal: z.ZodOptional<typeof mailThreadOrdinalSchema>;
     personId: z.ZodOptional<z.ZodString>;
-    domain: z.ZodOptional<z.ZodString>;
   },
   z.core.$strict
 >;
@@ -59,11 +57,9 @@ type MailItemSourceSchema = z.ZodObject<
 export const mailItemSourceSchema: MailItemSourceSchema = z
   .strictObject({
     ref: z.string().min(1).max(1_024),
-    senderKey: z.string().regex(/^[a-f0-9]{64}$/),
     threadKey: mailThreadKeySchema.optional(),
     threadOrdinal: mailThreadOrdinalSchema.optional(),
     personId: z.string().min(1).max(200).optional(),
-    domain: z.string().min(1).max(253).optional(),
   })
   .refine(
     (source) =>

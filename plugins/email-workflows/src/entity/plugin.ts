@@ -9,6 +9,9 @@ import { mailItemAdapter } from "./adapters/mail-item-adapter";
 import type { MailItemAdapter } from "./adapters/mail-item-adapter";
 import { mailItemSchema, type MailItemEntity } from "./schemas/mail-item";
 
+/** Written by earlier releases and never read. */
+const MAIL_ITEM_RETIRED_FIELDS = ["source.senderKey", "source.domain"];
+
 const mailItemPluginConfigSchema: z.ZodObject<Record<string, never>> = z.object(
   {},
 );
@@ -30,7 +33,11 @@ export class MailItemPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
-    return { projectionSource: false, projectionSourceRole: "excluded" };
+    return {
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+      retiredFields: MAIL_ITEM_RETIRED_FIELDS,
+    };
   }
 
   protected override async onRegister(

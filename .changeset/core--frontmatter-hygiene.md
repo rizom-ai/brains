@@ -17,3 +17,5 @@ Conversation summaries retire `conversationId` (the summary's id is its conversa
 Links retire `domain`; the link list, link page and ATProto record take the hostname from the URL.
 
 Traffic snapshots retire `week`, `start` and `end`: a snapshot's days fix its ISO week and dates.
+
+Mail items retire `source.senderKey` and `source.domain`, which nothing read. A type can now retire a field inside a frontmatter object, and a persist validator no longer sees retired fields.

@@ -40,10 +40,8 @@ export function createMailItemProjection(
       receivedAt: email.receivedAt,
       source: {
         ref: email.sourceRef,
-        senderKey: sha256Hex(email.from.address.toLowerCase()),
         ...(email.threadId ? { threadKey: sha256Hex(email.threadId) } : {}),
         ...(email.sender?.personId ? { personId: email.sender.personId } : {}),
-        ...domainFromAddress(email.from.address),
       },
       ...senderLabelForEmail(email),
       ...(classification.organization
@@ -93,10 +91,8 @@ export function createUnclassifiedMailItemProjection(
       receivedAt: email.receivedAt,
       source: {
         ref: email.sourceRef,
-        senderKey: sha256Hex(email.from.address.toLowerCase()),
         ...(email.threadId ? { threadKey: sha256Hex(email.threadId) } : {}),
         ...(email.sender?.personId ? { personId: email.sender.personId } : {}),
-        ...domainFromAddress(email.from.address),
       },
       ...senderLabelForEmail(email),
       requestedActions: ["Review the original message in the mailbox"],
