@@ -27,7 +27,6 @@ const createDoc = (
     title: id,
     section: "Start here",
     order,
-    sourcePath: `docs/${id}.md`,
     description: null,
     slug: id,
   },

@@ -121,7 +121,7 @@ describe("SiteContentOperations", () => {
       destination: {
         entityType: "site-content",
         idPath: ["landing", "hero"],
-        metadata: { routeId: "landing", sectionId: "hero" },
+        metadata: {},
       },
     });
     expect(result).toEqual({

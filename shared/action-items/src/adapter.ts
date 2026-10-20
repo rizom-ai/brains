@@ -4,7 +4,9 @@ import type {
   BaseEntityFrontmatterSchema,
   EntitySchema,
 } from "@brains/plugins";
+import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
+import { actionItemBody, actionItemFrontmatter } from "./board";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
   actionItemMetadataSchema,
@@ -92,5 +94,13 @@ export class ActionItemAdapter extends MemoryEntityAdapter<
       metadataSchema: actionItemMetadataSchema,
       parseMetadata: actionItemStoredMetadataSchema,
     });
+  }
+
+  /** Writes the current shape, so any save migrates a card stored in an older one. */
+  public override toMarkdown(entity: ActionItemEntity): string {
+    return generateMarkdown(
+      actionItemFrontmatter(entity),
+      actionItemBody(entity.content),
+    );
   }
 }

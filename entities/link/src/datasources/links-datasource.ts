@@ -62,6 +62,7 @@ export class LinksDataSource extends BaseEntityDataSource<
     return {
       id: entity.id,
       ...frontmatter,
+      domain: new URL(frontmatter.url).hostname,
       description: frontmatter.description ?? null,
       summary,
     };

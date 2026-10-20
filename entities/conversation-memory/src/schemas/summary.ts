@@ -54,29 +54,34 @@ export const summaryParticipantSchema: z.ZodObject<{
 export type SummaryParticipant = z.output<typeof summaryParticipantSchema>;
 
 type SummaryMetadataSchema = z.ZodObject<{
-  conversationId: z.ZodString;
   channelId: z.ZodString;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
   timeRange: z.ZodOptional<typeof summaryTimeRangeSchema>;
   messageCount: z.ZodNumber;
-  entryCount: z.ZodNumber;
   participants: z.ZodOptional<z.ZodArray<typeof summaryParticipantSchema>>;
   sourceHash: z.ZodString;
-  projectionVersion: z.ZodNumber;
 }>;
 
+/**
+ * Summary fields an earlier release wrote: conversationId repeats the id,
+ * entryCount is the body's entry count, and projectionVersion is folded into
+ * sourceHash. Stored summaries may still carry them.
+ */
+export const SUMMARY_RETIRED_FIELDS: readonly string[] = [
+  "conversationId",
+  "entryCount",
+  "projectionVersion",
+];
+
 export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
-  conversationId: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
   timeRange: summaryTimeRangeSchema.optional(),
   messageCount: z.number().int().min(0),
-  entryCount: z.number().int().min(0),
   participants: z.array(summaryParticipantSchema).optional(),
   sourceHash: z.string(),
-  projectionVersion: z.number().int().min(1),
 });
 
 const summaryParticipantParserSchema: z.ZodPreprocess<
@@ -141,16 +146,13 @@ const summaryEntityMetadataParserSchema: z.ZodObject<
     >;
   }
 > = z.object({
-  conversationId: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
   timeRange: summaryTimeRangeSchema.optional(),
   messageCount: z.number().int().min(0),
-  entryCount: z.number().int().min(0),
   participants: z.array(summaryParticipantParserSchema).optional(),
   sourceHash: z.string(),
-  projectionVersion: z.number().int().min(1),
 });
 
 /** Summary entity metadata, as parsed from stored (possibly legacy) records. */

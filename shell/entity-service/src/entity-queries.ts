@@ -33,6 +33,7 @@ import {
   type GetEntityRequest,
 } from "./types";
 import { entities } from "./schema/entities";
+import { withoutFrontmatterFields } from "./frontmatter-extensions";
 import { entityRevision } from "./entity-revision";
 import { embeddings } from "./schema/embeddings";
 import {
@@ -40,6 +41,7 @@ import {
   and,
   desc,
   asc,
+  gt,
   sql,
   isNotNull,
   inArray,
@@ -149,6 +151,9 @@ export interface EntityQueryDeps {
   /** Embedding DB for delete cascading (separate from entity DB). */
   embeddingDb: EmbeddingDB;
 }
+
+/** Stored rows are scanned for retired frontmatter fields this many at a time. */
+const STORED_FIELD_SCAN_PAGE = 200;
 
 export class EntityQueries {
   private db: EntityDB;
@@ -704,6 +709,44 @@ export class EntityQueries {
   }
 
   /** The ids of a type's stored rows, whether or not the type is registered. */
+  /**
+   * Ids of stored entities of a type whose content, as stored, still carries
+   * any of the given frontmatter fields. Reads raw rows, in id order.
+   */
+  public async idsCarryingFrontmatterFields(
+    entityType: string,
+    fields: readonly string[],
+    after?: string,
+  ): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: entities.id, content: entities.content })
+      .from(entities)
+      .where(
+        and(
+          eq(entities.entityType, entityType),
+          after === undefined ? undefined : gt(entities.id, after),
+        ),
+      )
+      .orderBy(asc(entities.id))
+      .limit(STORED_FIELD_SCAN_PAGE);
+    const carrying = rows
+      .filter(
+        (row) => withoutFrontmatterFields(row.content, fields) !== row.content,
+      )
+      .map((row) => row.id);
+    const tail = rows.at(-1);
+    return tail && rows.length === STORED_FIELD_SCAN_PAGE
+      ? [
+          ...carrying,
+          ...(await this.idsCarryingFrontmatterFields(
+            entityType,
+            fields,
+            tail.id,
+          )),
+        ]
+      : carrying;
+  }
+
   public async listStoredIds(entityType: string): Promise<string[]> {
     const rows = await this.db
       .select({ id: entities.id })

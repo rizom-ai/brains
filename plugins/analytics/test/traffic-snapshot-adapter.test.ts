@@ -6,9 +6,6 @@ import {
 } from "../src/entity/schema";
 
 const frontmatter: TrafficSnapshotFrontmatter = {
-  week: "2026-W41",
-  start: "2026-10-05",
-  end: "2026-10-11",
   days: [
     {
       date: "2026-10-05",
@@ -52,18 +49,40 @@ describe("traffic snapshot adapter", () => {
   it("derives the week's title and totals as metadata", () => {
     const markdown = trafficSnapshotAdapter.createContent(frontmatter);
 
-    expect(trafficSnapshotAdapter.fromMarkdown(markdown)).toMatchObject({
+    const parsed = trafficSnapshotAdapter.fromMarkdown(markdown);
+    expect(parsed).toMatchObject({
       entityType: "traffic-snapshot",
       visibility: "restricted",
-      metadata: {
-        title: "Traffic 2026-W41",
-        week: "2026-W41",
-        start: "2026-10-05",
-        end: "2026-10-11",
-        pageviews: 169,
-        visits: 50,
-      },
     });
+    expect(parsed.metadata).toEqual({
+      title: "Traffic 2026-W41",
+      pageviews: 169,
+      visits: 50,
+    });
+  });
+
+  it("reads a snapshot stored with its week and dates, taking them from its days", () => {
+    const stored = trafficSnapshotAdapter
+      .createContent(frontmatter)
+      .replace(
+        /^---\n/,
+        "---\nweek: 2026-W41\nstart: 2026-10-05\nend: 2026-10-11\n",
+      );
+
+    expect(trafficSnapshotAdapter.parseContent(stored)).toEqual(frontmatter);
+    expect(trafficSnapshotAdapter.fromMarkdown(stored).metadata).toEqual({
+      title: "Traffic 2026-W41",
+      pageviews: 169,
+      visits: 50,
+    });
+  });
+
+  it("writes only the days: the week and its dates follow from them", () => {
+    const markdown = trafficSnapshotAdapter.createContent(frontmatter);
+    const head = markdown.split("---")[1] ?? "";
+
+    expect(head).not.toMatch(/^(week|start|end):/m);
+    expect(markdown).toContain("# Traffic 2026-W41");
   });
 
   it("writes a readable summary with one row per day, marking estimates", () => {
@@ -89,9 +108,6 @@ describe("traffic snapshot adapter", () => {
       visibility: "restricted",
       metadata: {
         title: "Traffic 2026-W41",
-        week: "2026-W41",
-        start: "2026-10-05",
-        end: "2026-10-11",
         pageviews: 169,
         visits: 50,
       },

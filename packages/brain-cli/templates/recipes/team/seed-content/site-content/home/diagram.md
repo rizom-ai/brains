@@ -1,8 +1,3 @@
----
-routeId: home
-sectionId: diagram
----
-
 # Home diagram
 
 ## Eyebrow

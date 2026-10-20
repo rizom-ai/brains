@@ -42,17 +42,7 @@ const frontmatterSchema: z.ZodObject<{
   seriesName: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   seriesIndex: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
   ogImage: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  ogDescription: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  twitterCard: z.ZodDefault<
-    z.ZodNullable<
-      z.ZodEnum<{
-        summary: "summary";
-        summary_large_image: "summary_large_image";
-      }>
-    >
-  >;
   canonicalUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  atprotoUri: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   title: z.string(),
   slug: nullableString,
@@ -65,13 +55,7 @@ const frontmatterSchema: z.ZodObject<{
   seriesName: nullableString,
   seriesIndex: nullableNumber,
   ogImage: nullableString,
-  ogDescription: nullableString,
-  twitterCard: z
-    .enum(["summary", "summary_large_image"])
-    .nullable()
-    .default(null),
   canonicalUrl: nullableString,
-  atprotoUri: nullableString,
 });
 
 export const blogViewSchema: z.ZodObject<{

@@ -304,12 +304,13 @@ export class EntityMutations {
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Generate ID, timestamps, and contentHash if not provided
     const now = new Date().toISOString();
+    const current = this.entitySerializer.withoutRetiredFields(entity);
     const entityWithDefaults = {
-      ...entity,
+      ...current,
       id: entity.id ?? createId(),
       created: entity.created ?? now,
       updated: entity.updated ?? now,
-      contentHash: computeContentHash(entity.content),
+      contentHash: computeContentHash(current.content),
     };
 
     // Validate entity against its schema
@@ -547,10 +548,11 @@ export class EntityMutations {
     const assertGroupingsCurrent =
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Validate and serialize first to compute the new content hash
+    const current = this.entitySerializer.withoutRetiredFields(entity);
     const updatedEntity = {
-      ...entity,
+      ...current,
       updated: new Date().toISOString(),
-      contentHash: computeContentHash(entity.content),
+      contentHash: computeContentHash(current.content),
     };
 
     const validatedEntity = this.entityRegistry.validateEntity(

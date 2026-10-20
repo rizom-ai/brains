@@ -11,6 +11,7 @@ import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
   type InvalidFieldPolicy,
+  unwrittenFields,
 } from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
 import {
@@ -110,6 +111,16 @@ export class EntityRegistry implements IEntityRegistry {
           `Entity type registration failed for ${type}: ${container} is itself contained; containment is one level`,
         );
       }
+    }
+
+    const declared = declaredMetadataKeys(schema);
+    const stillDeclared = unwrittenFields(config ?? {}).find((field) =>
+      declared.has(field),
+    );
+    if (stillDeclared !== undefined) {
+      throw new Error(
+        `Entity type registration failed: ${type} retires ${stillDeclared}, which its metadata schema still declares`,
+      );
     }
 
     // Register schema, adapter, and config
@@ -708,4 +719,18 @@ export class EntityRegistry implements IEntityRegistry {
       }
     });
   }
+}
+
+/**
+ * The top-level metadata keys an entity schema declares. A retired field is
+ * dropped from stored metadata, so the schema must not require it.
+ */
+function declaredMetadataKeys(
+  schema: UnknownEntitySchema,
+): ReadonlySet<string> {
+  if (!(schema instanceof z.ZodObject)) return new Set();
+  const metadata: unknown = schema.shape["metadata"];
+  return metadata instanceof z.ZodObject
+    ? new Set(Object.keys(metadata.shape))
+    : new Set();
 }

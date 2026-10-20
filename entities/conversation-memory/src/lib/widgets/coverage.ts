@@ -7,6 +7,7 @@ import {
   type EntityPluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { SummaryAdapter } from "../../adapters/summary-adapter";
 import { summarySchema, type SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
@@ -37,6 +38,12 @@ const summaryCoverageDataSchema = z.object({
     }),
   ),
 });
+
+const summaryAdapter = new SummaryAdapter();
+
+function summaryEntryCount(summary: SummaryEntity): number {
+  return summaryAdapter.parseBody(summary.content).entries.length;
+}
 
 function coverageTone(status: string | undefined): "good" | "warn" | "neutral" {
   if (status === "current" || status === "active") return "good";
@@ -127,7 +134,7 @@ export async function buildSummaryCoverageData(params: {
         ...summaries.slice(0, MAX_RECENT_SUMMARY_ITEMS).map((summary) => ({
           id: `summary:${summary.id}`,
           name: getSummaryLabel(summary),
-          count: summary.metadata.entryCount,
+          count: summaryEntryCount(summary),
           status: `${summary.metadata.messageCount} msgs`,
         })),
       ],
@@ -137,7 +144,7 @@ export async function buildSummaryCoverageData(params: {
   const sourceReader = new SummarySourceReader(context, config);
   const conversations = await context.conversations.list();
   const summariesByConversationId = new Map(
-    summaries.map((summary) => [summary.metadata.conversationId, summary]),
+    summaries.map((summary) => [summary.id, summary]),
   );
 
   let eligibleCount = 0;
@@ -181,7 +188,7 @@ export async function buildSummaryCoverageData(params: {
       recentSummaryItems.push({
         id: `summary:${summary.id}`,
         name: getSummaryLabel(summary),
-        count: summary.metadata.entryCount,
+        count: summaryEntryCount(summary),
         status: stale ? "stale" : "current",
       });
     }

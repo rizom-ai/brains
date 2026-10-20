@@ -41,7 +41,6 @@ type LinkFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
   url: z.ZodString;
   description: z.ZodOptional<z.ZodString>;
-  domain: z.ZodString;
   capturedAt: z.ZodString;
   source: LinkSourceSchema;
 }>;
@@ -51,7 +50,6 @@ export const linkFrontmatterSchema: LinkFrontmatterSchema = z.object({
   title: z.string(),
   url: z.string().url(),
   description: z.string().optional(),
-  domain: z.string(),
   capturedAt: z.string().datetime(),
   source: linkSourceSchema,
 });
