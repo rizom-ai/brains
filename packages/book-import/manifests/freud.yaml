@@ -40,8 +40,6 @@ gaps:
     title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
     year: 1913
     reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912)
-  - title: Nachtragsband (Texte aus den Jahren 1885–1938)
-    reason: the texts are public domain, but no free scan of the volume exists
   - citation: Villaret I
     pages: "892"
     title: Hysteroepilepsie
@@ -83,6 +81,108 @@ gaps:
   - title: Geleitwort zu P. Federn und H. Meng, Das psychoanalytische Volksbuch
     year: 1939
     reason: not in the first (1926) or the third (1939) edition on archive.org
+  - title: Unsigned reviews in the Wiener Medizinische Wochenschrift (13)
+    year: 1883
+    reason: unsigned; attribution not certain (the Freud-Edition and the Freud-Bibliographie attribute them on internal evidence)
+  - title: Unsigned reviews in the Wiener Medizinische Wochenschrift (50, with Macniven, added by the 2014 supplement to the Freud-Bibliographie)
+    year: 1884
+    reason: unsigned; attribution not certain (the Freud-Edition and the Freud-Bibliographie attribute them on internal evidence)
+  - title: Unsigned reviews in the Wiener Medizinische Wochenschrift (66)
+    year: 1885
+    reason: unsigned; attribution not certain (the Freud-Edition and the Freud-Bibliographie attribute them on internal evidence)
+  - title: Reviews of Lewy, Erlenmeyer, Fernet, Kaufmann, Eulenburg and Melchert, Strübing and Glax in the Wiener Medizinische Wochenschrift 35, Nr. 48, Sp. 1477–1480
+    year: 1885
+    reason: unsigned in print (the scan of Nr. 48 shows no signature, though the Freud-Edition marks them signed); attribution not certain
+  - title: Review of A. Spina, Studies on the bacillus of tuberculosis (The Medical News 42, Nr. 14)
+    year: 1883
+    reason: unsigned, printed as the report of a "Special Correspondent", and in English; attribution not certain
+  - title: Review of A. Forel, Der Hypnotismus (Wiener Medizinische Wochenschrift 39, Nr. 28)
+    year: 1889
+    reason: no free scan; archive.org holds no issue of the Wiener Medizinische Wochenschrift for 1889, and ANNO, which does, blocks scripted access
+  - title: Review of J. L. A. Koch, Das Nervenleiden des Menschen (Die Zeit, Wien, 3, Nr. 22)
+    year: 1895
+    reason: no free scan; the paper is only on ANNO, which blocks scripted access
+  - title: Reviews in the Neue Freie Presse (Biedenkapp 1903; Bigelow and Baumgarten 1904; Wichmann 1905)
+    year: 1903
+    reason: no free scan; the Neue Freie Presse is only on ANNO, which blocks scripted access
+  - title: Notiz über eine Methode zur anatomischen Präparation des Nervensystems (Centralblatt für die medicinischen Wissenschaften 17)
+    year: 1879
+    reason: no free scan; none of the Centralblatt's Google scans on archive.org is the 1879 volume
+  - title: A new histological method for the study of nerve-tracts in the brain and spinal chord (Brain 7)
+    year: 1884
+    reason: printed in English; whether Freud wrote it so is not established, and the volume is not on archive.org
+  - title: Reports on the Société des médecins de Vienne (Bulletin médical)
+    year: 1887
+    reason: no free scan; archive.org's Bulletin médical dated 1887 (bub_gb_7AcdAQAAMAAJ) is the 1904 volume, and Gallica blocks scripted access
+  - title: Über Hemianopsie im frühesten Kindesalter (Wiener Medizinische Wochenschrift 38, Nr. 32–33)
+    year: 1888
+    reason: no free scan; archive.org holds only Nr. 26 of the 1888 Wochenschrift, and ANNO blocks scripted access
+  - title: Mitteilung über eine Sulfonalvergiftung (Internationale Klinische Rundschau 5)
+    year: 1891
+    reason: no free scan; archive.org holds the Internationale Klinische Rundschau only from 1892
+  - title: Nachruf Professor S. Hammerschlag (Neue Freie Presse)
+    year: 1904
+    reason: no free scan; the Neue Freie Presse is only on ANNO, which blocks scripted access
+  - title: Stellungnahme zum Fall Prof. Dr. Beer (Die Zeit, Wien)
+    year: 1905
+    reason: no free scan; the paper is only on ANNO, which blocks scripted access
+  - title: Stellungnahme zur Eherechtsenquete
+    year: 1905
+    reason: not located on archive.org
+  - title: Antwort auf eine Rundfrage „Vom Lesen und von guten Büchern“ (Neue Blätter für Literatur und Kunst)
+    year: 1907
+    reason: not located on archive.org
+  - title: Askese (in the Denkschrift of the Verein zur Unterstützung mittelloser israelitischer Studierender)
+    year: 1911
+    reason: not located on archive.org
+  - title: Was wird aus Europa? (answer to a survey in Tűz)
+    year: 1922
+    reason: not located; the language Freud wrote it in is not established
+  - title: Letter to the Neue Freie Presse; Wie sie Mussolini sehen (Prager Tagblatt)
+    year: 1925
+    reason: no free scan; both papers are only on ANNO, which blocks scripted access
+  - title: Dr. Reik und die Kurpfuschereifrage (Neue Freie Presse)
+    year: 1926
+    reason: no free scan; the Neue Freie Presse is only on ANNO, which blocks scripted access
+  - title: Introductory Note to W. Sachs, Black Hamlet; A Memorial to Dr. David Eder
+    year: 1934
+    reason: printed in English; whether Freud wrote them so is not established, and neither is on archive.org
+  - title: Vorwort zu R. Sterba, Handwörterbuch der Psychoanalyse
+    year: 1936
+    reason: printed only as a facsimile of Freud's handwritten letter of 1932 (1. Lieferung, archive.org HandwoumlrterbuchDerPsychoanalyse1.lieferungAbasie-Angst, leaf 6), which the OCR cannot read and no printed transcription checks
+  - title: Letter to the editor of Time and Tide
+    year: 1938
+    reason: printed in English; whether Freud wrote it so is not established, and the issue is not on archive.org
+  - title: Geleitwort zu R. de Saussure, La méthode psychanalytique
+    year: 1922
+    reason: printed in French translation; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Psychopathische Personen auf der Bühne
+    year: 1942
+    reason: first printed in 1942 in an English translation by another hand; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Über Grundprinzipien und Absichten der Psychoanalyse
+    year: 1913
+    reason: printed in 1913 in an English translation by another hand (On Psycho-Analysis); Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Soll die Psychoanalyse an den Universitäten gelehrt werden?
+    year: 1919
+    reason: printed in 1919 in a Hungarian translation by another hand; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Vorwort zur dritten (revidierten) Auflage der englischen Traumdeutung
+    year: 1932
+    reason: printed in English translation; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Vorwort zur tschechischen Ausgabe der Vorlesungen zur Einführung in die Psychoanalyse
+    year: 1936
+    reason: printed in Czech translation; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Vorwort zum Abriß der Psychoanalyse
+    year: 1940
+    reason: not in GW XVII; printed only in the Nachtragsband (1987), of which no free scan exists
+  - title: Einführung zu Y. Doryon, Lynkeus' New State
+    year: 1940
+    reason: printed only in the Nachtragsband (1987), of which no free scan exists
+  - title: Träume im Folklore (with D. E. Oppenheim)
+    year: 1958
+    reason: first printed in 1958 (New York, bilingual), not freely available; also in the Nachtragsband (1987), of which no free scan exists
+  - title: Einleitung zu S. Freud und W. C. Bullitt, Thomas Woodrow Wilson
+    year: 1966
+    reason: printed in 1966 in English, under copyright; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
 books:
   - item: Sitz_MN_1_1877_75
     citation: Lappenorgane
