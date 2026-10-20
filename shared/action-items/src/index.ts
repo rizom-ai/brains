@@ -23,7 +23,10 @@ export {
   type ActionItemStatus,
   type MemoryActorReference,
 } from "./schema";
-export { ACTION_ITEM_RETIRED_FIELDS } from "./stored-shape";
+export {
+  ACTION_ITEM_DROPPED_FIELDS,
+  ACTION_ITEM_RETIRED_FIELDS,
+} from "./stored-shape";
 export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
 export {
   actionItemBody,

@@ -50,7 +50,9 @@ function frontmatterFields(content: string): Record<string, unknown> {
  * in their current shape, then every extension (a grouping) as stored.
  * Retired fields are not written back.
  */
-function frontmatterToWrite(entity: ActionItemEntity): Record<string, unknown> {
+export function actionItemFrontmatter(
+  entity: ActionItemEntity,
+): Record<string, unknown> {
   const owned = Object.entries(entity.metadata).filter(
     ([, value]) => value !== undefined,
   );
@@ -102,7 +104,7 @@ export function applyMove(
     throw new Error(`Action item is already ${move.to}`);
   }
   const content = generateMarkdown(
-    { ...frontmatterToWrite(entity), status: move.to },
+    { ...actionItemFrontmatter(entity), status: move.to },
     actionItemBody(entity.content),
   );
   return {
@@ -143,7 +145,7 @@ export function applyNote(
   const next = /^## Notes$/m.test(body)
     ? `${ended}${line}`
     : `${ended}\n## Notes\n\n${line}`;
-  const content = generateMarkdown(frontmatterToWrite(entity), next);
+  const content = generateMarkdown(actionItemFrontmatter(entity), next);
   return { ...entity, content, contentHash: computeContentHash(content) };
 }
 

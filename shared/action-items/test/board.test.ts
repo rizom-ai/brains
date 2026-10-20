@@ -221,6 +221,30 @@ describe("moving a card", () => {
     );
   });
 
+  it("is written by the adapter in the trimmed shape, so any save migrates it", () => {
+    const item = storedItem({
+      ...storedBeforeTrim,
+      projects: ["Spring gathering"],
+    });
+
+    const { projectedBodyHash, ...frontmatter } = frontmatterOf(
+      adapter.toMarkdown(item),
+    );
+    expect(typeof projectedBodyHash).toBe("string");
+    expect(frontmatter).toEqual({
+      conversationId: "conv-1",
+      channelId: "cli-terminal",
+      interfaceType: "cli",
+      capturedAt: "2026-01-01T00:01:00.000Z",
+      status: "open",
+      assignedTo: [{ name: "Sam Rivera", id: "user:u-sam" }],
+      projects: ["Spring gathering"],
+    });
+    expect(actionItemBody(adapter.toMarkdown(item))).toBe(
+      actionItemBody(item.content),
+    );
+  });
+
   it("refuses a move from a status the card no longer has", () => {
     expect(() =>
       applyMove(projected({ status: "done" }), { from: "open", to: "blocked" }),

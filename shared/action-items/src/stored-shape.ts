@@ -18,6 +18,14 @@ export const ACTION_ITEM_RETIRED_FIELDS: readonly string[] = [
   "projectionVersion",
 ];
 
+/**
+ * The retired fields whose value goes nowhere, registered as the type's
+ * retiredFields. timeRange is not among them: its end becomes capturedAt, so
+ * it must reach the parser.
+ */
+export const ACTION_ITEM_DROPPED_FIELDS: readonly string[] =
+  ACTION_ITEM_RETIRED_FIELDS.filter((field) => field !== "timeRange");
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

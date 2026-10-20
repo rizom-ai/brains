@@ -46,7 +46,6 @@ import {
 import { buildSummaryProjectionDecisionPrompt } from "./summary-prompt";
 import {
   evaluateSummaryEligibility,
-  getConversationSpaceId,
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
@@ -503,11 +502,7 @@ export class SummaryProjector {
         ? { channelName: summaryMetadata.channelName }
         : {}),
       interfaceType: summaryMetadata.interfaceType,
-      spaceId: this.getSpaceId(summaryMetadata),
       timeRange: item.timeRange,
-      sourceSummaryId: summaryMetadata.conversationId,
-      sourceMessageCount: item.sourceMessageCount,
-      projectionVersion: summaryMetadata.projectionVersion,
       status: "active",
       ...(attributedActors.length > 0
         ? { decidedBy: attributedActors, mentionedBy: attributedActors }
@@ -782,10 +777,6 @@ export class SummaryProjector {
   private titleForMemory(prefix: string, text: string): string {
     const normalized = text.replace(/\s+/g, " ").trim();
     return `${prefix}: ${truncateText(normalized, 80)}`;
-  }
-
-  private getSpaceId(metadata: SummaryMetadata): string {
-    return getConversationSpaceId(metadata);
   }
 
   private chunkMessages(messages: Message[]): Message[][] {

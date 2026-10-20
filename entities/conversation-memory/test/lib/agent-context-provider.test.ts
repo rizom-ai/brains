@@ -322,7 +322,6 @@ function createDecision(id: string, channelId: string): DecisionEntity {
       interfaceType: "mcp",
       channelId,
       channelName: "Relay Team",
-      spaceId: `mcp:${channelId}`,
     },
   };
 }

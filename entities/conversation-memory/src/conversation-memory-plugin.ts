@@ -13,12 +13,16 @@ import {
 } from "./schemas/summary-config";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import {
+  ACTION_ITEM_DROPPED_FIELDS,
   ACTION_ITEM_ENTITY_TYPE,
   ActionItemAdapter,
   actionItemSchema,
 } from "@brains/action-items";
 import { DecisionAdapter } from "./adapters/conversation-memory-adapters";
-import { decisionSchema } from "./schemas/conversation-memory";
+import {
+  DECISION_RETIRED_FIELDS,
+  decisionSchema,
+} from "./schemas/conversation-memory";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
@@ -90,11 +94,13 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       DECISION_ENTITY_TYPE,
       decisionSchema,
       decisionAdapter,
+      { retiredFields: DECISION_RETIRED_FIELDS },
     );
     context.entities.register(
       ACTION_ITEM_ENTITY_TYPE,
       actionItemSchema,
       actionItemAdapter,
+      { retiredFields: ACTION_ITEM_DROPPED_FIELDS },
     );
 
     registerActionItemsWidget({ context });

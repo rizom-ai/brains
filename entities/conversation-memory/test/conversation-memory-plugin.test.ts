@@ -30,6 +30,25 @@ describe("ConversationMemoryPlugin", () => {
     expect("projections" in capabilities).toBe(false);
   });
 
+  it("retires the provenance fields decisions and action items no longer carry", async () => {
+    await harness.installPlugin(plugin);
+    const registry = harness.getEntityRegistry();
+    const dropped = [
+      "spaceId",
+      "sourceSummaryId",
+      "sourceMessageCount",
+      "projectionVersion",
+    ];
+
+    expect(registry.getEntityTypeConfig("decision").retiredFields).toEqual(
+      dropped,
+    );
+    // timeRange still reaches the parser: its end becomes capturedAt.
+    expect(registry.getEntityTypeConfig("action-item").retiredFields).toEqual(
+      dropped,
+    );
+  });
+
   it("keeps memory entities immutable through entity CRUD", () => {
     expect(plugin.entityActionPolicy).toEqual({
       summary: {

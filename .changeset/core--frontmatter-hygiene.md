@@ -9,3 +9,5 @@ Agents retire `cardObservedAt`, `cardLastCheckedAt`, `a2aEndpoint`, `did` (the a
 Newsletters retire `buttondownId` and `resendBroadcastId`; sending no longer writes the provider delivery id into the newsletter.
 
 Docs retire `sourcePath`, and site content retires `routeId` and `sectionId`, which repeated the section's `route:section` id.
+
+Decisions and action items retire `spaceId`, `sourceSummaryId`, `sourceMessageCount` and `projectionVersion`. An action item is now written in its trimmed shape on any save, so the rewrite on start migrates stored cards completely.
