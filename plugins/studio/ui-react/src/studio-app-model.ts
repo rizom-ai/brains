@@ -146,10 +146,14 @@ export function deriveListingHead(
     query.scope === "folder" &&
     !query.q &&
     (query.prefix !== null || folders.length > 0);
-  const matching = collectionFiltered ? "matching " : "";
-  const entryCount = directFolderCount
-    ? `${countOf(entityTotal, `${matching}entry`, `${matching}entries`)} here`
-    : countOf(entityTotal, `${matching}entity`, `${matching}entities`);
+  // A filtered count belongs to the filter bar, which states the matches.
+  const entryCount = collectionFiltered
+    ? []
+    : directFolderCount
+      ? entityTotal > 0
+        ? [`${countOf(entityTotal, "entry", "entries")} here`]
+        : []
+      : [countOf(entityTotal, "entry", "entries")];
   const descendantTotal = folders.reduce(
     (sum, folder) => sum + folder.descendantCount,
     entityTotal,
@@ -157,7 +161,7 @@ export function deriveListingHead(
   const levelCount =
     folders.length > 0
       ? [
-          `${countOf(folders.length, hierarchyKind, `${hierarchyKind}s`)} · ${descendantTotal} in total`,
+          `${countOf(folders.length, hierarchyKind, `${hierarchyKind}s`)} · ${countOf(descendantTotal, "entry", "entries")} in total`,
         ]
       : [];
   const scope =
@@ -176,7 +180,7 @@ export function deriveListingHead(
       access: studioAccessRequirement("trusted"),
       title: context.activeType?.label ?? props.entityType ?? "Library",
       metadata: [
-        entryCount,
+        ...entryCount,
         ...levelCount,
         ...scope,
         ...(context.syncPending ? ["Sync pending"] : []),

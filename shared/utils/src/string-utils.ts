@@ -342,3 +342,11 @@ function textHash(text: string): string {
   );
   return hash.toString(36);
 }
+
+/** A size as people read it: bytes, then decimal kilobytes and megabytes. */
+export function formatByteSize(bytes: number): string {
+  if (bytes < 1_000) return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+  const [size, unit] =
+    bytes < 1_000_000 ? [bytes / 1_000, "KB"] : [bytes / 1_000_000, "MB"];
+  return `${Number(size.toFixed(1))} ${unit}`;
+}

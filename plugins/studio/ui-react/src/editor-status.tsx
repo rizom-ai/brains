@@ -219,7 +219,8 @@ export function PipelineStations(props: {
 }
 
 export function DeleteDialog(props: {
-  entityId: string;
+  /** What the entry is called, as its heading shows it. */
+  title: string;
   deleting?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -237,8 +238,8 @@ export function DeleteDialog(props: {
       onConfirm={props.onConfirm}
     >
       <p>
-        The exported file for <code>{props.entityId}</code> will be removed. Its
-        history remains recoverable in git.
+        This removes “{props.title}” and its file. Earlier versions stay in the
+        content history.
       </p>
     </ConfirmDialog>
   );

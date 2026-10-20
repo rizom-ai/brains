@@ -6,6 +6,7 @@ import {
   pluralize,
   formatLabel,
   displayTitleFrom,
+  formatByteSize,
   toDisplayName,
   normalizeTag,
   normalizeTags,
@@ -258,6 +259,17 @@ describe("string-utils", () => {
     it("has no title when none of them is readable text", () => {
       expect(displayTitleFrom({ title: "  ", name: 3 })).toBeUndefined();
       expect(displayTitleFrom({})).toBeUndefined();
+    });
+  });
+
+  describe("formatByteSize", () => {
+    it("reads sizes in bytes, kilobytes and megabytes", () => {
+      expect(formatByteSize(0)).toBe("0 bytes");
+      expect(formatByteSize(1)).toBe("1 byte");
+      expect(formatByteSize(999)).toBe("999 bytes");
+      expect(formatByteSize(1_500)).toBe("1.5 KB");
+      expect(formatByteSize(4_000_000)).toBe("4 MB");
+      expect(formatByteSize(12_345_678)).toBe("12.3 MB");
     });
   });
 

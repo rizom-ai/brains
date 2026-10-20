@@ -94,7 +94,7 @@ export function AccountProfileTab(
               action={
                 profileHref ? (
                   <Button asChild variant="link">
-                    <a href={profileHref}>Edit in Studio →</a>
+                    <a href={profileHref}>Edit Anchor Profile →</a>
                   </Button>
                 ) : undefined
               }

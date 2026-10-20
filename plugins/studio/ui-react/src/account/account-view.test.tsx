@@ -203,7 +203,7 @@ describe("Account surface", () => {
     });
 
     expect(html).toContain("Managed by the Anchor profile");
-    expect(html).toContain("Edit in Studio");
+    expect(html).toContain("Edit Anchor Profile");
     expect(html).toContain(
       'href="/studio/entities/anchor-profile/anchor-profile"',
     );

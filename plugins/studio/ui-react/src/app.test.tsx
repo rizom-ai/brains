@@ -935,7 +935,7 @@ it("uses page terminology throughout site-content collection navigation", () => 
       },
     );
     expect(
-      window.document.querySelector('[aria-label="Pages (complete list)"]'),
+      window.document.querySelector('[aria-label="Pages"]'),
     ).not.toBeNull();
     expect(
       window.document.querySelector('[aria-label="Page trail"]'),
@@ -1386,7 +1386,8 @@ describe("System mockup alignment", () => {
     expect(html).toContain("data-studio-system-intro");
     expect(html).toContain("Post one");
     expect(html).not.toContain("New agent");
-    expect(html).toContain("pagination");
+    // One page of agents: the heading counts them, so there is no pager.
+    expect(html).not.toContain("pagination");
   });
   it("presents unsupported structured lists as readable content, not disabled JSON", () => {
     const html = renderCapabilityView(capabilities, "edit", {
@@ -1502,7 +1503,7 @@ describe("capability-aware Studio controls", () => {
     const edit = renderCapabilityView(deniedCapabilities, "edit");
 
     expect(browse).toContain('data-studio-page-head="true"');
-    expect(browse).toContain("1 entity");
+    expect(browse).toContain("1 entry");
     expect(edit).toContain('data-studio-page-head="true"');
     expect(edit).toContain("Post one");
     expect(browse).toMatch(/<button[^>]*disabled=""[^>]*>New post<\/button>/);
@@ -1589,14 +1590,13 @@ describe("capability-aware Studio controls", () => {
     expect(second).toContain(">02</span>");
   });
 
-  it("keeps the pager visible on a single-page collection and supports 25-item offsets", () => {
+  it("leaves a single-page collection without a pager and supports 25-item offsets", () => {
     const single = renderCapabilityView(allowedCapabilities, "browse", {
       limit: 25,
       total: 1,
     });
-    expect(single).toContain('aria-label="Posts pagination"');
-    expect(single).toMatch(/disabled=""[^>]*>Previous<\/button>/);
-    expect(single).toMatch(/disabled=""[^>]*>Next<\/button>/);
+    expect(single).not.toContain('aria-label="Posts pagination"');
+    expect(single).toContain("1 entry");
     const last = renderCapabilityView(allowedCapabilities, "browse", {
       limit: 25,
       total: 26,
@@ -1951,14 +1951,15 @@ describe("DeleteDialog", () => {
   it("explains recoverability and exposes explicit keep/delete actions", () => {
     const html = renderToStaticMarkup(
       createElement(DeleteDialog, {
-        entityId: "field-notes",
+        title: "Field notes",
         onCancel: () => {},
         onConfirm: () => {},
       }),
     );
     expect(html).toContain('role="alertdialog"');
-    expect(html).toContain("field-notes");
-    expect(html).toContain("recoverable in git");
+    expect(html).toContain("“Field notes”");
+    expect(html).toContain("content history");
+    expect(html).not.toContain("git");
     expect(html).toContain("Keep entry");
     expect(html).toContain("Delete entry");
   });

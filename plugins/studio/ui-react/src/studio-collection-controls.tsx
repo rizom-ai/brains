@@ -124,7 +124,9 @@ export function StudioCollectionPager(props: {
   hasNext: boolean;
   onPrevious: () => void;
   onNext: () => void;
-}): ReactElement {
+}): ReactElement | null {
+  // One page needs no paging: the heading or filter bar already counts it.
+  if (props.offset === 0 && !props.hasNext && !props.loading) return null;
   const range =
     props.count > 0
       ? `${props.offset + 1}–${props.offset + props.count}${props.total === undefined ? "" : ` of ${props.total}`}`
