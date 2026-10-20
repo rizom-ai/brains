@@ -5,7 +5,11 @@ import {
   type EntityTypeConfig,
   type Template,
 } from "@brains/plugins";
-import { summarySchema, type SummaryEntity } from "./schemas/summary";
+import {
+  SUMMARY_RETIRED_FIELDS,
+  summarySchema,
+  type SummaryEntity,
+} from "./schemas/summary";
 import {
   summaryConfigSchema,
   type SummaryConfig,
@@ -84,7 +88,11 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
-    return { projectionSource: false, projectionSourceRole: "excluded" };
+    return {
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+      retiredFields: SUMMARY_RETIRED_FIELDS,
+    };
   }
 
   protected override async onRegister(

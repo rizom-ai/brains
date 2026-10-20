@@ -295,13 +295,10 @@ function createEvalSummaryEntity(params: {
     created: now,
     updated: now,
     metadata: {
-      conversationId: params.conversationId,
       channelId: "eval-channel",
       interfaceType: "eval",
       messageCount: params.messageCount,
-      entryCount: 1,
       sourceHash: "eval-source-hash",
-      projectionVersion: params.projectionVersion,
     },
   };
 }
@@ -464,14 +461,11 @@ function toSummaryEntity(memory: SeededMemory): SummaryEntity {
     ...baseMemoryFields(memory),
     entityType: "summary",
     metadata: {
-      conversationId: memory.conversationId,
       channelId: memory.channelId,
       ...(memory.channelName ? { channelName: memory.channelName } : {}),
       interfaceType: memory.interfaceType,
       messageCount: 3,
-      entryCount: 1,
       sourceHash: `source-${memory.id}`,
-      projectionVersion: 1,
       ...(memory.participants ? { participants: memory.participants } : {}),
     },
   });

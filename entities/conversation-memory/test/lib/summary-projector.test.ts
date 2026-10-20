@@ -250,7 +250,8 @@ describe("SummaryProjector", () => {
 
     const entity = upsertSpy.mock.calls[0]?.[0]?.entity;
     expect(entity?.id).toBe("conv-1");
-    expect(entity?.metadata["conversationId"]).toBe("conv-1");
+    // The summary is its conversation: no stored copy of the id.
+    expect(entity?.metadata).not.toHaveProperty("conversationId");
     expect(entity?.metadata["messageCount"]).toBe(2);
     expect(entity?.visibility).toBe(
       summaryConfigSchema.parse({}).memoryVisibility,
@@ -725,25 +726,19 @@ describe("SummaryProjector", () => {
     const adapter = new SummaryAdapter();
     const existing = createMockSummaryEntity({
       content: adapter.composeContent([existingEntry], {
-        conversationId: "conv-1",
         channelId: "cli-terminal",
         channelName: "CLI Terminal",
         interfaceType: "cli",
         messageCount: 2,
-        entryCount: 1,
         sourceHash: "old-hash",
-        projectionVersion: 1,
         timeRange: existingEntry.timeRange,
       }),
       metadata: {
-        conversationId: "conv-1",
         channelId: "cli-terminal",
         channelName: "CLI Terminal",
         interfaceType: "cli",
         messageCount: 2,
-        entryCount: 1,
         sourceHash: "old-hash",
-        projectionVersion: 1,
         timeRange: existingEntry.timeRange,
       },
     });
@@ -856,14 +851,11 @@ describe("SummaryProjector", () => {
         content: "# Conversation Summary\n",
         visibility: "public",
         metadata: {
-          conversationId: "conv-1",
           channelId: "cli-terminal",
           channelName: "CLI Terminal",
           interfaceType: "cli",
           messageCount: 2,
-          entryCount: 1,
           sourceHash: source.sourceHash,
-          projectionVersion: 1,
         },
       }),
     );
@@ -888,14 +880,11 @@ describe("SummaryProjector", () => {
         content: "# Conversation Summary\n",
         visibility: "shared",
         metadata: {
-          conversationId: "conv-1",
           channelId: "cli-terminal",
           channelName: "CLI Terminal",
           interfaceType: "cli",
           messageCount: 2,
-          entryCount: 1,
           sourceHash: "stale-hash",
-          projectionVersion: 1,
         },
       }),
     );
@@ -980,14 +969,11 @@ describe("SummaryProjector", () => {
       createMockSummaryEntity({
         content: "# Conversation Summary\n",
         metadata: {
-          conversationId: "conv-1",
           channelId: "cli-terminal",
           channelName: "CLI Terminal",
           interfaceType: "cli",
           messageCount: 2,
-          entryCount: 1,
           sourceHash: source.sourceHash,
-          projectionVersion: 1,
           timeRange: {
             start: "2026-01-01T00:00:00.000Z",
             end: "2026-01-01T00:01:00.000Z",
@@ -1017,14 +1003,11 @@ describe("SummaryProjector and the board", () => {
       content: "# Conversation Summary\n",
       visibility: "shared",
       metadata: {
-        conversationId: "conv-1",
         channelId: "cli-terminal",
         channelName: "CLI Terminal",
         interfaceType: "cli",
         messageCount: 2,
-        entryCount: 1,
         sourceHash: "stale-hash",
-        projectionVersion: 1,
       },
     });
   }

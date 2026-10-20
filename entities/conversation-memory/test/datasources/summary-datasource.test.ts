@@ -47,14 +47,11 @@ describe("SummaryDataSource", () => {
       id: "conv-123",
       content: adapter.createContentBody([entry]),
       metadata: {
-        conversationId: "conv-123",
         channelName: "CLI",
         channelId: "cli",
         interfaceType: "cli",
-        entryCount: 1,
         messageCount: 2,
         sourceHash: "hash",
-        projectionVersion: 1,
         timeRange: entry.timeRange,
       },
     });

@@ -34,14 +34,11 @@ function createSummary(params: {
     created: updated,
     updated,
     metadata: {
-      conversationId: params.id,
       channelId: params.channelId,
       ...(params.channelName ? { channelName: params.channelName } : {}),
       interfaceType: "mcp",
       messageCount: 4,
-      entryCount: 1,
       sourceHash: `source-${params.id}`,
-      projectionVersion: 1,
     },
   };
 }

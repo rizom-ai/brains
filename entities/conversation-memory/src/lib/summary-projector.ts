@@ -133,11 +133,19 @@ function flatPerson(actor: MemoryActorReference): {
   };
 }
 
+/** A summary's metadata with the conversation it belongs to, which is its id. */
+type ProjectedConversation = SummaryMetadata & { conversationId: string };
+
 export class SummaryProjector {
   private readonly context: EntityPluginContext;
   private readonly logger: Logger;
   private readonly config: SummaryConfig;
   private readonly adapter = new SummaryAdapter();
+
+  /** A summary's entry count is its body's, not a stored copy. */
+  private entryCountOf(summary: SummaryEntity): number {
+    return this.adapter.parseBody(summary.content).entries.length;
+  }
   private readonly decisionAdapter = new DecisionAdapter();
   private readonly actionItemAdapter = new ActionItemAdapter();
   private readonly sourceReader: SummarySourceReader;
@@ -199,7 +207,7 @@ export class SummaryProjector {
         conversationId,
         created: false,
         skipped: true,
-        entryCount: existing.metadata.entryCount,
+        entryCount: this.entryCountOf(existing),
         messageCount: existing.metadata.messageCount,
         sourceHash: source.sourceHash,
         skipReason: "unchanged",
@@ -219,7 +227,7 @@ export class SummaryProjector {
         conversationId,
         created: false,
         skipped: true,
-        entryCount: existing?.metadata.entryCount ?? 0,
+        entryCount: existing ? this.entryCountOf(existing) : 0,
         messageCount: source.messages.length,
         sourceHash: source.sourceHash,
         skipReason: "ai-skip",
@@ -240,7 +248,7 @@ export class SummaryProjector {
         conversationId,
         created: false,
         skipped: true,
-        entryCount: existing?.metadata.entryCount ?? 0,
+        entryCount: existing ? this.entryCountOf(existing) : 0,
         messageCount: source.messages.length,
         sourceHash: source.sourceHash,
         skipReason: "ai-skip",
@@ -249,7 +257,6 @@ export class SummaryProjector {
 
     const timeRange = this.getTimeRange(source.messages);
     const metadata: SummaryMetadata = {
-      conversationId,
       channelId: source.conversation.channelId,
       ...(source.conversation.channelName
         ? { channelName: source.conversation.channelName }
@@ -257,10 +264,8 @@ export class SummaryProjector {
       interfaceType: source.conversation.interfaceType,
       ...(timeRange ? { timeRange } : {}),
       messageCount: source.messages.length,
-      entryCount: projected.entries.length,
       ...this.getParticipantsMetadata(source.messages),
       sourceHash: source.sourceHash,
-      projectionVersion: this.config.projectionVersion,
     };
 
     const content = this.adapter.composeContent(projected.entries, metadata);
@@ -287,7 +292,7 @@ export class SummaryProjector {
           );
     await this.upsertConversationMemory(
       projected,
-      metadata,
+      { ...metadata, conversationId },
       now,
       source.messages,
       boardOwned,
@@ -454,7 +459,7 @@ export class SummaryProjector {
 
   private async upsertConversationMemory(
     projected: ProjectedConversationMemory,
-    summaryMetadata: SummaryMetadata,
+    summaryMetadata: ProjectedConversation,
     now: string,
     messages: Message[],
     boardOwned: ActionItemEntity[],
@@ -488,7 +493,7 @@ export class SummaryProjector {
 
   private createDecisionEntity(
     item: ExtractedConversationMemoryItem,
-    summaryMetadata: SummaryMetadata,
+    summaryMetadata: ProjectedConversation,
     index: number,
     now: string,
     messages: Message[],
@@ -534,7 +539,7 @@ export class SummaryProjector {
 
   private createActionItemEntity(
     item: ExtractedConversationMemoryItem,
-    summaryMetadata: SummaryMetadata,
+    summaryMetadata: ProjectedConversation,
     index: number,
     now: string,
     messages: Message[],

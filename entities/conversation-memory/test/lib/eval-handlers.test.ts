@@ -43,7 +43,7 @@ describe("registerSummaryEvalHandlers", () => {
   it("retrieveMemory returns same-space summary memory", async () => {
     const { context, handlers } = registerHandlers();
     const summary: SummaryEntity = {
-      id: "summary-1",
+      id: "conv-1",
       entityType: "summary",
       content: "# Conversation Summary\n\nTeam chose same-space retrieval.",
       contentHash: "hash",
@@ -51,13 +51,10 @@ describe("registerSummaryEvalHandlers", () => {
       created: "2026-01-01T00:00:00.000Z",
       updated: "2026-01-01T00:00:00.000Z",
       metadata: {
-        conversationId: "summary-1",
         channelId: "team",
         interfaceType: "mcp",
         messageCount: 3,
-        entryCount: 1,
         sourceHash: "source",
-        projectionVersion: 1,
       },
     };
     spyOn(context.entityService, "search").mockResolvedValue([
@@ -82,8 +79,8 @@ describe("registerSummaryEvalHandlers", () => {
       spaceId: "mcp:team",
       results: [
         expect.objectContaining({
-          id: "summary-1",
-          conversationId: "summary-1",
+          id: "conv-1",
+          conversationId: "conv-1",
           spaceId: "mcp:team",
           excerpt: "Team chose same-space retrieval.",
         }),
@@ -102,7 +99,7 @@ describe("registerSummaryEvalHandlers", () => {
       channelId: "team",
       memory: [
         {
-          id: "summary-1",
+          id: "conv-1",
           entityType: "summary",
           conversationId: "conv-1",
           interfaceType: "mcp",
@@ -114,7 +111,7 @@ describe("registerSummaryEvalHandlers", () => {
           visibility: "shared",
         },
         {
-          id: "summary-other",
+          id: "conv-other",
           entityType: "summary",
           conversationId: "conv-other",
           interfaceType: "mcp",
@@ -130,7 +127,7 @@ describe("registerSummaryEvalHandlers", () => {
     expect(result).toEqual({
       items: [
         expect.objectContaining({
-          id: "summary-1",
+          id: "conv-1",
           source: "conversation-memory",
           content: "The team chose explicit memory retrieval.",
           provenance: expect.objectContaining({
