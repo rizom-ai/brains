@@ -1022,15 +1022,56 @@ describe("DynamicRouteGenerator", () => {
 
       await configuredGenerator.generateEntityRoutes();
 
-      // Should only have single index route with limit instead of pagination
+      // A single index route that lists every entity instead of pages
       expect(routeRegistry.get("/essays")).toBeDefined();
       expect(routeRegistry.get("/essays/page/2")).toBeUndefined();
 
       const indexRoute = routeRegistry.get("/essays");
-      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(100);
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(15);
       expect(
         indexRoute?.sections[0]?.dataQuery?.query?.["page"],
       ).toBeUndefined();
+    });
+
+    test("an unpaginated index lists more than a hundred entities", async () => {
+      entityTypes.push("book");
+      entities.set(
+        "book",
+        Array.from({ length: 117 }, (_, i) =>
+          createMockEntity(`book-${i + 1}`, "book"),
+        ),
+      );
+      templates.push({
+        name: "book:book-list",
+        pluginId: "book",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await new DynamicRouteGenerator(services, routeRegistry, {
+        book: { label: "Book", paginate: false },
+      }).generateEntityRoutes();
+
+      const indexRoute = routeRegistry.get("/books");
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(117);
+    });
+
+    test("an unpaginated index of no entities still asks for a page", async () => {
+      entityTypes.push("book");
+      entities.set("book", []);
+      templates.push({
+        name: "book:book-list",
+        pluginId: "book",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await new DynamicRouteGenerator(services, routeRegistry, {
+        book: { label: "Book", paginate: false },
+      }).generateEntityRoutes();
+
+      const indexRoute = routeRegistry.get("/books");
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(1);
     });
 
     test("should generate single page when entities fit in one page", async () => {

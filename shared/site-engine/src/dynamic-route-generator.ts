@@ -212,7 +212,11 @@ export class DynamicRouteGenerator {
           logger,
         );
       } else {
-        // Generate a single index route (original behavior)
+        // A single index route lists every entity: one page, however many.
+        const total = this.filterVisibleEntities(
+          await this.listAllEntities(entityType),
+          entityType,
+        ).length;
         const indexRoute: RouteDefinitionInput = {
           id: `${entityType}-index`,
           path: `/${pluralName}`,
@@ -232,7 +236,8 @@ export class DynamicRouteGenerator {
               template: listTemplateName,
               dataQuery: {
                 entityType,
-                query: { limit: 100 }, // Reasonable default limit
+                // A list query needs a positive limit, even for no entities.
+                query: { limit: Math.max(total, 1) },
               },
             },
           ],
