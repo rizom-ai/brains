@@ -135,9 +135,10 @@ describe("Studio page-head normalization", () => {
       await import("../../test/ui-asset-fixture");
     const css = await readStudioStylesheet();
     expect(css).toContain("-webkit-line-clamp:2");
+    expect(css).toContain("-webkit-line-clamp:3");
     for (const [width, size] of [
       [1440, "36px"],
-      [390, "29px"],
+      [390, "26px"],
     ] as const) {
       const window = new Window({ width });
       try {

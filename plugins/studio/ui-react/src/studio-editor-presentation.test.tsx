@@ -134,7 +134,7 @@ for (const width of [1440, 768, 390])
         const title = head.querySelector("h1");
         if (!title) throw new Error("Page title must be a level-one heading");
         expect(window.getComputedStyle(title).fontSize).toBe(
-          width <= 640 ? "29px" : "36px",
+          width <= 640 ? "26px" : "36px",
         );
         expect(window.getComputedStyle(title).fontWeight).toBe("600");
         expect(window.getComputedStyle(head).borderBottomWidth).toBe("2px");

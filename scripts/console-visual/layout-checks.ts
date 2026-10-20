@@ -314,7 +314,7 @@ function pageHeadingInsets(): void {
   if (
     !title ||
     getComputedStyle(title).fontSize !==
-      (innerWidth <= 640 ? "29px" : "36px") ||
+      (innerWidth <= 640 ? "26px" : "36px") ||
     getComputedStyle(title).fontWeight !== "600"
   )
     throw new Error("Page heading display scale diverged");

@@ -56,7 +56,12 @@ export const listStyles: Record<
   master: { alignItems: "start" },
   stacked: { flexDirection: "column", alignItems: "stretch", gap: 12 },
   stackedTrailing: { maxWidth: "100%", justifyContent: "flex-start" },
-  selected: { backgroundColor: "var(--console-accent-soft)" },
+  // The current choice, as Studio navigation marks it: card surface and an
+  // accent edge. An accent wash read as a warning on the dark climate.
+  selected: {
+    backgroundColor: "var(--console-card)",
+    boxShadow: "inset 2px 0 0 var(--console-accent)",
+  },
   interactive: {
     backgroundColor: {
       default: "transparent",

@@ -79,12 +79,14 @@ export const headStyles: Record<
     letterSpacing: "-0.025em",
     lineHeight: 1.1,
     overflowWrap: "anywhere",
+    // Beside the phone action a 29px title cut ordinary titles to "Resilience
+    // Is Not…"; a smaller, tighter title keeps three lines before clamping.
     "@media (max-width: 640px)": {
-      fontSize: 29,
-      letterSpacing: "0.015em",
+      fontSize: 26,
+      letterSpacing: "-0.01em",
       display: "-webkit-box",
       WebkitBoxOrient: "vertical",
-      WebkitLineClamp: 2,
+      WebkitLineClamp: 3,
       overflow: "hidden",
     },
   },

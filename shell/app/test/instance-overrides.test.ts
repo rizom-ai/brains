@@ -845,6 +845,8 @@ describe("resolve with instance overrides", () => {
     const webserver = config.plugins?.find((p) => p.id === "webserver");
     expect(webserver).toBeDefined();
     expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
+    // Local links and the dev sign-in issuer follow the port actually served.
+    expect(config.deployment.ports.production).toBe(9090);
   });
 
   test("should apply targeted override after construction", () => {
