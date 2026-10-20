@@ -19,3 +19,5 @@ The console strip's Studio door opens Studio itself rather than its `/cms` redir
 Only public turns and site visitors' questions become draft FAQs; an operator's own Studio Chat questions no longer land in the Inbox as FAQs.
 
 Prompts whose title is still the old generated form are corrected at boot ("…AI Response", "…LinkedIn"); titles you edited are kept.
+
+Obsidian vault bases take the same names as Studio's collections ("FAQs.base", "Site Content.base"); a base under its earlier name moves once, keeping any edits.

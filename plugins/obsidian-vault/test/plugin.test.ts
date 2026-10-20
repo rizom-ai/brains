@@ -7,6 +7,8 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 
+import { generateBase, previousDisplayName } from "../src/lib/base-generator";
+import { introspectSchema } from "../src/lib/schema-introspector";
 import { ObsidianVaultPlugin } from "../src/plugin";
 
 const generatedSchema = z.object({ generated: z.array(z.string()) });
@@ -37,7 +39,13 @@ const siteInfoSchema = z.object({
   entityType: z.literal("site-info"),
 });
 
+const faqSchema = z.object({
+  question: z.string(),
+  entityType: z.literal("faq"),
+});
+
 const schemas = new Map<string, z.ZodObject<z.ZodRawShape>>([
+  ["faq", faqSchema],
   ["post", postSchema],
   ["note", noteSchema],
   ["site-info", siteInfoSchema],
@@ -47,6 +55,9 @@ interface MockDeps {
   mkdir: ReturnType<typeof mock>;
   writeFile: ReturnType<typeof mock>;
   existsFile: ReturnType<typeof mock>;
+  readFile: ReturnType<typeof mock>;
+  renameFile: ReturnType<typeof mock>;
+  removeFile: ReturnType<typeof mock>;
 }
 
 function createMockDeps(): MockDeps {
@@ -56,6 +67,9 @@ function createMockDeps(): MockDeps {
     ),
     writeFile: mock((_path: string, _content: string): void => undefined),
     existsFile: mock((_path: string): boolean => false),
+    readFile: mock((_path: string): string => ""),
+    renameFile: mock((_from: string, _to: string): void => undefined),
+    removeFile: mock((_path: string): void => undefined),
   };
 }
 
@@ -76,6 +90,11 @@ describe("ObsidianVaultPlugin", () => {
     // Real adapters rather than `{} as never`: the plugin reads `isSingleton`
     // and `getBodyTemplate` off whatever the registry hands back, so
     // registering something usable removes the getAdapter override too.
+    registry.registerEntityType(
+      "faq",
+      baseEntitySchema,
+      createTestEntityAdapter("faq"),
+    );
     registry.registerEntityType(
       "post",
       baseEntitySchema,
@@ -247,6 +266,57 @@ describe("ObsidianVaultPlugin", () => {
     expect(paths).not.toContain("/tmp/test-vault/_obsidian/bases/Posts.base");
     // Other bases should still be generated
     expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Notes.base");
+  });
+
+  describe("a base named before labels kept acronyms", () => {
+    const bases = "/tmp/test-vault/_obsidian/bases";
+    const before = generateBase(
+      "faq",
+      introspectSchema(faqSchema),
+      previousDisplayName("faq"),
+    );
+
+    it("is replaced by the current base while untouched", async () => {
+      expect(before.filename).toBe("Faqs.base");
+      deps.existsFile.mockImplementation(
+        (path: string) => path === `${bases}/Faqs.base`,
+      );
+      deps.readFile.mockImplementation(() => before.content);
+
+      await plugin.syncTemplates();
+
+      expect(deps.writeFile.mock.calls.map((call) => call[0])).toContain(
+        `${bases}/FAQs.base`,
+      );
+      expect(deps.removeFile).toHaveBeenCalledWith(`${bases}/Faqs.base`);
+    });
+
+    it("keeps an edited base, under the current name", async () => {
+      deps.existsFile.mockImplementation(
+        (path: string) => path === `${bases}/Faqs.base`,
+      );
+      deps.readFile.mockImplementation(() => "my own view");
+
+      await plugin.syncTemplates();
+
+      expect(deps.renameFile).toHaveBeenCalledWith(
+        `${bases}/Faqs.base`,
+        `${bases}/FAQs.base`,
+      );
+      expect(deps.removeFile).not.toHaveBeenCalled();
+    });
+
+    it("leaves both alone once the current name exists", async () => {
+      deps.existsFile.mockImplementation(
+        (path: string) =>
+          path === `${bases}/Faqs.base` || path === `${bases}/FAQs.base`,
+      );
+
+      await plugin.syncTemplates();
+
+      expect(deps.renameFile).not.toHaveBeenCalled();
+      expect(deps.removeFile).not.toHaveBeenCalled();
+    });
   });
 
   it("should return bases in result data", async () => {

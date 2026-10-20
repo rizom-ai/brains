@@ -1,5 +1,5 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import { formatLabel, pluralize } from "@brains/utils/string-utils";
+import { formatLabel, pluralizeLabel } from "@brains/utils/string-utils";
 import {
   getArrayElement,
   getKind,
@@ -56,15 +56,6 @@ const LONG_TEXT_FIELDS = new Set([
   "tagline",
   "story",
 ]);
-
-/** Words a label names as an amount, not as countable items. */
-const MASS_NOUNS = new Set(["content", "info", "information", "data", "media"]);
-
-function pluralizeLabel(label: string): string {
-  const last = label.split(" ").at(-1)?.toLowerCase() ?? "";
-  if (label.endsWith("s") || MASS_NOUNS.has(last)) return label;
-  return pluralize(label);
-}
 
 /**
  * Notes use whole-document editing unless their type participates in a

@@ -7,6 +7,7 @@ import {
   formatLabel,
   displayTitleFrom,
   formatByteSize,
+  pluralizeLabel,
   toDisplayName,
   normalizeTag,
   normalizeTags,
@@ -208,7 +209,9 @@ describe("string-utils", () => {
 
     it("should handle hyphenated entity types", () => {
       expect(toDisplayName("social-post")).toBe("Social Posts");
-      expect(toDisplayName("site-info")).toBe("Site Infos");
+      expect(toDisplayName("site-info")).toBe("Site Info");
+      expect(toDisplayName("site-content")).toBe("Site Content");
+      expect(toDisplayName("faq")).toBe("FAQs");
     });
 
     it("should handle invariant words", () => {
@@ -259,6 +262,16 @@ describe("string-utils", () => {
     it("has no title when none of them is readable text", () => {
       expect(displayTitleFrom({ title: "  ", name: 3 })).toBeUndefined();
       expect(displayTitleFrom({})).toBeUndefined();
+    });
+  });
+
+  describe("pluralizeLabel", () => {
+    it("pluralizes a display label, keeping mass nouns and plurals", () => {
+      expect(pluralizeLabel("Social Post")).toBe("Social Posts");
+      expect(pluralizeLabel("FAQ")).toBe("FAQs");
+      expect(pluralizeLabel("Ask Content")).toBe("Ask Content");
+      expect(pluralizeLabel("Site Info")).toBe("Site Info");
+      expect(pluralizeLabel("Series")).toBe("Series");
     });
   });
 

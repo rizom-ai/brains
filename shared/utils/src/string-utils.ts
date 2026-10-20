@@ -234,18 +234,25 @@ const LABEL_WORDS: Record<string, string> = {
   url: "URL",
 };
 
+/** Words a label names as an amount, not as countable items. */
+const MASS_NOUNS = new Set(["content", "info", "information", "data", "media"]);
+
 /**
- * Convert a kebab-case entity type to a human-friendly display name.
- * Splits on hyphens, title-cases each word, pluralizes the last word.
+ * Pluralize a display label for people, not for paths: a label already
+ * plural or ending in a mass noun ("Ask Content", "Site Info") stays as is.
+ */
+export function pluralizeLabel(label: string): string {
+  const last = label.split(" ").at(-1)?.toLowerCase() ?? "";
+  if (label.endsWith("s") || MASS_NOUNS.has(last)) return label;
+  return pluralize(label);
+}
+
+/**
+ * Convert a kebab-case entity type to a human-friendly collection name:
+ * "social-post" → "Social Posts", "faq" → "FAQs", "site-info" → "Site Info".
  */
 export function toDisplayName(entityType: string): string {
-  const words = entityType.split("-");
-  const titleCased = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
-  const lastWord = titleCased.pop();
-  if (lastWord) {
-    titleCased.push(pluralize(lastWord));
-  }
-  return titleCased.join(" ");
+  return pluralizeLabel(formatLabel(entityType));
 }
 
 const LINK_LABEL_CANONICAL: Record<string, string> = {
