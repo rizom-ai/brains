@@ -167,4 +167,103 @@ describe("rewriting stored entities that still carry retired fields", () => {
     expect(rewritten?.metadata).toEqual({ title: "Hello" });
     expect(await service.rewriteRetiredFields()).toEqual({ rewritten: 0 });
   });
+
+  it("validates content without its retired fields", async () => {
+    context = await setupEntityService(
+      [
+        {
+          name: "post",
+          schema: postSchema,
+          adapter: new PostAdapter(),
+          config: RETIRED,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    // A validator that strictly parses the stored file, as mail items do.
+    context.entityRegistry.registerPersistValidator("post", async (entity) => {
+      parseMarkdownWithFrontmatter(entity.content, postFields);
+    });
+    const service = context.entityService;
+
+    await service.createEntity({
+      entity: post(storedBeforeRetirement(), { title: "Hello" }),
+    });
+    const created = await service.getEntity({
+      entityType: "post",
+      id: "hello",
+    });
+    expect(fields(created?.content ?? "")).toEqual({ title: "Hello" });
+
+    const db = new Database(fileURLToPath(context.dbConfig.url));
+    db.query("UPDATE entities SET content = ? WHERE id = ?").run(
+      storedBeforeRetirement(),
+      "hello",
+    );
+    db.close();
+    expect(await service.rewriteRetiredFields()).toEqual({ rewritten: 1 });
+  });
+});
+
+describe("retired nested fields", () => {
+  // The owner's nested object is strict: an unknown key inside it fails.
+  const mailFields = z.object({
+    title: z.string(),
+    source: z.strictObject({ ref: z.string() }),
+  });
+  const mailSchema = baseEntitySchema.extend({ metadata: mailFields });
+  type Mail = z.infer<typeof mailSchema>;
+
+  class MailAdapter extends BaseEntityAdapter<Mail, Mail["metadata"]> {
+    constructor() {
+      super({
+        entityType: "mail",
+        purpose: "Nested retired-field fixture",
+        schema: mailSchema,
+        frontmatterSchema: mailFields,
+      });
+    }
+    fromMarkdown(content: string): Partial<Mail> {
+      return { content, metadata: this.parseFrontMatter(content, mailFields) };
+    }
+  }
+
+  const stored =
+    "---\ntitle: Hello\nsource:\n  ref: imap:1\n  senderKey: abc123\n---\n\nBody\n";
+
+  function mailSerializer(): EntitySerializer {
+    const logger = createSilentLogger();
+    const registry = EntityRegistry.createFresh(logger);
+    registry.registerEntityType("mail", mailSchema, new MailAdapter(), {
+      retiredFields: ["source.senderKey"],
+    });
+    return new EntitySerializer(registry, logger);
+  }
+
+  it("are read past inside their object", () => {
+    expect(mailSerializer().deserializeEntity(stored, "mail").metadata).toEqual(
+      { title: "Hello", source: { ref: "imap:1" } },
+    );
+  });
+
+  it("are not written back, and the rest of the object stays", () => {
+    const entity = {
+      ...post(stored, {
+        title: "Hello",
+        source: { ref: "imap:1", senderKey: "abc123" },
+      }),
+      id: "mail-1",
+      entityType: "mail",
+    };
+    const prepared = mailSerializer().prepareEntityForStorage(entity, "mail");
+
+    expect(fields(prepared.markdown)).toEqual({
+      title: "Hello",
+      source: { ref: "imap:1" },
+    });
+    expect(prepared.metadata).toEqual({
+      title: "Hello",
+      source: { ref: "imap:1" },
+    });
+  });
 });

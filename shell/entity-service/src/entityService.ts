@@ -229,7 +229,11 @@ export class EntityService implements IEntityService {
           );
           const validated = options.entityRegistry.validateEntity(
             entity.entityType,
-            { ...parsed, ...entity.metadata, ...entity },
+            {
+              ...parsed,
+              ...entity.metadata,
+              ...this.entitySerializer.withoutRetiredFields(entity),
+            },
           );
           await validatePersist(options.entityRegistry, validated, operation);
           return validated;

@@ -8,6 +8,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { EntityData } from "./entity-data";
 import { toEntityValidationError } from "./errors";
 import {
+  dropFields,
   preserveSourceFrontmatter,
   withoutFrontmatterFields,
 } from "./frontmatter-extensions";
@@ -199,18 +200,27 @@ export class EntitySerializer {
     return { markdown, metadata };
   }
 
+  /**
+   * The entity with its type's retired fields left out of its content, so
+   * validators and storage see only the fields the type still owns.
+   */
+  public withoutRetiredFields<
+    T extends { entityType: string; content: string },
+  >(entity: T): T {
+    const content = withoutFrontmatterFields(
+      entity.content,
+      this.retiredFields(entity.entityType),
+    );
+    return content === entity.content ? entity : { ...entity, content };
+  }
+
   /** Metadata without policy fields or the type's retired fields. */
   private stripPolicyMetadata(
     metadata: Record<string, unknown>,
     entityType: string,
   ): Record<string, unknown> {
     const { visibility: _visibility, ...rest } = metadata;
-    const retired = this.retiredFields(entityType);
-    return retired.length === 0
-      ? rest
-      : Object.fromEntries(
-          Object.entries(rest).filter(([key]) => !retired.includes(key)),
-        );
+    return dropFields(rest, this.retiredFields(entityType)) ?? rest;
   }
 
   private retiredFields(entityType: string): readonly string[] {
