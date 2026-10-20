@@ -14251,6 +14251,10 @@ freud-1947-gw-12:
     to: des religiösen
     by: scan
 freud-1948-gw-14:
+  - page: 10
+    from: Kur
+    to: ""
+    by: scan
   - page: 5
     from: oder. einer
     to: oder einer
@@ -71454,4 +71458,41 @@ jbnp-1899-kinderlaehmung:
   - page: 617
     from: schwankend, Sprache monoton
     to: Sprache monoton
+    by: scan
+proceedingsofsoc26soci:
+  - page: 312
+    from: has come to mean in Psycho-
+    to: has come to mean in Psycho-analysis
+    by: scan
+  - page: 312
+    from: analysis and in Psycho-analysis alone.
+    to: and in Psycho-analysis alone.
+    by: scan
+  - page: 312
+    from: now -present
+    to: now present
+    by: scan
+  - page: 314
+    from: active and 'unconscious
+    to: active and unconscious
+    by: scan
+  - page: 314
+    from: character of the post-
+    to: character of the post-hypnotic
+    by: scan
+  - page: 314
+    from: hypnotic suggestion even
+    to: suggestion even
+    by: scan
+  - page: 316
+    from: this last question psycho-
+    to: this last question psycho-analysis
+    by: scan
+  - page: 316
+    from: analysis gives a clear
+    to: gives a clear
+    by: scan
+  - page: 316
+    from: Psyche-analysis
+    to: Psycho-analysis
     by: scan

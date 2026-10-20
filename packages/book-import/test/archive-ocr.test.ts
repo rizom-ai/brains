@@ -487,10 +487,10 @@ describe("parseArchiveOcrWork on a page whose paragraphs the manifest names", ()
   });
 });
 
-describe("parseArchiveOcrWork, a dash at a line's end", () => {
-  const paragraphOf = (lines: string[]): string => {
-    const page = (leaf: number): string =>
-      `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 3300 5300'><span class='ocr_pageno'>${leaf + 1}</span>
+/** One page's paragraph of lines, read as a work. */
+const paragraphOf = (lines: string[]): string => {
+  const page = (leaf: number): string =>
+    `<div class='ocr_page' id='page_${leaf}' title='bbox 0 0 3300 5300'><span class='ocr_pageno'>${leaf + 1}</span>
  <p class='ocr_par'>${lines
    .map(
      (text, index) =>
@@ -498,17 +498,18 @@ describe("parseArchiveOcrWork, a dash at a line's end", () => {
    )
    .join("\n")}</p>
 </div>`;
-    return parseArchiveOcrWork(`<html><body>${page(0)}</body></html>`, {
-      item: "dash",
-      title: "Dash",
-      citation: "D",
-      firstPage: 1,
-      lastPage: 1,
-    })
-      .flatMap((unit) => unit.paragraphs)
-      .join("\n");
-  };
+  return parseArchiveOcrWork(`<html><body>${page(0)}</body></html>`, {
+    item: "dash",
+    title: "Dash",
+    citation: "D",
+    firstPage: 1,
+    lastPage: 1,
+  })
+    .flatMap((unit) => unit.paragraphs)
+    .join("\n");
+};
 
+describe("parseArchiveOcrWork, a dash at a line's end", () => {
   it("joins a dash set close to its word to the next line's word, where the work sets its dashes so", () => {
     expect(
       paragraphOf([
@@ -529,6 +530,62 @@ describe("parseArchiveOcrWork, a dash at a line's end", () => {
         "und blieben dort lange Zeit.",
       ]),
     ).toContain("wie es geplant war — und blieben");
+  });
+});
+
+describe("parseArchiveOcrWork, a line at a body page's head opening with I", () => {
+  it("keeps the line and the lines above it, no roman running head", () => {
+    expect(
+      paragraphOf([
+        "of the patient, as we shall see in what follows.",
+        "I wish to expound in a few words what the term",
+        "has come to mean in Psycho-analysis alone.",
+      ]),
+    ).toBe(
+      "of the patient, as we shall see in what follows. I wish to expound in a few words what the term has come to mean in Psycho-analysis alone.",
+    );
+  });
+
+  it("reads the page's first line, its number misread as I, as its running head", () => {
+    expect(
+      paragraphOf([
+        "der Starre nach Little. I",
+        "der cerebralen Kinderlähmung angeführt haben (siehe unten).",
+      ]),
+    ).toBe("der cerebralen Kinderlähmung angeführt haben (siehe unten).");
+  });
+});
+
+describe("parseArchiveOcrWork, straight quotes set apart from their words", () => {
+  it("closes a paragraph's quotes on the words they quote", () => {
+    expect(
+      paragraphOf([
+        "I wish to expound what the term &quot; unconscious &quot; has come",
+        "to mean. The first stage is the &quot; negative &quot; ; we designate",
+        "it by the name &quot; The Unconscious,&quot; for want of a better term.",
+      ]),
+    ).toBe(
+      'I wish to expound what the term "unconscious" has come to mean. The first stage is the "negative" ; we designate it by the name "The Unconscious," for want of a better term.',
+    );
+  });
+
+  it("leaves a paragraph whose quotes do not pair, a quotation running on from the one before", () => {
+    // The lines as hOCR sets them, their quotes encoded.
+    const lines = ["the word &quot; unconscious and", "what follows it."];
+    expect(paragraphOf(lines)).toBe(
+      'the word " unconscious and what follows it.',
+    );
+  });
+
+  it("leaves a paragraph whose quotes pair in number but not in place, one quotation ending and another opening", () => {
+    expect(
+      paragraphOf([
+        "as developed in his dialogue.&quot; It impresses upon the",
+        "Government that &quot; the Emperor would on no account",
+      ]),
+    ).toBe(
+      'as developed in his dialogue." It impresses upon the Government that " the Emperor would on no account',
+    );
   });
 });
 

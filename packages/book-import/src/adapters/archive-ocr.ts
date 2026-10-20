@@ -774,10 +774,16 @@ function lowHeadIndex(page: Page, number: number | null): number {
 
 /** A front-matter head: a roman page number at its start or end. */
 const ROMAN_HEAD = /^([IVXL]+)\s+\S.*$|^.*\S\s+([IVXL]+)$/;
+/** A body page's head, its arabic number misread as roman at its end: der Starre nach Little. I */
+const ROMAN_TAIL = /^.*\S\s+([IVXL]+)$/;
 /** A roman page number alone, which only the front matter's head is. */
 const LONE_ROMAN_HEAD = /^[—–-]?\s*([IVXL]+)\s*[—–-]?$/;
 
-/** The roman page number of a front-matter page's running head. */
+/**
+ * The roman page number of a front-matter page's running head. A body page
+ * shows one only where the OCR misread its number, at the end of its first
+ * line; a line there that opens with I is text: I wish to expound.
+ */
 function romanHead(
   page: Page,
   front = false,
@@ -787,9 +793,10 @@ function romanHead(
       if (found || index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) {
         return found;
       }
-      const match =
-        ROMAN_HEAD.exec(line.text) ??
-        (front ? LONE_ROMAN_HEAD.exec(line.text) : null);
+      if (!front && index > 0) return null;
+      const match = front
+        ? (ROMAN_HEAD.exec(line.text) ?? LONE_ROMAN_HEAD.exec(line.text))
+        : ROMAN_TAIL.exec(line.text);
       const numeral = match?.[1] ?? match?.[2];
       return numeral === undefined
         ? null
@@ -2750,6 +2757,35 @@ function dashing(texts: string[]): <B extends { text: string }>(block: B) => B {
   });
 }
 
+/**
+ * Straight quotes the OCR read apart from the words they quote, as the type
+ * set them with thin spaces: " unconscious ". Where a paragraph's quotes
+ * pair, each opening after a space and each closing before one, each quoted
+ * span closes on its words; a paragraph whose quotes do not pair, a
+ * quotation running on from the one before or on into the next, stays as
+ * read, as do a table's rows and spans without a word, ditto marks.
+ */
+function quoting<B extends { text: string }>(block: B): B {
+  const spans = block.text.split('"');
+  if (spans.length < 3 || spans.length % 2 === 0) return block;
+  if (tableCells(block.text) !== null) return block;
+  const paired = spans.every((span, index) =>
+    index % 2 === 0
+      ? (index === 0 || /^(?:$|[\s.,;:!?)\]—–-])/u.test(span)) &&
+        (index === spans.length - 1 || /(?:^|[\s([—–])$/u.test(span))
+      : true,
+  );
+  if (!paired) return block;
+  return {
+    ...block,
+    text: spans
+      .map((span, index) =>
+        index % 2 === 1 && /\p{L}/u.test(span) ? span.trim() : span,
+      )
+      .join('"'),
+  };
+}
+
 /** A paragraph or note, and where its text starts. */
 /** A sentence's end, its quotation closed or its bracket. */
 const SENTENCE_END = /[.!?][“”"»)]?$/u;
@@ -3859,8 +3895,12 @@ export function parseArchiveOcrWork(
             !signed.some((signature) => signature.test(paragraph.text.trim())),
         ),
       ),
-    ).map(dash),
-    notes: parted(section.notes.filter((note) => !skipped(note))).map(dash),
+    )
+      .map(dash)
+      .map(quoting),
+    notes: parted(section.notes.filter((note) => !skipped(note)))
+      .map(dash)
+      .map(quoting),
     titles: section.path.map((step) => titles.get(step) ?? ""),
   }));
   return unitsOfSections(

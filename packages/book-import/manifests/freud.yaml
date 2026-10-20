@@ -20,7 +20,7 @@
 source: archive-ocr
 coverage:
   author: Sigmund Freud
-  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), and for the papers and neurological monographs of 1877–1897 their first printings, read from the Internet Archive's scans
+  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), and for the papers, reviews and neurological monographs they leave out their first printings, read from the Internet Archive's scans
   license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
 gaps:
   - citation: GW XIII
@@ -39,7 +39,7 @@ gaps:
     pages: 429–440
     title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
     year: 1913
-    reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912)
+    reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912), which is imported
   - citation: Villaret I
     pages: "892"
     title: Hysteroepilepsie
@@ -4142,6 +4142,20 @@ books:
     title: Über einige Übereinstimmungen im Seelenleben der Wilden und der Neurotiker
     shortTitle: Übereinstimmungen im Seelenleben der Wilden und der Neurotiker
     edition: "Imago. Zeitschrift für Anwendung der Psychoanalyse auf die Geisteswissenschaften, I. Jahrgang, Heft 1 (Leipzig und Wien, März 1912), S. 17–18"
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: proceedingsofsoc26soci
+    citation: Proc. SPR 26
+    # Freud's English, written for the Society; read from below its title and byline.
+    firstPage: 312
+    lastPage: 318
+    opensWith: I wish to expound
+    closesWith: psycho-analysis.
+    slug: a-note-on-the-unconscious-in-psycho-analysis
+    title: A Note on the Unconscious in Psycho-Analysis
+    shortTitle: A Note on the Unconscious
+    edition: "Proceedings of the Society for Psychical Research, vol. XXVI, part LXVI (London 1912), p. 312–318"
     author: Sigmund Freud
     year: 1912
     kind: work
