@@ -182,7 +182,10 @@ test("preview image reads require a session and cannot widen its visibility scop
   const allowed = await runtime.request("GET", "images?id=private-image");
   expect(allowed.status).toBe(200);
   expect(allowed.headers.get("Cache-Control")).toBe("no-store");
-  expect(await allowed.json()).toEqual({ source: dataUrl });
+  expect(allowed.headers.get("Content-Type")).toBe("image/png");
+  expect(Buffer.from(await allowed.arrayBuffer())).toEqual(
+    Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"),
+  );
   expect(
     (
       await runtime.request(
@@ -288,9 +291,10 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
     await waitForStudio(
       () => document.querySelector("[data-studio-preview] img") !== null,
     );
+    // The preview shows the image's bytes, never its stored content.
     expect(
       document.querySelector("[data-studio-preview] img")?.getAttribute("src"),
-    ).toBe(dataUrl);
+    ).toStartWith("blob:");
     expect(
       document.querySelector("[data-grouping-member]")?.textContent,
     ).toContain(literal);

@@ -111,6 +111,7 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         options: {
           limit: 1,
           filter: { metadata: { sourceUrl: imageUrl } },
+          binaryContent: "reference",
         },
       });
 

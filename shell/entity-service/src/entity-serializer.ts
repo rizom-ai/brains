@@ -27,13 +27,17 @@ export class EntitySerializer {
    */
   public serializeEntity(entity: BaseEntity): string {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
+    const assetBacked =
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage === "asset";
+    // An asset-backed row stores the bare reference; visibility lives on the row.
+    const markdown = adapter.toMarkdown(entity);
     return preserveSourceFrontmatter(
       entity.content,
-      applyVisibilityToMarkdown(adapter.toMarkdown(entity), entity.visibility),
-      this.entityRegistry.getEntityTypeConfig(entity.entityType)
-        .binaryStorage === "asset"
-        ? undefined
-        : adapter.frontmatterSchema,
+      assetBacked
+        ? markdown
+        : applyVisibilityToMarkdown(markdown, entity.visibility),
+      assetBacked ? undefined : adapter.frontmatterSchema,
       this.entityRegistry.getFrontmatterExtensions(entity.entityType),
       this.entityRegistry
         .getGroupings()

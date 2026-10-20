@@ -14,7 +14,7 @@ import type { IEntityService } from "@brains/plugins";
  */
 export type StockPhotoEntityWriter = Pick<
   IEntityService,
-  "createEntity" | "getEntity" | "updateEntity"
+  "createEntity" | "getEntity" | "updateEntity" | "stageAsset"
 >;
 
 export async function setCoverImage(
