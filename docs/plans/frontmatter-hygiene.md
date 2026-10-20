@@ -45,7 +45,7 @@ A field whose value moves rather than disappears (an id derived differently, a n
 
 ### Rewrite on start
 
-Every serving start, after grouping reprojection, `rewriteRetiredFields` scans the stored rows of each type with retired fields and rewrites those still carrying one. A clean brain pays one scan per such type; a rewritten entity is exported like any other change, so directory sync carries the trim into files. Retired lists stay declared: once stored data is clean they cost nothing, and they keep an old file imported later from turning into an error.
+Every serving start, after grouping reprojection, `rewriteRetiredFields` scans the stored rows of each type with retired fields and rewrites those still carrying one. A clean brain pays one scan per such type; a rewritten entity is exported like any other change, so directory sync carries the trim into files. A file imported into a brain whose row is already clean (a brain bootstrapped from its content repository, say) is written back in its stored form when that form drops one of the file's fields; files that differ only in form are left alone. Retired lists stay declared: once stored data is clean they cost nothing, and they keep an old file imported later from turning into an error.
 
 ### Runtime state for bookkeeping
 

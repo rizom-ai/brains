@@ -219,3 +219,49 @@ describe("persistImportEntity visibility", () => {
     expect(hash).not.toBe(computeContentHash(content));
   });
 });
+
+describe("persistImportEntity with fields the brain no longer keeps", () => {
+  const canonical = "---\ntitle: Note\nsource:\n  ref: a\n---\nBody\n";
+  const withDropped =
+    "---\ntitle: Note\nogDescription: Old\nsource:\n  ref: a\n---\nBody\n";
+  const withNestedDropped =
+    "---\ntitle: Note\nsource:\n  ref: a\n  senderKey: b\n---\nBody\n";
+
+  function storing(existing: BaseEntity | null): ReturnType<typeof setup> {
+    const f = setup(existing);
+    spyOn(f.deps.entityService, "serializeEntity").mockImplementation(
+      () => canonical,
+    );
+    return f;
+  }
+
+  function origin(f: ReturnType<typeof setup>): unknown {
+    return f.upsert.mock.calls[0]?.[0].options?.persistenceOrigin;
+  }
+
+  it("imports a file holding a dropped field as an ordinary write, so its stored form is exported", async () => {
+    const f = storing(null);
+    await f.importFile(undefined, withDropped);
+    expect(origin(f)).toBe("ordinary");
+  });
+
+  it("exports the stored form even when the row already matches it", async () => {
+    const f = storing({
+      ...makeExistingEntity("public"),
+      metadata: { title: "Note" },
+      contentHash: computeContentHash(canonical),
+    });
+    await f.importFile(undefined, withNestedDropped);
+    expect(origin(f)).toBe("ordinary");
+    expect(f.result.imported).toBe(1);
+  });
+
+  it("leaves a file alone when it differs only in form", async () => {
+    const f = storing(null);
+    await f.importFile(
+      undefined,
+      "---\ntitle: Note\nvisibility: public\nsource:\n  ref: a\n---\nBody",
+    );
+    expect(origin(f)).toBe("directory-sync");
+  });
+});

@@ -23,3 +23,5 @@ Mail items retire `source.senderKey` and `source.domain`, which nothing read. A 
 Email reply drafts retire `updatedAt`; a draft reports its update time from the entity.
 
 A type can list translated fields: stored keys its parser still reads to fill their new place, never written back. Action items use it for `timeRange`, which was kept in stored cards; the next start removes it.
+
+Directory sync writes an imported file back in its stored form when the brain drops one of its fields, so a brain bootstrapped from an older content repository cleans its files too.
