@@ -1,20 +1,15 @@
 import { createHash } from "node:crypto";
 import type {
   BaseEntity,
-  Tool,
   ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import type { ProviderRegistry } from "../provider-registry";
-import {
-  PublishExecutor,
-  type PublishEntityExecutor,
-} from "../publish-executor";
+import type { PublishEntityExecutor } from "../publish-executor";
 
 /**
- * Input schema for publish-pipeline:publish tool
+ * Input of the publishing_manage publish action, parsed by handlePublishAction
  */
 type PublishInputSchema = z.ZodObject<{
   entityType: z.ZodString;
@@ -27,20 +22,6 @@ type PublishInputSchema = z.ZodObject<{
 }>;
 
 export const publishInputSchema: PublishInputSchema = z.object({
-  entityType: z
-    .string()
-    .describe("Entity type to publish (e.g., social-post, post, deck)"),
-  id: z.string().optional().describe("Entity ID to publish"),
-  slug: z.string().optional().describe("Entity slug to publish"),
-  confirmed: z.boolean().optional(),
-  confirmationToken: z.string().optional(),
-  contentHash: z.string().optional(),
-  expiresAt: z.string().datetime().optional(),
-});
-
-export type PublishInput = z.output<typeof publishInputSchema>;
-
-const publishInputParserSchema: PublishInputSchema = z.object({
   entityType: z.string(),
   id: z.string().optional(),
   slug: z.string().optional(),
@@ -50,8 +31,10 @@ const publishInputParserSchema: PublishInputSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
+export type PublishInput = z.output<typeof publishInputSchema>;
+
 /**
- * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
+ * Output schema for the publishing_manage publish action - discriminated union for success/error cases
  */
 type PublishSuccessSchema = z.ZodObject<{
   success: z.ZodLiteral<true>;
@@ -129,49 +112,6 @@ export type PublishOutput = z.output<typeof publishOutputSchema>;
 
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 
-/**
- * Create the publish-pipeline:publish tool
- *
- * This is a centralized publish tool that directly publishes any registered
- * entity type using the appropriate provider.
- *
- * @param context - Plugin context for entity access
- * @param pluginId - Plugin ID for tool naming
- * @param providerRegistry - Registry of providers per entity type
- */
-export function createPublishTool(
-  context: ServicePluginContext,
-  pluginId: string,
-  providerRegistry: ProviderRegistry,
-  publishExecutor?: PublishEntityExecutor,
-): Tool<PublishOutput> {
-  const executor =
-    publishExecutor ??
-    new PublishExecutor({
-      context,
-      providerRegistry,
-    });
-  const toolName = `${pluginId}_publish`;
-
-  return {
-    name: toolName,
-    description:
-      "Publish an entity directly to its platform. Call this when the user asks to publish; the tool will request confirmation itself. Works with any registered entity type (social-post, post, deck, etc.). For follow-up requests like 'publish it now', use the entity just read, generated, or updated in the conversation, including a post just changed to draft.",
-    inputSchema: publishInputSchema.shape,
-    outputSchema: publishOutputSchema,
-    visibility: "admin",
-    sideEffects: "external",
-    handler: async (rawInput, toolContext): Promise<PublishOutput> =>
-      handlePublishAction({
-        context,
-        executor,
-        toolName,
-        rawInput,
-        toolContext,
-      }),
-  };
-}
-
 export async function handlePublishAction(input: {
   context: ServicePluginContext;
   executor: PublishEntityExecutor;
@@ -179,7 +119,7 @@ export async function handlePublishAction(input: {
   rawInput: unknown;
   toolContext: ToolContext;
 }): Promise<PublishOutput> {
-  const parsed = publishInputParserSchema.safeParse(input.rawInput);
+  const parsed = publishInputSchema.safeParse(input.rawInput);
   if (!parsed.success) {
     return {
       success: false,
