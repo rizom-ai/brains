@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { atlasEntityTypeSchema } from "@brains/site-atlas";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { BaseEntity } from "@brains/plugins";
 import { loadHomepageAtlas } from "../src/datasources/homepage-atlas";
@@ -83,17 +84,45 @@ const projection = {
 };
 
 function source(
-  project = async (): Promise<typeof projection> => projection,
+  project: Parameters<
+    typeof loadHomepageAtlas
+  >[0]["semantic"]["project"] = async () => projection,
 ): Parameters<typeof loadHomepageAtlas>[0] {
   return {
     semantic: { project },
+    sourceTypes: async () =>
+      Object.keys(listed).filter((type) => type !== "topic"),
     entityService: {
       listEntities: async ({ entityType }) => listed[entityType] ?? [],
+      // A small corpus: the map draws all of it.
+      countEntities: async ({ entityType }) =>
+        (listed[entityType] ?? []).length,
+      nearestToEntity: async () => [],
+      getEntity: async () => null,
     },
   };
 }
 
 describe("homepage atlas data", () => {
+  it("asks for every published piece, however large the corpus", async () => {
+    const requested: { entityType: string; entityId: string }[][] = [];
+    const large = source(async (request) => {
+      requested.push(request.entities ?? []);
+      return projection;
+    });
+    large.entityService.countEntities = async (): Promise<number> => 5000;
+    await loadHomepageAtlas(large);
+
+    const published = atlasEntityTypeSchema.options
+      .flatMap((entityType) => listed[entityType] ?? [])
+      .map((entity) => `${entity.entityType}:${entity.id}`);
+    const asked = (requested[0] ?? []).map(
+      ({ entityType, entityId }) => `${entityType}:${entityId}`,
+    );
+    expect(published.length).toBeGreaterThan(0);
+    for (const key of published) expect(asked).toContain(key);
+  });
+
   it("places only published essays, talks and projects, with what links need", async () => {
     const atlas = await loadHomepageAtlas(source());
     const ids = atlas?.items.map((item) => `${item.entityType}:${item.id}`);

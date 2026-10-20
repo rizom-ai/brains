@@ -1,4 +1,5 @@
 import { contentVisibilitySchema } from "@brains/plugins";
+import { renderedLinkFields } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { blogPostStatusSchema } from "../schemas/blog-post";
 
@@ -130,3 +131,11 @@ export type BlogPostView = Omit<
   listUrl: string;
   listLabel: string;
 };
+
+/**
+ * A post once site-builder has filled the link fields the datasource leaves
+ * null. Components read them as required, so the render path parses against
+ * this rather than trusting that the enrichment ran.
+ */
+export const blogRenderSchema: z.ZodType<BlogPostView> =
+  blogViewSchema.extend(renderedLinkFields);

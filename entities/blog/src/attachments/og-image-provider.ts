@@ -11,16 +11,16 @@ import {
 } from "../schemas/blog-post";
 import {
   BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-  blogOgImageTemplate,
-  type BlogOgImageTemplateData,
+  BLOG_OG_IMAGE_TEMPLATE_NAME,
+  type BlogOgImageTemplateInput,
 } from "./og-image-template";
 
 export const createBlogOgImageProvider: OgImageProviderFactory =
-  createOgImageProvider<BlogPost, BlogOgImageTemplateData>({
+  createOgImageProvider<BlogPost, BlogOgImageTemplateInput>({
     sourceEntityType: "post",
     entitySchema: blogPostSchema,
     attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-    template: blogOgImageTemplate,
+    templateName: BLOG_OG_IMAGE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (post, helpers) => {
       const { frontmatter } = parseMarkdown(post.content);

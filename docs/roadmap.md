@@ -79,7 +79,6 @@ The personal-publishing posture remains the public reference. Product improvemen
 Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
-- [initial-import-off-boot.md](./plans/initial-import-off-boot.md) — the initial content import runs on the worker as durable, batched work, so a brain's boot time does not depend on its content size.
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
@@ -93,6 +92,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
+- [action-item-board.md](./plans/action-item-board.md) — a Studio board over the shared action items: four status columns, attributed moves and notes that survive re-projection, blocked cards in the Inbox, Inbox items tracked as cards, and project filters through a Studio grouping.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 - [organization-site.md](./plans/organization-site.md) — a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.
 
@@ -162,10 +162,9 @@ Active cleanup and infrastructure plans:
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
-- [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
+- [topics-ranked-selection.md](./plans/topics-ranked-selection.md) — topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.
-- [structured-body-codecs.md](./plans/structured-body-codecs.md) — make every structured body a Zod codec so writes validate like reads, with one shared round-trip contract.
 - [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):

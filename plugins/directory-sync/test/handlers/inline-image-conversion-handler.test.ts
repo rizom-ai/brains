@@ -1,15 +1,14 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  mock,
-  spyOn,
-} from "bun:test";
-import * as fsp from "fs/promises";
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { InlineImageConversionJobHandler } from "../../src/handlers/inline-image-conversion-handler";
 import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -27,8 +26,14 @@ describe("InlineImageConversionJobHandler", () => {
   let logger: Logger;
   let progressReporter: ProgressReporter;
   let progressCalls: ProgressNotification[];
-  let readFileSpy: ReturnType<typeof spyOn>;
-  let writeFileSpy: ReturnType<typeof spyOn>;
+  let dir: string;
+  let postPath: string;
+
+  /** The post on disk the handler reads and rewrites. */
+  const givenPost = (markdown: string): void => {
+    writeFileSync(postPath, markdown);
+  };
+  const savedPost = (): string => readFileSync(postPath, "utf-8");
   let mockFetcher: ReturnType<typeof mock>;
 
   const createProgressReporter = (): ProgressReporter => {
@@ -63,14 +68,13 @@ describe("InlineImageConversionJobHandler", () => {
     handler = new InlineImageConversionJobHandler(context, logger, mockFetcher);
     progressReporter = createProgressReporter();
 
-    // Mock file system operations
-    readFileSpy = spyOn(fsp, "readFile");
-    writeFileSpy = spyOn(fsp, "writeFile").mockResolvedValue(undefined);
+    dir = mkdtempSync(join(tmpdir(), "inline-image-conversion-"));
+    postPath = join(dir, "post.md");
   });
 
   afterEach(() => {
-    readFileSpy.mockRestore();
-    writeFileSpy.mockRestore();
+    chmodSync(dir, 0o755);
+    rmSync(dir, { recursive: true, force: true });
   });
 
   describe("process", () => {
@@ -82,10 +86,10 @@ slug: test-post
 
 Just plain text without images.`;
 
-      readFileSpy.mockResolvedValue(content);
+      givenPost(content);
 
       const result = await handler.process(
-        { filePath: "/path/to/post.md", postSlug: "test-post" },
+        { filePath: postPath, postSlug: "test-post" },
         "job-123",
         progressReporter,
       );
@@ -93,7 +97,7 @@ Just plain text without images.`;
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
       expect(result.convertedCount).toBe(0);
-      expect(writeFileSpy).not.toHaveBeenCalled();
+      expect(savedPost()).toBe(content);
     });
 
     it("should skip already converted entity:// references", async () => {
@@ -104,17 +108,17 @@ slug: test-post
 
 Already converted: ![Alt](entity://image/existing-id)`;
 
-      readFileSpy.mockResolvedValue(content);
+      givenPost(content);
 
       const result = await handler.process(
-        { filePath: "/path/to/post.md", postSlug: "test-post" },
+        { filePath: postPath, postSlug: "test-post" },
         "job-123",
         progressReporter,
       );
 
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
-      expect(writeFileSpy).not.toHaveBeenCalled();
+      expect(savedPost()).toBe(content);
     });
 
     it("should convert inline HTTP image to entity reference", async () => {
@@ -125,58 +129,60 @@ slug: test-post
 
 Here is an image: ![Alt text](https://example.com/image.png)`;
 
-      readFileSpy.mockResolvedValue(content);
+      givenPost(content);
 
       const result = await handler.process(
-        { filePath: "/path/to/post.md", postSlug: "test-post" },
+        { filePath: postPath, postSlug: "test-post" },
         "job-123",
         progressReporter,
       );
 
       expect(result.success).toBe(true);
       expect(result.convertedCount).toBe(1);
-      expect(writeFileSpy).toHaveBeenCalled();
       expect(mockFetcher).toHaveBeenCalled();
 
-      // Check that the written content has entity:// reference
-      const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
+      // The post on disk now carries an entity:// reference
+      const writtenContent = savedPost();
       expect(writtenContent).toContain("entity://image/");
       expect(writtenContent).not.toContain("https://example.com/image.png");
     });
 
     it("should handle file read errors gracefully", async () => {
-      readFileSpy.mockRejectedValue(new Error("File not found"));
-
       const result = await handler.process(
-        { filePath: "/path/to/missing.md", postSlug: "test-post" },
+        { filePath: join(dir, "missing.md"), postSlug: "test-post" },
         "job-123",
         progressReporter,
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("File not found");
+      expect(result.error).toContain("no such file or directory");
     });
 
-    it("should handle file write errors gracefully", async () => {
-      const content = `---
+    // A read-only directory refuses the write unless the tests run as root.
+    it.skipIf(process.getuid?.() === 0)(
+      "should handle file write errors gracefully",
+      async () => {
+        const content = `---
 title: Test Post
 slug: test-post
 ---
 
 ![Image](https://example.com/image.png)`;
 
-      readFileSpy.mockResolvedValue(content);
-      writeFileSpy.mockRejectedValue(new Error("Permission denied"));
+        givenPost(content);
+        chmodSync(dir, 0o555);
 
-      const result = await handler.process(
-        { filePath: "/path/to/post.md", postSlug: "test-post" },
-        "job-123",
-        progressReporter,
-      );
+        const result = await handler.process(
+          { filePath: postPath, postSlug: "test-post" },
+          "job-123",
+          progressReporter,
+        );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Permission denied");
-    });
+        expect(result.success).toBe(false);
+        expect(result.error).toContain("permission denied");
+        expect(savedPost()).toBe(content);
+      },
+    );
 
     it("should report progress throughout the process", async () => {
       const content = `---
@@ -186,10 +192,10 @@ slug: test-post
 
 Just text.`;
 
-      readFileSpy.mockResolvedValue(content);
+      givenPost(content);
 
       await handler.process(
-        { filePath: "/path/to/post.md", postSlug: "test-post" },
+        { filePath: postPath, postSlug: "test-post" },
         "job-123",
         progressReporter,
       );
@@ -212,17 +218,17 @@ slug: test-post
 
 No real images here.`;
 
-      readFileSpy.mockResolvedValue(content);
+      givenPost(content);
 
       const result = await handler.process(
-        { filePath: "/path/to/post.md", postSlug: "test-post" },
+        { filePath: postPath, postSlug: "test-post" },
         "job-123",
         progressReporter,
       );
 
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
-      expect(writeFileSpy).not.toHaveBeenCalled();
+      expect(savedPost()).toBe(content);
     });
   });
 });

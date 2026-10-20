@@ -447,6 +447,69 @@ describe("Shell initialization order", () => {
       expect(record.withDefaults).toBe(true);
     });
 
+    /** Store an identity the way an earlier run's import left it. */
+    async function storeIdentityFromEarlierRun(): Promise<void> {
+      const config = createTestShellConfig(testDir.dir);
+      // A pending sync keeps this boot from creating defaults to update.
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      await shell.initialize();
+      const entityService = shell.getEntityService();
+      const scope = internalFullScope("test stores an earlier identity");
+      const stored = {
+        "brain-character":
+          "---\nname: Dynamic Sage\nrole: Knowledge Synthesis Agent\npurpose: Synthesize knowledge\nvalues:\n  - clarity\n---\n",
+        "anchor-profile": "---\nname: Becca\n---\n",
+      };
+      for (const [entityType, content] of Object.entries(stored)) {
+        await entityService.createEntity({
+          entity: { id: entityType, entityType, content, metadata: {} },
+        });
+      }
+      await waitUntil(async () => {
+        const entities = await Promise.all(
+          Object.keys(stored).map((entityType) =>
+            entityService.getEntity({
+              entityType,
+              id: entityType,
+              visibilityScope: scope,
+            }),
+          ),
+        );
+        return entities.every((entity) => entity !== null);
+      }, "the earlier identity to be stored");
+      await shell.shutdown();
+    }
+
+    it("serves the stored identity while a pending initial sync imports", async () => {
+      await storeIdentityFromEarlierRun();
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+
+      await shell.initialize();
+
+      expect(shell.getIdentity().name).toBe("Dynamic Sage");
+      expect(shell.getProfile().name).toBe("Becca");
+    });
+
+    it("serves the stored identity after a failed initial sync", async () => {
+      await storeIdentityFromEarlierRun();
+      const config = createTestShellConfig(testDir.dir);
+      config.plugins = [initialSyncPlugin()];
+      shell = Shell.createFresh(config, deps);
+      await shell.initialize();
+
+      await completeInitialSync(false);
+      await waitUntil(
+        () => shell.getEntityService().isIndexReady(),
+        "the knowledge base to open after the failed sync",
+      );
+
+      expect(shell.getIdentity().name).toBe("Dynamic Sage");
+      expect(shell.getProfile().name).toBe("Becca");
+    });
+
     it("creates defaults at boot when no initial sync is pending", async () => {
       shell = Shell.createFresh(createTestShellConfig(testDir.dir), deps);
       const record = recordSettled();

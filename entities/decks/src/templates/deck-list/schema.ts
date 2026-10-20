@@ -1,6 +1,10 @@
 import { z } from "@brains/utils/zod";
 import { deckWithDataSchema } from "../../schemas/deck";
-import { deckViewSchema, type DeckView } from "../deck-view-schema";
+import {
+  deckRenderSchema,
+  deckViewSchema,
+  type DeckView,
+} from "../deck-view-schema";
 
 // Schema for deck list page data (non-enriched, returned by datasource)
 export const deckListSchema: z.ZodObject<{
@@ -19,6 +23,15 @@ export const enrichedDeckListSchema: z.ZodObject<{
   pageTitle: z.string().nullable().default(null),
   pageLabel: z.string().nullable().default(null),
 });
+
+/** The deck list once site-builder has filled its decks' link fields. */
+export const renderedDeckListSchema: z.ZodType<EnrichedDeckListData> = z.object(
+  {
+    decks: z.array(deckRenderSchema),
+    pageTitle: z.string().nullable().default(null),
+    pageLabel: z.string().nullable().default(null),
+  },
+);
 
 export type DeckListSchemaData = z.output<typeof enrichedDeckListSchema>;
 

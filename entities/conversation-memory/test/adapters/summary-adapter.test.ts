@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import type { SummaryEntry } from "../../src/schemas/summary";
+import { expectBodyRoundTrip } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
+import type { SummaryBody, SummaryEntry } from "../../src/schemas/summary";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 const entry: SummaryEntry = {
@@ -62,5 +64,60 @@ describe("SummaryAdapter", () => {
     expect(parsed.entityType).toBe("summary");
     expect(parsed.visibility).toBe(entity.visibility);
     expect(parsed.metadata?.conversationId).toBe("test-conv");
+  });
+});
+
+describe("SummaryAdapter body codec", () => {
+  const adapter = new SummaryAdapter();
+  const formatter = {
+    format: (body: SummaryBody): string => z.encode(adapter.bodyCodec, body),
+    parse: (markdown: string): SummaryBody =>
+      z.decode(adapter.bodyCodec, markdown),
+  };
+
+  it("round-trips summary entries", () => {
+    expectBodyRoundTrip(formatter, {
+      entries: [entry, { ...entry, title: "Next Steps", keyPoints: [] }],
+    });
+  });
+
+  it("rejects invalid stored entries rather than dropping them on read or export", () => {
+    const body = adapter
+      .createContentBody([entry, { ...entry, title: "Next Steps" }])
+      .replace("Time: 2026-01-01T00:00:00.000Z", "Time: yesterday");
+
+    expect(() => adapter.parseBody(body)).toThrow(z.ZodError);
+    expect(() =>
+      adapter.toMarkdown(createMockSummaryEntity({ content: body })),
+    ).toThrow(z.ZodError);
+    expect(body).toContain("Time: yesterday");
+    expect(body).toContain("Next Steps");
+  });
+
+  it.each([
+    [
+      "missing time",
+      "Time: 2026-01-01T00:00:00.000Z → 2026-01-01T00:10:00.000Z",
+      "",
+    ],
+    ["negative count", "Messages summarized: 3", "Messages summarized: -1"],
+    ["fractional count", "Messages summarized: 3", "Messages summarized: 1.5"],
+    ["missing count", "Messages summarized: 3", ""],
+    ["missing prose", entry.summary, ""],
+  ])(
+    "does not silently discard an entry with %s",
+    (_label, oldText, newText) => {
+      const body = adapter.createContentBody([entry]).replace(oldText, newText);
+      expect(() => adapter.parseBody(body)).toThrow(z.ZodError);
+      expect(() =>
+        adapter.toMarkdown(createMockSummaryEntity({ content: body })),
+      ).toThrow(z.ZodError);
+    },
+  );
+
+  it("rejects entries that violate the summary schema when writing", () => {
+    expect(() => adapter.createContentBody([{ ...entry, title: "" }])).toThrow(
+      z.ZodError,
+    );
   });
 });

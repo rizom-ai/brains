@@ -312,9 +312,12 @@ export function registerAgentNetworkDashboardWidget(
       await registerBuiltInDashboardWidget({
         context,
         definition: agentNetworkWidget,
-        load: async ({ caller, signal }) => {
+        load: async ({ caller, visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const data = await buildAgentNetworkWidgetData(context);
+          const data = await buildAgentNetworkWidgetData(
+            context,
+            visibilityScope,
+          );
           signal.throwIfAborted();
           return { ...data, canInvite: caller?.permission === "admin" };
         },
@@ -330,9 +333,9 @@ export function registerAgentNetworkDashboardWidget(
           clientStyles: proximityMapWidgetStyles,
           clientScript: proximityMapScript,
         },
-        load: async ({ signal }) => {
+        load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const data = await buildProximityMapData(context);
+          const data = await buildProximityMapData(context, visibilityScope);
           signal.throwIfAborted();
           return data;
         },

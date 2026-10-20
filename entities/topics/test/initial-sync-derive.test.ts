@@ -1,63 +1,68 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createTestEntity } from "@brains/entity-service/test";
 import { TopicsPlugin } from "../src";
 
-describe("Topic projection registration", () => {
-  it("registers one scheduler rule and no event-driven projection job", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({});
-    const enqueue = mock(async () => "job-1");
-    const registerHandler = mock(() => {});
-    const jobQueue = harness.getMockShell().getJobQueueService();
-    harness.getMockShell().getJobQueueService = (): typeof jobQueue => ({
-      ...jobQueue,
-      enqueue,
-      registerHandler,
+describe("topic projection ownership migration", () => {
+  it.each([false, true])(
+    "releases old ownership without deleting existing topics (enabled=%s)",
+    async (enabled) => {
+      const harness = createPluginHarness<TopicsPlugin>({
+        logContext: "topics-migration",
+      });
+      const service = harness.getEntityService();
+      for (const visibility of ["public", "shared", "restricted"] as const) {
+        await service.createEntity({
+          entity: createTestEntity("topic", {
+            id: `kept-${visibility}`,
+            content: "# Kept\n\nExisting description.",
+            visibility,
+          }),
+        });
+      }
+      const release = spyOn(service, "releaseProjectionOwnership");
+      const remove = spyOn(service, "deleteEntity");
+      const capabilities = await harness.installPlugin(
+        new TopicsPlugin({ enableAutoExtraction: enabled }),
+      );
+      expect(capabilities.projectionRules).toBeUndefined();
+      expect(release).toHaveBeenCalledTimes(3);
+      for (const visibility of ["public", "shared", "restricted"] as const) {
+        expect(release).toHaveBeenCalledWith({
+          entityType: "topic",
+          id: `kept-${visibility}`,
+        });
+        expect(
+          await service.getEntity({
+            entityType: "topic",
+            id: `kept-${visibility}`,
+            visibilityScope: "restricted",
+          }),
+        ).not.toBeNull();
+      }
+      expect(remove).not.toHaveBeenCalled();
+    },
+  );
+
+  it("releases old ownership once per brain, not on every boot", async () => {
+    const harness = createPluginHarness<TopicsPlugin>({
+      logContext: "topics-migration",
     });
-    const plugin = new TopicsPlugin({
-      enableAutoExtraction: true,
-      includeEntityTypes: ["post"],
+    const service = harness.getEntityService();
+    await service.createEntity({
+      entity: createTestEntity("topic", {
+        id: "kept",
+        content: "# Kept\n\nExisting description.",
+        visibility: "public",
+      }),
     });
-
-    const capabilities = await harness.installPlugin(plugin);
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    await harness.sendMessage(
-      "entity:updated",
-      {
-        entityType: "post",
-        entityId: "post-1",
-        entity: {
-          id: "post-1",
-          entityType: "post",
-          content: "Published post",
-          metadata: { status: "published" },
-          contentHash: "hash-1",
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        },
-      },
-      "entity-service",
-    );
-
-    expect("projections" in capabilities).toBe(false);
-    expect(capabilities.projectionRules).toHaveLength(1);
-    expect(capabilities.projectionRules?.[0]?.sources).toEqual([
-      { kind: "entity", types: ["post"], excludeTypes: ["topic"] },
-    ]);
-    expect(registerHandler).not.toHaveBeenCalled();
-    expect(enqueue).not.toHaveBeenCalled();
-  });
-
-  it("registers no projection rule when auto extraction is disabled", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({});
-    const capabilities = await harness.installPlugin(
+    const release = spyOn(service, "releaseProjectionOwnership");
+    await harness.installPlugin(
       new TopicsPlugin({ enableAutoExtraction: false }),
     );
-
-    expect("projections" in capabilities).toBe(false);
-    expect(capabilities.projectionRules).toBeUndefined();
+    await harness.installPlugin(
+      new TopicsPlugin({ enableAutoExtraction: false }),
+    );
+    expect(release).toHaveBeenCalledTimes(1);
   });
 });

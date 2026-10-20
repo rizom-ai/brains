@@ -105,7 +105,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
         JSON.stringify({
           entityType: "note",
           id: "packed-member",
-          fields: { clients: ["Beta"] },
+          operation: { kind: "fields", fields: { clients: ["Beta"] } },
         }),
       ],
       consumer,
@@ -120,7 +120,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
       {
         entityType: "note",
         id: "packed-member",
-        fields: { clients: ["Beta"] },
+        operation: { kind: "fields", fields: { clients: ["Beta"] } },
       },
       true,
     );
@@ -136,7 +136,11 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
     expect(saved).not.toContain("Acme");
     await tool(
       "system_update",
-      { entityType: "note", id: "packed-member", fields: { clients: null } },
+      {
+        entityType: "note",
+        id: "packed-member",
+        operation: { kind: "fields", fields: { clients: null } },
+      },
       true,
     );
     const removed = await tool("system_get", {
@@ -155,7 +159,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
         JSON.stringify({
           entityType: "grouping-definitions",
           id: "grouping-definitions",
-          fields: { groupings: {} },
+          operation: { kind: "fields", fields: { groupings: {} } },
         }),
         "--yes",
       ],
@@ -178,8 +182,11 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
       {
         entityType: "grouping-definitions",
         id: "grouping-definitions",
-        content:
-          "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    multiple: false\n    values: [Acme, Beta]\n  projects:\n    label: Projects\n    multiple: true\n---\n",
+        operation: {
+          kind: "content",
+          content:
+            "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    multiple: false\n    values: [Acme, Beta]\n  projects:\n    label: Projects\n    multiple: true\n---\n",
+        },
       },
       true,
     );
@@ -219,7 +226,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
         JSON.stringify({
           entityType: "note",
           id: "packed-member",
-          fields: { clients: ["Gamma"] },
+          operation: { kind: "fields", fields: { clients: ["Gamma"] } },
         }),
         "--yes",
       ],
@@ -241,7 +248,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
       {
         entityType: "note",
         id: "packed-member",
-        fields: { clients: ["Beta"] },
+        operation: { kind: "fields", fields: { clients: ["Beta"] } },
       },
       true,
     );

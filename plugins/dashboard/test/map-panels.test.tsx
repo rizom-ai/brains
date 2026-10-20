@@ -128,7 +128,7 @@ test("knowledge point categories keep explicit paint, radii, and full unknown va
   }
 });
 
-test("map summaries keep full source totals while host geometry and index retain their independent limits", async () => {
+test("map summaries keep full source totals, every territory is drawn, and the index and labels keep their limits", async () => {
   const window = new Window();
   try {
     window.document.body.innerHTML = renderToStaticMarkup(
@@ -144,7 +144,7 @@ test("map summaries keep full source totals while host geometry and index retain
       doc.querySelector('.knowledge-atlas-summary p[data-tone="good"]')
         ?.textContent,
     ).toBe("Current");
-    expect(doc.querySelectorAll("[data-knowledge-zone]")).toHaveLength(18);
+    expect(doc.querySelectorAll("[data-knowledge-zone]")).toHaveLength(20);
     expect(doc.querySelectorAll("[data-knowledge-zone-ref]")).toHaveLength(8);
     expect(doc.querySelectorAll(".knowledge-zone-label")).toHaveLength(7);
     expect(doc.querySelectorAll(".knowledge-point")).toHaveLength(2);

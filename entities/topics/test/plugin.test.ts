@@ -96,13 +96,7 @@ describe("TopicsPlugin", () => {
           .projectionSource,
       ).toBe(false);
       expect("projections" in capabilities).toBe(false);
-      expect(capabilities.projectionRules).toHaveLength(1);
-      expect(capabilities.projectionRules?.[0]).toMatchObject({
-        id: "topics-projection",
-        version: "1",
-        targetType: "topic",
-        sources: [{ kind: "entity", types: ["*"], excludeTypes: ["topic"] }],
-      });
+      expect(capabilities.projectionRules).toBeUndefined();
     });
 
     it("should process registered projection sources by default", () => {

@@ -593,7 +593,12 @@ Post body`,
       });
     });
 
-    it("runs publish asset preflight for published entity changes", async () => {
+    /** A pipeline whose post OG images are publish assets, with its queue spied. */
+    async function preflightPipeline(): Promise<{
+      localHarness: ReturnType<typeof createPluginHarness>;
+      localPlugin: ContentPipelinePlugin;
+      enqueue: ReturnType<typeof jobQueueWithSpiedEnqueue>["enqueue"];
+    }> {
       const localHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir-publish-asset-events",
       });
@@ -617,25 +622,48 @@ Post body`,
         autoGenerate: true,
         jobType: "image:image-render-source",
       });
+      return { localHarness, localPlugin, enqueue };
+    }
 
-      await localHarness.sendMessage("entity:updated", {
+    const publishedPost = {
+      entityType: "post",
+      entityId: "post-1",
+      entity: {
+        id: "post-1",
         entityType: "post",
-        entityId: "post-1",
-        entity: {
-          id: "post-1",
-          entityType: "post",
-          visibility: "public",
-          content: `---
+        visibility: "public",
+        content: `---
 title: Test Post
 status: published
 ---
 Body`,
-          metadata: { status: "published", slug: "post-1" },
-          created: "2026-06-04T12:00:00.000Z",
-          updated: "2026-06-04T12:00:00.000Z",
-          contentHash: "hash",
-        },
-      });
+        metadata: { status: "published", slug: "post-1" },
+        created: "2026-06-04T12:00:00.000Z",
+        updated: "2026-06-04T12:00:00.000Z",
+        contentHash: "hash",
+      },
+    };
+
+    it("runs publish asset preflight for published entity changes", async () => {
+      const { localHarness, localPlugin, enqueue } = await preflightPipeline();
+
+      await localHarness.sendMessage("entity:updated", publishedPost);
+
+      expect(enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "image:image-render-source",
+        }),
+      );
+      await localPlugin.shutdown();
+    });
+
+    it("runs the preflight for a post the worker published", async () => {
+      const { localHarness, localPlugin, enqueue } = await preflightPipeline();
+
+      await localHarness
+        .getMockShell()
+        .getMessageBus()
+        .deliverPeer("entity:updated", publishedPost);
 
       expect(enqueue).toHaveBeenCalledWith(
         expect.objectContaining({

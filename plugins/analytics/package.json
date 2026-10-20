@@ -1,11 +1,12 @@
 {
   "name": "@brains/analytics",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.495",
+  "version": "0.2.0-alpha.556",
   "description": "Analytics plugin for collecting website and social media metrics",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

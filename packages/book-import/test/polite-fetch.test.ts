@@ -50,6 +50,54 @@ describe("createPoliteFetch", () => {
     expect(calls[0]?.userAgent).toBe("book-import (test@example.org)");
   });
 
+  it("sends the headers a source asks for", async () => {
+    const sent: Array<Record<string, string>> = [];
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      headersFor: (url) =>
+        url.includes("textarchiv") ? { cookie: "verified=1" } : {},
+      fetchFn: async (_, init) => {
+        sent.push(init.headers);
+        return new Response("text");
+      },
+    });
+
+    await get("https://www.deutschestextarchiv.de/book/download_xml/x");
+    await get("https://example.org/y");
+
+    expect(sent[0]?.["cookie"]).toBe("verified=1");
+    expect(sent[1]?.["cookie"]).toBeUndefined();
+  });
+
+  it("reads a page in the charset its header or its meta tag names, else as UTF-8", async () => {
+    const latin1 = (text: string): Uint8Array<ArrayBuffer> =>
+      new Uint8Array([...text].map((char) => char.charCodeAt(0)));
+    const pages: Record<string, Response> = {
+      "https://example.org/meta": new Response(
+        latin1(
+          '<HTML><HEAD><META HTTP-EQUIV="Content-Type"; CONTENT="text/html; charset=ISO-8859-1"></HEAD><BODY>für \u0085</BODY></HTML>',
+        ),
+        { headers: { "content-type": "text/html" } },
+      ),
+      "https://example.org/header": new Response(latin1("für"), {
+        headers: { "content-type": "text/plain; charset=iso-8859-1" },
+      }),
+      "https://example.org/plain": new Response("für …"),
+    };
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      fetchFn: async (url) => pages[url] ?? new Response("", { status: 404 }),
+    });
+
+    expect(await get("https://example.org/meta")).toContain("für …");
+    expect(await get("https://example.org/header")).toBe("für");
+    expect(await get("https://example.org/plain")).toBe("für …");
+  });
+
   it("keeps requests at least the minimum interval apart", async () => {
     const { calls, fetchFn } = recorder();
     const get = createPoliteFetch({
@@ -69,6 +117,36 @@ describe("createPoliteFetch", () => {
       .slice(1)
       .map((call, index) => call.at - (calls[index]?.at ?? 0));
     expect(gaps).toHaveLength(2);
+    expect(gaps.every((gap) => gap >= 45)).toBe(true);
+  });
+
+  it("fetches bytes in the same queue, at the same interval, without keeping them", async () => {
+    const { calls, fetchFn } = recorder();
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 50,
+      fetchFn,
+    });
+
+    const [, image, again] = await Promise.all([
+      get("https://example.org/page"),
+      get.bytes("https://example.org/n1.jpg"),
+      get.bytes("https://example.org/n1.jpg"),
+    ]);
+
+    expect(new TextDecoder().decode(image)).toBe(
+      "body of https://example.org/n1.jpg",
+    );
+    expect(again).toEqual(image);
+    expect(calls.map((call) => call.url).sort()).toEqual([
+      "https://example.org/n1.jpg",
+      "https://example.org/n1.jpg",
+      "https://example.org/page",
+    ]);
+    const gaps = calls
+      .slice(1)
+      .map((call, index) => call.at - (calls[index]?.at ?? 0));
     expect(gaps.every((gap) => gap >= 45)).toBe(true);
   });
 
@@ -109,6 +187,43 @@ describe("createPoliteFetch", () => {
     expect(await get("https://example.org/busy")).toBe("at last");
     expect(calls).toHaveLength(3);
     expect((calls[1] ?? 0) - (calls[0] ?? 0)).toBeGreaterThanOrEqual(15);
+  });
+
+  it("asks again after a pause when the network briefly fails the request", async () => {
+    const calls: number[] = [];
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      retryDelayMs: 20,
+      fetchFn: async () => {
+        calls.push(Date.now());
+        if (calls.length === 1) {
+          throw new TypeError("getaddrinfo ETIMEOUT example.org");
+        }
+        return new Response("through", { status: 200 });
+      },
+    });
+
+    expect(await get("https://example.org/far")).toBe("through");
+    expect(calls).toHaveLength(2);
+    expect((calls[1] ?? 0) - (calls[0] ?? 0)).toBeGreaterThanOrEqual(15);
+  });
+
+  it("gives up with the network's error when the request keeps failing", () => {
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      retryDelayMs: 1,
+      fetchFn: async () => {
+        throw new TypeError("getaddrinfo ETIMEOUT example.org");
+      },
+    });
+
+    expect(get("https://example.org/gone")).rejects.toThrow(
+      "getaddrinfo ETIMEOUT example.org",
+    );
   });
 
   it("gives up with the URL when the source stays unavailable", () => {

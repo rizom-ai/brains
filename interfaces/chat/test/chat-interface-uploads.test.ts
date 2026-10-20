@@ -19,6 +19,47 @@ import {
 describe("ChatInterface uploads", () => {
   const suite = setupChatInterfaceTest();
 
+  it("reads adapter file data delivered as an ArrayBuffer", async () => {
+    suite.harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "slack:*", level: "trusted" }],
+      }),
+    );
+    const bytes = new TextEncoder().encode("secret");
+    const fetchData = mock(() =>
+      Promise.resolve(
+        bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ),
+      ),
+    );
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await suite.harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:C123:1712345678.000200",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "Read this",
+        attachments: [
+          { name: "secret.txt", mimeType: "text/plain", size: 6, fetchData },
+        ],
+      }),
+    );
+
+    expect(suite.agentService.chat.mock.calls[0]?.[2]).toMatchObject({
+      attachments: [
+        expect.objectContaining({ filename: "secret.txt", content: "secret" }),
+      ],
+    });
+  });
+
   it("fetches trusted Slack files through the adapter and stores them durably", async () => {
     suite.harness.setPermissionService(
       new PermissionService({

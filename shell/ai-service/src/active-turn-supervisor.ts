@@ -1,3 +1,4 @@
+import { deferred } from "@brains/utils/deferred";
 import {
   Cause,
   Effect,
@@ -12,9 +13,10 @@ interface TurnSupervisorRuntime {
   fibers: FiberSet.FiberSet<unknown, unknown>;
 }
 
-/** Owns active agent turns and links Promise cancellation to fiber interruption. */
+/** Cancels turn observations while retaining admitted work until shutdown drains it. */
 export class ActiveTurnSupervisor {
   private readonly runtime: TurnSupervisorRuntime;
+  private readonly activeOperations = new Set<Promise<unknown>>();
   private closePromise: Promise<void> | null = null;
   private closed = false;
 
@@ -37,7 +39,8 @@ export class ActiveTurnSupervisor {
 
     const fiber = Effect.runFork(
       Effect.tryPromise({
-        try: operation,
+        try: (operationSignal) =>
+          this.trackOperation(operation, operationSignal),
         catch: (error) => error,
       }),
     );
@@ -61,9 +64,37 @@ export class ActiveTurnSupervisor {
 
   public close(): Promise<void> {
     this.closed = true;
-    this.closePromise ??= Effect.runPromise(
+    // Publish the shared close before abort listeners can reenter it.
+    this.closePromise ??= Promise.resolve().then(() => this.closeSupervisor());
+    return this.closePromise;
+  }
+
+  private trackOperation<A>(
+    operation: (signal: AbortSignal) => Promise<A>,
+    signal: AbortSignal,
+  ): Promise<A> {
+    const work = deferred<A>();
+    this.activeOperations.add(work.promise);
+    const clear = (): void => {
+      this.activeOperations.delete(work.promise);
+    };
+    void work.promise.then(clear, clear);
+    try {
+      // Ownership precedes the adapter call, which may reenter close().
+      void operation(signal).then(work.resolve, work.reject);
+    } catch (error) {
+      // Synchronous adapter failures must settle the published owner too.
+      work.reject(error);
+    }
+    return work.promise;
+  }
+
+  private async closeSupervisor(): Promise<void> {
+    const exit = await Effect.runPromiseExit(
       Scope.close(this.runtime.scope, Exit.void),
     );
-    return this.closePromise;
+    // Interrupting an observation cannot terminate its underlying Promise.
+    await Promise.allSettled([...this.activeOperations]);
+    if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
   }
 }

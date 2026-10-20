@@ -1,84 +1,126 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { PluginCapabilities } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type PluginCapabilities } from "@brains/plugins";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { TopicsPlugin } from "../src";
 
+type Queue = ReturnType<
+  ReturnType<
+    PluginTestHarness<TopicsPlugin>["getMockShell"]
+  >["getJobQueueService"]
+>;
+
 async function install(
-  config: ConstructorParameters<typeof TopicsPlugin>[0],
+  enabled = true,
+  executionOnly = false,
 ): Promise<{
-  capabilities: PluginCapabilities;
-  enqueue: ReturnType<typeof mock>;
   harness: PluginTestHarness<TopicsPlugin>;
+  capabilities: PluginCapabilities;
+  enqueue: ReturnType<typeof mock<Queue["enqueue"]>>;
+  registerHandler: ReturnType<typeof mock<Queue["registerHandler"]>>;
 }> {
-  const harness = createPluginHarness<TopicsPlugin>({});
-  const enqueue = mock(async () => "job-1");
-  const jobQueue = harness.getMockShell().getJobQueueService();
-  harness.getMockShell().getJobQueueService = (): typeof jobQueue => ({
-    ...jobQueue,
+  const harness = createPluginHarness<TopicsPlugin>({
+    logContext: "topics-test",
+  });
+  const queue = harness.getMockShell().getJobQueueService();
+  const enqueue = mock(queue.enqueue);
+  const registerHandler = mock(queue.registerHandler);
+  harness.getMockShell().getJobQueueService = (): Queue => ({
+    ...queue,
     enqueue,
+    registerHandler,
   });
-  const capabilities = await harness.installPlugin(new TopicsPlugin(config));
-  return { capabilities, enqueue, harness };
+  const plugin = new TopicsPlugin({
+    enableAutoExtraction: enabled,
+    includeEntityTypes: ["post"],
+  });
+  const capabilities = executionOnly
+    ? await plugin.register(harness.getMockShell(), { executionOnly: true })
+    : await harness.installPlugin(plugin);
+  return { harness, capabilities, enqueue, registerHandler };
 }
 
-async function sendLegacyTriggers(
-  harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>,
-): Promise<void> {
-  await harness.sendMessage(
-    "sync:initial:completed",
-    { success: true },
-    "directory-sync",
-  );
-  await harness.sendMessage(
-    "entity:updated",
-    {
-      entityType: "post",
-      entityId: "post-1",
-      entity: {
-        id: "post-1",
-        entityType: "post",
-        content: "Published post",
-        metadata: { status: "published" },
-        contentHash: "hash-1",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      },
+describe("ranked topic extraction triggers", () => {
+  it.each([false, true])(
+    "enqueues a deduplicated successor for eligible entity events (worker=%s)",
+    async (worker) => {
+      const { harness, enqueue, capabilities, registerHandler } = await install(
+        true,
+        worker,
+      );
+      expect(capabilities.projectionRules).toBeUndefined();
+      expect(registerHandler).toHaveBeenCalledWith(
+        "topics:extract",
+        expect.anything(),
+        "topics",
+      );
+      for (const type of [
+        "entity:created",
+        "entity:updated",
+        "entity:deleted",
+      ]) {
+        await harness.sendMessage(
+          type,
+          { entityType: "post", entityId: "post-1" },
+          "entity-service",
+        );
+      }
+      expect(enqueue).toHaveBeenCalledTimes(3);
+      for (const [request] of enqueue.mock.calls) {
+        expect(request).toMatchObject({
+          type: "topics:extract",
+          options: {
+            deduplication: "skip",
+            deduplicationKey: "topics:extract",
+            rootJobId: expect.any(String),
+          },
+        });
+      }
+      await harness.sendMessage(
+        "entity:created",
+        { entityType: "topic", entityId: "topic-1" },
+        "entity-service",
+      );
+      await harness.sendMessage(
+        "entity:updated",
+        { entityType: "note", entityId: "note-1" },
+        "entity-service",
+      );
+      expect(enqueue).toHaveBeenCalledTimes(3);
     },
-    "entity-service",
   );
-}
 
-describe("Topics projection scheduling boundary", () => {
-  it("uses one scheduler rule instead of initial-sync or entity event jobs", async () => {
-    const { capabilities, enqueue, harness } = await install({
-      enableAutoExtraction: true,
-      includeEntityTypes: ["post"],
-    });
-
-    await sendLegacyTriggers(harness);
-
+  it("heals stale votes on startup-content-settled, not the legacy sync signal", async () => {
+    const { harness, enqueue } = await install();
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
     expect(enqueue).not.toHaveBeenCalled();
-    expect(capabilities.projectionRules).toHaveLength(1);
-    expect(capabilities.projectionRules?.[0]).toMatchObject({
-      id: "topics-projection",
-      sources: [{ kind: "entity", types: ["post"] }],
-      targetType: "topic",
-    });
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it("registers no projection behavior when auto extraction is disabled", async () => {
-    const { capabilities, enqueue, harness } = await install({
-      enableAutoExtraction: false,
-      includeEntityTypes: ["post"],
-    });
-
-    await sendLegacyTriggers(harness);
-
+  it("registers no extraction handler or subscriptions when disabled", async () => {
+    const { harness, enqueue, registerHandler } = await install(false);
+    await harness.sendMessage(
+      "entity:updated",
+      { entityType: "post" },
+      "entity-service",
+    );
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+    );
+    expect(registerHandler).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
-    expect(capabilities.projectionRules).toBeUndefined();
-    expect("projections" in capabilities).toBe(false);
   });
 });

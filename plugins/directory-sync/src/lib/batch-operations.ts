@@ -2,7 +2,7 @@ import type { BatchOperation, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
 import { captureImportPlan } from "./import-plan";
-import { parseEntityPath } from "./entity-paths";
+import { containmentOf, parseEntityPath } from "./entity-paths";
 import type {
   BatchMetadata,
   BatchOperationResult,
@@ -98,7 +98,14 @@ export class BatchOperationsManager {
 
     const plan = await captureImportPlan(
       pluginContext.entityService,
-      { parseEntityFromPath: (path) => parseEntityPath(this.syncPath, path) },
+      {
+        parseEntityFromPath: (path) =>
+          parseEntityPath(
+            this.syncPath,
+            path,
+            containmentOf(pluginContext.entityService),
+          ),
+      },
       files,
     );
     const rootJobId = createId();

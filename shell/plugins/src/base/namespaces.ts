@@ -10,9 +10,14 @@ import type { Logger } from "@brains/utils/logger";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { IShell } from "../interfaces";
-import type { EvalHandler, InsightHandler } from "../contracts/handlers";
+import type { EvalHandler } from "../contracts/handlers";
 import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
+import { ENTITY_CHANNELS } from "@brains/contracts";
+
+const ENTITY_CHANNEL_NAMES: ReadonlySet<string> = new Set(
+  Object.values(ENTITY_CHANNELS),
+);
 
 /**
  * The two ways `subscribe` may be called, as one discriminated pair.
@@ -44,7 +49,7 @@ import type {
   IIdentityNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
@@ -169,6 +174,7 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
+    collect: (request) => messageBus.collect({ ...request, sender: pluginId }),
     /**
      * The channel and its handler are correlated — a Channel takes a
      * TypedMessageHandler, a name takes a MessageHandler — and the public
@@ -182,6 +188,14 @@ export function createMessagingNamespace(
     subscribe: <T = unknown, R = unknown>(
       ...subscription: SubscribeArgs<T, R>
     ): (() => void) => {
+      const channelName = isChannelSubscription(subscription)
+        ? subscription[0].name
+        : subscription[0];
+      if (ENTITY_CHANNEL_NAMES.has(channelName)) {
+        throw new Error(
+          `${pluginId} subscribes to ${channelName}, which every process raises; use observe or subscribeExecution`,
+        );
+      }
       if (executionOnly) return () => {};
       if (isChannelSubscription(subscription)) {
         const [channel, typedHandler] = subscription;
@@ -209,6 +223,11 @@ export function createMessagingNamespace(
       channel: string,
       handler: MessageHandler<T, R>,
     ): (() => void) => messageBus.subscribe(channel, handler),
+    observe: <T = unknown, R = unknown>(
+      channel: string,
+      handler: MessageHandler<T, R>,
+    ): (() => void) =>
+      executionOnly ? (): void => {} : messageBus.observe(channel, handler),
   };
 }
 
@@ -290,10 +309,10 @@ export function createEvalNamespace(
   };
 }
 
-export function createInsightsNamespace(shell: IShell): IInsightsNamespace {
+export function createAnalyticsNamespace(shell: IShell): IAnalyticsNamespace {
   return {
-    register: (type: string, handler: InsightHandler): void => {
-      shell.getInsightsRegistry().register(type, handler);
+    register: (definition): void => {
+      shell.getAnalyticsRegistry().register(definition);
     },
   };
 }

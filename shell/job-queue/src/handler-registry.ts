@@ -88,15 +88,21 @@ export class HandlerRegistry {
     return this.finalizedRegistrations;
   }
 
-  public getExecutionRegistrations(): readonly JobExecutionRegistration[] {
-    if (!this.finalizedRegistrations) {
-      throw new Error("Job handler registrations are not finalized");
-    }
+  /** Undefined until boot finalizes the declarations. */
+  public getExecutionRegistrations():
+    readonly JobExecutionRegistration[] | undefined {
     return this.finalizedRegistrations;
   }
 
   public getRegisteredTypes(): string[] {
     return [...this.handlers.keys()];
+  }
+
+  /** The registered types whose handlers run one job at a time. */
+  public getExclusiveTypes(): string[] {
+    return [...this.handlers]
+      .filter(([, handler]) => handler.exclusive === true)
+      .map(([type]) => type);
   }
 
   public getHandler(type: string): JobHandler | undefined {

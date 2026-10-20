@@ -1,5 +1,676 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.556
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.556
+  - @brains/db@0.2.0-alpha.556
+  - @brains/operation-context@0.2.0-alpha.556
+  - @brains/utils@0.2.0-alpha.556
+  - @brains/mcp-service@0.2.0-alpha.556
+
+## 0.2.0-alpha.555
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.555
+  - @brains/db@0.2.0-alpha.555
+  - @brains/operation-context@0.2.0-alpha.555
+  - @brains/utils@0.2.0-alpha.555
+  - @brains/mcp-service@0.2.0-alpha.555
+
+## 0.2.0-alpha.554
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.554
+  - @brains/db@0.2.0-alpha.554
+  - @brains/operation-context@0.2.0-alpha.554
+  - @brains/utils@0.2.0-alpha.554
+  - @brains/mcp-service@0.2.0-alpha.554
+
+## 0.2.0-alpha.553
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.553
+  - @brains/db@0.2.0-alpha.553
+  - @brains/operation-context@0.2.0-alpha.553
+  - @brains/utils@0.2.0-alpha.553
+  - @brains/mcp-service@0.2.0-alpha.553
+
+## 0.2.0-alpha.552
+
+### Patch Changes
+
+- Updated dependencies [[`fc9c13a`](https://github.com/rizom-ai/brains/commit/fc9c13abe1c72c6c132c0e3c95ffe745f4930333)]:
+  - @brains/utils@0.2.0-alpha.552
+  - @brains/contracts@0.2.0-alpha.552
+  - @brains/db@0.2.0-alpha.552
+  - @brains/mcp-service@0.2.0-alpha.552
+  - @brains/operation-context@0.2.0-alpha.552
+
+## 0.2.0-alpha.551
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.551
+  - @brains/db@0.2.0-alpha.551
+  - @brains/operation-context@0.2.0-alpha.551
+  - @brains/utils@0.2.0-alpha.551
+  - @brains/mcp-service@0.2.0-alpha.551
+
+## 0.2.0-alpha.550
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.550
+  - @brains/db@0.2.0-alpha.550
+  - @brains/operation-context@0.2.0-alpha.550
+  - @brains/utils@0.2.0-alpha.550
+  - @brains/mcp-service@0.2.0-alpha.550
+
+## 0.2.0-alpha.549
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.549
+  - @brains/db@0.2.0-alpha.549
+  - @brains/operation-context@0.2.0-alpha.549
+  - @brains/utils@0.2.0-alpha.549
+  - @brains/mcp-service@0.2.0-alpha.549
+
+## 0.2.0-alpha.548
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.548
+  - @brains/db@0.2.0-alpha.548
+  - @brains/operation-context@0.2.0-alpha.548
+  - @brains/utils@0.2.0-alpha.548
+  - @brains/mcp-service@0.2.0-alpha.548
+
+## 0.2.0-alpha.547
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.547
+  - @brains/db@0.2.0-alpha.547
+  - @brains/operation-context@0.2.0-alpha.547
+  - @brains/utils@0.2.0-alpha.547
+  - @brains/mcp-service@0.2.0-alpha.547
+
+## 0.2.0-alpha.546
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.546
+  - @brains/db@0.2.0-alpha.546
+  - @brains/operation-context@0.2.0-alpha.546
+  - @brains/utils@0.2.0-alpha.546
+  - @brains/mcp-service@0.2.0-alpha.546
+
+## 0.2.0-alpha.545
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.545
+  - @brains/db@0.2.0-alpha.545
+  - @brains/operation-context@0.2.0-alpha.545
+  - @brains/utils@0.2.0-alpha.545
+  - @brains/mcp-service@0.2.0-alpha.545
+
+## 0.2.0-alpha.544
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.544
+  - @brains/db@0.2.0-alpha.544
+  - @brains/operation-context@0.2.0-alpha.544
+  - @brains/utils@0.2.0-alpha.544
+  - @brains/mcp-service@0.2.0-alpha.544
+
+## 0.2.0-alpha.543
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.543
+  - @brains/db@0.2.0-alpha.543
+  - @brains/operation-context@0.2.0-alpha.543
+  - @brains/utils@0.2.0-alpha.543
+  - @brains/mcp-service@0.2.0-alpha.543
+
+## 0.2.0-alpha.542
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.542
+  - @brains/db@0.2.0-alpha.542
+  - @brains/operation-context@0.2.0-alpha.542
+  - @brains/utils@0.2.0-alpha.542
+  - @brains/mcp-service@0.2.0-alpha.542
+
+## 0.2.0-alpha.541
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.541
+  - @brains/db@0.2.0-alpha.541
+  - @brains/operation-context@0.2.0-alpha.541
+  - @brains/utils@0.2.0-alpha.541
+  - @brains/mcp-service@0.2.0-alpha.541
+
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.540
+  - @brains/db@0.2.0-alpha.540
+  - @brains/operation-context@0.2.0-alpha.540
+  - @brains/utils@0.2.0-alpha.540
+  - @brains/mcp-service@0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.539
+  - @brains/db@0.2.0-alpha.539
+  - @brains/operation-context@0.2.0-alpha.539
+  - @brains/utils@0.2.0-alpha.539
+  - @brains/mcp-service@0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.538
+  - @brains/db@0.2.0-alpha.538
+  - @brains/operation-context@0.2.0-alpha.538
+  - @brains/utils@0.2.0-alpha.538
+  - @brains/mcp-service@0.2.0-alpha.538
+
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.537
+  - @brains/db@0.2.0-alpha.537
+  - @brains/operation-context@0.2.0-alpha.537
+  - @brains/utils@0.2.0-alpha.537
+  - @brains/mcp-service@0.2.0-alpha.537
+
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.536
+  - @brains/db@0.2.0-alpha.536
+  - @brains/operation-context@0.2.0-alpha.536
+  - @brains/utils@0.2.0-alpha.536
+  - @brains/mcp-service@0.2.0-alpha.536
+
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.535
+  - @brains/db@0.2.0-alpha.535
+  - @brains/operation-context@0.2.0-alpha.535
+  - @brains/utils@0.2.0-alpha.535
+  - @brains/mcp-service@0.2.0-alpha.535
+
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.534
+  - @brains/db@0.2.0-alpha.534
+  - @brains/operation-context@0.2.0-alpha.534
+  - @brains/utils@0.2.0-alpha.534
+  - @brains/mcp-service@0.2.0-alpha.534
+
+## 0.2.0-alpha.533
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.533
+  - @brains/db@0.2.0-alpha.533
+  - @brains/operation-context@0.2.0-alpha.533
+  - @brains/utils@0.2.0-alpha.533
+  - @brains/mcp-service@0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.532
+  - @brains/db@0.2.0-alpha.532
+  - @brains/operation-context@0.2.0-alpha.532
+  - @brains/utils@0.2.0-alpha.532
+  - @brains/mcp-service@0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.531
+  - @brains/db@0.2.0-alpha.531
+  - @brains/operation-context@0.2.0-alpha.531
+  - @brains/utils@0.2.0-alpha.531
+  - @brains/mcp-service@0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.530
+  - @brains/db@0.2.0-alpha.530
+  - @brains/operation-context@0.2.0-alpha.530
+  - @brains/utils@0.2.0-alpha.530
+  - @brains/mcp-service@0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.529
+  - @brains/db@0.2.0-alpha.529
+  - @brains/operation-context@0.2.0-alpha.529
+  - @brains/utils@0.2.0-alpha.529
+  - @brains/mcp-service@0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.528
+  - @brains/db@0.2.0-alpha.528
+  - @brains/operation-context@0.2.0-alpha.528
+  - @brains/utils@0.2.0-alpha.528
+  - @brains/mcp-service@0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.527
+  - @brains/db@0.2.0-alpha.527
+  - @brains/operation-context@0.2.0-alpha.527
+  - @brains/utils@0.2.0-alpha.527
+  - @brains/mcp-service@0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.526
+  - @brains/db@0.2.0-alpha.526
+  - @brains/operation-context@0.2.0-alpha.526
+  - @brains/utils@0.2.0-alpha.526
+  - @brains/mcp-service@0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.525
+  - @brains/db@0.2.0-alpha.525
+  - @brains/operation-context@0.2.0-alpha.525
+  - @brains/utils@0.2.0-alpha.525
+  - @brains/mcp-service@0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.524
+  - @brains/db@0.2.0-alpha.524
+  - @brains/operation-context@0.2.0-alpha.524
+  - @brains/utils@0.2.0-alpha.524
+  - @brains/mcp-service@0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.523
+  - @brains/db@0.2.0-alpha.523
+  - @brains/operation-context@0.2.0-alpha.523
+  - @brains/utils@0.2.0-alpha.523
+  - @brains/mcp-service@0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.522
+  - @brains/db@0.2.0-alpha.522
+  - @brains/operation-context@0.2.0-alpha.522
+  - @brains/utils@0.2.0-alpha.522
+  - @brains/mcp-service@0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.521
+  - @brains/db@0.2.0-alpha.521
+  - @brains/operation-context@0.2.0-alpha.521
+  - @brains/utils@0.2.0-alpha.521
+  - @brains/mcp-service@0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.520
+  - @brains/db@0.2.0-alpha.520
+  - @brains/operation-context@0.2.0-alpha.520
+  - @brains/utils@0.2.0-alpha.520
+  - @brains/mcp-service@0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.519
+  - @brains/db@0.2.0-alpha.519
+  - @brains/operation-context@0.2.0-alpha.519
+  - @brains/utils@0.2.0-alpha.519
+  - @brains/mcp-service@0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.518
+  - @brains/db@0.2.0-alpha.518
+  - @brains/operation-context@0.2.0-alpha.518
+  - @brains/utils@0.2.0-alpha.518
+  - @brains/mcp-service@0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+### Patch Changes
+
+- Updated dependencies [[`3e65a69`](https://github.com/rizom-ai/brains/commit/3e65a693af743469a11a12e493f8ee5e3f8092fb)]:
+  - @brains/contracts@0.2.0-alpha.517
+  - @brains/operation-context@0.2.0-alpha.517
+  - @brains/mcp-service@0.2.0-alpha.517
+  - @brains/db@0.2.0-alpha.517
+  - @brains/utils@0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- Updated dependencies [[`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84)]:
+  - @brains/mcp-service@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/db@0.2.0-alpha.516
+  - @brains/operation-context@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/db@0.2.0-alpha.515
+  - @brains/operation-context@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/mcp-service@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/db@0.2.0-alpha.514
+  - @brains/operation-context@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/mcp-service@0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.513
+  - @brains/db@0.2.0-alpha.513
+  - @brains/operation-context@0.2.0-alpha.513
+  - @brains/utils@0.2.0-alpha.513
+  - @brains/mcp-service@0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.512
+  - @brains/db@0.2.0-alpha.512
+  - @brains/operation-context@0.2.0-alpha.512
+  - @brains/utils@0.2.0-alpha.512
+  - @brains/mcp-service@0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.511
+  - @brains/db@0.2.0-alpha.511
+  - @brains/operation-context@0.2.0-alpha.511
+  - @brains/utils@0.2.0-alpha.511
+  - @brains/mcp-service@0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.510
+  - @brains/db@0.2.0-alpha.510
+  - @brains/operation-context@0.2.0-alpha.510
+  - @brains/utils@0.2.0-alpha.510
+  - @brains/mcp-service@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- Updated dependencies [[`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c)]:
+  - @brains/utils@0.2.0-alpha.509
+  - @brains/mcp-service@0.2.0-alpha.509
+  - @brains/contracts@0.2.0-alpha.509
+  - @brains/db@0.2.0-alpha.509
+  - @brains/operation-context@0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.508
+  - @brains/db@0.2.0-alpha.508
+  - @brains/operation-context@0.2.0-alpha.508
+  - @brains/utils@0.2.0-alpha.508
+  - @brains/mcp-service@0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.507
+  - @brains/db@0.2.0-alpha.507
+  - @brains/operation-context@0.2.0-alpha.507
+  - @brains/utils@0.2.0-alpha.507
+  - @brains/mcp-service@0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.506
+  - @brains/db@0.2.0-alpha.506
+  - @brains/operation-context@0.2.0-alpha.506
+  - @brains/utils@0.2.0-alpha.506
+  - @brains/mcp-service@0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/operation-context@0.2.0-alpha.505
+  - @brains/mcp-service@0.2.0-alpha.505
+  - @brains/db@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.504
+  - @brains/db@0.2.0-alpha.504
+  - @brains/operation-context@0.2.0-alpha.504
+  - @brains/utils@0.2.0-alpha.504
+  - @brains/mcp-service@0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.503
+  - @brains/db@0.2.0-alpha.503
+  - @brains/operation-context@0.2.0-alpha.503
+  - @brains/utils@0.2.0-alpha.503
+  - @brains/mcp-service@0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.502
+  - @brains/db@0.2.0-alpha.502
+  - @brains/operation-context@0.2.0-alpha.502
+  - @brains/utils@0.2.0-alpha.502
+  - @brains/mcp-service@0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.501
+  - @brains/db@0.2.0-alpha.501
+  - @brains/operation-context@0.2.0-alpha.501
+  - @brains/utils@0.2.0-alpha.501
+  - @brains/mcp-service@0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.500
+  - @brains/db@0.2.0-alpha.500
+  - @brains/operation-context@0.2.0-alpha.500
+  - @brains/utils@0.2.0-alpha.500
+  - @brains/mcp-service@0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.499
+  - @brains/db@0.2.0-alpha.499
+  - @brains/operation-context@0.2.0-alpha.499
+  - @brains/utils@0.2.0-alpha.499
+  - @brains/mcp-service@0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.498
+  - @brains/db@0.2.0-alpha.498
+  - @brains/operation-context@0.2.0-alpha.498
+  - @brains/utils@0.2.0-alpha.498
+  - @brains/mcp-service@0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.497
+  - @brains/db@0.2.0-alpha.497
+  - @brains/operation-context@0.2.0-alpha.497
+  - @brains/utils@0.2.0-alpha.497
+  - @brains/mcp-service@0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.496
+  - @brains/db@0.2.0-alpha.496
+  - @brains/operation-context@0.2.0-alpha.496
+  - @brains/utils@0.2.0-alpha.496
+  - @brains/mcp-service@0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ### Patch Changes

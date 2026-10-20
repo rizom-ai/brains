@@ -44,6 +44,7 @@ describe("Project OG image attachment provider", () => {
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("project", "og-image")).toBe(true);
+    expect(context.views.hasRenderer("portfolio:og-image", "image")).toBe(true);
   });
 
   it("resolves a project into a PNG OG image attachment", async () => {
@@ -64,6 +65,7 @@ describe("Project OG image attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        views: harness.getEntityContext("test").views,
         domain: "example.com",
       },
       { screenshotPng },

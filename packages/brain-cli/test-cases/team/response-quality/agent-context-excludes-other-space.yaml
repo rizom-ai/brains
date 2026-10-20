@@ -29,14 +29,14 @@ successCriteria:
       shouldBeCalled: false
     - toolName: system_list
       shouldBeCalled: false
-  responseContains:
-    - "team-flavored Rover"
   responseNotContains:
     - "publishing calendar"
     - "blog posts"
     - "newsletters"
     - "social-media distribution"
     - "other project"
+  responseCriteria:
+    - "States that the Team Brain POC memory says to avoid building a team-flavored Rover."
 efficiency:
   maxToolCalls: 0
-  maxTokens: 30000
+  maxTokens: 15000

@@ -3,11 +3,22 @@ import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
 import { bookFrontmatterSchema, bookMetadataSchema } from "../schemas/book";
+import {
+  bookDetailPageSchema,
+  bookSectionPageSchema,
+} from "../schemas/book-pages";
 import { BookAskTemplate, type BookAskProps } from "../templates/book-ask";
+import {
+  BookEpub,
+  bookEpubSchema,
+  type BookEpubData,
+} from "../templates/book-epub";
 import { BookListTemplate, type BookListProps } from "../templates/book-list";
 import {
   BookDetailTemplate,
+  BookSectionTemplate,
   type BookDetailProps,
+  type BookSectionProps,
 } from "../templates/book-detail";
 import {
   BookThemeTemplate,
@@ -16,40 +27,25 @@ import {
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
-const bookEntryDisplaySchema = z.object({
+const displayedEntity = {
   id: z.string(),
-  entityType: z.literal("book"),
   content: z.string(),
   created: z.string(),
   updated: z.string(),
   visibility: contentVisibilitySchema,
-  metadata: bookMetadataSchema,
   contentHash: z.string(),
-  frontmatter: bookFrontmatterSchema,
   body: z.string(),
+};
+
+const bookDisplaySchema = z.object({
+  ...displayedEntity,
+  entityType: z.literal("book"),
+  metadata: bookMetadataSchema,
+  frontmatter: bookFrontmatterSchema,
 });
 
 const bookListSchema = z.object({
-  books: z.array(bookEntryDisplaySchema),
-});
-
-const bookDetailSchema = z.object({
-  entry: bookEntryDisplaySchema,
-  book: bookEntryDisplaySchema,
-  prev: bookEntryDisplaySchema.nullable(),
-  next: bookEntryDisplaySchema.nullable(),
-  total: z.number().int().min(0),
-  themes: z.array(z.object({ id: z.string(), title: z.string() })),
-  score: z.array(
-    z.object({
-      slug: z.string(),
-      title: z.string(),
-      section: z.string().nullable(),
-      order: z.number().int(),
-      part: z.string().nullable(),
-      length: z.number().int().min(0),
-    }),
-  ),
+  books: z.array(bookDisplaySchema),
 });
 
 const bookAskSchema = z.object({
@@ -99,15 +95,27 @@ export function getTemplates(): Record<string, Template> {
       },
     ),
     "book-detail": createTemplate<
-      z.output<typeof bookDetailSchema>,
+      z.output<typeof bookDetailPageSchema>,
       BookDetailProps
     >({
       name: "book-detail",
-      description: "A book's title page or one of its sections",
-      schema: bookDetailSchema,
+      description:
+        "A book's title page: its details and the score of its sections",
+      schema: bookDetailPageSchema,
       dataSourceId: "book:entities",
       requiredPermission: "public",
       layout: { component: BookDetailTemplate },
+    }),
+    "book-section-detail": createTemplate<
+      z.output<typeof bookSectionPageSchema>,
+      BookSectionProps
+    >({
+      name: "book-section-detail",
+      description: "A section of a book, set for reading",
+      schema: bookSectionPageSchema,
+      dataSourceId: "book:entities",
+      requiredPermission: "public",
+      layout: { component: BookSectionTemplate },
     }),
     theme: createTemplate<z.output<typeof bookThemeSchema>, BookThemeProps>({
       name: "theme",
@@ -124,6 +132,13 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "book:ask",
       requiredPermission: "public",
       layout: { component: BookAskTemplate },
+    }),
+    epub: createTemplate<BookEpubData>({
+      name: "epub",
+      description: "A book as an EPUB, one chapter per section",
+      schema: bookEpubSchema,
+      requiredPermission: "public",
+      layout: { formats: { epub: BookEpub } },
     }),
   };
 }

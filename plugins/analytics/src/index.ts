@@ -1,4 +1,4 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import {
@@ -6,14 +6,25 @@ import {
   type AnalyticsConfig,
   type AnalyticsConfigInput,
 } from "./config";
-import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
 import {
   CloudflareClient,
   type CloudflareClientDeps,
 } from "./lib/cloudflare-client";
-import { createTrafficOverviewInsight } from "./insights/traffic-overview";
+import { createTrafficReports } from "./reports/traffic-reports";
+import { createTrafficByEntityReport } from "./reports/traffic-by-entity";
+import {
+  registerTrafficWorkspace,
+  type TrafficWorkspaceReports,
+} from "./studio/traffic-workspace";
+import { registerTrafficWidget } from "./studio/traffic-widget";
+import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
+import { TrafficSnapshotPlugin } from "./entity/plugin";
+import type { TrafficDay } from "./entity/schema";
+import { getErrorMessage } from "@brains/utils/error";
 import packageJson from "../package.json";
+
+const utcToday = (): string => new Date().toISOString().slice(0, 10);
 
 /**
  * Analytics plugin for querying website metrics from Cloudflare
@@ -23,8 +34,8 @@ import packageJson from "../package.json";
  * - Top pages, referrers, countries
  * - Device breakdown
  *
- * Also injects the Cloudflare Web Analytics beacon script into
- * site builds via the site-builder's head-script registration hook.
+ * Captures each day's traffic into weekly `traffic-snapshot` entities, and
+ * contributes the Cloudflare beacon to site builds when a beacon token is set.
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
@@ -33,6 +44,9 @@ export class AnalyticsPlugin extends ServicePlugin<
   AnalyticsConfigInput
 > {
   private cloudflareClient: CloudflareClient | undefined;
+  private trafficReports: TrafficWorkspaceReports | undefined;
+  private pluginContext: ServicePluginContext | undefined;
+  private studioRegistered = false;
 
   private deps: CloudflareClientDeps;
 
@@ -51,33 +65,89 @@ export class AnalyticsPlugin extends ServicePlugin<
       ? new CloudflareClient(this.config.cloudflare, this.deps)
       : undefined;
 
-    context.insights.register(
-      "traffic-overview",
-      createTrafficOverviewInsight(this.cloudflareClient),
-    );
+    // Read from the snapshots; Cloudflare only adds today's numbers so far.
+    const client = this.cloudflareClient;
+    const trafficDeps = {
+      today: utcToday,
+      ...(client && {
+        liveDay: (date: string): Promise<TrafficDay> =>
+          client.getDailyTraffic(date),
+      }),
+    };
+    const traffic = {
+      today: utcToday,
+      ...createTrafficReports(trafficDeps),
+      // Pages map to entities through the site's own routes.
+      byEntity: createTrafficByEntityReport({
+        ...trafficDeps,
+        entityDisplay: context.entityDisplay,
+      }),
+    };
+    context.analytics.register(traffic.overview);
+    context.analytics.register(traffic.series);
+    context.analytics.register(traffic.byEntity);
+    this.trafficReports = traffic;
+    this.pluginContext = context;
+
+    // Site builds run in the worker and ask for head scripts as they render,
+    // so the beacon answers there; that process never runs the ready phase.
+    // Only with a beacon token: the beacon carries the site token, not the
+    // site tag, and a zone with automatic setup gets it from Cloudflare.
+    const beaconToken = this.config.cloudflare?.beaconToken;
+    if (beaconToken) {
+      const script = generateCloudflareBeaconScript(beaconToken);
+      context.messaging.subscribeExecution(
+        SITE_BUILDER_CHANNELS.headScripts,
+        async () => ({ success: true, data: script }),
+      );
+    }
+
+    // Daily, in the worker: yesterday's traffic while Cloudflare's counts are
+    // exact, and on the first run every earlier day it still returns.
+    if (this.cloudflareClient) {
+      const capture = new TrafficCapture({
+        client: this.cloudflareClient,
+        store: entitySnapshotStore(context.entityService),
+        today: utcToday,
+      });
+      context.recurringChecks.register({
+        id: "traffic-capture",
+        cadence: "daily",
+        run: async ({ signal }) => {
+          try {
+            await capture.run(signal);
+            return {};
+          } catch (error) {
+            if (signal.aborted) throw error;
+            return {
+              alerts: [
+                {
+                  dedupeKey: "traffic-capture-failed",
+                  title: "Traffic capture failed",
+                  body: `Yesterday's site traffic could not be saved: ${getErrorMessage(error)}. Cloudflare keeps exact counts for about a week, so the next successful run catches up.`,
+                },
+              ],
+            };
+          }
+        },
+      });
+    }
   }
 
+  // Studio runs in the web process, which alone has a ready phase.
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    const siteTag = this.config.cloudflare?.siteTag;
-    if (!siteTag) return;
-
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.headScriptRegister,
-      payload: {
-        pluginId: this.id,
-        script: generateCloudflareBeaconScript(siteTag),
-      },
-    });
+    if (!this.trafficReports) return;
+    const url = await registerTrafficWorkspace(context, this.trafficReports);
+    this.studioRegistered = url !== undefined;
+    await registerTrafficWidget(context, this.trafficReports);
   }
 
-  protected override async getTools(): Promise<Tool[]> {
-    return createAnalyticsTools(
-      this.id,
-      this.getContext(),
-      this.cloudflareClient,
-    );
+  protected override async onShutdown(): Promise<void> {
+    if (!this.studioRegistered) return;
+    await this.pluginContext?.studio.unregisterWorkspace("analytics:traffic");
+    this.studioRegistered = false;
   }
 }
 
@@ -92,10 +162,23 @@ export function createAnalyticsPlugin(
 }
 
 /**
- * Convenience function matching other plugin patterns
+ * The analytics feature as a brain installs it: the traffic snapshot entity
+ * and the service that captures and queries traffic.
  */
-export const analyticsPlugin: typeof createAnalyticsPlugin =
-  createAnalyticsPlugin;
+export function analyticsPlugin(
+  config: AnalyticsConfigInput = {},
+  deps: CloudflareClientDeps = {},
+): [TrafficSnapshotPlugin, AnalyticsPlugin] {
+  return [new TrafficSnapshotPlugin(), new AnalyticsPlugin(config, deps)];
+}
+
+export { TrafficSnapshotPlugin };
+export { trafficSnapshotAdapter } from "./entity/adapter";
+export {
+  trafficSnapshotSchema,
+  type TrafficDay,
+  type TrafficSnapshot,
+} from "./entity/schema";
 
 // Export types and schemas
 export type {

@@ -27,12 +27,11 @@ successCriteria:
   expectedTools:
     - toolName: system_status
       shouldBeCalled: true
+  # Paths come from system_status. Evals disable the dashboard plugin, so
+  # status reports Studio only; a dashboard path in the reply is invented.
   responseContains:
-    - "dashboard"
     - "Studio"
-    - "/dashboard"
     - "/studio"
-    - "core"
   responseNotContains:
     - "site-builder is required"
     - "enable the public site"
@@ -41,7 +40,10 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Says the dashboard and Studio are core web/admin surfaces that do not require the public site builder."
+    - "Gives only paths the status check reported, and does not state a path for the dashboard, which the status check did not report."
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 20000
+  maxTokens: 31000

@@ -104,6 +104,21 @@ export interface IMessageBus {
     filter?: SubscriptionFilter,
   ): () => void;
 
+  /**
+   * Observe a message type in this process and in its peers: the handler
+   * receives local messages like a subscriber, and also events another
+   * process of the same runtime relays here. For caches and views that
+   * follow state, never for work, which each process triggers for its own
+   * changes.
+   */
+  observe<T = unknown, R = unknown>(
+    type: string,
+    handler: MessageHandler<T, R>,
+  ): () => void;
+
+  /** Deliver an event relayed from a peer process to this process's observers. */
+  deliverPeer<T = unknown>(type: string, payload: T): Promise<void>;
+
   /** Collect one response from every matching handler, in registration order. */
   collect<T = unknown, R = unknown>(
     request: MessageBusSendRequest<T>,

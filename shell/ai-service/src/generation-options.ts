@@ -19,9 +19,19 @@ interface TextGenerationOptions {
   temperature?: number;
   maxTokens?: number;
   webSearch?: true;
-  providerOptions?: {
-    openai: { reasoningEffort: ReasoningEffort };
-  };
+  providerOptions?: { openai: ReturnType<typeof openAIReasoningOptions> };
+}
+
+/**
+ * The SDK applies reasoning only to model names on its own allowlist. A model
+ * this runtime treats as reasoning (no temperature) keeps its configured
+ * effort even when the SDK does not recognize the name.
+ */
+export function openAIReasoningOptions(
+  reasoningEffort: ReasoningEffort,
+  supportsTemperature: boolean,
+): { reasoningEffort: ReasoningEffort; forceReasoning: boolean } {
+  return { reasoningEffort, forceReasoning: !supportsTemperature };
 }
 
 export function withAIModelDefaults(config: AIModelConfig): AIModelConfig {
@@ -54,7 +64,7 @@ export function getTextGenerationOptions(
 
   if (provider === "openai" && config.reasoningEffort) {
     options.providerOptions = {
-      openai: { reasoningEffort: config.reasoningEffort },
+      openai: openAIReasoningOptions(config.reasoningEffort, supportsTemp),
     };
   }
 

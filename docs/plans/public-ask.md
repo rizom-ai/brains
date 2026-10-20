@@ -164,7 +164,7 @@ Goal: the owner can see what the endpoint is doing and stop it, in one place.
 
 - An admin-only Studio workspace declared with `defineStudioWorkspace`, whose server-side loader reads the Slice A records directly. Studio workspaces are schema-driven and a plugin cannot ship its own React view, so the display is built from the existing block set.
 - Shows requests and known settled cost for today and the current month, outstanding/unknown reservations separately, and the amount still charged against the admission ceiling. Never imply that low measured cost restores allowance. Denials are grouped by reason, with detailed versus aggregated coverage explicit; visitor rankings and recent questions describe only the retained detail window. Queries and result sizes are bounded.
-- There is no chart or timeseries block. Trends use `stats`, `meters` and `table`.
+- Trends over time use the `series` block (bars per point, with event markers); `stats`, `meters` and `table` carry the rest.
 - The existing enable and disable authorization becomes a workspace action, so the off switch sits next to the numbers rather than in configuration. Recording health and retention are visible beside it.
 - A separate, confirmed admin action may promote one recorded question to an entity. Reading the monitor never promotes content automatically.
 - Tests first: the workspace refuses a non-admin caller at both the registry floor and the runtime check; empty, aggregated and unknown-cost states render truthfully; promotion requires confirmation; the off action denies further admissions immediately.

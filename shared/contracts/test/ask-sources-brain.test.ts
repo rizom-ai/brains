@@ -10,8 +10,8 @@ describe("a source's brain", () => {
 
   it("rides on a citation, and is optional", () => {
     const cited = chatSourceCitationSchema.parse({
-      id: "network-piece:becca/post/handoffs",
-      source: "network-piece",
+      id: "post:handoffs",
+      source: "post",
       title: "Handoffs between teams",
       brain,
     });
@@ -24,8 +24,8 @@ describe("a source's brain", () => {
 
   it("rides on the answer's own citation, where the brain first names it", () => {
     const cited = SourceCitationSchema.parse({
-      id: "network-piece:plc-peer--post--3kabc",
-      source: "network-piece",
+      id: "post:handoffs",
+      source: "post",
       url: "https://becca.rizom.ai/essays/handoffs",
       brain,
     });
@@ -39,7 +39,7 @@ describe("a source's brain", () => {
     const detail = askSourcesDetailSchema.parse({
       sources: [
         { id: "post:hiding", title: "Hiding in Plain Sight" },
-        { id: "network-piece:becca/post/handoffs", title: "Handoffs", brain },
+        { id: "post:handoffs", title: "Handoffs", brain },
       ],
     });
     expect(detail.sources[1]?.brain).toEqual(brain);

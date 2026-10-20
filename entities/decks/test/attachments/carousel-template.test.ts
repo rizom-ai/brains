@@ -1,12 +1,22 @@
 import { describe, expect, it } from "bun:test";
 import { renderMediaTemplateHtml } from "@brains/media-page-composer";
 import { normalizeRendererHtml } from "@brains/test-utils";
-import { deckCarouselTemplate } from "../../src/attachments/carousel-template";
+import { toViewTemplate } from "@brains/plugins";
+import {
+  DECK_CAROUSEL_TEMPLATE_NAME,
+  deckCarouselTemplate,
+} from "../../src/attachments/carousel-template";
+
+const carousel = toViewTemplate(
+  DECK_CAROUSEL_TEMPLATE_NAME,
+  deckCarouselTemplate,
+);
+if (!carousel) throw new Error("the carousel template renders in no format");
 
 describe("deck carousel template", () => {
   it("renders slide content into the media page HTML", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Sample Deck",
@@ -29,7 +39,7 @@ describe("deck carousel template", () => {
 
   it("uses a medium heading weight for carousel slide titles", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Heading Weight",
@@ -48,7 +58,7 @@ describe("deck carousel template", () => {
 
   it("renders a zero-padded counter per slide showing current and total", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Multi",
@@ -70,7 +80,7 @@ describe("deck carousel template", () => {
 
   it("flags the first slide as the cover so it can receive distinct styling", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Cover Test",
@@ -84,7 +94,7 @@ describe("deck carousel template", () => {
 
   it("splits a brandLabel containing a dot into masthead parts", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Sample Deck",
@@ -102,7 +112,7 @@ describe("deck carousel template", () => {
 
   it("splits a two-word brand into first.last lowercased", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Sample Deck",
@@ -120,7 +130,7 @@ describe("deck carousel template", () => {
 
   it("falls back to deck title when brandLabel is not provided", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Deck Without Brand",
@@ -136,7 +146,7 @@ describe("deck carousel template", () => {
 
   it("renders the deck title in the footer meta by default", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Distributed Systems",
@@ -152,7 +162,7 @@ describe("deck carousel template", () => {
 
   it("overrides the footer meta with eyebrow when present", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Sample Deck",
@@ -170,7 +180,7 @@ describe("deck carousel template", () => {
 
   it("ships both dark and light palettes scoped under [data-theme]", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Modes",
@@ -185,7 +195,7 @@ describe("deck carousel template", () => {
 
   it("styles italic emphasis with the carousel accent color", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Accent",
@@ -201,7 +211,7 @@ describe("deck carousel template", () => {
 
   it("uses opaque slide backgrounds for LinkedIn PDF compatibility", () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Opaque",
@@ -218,7 +228,7 @@ describe("deck carousel template", () => {
 
   it('emits data-theme="light" on <html> when siteConfig.themeMode is light', () => {
     const html = renderMediaTemplateHtml({
-      template: deckCarouselTemplate,
+      template: carousel,
       format: "pdf",
       content: {
         title: "Light",

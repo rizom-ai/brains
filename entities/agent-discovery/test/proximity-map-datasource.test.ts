@@ -56,6 +56,7 @@ describe("ProximityMapDataSource", () => {
         entityType: "brain-character",
       },
       maxNeighborDistance: 0.25,
+      visibilityScope: "public",
     });
   });
 });

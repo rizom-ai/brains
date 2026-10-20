@@ -23,7 +23,8 @@ export const OutputFormatSchema: z.ZodEnum<{
   web: "web";
   image: "image";
   pdf: "pdf";
-}> = z.enum(["web", "image", "pdf"]);
+  epub: "epub";
+}> = z.enum(["web", "image", "pdf", "epub"]);
 
 export type OutputFormat = z.output<typeof OutputFormatSchema>;
 
@@ -35,7 +36,9 @@ type RendererFunction = (...args: unknown[]) => unknown;
 export type WebRenderer<T = unknown> = ComponentType<T> | string;
 export type ImageRenderer<T = unknown> = ComponentType<T> | string;
 export type PdfRenderer<T = unknown> = ComponentType<T> | string;
-export type MediaRenderer<T = unknown> = ImageRenderer<T> | PdfRenderer<T>;
+export type EpubRenderer<T = unknown> = ComponentType<T> | string;
+export type MediaRenderer<T = unknown> =
+  ImageRenderer<T> | PdfRenderer<T> | EpubRenderer<T>;
 export type Renderer<T = unknown> = WebRenderer<T> | MediaRenderer<T>;
 
 /**
@@ -57,6 +60,7 @@ export const ViewTemplateSchema: z.ZodObject<{
     web: RendererSchema;
     image: RendererSchema;
     pdf: RendererSchema;
+    epub: RendererSchema;
   }>;
 }> = z.object({
   name: z.string(),
@@ -67,6 +71,7 @@ export const ViewTemplateSchema: z.ZodObject<{
     web: z.union([rendererFunctionSchema, z.string()]).optional(),
     image: z.union([rendererFunctionSchema, z.string()]).optional(),
     pdf: z.union([rendererFunctionSchema, z.string()]).optional(),
+    epub: z.union([rendererFunctionSchema, z.string()]).optional(),
   }),
 });
 
@@ -86,6 +91,7 @@ export interface ViewTemplate<T extends JsonObject = JsonObject> {
     web?: WebRenderer<T>;
     image?: ImageRenderer<T>;
     pdf?: PdfRenderer<T>;
+    epub?: EpubRenderer<T>;
   };
 
   // When true, render without any page layout shell (no header/footer)
@@ -121,7 +127,10 @@ export interface ViewTemplateRegistry {
     pluginId?: string;
     namePattern?: string;
   }): ViewTemplate | undefined;
-  getRenderer(templateName: string, format: OutputFormat): Renderer | undefined;
+  getRenderer(
+    templateName: string,
+    format: OutputFormat,
+  ): Renderer<JsonObject> | undefined;
   hasRenderer(templateName: string, format: OutputFormat): boolean;
   listFormats(templateName: string): OutputFormat[];
 }

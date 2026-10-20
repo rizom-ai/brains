@@ -13,7 +13,10 @@ import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import { type Logger } from "@brains/utils/logger";
-import matter from "gray-matter";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
 
 const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
@@ -72,7 +75,7 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
   }
 
   public fromMarkdown(markdown: string): Partial<Note> {
-    const { data, content } = matter(markdown);
+    const { data, content } = readMarkdownFrontmatter(markdown);
     const frontmatter = markdownParseSchema.parse(data);
 
     let title = frontmatter.title;
@@ -139,13 +142,13 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
     markdown: string,
     schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter {
-    const { data } = matter(markdown);
+    const { data } = readMarkdownFrontmatter(markdown);
     return schema.parse(data);
   }
 
   public override generateFrontMatter(entity: Note): string {
     const metadata = this.extractMetadata(entity);
-    const yamlOutput = matter.stringify("", metadata);
+    const yamlOutput = generateMarkdown(metadata, "");
     return yamlOutput.split("\n\n")[0] ?? "---\n---";
   }
 
@@ -155,7 +158,7 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
       tags: entity.tags,
       category: entity.category,
     };
-    return matter.stringify(entity.content, frontmatter);
+    return generateMarkdown(frontmatter, entity.content);
   }
 }
 
@@ -430,6 +433,94 @@ This note has frontmatter metadata.`;
     test("getWeightMap returns empty object when no weights configured", (): void => {
       const weightMap = registry.getWeightMap();
       expect(weightMap).toEqual({});
+    });
+  });
+
+  describe("containment", () => {
+    const sectionAdapter = new NoteAdapter("section");
+    const sectionSchema = noteSchema.extend({
+      entityType: z.literal("section"),
+    });
+
+    test("records the type a contained type lives in", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+
+      expect(freshRegistry.getEntityTypeConfig("section").containedIn).toBe(
+        "note",
+      );
+      expect(freshRegistry.getContainment()).toEqual(
+        new Map([["section", "note"]]),
+      );
+    });
+
+    test("refuses a container that is not registered", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "section",
+          sectionSchema,
+          sectionAdapter,
+          { containedIn: "note" },
+        ),
+      ).toThrow("not registered");
+      expect(freshRegistry.hasEntityType("section")).toBe(false);
+    });
+
+    test("refuses a second type contained in the same container", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+      const lineSchema = noteSchema.extend({ entityType: z.literal("line") });
+
+      // A path inside the container must name one type.
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "line",
+          lineSchema,
+          new NoteAdapter("line"),
+          { containedIn: "note" },
+        ),
+      ).toThrow("already contains");
+    });
+
+    test("refuses a container that is itself contained", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+      const lineSchema = noteSchema.extend({ entityType: z.literal("line") });
+
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "line",
+          lineSchema,
+          new NoteAdapter("line"),
+          { containedIn: "section" },
+        ),
+      ).toThrow("one level");
     });
   });
 

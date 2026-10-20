@@ -1,15 +1,20 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { pageLeaf, pageText } from "./adapters/archive-ocr";
-import { fetchVolumeHocr, parseManifest } from "./import-books";
+import {
+  pageLeaf,
+  pageText,
+  scanPageUrl,
+  workPages,
+} from "./adapters/archive-ocr";
+import {
+  firstOfEachVolume,
+  volumeKey,
+  parseManifest,
+  scannedBooks,
+  volumeHocr,
+} from "./import-books";
+import { importerPageOcr } from "./page-ocr";
 import { createImporterFetch } from "./polite-fetch";
-
-/** The printed pages of one work in a volume. */
-export interface PageRange {
-  firstPage: number | string;
-  lastPage: number;
-  skipPages: number[];
-}
 
 /** A seed from the volume's name, so a volume is always sampled alike. */
 function seedOf(item: string): number {
@@ -35,33 +40,23 @@ function random(seed: number): () => number {
 
 /**
  * A volume's pages to check against the scan: the same draw every time,
- * from the pages its works span, in page order. Front matter cited in roman
- * is left to the works' arabic pages.
+ * from the pages its works span, the front matter's included, in the
+ * volume's order.
  */
 export function samplePages(
   item: string,
-  ranges: PageRange[],
+  pages: Array<number | string>,
   count: number,
-): number[] {
-  const pages = [
-    ...new Set(
-      ranges.flatMap((range) => {
-        const first = typeof range.firstPage === "number" ? range.firstPage : 1;
-        return Array.from(
-          { length: Math.max(0, range.lastPage - first + 1) },
-          (_, index) => first + index,
-        ).filter((page) => !range.skipPages.includes(page));
-      }),
-    ),
-  ].sort((a, b) => a - b);
-  if (pages.length <= count) return pages;
+): Array<number | string> {
+  const listed = [...new Set(pages)];
+  if (listed.length <= count) return listed;
   const next = random(seedOf(item));
-  return pages
-    .map((page) => ({ page, key: next() }))
+  return listed
+    .map((page, order) => ({ page, order, key: next() }))
     .sort((a, b) => a.key - b.key)
     .slice(0, count)
-    .map(({ page }) => page)
-    .sort((a, b) => a - b);
+    .sort((a, b) => a.order - b.order)
+    .map(({ page }) => page);
 }
 
 /** One request at a time to archive.org for the scans, as for the text. */
@@ -98,29 +93,32 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-  if (manifest.source !== "archive-ocr") {
-    console.error("The OCR gate reads archive-ocr manifests.");
-    process.exit(1);
-  }
+  const books = scannedBooks(manifest);
   const fetchText = createImporterFetch();
-  const items = [...new Set(manifest.books.map((book) => book.item))];
-  await items.reduce(async (done, item) => {
+  await firstOfEachVolume(books).reduce(async (done, first) => {
     await done;
-    const hocr = await fetchVolumeHocr(item, fetchText);
+    const item = first.item;
+    const hocr = await volumeHocr(first, fetchText, importerPageOcr(fetchText));
     const pages = samplePages(
       item,
-      manifest.books.filter((book) => book.item === item),
+      books
+        .filter((book) => volumeKey(book) === volumeKey(first))
+        .flatMap((book) => workPages(hocr, book)),
       PAGES_PER_VOLUME,
     );
-    const dir = join(outDir, item);
+    // A scan read anew with another model is a volume of its own.
+    const dir = join(outDir, first.ocr ? `${item}-${first.ocr}` : item);
     await mkdir(dir, { recursive: true });
     const rows = await pages.reduce<Promise<string[]>>(async (sheet, page) => {
       const rows = await sheet;
       const text = pageText(hocr, page);
       const leaf = pageLeaf(hocr, page);
+      const scanned = first.scan?.pages[leaf];
       await writeFile(join(dir, `${page}.txt`), `${text}\n`);
       await downloadScan(
-        `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
+        scanned
+          ? scanPageUrl(scanned)
+          : `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
         join(dir, `${page}.jpg`),
       );
       return [...rows, `| ${page} | ${leaf} | ${words(text)} | |`];
@@ -130,8 +128,7 @@ async function main(): Promise<void> {
       [
         `# OCR gate: ${item}`,
         "",
-        "Each page's scan is <page>.jpg (archive.org/details/" +
-          `${item}/page/n<leaf>) and its text as imported <page>.txt.`,
+        `Each page's scan is <page>.jpg (${first.scan?.url ?? `archive.org/details/${item}/page/n<leaf>`}) and its text as imported <page>.txt.`,
         "Count the words the text gets wrong against the scan.",
         "",
         "| page | leaf | words | wrong |",

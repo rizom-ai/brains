@@ -847,6 +847,33 @@ describe("ProjectionStore", () => {
     ]);
   });
 
+  it("claims and requeues a wave larger than one statement can bind", async () => {
+    // A corpus migration marks every entity twice: its old id deleted and its
+    // new one written. Six columns a row, 7,462 rows outgrow SQLite's 32,766
+    // bound variables for one statement.
+    const inputs = 7462;
+    await connection.db.run(sql`
+      INSERT INTO projection_dirty_inputs
+        (source_type, source_id, revision, operation, marked_at)
+      WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ${inputs})
+      SELECT 'book-section', 'section-' || i, 'rev-' || i, 'upsert', 10 FROM n
+    `);
+
+    const wave = await store.claimPendingWave({
+      waveId: "wave-large",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+
+    expect(wave?.id).toBe("wave-large");
+    expect(await store.listWaveInputs("wave-large")).toHaveLength(inputs);
+    expect(await store.listPendingInputs()).toHaveLength(0);
+
+    await store.failWave("wave-large", 30);
+
+    expect(await store.listPendingInputs()).toHaveLength(inputs);
+  });
+
   it("persists idempotent incidents, bounds details, and resolves by coverage", async () => {
     await store.markDirty({
       sourceType: "document",

@@ -1,0 +1,28 @@
+id: tool-invocation-analytics-topics
+name: Content Analytics — Topics
+description: Tests that the agent uses system_analytics when asked about topic distribution
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-headless
+  - core
+  - system
+  - analytics
+  - bundle-core
+
+turns:
+  - userMessage: "What are my most common topics?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_analytics
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 27000

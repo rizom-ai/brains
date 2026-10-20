@@ -1,5 +1,6 @@
 import type {
   BaseEntity,
+  EntityIdPath,
   GetEntityRequest,
   ServicePluginContext,
 } from "@brains/plugins";
@@ -35,7 +36,13 @@ import {
   type EditorRouteOptions,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
+import {
+  containedTypeOf,
+  containerPage,
+  type HierarchyQueryBase,
+} from "./container-hierarchy";
 import { editorValidationResponse } from "./editor-validation";
+import { titleFolders } from "./folder-titles";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   studioCollectionQuerySchema,
@@ -328,44 +335,98 @@ export async function handleGetEntityHierarchy(
     return jsonResponse({ error: "Invalid folder query" }, 400);
   const { prefix, scope, q, visibility, status, sort, limit, offset } =
     query.data;
+  const base: HierarchyQueryBase = {
+    visibilityScope: access.visibilityScope,
+    filter: {
+      ...(q && { contentContains: q }),
+      ...(visibility !== "all" && { visibility }),
+      ...(status && { metadata: { status } }),
+    },
+    sortFields: [
+      {
+        field: sort.startsWith("created") ? "created" : "updated",
+        direction: sort.endsWith("asc") ? "asc" : "desc",
+      },
+      { field: "id", direction: "asc" },
+    ],
+    signal: request.signal,
+  };
+  const searching = scope === "collection" || Boolean(q);
+  // An entry's own type decides how it reads: a container's collection holds
+  // its contents too.
+  const summaryOf = ({
+    entity,
+    path,
+  }: {
+    entity: BaseEntity;
+    path: EntityIdPath;
+  }): Record<string, unknown> => ({
+    id: entity.id,
+    entityType: entity.entityType,
+    path,
+    frontmatter: {
+      ...splitEntityContent(entity.entityType, entity.content, context)
+        .frontmatter,
+      visibility: entity.visibility,
+    },
+    displayTitle: entityDisplayTitle(context, entity),
+    updated: entity.updated,
+  });
   try {
+    const contained = await containedTypeOf(context, entityType, access);
+    if (contained !== undefined) {
+      const page = await containerPage(context, {
+        container: entityType,
+        contained,
+        prefix: scope === "collection" ? null : prefix,
+        searching,
+        limit,
+        offset,
+        base,
+        titleOf: (entity) => entityDisplayTitle(context, entity),
+      });
+      const titled = await titleFolders(context, {
+        entityType: contained,
+        prefix: page.prefix,
+        folders: page.folders,
+        visibilityScope: access.visibilityScope,
+        signal: request.signal,
+      });
+      // The container names its own folder; its contents name the rest.
+      const trail = titled.trail.map(
+        (title, index) => page.trail?.[index] ?? title,
+      );
+      return jsonResponse({
+        prefix: page.prefix,
+        folders: titled.folders,
+        total: page.total,
+        entities: page.entities.map(summaryOf),
+        ...(trail.some((title) => title !== null) && { trail }),
+      });
+    }
     const page = await context.entityService.queryEntityHierarchy({
+      ...base,
       entityType,
       prefix: scope === "collection" ? null : prefix,
       limit,
       offset,
+      includeDescendants: searching,
+    });
+    const titled = await titleFolders(context, {
+      entityType,
+      prefix: page.prefix,
+      folders: page.folders,
       visibilityScope: access.visibilityScope,
-      includeDescendants: scope === "collection" || Boolean(q),
-      filter: {
-        ...(q && { contentContains: q }),
-        ...(visibility !== "all" && { visibility }),
-        ...(status && { metadata: { status } }),
-      },
-      sortFields: [
-        {
-          field: sort.startsWith("created") ? "created" : "updated",
-          direction: sort.endsWith("asc") ? "asc" : "desc",
-        },
-        { field: "id", direction: "asc" },
-      ],
       signal: request.signal,
     });
     return jsonResponse({
       prefix: page.prefix,
-      folders: page.folders,
+      folders: titled.folders,
       total: page.totalEntities,
-      entities: page.entities.map(({ entity, path }) => ({
-        id: entity.id,
-        entityType: entity.entityType,
-        path,
-        frontmatter: {
-          ...splitEntityContent(entityType, entity.content, context)
-            .frontmatter,
-          visibility: entity.visibility,
-        },
-        displayTitle: entityDisplayTitle(context, entity),
-        updated: entity.updated,
-      })),
+      entities: page.entities.map(summaryOf),
+      ...(titled.trail.some((title) => title !== null) && {
+        trail: titled.trail,
+      }),
     });
   } catch (error) {
     if (error instanceof z.ZodError)

@@ -33,7 +33,7 @@ The host owns all markup, styles, browser behavior, routes, map renderers,
 accessibility, and responsive layout. Widget authors provide no React
 component, HTML, CSS, script, renderer key, or internal URL. The closed semantic
 protocol includes stats, facts, notices, links, lists, tables, tabs, filters,
-matrices, spatial views, groups, flows, meters, progress, and host-resolved
+matrices, spatial views, groups, flows, meters, progress, series charts, and host-resolved
 launch intents.
 
 The host serves its CSS, interaction controller, and configured theme CSS from

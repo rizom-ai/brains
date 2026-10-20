@@ -1,4 +1,7 @@
-import matter from "gray-matter";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import { objectKeys } from "@brains/utils/object-keys";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -121,7 +124,7 @@ export function generateMarkdownWithFrontmatter(
     return content;
   }
 
-  return matter.stringify(content, cleaned);
+  return generateMarkdown(cleaned, content);
 }
 
 /**
@@ -150,18 +153,13 @@ function convertDatesToStrings(obj: unknown): unknown {
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
   schema: FrontmatterValidationSchema<T>,
-  options?: { cache?: boolean },
+  _options?: { cache?: boolean },
 ): {
   content: string;
   metadata: T;
 } {
-  // gray-matter keeps every distinct input forever when called without
-  // options. Bulk passes see each document once, so caching them only grows
-  // the process; `cache: false` opts those callers out.
-  const { content, data } = matter(
-    markdown,
-    options?.cache === false ? {} : undefined,
-  );
+  // The shared reader retains no documents or mutable parsed objects.
+  const { content, data } = readMarkdownFrontmatter(markdown);
 
   // Convert all Date objects to strings before parsing with Zod
   const normalizedData = convertDatesToStrings(data);
@@ -197,8 +195,7 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
     return "";
   }
 
-  // Use gray-matter to generate frontmatter
-  const fullMarkdown = matter.stringify("", metadata);
+  const fullMarkdown = generateMarkdown(metadata, "");
 
   // Extract just the frontmatter part
   const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
@@ -244,8 +241,18 @@ const visibilityFrontmatterSchema = z.object({
 export function extractVisibilityFromMarkdown(
   markdown: string,
 ): ContentVisibility | undefined {
-  const parsed = matter(markdown);
+  const parsed = readMarkdownFrontmatter(markdown);
   return visibilityFrontmatterSchema.parse(parsed.data).visibility;
+}
+
+/**
+ * The text of a markdown document without its frontmatter block. It never
+ * throws: a block it cannot recognise is left in place.
+ */
+export function markdownBody(markdown: string): string {
+  return markdown
+    .replace(/^---\r?\n[\s\S]*?\r?\n---[^\S\r\n]*(?:\r?\n|$)/, "")
+    .trim();
 }
 
 export function hasVisibilityFrontmatter(markdown: string): boolean {
@@ -262,9 +269,13 @@ export function applyVisibilityToMarkdown(
     return markdown;
   }
 
-  const parsed = matter(markdown);
+  const parsed = readMarkdownFrontmatter(markdown);
+  if (parsed.data === null || parsed.data === undefined) {
+    throw new TypeError("Cannot convert undefined or null to object");
+  }
+  const fields: [string, unknown][] = Object.entries(parsed.data);
   const frontmatter = Object.fromEntries(
-    Object.entries(parsed.data).filter(([key]) => key !== "visibility"),
+    fields.filter(([key]) => key !== "visibility"),
   );
 
   if (visibility !== "public") {

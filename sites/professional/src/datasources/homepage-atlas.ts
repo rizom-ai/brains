@@ -14,7 +14,11 @@ import {
 /** The projection plus the build's scoped entity reads; nothing else. */
 export interface AtlasSource {
   semantic: KnowledgeMapDataContext["semantic"];
-  entityService: {
+  sourceTypes: KnowledgeMapDataContext["sourceTypes"];
+  entityService: Omit<
+    KnowledgeMapDataContext["entityService"],
+    "listEntities"
+  > & {
     listEntities(request: { entityType: string }): Promise<BaseEntity[]>;
   };
 }
@@ -83,19 +87,23 @@ export async function loadHomepageAtlas(
   source: AtlasSource,
 ): Promise<HomepageAtlasData | null> {
   try {
-    const [map, listed] = await Promise.all([
-      buildKnowledgeMapData(source),
-      Promise.all(
-        atlasEntityTypeSchema.options.map((entityType) =>
-          source.entityService.listEntities({ entityType }),
-        ),
+    const listed = await Promise.all(
+      atlasEntityTypeSchema.options.map((entityType) =>
+        source.entityService.listEntities({ entityType }),
       ),
-    ]);
+    );
     const published = new Map(
       listed
         .flat()
         .map((entity) => [`${entity.entityType}:${entity.id}`, entity]),
     );
+    // Every published piece is drawn, however large the rest of the corpus.
+    const map = await buildKnowledgeMapData(source, "public", {
+      include: [...published.values()].map((entity) => ({
+        entityType: entity.entityType,
+        entityId: entity.id,
+      })),
+    });
 
     const newest = latestPublished(published);
     const items: AtlasItem[] = map.points.flatMap((point) => {

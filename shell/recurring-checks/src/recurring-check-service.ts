@@ -419,8 +419,15 @@ export class RecurringCheckService {
   ): Promise<void> {
     const tasks: Promise<unknown>[] = [];
     if (registered.scheduledJob) {
-      tasks.push(registered.scheduledJob.stop());
+      const scheduledJob = registered.scheduledJob;
       delete registered.scheduledJob;
+      try {
+        tasks.push(scheduledJob.stop());
+      } catch (error) {
+        // An adapter may throw before returning its Promise. Report that
+        // failure only after the other admitted work has been drained.
+        tasks.push(Promise.reject(error));
+      }
     }
     if (registered.activeCheck) {
       registered.activeCheck.controller.abort(reason);

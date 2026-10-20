@@ -1,5 +1,23 @@
 # @rizom/site-books
 
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- [#619](https://github.com/rizom-ai/brains/pull/619) [`23efb6d`](https://github.com/rizom-ai/brains/commit/23efb6da194bbd79f50d77e1ba7402429fa92df6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The books site's theme toggle is an icon — a sun in the dark theme, a moon in the light one — in a square the height of the Ask pill, beside it at the bar's right edge, with the bar's items on one centre line. The Ask pill keeps its space after the question mark.
+
+## 0.2.0-alpha.3
+
+### Patch Changes
+
+- [#618](https://github.com/rizom-ai/brains/pull/618) [`bbcaf0f`](https://github.com/rizom-ai/brains/commit/bbcaf0fa3a1ab40d584f8a8585e8af78dd3a9188) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The books site's bar offers a theme toggle: "Paper" in the dark theme, "Ink" in the light one. The reader's choice is remembered across pages and visits.
+
+## 0.2.0-alpha.2
+
+### Patch Changes
+
+- [#573](https://github.com/rizom-ai/brains/pull/573) [`34fc4ef`](https://github.com/rizom-ai/brains/commit/34fc4ef886cef62fb34f57f9a8fd74e044867291) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The books site opens each section of a book under its book, at `/books/<book>/<order>`, and cites only sections in answers.
+
 ## 0.2.0-alpha.1
 
 ### Minor Changes

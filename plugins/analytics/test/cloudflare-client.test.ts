@@ -62,513 +62,229 @@ describe("CloudflareClient", () => {
     client = new CloudflareClient(config, { fetch: delegatingFetch });
   });
 
-  describe("getWebsiteStats", () => {
-    it("should fetch website stats from Cloudflare GraphQL API", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
-              {
-                rumPageloadEventsAdaptiveGroups: [
-                  {
-                    count: 100,
-                    sum: { visits: 80 },
-                    dimensions: { date: "2025-01-15" },
+  describe("getDailyTraffic", () => {
+    const groups = (
+      overrides: Partial<Record<string, unknown[]>> = {},
+    ): object => ({
+      data: {
+        viewer: {
+          accounts: [
+            {
+              total: [
+                { count: 49, sum: { visits: 10 }, avg: { sampleInterval: 1 } },
+              ],
+              paths: [
+                { count: 20, dimensions: { requestPath: "/" } },
+                { count: 6, dimensions: { requestPath: "/essays/a" } },
+                { count: 2, dimensions: { requestPath: "/essays/a/" } },
+              ],
+              referrers: [
+                {
+                  sum: { visits: 4 },
+                  dimensions: { refererHost: "www.linkedin.com" },
+                },
+                { sum: { visits: 5 }, dimensions: { refererHost: "" } },
+              ],
+              pathReferrers: [
+                {
+                  sum: { visits: 3 },
+                  dimensions: {
+                    requestPath: "/essays/a",
+                    refererHost: "www.linkedin.com",
                   },
-                  {
-                    count: 150,
-                    sum: { visits: 120 },
-                    dimensions: { date: "2025-01-16" },
-                  },
-                ],
-              },
-            ],
-          },
+                },
+              ],
+              countries: [
+                { sum: { visits: 6 }, dimensions: { countryName: "TW" } },
+              ],
+              ...overrides,
+            },
+          ],
         },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-      const result = await client.getWebsiteStats({
-        startDate: "2025-01-15",
-        endDate: "2025-01-16",
-      });
-
-      expect(fetchFn).toHaveBeenCalledTimes(1);
-      expect(fetchFn).toHaveBeenCalledWith(
-        "https://api.cloudflare.com/client/v4/graphql",
-        expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            Authorization: "Bearer cf_test_api_token",
-            "Content-Type": "application/json",
-          }),
-        }),
-      );
-
-      // Verify aggregation
-      expect(result.pageviews).toBe(250); // 100 + 150
-      expect(result.visits).toBe(200); // 80 + 120
-      expect(result.visitors).toBe(200); // Same as visits in Cloudflare
+      },
+      errors: null,
     });
 
-    it("should handle empty results", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
-              {
-                rumPageloadEventsAdaptiveGroups: [],
-              },
-            ],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-      const result = await client.getWebsiteStats({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
-
-      expect(result.pageviews).toBe(0);
-      expect(result.visitors).toBe(0);
-      expect(result.visits).toBe(0);
-    });
-
-    it("should throw error on API failure", async () => {
+    it("throws on an API failure", async () => {
       installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
 
       let error: Error | null = null;
       try {
-        await client.getWebsiteStats({
-          startDate: "2025-01-01",
-          endDate: "2025-01-31",
-        });
+        await client.getDailyTraffic("2026-10-05");
       } catch (e) {
         error = caughtError(e);
       }
 
-      expect(error).not.toBeNull();
       expect(error?.message).toContain("Cloudflare API error: 401");
     });
 
-    it("should throw error on GraphQL errors", async () => {
-      const mockResponse = {
-        data: null,
-        errors: [{ message: "Invalid query" }],
-      };
-
+    it("throws on GraphQL errors, naming them", async () => {
       installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify({
+            data: null,
+            errors: [{ message: "Invalid query" }],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
       );
 
       let error: Error | null = null;
       try {
-        await client.getWebsiteStats({
-          startDate: "2025-01-01",
-          endDate: "2025-01-31",
-        });
+        await client.getDailyTraffic("2026-10-05");
       } catch (e) {
         error = caughtError(e);
       }
 
-      expect(error).not.toBeNull();
       expect(error?.message).toContain("Cloudflare GraphQL error");
       expect(error?.message).toContain("Invalid query");
     });
 
-    it("should use date_geq/date_leq filters (not datetime_geq/datetime_leq)", async () => {
-      const emptyResponse = {
-        data: {
-          viewer: {
-            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
-          },
-        },
-      };
+    it("reads one day's totals and breakdowns in one request", async () => {
+      const body = installCapturingMockFetch(groups());
 
-      const getBody = installCapturingMockFetch(emptyResponse);
+      const day = await client.getDailyTraffic("2026-10-05");
 
-      await client.getWebsiteStats({
-        startDate: "2025-01-15",
-        endDate: "2025-01-16",
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+      expect(body()).toMatchObject({
+        variables: { siteTag: "test_site_tag", date: "2026-10-05" },
       });
-
-      const body = getBody();
-
-      // Verify the query uses date filters, not datetime filters
-      expect(body).toHaveProperty("query", expect.stringContaining("date_geq"));
-      expect(body).toHaveProperty("query", expect.stringContaining("date_leq"));
-      expect(body).toHaveProperty(
-        "query",
-        expect.not.stringContaining("datetime_geq"),
-      );
-      expect(body).toHaveProperty(
-        "query",
-        expect.not.stringContaining("datetime_leq"),
-      );
-    });
-
-    it("should pass dates in YYYY-MM-DD format to the API", async () => {
-      const emptyResponse = {
-        data: {
-          viewer: {
-            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
-          },
-        },
-      };
-
-      const getBody = installCapturingMockFetch(emptyResponse);
-
-      await client.getWebsiteStats({
-        startDate: "2025-01-15",
-        endDate: "2025-01-16",
+      expect(day).toEqual({
+        date: "2026-10-05",
+        pageviews: 49,
+        visits: 10,
+        estimated: false,
+        paths: [
+          { path: "/", pageviews: 20 },
+          { path: "/essays/a", pageviews: 8 },
+        ],
+        referrers: [
+          { host: "(direct)", visits: 5 },
+          { host: "www.linkedin.com", visits: 4 },
+        ],
+        pathReferrers: [
+          { path: "/essays/a", host: "www.linkedin.com", visits: 3 },
+        ],
+        countries: [{ country: "TW", visits: 6 }],
       });
-
-      const body = getBody();
-
-      // Verify dates are in YYYY-MM-DD format
-      expect(body).toHaveProperty("variables.start", "2025-01-15");
-      expect(body).toHaveProperty("variables.end", "2025-01-16");
     });
 
-    it("should truncate ISO datetime strings to date format", async () => {
-      const emptyResponse = {
-        data: {
-          viewer: {
-            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
-          },
-        },
-      };
-
-      const getBody = installCapturingMockFetch(emptyResponse);
-
-      // Pass ISO datetime strings with time component
-      await client.getWebsiteStats({
-        startDate: "2025-01-15T10:30:00.000Z",
-        endDate: "2025-01-16T23:59:59.999Z",
-      });
-
-      const body = getBody();
-
-      // Should be truncated to just the date part
-      expect(body).toHaveProperty("variables.start", "2025-01-15");
-      expect(body).toHaveProperty("variables.end", "2025-01-16");
-    });
-  });
-
-  describe("validateCredentials", () => {
-    it("should return true for valid credentials", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [{ accountTag: "test_account_id" }],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-      const isValid = await client.validateCredentials();
-      expect(isValid).toBe(true);
-    });
-
-    it("should return false for invalid credentials", async () => {
-      installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
-
-      const isValid = await client.validateCredentials();
-      expect(isValid).toBe(false);
-    });
-
-    it("should return false on GraphQL errors", async () => {
-      const mockResponse = {
-        errors: [{ message: "Authentication failed" }],
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-      const isValid = await client.validateCredentials();
-      expect(isValid).toBe(false);
-    });
-
-    it("should return false on network errors", async () => {
-      installMockFetch(() => Promise.reject(new Error("Network error")));
-
-      const isValid = await client.validateCredentials();
-      expect(isValid).toBe(false);
-    });
-  });
-
-  describe("getTopPages", () => {
-    it("should fetch top pages grouped by requestPath", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
-              {
-                rumPageloadEventsAdaptiveGroups: [
-                  {
-                    count: 45,
-                    dimensions: { requestPath: "/essays/economy-of-abundance" },
-                  },
-                  {
-                    count: 30,
-                    dimensions: { requestPath: "/" },
-                  },
-                  {
-                    count: 20,
-                    dimensions: { requestPath: "/decks/offcourse" },
-                  },
-                ],
+    // Navigation within the site carries its own host as referrer but starts
+    // no visit; such rows would crowd the real referrers out of the top ten.
+    it("drops referrer and country rows without visits", async () => {
+      installCapturingMockFetch(
+        groups({
+          referrers: [
+            {
+              sum: { visits: 4 },
+              dimensions: { refererHost: "www.linkedin.com" },
+            },
+            { sum: { visits: 0 }, dimensions: { refererHost: "yeehaa.io" } },
+          ],
+          pathReferrers: [
+            {
+              sum: { visits: 0 },
+              dimensions: {
+                requestPath: "/ask",
+                refererHost: "preview.yeehaa.io",
               },
-            ],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+            },
+          ],
+          countries: [
+            { sum: { visits: 0 }, dimensions: { countryName: "NL" } },
+          ],
         }),
       );
 
-      const result = await client.getTopPages({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
+      const day = await client.getDailyTraffic("2026-10-05");
 
-      expect(result).toEqual([
-        { path: "/essays/economy-of-abundance", views: 45 },
-        { path: "/", views: 30 },
-        { path: "/decks/offcourse", views: 20 },
-      ]);
+      expect(day.referrers).toEqual([{ host: "www.linkedin.com", visits: 4 }]);
+      expect(day.pathReferrers).toEqual([]);
+      expect(day.countries).toEqual([]);
     });
 
-    it("should return empty array when no data", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+    it("marks a day Cloudflare already sampled as an estimate", async () => {
+      installCapturingMockFetch(
+        groups({
+          total: [
+            { count: 130, sum: { visits: 130 }, avg: { sampleInterval: 10 } },
+          ],
         }),
       );
 
-      const result = await client.getTopPages({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("getTopReferrers", () => {
-    it("should fetch top referrers grouped by refererHost", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
-              {
-                rumPageloadEventsAdaptiveGroups: [
-                  {
-                    sum: { visits: 25 },
-                    dimensions: { refererHost: "google.com" },
-                  },
-                  {
-                    sum: { visits: 15 },
-                    dimensions: { refererHost: "linkedin.com" },
-                  },
-                  {
-                    sum: { visits: 40 },
-                    dimensions: { refererHost: "" }, // Direct traffic
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-      const result = await client.getTopReferrers({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
-
-      expect(result).toEqual([
-        { host: "google.com", visits: 25 },
-        { host: "linkedin.com", visits: 15 },
-        { host: "(direct)", visits: 40 },
-      ]);
-    });
-  });
-
-  describe("getDeviceBreakdown", () => {
-    it("should fetch device type breakdown", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
-              {
-                rumPageloadEventsAdaptiveGroups: [
-                  {
-                    sum: { visits: 60 },
-                    dimensions: { deviceType: "desktop" },
-                  },
-                  {
-                    sum: { visits: 38 },
-                    dimensions: { deviceType: "mobile" },
-                  },
-                  {
-                    sum: { visits: 2 },
-                    dimensions: { deviceType: "tablet" },
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-      const result = await client.getDeviceBreakdown({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
-
-      expect(result).toEqual({
-        desktop: 60,
-        mobile: 38,
-        tablet: 2,
-      });
+      expect((await client.getDailyTraffic("2026-09-25")).estimated).toBe(true);
     });
 
-    it("should return zeros for missing device types", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
-              {
-                rumPageloadEventsAdaptiveGroups: [
-                  {
-                    sum: { visits: 100 },
-                    dimensions: { deviceType: "desktop" },
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      };
-
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+    it("reads a day without traffic as zeros", async () => {
+      installCapturingMockFetch(
+        groups({
+          total: [],
+          paths: [],
+          referrers: [],
+          pathReferrers: [],
+          countries: [],
         }),
       );
 
-      const result = await client.getDeviceBreakdown({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
-
-      expect(result).toEqual({
-        desktop: 100,
-        mobile: 0,
-        tablet: 0,
+      expect(await client.getDailyTraffic("2026-09-23")).toEqual({
+        date: "2026-09-23",
+        pageviews: 0,
+        visits: 0,
+        estimated: false,
+        paths: [],
+        referrers: [],
+        pathReferrers: [],
+        countries: [],
       });
     });
   });
 
-  describe("getTopCountries", () => {
-    it("should fetch top countries grouped by countryName", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [
+  describe("getSiteCreatedAt", () => {
+    it("returns the creation date of the configured Web Analytics site", async () => {
+      installStaticMockFetch(
+        new Response(
+          JSON.stringify({
+            success: true,
+            result: [
+              { site_tag: "other", created: "2026-04-01T07:56:49Z" },
               {
-                rumPageloadEventsAdaptiveGroups: [
-                  {
-                    sum: { visits: 40 },
-                    dimensions: { countryName: "United States" },
-                  },
-                  {
-                    sum: { visits: 15 },
-                    dimensions: { countryName: "Netherlands" },
-                  },
-                  {
-                    sum: { visits: 10 },
-                    dimensions: { countryName: "Germany" },
-                  },
-                ],
+                site_tag: "test_site_tag",
+                created: "2026-04-11T16:15:29.199964Z",
               },
             ],
-          },
-        },
-      };
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
 
+      expect(await client.getSiteCreatedAt()).toBe("2026-04-11");
+      expect(fetchFn).toHaveBeenCalledWith(
+        "https://api.cloudflare.com/client/v4/accounts/test_account_id/rum/site_info/list?per_page=100",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer cf_test_api_token",
+          }),
+        }),
+      );
+    });
+
+    it("returns null when the site is not listed", async () => {
       installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
+        new Response(JSON.stringify({ success: true, result: [] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
       );
 
-      const result = await client.getTopCountries({
-        startDate: "2025-01-15",
-        endDate: "2025-01-15",
-      });
+      expect(await client.getSiteCreatedAt()).toBeNull();
+    });
 
-      expect(result).toEqual([
-        { country: "United States", visits: 40 },
-        { country: "Netherlands", visits: 15 },
-        { country: "Germany", visits: 10 },
-      ]);
+    it("throws on an API failure", async () => {
+      installStaticMockFetch(new Response("Forbidden", { status: 403 }));
+
+      expect(client.getSiteCreatedAt()).rejects.toThrow(
+        "Cloudflare API error: 403",
+      );
     });
   });
 });

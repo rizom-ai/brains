@@ -4,17 +4,27 @@ import {
   assertReleaseConfigReferencesWorkspacePackages,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
+  migratePrereleaseHistory,
+  parsePrereleaseState,
+  readPrereleaseHistory,
   packageMatchesReleaseLane,
   resolveReleaseVersionStrategy,
   resolveReleaseWorkflowMode,
   type ReleaseLane,
 } from "@brains/build-tools";
 import assembleReleasePlan from "@changesets/assemble-release-plan";
-import { read as readChangesetsConfig } from "@changesets/config";
+import { readConfig } from "@changesets/config";
 import parseChangesetFile from "@changesets/parse";
 import { getPackages } from "@manypkg/get-packages";
 import { z } from "@brains/utils/zod";
-import { mkdtemp, readFile, readdir, rename, rm } from "node:fs/promises";
+import {
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  rmdir,
+} from "node:fs/promises";
 import { join } from "node:path";
 
 const repositoryRoot = process.cwd();
@@ -120,6 +130,7 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
     return;
   }
   if (strategy === "stable") {
+    await migratePrereleaseHistory(repositoryRoot);
     const exitCode = await run([
       process.execPath,
       "run",
@@ -128,6 +139,16 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
     if (exitCode !== 0) {
       process.exit(exitCode);
     }
+    // CLI 3 consumes the archive but leaves its empty directory behind. Never
+    // discard remaining history: a nonempty archive must fail before publish.
+    await rmdir(join(changesetDir, "pre")).catch((error: unknown) => {
+      if (!(
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ))
+        throw error;
+    });
     return;
   }
 
@@ -137,9 +158,11 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
     return;
   }
 
+  await migratePrereleaseHistory(repositoryRoot);
   const opposite = pending.filter((changeset) => changeset.lane !== lane);
   const stashDir = await mkdtemp(join(repositoryRoot, ".release-lane-stash-"));
   let exitCode: number;
+  const stashed: PendingChangeset[] = [];
 
   try {
     for (const changeset of opposite) {
@@ -147,10 +170,11 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
         join(changesetDir, changeset.fileName),
         join(stashDir, changeset.fileName),
       );
+      stashed.push(changeset);
     }
     exitCode = await run([process.execPath, "run", "changeset:version:raw"]);
   } finally {
-    for (const changeset of opposite) {
+    for (const changeset of stashed.reverse()) {
       await rename(
         join(stashDir, changeset.fileName),
         join(changesetDir, changeset.fileName),
@@ -243,7 +267,9 @@ async function validateLanePlan(
       name: release.name,
       type: release.type,
       private: privatePackages.has(release.name),
-      newVersion: release.newVersion,
+      ...(release.newVersion === undefined
+        ? {}
+        : { newVersion: release.newVersion }),
     })),
   );
 }
@@ -253,8 +279,19 @@ async function validateStableReleasePlan(
   preState: NonNullable<Parameters<typeof assembleReleasePlan>[3]>,
 ): Promise<void> {
   const { packages, privatePackages, config } = await releasePlanContext();
+  const history = await readPrereleaseHistory(repositoryRoot);
+  const consumed = await Promise.all(
+    history.consumedFiles.map(async (fileName) => ({
+      id: fileName.startsWith("pre/")
+        ? fileName.slice(0, -3)
+        : `pre/${fileName.slice(0, -3)}`,
+      ...parseChangesetFile(
+        await readFile(join(changesetDir, fileName), "utf8"),
+      ),
+    })),
+  );
   const plan = assembleReleasePlan(
-    pending.map(changesetInput),
+    [...pending.map(changesetInput), ...consumed],
     packages,
     config,
     preState,
@@ -264,7 +301,9 @@ async function validateStableReleasePlan(
       name: release.name,
       type: release.type,
       private: privatePackages.has(release.name),
-      newVersion: release.newVersion,
+      ...(release.newVersion === undefined
+        ? {}
+        : { newVersion: release.newVersion }),
     })),
   );
 }
@@ -272,10 +311,14 @@ async function validateStableReleasePlan(
 async function releasePlanContext(): Promise<{
   packages: Awaited<ReturnType<typeof getPackages>>;
   privatePackages: Set<string>;
-  config: Awaited<ReturnType<typeof readChangesetsConfig>>;
+  config: NonNullable<Awaited<ReturnType<typeof readConfig>>["config"]>;
 }> {
   const packages = await getPackages(repositoryRoot);
-  const config = await readChangesetsConfig(repositoryRoot, packages);
+  const result = await readConfig(repositoryRoot, packages);
+  if (result.config === undefined) {
+    throw new Error(result.errors.join("\n"));
+  }
+  const config = result.config;
   const privatePackages = new Set(
     packages.packages
       .filter(({ packageJson }) => packageJson.private === true)
@@ -293,14 +336,11 @@ function changesetInput({ id, summary, releases }: PendingChangeset): {
 }
 
 async function pendingChangesets(): Promise<PendingChangeset[]> {
-  const consumed = new Set((await readPreState())?.changesets ?? []);
+  const history = await readPrereleaseHistory(repositoryRoot);
   const pending: PendingChangeset[] = [];
 
-  for (const fileName of await rootChangesetFiles()) {
+  for (const fileName of history.pendingFiles) {
     const id = fileName.slice(0, -3);
-    if (consumed.has(id)) {
-      continue;
-    }
     const lane = laneFromFileName(fileName);
     if (lane === undefined) {
       continue;
@@ -315,11 +355,10 @@ async function pendingChangesets(): Promise<PendingChangeset[]> {
 }
 
 async function assertNoUnscopedPendingChangesets(): Promise<void> {
-  const consumed = new Set((await readPreState())?.changesets ?? []);
-  const unscoped = (await rootChangesetFiles()).filter((fileName) => {
-    const id = fileName.slice(0, -3);
-    return !consumed.has(id) && laneFromFileName(fileName) === undefined;
-  });
+  const history = await readPrereleaseHistory(repositoryRoot);
+  const unscoped = history.pendingFiles.filter(
+    (fileName) => laneFromFileName(fileName) === undefined,
+  );
   if (unscoped.length > 0) {
     throw new Error(
       `Pending changesets must use a core-- or site-- queue prefix. Recreate them with \`bun changeset\` (the lane is inferred from the packages): ${unscoped.join(", ")}`,
@@ -328,8 +367,8 @@ async function assertNoUnscopedPendingChangesets(): Promise<void> {
 }
 
 async function assertConsumedChangesetsReferenceWorkspacePackages(): Promise<void> {
-  const consumed = new Set((await readPreState())?.changesets ?? []);
-  if (consumed.size === 0) {
+  const history = await readPrereleaseHistory(repositoryRoot);
+  if (history.consumedFiles.length === 0) {
     return;
   }
 
@@ -339,11 +378,7 @@ async function assertConsumedChangesetsReferenceWorkspacePackages(): Promise<voi
   );
   const missing: string[] = [];
 
-  for (const fileName of await rootChangesetFiles()) {
-    const id = fileName.slice(0, -3);
-    if (!consumed.has(id)) {
-      continue;
-    }
+  for (const fileName of history.consumedFiles) {
     const parsed = parseChangesetFile(
       await readFile(join(changesetDir, fileName), "utf8"),
     );
@@ -409,15 +444,7 @@ async function rootChangesetFiles(): Promise<string[]> {
 async function readPreState(): Promise<
   Parameters<typeof assembleReleasePlan>[3]
 > {
-  const text = await readFile(join(changesetDir, "pre.json"), "utf8").catch(
-    (error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT") {
-        return undefined;
-      }
-      throw error;
-    },
-  );
-  return parsePreState(text);
+  return (await readPrereleaseHistory(repositoryRoot)).state;
 }
 
 async function readPreviousPreState(): Promise<
@@ -432,15 +459,7 @@ async function readPreviousPreState(): Promise<
     child.exited,
     new Response(child.stdout).text(),
   ]);
-  return exitCode === 0 ? parsePreState(text) : undefined;
-}
-
-function parsePreState(
-  text: string | undefined,
-): Parameters<typeof assembleReleasePlan>[3] {
-  return text === undefined
-    ? undefined
-    : (JSON.parse(text) as Parameters<typeof assembleReleasePlan>[3]);
+  return exitCode === 0 ? parsePrereleaseState(text) : undefined;
 }
 
 function laneFromFileName(fileName: string): ReleaseLane | undefined {

@@ -6,6 +6,8 @@ export {
 export { renderOgImagePng } from "./og-image";
 export type { RenderOgImagePngOptions, ScreenshotPng } from "./og-image";
 export { renderPrintablePdf } from "./printable";
+export { renderEpub } from "./epub";
+export type { EpubMetadata, RenderEpubOptions } from "./epub";
 export type { RenderPrintablePdfOptions, RenderPdf } from "./printable";
 export {
   createMediaContentHelpers,
@@ -23,10 +25,7 @@ export type {
   PrintableProviderFactory,
 } from "./attachment-provider";
 export type {
-  MediaPageRenderer,
-  MediaPageTemplate,
   MediaSiteConfig,
-  MediaTemplateFormat,
   RenderMediaTemplateHtmlOptions,
   StartStaticRenderServerOptions,
   StaticRenderServer,

@@ -180,7 +180,12 @@ describe("JobQueueService", () => {
           testHandler,
           "shell",
         );
+        // Unknown until boot freezes them.
+        expect(validationService.getExecutionRegistrations()).toBeUndefined();
         const registrations = validationService.finalizeHandlerRegistrations();
+        expect(validationService.getExecutionRegistrations()).toBe(
+          registrations,
+        );
 
         expect(Object.isFrozen(registrations)).toBe(true);
         expect(registrations).toEqual([
@@ -487,6 +492,53 @@ describe("JobQueueService", () => {
         status: "completed",
         result: { current: true },
       });
+    });
+
+    it("claims one job of an exclusive type at a time", async () => {
+      const exclusive = Object.assign(new TestJobHandler(), {
+        exclusive: true,
+      });
+      service.registerHandler("shell:projection-rule", exclusive, "shell");
+      const enqueue = (): Promise<string> =>
+        service.enqueue({
+          type: "shell:projection-rule",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+      const firstId = await enqueue();
+      const secondId = await enqueue();
+
+      const first = await service.dequeue();
+      expect(first?.id).toBe(firstId);
+      // The second waits in the queue, unclaimed, while the first runs.
+      expect(await service.dequeue()).toBeNull();
+      expect(await service.getStatus(secondId)).toMatchObject({
+        status: "pending",
+      });
+
+      await service.complete(firstId, undefined, first?.attemptId ?? undefined);
+      expect((await service.dequeue())?.id).toBe(secondId);
+    });
+
+    it("still claims other types while an exclusive job runs", async () => {
+      service.registerHandler(
+        "shell:projection-rule",
+        Object.assign(new TestJobHandler(), { exclusive: true }),
+        "shell",
+      );
+      const exclusiveId = await service.enqueue({
+        type: "shell:projection-rule",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+      expect((await service.dequeue())?.id).toBe(exclusiveId);
+      const otherId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+
+      expect((await service.dequeue())?.id).toBe(otherId);
     });
 
     it("should dequeue next pending job", async () => {

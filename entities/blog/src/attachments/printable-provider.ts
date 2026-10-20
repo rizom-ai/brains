@@ -11,16 +11,16 @@ import {
 } from "../schemas/blog-post";
 import {
   BLOG_PRINTABLE_ATTACHMENT_TYPE,
-  blogPrintableTemplate,
-  type BlogPrintableTemplateData,
+  BLOG_PRINTABLE_TEMPLATE_NAME,
+  type BlogPrintableTemplateInput,
 } from "./printable-template";
 
 export const createBlogPrintableProvider: PrintableProviderFactory =
-  createPrintableProvider<BlogPost, BlogPrintableTemplateData>({
+  createPrintableProvider<BlogPost, BlogPrintableTemplateInput>({
     sourceEntityType: "post",
     entitySchema: blogPostSchema,
     attachmentType: BLOG_PRINTABLE_ATTACHMENT_TYPE,
-    template: blogPrintableTemplate,
+    templateName: BLOG_PRINTABLE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (post, helpers) => {
       const { frontmatter, content } = parseMarkdown(post.content);

@@ -117,6 +117,7 @@ export type {
 } from "./schema/projection-batches";
 export {
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,
@@ -249,6 +250,7 @@ export {
   entityTitle,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  markdownBody,
   generateFrontmatter,
   extractVisibilityFromMarkdown,
   applyVisibilityToMarkdown,

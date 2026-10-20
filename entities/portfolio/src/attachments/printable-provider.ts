@@ -8,16 +8,16 @@ import type { Project } from "../schemas/project";
 import { projectFrontmatterSchema, projectSchema } from "../schemas/project";
 import {
   PROJECT_PRINTABLE_ATTACHMENT_TYPE,
-  projectPrintableTemplate,
-  type ProjectPrintableTemplateData,
+  PROJECT_PRINTABLE_TEMPLATE_NAME,
+  type ProjectPrintableTemplateInput,
 } from "./printable-template";
 
 export const createProjectPrintableProvider: PrintableProviderFactory =
-  createPrintableProvider<Project, ProjectPrintableTemplateData>({
+  createPrintableProvider<Project, ProjectPrintableTemplateInput>({
     sourceEntityType: "project",
     entitySchema: projectSchema,
     attachmentType: PROJECT_PRINTABLE_ATTACHMENT_TYPE,
-    template: projectPrintableTemplate,
+    templateName: PROJECT_PRINTABLE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (project, helpers) => {
       const { frontmatter, content } = parseMarkdown(project.content);

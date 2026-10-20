@@ -23,6 +23,62 @@ describe("MessageBus", () => {
     messageBus = MessageBus.createFresh(logger);
   });
 
+  describe("peer events", () => {
+    it("reaches observers but not ordinary subscribers", async () => {
+      const observed: unknown[] = [];
+      const subscribed: unknown[] = [];
+      messageBus.observe("entity:updated", (message) => {
+        observed.push(message.payload);
+        return { success: true };
+      });
+      messageBus.subscribe("entity:updated", (message) => {
+        subscribed.push(message.payload);
+        return { success: true };
+      });
+
+      await messageBus.deliverPeer("entity:updated", { entityId: "w" });
+
+      expect(observed).toEqual([{ entityId: "w" }]);
+      expect(subscribed).toEqual([]);
+    });
+
+    it("gives observers local events too", async () => {
+      const observed: unknown[] = [];
+      messageBus.observe("entity:updated", (message) => {
+        observed.push(message.payload);
+        return { success: true };
+      });
+
+      await messageBus.send({
+        type: "entity:updated",
+        payload: { entityId: "local" },
+        sender: "test",
+        broadcast: true,
+      });
+
+      expect(observed).toEqual([{ entityId: "local" }]);
+    });
+
+    it("stops both deliveries when an observer unsubscribes", async () => {
+      const observed: unknown[] = [];
+      const stop = messageBus.observe("entity:updated", (message) => {
+        observed.push(message.payload);
+        return { success: true };
+      });
+      stop();
+
+      await messageBus.deliverPeer("entity:updated", { entityId: "w" });
+      await messageBus.send({
+        type: "entity:updated",
+        payload: { entityId: "local" },
+        sender: "test",
+        broadcast: true,
+      });
+
+      expect(observed).toEqual([]);
+    });
+  });
+
   describe("handler registration", () => {
     it("should subscribe a handler for a message type", () => {
       const handler = mock(() => ({ success: true }));

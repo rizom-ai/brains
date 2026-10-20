@@ -204,7 +204,7 @@ export function registerToolOnServer(
     tool.name,
     {
       description: tool.description,
-      inputSchema: z.object(tool.inputSchema),
+      inputSchema: z.strictObject(tool.inputSchema),
       annotations: getToolAnnotations(tool) ?? {},
     },
     async (params, ctx) => {

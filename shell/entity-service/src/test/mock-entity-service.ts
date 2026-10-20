@@ -24,6 +24,7 @@ export interface MockEntityServiceReturns {
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
+  purgeEntityType?: number;
   foldEntity?: EntityMutationResult;
   getEntityMutationReceipt?: EntityMutationReceipt | null;
   applyEntityMutationOnce?: EntityMutationReceipt;
@@ -191,6 +192,7 @@ export function createMockEntityService(
       return mutationResult(returns.updateEntity);
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
+    purgeEntityType: mock(() => Promise.resolve(returns.purgeEntityType ?? 0)),
     foldEntity: mock(async (request) => {
       await request.options?.beforeWrite?.(request.entity);
       return mutationResult(returns.foldEntity);
@@ -201,6 +203,7 @@ export function createMockEntityService(
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
     isProjectionOwnedEntity: mock(() => Promise.resolve(false)),
+    releaseProjectionOwnership: mock(() => Promise.resolve()),
     listPendingEntityExports: mock(() => Promise.resolve([])),
     hasPendingEntityExports: mock(() => Promise.resolve(false)),
     acknowledgeEntityExports: mock(() => Promise.resolve(0)),

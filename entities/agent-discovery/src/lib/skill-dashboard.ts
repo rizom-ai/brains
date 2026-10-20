@@ -2,15 +2,40 @@ import {
   SYSTEM_CHANNELS,
   defineDashboardWidget,
   registerBuiltInDashboardWidget,
+  type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { skillEntitySchema } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
 
-const skillsWidgetDataSchema = z.object({
+type SkillsWidgetDataSchema = z.ZodObject<{
+  items: z.ZodArray<z.ZodObject<{ id: z.ZodString; name: z.ZodString }>>;
+}>;
+
+const skillsWidgetDataSchema: SkillsWidgetDataSchema = z.object({
   items: z.array(z.object({ id: z.string(), name: z.string() })),
 });
+
+/** The skills the caller may see, for the dashboard. */
+export async function buildSkillsWidgetData(
+  context: Pick<EntityPluginContext, "entityService">,
+  visibilityScope: ContentVisibility,
+): Promise<z.input<typeof skillsWidgetDataSchema>> {
+  const skills = await context.entityService.listEntities(
+    {
+      entityType: SKILL_ENTITY_TYPE,
+      options: { limit: 10, filter: { visibilityScope } },
+    },
+    skillEntitySchema,
+  );
+  return {
+    items: skills.map((skill) => ({
+      id: skill.id,
+      name: skill.metadata.name,
+    })),
+  };
+}
 
 const skillsWidget = defineDashboardWidget({
   id: SKILLS_WIDGET_ID,
@@ -47,22 +72,9 @@ export function registerSkillsDashboardWidget(
       await registerBuiltInDashboardWidget({
         context,
         definition: skillsWidget,
-        load: async ({ signal }) => {
+        load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const skills = await context.entityService.listEntities(
-            {
-              entityType: SKILL_ENTITY_TYPE,
-              options: { limit: 10 },
-            },
-            skillEntitySchema,
-          );
-          signal.throwIfAborted();
-          return {
-            items: skills.map((skill) => ({
-              id: skill.id,
-              name: skill.metadata.name,
-            })),
-          };
+          return buildSkillsWidgetData(context, visibilityScope);
         },
       });
       return { success: true };

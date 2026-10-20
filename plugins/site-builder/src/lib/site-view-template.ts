@@ -9,10 +9,9 @@ export interface SiteViewTemplate {
   name: string;
   schema: SiteViewTemplateSchema;
   pluginId: string;
+  /** The site renders pages only; media formats render through attachments. */
   renderers: {
     web?: ((props: JsonObject) => ReactElement) | string;
-    image?: ((props: JsonObject) => ReactElement) | string;
-    pdf?: ((props: JsonObject) => ReactElement) | string;
   };
   fullscreen?: boolean;
   runtimeScripts?: SiteRuntimeScript[];

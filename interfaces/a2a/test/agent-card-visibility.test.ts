@@ -77,7 +77,7 @@ describe("agent card excludes non-public skills", () => {
     harness.getMockShell().getProfileKindRegistry().finalize();
     await plugin.ready();
 
-    const card = plugin.getAgentCard();
+    const card = await plugin.getAgentCard();
     const cardSkillNames = (card?.skills ?? []).map((skill) => skill.name);
     expect(cardSkillNames).toContain("Public Skill");
     expect(cardSkillNames).not.toContain("Shared Skill");

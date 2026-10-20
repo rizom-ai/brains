@@ -19,15 +19,14 @@ turns:
           argsContain:
             entityType: note
             id: mcp-long-note-update
-            edits: &a2
-              - oldText: "# Working Plan"
-                newText: "# Approved Plan"
-              - oldText: "Review cadence: monthly."
-                newText: "Review cadence: weekly."
-          argsAbsent:
-            - fields
-            - content
-            - confirmed
+            operation:
+              kind: edits
+              edits: &a2
+                - oldText: "# Working Plan"
+                  newText: "# Approved Plan"
+                - oldText: "Review cadence: monthly."
+                  newText: "Review cadence: weekly."
+          argsAbsent: ["operation.fields", "operation.content", "confirmed"]
           resultContains:
             needsConfirmation: true
   - userMessage: Cancel that proposed update.
@@ -594,10 +593,10 @@ turns:
           argsContain:
             entityType: note
             id: mcp-long-note-update
-            edits: *a2
-          argsAbsent:
-            - fields
-            - content
+            operation:
+              kind: edits
+              edits: *a2
+          argsAbsent: ["operation.fields", "operation.content"]
           resultContains:
             success: true
             data.updated: mcp-long-note-update

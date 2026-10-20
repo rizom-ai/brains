@@ -18,6 +18,9 @@ Options:
   --skip-llm-judge    Skip LLM quality scoring (faster)
   --parallel, -p      Run tests in parallel (default: 3 concurrent)
   --max-parallel <n>  Set max concurrent tests (default: 3)
+  --samples <n>       Run each model n times, each in a fresh environment
+                      (default: samples in brain.eval.yaml, else 1)
+  --min-pass-rate <r> Share of a test's sampled runs that must pass (default: 1)
   --verbose, -v       Show verbose output
   --build-db          Build eval database from eval-content (no tests)
   --tool-coverage     Diff agent tools against asserted eval tools
@@ -43,5 +46,7 @@ Examples:
   bun run eval --mcp-basic --test <ids>      Evaluate through basic MCP
   bun run eval --skip-llm-judge             Skip LLM judge for speed
   bun run eval --url http://localhost:8080  Run against remote instance
+  bun run eval --samples 5 --min-pass-rate 0.8
+                                            Judge each test by its pass rate
 `);
 }

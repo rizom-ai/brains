@@ -16,6 +16,7 @@
 // ─── Register the canonical definition and built-in package refs ─────────
 
 import { setCanonicalDefinition } from "../src/lib/definition-registry";
+import { processPeerChannel } from "../src/lib/process-peer-channel";
 import canonicalBrain from "../src/model/canonical-brain";
 import { registerPackage } from "@brains/app";
 
@@ -104,7 +105,11 @@ setBootFn(async (cwd, definition, flags) => {
   } else {
     await handleCLI(config, {
       ...(flags.migrationsCompleted && { migrationsCompleted: true }),
-      ...(flags.childRole && { processRole: flags.childRole }),
+      ...(flags.childRole && {
+        processRole: flags.childRole,
+        // Tells the other app role, through the supervisor, what this one changed.
+        peerChannel: processPeerChannel(process),
+      }),
       ...(flags.childRole && {
         onRuntimeReady: (): void => {
           const sendSupervisorMessage = (

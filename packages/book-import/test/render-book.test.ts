@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { bookAdapter } from "@brains/book";
+import { bookAdapter, bookSectionAdapter } from "@brains/book";
 import { germanSlug, renderBook, type BookSource } from "../src/render-book";
 
 const source: BookSource = {
@@ -44,19 +44,24 @@ const source: BookSource = {
   ],
 };
 
-function frontmatterOf(markdown: string): Record<string, unknown> {
+function bookOf(markdown: string): Record<string, unknown> {
   return bookAdapter.parseFrontMatter(markdown, bookAdapter.frontmatterSchema);
 }
 
+function frontmatterOf(markdown: string): Record<string, unknown> {
+  return bookSectionAdapter.parseFrontMatter(
+    markdown,
+    bookSectionAdapter.frontmatterSchema,
+  );
+}
+
 describe("renderBook", () => {
-  it("opens with a title entry holding the book's details and contents", () => {
+  it("opens with the book: its details and contents", () => {
     const [title] = renderBook(source);
 
-    expect(title?.path).toBe("book/erfundenes-buch/00000-titel.md");
-    expect(frontmatterOf(title?.markdown ?? "")).toMatchObject({
+    expect(title?.path).toBe("book/erfundenes-buch.md");
+    expect(bookOf(title?.markdown ?? "")).toMatchObject({
       title: "Erfundenes Buch",
-      book: "erfundenes-buch",
-      order: 0,
       author: "Erfundener Autor",
       license: "CC-BY-NC-ND-4.0",
       source: "https://example.org/eb",
@@ -67,13 +72,39 @@ describe("renderBook", () => {
     );
   });
 
-  it("measures the book on its title entry", () => {
+  it("lists a title again where a later section repeats it, as a note numbered like a chapter", () => {
+    const unit = (
+      title: string,
+      order: number,
+    ): BookSource["units"][number] => ({
+      parents: [],
+      title,
+      section: `EB-${order}`,
+      page: null,
+      source: `https://example.org/eb/${order}`,
+      paragraphs: [`Absatz ${order}.`],
+    });
+    const [title] = renderBook({
+      ...source,
+      units: [
+        unit("I.", 1),
+        unit("II.", 2),
+        unit("Anmerkungen. I.", 3),
+        unit("II.", 4),
+      ],
+    });
+
+    expect(title?.markdown).toContain("[II.](/books/erfundenes-buch/2)");
+    expect(title?.markdown).toContain("[II.](/books/erfundenes-buch/4)");
+  });
+
+  it("measures the book by its sections", () => {
     const [title, ...sections] = renderBook(source);
     const bodyBytes = sections
       .map((file) => file.markdown.split("---\n").slice(2).join("---\n").trim())
       .reduce((sum, body) => sum + Buffer.byteLength(body, "utf8"), 0);
 
-    expect(frontmatterOf(title?.markdown ?? "")).toMatchObject({
+    expect(bookOf(title?.markdown ?? "")).toMatchObject({
       published: true,
       shortTitle: "Erfunden",
       sections: 3,
@@ -81,17 +112,18 @@ describe("renderBook", () => {
     });
   });
 
-  it("writes one entry per unit in reading order, parents as folders", () => {
+  it("writes one section per unit in reading order, parents as folders", () => {
     const files = renderBook(source);
 
     expect(files.map((file) => file.path)).toEqual([
-      "book/erfundenes-buch/00000-titel.md",
+      "book/erfundenes-buch.md",
       "book/erfundenes-buch/00001-vorrede.md",
       "book/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
       "book/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
     ]);
     expect(frontmatterOf(files[2]?.markdown ?? "")).toMatchObject({
       title: "Über das Erfinden",
+      book: "erfundenes-buch",
       order: 2,
       section: "EB-1",
       page: "12",
@@ -102,13 +134,62 @@ describe("renderBook", () => {
     );
   });
 
-  it("files each section under its top-level part", () => {
+  it("names a section with a title too long for a file name by as much of it as fits", () => {
+    const title =
+      "Das Zusammenwirken der beiden Autoren begann volle zehn Jahre vor ihrer ersten Veröffentlichung, und in den Studien finden wir ausdrücklich bestätigt, daß einer der mitgeteilten Fälle vierzehn Jahre vor der Publikation nach der kathartischen Methode behandelt wurde";
+    const files = renderBook({
+      ...source,
+      units: source.units.slice(0, 1).map((unit) => ({ ...unit, title })),
+    });
+    const name = files[1]?.path.split("/").at(-1) ?? "";
+
+    expect(name.length).toBeLessThanOrEqual(255);
+    expect(name).toStartWith("00001-das-zusammenwirken-der-beiden-autoren");
+    expect(name).toEndWith(".md");
+  });
+
+  it("names a section by its whole title where the name holds it", () => {
+    const title = ["abcdef", ...Array.from({ length: 40 }, () => "abcde")].join(
+      " ",
+    );
+    const files = renderBook({
+      ...source,
+      units: source.units.slice(0, 1).map((unit) => ({ ...unit, title })),
+    });
+    const name = files[1]?.path.split("/").at(-1) ?? "";
+
+    expect(name).toBe(`00001-${title.replaceAll(" ", "-")}.md`);
+    expect(name.length).toBe(255);
+  });
+
+  it("records each section's headings, outermost first", () => {
     const [, vorrede, first] = renderBook(source);
 
-    expect(frontmatterOf(vorrede?.markdown ?? "")["part"]).toBeNull();
-    expect(frontmatterOf(first?.markdown ?? "")["part"]).toBe(
+    expect(frontmatterOf(vorrede?.markdown ?? "")["headings"]).toEqual([]);
+    expect(frontmatterOf(first?.markdown ?? "")["headings"]).toEqual([
       "Erstes Hauptstück",
-    );
+    ]);
+  });
+
+  it("records every level of a nested section's headings", () => {
+    const [, nested] = renderBook({
+      ...source,
+      units: [
+        {
+          parents: ["Erster Theil", "Zarathustra's Vorrede"],
+          title: "1",
+          section: "EB-I-Vorrede-1",
+          page: null,
+          source: "http://www.nietzschesource.org/eKGWB/EB-I-Vorrede-1",
+          paragraphs: ["Als Zarathustra dreissig Jahr alt war."],
+        },
+      ],
+    });
+
+    expect(frontmatterOf(nested?.markdown ?? "")["headings"]).toEqual([
+      "Erster Theil",
+      "Zarathustra's Vorrede",
+    ]);
   });
 
   it("splits a unit over 8,000 bytes at paragraph boundaries", () => {
@@ -137,6 +218,11 @@ describe("renderBook", () => {
       const body = file.markdown.split("---\n").slice(2).join("---\n");
       expect(Buffer.byteLength(body.trim(), "utf8")).toBeLessThanOrEqual(8000);
     }
+    // The book still has one section, whose second entry continues the first.
+    expect(bookOf(files[0]?.markdown ?? "")).toMatchObject({
+      sections: 1,
+      continuations: [2],
+    });
   });
 
   it("splits a single paragraph over 8,000 bytes at sentence boundaries", () => {
@@ -169,9 +255,14 @@ describe("renderBook", () => {
     expect(bodies.join(" ")).toBe(paragraph);
   });
 
-  it("writes only files the book schema accepts", () => {
-    for (const file of renderBook(source)) {
-      expect(() => bookAdapter.fromMarkdown(file.markdown)).not.toThrow();
+  it("writes only files their schemas accept", () => {
+    const [book, ...sections] = renderBook(source);
+
+    expect(() => bookAdapter.fromMarkdown(book?.markdown ?? "")).not.toThrow();
+    for (const file of sections) {
+      expect(() =>
+        bookSectionAdapter.fromMarkdown(file.markdown),
+      ).not.toThrow();
     }
   });
 
