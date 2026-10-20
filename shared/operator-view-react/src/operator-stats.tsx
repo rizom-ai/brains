@@ -24,6 +24,11 @@ export function OperatorStats(props: {
     <dl
       {...stylex.props(
         band ? b.root : s.root,
+        !band &&
+          !compact &&
+          props.items.length > 1 &&
+          props.items.every((item) => item.caption) &&
+          s.captioned,
         !band && compact && s.compact,
         !band && head && s.head,
         ledger && s.ledger,

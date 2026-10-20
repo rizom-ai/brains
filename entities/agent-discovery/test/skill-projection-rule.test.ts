@@ -142,6 +142,10 @@ describe("skill projection rule", () => {
       ),
       signal,
     );
+    // The derived skills it already made are offered for keeping, so a rerun
+    // does not rename (delete and recreate) skills that still fit.
+    expect(selected["prompt"]).toContain("- Stale");
+    expect(selected["prompt"]).not.toContain("- Existing");
     const { context, generate } = executionContext([desired]);
 
     const intents = await rule.derive(selected, context, signal);

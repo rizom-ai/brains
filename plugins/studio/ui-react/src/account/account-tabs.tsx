@@ -94,7 +94,7 @@ export function AccountProfileTab(
               action={
                 profileHref ? (
                   <Button asChild variant="link">
-                    <a href={profileHref}>Edit in Studio →</a>
+                    <a href={profileHref}>Edit Anchor Profile →</a>
                   </Button>
                 ) : undefined
               }
@@ -144,7 +144,7 @@ export function AccountProfileTab(
   );
 }
 
-/** The channel identities this brain recognises as you. */
+/** The channel identities this brain recognizes as you. */
 export function AccountIdentitiesTab(
   props: Pick<AccountTabProps, "account">,
 ): ReactElement {
@@ -152,7 +152,7 @@ export function AccountIdentitiesTab(
   return (
     <AccountDetailSection
       title="Linked identities"
-      description="How this brain recognises messages from you. These are your identities, not services configured for the whole brain."
+      description="How this brain recognizes messages from you. These are your identities, not services configured for the whole brain."
     >
       {channels.length === 0 ? (
         <p className={accountClass("people-empty", accountLayout.empty)}>

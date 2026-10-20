@@ -135,4 +135,23 @@ describe("entityTypeLabels", () => {
       pluralLabel: "Social Posts",
     });
   });
+
+  it("does not pluralize mass nouns, invariant words or acronyms wrongly", () => {
+    expect(entityTypeLabels("ask-content")).toEqual({
+      label: "Ask Content",
+      pluralLabel: "Ask Content",
+    });
+    expect(entityTypeLabels("site-info")).toEqual({
+      label: "Site Info",
+      pluralLabel: "Site Info",
+    });
+    expect(entityTypeLabels("series")).toEqual({
+      label: "Series",
+      pluralLabel: "Series",
+    });
+    expect(entityTypeLabels("faq")).toEqual({
+      label: "FAQ",
+      pluralLabel: "FAQs",
+    });
+  });
 });

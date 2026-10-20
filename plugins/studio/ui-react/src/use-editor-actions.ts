@@ -153,7 +153,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
         })
         .then((response: FieldAssistResponse) => {
           const suggestion =
-            response.variant === "summarise"
+            response.variant === "summarize"
               ? response.suggestion
               : response.suggestions;
           setFieldAssistState({

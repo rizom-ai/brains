@@ -9,7 +9,11 @@ import {
   PermissionService,
   ServicePlugin,
 } from "@brains/plugins";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import {
+  CONSOLE_CHANNELS,
+  DASHBOARD_CHANNELS,
+  consoleJumpDestinationSchema,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { DashboardWidgetRegistry } from "./widget-registry";
@@ -28,6 +32,7 @@ import {
 import { deriveConsoleSurfaces } from "@brains/plugins";
 import {
   buildConsoleJumpGroups,
+  jumpEntityHit,
   type ConsoleJumpEntityHit,
 } from "./console-jump";
 import type { DashboardAssetUrls } from "./render/types";
@@ -401,14 +406,7 @@ export class DashboardPlugin extends ServicePlugin<
             }
 
             if (results) {
-              entities = results.map((result) => {
-                const title = Reflect.get(result.entity, "title");
-                return {
-                  entityType: result.entity.entityType,
-                  id: result.entity.id,
-                  title: typeof title === "string" ? title : result.entity.id,
-                };
-              });
+              entities = results.map((result) => jumpEntityHit(result.entity));
             }
           }
 
@@ -420,12 +418,24 @@ export class DashboardPlugin extends ServicePlugin<
           const studioPath = surfaces.find(
             (surface) => surface.id === "studio",
           )?.href;
+          const answers = await ctx.messaging.collect({
+            type: CONSOLE_CHANNELS.jumpDestinations,
+            payload: { permissionLevel: principal.permissionLevel },
+          });
+          const destinations = answers.flatMap((answer) => {
+            const parsed =
+              "data" in answer
+                ? z.array(consoleJumpDestinationSchema).safeParse(answer.data)
+                : null;
+            return parsed?.success ? parsed.data : [];
+          });
           return Response.json({
             groups: buildConsoleJumpGroups({
               query,
               dashboardPath: this.config.routePath,
               studioPath,
               entities,
+              destinations,
             }),
           });
         },

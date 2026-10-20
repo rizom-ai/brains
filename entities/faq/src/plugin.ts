@@ -190,13 +190,16 @@ export class FaqPlugin extends EntityPlugin<
       },
     );
 
-    // Replies without a recorded permission level have no known visibility
-    // and are never captured.
+    // Only public turns are captured: an operator asking about their own
+    // brain is not a question a FAQ answers. Replies without a recorded
+    // permission level have no known visibility and are never captured.
     context.messaging.subscribe(
       CONVERSATION_MESSAGE_ADDED_CHANNEL,
       async (message) => {
         const reply = assistantReplySchema.safeParse(message.payload);
         if (!reply.success) return { success: true };
+        if (reply.data.metadata.userPermissionLevel !== "public")
+          return { success: true };
 
         // The reply is the newest message now, so the count is its position.
         const position = await context.conversations.countMessages(

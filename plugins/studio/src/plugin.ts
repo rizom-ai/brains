@@ -1,4 +1,9 @@
-import { CHAT_INTERACTION_ID, STUDIO_INTERACTION_ID } from "@brains/contracts";
+import {
+  CHAT_INTERACTION_ID,
+  CONSOLE_CHANNELS,
+  STUDIO_INTERACTION_ID,
+  type ConsoleJumpDestination,
+} from "@brains/contracts";
 import { getActiveAuthService } from "@brains/auth-service";
 import type {
   StudioOverviewContributionRegistration,
@@ -26,12 +31,17 @@ import {
   studioWorkspacePath,
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
-import { createEditorRoutes } from "./editor-routes";
+import { createEditorRoutes, resolveStudioChatApiPath } from "./editor-routes";
+import { studioJumpDestinations } from "./jump-destinations";
 import { createStudioChatHandoffState } from "./chat-handoff-contract";
 import { registerGroupingDefinitions } from "./grouping-definitions";
 import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
+
+const jumpDestinationsRequestSchema = z.object({
+  permissionLevel: z.enum(["public", "trusted", "admin"]),
+});
 import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
 import {
@@ -232,7 +242,35 @@ export class StudioPlugin extends ServicePlugin<
         registry: this.overviewRegistry,
       }),
     );
-    registerStudioOverviewActivity(context, this.overviewRegistry);
+    registerStudioOverviewActivity(
+      context,
+      this.overviewRegistry,
+      () =>
+        this.config.entityDisplay ??
+        parseEntityDisplay(this.getContext().entityDisplay),
+    );
+    context.messaging.subscribe<unknown, ConsoleJumpDestination[]>(
+      CONSOLE_CHANNELS.jumpDestinations,
+      (message) => {
+        const request = jumpDestinationsRequestSchema.safeParse(
+          message.payload,
+        );
+        if (!request.success) return { success: false, error: "Bad request" };
+        return {
+          success: true,
+          data: studioJumpDestinations({
+            context,
+            routePath: this.config.routePath,
+            permissionLevel: request.data.permissionLevel,
+            workspaceRegistry: this.workspaceRegistry,
+            hasChat: resolveStudioChatApiPath(context) !== undefined,
+            entityDisplay:
+              this.config.entityDisplay ??
+              parseEntityDisplay(context.entityDisplay),
+          }),
+        };
+      },
+    );
     context.messaging.subscribe<StudioOverviewContributionRegistration>(
       STUDIO_OVERVIEW_REGISTER_MESSAGE,
       (message) => {

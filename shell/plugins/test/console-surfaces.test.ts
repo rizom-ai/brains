@@ -34,6 +34,24 @@ describe("deriveConsoleSurfaces", () => {
     ]);
   });
 
+  it("never offers Studio's redirect aliases as its door", () => {
+    const studio = deriveConsoleSurfaces(
+      [
+        route("studio", "/cms"),
+        route("studio", "/admin"),
+        route("studio", "/account"),
+        route("studio", "/studio"),
+      ],
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
+    ).find((surface) => surface.id === "studio");
+
+    expect(studio?.href).toBe("/studio");
+  });
+
   const allSurfaceRoutes = [
     route("dashboard", "/dashboard"),
     route("web-chat", "/ask"),

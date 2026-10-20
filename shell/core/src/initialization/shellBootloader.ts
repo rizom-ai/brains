@@ -415,6 +415,11 @@ export class ShellBootloader {
         targets: prompts.refreshed,
       });
     }
+    if (prompts.retitled.length > 0) {
+      logger.info("Corrected generated prompt titles", {
+        targets: prompts.retitled,
+      });
+    }
     if (prompts.staleOverrides.length > 0) {
       logger.info("Edited prompts are based on an older default", {
         targets: prompts.staleOverrides,

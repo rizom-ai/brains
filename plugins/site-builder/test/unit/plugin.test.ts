@@ -450,7 +450,7 @@ describe("SiteBuilderPlugin", () => {
       type: "links",
       items: [
         {
-          label: "Open in Studio",
+          label: "Open Site",
           target: {
             kind: "launch",
             launch: { target: "site" },

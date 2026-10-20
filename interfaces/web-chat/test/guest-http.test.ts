@@ -1772,6 +1772,16 @@ describe("guest chat monitor in Studio", () => {
     expect(shown).not.toContain("switch-off");
   });
 
+  it("reads money, sizes and the door in plain terms", async () => {
+    const shown = await view(await setup(managed));
+    expect(shown).toContain("Turn on guest chat");
+    expect(shown).not.toContain("Open guest chat");
+    expect(shown).toContain("$0.00");
+    expect(shown).not.toContain("$0.0000");
+    expect(shown).toMatch(/0 bytes of [0-9.]+ (KB|MB)/);
+    expect(shown).toContain("Recording guest questions");
+  });
+
   it("opens with a budget only after a prepared confirmation, and closes at once", async () => {
     const state = await setup(managed);
     const input = { monthlyUsd: 10 };

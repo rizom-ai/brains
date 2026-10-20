@@ -1,6 +1,5 @@
 /** @jsxImportSource react */
 import {
-  Fragment,
   useId,
   type MouseEvent,
   type ReactElement,
@@ -123,13 +122,9 @@ export function StudioFolderRows(
   if (!props.folders.length) return null;
   const heading = props.kind === "page" ? "Pages" : "Folders";
   return (
-    <section
-      aria-label={`${heading} (complete list)`}
-      className={editorClassName("", styles.group)}
-    >
+    <section aria-label={heading} className={editorClassName("", styles.group)}>
       <div className={editorClassName("", styles.label)}>
         <span>{heading}</span>
-        <span>complete · not paged</span>
       </div>
       {props.folders.map((folder) => (
         <a
@@ -200,6 +195,22 @@ function emphasizeRange(
   );
 }
 
+/** Path rules as an author reads them; other messages pass through. */
+const SEGMENT_MESSAGES: ReadonlyArray<[RegExp, string]> = [
+  [
+    /path separators|cannot contain ':'/,
+    "Leave out slashes: the file name is a single name, not a path.",
+  ],
+  [/dot segments/, "Use a name other than “.” or “..”."],
+  [/null bytes/, "Remove the hidden control character from the name."],
+];
+
+function segmentMessage(message: string): string {
+  return (
+    SEGMENT_MESSAGES.find(([pattern]) => pattern.test(message))?.[1] ?? message
+  );
+}
+
 export function StudioDestination(props: {
   kind?: HierarchyKind;
   segment: string;
@@ -218,10 +229,11 @@ export function StudioDestination(props: {
   const error =
     issue?.path[0] === "prefix"
       ? `Cannot create in this ${props.kind ?? "folder"}: ${issue.message}`
-      : (issue?.message ??
-        (issues?.length
-          ? issues.map((item) => item.message).join(" ")
-          : props.error?.message));
+      : issue
+        ? segmentMessage(issue.message)
+        : issues?.length
+          ? issues.map((item) => segmentMessage(item.message)).join(" ")
+          : props.error?.message;
   const segmentInvalid =
     issue?.path[0] === "segment" || (!issues?.length && Boolean(props.error));
   const preview = !props.pending && !props.error ? props.preview : null;
@@ -231,7 +243,7 @@ export function StudioDestination(props: {
       className={editorClassName("", styles.destination)}
     >
       <label className={editorClassName("", styles.segment)}>
-        Segment
+        File name
         <input
           name="segment"
           className={editorClassName("", styles.input)}
@@ -244,8 +256,8 @@ export function StudioDestination(props: {
           aria-describedby={`${id}-help${segmentInvalid ? ` ${id}-error` : ""}`}
         />
         <small id={`${id}-help`}>
-          One segment in the selected {props.kind ?? "folder"}. No separators or
-          traversal.
+          Names the file inside this {props.kind ?? "folder"}: letters, numbers
+          and hyphens work best, and no slashes.
         </small>
       </label>
       {error && (
@@ -263,33 +275,14 @@ export function StudioDestination(props: {
         </p>
       )}
       {preview && (
-        <dl className={editorClassName("", styles.preview)}>
-          <dt>Path</dt>
-          <dd className={editorClassName("", styles.value)}>
-            [
-            {preview.idPath.map((segment, index) => (
-              <Fragment key={index}>
-                {index > 0 ? ", " : ""}
-                {index === preview.idPath.length - 1 ? (
-                  <strong>{JSON.stringify(segment)}</strong>
-                ) : (
-                  JSON.stringify(segment)
-                )}
-              </Fragment>
-            ))}
-            ]
-          </dd>
-          <dt>Stored ID</dt>
-          <dd className={editorClassName("", styles.value)}>
-            {emphasizeRange(preview.entityId, preview.entityLeaf)}
-          </dd>
-          <dt>File</dt>
-          <dd className={editorClassName("", styles.value)}>
+        <p className={editorClassName("", styles.saveAs)}>
+          Saves as{" "}
+          <span className={editorClassName("", styles.value)}>
             {preview.filePath === null
-              ? "File preview unavailable"
+              ? emphasizeRange(preview.entityId, preview.entityLeaf)
               : emphasizeRange(preview.filePath, preview.fileLeaf)}
-          </dd>
-        </dl>
+          </span>
+        </p>
       )}
     </section>
   );

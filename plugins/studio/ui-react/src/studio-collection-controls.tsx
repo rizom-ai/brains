@@ -17,6 +17,7 @@ import { collectionControlStyles as styles } from "./studio-collection-controls.
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioSearchField } from "./studio-search-field";
 import type { HierarchyKind } from "./studio-hierarchy";
+import { optionLabel } from "./ui-utils";
 
 /** Presentation only: Library and Chat retain their own query contracts. */
 export function StudioCollectionBar(props: {
@@ -123,7 +124,9 @@ export function StudioCollectionPager(props: {
   hasNext: boolean;
   onPrevious: () => void;
   onNext: () => void;
-}): ReactElement {
+}): ReactElement | null {
+  // One page needs no paging: the heading or filter bar already counts it.
+  if (props.offset === 0 && !props.hasNext && !props.loading) return null;
   const range =
     props.count > 0
       ? `${props.offset + 1}–${props.offset + props.count}${props.total === undefined ? "" : ` of ${props.total}`}`
@@ -254,7 +257,7 @@ export function StudioCollectionControls(props: {
               <option value="">All statuses</option>
               {statuses.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {optionLabel(status)}
                 </option>
               ))}
             </NativeSelect>

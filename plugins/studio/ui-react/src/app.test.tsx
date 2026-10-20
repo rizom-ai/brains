@@ -233,7 +233,7 @@ describe("Field", () => {
     const html = renderField(selectField, "draft");
     expect(html).toContain("<select");
     expect(html).toContain('value="draft"');
-    expect(html).toContain(">published<");
+    expect(html).toContain('<option value="published">Published</option>');
   });
 
   it("renders ISO datetimes with a native local date-time control", () => {
@@ -294,7 +294,7 @@ describe("field assists", () => {
   };
 
   it("maps long text and string-list fields to prompt variants", () => {
-    expect(fieldAssistVariant(textField)).toBe("summarise");
+    expect(fieldAssistVariant(textField)).toBe("summarize");
     expect(fieldAssistVariant(tagsField)).toBe("tag-suggest");
     expect(fieldAssistVariant(stringField)).toBeNull();
     expect(fieldAssistVariant(booleanField)).toBeNull();
@@ -325,7 +325,7 @@ describe("field assists", () => {
         onDiscard: () => {},
       }),
     );
-    expect(summaryIdle).toContain("Summarise body");
+    expect(summaryIdle).toContain("Summarize body");
 
     const tagsIdle = renderToStaticMarkup(
       createElement(FieldAssistControls, {
@@ -414,6 +414,7 @@ describe("TypeSwitcher", () => {
       entityType: "post",
       classification: "content",
       label: "Posts",
+      singularLabel: "Post",
       isSingleton: false,
       hasBody: true,
       count: 12,
@@ -424,6 +425,7 @@ describe("TypeSwitcher", () => {
       entityType: "site-info",
       classification: "system",
       label: "Site Info",
+      singularLabel: "Site Info",
       isSingleton: true,
       hasBody: false,
       count: 1,
@@ -604,6 +606,7 @@ describe("TypeSwitcher", () => {
         entityType: "prompt",
         classification: "system",
         label: "Prompts",
+        singularLabel: "Prompt",
         isSingleton: false,
         hasBody: true,
         count: 16,
@@ -614,6 +617,7 @@ describe("TypeSwitcher", () => {
         entityType: "agent",
         classification: "system",
         label: "Agents",
+        singularLabel: "Agent",
         isSingleton: false,
         hasBody: false,
         count: 2,
@@ -624,6 +628,7 @@ describe("TypeSwitcher", () => {
         entityType: "brain-character",
         classification: "system",
         label: "Brain Characters",
+        singularLabel: "Brain Character",
         isSingleton: true,
         hasBody: true,
         count: 1,
@@ -634,6 +639,7 @@ describe("TypeSwitcher", () => {
         entityType: "style-guide",
         classification: "system",
         label: "Style Guide",
+        singularLabel: "Style Guide",
         isSingleton: true,
         hasBody: true,
         count: 1,
@@ -702,6 +708,7 @@ function renderCapabilityView(
     entityType,
     classification: "content",
     label: entityType === "site-content" ? "Site content" : "Posts",
+    singularLabel: entityType === "site-content" ? "Site content" : "Post",
     isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
     count: page.total ?? 1,
@@ -928,7 +935,7 @@ it("uses page terminology throughout site-content collection navigation", () => 
       },
     );
     expect(
-      window.document.querySelector('[aria-label="Pages (complete list)"]'),
+      window.document.querySelector('[aria-label="Pages"]'),
     ).not.toBeNull();
     expect(
       window.document.querySelector('[aria-label="Page trail"]'),
@@ -1379,7 +1386,8 @@ describe("System mockup alignment", () => {
     expect(html).toContain("data-studio-system-intro");
     expect(html).toContain("Post one");
     expect(html).not.toContain("New agent");
-    expect(html).toContain("pagination");
+    // One page of agents: the heading counts them, so there is no pager.
+    expect(html).not.toContain("pagination");
   });
   it("presents unsupported structured lists as readable content, not disabled JSON", () => {
     const html = renderCapabilityView(capabilities, "edit", {
@@ -1495,7 +1503,7 @@ describe("capability-aware Studio controls", () => {
     const edit = renderCapabilityView(deniedCapabilities, "edit");
 
     expect(browse).toContain('data-studio-page-head="true"');
-    expect(browse).toContain("1 entity");
+    expect(browse).toContain("1 entry");
     expect(edit).toContain('data-studio-page-head="true"');
     expect(edit).toContain("Post one");
     expect(browse).toMatch(/<button[^>]*disabled=""[^>]*>New post<\/button>/);
@@ -1582,14 +1590,13 @@ describe("capability-aware Studio controls", () => {
     expect(second).toContain(">02</span>");
   });
 
-  it("keeps the pager visible on a single-page collection and supports 25-item offsets", () => {
+  it("leaves a single-page collection without a pager and supports 25-item offsets", () => {
     const single = renderCapabilityView(allowedCapabilities, "browse", {
       limit: 25,
       total: 1,
     });
-    expect(single).toContain('aria-label="Posts pagination"');
-    expect(single).toMatch(/disabled=""[^>]*>Previous<\/button>/);
-    expect(single).toMatch(/disabled=""[^>]*>Next<\/button>/);
+    expect(single).not.toContain('aria-label="Posts pagination"');
+    expect(single).toContain("1 entry");
     const last = renderCapabilityView(allowedCapabilities, "browse", {
       limit: 25,
       total: 26,
@@ -1944,14 +1951,15 @@ describe("DeleteDialog", () => {
   it("explains recoverability and exposes explicit keep/delete actions", () => {
     const html = renderToStaticMarkup(
       createElement(DeleteDialog, {
-        entityId: "field-notes",
+        title: "Field notes",
         onCancel: () => {},
         onConfirm: () => {},
       }),
     );
     expect(html).toContain('role="alertdialog"');
-    expect(html).toContain("field-notes");
-    expect(html).toContain("recoverable in git");
+    expect(html).toContain("“Field notes”");
+    expect(html).toContain("content history");
+    expect(html).not.toContain("git");
     expect(html).toContain("Keep entry");
     expect(html).toContain("Delete entry");
   });

@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { datetimeLocalValue, errorMessage } from "./ui-utils";
+import { datetimeLocalValue, errorMessage, optionLabel } from "./ui-utils";
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
 import { groupingValueLabel } from "./grouping-value";
@@ -295,7 +295,7 @@ function StringListField(props: {
   );
 }
 
-export type FieldAssistVariant = "summarise" | "tag-suggest";
+export type FieldAssistVariant = "summarize" | "tag-suggest";
 
 export type FieldAssistState =
   | { kind: "idle" }
@@ -311,7 +311,7 @@ export type FieldAssistState =
 export function fieldAssistVariant(
   descriptor: FieldDescriptor,
 ): FieldAssistVariant | null {
-  if (descriptor.widget === "text") return "summarise";
+  if (descriptor.widget === "text") return "summarize";
   if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
     return "tag-suggest";
   }
@@ -377,8 +377,8 @@ export function FieldAssistControls(props: {
       >
         {active && state.kind === "loading"
           ? "Thinking…"
-          : variant === "summarise"
-            ? "Summarise body"
+          : variant === "summarize"
+            ? "Summarize body"
             : `Suggest ${descriptor.label.toLowerCase()}`}
       </Button>
       {active && state.kind === "error" && (
@@ -519,7 +519,7 @@ function FieldControl(props: {
           <option value="">—</option>
           {(descriptor.options ?? []).map((option) => (
             <option key={option} value={option}>
-              {option}
+              {optionLabel(option)}
             </option>
           ))}
         </NativeSelect>

@@ -176,6 +176,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
             draft: next.draft,
             body: next.body,
             ...(loadedSchema.isSingleton && { singleton: true }),
+            ...(prefill && { prefilled: true }),
             ...(!prefill &&
               !loadedSchema.isSingleton && {
                 prefix: nestsType ? collectionQuery(routeSearch).prefix : null,

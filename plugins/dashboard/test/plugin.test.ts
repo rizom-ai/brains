@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { CONSOLE_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
@@ -237,6 +238,25 @@ describe("DashboardPlugin", () => {
           },
         ],
       });
+      const asked: unknown[] = [];
+      harness
+        .getMockShell()
+        .getMessageBus()
+        .subscribe(CONSOLE_CHANNELS.jumpDestinations, async (message) => {
+          asked.push(message.payload);
+          return {
+            success: true,
+            data: [
+              {
+                id: "studio/overview",
+                title: "Overview",
+                sub: "Studio",
+                href: "/studio",
+                primary: true,
+              },
+            ],
+          };
+        });
 
       const route = plugin
         .getWebRoutes()
@@ -256,13 +276,20 @@ describe("DashboardPlugin", () => {
         "/dashboard#network",
         "/dashboard#system",
       ]);
-      expect(
-        data.groups.find((group) => group.id === "surfaces")?.items,
-      ).toContainEqual(
-        expect.objectContaining({
-          href: "/studio/workspaces/admin%3Aadministration?tab=people",
-        }),
-      );
+      expect(asked).toEqual([{ permissionLevel: "admin" }]);
+      expect(data.groups[0]).toEqual({
+        id: "studio",
+        label: "Studio",
+        items: [
+          {
+            id: "studio/overview",
+            title: "Overview",
+            sub: "Studio",
+            href: "/studio",
+            tag: "studio",
+          },
+        ],
+      });
       // No search hits in this harness, so there are no entity doors.
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
@@ -303,12 +330,11 @@ describe("DashboardPlugin", () => {
       const titledNote = {
         id: "verdigris-pigments",
         entityType: "note",
-        title: "Verdigris pigments",
         content: "",
         created: "",
         updated: "",
         visibility: "public" as const,
-        metadata: {},
+        metadata: { title: "Verdigris pigments" },
         contentHash: "",
       };
       const untitledNote = {
@@ -361,16 +387,16 @@ describe("DashboardPlugin", () => {
         {
           id: "note/verdigris-pigments",
           title: "Verdigris pigments",
-          sub: "note",
+          sub: "Note",
           href: "/studio/entities/note/verdigris-pigments",
-          tag: "edit in studio",
+          tag: "studio",
         },
         {
           id: "note/untitled-note",
           title: "untitled-note",
-          sub: "note",
+          sub: "Note",
           href: "/studio/entities/note/untitled-note",
-          tag: "edit in studio",
+          tag: "studio",
         },
       ]);
     });

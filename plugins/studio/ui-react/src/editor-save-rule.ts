@@ -10,6 +10,23 @@ export type EditorSaveModel = Pick<
   "canEdit" | "destinationBlocked" | "selectedEntityType" | "entitySchema"
 >;
 
+/** The element that says why save refuses; the save button points at it. */
+export const STUDIO_SAVE_REASON_ID = "studio-save-reason";
+
+/** Why save refuses, in words for the author; undefined when it does not. */
+export function editorSaveBlockReason(
+  editor: EditorWorkflowState,
+  model: EditorSaveModel,
+  hasUnsavedChanges: boolean,
+): string | undefined {
+  if (!isEditorSaveBlocked(editor, model, hasUnsavedChanges)) return undefined;
+  if (hasInvalidEditorFields(editor))
+    return "Fix the highlighted fields first.";
+  if (model.destinationBlocked && editor.mode.kind === "create")
+    return "Name the file to create this entry.";
+  return undefined;
+}
+
 /**
  * Whether the editor's save — the Save button, the form submit and Ctrl/⌘+S —
  * must refuse. Documents that write even when unchanged (a new singleton, the

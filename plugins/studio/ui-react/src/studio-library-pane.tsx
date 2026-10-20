@@ -12,7 +12,12 @@ import {
 } from "./studio-editor.styles";
 import { typeHasPublicationField } from "./entity-fields";
 import { StudioPageHead } from "./studio-page-head";
-import { entityPublicationState, entityTitle, formatUpdated } from "./ui-utils";
+import {
+  entityPublicationState,
+  entityTitle,
+  formatUpdated,
+  sentenceLabel,
+} from "./ui-utils";
 
 import {
   StudioCollectionControls,
@@ -86,7 +91,7 @@ export function StudioLibraryPane(
               xstyle={hierarchy.desktopCreateAction}
               onClick={startCreate}
             >
-              New {entryLabel.toLowerCase()}
+              New {sentenceLabel(entryLabel)}
             </Button>
           )
         }
@@ -258,7 +263,7 @@ export function StudioLibraryPane(
             Creating in <strong>{folderContext}</strong>
           </span>
           <Button type="button" onClick={startCreate} disabled={!schema}>
-            New {entryLabel.toLowerCase()}
+            New {sentenceLabel(entryLabel)}
           </Button>
         </div>
       )}

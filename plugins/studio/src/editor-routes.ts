@@ -76,7 +76,7 @@ export type {
 
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
-function resolveStudioChatApiPath(
+export function resolveStudioChatApiPath(
   context: ServicePluginContext,
 ): string | undefined {
   if (!context.plugins.has("web-chat")) return undefined;
@@ -659,13 +659,14 @@ async function handleListTypes(
       const adapter = context.entities.getAdapter(entityType);
       const containedIn =
         context.entityService.getEntityTypeConfig(entityType).containedIn;
+      const labels = entityTypeLabels(entityType, entityDisplay?.[entityType]);
       types.push({
         entityType,
         classification: entityTypeClassificationSchema.parse(
           context.entityService.getEntityTypeConfig(entityType).classification,
         ),
-        label: entityTypeLabels(entityType, entityDisplay?.[entityType])
-          .pluralLabel,
+        label: labels.pluralLabel,
+        singularLabel: labels.label,
         isSingleton: adapter?.isSingleton === true,
         hasBody: adapter?.hasBody !== false,
         count,

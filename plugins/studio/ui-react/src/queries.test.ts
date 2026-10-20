@@ -98,6 +98,7 @@ function entityType(entityType: string): EntityTypeInfo {
     entityType,
     classification: "content",
     label: entityType === "post" ? "Posts" : "Notes",
+    singularLabel: entityType === "post" ? "Post" : "Note",
     isSingleton: false,
     hasBody: true,
     count: 1,

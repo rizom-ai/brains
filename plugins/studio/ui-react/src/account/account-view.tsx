@@ -61,6 +61,22 @@ function openingSection(bootstrap: AccountBootstrap): string {
   return requested;
 }
 
+/** What Account covers, naming only the sections it shows. */
+function accountScope(sections: {
+  settings: boolean;
+  aiTools: boolean;
+}): string {
+  const parts = [
+    "your profile",
+    "sign-in security",
+    "linked identities",
+    ...(sections.settings ? ["personal settings"] : []),
+    ...(sections.aiTools ? ["AI tools"] : []),
+  ];
+  const list = `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+  return `Your account on this brain. Manage ${list} here—not shared services or other people’s access.`;
+}
+
 export interface AccountAppProps {
   bootstrap: AccountBootstrap;
   initialAccount?: AuthAccountSnapshot;
@@ -105,9 +121,10 @@ export function AccountApp({
           }}
         />
         <p className={accountClass("account-scope", accountLayout.description)}>
-          {bootstrap.mcpUrl
-            ? "Your account on this brain. Manage your profile, sign-in security, linked identities, personal settings and AI tools here—not shared services or other people’s access."
-            : "Your account on this brain. Manage your profile, sign-in security, linked identities, and personal settings here—not shared services or other people’s access."}
+          {accountScope({
+            settings: (current?.pluginSettings.length ?? 0) > 0,
+            aiTools: Boolean(bootstrap.mcpUrl),
+          })}
         </p>
         <p
           className={accountClass(

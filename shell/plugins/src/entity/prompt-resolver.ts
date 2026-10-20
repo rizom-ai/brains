@@ -6,6 +6,7 @@ import {
 import type { TemplateRegistry } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
+import { formatLabel } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
 function targetToEntityId(target: string): string {
@@ -13,6 +14,11 @@ function targetToEntityId(target: string): string {
 }
 
 function targetToTitle(target: string): string {
+  return formatLabel(target.replace(/[:.]/g, " "));
+}
+
+/** The title materialization wrote before it kept acronyms ("Ai", "Linkedin"). */
+function generatedTitleBefore(target: string): string {
   return target
     .split(/[:.-]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -159,6 +165,8 @@ export interface PromptMaterializationReport {
   refreshed: string[];
   /** The copy matches the current default; its hash was recorded. */
   stamped: string[];
+  /** The copy still had its old generated title, now written as people spell it. */
+  retitled: string[];
   /** The copy was edited from a default that has since changed. */
   staleOverrides: string[];
   /** The copy predates provenance and differs from the current default. */
@@ -170,7 +178,7 @@ export interface PromptMaterializationReport {
 
 type SyncOutcome = Exclude<
   keyof PromptMaterializationReport,
-  "removedLegacy" | "failed"
+  "removedLegacy" | "failed" | "retitled"
 >;
 
 async function writeDefaultHash(
@@ -246,6 +254,34 @@ async function syncPromptDefault(
   return "refreshed";
 }
 
+/**
+ * Write a copy's title as people spell it ("AI", "LinkedIn") while it is still
+ * the one materialization generated; a title someone edited is theirs.
+ */
+async function correctGeneratedTitle(
+  entityService: PromptMaterializationStore,
+  target: string,
+): Promise<boolean> {
+  const title = targetToTitle(target);
+  const before = generatedTitleBefore(target);
+  if (before === title) return false;
+  const entity = await entityService.getEntity({
+    entityType: "prompt",
+    id: targetToEntityId(target),
+  });
+  if (!entity) return false;
+  const { body, frontmatter } = parsePrompt(entity.content);
+  if (frontmatter["title"] !== before) return false;
+  await entityService.updateEntity({
+    entity: {
+      ...entity,
+      content: generateMarkdownWithFrontmatter(body, { ...frontmatter, title }),
+      metadata: { ...entity.metadata, title },
+    },
+  });
+  return true;
+}
+
 /** Delete a copy written under a short name only while it is still the one materialization wrote. */
 async function removeShortNameCopy(
   entityService: PromptMaterializationStore,
@@ -278,6 +314,7 @@ export async function materializePrompts(
     created: [],
     refreshed: [],
     stamped: [],
+    retitled: [],
     staleOverrides: [],
     unverifiedOverrides: [],
     removedLegacy: [],
@@ -292,18 +329,21 @@ export async function materializePrompts(
         : [],
   );
 
+  // The title is settled after the body, on the copy the body sync left.
   const synced = await Promise.allSettled(
-    defaults.map(({ target, basePrompt }) =>
-      syncPromptDefault(entityService, target, basePrompt),
-    ),
+    defaults.map(async ({ target, basePrompt }) => ({
+      outcome: await syncPromptDefault(entityService, target, basePrompt),
+      retitled: await correctGeneratedTitle(entityService, target),
+    })),
   );
   synced.forEach((result, index) => {
     const target = defaults[index]?.target ?? "";
     if (result.status === "rejected") {
       report.failed.push({ target, error: getErrorMessage(result.reason) });
-    } else if (result.value) {
-      report[result.value].push(target);
+      return;
     }
+    if (result.value.outcome) report[result.value.outcome].push(target);
+    if (result.value.retitled) report.retitled.push(target);
   });
 
   const readIds = new Set(

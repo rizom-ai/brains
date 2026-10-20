@@ -71,6 +71,8 @@ export interface AuthRuntimeOptions {
     profileEntityId: string,
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
+  /** Where a person lands after registering their first passkey; defaults to "/". */
+  resolveHomePath?: () => string;
   /**
    * Whether this process issues and logs the first-passkey setup link at
    * startup. Only a process that serves `/setup` should: a token issued by
@@ -199,6 +201,9 @@ export class AuthRuntime {
     });
     const setupStateStore = new RuntimeSetupStateStore(this.runtimeDatabase);
     this.setupFlow = new SetupFlow({
+      ...(options.resolveHomePath
+        ? { resolveHomePath: options.resolveHomePath }
+        : {}),
       setupStateStore,
       passkeyService: this.passkeyService,
       setupTokenTtlSeconds: this.setupTokenTtlSeconds,

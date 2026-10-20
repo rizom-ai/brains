@@ -235,8 +235,13 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 
       // A superseded build's request is served by the build that replaced
       // it, so its job is done; any other cancellation is retried.
+      const completed = result.success || result.superseded === true;
       return {
-        success: result.success || result.superseded === true,
+        success: completed,
+        // The queue records this as the failure, which Site then shows.
+        ...(!completed && {
+          error: result.errors?.join("; ") ?? "Site build failed",
+        }),
         ...(result.cancelled && { cancelled: true }),
         ...(result.skipped && { skipped: true }),
         routesBuilt: result.routesBuilt,

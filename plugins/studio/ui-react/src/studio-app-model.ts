@@ -21,7 +21,12 @@ import {
   type StudioPageHeadModel,
 } from "./studio-page-head";
 import { folderLabel } from "./studio-hierarchy";
-import { entityPublicationState, entityTitle, singularLabel } from "./ui-utils";
+import {
+  entityPublicationState,
+  entityTitle,
+  sentenceLabel,
+  singularLabel,
+} from "./ui-utils";
 import type { StudioAppViewProps } from "./app-view-props";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 
@@ -141,10 +146,14 @@ export function deriveListingHead(
     query.scope === "folder" &&
     !query.q &&
     (query.prefix !== null || folders.length > 0);
-  const matching = collectionFiltered ? "matching " : "";
-  const entryCount = directFolderCount
-    ? `${countOf(entityTotal, `${matching}entry`, `${matching}entries`)} here`
-    : countOf(entityTotal, `${matching}entity`, `${matching}entities`);
+  // A filtered count belongs to the filter bar, which states the matches.
+  const entryCount = collectionFiltered
+    ? []
+    : directFolderCount
+      ? entityTotal > 0
+        ? [`${countOf(entityTotal, "entry", "entries")} here`]
+        : []
+      : [countOf(entityTotal, "entry", "entries")];
   const descendantTotal = folders.reduce(
     (sum, folder) => sum + folder.descendantCount,
     entityTotal,
@@ -152,7 +161,7 @@ export function deriveListingHead(
   const levelCount =
     folders.length > 0
       ? [
-          `${countOf(folders.length, hierarchyKind, `${hierarchyKind}s`)} · ${descendantTotal} in total`,
+          `${countOf(folders.length, hierarchyKind, `${hierarchyKind}s`)} · ${countOf(descendantTotal, "entry", "entries")} in total`,
         ]
       : [];
   const scope =
@@ -171,7 +180,7 @@ export function deriveListingHead(
       access: studioAccessRequirement("trusted"),
       title: context.activeType?.label ?? props.entityType ?? "Library",
       metadata: [
-        entryCount,
+        ...entryCount,
         ...levelCount,
         ...scope,
         ...(context.syncPending ? ["Sync pending"] : []),
@@ -203,14 +212,16 @@ export function deriveEditorHead(
   const { mode } = props.editor;
   const { activeType, entitySchema, systemDesign } = context;
   const typeLabel = activeType?.label ?? entityType;
+  const typeEntryLabel =
+    activeType?.singularLabel ?? singularLabel(typeLabel ?? "Entry");
   const singletonLabel = activeType?.isSingleton
-    ? singularLabel(activeType.label)
+    ? activeType.singularLabel
     : undefined;
   const heading =
     mode.kind === "edit"
       ? (singletonLabel ?? entityTitle(mode.entity))
       : mode.kind === "create"
-        ? `New ${typeLabel}`
+        ? (singletonLabel ?? `New ${sentenceLabel(typeEntryLabel)}`)
         : typeLabel;
   const collectionLabel =
     context.activeWorkspace?.label ??
@@ -218,7 +229,10 @@ export function deriveEditorHead(
     singletonLabel ??
     typeLabel ??
     "Studio";
-  const entryLabel = singularLabel(collectionLabel);
+  const entryLabel =
+    context.activeWorkspace || systemDesign
+      ? singularLabel(collectionLabel)
+      : typeEntryLabel;
   const publicationState =
     mode.kind === "edit" && typeHasPublicationField(entitySchema.fields)
       ? entityPublicationState(mode.entity)

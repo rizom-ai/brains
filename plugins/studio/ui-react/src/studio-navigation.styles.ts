@@ -345,7 +345,9 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       minWidth: 0,
       "@media (max-width: 900px)": { display: "block" },
     },
-    areaFoot: { marginTop: "auto" },
+    // A grid, like the area list, so the Commands control spans the rail and
+    // its glyph centers with the area marks when collapsed.
+    areaFoot: { display: "grid", marginTop: "auto" },
     areaLabel: {
       display: "flex",
       minWidth: 0,
