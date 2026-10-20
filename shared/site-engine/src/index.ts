@@ -1,4 +1,8 @@
 export { TailwindCSSProcessor } from "./css-processor";
+export {
+  TailwindCandidates,
+  type CandidateScanner,
+} from "./tailwind-candidates";
 export type { CSSProcessor } from "./css-processor";
 export { UISlotRegistry } from "./ui-slot-registry";
 export type { SlotRegistration } from "./ui-slot-registry";

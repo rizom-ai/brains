@@ -20,7 +20,7 @@ describe("site base stylesheet", () => {
     );
   });
 
-  it("generates utilities from the built pages and scripts, never from the working directory", async () => {
+  it("generates utilities from the built scripts and the pages' collected classes, never from the working directory", async () => {
     // Outside the repository, linked to its packages so the stylesheet
     // resolves its Tailwind imports.
     const buildRoot = await mkdtemp(join(tmpdir(), "site-css-build-"));
@@ -33,10 +33,14 @@ describe("site base stylesheet", () => {
     const workingDir = await mkdtemp(join(tmpdir(), "site-css-cwd-"));
     const previous = process.cwd();
     try {
+      // Pages are not scanned: the builder collects their classes as it
+      // renders them and adds them as one more source.
       await writeFile(
         join(outputDir, "index.html"),
-        '<div class="flex"></div>',
+        '<div class="rotate-45"></div>',
       );
+      const candidates = join(buildRoot, "candidates.html");
+      await writeFile(candidates, "flex");
       await mkdir(join(outputDir, "scripts"));
       await writeFile(
         join(outputDir, "scripts", "toggle.js"),
@@ -53,12 +57,14 @@ describe("site base stylesheet", () => {
         outputDir,
         createSilentLogger(),
         new AbortController().signal,
+        [candidates],
       );
 
       const css = await readFile(join(outputDir, "styles", "main.css"), "utf8");
       expect(css).toContain(".flex");
       expect(css).toContain(".underline");
       expect(css).not.toContain(".skew-x-12");
+      expect(css).not.toContain(".rotate-45");
     } finally {
       process.chdir(previous);
       await rm(buildRoot, { recursive: true, force: true });

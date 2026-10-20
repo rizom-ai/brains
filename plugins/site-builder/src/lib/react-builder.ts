@@ -22,6 +22,7 @@ import {
   iconHeadPaths,
   createSiteImageRenderer,
   HeadCollector,
+  TailwindCandidates,
   TailwindCSSProcessor,
   type CSSProcessor,
   type PreparedRoute,
@@ -70,14 +71,24 @@ export class ReactBuilder implements StaticSiteBuilder {
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
     signal.throwIfAborted();
 
-    // Build routes concurrently from the immutable prepared snapshot.
+    // Build routes concurrently from the immutable prepared snapshot,
+    // collecting the classes each page uses for styling as it is written.
+    const candidates = new TailwindCandidates();
+    const rendered = new Set<string>();
     const limit = pLimit(4);
     const routeResults = await Promise.allSettled(
       preparedBuild.routes.map((route) =>
         limit(async () => {
           signal.throwIfAborted();
           reportProgress(`Building route: ${route.path}`);
-          await this.buildRoute(route, context, preparedBuild, signal);
+          const page = await this.buildRoute(
+            route,
+            context,
+            preparedBuild,
+            signal,
+          );
+          rendered.add(page.file);
+          candidates.add(page.html);
         }),
       ),
     );
@@ -99,10 +110,15 @@ export class ReactBuilder implements StaticSiteBuilder {
     await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
     signal.throwIfAborted();
 
-    // Styles come last: Tailwind scans the emitted pages and the runtime
-    // scripts that toggle classes on them, so both must be on disk.
+    // Styles come last: Tailwind reads the classes the pages use and scans
+    // the runtime scripts that toggle classes on them, so both must be done.
     reportProgress("Processing Tailwind CSS");
-    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
+    await this.processStyles(
+      preparedBuild.themeCSS ?? "",
+      candidates,
+      rendered,
+      signal,
+    );
     signal.throwIfAborted();
 
     reportProgress("React build complete");
@@ -138,7 +154,7 @@ export class ReactBuilder implements StaticSiteBuilder {
     context: BuildContext,
     preparedBuild: PreparedSiteBuild,
     signal: AbortSignal,
-  ): Promise<void> {
+  ): Promise<{ file: string; html: string }> {
     signal.throwIfAborted();
     this.logger.debug(`Building route: ${route.path}`);
 
@@ -255,6 +271,7 @@ export class ReactBuilder implements StaticSiteBuilder {
     }
 
     await fs.writeFile(fullPath, html, { encoding: "utf-8", signal });
+    return { file: fullPath, html };
   }
 
   private createSectionComponents(
@@ -281,11 +298,22 @@ export class ReactBuilder implements StaticSiteBuilder {
 
   private async processStyles(
     themeCSS: string,
+    candidates: TailwindCandidates,
+    rendered: ReadonlySet<string>,
     signal: AbortSignal,
   ): Promise<void> {
     signal.throwIfAborted();
     this.logger.debug("Processing CSS styles");
 
+    // HTML the build placed beside the pages, such as staged artifacts or
+    // public files, is styled as before: its classes join the pages'.
+    await collectOtherPages(this.outputDir, rendered, candidates, signal);
+    const candidatesFile = join(this.workingDir, "tailwind-candidates.html");
+    await fs.mkdir(this.workingDir, { recursive: true });
+    await fs.writeFile(candidatesFile, candidates.toSource(), {
+      encoding: "utf-8",
+      signal,
+    });
     // baseCSS is imported at the top of the file as text (inlined in bundle)
     // This avoids __dirname path issues when running from a bundled build
 
@@ -310,6 +338,7 @@ export class ReactBuilder implements StaticSiteBuilder {
       this.outputDir,
       this.logger,
       signal,
+      [candidatesFile],
     );
     signal.throwIfAborted();
 
@@ -430,4 +459,27 @@ export function createReactBuilder(
   options: StaticSiteBuilderOptions,
 ): StaticSiteBuilder {
   return new ReactBuilder(options);
+}
+
+/**
+ * Collect the classes of HTML in the output that the build did not render as
+ * a page, reading directories one at a time.
+ */
+async function collectOtherPages(
+  directory: string,
+  rendered: ReadonlySet<string>,
+  candidates: TailwindCandidates,
+  signal: AbortSignal,
+): Promise<void> {
+  signal.throwIfAborted();
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  await entries.reduce<Promise<void>>(async (previous, entry) => {
+    await previous;
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await collectOtherPages(path, rendered, candidates, signal);
+    } else if (entry.name.endsWith(".html") && !rendered.has(path)) {
+      candidates.add(await fs.readFile(path, { encoding: "utf-8", signal }));
+    }
+  }, Promise.resolve());
 }
