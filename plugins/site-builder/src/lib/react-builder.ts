@@ -26,9 +26,8 @@ import {
   TailwindCSSProcessor,
   type CSSProcessor,
   type PreparedRoute,
-  type PreparedSiteBuild,
+  type PreparedSiteEnvelope,
 } from "@brains/site-engine";
-import { pLimit } from "@brains/utils/p-limit";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
 import { resolveSafeOutputFile } from "./output-path";
@@ -57,7 +56,7 @@ export class ReactBuilder implements StaticSiteBuilder {
   ): Promise<void> {
     signal.throwIfAborted();
     const { preparedBuild } = context;
-    const total = preparedBuild.routes.length + 4;
+    const total = context.routes.count + 4;
     let progress = 0;
     const reportProgress = (message: string): void => {
       progress++;
@@ -71,32 +70,17 @@ export class ReactBuilder implements StaticSiteBuilder {
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
     signal.throwIfAborted();
 
-    // Build routes concurrently from the immutable prepared snapshot,
-    // collecting the classes each page uses for styling as it is written.
+    // Build each page as its source prepares it, a few at a time, collecting
+    // the classes each page uses for styling as it is written; the page is
+    // dropped once written.
     const candidates = new TailwindCandidates();
     const rendered = new Set<string>();
-    const limit = pLimit(4);
-    const routeResults = await Promise.allSettled(
-      preparedBuild.routes.map((route) =>
-        limit(async () => {
-          signal.throwIfAborted();
-          reportProgress(`Building route: ${route.path}`);
-          const page = await this.buildRoute(
-            route,
-            context,
-            preparedBuild,
-            signal,
-          );
-          rendered.add(page.file);
-          candidates.add(page.html);
-        }),
-      ),
-    );
-    signal.throwIfAborted();
-    const rejectedRoute = routeResults.find(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    );
-    if (rejectedRoute) throw rejectedRoute.reason;
+    await context.routes.each(async (route) => {
+      reportProgress(`Building route: ${route.path}`);
+      const page = await this.buildRoute(route, context, preparedBuild, signal);
+      rendered.add(page.file);
+      candidates.add(page.html);
+    }, signal);
 
     // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
@@ -152,7 +136,7 @@ export class ReactBuilder implements StaticSiteBuilder {
   private async buildRoute(
     route: PreparedRoute,
     context: BuildContext,
-    preparedBuild: PreparedSiteBuild,
+    preparedBuild: PreparedSiteEnvelope,
     signal: AbortSignal,
   ): Promise<{ file: string; html: string }> {
     signal.throwIfAborted();

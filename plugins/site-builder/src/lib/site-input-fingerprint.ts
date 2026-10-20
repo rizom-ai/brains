@@ -1,7 +1,7 @@
 import type {
   LayoutComponent,
   PreparedRoute,
-  PreparedSiteBuild,
+  PreparedSiteEnvelope,
 } from "@brains/site-engine";
 import { sha256Hex } from "@brains/utils/hash";
 import { randomUUID } from "crypto";
@@ -17,7 +17,12 @@ import type { StaticSiteBuilderFactory } from "./static-site-builder";
 export const RENDERER_PROCESS_IDENTITY: string = randomUUID();
 
 export interface SiteInputFingerprintOptions {
-  preparedBuild: PreparedSiteBuild;
+  /** The build's fields besides its pages. */
+  envelope: PreparedSiteEnvelope;
+  /** Each page's renderer input as a hash, in route order. */
+  routeDigests: readonly string[];
+  /** The templates the pages' sections use. */
+  templates: readonly string[];
   layouts: Record<string, LayoutComponent>;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
@@ -46,22 +51,16 @@ export function computeSiteInputFingerprint(
     buildId: _buildId,
     preparedAt: _preparedAt,
     ...preparedInput
-  } = options.preparedBuild;
-  const templateNames = Array.from(
-    new Set(
-      options.preparedBuild.routes.flatMap((route) =>
-        route.sections.map((section) => section.template),
-      ),
-    ),
-  ).sort();
+  } = options.envelope;
+  const templateNames = [...new Set(options.templates)].sort();
 
   return sha256Hex(
     stableSerialize({
-      version: 3,
+      version: 4,
       rendererIdentity: options.rendererIdentity,
       preparedInput: {
         ...preparedInput,
-        routes: preparedInput.routes.map(fingerprintPreparedRoute),
+        routes: options.routeDigests,
       },
       layouts: Object.fromEntries(
         Object.entries(options.layouts)

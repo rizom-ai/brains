@@ -39,23 +39,32 @@ export type {
   SiteBuildRouteArtifact,
 } from "./site-build-artifact-manifest";
 export {
-  assemblePreparedSiteBuild,
-  createPreparedSiteBuildSnapshot,
-  freezePreparedSiteBuild,
+  createPreparedSiteEnvelope,
+  freezePreparedRoute,
   jsonObjectSchema,
   jsonValueSchema,
   normalizeJsonValue,
   preparedRouteSchema,
+  preparedRouteSummarySchema,
   preparedSectionSchema,
   preparedSiteBuildSchema,
+  preparedSiteEnvelopeSchema,
 } from "./prepared-site-build";
 export type {
   JsonObject,
   JsonValue,
   PreparedRoute,
+  PreparedRouteSummary,
   PreparedSection,
   PreparedSiteBuild,
+  PreparedSiteEnvelope,
 } from "./prepared-site-build";
+export {
+  ROUTE_CONCURRENCY,
+  routeSourceOf,
+  visitEach,
+} from "./prepared-route-source";
+export type { PreparedRouteSource } from "./prepared-route-source";
 export { DynamicRouteGenerator } from "./dynamic-route-generator";
 export type {
   DynamicRouteEntity,

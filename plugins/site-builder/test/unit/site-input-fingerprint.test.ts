@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PreparedSiteBuild } from "@brains/site-engine";
+import type { PreparedRoute, PreparedSiteEnvelope } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
   computeSiteInputFingerprint,
@@ -7,7 +7,7 @@ import {
 } from "../../src/lib/site-input-fingerprint";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 
-const preparedBuild = {
+const envelope = {
   buildId: "build-1",
   preparedAt: "2026-08-31T00:00:00.000Z",
   environment: "production",
@@ -18,23 +18,22 @@ const preparedBuild = {
     copyright: "Rizom",
     navigation: { primary: [], secondary: [] },
   },
-  routes: [
-    {
-      id: "docs",
-      path: "/",
-      title: "Docs",
-      description: "Docs",
-      layout: "default",
-      fullscreen: false,
-      sections: [{ id: "docs", template: "docs:doc-list", data: {} }],
-      headScripts: [],
-    },
-  ],
   images: {},
   staticAssets: {},
   publicAssets: {},
   globalHeadScripts: [],
-} satisfies PreparedSiteBuild;
+} satisfies PreparedSiteEnvelope;
+
+const docsPage: PreparedRoute = {
+  id: "docs",
+  path: "/",
+  title: "Docs",
+  description: "Docs",
+  layout: "default",
+  fullscreen: false,
+  sections: [{ id: "docs", template: "docs:doc-list", data: {} }],
+  headScripts: [],
+};
 
 const renderer = (): never => {
   throw new Error("renderer is not executed while fingerprinting");
@@ -53,7 +52,9 @@ function fingerprint(rendererIdentity: string): string {
   };
 
   return computeSiteInputFingerprint({
-    preparedBuild,
+    envelope,
+    routeDigests: [fingerprintPreparedRoute(docsPage)],
+    templates: ["docs:doc-list"],
     layouts: {},
     getViewTemplate: () => template,
     staticSiteBuilderFactory,
@@ -73,9 +74,11 @@ describe("computeSiteInputFingerprint", () => {
 });
 
 describe("fingerprintPreparedRoute", () => {
-  function withRoutes(routes: PreparedSiteBuild["routes"]): string {
+  function withRoutes(routes: PreparedRoute[]): string {
     return computeSiteInputFingerprint({
-      preparedBuild: { ...preparedBuild, routes },
+      envelope,
+      routeDigests: routes.map(fingerprintPreparedRoute),
+      templates: ["docs:doc-list"],
       layouts: {},
       getViewTemplate: () => undefined,
       staticSiteBuilderFactory,
@@ -84,7 +87,7 @@ describe("fingerprintPreparedRoute", () => {
     });
   }
 
-  function page(text: string): PreparedSiteBuild["routes"][number] {
+  function page(text: string): PreparedRoute {
     return {
       headScripts: [],
       title: text,
