@@ -784,6 +784,15 @@ export function createPlugin(
   );
 }
 
+/** A Slack-only chat interface wired to the same identity access as Discord. */
+export function createSlackPlugin(): ChatInterfaceInstance {
+  return new ChatInterface(
+    { adapters: { slack: baseSlackConfig }, gatewayRunMs: 50 },
+    harnessIdentityAccess,
+    { fetch: (input, init): Promise<Response> => state().fetch(input, init) },
+  );
+}
+
 export interface ChatInterfaceTestContext {
   harness: PluginTestHarness<ChatInterfaceInstance>;
   agentService: MockAgentService;

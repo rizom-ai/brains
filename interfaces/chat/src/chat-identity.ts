@@ -53,9 +53,9 @@ export interface ChatIdentityResolution {
  * revocation cannot be undone by a channel-wide grant. Only unbound speakers
  * fall through to permission rules.
  *
- * Slack does not consult auth identities yet: the chat interface registers a
- * Slack descriptor, so an Admin can attach a Slack identity, but only Discord
- * subjects resolve here (docs/plans/connected-channels.md, Phase 4).
+ * Each platform resolves under its own channel type: the chat interface
+ * registers a `discord` and a `slack` descriptor, and the adapter hands over
+ * the same user id an Admin attaches.
  */
 export async function resolveChatIdentity(
   permissions: ChatPermissionLookup,
@@ -64,21 +64,19 @@ export async function resolveChatIdentity(
   permissionContext: PermissionLookupContext,
   identityAccess: ChatIdentityAccess | undefined,
 ): Promise<ChatIdentityResolution> {
-  if (platform === "discord") {
-    const resolution = await identityAccess?.resolveIdentityAccess({
-      type: "discord",
-      subject: userId,
-    });
-    if (resolution?.state === "resolved") {
-      return {
-        permissionLevel: resolution.principal.permissionLevel,
-        isAnchor: resolution.principal.isAnchor,
-        principal: resolution.principal,
-      };
-    }
-    if (resolution?.state === "denied") {
-      return { permissionLevel: "public", isAnchor: false };
-    }
+  const resolution = await identityAccess?.resolveIdentityAccess({
+    type: platform,
+    subject: userId,
+  });
+  if (resolution?.state === "resolved") {
+    return {
+      permissionLevel: resolution.principal.permissionLevel,
+      isAnchor: resolution.principal.isAnchor,
+      principal: resolution.principal,
+    };
+  }
+  if (resolution?.state === "denied") {
+    return { permissionLevel: "public", isAnchor: false };
   }
 
   return {
