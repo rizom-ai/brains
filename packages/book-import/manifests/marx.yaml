@@ -31,23 +31,6 @@ coverage:
   edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, and for works with no early edition at hand the Marx-Engels-Werke as mlwerke.de published them, transcribed by the Deutsches Textarchiv, MEGAdigital and Wikisource or read from the Internet Archive's scans
   license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces, introductions and notes are left out; the authors' own notes are kept.
 gaps:
-  # Rheinische Zeitung and Trier'sche Zeitung, 1842–1843: pieces MEGA² I/1 gives to Marx that MEW leaves out.
-  - citation: Rheinische Zeitung, 8 Nov 1842
-    title: Die Kommunalreform und die „Kölnische Zeitung“
-    year: 1842
-    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
-  - citation: Rheinische Zeitung, 17 Nov 1842
-    title: Ein Korrespondent der „Kölnischen Zeitung“ und die „Rheinische Zeitung“
-    year: 1842
-    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
-  - citation: Rheinische Zeitung, 18 Dec 1842
-    title: Über Adolph Stahr
-    year: 1842
-    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
-  - citation: Trier'sche Zeitung, 25 Feb 1843
-    title: Zum Ausbleiben der Fortsetzung der „Rechtfertigung des ††-Korrespondenten von der Mosel“
-    year: 1843
-    reason: not yet imported from MEGA² I/1 (1975), whose scan on the Internet Archive is past the edition right
   # Anekdota, 1843.
   - citation: Anekdota zur neuesten deutschen Philosophie und Publicistik, Bd. II, 1843
     title: Luther als Schiedsrichter zwischen Strauß und Feuerbach
@@ -57,12 +40,7 @@ gaps:
   - citation: La Démocratie pacifique, 11 Dec 1843
     title: Declaration, with Arnold Ruge
     year: 1843
-    reason: La Démocratie pacifique is on Gallica, which refuses scripted access
-  # Allgemeine Zeitung (Augsburg), 1844.
-  - citation: Allgemeine Zeitung, 20 Apr 1844
-    title: Erklärung
-    year: 1844
-    reason: not yet imported from MEGA² I/2 (1982), whose scan on the Internet Archive is past the edition right
+    reason: MEGA² I/2 (1982) prints it only in its appendix, among the statements Marx signed or prompted, not as his work; La Démocratie pacifique is on Gallica, which refuses scripted access
   # Vorwärts! (Paris), 1845.
   - citation: Vorwärts!, 1 Jan 1845
     title: Erklärung zur Unterstützung von Heinrich Heine
@@ -110,10 +88,6 @@ gaps:
     title: Das Budget der Vereinigten Staaten und das christlich-germanische
     year: 1849
     reason: MECW leaves it out, so Marx's authorship is not established
-  - citation: Neue Rheinische Zeitung, 18 Feb 1849
-    title: Saedt
-    year: 1849
-    reason: MECW gives it to Engels
   # Neue Rheinische Zeitung, 1848–1849: pieces MEGA² I/7–I/9 give to Marx, alone or with Engels, that MEW leaves out, prints unattributed among its appendices, or gives to Engels.
   - citation: press notice, Cologne, May 1848
     title: Anzeige über das Erscheinen der „Neuen Rheinischen Zeitung“
@@ -256,49 +230,6 @@ gaps:
     title: To the Editor of the Newspaper L'Alba
     year: 1848
     reason: printed only in Italian, translated by others; Marx's text is lost
-  # La Presse, 1849.
-  - citation: La Presse, 30 Jul 1849
-    title: To the Editor of the Newspaper La Presse
-    year: 1849
-    reason: La Presse is on Gallica, which refuses scripted access
-  # Neue Rheinische Zeitung. Politisch-ökonomische Revue, 1850: editorial notes with Engels.
-  - citation: Neue Rheinische Zeitung. Politisch-ökonomische Revue, H. 4, Apr 1850
-    title: Vorbemerkung zum Abdruck des Gedichts „Jambes“ von Louis Ménard
-    year: 1850
-    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
-  - citation: Neue Rheinische Zeitung. Politisch-ökonomische Revue, H. 4, Apr 1850
-    title: Redaktionelle Bemerkung
-    year: 1850
-    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
-  - citation: Neue Rheinische Zeitung. Politisch-ökonomische Revue, H. 5/6, May–Oct 1850
-    title: Fußnote zum Teilabdruck des „Manifestes der Kommunistischen Partei“
-    year: 1850
-    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
-  # The Times, 1850: with Engels, for the refugee committee.
-  - citation: The Times, 28 May 1850
-    title: To the Editor of The Times
-    year: 1850
-    reason: not yet imported from MEGA² I/10 (1977), whose scan on the Internet Archive is past the edition right
-  # The Sun (London), 1850.
-  - citation: The Sun (London), 5 Jun 1850
-    title: The Prussian Refugees
-    year: 1850
-    reason: no free scan of The Sun was found
-  # The Spectator, 1850.
-  - citation: The Spectator, 15 Jun 1850
-    title: Prussian Spies in London
-    year: 1850
-    reason: the Spectator's archive refuses scripted access, and no other scan was found
-  # A leaflet of the Communist League, 1851.
-  - citation: leaflet, London, 1851
-    title: Vorbemerkung zur deutschen Übersetzung des Toastes von L.-A. Blanqui
-    year: 1851
-    reason: MEW prints it among its appendices; Marx's authorship is uncertain
-  # Notes to the People, 1851.
-  - citation: Notes to the People, 14 Jun 1851
-    title: The Constitution of the French Republic Adopted November 4, 1848
-    year: 1851
-    reason: the only scan, a 1967 facsimile on the Internet Archive, is lent and not downloadable
   # Morgenblatt für gebildete Leser, 1852.
   - citation: Morgenblatt für gebildete Leser, 7 Mar 1852
     title: Freiligrath gegen Kinkel
@@ -328,10 +259,6 @@ gaps:
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
   - citation: New-York Daily Tribune, 11 Sep 1852
     title: Result of the Elections
-    year: 1852
-    reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
-  - citation: New-York Daily Tribune, 19 Oct 1852
-    title: Movements of Mazzini and Kossuth.—League with Louis Napoleon.—Palmerston
     year: 1852
     reason: the only complete source, the Library of Congress's scans of the Tribune, refuses scripted access
   - citation: New-York Daily Tribune, 1 Nov 1852
@@ -1343,7 +1270,7 @@ gaps:
     title: The Right Divine of the Hohenzollerns
     year: 1856
     reason: no free scan of the People's Paper was found
-  # The Morning Advertiser, 1852–1871.
+  # The Morning Advertiser, 1852–1853.
   - citation: The Morning Advertiser, 2 Nov 1852
     title: The Trials at Cologne. To the Editor of The Morning Advertiser
     year: 1852
@@ -1355,10 +1282,6 @@ gaps:
   - citation: The Morning Advertiser, 2 Sep 1853
     title: Michael Bakunin
     year: 1853
-    reason: no free scan of the Morning Advertiser was found
-  - citation: The Morning Advertiser, 13 Jul 1871
-    title: To the Editor of The Morning Advertiser
-    year: 1871
     reason: no free scan of the Morning Advertiser was found
   # Neue Oder-Zeitung, 1855: pieces MEGA² I/14 gives to Marx, most of them with Engels, that MEW leaves out or gives to Engels.
   - citation: Neue Oder-Zeitung, 23 Jan 1855
@@ -1446,11 +1369,6 @@ gaps:
     title: A Traitor in Circassia
     year: 1857
     reason: no free scan of the Free Press was found
-  # The New American Cyclopaedia, 1858.
-  - citation: The New American Cyclopaedia, Vol. III, 1858
-    title: Brown
-    year: 1858
-    reason: not yet imported from the Internet Archive's scan of Vol. III (newamericancycl21danagoog), which the other Cyclopaedia articles come from
   # Die Neue Zeit (London), 1858.
   - citation: Die Neue Zeit, Jul 1858
     title: An den Redakteur der „Neuen Zeit“
@@ -1466,31 +1384,11 @@ gaps:
     title: Der Bürgerkrieg in den Vereinigten Staaten
     year: 1861
     reason: Die Presse printed it in German, translated by others from Marx's English
-  # Londoner Anzeiger, 1865.
-  - citation: Londoner Anzeiger, 17 Mar 1865
-    title: Notiz über Friedrich Engels' Broschüre „Die preußische Militärfrage und die deutsche Arbeiterpartei“
-    year: 1865
-    reason: not yet imported from MEGA² I/20 (1992), whose scan on the Internet Archive is past the edition right
-  # The Bee-Hive, 1865.
-  - citation: The Bee-Hive, 20 May 1865
-    title: Address from the Working Men's International Association to President Johnson
-    year: 1865
-    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
   # Głos Wolny, 1867.
   - citation: Głos Wolny, 10 Feb 1867
     title: Speech at the Polish Meeting in London, January 22, 1867
     year: 1867
-    reason: printed only in Polish, translated by others
-  # The International Courier, 1867.
-  - citation: The International Courier, 20 Feb and 13 Mar 1867
-    title: Instructions for the Delegates of the Provisional General Council. The Different Questions
-    year: 1867
-    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
-  # Le Courrier français, 1867.
-  - citation: Le Courrier français, 6 Sep 1867
-    title: Le statisticien Otto Hübner sur la misère de masse en Allemagne
-    year: 1867
-    reason: not yet imported from MEGA² I/20 (1992), whose scan on the Internet Archive is past the edition right
+    reason: printed only in Polish, translated by others; MEGA² I/20 (1992) prints only Marx's English draft
   # The General Council's leaflets, reports and statements, 1868–1872.
   - citation: General Council, London, 1868
     title: Declaration of the General Council Concerning the British Government's Attitude Towards Tsarist Russia
@@ -1511,10 +1409,6 @@ gaps:
   - citation: leaflet, London, 1869
     title: The Lock-Out of the Building Trades at Geneva
     year: 1869
-    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
-  - citation: leaflet, London, 1871
-    title: Mr. Washburne, the American Ambassador in Paris
-    year: 1871
     reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
   - citation: General Council, London, Mar 1872
     title: Resolutions on the Split in the United States' Federation Passed by the General Council of the I.W.A. in Its Sittings of 5th and 12th March, 1872
@@ -1593,8 +1487,8 @@ gaps:
   - citation: The Pall Mall Gazette, 9 Jun 1871
     title: To the Editor of The Pall Mall Gazette
     year: 1871
-    reason: no free scan of the Pall Mall Gazette was found
-  # The Daily News, 1871–1878.
+    reason: MEGA² I/22 (1978) prints only Marx's manuscript, and no free scan of the Pall Mall Gazette was found
+  # The Daily News, 1871–1872.
   - citation: The Daily News, 19 Jan 1871
     title: On the Freedom of the Press and Meetings in Germany
     year: 1871
@@ -1603,36 +1497,12 @@ gaps:
     title: To the Editor of The Daily News
     year: 1872
     reason: no free scan of the Daily News was found
-  - citation: The Daily News, 13 Jun 1878
-    title: Herr Bucher
-    year: 1878
-    reason: no free scan of the Daily News was found
-  # The Times, 1871–1873.
-  - citation: The Times, 23 Mar 1871
-    title: Statement by the General Council to the Editor of The Times and Other Papers
-    year: 1871
-    reason: not yet imported from MEGA² I/22 (1978), whose scan on the Internet Archive is past the edition right
-  - citation: The Times, 4 Apr 1871
-    title: To the Editor of The Times
-    year: 1871
-    reason: no free scan of The Times was found
-  - citation: The Times, 13 Jun 1871
-    title: Statement by the General Council on Jules Favre's Circular
-    year: 1871
-    reason: no free scan of an early printing is available; only Documents of the First International (Moscow, 1962–68) prints it
+  # The Times, 1873.
   - citation: The Times, 3 Jan 1873
     title: To the Editor of The Times
     year: 1873
     reason: no free scan of The Times was found
   # The Eastern Post, 1871–1872.
-  - citation: The Eastern Post, 1 Jul 1871
-    title: To the Editor of The Daily News
-    year: 1871
-    reason: no free scan of the Eastern Post was found
-  - citation: The Eastern Post, 8 Jul 1871
-    title: Letter to Frederick Greenwood, the Editor of The Pall Mall Gazette
-    year: 1871
-    reason: no free scan of the Eastern Post was found
   - citation: The Eastern Post, 23 Dec 1871
     title: To the Editor of The Eastern Post
     year: 1871
@@ -1649,46 +1519,6 @@ gaps:
     title: Declaration of the General Council of the International Working Men's Association
     year: 1872
     reason: no free scan of the Eastern Post was found
-  # Neue Freie Presse, 1871.
-  - citation: Neue Freie Presse, 4 Jul 1871
-    title: An die Redaktion der „Neuen Freien Presse“
-    year: 1871
-    reason: not yet imported from MEGA² I/22 (1978), whose scan on the Internet Archive is past the edition right
-  # The Standard, 1871.
-  - citation: The Standard, 17 Jul 1871
-    title: To the Editor of The Standard
-    year: 1871
-    reason: no free scan of the Standard was found
-  # Public Opinion, 1871.
-  - citation: Public Opinion, 26 Aug 1871
-    title: To the Editor of Public Opinion
-    year: 1871
-    reason: no free scan of Public Opinion was found
-  # Le Gaulois, 1871.
-  - citation: Le Gaulois, 27 Aug 1871
-    title: To the Editor of Le Gaulois
-    year: 1871
-    reason: Le Gaulois is on Gallica, which refuses scripted access
-  # The Examiner, 1871.
-  - citation: The Examiner, 2 Sep 1871
-    title: The Commune and Archbishop Darboy
-    year: 1871
-    reason: not yet imported from MEGA² I/22 (1978), whose scan on the Internet Archive is past the edition right
-  # The Evening Standard, 1871.
-  - citation: The Evening Standard, 6 Sep 1871
-    title: To the Editor of The Evening Standard
-    year: 1871
-    reason: no free scan of the Evening Standard was found
-  # The Sun (New York), 1871.
-  - citation: The Sun (New York), 9 Sep 1871
-    title: Letter to the Editor of The Sun, Charles Dana
-    year: 1871
-    reason: the only complete source, the Library of Congress's scans of The Sun, refuses scripted access
-  # L'Égalité (Geneva), 1871.
-  - citation: L'Égalité, 21 Oct 1871
-    title: Resolution of the London Conference Relating to the Split in Romance Switzerland
-    year: 1871
-    reason: no scan of L'Égalité was found, and Gallica, which refuses scripted access, could not be searched
   # La Liberté (Brussels), 1872.
   - citation: La Liberté, 17 Mar 1872
     title: To the Editor of La Liberté
@@ -1731,22 +1561,12 @@ gaps:
   - citation: L'Égalité, Apr 1880
     title: Note on The Poverty of Philosophy
     year: 1880
-    reason: no scan of L'Égalité was found, and Gallica, which refuses scripted access, could not be searched
+    reason: MEGA² I/25 (1985) prints only Marx's manuscript; no scan of L'Égalité was found, and Gallica, which refuses scripted access, could not be searched
   # La Revue socialiste, 1880.
   - citation: La Revue socialiste, 20 Apr 1880
     title: Workers' Questionnaire
     year: 1880
-    reason: La Revue socialiste is on Gallica, which refuses scripted access
-  # Geneva, 1881: the report of the meeting for the Polish revolution of 1830.
-  - citation: Sprawozdanie z międzynarodowego zebrania, Geneva, 1881
-    title: To the Meeting in Geneva Held to Commemorate the 50th Anniversary of the Polish Revolution of 1830
-    year: 1881
-    reason: printed only in Polish, translated by others
-  # The Daily News, 1881: with Engels.
-  - citation: The Daily News, 1 Apr 1881
-    title: To the Editor of The Daily News
-    year: 1881
-    reason: not yet imported from MEGA² I/25 (1985), whose scan on the Internet Archive is past the edition right
+    reason: MEGA² I/25 (1985) prints only Marx's English manuscript; La Revue socialiste is on Gallica, which refuses scripted access
 books:
   - id: marx_manifestws_1848
     citation: Manifest
@@ -2260,9 +2080,11 @@ books:
   - source: archive-ocr
     # Marx's articles in the New American Cyclopaedia, read anew from the
     # Internet Archive's copies of Google's scans of vols. II (Armada to
-    # Barclay de Tolly), III (Bem to Bourrienne) and IV (Brune, Bugeaud).
+    # Barclay de Tolly), III (Bem to Brown) and IV (Brune, Bugeaud).
     # MEW 14 gives Armada, Ayacucho, Barclay de Tolly, Bem, Bennigsen,
-    # Beresford, Blücher and Bosquet to Marx and Engels, the rest to Marx.
+    # Beresford, Blücher and Bosquet to Marx and Engels, the rest to Marx;
+    # Brown, on Sir George Brown, which MEW leaves out, MEGA² I/16 gives to
+    # Marx.
     # Each page is read as one column, its columns' parts below each
     # other, from an article's headword to the next.
     item: new-american-cyclopaedia
@@ -2313,12 +2135,14 @@ books:
         - { url: "https://archive.org/download/newamericancycl21danagoog/page/n552.jpg#region=0.121,0.103,0.405,0.464", page: 544 }
         - { url: "https://archive.org/download/newamericancycl21danagoog/page/n597.jpg#region=0.453,0.365,0.406,0.555", page: 589 }
         - { url: "https://archive.org/download/newamericancycl21danagoog/page/n598.jpg#region=0.12,0.104,0.407,0.235", page: 590 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n759.jpg#region=0.457,0.782,0.386,0.126", page: 751 }
+        - { url: "https://archive.org/download/newamericancycl21danagoog/page/n760.jpg#region=0.141,0.106,0.386,0.28", page: 752 }
         - { url: "https://archive.org/download/newamericancycl19danagoog/page/n21.jpg#region=0.472,0.597,0.416,0.323", page: 15 }
         - { url: "https://archive.org/download/newamericancycl19danagoog/page/n22.jpg#region=0.129,0.099,0.418,0.821&region=0.547,0.1,0.414,0.741", page: 16 }
         - { url: "https://archive.org/download/newamericancycl19danagoog/page/n88.jpg#region=0.525,0.595,0.416,0.325", page: 82 }
         - { url: "https://archive.org/download/newamericancycl19danagoog/page/n89.jpg#region=0.042,0.09,0.421,0.83&region=0.463,0.09,0.415,0.707", page: 83 }
     firstPage: 15
-    lastPage: 625
+    lastPage: 752
     # The articles are printed without indented paragraphs: on every page
     # only the article's headword opens one.
     paragraphs:
@@ -2363,6 +2187,8 @@ books:
       - { page: 544, opens: "BOSQUET" }
       - { page: 589, opens: "BOURRIENNE" }
       - { page: 590, opens: "BOURRIENNE" }
+      - { page: 751, opens: "BROWN," }
+      - { page: 752, opens: "BROWN," }
       - { page: 15, opens: "BRUNE," }
       - { page: 16, opens: "BRUNE," }
       - { page: 82, opens: "BUGEAUD" }
@@ -2383,6 +2209,7 @@ books:
       - { page: 440, opens: "BOLIVAR Y PONTE", title: Bolivar y Ponte }
       - { page: 543, opens: "BOSQUET", title: Bosquet }
       - { page: 589, opens: "BOURRIENNE", title: Bourrienne }
+      - { page: 751, opens: "BROWN,", title: Brown }
       - { page: 15, opens: "BRUNE,", title: Brune }
       - { page: 82, opens: "BUGEAUD", title: Bugeaud de la Piconnerie }
     slug: articles-in-the-new-american-cyclopaedia
@@ -6948,11 +6775,12 @@ books:
     # MEW 6 (1959) as mlwerke.de published it, from the Internet Archive's
     # last captures before the site went offline: Marx's articles in the
     # Neue Rheinische Zeitung of 1849, among them his two trial speeches of
-    # February, those with Engels, and the editorials MEW prints unsigned
-    # that MECW 8–9 give to Marx or leave unsigned as Marx's or Engels'.
-    # Left out: Engels' own articles and his defence speech at the first
-    # press trial, the unsigned ones MECW gives to Engels (Saedt) or does not
-    # print (the budget of the United States, 7 January), and those Mehring's
+    # February, those with Engels, the editorials MEW prints unsigned that
+    # MECW 8–9 give to Marx or leave unsigned as Marx's or Engels', and
+    # Saedt (18 February), which MECW gives to Engels and MEGA² I/8 to Marx
+    # and Engels. Left out: Engels' own articles and his defence speech at
+    # the first press trial, the unsigned piece MECW does not print (the
+    # budget of the United States, 7 January), and those Mehring's
     # selection above already holds.
     pages:
       - https://web.archive.org/web/20240612203810id_/http://www.mlwerke.de/me/me06/me06_151.htm
@@ -6970,6 +6798,7 @@ books:
       - https://web.archive.org/web/20230409022646id_/http://www.mlwerke.de/me/me06/me06_223.htm
       - https://web.archive.org/web/20230408095707id_/http://www.mlwerke.de/me/me06/me06_287.htm
       - https://web.archive.org/web/20230407193818id_/http://www.mlwerke.de/me/me06/me06_298.htm
+      - https://web.archive.org/web/20200108084848id_/http://www.mlwerke.de:80/me/me06/me06_301.htm
       - https://web.archive.org/web/20230409022647id_/http://www.mlwerke.de/me/me06/me06_308.htm
       - https://web.archive.org/web/20221025030601id_/http://www.mlwerke.de/me/me06/me06_309.htm
       - https://web.archive.org/web/20230407195312id_/http://www.mlwerke.de/me/me06/me06_312.htm
@@ -7010,6 +6839,14 @@ books:
       - page: "256"
         from: " ⟨Siehe „[Aufforderung des Rheinischen Kreisausschusses der Demokraten zur Steuerverweigerung]“"
         to: ""
+      # Saedt: the page leaves a word broken at MEW's page turn and the editors'
+      # bracket open.
+      - page: "301"
+        from: "appar- tient"
+        to: "appartient"
+      - page: "301"
+        from: "„Révolution“.)"
+        to: "„Révolution“.)⟩"
     slug: artikel-aus-der-neuen-rheinischen-zeitung-1849
     title: Artikel aus der Neuen Rheinischen Zeitung 1849
     edition: "Marx-Engels-Werke, Band 6 (Berlin, Dietz, 1959), as mlwerke.de published it"
@@ -7053,11 +6890,12 @@ books:
     # captures with the text: Der 13. Juni (Der Volksfreund, 1849), the
     # Revue's announcement, the Revue of March/April 1850 and Louis-Napoleon
     # und Fould, the note on Eccarius's article, and the statements of 1850
-    # and 1852. The Revue of January/February 1850 is the book above. Left
-    # out: the preface to Blanqui's toast (1851), which MEW prints among its
-    # appendices, its authorship uncertain. The statement on the Baronin von
-    # Beck (Kölnische Zeitung, 1851; MEW 8, S. 109), which mlwerke does not
-    # carry, is the book below.
+    # and 1852. The Revue of January/February 1850 is the book above. The
+    # preface to Blanqui's toast (1851), which MEW prints among its
+    # appendices, MEGA² I/10 prints in its text as Marx's and Engels': it is
+    # in the book of their editorial notes, from MEGA. The statement on the
+    # Baronin von Beck (Kölnische Zeitung, 1851; MEW 8, S. 109), which
+    # mlwerke does not carry, is the book below.
     pages:
       - https://web.archive.org/web/20220129100354id_/http://www.mlwerke.de/me/me06/me06_527.htm
       - https://web.archive.org/web/20240807090712id_/http://www.mlwerke.de/me/me07/me07_005.htm
@@ -7787,4 +7625,984 @@ books:
     edition: Le Mouvement socialiste, t. XXXIV, nos 253–254 (Paris, juillet–août 1913), pp. 5–50, after the first edition (Genève, Imprimerie coopérative, 1872)
     author: Karl Marx und Friedrich Engels
     year: 1872
+    kind: work
+  - source: archive-ocr
+    # Marx's pieces in the Rheinische Zeitung of November and December 1842
+    # and the paper's statement in the Trier'sche Zeitung of 25 February
+    # 1843, which MEGA² I/1 gives to him and MEW leaves out, read anew from
+    # the Internet Archive's PDF of the volume, each page cut to the text
+    # beside the line numbers; the facsimile plate (pp. 253–254) is left out,
+    # and so are MEGA's titles and source lines.
+    item: mega-i-1
+    citation: MEGA² I/1
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=260&region=0.219,0.306,0.569,0.487
+          page: 251
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=261&region=0.22,0.18,0.569,0.625
+          page: 252
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=263&region=0.198,0.169,0.574,0.625
+          page: 255
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=264&region=0.233,0.171,0.572,0.58
+          page: 256
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=265&region=0.177,0.19,0.572,0.625
+          page: 257
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=266&region=0.245,0.21,0.572,0.626
+          page: 258
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=267&region=0.174,0.192,0.571,0.502
+          page: 259
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=273&region=0.226,0.312,0.575,0.487
+          page: 266
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=274&region=0.188,0.185,0.573,0.565
+          page: 267
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=293&region=0.225,0.343,0.571,0.035
+          page: 286
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.1%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Literarische%20Versuche%20bis%20M%C3%A4rz%201843%20%28Text%29.pdf#page=361&region=0.228,0.349,0.573,0.081
+          page: 354
+    firstPage: 251
+    lastPage: 354
+    # Each piece opens a section at its first line, under its title.
+    headings:
+      - { page: 251, opens: "X Köln", title: "Die Kommunalreform und die „Kölnische Zeitung“" }
+      - { page: 266, opens: "X Köln", title: "Ein Korrespondent der „Kölnischen Zeitung“ und die „Rheinische Zeitung“" }
+      - { page: 286, opens: "Die Redaction", title: "Über Adolph Stahr" }
+      - { page: 354, opens: "Unterzeichnete", title: "Zum Ausbleiben der Fortsetzung der „Rechtfertigung des ††-Korrespondenten von der Mosel“" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 255, opens: "Schließlich eine wohlgemeinte" }
+      - { page: 255, opens: "X Köln, 11." }
+      - { page: 257, opens: "X Köln, 12." }
+      - { page: 257, opens: "So beginnt die" }
+      - { page: 257, opens: "Der lächerliche communistische" }
+    slug: artikel-in-der-rheinischen-zeitung-1842-1843
+    title: "Artikel in der „Rheinischen Zeitung“ und Erklärung in der „Trier'schen Zeitung“ 1842–1843"
+    shortTitle: "Rheinische Zeitung 1842–1843"
+    edition: "Karl Marx, Artikel, Literarische Versuche bis März 1843, MEGA² I/1 (Berlin, Dietz, 1975), S. 251–259, 266–267, 286 und 354; first printed in the Rheinische Zeitung, Nr. 312, 317, 321 und 352 (Köln, 8., 13., 17. November und 18. Dezember 1842), and the Trier'sche Zeitung, Nr. 55 (25. Februar 1843)"
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    # Marx's statement on the end of the Deutsch-Französische Jahrbücher, as
+    # MEGA² I/2 gives it from the Augsburg Allgemeine Zeitung of 20 April
+    # 1844, from the Internet Archive's PDF of the volume.
+    item: mega-i-2
+    citation: MEGA² I/2
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.2%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%201843%20bis%20August%201844%20%28Text%29.pdf#page=192&region=0.199,0.365,0.572,0.111
+          page: 185
+    firstPage: 185
+    lastPage: 185
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 185, opens: "Die verschiedenen in" }
+      - { page: 185, opens: "Karl Marx." }
+      - { page: 185, opens: "Paris, den 14" }
+    slug: erklaerung-zu-den-deutsch-franzoesischen-jahrbuechern
+    title: "Erklärung"
+    shortTitle: "Erklärung zu den Deutsch-Französischen Jahrbüchern"
+    edition: "Karl Marx, Artikel, Entwürfe, März 1843 bis August 1844, MEGA² I/2 (Berlin, Dietz, 1982), S. 185; first printed in the Allgemeine Zeitung, Nr. 111, Außerordentliche Beilage (Augsburg, 20. April 1844)"
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: archive-ocr
+    # Marx's letter to La Presse on his stay in Paris, in his French, as
+    # MEGA² I/10 gives it from the paper of 30 July 1849, from the Internet
+    # Archive's PDF of the volume.
+    item: mega-i-10-presse
+    citation: MEGA² I/10
+    ocr: fra
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=18&region=0.211,0.352,0.571,0.407
+          page: 5
+    firstPage: 5
+    lastPage: 5
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 5, opens: "Au rédacteur." }
+      - { page: 5, opens: "La note que" }
+      - { page: 5, opens: "D'abord la Nouvelle" }
+      - { page: 5, opens: "Après la défense" }
+      - { page: 5, opens: "Je n'ai pas" }
+      - { page: 5, opens: "Recevez etc.," }
+      - { page: 5, opens: "Dr CH. MARX." }
+    slug: declaration-au-redacteur-de-la-presse
+    title: "Au rédacteur de « La Presse »"
+    shortTitle: "Au rédacteur de La Presse"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, Juli 1849 bis Juni 1851, MEGA² I/10 (Berlin, Dietz, 1977), S. 5; first printed in La Presse (Paris, 30 juillet 1849)"
+    author: Karl Marx
+    year: 1849
+    kind: work
+  - source: archive-ocr
+    # Marx's and Engels' editorial notes in the Neue Rheinische Zeitung.
+    # Politisch-ökonomische Revue (1850) and their preface to the German
+    # leaflet of Blanqui's toast (1851), which MEGA² I/10 prints as theirs,
+    # from the Internet Archive's PDF of the volume; MEW leaves out the notes
+    # and prints the preface among its appendices. Ménard's poem, the
+    # Manifesto's extract and Blanqui's toast, which the notes and the
+    # preface introduce, are left out, and so are MEGA's marks of the
+    # Revue's and the leaflet's pages.
+    item: mega-i-10-revue
+    citation: MEGA² I/10
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=280&region=0.219,0.331,0.571,0.05
+          page: 264
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=337&region=0.205,0.325,0.572,0.05
+          page: 321
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=459&region=0.213,0.326,0.572,0.066
+          page: 445
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=512&region=0.227,0.582,0.572,0.2
+          page: 498
+    firstPage: 264
+    lastPage: 498
+    # Each piece opens a section at its first line, under its title.
+    headings:
+      - { page: 264, opens: "Unser Freund", title: "Vorbemerkung zum Abdruck des Gedichts „Jambes“ von Louis Menard" }
+      - { page: 321, opens: "— Man schreibt", title: "Redaktionelle Bemerkung" }
+      - { page: 445, opens: "Wir geben", title: "Fußnote zum Teilabdruck des „Manifestes der Kommunistischen Partei“" }
+      - { page: 498, opens: "Einige elende", title: "Vorbemerkung zum Toast von Blanqui" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 445, opens: "Wir geben hier" }
+      - { page: 445, opens: "Anmerkung der Redaktion" }
+      - { page: 498, opens: "Einige elende Betrüger" }
+      - { page: 498, opens: "Sie schrieben auch" }
+    slug: redaktionelle-bemerkungen-1850-1851
+    title: "Redaktionelle Bemerkungen und Vorbemerkung zum Toast von Blanqui 1850–1851"
+    shortTitle: "Redaktionelle Bemerkungen 1850–1851"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, Juli 1849 bis Juni 1851, MEGA² I/10 (Berlin, Dietz, 1977), S. 264, 321, 445 und 498; first printed in the Neue Rheinische Zeitung. Politisch-ökonomische Revue, Heft 4 und 5/6 (Hamburg, 1850), and as a leaflet (London, 1851)"
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    # Marx's and Engels' letters to the London papers for the German
+    # refugees in 1850, in their English, as MEGA² I/10 gives them from The
+    # Times of 28 May, The Sun of 15 June and The Spectator of 15 June 1850,
+    # from the Internet Archive's PDF of the volume.
+    item: mega-i-10-letters
+    citation: MEGA² I/10
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=344&region=0.212,0.343,0.573,0.318
+          page: 328
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=358&region=0.222,0.389,0.572,0.409
+          page: 343
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=359&region=0.22,0.178,0.572,0.503
+          page: 344
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=360&region=0.214,0.398,0.571,0.405
+          page: 345
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=361&region=0.242,0.189,0.572,0.624
+          page: 346
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=362&region=0.183,0.179,0.571,0.527
+          page: 347
+    firstPage: 328
+    lastPage: 347
+    # Each piece opens a section at its first line, under its title.
+    headings:
+      - { page: 328, opens: "To the Editor", title: "To the Editor of The Times" }
+      - { page: 343, opens: "To the Editor", title: "The Prussian Refugees" }
+      - { page: 345, opens: "64, Dean", title: "Prussian Spies in London" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 328, opens: "To the Editor" }
+      - { page: 328, opens: "Sir,—In your number" }
+      - { page: 328, opens: "We request you," }
+      - { page: 328, opens: "We are, Sir," }
+      - { page: 328, opens: "The Democratic Socialist" }
+      - { page: 328, opens: "Ch. Marx." }
+      - { page: 328, opens: "Ch.Pfaender." }
+      - { page: 328, opens: "F. Engels." }
+      - { page: 328, opens: "H. Bauer." }
+      - { page: 328, opens: "A.Willich." }
+      - { page: 328, opens: "20, Great Windmill" }
+      - { page: 343, opens: "To the Editor" }
+      - { page: 343, opens: "Sir,—For some time" }
+      - { page: 343, opens: "No doubt the" }
+      - { page: 343, opens: "Now, let us" }
+      - { page: 344, opens: "It is really" }
+      - { page: 344, opens: "We may state," }
+      - { page: 344, opens: "If the British" }
+      - { page: 344, opens: "The Holy Alliance," }
+      - { page: 344, opens: "The Governments of" }
+      - { page: 344, opens: "We remain, Sir," }
+      - { page: 344, opens: "Charles Marx, Fred." }
+      - { page: 344, opens: "Aug. Willich, Colonel" }
+      - { page: 344, opens: "64, Dean-street, Soho-square," }
+      - { page: 345, opens: "64, Dean Street," }
+      - { page: 345, opens: "Sir—For some time" }
+      - { page: 345, opens: "Really, Sir, we" }
+      - { page: 345, opens: "Now, of what" }
+    slug: letters-to-the-london-press-1850
+    title: "Letters to the London Press, 1850"
+    shortTitle: "Letters to the Press, 1850"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, Juli 1849 bis Juni 1851, MEGA² I/10 (Berlin, Dietz, 1977), S. 328 und 343–347; first printed in The Times, No. 20500 (London, 28 May 1850), The Sun, No. 18011, and The Spectator, No. 1146 (London, 15 June 1850)"
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    # Marx's commentary on the French constitution of 1848 for Ernest Jones's
+    # Notes to the People, in his English, as MEGA² I/10 gives it from No. 7
+    # (14 June 1851), from the Internet Archive's PDF of the volume; the
+    # facsimile plate (pp. 537–538) is left out.
+    item: mega-i-10-constitution
+    citation: MEGA² I/10
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=548&region=0.2,0.415,0.572,0.368
+          page: 535
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=549&region=0.253,0.176,0.574,0.624
+          page: 536
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=551&region=0.212,0.177,0.574,0.625
+          page: 539
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=552&region=0.232,0.176,0.572,0.624
+          page: 540
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=553&region=0.225,0.175,0.571,0.623
+          page: 541
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=554&region=0.22,0.175,0.573,0.623
+          page: 542
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=555&region=0.215,0.175,0.573,0.625
+          page: 543
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=556&region=0.24,0.185,0.574,0.624
+          page: 544
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=557&region=0.185,0.193,0.574,0.607
+          page: 545
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=558&region=0.245,0.17,0.573,0.625
+          page: 546
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=559&region=0.218,0.175,0.571,0.625
+          page: 547
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.10%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Juli%201849%20bis%20Juni%201851%20%28Text%29.pdf#page=560&region=0.225,0.157,0.571,0.172
+          page: 548
+    firstPage: 535
+    lastPage: 548
+    # Each chapter Marx goes through opens a section at its heading.
+    headings:
+      - { page: 535, opens: "A rhetorical", title: "The Constitution of the French Republic Adopted November 4, 1848" }
+      - { page: 536, opens: "\"CAP. II.", title: "Cap. II. Rights Guaranteed by the Constitution" }
+      - { page: 540, opens: "CAP. III.", title: "Cap. III. On the Authorisation of Office" }
+      - { page: 540, opens: "CAP. IV.", title: "Cap. IV. On the Legislative Power" }
+      - { page: 542, opens: "CAP. V.", title: "Cap. V. On the Executive Power" }
+      - { page: 543, opens: "CAP. VI.", title: "Cap. VI. The Council of State" }
+      - { page: 543, opens: "CAP. VII.", title: "Cap. VII. The Internal Administration" }
+      - { page: 544, opens: "CAP. VIII.", title: "Cap. VIII. On the Judicial Power" }
+      - { page: 544, opens: "CAP. IX.", title: "Cap. IX. Of the Armed Power" }
+      - { page: 545, opens: "CAP. X.", title: "Cap. X. Special Enactments" }
+      - { page: 545, opens: "CAP. XI.", title: "Cap. XI. On the Revision of the Constitution" }
+      - { page: 547, opens: "THE GAME OF NAPOLEON.", title: "The Game of Napoleon" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 535, opens: "A rhetorical preamble" }
+      - { page: 535, opens: "1. France declares" }
+      - { page: 535, opens: "Before the Insurrection" }
+      - { page: 535, opens: "Art. 6. The" }
+      - { page: 535, opens: "Art. 7. The" }
+      - { page: 535, opens: "Art. 9. The" }
+      - { page: 535, opens: "After the victories" }
+      - { page: 536, opens: "\"Cap.I. Sovereign power" }
+      - { page: 536, opens: "\"CAP. II. RIGHTS" }
+      - { page: 536, opens: "No one can" }
+      - { page: 536, opens: "\"§ 3. The" }
+      - { page: 536, opens: "Observe here and" }
+      - { page: 536, opens: "As to strangers," }
+      - { page: 536, opens: "As to Frenchmen," }
+      - { page: 536, opens: "\"§ 4. No" }
+      - { page: 536, opens: "We have already" }
+      - { page: 536, opens: "\"§ 5. Capital" }
+      - { page: 536, opens: "But they transport" }
+      - { page: 536, opens: "\"§ 8. Citizens" }
+      - { page: 536, opens: "That the limitation" }
+      - { page: 540, opens: "Here the old" }
+      - { page: 540, opens: "By the law" }
+      - { page: 540, opens: "At the head" }
+      - { page: 540, opens: "\"§11. The rights" }
+      - { page: 540, opens: "\"§ 14. The" }
+      - { page: 540, opens: "\"§ 15. Taxes" }
+      - { page: 540, opens: "CAP. III. —" }
+      - { page: 540, opens: "This Chapter affirms" }
+      - { page: 540, opens: "\" 1. That" }
+      - { page: 540, opens: "\"2. That the" }
+      - { page: 540, opens: "Here we have" }
+      - { page: 540, opens: "CAP. IV. —" }
+      - { page: 540, opens: "The legislative power" }
+      - { page: 540, opens: "\"§ 24. The" }
+      - { page: 543, opens: "The president has" }
+      - { page: 543, opens: "CAP. VI.—THE COUNCIL" }
+      - { page: 543, opens: "§§71—75. The Council" }
+      - { page: 543, opens: "CAP. VII.—THE INTERNAL" }
+      - { page: 543, opens: "This chapter deals" }
+      - { page: 544, opens: "§ 80. The" }
+      - { page: 544, opens: "CAP. VIII. —ON" }
+      - { page: 544, opens: "Generally speaking, this" }
+      - { page: 544, opens: "\"§81. Justice is" }
+      - { page: 544, opens: "This is so" }
+      - { page: 544, opens: "§§ 91—100, treat" }
+      - { page: 544, opens: "This \"High Court\"" }
+      - { page: 544, opens: "By the law" }
+      - { page: 544, opens: "CAP. IX.— OF" }
+      - { page: 544, opens: "The entire of" }
+      - { page: 544, opens: "\"§102. Every Frenchman" }
+      - { page: 544, opens: "Every man having" }
+      - { page: 544, opens: "The working classes" }
+      - { page: 545, opens: "CAP. X. —" }
+      - { page: 545, opens: "\"§ 110. The" }
+      - { page: 545, opens: "CAP. XI. —" }
+      - { page: 545, opens: "\"§111. Should the" }
+      - { page: 545, opens: "Such is the" }
+      - { page: 545, opens: "Therefore it cannot" }
+      - { page: 545, opens: "The Constitution constantly" }
+      - { page: 545, opens: "People! Make up" }
+      - { page: 547, opens: "THE GAME OF" }
+      - { page: 547, opens: "The question now" }
+      - { page: 547, opens: "The only alternative" }
+      - { page: 547, opens: "The game of" }
+      - { page: 547, opens: "This he is" }
+      - { page: 547, opens: "Thus he is" }
+      - { page: 547, opens: "Therefore, supposing the" }
+    slug: the-constitution-of-the-french-republic
+    title: "The Constitution of the French Republic Adopted November 4, 1848"
+    shortTitle: "The Constitution of the French Republic"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, Juli 1849 bis Juni 1851, MEGA² I/10 (Berlin, Dietz, 1977), S. 535–548; first printed in Notes to the People, No. 7 (London, 14 June 1851)"
+    author: Karl Marx
+    year: 1851
+    kind: work
+  - source: archive-ocr
+    # Marx's notice of Engels' pamphlet on the Prussian military question,
+    # as MEGA² I/20 gives it from the Londoner Anzeiger of 17 March 1865,
+    # from the Internet Archive's PDF of the volume.
+    item: mega-i-20-notiz
+    citation: MEGA² I/20
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=128&region=0.199,0.339,0.569,0.14
+          page: 117
+    firstPage: 117
+    lastPage: 117
+    slug: notiz-ueber-engels-broschuere-die-preussische-militaerfrage
+    title: "Notiz über Friedrich Engels' Broschüre „Die preußische Militärfrage und die deutsche Arbeiterpartei“"
+    shortTitle: "Notiz über Engels' Militärfrage"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, September 1864 bis September 1867, MEGA² I/20 (Berlin, Dietz, 1992), S. 117; first printed in the Londoner Anzeiger, Nr. 12 (London, 17. März 1865)"
+    author: Karl Marx
+    year: 1865
+    kind: work
+  - source: archive-ocr
+    # The International's address to President Johnson, which Marx wrote in
+    # English, as MEGA² I/20 gives it from The Bee-Hive of 20 May 1865, from
+    # the Internet Archive's PDF of the volume; the facsimile plate
+    # (pp. 135–136) is left out.
+    item: mega-i-20-johnson
+    citation: MEGA² I/20
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=144&region=0.288,0.421,0.568,0.399
+          page: 134
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=146&region=0.197,0.183,0.57,0.368
+          page: 137
+    firstPage: 134
+    lastPage: 137
+    slug: address-to-andrew-johnson
+    title: "To Andrew Johnson, President of the United States"
+    shortTitle: "Address to Andrew Johnson"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, September 1864 bis September 1867, MEGA² I/20 (Berlin, Dietz, 1992), S. 134–137; first printed in The Bee-Hive Newspaper, No. 188 (London, 20 May 1865)"
+    author: Karl Marx
+    year: 1865
+    kind: work
+  - source: archive-ocr
+    # Marx's instructions for the delegates to the Geneva congress, in his
+    # English, as MEGA² I/20 gives them from The International Courier of
+    # 20 February and 13 March 1867, from the Internet Archive's PDF of the
+    # volume; the facsimile plate (pp. 227–228) is left out.
+    item: mega-i-20-instructions
+    citation: MEGA² I/20
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=231&region=0.201,0.428,0.569,0.31
+          page: 225
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=232&region=0.225,0.188,0.57,0.607
+          page: 226
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=234&region=0.211,0.177,0.569,0.626
+          page: 229
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=235&region=0.22,0.188,0.567,0.626
+          page: 230
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=236&region=0.22,0.214,0.568,0.626
+          page: 231
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=237&region=0.218,0.18,0.57,0.623
+          page: 232
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=238&region=0.183,0.191,0.569,0.58
+          page: 233
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=239&region=0.242,0.215,0.571,0.606
+          page: 234
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=240&region=0.209,0.165,0.571,0.338
+          page: 235
+    firstPage: 225
+    lastPage: 235
+    # Each question opens a section at its heading.
+    headings:
+      - { page: 225, opens: "1.—Organisation", title: "1. Organisation of the International Association" }
+      - { page: 226, opens: "2.—International", title: "2. International Combination of Efforts, by the Agency of the Association, in the Struggle between Labour and Capital" }
+      - { page: 229, opens: "3.—Limitation", title: "3. Limitation of the Working Day" }
+      - { page: 230, opens: "4.—Juvenile", title: "4. Juvenile and Children's Labour (Both Sexes)" }
+      - { page: 231, opens: "5. Co-operative", title: "5. Co-operative Labour" }
+      - { page: 232, opens: "6. Trades", title: "6. Trades' Unions. Their Past, Present and Future" }
+      - { page: 234, opens: "7. Direct", title: "7. Direct and Indirect Taxation" }
+      - { page: 234, opens: "8. International Credit", title: "8. International Credit" }
+      - { page: 234, opens: "9. Polish", title: "9. Polish Question" }
+      - { page: 235, opens: "10. Armies", title: "10. Armies" }
+      - { page: 235, opens: "11. Religious", title: "11. Religious Question" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 225, opens: "1.—Organisation of the" }
+      - { page: 225, opens: "Upon the whole," }
+      - { page: 225, opens: "The members of" }
+      - { page: 225, opens: "The General Secretary" }
+      - { page: 225, opens: "The uniform annual" }
+      - { page: 225, opens: "While calling upon" }
+      - { page: 226, opens: "2.—International combination of" }
+      - { page: 226, opens: "a. From a" }
+      - { page: 226, opens: "b. To counteract" }
+      - { page: 226, opens: "c. One great" }
+      - { page: 226, opens: "That in each" }
+      - { page: 226, opens: "That the Congress" }
+      - { page: 226, opens: "That this report" }
+      - { page: 226, opens: "General scheme of" }
+      - { page: 226, opens: "1. Industry, name" }
+      - { page: 226, opens: "2. Age and" }
+      - { page: 226, opens: "3. Number of" }
+      - { page: 229, opens: "4. Salaries and" }
+      - { page: 229, opens: "5. (a) Hours" }
+      - { page: 229, opens: "6. Mealtimes and" }
+      - { page: 229, opens: "7. Sort of" }
+      - { page: 229, opens: "8. Nature of" }
+      - { page: 229, opens: "9. Effect of" }
+      - { page: 229, opens: "10. Moral condition." }
+      - { page: 229, opens: "11. State of" }
+      - { page: 229, opens: "3.—Limitation of the" }
+      - { page: 229, opens: "A preliminary condition," }
+      - { page: 229, opens: "It is needed" }
+      - { page: 229, opens: "We propose 8" }
+      - { page: 229, opens: "For the information" }
+      - { page: 229, opens: "This paragraph refers" }
+      - { page: 230, opens: "4.—Juvenile and children's" }
+      - { page: 230, opens: "We consider the" }
+      - { page: 230, opens: "However, for the" }
+      - { page: 230, opens: "It may be" }
+      - { page: 230, opens: "If the middle" }
+      - { page: 230, opens: "The case of" }
+      - { page: 231, opens: "Proceeding from this" }
+      - { page: 231, opens: "By education we" }
+      - { page: 231, opens: "Firstly: Mental education." }
+      - { page: 231, opens: "Secondly: Bodily education," }
+      - { page: 231, opens: "Thirdly: Technological training," }
+      - { page: 231, opens: "A gradual and" }
+      - { page: 231, opens: "The combination of" }
+      - { page: 231, opens: "It is self-understood" }
+      - { page: 231, opens: "5. Co-operative labour." }
+      - { page: 231, opens: "It is the" }
+      - { page: 231, opens: "(a) We acknowledge" }
+      - { page: 232, opens: "(b) Restricted, however," }
+      - { page: 232, opens: "(c) We recommend" }
+      - { page: 232, opens: "(d) We recommend" }
+      - { page: 232, opens: "(e) In order" }
+      - { page: 232, opens: "6. Trades' Unions." }
+      - { page: 232, opens: "(a) Their past." }
+      - { page: 232, opens: "Capital is concentrated" }
+      - { page: 232, opens: "Trades' Unions originally" }
+      - { page: 234, opens: "7. Direct and" }
+      - { page: 234, opens: "(a) No modification" }
+      - { page: 234, opens: "(b) Nevertheless, having" }
+      - { page: 234, opens: "Because direct taxes" }
+      - { page: 234, opens: "Because indirect taxes" }
+      - { page: 234, opens: "8. International Credit." }
+      - { page: 234, opens: "Initiative to be" }
+      - { page: 234, opens: "9. Polish Question." }
+      - { page: 234, opens: "(a) Why do" }
+      - { page: 234, opens: "(b) In the" }
+      - { page: 235, opens: "(c) It is" }
+      - { page: 235, opens: "10. Armies." }
+      - { page: 235, opens: "(a) The deleterious" }
+      - { page: 235, opens: "(b) We propose" }
+      - { page: 235, opens: "(c)We accept as" }
+      - { page: 235, opens: "11. Religious Question." }
+      - { page: 235, opens: "To be left" }
+    slug: instructions-for-the-delegates-of-the-provisional-general-council
+    title: "Instructions for the Delegates of the Provisional General Council. The Different Questions"
+    shortTitle: "Instructions for the Delegates"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, September 1864 bis September 1867, MEGA² I/20 (Berlin, Dietz, 1992), S. 225–235; first printed in The International Courier (London, 20 February and 13 March 1867)"
+    author: Karl Marx
+    year: 1867
+    kind: work
+  - source: archive-ocr
+    # Marx's note on Otto Hübner's circular, in his French, as MEGA² I/20
+    # gives it from Le Courrier français of 6 September 1867, from the
+    # Internet Archive's PDF of the volume.
+    item: mega-i-20-huebner
+    citation: MEGA² I/20
+    ocr: fra
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.20%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20September%201864%20bis%20September%201867%20%28Text%29.pdf#page=260&region=0.211,0.358,0.568,0.171
+          page: 259
+    firstPage: 259
+    lastPage: 259
+    slug: le-statisticien-otto-huebner
+    title: "Le statisticien Otto Hübner sur la misère de masse en Allemagne"
+    shortTitle: "Otto Hübner"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, September 1864 bis September 1867, MEGA² I/20 (Berlin, Dietz, 1992), S. 259; first printed in Le Courrier français, no 81 (Paris, 6 septembre 1867)"
+    author: Karl Marx
+    year: 1867
+    kind: work
+  - source: archive-ocr
+    # Marx's letters and statements to the press of 1871, in his English,
+    # as MEGA² I/22 gives them from the papers that printed them, from the
+    # Internet Archive's PDF of the volume: The Times (23 March and 4 April),
+    # The Eastern Post (1 July), The Pall Mall Gazette (3 July),
+    # The Morning Advertiser (13 July), The Standard (17 July), Public
+    # Opinion (26 August), The Sun of New York (9 September), The Examiner
+    # (2 September), with the French letter Marx enclosed, and The Evening
+    # Standard (6 September).
+    item: mega-i-22-letters
+    citation: MEGA² I/22
+    ocr: eng+fra
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=21&region=0.239,0.311,0.576,0.486
+          page: 4
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=26&region=0.238,0.343,0.575,0.425
+          page: 10
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=241&region=0.224,0.352,0.572,0.365
+          page: 237
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=247&region=0.198,0.33,0.573,0.17
+          page: 243
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=256&region=0.198,0.34,0.573,0.254
+          page: 253
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=257&region=0.225,0.332,0.574,0.194
+          page: 254
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=265&region=0.215,0.311,0.573,0.478
+          page: 263
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=267&region=0.215,0.32,0.572,0.482
+          page: 265
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=268&region=0.221,0.177,0.573,0.622
+          page: 266
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=269&region=0.186,0.182,0.573,0.306
+          page: 267
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=270&region=0.224,0.368,0.575,0.419
+          page: 268
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=271&region=0.213,0.165,0.572,0.622
+          page: 269
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=272&region=0.232,0.179,0.576,0.336
+          page: 270
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=274&region=0.223,0.342,0.573,0.33
+          page: 272
+    firstPage: 4
+    lastPage: 272
+    # Each piece opens a section at its first line, under its title.
+    headings:
+      - { page: 4, opens: "To the Editor", title: "Statement by the General Council to the Editor of The Times and Other Papers" }
+      - { page: 10, opens: "To the Editor", title: "To the Editor of The Times" }
+      - { page: 237, opens: "Sir,", title: "To the Editor of The Daily News" }
+      - { page: 243, opens: "Haverstock", title: "Letter to Frederick Greenwood, the Editor of The Pall Mall Gazette" }
+      - { page: 253, opens: "To the Editor", title: "To the Editor of The Morning Advertiser" }
+      - { page: 254, opens: "To the Editor", title: "To the Editor of The Standard" }
+      - { page: 263, opens: "To the Editor", title: "To the Editor of Public Opinion" }
+      - { page: 265, opens: "Brighton", title: "Letter to the Editor of The Sun, Charles Dana" }
+      - { page: 268, opens: "Sir", title: "The Commune and Archbishop Darboy" }
+      - { page: 272, opens: "To the Editor", title: "To the Editor of The Evening Standard" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 4, opens: "To the Editor" }
+      - { page: 4, opens: "Sir,—I am directed" }
+      - { page: 4, opens: "A statement has" }
+      - { page: 4, opens: "This statement is" }
+      - { page: 4, opens: "The object of" }
+      - { page: 4, opens: "Yours respectfully," }
+      - { page: 4, opens: "J. GEORGE ECCARIUS," }
+      - { page: 4, opens: "256, High Holborn," }
+      - { page: 10, opens: "To the Editor" }
+      - { page: 10, opens: "Sir,—Will you allow" }
+      - { page: 10, opens: "A Lombard telegram," }
+      - { page: 10, opens: "I have the" }
+      - { page: 10, opens: "KARL MARX." }
+      - { page: 10, opens: "London, April 3." }
+      - { page: 237, opens: "Sir,—A Council consisting" }
+      - { page: 243, opens: "Haverstock-hill, N. W.," }
+      - { page: 243, opens: "Sir,—I have declared" }
+      - { page: 243, opens: "In your yesterday's" }
+      - { page: 243, opens: "KARL MARX." }
+      - { page: 253, opens: "To the Editor" }
+      - { page: 253, opens: "Sir,—In one of" }
+      - { page: 253, opens: "Permit me to" }
+      - { page: 253, opens: "I am, Sir," }
+      - { page: 253, opens: "KARL MARX." }
+      - { page: 253, opens: "1, Modena-villas, Maitland" }
+      - { page: 254, opens: "To the Editor" }
+      - { page: 254, opens: "Sir,—In this morning's" }
+      - { page: 254, opens: "KARL MARX." }
+      - { page: 254, opens: "London, July 13." }
+      - { page: 263, opens: "To the Editor" }
+      - { page: 263, opens: "Sir,—In your publication" }
+      - { page: 263, opens: "In reply to" }
+      - { page: 263, opens: "Save the general" }
+      - { page: 263, opens: "I am, Sir," }
+      - { page: 263, opens: "Haverstock Hill, Aug." }
+      - { page: 265, opens: "Brighton, August 23," }
+      - { page: 265, opens: "My dear Sir:" }
+      - { page: 265, opens: "I shall comply" }
+      - { page: 265, opens: "I have sent" }
+      - { page: 265, opens: "The number of" }
+      - { page: 265, opens: "To give you" }
+      - { page: 265, opens: "My second daughter," }
+      - { page: 266, opens: "Lafargue had received" }
+      - { page: 266, opens: "Although the son" }
+      - { page: 266, opens: "Meanwhile the Paris" }
+      - { page: 267, opens: "As to Cluseret," }
+      - { page: 267, opens: "Your old friend." }
+      - { page: 267, opens: "KARL MARX." }
+      - { page: 268, opens: "Sir—The passage of" }
+      - { page: 268, opens: "From the enclosed" }
+      - { page: 268, opens: "I am, etc.," }
+      - { page: 268, opens: "KARL MARX." }
+      - { page: 268, opens: "London, August 29." }
+      - { page: 268, opens: "Londres, 19 Août," }
+      - { page: 268, opens: "Monsieur, — Je" }
+      - { page: 269, opens: "Vers le 15" }
+      - { page: 269, opens: "Voici le résumé" }
+      - { page: 269, opens: "« Il est" }
+      - { page: 269, opens: "Quant à M." }
+      - { page: 269, opens: "Comme il est" }
+      - { page: 269, opens: "Obligé de quitter" }
+      - { page: 270, opens: "Le 27 Mai" }
+      - { page: 270, opens: "La malle me" }
+      - { page: 270, opens: "Suit des renseignements" }
+      - { page: 270, opens: "E. FONDEVILLE," }
+      - { page: 270, opens: "Propriétaire à St" }
+      - { page: 272, opens: "To the Editor." }
+      - { page: 272, opens: "Sir,—In your number" }
+      - { page: 272, opens: "KARL MARX." }
+      - { page: 272, opens: "Haverstock-hill, Sept. 4,," }
+    slug: letters-to-the-press-1871
+    title: "Letters to the Press, 1871"
+    shortTitle: "Letters to the Press, 1871"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, März bis November 1871, MEGA² I/22 (Berlin, Dietz, 1978), S. 4, 10, 237, 243, 253–254, 263, 265–270 und 272; first printed in The Times, The Pall Mall Gazette, The Eastern Post, The Morning Advertiser, The Standard, Public Opinion, The Examiner, The Evening Standard (London) and The Sun (New York), March to September 1871"
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # The General Council's leaflet on the American ambassador in Paris,
+    # which Marx wrote in English, as MEGA² I/22 gives it from the leaflet
+    # of July 1871, from the Internet Archive's PDF of the volume; the
+    # facsimile plate (pp. 247–248) is left out.
+    item: mega-i-22-washburne
+    citation: MEGA² I/22
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=250&region=0.218,0.418,0.573,0.376
+          page: 246
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=252&region=0.219,0.173,0.576,0.624
+          page: 249
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=253&region=0.199,0.157,0.574,0.624
+          page: 250
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=254&region=0.211,0.176,0.573,0.622
+          page: 251
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=255&region=0.225,0.171,0.573,0.17
+          page: 252
+    firstPage: 246
+    lastPage: 252
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 246, opens: "To the New" }
+      - { page: 246, opens: "Citizens,—The General Council" }
+      - { page: 246, opens: "I. The following" }
+      - { page: 246, opens: "Mr. Reid, now" }
+      - { page: 246, opens: "\"The sounding of" }
+      - { page: 250, opens: "\"But, to return" }
+      - { page: 250, opens: "II. \"On the" }
+      - { page: 250, opens: "'\"Suspension of hostilities." }
+      - { page: 250, opens: "\"'Re-election of the" }
+      - { page: 250, opens: "\"'The Versailles troops" }
+      - { page: 250, opens: "\"'The National Guard" }
+      - { page: 250, opens: "\"'No punishment to" }
+      - { page: 250, opens: "\"The Commune in" }
+      - { page: 250, opens: "\"A second interview" }
+      - { page: 251, opens: "\"The result of" }
+      - { page: 251, opens: "\"During the whole" }
+      - { page: 251, opens: "This statement, No." }
+      - { page: 251, opens: "To fully appreciate" }
+      - { page: 251, opens: "We now request" }
+      - { page: 251, opens: "THE GENERAL COUNCIL" }
+      - { page: 251, opens: "INTERNATIONAL WORKING MEN'S" }
+      - { page: 251, opens: "M.J.Boon, Fred. Bradnick," }
+      - { page: 252, opens: "CORRESPONDING SECRETARIES:—" }
+      - { page: 252, opens: "Eugène Dupont, for" }
+      - { page: 252, opens: "HERMANN JUNG, Chairman." }
+      - { page: 252, opens: "JOHN WESTON, Treasurer." }
+      - { page: 252, opens: "July 11th, 1871." }
+    slug: mr-washburne-the-american-ambassador-in-paris
+    title: "Mr. Washburne, the American Ambassador in Paris"
+    shortTitle: "Mr. Washburne"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, März bis November 1871, MEGA² I/22 (Berlin, Dietz, 1978), S. 246–252; first printed as a leaflet (London, July 1871)"
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # Marx's letter to the Neue Freie Presse, as MEGA² I/22 gives it from
+    # the paper of 4 July 1871, from the Internet Archive's PDF of the volume.
+    item: mega-i-22-nfp
+    citation: MEGA² I/22
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=244&region=0.225,0.32,0.572,0.248
+          page: 240
+    firstPage: 240
+    lastPage: 240
+    slug: an-die-redaktion-der-neuen-freien-presse
+    title: "An die Redaktion der „Neuen Freien Presse“"
+    shortTitle: "An die „Neue Freie Presse“"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, März bis November 1871, MEGA² I/22 (Berlin, Dietz, 1978), S. 240; first printed in the Neue Freie Presse, Morgenblatt, Nr. 2462 (Wien, 4. Juli 1871)"
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # Marx's letter to Le Gaulois, in his French, with the English
+    # declaration to the New York Herald it encloses, as MEGA² I/22 gives
+    # it from the paper of 27 August 1871, from the Internet Archive's PDF
+    # of the volume.
+    item: mega-i-22-gaulois
+    citation: MEGA² I/22
+    ocr: fra+eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=266&region=0.23,0.326,0.575,0.441
+          page: 264
+    firstPage: 264
+    lastPage: 264
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 264, opens: "Brighton, 24e août," }
+      - { page: 264, opens: "Au Rédacteur du" }
+      - { page: 264, opens: "Monsieur," }
+      - { page: 264, opens: "Comme vous avez" }
+      - { page: 264, opens: "J'ai l'honneur d'être" }
+      - { page: 264, opens: "Karl Marx." }
+      - { page: 264, opens: "London, 17 August," }
+      - { page: 264, opens: "To the Editor" }
+      - { page: 264, opens: "Sir," }
+      - { page: 264, opens: "In the Herald" }
+      - { page: 264, opens: "Yours obediently." }
+      - { page: 264, opens: "KARL MARX." }
+    slug: au-redacteur-du-gaulois
+    title: "Au rédacteur du « Gaulois »"
+    shortTitle: "Au rédacteur du Gaulois"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, März bis November 1871, MEGA² I/22 (Berlin, Dietz, 1978), S. 264; first printed in Le Gaulois, no 1145 (Paris, 27 août 1871)"
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # The London Conference's resolution on the dispute in the Romance
+    # Swiss federation, which Marx drew up in French, as MEGA² I/22 gives it
+    # from L'Égalité of 21 October 1871, from the Internet Archive's PDF of
+    # the volume; the facsimile plate (pp. 317–318) is left out.
+    item: mega-i-22-suisse
+    citation: MEGA² I/22
+    ocr: fra
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=311&region=0.22,0.398,0.572,0.411
+          page: 315
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=313&region=0.255,0.173,0.575,0.621
+          page: 316
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.22%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20M%C3%A4rz%20bis%20November%201871%20%28Text%29.pdf#page=314&region=0.217,0.176,0.573,0.57
+          page: 319
+    firstPage: 315
+    lastPage: 319
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 315, opens: "Quant à ce" }
+      - { page: 315, opens: "1° La Conférence" }
+      - { page: 315, opens: "Première fin de" }
+      - { page: 315, opens: "« Le Congrès" }
+      - { page: 315, opens: "Considérant :" }
+      - { page: 315, opens: "Que lorsque les" }
+      - { page: 315, opens: "Que d'après la" }
+      - { page: 315, opens: "Que ces droits" }
+      - { page: 315, opens: "Que les droits" }
+      - { page: 315, opens: "Qu'en effet, ce" }
+      - { page: 316, opens: "Par ces raisons" }
+      - { page: 316, opens: "Quant à la" }
+      - { page: 316, opens: "Deuxième fin de" }
+      - { page: 316, opens: "« Il serait," }
+      - { page: 316, opens: "Considérant :" }
+      - { page: 316, opens: "Que le Conseil" }
+      - { page: 316, opens: "Que le citoyen" }
+      - { page: 316, opens: "En violation flagrante" }
+      - { page: 316, opens: "Ce Comité avait" }
+      - { page: 316, opens: "Par conséquent, il" }
+      - { page: 316, opens: "Le citoyen Jung" }
+      - { page: 316, opens: "Considérant encore :" }
+      - { page: 316, opens: "Qu'au nom du" }
+      - { page: 319, opens: "Que la commission" }
+      - { page: 319, opens: "Pour ces raisons" }
+      - { page: 319, opens: "Quant à la" }
+      - { page: 319, opens: "Troisième fin de" }
+      - { page: 319, opens: "«Une décision, —" }
+      - { page: 319, opens: "Considérant :" }
+      - { page: 319, opens: "Que personne n'a" }
+      - { page: 319, opens: "La conférence passe" }
+      - { page: 319, opens: "2) La conférence" }
+      - { page: 319, opens: "Considérant en même" }
+      - { page: 319, opens: "Elle conseille aux" }
+      - { page: 319, opens: "Elle donne avis" }
+      - { page: 319, opens: "Londres, 26 septembre," }
+      - { page: 319, opens: "Pour copie conforme" }
+      - { page: 319, opens: "Le secrétaire-correspondant pour" }
+      - { page: 319, opens: "H. Jung." }
+    slug: resolution-relative-au-differend-dans-la-suisse-romande
+    title: "Résolution de la Conférence des délégués de l'Association Internationale des Travailleurs relative au différend entre les fédérations dans la Suisse romande"
+    shortTitle: "Le différend dans la Suisse romande"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, März bis November 1871, MEGA² I/22 (Berlin, Dietz, 1978), S. 315–319; first printed in L'Égalité, no 20 (Genève, 21 octobre 1871)"
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # Marx's and Engels' letters to The Daily News of 1878 and 1881, in
+    # their English, as MEGA² I/25 gives them from the paper, from the
+    # Internet Archive's PDF of the volume.
+    item: mega-i-25-daily-news
+    citation: MEGA² I/25
+    ocr: eng
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=153&region=0.303,0.438,0.405,0.285
+          page: 147
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=154&region=0.299,0.278,0.405,0.153
+          page: 148
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=245&region=0.303,0.389,0.404,0.299
+          page: 245
+    firstPage: 147
+    lastPage: 245
+    # Each piece opens a section at its first line, under its title.
+    headings:
+      - { page: 147, opens: "To the Editor", title: "Herr Bucher" }
+      - { page: 245, opens: "To the Editor", title: "To the Editor of The Daily News" }
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 147, opens: "To the Editor" }
+      - { page: 147, opens: "Sir—According to a" }
+      - { page: 148, opens: "I am, Sir," }
+      - { page: 148, opens: "KARL MARX." }
+      - { page: 245, opens: "To the Editor" }
+      - { page: 245, opens: "Sir,—The Daily News" }
+      - { page: 245, opens: "We are, Sir," }
+      - { page: 245, opens: "FREDERICK ENGELS." }
+      - { page: 245, opens: "London, March 31." }
+      - { page: 245, opens: "KARL MARX." }
+    slug: letters-to-the-daily-news-1878-1881
+    title: "Letters to The Daily News, 1878–1881"
+    shortTitle: "Letters to The Daily News"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, Mai 1875 bis Mai 1883, MEGA² I/25 (Berlin, Dietz, 1985), S. 147–148 und 245; first printed in The Daily News, Nos. 10030 and 10907 (London, 13 June 1878 and 1 April 1881)"
+    author: Karl Marx und Friedrich Engels
+    year: 1878
+    kind: work
+  - source: archive-ocr
+    # Marx's and Engels' address to the Geneva meeting for the Polish
+    # revolution of 1830, in their French, as MEGA² I/25 gives it from Le
+    # Précurseur of 4 December 1880, from the Internet Archive's PDF of the
+    # volume.
+    item: mega-i-25-geneve
+    citation: MEGA² I/25
+    ocr: fra
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/mega-marx-engels-gesamtausgabe
+      pages:
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=214&region=0.296,0.449,0.405,0.265
+          page: 211
+        - url: https://archive.org/download/mega-marx-engels-gesamtausgabe/MEGA%C2%B2%20I.25%20-%20Karl%20Marx%20-%20Artikel%20%C2%B7%20Entw%C3%BCrfe.%20Mai%201875%20bis%20Mai%201883%20%28Text%29.pdf#page=215&region=0.3,0.281,0.404,0.421
+          page: 212
+    firstPage: 211
+    lastPage: 212
+    # The OCR reads the indents of the cropped pages unevenly: on these pages,
+    # the lines that open paragraphs, among them addresses, salutations,
+    # signatures and datelines set apart.
+    paragraphs:
+      - { page: 211, opens: "Citoyens," }
+      - { page: 211, opens: "Après le premier" }
+      - { page: 211, opens: "Le cri de" }
+      - { page: 212, opens: "Dès 1830, la" }
+      - { page: 212, opens: "En 1847 se" }
+      - { page: 212, opens: "Hors de leur" }
+      - { page: 212, opens: "Londres, le 27" }
+      - { page: 212, opens: "(Signé) Karl Marx;" }
+      - { page: 212, opens: "Paul Lafargue; F." }
+    slug: au-meeting-a-geneve-en-souvenir-de-la-revolution-polonaise-de-1830
+    title: "Au meeting, à Genève, en souvenir du 50e anniversaire de la Révolution polonaise de 1830"
+    shortTitle: "Au meeting de Genève, 1880"
+    edition: "Karl Marx, Friedrich Engels, Artikel, Entwürfe, Mai 1875 bis Mai 1883, MEGA² I/25 (Berlin, Dietz, 1985), S. 211–212; first printed in Le Précurseur, no 49 (Genève, 4 décembre 1880)"
+    author: Karl Marx und Friedrich Engels
+    year: 1880
     kind: work

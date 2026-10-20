@@ -1735,7 +1735,8 @@ const NUMBERED_TITLE = /^([IVXL]+\.)\s+(\p{Lu}.*)$/u;
 /**
  * A centred line of a chapter's numeral and title read as the two lines a
  * heading sets them on more often, so the heading reads them alike; in a
- * volume that sets numerals on lines of their own, such a line is a list's.
+ * volume that sets numerals on lines of their own, such a line is a list's,
+ * and so is one that fills the column, a numbered paragraph's first.
  */
 function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   const match = NUMBERED_TITLE.exec(line.text);
@@ -1746,6 +1747,7 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
     !match?.[1] ||
     !match[2] ||
     !centred ||
+    line.width >= volume.column * HEADING_WIDTH ||
     // A note, set smaller or at the page's foot, may open with an initial
     // (L. Oliphant); no chapter opens there.
     line.size < volume.textSize * NOTE_SIZE ||
