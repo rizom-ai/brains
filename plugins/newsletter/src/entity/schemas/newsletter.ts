@@ -26,8 +26,6 @@ export const newsletterFrontmatterSchema: z.ZodObject<{
   entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
   scheduledFor: z.ZodOptional<z.ZodString>;
   sentAt: z.ZodOptional<z.ZodString>;
-  buttondownId: z.ZodOptional<z.ZodString>;
-  resendBroadcastId: z.ZodOptional<z.ZodString>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
 }> = z.object({
   subject: z.string(),
@@ -35,8 +33,6 @@ export const newsletterFrontmatterSchema: z.ZodObject<{
   entityIds: z.array(z.string()).optional(),
   scheduledFor: z.string().datetime().optional(),
   sentAt: z.string().datetime().optional(),
-  buttondownId: z.string().optional(),
-  resendBroadcastId: z.string().optional(),
   sourceEntityType: z.string().optional(),
 });
 
@@ -53,8 +49,6 @@ type NewsletterMetadataSchema = z.ZodObject<{
   entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
   scheduledFor: z.ZodOptional<z.ZodString>;
   sentAt: z.ZodOptional<z.ZodString>;
-  buttondownId: z.ZodOptional<z.ZodString>;
-  resendBroadcastId: z.ZodOptional<z.ZodString>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
 }>;
@@ -65,8 +59,6 @@ export const newsletterMetadataSchema: NewsletterMetadataSchema = z.object({
   entityIds: z.array(z.string()).optional(),
   scheduledFor: z.string().datetime().optional(),
   sentAt: z.string().datetime().optional(),
-  buttondownId: z.string().optional(),
-  resendBroadcastId: z.string().optional(),
   sourceEntityType: z.string().optional(),
   error: z.string().optional(),
 });
