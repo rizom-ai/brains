@@ -7,6 +7,7 @@ import { EntityWriteConflictError } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
+import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import type { ImportResult, RawEntity } from "../types";
 
 import { resolveInSyncPath } from "./path-utils";
@@ -60,6 +61,34 @@ function resolveImportVisibility(
   return { visibility: stored ?? "public" };
 }
 
+function frontmatterRecord(markdown: string): Record<string, unknown> {
+  const { data } = readMarkdownFrontmatter(markdown);
+  return isPlainRecord(data) ? data : {};
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Whether the stored form drops a frontmatter field the file holds, at the
+ * top level or one level inside an object. Visibility is policy: a public
+ * file may declare it, while its stored form omits it.
+ */
+function dropsFrontmatterFields(file: string, stored: string): boolean {
+  const kept = frontmatterRecord(stored);
+  return Object.entries(frontmatterRecord(file)).some(([key, value]) => {
+    if (key === "visibility") return false;
+    if (!Object.hasOwn(kept, key)) return true;
+    const keptValue = kept[key];
+    return (
+      isPlainRecord(value) &&
+      isPlainRecord(keptValue) &&
+      Object.keys(value).some((nested) => !Object.hasOwn(keptValue, nested))
+    );
+  });
+}
+
 export async function persistImportEntity(
   deps: ImportPersistenceDeps,
   rawEntity: RawEntity,
@@ -82,8 +111,9 @@ export async function persistImportEntity(
       existing,
     );
     // The file and the database disagree about a non-public tier, and the
-    // database wins. Auto-sync will rewrite the file with the retained value,
-    // so surface the override rather than letting an edit vanish silently.
+    // database wins. The import is an ordinary write, so auto-sync rewrites
+    // the file with the retained value; surface the override too, rather
+    // than letting an edit vanish silently.
     if (retainedFrom) {
       deps.logger.debug(
         "Retained stored visibility; imported file declared none",
@@ -109,9 +139,15 @@ export async function persistImportEntity(
     // Store canonical hash so auto-sync writes don't trigger a re-import:
     // after auto-sync writes serializeEntity(entity) to disk, the file hash
     // matches this hash and shouldUpdateEntity returns false.
-    entity.contentHash = computeContentHash(
-      deps.entityService.serializeEntity(entity),
-    );
+    const stored = deps.entityService.serializeEntity(entity);
+    entity.contentHash = computeContentHash(stored);
+    // The brain keeps none of a field its stored form drops, such as one the
+    // type has retired. Such a file is written back in its stored form, so it
+    // stops showing what the brain no longer holds.
+    // A retained tier is written back too, so the file stops understating it.
+    const writeBack =
+      retainedFrom !== undefined ||
+      dropsFrontmatterFields(rawEntity.content, stored);
 
     if (
       entity.entityType !== rawEntity.entityType ||
@@ -126,6 +162,7 @@ export async function persistImportEntity(
     // exactly what is stored. Writing it again would only move `updated`
     // and queue derived work, so leave it.
     if (
+      !writeBack &&
       existing?.contentHash === entity.contentHash &&
       existing.visibility === entity.visibility &&
       Bun.deepEquals(existing.metadata, entity.metadata)
@@ -134,7 +171,9 @@ export async function persistImportEntity(
       return;
     }
     const options = {
-      persistenceOrigin: "directory-sync" as const,
+      persistenceOrigin: writeBack
+        ? ("ordinary" as const)
+        : ("directory-sync" as const),
       conditionalWrite: { expectedRevision: snapshot?.revision ?? null },
     };
     const upsertResult = await deps.entityService.upsertEntity({

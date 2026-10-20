@@ -63,7 +63,8 @@ export class LinkPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    // domain is the URL's hostname; readers take it from url.
+    return { projectionSourceRole: "supporting", retiredFields: ["domain"] };
   }
 
   /**
@@ -329,7 +330,6 @@ export class LinkPlugin extends EntityPlugin<
       url,
       description: "Link capture is in progress.",
       summary: `Pending link capture for ${url}.`,
-      domain: parsedUrl.hostname,
       capturedAt: now,
       source: this.resolveSource(executionContext),
     });

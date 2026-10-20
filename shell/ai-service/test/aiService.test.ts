@@ -8,8 +8,13 @@ import {
   spyOn,
 } from "bun:test";
 import { AIService } from "../src/aiService";
+import { GenerationUsageMeter } from "../src/generation-usage-meter";
 import { AIOutputValidationError } from "../src/errors";
-import { createSilentLogger, createTestLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createTestLogger,
+  caughtError,
+} from "@brains/test-utils";
 import { LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import * as ai from "ai";
@@ -101,6 +106,84 @@ describe("AIService", () => {
   let generateTextSpy: ReturnType<typeof spyOn<typeof ai, "generateText">>;
   let generateObjectSpy: ReturnType<typeof spyOn<typeof ai, "generateObject">>;
   let generateImageSpy: ReturnType<typeof spyOn<typeof ai, "generateImage">>;
+
+  it("reports auxiliary generation through the host meter and scopes provider retries and cancellation", async () => {
+    const meter = GenerationUsageMeter.createFresh();
+    const service = AIService.createFresh(
+      { model: "gpt-5.6-luna", apiKey: "local-test-only" },
+      logger,
+      meter,
+    );
+    generateObjectSpy.mockResolvedValueOnce(
+      objectResult(
+        { result: "yes" },
+        {
+          inputTokens: 10,
+          outputTokens: 3,
+          totalTokens: 13,
+          inputTokenDetails: {
+            noCacheTokens: 10,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+          },
+          outputTokenDetails: { textTokens: 3, reasoningTokens: 0 },
+        },
+      ),
+    );
+    const measured = await meter.measure(() =>
+      service.generateObject(
+        "system",
+        "question",
+        z.object({ result: z.string() }),
+      ),
+    );
+    expect(measured.settlement.usage).toMatchObject({
+      modelCalls: 1,
+      inputTokens: 10,
+      outputTokens: 3,
+    });
+    expect(measured.settlement.cost).toMatchObject({
+      state: "known",
+      microUsd: 6,
+    });
+    expect(generateObjectSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maxRetries: 0,
+        abortSignal: expect.any(AbortSignal),
+      }),
+    );
+    expect(generateObjectSpy.mock.calls[0]?.[0].abortSignal?.aborted).toBe(
+      true,
+    );
+    generateObjectSpy.mockClear();
+    await service.generateObject(
+      "system",
+      "ordinary",
+      z.object({ result: z.string() }),
+    );
+    expect(generateObjectSpy.mock.calls[0]?.[0].maxRetries).toBeUndefined();
+  });
+
+  it("retains an unreported auxiliary attempt as unknown cost", async () => {
+    const meter = GenerationUsageMeter.createFresh();
+    const service = AIService.createFresh(
+      { model: "gpt-5.6-luna", apiKey: "local-test-only" },
+      logger,
+      meter,
+    );
+    generateObjectSpy.mockRejectedValueOnce(new Error("Provider failed"));
+    const measured = await meter.measure(async () => {
+      const failure = await service
+        .generateObject("system", "question", z.object({ result: z.string() }))
+        .catch(caughtError);
+      expect(caughtError(failure).message).toBe("AI object generation failed");
+    });
+    expect(measured.settlement.usage.modelCalls).toBe(1);
+    expect(measured.settlement.cost).toEqual({
+      state: "unknown",
+      reason: "missing-usage",
+    });
+  });
 
   beforeEach(() => {
     logger = createSilentLogger();

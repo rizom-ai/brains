@@ -9,7 +9,7 @@ import {
   type AtprotoBrainCardRecord,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { EntityPluginContext, IRuntimeStateStore } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   createSafePublicFetch,
@@ -29,6 +29,62 @@ import {
 
 const agentAdapter = new AgentAdapter();
 const CARD_UNAVAILABLE_FAILURE_THRESHOLD = 3;
+
+export const CARD_REFRESH_STATE_NAMESPACE = "agent-discovery.card-refresh";
+
+/** The refresh loop's record for one agent. Nothing else reads it, so it stays out of the entity. */
+export const cardRefreshStateSchema: z.ZodObject<{
+  cid: z.ZodOptional<z.ZodString>;
+  lastError: z.ZodOptional<z.ZodString>;
+  failureCount: z.ZodOptional<z.ZodNumber>;
+  unavailableAt: z.ZodOptional<z.ZodString>;
+  staleAfter: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  /** The card snapshot last applied to the agent. */
+  cid: z.string().optional(),
+  lastError: z.string().optional(),
+  failureCount: z.number().int().nonnegative().optional(),
+  unavailableAt: z.string().optional(),
+  /** When a never-approved unavailable candidate may be archived. */
+  staleAfter: z.string().optional(),
+});
+
+export type CardRefreshState = z.output<typeof cardRefreshStateSchema>;
+
+type CardRefreshStore = IRuntimeStateStore<CardRefreshState>;
+
+function cardRefreshStore(context: EntityPluginContext): CardRefreshStore {
+  return context.runtimeState.scoped({
+    namespace: CARD_REFRESH_STATE_NAMESPACE,
+    schema: cardRefreshStateSchema,
+  });
+}
+
+/**
+ * An agent's refresh record. An agent an earlier release tracked in its own
+ * card fields starts from those, so failure counts and stale deadlines carry over.
+ */
+async function readRefreshState(
+  store: CardRefreshStore,
+  agent: AgentEntity,
+): Promise<CardRefreshState> {
+  const recorded = await store.get(agent.id);
+  if (recorded) return recorded;
+  const stored = agent.metadata;
+  const seeded: CardRefreshState = {
+    ...(stored.cardCid && { cid: stored.cardCid }),
+    ...(stored.cardLastError && { lastError: stored.cardLastError }),
+    ...(stored.cardFailureCount !== undefined && {
+      failureCount: stored.cardFailureCount,
+    }),
+    ...(stored.cardUnavailableAt && {
+      unavailableAt: stored.cardUnavailableAt,
+    }),
+    ...(stored.cardStaleAfter && { staleAfter: stored.cardStaleAfter }),
+  };
+  await store.set(agent.id, seeded);
+  return seeded;
+}
 const pdsRecordResponseSchema = z.looseObject({
   uri: z.string().min(1),
   cid: z.string().min(1),
@@ -153,7 +209,6 @@ export async function upsertAgentFromCard(
     : undefined;
 
   const brainDid = record.brain.did;
-  const anchorDid = record.anchor.did;
   const cardSkills = toAgentSkills(record);
 
   // Keep local relationship fields (approval/status, stored endpoint URL,
@@ -165,7 +220,6 @@ export async function upsertAgentFromCard(
   const name = record.anchor.name;
   const kind = record.anchor.category;
   const discoveredAt = existing?.metadata.discoveredAt ?? now;
-  const cardObservedAt = record.updatedAt ?? record.createdAt;
   const about =
     record.brain.purpose.length > 0
       ? record.brain.purpose
@@ -180,7 +234,9 @@ export async function upsertAgentFromCard(
       cid: input.cid,
     });
 
+  // Card refresh state lives in the refresh record, not on the agent.
   const preservedMetadata = { ...(existing?.metadata ?? {}) };
+  delete preservedMetadata.cardCid;
   delete preservedMetadata.cardLastError;
   delete preservedMetadata.cardFailureCount;
   delete preservedMetadata.cardUnavailableAt;
@@ -194,11 +250,7 @@ export async function upsertAgentFromCard(
     slug,
     repoDid: input.repoDid,
     ...(brainDid && { brainDid }),
-    ...(anchorDid && { anchorDid }),
     cardUri: input.uri,
-    cardCid: input.cid,
-    cardObservedAt,
-    cardLastCheckedAt: now,
   };
 
   const content = agentAdapter.createAgentContent({
@@ -209,22 +261,18 @@ export async function upsertAgentFromCard(
     }),
     brainName: record.brain.name,
     url,
-    ...(brainDid && { did: brainDid, brainDid }),
-    ...(anchorDid && { anchorDid }),
+    ...(brainDid && { brainDid }),
     repoDid: input.repoDid,
     cardUri: input.uri,
-    cardCid: input.cid,
-    cardObservedAt,
-    cardLastCheckedAt: now,
-    ...(existingParsed?.frontmatter.a2aEndpoint && {
-      a2aEndpoint: existingParsed.frontmatter.a2aEndpoint,
-    }),
     status,
     discoveredAt,
     about,
     skills,
     notes,
   });
+
+  // Applying a snapshot clears any failure the refresh record held.
+  await cardRefreshStore(context).set(agentId, { cid: input.cid });
 
   if (existing) {
     const updated: AgentEntity = {
@@ -252,7 +300,7 @@ export async function upsertAgentFromCard(
 }
 
 async function markAgentCardUnavailable(
-  context: EntityPluginContext,
+  store: CardRefreshStore,
   agent: AgentEntity,
   input: {
     observedAt: string;
@@ -261,31 +309,20 @@ async function markAgentCardUnavailable(
     error?: string | undefined;
   },
 ): Promise<void> {
-  const parsed = agentAdapter.parseEntity(agent);
+  const state = await readRefreshState(store, agent);
   const error =
     input.error ??
     (input.reason === "deleted"
       ? "ATProto brain card was deleted"
       : "ATProto brain card refresh failed");
-  // Metadata and frontmatter take the same card state: an event without a
-  // stale deadline keeps the one already recorded in both.
-  const cardState = {
-    cardLastCheckedAt: input.observedAt,
-    cardLastError: error,
-    cardFailureCount: agent.metadata.cardFailureCount ?? 0,
-    cardUnavailableAt: input.observedAt,
-    ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
-  };
-  const metadata = { ...agent.metadata, ...cardState };
-  const content = agentAdapter.rewriteAgentContent(parsed, cardState);
-
-  await context.entityService.updateEntity({
-    entity: {
-      ...agent,
-      metadata,
-      content,
-      updated: input.observedAt,
-    },
+  // An event without a stale deadline keeps the one already recorded.
+  const staleAfter = input.staleAfter ?? state.staleAfter;
+  await store.set(agent.id, {
+    ...state,
+    lastError: error,
+    failureCount: state.failureCount ?? 0,
+    unavailableAt: input.observedAt,
+    ...(staleAfter && { staleAfter }),
   });
 }
 
@@ -375,39 +412,22 @@ async function fetchBrainCardSnapshot(input: {
 }
 
 async function markAgentCardRefreshFailure(
-  context: EntityPluginContext,
+  store: CardRefreshStore,
   agent: AgentEntity,
+  state: CardRefreshState,
   error: unknown,
   now: string,
 ): Promise<void> {
-  const parsed = agentAdapter.parseEntity(agent);
-  const errorMessage = getErrorMessage(error);
-  const cardFailureCount = (agent.metadata.cardFailureCount ?? 0) + 1;
-  const cardUnavailableAt =
-    cardFailureCount >= CARD_UNAVAILABLE_FAILURE_THRESHOLD
-      ? (agent.metadata.cardUnavailableAt ?? now)
-      : agent.metadata.cardUnavailableAt;
-  const metadata = {
-    ...agent.metadata,
-    cardLastCheckedAt: now,
-    cardLastError: errorMessage,
-    cardFailureCount,
-    ...(cardUnavailableAt && { cardUnavailableAt }),
-  };
-  const content = agentAdapter.rewriteAgentContent(parsed, {
-    cardLastCheckedAt: now,
-    cardLastError: errorMessage,
-    cardFailureCount,
-    cardUnavailableAt,
-  });
-
-  await context.entityService.updateEntity({
-    entity: {
-      ...agent,
-      metadata,
-      content,
-      updated: now,
-    },
+  const failureCount = (state.failureCount ?? 0) + 1;
+  const unavailableAt =
+    failureCount >= CARD_UNAVAILABLE_FAILURE_THRESHOLD
+      ? (state.unavailableAt ?? now)
+      : state.unavailableAt;
+  await store.set(agent.id, {
+    ...state,
+    lastError: getErrorMessage(error),
+    failureCount,
+    ...(unavailableAt && { unavailableAt }),
   });
 }
 
@@ -457,6 +477,7 @@ export async function refreshKnownAgentCards(
     maxResponseBytes: 256 * 1024,
     maxRedirects: 3,
   });
+  const store = cardRefreshStore(context);
 
   for (const agent of agents) {
     const repoDid = agent.metadata.repoDid;
@@ -464,6 +485,7 @@ export async function refreshKnownAgentCards(
     if (!repoDid || !cardUri) continue;
 
     result.checked += 1;
+    const state = await readRefreshState(store, agent);
     try {
       const snapshot = await fetchBrainCardSnapshot({
         repoDid,
@@ -471,11 +493,11 @@ export async function refreshKnownAgentCards(
         fetchFn: resolvedFetch,
         ...(signal && { signal }),
       });
-      if (snapshot.cid === agent.metadata.cardCid) {
+      if (snapshot.cid === state.cid) {
         if (
-          agent.metadata.cardLastError ||
-          agent.metadata.cardFailureCount !== undefined ||
-          agent.metadata.cardUnavailableAt
+          state.lastError ||
+          state.failureCount !== undefined ||
+          state.unavailableAt
         ) {
           await upsertAgentFromCard(context, snapshot, now);
           result.refreshed += 1;
@@ -488,14 +510,14 @@ export async function refreshKnownAgentCards(
       result.refreshed += 1;
     } catch (error) {
       if (signal?.aborted) throw error;
-      await markAgentCardRefreshFailure(context, agent, error, now);
+      await markAgentCardRefreshFailure(store, agent, state, error, now);
       result.failed += 1;
     }
   }
 
   const nowMs = Date.parse(now);
   for (const agent of agents) {
-    const staleAfter = agent.metadata.cardStaleAfter;
+    const { staleAfter } = await readRefreshState(store, agent);
     if (
       agent.metadata.status === "discovered" &&
       staleAfter !== undefined &&
@@ -552,8 +574,9 @@ export function registerAtprotoBrainCardHandlers(
       const matching = agents.filter(
         (agent) => agent.metadata.repoDid === parsed.repoDid,
       );
+      const store = cardRefreshStore(context);
       for (const agent of matching) {
-        await markAgentCardUnavailable(context, agent, parsed);
+        await markAgentCardUnavailable(store, agent, parsed);
       }
       return { success: true, data: { updated: matching.length } };
     },

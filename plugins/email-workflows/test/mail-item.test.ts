@@ -59,13 +59,10 @@ const frontmatter: MailItemFrontmatter = {
   receivedAt: email.receivedAt,
   source: {
     ref: email.sourceRef,
-    senderKey:
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     threadKey:
       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     threadOrdinal: 2,
     personId: "prsn_sender",
-    domain: "example.com",
   },
   senderLabel: "Canonical Sender · example.com",
   organization: classification.organization,
@@ -149,12 +146,6 @@ describe("mail-item entity", () => {
     expect(
       mailItemFrontmatterSchema.safeParse({
         ...frontmatter,
-        source: { ...frontmatter.source, senderKey: "sender@example.com" },
-      }).success,
-    ).toBe(false);
-    expect(
-      mailItemFrontmatterSchema.safeParse({
-        ...frontmatter,
         senderLabel: "sender@example.com",
       }).success,
     ).toBe(false);
@@ -205,6 +196,33 @@ describe("mail-item entity", () => {
       if (sourceValue) expect(serialized).not.toContain(sourceValue);
     }
     expect(serialized).toContain("Canonical Sender · example.com");
+  });
+
+  it("keeps only the source fields a reader uses", () => {
+    for (const projection of [
+      createMailItemProjection(email, classification),
+      createUnclassifiedMailItemProjection(email),
+    ]) {
+      expect(
+        mailItemAdapter.parseMailItemContent(projection.content).frontmatter
+          .source,
+      ).toEqual({
+        ref: email.sourceRef,
+        threadKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+        personId: "prsn_sender",
+      });
+    }
+  });
+
+  it("retires the sender hash and domain stored by earlier releases", async () => {
+    const harness = createPluginHarness({ logContext: "mail-item-test" });
+    await harness.installPlugin(new MailItemPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("mail-item")
+        .retiredFields,
+    ).toEqual(["source.senderKey", "source.domain"]);
+    await harness.reset();
   });
 
   it("derives safe contact labels for classified and unclassified mail", () => {
@@ -340,7 +358,6 @@ describe("mail item restricted export round-trip", () => {
         receivedAt,
         source: {
           ref: "imap:inbound",
-          senderKey: "a".repeat(64),
           threadKey,
           threadOrdinal: 7,
         },

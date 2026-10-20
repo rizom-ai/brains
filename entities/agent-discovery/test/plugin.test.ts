@@ -25,11 +25,19 @@ import {
   getActiveAuthService,
 } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
-import type { DashboardWidgetRegistration, Plugin } from "@brains/plugins";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import type {
+  DashboardWidgetRegistration,
+  IRuntimeStateNamespace,
+  Plugin,
+} from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
+import {
+  CARD_REFRESH_STATE_NAMESPACE,
+  cardRefreshStateSchema,
+  type CardRefreshState,
+} from "../src/lib/atproto-card-events";
 import {
   agentEntitySchema,
   type AgentEntity,
@@ -37,6 +45,19 @@ import {
 } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
 import { z } from "@brains/utils/zod";
+
+/** The refresh loop's record for one agent, kept outside the entity. */
+function refreshState(
+  runtimeState: IRuntimeStateNamespace,
+  agentId: string,
+): Promise<CardRefreshState | null> {
+  return runtimeState
+    .scoped({
+      namespace: CARD_REFRESH_STATE_NAMESPACE,
+      schema: cardRefreshStateSchema,
+    })
+    .get(agentId);
+}
 
 function makeAgentEntity(status: AgentStatus): AgentEntity {
   return createTestAgent({
@@ -389,8 +410,9 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.name).toBe("Updated Peer Owner");
-    expect(agent?.metadata.cardCid).toBe("bafy-updated-card");
-    expect(agent?.metadata.cardObservedAt).toBe("2026-07-22T10:00:00.000Z");
+    expect(
+      (await refreshState(shell.getRuntimeState(), "peer.example.com"))?.cid,
+    ).toBe("bafy-updated-card");
     expect(agent?.content).toContain("Updated remote purpose.");
     expect(agent?.content).toContain("Local trust note.");
     expect(fetchMock.calls).toContain(
@@ -447,7 +469,11 @@ describe("AgentDiscoveryPlugin", () => {
       agentEntitySchema,
     );
     expect(agent?.updated).toBe("2026-03-31T00:00:00.000Z");
-    expect(agent?.metadata.cardLastCheckedAt).toBeUndefined();
+    expect(
+      await refreshState(shell.getRuntimeState(), "peer.example.com"),
+    ).toEqual({
+      cid: "bafy-peer-card",
+    });
     await harness.reset();
   });
 
@@ -482,7 +508,6 @@ describe("AgentDiscoveryPlugin", () => {
       repoDid: testBrainCardPayload.repoDid,
       cardUri: testBrainCardPayload.uri,
       cardCid: "bafy-last-good-card",
-      cardObservedAt: "2026-06-02T12:30:00.000Z",
     };
 
     await harness.installPlugin(
@@ -499,12 +524,16 @@ describe("AgentDiscoveryPlugin", () => {
       },
       agentEntitySchema,
     );
-    expect(agent?.metadata.cardCid).toBe("bafy-last-good-card");
-    expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
-    expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
-    expect(agent?.metadata.cardLastError).toContain("PLC lookup failed");
-    expect(agent?.metadata.cardFailureCount).toBe(1);
-    expect(agent?.metadata.cardUnavailableAt).toBeUndefined();
+    // A failed check changes the refresh record, not the agent.
+    expect(agent?.updated).toBe(original.updated);
+    const failed = await refreshState(
+      shell.getRuntimeState(),
+      "peer.example.com",
+    );
+    expect(failed?.cid).toBe("bafy-last-good-card");
+    expect(failed?.lastError).toContain("PLC lookup failed");
+    expect(failed?.failureCount).toBe(1);
+    expect(failed?.unavailableAt).toBeUndefined();
     expect(agent?.content).toContain("Local trust note.");
     expect(calls).toEqual([
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
@@ -520,8 +549,12 @@ describe("AgentDiscoveryPlugin", () => {
       agentEntitySchema,
     );
     expect(repeatedlyUnavailable?.metadata.status).toBe("approved");
-    expect(repeatedlyUnavailable?.metadata.cardFailureCount).toBe(3);
-    expect(repeatedlyUnavailable?.metadata.cardUnavailableAt).toBeDefined();
+    const unavailable = await refreshState(
+      shell.getRuntimeState(),
+      "peer.example.com",
+    );
+    expect(unavailable?.failureCount).toBe(3);
+    expect(unavailable?.unavailableAt).toBeDefined();
     await harness.reset();
   });
 
@@ -576,17 +609,13 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.getEntityService().createEntity({ entity: original });
     await run?.({ signal: new AbortController().signal });
 
-    const agent = await harness.getEntityService().getEntity(
-      {
-        entityType: "agent",
-        id: "peer.example.com",
-      },
-      agentEntitySchema,
-    );
     expect(calls).toEqual([
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     ]);
-    expect(agent?.metadata.cardLastError).toContain("non-public");
+    expect(
+      (await refreshState(shell.getRuntimeState(), "peer.example.com"))
+        ?.lastError,
+    ).toContain("non-public");
     await harness.reset();
   });
 
@@ -645,9 +674,11 @@ describe("AgentDiscoveryPlugin", () => {
       agentEntitySchema,
     );
     expect(recovered?.metadata.status).toBe("approved");
-    expect(recovered?.metadata.cardCid).toBe(testBrainCardPayload.cid);
-    expect(recovered?.metadata.cardFailureCount).toBeUndefined();
-    expect(recovered?.metadata.cardUnavailableAt).toBeUndefined();
+    expect(
+      await refreshState(shell.getRuntimeState(), "peer.example.com"),
+    ).toEqual({
+      cid: testBrainCardPayload.cid,
+    });
     expect(recovered?.metadata.cardLastError).toBeUndefined();
     await harness.reset();
   });
@@ -742,9 +773,7 @@ describe("AgentDiscoveryPlugin", () => {
       agentEntitySchema,
     );
     expect(saved?.metadata.status).toBe("approved");
-    expect(saved?.metadata.a2aEndpoint).toBe(
-      "https://connect-followup.example/a2a",
-    );
+    expect(saved?.metadata.url).toBe("https://connect-followup.example/a2a");
     expect(saved?.content).toContain("Research");
 
     await harness.reset();
@@ -1061,9 +1090,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(agent?.metadata.name).toBe("Peer Owner");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
     expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
-    expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
     expect(agent?.metadata.cardUri).toBe(testBrainCardPayload.uri);
-    expect(agent?.metadata.a2aEndpoint).toBeUndefined();
     expect(agent?.content).toContain("Research");
     expect(events).toEqual([
       expect.objectContaining({
@@ -1110,10 +1137,12 @@ describe("AgentDiscoveryPlugin", () => {
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.name).toBe("Peer Owner");
-    expect(agent?.metadata.cardCid).toBe("bafy-peer-card");
-    expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
-    expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
-    expect(agent?.metadata.cardLastError).toBeUndefined();
+    expect(
+      await refreshState(
+        harness.getMockShell().getRuntimeState(),
+        "peer.example.com",
+      ),
+    ).toEqual({ cid: "bafy-peer-card" });
     expect(agent?.content).toContain("name: Peer Owner");
     expect(agent?.content).toContain("brainName: Peer Brain");
     expect(agent?.content).toContain("Local trust note. Do not overwrite.");
@@ -1161,8 +1190,14 @@ describe("AgentDiscoveryPlugin", () => {
     expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
     expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
-    expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
-    expect(agent?.metadata.cardCid).toBe("bafy-peer-card");
+    expect(
+      (
+        await refreshState(
+          harness.getMockShell().getRuntimeState(),
+          "peer.example.com",
+        )
+      )?.cid,
+    ).toBe("bafy-peer-card");
     // Body is refreshed from the signed card: the card's public skills and
     // purpose replace the stale generated body.
     expect(agent?.content).toContain("Research");
@@ -1237,7 +1272,14 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(after?.metadata.status).toBe("approved");
     expect(after?.metadata.repoDid).toBe("did:plc:peer");
-    expect(after?.metadata.cardCid).toBe("bafy-peer-card");
+    expect(
+      (
+        await refreshState(
+          harness.getMockShell().getRuntimeState(),
+          "peer.example.com",
+        )
+      )?.cid,
+    ).toBe("bafy-peer-card");
     expect(conflicts).toEqual([
       expect.objectContaining({
         domain: "peer.example.com",
@@ -1297,9 +1339,13 @@ describe("AgentDiscoveryPlugin", () => {
       agentEntitySchema,
     );
     expect(after?.metadata.status).toBe("approved");
-    expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T13:00:00.000Z");
-    expect(after?.metadata.cardLastError).toContain("deleted");
-    expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
+    const marked = await refreshState(
+      harness.getMockShell().getRuntimeState(),
+      "peer.example.com",
+    );
+    expect(marked?.unavailableAt).toBe("2026-07-22T13:00:00.000Z");
+    expect(marked?.lastError).toContain("deleted");
+    expect(marked?.staleAfter).toBe("2026-07-23T13:00:00.000Z");
 
     await harness.reset();
   });
@@ -1332,26 +1378,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const after = await harness.getEntityService().getEntity(
-      {
-        entityType: "agent",
-        id: "peer.example.com",
-      },
-      agentEntitySchema,
+    const kept = await refreshState(
+      harness.getMockShell().getRuntimeState(),
+      "peer.example.com",
     );
-    expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T14:00:00.000Z");
-    expect(after?.metadata.cardLastError).toContain("refresh failed");
-    expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
-    expect(after?.content).toContain(
-      "cardStaleAfter: '2026-07-23T13:00:00.000Z'",
-    );
-    // The handler writes the kept deadline itself, in its schema position,
-    // rather than leaving the metadata overlay to append it at the end.
-    if (!after) throw new Error("Expected unavailable agent");
-    const adapter = new AgentAdapter();
-    expect(after.content).toBe(
-      adapter.rewriteAgentContent(adapter.parseEntity(after)),
-    );
+    expect(kept?.unavailableAt).toBe("2026-07-22T14:00:00.000Z");
+    expect(kept?.lastError).toContain("refresh failed");
+    expect(kept?.staleAfter).toBe("2026-07-23T13:00:00.000Z");
 
     await harness.reset();
   });
@@ -1400,7 +1433,78 @@ describe("AgentDiscoveryPlugin", () => {
       agentEntitySchema,
     );
     expect(expired?.metadata.status).toBe("archived");
-    expect(expired?.metadata.cardCid).toBe("bafy-peer-card");
+    await harness.reset();
+  });
+
+  it("carries refresh state an earlier release stored on the agent into its record", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const shell = harness.getMockShell();
+    let run:
+      ((context: { signal: AbortSignal }) => Promise<unknown>) | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (check): (() => void) => {
+        if (check.id === "agent-card-refresh") run = check.run;
+        return () => {};
+      },
+    });
+    const unavailableFetch: FetchFn = async () =>
+      new Response("unavailable", { status: 503 });
+    const stored = createTestAgent({
+      id: "peer.example.com",
+      name: "Peer Owner",
+      brainName: "Peer Brain",
+      url: "https://peer.example.com",
+      status: "discovered",
+    });
+    stored.metadata = {
+      ...stored.metadata,
+      repoDid: testBrainCardPayload.repoDid,
+      cardUri: testBrainCardPayload.uri,
+      cardCid: "bafy-old-card",
+      cardFailureCount: 2,
+      cardStaleAfter: "2026-07-01T00:00:00.000Z",
+    };
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(unavailableFetch, resolvePublicHostname),
+    );
+    await harness.getEntityService().createEntity({ entity: stored });
+
+    await run?.({ signal: new AbortController().signal });
+
+    const record = await refreshState(
+      shell.getRuntimeState(),
+      "peer.example.com",
+    );
+    expect(record?.cid).toBe("bafy-old-card");
+    expect(record?.failureCount).toBe(3);
+    expect(record?.unavailableAt).toBeDefined();
+    expect(record?.staleAfter).toBe("2026-07-01T00:00:00.000Z");
+    // The deadline it carried still archives the never-approved candidate.
+    const archived = await harness
+      .getEntityService()
+      .getEntity(
+        { entityType: "agent", id: "peer.example.com" },
+        agentEntitySchema,
+      );
+    expect(archived?.metadata.status).toBe("archived");
+    await harness.reset();
+  });
+
+  it("retires agent frontmatter fields nothing reads", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("agent").retiredFields,
+    ).toEqual([
+      "cardObservedAt",
+      "cardLastCheckedAt",
+      "a2aEndpoint",
+      "did",
+      "anchorDid",
+    ]);
     await harness.reset();
   });
 

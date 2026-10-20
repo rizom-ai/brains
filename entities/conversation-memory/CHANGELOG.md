@@ -1,5 +1,50 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.569
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.569
+  - @brains/action-items@0.2.0-alpha.569
+  - @brains/content-formatters@0.2.0-alpha.569
+  - @brains/contracts@0.2.0-alpha.569
+  - @brains/ui-library@0.2.0-alpha.569
+  - @brains/utils@0.2.0-alpha.569
+  - @brains/conversation-service@0.2.0-alpha.569
+  - @brains/plugins@0.2.0-alpha.569
+  - @brains/templates@0.2.0-alpha.569
+
+## 0.2.0-alpha.568
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.568
+  - @brains/action-items@0.2.0-alpha.568
+  - @brains/content-formatters@0.2.0-alpha.568
+  - @brains/contracts@0.2.0-alpha.568
+  - @brains/ui-library@0.2.0-alpha.568
+  - @brains/utils@0.2.0-alpha.568
+  - @brains/conversation-service@0.2.0-alpha.568
+  - @brains/plugins@0.2.0-alpha.568
+  - @brains/templates@0.2.0-alpha.568
+
+## 0.2.0-alpha.567
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.567
+  - @brains/action-items@0.2.0-alpha.567
+  - @brains/content-formatters@0.2.0-alpha.567
+  - @brains/contracts@0.2.0-alpha.567
+  - @brains/ui-library@0.2.0-alpha.567
+  - @brains/utils@0.2.0-alpha.567
+  - @brains/conversation-service@0.2.0-alpha.567
+  - @brains/plugins@0.2.0-alpha.567
+  - @brains/templates@0.2.0-alpha.567
+
 ## 0.2.0-alpha.566
 
 ### Patch Changes

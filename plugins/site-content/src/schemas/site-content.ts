@@ -1,13 +1,11 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
+/** A section is addressed by its id, `route:section`; it needs no metadata of its own. */
 export const siteContentMetadataSchema: z.ZodObject<
-  { routeId: z.ZodString; sectionId: z.ZodString },
+  Record<string, never>,
   z.core.$loose
-> = z.looseObject({
-  routeId: z.string(),
-  sectionId: z.string(),
-});
+> = z.looseObject({});
 
 export type SiteContentMetadata = z.output<typeof siteContentMetadataSchema>;
 

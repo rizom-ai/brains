@@ -165,41 +165,8 @@ describe("blog ATProto projection", () => {
     });
   });
 
-  it("stores the custom ATProto post URI in blog frontmatter after publish", async () => {
-    const projection = createBlogAtprotoProjection();
-    const entity = createMockPost(
-      "post-1",
-      "Distributed Brains",
-      "distributed-brains",
-      "published",
-      { publishedAt: "2026-05-28T12:00:00.000Z" },
-    );
-    const shell = createMockShell();
-    shell.addEntities([entity]);
-    const context = createServicePluginContext(shell, "blog");
-    const record = await projection.buildRecord({
-      entity,
-      context,
-      config: {},
-    });
-
-    await projection.onPublished?.({
-      entity,
-      context,
-      record,
-      uri: "at://did:plc:repo/ai.rizom.brain.post/abc",
-      cid: "cid",
-    });
-
-    const updated = await context.entityService.getEntity({
-      entityType: "post",
-      id: "post-1",
-    });
-
-    expect(updated?.content).toContain("atprotoUri:");
-    expect(updated?.content).toContain(
-      "at://did:plc:repo/ai.rizom.brain.post/abc",
-    );
+  it("leaves a post untouched after publishing: nothing reads its ATProto URI", () => {
+    expect(createBlogAtprotoProjection().onPublished).toBeUndefined();
   });
 
   it("registers the blog projection when the blog plugin registers", async () => {

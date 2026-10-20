@@ -69,7 +69,7 @@ export class SummaryDataSource implements DataSource {
 
       const { entries } = this.adapter.parseBody(entity.content);
       const detailData: SummaryDetailData = {
-        conversationId: entity.metadata.conversationId,
+        conversationId: entity.id,
         channelName: entity.metadata.channelName ?? entity.metadata.channelId,
         entries,
         messageCount: entity.metadata.messageCount,
@@ -92,7 +92,7 @@ export class SummaryDataSource implements DataSource {
       const latestEntry = entries[entries.length - 1];
       return {
         id: summary.id,
-        conversationId: summary.metadata.conversationId,
+        conversationId: summary.id,
         channelName: summary.metadata.channelName ?? summary.metadata.channelId,
         entryCount: entries.length,
         messageCount: summary.metadata.messageCount,

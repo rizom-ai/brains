@@ -15,14 +15,10 @@ export function createMockDecisionEntity(
       channelId: "cli-terminal",
       channelName: "CLI Terminal",
       interfaceType: "cli",
-      spaceId: "cli:cli-terminal",
       timeRange: {
         start: "2026-01-01T00:00:00.000Z",
         end: "2026-01-01T00:01:00.000Z",
       },
-      sourceSummaryId: "conv-1",
-      sourceMessageCount: 2,
-      projectionVersion: 1,
       status: "active",
     },
   });

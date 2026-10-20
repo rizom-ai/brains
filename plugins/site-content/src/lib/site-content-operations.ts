@@ -102,7 +102,7 @@ export class SiteContentOperations {
       destination: {
         entityType: "site-content";
         idPath: [string, string];
-        metadata: { routeId: string; sectionId: string };
+        metadata: Record<string, never>;
       };
     }> = [];
 
@@ -141,7 +141,7 @@ export class SiteContentOperations {
           destination: {
             entityType: "site-content",
             idPath: [route.id, section.id],
-            metadata: { routeId: route.id, sectionId: section.id },
+            metadata: {},
           },
         });
       }

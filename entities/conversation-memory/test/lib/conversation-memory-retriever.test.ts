@@ -34,14 +34,11 @@ function createSummary(params: {
     created: updated,
     updated,
     metadata: {
-      conversationId: params.id,
       channelId: params.channelId,
       ...(params.channelName ? { channelName: params.channelName } : {}),
       interfaceType: "mcp",
       messageCount: 4,
-      entryCount: 1,
       sourceHash: `source-${params.id}`,
-      projectionVersion: 1,
     },
   };
 }
@@ -67,14 +64,10 @@ function createDecision(params: {
       conversationId: "conv-decision",
       channelId: params.channelId,
       interfaceType: "mcp",
-      spaceId: `mcp:${params.channelId}`,
       timeRange: {
         start: "2026-01-01T00:00:00.000Z",
         end: "2026-01-01T00:01:00.000Z",
       },
-      sourceSummaryId: "conv-decision",
-      sourceMessageCount: 2,
-      projectionVersion: 1,
       status: "active",
       ...(params.decidedBy ? { decidedBy: params.decidedBy } : {}),
     },

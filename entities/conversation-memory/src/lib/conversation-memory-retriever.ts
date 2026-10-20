@@ -225,7 +225,7 @@ export class ConversationMemoryRetriever {
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
-            entryCount: entity.metadata.entryCount,
+            entryCount: summaryAdapter.parseBody(entity.content).entries.length,
           }
         : { status: entity.metadata.status }),
     };
@@ -343,7 +343,10 @@ export class ConversationMemoryRetriever {
     }
     const metadata = entity.metadata;
     return {
-      conversationId: metadata.conversationId,
+      // A summary is its conversation: its id is the conversation id.
+      conversationId: this.isSummaryEntity(entity)
+        ? entity.id
+        : entity.metadata.conversationId,
       spaceId:
         "spaceId" in metadata && typeof metadata.spaceId === "string"
           ? metadata.spaceId

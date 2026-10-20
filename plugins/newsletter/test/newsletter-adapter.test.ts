@@ -51,8 +51,6 @@ describe("NewsletterAdapter", () => {
           subject: "Test",
           status: "published",
           sentAt: "2024-01-15T10:00:00Z",
-          buttondownId: "bd-123",
-          resendBroadcastId: "broadcast-123",
           entityIds: ["post-1", "post-2"],
           sourceEntityType: "post",
         },
@@ -61,8 +59,6 @@ describe("NewsletterAdapter", () => {
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("sentAt: '2024-01-15T10:00:00Z'");
-      expect(markdown).toContain("buttondownId: bd-123");
-      expect(markdown).toContain("resendBroadcastId: broadcast-123");
       expect(markdown).toContain("post-1");
       expect(markdown).toContain("post-2");
       expect(markdown).toContain("sourceEntityType: post");
@@ -114,8 +110,6 @@ Newsletter body`;
 subject: Full Newsletter
 status: published
 sentAt: "2024-01-15T10:00:00Z"
-buttondownId: bd-456
-resendBroadcastId: broadcast-456
 entityIds:
   - post-1
   - post-2
@@ -127,8 +121,6 @@ Content`;
       const result = adapter.fromMarkdown(markdown);
 
       expect(result.metadata?.sentAt).toBe("2024-01-15T10:00:00Z");
-      expect(result.metadata?.buttondownId).toBe("bd-456");
-      expect(result.metadata?.resendBroadcastId).toBe("broadcast-456");
       expect(result.metadata?.entityIds).toEqual(["post-1", "post-2"]);
       expect(result.metadata?.sourceEntityType).toBe("post");
     });

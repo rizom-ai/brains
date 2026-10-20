@@ -653,6 +653,18 @@ export interface EntityTypeConfig {
   /** Accepts upload text extraction through system_create extract-markdown. */
   markdownImport?: boolean;
   /**
+   * Frontmatter keys this type no longer owns. Stored entities may still
+   * carry them: they are read past, never written back, and removed from
+   * stored content by `rewriteRetiredFields`.
+   */
+  retiredFields?: readonly string[];
+  /**
+   * Retired keys whose stored value the type still reads, moving it to its
+   * new field when it parses. Unlike `retiredFields` they reach the parser;
+   * like them they are never written back and are rewritten on start.
+   */
+  translatedFields?: readonly string[];
+  /**
    * The type's own minimum action policy, from whoever registers it. It
    * tightens wildcard defaults without relaxing stricter rules, including
    * `never`, so an admin-only type stays protected without its bundle's rule.
@@ -1268,6 +1280,8 @@ export interface EntityServiceClient extends ICoreEntityService {
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void>;
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
+  /** Rewrite stored entities whose content still carries a retired frontmatter field. */
+  rewriteRetiredFields(): Promise<{ rewritten: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

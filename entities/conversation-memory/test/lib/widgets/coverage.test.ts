@@ -12,7 +12,24 @@ import {
   registerSummaryCoverageWidget,
 } from "../../../src/lib/widgets/coverage";
 import { summaryConfigSchema } from "../../../src/schemas/summary-config";
+import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
 import type { SummaryEntity } from "../../../src/schemas/summary";
+
+/** A summary body with the given number of entries; the widget counts them. */
+function entriesBody(count: number): string {
+  return new SummaryAdapter().createContentBody(
+    Array.from({ length: count }, (_, index) => ({
+      title: `Phase ${index + 1}`,
+      summary: "What was discussed.",
+      timeRange: {
+        start: "2026-01-01T00:00:00.000Z",
+        end: "2026-01-01T00:01:00.000Z",
+      },
+      sourceMessageCount: 1,
+      keyPoints: [],
+    })),
+  );
+}
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 
@@ -21,20 +38,17 @@ function createSummary(overrides: Partial<SummaryEntity> = {}): SummaryEntity {
   return {
     id: "conversation-1",
     entityType: "summary",
-    content: "# Conversation Summary\n",
+    content: entriesBody(3),
     contentHash: "hash",
     visibility: defaultMemoryVisibility,
     created: now,
     updated: now,
     metadata: {
-      conversationId: "conversation-1",
       channelId: "channel-1",
       channelName: "Design Review",
       interfaceType: "mcp",
       messageCount: 18,
-      entryCount: 3,
       sourceHash: "source-hash",
-      projectionVersion: 1,
     },
     ...overrides,
   };
@@ -125,15 +139,13 @@ describe("buildSummaryCoverageData", () => {
     const summaries = [
       createSummary({
         id: "conversation-1",
+        content: entriesBody(2),
         metadata: {
-          conversationId: "conversation-1",
           channelId: "team",
           channelName: "Team",
           interfaceType: "mcp",
           messageCount: 1,
-          entryCount: 2,
           sourceHash: "old-source-hash",
-          projectionVersion: 1,
         },
       }),
     ];

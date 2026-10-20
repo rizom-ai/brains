@@ -1,5 +1,21 @@
 # @brains/ops
 
+## 0.2.0-alpha.569
+
+No changes in this release.
+
+## 0.2.0-alpha.568
+
+No changes in this release.
+
+## 0.2.0-alpha.567
+
+### Patch Changes
+
+- [#683](https://github.com/rizom-ai/brains/pull/683) [`03e9285`](https://github.com/rizom-ai/brains/commit/03e9285d867deefaf66ba35a75e716d3e5a1c3a6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include an exact version-and-pin-set digest in every pinned runtime image tag, including short readable tags, and refuse colliding requirements instead of dropping one. Normalize duplicate pins and preserve deterministic ordering.
+
+  Pinned images use new immutable tags after this change. Existing registry tags must not be overwritten or retagged as a migration workaround.
+
 ## 0.2.0-alpha.566
 
 No changes in this release.

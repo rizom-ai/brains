@@ -69,9 +69,7 @@ async function resolveAgentDomain(
   );
   if (!entity) return null;
 
-  const domain = normalizeAgentLookup(
-    entity.metadata.a2aEndpoint ?? entity.metadata.url,
-  );
+  const domain = normalizeAgentLookup(entity.metadata.url);
   if (!domain) return null;
   return { domain };
 }

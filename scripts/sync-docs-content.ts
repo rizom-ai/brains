@@ -273,7 +273,6 @@ function buildDoc(
     `title: ${quoteYaml(entry.title)}`,
     `section: ${quoteYaml(entry.section)}`,
     `order: ${entry.order}`,
-    `sourcePath: ${quoteYaml(entry.source)}`,
     `slug: ${quoteYaml(entry.id)}`,
     ...(description ? [`description: ${quoteYaml(description)}`] : []),
     "---",

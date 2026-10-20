@@ -454,6 +454,7 @@ export function createMockEntityService(
     storeEmbedding: async (): Promise<void> => {},
     countEmbeddings: async (): Promise<number> => 0,
     backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
+    rewriteRetiredFields: async () => ({ rewritten: 0 }),
     isIndexReady: (): boolean => true,
     awaitIndexReady: async () => ({
       ready: true,

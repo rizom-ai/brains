@@ -12,7 +12,6 @@ const content = linkAdapter.createLinkContent({
   url: "https://atproto.com",
   description: "Protocol docs",
   summary: "AT Protocol documentation summary.",
-  domain: "atproto.com",
   capturedAt: "2026-05-28T09:00:00.000Z",
   source: { ref: "cli:local", label: "CLI" },
 });
