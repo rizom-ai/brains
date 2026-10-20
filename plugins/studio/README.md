@@ -156,7 +156,7 @@ prefill and detach button are retired; use a new conversation for another topic.
 
 ## UX follow-through
 
-Collapsed desktop navigation uses distinct decorative area marks while retaining accessible names, attention descriptions, tooltips, and guarded routing. Expanded navigation keeps its labels and ordinals.
+Collapsed desktop navigation uses distinct decorative area marks while retaining accessible names, attention descriptions, tooltips, and guarded routing. Studio answers the ⌘K palette's `console:jump-destinations` collect with the pages the caller may open: its workspaces, Chat and Account before anything is typed, and every collection on a matching search. Expanded navigation keeps its labels and ordinals.
 
 Library collections and Chat History share the search/filter disclosure and pagination controls, not their backend queries. Both retain debounced search, explicit clearing, and offset reset on filtering. Library heads count entries ("3 entries"); while searching or filtering, the filter bar states the matches instead. A list that fits on one page shows no pager; longer lists show their range, Chat never invents a total, and empty trailing pages retain Previous. Filter panels fit their container, close on Escape or focus leaving, and preserve their fields and query; Escape inside History closes the filters before the dialog.
 

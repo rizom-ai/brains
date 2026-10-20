@@ -198,6 +198,7 @@ export {
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
   SITE_BUILDER_CHANNELS,
+  CONSOLE_CHANNELS,
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
@@ -295,7 +296,13 @@ export type {
   ImageRenderer,
   RenderedImageRef,
 } from "./render";
-export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export type {
+  ConsoleJumpDestination,
+  ConsoleJumpDestinationsRequest,
+  ConsoleSurface,
+  SurfacePermissionLevel,
+} from "./console";
+export { consoleJumpDestinationSchema } from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
 export {
   CHAT_INTERACTION_ID,

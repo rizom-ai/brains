@@ -1,3 +1,4 @@
+import type { ConsoleJumpDestination } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { displayTitleFrom, formatLabel } from "@brains/utils/string-utils";
 
@@ -76,29 +77,46 @@ export function buildConsoleJumpGroups(options: {
   dashboardPath: string;
   studioPath: string | undefined;
   entities: ConsoleJumpEntityHit[];
+  /** The pages Studio offers this caller, as it answered the palette. */
+  destinations: ConsoleJumpDestination[];
 }): ConsoleJumpGroup[] {
   const query = options.query.trim().toLowerCase();
   const result: ConsoleJumpGroup[] = [];
 
-  if (
-    options.studioPath !== undefined &&
-    (query === "" || "people access identity".includes(query))
-  ) {
+  if (options.studioPath !== undefined) {
     const studioPath =
       options.studioPath === "/" ? "" : options.studioPath.replace(/\/+$/, "");
-    result.push({
-      id: "surfaces",
-      label: "Console",
-      items: [
-        {
-          id: "surface/people",
-          title: "People",
-          sub: "Access and identity",
-          href: `${studioPath}/workspaces/${encodeURIComponent("admin:administration")}?tab=people`,
-          tag: "studio",
-        },
-      ],
-    });
+    const matches = (destination: ConsoleJumpDestination): boolean =>
+      query === ""
+        ? destination.primary === true
+        : [
+            destination.title,
+            destination.sub ?? "",
+            ...(destination.keywords ?? []),
+          ].some((text) => text.toLowerCase().includes(query));
+    const people =
+      query !== "" && "people access identity".includes(query)
+        ? [
+            {
+              id: "surface/people",
+              title: "People",
+              sub: "Access and identity",
+              href: `${studioPath}/workspaces/${encodeURIComponent("admin:administration")}?tab=people`,
+              tag: "studio",
+            },
+          ]
+        : [];
+    const items = [
+      ...options.destinations.filter(matches).map((destination) => ({
+        id: destination.id,
+        title: destination.title,
+        ...(destination.sub ? { sub: destination.sub } : {}),
+        href: destination.href,
+        tag: "studio",
+      })),
+      ...people,
+    ];
+    if (items.length > 0) result.push({ id: "studio", label: "Studio", items });
   }
 
   if (options.studioPath !== undefined && options.entities.length > 0) {

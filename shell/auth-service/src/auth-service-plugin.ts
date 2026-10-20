@@ -14,7 +14,11 @@ import type {
   Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import {
+  ServicePlugin,
+  deriveConsoleSurfaces,
+  type RegisteredWebRoute,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
 import { AuthService } from "./auth-service";
@@ -184,6 +188,19 @@ async function resolveProfileDisplayName(
   return typeof name === "string" ? name : undefined;
 }
 
+/** Where a newly registered operator lands: Studio when the brain serves it. */
+export function homePathFor(
+  routes: Pick<RegisteredWebRoute, "pluginId" | "fullPath">[],
+): string {
+  return (
+    deriveConsoleSurfaces(routes, {
+      activeId: "auth-service",
+      permissionLevel: "admin",
+      hasActiveSession: true,
+    }).find((surface) => surface.id === "studio")?.href ?? "/"
+  );
+}
+
 export class AuthServicePlugin extends ServicePlugin<
   AuthServiceConfig,
   AuthServiceConfigInput
@@ -221,6 +238,7 @@ export class AuthServicePlugin extends ServicePlugin<
         ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
         : {}),
       setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
+      resolveHomePath: (): string => homePathFor(context.webRoutes.getRoutes()),
       ...(this.config.accountSettingsEncryptionKey
         ? {
             accountSettingsEncryptionKey:

@@ -422,6 +422,29 @@ describe("AuthService", () => {
     });
   });
 
+  it("sends a newly registered operator to the brain's home surface", async () => {
+    const studio = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+      resolveHomePath: (): string => "/studio",
+    });
+    await studio.initialize();
+    const studioPage = await studio.handleRequest(
+      new Request(studio.getSetupUrl("http://localhost:8080") ?? ""),
+    );
+    expect(await studioPage.text()).toContain('location.href = "/studio";');
+
+    const plain = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+    await plain.initialize();
+    const plainPage = await plain.handleRequest(
+      new Request(plain.getSetupUrl("http://localhost:8080") ?? ""),
+    );
+    expect(await plainPage.text()).toContain('location.href = "/";');
+  });
+
   it("serves setup page and registration options before passkey enrollment", async () => {
     const storageDir = await tempStorageDir();
     const service = new AuthService({

@@ -102,6 +102,14 @@ const statusInputSchema = z.strictObject({
   userId: z.string().min(1),
   status: z.enum(["active", "suspended"]),
 });
+/** Channels that recognize a person; passkeys are listed under Sign-in. */
+export function isLinkedIdentity(identity: {
+  type: string;
+  revokedAt?: number | undefined;
+}): boolean {
+  return identity.revokedAt === undefined && identity.type !== "passkey";
+}
+
 /** The same names Account gives a person's own passkeys. */
 export function passkeyKindLabel(passkey: {
   credentialBackedUp: boolean;
@@ -961,7 +969,7 @@ export function createPeopleTabSource(
                     createdAt: passkey.createdAt,
                   })),
                   identities: user.identities
-                    .filter((identity) => identity.revokedAt === undefined)
+                    .filter(isLinkedIdentity)
                     .map((identity) => ({
                       id: identity.id,
                       type: identity.type,

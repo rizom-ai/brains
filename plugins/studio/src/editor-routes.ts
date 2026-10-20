@@ -76,7 +76,7 @@ export type {
 
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
-function resolveStudioChatApiPath(
+export function resolveStudioChatApiPath(
   context: ServicePluginContext,
 ): string | undefined {
   if (!context.plugins.has("web-chat")) return undefined;

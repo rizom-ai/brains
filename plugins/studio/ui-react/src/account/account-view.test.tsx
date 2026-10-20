@@ -252,9 +252,28 @@ describe("Account surface", () => {
 
     it("names AI tools in the account scope only when the tab is there", () => {
       expect(render(account, { mcpUrl })).toContain(
-        "linked identities, personal settings and AI tools here",
+        "sign-in security, linked identities and AI tools here",
       );
-      expect(render()).not.toContain("and AI tools here");
+      expect(render()).not.toContain("AI tools here");
+    });
+
+    it("names personal settings in the account scope only when they exist", () => {
+      expect(render()).not.toContain("personal settings");
+      expect(
+        render({
+          ...account,
+          pluginSettings: [
+            {
+              id: "mailbox",
+              title: "Inbound mailbox",
+              description: "Connect a mailbox.",
+              configured: false,
+              revision: 0,
+              fields: [],
+            },
+          ],
+        }),
+      ).toContain("linked identities and personal settings here");
     });
 
     it("has no AI tools tab without an MCP address", () => {

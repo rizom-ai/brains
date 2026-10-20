@@ -116,6 +116,8 @@ export interface AuthServiceOptions {
   allowLocalhostIssuers?: boolean;
   /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
   setupTokenTtlSeconds?: number;
+  /** Where a person lands after registering their first passkey; defaults to "/". */
+  resolveHomePath?: () => string;
   /** Whether this process issues and logs the first-passkey setup link at startup. */
   issuesSetupLinks?: boolean;
   /** The brain's purpose and links for onboarding emails. */
@@ -194,6 +196,9 @@ export class AuthService {
         options.anchorProfileEntityId ?? DEFAULT_ANCHOR_PROFILE_ENTITY_ID,
       ...(options.resolveProfileDisplayName
         ? { resolveProfileDisplayName: options.resolveProfileDisplayName }
+        : {}),
+      ...(options.resolveHomePath
+        ? { resolveHomePath: options.resolveHomePath }
         : {}),
       ...(options.setupTokenTtlSeconds !== undefined
         ? { setupTokenTtlSeconds: options.setupTokenTtlSeconds }

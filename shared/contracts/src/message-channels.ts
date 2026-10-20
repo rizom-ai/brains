@@ -14,6 +14,15 @@ export const CONVERSATION_CHANNELS = {
   digest: "conversation:digest",
 } as const;
 
+export const CONSOLE_CHANNELS = {
+  /**
+   * Collected by the ⌘K palette: each surface answers with the destinations
+   * it offers the caller, as `ConsoleJumpDestination[]`. The payload is
+   * `ConsoleJumpDestinationsRequest`.
+   */
+  jumpDestinations: "console:jump-destinations",
+} as const;
+
 export const DASHBOARD_CHANNELS = {
   registerWidget: "dashboard:register-widget",
   unregisterWidget: "dashboard:unregister-widget",

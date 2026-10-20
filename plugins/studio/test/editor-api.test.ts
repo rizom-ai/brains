@@ -1,4 +1,4 @@
-import { MCP_INTERACTION_ID } from "@brains/contracts";
+import { CONSOLE_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 
 async function readAssetManifest(): Promise<
@@ -1055,6 +1055,50 @@ describe("studio editor api", () => {
       );
       expect(response.status).toBe(400);
     }
+  });
+
+  it("offers its pages to the ⌘K palette, by the caller's permission", async () => {
+    const shell = createEditorTestShell();
+    await registerPlugin(shell);
+    const ask = async (
+      permissionLevel: "public" | "trusted" | "admin",
+    ): Promise<unknown> =>
+      (
+        await shell.getMessageBus().collect({
+          type: CONSOLE_CHANNELS.jumpDestinations,
+          sender: "test",
+          payload: { permissionLevel },
+        })
+      ).flatMap((answer) =>
+        "data" in answer && Array.isArray(answer.data) ? answer.data : [],
+      );
+
+    const admin = await ask("admin");
+    expect(admin).toContainEqual(
+      expect.objectContaining({
+        title: "Overview",
+        href: "/studio/workspaces/studio%3Aoverview",
+        primary: true,
+      }),
+    );
+    expect(admin).toContainEqual(
+      expect.objectContaining({ title: "Account", primary: true }),
+    );
+    expect(admin).toContainEqual({
+      id: "studio/entities/post",
+      title: "Posts",
+      sub: "Library",
+      href: "/studio/entities/post",
+    });
+    // The mock registers every type as content; system types read "System".
+    expect(admin).toContainEqual(
+      expect.objectContaining({ title: "Site Info", sub: "Library" }),
+    );
+
+    const visitor = JSON.stringify(await ask("public"));
+    expect(visitor).toContain("Account");
+    expect(visitor).not.toContain("Overview");
+    expect(visitor).not.toContain("Posts");
   });
 
   it("lists entity types with adapter flags", async () => {

@@ -95,10 +95,16 @@ export function SaveStateNotice(props: {
   return null;
 }
 
-export function editorSaveLabel(state: SaveState, dirty: boolean): string {
+export function editorSaveLabel(
+  state: SaveState,
+  dirty: boolean,
+  mode: "create" | "first-save" | "edit" = "edit",
+): string {
   if (state.kind === "saving") return "Saving…";
   if (state.kind === "conflict") return "Conflict — your changes are not saved";
   if (state.kind === "error") return "Save failed — your changes are not saved";
+  if (mode === "create") return "Not created yet";
+  if (mode === "first-save") return "Not saved yet";
   return dirty ? "Unsaved changes" : "Saved";
 }
 

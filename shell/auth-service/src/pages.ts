@@ -45,7 +45,7 @@ export function renderSetupSessionConflictPage(returnTo: string): string {
 </html>`;
 }
 
-export function renderSetupPage(setupToken: string): string {
+export function renderSetupPage(setupToken: string, homePath = "/"): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -75,7 +75,7 @@ export function renderSetupPage(setupToken: string): string {
           body: JSON.stringify(credentialToJSON(credential)),
         });
         status.textContent = 'Passkey registered. You are logged in.';
-        location.href = '/';
+        location.href = ${JSON.stringify(homePath)};
       } catch (error) {
         status.textContent = error instanceof Error ? error.message : String(error);
       }

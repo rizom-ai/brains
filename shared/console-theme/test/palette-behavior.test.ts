@@ -191,6 +191,15 @@ describe("console palette behavior", () => {
     expect(window.document.querySelectorAll(".cp-group")).toHaveLength(2);
   });
 
+  it("searches without spell checking or autofill", async () => {
+    await openPalette();
+    const input = requireInput(window, ".cp-input");
+    expect(input.getAttribute("spellcheck")).toBe("false");
+    expect(input.getAttribute("autocomplete")).toBe("off");
+    expect(input.placeholder).toBe("Search pages and entries…");
+    expect(window.document.body.textContent).not.toContain("one index");
+  });
+
   it("debounces typed queries into encoded requests", async () => {
     await openPalette();
     const input = requireInput(window, ".cp-input");
