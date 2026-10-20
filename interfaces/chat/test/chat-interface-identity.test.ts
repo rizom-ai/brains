@@ -5,6 +5,7 @@ import {
   authState,
   createMessage,
   createPlugin,
+  createSlackPlugin,
   createThread,
   discordExternalIdentity,
   setupChatInterfaceTest,
@@ -50,6 +51,61 @@ describe("ChatInterface identity and permissions", () => {
             canonicalId: "user:mira",
           },
           displayName: "Mira",
+        }),
+      }),
+    );
+  });
+
+  it("uses linked auth principal permissions for Slack members", async () => {
+    authState.resolveIdentityAccess = mock(async () => ({
+      state: "resolved" as const,
+      principal: {
+        userId: "usr_mira",
+        personId: "per_mira",
+        displayName: "Mira",
+        role: "trusted" as const,
+        status: "active" as const,
+        permissionLevel: "trusted" as const,
+        isAnchor: false,
+        canonicalId: "user:mira",
+      },
+    }));
+    await suite.harness.installPlugin(createSlackPlugin());
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(
+      createThread({
+        id: "slack:C123:1712345678.000300",
+        channelId: "slack:C123",
+        adapter: { name: "slack" },
+      }),
+      createMessage({
+        threadId: "slack:C123:1712345678.000300",
+        author: {
+          userId: "U123ABC",
+          userName: "mira",
+          fullName: "Mira Ops",
+          isBot: false,
+          isMe: false,
+        },
+      }),
+    );
+
+    expect(authState.resolveIdentityAccess).toHaveBeenCalledWith({
+      type: "slack",
+      subject: "U123ABC",
+    });
+    expect(suite.agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      expect.any(String),
+      expect.objectContaining({
+        userPermissionLevel: "trusted",
+        actor: expect.objectContaining({
+          identity: {
+            kind: "user",
+            userId: "usr_mira",
+            canonicalId: "user:mira",
+          },
         }),
       }),
     );
