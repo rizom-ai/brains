@@ -1215,6 +1215,202 @@ books:
     author: Sigmund Freud
     year: 1887
     kind: work
+  - item: cfp-1-referate
+    citation: CfP I
+    ocr: deu
+    # The volumes' pages, each cropped to Freud's reviews: the title of the
+    # work reviewed down to his signature, which is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr11887leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n38_w1600.jpg#region=0.063,0.852,0.771,0.093
+          page: 31
+        - https://archive.org/download/zentralblattfr11887leip/page/n39_w1600.jpg#region=0.176,0.087,0.773,0.260
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n58_w1600.jpg#region=0.070,0.860,0.772,0.091
+          page: 51
+        - https://archive.org/download/zentralblattfr11887leip/page/n59_w1600.jpg#region=0.166,0.091,0.773,0.382
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n83_w1600.jpg#region=0.173,0.166,0.786,0.514
+          page: 76
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n108_w1600.jpg#region=0.058,0.256,0.774,0.349
+          page: 101
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n134_w1600.jpg#region=0.040,0.256,0.791,0.684
+          page: 127
+        - https://archive.org/download/zentralblattfr11887leip/page/n135_w1600.jpg#region=0.196,0.084,0.802,0.462
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n196_w1600.jpg#region=0.042,0.196,0.792,0.736
+          page: 189
+        - https://archive.org/download/zentralblattfr11887leip/page/n197_w1600.jpg#region=0.164,0.077,0.773,0.193&region=0.151,0.288,0.787,0.484
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n216_w1600.jpg#region=0.054,0.247,0.774,0.226
+          page: 209
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n243_w1600.jpg#region=0.153,0.206,0.782,0.683
+          page: 236
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n259_w1600.jpg#region=0.151,0.152,0.785,0.514
+          page: 252
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n269_w1600.jpg#region=0.157,0.555,0.773,0.360
+          page: 262
+        - https://archive.org/download/zentralblattfr11887leip/page/n270_w1600.jpg#region=0.067,0.122,0.773,0.158
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n275_w1600.jpg#region=0.154,0.419,0.789,0.158
+          page: 268
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n514_w1600.jpg#region=0.042,0.292,0.787,0.646
+          page: 507
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n603_w1600.jpg#region=0.163,0.132,0.781,0.209
+          page: 596
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n605_w1600.jpg#region=0.156,0.655,0.775,0.278
+          page: 598
+        - https://archive.org/download/zentralblattfr11887leip/page/n606_w1600.jpg#region=0.049,0.095,0.779,0.848
+        - https://archive.org/download/zentralblattfr11887leip/page/n607_w1600.jpg#region=0.179,0.091,0.772,0.092
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n635_w1600.jpg#region=0.124,0.685,0.772,0.262
+          page: 628
+        - https://archive.org/download/zentralblattfr11887leip/page/n636_w1600.jpg#region=0.089,0.084,0.775,0.260
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n639_w1600.jpg#region=0.177,0.836,0.769,0.090
+          page: 632
+        - https://archive.org/download/zentralblattfr11887leip/page/n640_w1600.jpg#region=0.052,0.105,0.774,0.613
+    firstPage: 31
+    lastPage: 633
+    headings:
+      - { page: 31, opens: B. Sachs., title: Kurze Mittheilung über einen Fall von solitärem Tuberkel des Halsrückenmarkes }
+      - { page: 51, opens: A. Nieden., title: "Ein Fall von Lesescheu, Dyslexie (Dysanagnosie) mit Sectionsbefund" }
+      - { page: 76, opens: E. S. Reynolds., title: "On Changes in nervous system after amputation of limbs, with bibliography and a recent case" }
+      - { page: 101, opens: W. Thorburn., title: Cases of injury to the cervical region of the spinal cord }
+      - { page: 127, opens: L.Landois., title: "Ueber die Erregung typischer Krampfanfälle nach Behandlung des centralen Nervensystems mit chemischen Substanzen, mit besonderer Berücksichtigung der Urämie" }
+      - { page: 189, opens: Ph. Knoll. Ueber die Augen, title: Ueber die Augenbewegungen bei Reizung einzelner Theile des Grosshirns }
+      - { page: 190, opens: Ph. Knoll. Ueber die nach, title: Ueber die nach Verschluss der Hirnarterien auftretenden Augenbewegungen }
+      - { page: 209, opens: E. Beraneck., title: Histogénèse des nerfs céphaliques }
+      - { page: 236, opens: Ch. Julin., title: Le Système nerveux grand sympathique de l’Ammocoetes (Petromyzon Planeri) }
+      - { page: 252, opens: Leube., title: Ueber Herderkrankungen im Gehirnschenkel in der Gegend des hinteren Vierhügelpaares }
+      - { page: 262, opens: C. Rabl., title: Ueber das Gebiet des Nervus facialis }
+      - { page: 263, opens: M. Friedmann., title: Einiges über Degenerationsprocesse im Hemisphärenmark }
+      - { page: 268, opens: Phisalix., title: Sur les nerfs craniens d’un embryon humain de trente-deux jours }
+      - { page: 507, opens: V.Urbantschitsch., title: Ueber den Einfluss von Trigeminusreizen auf den Tast- u. Temperatursinn der Gesichtshaut }
+      - { page: 596, opens: Mingazzini., title: Nota sopra tre cervelli di feti trigemini umani }
+      - { page: 598, opens: Bechterew., title: "Ueber die hinteren Nervenwurzeln, ihre Endigung in der grauen Substanz des Rückenmarkes und ihre centrale Fortsetzung im letzteren" }
+      - { page: 628, opens: J. Nussbaum., title: Ueber die wechselseitigen Beziehungen zwischen den centralen Ursprungsgebieten der Augenmuskelnerven }
+      - { page: 632, opens: Obersteiner., title: Der Hypnotismus mit besonderer Berücksichtigung seiner klinischen und forensischen Bedeutung }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    shortTitle: "Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. I (1887–88), S. 31–32, 51–52, 76, 101, 127–128, 189–190, 209, 236, 252, 262–263, 268, 507, 596, 598–600, 628–629 und 632–633; Bd. II (1888–89), S. 456–457 und 554–555; Bd. III (1889–90), S. 84–85 und 626–631; Bd. V (1891–92), S. 656, 677–678, 767–768 und 859–860; Bd. VI (1892–93), S. 24, 86, 159–160, 187–188 und 454–455 (Leipzig und Wien)"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: cfp-2-referate
+    citation: CfP II
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr21888leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr21888leip/page/n463_w1600.jpg#region=0.100,0.593,0.798,0.326
+          page: 456
+        - https://archive.org/download/zentralblattfr21888leip/page/n464_w1600.jpg#region=0.068,0.065,0.802,0.245
+        - url: https://archive.org/download/zentralblattfr21888leip/page/n561_w1600.jpg#region=0.116,0.395,0.801,0.540
+          page: 554
+        - https://archive.org/download/zentralblattfr21888leip/page/n562_w1600.jpg#region=0.088,0.087,0.800,0.551
+    firstPage: 456
+    lastPage: 555
+    headings:
+      - { page: 456, opens: W. Bechterew., title: Ueber die Bestandtheile des vorderen Kleinhirnschenkels }
+      - { page: 554, opens: J. Belloni., title: Ueber die centrale Endigung des Nervus opticus bei den Vertebraten }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. II (Leipzig und Wien 1888–89), S. 456–457 und 554–555"
+    author: Sigmund Freud
+    year: 1888
+    kind: work
+  - item: cfp-3-referate
+    citation: CfP III
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr31889leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr31889leip/page/n91_w1600.jpg#region=0.105,0.676,0.833,0.231
+          page: 84
+        - https://archive.org/download/zentralblattfr31889leip/page/n92_w1600.jpg#region=0.042,0.074,0.839,0.340
+        - url: https://archive.org/download/zentralblattfr31889leip/page/n633_w1600.jpg#region=0.092,0.369,0.831,0.039&region=0.092,0.427,0.831,0.504
+          page: 626
+        - https://archive.org/download/zentralblattfr31889leip/page/n634_w1600.jpg#region=0.035,0.082,0.830,0.842
+        - https://archive.org/download/zentralblattfr31889leip/page/n635_w1600.jpg#region=0.129,0.082,0.827,0.843
+        - https://archive.org/download/zentralblattfr31889leip/page/n636_w1600.jpg#region=0.034,0.086,0.840,0.840
+        - https://archive.org/download/zentralblattfr31889leip/page/n637_w1600.jpg#region=0.113,0.083,0.834,0.845
+        - https://archive.org/download/zentralblattfr31889leip/page/n638_w1600.jpg#region=0.057,0.079,0.824,0.057
+    firstPage: 84
+    lastPage: 631
+    headings:
+      - { page: 84, opens: L., title: Ueber den oberen Kern des N. oculomotorius }
+      - { page: 626, opens: M. Kückenthal, title: Das Centralnervensystem der Cetaceen }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. III (Leipzig und Wien 1889–90), S. 84–85 und 626–631"
+    author: Sigmund Freud
+    year: 1889
+    kind: work
+  - item: cfp-5-referate
+    citation: CfP V
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr51891leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n663_w1600.jpg#region=0.117,0.516,0.807,0.396
+          page: 656
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n684_w1600.jpg#region=0.066,0.814,0.808,0.108
+          page: 677
+        - https://archive.org/download/zentralblattfr51891leip/page/n685_w1600.jpg#region=0.132,0.074,0.811,0.328
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n774_w1600.jpg#region=0.071,0.834,0.809,0.101
+          page: 767
+        - https://archive.org/download/zentralblattfr51891leip/page/n775_w1600.jpg#region=0.132,0.085,0.813,0.514
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n866_w1600.jpg#region=0.085,0.223,0.812,0.698
+          page: 859
+        - https://archive.org/download/zentralblattfr51891leip/page/n867_w1600.jpg#region=0.083,0.074,0.808,0.074&region=0.082,0.161,0.817,0.628
+    firstPage: 656
+    lastPage: 860
+    headings:
+      - { page: 656, opens: R. Schaffer., title: Vergleichend-anatomische Untersuchungen über Rückenmarksfaserung }
+      - { page: 677, opens: Babinski., title: Paraplégie flasque par compression de la moëlle }
+      - { page: 767, opens: Bernheimer., title: Ueber die Sehnervenwurzeln des Menschen }
+      - { page: 859, opens: Sternberg. Hemmung, title: "Hemmung, Ermüdung und Bahnung der Sehnenreflexe im Rückenmark" }
+      - { page: 860, opens: L., title: Sull’ origine del nervo acustico }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. V (Leipzig und Wien 1891–92), S. 656, 677–678, 767–768 und 859–860"
+    author: Sigmund Freud
+    year: 1891
+    kind: work
+  - item: cfp-6-referate
+    citation: CfP VI
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr61892leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n31_w1600.jpg#region=0.105,0.400,0.807,0.217
+          page: 24
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n93_w1600.jpg#region=0.112,0.262,0.807,0.331
+          page: 86
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n166_w1600.jpg#region=0.072,0.738,0.808,0.192
+          page: 159
+        - https://archive.org/download/zentralblattfr61892leip/page/n167_w1600.jpg#region=0.120,0.081,0.813,0.261
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n194_w1600.jpg#region=0.056,0.717,0.804,0.202
+          page: 187
+        - https://archive.org/download/zentralblattfr61892leip/page/n195_w1600.jpg#region=0.132,0.063,0.811,0.443
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n461_w1600.jpg#region=0.143,0.895,0.804,0.041
+          page: 454
+        - https://archive.org/download/zentralblattfr61892leip/page/n462_w1600.jpg#region=0.045,0.082,0.820,0.362
+    firstPage: 24
+    lastPage: 455
+    headings:
+      - { page: 24, opens: M. Sternberg., title: Ueber die Beziehungen der Sehnenreflexe zum Muskeltonus }
+      - { page: 86, opens: O. Snell., title: Die Abhängigkeit des Hirngewichtes von dem Körpergewicht und den geistigen Fähigkeiten }
+      - { page: 159, opens: B. Lange., title: "Inwieweit sind die Symptome, welche nach Zerstörung des Kleinhirns beobachtet werden, auf Verletzungen des Acusticus zurückzuführen?" }
+      - { page: 187, opens: Steiner., title: Sinnessphären und Bewegungen }
+      - { page: 454, opens: Danilewsky., title: Zur Physiologie des Centralnervensystems von Amphioxus }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. VI (Leipzig und Wien 1892–93), S. 24, 86, 159–160, 187–188 und 454–455"
+    author: Sigmund Freud
+    year: 1892
+    kind: work
   - item: wmw-37-1887-5
     citation: WMW 1887
     # Two columns to a page, each numbered: a page is cited by its first.
@@ -3354,6 +3550,35 @@ books:
     title: Zeitgemäßes über Krieg und Tod
     shortTitle: Krieg und Tod
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: zweimonatsbericht-1915-wir-und-der-tod
+    citation: Zweimonats-Bericht 1915
+    ocr: deu
+    # The microfilm's spreads, each page cropped to the lecture: read from
+    # below its title and byline.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zweimonatsberichreel01
+      firstPage: 41
+      pages:
+        - https://archive.org/download/zweimonatsberichreel01/page/n25_w3600.jpg#region=0.550,0.241,0.325,0.576
+        - https://archive.org/download/zweimonatsberichreel01/page/n26_w3600.jpg#region=0.145,0.149,0.325,0.670
+        - https://archive.org/download/zweimonatsberichreel01/page/n26_w3600.jpg#region=0.545,0.164,0.325,0.666
+        - https://archive.org/download/zweimonatsberichreel01/page/n27_w3600.jpg#region=0.155,0.147,0.320,0.669
+        - https://archive.org/download/zweimonatsberichreel01/page/n27_w3600.jpg#region=0.550,0.164,0.320,0.670
+        - https://archive.org/download/zweimonatsberichreel01/page/n28_w3600.jpg#region=0.150,0.145,0.320,0.678
+        - https://archive.org/download/zweimonatsberichreel01/page/n28_w3600.jpg#region=0.545,0.153,0.322,0.679
+        - https://archive.org/download/zweimonatsberichreel01/page/n29_w3600.jpg#region=0.155,0.149,0.320,0.675
+        - https://archive.org/download/zweimonatsberichreel01/page/n29_w3600.jpg#region=0.545,0.155,0.325,0.679
+        - https://archive.org/download/zweimonatsberichreel01/page/n30_w3600.jpg#region=0.155,0.155,0.315,0.678
+        - https://archive.org/download/zweimonatsberichreel01/page/n30_w3600.jpg#region=0.543,0.153,0.320,0.269
+    firstPage: 41
+    lastPage: 51
+    slug: wir-und-der-tod
+    title: Wir und der Tod
+    edition: "Zweimonats-Bericht für die Mitglieder der österr. israel. Humanitätsvereine „B’nai B’rith“, XVIII. Jahrgang, Nr. 1 (Wien 1915), S. 41–51"
     author: Sigmund Freud
     year: 1915
     kind: work
