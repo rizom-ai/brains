@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.573
+
+### Patch Changes
+
+- [#694](https://github.com/rizom-ai/brains/pull/694) [`8a74229`](https://github.com/rizom-ai/brains/commit/8a7422918abeaee4f8ed448e3b2607bf404a01c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Board has a New card button: a title, optional details and an assignee add a card to To do. A card added by hand records who added it and when, and shows "Board" where other cards show their channel or the Inbox.
+
 ## 0.2.0-alpha.572
 
 ### Patch Changes

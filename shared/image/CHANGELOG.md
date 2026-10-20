@@ -1,5 +1,13 @@
 # @brains/image
 
+## 0.2.0-alpha.573
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.573
+  - @brains/entity-service@0.2.0-alpha.573
+
 ## 0.2.0-alpha.572
 
 ### Patch Changes
