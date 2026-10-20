@@ -78,6 +78,7 @@ import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
+import { unwrittenFields } from "./frontmatter-extensions";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations, validatePersist } from "./entity-mutations";
 import {
@@ -686,7 +687,7 @@ export class EntityService implements IEntityService {
       .getAllEntityTypes()
       .filter(
         (type) =>
-          (this.entityRegistry.getEntityTypeConfig(type).retiredFields ?? [])
+          unwrittenFields(this.entityRegistry.getEntityTypeConfig(type))
             .length > 0,
       );
     const rewritten = await types.reduce<Promise<number>>(
@@ -698,11 +699,9 @@ export class EntityService implements IEntityService {
 
   /** Entities of one type still carrying a retired field, rewritten one by one. */
   private async rewriteType(type: string): Promise<number> {
-    const retired =
-      this.entityRegistry.getEntityTypeConfig(type).retiredFields ?? [];
     const ids = await this.entityQueries.idsCarryingFrontmatterFields(
       type,
-      retired,
+      unwrittenFields(this.entityRegistry.getEntityTypeConfig(type)),
     );
     await ids.reduce<Promise<void>>(async (previous, id) => {
       await previous;

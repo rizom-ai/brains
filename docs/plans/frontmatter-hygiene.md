@@ -41,7 +41,7 @@ A retired field leaves the metadata column too, so registration refuses a type w
 
 Creates, updates and projection writes drop retired fields from the content before validation, so a persist validator that parses the file accepts an entity stored before a retirement.
 
-A field whose value moves rather than disappears (an id derived differently, a nested shape flattened) keeps a read-time translation in the owning package, as action items do for `timeRange` → `capturedAt` and nested people.
+A field whose value moves rather than disappears (an id derived differently, a nested shape flattened) keeps a read-time translation in the owning package, as action items do for `timeRange` → `capturedAt` and nested people. When the old key itself goes, the type lists it in `EntityTypeConfig.translatedFields`: it still reaches the parser, but like a retired field it is never written back and is rewritten on start.
 
 ### Rewrite on start
 
@@ -59,7 +59,7 @@ Each trim is verified against current readers. "Drop" means: add to `retiredFiel
 
 - **decision:** drop `sourceSummaryId` (always equals `conversationId`), `sourceMessageCount` and `projectionVersion` (no readers), and `spaceId` (the retriever already derives `interfaceType:channelId`).
 - **summary:** drop `projectionVersion` (no reader; the version is folded into `sourceHash`); drop `conversationId` (equals the id; `widgets/coverage.ts` and `summary-datasource.ts` switch to the id); drop `entryCount` (derived from the body, as `summary-datasource.ts` already does; the coverage widget and retriever switch to it).
-- **action-item:** move its retired list from `stored-shape.ts` onto `retiredFields`; the person and `capturedAt` translations stay.
+- **action-item:** move its retired list from `stored-shape.ts` onto `retiredFields`, and `timeRange` onto `translatedFields`; the person and `capturedAt` translations stay.
 
 ### Agents (`entities/agent-discovery`)
 

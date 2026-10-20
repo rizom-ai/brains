@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
 import { fileURLToPath } from "node:url";
+import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
@@ -207,8 +208,11 @@ describe("rewriting stored entities that still carry retired fields", () => {
     expect(fields(created?.content ?? "")).toEqual({ title: "Hello" });
 
     const db = new Database(fileURLToPath(context.dbConfig.url));
-    db.query("UPDATE entities SET content = ? WHERE id = ?").run(
+    db.query(
+      "UPDATE entities SET content = ?, contentHash = ? WHERE id = ?",
+    ).run(
       storedBeforeRetirement(),
+      computeContentHash(storedBeforeRetirement()),
       "hello",
     );
     db.close();
@@ -276,5 +280,87 @@ describe("retired nested fields", () => {
       title: "Hello",
       source: { ref: "imap:1" },
     });
+  });
+});
+
+describe("translated fields", () => {
+  // An owner that still reads `heading`, its old name for `title`.
+  class RenamingAdapter extends BaseEntityAdapter<Post, Post["metadata"]> {
+    constructor() {
+      super({
+        entityType: "post",
+        purpose: "Translated-field fixture",
+        schema: postSchema,
+        frontmatterSchema: looseFields,
+      });
+    }
+    fromMarkdown(content: string): Partial<Post> {
+      const stored = fields(content);
+      return {
+        content,
+        metadata: { title: String(stored["title"] ?? stored["heading"]) },
+      };
+    }
+  }
+
+  const stored = "---\nheading: Hello\n---\n\nBody\n";
+  const TRANSLATED = { translatedFields: ["heading"] };
+
+  it("reach the parser, and are never written back", () => {
+    const logger = createSilentLogger();
+    const registry = EntityRegistry.createFresh(logger);
+    registry.registerEntityType(
+      "post",
+      postSchema,
+      new RenamingAdapter(),
+      TRANSLATED,
+    );
+    const serializer = new EntitySerializer(registry, logger);
+
+    const read = serializer.deserializeEntity(stored, "post");
+    expect(read.metadata).toEqual({ title: "Hello" });
+    const prepared = serializer.prepareEntityForStorage(
+      post(stored, { title: "Hello", heading: "Hello" }),
+      "post",
+    );
+    expect(fields(prepared.markdown)).toEqual({ title: "Hello" });
+    expect(prepared.metadata).toEqual({ title: "Hello" });
+  });
+
+  let context: EntityServiceTestContext | undefined;
+  afterEach(async () => {
+    await context?.cleanup();
+    context = undefined;
+  });
+
+  it("are rewritten on start into their new place", async () => {
+    context = await setupEntityService(
+      [
+        {
+          name: "post",
+          schema: postSchema,
+          adapter: new RenamingAdapter(),
+          config: TRANSLATED,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    const service = context.entityService;
+    await service.createEntity({
+      entity: post("---\ntitle: Hello\n---\n\nBody\n", { title: "Hello" }),
+    });
+    const db = new Database(fileURLToPath(context.dbConfig.url));
+    // The row as an earlier release stored it, hash included.
+    db.query(
+      "UPDATE entities SET content = ?, contentHash = ? WHERE id = ?",
+    ).run(stored, computeContentHash(stored), "hello");
+    db.close();
+
+    expect(await service.rewriteRetiredFields()).toEqual({ rewritten: 1 });
+    const rewritten = await service.getEntity({
+      entityType: "post",
+      id: "hello",
+    });
+    expect(fields(rewritten?.content ?? "")).toEqual({ title: "Hello" });
   });
 });

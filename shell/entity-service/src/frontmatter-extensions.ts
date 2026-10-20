@@ -104,6 +104,14 @@ export function preserveSourceFrontmatter(
     : serialized.content;
 }
 
+/** Keys a type never writes: its retired and its translated fields. */
+export function unwrittenFields(config: {
+  retiredFields?: readonly string[] | undefined;
+  translatedFields?: readonly string[] | undefined;
+}): readonly string[] {
+  return [...(config.retiredFields ?? []), ...(config.translatedFields ?? [])];
+}
+
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

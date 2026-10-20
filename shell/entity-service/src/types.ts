@@ -659,6 +659,12 @@ export interface EntityTypeConfig {
    */
   retiredFields?: readonly string[];
   /**
+   * Retired keys whose stored value the type still reads, moving it to its
+   * new field when it parses. Unlike `retiredFields` they reach the parser;
+   * like them they are never written back and are rewritten on start.
+   */
+  translatedFields?: readonly string[];
+  /**
    * The type's own minimum action policy, from whoever registers it. It
    * tightens wildcard defaults without relaxing stricter rules, including
    * `never`, so an admin-only type stays protected without its bundle's rule.

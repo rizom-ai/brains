@@ -10,6 +10,7 @@ import { toEntityValidationError } from "./errors";
 import {
   dropFields,
   preserveSourceFrontmatter,
+  unwrittenFields,
   withoutFrontmatterFields,
 } from "./frontmatter-extensions";
 
@@ -43,7 +44,9 @@ export class EntitySerializer {
         .getGroupings()
         .filter((grouping) => grouping.types.includes(entity.entityType))
         .map((grouping) => grouping.field),
-      this.retiredFields(entity.entityType),
+      unwrittenFields(
+        this.entityRegistry.getEntityTypeConfig(entity.entityType),
+      ),
     );
   }
 
@@ -220,7 +223,10 @@ export class EntitySerializer {
     entityType: string,
   ): Record<string, unknown> {
     const { visibility: _visibility, ...rest } = metadata;
-    return dropFields(rest, this.retiredFields(entityType)) ?? rest;
+    const unwritten = unwrittenFields(
+      this.entityRegistry.getEntityTypeConfig(entityType),
+    );
+    return dropFields(rest, unwritten) ?? rest;
   }
 
   private retiredFields(entityType: string): readonly string[] {

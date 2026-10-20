@@ -11,6 +11,7 @@ import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
   type InvalidFieldPolicy,
+  unwrittenFields,
 } from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
 import {
@@ -113,7 +114,7 @@ export class EntityRegistry implements IEntityRegistry {
     }
 
     const declared = declaredMetadataKeys(schema);
-    const stillDeclared = (config?.retiredFields ?? []).find((field) =>
+    const stillDeclared = unwrittenFields(config ?? {}).find((field) =>
       declared.has(field),
     );
     if (stillDeclared !== undefined) {
