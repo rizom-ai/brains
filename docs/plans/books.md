@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phases 1, 2 and 5 are live: Friedrich's published works (26 books) at `friedrich.rizom.ai`, Karl (46 books) at `karl.rizom.ai`. Phase 3 is imported: the Nachlass (20 books, 11,863 sections) and the letters (38 books, 2,900 sections). Phase 4 is not started.
+In progress. Phases 1, 2 and 5 are live: Friedrich's published works (26 books) at `friedrich.rizom.ai` and Karl (46 books) at `karl.rizom.ai`. Karl's importer adapters are on open PR #567 (`work/books-karl`), not `main`. Phase 3's Nachlass and letters importer shipped in `0.2.0-alpha.556` (#648), but `rover-friedrich-content` does not hold those books yet; Homer and the Philologica (`dta-tei`, `archive-ocr`) are not imported. Phase 4: Sigmund's importer is on open PR #538 (`work/books-archive-ocr`), adding `sigmund` to the fleet is open as rover-pilot#198, and `sigmund.rizom.ai` is not serving.
 
 ## Goal
 

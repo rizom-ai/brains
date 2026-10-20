@@ -1,5 +1,56 @@
 # @brains/chat
 
+## 0.2.0-alpha.566
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.566
+  - @brains/utils@0.2.0-alpha.566
+  - @brains/auth-service@0.2.0-alpha.566
+  - @brains/plugins@0.2.0-alpha.566
+
+## 0.2.0-alpha.565
+
+### Patch Changes
+
+- [#681](https://github.com/rizom-ai/brains/pull/681) [`150a0d6`](https://github.com/rizom-ai/brains/commit/150a0d619ba4ff2cee48ab2e7be5da9c3e9e38de) Thanks [@cruftyoldsysadmin](https://github.com/cruftyoldsysadmin)! - Render agent replies in Slack. The Slack adapter sends a plain string as Slack's `text`, which shows `**bold**` and `## headings` verbatim; agent text, streamed edits and turn errors now post as `{ markdown }`, which Slack renders. Discord is unchanged.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.565
+  - @brains/utils@0.2.0-alpha.565
+  - @brains/auth-service@0.2.0-alpha.565
+  - @brains/plugins@0.2.0-alpha.565
+
+## 0.2.0-alpha.564
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.564
+  - @brains/utils@0.2.0-alpha.564
+  - @brains/auth-service@0.2.0-alpha.564
+  - @brains/plugins@0.2.0-alpha.564
+
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.563
+  - @brains/utils@0.2.0-alpha.563
+  - @brains/auth-service@0.2.0-alpha.563
+  - @brains/plugins@0.2.0-alpha.563
+
+## 0.2.0-alpha.562
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.562
+  - @brains/utils@0.2.0-alpha.562
+  - @brains/auth-service@0.2.0-alpha.562
+  - @brains/plugins@0.2.0-alpha.562
+
 ## 0.2.0-alpha.561
 
 ### Patch Changes

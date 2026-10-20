@@ -13,6 +13,7 @@ import { parseYamlDocument } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 
 import { encryptPilotSecrets } from "../src/secrets-encrypt";
+import { addPilotUser } from "../src/user-add";
 
 const secretsSchema = z.record(z.string(), z.string());
 
@@ -399,6 +400,39 @@ discord:
       expect(String(error)).toContain("users/alice.secrets.yaml");
       expect(String(error)).toContain("Unable to parse");
     }
+  });
+
+  it("encrypts zero per-user secrets for a Discord-disabled user", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+bundles:
+  - core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+    });
+    await addPilotUser(root, "alice", { cohort: "canary" });
+
+    const result = await encryptPilotSecrets(root, "alice");
+
+    expect(result.encryptedKeys).toEqual([]);
+    expect(
+      parseSecretsYaml(
+        await decryptYamlFile(
+          join(root, "users/alice.secrets.yaml.age"),
+          identity,
+        ),
+      ),
+    ).toEqual({});
   });
 
   it("supports dry-run without writing files", async () => {

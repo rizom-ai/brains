@@ -1,0 +1,50 @@
+id: note-tool-create-file-upload-rewrite
+name: Generate a rewritten note rather than importing the original upload
+description: >-
+  Regression for an uploaded markdown file being saved unchanged despite
+  explicit rewrite instructions. Assert the generation route before confirmation;
+  generation is asynchronous, so immediate read-back would race the background job.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-note-upload-rewrite
+tags:
+  - note
+  - file-upload
+  - regression
+
+turns:
+  - userMessage: >-
+      Create a note titled "Revised Community Launch" from the attached markdown.
+      Rewrite it into two sections, "Decisions" and "Next steps". Change the
+      launch day to Friday and the owner to Mira. Replace the next step with
+      "Publish the participant checklist". Leave out the scratchpad section.
+    attachments:
+      - kind: text
+        filename: community-launch.md
+        mediaType: text/markdown
+        content: |
+          # Community Launch
+
+          Launch day: Monday.
+          Owner: Unassigned.
+          Next step: Draft the agenda.
+
+          ## Scratchpad
+
+          RAW_ONLY_SCRATCHPAD: unrelated brainstorming to leave out.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000951
+
+successCriteria:
+  expectedTools:
+    - toolName: system_generate
+      shouldBeCalled: true
+      argsContain:
+        operation.kind: prompt
+        operation.entityType: note
+        operation.title: Revised Community Launch
+    - toolName: system_create
+      shouldBeCalled: false

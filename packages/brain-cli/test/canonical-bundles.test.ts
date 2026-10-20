@@ -94,6 +94,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "dashboard",
     "admin",
     "conversation-memory",
+    "action-board",
     "faq",
     "unified-inbox",
     "mcp",
@@ -138,6 +139,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "stock-photo",
     "atproto",
     "conversation-memory",
+    "action-board",
     "faq",
     "unified-inbox",
     "mcp",
@@ -172,6 +174,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "site-builder",
     "analytics",
     "conversation-memory",
+    "action-board",
     "faq",
     "docs",
     "unified-inbox",
@@ -379,6 +382,7 @@ describe("canonical bundle taxonomy", () => {
       topics: { extractableStatuses: ["published", "draft"] },
       dashboard: { routePath: "/dashboard" },
       "conversation-memory": { memoryVisibility: "shared" },
+      "action-board": { cardVisibility: "shared" },
     });
     expect(resolution.permissionContributions).toEqual(teamPermissions);
     expect(resolution.agentInstructions).toEqual(teamAgentInstructions);

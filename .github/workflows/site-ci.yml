@@ -7,12 +7,14 @@ on:
   push:
     branches: ["main"]
     paths:
+      - "sites/books/**"
       - "sites/docs/**"
       - "sites/rizom/**"
       - "sites/rizom-ai/**"
       - "sites/rizom-foundation/**"
       - "sites/rizom-work/**"
       - "sites/smoke-canary/**"
+      - "shared/theme-books/**"
       - "shared/theme-default/**"
       - "shared/theme-rizom-ai/**"
       - "shared/theme-signal/**"
@@ -32,12 +34,14 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
+      - "sites/books/**"
       - "sites/docs/**"
       - "sites/rizom/**"
       - "sites/rizom-ai/**"
       - "sites/rizom-foundation/**"
       - "sites/rizom-work/**"
       - "sites/smoke-canary/**"
+      - "shared/theme-books/**"
       - "shared/theme-default/**"
       - "shared/theme-rizom-ai/**"
       - "shared/theme-signal/**"
@@ -117,6 +121,9 @@ jobs:
 
       - name: Build site and theme packages
         run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'
+
+      - name: Install and import site packages from packed tarballs
+        run: bun run test:packed:sites
 
       - name: Run packed compatibility matrix
         run: bun run test:packed:compat

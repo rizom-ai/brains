@@ -7,6 +7,7 @@ import { type CohortConfig, cohortSchema, handleSchema } from "./schema";
 
 export interface AddPilotUserOptions {
   cohort: string;
+  discord?: boolean | undefined;
   anchorId?: string | undefined;
 }
 
@@ -43,9 +44,10 @@ export async function addPilotUser(
     mkdir(cohortsDir, { recursive: true }),
   ]);
 
+  const discordEnabled = options.discord === true || Boolean(options.anchorId);
   const createdUser = await writeFileIfMissing(
     userPath,
-    formatUserFile(parsedHandle, options.anchorId),
+    formatUserFile(parsedHandle, discordEnabled, options.anchorId),
   );
 
   const hasEncryptedSecrets = await fileExists(encryptedSecretsPath);
@@ -53,7 +55,7 @@ export async function addPilotUser(
     ? false
     : await writeFileIfMissing(
         secretsTemplatePath,
-        formatSecretsTemplate(parsedHandle),
+        formatSecretsTemplate(parsedHandle, discordEnabled),
       );
 
   const { addedToCohort } = await addUserToCohort(cohortPath, parsedHandle);
@@ -104,23 +106,32 @@ async function readExistingCohort(cohortPath: string): Promise<CohortConfig> {
   }
 }
 
-function formatUserFile(handle: string, anchorId: string | undefined): string {
+function formatUserFile(
+  handle: string,
+  discordEnabled: boolean,
+  anchorId: string | undefined,
+): string {
   return [
     `handle: ${handle}`,
     "anchorProfile:",
     `  name: ${handleToDisplayName(handle)}`,
     "discord:",
-    "  enabled: true",
-    ...(anchorId ? [`  anchorUserId: ${JSON.stringify(anchorId)}`] : []),
+    `  enabled: ${String(discordEnabled)}`,
+    ...(discordEnabled && anchorId
+      ? [`  anchorUserId: ${JSON.stringify(anchorId)}`]
+      : []),
     "",
   ].join("\n");
 }
 
-function formatSecretsTemplate(handle: string): string {
+function formatSecretsTemplate(
+  handle: string,
+  discordEnabled: boolean,
+): string {
   return [
     "# local per-user secret staging file",
     `# fill values, run \`bunx brains-ops secrets:encrypt . ${handle}\`, then the plaintext file will be removed`,
-    "discordBotToken: ",
+    ...(discordEnabled ? ["discordBotToken: "] : []),
     "atprotoAppPassword: ",
     "# For custom-domain sites, paste PEMs with literal \\n escapes.",
     "certificatePem: ",

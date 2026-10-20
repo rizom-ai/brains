@@ -13,7 +13,8 @@ export const rendererLayoutStyles: Record<
   | "error"
   | "empty"
   | "links"
-  | "cell",
+  | "cell"
+  | "dropAllowed",
   stylex.StyleXStyles
 > & {
   caption: stylex.StyleXStyles<Record<string, string | number | null>>;
@@ -148,6 +149,12 @@ export const rendererLayoutStyles: Record<
     },
     borderRadius: 8,
     backgroundColor: "var(--console-card)",
+  },
+  /** A cell the dragged card can move to. */
+  dropAllowed: {
+    borderStyle: "dashed",
+    borderColor: "var(--console-accent)",
+    backgroundColor: "var(--console-accent-soft)",
   },
   caption: {
     margin: "0 0 11px",

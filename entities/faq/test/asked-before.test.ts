@@ -9,11 +9,10 @@ import {
   faqAdapter,
   faqMetadata,
   faqSchema,
-  type FaqStoreDeps,
 } from "../src";
 
 // A visitor's question a published FAQ already answers is answered from it,
-// with the sources the FAQ kept, and counts as one more asking.
+// with the sources the FAQ kept. Its persisted capture, not this read, counts it.
 describe("answering a question asked before", () => {
   let context: EntityPluginContext;
   interface Distance {
@@ -36,7 +35,7 @@ describe("answering a question asked before", () => {
     },
   ];
 
-  function deps(): FaqStoreDeps {
+  function deps(): Parameters<typeof answerAskedBefore>[0] {
     return {
       entityService: context.entityService,
       sameQuestionDistance: 0.25,
@@ -103,7 +102,7 @@ describe("answering a question asked before", () => {
     queries = [];
   });
 
-  it("answers from the published FAQ, with its sources, and counts the ask", async () => {
+  it("answers from the published FAQ with its sources without a speculative count", async () => {
     await seed("how-does-rizom-keep-memory", "published");
     const response = await answerAskedBefore(deps(), {
       question: "how does rizom remember things?",
@@ -113,6 +112,7 @@ describe("answering a question asked before", () => {
     expect(response).toEqual({
       hit: {
         faqId: "how-does-rizom-keep-memory",
+        faqQuestion: "How does Rizom keep memory?",
         answer: "In the brains of the people who hold it.",
         sources: [
           {
@@ -128,7 +128,7 @@ describe("answering a question asked before", () => {
         ],
       },
     });
-    expect(await asked("how-does-rizom-keep-memory")).toBe(4);
+    expect(await asked("how-does-rizom-keep-memory")).toBe(3);
   });
 
   it("never answers from a draft, and asks the model nothing about one", async () => {

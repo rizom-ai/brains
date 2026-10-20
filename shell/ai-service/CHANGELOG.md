@@ -1,5 +1,75 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.566
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.566
+  - @brains/utils@0.2.0-alpha.566
+  - @brains/conversation-service@0.2.0-alpha.566
+  - @brains/entity-service@0.2.0-alpha.566
+  - @brains/identity-service@0.2.0-alpha.566
+  - @brains/mcp-service@0.2.0-alpha.566
+  - @brains/messaging-service@0.2.0-alpha.566
+  - @brains/templates@0.2.0-alpha.566
+
+## 0.2.0-alpha.565
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.565
+  - @brains/utils@0.2.0-alpha.565
+  - @brains/conversation-service@0.2.0-alpha.565
+  - @brains/entity-service@0.2.0-alpha.565
+  - @brains/identity-service@0.2.0-alpha.565
+  - @brains/mcp-service@0.2.0-alpha.565
+  - @brains/messaging-service@0.2.0-alpha.565
+  - @brains/templates@0.2.0-alpha.565
+
+## 0.2.0-alpha.564
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.564
+  - @brains/utils@0.2.0-alpha.564
+  - @brains/conversation-service@0.2.0-alpha.564
+  - @brains/entity-service@0.2.0-alpha.564
+  - @brains/identity-service@0.2.0-alpha.564
+  - @brains/mcp-service@0.2.0-alpha.564
+  - @brains/messaging-service@0.2.0-alpha.564
+  - @brains/templates@0.2.0-alpha.564
+
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.563
+  - @brains/utils@0.2.0-alpha.563
+  - @brains/conversation-service@0.2.0-alpha.563
+  - @brains/entity-service@0.2.0-alpha.563
+  - @brains/identity-service@0.2.0-alpha.563
+  - @brains/mcp-service@0.2.0-alpha.563
+  - @brains/messaging-service@0.2.0-alpha.563
+  - @brains/templates@0.2.0-alpha.563
+
+## 0.2.0-alpha.562
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.562
+  - @brains/utils@0.2.0-alpha.562
+  - @brains/conversation-service@0.2.0-alpha.562
+  - @brains/entity-service@0.2.0-alpha.562
+  - @brains/identity-service@0.2.0-alpha.562
+  - @brains/mcp-service@0.2.0-alpha.562
+  - @brains/messaging-service@0.2.0-alpha.562
+  - @brains/templates@0.2.0-alpha.562
+
 ## 0.2.0-alpha.561
 
 ### Patch Changes

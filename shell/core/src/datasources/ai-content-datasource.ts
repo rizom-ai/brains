@@ -23,7 +23,7 @@ export type GenerationContext = z.output<typeof GenerationContextSchema>;
 const entitySlugSchema = z.object({ slug: z.string() });
 
 const STYLE_GUIDE_PRECEDENCE =
-  "The style guide governs voice, tone, wording and form: paragraphing, sentence rhythm, hooks, rhetorical questions and calls to action. The instructions below govern the task, required content, length limits, platform constraints and output format. When they conflict on voice or form, follow the style guide.";
+  "The style guide governs voice, tone, wording and form: paragraphing, sentence rhythm, hooks, rhetorical questions and calls to action. The instructions below and any additional instructions in the request govern the task, required content, length limits, platform constraints and output format. When either conflicts with the style guide on voice or form, follow the style guide.";
 
 // The template instructions live in the system prompt; providers reject an empty user turn.
 const EMPTY_REQUEST_PROMPT =

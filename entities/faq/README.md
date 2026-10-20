@@ -20,6 +20,14 @@ Classification can run again after interruption or overlap between attempts; thi
 
 Existing `faq.captured-replies` entries contain only a timestamp and cannot distinguish successful captures from interrupted ones. They are preserved and are not replayed automatically. Already-stuck legacy entries therefore require manual review; the new protocol does not retroactively resolve them. Stop old claim-writing workers before running the new capture protocol. Older runtimes do not understand new receipts, so a downgrade requires disabling capture or a separately verified migration; mixed-version capture is not supported.
 
+## Answered-before replies
+
+A public, published FAQ can answer a visitor after semantic confirmation. The complete canonical revision is re-read after that asynchronous check; changed or withdrawn eligibility yields no hit. This read does not increment `asked`. The persisted assistant reply records the confirmed FAQ question, and its normal capture receipt owns the increment. Capture checks the same public question and answer with full-revision CAS, without classifying an already approved answer again.
+
+Stop old web and worker writers before upgrading this protocol. Older fast-path replies lack capture provenance and may already have incremented without a receipt. Their pending capture jobs require manual reconciliation; they are neither counted again nor silently claimed complete. Existing capture claims and receipts retain their identities and are not expired or removed. Mixed-version operation and downgrade are unsupported.
+
+Confirmation generation and embeddings belong to guest settlement even on a miss or failed check. Unreported, unfinished or unpriced work makes cost unknown, not known zero. Auxiliary provider attempts share the request lifetime; measured requests disable hidden SDK retries. These are accounting and cancellation guarantees, not a provider-spend ceiling or a bounded database-scan guarantee.
+
 ## Visibility
 
 The FAQ takes the visibility of the turn that produced the answer:

@@ -4,12 +4,22 @@ export {
   stripDeclarationComments,
   type DeclarationLeakOptions,
 } from "./declaration-leaks";
+export { copyMigrations, type MigrationSource } from "./copy-migrations";
 export {
   assertProductionReactBundle,
   productionReactJsx,
 } from "./production-react-bundle";
 export {
+  installPackedConsumer,
+  packPublishable,
+  packedSiteEvidenceEnabled,
+  PACKED_SITE_EVIDENCE_ENV,
+  runCommand,
+  workspaceCopy,
+} from "./packed-consumer";
+export {
   preparePublishManifest,
+  publishManifestFor,
   restorePublishManifest,
   type PreparePublishManifestOptions,
   type RestorePublishManifestOptions,

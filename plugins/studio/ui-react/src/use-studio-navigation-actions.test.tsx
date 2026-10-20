@@ -237,5 +237,13 @@ describe("useStudioNavigationActions", () => {
     expect(decodeURIComponent(harness.history.location.pathname)).toBe(
       "/studio/workspaces/analytics:traffic",
     );
+
+    await act(async () =>
+      harness.actions().openWorkspaceLaunch({ target: "board" }),
+    );
+
+    expect(decodeURIComponent(harness.history.location.pathname)).toBe(
+      "/studio/workspaces/action-board:board",
+    );
   });
 });

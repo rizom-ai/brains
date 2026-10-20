@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import {
   preparePublishManifest,
+  publishManifestFor,
   restorePublishManifest,
 } from "../src/publish-manifest";
 import { runWithPreparedPublishManifests } from "../src/publish-workspace";
@@ -171,5 +172,19 @@ describe("runWithPreparedPublishManifests", () => {
       expect(String(error)).toContain("publish failed");
     }
     expect(await readFile(join(dir, "package.json"), "utf8")).toBe(original);
+  });
+});
+
+describe("publishManifestFor", () => {
+  test("returns the manifest a publish would write, leaving the package untouched", async () => {
+    const dir = await createPackage(manifest);
+    await createWorkspaceDep(dir);
+    const original = await readFile(join(dir, "package.json"), "utf8");
+
+    const published = await publishManifestFor(dir);
+
+    expect(await readFile(join(dir, "package.json"), "utf8")).toBe(original);
+    await preparePublishManifest(dir);
+    expect(published).toEqual(await readManifest(dir));
   });
 });

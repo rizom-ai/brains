@@ -2,7 +2,9 @@
 
 ## Status
 
-**Partially implemented.** Extensible channel descriptors/providers, email interface ownership, and registry-driven Admin presentation have shipped. The remaining work is the person-centered attach/detach control and end-to-end Slack proof. The standalone interface-grant panel is removed; raw no-account allowlists remain config-seeded and CLI-managed.
+**Phases 1–3 shipped.** The Admin People workspace (`plugins/admin/src/people-workspace.ts`, since `0.2.0-alpha.333`) attaches and detaches channel identities per person from the runtime channel registry; auth-service validates subjects against the registered descriptor and audits `auth.identity.attached`/`detached`. Raw no-account allowlists remain config-seeded and CLI-managed.
+
+**Remaining: Phase 4.** `interfaces/chat` registers a Slack descriptor, so an Admin can attach a Slack identity, but `resolveChatIdentity` (`interfaces/chat/src/chat-identity.ts`) consults auth identities only for Discord, so an attached Slack identity does not govern that person's Slack messages.
 
 ## Goal
 
@@ -128,15 +130,15 @@ Thin vertical slices; tests fold into each phase.
 
 ### Phase 3 — UI: connect a channel (registry-driven)
 
-**Status: in progress.** Admin invitation choices and connected-channel presentation now come from the runtime registry. The attach/detach control remains.
+**Status: implemented.** Admin invitation choices and connected-channel presentation come from the runtime registry, and the Admin People workspace attaches and detaches identities.
 
-- On `PersonDetail`, add a **Connect a channel** control to the read-only "Connected channels" section: pick from registered channel descriptors, enter the channel subject (validated against the serialized pattern), and submit `attachIdentity` through the existing confirmation/feedback pattern. No channel strings are hardcoded in the console.
+- In the Admin People workspace, add a **Connect a channel** control to the read-only "Connected channels" section: pick from registered channel descriptors, enter the channel subject (validated against the serialized pattern), and submit `attachIdentity` through the existing confirmation/feedback pattern. No channel strings are hardcoded in the console.
 - Re-add the client `attachIdentity` call in `api.ts`/`queries.ts` if it was removed with the deleted `IdentityDialog`.
 - **Acceptance:** end-to-end test — attach a channel identity to a trusted member, assert a message from that channel subject resolves to the member as `trusted`; detach/suspend revokes it; audit records `auth.identity.attached`.
 
 ### Phase 4 — Prove extensibility
 
-**Status: descriptor registration implemented; behavioral acceptance remains.**
+**Status: descriptor registration implemented; Slack identities do not yet govern Slack messages.**
 
 - Slack, via `interfaces/chat`, declares its descriptor and becomes connectable alongside the same plugin's Discord descriptor.
 - **Acceptance:** Slack becomes a fully working connectable channel with **zero auth-schema change and zero console change** — only the Slack interface adopting the contract. This is the definition of "properly extensible."

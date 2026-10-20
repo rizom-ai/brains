@@ -34,7 +34,9 @@ expectedOutput:
       equals: action-item
     - path: actionItems[0].metadata.status
       equals: open
-    - path: actionItems[0].metadata.spaceId
-      equals: mcp:relay-team
+    - path: actionItems[0].metadata.interfaceType
+      equals: mcp
+    - path: actionItems[0].metadata.channelId
+      equals: relay-team
     - path: actionItems[0].content
       matches: "evals|decision|action item|separate"

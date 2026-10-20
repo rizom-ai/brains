@@ -1,5 +1,41 @@
 # @rizom/brain
 
+## 0.2.0-alpha.566
+
+### Patch Changes
+
+- [#664](https://github.com/rizom-ai/brains/pull/664) [`fe97986`](https://github.com/rizom-ai/brains/commit/fe9798645d407b13c580222854ba5f7fb09dc450) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio has a Board under Work: the team's action items in To do, Doing, Blocked and Done columns. Drag a card to another column, or use its Move menu; a card someone else already moved is reported rather than overridden. Open a card to read its text and notes, and add a note. Filter the board to a project, a value of the brain's `projects` grouping, and see the project's counts and blocked cards. Blocked cards appear in the Inbox with Resume, Done and Drop, and an Inbox item can be tracked on the board as a card. In chat, `action_item_update` moves a card or adds a note. Cards moved, grouped or edited stay put when a conversation is summarized again. Studio Overview lists blocked action items under Needs you and links to the board.
+
+  Action item frontmatter is trimmed to what a card uses: status, capture time, its conversation or Inbox source, and flat `assignedTo` and `requestedBy` entries (`{ name, id }`). Items stored in the earlier shape are read as before and rewritten in the trimmed shape on their next change.
+
+## 0.2.0-alpha.565
+
+### Patch Changes
+
+- [#679](https://github.com/rizom-ai/brains/pull/679) [`3f08d82`](https://github.com/rizom-ai/brains/commit/3f08d8286b54505da81814eabffd77f92b8ac55e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The style guide also wins over voice wording in a generation request. The precedence statement now covers the request's additional instructions as well as the template's, and the agent is told to write `system_generate` prompts from what the user asked for, without adding "engaging", "a compelling hook", "invite discussion" or other voice directions of its own.
+
+## 0.2.0-alpha.564
+
+### Patch Changes
+
+- [#677](https://github.com/rizom-ai/brains/pull/677) [`00ca271`](https://github.com/rizom-ai/brains/commit/00ca2717771a96e3cb064d113cbce2cfbca596c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site build goes ahead of embeddings and projections in the job queue, so a new brain's site is built once its first import is stored instead of after every entity is embedded and read.
+
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- [#672](https://github.com/rizom-ai/brains/pull/672) [`a2e3e92`](https://github.com/rizom-ai/brains/commit/a2e3e92ec1f5067d462929a19624b40f5089de1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `port` in `brain.yaml` now sets the port the production server listens on, not only the URLs the brain prints. An explicit `plugins.webserver.productionPort` still takes precedence.
+
+- [#673](https://github.com/rizom-ai/brains/pull/673) [`8a82dff`](https://github.com/rizom-ai/brains/commit/8a82dff9418c6b4961945af2a02581d96cb0f5cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Built-in commands such as `brain tool` now refuse `--remote` instead of ignoring it and booting a local brain against the same data. Remote mode applies to the brain's own commands, e.g. `brain build-site preview --remote <url>`.
+
+- [#676](https://github.com/rizom-ai/brains/pull/676) [`b2e1d9d`](https://github.com/rizom-ai/brains/commit/b2e1d9dac7e2cb97790e1d6cdfb96d292ac0473a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation that dies with its worker no longer leaves its entity stuck at "generating". When the job queue fails an expired attempt for good on reclaim, it now runs the handler's terminal error callback, which the queue skipped before; generation jobs use it to mark a still-generating placeholder failed. If `system_generate` cannot queue its job at all, it removes the placeholder it just created instead of leaving it behind.
+
+- [#625](https://github.com/rizom-ai/brains/pull/625) [`b94a75c`](https://github.com/rizom-ai/brains/commit/b94a75c7c5dda9dada4131fc5768ff4821b3518b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking to create a note from an upload with changes (rewritten, restructured, summarised or translated) now generates a new note from the upload's content instead of importing the original unchanged. Importing an upload as-is still preserves its wording.
+
+## 0.2.0-alpha.562
+
+No changes in this release.
+
 ## 0.2.0-alpha.561
 
 ### Patch Changes

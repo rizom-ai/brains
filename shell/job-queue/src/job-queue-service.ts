@@ -375,7 +375,8 @@ export class JobQueueService implements IJobQueueService {
     const executableTypes = this.handlerRegistry.getRegisteredTypes();
     if (executableTypes.length === 0) return null;
 
-    const ownership = claim ?? (await this.getDirectClaimOptions());
+    const { onTerminalReclaim, ...ownership } =
+      claim ?? (await this.getDirectClaimOptions());
     const now = Date.now();
     const job = await this.repository.claimNextReady({
       ...ownership,
@@ -385,6 +386,15 @@ export class JobQueueService implements IJobQueueService {
       exclusiveTypes: this.handlerRegistry.getExclusiveTypes(),
     });
     if (!job) return null;
+    if (job.status === JOB_STATUS.FAILED) {
+      this.logger.warn("Expired attempt failed terminally on reclaim", {
+        id: job.id,
+        type: job.type,
+        retryCount: job.retryCount,
+      });
+      await onTerminalReclaim?.(job);
+      return null;
+    }
 
     this.logger.debug("Job dequeued", {
       id: job.id,

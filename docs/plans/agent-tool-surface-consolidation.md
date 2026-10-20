@@ -1,10 +1,10 @@
 # Plan: Agent tool surface consolidation
 
-Last updated: 2026-09-20
+Last updated: 2026-10-16
 
 ## Status
 
-**Implementation substantially complete; the MCP reintroduction gate is green and final release closeout remains.**
+**Implementation complete; measurement, focused behavioral evidence and legacy-name closeout remain.** Chat-only MCP basic mode shipped in `0.2.0-alpha.400` after its reintroduction gate (focused `--mcp-basic` 4/4, personal 22/22, team 40/40 on 2026-09-20). Analytics has one typed agent surface: `system_analytics`, with traffic reports replacing `analytics_query` (`0.2.0-alpha.523`); the analytics plugin registers no tools.
 
 The chat-only MCP basic surface has met its deterministic and live-model reintroduction gates. Canonical protocol acceptance proves the replacement path, focused basic-MCP evals prove live routing and exact note fidelity, and clean personal/team release-candidate runs prove the broader regression boundary.
 
@@ -14,9 +14,9 @@ The old Rover preset snapshots and commands are historical. Current acceptance u
 
 This plan remains open for:
 
-- completing [system-analytics-tool.md](./system-analytics-tool.md) so analytics has one typed agent surface;
-- recording final tool-count/schema-size evidence on the nominated composition;
-- deciding case by case whether any old direct-MCP registered name is retained or removed.
+- recording agent-visible tool count, schema size and prompt tokens on the canonical professional composition (`--tool-surface` prints the surfaces; no measurement is recorded);
+- the focused behavioral coverage in section 3, beyond the release-candidate suites; and
+- closing legacy names: none is registered, but `createQueueTool` (`publish-pipeline_queue`) and `createPublishTool` (`publish-pipeline_publish`) in `plugins/content-pipeline/src/tools/` survive only for their tests.
 
 ## Goal
 
@@ -43,7 +43,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 
 ## Remaining work
 
-### 1. Finish analytics consolidation
+### 1. Finish analytics consolidation — done
 
 Complete the typed report registry in [system-analytics-tool.md](./system-analytics-tool.md), fold Cloudflare traffic reporting into it, and prove no duplicate LLM-callable analytics surface remains. Raw provider queries may remain direct-MCP-only for diagnostics.
 

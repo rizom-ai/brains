@@ -2,11 +2,11 @@
 
 ## Status
 
-Shipped and live as of 2026-07-20: plugin foundation (PDS auth via app password, `did:web` document routes), the projection-backed outbound publishing substrate (`post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, `topic`) with local lexicon validation, blob upload, and idempotent `putRecord` upserts; canonical `ai.rizom.brain.*` contracts in `@brains/atproto-contracts` with Zod record schemas, served publicly by the registry on the live `rizom.ai` instance; the first bounded discovery slice (repo-hosted brain cards enrich or create reviewable `agent` entities); the member-handle verification endpoint (`/.well-known/atproto-did`), dogfooded by the org account — `@rizom.ai` verified over HTTP against `did:plc:oehciuqunzskplljt3qnnncw`; and live credentials on the rizom-ai brain (`ATPROTO_APP_PASSWORD` deployed).
+Shipped and live on `rizom.ai`: the plugin foundation (app-password PDS auth, `did:web` routes), projection-backed outbound publishing (`post`, `note`, `link`, `deck`, `social-post`, `series`, `project`, `topic`) with local lexicon validation, blob upload and idempotent upserts, canonical `ai.rizom.brain.*` contracts in `@brains/atproto-contracts`, lexicon authority through `_lexicon.brain.rizom.ai` and `com.atproto.lexicon.schema` records, the member-handle endpoint, and bounded repo-hosted card discovery. The brain card publishes on boot and republishes on identity and skill changes (`0.2.0-alpha.500`); the org repo `did:plc:oehciuqunzskplljt3qnnncw` holds mirrored `ai.rizom.brain.note` and `ai.rizom.brain.topic` records.
 
-Ambient publishing is live as of 2026-07-21 on `rizom.ai` at `0.2.0-alpha.207`: the brain card publishes on boot and is verified on the PDS (`at://did:plc:oehciuqunzskplljt3qnnncw/ai.rizom.brain.card/self`, full identity/skills payload). Going live surfaced a secrets-plumbing gap — `ATPROTO_APP_PASSWORD` reached the deploy workflow but was missing from the pilot's `.env.schema` sensitive list and kamal `env.secret`, so the container never saw it and the trigger skipped silently; fixed in the pilot. Entity-record mirroring is wired but not yet exercised live — it fires on the next `publish:completed` or public entity update, not retroactively for already-published entities. The MCP tool surface remains intentionally absent. The card's `anchor.name: Unknown` bug (singleton parse failure falling back to defaults) was fixed in `0.2.0-alpha.217`; after the coordinated profile-kind cutover, the live record was republished on 2026-08-11 with `anchor {name: "Rizom", kind: "organization", category: "organization"}`. The same release hardened validation (lexicon refs resolve via local defs and fail closed when unresolvable) and serialized per-entity PDS writes to prevent out-of-order upserts. Lexicon authority resolution is shipped and verified live as of 2026-07-21 at `0.2.0-alpha.208`: the `_lexicon.brain.rizom.ai` DNS TXT delegates to the org DID, and the authority-gated ambient publisher (atproto plugin `lexiconAuthority` flag, set only for `rizom-ai` via `@rizom/ops`) upserts all nine canonical lexicons as `com.atproto.lexicon.schema` records on every boot — verified via `listRecords` on the org repo, so third-party viewers now resolve `ai.rizom.brain.*` schemas protocol-natively. The registry's HTTP lexicon routes remain a human-facing mirror only.
+Jetstream transport is on `main` and disabled in every fleet configuration. It still couples `jetstream.enabled` to unknown-agent creation (`newAgentsPerHour` and `pendingCandidateCeiling` in `plugins/atproto/src/config.ts`), so no canary may enable it before the known-peer correction ships.
 
-Jetstream support shipped in `0.2.0-alpha.224` on 2026-07-24 and remains disabled in every fleet configuration. The release added bounded websocket consumption, durable cursor/dedupe and budget state, authoritative credential-free PDS refetching, safe public egress, `did:web`/repo binding, collision protection, staleness handling, card heartbeats, and per-brain `@rizom/ops` configuration. It also made an unapproved product-policy choice: once Jetstream was enabled, an unknown valid brain card could automatically become an `agent` with `status: discovered`. That coupling is not approved. No live canary may enable Jetstream until the known-peer-only correction below ships.
+Open: the known-peer correction, Candidate Inbox and optional ambient intake; outbound OAuth; per-member handle adoption; the Zod-to-lexicon emitter; inbound ingestion; feed generators; and ambient federation.
 
 ## Reference invariants (needed by the open work)
 
@@ -20,7 +20,7 @@ Jetstream support shipped in `0.2.0-alpha.224` on 2026-07-24 and remains disable
 
 Ordered; each slice ships independently unless it declares an explicit dependency gate.
 
-### 1. Publishing trigger (make brains publish themselves) — implemented; card verified live, entity mirroring verification pending
+### 1. Publishing trigger (make brains publish themselves) — shipped and verified live
 
 The removed tool surface has been replaced with event wiring inside the atproto plugin:
 
@@ -30,7 +30,7 @@ The removed tool surface has been replaced with event wiring inside the atproto 
 - **Failure handling**: PDS failures log and broadcast `atproto:publish:failed`. They do not emit `publish:report:failure`, because that request belongs to the source publish provider and would incorrectly fail an already-successful local publish. Trigger handlers always isolate failures from the source operation.
 - **Tests**: card upsert on ready (and skipped without credentials), publish completion → record upsert, delete → record delete, public → non-public → record delete, no publish for types without projections, PDS client deletion, and failure isolation.
 
-The card half is verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqunzskplljt3qnnncw` carries the full identity payload (checked via `getRecord` at `0.2.0-alpha.217`), and yeehaa.io publishes its own card (`did:plc:dtxrise7xa4kat6mh4zd4lqe`) as of `0.2.0-alpha.223`. Remaining: `com.atproto.repo.listRecords` shows records for the rizom-ai brain's public entities (entity mirroring fires on the next publish/update, so this needs a live publish event to observe), and republish-on-identity-change between boots — today the card converges only on boot, so an identity/skill edit waits for the next restart to reach the PDS.
+Verified live: `ai.rizom.brain.card/self` on `did:plc:oehciuqunzskplljt3qnnncw` carries the full identity payload and republishes on identity and skill changes (#566, `0.2.0-alpha.500`); `com.atproto.repo.listRecords` on that repo returns mirrored `ai.rizom.brain.note` and `ai.rizom.brain.topic` records. yeehaa.io publishes its own card (`did:plc:dtxrise7xa4kat6mh4zd4lqe`).
 
 ### 2. Jetstream known-peer monitoring (Phase 4 tail) — correction required before canary
 
@@ -208,9 +208,8 @@ Deferred until discovery establishes trusted/followed peers:
 
 ## Verification (open items only)
 
-1. Live repo shows `ai.rizom.brain.card/self` plus records for public projected entities, updated without manual action (trigger slice).
-2. Jetstream refreshes only already-known repo DIDs by default; trusted sightings and explicitly enabled ambient observations merge in an operator-only Candidate Inbox, and only a confirmed Add action creates an agent.
-3. A fleet user can connect Bluesky via OAuth and their brain publishes under their account (OAuth slice).
-4. Bluesky/atproto content can be ingested as brain entities with topic extraction.
-5. Custom feeds are subscribable in Bluesky.
-6. Peer activity triggers local reactions only for approved/followed peers.
+1. Jetstream refreshes only already-known repo DIDs by default; trusted sightings and explicitly enabled ambient observations merge in an operator-only Candidate Inbox, and only a confirmed Add action creates an agent.
+2. A fleet user can connect Bluesky via OAuth and their brain publishes under their account (OAuth slice).
+3. Bluesky/atproto content can be ingested as brain entities with topic extraction.
+4. Custom feeds are subscribable in Bluesky.
+5. Peer activity triggers local reactions only for approved/followed peers.

@@ -3,6 +3,7 @@ import {
   chunkForChannel,
   ownsChatPlatform,
   parseChatPlatform,
+  toPlatformText,
 } from "../src/chat-platform";
 
 describe("parseChatPlatform", () => {
@@ -58,5 +59,20 @@ describe("ownsChatPlatform", () => {
     expect(ownsChatPlatform("slack", discordOnly)).toBe(false);
     expect(ownsChatPlatform("other", discordOnly)).toBe(false);
     expect(ownsChatPlatform(undefined, discordOnly)).toBe(false);
+  });
+});
+
+describe("toPlatformText", () => {
+  it("wraps Slack text as markdown so Slack renders it", () => {
+    expect(toPlatformText("slack:team-1:channel-1", "**bold**")).toEqual({
+      markdown: "**bold**",
+    });
+  });
+
+  it("keeps a plain string for Discord and unknown channels", () => {
+    expect(toPlatformText("discord:guild-1:channel-1", "**bold**")).toBe(
+      "**bold**",
+    );
+    expect(toPlatformText(null, "**bold**")).toBe("**bold**");
   });
 });

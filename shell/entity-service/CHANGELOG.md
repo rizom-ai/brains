@@ -1,5 +1,65 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.566
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.566
+  - @brains/content-formatters@0.2.0-alpha.566
+  - @brains/contracts@0.2.0-alpha.566
+  - @brains/db@0.2.0-alpha.566
+  - @brains/utils@0.2.0-alpha.566
+  - @brains/job-queue@0.2.0-alpha.566
+
+## 0.2.0-alpha.565
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.565
+  - @brains/content-formatters@0.2.0-alpha.565
+  - @brains/contracts@0.2.0-alpha.565
+  - @brains/db@0.2.0-alpha.565
+  - @brains/utils@0.2.0-alpha.565
+  - @brains/job-queue@0.2.0-alpha.565
+
+## 0.2.0-alpha.564
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.564
+  - @brains/content-formatters@0.2.0-alpha.564
+  - @brains/contracts@0.2.0-alpha.564
+  - @brains/db@0.2.0-alpha.564
+  - @brains/utils@0.2.0-alpha.564
+  - @brains/job-queue@0.2.0-alpha.564
+
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.563
+  - @brains/content-formatters@0.2.0-alpha.563
+  - @brains/contracts@0.2.0-alpha.563
+  - @brains/db@0.2.0-alpha.563
+  - @brains/utils@0.2.0-alpha.563
+  - @brains/job-queue@0.2.0-alpha.563
+
+## 0.2.0-alpha.562
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.562
+  - @brains/content-formatters@0.2.0-alpha.562
+  - @brains/contracts@0.2.0-alpha.562
+  - @brains/db@0.2.0-alpha.562
+  - @brains/utils@0.2.0-alpha.562
+  - @brains/job-queue@0.2.0-alpha.562
+
 ## 0.2.0-alpha.561
 
 ### Patch Changes

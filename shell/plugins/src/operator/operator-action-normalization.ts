@@ -22,6 +22,8 @@ type SourceActionFormField = WorkspaceActionFormFieldDefinition;
 
 export interface SourceActionControl {
   readonly action: AnyWorkspaceActionDefinition;
+  /** Matrix cards only: the cell a drop onto runs this action. */
+  readonly dropTarget?: string | undefined;
   readonly label?: string | undefined;
   readonly input?: unknown;
   readonly form?:
@@ -482,6 +484,7 @@ export function normalizeActionControls(
         ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
         ...(control.disabled ? { disabled: true } : {}),
         ...(confirmation ? { confirmation } : {}),
+        ...(control.dropTarget ? { dropTarget: control.dropTarget } : {}),
       }),
     );
   }

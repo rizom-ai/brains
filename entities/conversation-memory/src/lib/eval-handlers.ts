@@ -1,3 +1,4 @@
+import { actionItemSchema, type ActionItemEntity } from "@brains/action-items";
 import { actorRefFromLegacy } from "@brains/contracts";
 import {
   type BaseEntity,
@@ -12,9 +13,7 @@ import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import {
-  actionItemSchema,
   decisionSchema,
-  type ActionItemEntity,
   type DecisionEntity,
 } from "../schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../schemas/summary";
@@ -515,14 +514,7 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
       channelId: memory.channelId,
       ...(memory.channelName ? { channelName: memory.channelName } : {}),
       interfaceType: memory.interfaceType,
-      spaceId: getConversationSpaceId(memory),
-      timeRange: {
-        start: "2026-01-01T00:00:00.000Z",
-        end: "2026-01-01T00:01:00.000Z",
-      },
-      sourceSummaryId: memory.conversationId,
-      sourceMessageCount: 2,
-      projectionVersion: 1,
+      capturedAt: "2026-01-01T00:01:00.000Z",
       status,
       ...(memory.assignedTo ? { assignedTo: memory.assignedTo } : {}),
       ...(memory.requestedBy ? { requestedBy: memory.requestedBy } : {}),

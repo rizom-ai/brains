@@ -473,6 +473,41 @@ describe("buildMessageWithAttachments", () => {
     );
   });
 
+  it("distinguishes rewriting uploaded text from importing the original", () => {
+    const request = "Create a note from this file, changing Monday to Friday.";
+    const source = "# Launch plan\n\nLaunch day: Monday.";
+    const content = buildMessageWithAttachments(request, [
+      {
+        kind: "text",
+        filename: "launch-plan.md",
+        mediaType: "text/markdown",
+        content: source,
+        source: { kind: "upload", id: "upload-launch-plan" },
+      },
+    ]);
+
+    expect(content).toContain(request);
+    expect(content).toContain(source);
+    expect(content).toContain(
+      "extract-markdown does not apply edits, summaries, translations, or restructuring",
+    );
+    expect(content).toContain(
+      'use system_generate with operation.kind "prompt" instead of importing the original',
+    );
+    expect(content).toContain(
+      "do not also call system_create to import the source as a second action",
+    );
+    expect(content).toContain(
+      "Include the readable source content and all requested changes in operation.prompt",
+    );
+    expect(content).toContain(
+      "use system_get to read its current content when asked to show it",
+    );
+    expect(content).not.toContain(
+      "Choose exactly one transform for the user request",
+    );
+  });
+
   it("includes model-visible prior upload refs without routing prose", () => {
     const content = buildMessageWithAttachments(
       "turn it into a note",

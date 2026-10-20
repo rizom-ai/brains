@@ -1,5 +1,27 @@
 # @brains/ops
 
+## 0.2.0-alpha.566
+
+No changes in this release.
+
+## 0.2.0-alpha.565
+
+No changes in this release.
+
+## 0.2.0-alpha.564
+
+No changes in this release.
+
+## 0.2.0-alpha.563
+
+No changes in this release.
+
+## 0.2.0-alpha.562
+
+### Patch Changes
+
+- [#675](https://github.com/rizom-ai/brains/pull/675) [`1389314`](https://github.com/rizom-ai/brains/commit/13893144ccbc119bc82f22b66fdbb726aa444cc4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Discord opt-in for newly scaffolded pilot users. Browser chat/passkey onboarding is now the default, while `--discord` enables Discord explicitly and `--anchor-id` continues to imply it for compatibility.
+
 ## 0.2.0-alpha.561
 
 No changes in this release.

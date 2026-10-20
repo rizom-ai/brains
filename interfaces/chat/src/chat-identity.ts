@@ -53,9 +53,9 @@ export interface ChatIdentityResolution {
  * revocation cannot be undone by a channel-wide grant. Only unbound speakers
  * fall through to permission rules.
  *
- * Slack never consults auth identities: the identity-claim types are
- * `passkey | discord | mcp | oauth | email | did | a2a`, so a Slack user id is
- * not a bindable subject.
+ * Slack does not consult auth identities yet: the chat interface registers a
+ * Slack descriptor, so an Admin can attach a Slack identity, but only Discord
+ * subjects resolve here (docs/plans/connected-channels.md, Phase 4).
  */
 export async function resolveChatIdentity(
   permissions: ChatPermissionLookup,
