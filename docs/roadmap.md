@@ -101,7 +101,6 @@ The runtime identity boundary is shipped: private auth storage, distinct people,
 Plans:
 
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the shared subject, channel, provenance, and trust model.
-- [connected-channels.md](./plans/connected-channels.md) — make Slack's attached identities govern its messages, proving extensibility end to end.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — the broader private durable operator/security tier beyond shipped auth state.
 - [onboarding-ai-tools.md](./plans/onboarding-ai-tools.md) — an Account → AI tools tab with the MCP address and per-client steps, and shorter onboarding emails that greet the person, say what the brain is for, and link there.
 
