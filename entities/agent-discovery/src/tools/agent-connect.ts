@@ -81,7 +81,6 @@ async function upsertConnectedAgent(params: {
   const metadata = {
     ...parsedContent.metadata,
     ...built.metadata,
-    a2aEndpoint: card.url,
   };
 
   if (existing) {

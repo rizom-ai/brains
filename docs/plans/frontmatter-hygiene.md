@@ -62,7 +62,7 @@ Each trim is verified against current readers. "Drop" means: add to `retiredFiel
 - Drop `cardObservedAt` and `cardLastCheckedAt` (never read).
 - Drop `a2aEndpoint` (always equals `url`; its one reader, `agent-set-trust-level.ts`, already falls back to `url`).
 - Drop `did` (always equals `brainDid`; its one reader, `agent-detail.tsx`, switches to `brainDid`) and `anchorDid` (never read).
-- Move `cardCid`, `cardLastError`, `cardFailureCount`, `cardUnavailableAt` and `cardStaleAfter` to runtime state; only `lib/atproto-card-events.ts` reads them.
+- Move `cardCid`, `cardLastError`, `cardFailureCount`, `cardUnavailableAt` and `cardStaleAfter` to runtime state (`agent-discovery.card-refresh`, keyed by agent id); only `lib/atproto-card-events.ts` reads them. Stored values carry live state (failure counts, stale deadlines), so the move is expand-then-contract: the refresh loop seeds an agent's record from its stored fields the first time it meets it and stops writing them; a later release retires the five fields once every brain has run a refresh pass.
 
 ### Publishing
 
@@ -99,7 +99,7 @@ Verified as needed despite looking redundant:
 
 1. **Mechanism on one type.** `retiredFields`, the serializer changes and the rewrite on start, proven on post (`ogDescription`, `twitterCard`, `atprotoUri`) end to end: an old post file imports, renders, and loses the fields after a start.
 2. **Conversation memory.** Decision and summary trims; action items move onto `retiredFields`. Eval fixtures updated.
-3. **Agents.** Runtime state for card refresh, then the field drops.
+3. **Agents.** The field drops, and card refresh state moves to runtime state, seeded from the stored fields. One release later, the five card state fields are retired.
 4. **Publishing and small types.** Newsletter, doc, site-content (with seed content), link, traffic-snapshot, mail-item, email-reply-draft.
 
 Each phase ships with its tests and is verified in a running test app: an entity stored before the trim imports cleanly, renders as before, and is stored without the retired fields after a start.

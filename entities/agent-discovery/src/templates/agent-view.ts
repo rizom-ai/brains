@@ -16,13 +16,10 @@ const frontmatterSchema: z.ZodObject<{
   organization: typeof nullableString;
   brainName: z.ZodString;
   url: z.ZodURL;
-  did: typeof nullableString;
   repoDid: typeof nullableString;
   brainDid: typeof nullableString;
-  anchorDid: typeof nullableString;
   cardUri: typeof nullableString;
   cardCid: typeof nullableString;
-  a2aEndpoint: z.ZodDefault<z.ZodNullable<z.ZodURL>>;
   introducedBy: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
   hops: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
   status: typeof agentStatusSchema;
@@ -33,13 +30,10 @@ const frontmatterSchema: z.ZodObject<{
   organization: nullableString,
   brainName: z.string(),
   url: z.url(),
-  did: nullableString,
   repoDid: nullableString,
   brainDid: nullableString,
-  anchorDid: nullableString,
   cardUri: nullableString,
   cardCid: nullableString,
-  a2aEndpoint: z.url().nullable().default(null),
   introducedBy: z.array(z.string()).nullable().default(null),
   hops: z.number().nullable().default(null),
   status: agentStatusSchema,
@@ -53,10 +47,8 @@ const metadataSchema: z.ZodObject<{
   slug: z.ZodString;
   repoDid: typeof nullableString;
   brainDid: typeof nullableString;
-  anchorDid: typeof nullableString;
   cardUri: typeof nullableString;
   cardCid: typeof nullableString;
-  a2aEndpoint: z.ZodDefault<z.ZodNullable<z.ZodURL>>;
 }> = z.object({
   name: z.string(),
   url: z.url(),
@@ -65,10 +57,8 @@ const metadataSchema: z.ZodObject<{
   slug: z.string(),
   repoDid: nullableString,
   brainDid: nullableString,
-  anchorDid: nullableString,
   cardUri: nullableString,
   cardCid: nullableString,
-  a2aEndpoint: z.url().nullable().default(null),
 });
 
 export const agentViewSchema: z.ZodObject<{

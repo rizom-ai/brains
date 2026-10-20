@@ -229,8 +229,12 @@ export const AgentDetailTemplate = ({
                     value={`${frontmatter.hops} hops`}
                   />
                 )}
-                {frontmatter.did && (
-                  <InfoRow label="Brain DID" value={frontmatter.did} mono />
+                {frontmatter.brainDid && (
+                  <InfoRow
+                    label="Brain DID"
+                    value={frontmatter.brainDid}
+                    mono
+                  />
                 )}
               </div>
 

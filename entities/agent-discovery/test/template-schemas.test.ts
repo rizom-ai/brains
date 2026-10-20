@@ -12,7 +12,7 @@ const baseAgent = createTestAgentWithData({
   organization: "Rizom",
   brainName: "Yeehaa's Brain",
   url: "https://yeehaa.io",
-  did: "did:web:yeehaa.io",
+  brainDid: "did:web:yeehaa.io",
   about: "Founder of Rizom.",
   notes: "Reliable collaborator.",
 });
