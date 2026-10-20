@@ -1,6 +1,6 @@
 # Plan: Agent tool surface consolidation
 
-Last updated: 2026-10-16
+Last updated: 2026-10-20
 
 ## Status
 
@@ -16,7 +16,7 @@ This plan remains open for:
 
 - recording agent-visible tool count, schema size and prompt tokens on the canonical professional composition (`--tool-surface` prints the surfaces; no measurement is recorded);
 - the focused behavioral coverage in section 3, beyond the release-candidate suites; and
-- closing legacy names: none is registered, but `createQueueTool` (`publish-pipeline_queue`) and `createPublishTool` (`publish-pipeline_publish`) in `plugins/content-pipeline/src/tools/` survive only for their tests.
+- closing legacy names (section 4): none is registered, and the unregistered `createQueueTool` (`publish-pipeline_queue`) and `createPublishTool` (`publish-pipeline_publish`) factories are removed from `plugins/content-pipeline/src/tools/`.
 
 ## Goal
 
