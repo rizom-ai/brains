@@ -121,6 +121,7 @@ export interface EntityServiceOptions {
  * - EntitySerializer: markdown serialization
  * - ContentResolver: entity reference resolution
  */
+
 export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
@@ -673,6 +674,43 @@ export class EntityService implements IEntityService {
     await this.initialize();
     this.indexReady = false;
     return this.entityMutations.backfillMissingEmbeddings();
+  }
+
+  public async rewriteRetiredFields(): Promise<{ rewritten: number }> {
+    await this.initialize();
+    const types = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          (this.entityRegistry.getEntityTypeConfig(type).retiredFields ?? [])
+            .length > 0,
+      );
+    const rewritten = await types.reduce<Promise<number>>(
+      async (total, type) => (await total) + (await this.rewriteType(type)),
+      Promise.resolve(0),
+    );
+    return { rewritten };
+  }
+
+  /** Entities of one type still carrying a retired field, rewritten one by one. */
+  private async rewriteType(type: string): Promise<number> {
+    const retired =
+      this.entityRegistry.getEntityTypeConfig(type).retiredFields ?? [];
+    const ids = await this.entityQueries.idsCarryingFrontmatterFields(
+      type,
+      retired,
+    );
+    await ids.reduce<Promise<void>>(async (previous, id) => {
+      await previous;
+      const entity = await this.getEntity({
+        entityType: type,
+        id,
+        visibilityScope: "restricted",
+      });
+      // Reads already parse past retired fields; writing re-serializes without them.
+      if (entity) await this.updateEntity({ entity });
+    }, Promise.resolve());
+    return ids.length;
   }
 
   public isIndexReady(): boolean {

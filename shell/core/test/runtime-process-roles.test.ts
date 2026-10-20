@@ -230,9 +230,16 @@ describe("supervised runtime process roles", () => {
       order.push("groupings");
       await original();
     });
+    spyOn(shell.getEntityService(), "rewriteRetiredFields").mockImplementation(
+      async () => {
+        order.push("retired fields");
+        return { rewritten: 0 };
+      },
+    );
     await shell.initialize();
 
-    expect(order).toEqual(["embeddings", "groupings"]);
+    // Stored entities lose retired frontmatter once groupings are current.
+    expect(order).toEqual(["embeddings", "groupings", "retired fields"]);
     expect(shell.getEntityService().areGroupingsReady()).toBe(true);
     expect(shell.isInitialized()).toBe(true);
     expect(workerStarted).toBe(false);
@@ -299,8 +306,10 @@ describe("supervised runtime process roles", () => {
       shell.getEntityService(),
       "reprojectRegisteredGroupings",
     );
+    const rewrite = spyOn(shell.getEntityService(), "rewriteRetiredFields");
     await shell.initialize();
     expect(reproject).not.toHaveBeenCalled();
+    expect(rewrite).not.toHaveBeenCalled();
 
     const registrations = shell
       .getJobQueueService()

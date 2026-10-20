@@ -31,17 +31,17 @@ The second point is why trimming needs a mechanism: removing a field from a sche
 
 ### Retired fields
 
-`EntityTypeConfig` gains `retiredFields: string[]`, the keys a type no longer owns. The registry:
+`EntityTypeConfig.retiredFields` lists the keys a type no longer owns. The serializer:
 
-- drops them before parsing stored frontmatter, so strict schemas accept old files;
-- never counts them as extensions, so `preserveSourceFrontmatter` does not write them back and ownership rules that treat unknown keys as extensions (action items) ignore them;
-- drops them on the next serialization of the entity.
+- parses stored frontmatter past them, so strict schemas accept old files;
+- never writes them back: `preserveSourceFrontmatter` skips them, and they leave the metadata column;
+- leaves files without them byte for byte as before.
 
 A field whose value moves rather than disappears (an id derived differently, a nested shape flattened) keeps a read-time translation in the owning package, as action items do for `timeRange` → `capturedAt` and nested people.
 
-### Rewrite job
+### Rewrite on start
 
-There is no bulk mechanism for rewriting stored entities today (`migrateEntities` migrates the SQL schema only). A `rewrite-entities` job re-serializes every entity of one type without changing its content, so retired fields leave stored files and the read-time translations can eventually be removed. It is run once per brain after a trim ships; each trim's legacy-inventory entry names "rewrite has run on every supported brain" as its removal prerequisite.
+Every serving start, after grouping reprojection, `rewriteRetiredFields` scans the stored rows of each type with retired fields and rewrites those still carrying one. A clean brain pays one scan per such type; a rewritten entity is exported like any other change, so directory sync carries the trim into files. Retired lists stay declared: once stored data is clean they cost nothing, and they keep an old file imported later from turning into an error.
 
 ### Runtime state for bookkeeping
 
@@ -97,12 +97,12 @@ Verified as needed despite looking redundant:
 
 ## Phases
 
-1. **Mechanism on one type.** `retiredFields`, the serializer and extension changes, and the `rewrite-entities` job, proven on post (`ogDescription`, `twitterCard`, `atprotoUri`) end to end: an old post file imports, renders, and loses the fields after a rewrite. Legacy inventory entry per trim.
+1. **Mechanism on one type.** `retiredFields`, the serializer changes and the rewrite on start, proven on post (`ogDescription`, `twitterCard`, `atprotoUri`) end to end: an old post file imports, renders, and loses the fields after a start.
 2. **Conversation memory.** Decision and summary trims; action items move onto `retiredFields`. Eval fixtures updated.
 3. **Agents.** Runtime state for card refresh, then the field drops.
 4. **Publishing and small types.** Newsletter, doc, site-content (with seed content), link, traffic-snapshot, mail-item, email-reply-draft.
 
-Each phase ships with its tests and is verified in a running test app: an entity stored before the trim imports cleanly, renders as before, and is stored without the retired fields after the rewrite job.
+Each phase ships with its tests and is verified in a running test app: an entity stored before the trim imports cleanly, renders as before, and is stored without the retired fields after a start.
 
 ## Non-goals
 

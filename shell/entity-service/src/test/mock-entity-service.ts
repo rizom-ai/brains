@@ -232,6 +232,7 @@ export function createMockEntityService(
     backfillMissingEmbeddings: mock(() =>
       Promise.resolve({ queued: 0, skipped: 0 }),
     ),
+    rewriteRetiredFields: mock(() => Promise.resolve({ rewritten: 0 })),
     isIndexReady: mock(() => true),
     awaitIndexReady: mock(() =>
       Promise.resolve({

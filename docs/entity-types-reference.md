@@ -370,7 +370,7 @@ Key frontmatter:
 - `coverImageId`
 - `seriesName`
 - `seriesIndex`
-- SEO fields: `ogImage`, `ogDescription`, `twitterCard`, `canonicalUrl`
+- SEO fields: `ogImage`, `canonicalUrl`
 
 ### `series`
 

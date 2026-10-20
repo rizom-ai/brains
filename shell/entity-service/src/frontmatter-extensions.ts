@@ -63,8 +63,10 @@ export function preserveSourceFrontmatter(
   ownerSchema: FrontmatterSchema | undefined,
   extensions: readonly FrontmatterSchema[],
   groupingFields: readonly string[] = [],
+  retiredFields: readonly string[] = [],
 ): string {
   if (!ownerSchema) return serializedContent;
+  const retired = new Set(retiredFields);
   const source = readMarkdownFrontmatter(sourceContent);
   const serialized = readMarkdownFrontmatter(serializedContent);
   const sourceFields = recordSchema.parse(source.data);
@@ -76,14 +78,19 @@ export function preserveSourceFrontmatter(
   const additions = Object.entries(sourceFields).filter(
     ([key, value]) =>
       !policyKeys.has(key) &&
+      !retired.has(key) &&
       (!Object.hasOwn(ownerSchema.shape, key) || extensionKeys.has(key)) &&
       (!Object.hasOwn(serializedFields, key) ||
         JSON.stringify(serializedFields[key]) !== JSON.stringify(value)),
   );
-  const removals = [...extensionKeys].filter(
-    (key) =>
-      !Object.hasOwn(sourceFields, key) && Object.hasOwn(serializedFields, key),
-  );
+  const removals = [
+    ...[...extensionKeys].filter(
+      (key) =>
+        !Object.hasOwn(sourceFields, key) &&
+        Object.hasOwn(serializedFields, key),
+    ),
+    ...[...retired].filter((key) => Object.hasOwn(serializedFields, key)),
+  ];
   if (additions.length === 0 && removals.length === 0) return serializedContent;
   const result = { ...serializedFields };
   for (const key of removals) delete result[key];
@@ -92,4 +99,22 @@ export function preserveSourceFrontmatter(
   return Object.keys(result).length > 0
     ? generateMarkdown(result, serialized.content)
     : serialized.content;
+}
+
+/** Markdown with the given frontmatter keys removed; unchanged when it has none of them. */
+export function withoutFrontmatterFields(
+  content: string,
+  fields: readonly string[],
+): string {
+  if (fields.length === 0) return content;
+  const parsed = readMarkdownFrontmatter(content);
+  const data = recordSchema.safeParse(parsed.data);
+  if (!data.success || !fields.some((key) => Object.hasOwn(data.data, key)))
+    return content;
+  const kept = Object.fromEntries(
+    Object.entries(data.data).filter(([key]) => !fields.includes(key)),
+  );
+  return Object.keys(kept).length > 0
+    ? generateMarkdown(kept, parsed.content)
+    : parsed.content;
 }
