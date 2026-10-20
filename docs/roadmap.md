@@ -159,6 +159,7 @@ Active cleanup and infrastructure plans:
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
+- [frontmatter-hygiene.md](./plans/frontmatter-hygiene.md) — keep entity frontmatter to what a person authors or reads: a retired-fields mechanism and rewrite job, then verified trims of conversation memory, agents, publishing and small types.
 - [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):
