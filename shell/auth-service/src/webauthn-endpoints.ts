@@ -1,3 +1,4 @@
+import { TargetedSetupError } from "./targeted-setup-service";
 import {
   authenticationResponseSchema,
   registrationResponseSchema,
@@ -152,11 +153,11 @@ export class WebAuthnEndpoints {
           ...setup,
           targetUserId: setup.targetUserId,
         });
-      } catch {
+      } catch (error) {
         await this.recordRegistrationFailure(setup.targetUserId);
         return oauthErrorResponse(
           "access_denied",
-          "Passkey registration user is unavailable",
+          targetedSetupFailureDescription(error),
         );
       }
     }
@@ -190,11 +191,11 @@ export class WebAuthnEndpoints {
           ...setup,
           targetUserId: setup.targetUserId,
         });
-      } catch {
+      } catch (error) {
         await this.recordRegistrationFailure(setup.targetUserId);
         return oauthErrorResponse(
           "access_denied",
-          "Passkey registration user is unavailable",
+          targetedSetupFailureDescription(error),
         );
       }
     } else {
@@ -274,4 +275,20 @@ function webAuthnRequestContext(request: Request): WebAuthnRequestContext {
     origin: origin.origin,
     rpID: origin.hostname,
   };
+}
+
+const TARGETED_SETUP_FAILURE_DESCRIPTIONS = {
+  "token-invalid": "Invalid setup token",
+  "user-unavailable": "Passkey registration user is unavailable",
+  "delivery-identity-unavailable":
+    "This setup link's delivery address is no longer valid; ask an admin for a new link",
+  "delivery-unconfirmed":
+    "This setup link has not been confirmed as delivered; ask an admin to confirm it",
+} as const;
+
+/** What a person holding a targeted setup link is told when it is refused. */
+function targetedSetupFailureDescription(error: unknown): string {
+  return error instanceof TargetedSetupError
+    ? TARGETED_SETUP_FAILURE_DESCRIPTIONS[error.reason]
+    : TARGETED_SETUP_FAILURE_DESCRIPTIONS["user-unavailable"];
 }

@@ -6,6 +6,7 @@ import {
   type EndpointSessions,
   type EndpointSetupFlow,
 } from "../src/webauthn-endpoints";
+import { TargetedSetupError } from "../src/targeted-setup-service";
 
 /**
  * Well-formed credential envelopes.
@@ -145,6 +146,67 @@ describe("WebAuthnEndpoints", () => {
       "session:usr_invited",
     ]);
   });
+
+  for (const [reason, description] of [
+    [
+      "delivery-unconfirmed",
+      "This setup link has not been confirmed as delivered; ask an admin to confirm it",
+    ],
+    ["token-invalid", "Invalid setup token"],
+    [
+      "delivery-identity-unavailable",
+      "This setup link's delivery address is no longer valid; ask an admin for a new link",
+    ],
+  ] as const) {
+    it(`says why a targeted setup link cannot register a passkey: ${reason}`, async () => {
+      const endpoints = new WebAuthnEndpoints({
+        passkeyService: passkeys({ hasCredentials: async () => true }),
+        sessionStore: {
+          createSession: async (): Promise<CreateAuthSessionResult> => {
+            throw new Error("No session for a refused setup");
+          },
+        } satisfies EndpointSessions,
+        setupFlow: setup({
+          resolveSetupToken: async () => ({
+            token: "setup-token",
+            targetUserId: "usr_invited",
+            deliveryClaimId: "aid_email",
+          }),
+          hasConflictingAccountSession: async () => false,
+        }),
+        registrationUserProvider: async (): Promise<{
+          subject: string;
+          userName: string;
+          userDisplayName: string;
+        }> => ({
+          subject: "usr_invited",
+          userName: "Mira",
+          userDisplayName: "Mira",
+        }),
+        validateTargetedRegistration: async (): Promise<never> => {
+          throw new TargetedSetupError(reason, "internal detail");
+        },
+        completeTargetedRegistration: async (): Promise<void> => {},
+        recordAuditEvent: async (): Promise<void> => {},
+      });
+
+      const response = await endpoints.handleRegistrationVerify(
+        new Request(
+          "https://brain.example.com/webauthn/register/verify?setup_token=setup-token",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: registrationCredential,
+          },
+        ),
+      );
+
+      expect(await response.json()).toEqual({
+        error: "access_denied",
+        error_description: description,
+      });
+    });
+  }
 
   it("rejects a suspended or mismatched delivery before persisting a passkey", async () => {
     const calls: string[] = [];
