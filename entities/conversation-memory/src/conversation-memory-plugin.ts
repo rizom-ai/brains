@@ -17,8 +17,9 @@ import {
 } from "./schemas/summary-config";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import {
-  ACTION_ITEM_DROPPED_FIELDS,
   ACTION_ITEM_ENTITY_TYPE,
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
   ActionItemAdapter,
   actionItemSchema,
 } from "@brains/action-items";
@@ -108,7 +109,10 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       ACTION_ITEM_ENTITY_TYPE,
       actionItemSchema,
       actionItemAdapter,
-      { retiredFields: ACTION_ITEM_DROPPED_FIELDS },
+      {
+        retiredFields: ACTION_ITEM_RETIRED_FIELDS,
+        translatedFields: ACTION_ITEM_TRANSLATED_FIELDS,
+      },
     );
 
     registerActionItemsWidget({ context });

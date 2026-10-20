@@ -5,7 +5,10 @@ import {
 } from "@brains/utils/markdown-frontmatter";
 import { CONVERSATION_SUMMARY_ENTITY_TYPE } from "./constants";
 import { channelLabel } from "./format";
-import { ACTION_ITEM_RETIRED_FIELDS } from "./stored-shape";
+import {
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
+} from "./stored-shape";
 import {
   actionItemMetadataSchema,
   actionItemOrigin,
@@ -17,7 +20,10 @@ import {
 const OWNED_FIELDS: ReadonlySet<string> = new Set(
   Object.keys(actionItemMetadataSchema.shape),
 );
-const RETIRED_FIELDS: ReadonlySet<string> = new Set(ACTION_ITEM_RETIRED_FIELDS);
+const RETIRED_FIELDS: ReadonlySet<string> = new Set([
+  ...ACTION_ITEM_RETIRED_FIELDS,
+  ...ACTION_ITEM_TRANSLATED_FIELDS,
+]);
 
 /** A card's status moved underneath the person moving it. */
 export class StaleActionItemStatusError extends Error {

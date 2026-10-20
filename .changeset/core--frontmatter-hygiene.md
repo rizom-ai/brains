@@ -21,3 +21,5 @@ Traffic snapshots retire `week`, `start` and `end`: a snapshot's days fix its IS
 Mail items retire `source.senderKey` and `source.domain`, which nothing read. A type can now retire a field inside a frontmatter object, and a persist validator no longer sees retired fields.
 
 Email reply drafts retire `updatedAt`; a draft reports its update time from the entity.
+
+A type can list translated fields: stored keys its parser still reads to fill their new place, never written back. Action items use it for `timeRange`, which was kept in stored cards; the next start removes it.

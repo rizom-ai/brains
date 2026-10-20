@@ -24,8 +24,8 @@ export {
   type MemoryActorReference,
 } from "./schema";
 export {
-  ACTION_ITEM_DROPPED_FIELDS,
   ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
 } from "./stored-shape";
 export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
 export {

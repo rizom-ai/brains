@@ -7,24 +7,22 @@ import { z } from "@brains/utils/zod";
  */
 
 /**
- * Fields the projector wrote before the trim. Stored items may still carry
- * them until their next write; they are read past, never written.
+ * Fields the projector wrote before the trim whose value goes nowhere. Stored
+ * items may still carry them until their next write; they are read past,
+ * never written.
  */
 export const ACTION_ITEM_RETIRED_FIELDS: readonly string[] = [
   "spaceId",
-  "timeRange",
   "sourceSummaryId",
   "sourceMessageCount",
   "projectionVersion",
 ];
 
 /**
- * The retired fields whose value goes nowhere, registered as the type's
- * retiredFields. timeRange is not among them: its end becomes capturedAt, so
- * it must reach the parser.
+ * Pre-trim fields whose value the parser still reads: timeRange's end becomes
+ * capturedAt. Never written back.
  */
-export const ACTION_ITEM_DROPPED_FIELDS: readonly string[] =
-  ACTION_ITEM_RETIRED_FIELDS.filter((field) => field !== "timeRange");
+export const ACTION_ITEM_TRANSLATED_FIELDS: readonly string[] = ["timeRange"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

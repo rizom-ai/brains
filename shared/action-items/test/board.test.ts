@@ -5,7 +5,12 @@ import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
-import { ActionItemAdapter } from "../src";
+import { preserveSourceFrontmatter } from "@brains/entity-service";
+import {
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
+  ActionItemAdapter,
+} from "../src";
 import { actionItemBody, applyMove, applyNote, isBoardOwned } from "../src";
 import {
   actionItemSchema,
@@ -243,6 +248,31 @@ describe("moving a card", () => {
     expect(actionItemBody(adapter.toMarkdown(item))).toBe(
       actionItemBody(item.content),
     );
+  });
+
+  it("is stored without any pre-trim field, timeRange included", () => {
+    const item = storedItem(storedBeforeTrim);
+    // As the entity service stores it: the adapter's markdown, plus any
+    // stored field the type does not claim and has not retired.
+    const markdown = preserveSourceFrontmatter(
+      item.content,
+      adapter.toMarkdown(item),
+      adapter.frontmatterSchema,
+      [],
+      [],
+      [...ACTION_ITEM_RETIRED_FIELDS, ...ACTION_ITEM_TRANSLATED_FIELDS],
+    );
+
+    const stored = frontmatterOf(markdown);
+    for (const field of [
+      "timeRange",
+      "spaceId",
+      "sourceSummaryId",
+      "sourceMessageCount",
+      "projectionVersion",
+    ])
+      expect(stored).not.toHaveProperty(field);
+    expect(stored["capturedAt"]).toBe("2026-01-01T00:01:00.000Z");
   });
 
   it("refuses a move from a status the card no longer has", () => {

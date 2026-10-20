@@ -43,10 +43,11 @@ describe("ConversationMemoryPlugin", () => {
     expect(registry.getEntityTypeConfig("decision").retiredFields).toEqual(
       dropped,
     );
-    // timeRange still reaches the parser: its end becomes capturedAt.
-    expect(registry.getEntityTypeConfig("action-item").retiredFields).toEqual(
-      dropped,
-    );
+    // timeRange still reaches the parser, which makes its end capturedAt.
+    expect(registry.getEntityTypeConfig("action-item")).toMatchObject({
+      retiredFields: dropped,
+      translatedFields: ["timeRange"],
+    });
   });
 
   it("keeps memory entities immutable through entity CRUD", () => {
