@@ -3,6 +3,7 @@ import { z } from "@brains/utils/zod";
 import {
   jsonObjectSchema,
   jsonValueSchema,
+  type JsonObject,
   type JsonValue,
 } from "@brains/contracts";
 import { resolvedSiteImageSchema } from "./site-image-contracts";
@@ -157,4 +158,46 @@ function deepFreeze<T>(value: T): T {
   }
 
   return Object.freeze(value);
+}
+
+/** A build's fields besides its pages. */
+const preparedSiteEnvelopeSchema = preparedSiteBuildSchema.omit({
+  routes: true,
+});
+
+/**
+ * A page whose section data was validated as JSON when it was prepared: its
+ * fields are checked again, its data only for being a plain object, so the
+ * data is kept rather than copied.
+ */
+const preparedRouteFieldsSchema = preparedRouteSchema.extend({
+  sections: z.array(
+    preparedSectionSchema.extend({
+      data: z.custom<JsonObject>(
+        (value) =>
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value) &&
+          isPlainRecord(value),
+      ),
+    }),
+  ),
+});
+
+/**
+ * Assemble the snapshot from pages prepared one at a time, whose section data
+ * each passed `jsonObjectSchema` when it was prepared. The rest of the build
+ * is normalized and validated here; the pages' data is kept as it is, so a
+ * build of tens of thousands of pages is not copied whole again. Deep-frozen
+ * like `createPreparedSiteBuildSnapshot`.
+ */
+export function assemblePreparedSiteBuild(
+  envelope: unknown,
+  routes: readonly unknown[],
+): PreparedSiteBuild {
+  const fields = preparedSiteEnvelopeSchema.parse(normalizeJsonValue(envelope));
+  return freezePreparedSiteBuild({
+    ...fields,
+    routes: routes.map((route) => preparedRouteFieldsSchema.parse(route)),
+  });
 }

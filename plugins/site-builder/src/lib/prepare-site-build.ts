@@ -6,7 +6,7 @@ import type {
 import {
   collectRouteAssets,
   collectRouteScripts,
-  createPreparedSiteBuildSnapshot,
+  assemblePreparedSiteBuild,
   jsonObjectSchema,
   normalizeJsonValue,
   type PreparedRoute,
@@ -154,20 +154,24 @@ export async function prepareSiteBuild(
     });
   }
   options.signal.throwIfAborted();
-  const preparedBuild = createPreparedSiteBuildSnapshot({
-    buildId: options.buildId,
-    preparedAt: options.preparedAt,
-    environment: options.parsedOptions.environment,
-    site,
-    routes: routeResults.map((result) => result.route),
-    ...(options.parsedOptions.themeCSS !== undefined && {
-      themeCSS: options.parsedOptions.themeCSS,
-    }),
-    images: options.imageBuildService.getMap(),
-    staticAssets,
-    publicAssets,
-    globalHeadScripts: options.buildOptions.headScripts ?? [],
-  });
+  // Each section's data was validated as JSON when its route was prepared;
+  // the snapshot keeps it rather than copying a build of thousands of pages.
+  const preparedBuild = assemblePreparedSiteBuild(
+    {
+      buildId: options.buildId,
+      preparedAt: options.preparedAt,
+      environment: options.parsedOptions.environment,
+      site,
+      ...(options.parsedOptions.themeCSS !== undefined && {
+        themeCSS: options.parsedOptions.themeCSS,
+      }),
+      images: options.imageBuildService.getMap(),
+      staticAssets,
+      publicAssets,
+      globalHeadScripts: options.buildOptions.headScripts ?? [],
+    },
+    routeResults.map((result) => result.route),
+  );
 
   return {
     preparedBuild,

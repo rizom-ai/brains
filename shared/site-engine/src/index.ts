@@ -35,6 +35,7 @@ export type {
   SiteBuildRouteArtifact,
 } from "./site-build-artifact-manifest";
 export {
+  assemblePreparedSiteBuild,
   createPreparedSiteBuildSnapshot,
   freezePreparedSiteBuild,
   jsonObjectSchema,

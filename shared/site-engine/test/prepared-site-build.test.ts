@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  assemblePreparedSiteBuild,
   createPreparedSiteBuildSnapshot,
   freezePreparedSiteBuild,
   preparedSiteBuildSchema,
@@ -122,5 +123,60 @@ describe("PreparedSiteBuild", () => {
     expect(Object.isFrozen(prepared)).toBe(true);
     expect(Object.isFrozen(prepared.routes)).toBe(true);
     expect(Object.isFrozen(prepared.routes[0]?.sections[0]?.data)).toBe(true);
+  });
+
+  describe("assemblePreparedSiteBuild", () => {
+    function parts(): {
+      envelope: Omit<PreparedSiteBuild, "routes">;
+      routes: PreparedSiteBuild["routes"];
+    } {
+      const { routes, ...envelope } = createPreparedBuild();
+      return { envelope, routes };
+    }
+
+    it("keeps each prepared page's data as it is, without copying the build", () => {
+      const { envelope, routes } = parts();
+      const prepared = assemblePreparedSiteBuild(envelope, routes);
+
+      expect(prepared.routes[0]?.sections[0]?.data).toBe(
+        routes[0]?.sections[0]?.data,
+      );
+      expect(prepared).toEqual(
+        createPreparedSiteBuildSnapshot(createPreparedBuild()),
+      );
+    });
+
+    it("deep-freezes the snapshot", () => {
+      const { envelope, routes } = parts();
+      const prepared = assemblePreparedSiteBuild(envelope, routes);
+
+      expect(Object.isFrozen(prepared)).toBe(true);
+      expect(Object.isFrozen(prepared.routes[0])).toBe(true);
+      expect(Object.isFrozen(prepared.routes[0]?.sections[0]?.data)).toBe(true);
+    });
+
+    it("validates the rest of the build", () => {
+      const { envelope, routes } = parts();
+
+      expect(() =>
+        assemblePreparedSiteBuild({ ...envelope, buildId: "" }, routes),
+      ).toThrow();
+      expect(() =>
+        assemblePreparedSiteBuild(
+          { ...envelope, staticAssets: { "/x.js": new Date() } },
+          routes,
+        ),
+      ).toThrow("Unsupported non-JSON value at $.staticAssets./x.js: Date");
+    });
+
+    it("validates each page's fields", () => {
+      const { envelope, routes } = parts();
+      const [route] = routes;
+      if (!route) throw new Error("Expected fixture route");
+
+      expect(() =>
+        assemblePreparedSiteBuild(envelope, [{ ...route, path: 42 }]),
+      ).toThrow();
+    });
   });
 });
