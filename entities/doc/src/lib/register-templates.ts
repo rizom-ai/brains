@@ -12,7 +12,6 @@ const docFrontmatterSchema = z.object({
   title: z.string(),
   section: z.string(),
   order: z.number().int(),
-  sourcePath: z.string(),
   description: z.string().nullable().default(null),
   slug: z.string().nullable().default(null),
 });

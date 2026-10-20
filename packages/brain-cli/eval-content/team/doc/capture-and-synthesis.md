@@ -2,7 +2,6 @@
 title: Capture and synthesis
 section: Team Brain handbook
 order: 20
-sourcePath: team/eval-content/doc/capture-and-synthesis.md
 slug: capture-and-synthesis
 description: How Team Brain uses current note, link, summary, and topic plugins.
 ---

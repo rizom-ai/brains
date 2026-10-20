@@ -2,7 +2,6 @@
 title: Team Brain operating model
 section: Team Brain handbook
 order: 10
-sourcePath: team/eval-content/doc/team-operating-model.md
 slug: team-operating-model
 description: The current Team Brain POC loop and plugin boundaries.
 ---
