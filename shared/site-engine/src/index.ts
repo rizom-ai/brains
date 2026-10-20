@@ -1,4 +1,8 @@
 export { TailwindCSSProcessor } from "./css-processor";
+export {
+  TailwindCandidates,
+  type CandidateScanner,
+} from "./tailwind-candidates";
 export type { CSSProcessor } from "./css-processor";
 export { UISlotRegistry } from "./ui-slot-registry";
 export type { SlotRegistration } from "./ui-slot-registry";
@@ -35,22 +39,32 @@ export type {
   SiteBuildRouteArtifact,
 } from "./site-build-artifact-manifest";
 export {
-  createPreparedSiteBuildSnapshot,
-  freezePreparedSiteBuild,
+  createPreparedSiteEnvelope,
+  freezePreparedRoute,
   jsonObjectSchema,
   jsonValueSchema,
   normalizeJsonValue,
   preparedRouteSchema,
+  preparedRouteSummarySchema,
   preparedSectionSchema,
   preparedSiteBuildSchema,
+  preparedSiteEnvelopeSchema,
 } from "./prepared-site-build";
 export type {
   JsonObject,
   JsonValue,
   PreparedRoute,
+  PreparedRouteSummary,
   PreparedSection,
   PreparedSiteBuild,
+  PreparedSiteEnvelope,
 } from "./prepared-site-build";
+export {
+  ROUTE_CONCURRENCY,
+  routeSourceOf,
+  visitEach,
+} from "./prepared-route-source";
+export type { PreparedRouteSource } from "./prepared-route-source";
 export { DynamicRouteGenerator } from "./dynamic-route-generator";
 export type {
   DynamicRouteEntity,

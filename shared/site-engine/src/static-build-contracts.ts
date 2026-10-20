@@ -2,14 +2,17 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import type { LayoutComponent, LayoutSlots } from "./layout-contracts";
 import type { CSSProcessor } from "./css-processor";
-import type { PreparedSiteBuild } from "./prepared-site-build";
+import type { PreparedSiteEnvelope } from "./prepared-site-build";
+import type { PreparedRouteSource } from "./prepared-route-source";
 
 /**
- * Renderer context containing a serializable build snapshot plus renderer-only
- * component bindings. No content or entity service callbacks are exposed.
+ * Renderer context: the build's serializable fields, its pages as they are
+ * prepared, and renderer-only component bindings. No content or entity
+ * service callbacks are exposed.
  */
 export interface SiteBuildContext<TViewTemplate = unknown> {
-  preparedBuild: PreparedSiteBuild;
+  preparedBuild: PreparedSiteEnvelope;
+  routes: PreparedRouteSource;
   viewTemplates: Record<string, TViewTemplate>;
   layouts: Record<string, LayoutComponent>;
   /** Optional UI slot registry for plugin-registered components. */

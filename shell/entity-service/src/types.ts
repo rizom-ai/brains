@@ -593,6 +593,8 @@ export interface ListOptions<
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** String metadata fields that start with a prefix, e.g. `{ slug: "book/" }`: an index range on an indexed field. */
+    metadataPrefix?: Record<string, string> | undefined;
     /** Literal substring search through serialized content, including frontmatter. */
     contentContains?: string | undefined;
     /** Exact visibility, intersected with visibilityScope rather than widening it. */
@@ -846,6 +848,22 @@ export interface NearestToEntityRequest {
   limit?: number | undefined;
   /** Undefined fails closed to public-only visibility, origin included. */
   visibilityScope?: ContentVisibility | undefined;
+  /** Only entries their type counts as published, as for published-only listings. */
+  publishedOnly?: boolean | undefined;
+  /**
+   * Carry each entry's metadata, so a caller that needs only its fields
+   * loads no entry: a theme page reads up to thousands of neighbours.
+   */
+  includeMetadata?: boolean | undefined;
+}
+
+/** An entity near another, closest first. */
+export interface NearestEntity {
+  entityId: string;
+  entityType: string;
+  distance: number;
+  /** Present when the request asked for it. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProjectSemanticSpaceRequest {
@@ -1059,9 +1077,7 @@ export interface ICoreEntityService {
    * closest first, by raw cosine distance. It reads one vector and asks the
    * store for the rest, so it costs no API call and stays linear.
    */
-  nearestToEntity(
-    request: NearestToEntityRequest,
-  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+  nearestToEntity(request: NearestToEntityRequest): Promise<NearestEntity[]>;
 
   /** Project visible entities into a provider-independent semantic space. */
   projectSemanticSpace(

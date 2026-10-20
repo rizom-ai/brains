@@ -1,12 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import {
-  createPreparedSiteBuildSnapshot,
-  freezePreparedSiteBuild,
+  createPreparedSiteEnvelope,
+  freezePreparedRoute,
+  preparedRouteSchema,
   preparedSiteBuildSchema,
-  type PreparedSiteBuild,
+  preparedSiteEnvelopeSchema,
+  routeSourceOf,
+  type PreparedRoute,
+  type PreparedSiteEnvelope,
 } from "../src";
 
-function createPreparedBuild(): PreparedSiteBuild {
+function createEnvelope(): PreparedSiteEnvelope {
   return {
     buildId: "build-123",
     preparedAt: "2026-07-22T00:00:00.000Z",
@@ -21,27 +25,6 @@ function createPreparedBuild(): PreparedSiteBuild {
         secondary: [],
       },
     },
-    routes: [
-      {
-        id: "home",
-        path: "/",
-        title: "Home",
-        description: "Home route",
-        layout: "default",
-        fullscreen: false,
-        sections: [
-          {
-            id: "hero",
-            template: "fixture:hero",
-            data: {
-              heading: "Hello",
-              items: [1, true, null, { label: "Nested" }],
-            },
-          },
-        ],
-        headScripts: ['<script src="/hero.js"></script>'],
-      },
-    ],
     themeCSS: ":root { --brand: blue; }",
     images: {
       cover: {
@@ -56,71 +39,154 @@ function createPreparedBuild(): PreparedSiteBuild {
   };
 }
 
-describe("PreparedSiteBuild", () => {
+function createRoute(): PreparedRoute {
+  return {
+    id: "home",
+    path: "/",
+    title: "Home",
+    description: "Home route",
+    layout: "default",
+    fullscreen: false,
+    sections: [
+      {
+        id: "hero",
+        template: "fixture:hero",
+        data: {
+          heading: "Hello",
+          items: [1, true, null, { label: "Nested" }],
+        },
+      },
+    ],
+    headScripts: ['<script src="/hero.js"></script>'],
+  };
+}
+
+describe("PreparedSiteEnvelope", () => {
   it("round-trips through JSON without renderer or service values", () => {
-    const input = createPreparedBuild();
+    const input = createEnvelope();
     input.site.url = undefined;
-    const prepared = createPreparedSiteBuildSnapshot(input);
-    const roundTripped = preparedSiteBuildSchema.parse(
-      JSON.parse(JSON.stringify(prepared)),
+    const envelope = createPreparedSiteEnvelope(input);
+    const roundTripped = preparedSiteEnvelopeSchema.parse(
+      JSON.parse(JSON.stringify(envelope)),
     );
 
-    expect(roundTripped).toEqual(prepared);
-    expect(prepared.site).not.toHaveProperty("url");
-    expect(JSON.stringify(prepared)).not.toContain("getContent");
-    expect(JSON.stringify(prepared)).not.toContain("getViewTemplate");
+    expect(roundTripped).toEqual(envelope);
+    expect(envelope.site).not.toHaveProperty("url");
   });
 
+  it("rejects non-JSON values before schemas can coerce them", () => {
+    expect(() =>
+      createPreparedSiteEnvelope({
+        ...createEnvelope(),
+        staticAssets: { "/x.js": new Date() },
+      }),
+    ).toThrow("Unsupported non-JSON value at $.staticAssets./x.js: Date");
+  });
+
+  it("validates the build's fields", () => {
+    expect(() =>
+      createPreparedSiteEnvelope({ ...createEnvelope(), buildId: "" }),
+    ).toThrow();
+  });
+
+  it("deep-freezes the envelope", () => {
+    const envelope = createPreparedSiteEnvelope(createEnvelope());
+
+    expect(Object.isFrozen(envelope)).toBe(true);
+    expect(Object.isFrozen(envelope.site.navigation)).toBe(true);
+    expect(Object.isFrozen(envelope.images)).toBe(true);
+  });
+});
+
+describe("PreparedRoute", () => {
   it("rejects non-JSON section data", () => {
-    const input = createPreparedBuild();
-    const section = input.routes[0]?.sections[0];
+    const route = createRoute();
+    const section = route.sections[0];
     if (!section) throw new Error("Expected fixture section");
     Object.assign(section.data, { renderer: () => "not serializable" });
 
-    expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
-  });
-
-  it("rejects non-JSON class instances before schemas can coerce them", () => {
-    const input = createPreparedBuild();
-    const section = input.routes[0]?.sections[0];
-    if (!section) throw new Error("Expected fixture section");
-    // Object.assign injects the non-JSON value the guard must reject, without
-    // asserting it into the JsonObject slot.
-    Object.assign(section.data, {
-      publishedAt: new Date("2026-07-22T00:00:00.000Z"),
-    });
-
-    expect(() => createPreparedSiteBuildSnapshot(input)).toThrow(
-      "Unsupported non-JSON value at $.routes[0].sections[0].data.publishedAt: Date",
-    );
+    expect(() => preparedRouteSchema.parse(route)).toThrow();
   });
 
   it("rejects integers beyond the JSON-safe range", () => {
-    const input = createPreparedBuild();
-    const section = input.routes[0]?.sections[0];
+    const route = createRoute();
+    const section = route.sections[0];
     if (!section) throw new Error("Expected fixture section");
     section.data["bigId"] = Number.MAX_SAFE_INTEGER + 1;
 
-    expect(() => preparedSiteBuildSchema.parse(input)).toThrow();
+    expect(() => preparedRouteSchema.parse(route)).toThrow();
   });
 
   it("accepts safe integers and fractional numbers", () => {
-    const input = createPreparedBuild();
-    const section = input.routes[0]?.sections[0];
+    const route = createRoute();
+    const section = route.sections[0];
     if (!section) throw new Error("Expected fixture section");
     section.data["safeId"] = Number.MAX_SAFE_INTEGER;
     section.data["ratio"] = 3.14;
 
-    expect(() => preparedSiteBuildSchema.parse(input)).not.toThrow();
+    expect(() => preparedRouteSchema.parse(route)).not.toThrow();
+  });
+});
+
+describe("freezePreparedRoute", () => {
+  it("keeps a page's section data as it is, without copying it", () => {
+    const route = createRoute();
+    const frozen = freezePreparedRoute(route);
+
+    expect(frozen.sections[0]?.data).toBe(route.sections[0]?.data);
+    expect(frozen).toEqual(preparedRouteSchema.parse(createRoute()));
   });
 
-  it("deep-freezes a validated snapshot", () => {
-    const prepared = freezePreparedSiteBuild(
-      preparedSiteBuildSchema.parse(createPreparedBuild()),
-    );
+  it("deep-freezes the page", () => {
+    const frozen = freezePreparedRoute(createRoute());
 
-    expect(Object.isFrozen(prepared)).toBe(true);
-    expect(Object.isFrozen(prepared.routes)).toBe(true);
-    expect(Object.isFrozen(prepared.routes[0]?.sections[0]?.data)).toBe(true);
+    expect(Object.isFrozen(frozen)).toBe(true);
+    expect(Object.isFrozen(frozen.sections[0]?.data)).toBe(true);
+  });
+
+  it("validates the page's fields", () => {
+    expect(() => freezePreparedRoute({ ...createRoute(), path: 42 })).toThrow();
+  });
+});
+
+describe("PreparedSiteBuild", () => {
+  it("keeps of each page only its address and scripts", () => {
+    const built = preparedSiteBuildSchema.parse({
+      ...createEnvelope(),
+      routes: [createRoute()],
+    });
+
+    expect(built.routes).toEqual([
+      {
+        id: "home",
+        path: "/",
+        headScripts: ['<script src="/hero.js"></script>'],
+      },
+    ]);
+  });
+});
+
+describe("routeSourceOf", () => {
+  it("counts and visits every page", async () => {
+    const routes = [createRoute(), { ...createRoute(), id: "about" }];
+    const source = routeSourceOf(routes);
+    const visited: string[] = [];
+
+    await source.each(async (route) => {
+      visited.push(route.id);
+    }, new AbortController().signal);
+
+    expect(source.count).toBe(2);
+    expect(visited.sort()).toEqual(["about", "home"]);
+  });
+
+  it("rejects with a visit's failure", async () => {
+    const source = routeSourceOf([createRoute()]);
+
+    expect(
+      source.each(async () => {
+        throw new Error("render failed");
+      }, new AbortController().signal),
+    ).rejects.toThrow("render failed");
   });
 });

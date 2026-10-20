@@ -5,6 +5,7 @@ import {
   type ContentVisibility,
   type SearchResult,
   type SearchOptions,
+  type NearestEntity,
   type NearestToEntityRequest,
   type ProjectSemanticSpaceRequest,
   type SemanticSpaceProjection,
@@ -547,9 +548,7 @@ export class EntitySearch {
    */
   public async nearestToEntity(
     request: NearestToEntityRequest,
-  ): Promise<
-    Array<{ entityId: string; entityType: string; distance: number }>
-  > {
+  ): Promise<NearestEntity[]> {
     if (!this.embeddingsEnabled) {
       throw new SemanticIndexingDisabledError();
     }
@@ -567,6 +566,7 @@ export class EntitySearch {
         entityId: entities.id,
         entityType: entities.entityType,
         distance: distanceExpr,
+        metadata: entities.metadata,
       })
       .from(entities)
       .innerJoin(
@@ -577,6 +577,9 @@ export class EntitySearch {
         and(
           ...this.buildVisibilityConditions(request.visibilityScope),
           inArray(entities.entityType, request.types),
+          request.publishedOnly
+            ? publishedAcrossTypesCondition(this.publishGates())
+            : undefined,
           sql`NOT (${entities.id} = ${request.origin.entityId} AND ${entities.entityType} = ${request.origin.entityType})`,
           request.maxDistance !== undefined
             ? sql`${distanceExpr} <= ${request.maxDistance}`
@@ -584,7 +587,13 @@ export class EntitySearch {
         ),
       )
       .orderBy(sql`${distanceExpr} ASC`);
-    return request.limit !== undefined ? query.limit(request.limit) : query;
+    const rows =
+      request.limit !== undefined
+        ? await query.limit(request.limit)
+        : await query;
+    return rows.map(({ metadata, ...nearest }) =>
+      request.includeMetadata ? { ...nearest, metadata } : nearest,
+    );
   }
 
   /**

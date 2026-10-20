@@ -934,4 +934,93 @@ describe("ReactBuilder", () => {
       expect(html).toContain("No slots");
     });
   });
+
+  it("gives Tailwind the classes of the pages it rendered, never the pages", async () => {
+    const seen: Array<{ inputCSS: string; candidates: string }> = [];
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: {
+        process: async (
+          inputCSS,
+          outputPath,
+          _workingDir,
+          _outputDir,
+          _logger,
+          _signal,
+          sources = [],
+        ): Promise<void> => {
+          seen.push({
+            inputCSS,
+            candidates: (
+              await Promise.all(
+                sources.map((source) => fs.readFile(source, "utf8")),
+              )
+            ).join("\n"),
+          });
+          await fs.writeFile(outputPath, "", "utf8");
+        },
+      },
+    });
+    const Page = (props: Record<string, unknown>): ReactElement => {
+      const { title } = titlePropsSchema.parse(props);
+      return h("p", { className: "reading-measure italic" }, title);
+    };
+    // HTML another part of the build placed in the output, such as a staged
+    // artifact: Tailwind has always seen it, so it still does.
+    await fs.mkdir(join(outputDir, "staged"), { recursive: true });
+    await fs.writeFile(
+      join(outputDir, "staged", "extra.html"),
+      '<b class="staged-marker">x</b>',
+    );
+
+    await builder.build(
+      {
+        routes: [
+          {
+            id: "page",
+            path: "/page",
+            title: "Page",
+            description: "Page",
+            layout: "default",
+            sections: [
+              {
+                id: "body",
+                template: "page",
+                content: { title: "Text" },
+              },
+            ],
+          },
+        ],
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "page"
+            ? {
+                name: "page",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: Page },
+              }
+            : undefined,
+        siteConfig: { title: "Site", description: "Site" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Site",
+          description: "Site",
+          navigation: { primary: [], secondary: [] },
+          copyright: "",
+        }),
+      },
+      () => {},
+    );
+
+    const [styles] = seen;
+    if (!styles) throw new Error("Expected the stylesheet to be built");
+    expect(styles.inputCSS).not.toContain('@source "./**/*.html"');
+    const candidates = styles.candidates.split("\n");
+    expect(candidates).toContain("reading-measure");
+    expect(candidates).toContain("italic");
+    expect(candidates).toContain("staged-marker");
+  });
 });

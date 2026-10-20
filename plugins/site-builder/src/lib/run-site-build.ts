@@ -1,5 +1,7 @@
 import { SITE_CHANNELS } from "@brains/contracts";
 import { EntityUrlGenerator } from "@brains/site-composition";
+import type { PreparedSiteBuild } from "@brains/site-engine";
+import type { Logger } from "@brains/utils/logger";
 import type { ProgressCallback } from "@brains/utils/progress";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
@@ -138,9 +140,6 @@ export async function runSiteBuild(
       sharedImagesDir: parsedOptions.sharedImagesDir,
       signal: options.signal,
     });
-    const preparationReporter = reporter?.createSub({
-      scale: { start: 25, end: 50 },
-    });
     const preparation = await prepareSiteBuild({
       buildId: randomUUID(),
       preparedAt: new Date().toISOString(),
@@ -152,66 +151,28 @@ export async function runSiteBuild(
       siteMetadata: parsedOptions.siteConfig,
       publicDir: join(process.cwd(), "public"),
       signal: options.signal,
-      onProgress: (notification) => {
-        preparationReporter?.report(notification).catch(() => {
-          // Ignore progress reporting errors
-        });
-      },
     });
-    diagnostics.push(...preparation.diagnostics);
-    const preparationWarnings = preparation.diagnostics.filter(
-      (diagnostic) => diagnostic.severity === "warning",
+    const { envelope } = preparation;
+    const preparationFailed = collectPreparationDiagnostics(
+      preparation.diagnostics,
+      diagnostics,
+      warnings,
     );
-    warnings.push(...preparationWarnings.map(formatSiteBuildDiagnostic));
-    const preparationErrors = preparation.diagnostics.filter(
-      (diagnostic) => diagnostic.severity === "error",
-    );
-    if (preparationErrors.length > 0) {
+    if (preparationFailed.length > 0) {
       return createFailedBuildResult({
         outputDir: parsedOptions.outputDir,
-        errorMessages: preparationErrors.map(formatSiteBuildDiagnostic),
+        errorMessages: preparationFailed,
         diagnostics,
       });
     }
 
     options.signal.throwIfAborted();
-    const inputFingerprint = computeSiteInputFingerprint({
-      preparedBuild: preparation.preparedBuild,
-      layouts: parsedOptions.layouts,
-      getViewTemplate: options.pipelineContext.services.getViewTemplate,
-      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      sendMessage: options.pipelineContext.services.sendMessage,
-      rendererIdentity: options.rendererIdentity ?? RENDERER_PROCESS_IDENTITY,
-    });
-    const currentManifest = await outputLifecycle.getCurrentManifest?.(
-      parsedOptions.outputDir,
-    );
-    options.signal.throwIfAborted();
-    if (currentManifest?.inputFingerprint === inputFingerprint) {
-      options.pipelineContext.logger.info(
-        "Skipping site render because inputs are unchanged",
-        {
-          environment: parsedOptions.environment,
-          inputFingerprint,
-        },
-      );
-      await reporter?.report({
-        message: "Site inputs unchanged",
-        progress: 100,
-        total: 100,
-      });
-      return createSuccessfulBuildResult({
-        outputDir: parsedOptions.outputDir,
-        filesGenerated: currentManifest.files.length + 1,
-        routesBuilt: routes.length,
-        warnings,
-        diagnostics,
-        skipped: true,
-      });
-    }
-
+    // The pages are prepared as the renderer asks for them, a few at a time,
+    // so the build never holds all of them.
     const buildContext = createBuildContext({
-      preparedBuild: preparation.preparedBuild,
+      envelope,
+      routes: preparation.routes,
+      definitions: routes,
       layouts: parsedOptions.layouts,
       slots: options.buildOptions.slots,
       pipelineContext: options.pipelineContext,
@@ -219,7 +180,7 @@ export async function runSiteBuild(
     outputTarget = await outputLifecycle.begin({
       outputDir: parsedOptions.outputDir,
       environment: parsedOptions.environment,
-      buildId: preparation.preparedBuild.buildId,
+      buildId: envelope.buildId,
       configuredWorkingDir: parsedOptions.workingDir,
     });
     options.signal.throwIfAborted();
@@ -241,10 +202,10 @@ export async function runSiteBuild(
     const stagingFailures: string[] = [];
     const stagingPayload: SiteBuildStagingPayload = {
       outputDir: outputTarget.generationDir,
-      environment: preparation.preparedBuild.environment,
-      routesBuilt: preparation.preparedBuild.routes.length,
+      environment: envelope.environment,
+      routesBuilt: routes.length,
       siteConfig: {
-        ...preparation.preparedBuild.site,
+        ...envelope.site,
         url: baseUrl,
       },
       generateEntityUrl: (entityType, slug) =>
@@ -273,6 +234,76 @@ export async function runSiteBuild(
       signal: options.signal,
     });
 
+    const pages = preparation.pages();
+    const pagesFailed = collectPreparationDiagnostics(
+      pages.diagnostics,
+      diagnostics,
+      warnings,
+    );
+    if (pagesFailed.length > 0) {
+      await abortQuietly(
+        outputLifecycle,
+        outputTarget,
+        options.pipelineContext.logger,
+      );
+      outputTarget = undefined;
+      return createFailedBuildResult({
+        outputDir: parsedOptions.outputDir,
+        errorMessages: pagesFailed,
+        diagnostics,
+      });
+    }
+
+    options.signal.throwIfAborted();
+    const inputFingerprint = computeSiteInputFingerprint({
+      envelope,
+      routeDigests: pages.digests,
+      templates: pages.templates,
+      layouts: parsedOptions.layouts,
+      getViewTemplate: options.pipelineContext.services.getViewTemplate,
+      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+      sendMessage: options.pipelineContext.services.sendMessage,
+      rendererIdentity: options.rendererIdentity ?? RENDERER_PROCESS_IDENTITY,
+    });
+    const currentManifest = await outputLifecycle.getCurrentManifest?.(
+      parsedOptions.outputDir,
+    );
+    options.signal.throwIfAborted();
+    if (currentManifest?.inputFingerprint === inputFingerprint) {
+      // The pages were rendered as they were prepared; their output is the
+      // published one, so the staged generation is dropped unpublished.
+      await abortQuietly(
+        outputLifecycle,
+        outputTarget,
+        options.pipelineContext.logger,
+      );
+      outputTarget = undefined;
+      options.pipelineContext.logger.info(
+        "Skipping site publication because inputs are unchanged",
+        {
+          environment: parsedOptions.environment,
+          inputFingerprint,
+        },
+      );
+      await reporter?.report({
+        message: "Site inputs unchanged",
+        progress: 100,
+        total: 100,
+      });
+      return createSuccessfulBuildResult({
+        outputDir: parsedOptions.outputDir,
+        filesGenerated: currentManifest.files.length + 1,
+        routesBuilt: routes.length,
+        warnings,
+        diagnostics,
+        skipped: true,
+      });
+    }
+    const preparedBuild: PreparedSiteBuild = {
+      ...envelope,
+      routes: pages.routes,
+    };
+
     await reporter?.report({
       message: "Generating SEO artifacts",
       progress: 96,
@@ -280,7 +311,7 @@ export async function runSiteBuild(
     });
     await writeSiteBuildSeoFiles({
       outputDir: outputTarget.generationDir,
-      preparedBuild: preparation.preparedBuild,
+      preparedBuild,
       logger: options.pipelineContext.logger,
       siteUrl: baseUrl,
       signal: options.signal,
@@ -298,7 +329,7 @@ export async function runSiteBuild(
     commitStarted = true;
     const commitResult = await outputLifecycle.commit({
       target: outputTarget,
-      preparedBuild: preparation.preparedBuild,
+      preparedBuild,
       inputFingerprint,
       warnings,
     });
@@ -323,14 +354,11 @@ export async function runSiteBuild(
     });
   } catch (error) {
     if (outputTarget) {
-      try {
-        await outputLifecycle.abort(outputTarget);
-      } catch (abortError) {
-        options.pipelineContext.logger.warn(
-          "Failed to clean aborted site build output",
-          { error: abortError },
-        );
-      }
+      await abortQuietly(
+        outputLifecycle,
+        outputTarget,
+        options.pipelineContext.logger,
+      );
     }
     if (options.signal.aborted && !commitStarted) {
       const reason = getErrorMessage(options.signal.reason ?? error);
@@ -367,6 +395,41 @@ export async function runSiteBuild(
       outputDir: parsedOptions.outputDir,
       errorMessages: [formatSiteBuildDiagnostic(diagnostic)],
       diagnostics: [...diagnostics, diagnostic],
+    });
+  }
+}
+
+/**
+ * Add what preparation reported to the build's diagnostics and warnings, and
+ * return its errors as messages: any error fails the build.
+ */
+function collectPreparationDiagnostics(
+  reported: readonly SiteBuildDiagnostic[],
+  diagnostics: SiteBuildDiagnostic[],
+  warnings: string[],
+): string[] {
+  diagnostics.push(...reported);
+  warnings.push(
+    ...reported
+      .filter((diagnostic) => diagnostic.severity === "warning")
+      .map(formatSiteBuildDiagnostic),
+  );
+  return reported
+    .filter((diagnostic) => diagnostic.severity === "error")
+    .map(formatSiteBuildDiagnostic);
+}
+
+/** Drop a staged generation; failing to clean it up must not change the build's result. */
+async function abortQuietly(
+  outputLifecycle: SiteBuildOutputLifecycle,
+  target: SiteBuildOutputTarget,
+  logger: Logger,
+): Promise<void> {
+  try {
+    await outputLifecycle.abort(target);
+  } catch (abortError) {
+    logger.warn("Failed to clean aborted site build output", {
+      error: abortError,
     });
   }
 }

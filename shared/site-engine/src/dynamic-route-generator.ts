@@ -88,14 +88,17 @@ export class DynamicRouteGenerator {
   }
 
   /**
-   * Every entity of a type, one listing page at a time, so static generation
-   * covers types larger than a single page. Id order keeps pages stable.
+   * Visit every visible entity of a type, one listing page at a time, so
+   * static generation covers types larger than a single page while holding
+   * only one page: a book brain lists tens of thousands of sections, each with
+   * its text. Id order keeps pages stable. Resolves to the entities visited.
    */
-  private async listAllEntities(
+  private async forEachEntityPage(
     entityType: string,
+    visit: (entities: DynamicRouteEntity[]) => void,
     offset = 0,
-    listed: DynamicRouteEntity[] = [],
-  ): Promise<DynamicRouteEntity[]> {
+    visited = 0,
+  ): Promise<number> {
     const page = await this.services.entityService.listEntities({
       entityType,
       options: this.listOptions({
@@ -104,10 +107,17 @@ export class DynamicRouteGenerator {
         sortFields: [{ field: "id", direction: "asc" }],
       }),
     });
-    const all = [...listed, ...page];
+    const visible = this.filterVisibleEntities(page, entityType);
+    visit(visible);
+    const total = visited + visible.length;
     return page.length < ROUTE_LISTING_PAGE_SIZE
-      ? all
-      : this.listAllEntities(entityType, offset + page.length, all);
+      ? total
+      : this.forEachEntityPage(entityType, visit, offset + page.length, total);
+  }
+
+  /** How many visible entities a type has, counted a page at a time. */
+  private countVisibleEntities(entityType: string): Promise<number> {
+    return this.forEachEntityPage(entityType, () => undefined);
   }
 
   /**
@@ -212,7 +222,8 @@ export class DynamicRouteGenerator {
           logger,
         );
       } else {
-        // Generate a single index route (original behavior)
+        // A single index route lists every entity: one page, however many.
+        const total = await this.countVisibleEntities(entityType);
         const indexRoute: RouteDefinitionInput = {
           id: `${entityType}-index`,
           path: `/${pluralName}`,
@@ -232,7 +243,8 @@ export class DynamicRouteGenerator {
               template: listTemplateName,
               dataQuery: {
                 entityType,
-                query: { limit: 100 }, // Reasonable default limit
+                // A list query needs a positive limit, even for no entities.
+                query: { limit: Math.max(total, 1) },
               },
             },
           ],
@@ -265,58 +277,25 @@ export class DynamicRouteGenerator {
     // Get all entities of this type and create detail routes if we have a detail template
     if (detailTemplateName) {
       try {
-        const entities = this.filterVisibleEntities(
-          await this.listAllEntities(entityType),
-          entityType,
-        );
-
-        logger.debug(
-          `Found ${entities.length} ${entityType} entities to generate routes for`,
-        );
-
         // Get display config for entity type
         const { pluralName, layout } = this.getEntityDisplayConfig(entityType);
 
-        for (const entity of entities) {
-          // Use slug for URL if available (e.g., blog posts), otherwise use entity ID
-          const urlSlug = readString(entity.metadata, "slug") ?? entity.id;
+        const count = await this.forEachEntityPage(entityType, (entities) =>
+          entities.forEach((entity) =>
+            this.registerDetailRoute(
+              entityType,
+              entity,
+              detailTemplateName,
+              pluralName,
+              layout,
+            ),
+          ),
+        );
 
-          const detailRoute: RouteDefinitionInput = {
-            id: `${entityType}-${entity.id}`,
-            path: `/${pluralName}/${urlSlug}`,
-            // An entry can name its page; otherwise its title, then the type and slug.
-            title:
-              readString(entity.metadata, "pageTitle") ??
-              entityTitle(entity) ??
-              `${this.capitalize(entityType)}: ${urlSlug}`,
-            description: `View ${entityType} details`,
-            ...(layout && { layout }),
-            sections: [
-              {
-                id: "detail",
-                template: detailTemplateName,
-                dataQuery: {
-                  entityType,
-                  query: { id: urlSlug }, // Pass slug for datasource lookup
-                },
-              },
-            ],
-            sourceEntityType: entityType,
-          };
-
-          try {
-            this.routeRegistry.register(detailRoute);
-          } catch (error) {
-            logger.warn(
-              `Failed to register detail route for ${entityType}/${entity.id}`,
-              { error },
-            );
-          }
-        }
-
-        const routeCount = listTemplateName
-          ? entities.length + 1
-          : entities.length;
+        logger.debug(
+          `Found ${count} ${entityType} entities to generate routes for`,
+        );
+        const routeCount = listTemplateName ? count + 1 : count;
         logger.debug(
           `Successfully registered ${routeCount} routes for ${entityType}`,
         );
@@ -325,6 +304,50 @@ export class DynamicRouteGenerator {
           error,
         });
       }
+    }
+  }
+
+  /** Register one entity's detail page. */
+  private registerDetailRoute(
+    entityType: string,
+    entity: DynamicRouteEntity,
+    detailTemplateName: string,
+    pluralName: string,
+    layout: string | undefined,
+  ): void {
+    // Use slug for URL if available (e.g., blog posts), otherwise use entity ID
+    const urlSlug = readString(entity.metadata, "slug") ?? entity.id;
+
+    const detailRoute: RouteDefinitionInput = {
+      id: `${entityType}-${entity.id}`,
+      path: `/${pluralName}/${urlSlug}`,
+      // An entry can name its page; otherwise its title, then the type and slug.
+      title:
+        readString(entity.metadata, "pageTitle") ??
+        entityTitle(entity) ??
+        `${this.capitalize(entityType)}: ${urlSlug}`,
+      description: `View ${entityType} details`,
+      ...(layout && { layout }),
+      sections: [
+        {
+          id: "detail",
+          template: detailTemplateName,
+          dataQuery: {
+            entityType,
+            query: { id: urlSlug }, // Pass slug for datasource lookup
+          },
+        },
+      ],
+      sourceEntityType: entityType,
+    };
+
+    try {
+      this.routeRegistry.register(detailRoute);
+    } catch (error) {
+      this.services.logger.warn(
+        `Failed to register detail route for ${entityType}/${entity.id}`,
+        { error },
+      );
     }
   }
 
@@ -341,12 +364,7 @@ export class DynamicRouteGenerator {
     navigation: { show: boolean; slot: NavigationSlot; priority: number },
     logger: Logger,
   ): Promise<void> {
-    // Get total entity count
-    const entities = this.filterVisibleEntities(
-      await this.listAllEntities(entityType),
-      entityType,
-    );
-    const totalItems = entities.length;
+    const totalItems = await this.countVisibleEntities(entityType);
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     logger.debug(

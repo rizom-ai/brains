@@ -60,3 +60,8 @@ export const bookSectionAdapter: BookSectionAdapter = new BookSectionAdapter();
 export function bookSectionSlug(book: string, order: number): string {
   return `${book}/${order}`;
 }
+
+/** What every slug of a book's sections starts with. */
+export function bookSectionSlugPrefix(book: string): string {
+  return `${book}/`;
+}

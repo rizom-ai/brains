@@ -52,7 +52,7 @@ async function stopRuntime(runtime: StartedCommand): Promise<string> {
 const publishedBuildMarker =
   "Emitting site:build:completed event for preview environment";
 const unchangedBuildMarker =
-  "Skipping site render because inputs are unchanged";
+  "Skipping site publication because inputs are unchanged";
 
 function markerCount(output: string, marker: string): number {
   return output.split(marker).length - 1;

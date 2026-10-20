@@ -7,7 +7,7 @@ import {
 } from "@brains/site-engine";
 import { SITE_BUILD_MANIFEST_FILE } from "@brains/contracts";
 import { createHash } from "crypto";
-import { promises as fs } from "fs";
+import { createReadStream, promises as fs } from "fs";
 import { dirname, join, relative, sep } from "path";
 import { resolveSafeOutputFile } from "./output-path";
 
@@ -155,13 +155,27 @@ async function listArtifactFiles(
     if (!entry.isFile()) continue;
     const path = relative(generationDir, fullPath).split(sep).join("/");
     if (path === SITE_BUILD_MANIFEST_FILE) continue;
-    const content = await fs.readFile(fullPath);
-    files.push({
-      path,
-      size: content.byteLength,
-      sha256: createHash("sha256").update(content).digest("hex"),
-    });
+    files.push({ path, ...(await hashFile(fullPath)) });
   }
 
   return files;
+}
+
+/**
+ * A file's size and SHA-256, read a part at a time: a build of thousands of
+ * pages hashes every one of them, and reading each whole would hold them all
+ * until they are collected.
+ */
+async function hashFile(
+  path: string,
+): Promise<{ size: number; sha256: string }> {
+  const hash = createHash("sha256");
+  const size = await Array.fromAsync(
+    createReadStream(path),
+    (chunk: Buffer) => {
+      hash.update(chunk);
+      return chunk.byteLength;
+    },
+  ).then((sizes) => sizes.reduce((total, part) => total + part, 0));
+  return { size, sha256: hash.digest("hex") };
 }
