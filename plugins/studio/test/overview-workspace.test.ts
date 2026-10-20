@@ -82,15 +82,18 @@ it("combines an empty attention/activity state without hiding standing runtime i
       ],
     },
   });
-  registry.recordEntity("updated", { entityType: "note", entityId: "source" });
+  await registry.recordEntity("updated", {
+    entityType: "note",
+    entityId: "source",
+  });
   const active = await workspace.dataProvider(actor, {});
   expect(JSON.stringify(active)).not.toContain('"id":"overview-at-rest"');
   expect(JSON.stringify(active)).toContain('"id":"overview-activity"');
 });
 
-it("names entity activity by its title and readable type", () => {
+it("names entity activity by its title and readable type", async () => {
   const registry = new StudioOverviewRegistry();
-  registry.recordEntity(
+  await registry.recordEntity(
     "updated",
     {
       entityType: "post",
@@ -102,9 +105,27 @@ it("names entity activity by its title and readable type", () => {
       typeLabel: entityType === "post" ? "Post" : entityType,
     }),
   );
-  registry.recordEntity("deleted", { entityType: "faq", entityId: "gone" });
+  await registry.recordEntity("deleted", {
+    entityType: "faq",
+    entityId: "gone",
+  });
 
-  const [deleted, updated] = registry.listActivity();
+  // A projection's write announces only the id; the entry is read to name it.
+  await registry.recordEntity(
+    "updated",
+    { entityType: "skill", entityId: "design-resilient-systems" },
+    async (entityType, entity, entityId) => ({
+      title:
+        entity === undefined && entityId === "design-resilient-systems"
+          ? "Design resilient systems"
+          : undefined,
+      typeLabel: entityType === "skill" ? "Skill" : entityType,
+    }),
+  );
+
+  const [derived, deleted, updated] = registry.listActivity();
+  expect(derived?.title).toBe("Design resilient systems");
+  expect(derived?.metadata[0]).toBe("Skill updated");
   expect(updated?.title).toBe("Resilience Is Not Redundancy");
   expect(updated?.metadata[0]).toBe("Post updated");
   expect(deleted?.title).toBe("gone");

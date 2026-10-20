@@ -121,7 +121,7 @@ async function verifyStudyStateSource(
     await waitForText(page, "Stop");
   } else if (studyState === "busy") {
     await waitForText(page, "Build preview");
-    await waitForText(page, "Published generation");
+    await waitForText(page, "Published at");
     await evaluatePage(page, () => {
       const build = Array.from(document.querySelectorAll("button")).find(
         (b) => b.textContent.trim() === "Build preview",
@@ -133,7 +133,7 @@ async function verifyStudyStateSource(
     await waitForText(page, "Unavailable sources are not an all-clear.");
   else if (studyState === "failure") {
     await waitForText(page, "The latest completed build failed");
-    await waitForText(page, "Published generation");
+    await waitForText(page, "Published at");
     await evaluatePage(page, () => {
       const panel = document.querySelector('[role="tabpanel"]');
       const notice = panel?.querySelector('aside[data-tone="warn"]');

@@ -79,7 +79,7 @@ export async function createWorkViewFixtures(
     }),
   });
   if (state !== "empty" && state !== "restart") {
-    registry.recordEntity("updated", {
+    await registry.recordEntity("updated", {
       entityType: "note",
       entityId: "quiet-infrastructure",
     });

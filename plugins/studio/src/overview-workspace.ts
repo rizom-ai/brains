@@ -23,6 +23,7 @@ import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRecord } from "@brains/utils/is-record";
 import { displayTitleFrom } from "@brains/utils/string-utils";
+import { entityDisplayTitle } from "./editor-entities";
 import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import {
   STUDIO_OVERVIEW_REFRESH_MS,
@@ -144,7 +145,13 @@ const entityActivityPayloadSchema = z.object({
 export type DescribeEntityActivity = (
   entityType: string,
   entity: Record<string, unknown> | undefined,
-) => { title: string | undefined; typeLabel: string };
+  entityId: string,
+) => EntityActivityDescription | Promise<EntityActivityDescription>;
+
+interface EntityActivityDescription {
+  title: string | undefined;
+  typeLabel: string;
+}
 
 const describeByType: DescribeEntityActivity = (entityType) => ({
   title: undefined,
@@ -476,17 +483,18 @@ export class StudioOverviewRegistry {
     return removed;
   }
 
-  recordEntity(
+  async recordEntity(
     action: "created" | "updated" | "deleted",
     payload: unknown,
     describe: DescribeEntityActivity = describeByType,
-  ): void {
+  ): Promise<void> {
     const parsed = entityActivityPayloadSchema.safeParse(payload);
     if (!parsed.success) return;
     const timestamp = new Date(Date.now()).toISOString();
-    const { title, typeLabel } = describe(
+    const { title, typeLabel } = await describe(
       parsed.data.entityType,
       parsed.data.entity,
+      parsed.data.entityId,
     );
     const next: OverviewActivity = {
       id: boundedId(
@@ -712,32 +720,51 @@ export function createStudioOverviewWorkspace(input: {
   };
 }
 
+/** The title of an entry as stored, when an event did not carry it. */
+async function storedTitle(
+  context: ServicePluginContext,
+  entityType: string,
+  entityId: string,
+): Promise<string | undefined> {
+  // A missing or unreadable entry keeps its id in the feed; activity is
+  // informational and must not fail the event it observes.
+  const entity = await context.entityService
+    .getEntity({ entityType, id: entityId })
+    .catch(() => null);
+  return entity ? entityDisplayTitle(context, entity) : undefined;
+}
+
 export function registerStudioOverviewActivity(
   context: ServicePluginContext,
   registry: StudioOverviewRegistry,
   getEntityDisplay: () =>
     Partial<Record<string, EntityDisplayLabel>> | undefined = () => undefined,
 ): void {
-  const describe: DescribeEntityActivity = (entityType, entity) => ({
+  const describe: DescribeEntityActivity = async (
+    entityType,
+    entity,
+    entityId,
+  ) => ({
     title:
       entity && isRecord(entity["metadata"])
         ? displayTitleFrom(entity["metadata"])
-        : undefined,
+        : // A projection's write announces only the id; read the entry once.
+          await storedTitle(context, entityType, entityId),
     typeLabel: entityTypeLabels(entityType, getEntityDisplay()?.[entityType])
       .label,
   });
   // Observed: the feed shows changes from either process, such as the
   // worker syncing content from git.
-  context.messaging.observe(ENTITY_CHANNELS.created, (message) => {
-    registry.recordEntity("created", message.payload, describe);
+  context.messaging.observe(ENTITY_CHANNELS.created, async (message) => {
+    await registry.recordEntity("created", message.payload, describe);
     return { success: true };
   });
-  context.messaging.observe(ENTITY_CHANNELS.updated, (message) => {
-    registry.recordEntity("updated", message.payload, describe);
+  context.messaging.observe(ENTITY_CHANNELS.updated, async (message) => {
+    await registry.recordEntity("updated", message.payload, describe);
     return { success: true };
   });
-  context.messaging.observe(ENTITY_CHANNELS.deleted, (message) => {
-    registry.recordEntity("deleted", message.payload, describe);
+  context.messaging.observe(ENTITY_CHANNELS.deleted, async (message) => {
+    await registry.recordEntity("deleted", message.payload, describe);
     return { success: true };
   });
   context.messaging.subscribe(JOB_CHANNELS.progress, (message) => {

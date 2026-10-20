@@ -221,7 +221,7 @@ export function deriveEditorHead(
     mode.kind === "edit"
       ? (singletonLabel ?? entityTitle(mode.entity))
       : mode.kind === "create"
-        ? `New ${sentenceLabel(typeEntryLabel)}`
+        ? (singletonLabel ?? `New ${sentenceLabel(typeEntryLabel)}`)
         : typeLabel;
   const collectionLabel =
     context.activeWorkspace?.label ??

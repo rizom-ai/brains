@@ -694,6 +694,28 @@ describe("deriveEditorHead", () => {
     expect(head).toMatchObject({ heading, entryLabel: entry });
   });
 
+  it("names a singleton that does not exist yet by its name, not as new", () => {
+    const askContent = typeInfo({
+      entityType: "ask-content",
+      label: "Ask Content",
+      singularLabel: "Ask Content",
+      isSingleton: true,
+    });
+    const head = deriveEditorHead(
+      {
+        ...viewProps({ entityType: "ask-content" }),
+        ...withMode({ kind: "create" }),
+      },
+      {
+        ...context,
+        activeType: askContent,
+        entitySchema: { ...schema, isSingleton: true },
+      },
+    );
+
+    expect(head.heading).toBe("Ask Content");
+  });
+
   it("names a singleton by its singular label under its area", () => {
     const profile = typeInfo({
       entityType: "anchor-profile",

@@ -345,7 +345,7 @@ const guestMonitor = defineStudioWorkspace({
           type: "key-values",
           id: "guest-recording",
           items: [
-            { label: "Recording", value: data.recording.message },
+            { label: "Usage record", value: data.recording.message },
             {
               label: "Kept for",
               value: `${data.recording.retentionDays} days`,

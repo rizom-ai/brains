@@ -147,10 +147,23 @@ export const entity = {
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
+/** What one entry of each system fixture is called, as the types API sends it. */
+const systemSingular: Record<string, string> = {
+  "Anchor Profiles": "Anchor Profile",
+  "Brain Characters": "Brain Character",
+  "Style Guides": "Style Guide",
+  Prompts: "Prompt",
+  Skills: "Skill",
+  Playbooks: "Playbook",
+  "SWOT analyses": "SWOT analysis",
+  Agents: "Agent",
+  "Site Info": "Site Info",
+};
 export const systemTypes = [...systemFixtures.values()].map((fixture) => ({
   entityType: fixture.entityType,
   classification: "system",
   label: fixture.label,
+  singularLabel: systemSingular[fixture.label] ?? fixture.label,
   isSingleton: fixture.isSingleton,
   hasBody: fixture.hasBody,
   count: 1,
