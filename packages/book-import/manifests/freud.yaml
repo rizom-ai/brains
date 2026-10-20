@@ -901,6 +901,51 @@ books:
     author: Sigmund Freud
     year: 1885
     kind: work
+  - item: vjschr-1885-referate
+    citation: Vjschr. Derm. 1885
+    ocr: deu
+    # Four pages of the year's volume, each cropped to Freud's review: the
+    # title of the work it reviews down to his signature.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/Vjschr_Syphil_1885_XII
+      pages:
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n387_w1600.jpg#region=0.070,0.379,0.786,0.304
+          page: 307
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n395_w1600.jpg#region=0.048,0.256,0.789,0.389
+          page: 315
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n397_w1600.jpg#region=0.053,0.230,0.788,0.476
+          page: 317
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n462_w1600.jpg#region=0.141,0.293,0.784,0.347
+          page: 382
+    firstPage: 307
+    lastPage: 382
+    # Each review opens with the title of the work it reviews, set with a
+    # hanging indent.
+    headings:
+      - { page: 307, opens: Ollivier. Hauteruptionen, title: Hauteruptionen neben Chorea und Rheumatismus }
+      - { page: 315, opens: Pozze. Trophiseche, title: "Trophische Störungen bei traumatischer, peripherer Neuritis" }
+      - { page: 317, opens: Pitres und Vaillard, title: "Beiträge zur Kenntniss der peripheren, nicht traumatischen Neuritiden" }
+      - { page: 382, opens: Dejerine. Acute, title: Acute centrale Myelitis in der Frühepoche der Syphilis }
+    paragraphs:
+      - { page: 307, opens: Ollivier. }
+      - { page: 307, opens: Ein dreizehnjähriges }
+      - { page: 307, opens: Bei einer zweiten }
+      - { page: 315, opens: Pozze. }
+      - { page: 315, opens: Ein 50jähriger }
+      - { page: 315, opens: Die Haut }
+      - { page: 317, opens: Pitres und }
+      - { page: 317, opens: Aus der vorliegenden }
+      - { page: 382, opens: Dejerine. }
+      - { page: 382, opens: D. berichtet }
+      - { page: 382, opens: Doch möchte }
+    slug: besprechungen-in-der-vierteljahresschrift-fuer-dermatologie-und-syphilis-1885
+    title: Besprechungen in der Vierteljahresschrift für Dermatologie und Syphilis 1885
+    shortTitle: Vierteljahresschrift für Dermatologie 1885
+    edition: "Vierteljahresschrift für Dermatologie und Syphilis, XII. Jahrgang (Wien 1885), S. 307, 315, 317 und 382"
+    author: Sigmund Freud
+    year: 1885
+    kind: work
   - item: wmw-1886-neuritis
     citation: WMW 1886
     ocr: deu
@@ -1070,6 +1115,106 @@ books:
     author: Sigmund Freud
     year: 1887
     kind: work
+  - item: zfk-1887-referate
+    citation: ZfK 1887
+    ocr: deu
+    # The year's pages, each cropped to Freud's reviews: the title of the
+    # work reviewed down to his signature, which is left out. The table in
+    # the review of Chapin is read column by column.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ZfK_1887_1
+      pages:
+        - url: https://archive.org/download/ZfK_1887_1/page/n33_w1600.jpg#region=0.107,0.106,0.716,0.803
+          page: 15
+        - url: https://archive.org/download/ZfK_1887_1/page/n34_w1600.jpg#region=0.177,0.098,0.718,0.080&region=0.175,0.206,0.719,0.672
+          page: 16
+        - url: https://archive.org/download/ZfK_1887_1/page/n54_w1600.jpg#region=0.142,0.733,0.730,0.186
+          page: 36
+        - url: https://archive.org/download/ZfK_1887_1/page/n55_w1600.jpg#region=0.136,0.107,0.717,0.232&region=0.136,0.338,0.712,0.296&region=0.136,0.630,0.345,0.201&region=0.498,0.630,0.350,0.190&region=0.134,0.829,0.712,0.088
+          page: 37
+        - url: https://archive.org/download/ZfK_1887_1/page/n56_w1600.jpg#region=0.147,0.101,0.727,0.808
+          page: 38
+        - url: https://archive.org/download/ZfK_1887_1/page/n57_w1600.jpg#region=0.136,0.284,0.717,0.092&region=0.133,0.380,0.717,0.227
+          page: 39
+        - url: https://archive.org/download/ZfK_1887_1/page/n80_w1600.jpg#region=0.177,0.459,0.717,0.455
+          page: 62
+        - url: https://archive.org/download/ZfK_1887_1/page/n81_w1600.jpg#region=0.135,0.113,0.714,0.051&region=0.133,0.222,0.715,0.698
+          page: 63
+        - url: https://archive.org/download/ZfK_1887_1/page/n82_w1600.jpg#region=0.144,0.098,0.722,0.120
+          page: 64
+        - url: https://archive.org/download/ZfK_1887_1/page/n140_w1600.jpg#region=0.170,0.162,0.720,0.753
+          page: 122
+        - https://archive.org/download/ZfK_1887_1/page/n141_w1600.jpg#region=0.132,0.112,0.716,0.803
+        - https://archive.org/download/ZfK_1887_1/page/n142_w1600.jpg#region=0.172,0.103,0.715,0.803
+        - https://archive.org/download/ZfK_1887_1/page/n143_w1600.jpg#region=0.132,0.115,0.717,0.807
+        - https://archive.org/download/ZfK_1887_1/page/n144_w1600.jpg#region=0.162,0.106,0.723,0.689
+        - url: https://archive.org/download/ZfK_1887_1/page/n265_w1600.jpg#region=0.184,0.113,0.719,0.425&region=0.187,0.540,0.717,0.378
+          page: 247
+        - https://archive.org/download/ZfK_1887_1/page/n266_w1600.jpg#region=0.103,0.120,0.718,0.279&region=0.099,0.404,0.721,0.521
+        - https://archive.org/download/ZfK_1887_1/page/n267_w1600.jpg#region=0.141,0.111,0.720,0.232&region=0.141,0.440,0.717,0.346&region=0.141,0.788,0.717,0.128
+        - https://archive.org/download/ZfK_1887_1/page/n268_w1600.jpg#region=0.141,0.115,0.718,0.055&region=0.140,0.179,0.719,0.102
+        - url: https://archive.org/download/ZfK_1887_1/page/n459_w1600.jpg#region=0.128,0.450,0.716,0.447
+          page: 415
+        - https://archive.org/download/ZfK_1887_1/page/n460_w1600.jpg#region=0.167,0.078,0.711,0.197
+        - url: https://archive.org/download/ZfK_1887_1/page/n462_w1600.jpg#region=0.171,0.494,0.711,0.068
+          page: 418
+        - https://archive.org/download/ZfK_1887_1/page/n463_w1600.jpg#region=0.124,0.269,0.717,0.365
+        - https://archive.org/download/ZfK_1887_1/page/n464_w1600.jpg#region=0.184,0.162,0.712,0.359
+        - url: https://archive.org/download/ZfK_1887_1/page/n466_w1600.jpg#region=0.160,0.198,0.708,0.076
+          page: 422
+        - https://archive.org/download/ZfK_1887_1/page/n467_w1600.jpg#region=0.138,0.167,0.718,0.487
+    firstPage: 15
+    lastPage: 423
+    # A page whose numbered paragraph the OCR split from its numeral.
+    paragraphs:
+      - { page: 247, opens: R. Laufenauer. }
+      - { page: 247, opens: „Die Hysteroepilepsie }
+      - { page: 247, opens: L. theilt }
+      - { page: 247, opens: Anästhesien sind }
+      - { page: 247, opens: Stintzing. }
+      - { page: 247, opens: Der Autor beschreibt }
+      - { page: 247, opens: 1. Eine }
+      - { page: 247, opens: "2, Ein" }
+      - { page: 247, opens: "3" }
+      - { page: 247, opens: 4. Ein }
+      # and a page whose first lines run on the paragraph before.
+      - { page: 63, opens: G. Berry }
+      - { page: 63, opens: Vorgeschichte }
+      - { page: 63, opens: Bei der ersten }
+      - { page: 63, opens: Das Wesen }
+      - { page: 63, opens: Unter dieser }
+    # Each review opens with the work it reviews.
+    headings:
+      - { page: 15, opens: Otto Buss., title: Zur Lehre von der Dystrophia muscularis progressiva }
+      - { page: 16, opens: R. Friedi, title: "In welchem Zeitpunkt ist es angezeigt, mit der elektrischen Behandlung acut entzündlicher Krankheiten des Nervensystems zu beginnen?" }
+      - { page: 36, opens: Berkhan. Versuche, title: "Versuche, die Taubstummheit zu bessern und die Erfolge dieser Versuche" }
+      - { page: 37, opens: H. D, title: Peripheral Neuritis and the painful paralyses of early life }
+      - { page: 38, opens: M. Freyer., title: Zur Tabes im jugendlichen Alter }
+      - { page: 39, opens: W. G. Winner., title: A case of basilar meningitis }
+      - { page: 39, opens: H. Hochhaus, title: Meningitische Hemiplegie }
+      - { page: 62, opens: P. J. Moebius., title: Ueber aufsteigende Lähmung nach Keuchhusten }
+      - { page: 63, opens: G. Berry und, title: "Case of Ophthalmoplegia externa acuta probably due to a scrofulous lesion of the Pons Varolii; Recovery" }
+      - { page: 122, opens: Stephen Mackenzie., title: Report on Chorea }
+      - { page: 247, opens: R. Laufenauer., title: Ueber Hysteroepilepsie der Knaben }
+      - { page: 247, opens: Stintzing. Ueber, title: Ueber hereditäre Ataxie }
+      - { page: 248, opens: L., title: Ueber multiple inselförmige Sklerose des Centralnervensystems im Kindesalter }
+      - { page: 249, opens: M. Herz., title: Ueber Hemiatrophia facialis progressiva nebst Mittheilung eines diesbezüglichen Falles }
+      - { page: 249, opens: G. Scholz., title: Ueber schwere diphtheritsche Lähmungen und deren balneotherapeutische Heilung }
+      - { page: 250, opens: Fletcher Ingals., title: Traumatic Tetanus }
+      - { page: 415, opens: J. Abercrombie., title: Clinical lecture on hemiplegia in children }
+      - { page: 418, opens: Warner and, title: "A case of chronic meningitis probably syphilitic, and causing progressive dementia" }
+      - { page: 419, opens: Ed. Bugnion., title: "Chute sur la tête; enfoncement de l’os frontal, troubles consécutifs de l’intelligence et de la motilité" }
+      - { page: 420, opens: Karl Gerling., title: Ueber Athetosis }
+      - { page: 422, opens: Chever Bevill, title: Neurasthenia or Chlorosis }
+      - { page: 423, opens: Moncorvo (Rio, title: De l’étiologie de la sclérose en plaque chez les enfants }
+    slug: besprechungen-im-centralblatt-fuer-kinderheilkunde-1887
+    title: Besprechungen im Centralblatt für Kinderheilkunde 1887
+    shortTitle: Centralblatt für Kinderheilkunde 1887
+    edition: "Centralblatt für Kinderheilkunde, I. Jahrgang (Leipzig und Wien 1887), Nr. 1–3, 6, 12, 20 und 21, S. 15–16, 36–39, 62–64, 122–126, 247–250, 415–416 und 418–423"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
   - item: wmw-37-1887-5
     citation: WMW 1887
     # Two columns to a page, each numbered: a page is cited by its first.
@@ -1085,10 +1230,96 @@ books:
       - { page: 137, opens: Wie wenig }
       - { page: 137, opens: Die Behandlung gewisser }
       - { page: 137, opens: Das Heilverfahren }
-    slug: besprechungen-von-averbeck-und-weir-mitchell
-    title: "Besprechungen von Averbeck, Die akute Neurasthenie, und Weir Mitchell, Die Behandlung gewisser Formen von Neurasthenie und Hysterie"
-    shortTitle: Averbeck und Weir Mitchell
-    edition: "Wiener Medizinische Wochenschrift 37, Nr. 5 (29. Jänner 1887), Sp. 138"
+    headings:
+      - { page: 137, opens: Die akute Neurasthenie, title: Die akute Neurasthenie }
+      - { page: 137, opens: Die Behandlung gewisser, title: Die Behandlung gewisser Formen von Neurasthenie und Hysterie }
+    slug: besprechungen-in-der-wiener-medizinischen-wochenschrift-1887
+    title: Besprechungen in der Wiener Medizinischen Wochenschrift 1887
+    shortTitle: Wiener Medizinische Wochenschrift 1887
+    edition: "Wiener Medizinische Wochenschrift 37, Nr. 5 (29. Jänner 1887), Sp. 138, und Nr. 50 (10. Dezember 1887), Sp. 1642–1644"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: wmw-1887-obersteiner
+    citation: WMW 1887
+    ocr: deu
+    # Its columns, the first read without the byline below the title of the
+    # book it reviews.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-37-1887-50
+      firstPage: 1642
+      pages:
+        - https://archive.org/download/wmw-37-1887-50/page/n8_w1600.jpg#region=0.520,0.630,0.422,0.056&region=0.520,0.704,0.422,0.232
+        - https://archive.org/download/wmw-37-1887-50/page/n9_w1600.jpg#region=0.080,0.066,0.418,0.875
+        - https://archive.org/download/wmw-37-1887-50/page/n9_w1600.jpg#region=0.495,0.066,0.420,0.335
+    firstPage: 1642
+    lastPage: 1644
+    headings:
+      - { page: 1642, opens: Anleitung beim Studium, title: Anleitung beim Studium des Baues der nervösen Centralorgane im gesunden und kranken Zustande }
+    # The title set with a hanging indent, and a column whose lines the OCR
+    # read askew.
+    paragraphs:
+      - { page: 1642, opens: Anleitung beim }
+      - { page: 1642, opens: ‘ Die letzten }
+      - { page: 1642, opens: Das hier }
+      - { page: 1643, opens: Es wird nicht }
+    slug: besprechungen-in-der-wiener-medizinischen-wochenschrift-1887
+    title: Besprechungen in der Wiener Medizinischen Wochenschrift 1887
+    edition: "Wiener Medizinische Wochenschrift 37, Nr. 50 (10. Dezember 1887), Sp. 1642–1644"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: nc-1887-referate
+    citation: NC 1887
+    ocr: deu
+    # Four issues' pages, each cropped to Freud's review: its numbered title
+    # down to his signature, which is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/nc-1887-6-3
+      pages:
+        - url: https://archive.org/download/nc-1887-6-3/page/n4_w1600.jpg#region=0.070,0.653,0.826,0.217
+          page: 53
+        - url: https://archive.org/download/nc-1887-6-3/page/n5_w1600.jpg#region=0.117,0.058,0.825,0.423
+          page: 54
+        - url: https://archive.org/download/nc-1887-6-4/page/n6_w1600.jpg#region=0.055,0.395,0.883,0.400
+          page: 79
+        - url: https://archive.org/download/nc-1887-6-6/page/n10_w1600.jpg#region=0.054,0.760,0.841,0.174
+          page: 131
+        - url: https://archive.org/download/nc-1887-6-6/page/n11_w1600.jpg#region=0.106,0.056,0.822,0.881
+          page: 132
+        - url: https://archive.org/download/nc-1887-6-6/page/n12_w1600.jpg#region=0.068,0.054,0.840,0.292
+          page: 133
+        - url: https://archive.org/download/nc-1887-6-23/page/n6_w1600.jpg#region=0.069,0.517,0.832,0.403
+          page: 543
+        - url: https://archive.org/download/nc-1887-6-23/page/n7_w1600.jpg#region=0.085,0.051,0.843,0.121
+          page: 544
+    firstPage: 53
+    lastPage: 544
+    # The formula set line by line, and titles set with a hanging indent.
+    paragraphs:
+      - { page: 54, opens: "1,0 Acid." }
+      - { page: 54, opens: "1,0 Kalium" }
+      - { page: 54, opens: "200,0 Aq." }
+      - { page: 54, opens: In dieser }
+      - { page: 54, opens: (Ref. hat }
+      - { page: 54, opens: c) Dieselbe }
+      - { page: 79, opens: l) Beiträge }
+      - { page: 79, opens: Eine Mittheilung }
+      - { page: 79, opens: Die Versuche }
+      - { page: 131, opens: 10) Monoplegia }
+      - { page: 131, opens: Ein 19jähriges }
+    # Each review opens with the title of the work it reviews.
+    headings:
+      - { page: 53, opens: l) Ein Beitrag, title: Ein Beitrag zur Nervenfärbetechnik }
+      - { page: 79, opens: l) Beiträge zur, title: Beiträge zur Kenntniss der Leitungsbahnen im Rückenmarke }
+      - { page: 131, opens: 10) Monoplegia, title: Monoplegia anaesthetica }
+      - { page: 543, opens: 2) Ueber die, title: Ueber die wechselseitigen Beziehungen zwischen den centralen Ursprungsgebieten der Augenmuskelnerven }
+    slug: besprechungen-im-neurologischen-centralblatt-1887
+    title: Besprechungen im Neurologischen Centralblatt 1887
+    shortTitle: Neurologisches Centralblatt 1887
+    edition: "Neurologisches Centralblatt, VI. Jahrgang, Nr. 3, 4, 6 und 23 (Leipzig 1887), S. 53–54, 79, 131–133 und 543–544"
     author: Sigmund Freud
     year: 1887
     kind: work
@@ -1773,6 +2004,66 @@ books:
     author: Sigmund Freud
     year: 1895
     kind: work
+  - item: wkr-1895-edinger
+    citation: WKR 1895
+    ocr: deu
+    # Two pages, each column cropped to the review: below its section title,
+    # and without its signature.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wkr-9-1895-2
+      pages:
+        - url: https://archive.org/download/wkr-9-1895-2/page/n10_w1600.jpg#region=0.030,0.468,0.475,0.472&region=0.515,0.045,0.455,0.892
+          page: 27
+        - url: https://archive.org/download/wkr-9-1895-2/page/n11_w1600.jpg#region=0.030,0.043,0.475,0.895&region=0.515,0.045,0.455,0.589
+          page: 28
+    firstPage: 27
+    lastPage: 28
+    headings:
+      - { page: 27, opens: Eine neue Theorie, title: "Eine neue Theorie über die Ursachen einiger Nervenkrankheiten, insbesondere der Neuritis und der Tabes" }
+    # A page whose lines the OCR read askew, and its title set centred.
+    paragraphs:
+      - { page: 27, opens: Eine neue Theorie }
+      - { page: 27, opens: Dass 6es }
+      - { page: 27, opens: Edinger knüpft }
+      - { page: 27, opens: Neben diesen }
+      - { page: 27, opens: Diese unleugbar }
+      - { page: 27, opens: Es verlohnte }
+      - { page: 27, opens: In sehr vielen }
+      - { page: 27, opens: Dass «Ueberfunction }
+      - { page: 27, opens: Da dies der }
+    slug: besprechungen-in-der-wiener-klinischen-rundschau-1895
+    title: Besprechungen in der Wiener klinischen Rundschau 1895
+    shortTitle: Wiener klinische Rundschau 1895
+    edition: "Wiener klinische Rundschau 9, Nr. 2 (13. Jänner 1895), S. 27–28, Nr. 5 (3. Februar 1895), S. 77, und Nr. 9 (3. März 1895), S. 140–141"
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: wkr-1895-hegar
+    citation: WKR 1895
+    ocr: deu
+    # The page's columns, each cropped to the review.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/1895i_WKR_9_5
+      pages:
+        - url: https://archive.org/download/1895i_WKR_9_5/page/n12_w1600.jpg#region=0.005,0.775,0.480,0.155&region=0.500,0.050,0.455,0.410
+          page: 77
+    firstPage: 77
+    lastPage: 77
+    headings:
+      - { page: 77, opens: Der Geschlechtstrieb., title: Der Geschlechtstrieb }
+    # Its title set centred.
+    paragraphs:
+      - { page: 77, opens: Der Geschlechtstrieb. }
+      - { page: 77, opens: Diese kleine }
+      - { page: 77, opens: Wie vorauszusehen }
+    slug: besprechungen-in-der-wiener-klinischen-rundschau-1895
+    title: Besprechungen in der Wiener klinischen Rundschau 1895
+    edition: "Wiener klinische Rundschau 9, Nr. 5 (3. Februar 1895), S. 77"
+    author: Sigmund Freud
+    year: 1895
+    kind: work
   - item: 1895j_WKR_9_9
     citation: WKR 1895
     columns: true
@@ -1788,9 +2079,10 @@ books:
       - { page: 140, opens: Es wäre verlockend }
       - { page: 140, opens: Ich kenne }
       - { page: 140, opens: Wie man sieht, ist }
-    slug: besprechung-von-moebius-die-migraene
-    title: "Die Migräne. Von G. J. Moebius"
-    shortTitle: Moebius, Die Migräne
+    headings:
+      - { page: 140, opens: Die Migräne. Von, title: Die Migräne }
+    slug: besprechungen-in-der-wiener-klinischen-rundschau-1895
+    title: Besprechungen in der Wiener klinischen Rundschau 1895
     edition: "Wiener klinische Rundschau 9, Nr. 9 (3. März 1895), S. 140–141"
     author: Sigmund Freud
     year: 1895
@@ -1935,6 +2227,28 @@ books:
     author: Sigmund Freud
     year: 1914
     kind: work
+  - item: jpn-1904-loewenfeld
+    citation: JPN III
+    ocr: deu
+    # The volume's two pages, each column cropped to the review.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/journalfrpsycho04unkngoog
+      firstPage: 190
+      pages:
+        - https://archive.org/download/journalfrpsycho04unkngoog/page/n201_w1600.jpg#region=0.125,0.155,0.370,0.735&region=0.505,0.155,0.370,0.735
+        - https://archive.org/download/journalfrpsycho04unkngoog/page/n202_w1600.jpg#region=0.125,0.095,0.370,0.797&region=0.505,0.095,0.370,0.195
+    firstPage: 190
+    lastPage: 191
+    headings:
+      - { page: 190, opens: Löwenfeld. Die psychischen, title: Die psychischen Zwangserscheinungen }
+    slug: besprechung-im-journal-fuer-psychologie-und-neurologie-1904
+    title: Besprechung im Journal für Psychologie und Neurologie 1904
+    shortTitle: Journal für Psychologie und Neurologie 1904
+    edition: "Journal für Psychologie und Neurologie, Bd. III, Heft 4 (Leipzig 1904), S. 190–191"
+    author: Sigmund Freud
+    year: 1904
+    kind: work
   - item: Freud_1910_Drei_Abhandlungen_2te
     citation: Drei Abhandlungen 1910
     ocr: deu
@@ -1948,6 +2262,39 @@ books:
     edition: "Drei Abhandlungen zur Sexualtheorie, zweite Auflage (Franz Deuticke, Leipzig und Wien 1910), S. [III]"
     author: Sigmund Freud
     year: 1910
+    kind: work
+  - item: zb1191012
+    citation: Zbl. I
+    firstPage: 49
+    lastPage: 50
+    opensWith: Dr. Wilh. Neutra
+    closesWith: tungen hinweisen müssen.
+    headings:
+      - { page: 49, opens: Dr. Wilh. Neutra, title: Briefe an nervöse Frauen }
+    slug: besprechungen-im-zentralblatt-fuer-psychoanalyse-19101911
+    title: "Besprechungen im Zentralblatt für Psychoanalyse 1910–1911"
+    shortTitle: "Zentralblatt für Psychoanalyse 1910–1911"
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 1/2 (1910), S. 49–50, und Heft 12 (1911), S. 594–595"
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: zb1191112
+    citation: Zbl. I
+    firstPage: 594
+    lastPage: 595
+    opensWith: G. Greve, Sobre
+    closesWith: erwartete Bestätigung
+    headings:
+      - { page: 594, opens: G. Greve, title: Sobre Psicología y Psicoterapia de ciertos Estados angustiosos }
+    # Its title set with a hanging indent.
+    paragraphs:
+      - { page: 594, opens: G. Greve }
+      - { page: 594, opens: "Der Autor, der" }
+    slug: besprechungen-im-zentralblatt-fuer-psychoanalyse-19101911
+    title: "Besprechungen im Zentralblatt für Psychoanalyse 1910–1911"
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 12 (1911), S. 594–595"
+    author: Sigmund Freud
+    year: 1911
     kind: work
   - item: zb1191156
     citation: Zbl. I
