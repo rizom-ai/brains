@@ -1,5 +1,31 @@
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { UserPermissionLevel } from "@brains/templates";
+import type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
+
+/** What an agent's instructions are built from, fixed when the agent is made. */
+export type AgentInstructionSources = Pick<
+  BrainAgentConfig,
+  "identity" | "profile" | "pluginInstructions" | "agentInstructions"
+>;
+
+/** The instructions one call sends: the agent's sources plus the caller. */
+export function buildAgentInstructions(
+  sources: AgentInstructionSources,
+  call: Pick<
+    BrainCallOptions,
+    "userPermissionLevel" | "isAnchor" | "agentContextInstructions"
+  >,
+): string {
+  return buildInstructions(
+    sources.identity,
+    call.userPermissionLevel,
+    sources.pluginInstructions,
+    sources.profile,
+    sources.agentInstructions,
+    call.agentContextInstructions,
+    call.isAnchor,
+  );
+}
 
 export function buildInstructions(
   identity: BrainCharacter,

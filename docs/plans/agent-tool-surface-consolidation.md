@@ -4,17 +4,16 @@ Last updated: 2026-10-20
 
 ## Status
 
-**Implementation complete; measurement, focused behavioral evidence and legacy-name closeout remain.** Chat-only MCP basic mode shipped in `0.2.0-alpha.400` after its reintroduction gate (focused `--mcp-basic` 4/4, personal 22/22, team 40/40 on 2026-09-20). Analytics has one typed agent surface: `system_analytics`, with traffic reports replacing `analytics_query` (`0.2.0-alpha.523`); the analytics plugin registers no tools.
+**Implementation and measurement complete; focused behavioral evidence and legacy-name closeout remain.** Chat-only MCP basic mode shipped in `0.2.0-alpha.400` after its reintroduction gate (focused `--mcp-basic` 4/4, personal 22/22, team 40/40 on 2026-09-20). Analytics has one typed agent surface: `system_analytics`, with traffic reports replacing `analytics_query` (`0.2.0-alpha.523`); the analytics plugin registers no tools.
 
 The chat-only MCP basic surface has met its deterministic and live-model reintroduction gates. Canonical protocol acceptance proves the replacement path, focused basic-MCP evals prove live routing and exact note fidelity, and clean personal/team release-candidate runs prove the broader regression boundary.
 
-The canonical brain now distinguishes `agentTool` exposure from `directMcpExposure`, reports its effective tool surface through the eval CLI, and filters coverage by the agent-visible set. Maintenance adapters no longer occupy model context. Playbook, directory-sync, publishing, and configured Buttondown operations use their canonical typed tools. Cloudflare query is direct-MCP-only, passkey setup is exposed to the agent only when contextually relevant, and stale registered-name references have been audited from active tests and runtime shutdown paths.
+The canonical brain now distinguishes `agentTool` exposure from `directMcpExposure`, reports its effective tool surface through the eval CLI, and filters coverage by the agent-visible set. Maintenance adapters no longer occupy model context. Playbook, directory-sync, publishing, and configured Buttondown operations use their canonical typed tools. Passkey setup is exposed to the agent only when contextually relevant, and stale registered-name references have been audited from active tests and runtime shutdown paths.
 
 The old Rover preset snapshots and commands are historical. Current acceptance uses the canonical professional bundle composition and its personal/team eval suites.
 
 This plan remains open for:
 
-- recording agent-visible tool count, schema size and prompt tokens on the canonical professional composition (`--tool-surface` prints the surfaces; no measurement is recorded);
 - the focused behavioral coverage in section 3, beyond the release-candidate suites; and
 - closing legacy names (section 4): none is registered, and the unregistered `createQueueTool` (`publish-pipeline_queue`) and `createPublishTool` (`publish-pipeline_publish`) factories are removed from `plugins/content-pipeline/src/tools/`.
 
@@ -38,7 +37,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 - Publication queueing and direct publication use `publishing_manage`, retaining confirmation and target-reuse rules.
 - Configured Buttondown subscriber actions use `newsletter_subscribers`.
 - Stock-photo search and selection remain separate because selection must bind prior provider metadata.
-- Cloudflare's raw query remains available only to Admin debug-MCP clients.
+- Cloudflare traffic reaches the model only through `system_analytics` reports; no raw query tool is registered.
 - Passkey setup URL retrieval is agent-visible only while setup is incomplete.
 
 ## Remaining work
@@ -47,17 +46,67 @@ Reduce model context without hiding useful capability, weakening authorization, 
 
 Complete the typed report registry (see [Analytics reports](../../shell/plugins/README.md#analytics-reports)), fold Cloudflare traffic reporting into it, and prove no duplicate LLM-callable analytics surface remains. Raw provider queries may remain direct-MCP-only for diagnostics.
 
-### 2. Re-measure the canonical composition
-
-For the current git-backed professional posture, record:
-
-- Admin agent-visible tool count;
-- serialized schemas/descriptions and initial prompt tokens;
-- playbook status result size;
-- direct-MCP-only tool inventory; and
-- any conditional differences when git or optional providers are absent.
+### 2. Re-measure the canonical composition — done
 
 The earlier 20-tool and 20% reduction targets remain reference budgets, not permission to remove a tool that a current product path needs.
+
+#### Measurement, 2026-10-20
+
+Measured at `cf78a2e7f5` with `bun run eval:professional -- --tool-surface` from `packages/brain-cli`, once without and once with `--mcp-basic`. The eval composition has no Git, because `brain.eval.yaml` keeps Git disabled without the supervised Git broker, and no Buttondown or stock-photo key. No passkey is registered.
+
+Bytes are UTF-8. A description counts as written. A schema counts as `JSON.stringify(z.toJSONSchema(z.object(inputSchema)))`. Instructions count as `AgentService.instructionsFor(level, { isAnchor: false })`, the exact string a non-guest turn sends. The initial prompt is the instructions plus that level's tool descriptions and schemas, before history or retrieved memory.
+
+| Level   | Agent tools | Instructions | Tool descriptions | Tool schemas | Initial prompt |
+| ------- | ----------: | -----------: | ----------------: | -----------: | -------------: |
+| Public  |           7 |     31,185 B |           3,312 B |      6,849 B |       41,346 B |
+| Trusted |          14 |     31,054 B |          12,473 B |     24,945 B |       68,472 B |
+| Admin   |          26 |     31,233 B |          15,443 B |     30,111 B |       76,787 B |
+
+`--mcp-basic` leaves every agent figure unchanged. The Anchor variant of the instructions is 106 bytes shorter at each level.
+
+Admin tokens were counted once with the o200k_base encoding (`gpt-tokenizer` 4.1.0). The configured model, `gpt-6-luna`, is an OpenAI model. The counts cover the text; the provider's own tool framing is not included.
+
+| Admin text                                                         | o200k tokens |
+| ------------------------------------------------------------------ | -----------: |
+| Instructions                                                       |        6,355 |
+| Tool descriptions                                                  |        3,041 |
+| Tool schemas                                                       |        6,712 |
+| Tool definitions as one JSON array of name, description and schema |       10,032 |
+| Instructions plus tool definitions                                 |       16,387 |
+
+| Surface                  | Public | Trusted | Admin |
+| ------------------------ | -----: | ------: | ----: |
+| MCP basic                |      0 |       0 |     0 |
+| MCP basic, `--mcp-basic` |      2 |       2 |     2 |
+| MCP debug                |      7 |      14 |    26 |
+| MCP debug, `--mcp-basic` |      9 |      16 |    28 |
+
+The internal registry holds 26 tools, or 28 with MCP; 6 are CLI tools. Without `--mcp-basic` the bundle eval-disables the MCP interface, so nothing is direct-MCP-only and MCP debug equals the agent surface at each level. With `--mcp-basic`, `chat` (148 B description, 355 B schema) and `confirm` (119 B, 375 B) are direct-MCP-only at every level, on both basic and debug.
+
+`playbook_manage` status for `playbookId: onboarding`, called through the tool handler on the booted eval app after seed jobs drained and serialized with `JSON.stringify`:
+
+- before any run: 310 B;
+- with an active run in its first state, `brain-identity`: 7,795 B, the same size as the `start` result. The result carries the run under both `runs` and `activeRun`, plus the current state's prompt, instructions, transitions and guidance.
+
+Conditional differences:
+
+| Condition                   | Effect                                                                                                                                                           | Method                                                                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Git configured              | `directory_sync` takes its git variant with `history`: description 246 → 651 B, schema 286 → 739 B. Admin grows 858 B; counts unchanged.                         | Built both variants with `createDirectorySyncTools` and the report's byte formula; the non-git variant matches the eval report. Eval cannot enable Git. |
+| Passkey registered          | `auth-service_get_passkey_setup_url` (75 B, 119 B) leaves the agent surface and stays on Admin MCP debug as direct-MCP-only.                                     | Code: `getTools` in `shell/auth-service/src/auth-service-plugin.ts` sets `agentTool: false` once credentials exist.                                     |
+| Buttondown configured       | Adds `newsletter_subscribers` (204 B, 896 B) to Admin agent and MCP debug. `newsletter_signup` registers with no agent or MCP exposure.                          | Eval override: placeholder `plugins.newsletter.provider` in an uncommitted edit of `brain.eval.yaml`.                                                   |
+| Stock-photo key configured  | Adds `stock-photo_search` (156 B, 411 B) and `stock-photo_select` (175 B, 1,069 B) to Admin agent and MCP debug.                                                 | Same override run, placeholder `plugins.stock-photo.apiKey`.                                                                                            |
+| Both providers configured   | Admin: 29 tools, 15,978 B descriptions, 32,487 B schemas, 79,698 B initial prompt. Public, Trusted and instructions unchanged.                                   | Same override run.                                                                                                                                      |
+| Cloudflare configured       | No surface change. The analytics plugin registers its three traffic reports in `system_analytics` either way; Cloudflare adds live data and the beacon.          | Code: `onRegister` in `plugins/analytics/src/index.ts`; the plugin registers no tools.                                                                  |
+| MCP interface enabled       | Adds `chat` and `confirm` to MCP basic and debug only.                                                                                                           | `--mcp-basic` run.                                                                                                                                      |
+| Other eval-disabled members | `chat`, `web-chat`, `email`, `faq`, `webserver`, `dashboard` and `atproto` register no tools and no plugin instructions. Social media registers no tools either. | Code: none of those packages overrides `getTools` or `getInstructions` or creates a tool.                                                               |
+
+Combining the measured parts, the git-backed professional posture with a registered passkey and no optional providers has 25 Admin agent tools, 15,773 B of descriptions, 30,445 B of schemas and a 77,451 B initial prompt.
+
+Against the reference budgets:
+
+- 20 tools: Admin has 26 agent tools in eval, 25 git-backed with a registered passkey, and 28 with both optional providers as well.
+- 20% reduction: no pre-change serialized size was recorded, so the percentage has no measured baseline; this is the first recorded serialized size. The earlier count reference, 29 model tools on 2026-07-28, was Rover's git-backed `full` posture with `chat` and `confirm` still agent-visible, a different composition.
 
 ### 3. Complete behavioral evidence
 

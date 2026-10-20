@@ -36,7 +36,7 @@ import {
 } from "./agent-types";
 import { resolveTextModelCapabilities } from "./provider-selection";
 import type { ReasoningEffort } from "./types";
-import { buildInstructions } from "./brain-instructions";
+import { buildAgentInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 
@@ -190,15 +190,8 @@ export function createBrainAgentFactory(
             providerOptions: {},
           }),
           instructions:
-            buildInstructions(
-              config.identity,
-              callOptions.userPermissionLevel,
-              config.pluginInstructions,
-              config.profile,
-              config.agentInstructions,
-              callOptions.agentContextInstructions,
-              callOptions.isAnchor,
-            ) + (guest ? `\n\n${guestVisitorInstructions}` : ""),
+            buildAgentInstructions(config, callOptions) +
+            (guest ? `\n\n${guestVisitorInstructions}` : ""),
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
