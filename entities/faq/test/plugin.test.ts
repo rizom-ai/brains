@@ -77,24 +77,35 @@ describe("FaqPlugin", () => {
     expect(harness.getCapabilities().tools).toHaveLength(0);
   });
 
-  it("queues a capture for an assistant reply with its permission level and position", async () => {
+  it("queues a capture for a public reply with its position", async () => {
     const shell = harness.getMockShell();
     const conversations = shell.getConversationService();
     shell.getConversationService = (): typeof conversations => ({
       ...conversations,
       countMessages: async (): Promise<number> => 7,
     });
-    await addMessage("assistant", { userPermissionLevel: "trusted" });
+    await addMessage("assistant", { userPermissionLevel: "public" });
 
     expect(await queuedCaptures()).toEqual([
       {
         conversationId: "conv-1",
         messageId: "m2",
-        userPermissionLevel: "trusted",
+        userPermissionLevel: "public",
         position: 7,
       },
     ]);
   });
+
+  // An operator asking about their own brain is not a question a FAQ
+  // answers; only public turns and site visitors are captured.
+  it.each(["trusted", "admin"])(
+    "does not capture a reply to a %s operator",
+    async (userPermissionLevel) => {
+      await addMessage("assistant", { userPermissionLevel });
+
+      expect(await queuedCaptures()).toEqual([]);
+    },
+  );
 
   it("ignores user messages", async () => {
     await addMessage("user", { userPermissionLevel: "admin" });

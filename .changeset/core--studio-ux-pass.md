@@ -15,3 +15,5 @@ New entries open on Source, read "Not created yet" until they exist, offer a "Cr
 Studio looks right in the details: the collapsed rail centers Commands, glyph buttons such as "•••" no longer wrap on phones, phone titles keep three lines before clamping, Chat's composer shows one focus ring, captioned figures (Guest chat, Traffic) line up in columns, a selected row reads as selected rather than as an error in the dark climate, and a failed site build shows its actual error instead of "Handler returned failure". A port set through `plugins.webserver.productionPort` now also sets the local site URL, so the first-passkey setup link printed at startup uses the right port.
 
 The console strip's Studio door opens Studio itself rather than its `/cms` redirect alias, a singleton that does not exist yet is named by its title, and Overview names entries written by projections (derived skills and topics) by their titles too.
+
+Only public turns and site visitors' questions become draft FAQs; an operator's own Studio Chat questions no longer land in the Inbox as FAQs.
