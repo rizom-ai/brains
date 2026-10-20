@@ -178,6 +178,14 @@ function DetailBlock(props: {
         onLaunch={props.onLaunch}
         openId={requested}
       />
+    ) : block.master.type === "matrix" ? (
+      <MatrixBlock
+        block={block.master}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        openId={requested}
+      />
     ) : (
       <TableBlock
         block={block.master}

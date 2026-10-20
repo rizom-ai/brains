@@ -1,3 +1,4 @@
+import { channelLabel } from "@brains/action-items";
 import {
   SYSTEM_CHANNELS,
   defineDashboardWidget,
@@ -10,7 +11,7 @@ import {
   RECENT_MEMORY_WIDGET_ID,
   type SummaryEntryRow,
 } from "./recent-memory";
-import { channelLabel, formatTimeRange } from "./format";
+import { formatTimeRange } from "./format";
 
 interface MemoryRow {
   readonly id: string;

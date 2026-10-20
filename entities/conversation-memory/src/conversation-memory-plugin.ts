@@ -13,13 +13,12 @@ import {
 } from "./schemas/summary-config";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import {
+  ACTION_ITEM_ENTITY_TYPE,
   ActionItemAdapter,
-  DecisionAdapter,
-} from "./adapters/conversation-memory-adapters";
-import {
   actionItemSchema,
-  decisionSchema,
-} from "./schemas/conversation-memory";
+} from "@brains/action-items";
+import { DecisionAdapter } from "./adapters/conversation-memory-adapters";
+import { decisionSchema } from "./schemas/conversation-memory";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
@@ -31,7 +30,6 @@ import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import {
-  ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
   SUMMARY_PLUGIN_ID,

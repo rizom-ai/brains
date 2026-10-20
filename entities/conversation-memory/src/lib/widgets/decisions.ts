@@ -1,3 +1,4 @@
+import { channelLabel } from "@brains/action-items";
 import type { ContentVisibility } from "@brains/plugins";
 import {
   SYSTEM_CHANNELS,
@@ -12,7 +13,7 @@ import {
   type DecisionEntity,
 } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
-import { channelLabel, formatTimeRange } from "./format";
+import { formatTimeRange } from "./format";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "decisions";

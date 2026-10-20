@@ -560,12 +560,80 @@ const studioTableBlockSchema = z
   .strict()
   .superRefine(refineTableBlock);
 
+/** A card's action can also run when the card is dropped on another cell. */
+const studioMatrixActionControlSchema = sourceActionControlSchema.extend({
+  dropTarget: identifierSchema.optional(),
+});
+const studioMatrixItemSchema = listItemSchema.extend({
+  actionsLabel: labelSchema.optional(),
+  actions: z.array(studioMatrixActionControlSchema).max(20).optional(),
+});
 const studioMatrixCellSchema = matrixCellObjectSchema
-  .extend({ items: z.array(studioListItemSchema).max(100) })
+  .extend({ items: z.array(studioMatrixItemSchema).max(100) })
   .superRefine(refineMatrixCell);
+
+/**
+ * A drop names another cell of the same matrix, one action per card answers
+ * it, and that action runs at once: a drop cannot confirm or fill a form.
+ */
+function refineMatrixDrops(
+  block: {
+    readonly cells: readonly {
+      readonly id: string;
+      readonly items: readonly {
+        readonly actions?:
+          | readonly {
+              readonly action: { readonly confirmation?: unknown };
+              readonly form?: unknown;
+              readonly dropTarget?: string | undefined;
+            }[]
+          | undefined;
+      }[];
+    }[];
+  },
+  context: OperatorIssueContext,
+): void {
+  const cellIds = new Set(block.cells.map((cell) => cell.id));
+  block.cells.forEach((cell, cellIndex) =>
+    cell.items.forEach((item, itemIndex) => {
+      const targets = new Set<string>();
+      (item.actions ?? []).forEach((action, actionIndex) => {
+        const target = action.dropTarget;
+        if (target === undefined) return;
+        const message = !cellIds.has(target)
+          ? `Drop target "${target}" is not a cell of this matrix`
+          : target === cell.id
+            ? `Drop target "${target}" is the card's own cell`
+            : targets.has(target)
+              ? `Drop target "${target}" has more than one action on this card`
+              : action.action.confirmation !== undefined ||
+                  action.form !== undefined
+                ? `Drop target "${target}" needs an action that runs without confirmation or a form`
+                : undefined;
+        targets.add(target);
+        if (message)
+          context.addIssue({
+            code: "custom",
+            message,
+            path: [
+              "cells",
+              cellIndex,
+              "items",
+              itemIndex,
+              "actions",
+              actionIndex,
+              "dropTarget",
+            ],
+          });
+      });
+    }),
+  );
+}
+
 const studioMatrixBlockSchema = matrixBlockObjectSchema
   .extend({ cells: z.array(studioMatrixCellSchema).min(1).max(12) })
-  .superRefine(refineMatrixBlock);
+  .superRefine(refineMatrixBlock)
+  .superRefine(refineMatrixDrops);
 
 const studioActionBlockSchema = sourceActionControlSchema.extend({
   type: z.literal("action"),
@@ -669,7 +737,11 @@ const studioDetailBlockSchema = z
     /** Canonical query field the host writes with the open row's id. */
     queryKey: identifierSchema,
     empty: shortTextSchema,
-    master: z.union([studioListBlockSchema, studioTableBlockSchema]),
+    master: z.union([
+      studioListBlockSchema,
+      studioTableBlockSchema,
+      studioMatrixBlockSchema,
+    ]),
     open: z
       .object({
         forId: rowIdentifierSchema,

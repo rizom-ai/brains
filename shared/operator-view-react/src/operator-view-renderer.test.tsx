@@ -1519,6 +1519,103 @@ describe("OperatorViewRenderer master/detail", () => {
     expect(html).not.toContain("Select an item to read it.");
   });
 
+  it("opens a card of a matrix master beside its columns", async () => {
+    const board = (open?: string): RuntimeStudioWorkspaceData => ({
+      view: {
+        title: "Board",
+        blocks: [
+          {
+            type: "detail",
+            id: "board-detail",
+            queryKey: "card",
+            empty: "Select a card.",
+            master: {
+              type: "matrix",
+              id: "board",
+              columns: 2,
+              cells: [
+                {
+                  id: "open",
+                  label: "To do",
+                  empty: "Nothing waiting.",
+                  items: [
+                    {
+                      id: "card-1",
+                      title: "Book the venue",
+                      link: { kind: "detail", itemId: "card-1" },
+                    },
+                  ],
+                },
+                {
+                  id: "done",
+                  label: "Done",
+                  empty: "Nothing done.",
+                  items: [],
+                },
+              ],
+            },
+            ...(open
+              ? {
+                  open: {
+                    forId: open,
+                    title: "Book the venue",
+                    blocks: [
+                      { type: "text", id: "card-text", text: "Venue for May." },
+                    ],
+                  },
+                }
+              : {}),
+          },
+        ],
+      },
+    });
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: board("card-1"),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: { card: "card-1" },
+      }),
+    );
+    expect(html).toContain("declarative-detail-pane");
+    expect(html).toContain("Venue for May.");
+    expect(html).toContain("To do");
+    expect(html).toContain('aria-current="true"');
+    // Beside an open card the columns stack, so cards stay readable.
+    expect(html).toContain('data-columns="1"');
+    expect(
+      renderToStaticMarkup(
+        createElement(OperatorViewRenderer, {
+          data: board(),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          query: {},
+        }),
+      ),
+    ).toContain('data-columns="2"');
+
+    const queries: unknown[] = [];
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: board(),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          query: {},
+          onQueryChange: (query) => queries.push(query),
+        }),
+      );
+    });
+    const card = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("button"),
+    ).find(
+      (candidate) => String(candidate.textContent).trim() === "Book the venue",
+    );
+    if (!card) throw new Error("Expected an openable card");
+    await act(async () => card.click());
+    expect(queries).toEqual([{ card: "card-1" }]);
+  });
+
   it("opens a row through canonical query state rather than a navigation", async () => {
     const queries: unknown[] = [];
     await act(async () => {

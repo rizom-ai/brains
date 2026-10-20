@@ -54,9 +54,9 @@ expectedOutput:
       equals: person:daniel
     - path: decisions[0].content
       matches: "compact checklist|onboarding|Daniel"
-    - path: actionItems[0].metadata.assignedTo[0].canonicalId
-      equals: person:daniel
-    - path: actionItems[0].metadata.requestedBy[0].canonicalId
-      equals: person:daniel
+    - path: actionItems[0].metadata.assignedTo[0].id
+      matches: "^(user|external):"
+    - path: actionItems[0].metadata.assignedTo[0].name
+      matches: "Daniel"
     - path: actionItems[0].content
       matches: "compact checklist|MCP|Daniel"

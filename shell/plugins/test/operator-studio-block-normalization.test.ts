@@ -201,3 +201,164 @@ describe("studio list and matrix items", () => {
     });
   });
 });
+
+describe("matrix drops", () => {
+  const move = defineWorkspaceAction({
+    name: "move",
+    label: "Move",
+    input: z.object({ id: z.string(), to: z.string() }),
+    output: z.object({ status: z.string() }),
+  });
+
+  function board(actions: unknown[]): unknown {
+    return {
+      blocks: [
+        {
+          type: "matrix",
+          id: "m",
+          cells: [
+            {
+              id: "open",
+              label: "To do",
+              empty: "Empty",
+              items: [{ id: "a", title: "First", actions }],
+            },
+            { id: "doing", label: "Doing", empty: "Empty", items: [] },
+          ],
+        },
+      ],
+    };
+  }
+
+  const discard = defineWorkspaceAction({
+    name: "discard",
+    label: "Discard",
+    confirmation: { kind: "static", message: "Discard it?" },
+    input: z.object({ id: z.string() }),
+    output: z.object({ status: z.string() }),
+  });
+
+  const parse = (
+    view: unknown,
+  ): ReturnType<typeof safeParseRuntimeStudioOperatorView> =>
+    safeParseRuntimeStudioOperatorView(view, {
+      actions: [move, discard],
+      permission: "trusted",
+    });
+
+  it("carry the cell a card's action runs for when dropped there", () => {
+    const result = parse(
+      board([
+        { action: move, input: { id: "a", to: "doing" }, dropTarget: "doing" },
+      ]),
+    );
+
+    expect(result).toStrictEqual({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "matrix",
+            id: "m",
+            cells: [
+              {
+                id: "open",
+                label: "To do",
+                empty: "Empty",
+                items: [
+                  {
+                    id: "a",
+                    title: "First",
+                    actions: [
+                      {
+                        actionId: "move",
+                        label: "Move",
+                        input: { id: "a", to: "doing" },
+                        dropTarget: "doing",
+                      },
+                    ],
+                  },
+                ],
+              },
+              { id: "doing", label: "Doing", empty: "Empty", items: [] },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("belong to matrix cards only", () => {
+    const result = parse({
+      blocks: [
+        {
+          type: "list",
+          id: "l",
+          empty: "Empty",
+          items: [
+            {
+              id: "a",
+              title: "First",
+              actions: [
+                {
+                  action: move,
+                  input: { id: "a", to: "doing" },
+                  dropTarget: "doing",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("name another cell of the same matrix, once per card", () => {
+    const issues = (actions: unknown[]): unknown => {
+      const result = parse(board(actions));
+      return result.success ? [] : result.issues.map((issue) => issue.message);
+    };
+
+    expect(
+      issues([
+        { action: move, input: { id: "a", to: "done" }, dropTarget: "done" },
+      ]),
+    ).toEqual(['Drop target "done" is not a cell of this matrix']);
+    expect(
+      issues([
+        { action: move, input: { id: "a", to: "open" }, dropTarget: "open" },
+      ]),
+    ).toEqual(['Drop target "open" is the card\'s own cell']);
+    expect(
+      issues([
+        { action: move, input: { id: "a", to: "doing" }, dropTarget: "doing" },
+        { action: move, input: { id: "a", to: "doing" }, dropTarget: "doing" },
+      ]),
+    ).toEqual(['Drop target "doing" has more than one action on this card']);
+  });
+
+  it("run at once, so they never ask for confirmation or a form", () => {
+    const messages = (actions: unknown[]): unknown => {
+      const result = parse(board(actions));
+      return result.success ? [] : result.issues.map((issue) => issue.message);
+    };
+    const runsAtOnce =
+      'Drop target "doing" needs an action that runs without confirmation or a form';
+
+    expect(
+      messages([{ action: discard, input: { id: "a" }, dropTarget: "doing" }]),
+    ).toEqual([runsAtOnce]);
+    expect(
+      messages([
+        {
+          action: move,
+          input: { id: "a" },
+          form: { fields: { to: { label: "To", control: "text" } } },
+          dropTarget: "doing",
+        },
+      ]),
+    ).toEqual([runsAtOnce]);
+  });
+});
