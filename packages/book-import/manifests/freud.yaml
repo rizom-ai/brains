@@ -2889,6 +2889,113 @@ books:
     author: Sigmund Freud
     year: 1898
     kind: work
+  - item: jbnp-1898-kinderlaehmung
+    citation: JbNP II
+    ocr: deu
+    # Freud's report in the second volume, read from its first part title
+    # below the list of the year's literature to its end; the running
+    # heads, the scan's stamps and the reviews signed by others (Flatau's
+    # of Schukowsky, Valentin's of Mondio) are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899
+      firstPage: 633
+      pages:
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n652_w1600.jpg#region=0.10,0.285,0.87,0.630
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n653_w1600.jpg#region=0.10,0.104,0.87,0.100&region=0.10,0.788,0.87,0.127
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n654_w1600.jpg#region=0.10,0.104,0.87,0.316&region=0.10,0.540,0.87,0.375
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n655_w1600.jpg#region=0.10,0.104,0.87,0.811
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n656_w1600.jpg#region=0.10,0.094,0.87,0.821
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n657_w1600.jpg#region=0.10,0.096,0.87,0.819
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n658_w1600.jpg#region=0.10,0.104,0.87,0.811
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n659_w1600.jpg#region=0.10,0.104,0.87,0.811
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n660_w1600.jpg#region=0.02,0.094,0.92,0.790
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n661_w1600.jpg#region=0.18,0.100,0.79,0.248
+    firstPage: 633
+    lastPage: 642
+    # The report's parts, set in bold type.
+    headings:
+      - { page: 633, opens: A) Hemiplegische Formen., level: 1 }
+      - { page: 635, opens: B) Diplegien., level: 1 }
+      - { page: 639, opens: C) Familiäre und hereditäre Formen., level: 1 }
+      - { page: 641, opens: D) Vermischtes., level: 1 }
+    # Pages where the crop's specks mislead: their paragraphs named.
+    paragraphs:
+      - { page: 635, opens: Mit 3¾ Jahren }
+      - { page: 635, opens: Pineles (27) }
+      - { page: 635, opens: Levi-Sirugue (19) }
+      - { page: 635, opens: Massalongo (23) }
+      - { page: 635, opens: Allgemeine typische }
+      - { page: 635, opens: Die eigenen Mittheilungen }
+      - { page: 636, opens: Der Fall mit Sektionsbefund }
+      - { page: 636, opens: Heveroch (13) }
+      - { page: 636, opens: Oddo (25) }
+      - { page: 636, opens: 1. cerebralen Ursprungs }
+      - { page: 636, opens: 2. medullären }
+      - { page: 636, opens: 3. familiare }
+      - { page: 636, opens: de Amicis (2) }
+      - { page: 637, opens: Moncorvo (24) }
+      - { page: 637, opens: Drei Fälle von }
+      - { page: 637, opens: König (17) }
+      - { page: 637, opens: Seine Schlüsse }
+      - { page: 637, opens: Spiller (33) }
+      - { page: 638, opens: Sp. stellt }
+      - { page: 638, opens: Sp. theilt }
+      - { page: 638, opens: W. W. Keen }
+      - { page: 638, opens: J. Gross (11) }
+      - { page: 638, opens: Prochazka (30) }
+      - { page: 638, opens: Haskovec (12) }
+      - { page: 638, opens: Poix (29) }
+      - { page: 639, opens: Kerr (15) }
+      - { page: 639, opens: Stieglitz (34) }
+      - { page: 639, opens: S. Placzek (28) }
+      - { page: 639, opens: Das 2jährige Kind }
+      - { page: 639, opens: Der Autor erörtert }
+      - { page: 639, opens: Bruns (6) }
+      - { page: 639, opens: Good (10) }
+      - { page: 640, opens: Lorrain (21) }
+      - { page: 640, opens: 29 Krankengeschichten }
+      - { page: 640, opens: Nach dem Strümpell }
+      - { page: 640, opens: Die Veränderung in }
+      - { page: 640, opens: Am Schlusse }
+      - { page: 641, opens: Bernard (3) }
+      - { page: 641, opens: Lannois und }
+      - { page: 641, opens: Die Autoren betonen }
+      - { page: 641, opens: Pasteur (26) }
+      - { page: 641, opens: Hoffa (14) }
+    slug: berichte-ueber-die-cerebrale-kinderlaehmung-18971899
+    title: Berichte über die cerebrale Kinderlähmung 1897–1899
+    edition: "Jahresbericht über die Leistungen und Fortschritte auf dem Gebiete der Neurologie und Psychiatrie, II. Jahrgang: Bericht über das Jahr 1898 (Berlin 1899), S. 632–642"
+    author: Sigmund Freud
+    year: 1899
+    kind: work
+  - item: jbnp-1899-kinderlaehmung
+    citation: JbNP III
+    ocr: deu
+    # Freud's report in the third volume, read from below the list of the
+    # year's literature to its end; the running heads and the reviews
+    # signed by others (Valentin's of Arnaud, Flatau's of Dydynski,
+    # Switalski and Bary) are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/jahresberichtbe148unkngoog
+      firstPage: 612
+      pages:
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n626_w1600.jpg#region=0.13,0.195,0.79,0.745
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n627_w1600.jpg#region=0.09,0.068,0.79,0.865
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n628_w1600.jpg#region=0.13,0.062,0.79,0.865
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n629_w1600.jpg#region=0.08,0.065,0.79,0.865
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n630_w1600.jpg#region=0.13,0.070,0.79,0.454
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n631_w1600.jpg#region=0.08,0.124,0.79,0.481&region=0.08,0.6045,0.79,0.084
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n632_w1600.jpg#region=0.13,0.068,0.79,0.633
+    firstPage: 612
+    lastPage: 618
+    slug: berichte-ueber-die-cerebrale-kinderlaehmung-18971899
+    title: Berichte über die cerebrale Kinderlähmung 1897–1899
+    edition: "Jahresbericht über die Leistungen und Fortschritte auf dem Gebiete der Neurologie und Psychiatrie, III. Jahrgang: Bericht über das Jahr 1899 (Berlin 1900), S. 611–618"
+    author: Sigmund Freud
+    year: 1900
+    kind: work
   - item: Freud_1907_Gradiva
     citation: Gradiva 1907
     # The archive's OCR lost the notice's title.
