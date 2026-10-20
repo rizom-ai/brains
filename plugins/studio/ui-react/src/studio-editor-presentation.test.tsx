@@ -227,7 +227,9 @@ test("compiled prose retains safe links, fenced-code controls and ordered-list s
   );
   expect(html).toContain('start="3"');
   expect(html).toContain('data-streamdown="link"');
-  expect(html).toContain('type="button">Exact link</button>');
+  expect(html).toContain('href="https://example.com/path?q=a%2Fb"');
+  expect(html).toContain('target="_blank" rel="noopener noreferrer"');
+  expect(html).toMatch(/<a [^>]*>Exact link<\/a>/);
   expect(html).toContain('data-streamdown="code-block-actions"');
   expect(html).toContain('data-streamdown="code-block-copy-button"');
   expect(html).not.toContain('data-streamdown="code-block-download-button"');

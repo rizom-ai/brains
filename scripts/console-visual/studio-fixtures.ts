@@ -119,7 +119,7 @@ export const entity = {
     publishedAt: "2026-07-14T09:00:00.000Z",
     coverImageId: "image/verdigris-board",
   },
-  body: '# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n```ts\nconst manuscript = { source: "literal", preview: "rendered" };\nconst scrolling = "independent"; // Preserve source bytes.\nconst pageSize = 25;\n```\n\n| Surface | Reading mode | Records | Keyboard access |\n| --- | --- | ---: | --- |\n| Library | Paged list | 54 | Search, filter, then open |\n| Preview | Markdown | 2 | Scroll code and tables |\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.',
+  body: '# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n```ts\nconst manuscript = { source: "literal", preview: "rendered" };\nconst scrolling = "independent"; // Preserve source bytes.\nconst pageSize = 25;\n```\n\n| Surface | Reading mode | Records | Keyboard access |\n| --- | --- | ---: | --- |\n| Library | Paged list | 54 | Search, filter, then open |\n| Preview | Markdown | 2 | Scroll code and tables |\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width. Keep the [field notes](https://example.org/field-notes) close.',
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
@@ -202,7 +202,7 @@ export const messages = [
     id: "m4",
     role: "assistant",
     content:
-      "The Studio preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
+      "The Studio preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview. The [release checklist](https://example.org/release) has the rest.",
   },
 ];
 // A second, short session pinning the dynamic message states the mockups
