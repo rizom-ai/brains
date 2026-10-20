@@ -417,6 +417,7 @@ export type OperatorLaunchIntent =
   | { readonly target: "publishing" }
   | { readonly target: "site" }
   | { readonly target: "traffic" }
+  | { readonly target: "board" }
   | {
       readonly target: "inbox-open-entity";
       readonly entityType: string;
@@ -709,6 +710,20 @@ export interface StudioOperatorTableBlock<
   readonly rows: readonly StudioOperatorTableRow<TAction>[];
 }
 
+/** A card's action that also runs when the card is dropped on another cell. */
+export type OperatorMatrixActionControl<
+  TAction extends AnyWorkspaceActionDefinition,
+> = OperatorActionControl<TAction> & {
+  readonly dropTarget?: string | undefined;
+};
+
+export interface OperatorMatrixItem<
+  TAction extends AnyWorkspaceActionDefinition,
+> extends Omit<OperatorListItem<TAction>, "actions"> {
+  readonly actions?:
+    readonly OperatorMatrixActionControl<TAction>[] | undefined;
+}
+
 export interface OperatorMatrixCell<
   TAction extends AnyWorkspaceActionDefinition,
 > {
@@ -716,7 +731,7 @@ export interface OperatorMatrixCell<
   readonly label: string;
   readonly tone?: OperatorTone | undefined;
   readonly empty: string;
-  readonly items: readonly OperatorListItem<TAction>[];
+  readonly items: readonly OperatorMatrixItem<TAction>[];
 }
 
 export interface OperatorMatrixBlock<
@@ -877,7 +892,9 @@ export interface OperatorDetailBlock<
   /** Rendered in the detail region while nothing is open. */
   readonly empty: string;
   readonly master:
-    OperatorListBlock<TAction> | StudioOperatorTableBlock<TAction>;
+    | OperatorListBlock<TAction>
+    | StudioOperatorTableBlock<TAction>
+    | OperatorMatrixBlock<TAction>;
   readonly open?:
     | {
         readonly forId: string;

@@ -3,10 +3,7 @@ export {
   conversationMemoryPlugin,
 } from "./conversation-memory-plugin";
 export { SummaryAdapter } from "./adapters/summary-adapter";
-export {
-  ActionItemAdapter,
-  DecisionAdapter,
-} from "./adapters/conversation-memory-adapters";
+export { DecisionAdapter } from "./adapters/conversation-memory-adapters";
 export { SummaryExtractor } from "./lib/summary-extractor";
 export { SummaryProjector } from "./lib/summary-projector";
 export {
@@ -40,21 +37,13 @@ export {
 export { summaryConfigSchema } from "./schemas/summary-config";
 
 export {
-  actionItemAssigneeSchema,
-  actionItemMetadataSchema,
-  actionItemSchema,
   decisionMetadataSchema,
   decisionSchema,
-  memoryActorReferenceSchema,
 } from "./schemas/conversation-memory";
 export type {
-  ActionItemAssignee,
-  ActionItemEntity,
-  ActionItemMetadata,
   ConversationMemoryEntity,
   DecisionEntity,
   DecisionMetadata,
-  MemoryActorReference,
 } from "./schemas/conversation-memory";
 
 export {

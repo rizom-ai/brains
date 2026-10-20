@@ -214,6 +214,20 @@ function inspectAuthorBlocks(
             issues,
             true,
           );
+          // A board's columns are cells of one matrix; each card may open.
+          const cells = master["cells"];
+          if (Array.isArray(cells)) {
+            for (const [cellIndex, cell] of cells.entries()) {
+              if (!isUnknownRecord(cell)) continue;
+              inspectAuthorListItems(
+                cell["items"],
+                [...masterPath, "cells", cellIndex, "items"],
+                profile,
+                issues,
+                true,
+              );
+            }
+          }
           const rows = master["rows"];
           if (Array.isArray(rows)) {
             for (const [rowIndex, row] of rows.entries()) {

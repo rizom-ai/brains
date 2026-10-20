@@ -1,3 +1,4 @@
+import { memoryTimeRangeSchema } from "@brains/action-items";
 import {
   actorRefFromLegacy,
   actorRefKey,
@@ -6,13 +7,9 @@ import {
 import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema } from "@brains/plugins";
 
-export const summaryTimeRangeSchema: z.ZodObject<{
-  start: z.ZodString;
-  end: z.ZodString;
-}> = z.object({
-  start: z.string().datetime(),
-  end: z.string().datetime(),
-});
+/** A summary covers the same span as the memories captured from it. */
+export const summaryTimeRangeSchema: typeof memoryTimeRangeSchema =
+  memoryTimeRangeSchema;
 
 export type SummaryTimeRange = z.output<typeof summaryTimeRangeSchema>;
 

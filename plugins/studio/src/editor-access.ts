@@ -16,6 +16,7 @@ export function toStudioWorkspaceActor(
   return {
     interfaceType: "studio",
     userId: access.principal.userId,
+    displayName: access.principal.displayName,
     actor: access.actor,
     userPermissionLevel: access.permissionLevel,
     visibilityScope: access.visibilityScope,
