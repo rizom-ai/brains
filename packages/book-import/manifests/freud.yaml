@@ -40,8 +40,6 @@ gaps:
     title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
     year: 1913
     reason: Hanns Sachs's translation of Freud's English A Note on the Unconscious in Psycho-Analysis (1912)
-  - title: Nachtragsband (Texte aus den Jahren 1885–1938)
-    reason: the texts are public domain, but no free scan of the volume exists
   - citation: Villaret I
     pages: "892"
     title: Hysteroepilepsie
@@ -83,6 +81,108 @@ gaps:
   - title: Geleitwort zu P. Federn und H. Meng, Das psychoanalytische Volksbuch
     year: 1939
     reason: not in the first (1926) or the third (1939) edition on archive.org
+  - title: Unsigned reviews in the Wiener Medizinische Wochenschrift (13)
+    year: 1883
+    reason: unsigned; attribution not certain (the Freud-Edition and the Freud-Bibliographie attribute them on internal evidence)
+  - title: Unsigned reviews in the Wiener Medizinische Wochenschrift (50, with Macniven, added by the 2014 supplement to the Freud-Bibliographie)
+    year: 1884
+    reason: unsigned; attribution not certain (the Freud-Edition and the Freud-Bibliographie attribute them on internal evidence)
+  - title: Unsigned reviews in the Wiener Medizinische Wochenschrift (66)
+    year: 1885
+    reason: unsigned; attribution not certain (the Freud-Edition and the Freud-Bibliographie attribute them on internal evidence)
+  - title: Reviews of Lewy, Erlenmeyer, Fernet, Kaufmann, Eulenburg and Melchert, Strübing and Glax in the Wiener Medizinische Wochenschrift 35, Nr. 48, Sp. 1477–1480
+    year: 1885
+    reason: unsigned in print (the scan of Nr. 48 shows no signature, though the Freud-Edition marks them signed); attribution not certain
+  - title: Review of A. Spina, Studies on the bacillus of tuberculosis (The Medical News 42, Nr. 14)
+    year: 1883
+    reason: unsigned, printed as the report of a "Special Correspondent", and in English; attribution not certain
+  - title: Review of A. Forel, Der Hypnotismus (Wiener Medizinische Wochenschrift 39, Nr. 28)
+    year: 1889
+    reason: no free scan; archive.org holds no issue of the Wiener Medizinische Wochenschrift for 1889, and ANNO, which does, blocks scripted access
+  - title: Review of J. L. A. Koch, Das Nervenleiden des Menschen (Die Zeit, Wien, 3, Nr. 22)
+    year: 1895
+    reason: no free scan; the paper is only on ANNO, which blocks scripted access
+  - title: Reviews in the Neue Freie Presse (Biedenkapp 1903; Bigelow and Baumgarten 1904; Wichmann 1905)
+    year: 1903
+    reason: no free scan; the Neue Freie Presse is only on ANNO, which blocks scripted access
+  - title: Notiz über eine Methode zur anatomischen Präparation des Nervensystems (Centralblatt für die medicinischen Wissenschaften 17)
+    year: 1879
+    reason: no free scan; none of the Centralblatt's Google scans on archive.org is the 1879 volume
+  - title: A new histological method for the study of nerve-tracts in the brain and spinal chord (Brain 7)
+    year: 1884
+    reason: printed in English; whether Freud wrote it so is not established, and the volume is not on archive.org
+  - title: Reports on the Société des médecins de Vienne (Bulletin médical)
+    year: 1887
+    reason: no free scan; archive.org's Bulletin médical dated 1887 (bub_gb_7AcdAQAAMAAJ) is the 1904 volume, and Gallica blocks scripted access
+  - title: Über Hemianopsie im frühesten Kindesalter (Wiener Medizinische Wochenschrift 38, Nr. 32–33)
+    year: 1888
+    reason: no free scan; archive.org holds only Nr. 26 of the 1888 Wochenschrift, and ANNO blocks scripted access
+  - title: Mitteilung über eine Sulfonalvergiftung (Internationale Klinische Rundschau 5)
+    year: 1891
+    reason: no free scan; archive.org holds the Internationale Klinische Rundschau only from 1892
+  - title: Nachruf Professor S. Hammerschlag (Neue Freie Presse)
+    year: 1904
+    reason: no free scan; the Neue Freie Presse is only on ANNO, which blocks scripted access
+  - title: Stellungnahme zum Fall Prof. Dr. Beer (Die Zeit, Wien)
+    year: 1905
+    reason: no free scan; the paper is only on ANNO, which blocks scripted access
+  - title: Stellungnahme zur Eherechtsenquete
+    year: 1905
+    reason: not located on archive.org
+  - title: Antwort auf eine Rundfrage „Vom Lesen und von guten Büchern“ (Neue Blätter für Literatur und Kunst)
+    year: 1907
+    reason: not located on archive.org
+  - title: Askese (in the Denkschrift of the Verein zur Unterstützung mittelloser israelitischer Studierender)
+    year: 1911
+    reason: not located on archive.org
+  - title: Was wird aus Europa? (answer to a survey in Tűz)
+    year: 1922
+    reason: not located; the language Freud wrote it in is not established
+  - title: Letter to the Neue Freie Presse; Wie sie Mussolini sehen (Prager Tagblatt)
+    year: 1925
+    reason: no free scan; both papers are only on ANNO, which blocks scripted access
+  - title: Dr. Reik und die Kurpfuschereifrage (Neue Freie Presse)
+    year: 1926
+    reason: no free scan; the Neue Freie Presse is only on ANNO, which blocks scripted access
+  - title: Introductory Note to W. Sachs, Black Hamlet; A Memorial to Dr. David Eder
+    year: 1934
+    reason: printed in English; whether Freud wrote them so is not established, and neither is on archive.org
+  - title: Vorwort zu R. Sterba, Handwörterbuch der Psychoanalyse
+    year: 1936
+    reason: printed only as a facsimile of Freud's handwritten letter of 1932 (1. Lieferung, archive.org HandwoumlrterbuchDerPsychoanalyse1.lieferungAbasie-Angst, leaf 6), which the OCR cannot read and no printed transcription checks
+  - title: Letter to the editor of Time and Tide
+    year: 1938
+    reason: printed in English; whether Freud wrote it so is not established, and the issue is not on archive.org
+  - title: Geleitwort zu R. de Saussure, La méthode psychanalytique
+    year: 1922
+    reason: printed in French translation; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Psychopathische Personen auf der Bühne
+    year: 1942
+    reason: first printed in 1942 in an English translation by another hand; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Über Grundprinzipien und Absichten der Psychoanalyse
+    year: 1913
+    reason: printed in 1913 in an English translation by another hand (On Psycho-Analysis); Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Soll die Psychoanalyse an den Universitäten gelehrt werden?
+    year: 1919
+    reason: printed in 1919 in a Hungarian translation by another hand; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Vorwort zur dritten (revidierten) Auflage der englischen Traumdeutung
+    year: 1932
+    reason: printed in English translation; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Vorwort zur tschechischen Ausgabe der Vorlesungen zur Einführung in die Psychoanalyse
+    year: 1936
+    reason: printed in Czech translation; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
+  - title: Vorwort zum Abriß der Psychoanalyse
+    year: 1940
+    reason: not in GW XVII; printed only in the Nachtragsband (1987), of which no free scan exists
+  - title: Einführung zu Y. Doryon, Lynkeus' New State
+    year: 1940
+    reason: printed only in the Nachtragsband (1987), of which no free scan exists
+  - title: Träume im Folklore (with D. E. Oppenheim)
+    year: 1958
+    reason: first printed in 1958 (New York, bilingual), not freely available; also in the Nachtragsband (1987), of which no free scan exists
+  - title: Einleitung zu S. Freud und W. C. Bullitt, Thomas Woodrow Wilson
+    year: 1966
+    reason: printed in 1966 in English, under copyright; Freud's German is only in the Nachtragsband (1987), of which no free scan exists
 books:
   - item: Sitz_MN_1_1877_75
     citation: Lappenorgane
@@ -786,6 +886,38 @@ books:
     author: Sigmund Freud
     year: 1885
     kind: work
+  - item: vlp-lit29498
+    citation: ZfT 1885
+    ocr: deu
+    # The lecture's three pages in the Max Planck Institute's Virtual
+    # Laboratory, each column cropped to the text: read from below the
+    # title and byline to the end, before the next article.
+    scan:
+      library: Virtual Laboratory (MPIWG)
+      url: https://vlp.mpiwg-berlin.mpg.de/references?id=lit29498
+      firstPage: 49
+      pages:
+        - https://digilib.mpiwg-berlin.mpg.de/digitallibrary/servlet/Scaler?fn=/permanent/vlp/lit29498/pages/p0049&dw=2000#region=0.05,0.424,0.445,0.564&region=0.50,0.29,0.45,0.70
+        - https://digilib.mpiwg-berlin.mpg.de/digitallibrary/servlet/Scaler?fn=/permanent/vlp/lit29498/pages/p0050&dw=2000#region=0.03,0.035,0.48,0.955&region=0.50,0.035,0.48,0.955
+        - https://digilib.mpiwg-berlin.mpg.de/digitallibrary/servlet/Scaler?fn=/permanent/vlp/lit29498/pages/p0051&dw=2000#region=0.03,0.04,0.48,0.945&region=0.50,0.04,0.47,0.49
+    firstPage: 49
+    lastPage: 51
+    # The columns' crops lose the indents: every paragraph named.
+    paragraphs:
+      - { page: 49, opens: Ich habe mich im vorigen }
+      - { page: 49, opens: Mit der }
+      - { page: 49, opens: Ich kann die Wirkung }
+      - { page: 50, opens: In meiner Abhandlung }
+      - { page: 50, opens: Ich wurde auch auf }
+      - { page: 51, opens: Ich komme nun zu }
+      - { page: 51, opens: Bestimmter kann man }
+    slug: ueber-die-allgemeinwirkung-des-cocains
+    title: Ueber die Allgemeinwirkung des Cocains
+    shortTitle: Allgemeinwirkung des Cocains
+    edition: "Zeitschrift für Therapie mit Einbeziehung der Electro- und Hydrotherapie, III. Jahrgang, Nr. 7 (Wien, 1. April 1885), S. 49–51"
+    author: Sigmund Freud
+    year: 1885
+    kind: work
   - item: wmw-1885-syringomyelie
     citation: WMW 1885
     ocr: deu
@@ -901,6 +1033,51 @@ books:
     author: Sigmund Freud
     year: 1885
     kind: work
+  - item: vjschr-1885-referate
+    citation: Vjschr. Derm. 1885
+    ocr: deu
+    # Four pages of the year's volume, each cropped to Freud's review: the
+    # title of the work it reviews down to his signature.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/Vjschr_Syphil_1885_XII
+      pages:
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n387_w1600.jpg#region=0.070,0.379,0.786,0.304
+          page: 307
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n395_w1600.jpg#region=0.048,0.256,0.789,0.389
+          page: 315
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n397_w1600.jpg#region=0.053,0.230,0.788,0.476
+          page: 317
+        - url: https://archive.org/download/Vjschr_Syphil_1885_XII/page/n462_w1600.jpg#region=0.141,0.293,0.784,0.347
+          page: 382
+    firstPage: 307
+    lastPage: 382
+    # Each review opens with the title of the work it reviews, set with a
+    # hanging indent.
+    headings:
+      - { page: 307, opens: Ollivier. Hauteruptionen, title: Hauteruptionen neben Chorea und Rheumatismus }
+      - { page: 315, opens: Pozze. Trophiseche, title: "Trophische Störungen bei traumatischer, peripherer Neuritis" }
+      - { page: 317, opens: Pitres und Vaillard, title: "Beiträge zur Kenntniss der peripheren, nicht traumatischen Neuritiden" }
+      - { page: 382, opens: Dejerine. Acute, title: Acute centrale Myelitis in der Frühepoche der Syphilis }
+    paragraphs:
+      - { page: 307, opens: Ollivier. }
+      - { page: 307, opens: Ein dreizehnjähriges }
+      - { page: 307, opens: Bei einer zweiten }
+      - { page: 315, opens: Pozze. }
+      - { page: 315, opens: Ein 50jähriger }
+      - { page: 315, opens: Die Haut }
+      - { page: 317, opens: Pitres und }
+      - { page: 317, opens: Aus der vorliegenden }
+      - { page: 382, opens: Dejerine. }
+      - { page: 382, opens: D. berichtet }
+      - { page: 382, opens: Doch möchte }
+    slug: besprechungen-in-der-vierteljahresschrift-fuer-dermatologie-und-syphilis-1885
+    title: Besprechungen in der Vierteljahresschrift für Dermatologie und Syphilis 1885
+    shortTitle: Vierteljahresschrift für Dermatologie 1885
+    edition: "Vierteljahresschrift für Dermatologie und Syphilis, XII. Jahrgang (Wien 1885), S. 307, 315, 317 und 382"
+    author: Sigmund Freud
+    year: 1885
+    kind: work
   - item: wmw-1886-neuritis
     citation: WMW 1886
     ocr: deu
@@ -945,6 +1122,82 @@ books:
     slug: akute-multiple-neuritis-der-spinalen-und-hirnnerven
     title: Akute multiple Neuritis der spinalen und Hirnnerven
     edition: Wiener Medizinische Wochenschrift, 36. Jahrgang, Nr. 6 (Wien, 6. Februar 1886), Sp. 168–172
+    author: Sigmund Freud
+    year: 1886
+    kind: work
+  - item: nc-1886-strickkoerper
+    citation: NC 1886
+    ocr: deu
+    # The issue's pages, the first read from the paper's title, the last
+    # down to its end.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/NZ_1888_V_5
+      firstPage: 121
+      pages:
+        - https://archive.org/download/NZ_1888_V_5/page/n128_w1600.jpg#region=0.10,0.745,0.80,0.215
+        - https://archive.org/download/NZ_1888_V_5/page/n129_w1600.jpg
+        - https://archive.org/download/NZ_1888_V_5/page/n130_w1600.jpg#region=0.10,0.075,0.80,0.535&region=0.10,0.772,0.80,0.105
+        - https://archive.org/download/NZ_1888_V_5/page/n131_w1600.jpg#region=0.15,0.075,0.80,0.262&region=0.15,0.745,0.80,0.130
+        - https://archive.org/download/NZ_1888_V_5/page/n132_w1600.jpg#region=0.10,0.085,0.80,0.245&region=0.10,0.666,0.80,0.214
+        - https://archive.org/download/NZ_1888_V_5/page/n133_w1600.jpg#region=0.15,0.080,0.80,0.155&region=0.565,0.234,0.31,0.522&region=0.15,0.754,0.80,0.124
+        - https://archive.org/download/NZ_1888_V_5/page/n134_w1600.jpg#region=0.10,0.085,0.80,0.190&region=0.10,0.600,0.80,0.280
+        - https://archive.org/download/NZ_1888_V_5/page/n135_w1600.jpg
+        - https://archive.org/download/NZ_1888_V_5/page/n136_w1600.jpg#region=0.08,0.07,0.84,0.51
+    firstPage: 121
+    lastPage: 129
+    notes:
+      - { page: 122, opens: ¹ Dieses }
+      - { page: 122, opens: ² l. c. }
+      - { page: 122, opens: ³ Plan }
+      - { page: 123, opens: ¹ Dieses }
+      - { page: 123, opens: ² Experimenteller }
+      - { page: 128, opens: ¹ Arch. }
+    # The figures and their legends are left out.
+    slug: ueber-die-beziehung-des-strickkoerpers-zum-hinterstrang-und-hinterstrangskern
+    title: Ueber die Beziehung des Strickkörpers zum Hinterstrang und Hinterstrangskern nebst Bemerkungen über zwei Felder der Oblongata
+    shortTitle: Die Beziehung des Strickkörpers zum Hinterstrang
+    edition: "Neurologisches Centralblatt, V. Jahrgang, Nr. 6 (Leipzig 1886), S. 121–129"
+    author: Sigmund Freud und L. Darkschewitsch
+    year: 1886
+    kind: work
+  - item: mfo-1886-acusticus
+    citation: MfO 1886
+    ocr: deu
+    # The two issues' pages, the first of each read from below the title
+    # and byline; the figures and their legends are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/monatsschriftfu01unkngoog
+      firstPage: 245
+      pages:
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n253_w1600.jpg#region=0.02,0.607,0.82,0.277
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n254_w1600.jpg#region=0.15,0.085,0.82,0.799
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n255_w1600.jpg#region=0.05,0.090,0.83,0.800
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n256_w1600.jpg#region=0.15,0.105,0.76,0.462
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n257_w1600.jpg#region=0.09,0.133,0.76,0.446
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n258_w1600.jpg#region=0.11,0.130,0.82,0.357&region=0.11,0.802,0.82,0.086
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n259_w1600.jpg#region=0.04,0.128,0.82,0.071&region=0.04,0.530,0.82,0.291
+        - url: https://archive.org/download/monatsschriftfu01unkngoog/page/n285_w1600.jpg#region=0.05,0.638,0.82,0.258
+          page: 277
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n286_w1600.jpg#region=0.14,0.095,0.82,0.791
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n287_w1600.jpg#region=0.03,0.108,0.82,0.791
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n288_w1600.jpg#region=0.15,0.105,0.82,0.794
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n289_w1600.jpg#region=0.03,0.372,0.82,0.498
+        - https://archive.org/download/monatsschriftfu01unkngoog/page/n290_w1600.jpg#region=0.15,0.088,0.82,0.787
+    firstPage: 245
+    lastPage: 282
+    # The paper's parts, numbered.
+    headings:
+      - { page: 245, opens: Der ehrenvollen, title: I. }
+      - { page: 247, opens: Wir verfolgen den Verlauf, title: II. }
+      - { page: 280, opens: Ich habe Eingangs, title: III. }
+    notes:
+      - { page: 247, opens: "*) Zur" }
+    slug: ueber-den-ursprung-des-n-acusticus
+    title: Ueber den Ursprung des N. acusticus
+    shortTitle: Ursprung des N. acusticus
+    edition: "Monatsschrift für Ohrenheilkunde, XX. Jahrgang, Nr. 8 und 9 (Berlin, August und September 1886), S. 245–251 und 277–282"
     author: Sigmund Freud
     year: 1886
     kind: work
@@ -1070,6 +1323,302 @@ books:
     author: Sigmund Freud
     year: 1887
     kind: work
+  - item: zfk-1887-referate
+    citation: ZfK 1887
+    ocr: deu
+    # The year's pages, each cropped to Freud's reviews: the title of the
+    # work reviewed down to his signature, which is left out. The table in
+    # the review of Chapin is read column by column.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ZfK_1887_1
+      pages:
+        - url: https://archive.org/download/ZfK_1887_1/page/n33_w1600.jpg#region=0.107,0.106,0.716,0.803
+          page: 15
+        - url: https://archive.org/download/ZfK_1887_1/page/n34_w1600.jpg#region=0.177,0.098,0.718,0.080&region=0.175,0.206,0.719,0.672
+          page: 16
+        - url: https://archive.org/download/ZfK_1887_1/page/n54_w1600.jpg#region=0.142,0.733,0.730,0.186
+          page: 36
+        - url: https://archive.org/download/ZfK_1887_1/page/n55_w1600.jpg#region=0.136,0.107,0.717,0.232&region=0.136,0.338,0.712,0.296&region=0.136,0.630,0.345,0.201&region=0.498,0.630,0.350,0.190&region=0.134,0.829,0.712,0.088
+          page: 37
+        - url: https://archive.org/download/ZfK_1887_1/page/n56_w1600.jpg#region=0.147,0.101,0.727,0.808
+          page: 38
+        - url: https://archive.org/download/ZfK_1887_1/page/n57_w1600.jpg#region=0.136,0.284,0.717,0.092&region=0.133,0.380,0.717,0.227
+          page: 39
+        - url: https://archive.org/download/ZfK_1887_1/page/n80_w1600.jpg#region=0.177,0.459,0.717,0.455
+          page: 62
+        - url: https://archive.org/download/ZfK_1887_1/page/n81_w1600.jpg#region=0.135,0.113,0.714,0.051&region=0.133,0.222,0.715,0.698
+          page: 63
+        - url: https://archive.org/download/ZfK_1887_1/page/n82_w1600.jpg#region=0.144,0.098,0.722,0.120
+          page: 64
+        - url: https://archive.org/download/ZfK_1887_1/page/n140_w1600.jpg#region=0.170,0.162,0.720,0.753
+          page: 122
+        - https://archive.org/download/ZfK_1887_1/page/n141_w1600.jpg#region=0.132,0.112,0.716,0.803
+        - https://archive.org/download/ZfK_1887_1/page/n142_w1600.jpg#region=0.172,0.103,0.715,0.803
+        - https://archive.org/download/ZfK_1887_1/page/n143_w1600.jpg#region=0.132,0.115,0.717,0.807
+        - https://archive.org/download/ZfK_1887_1/page/n144_w1600.jpg#region=0.162,0.106,0.723,0.689
+        - url: https://archive.org/download/ZfK_1887_1/page/n265_w1600.jpg#region=0.184,0.113,0.719,0.425&region=0.187,0.540,0.717,0.378
+          page: 247
+        - https://archive.org/download/ZfK_1887_1/page/n266_w1600.jpg#region=0.103,0.120,0.718,0.279&region=0.099,0.404,0.721,0.521
+        - https://archive.org/download/ZfK_1887_1/page/n267_w1600.jpg#region=0.141,0.111,0.720,0.232&region=0.141,0.440,0.717,0.346&region=0.141,0.788,0.717,0.128
+        - https://archive.org/download/ZfK_1887_1/page/n268_w1600.jpg#region=0.141,0.115,0.718,0.055&region=0.140,0.179,0.719,0.102
+        - url: https://archive.org/download/ZfK_1887_1/page/n459_w1600.jpg#region=0.128,0.450,0.716,0.447
+          page: 415
+        - https://archive.org/download/ZfK_1887_1/page/n460_w1600.jpg#region=0.167,0.078,0.711,0.197
+        - url: https://archive.org/download/ZfK_1887_1/page/n462_w1600.jpg#region=0.171,0.494,0.711,0.068
+          page: 418
+        - https://archive.org/download/ZfK_1887_1/page/n463_w1600.jpg#region=0.124,0.269,0.717,0.365
+        - https://archive.org/download/ZfK_1887_1/page/n464_w1600.jpg#region=0.184,0.162,0.712,0.359
+        - url: https://archive.org/download/ZfK_1887_1/page/n466_w1600.jpg#region=0.160,0.198,0.708,0.076
+          page: 422
+        - https://archive.org/download/ZfK_1887_1/page/n467_w1600.jpg#region=0.138,0.167,0.718,0.487
+    firstPage: 15
+    lastPage: 423
+    # A page whose numbered paragraph the OCR split from its numeral.
+    paragraphs:
+      - { page: 247, opens: R. Laufenauer. }
+      - { page: 247, opens: „Die Hysteroepilepsie }
+      - { page: 247, opens: L. theilt }
+      - { page: 247, opens: Anästhesien sind }
+      - { page: 247, opens: Stintzing. }
+      - { page: 247, opens: Der Autor beschreibt }
+      - { page: 247, opens: 1. Eine }
+      - { page: 247, opens: "2, Ein" }
+      - { page: 247, opens: "3" }
+      - { page: 247, opens: 4. Ein }
+      # and a page whose first lines run on the paragraph before.
+      - { page: 63, opens: G. Berry }
+      - { page: 63, opens: Vorgeschichte }
+      - { page: 63, opens: Bei der ersten }
+      - { page: 63, opens: Das Wesen }
+      - { page: 63, opens: Unter dieser }
+    # Each review opens with the work it reviews.
+    headings:
+      - { page: 15, opens: Otto Buss., title: Zur Lehre von der Dystrophia muscularis progressiva }
+      - { page: 16, opens: R. Friedi, title: "In welchem Zeitpunkt ist es angezeigt, mit der elektrischen Behandlung acut entzündlicher Krankheiten des Nervensystems zu beginnen?" }
+      - { page: 36, opens: Berkhan. Versuche, title: "Versuche, die Taubstummheit zu bessern und die Erfolge dieser Versuche" }
+      - { page: 37, opens: H. D, title: Peripheral Neuritis and the painful paralyses of early life }
+      - { page: 38, opens: M. Freyer., title: Zur Tabes im jugendlichen Alter }
+      - { page: 39, opens: W. G. Winner., title: A case of basilar meningitis }
+      - { page: 39, opens: H. Hochhaus, title: Meningitische Hemiplegie }
+      - { page: 62, opens: P. J. Moebius., title: Ueber aufsteigende Lähmung nach Keuchhusten }
+      - { page: 63, opens: G. Berry und, title: "Case of Ophthalmoplegia externa acuta probably due to a scrofulous lesion of the Pons Varolii; Recovery" }
+      - { page: 122, opens: Stephen Mackenzie., title: Report on Chorea }
+      - { page: 247, opens: R. Laufenauer., title: Ueber Hysteroepilepsie der Knaben }
+      - { page: 247, opens: Stintzing. Ueber, title: Ueber hereditäre Ataxie }
+      - { page: 248, opens: L., title: Ueber multiple inselförmige Sklerose des Centralnervensystems im Kindesalter }
+      - { page: 249, opens: M. Herz., title: Ueber Hemiatrophia facialis progressiva nebst Mittheilung eines diesbezüglichen Falles }
+      - { page: 249, opens: G. Scholz., title: Ueber schwere diphtheritsche Lähmungen und deren balneotherapeutische Heilung }
+      - { page: 250, opens: Fletcher Ingals., title: Traumatic Tetanus }
+      - { page: 415, opens: J. Abercrombie., title: Clinical lecture on hemiplegia in children }
+      - { page: 418, opens: Warner and, title: "A case of chronic meningitis probably syphilitic, and causing progressive dementia" }
+      - { page: 419, opens: Ed. Bugnion., title: "Chute sur la tête; enfoncement de l’os frontal, troubles consécutifs de l’intelligence et de la motilité" }
+      - { page: 420, opens: Karl Gerling., title: Ueber Athetosis }
+      - { page: 422, opens: Chever Bevill, title: Neurasthenia or Chlorosis }
+      - { page: 423, opens: Moncorvo (Rio, title: De l’étiologie de la sclérose en plaque chez les enfants }
+    slug: besprechungen-im-centralblatt-fuer-kinderheilkunde-1887
+    title: Besprechungen im Centralblatt für Kinderheilkunde 1887
+    shortTitle: Centralblatt für Kinderheilkunde 1887
+    edition: "Centralblatt für Kinderheilkunde, I. Jahrgang (Leipzig und Wien 1887), Nr. 1–3, 6, 12, 20 und 21, S. 15–16, 36–39, 62–64, 122–126, 247–250, 415–416 und 418–423"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: cfp-1-referate
+    citation: CfP I
+    ocr: deu
+    # The volumes' pages, each cropped to Freud's reviews: the title of the
+    # work reviewed down to his signature, which is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr11887leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n38_w1600.jpg#region=0.063,0.852,0.771,0.093
+          page: 31
+        - https://archive.org/download/zentralblattfr11887leip/page/n39_w1600.jpg#region=0.176,0.087,0.773,0.260
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n58_w1600.jpg#region=0.070,0.860,0.772,0.091
+          page: 51
+        - https://archive.org/download/zentralblattfr11887leip/page/n59_w1600.jpg#region=0.166,0.091,0.773,0.382
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n83_w1600.jpg#region=0.173,0.166,0.786,0.514
+          page: 76
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n108_w1600.jpg#region=0.058,0.256,0.774,0.349
+          page: 101
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n134_w1600.jpg#region=0.040,0.256,0.791,0.684
+          page: 127
+        - https://archive.org/download/zentralblattfr11887leip/page/n135_w1600.jpg#region=0.196,0.084,0.802,0.462
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n196_w1600.jpg#region=0.042,0.196,0.792,0.736
+          page: 189
+        - https://archive.org/download/zentralblattfr11887leip/page/n197_w1600.jpg#region=0.164,0.077,0.773,0.193&region=0.151,0.288,0.787,0.484
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n216_w1600.jpg#region=0.054,0.247,0.774,0.226
+          page: 209
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n243_w1600.jpg#region=0.153,0.206,0.782,0.683
+          page: 236
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n259_w1600.jpg#region=0.151,0.152,0.785,0.514
+          page: 252
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n269_w1600.jpg#region=0.157,0.555,0.773,0.360
+          page: 262
+        - https://archive.org/download/zentralblattfr11887leip/page/n270_w1600.jpg#region=0.067,0.122,0.773,0.158
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n275_w1600.jpg#region=0.154,0.419,0.789,0.158
+          page: 268
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n514_w1600.jpg#region=0.042,0.292,0.787,0.646
+          page: 507
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n603_w1600.jpg#region=0.163,0.132,0.781,0.209
+          page: 596
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n605_w1600.jpg#region=0.156,0.655,0.775,0.278
+          page: 598
+        - https://archive.org/download/zentralblattfr11887leip/page/n606_w1600.jpg#region=0.049,0.095,0.779,0.848
+        - https://archive.org/download/zentralblattfr11887leip/page/n607_w1600.jpg#region=0.179,0.091,0.772,0.092
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n635_w1600.jpg#region=0.124,0.685,0.772,0.262
+          page: 628
+        - https://archive.org/download/zentralblattfr11887leip/page/n636_w1600.jpg#region=0.089,0.084,0.775,0.260
+        - url: https://archive.org/download/zentralblattfr11887leip/page/n639_w1600.jpg#region=0.177,0.836,0.769,0.090
+          page: 632
+        - https://archive.org/download/zentralblattfr11887leip/page/n640_w1600.jpg#region=0.052,0.105,0.774,0.613
+    firstPage: 31
+    lastPage: 633
+    headings:
+      - { page: 31, opens: B. Sachs., title: Kurze Mittheilung über einen Fall von solitärem Tuberkel des Halsrückenmarkes }
+      - { page: 51, opens: A. Nieden., title: "Ein Fall von Lesescheu, Dyslexie (Dysanagnosie) mit Sectionsbefund" }
+      - { page: 76, opens: E. S. Reynolds., title: "On Changes in nervous system after amputation of limbs, with bibliography and a recent case" }
+      - { page: 101, opens: W. Thorburn., title: Cases of injury to the cervical region of the spinal cord }
+      - { page: 127, opens: L.Landois., title: "Ueber die Erregung typischer Krampfanfälle nach Behandlung des centralen Nervensystems mit chemischen Substanzen, mit besonderer Berücksichtigung der Urämie" }
+      - { page: 189, opens: Ph. Knoll. Ueber die Augen, title: Ueber die Augenbewegungen bei Reizung einzelner Theile des Grosshirns }
+      - { page: 190, opens: Ph. Knoll. Ueber die nach, title: Ueber die nach Verschluss der Hirnarterien auftretenden Augenbewegungen }
+      - { page: 209, opens: E. Beraneck., title: Histogénèse des nerfs céphaliques }
+      - { page: 236, opens: Ch. Julin., title: Le Système nerveux grand sympathique de l’Ammocoetes (Petromyzon Planeri) }
+      - { page: 252, opens: Leube., title: Ueber Herderkrankungen im Gehirnschenkel in der Gegend des hinteren Vierhügelpaares }
+      - { page: 262, opens: C. Rabl., title: Ueber das Gebiet des Nervus facialis }
+      - { page: 263, opens: M. Friedmann., title: Einiges über Degenerationsprocesse im Hemisphärenmark }
+      - { page: 268, opens: Phisalix., title: Sur les nerfs craniens d’un embryon humain de trente-deux jours }
+      - { page: 507, opens: V.Urbantschitsch., title: Ueber den Einfluss von Trigeminusreizen auf den Tast- u. Temperatursinn der Gesichtshaut }
+      - { page: 596, opens: Mingazzini., title: Nota sopra tre cervelli di feti trigemini umani }
+      - { page: 598, opens: Bechterew., title: "Ueber die hinteren Nervenwurzeln, ihre Endigung in der grauen Substanz des Rückenmarkes und ihre centrale Fortsetzung im letzteren" }
+      - { page: 628, opens: J. Nussbaum., title: Ueber die wechselseitigen Beziehungen zwischen den centralen Ursprungsgebieten der Augenmuskelnerven }
+      - { page: 632, opens: Obersteiner., title: Der Hypnotismus mit besonderer Berücksichtigung seiner klinischen und forensischen Bedeutung }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    shortTitle: "Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. I (1887–88), S. 31–32, 51–52, 76, 101, 127–128, 189–190, 209, 236, 252, 262–263, 268, 507, 596, 598–600, 628–629 und 632–633; Bd. II (1888–89), S. 456–457 und 554–555; Bd. III (1889–90), S. 84–85 und 626–631; Bd. V (1891–92), S. 656, 677–678, 767–768 und 859–860; Bd. VI (1892–93), S. 24, 86, 159–160, 187–188 und 454–455 (Leipzig und Wien)"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: cfp-2-referate
+    citation: CfP II
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr21888leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr21888leip/page/n463_w1600.jpg#region=0.100,0.593,0.798,0.326
+          page: 456
+        - https://archive.org/download/zentralblattfr21888leip/page/n464_w1600.jpg#region=0.068,0.065,0.802,0.245
+        - url: https://archive.org/download/zentralblattfr21888leip/page/n561_w1600.jpg#region=0.116,0.395,0.801,0.540
+          page: 554
+        - https://archive.org/download/zentralblattfr21888leip/page/n562_w1600.jpg#region=0.088,0.087,0.800,0.551
+    firstPage: 456
+    lastPage: 555
+    headings:
+      - { page: 456, opens: W. Bechterew., title: Ueber die Bestandtheile des vorderen Kleinhirnschenkels }
+      - { page: 554, opens: J. Belloni., title: Ueber die centrale Endigung des Nervus opticus bei den Vertebraten }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. II (Leipzig und Wien 1888–89), S. 456–457 und 554–555"
+    author: Sigmund Freud
+    year: 1888
+    kind: work
+  - item: cfp-3-referate
+    citation: CfP III
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr31889leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr31889leip/page/n91_w1600.jpg#region=0.105,0.676,0.833,0.231
+          page: 84
+        - https://archive.org/download/zentralblattfr31889leip/page/n92_w1600.jpg#region=0.042,0.074,0.839,0.340
+        - url: https://archive.org/download/zentralblattfr31889leip/page/n633_w1600.jpg#region=0.092,0.369,0.831,0.039&region=0.092,0.427,0.831,0.504
+          page: 626
+        - https://archive.org/download/zentralblattfr31889leip/page/n634_w1600.jpg#region=0.035,0.082,0.830,0.842
+        - https://archive.org/download/zentralblattfr31889leip/page/n635_w1600.jpg#region=0.129,0.082,0.827,0.843
+        - https://archive.org/download/zentralblattfr31889leip/page/n636_w1600.jpg#region=0.034,0.086,0.840,0.840
+        - https://archive.org/download/zentralblattfr31889leip/page/n637_w1600.jpg#region=0.113,0.083,0.834,0.845
+        - https://archive.org/download/zentralblattfr31889leip/page/n638_w1600.jpg#region=0.057,0.079,0.824,0.057
+    firstPage: 84
+    lastPage: 631
+    headings:
+      - { page: 84, opens: L., title: Ueber den oberen Kern des N. oculomotorius }
+      - { page: 626, opens: M. Kückenthal, title: Das Centralnervensystem der Cetaceen }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. III (Leipzig und Wien 1889–90), S. 84–85 und 626–631"
+    author: Sigmund Freud
+    year: 1889
+    kind: work
+  - item: cfp-5-referate
+    citation: CfP V
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr51891leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n663_w1600.jpg#region=0.117,0.516,0.807,0.396
+          page: 656
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n684_w1600.jpg#region=0.066,0.814,0.808,0.108
+          page: 677
+        - https://archive.org/download/zentralblattfr51891leip/page/n685_w1600.jpg#region=0.132,0.074,0.811,0.328
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n774_w1600.jpg#region=0.071,0.834,0.809,0.101
+          page: 767
+        - https://archive.org/download/zentralblattfr51891leip/page/n775_w1600.jpg#region=0.132,0.085,0.813,0.514
+        - url: https://archive.org/download/zentralblattfr51891leip/page/n866_w1600.jpg#region=0.085,0.223,0.812,0.698
+          page: 859
+        - https://archive.org/download/zentralblattfr51891leip/page/n867_w1600.jpg#region=0.083,0.074,0.808,0.074&region=0.082,0.161,0.817,0.628
+    firstPage: 656
+    lastPage: 860
+    headings:
+      - { page: 656, opens: R. Schaffer., title: Vergleichend-anatomische Untersuchungen über Rückenmarksfaserung }
+      - { page: 677, opens: Babinski., title: Paraplégie flasque par compression de la moëlle }
+      - { page: 767, opens: Bernheimer., title: Ueber die Sehnervenwurzeln des Menschen }
+      - { page: 859, opens: Sternberg. Hemmung, title: "Hemmung, Ermüdung und Bahnung der Sehnenreflexe im Rückenmark" }
+      - { page: 860, opens: L., title: Sull’ origine del nervo acustico }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. V (Leipzig und Wien 1891–92), S. 656, 677–678, 767–768 und 859–860"
+    author: Sigmund Freud
+    year: 1891
+    kind: work
+  - item: cfp-6-referate
+    citation: CfP VI
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zentralblattfr61892leip
+      pages:
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n31_w1600.jpg#region=0.105,0.400,0.807,0.217
+          page: 24
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n93_w1600.jpg#region=0.112,0.262,0.807,0.331
+          page: 86
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n166_w1600.jpg#region=0.072,0.738,0.808,0.192
+          page: 159
+        - https://archive.org/download/zentralblattfr61892leip/page/n167_w1600.jpg#region=0.120,0.081,0.813,0.261
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n194_w1600.jpg#region=0.056,0.717,0.804,0.202
+          page: 187
+        - https://archive.org/download/zentralblattfr61892leip/page/n195_w1600.jpg#region=0.132,0.063,0.811,0.443
+        - url: https://archive.org/download/zentralblattfr61892leip/page/n461_w1600.jpg#region=0.143,0.895,0.804,0.041
+          page: 454
+        - https://archive.org/download/zentralblattfr61892leip/page/n462_w1600.jpg#region=0.045,0.082,0.820,0.362
+    firstPage: 24
+    lastPage: 455
+    headings:
+      - { page: 24, opens: M. Sternberg., title: Ueber die Beziehungen der Sehnenreflexe zum Muskeltonus }
+      - { page: 86, opens: O. Snell., title: Die Abhängigkeit des Hirngewichtes von dem Körpergewicht und den geistigen Fähigkeiten }
+      - { page: 159, opens: B. Lange., title: "Inwieweit sind die Symptome, welche nach Zerstörung des Kleinhirns beobachtet werden, auf Verletzungen des Acusticus zurückzuführen?" }
+      - { page: 187, opens: Steiner., title: Sinnessphären und Bewegungen }
+      - { page: 454, opens: Danilewsky., title: Zur Physiologie des Centralnervensystems von Amphioxus }
+    slug: besprechungen-im-centralblatt-fuer-physiologie-18871892
+    title: "Besprechungen im Centralblatt für Physiologie 1887–1892"
+    edition: "Centralblatt für Physiologie, Bd. VI (Leipzig und Wien 1892–93), S. 24, 86, 159–160, 187–188 und 454–455"
+    author: Sigmund Freud
+    year: 1892
+    kind: work
   - item: wmw-37-1887-5
     citation: WMW 1887
     # Two columns to a page, each numbered: a page is cited by its first.
@@ -1085,10 +1634,96 @@ books:
       - { page: 137, opens: Wie wenig }
       - { page: 137, opens: Die Behandlung gewisser }
       - { page: 137, opens: Das Heilverfahren }
-    slug: besprechungen-von-averbeck-und-weir-mitchell
-    title: "Besprechungen von Averbeck, Die akute Neurasthenie, und Weir Mitchell, Die Behandlung gewisser Formen von Neurasthenie und Hysterie"
-    shortTitle: Averbeck und Weir Mitchell
-    edition: "Wiener Medizinische Wochenschrift 37, Nr. 5 (29. Jänner 1887), Sp. 138"
+    headings:
+      - { page: 137, opens: Die akute Neurasthenie, title: Die akute Neurasthenie }
+      - { page: 137, opens: Die Behandlung gewisser, title: Die Behandlung gewisser Formen von Neurasthenie und Hysterie }
+    slug: besprechungen-in-der-wiener-medizinischen-wochenschrift-1887
+    title: Besprechungen in der Wiener Medizinischen Wochenschrift 1887
+    shortTitle: Wiener Medizinische Wochenschrift 1887
+    edition: "Wiener Medizinische Wochenschrift 37, Nr. 5 (29. Jänner 1887), Sp. 138, und Nr. 50 (10. Dezember 1887), Sp. 1642–1644"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: wmw-1887-obersteiner
+    citation: WMW 1887
+    ocr: deu
+    # Its columns, the first read without the byline below the title of the
+    # book it reviews.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wmw-37-1887-50
+      firstPage: 1642
+      pages:
+        - https://archive.org/download/wmw-37-1887-50/page/n8_w1600.jpg#region=0.520,0.630,0.422,0.056&region=0.520,0.704,0.422,0.232
+        - https://archive.org/download/wmw-37-1887-50/page/n9_w1600.jpg#region=0.080,0.066,0.418,0.875
+        - https://archive.org/download/wmw-37-1887-50/page/n9_w1600.jpg#region=0.495,0.066,0.420,0.335
+    firstPage: 1642
+    lastPage: 1644
+    headings:
+      - { page: 1642, opens: Anleitung beim Studium, title: Anleitung beim Studium des Baues der nervösen Centralorgane im gesunden und kranken Zustande }
+    # The title set with a hanging indent, and a column whose lines the OCR
+    # read askew.
+    paragraphs:
+      - { page: 1642, opens: Anleitung beim }
+      - { page: 1642, opens: ‘ Die letzten }
+      - { page: 1642, opens: Das hier }
+      - { page: 1643, opens: Es wird nicht }
+    slug: besprechungen-in-der-wiener-medizinischen-wochenschrift-1887
+    title: Besprechungen in der Wiener Medizinischen Wochenschrift 1887
+    edition: "Wiener Medizinische Wochenschrift 37, Nr. 50 (10. Dezember 1887), Sp. 1642–1644"
+    author: Sigmund Freud
+    year: 1887
+    kind: work
+  - item: nc-1887-referate
+    citation: NC 1887
+    ocr: deu
+    # Four issues' pages, each cropped to Freud's review: its numbered title
+    # down to his signature, which is left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/nc-1887-6-3
+      pages:
+        - url: https://archive.org/download/nc-1887-6-3/page/n4_w1600.jpg#region=0.070,0.653,0.826,0.217
+          page: 53
+        - url: https://archive.org/download/nc-1887-6-3/page/n5_w1600.jpg#region=0.117,0.058,0.825,0.423
+          page: 54
+        - url: https://archive.org/download/nc-1887-6-4/page/n6_w1600.jpg#region=0.055,0.395,0.883,0.400
+          page: 79
+        - url: https://archive.org/download/nc-1887-6-6/page/n10_w1600.jpg#region=0.054,0.760,0.841,0.174
+          page: 131
+        - url: https://archive.org/download/nc-1887-6-6/page/n11_w1600.jpg#region=0.106,0.056,0.822,0.881
+          page: 132
+        - url: https://archive.org/download/nc-1887-6-6/page/n12_w1600.jpg#region=0.068,0.054,0.840,0.292
+          page: 133
+        - url: https://archive.org/download/nc-1887-6-23/page/n6_w1600.jpg#region=0.069,0.517,0.832,0.403
+          page: 543
+        - url: https://archive.org/download/nc-1887-6-23/page/n7_w1600.jpg#region=0.085,0.051,0.843,0.121
+          page: 544
+    firstPage: 53
+    lastPage: 544
+    # The formula set line by line, and titles set with a hanging indent.
+    paragraphs:
+      - { page: 54, opens: "1,0 Acid." }
+      - { page: 54, opens: "1,0 Kalium" }
+      - { page: 54, opens: "200,0 Aq." }
+      - { page: 54, opens: In dieser }
+      - { page: 54, opens: (Ref. hat }
+      - { page: 54, opens: c) Dieselbe }
+      - { page: 79, opens: l) Beiträge }
+      - { page: 79, opens: Eine Mittheilung }
+      - { page: 79, opens: Die Versuche }
+      - { page: 131, opens: 10) Monoplegia }
+      - { page: 131, opens: Ein 19jähriges }
+    # Each review opens with the title of the work it reviews.
+    headings:
+      - { page: 53, opens: l) Ein Beitrag, title: Ein Beitrag zur Nervenfärbetechnik }
+      - { page: 79, opens: l) Beiträge zur, title: Beiträge zur Kenntniss der Leitungsbahnen im Rückenmarke }
+      - { page: 131, opens: 10) Monoplegia, title: Monoplegia anaesthetica }
+      - { page: 543, opens: 2) Ueber die, title: Ueber die wechselseitigen Beziehungen zwischen den centralen Ursprungsgebieten der Augenmuskelnerven }
+    slug: besprechungen-im-neurologischen-centralblatt-1887
+    title: Besprechungen im Neurologischen Centralblatt 1887
+    shortTitle: Neurologisches Centralblatt 1887
+    edition: "Neurologisches Centralblatt, VI. Jahrgang, Nr. 3, 4, 6 und 23 (Leipzig 1887), S. 53–54, 79, 131–133 und 543–544"
     author: Sigmund Freud
     year: 1887
     kind: work
@@ -1536,6 +2171,57 @@ books:
     author: Sigmund Freud
     year: 1893
     kind: work
+  - item: revue-neurologique-1893-diplegies
+    citation: Revue neurologique 1893
+    # Freud's French, read with Tesseract's French model.
+    ocr: fra
+    # The issue's pages, the first read from below the title and byline;
+    # the running heads are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/BIUSante_130135x1893
+      firstPage: 177
+      pages:
+        - https://archive.org/download/BIUSante_130135x1893/page/n180_w1600.jpg#region=0.05,0.733,0.88,0.186
+        - https://archive.org/download/BIUSante_130135x1893/page/n181_w1600.jpg#region=0.05,0.064,0.90,0.860
+        - https://archive.org/download/BIUSante_130135x1893/page/n182_w1600.jpg#region=0.04,0.062,0.90,0.862
+        - https://archive.org/download/BIUSante_130135x1893/page/n183_w1600.jpg#region=0.05,0.064,0.92,0.860
+        - https://archive.org/download/BIUSante_130135x1893/page/n184_w1600.jpg#region=0.04,0.062,0.92,0.862
+        - https://archive.org/download/BIUSante_130135x1893/page/n185_w1600.jpg#region=0.05,0.066,0.92,0.860
+        - https://archive.org/download/BIUSante_130135x1893/page/n186_w1600.jpg#region=0.04,0.064,0.92,0.835
+    firstPage: 177
+    lastPage: 183
+    notes:
+      - { page: 177, opens: (1) Beiträge }
+    slug: les-diplegies-cerebrales-infantiles
+    title: Les diplégies cérébrales infantiles
+    shortTitle: Les diplégies cérébrales infantiles
+    edition: "Revue neurologique, 1re année, nº 8 (Paris, 30 avril 1893), p. 177–183"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: nc-1893-enuresis
+    citation: NC 1893
+    ocr: deu
+    # The volume's three pages, the first read from below the title and
+    # byline, the last down to the date.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/1893_NZ_12
+      firstPage: 735
+      pages:
+        - https://archive.org/download/1893_NZ_12/page/n742_w1600.jpg#region=0.13,0.555,0.75,0.325
+        - https://archive.org/download/1893_NZ_12/page/n743_w1600.jpg#region=0.13,0.100,0.75,0.775
+        - https://archive.org/download/1893_NZ_12/page/n744_w1600.jpg#region=0.13,0.100,0.75,0.585
+    firstPage: 735
+    lastPage: 737
+    slug: ueber-ein-symptom-das-haeufig-die-enuresis-nocturna-der-kinder-begleitet
+    title: Ueber ein Symptom, das häufig die Enuresis nocturna der Kinder begleitet
+    shortTitle: Ein Symptom der Enuresis nocturna
+    edition: Neurologisches Centralblatt, XII. Jahrgang, Nr. 21 (Leipzig, 1. November 1893), S. 735–737
+    author: Sigmund Freud
+    year: 1893
+    kind: work
   - item: Diagnostisches1v4K
     citation: Diagn. Lex. I
     ocr: deu
@@ -1773,6 +2459,384 @@ books:
     author: Sigmund Freud
     year: 1895
     kind: work
+  - item: nc-1895-zwangsvorstellungen
+    citation: NC 1895
+    ocr: deu
+    # Freud's abstract of his lecture to the Verein für Psychiatrie und
+    # Neurologie in Wien (15 January 1895), headed "Autorreferat" in the
+    # society's report: read from its run-in title to its end, before
+    # Krafft-Ebing's demonstration.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/NZ_1895_XIV
+      firstPage: 699
+      pages:
+        - https://archive.org/download/NZ_1895_XIV/page/n700_w1600.jpg#region=0.07,0.331,0.83,0.602
+        - https://archive.org/download/NZ_1895_XIV/page/n701_w1600.jpg#region=0.10,0.055,0.81,0.585
+    firstPage: 699
+    lastPage: 700
+    slug: ueber-den-mechanismus-der-zwangsvorstellung-und-phobien
+    title: Ueber den Mechanismus der Zwangsvorstellung und Phobien
+    shortTitle: Mechanismus der Zwangsvorstellung und Phobien
+    edition: Neurologisches Centralblatt, XIV. Jahrgang, Nr. 15 (Leipzig, 1. August 1895), S. 699–700
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: ikr-1893-39-referate
+    citation: IKR VII
+    ocr: deu
+    # Single issues, each column cropped to Freud's reviews, signed "F."
+    # (one "SFd."), the signature left out. The journal numbers its columns.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-39
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-39/page/n9_w1600.jpg#region=0.508,0.700,0.470,0.243
+          page: 1484
+    firstPage: 1484
+    lastPage: 1484
+    headings:
+      - { page: 1484, opens: Bulkley, title: Tonsillenschanker }
+      - { page: 1484, opens: "Phediuretin, (", title: Phediuretin }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    shortTitle: "Internationale Klinische Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 39 (Wien 1893), Sp. 1484"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-41-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-41
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-41/page/n8_w1600.jpg#region=0.045,0.800,0.465,0.140
+          page: 1553
+    firstPage: 1553
+    lastPage: 1553
+    headings:
+      - { page: 1553, opens: Bibliographie, title: Bibliographie der klinischen Helminthologie }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 41 (Wien 1893), Sp. 1553"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-42-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-42
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-42/page/n12_w1600.jpg#region=0.515,0.165,0.465,0.227
+          page: 1602
+    firstPage: 1602
+    lastPage: 1602
+    headings:
+      - { page: 1602, opens: Mikroskopie, title: Mikroskopie und Chemie am Krankenbett }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 42 (Wien 1893), Sp. 1602"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-44-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-44
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-44/page/n8_w1600.jpg#region=0.053,0.262,0.460,0.201
+          page: 1673
+    firstPage: 1673
+    lastPage: 1673
+    headings:
+      - { page: 1673, opens: Der Tabak, title: Der Tabak und seine Einwirkung auf den menschlichen Organismus }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 44 (Wien 1893), Sp. 1673"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-45-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-45
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-45/page/n9_w1600.jpg#region=0.054,0.659,0.460,0.243
+          page: 1707
+    firstPage: 1707
+    lastPage: 1707
+    headings:
+      - { page: 1707, opens: Klinische Terminologie, title: Klinische Terminologie }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 45 (Wien 1893), Sp. 1707"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-47-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-47
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-47/page/n9_w1600.jpg#region=0.518,0.528,0.472,0.209
+          page: 1788
+        - url: https://archive.org/download/ikr-7-1893-47/page/n11_w1600.jpg#region=0.508,0.474,0.475,0.460
+          page: 1792
+        - https://archive.org/download/ikr-7-1893-47/page/n12_w1600.jpg#region=0.054,0.068,0.460,0.406
+    firstPage: 1788
+    lastPage: 1793
+    headings:
+      - { page: 1788, opens: Sanitätsbericht, title: "Sanitätsbericht über die königlich preussische Armee, das XII. (königlich sächsische) und das XIII. (königlich württembergische) Armeecorps" }
+      - { page: 1792, opens: Dr. Heinrich Kayser, title: Ueber den Einfluss des Salipyrins bei Gebärmutterblutungen }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 47 (Wien 1893), Sp. 1788–1793"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-51-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-51
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-51/page/n13_w1600.jpg#region=0.059,0.708,0.470,0.202
+          page: 1947
+    firstPage: 1947
+    lastPage: 1947
+    headings:
+      - { page: 1947, opens: Dr. med. Paul Klemm, title: Indicationen zur Operation der Perityphlitis }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 51 (Wien 1893), Sp. 1947"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-52-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-52
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-52/page/n7_w1600.jpg#region=0.053,0.739,0.457,0.200
+          page: 1975
+    firstPage: 1975
+    lastPage: 1975
+    headings:
+      - { page: 1975, opens: Lehrbuch, title: Lehrbuch der Psychiatrie }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 52 (Wien 1893), Sp. 1975"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1893-53-referate
+    citation: IKR VII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-7-1893-53
+      pages:
+        - url: https://archive.org/download/ikr-7-1893-53/page/n8_w1600.jpg#region=0.031,0.246,0.462,0.270
+          page: 2009
+    firstPage: 2009
+    lastPage: 2009
+    headings:
+      - { page: 2009, opens: P. J. Möbius, title: Ueber Tabes bei Weibern }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VII. Jahrgang, Nr. 53 (Wien 1893), Sp. 2009"
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: ikr-1894-2-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-2
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-2/page/n10_w1600.jpg#region=0.497,0.140,0.465,0.398
+          page: 54
+    firstPage: 54
+    lastPage: 54
+    headings:
+      - { page: 54, opens: Dr. J. J. Platonnow, title: Zur Frage über die allgemeine progressive Paralyse der Irren und ihre Behandlung bei den Syphilitikern }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 2 (Wien 1894), Sp. 54"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-9-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-9
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-9/page/n12_w1600.jpg#region=0.062,0.333,0.448,0.473
+          page: 321
+    firstPage: 321
+    lastPage: 321
+    headings:
+      - { page: 321, opens: Dr. Emil Hougberg, title: Beiträge zur Kenntniss der Aetiologie der progressiven Paralyse mit besonderer Berücksichtigung der Syphilis }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 9 (Wien 1894), Sp. 321"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-21-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-21
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-21/page/n13_w1600.jpg#region=0.517,0.744,0.455,0.164
+          page: 772
+    firstPage: 772
+    lastPage: 772
+    headings:
+      - { page: 772, opens: Zur Hydrologie, title: Zur Hydrologie des Bezirkes Konjica in der Hercegovina }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 21 (Wien 1894), Sp. 772"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-31-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-31
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-31/page/n9_w1600.jpg#region=0.062,0.666,0.450,0.267
+          page: 1131
+        - https://archive.org/download/ikr-8-1894-31/page/n9_w1600.jpg#region=0.513,0.036,0.450,0.101
+    firstPage: 1131
+    lastPage: 1132
+    headings:
+      - { page: 1131, opens: Atlas, title: Atlas des menschlichen Gehirns und des Faserverlaufes }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 31 (Wien 1894), Sp. 1131–1132"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-41-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-41
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-41/page/n13_w1600.jpg#region=0.510,0.781,0.470,0.152
+          page: 1492
+        - https://archive.org/download/ikr-8-1894-41/page/n14_w1600.jpg#region=0.031,0.044,0.455,0.096
+    firstPage: 1492
+    lastPage: 1493
+    headings:
+      - { page: 1492, opens: Jahrbuch, title: Jahrbuch der praktischen Medicin }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 41 (Wien 1894), Sp. 1492–1493"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: ikr-1894-42-referate
+    citation: IKR VIII
+    ocr: deu
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/ikr-8-1894-42
+      pages:
+        - url: https://archive.org/download/ikr-8-1894-42/page/n10_w1600.jpg#region=0.486,0.069,0.459,0.287
+          page: 1526
+    firstPage: 1526
+    lastPage: 1526
+    headings:
+      - { page: 1526, opens: Lehrbuch, title: Lehrbuch der Kinderkrankheiten }
+    slug: besprechungen-in-der-internationalen-klinischen-rundschau-18931894
+    title: "Besprechungen in der Internationalen Klinischen Rundschau 1893–1894"
+    edition: "Internationale Klinische Rundschau, VIII. Jahrgang, Nr. 42 (Wien 1894), Sp. 1526"
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: wkr-1895-edinger
+    citation: WKR 1895
+    ocr: deu
+    # Two pages, each column cropped to the review: below its section title,
+    # and without its signature.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/wkr-9-1895-2
+      pages:
+        - url: https://archive.org/download/wkr-9-1895-2/page/n10_w1600.jpg#region=0.030,0.468,0.475,0.472&region=0.515,0.045,0.455,0.892
+          page: 27
+        - url: https://archive.org/download/wkr-9-1895-2/page/n11_w1600.jpg#region=0.030,0.043,0.475,0.895&region=0.515,0.045,0.455,0.589
+          page: 28
+    firstPage: 27
+    lastPage: 28
+    headings:
+      - { page: 27, opens: Eine neue Theorie, title: "Eine neue Theorie über die Ursachen einiger Nervenkrankheiten, insbesondere der Neuritis und der Tabes" }
+    # A page whose lines the OCR read askew, and its title set centred.
+    paragraphs:
+      - { page: 27, opens: Eine neue Theorie }
+      - { page: 27, opens: Dass 6es }
+      - { page: 27, opens: Edinger knüpft }
+      - { page: 27, opens: Neben diesen }
+      - { page: 27, opens: Diese unleugbar }
+      - { page: 27, opens: Es verlohnte }
+      - { page: 27, opens: In sehr vielen }
+      - { page: 27, opens: Dass «Ueberfunction }
+      - { page: 27, opens: Da dies der }
+    slug: besprechungen-in-der-wiener-klinischen-rundschau-1895
+    title: Besprechungen in der Wiener klinischen Rundschau 1895
+    shortTitle: Wiener klinische Rundschau 1895
+    edition: "Wiener klinische Rundschau 9, Nr. 2 (13. Jänner 1895), S. 27–28, Nr. 5 (3. Februar 1895), S. 77, und Nr. 9 (3. März 1895), S. 140–141"
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: wkr-1895-hegar
+    citation: WKR 1895
+    ocr: deu
+    # The page's columns, each cropped to the review.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/1895i_WKR_9_5
+      pages:
+        - url: https://archive.org/download/1895i_WKR_9_5/page/n12_w1600.jpg#region=0.005,0.775,0.480,0.155&region=0.500,0.050,0.455,0.410
+          page: 77
+    firstPage: 77
+    lastPage: 77
+    headings:
+      - { page: 77, opens: Der Geschlechtstrieb., title: Der Geschlechtstrieb }
+    # Its title set centred.
+    paragraphs:
+      - { page: 77, opens: Der Geschlechtstrieb. }
+      - { page: 77, opens: Diese kleine }
+      - { page: 77, opens: Wie vorauszusehen }
+    slug: besprechungen-in-der-wiener-klinischen-rundschau-1895
+    title: Besprechungen in der Wiener klinischen Rundschau 1895
+    edition: "Wiener klinische Rundschau 9, Nr. 5 (3. Februar 1895), S. 77"
+    author: Sigmund Freud
+    year: 1895
+    kind: work
   - item: 1895j_WKR_9_9
     citation: WKR 1895
     columns: true
@@ -1788,9 +2852,10 @@ books:
       - { page: 140, opens: Es wäre verlockend }
       - { page: 140, opens: Ich kenne }
       - { page: 140, opens: Wie man sieht, ist }
-    slug: besprechung-von-moebius-die-migraene
-    title: "Die Migräne. Von G. J. Moebius"
-    shortTitle: Moebius, Die Migräne
+    headings:
+      - { page: 140, opens: Die Migräne. Von, title: Die Migräne }
+    slug: besprechungen-in-der-wiener-klinischen-rundschau-1895
+    title: Besprechungen in der Wiener klinischen Rundschau 1895
     edition: "Wiener klinische Rundschau 9, Nr. 9 (3. März 1895), S. 140–141"
     author: Sigmund Freud
     year: 1895
@@ -1859,6 +2924,177 @@ books:
     edition: Die infantile Cerebrallähmung (Wien, Alfred Hölder, 1897; Nothnagels Specielle Pathologie und Therapie, IX. Band, II. Theil, II. Abtheilung)
     author: Sigmund Freud
     year: 1897
+    kind: work
+  - item: jbnp-1897-kinderlaehmung
+    citation: JbNP I
+    ocr: deu
+    # Freud's report in the Jahresbericht's first volume, read from its
+    # first part title below the list of the year's literature, which is
+    # left out, to its end; the running heads, the scan's stamps and the
+    # reviews signed by others (Flatau's of Muratow (24), Valentin's of
+    # Massalongo and of Buccelli) are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898
+      firstPage: 614
+      pages:
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n631_w1600.jpg#region=0.12,0.718,0.80,0.197
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n632_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n633_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n634_w1600.jpg#region=0.12,0.101,0.80,0.205&region=0.12,0.336,0.80,0.579
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n635_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n636_w1600.jpg#region=0.12,0.101,0.80,0.452
+        - url: https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n638_w1600.jpg#region=0.12,0.272,0.80,0.643
+          page: 621
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n639_w1600.jpg#region=0.12,0.101,0.80,0.044&region=0.12,0.476,0.80,0.439
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n640_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n641_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n642_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n643_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n644_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n645_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n646_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n647_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n648_w1600.jpg#region=0.12,0.101,0.80,0.814
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie1.18971898/page/n649_w1600.jpg#region=0.12,0.101,0.80,0.814
+    firstPage: 614
+    lastPage: 632
+    # The report's parts, set in spaced type.
+    headings:
+      - { page: 614, opens: A. Hemiplegien., level: 1 }
+      - { page: 617, opens: B. Diplegien., level: 1 }
+      - { page: 626, opens: C. Familiäre Formen., level: 1 }
+      - { page: 628, opens: Vermischtes., level: 1 }
+    # Pages where the crop's specks mislead: their paragraphs named.
+    paragraphs:
+      - { page: 615, opens: Epileptiforme Zufälle }
+      - { page: 615, opens: Einzelne Fälle }
+      - { page: 615, opens: Ferner werden }
+      - { page: 615, opens: Endlich einige }
+      - { page: 615, opens: Ledermann (18) }
+      - { page: 617, opens: Die Section ergab }
+      - { page: 617, opens: B. Sachs (28) }
+      - { page: 617, opens: Der Autor räth }
+      - { page: 617, opens: Van Gehuchten (11) }
+      - { page: 626, opens: v. Aschen (2) }
+      - { page: 626, opens: Ein zweites }
+      - { page: 626, opens: Ein drittes }
+      - { page: 626, opens: Das vierte }
+      - { page: 626, opens: Im Anschluss }
+      - { page: 626, opens: Dercum (8) }
+    slug: berichte-ueber-die-cerebrale-kinderlaehmung-18971899
+    title: Berichte über die cerebrale Kinderlähmung 1897–1899
+    shortTitle: Berichte über die cerebrale Kinderlähmung
+    edition: "Jahresbericht über die Leistungen und Fortschritte auf dem Gebiete der Neurologie und Psychiatrie, I. Jahrgang: Bericht über das Jahr 1897 (Berlin 1898), S. 613–632"
+    author: Sigmund Freud
+    year: 1898
+    kind: work
+  - item: jbnp-1898-kinderlaehmung
+    citation: JbNP II
+    ocr: deu
+    # Freud's report in the second volume, read from its first part title
+    # below the list of the year's literature to its end; the running
+    # heads, the scan's stamps and the reviews signed by others (Flatau's
+    # of Schukowsky, Valentin's of Mondio) are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899
+      firstPage: 633
+      pages:
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n652_w1600.jpg#region=0.10,0.285,0.87,0.630
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n653_w1600.jpg#region=0.10,0.104,0.87,0.100&region=0.10,0.788,0.87,0.127
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n654_w1600.jpg#region=0.10,0.104,0.87,0.316&region=0.10,0.540,0.87,0.375
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n655_w1600.jpg#region=0.10,0.104,0.87,0.811
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n656_w1600.jpg#region=0.10,0.094,0.87,0.821
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n657_w1600.jpg#region=0.10,0.096,0.87,0.819
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n658_w1600.jpg#region=0.10,0.104,0.87,0.811
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n659_w1600.jpg#region=0.10,0.104,0.87,0.811
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n660_w1600.jpg#region=0.02,0.094,0.92,0.790
+        - https://archive.org/download/JahresberichtUeberDieLeistungenUndFortschritteAufDemGebieteDerNeurologieUndPsychiatrie2.18981899/page/n661_w1600.jpg#region=0.18,0.100,0.79,0.248
+    firstPage: 633
+    lastPage: 642
+    # The report's parts, set in bold type.
+    headings:
+      - { page: 633, opens: A) Hemiplegische Formen., level: 1 }
+      - { page: 635, opens: B) Diplegien., level: 1 }
+      - { page: 639, opens: C) Familiäre und hereditäre Formen., level: 1 }
+      - { page: 641, opens: D) Vermischtes., level: 1 }
+    # Pages where the crop's specks mislead: their paragraphs named.
+    paragraphs:
+      - { page: 635, opens: Mit 3¾ Jahren }
+      - { page: 635, opens: Pineles (27) }
+      - { page: 635, opens: Levi-Sirugue (19) }
+      - { page: 635, opens: Massalongo (23) }
+      - { page: 635, opens: Allgemeine typische }
+      - { page: 635, opens: Die eigenen Mittheilungen }
+      - { page: 636, opens: Der Fall mit Sektionsbefund }
+      - { page: 636, opens: Heveroch (13) }
+      - { page: 636, opens: Oddo (25) }
+      - { page: 636, opens: 1. cerebralen Ursprungs }
+      - { page: 636, opens: 2. medullären }
+      - { page: 636, opens: 3. familiare }
+      - { page: 636, opens: de Amicis (2) }
+      - { page: 637, opens: Moncorvo (24) }
+      - { page: 637, opens: Drei Fälle von }
+      - { page: 637, opens: König (17) }
+      - { page: 637, opens: Seine Schlüsse }
+      - { page: 637, opens: Spiller (33) }
+      - { page: 638, opens: Sp. stellt }
+      - { page: 638, opens: Sp. theilt }
+      - { page: 638, opens: W. W. Keen }
+      - { page: 638, opens: J. Gross (11) }
+      - { page: 638, opens: Prochazka (30) }
+      - { page: 638, opens: Haskovec (12) }
+      - { page: 638, opens: Poix (29) }
+      - { page: 639, opens: Kerr (15) }
+      - { page: 639, opens: Stieglitz (34) }
+      - { page: 639, opens: S. Placzek (28) }
+      - { page: 639, opens: Das 2jährige Kind }
+      - { page: 639, opens: Der Autor erörtert }
+      - { page: 639, opens: Bruns (6) }
+      - { page: 639, opens: Good (10) }
+      - { page: 640, opens: Lorrain (21) }
+      - { page: 640, opens: 29 Krankengeschichten }
+      - { page: 640, opens: Nach dem Strümpell }
+      - { page: 640, opens: Die Veränderung in }
+      - { page: 640, opens: Am Schlusse }
+      - { page: 641, opens: Bernard (3) }
+      - { page: 641, opens: Lannois und }
+      - { page: 641, opens: Die Autoren betonen }
+      - { page: 641, opens: Pasteur (26) }
+      - { page: 641, opens: Hoffa (14) }
+    slug: berichte-ueber-die-cerebrale-kinderlaehmung-18971899
+    title: Berichte über die cerebrale Kinderlähmung 1897–1899
+    edition: "Jahresbericht über die Leistungen und Fortschritte auf dem Gebiete der Neurologie und Psychiatrie, II. Jahrgang: Bericht über das Jahr 1898 (Berlin 1899), S. 632–642"
+    author: Sigmund Freud
+    year: 1899
+    kind: work
+  - item: jbnp-1899-kinderlaehmung
+    citation: JbNP III
+    ocr: deu
+    # Freud's report in the third volume, read from below the list of the
+    # year's literature to its end; the running heads and the reviews
+    # signed by others (Valentin's of Arnaud, Flatau's of Dydynski,
+    # Switalski and Bary) are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/jahresberichtbe148unkngoog
+      firstPage: 612
+      pages:
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n626_w1600.jpg#region=0.13,0.195,0.79,0.745
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n627_w1600.jpg#region=0.09,0.068,0.79,0.865
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n628_w1600.jpg#region=0.13,0.062,0.79,0.865
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n629_w1600.jpg#region=0.08,0.065,0.79,0.865
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n630_w1600.jpg#region=0.13,0.070,0.79,0.454
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n631_w1600.jpg#region=0.08,0.124,0.79,0.481&region=0.08,0.6045,0.79,0.084
+        - https://archive.org/download/jahresberichtbe148unkngoog/page/n632_w1600.jpg#region=0.13,0.068,0.79,0.633
+    firstPage: 612
+    lastPage: 618
+    slug: berichte-ueber-die-cerebrale-kinderlaehmung-18971899
+    title: Berichte über die cerebrale Kinderlähmung 1897–1899
+    edition: "Jahresbericht über die Leistungen und Fortschritte auf dem Gebiete der Neurologie und Psychiatrie, III. Jahrgang: Bericht über das Jahr 1899 (Berlin 1900), S. 611–618"
+    author: Sigmund Freud
+    year: 1900
     kind: work
   - item: Freud_1907_Gradiva
     citation: Gradiva 1907
@@ -1935,6 +3171,28 @@ books:
     author: Sigmund Freud
     year: 1914
     kind: work
+  - item: jpn-1904-loewenfeld
+    citation: JPN III
+    ocr: deu
+    # The volume's two pages, each column cropped to the review.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/journalfrpsycho04unkngoog
+      firstPage: 190
+      pages:
+        - https://archive.org/download/journalfrpsycho04unkngoog/page/n201_w1600.jpg#region=0.125,0.155,0.370,0.735&region=0.505,0.155,0.370,0.735
+        - https://archive.org/download/journalfrpsycho04unkngoog/page/n202_w1600.jpg#region=0.125,0.095,0.370,0.797&region=0.505,0.095,0.370,0.195
+    firstPage: 190
+    lastPage: 191
+    headings:
+      - { page: 190, opens: Löwenfeld. Die psychischen, title: Die psychischen Zwangserscheinungen }
+    slug: besprechung-im-journal-fuer-psychologie-und-neurologie-1904
+    title: Besprechung im Journal für Psychologie und Neurologie 1904
+    shortTitle: Journal für Psychologie und Neurologie 1904
+    edition: "Journal für Psychologie und Neurologie, Bd. III, Heft 4 (Leipzig 1904), S. 190–191"
+    author: Sigmund Freud
+    year: 1904
+    kind: work
   - item: Freud_1910_Drei_Abhandlungen_2te
     citation: Drei Abhandlungen 1910
     ocr: deu
@@ -1948,6 +3206,39 @@ books:
     edition: "Drei Abhandlungen zur Sexualtheorie, zweite Auflage (Franz Deuticke, Leipzig und Wien 1910), S. [III]"
     author: Sigmund Freud
     year: 1910
+    kind: work
+  - item: zb1191012
+    citation: Zbl. I
+    firstPage: 49
+    lastPage: 50
+    opensWith: Dr. Wilh. Neutra
+    closesWith: tungen hinweisen müssen.
+    headings:
+      - { page: 49, opens: Dr. Wilh. Neutra, title: Briefe an nervöse Frauen }
+    slug: besprechungen-im-zentralblatt-fuer-psychoanalyse-19101911
+    title: "Besprechungen im Zentralblatt für Psychoanalyse 1910–1911"
+    shortTitle: "Zentralblatt für Psychoanalyse 1910–1911"
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 1/2 (1910), S. 49–50, und Heft 12 (1911), S. 594–595"
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: zb1191112
+    citation: Zbl. I
+    firstPage: 594
+    lastPage: 595
+    opensWith: G. Greve, Sobre
+    closesWith: erwartete Bestätigung
+    headings:
+      - { page: 594, opens: G. Greve, title: Sobre Psicología y Psicoterapia de ciertos Estados angustiosos }
+    # Its title set with a hanging indent.
+    paragraphs:
+      - { page: 594, opens: G. Greve }
+      - { page: 594, opens: "Der Autor, der" }
+    slug: besprechungen-im-zentralblatt-fuer-psychoanalyse-19101911
+    title: "Besprechungen im Zentralblatt für Psychoanalyse 1910–1911"
+    edition: "Zentralblatt für Psychoanalyse 1, Heft 12 (1911), S. 594–595"
+    author: Sigmund Freud
+    year: 1911
     kind: work
   - item: zb1191156
     citation: Zbl. I
@@ -2826,6 +4117,34 @@ books:
     author: Sigmund Freud
     year: 1913
     kind: work
+  - item: imago119121
+    citation: Imago I
+    ocr: deu
+    # The opening of the first Imago essay, which Totem und Tabu leaves
+    # out: read from below the essay's title and part title to the
+    # paragraph the book opens with, its note kept; the margin's summary
+    # glosses are left out.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/imago119121
+      firstPage: 17
+      pages:
+        - https://archive.org/download/imago119121/page/n22_w1600.jpg#region=0.115,0.219,0.69,0.652
+        - https://archive.org/download/imago119121/page/n23_w1600.jpg#region=0.175,0.090,0.70,0.383&region=0.195,0.473,0.68,0.096&region=0.175,0.569,0.70,0.177&region=0.18,0.776,0.69,0.085
+    firstPage: 17
+    lastPage: 18
+    # The first page's drop capital sets its lines in: its paragraphs named.
+    paragraphs:
+      - { page: 17, opens: Von allem Anfang }
+      - { page: 17, opens: In den seither }
+      - { page: 17, opens: Eine Schwierigkeit }
+    slug: ueber-einige-uebereinstimmungen-im-seelenleben-der-wilden-und-der-neurotiker
+    title: Über einige Übereinstimmungen im Seelenleben der Wilden und der Neurotiker
+    shortTitle: Übereinstimmungen im Seelenleben der Wilden und der Neurotiker
+    edition: "Imago. Zeitschrift für Anwendung der Psychoanalyse auf die Geisteswissenschaften, I. Jahrgang, Heft 1 (Leipzig und Wien, März 1912), S. 17–18"
+    author: Sigmund Freud
+    year: 1912
+    kind: work
   - item: freud-1940-gw-9
     citation: GW IX
     firstPage: 1
@@ -3007,6 +4326,40 @@ books:
     title: Zeitgemäßes über Krieg und Tod
     shortTitle: Krieg und Tod
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: zweimonatsbericht-1915-wir-und-der-tod
+    citation: Zweimonats-Bericht 1915
+    ocr: deu
+    # The microfilm's spreads, each page cropped to the lecture: read from
+    # below its title and byline.
+    scan:
+      library: Internet Archive
+      url: https://archive.org/details/zweimonatsberichreel01
+      firstPage: 41
+      pages:
+        - https://archive.org/download/zweimonatsberichreel01/page/n25_w3600.jpg#region=0.550,0.241,0.325,0.605
+        - https://archive.org/download/zweimonatsberichreel01/page/n26_w3600.jpg#region=0.145,0.149,0.325,0.670
+        - https://archive.org/download/zweimonatsberichreel01/page/n26_w3600.jpg#region=0.545,0.164,0.325,0.666
+        - https://archive.org/download/zweimonatsberichreel01/page/n27_w3600.jpg#region=0.155,0.147,0.320,0.669
+        - https://archive.org/download/zweimonatsberichreel01/page/n27_w3600.jpg#region=0.550,0.164,0.320,0.670
+        - https://archive.org/download/zweimonatsberichreel01/page/n28_w3600.jpg#region=0.150,0.145,0.320,0.678
+        - https://archive.org/download/zweimonatsberichreel01/page/n28_w3600.jpg#region=0.545,0.153,0.322,0.679
+        - https://archive.org/download/zweimonatsberichreel01/page/n29_w3600.jpg#region=0.155,0.149,0.320,0.675
+        - https://archive.org/download/zweimonatsberichreel01/page/n29_w3600.jpg#region=0.545,0.155,0.325,0.679
+        - https://archive.org/download/zweimonatsberichreel01/page/n30_w3600.jpg#region=0.155,0.155,0.315,0.678
+        - https://archive.org/download/zweimonatsberichreel01/page/n30_w3600.jpg#region=0.543,0.153,0.320,0.269
+    firstPage: 41
+    lastPage: 51
+    # Specks after lines on p. 42 read as paragraph ends: its paragraphs named.
+    paragraphs:
+      - { page: 42, opens: In der psycho-analytischen }
+      - { page: 42, opens: Mit dem Tode eines }
+      - { page: 42, opens: Dies unser Verhältnis }
+    slug: wir-und-der-tod
+    title: Wir und der Tod
+    edition: "Zweimonats-Bericht für die Mitglieder der österr. israel. Humanitätsvereine „B’nai B’rith“, XVIII. Jahrgang, Nr. 1 (Wien 1915), S. 41–51"
     author: Sigmund Freud
     year: 1915
     kind: work
