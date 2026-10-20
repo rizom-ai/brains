@@ -2,6 +2,7 @@ import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import { applyMove, applyNote } from "./board";
+import { createId } from "@brains/utils/id";
 import { truncateText } from "@brains/utils/string-utils";
 import { ActionItemAdapter } from "./adapter";
 import {
@@ -195,4 +196,57 @@ export async function trackInboxItem(
     options: { eventContext: { actor: request.actor } },
   });
   return { status: "tracked", id };
+}
+
+export interface CreateBoardCardRequest {
+  title: string;
+  text: string;
+  /** Who should do it, by name. */
+  assignee?: string | undefined;
+  actor: ActorRef;
+  actorName?: string | undefined;
+}
+
+export interface CreateBoardCardResult {
+  status: "created";
+  id: string;
+}
+
+/** Add an open card on the board by hand, naming who added it. */
+export async function createBoardCard(
+  deps: Omit<TrackInboxItemDeps, "entityService"> & {
+    entityService: Pick<EntityPluginContext["entityService"], "createEntity">;
+  },
+  request: CreateBoardCardRequest,
+): Promise<CreateBoardCardResult> {
+  const id = `board:${createId()}`;
+  const assignee = request.assignee?.trim();
+  const metadata: ActionItemMetadata = {
+    origin: "board",
+    capturedAt: (deps.now?.() ?? new Date()).toISOString(),
+    status: "open",
+    ...(assignee ? { assignedTo: [{ name: assignee }] } : {}),
+    requestedBy: [
+      {
+        ...(request.actorName ? { name: request.actorName } : {}),
+        id: actorRefKey(request.actor),
+      },
+    ],
+  };
+  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  await deps.entityService.createEntity({
+    entity: {
+      id,
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      visibility: deps.visibility,
+      content: inboxItemAdapter.composeContent(
+        `Action item: ${title}`,
+        request.text.trim() || title,
+        metadata,
+      ),
+      metadata,
+    },
+    options: { eventContext: { actor: request.actor } },
+  });
+  return { status: "created", id };
 }

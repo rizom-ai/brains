@@ -175,7 +175,11 @@ export const actionItemSourceRefSchema: ActionItemSourceRefSchema = z.object({
 type ActionItemMetadataSchema = z.ZodObject<{
   /** Absent on items projected before origins were recorded: a conversation. */
   origin: z.ZodOptional<
-    z.ZodEnum<{ conversation: "conversation"; inbox: "inbox" }>
+    z.ZodEnum<{
+      conversation: "conversation";
+      inbox: "inbox";
+      board: "board";
+    }>
   >;
   conversationId: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodOptional<z.ZodString>;
@@ -195,11 +199,15 @@ const CONVERSATION_FIELDS = [
   "channelId",
 ] as const;
 
-/** A conversation item carries its conversation; an Inbox item, its source. */
+/**
+ * A conversation item carries its conversation; an Inbox item, its source. A
+ * card added on the board needs neither.
+ */
 function requireOriginFields(
   metadata: Record<string, unknown>,
   context: z.RefinementCtx,
 ): void {
+  if (metadata["origin"] === "board") return;
   const required =
     metadata["origin"] === "inbox"
       ? (["sourceRef"] as const)
@@ -219,7 +227,7 @@ function requireOriginFields(
 }
 
 const originShape = {
-  origin: z.enum(["conversation", "inbox"]).optional(),
+  origin: z.enum(["conversation", "inbox", "board"]).optional(),
   conversationId: z.string().optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
@@ -277,7 +285,9 @@ export type ActionItemOrigin =
       /** When the conversation it came from ended. */
       capturedAt: string;
     }
-  | { kind: "inbox"; sourceRef: ActionItemSourceRef; capturedAt: string };
+  | { kind: "inbox"; sourceRef: ActionItemSourceRef; capturedAt: string }
+  /** Added on the board by hand; `capturedAt` is when. */
+  | { kind: "board"; capturedAt: string };
 
 /** Where an action item came from; the schema guarantees one complete answer. */
 export function actionItemOrigin(
@@ -292,6 +302,9 @@ export function actionItemOrigin(
     | "capturedAt"
   >,
 ): ActionItemOrigin {
+  if (metadata.origin === "board") {
+    return { kind: "board", capturedAt: metadata.capturedAt };
+  }
   if (metadata.origin === "inbox" && metadata.sourceRef) {
     return {
       kind: "inbox",

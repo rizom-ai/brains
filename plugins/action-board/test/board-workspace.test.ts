@@ -367,6 +367,43 @@ describe("the Board workspace", () => {
     expect(links).toContain('"entityType":"contact-request"');
   });
 
+  it("offers a New card form on the board", async () => {
+    const registration = await registered(await brain([]));
+    const view = JSON.stringify(await registration.dataProvider(niels, {}));
+
+    expect(view).toContain('"actionId":"create"');
+    expect(view).toContain('"label":"New card"');
+    expect(view).toContain('"presentation":"disclosure"');
+  });
+
+  it("adds a card from the board to To do", async () => {
+    const registration = await registered(await brain([]));
+    if (!registration.actionHandler) throw new Error("Board has no actions");
+
+    expect(
+      await registration.actionHandler(
+        {
+          actionId: "create",
+          input: {
+            title: "Order name badges",
+            text: "Two hundred, with the new logo.",
+            assignee: "Alex Morgan",
+          },
+        },
+        niels,
+      ),
+    ).toEqual({ status: "Added to To do." });
+
+    const [card] = column(await board(registration), "open");
+    expect(card?.title).toBe("Order name badges");
+    expect(card?.metadata).toContain("Board");
+    expect(card?.metadata).toContain("Alex Morgan");
+    const links = JSON.stringify(card?.links);
+    expect(links).toContain('"label":"Open in editor"');
+    expect(links).not.toContain("Inbox source");
+    expect(links).not.toContain("Conversation summary");
+  });
+
   it("adds a note under the signed-in name", async () => {
     const context = await brain([
       { id: "a", text: "Draft the checklist", status: "open" },
