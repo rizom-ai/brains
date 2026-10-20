@@ -124,7 +124,7 @@ describe("persistImportEntity authority", () => {
     );
   });
   it("updates only the admitted full revision", async () => {
-    const f = setup(makeExistingEntity());
+    const f = setup(makeExistingEntity("public"));
     await f.importFile();
     expect(f.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -311,5 +311,37 @@ describe("persistImportEntity staged bytes", () => {
 
     expect(upsert).toHaveBeenCalled();
     expect(discard).not.toHaveBeenCalled();
+  });
+});
+
+describe("persistImportEntity with a retained visibility", () => {
+  function origin(f: ReturnType<typeof setup>): unknown {
+    return f.upsert.mock.calls[0]?.[0].options?.persistenceOrigin;
+  }
+
+  it("writes the retained tier back to a file that declares none", async () => {
+    const f = setup(makeExistingEntity("restricted"));
+    await f.importFile();
+    expect(f.entity().visibility).toBe("restricted");
+    expect(origin(f)).toBe("ordinary");
+  });
+
+  it("writes it back even when the row already matches the file", async () => {
+    const content = "# Note\n\nUpdated body.";
+    const f = setup({
+      ...makeExistingEntity("restricted"),
+      content,
+      metadata: { title: "Note" },
+      contentHash: computeContentHash(`canonical:restricted:${content}`),
+    });
+    await f.importFile(undefined, content);
+    expect(origin(f)).toBe("ordinary");
+    expect(f.result.imported).toBe(1);
+  });
+
+  it("imports as directory sync when the file and stored tier agree", async () => {
+    const f = setup(makeExistingEntity("public"));
+    await f.importFile();
+    expect(origin(f)).toBe("directory-sync");
   });
 });

@@ -95,8 +95,9 @@ export async function persistImportEntity(
       existing,
     );
     // The file and the database disagree about a non-public tier, and the
-    // database wins. Auto-sync will rewrite the file with the retained value,
-    // so surface the override rather than letting an edit vanish silently.
+    // database wins. The import is an ordinary write, so auto-sync rewrites
+    // the file with the retained value; surface the override too, rather
+    // than letting an edit vanish silently.
     if (retainedFrom) {
       deps.logger.debug(
         "Retained stored visibility; imported file declared none",
@@ -143,6 +144,7 @@ export async function persistImportEntity(
     // exactly what is stored. Writing it again would only move `updated`
     // and queue derived work, so leave it.
     if (
+      !retainedFrom &&
       existing?.contentHash === entity.contentHash &&
       existing.visibility === entity.visibility &&
       Bun.deepEquals(existing.metadata, entity.metadata)
@@ -151,7 +153,9 @@ export async function persistImportEntity(
       return;
     }
     const options = {
-      persistenceOrigin: "directory-sync" as const,
+      persistenceOrigin: retainedFrom
+        ? ("ordinary" as const)
+        : ("directory-sync" as const),
       conditionalWrite: { expectedRevision: snapshot?.revision ?? null },
     };
     // The upsert publishes the staged bytes or discards them itself.

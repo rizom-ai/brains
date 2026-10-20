@@ -1,5 +1,35 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.568
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.568
+  - @brains/site-info@0.2.0-alpha.568
+  - @brains/profile@0.2.0-alpha.568
+  - @brains/site-composition@0.2.0-alpha.568
+  - @brains/site-engine@0.2.0-alpha.568
+  - @brains/ui-library@0.2.0-alpha.568
+  - @brains/utils@0.2.0-alpha.568
+  - @brains/plugins@0.2.0-alpha.568
+  - @brains/templates@0.2.0-alpha.568
+
+## 0.2.0-alpha.567
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.567
+  - @brains/site-info@0.2.0-alpha.567
+  - @brains/profile@0.2.0-alpha.567
+  - @brains/site-composition@0.2.0-alpha.567
+  - @brains/site-engine@0.2.0-alpha.567
+  - @brains/ui-library@0.2.0-alpha.567
+  - @brains/utils@0.2.0-alpha.567
+  - @brains/plugins@0.2.0-alpha.567
+  - @brains/templates@0.2.0-alpha.567
+
 ## 0.2.0-alpha.566
 
 ### Patch Changes
