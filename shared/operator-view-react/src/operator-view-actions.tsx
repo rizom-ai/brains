@@ -149,7 +149,8 @@ export function presentedActionResult(
       },
     ];
   });
-  return { title: action.result.title, fields };
+  // A reply that names none of the declared fields has nothing to present.
+  return fields.length > 0 ? { title: action.result.title, fields } : null;
 }
 
 export function ActionResult(props: {
@@ -339,6 +340,9 @@ export function OperatorActionButton(props: {
   const [failed, setFailed] = useState(false);
   const [awaiting, setAwaiting] = useState<AwaitingConfirmation | null>(null);
   const [result, setResult] = useState<PresentedActionResult | null>(null);
+  // Bumped when a form succeeds with nothing to report: the form remounts
+  // empty, and a disclosure closes, so the change itself is the feedback.
+  const [completions, setCompletions] = useState(0);
 
   useEffect(() => {
     mounted.current = true;
@@ -363,7 +367,11 @@ export function OperatorActionButton(props: {
       const presented = presentedActionResult(invocation, output);
       if (mounted.current) {
         setResult(presented);
-        setMessage("Completed.");
+        if (presented || !invocation.form) {
+          setMessage("Completed.");
+        } else {
+          setCompletions((count) => count + 1);
+        }
       } else if (presented) {
         host.onDetachedActionResult?.(presented);
       }
@@ -425,7 +433,7 @@ export function OperatorActionButton(props: {
   const formStyles = stylex.props(formLayout.form);
   const actionForm = props.action.form ? (
     <form
-      key={actionKey}
+      key={`${actionKey}:${completions}`}
       {...formStyles}
       className={`declarative-action-form ${formStyles.className ?? ""}`}
       onSubmit={(event) => {
@@ -473,7 +481,7 @@ export function OperatorActionButton(props: {
         {props.action.form ? (
           props.action.form.presentation === "disclosure" ? (
             <Disclosure
-              key={actionKey}
+              key={`${actionKey}:${completions}`}
               className="declarative-action-disclosure"
               presentation="action"
               triggerVariant={props.primary ? "primary" : undefined}
