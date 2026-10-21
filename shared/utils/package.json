@@ -64,7 +64,8 @@
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",
     "./expect-defined": "./src/expect-defined.ts",
-    "./is-record": "./src/is-record.ts"
+    "./is-record": "./src/is-record.ts",
+    "./yield-to-event-loop": "./src/yield-to-event-loop.ts"
   },
   "private": true,
   "scripts": {

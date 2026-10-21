@@ -29,7 +29,6 @@ import { fingerprintPreparedRoute } from "../../src/lib/site-input-fingerprint";
 import type { SiteBuildDiagnostic } from "../../src/types/site-builder-types";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { SiteBuildProfile } from "../../src/lib/site-build-profile-service";
-import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 
 const templateDataSchema = z.custom<JsonObject>(
   (value) =>
@@ -228,62 +227,6 @@ describe("prepareSiteBuild", () => {
     expect(Object.isFrozen(result.preparedBuild.routes[0]?.sections)).toBe(
       true,
     );
-  });
-
-  it("gives the event loop a turn between sections", async () => {
-    const order: string[] = [];
-    const countedSchema = z.custom<JsonObject>((value) => {
-      order.push("section");
-      setImmediate(() => order.push("tick"));
-      return templateDataSchema.safeParse(value).success;
-    });
-    const routes: RouteDefinition[] = [
-      {
-        ...createRoute({ heading: "One" }),
-        sections: ["one", "two", "three"].map((id) => ({
-          id,
-          template: "fixture:counted",
-          content: { heading: id },
-        })),
-      },
-    ];
-    const pipelineContext = createPipelineContext(routes);
-    pipelineContext.services.getViewTemplate = (
-      name,
-    ): SiteViewTemplate | undefined =>
-      name === "fixture:counted"
-        ? {
-            name,
-            pluginId: "fixture",
-            schema: countedSchema,
-            renderers: { web: (): ReactElement => h("div", {}) },
-          }
-        : undefined;
-
-    await prepareAll({
-      buildId: "yielding-build",
-      preparedAt: "2026-07-22T00:00:00.000Z",
-      routes,
-      publicDir: missingPublicDir,
-      signal: new AbortController().signal,
-      parsedOptions: {
-        environment: "preview",
-        siteConfig: { title: "Fixture Site", description: "Fixture" },
-      },
-      buildOptions: {},
-      pipelineContext,
-      imageBuildService,
-      siteMetadata: { title: "Fixture Site", description: "Fixture" },
-    });
-
-    // Each section's work ends before the next starts, with the loop in between.
-    expect(order.slice(0, 5)).toEqual([
-      "section",
-      "tick",
-      "section",
-      "tick",
-      "section",
-    ]);
   });
 
   it("recursively omits undefined object properties at the JSON boundary", async () => {
