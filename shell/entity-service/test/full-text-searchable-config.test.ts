@@ -1,6 +1,7 @@
 import { createTestEntity } from "../src/test/index";
 import { afterEach, describe, expect, test } from "bun:test";
 import { createClient, type Client } from "@libsql/client";
+import { ensureFtsTable } from "../src/db";
 import type { EntityTypeConfig } from "../src";
 import {
   setupEntityService,
@@ -81,6 +82,8 @@ describe("EntityTypeConfig fullTextSearchable", () => {
       sql: "INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (?, ?, ?)",
       args: [entity.id, entity.entityType, "legacy binary payload"],
     });
+    // A legacy row predates its rowid mapping; starting maps it.
+    await ensureFtsTable(client);
 
     const result = await ctx.entityService.updateEntity({ entity });
 
