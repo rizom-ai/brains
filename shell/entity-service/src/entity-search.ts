@@ -360,13 +360,14 @@ export class EntitySearch {
     const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
-    // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not.
+    // FTS5 keyword boost: 1.0 when matched, 0.0 when not. The matches are a
+    // list SQLite builds once per statement; a subquery correlated with the
+    // candidate reruns the match for every entity, seconds on a book corpus.
     // Wrap in double quotes for phrase matching — prevents special characters
     // (?, *, OR, AND, etc.) from being parsed as FTS5 operators.
     const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
-    const ftsBoost = sql<number>`CASE WHEN EXISTS (
-      SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
-        AND entity_id = ${entities.id} AND entity_type = ${entities.entityType}
+    const ftsBoost = sql<number>`CASE WHEN (${entities.entityType}, ${entities.id}) IN (
+      SELECT entity_type, entity_id FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
     ) THEN 1.0 ELSE 0.0 END`;
 
     // Combined score: (1-α)*vector + α*keyword_match

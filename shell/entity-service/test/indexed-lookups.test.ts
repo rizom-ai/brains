@@ -149,6 +149,34 @@ describe("indexed entity lookups", () => {
     // Only the embeddings of the entities found are read, never all of them.
     expect(plan).not.toContain("SCAN emb_e");
   });
+
+  test("matches a search's keywords once, not once for every candidate", async () => {
+    await attachEmbeddingDatabase(
+      client,
+      dbUrlToPath(ctx.embeddingDbConfig.url),
+    );
+    const entity = createTestEntity("test", { content: "Der Traum" });
+    await ctx.entityService.createEntity({ entity });
+    await ctx.entityService.storeEmbedding({
+      entityId: entity.id,
+      entityType: "test",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: entity.contentHash,
+    });
+    const search = new EntitySearch(
+      loggingDb(),
+      mockEmbeddingService,
+      new EntitySerializer(ctx.entityRegistry, createSilentLogger()),
+      createSilentLogger(),
+    );
+
+    const results = await search.search("Traum", { minScore: 0.1 });
+
+    expect(results.map((result) => result.entity.id)).toEqual([entity.id]);
+    const [plan] = await plansOf((sql) => sql.includes("entity_fts MATCH"));
+    expect(plan).toContain("LIST SUBQUERY");
+    expect(plan).not.toContain("CORRELATED");
+  });
 });
 
 describe("metadata filter keys", () => {
