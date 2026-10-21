@@ -1,0 +1,70 @@
+id: multi-turn-directory-sync-status-follow-up
+name: Directory sync status follow-up and repeated sync
+description: Verifies that without git, a bare status follow-up after a filesystem sync checks directory_sync status instead of capturing the phrase, and that a repeated sync request invokes the sync action again instead of repeating the earlier reply.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - core
+  - directory-sync
+  - multi-turn
+  - tool-invocation
+  - anti-fabrication
+
+turns:
+  - userMessage: "Refresh my content from the filesystem."
+    successCriteria:
+      expectedTools:
+        - toolName: directory_sync
+          shouldBeCalled: true
+          argsContain:
+            action: sync
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "what is the status"
+    successCriteria:
+      expectedTools:
+        - toolName: directory_sync
+          shouldBeCalled: true
+          argsContain:
+            action: status
+        - toolName: directory_sync
+          shouldBeCalled: false
+          argsContain:
+            action: sync
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Sync it again."
+    successCriteria:
+      expectedTools:
+        - toolName: directory_sync
+          shouldBeCalled: true
+          argsContain:
+            action: sync
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory_sync
+      shouldBeCalled: true
+      argsContain:
+        action: status
+    - toolName: system_create
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 100000

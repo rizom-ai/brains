@@ -56,6 +56,21 @@ suites:
         seedContentPath: eval-content/publishing
       site-builder:
         autoRebuild: false
+  # Professional plus the optional Buttondown and stock-photo providers, to
+  # prove their conditional tool exposure. The keys are placeholders: provider
+  # calls fail, so cases assert routing and refusal to invent results.
+  providers:
+    extends: professional
+    inheritTags: false
+    tags:
+      - recipe-providers
+    plugins:
+      newsletter:
+        provider:
+          type: buttondown
+          apiKey: eval-placeholder-buttondown-key
+      stock-photo:
+        apiKey: eval-placeholder-stock-photo-key
   team:
     extends: personal
     inheritTags: false
