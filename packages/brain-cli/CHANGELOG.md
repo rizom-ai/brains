@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.585
+
+### Patch Changes
+
+- [#708](https://github.com/rizom-ai/brains/pull/708) [`42b4250`](https://github.com/rizom-ai/brains/commit/42b425085ef058e8ff474e5c7d9f9325eb03a7df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Searching a large brain no longer freezes its worker. Search ranked each candidate's keyword match with a full-text query run once per entity, three seconds on a book corpus and long enough on a small server to miss the worker's heartbeats, so builds were killed and retried and Studio's build buttons stayed locked; the matches are now found once per search.
+
 ## 0.2.0-alpha.584
 
 ### Patch Changes
