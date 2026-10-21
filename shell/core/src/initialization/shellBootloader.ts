@@ -276,12 +276,6 @@ export class ShellBootloader {
       );
       const initialSyncPending = await this.emitPluginsRegistered();
 
-      const backfillResult =
-        await this.services.entityService.backfillMissingEmbeddings();
-      this.services.logger.debug("Queued missing embedding backfill jobs", {
-        queued: backfillResult.queued,
-        skipped: backfillResult.skipped,
-      });
       // Existing membership becomes queryable before grouping reads are admitted.
       await this.services.entityService.reprojectRegisteredGroupings();
       // Stored entities lose frontmatter fields their type has retired.
@@ -462,33 +456,59 @@ export class ShellBootloader {
     await this.lifecycle.fork(this.runIndexReadinessMonitor());
   }
 
+  /**
+   * Queue embeddings for entities that lack them, then wait for the index to
+   * be ready. Runs in the background once the runtime is serving: a brain
+   * with thousands of entities to embed queues for longer than the web
+   * process may take to come up.
+   */
   private runIndexReadinessMonitor(): Effect.Effect<void> {
     const { entityService, logger } = this.services;
 
-    return Effect.tryPromise({
-      try: (signal) =>
-        entityService.awaitIndexReady({
-          intervalMs: INDEX_READINESS_POLL_INTERVAL_MS,
-          signal,
-        }),
+    const backfill = Effect.tryPromise({
+      try: () => entityService.backfillMissingEmbeddings(),
       catch: (error) => error,
     }).pipe(
-      Effect.tap((status) =>
+      Effect.tap((result) =>
         Effect.sync(() => {
-          if (status.degraded) {
-            logger.warn(
-              "Semantic index ready with degraded embeddings",
-              status,
-            );
-          } else {
-            logger.debug("Semantic index ready", status);
-          }
+          logger.debug("Queued missing embedding backfill jobs", result);
         }),
       ),
       Effect.catch((error) =>
         Effect.sync(() => {
-          logger.warn("Semantic index readiness monitor stopped", error);
+          logger.warn("Embedding backfill failed", error);
         }),
+      ),
+    );
+
+    return backfill.pipe(
+      Effect.andThen(
+        Effect.tryPromise({
+          try: (signal) =>
+            entityService.awaitIndexReady({
+              intervalMs: INDEX_READINESS_POLL_INTERVAL_MS,
+              signal,
+            }),
+          catch: (error) => error,
+        }).pipe(
+          Effect.tap((status) =>
+            Effect.sync(() => {
+              if (status.degraded) {
+                logger.warn(
+                  "Semantic index ready with degraded embeddings",
+                  status,
+                );
+              } else {
+                logger.debug("Semantic index ready", status);
+              }
+            }),
+          ),
+          Effect.catch((error) =>
+            Effect.sync(() => {
+              logger.warn("Semantic index readiness monitor stopped", error);
+            }),
+          ),
+        ),
       ),
     );
   }
