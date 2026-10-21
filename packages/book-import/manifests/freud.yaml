@@ -1240,10 +1240,11 @@ books:
     citation: Charcot 1886
     firstPage: III
     lastPage: IV
-    slug: vorwort-des-uebersetzers-zu-charcot-neue-vorlesungen
-    title: Vorwort des Übersetzers
-    shortTitle: Vorwort zu Charcot (1886)
-    edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886), S. III–IV"
+    part: "Vorwort zu Charcot, Neue Vorlesungen (1886)"
+    slug: vorreden-und-anmerkungen-zu-uebersetzungen-18861896
+    title: "Vorreden und Anmerkungen zu Übersetzungen 1886–1896"
+    shortTitle: Zu Übersetzungen
+    edition: "Freuds Vorreden und Anmerkungen zu seinen Übersetzungen: J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems (Toeplitz & Deuticke, Leipzig und Wien 1886); H. Bernheim, Die Suggestion und ihre Heilwirkung (Franz Deuticke, Leipzig und Wien 1888; zweite Auflage 1896); J. M. Charcot, Poliklinische Vorträge, I. Band (Franz Deuticke, Leipzig und Wien 1892)"
     author: Sigmund Freud
     year: 1886
     kind: work
@@ -1267,9 +1268,10 @@ books:
       - { page: 300, opens: "¹ Der Kranke Pin" }
       - { page: 301, opens: "erheblich sank", runsOn: true }
       - { page: 330, opens: "¹ Der Kranke, ein" }
-    slug: anmerkungen-des-uebersetzers-zu-charcot-neue-vorlesungen
-    title: Anmerkungen des Übersetzers
-    shortTitle: Anmerkungen zu Charcot (1886)
+    part: "Anmerkungen zu Charcot, Neue Vorlesungen (1886)"
+    slug: vorreden-und-anmerkungen-zu-uebersetzungen-18861896
+    title: "Vorreden und Anmerkungen zu Übersetzungen 1886–1896"
+    shortTitle: Zu Übersetzungen
     edition: "J. M. Charcot, Neue Vorlesungen über die Krankheiten des Nervensystems insbesondere über Hysterie, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Toeplitz & Deuticke, Leipzig und Wien 1886)"
     author: Sigmund Freud
     year: 1886
@@ -1740,9 +1742,10 @@ books:
     notes:
       - { page: IX, opens: ¹) Archives }
       - { page: IX, opens: ²) Die Beziehungen }
-    slug: vorrede-des-uebersetzers-zu-bernheim-die-suggestion
-    title: Vorrede des Übersetzers
-    shortTitle: Vorrede zu Bernheim
+    part: "Vorrede zu Bernheim, Die Suggestion (1888)"
+    slug: vorreden-und-anmerkungen-zu-uebersetzungen-18861896
+    title: "Vorreden und Anmerkungen zu Übersetzungen 1886–1896"
+    shortTitle: Zu Übersetzungen
     edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1888), S. III–XII"
     author: Sigmund Freud
     year: 1888
@@ -1889,9 +1892,10 @@ books:
     frontLeaf: 4
     firstPage: III
     lastPage: VI
-    slug: vorwort-des-uebersetzers-zu-charcot-poliklinische-vortraege
-    title: Vorwort des Übersetzers
-    shortTitle: Vorwort zu Charcot (1892)
+    part: "Vorwort zu Charcot, Poliklinische Vorträge (1892)"
+    slug: vorreden-und-anmerkungen-zu-uebersetzungen-18861896
+    title: "Vorreden und Anmerkungen zu Übersetzungen 1886–1896"
+    shortTitle: Zu Übersetzungen
     edition: "J. M. Charcot, Poliklinische Vorträge, I. Band, Schuljahr 1887/88, übersetzt von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1892), S. III–VI"
     author: Sigmund Freud
     year: 1892
@@ -2019,9 +2023,10 @@ books:
       - { page: 452, opens: "‘) Daher die Bere" }
       - { page: 452, opens: "°) Die vollständi" }
       - { page: 460, opens: "*‘) Vergl. hierzu:" }
-    slug: anmerkungen-des-uebersetzers-zu-charcot-poliklinische-vortraege
-    title: Anmerkungen des Übersetzers
-    shortTitle: Anmerkungen zu Charcot (1892)
+    part: "Anmerkungen zu Charcot, Poliklinische Vorträge (1892)"
+    slug: vorreden-und-anmerkungen-zu-uebersetzungen-18861896
+    title: "Vorreden und Anmerkungen zu Übersetzungen 1886–1896"
+    shortTitle: Zu Übersetzungen
     edition: "J. M. Charcot, Poliklinische Vorträge, I. Band, Schuljahr 1887/88, übersetzt von Dr. Sigm. Freud (Franz Deuticke, Leipzig und Wien 1892)"
     author: Sigmund Freud
     year: 1892
@@ -2864,9 +2869,10 @@ books:
     citation: Bernheim 1896
     firstPage: III
     lastPage: IV
-    slug: vorwort-zur-zweiten-deutschen-auflage-von-bernheim-die-suggestion
-    title: Vorwort zur zweiten deutschen Auflage
-    shortTitle: Vorwort zu Bernheim (1896)
+    part: "Vorwort zu Bernheim, Die Suggestion, zweite Auflage (1896)"
+    slug: vorreden-und-anmerkungen-zu-uebersetzungen-18861896
+    title: "Vorreden und Anmerkungen zu Übersetzungen 1886–1896"
+    shortTitle: Zu Übersetzungen
     edition: "H. Bernheim, Die Suggestion und ihre Heilwirkung, autorisirte deutsche Ausgabe von Dr. Sigm. Freud, zweite, umgearbeitete Auflage besorgt von Dr. Max Kahane (Franz Deuticke, Leipzig und Wien 1896), S. III–IV"
     author: Sigmund Freud
     year: 1896
@@ -3192,20 +3198,6 @@ books:
     edition: "Journal für Psychologie und Neurologie, Bd. III, Heft 4 (Leipzig 1904), S. 190–191"
     author: Sigmund Freud
     year: 1904
-    kind: work
-  - item: Freud_1910_Drei_Abhandlungen_2te
-    citation: Drei Abhandlungen 1910
-    ocr: deu
-    # The preface's page is unnumbered: the third of the front matter.
-    frontLeaf: 2
-    firstPage: III
-    lastPage: III
-    slug: vorwort-zur-zweiten-auflage-der-drei-abhandlungen-zur-sexualtheorie
-    title: Vorwort zur zweiten Auflage
-    shortTitle: Vorwort zu den Drei Abhandlungen (1910)
-    edition: "Drei Abhandlungen zur Sexualtheorie, zweite Auflage (Franz Deuticke, Leipzig und Wien 1910), S. [III]"
-    author: Sigmund Freud
-    year: 1910
     kind: work
   - item: zb1191012
     citation: Zbl. I
@@ -3835,12 +3827,32 @@ books:
     citation: GW VII
     firstPage: 467
     lastPage: 470
-    slug: vorreden-19061909
-    title: "Vorreden 1906–1909"
+    # Each preface is titled with the book it prefaces; the rest of each
+    # title block is corrected out of the text.
+    headings:
+      - { page: 467, opens: Meine seit dem Jahre, title: "Vorwort zu Wilhelm Stekel, Nervöse Angstzustände und ihre Behandlung (1908)" }
+      - { page: 469, opens: Die psychoanalytische Untersuchung, title: "Vorwort zu Sándor Ferenczi, Lélekelemzés (1910)" }
+    slug: vorreden-19061910
+    title: "Vorreden 1906–1910"
     shortTitle: Vorreden
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
     author: Sigmund Freud
     year: 1908
+    kind: work
+  - item: Freud_1910_Drei_Abhandlungen_2te
+    citation: Drei Abhandlungen 1910
+    ocr: deu
+    # The preface's page is unnumbered: the third of the front matter.
+    frontLeaf: 2
+    firstPage: III
+    lastPage: III
+    part: "Vorwort zur zweiten Auflage der Drei Abhandlungen zur Sexualtheorie (1910)"
+    slug: vorreden-19061910
+    title: "Vorreden 1906–1910"
+    shortTitle: Vorreden
+    edition: "Drei Abhandlungen zur Sexualtheorie, zweite Auflage (Franz Deuticke, Leipzig und Wien 1910), S. [III]"
+    author: Sigmund Freud
+    year: 1910
     kind: work
   - item: freud-1943-gw-8
     citation: GW VIII
