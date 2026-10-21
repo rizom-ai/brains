@@ -17,15 +17,25 @@ export const factStyles: Record<
   | "error",
   stylex.StyleXStyles
 > = stylex.create({
-  root: { margin: 0, minWidth: 0 },
+  // Facts flow into as many columns as keep a label near its value.
+  root: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 24rem), 1fr))",
+    columnGap: 40,
+    alignItems: "start",
+    margin: 0,
+    minWidth: 0,
+  },
   compactRoot: {
     borderTopWidth: "1px",
     borderTopStyle: "solid",
     borderTopColor: "var(--console-rule-strong)",
   },
+  // A value too long to sit beside its label takes its own line.
   row: {
-    display: "grid",
-    gridTemplateColumns: "minmax(80px,1fr) minmax(0,1.5fr)",
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     alignItems: "baseline",
     gap: "6px 16px",
     paddingBlock: "15px",
@@ -33,13 +43,9 @@ export const factStyles: Record<
     borderBottomStyle: "solid",
     borderBottomColor: "var(--console-rule)",
   },
-  compactRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingBlock: "9px",
-  },
+  compactRow: { paddingBlock: "9px" },
   label: {
+    flex: "0 1 auto",
     minWidth: 0,
     fontFamily: "var(--console-ui)",
     fontSize: "12px",
@@ -48,6 +54,7 @@ export const factStyles: Record<
     overflowWrap: "anywhere",
   },
   value: {
+    flex: "1 1 auto",
     minWidth: 0,
     margin: 0,
     fontFamily: "var(--console-mono)",

@@ -31,6 +31,11 @@ export const queryStyles: Record<
       gridTemplateColumns: "repeat(2,minmax(0,1fr))",
       width: "100%",
     },
+    "@container operator (max-width: 640px)": {
+      display: "grid",
+      gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+      width: "100%",
+    },
   },
   label: {
     display: "grid",
@@ -82,6 +87,11 @@ export const queryStyles: Record<
     marginLeft: "auto",
     minWidth: 0,
     "@media (max-width: 640px)": {
+      width: "100%",
+      marginLeft: 0,
+      justifyContent: "space-between",
+    },
+    "@container operator (max-width: 640px)": {
       width: "100%",
       marginLeft: 0,
       justifyContent: "space-between",

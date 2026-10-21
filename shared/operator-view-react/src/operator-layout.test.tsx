@@ -122,8 +122,14 @@ for (const density of ["compact", "comfortable"] as const) {
         expect(window.getComputedStyle(summary).padding).toBe("16px 0px");
         expect(window.getComputedStyle(details).borderBottomWidth).toBe("1px");
       }
+      // The record title breaks a word only when it alone overflows, so a
+      // narrow column cannot squeeze it to a letter per line.
+      for (const element of doc.querySelectorAll("strong"))
+        expect(window.getComputedStyle(element).overflowWrap).toBe(
+          "break-word",
+        );
       for (const element of doc.querySelectorAll(
-        "strong,strong a,.declarative-column:first-child p,small",
+        "strong a,.declarative-column:first-child p,small",
       ))
         expect(window.getComputedStyle(element).overflowWrap).toBe("anywhere");
       expect(doc.querySelector("time")?.getAttribute("datetime")).toBe(

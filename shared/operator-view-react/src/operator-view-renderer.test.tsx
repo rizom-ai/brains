@@ -264,6 +264,7 @@ describe("OperatorViewRenderer", () => {
         createElement("button", { onClick: props.onClick }, props.children),
       Input: (props) => createElement("input", props),
       Select: (props) => createElement("select", props),
+      Textarea: (props) => createElement("textarea", props),
       ConfirmDialog: () => createElement("div"),
       Tabs: (props) =>
         createElement(

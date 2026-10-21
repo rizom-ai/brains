@@ -12,13 +12,15 @@ export const rendererLayoutStyles: Record<
   | "message"
   | "error"
   | "empty"
+  | "cellEmpty"
   | "links"
   | "cell"
-  | "dropAllowed",
+  | "dropAllowed"
+  | "matrixFrame"
+  | "matrix",
   stylex.StyleXStyles
 > & {
   caption: stylex.StyleXStyles<Record<string, string | number | null>>;
-  matrix: (columns: number) => stylex.StyleXStyles;
 } = stylex.create({
   head: {
     display: "flex",
@@ -110,6 +112,8 @@ export const rendererLayoutStyles: Record<
     fontSize: 12.5,
     overflowWrap: "anywhere",
   },
+  // An empty column says so close under its heading.
+  cellEmpty: { padding: "4px 0 2px" },
   links: {
     display: "flex",
     flexWrap: "wrap",
@@ -125,16 +129,37 @@ export const rendererLayoutStyles: Record<
     },
     minWidth: 0,
   },
-  matrix: (columns: number) => ({
+  // The matrix lays out by its own width in any host: columns hold their
+  // count while each keeps room for a card, then pair up, then stack.
+  matrixFrame: {
+    containerName: "operator-matrix",
+    containerType: "inline-size",
+    minWidth: 0,
+  },
+  matrix: {
     display: "grid",
     gap: 18,
     minWidth: 0,
     gridTemplateColumns: {
-      default: `repeat(${columns}, minmax(0, 1fr))`,
-      "@media (max-width: 720px)": "minmax(0, 1fr)",
+      default: "minmax(0, 1fr)",
+      ':is([data-columns="2"])': "repeat(2, minmax(0, 1fr))",
+      ':is([data-columns="3"])': "repeat(3, minmax(0, 1fr))",
+      ':is([data-columns="4"])': "repeat(4, minmax(0, 1fr))",
+      "@container operator-matrix (min-width: 481px) and (max-width: 900px)": {
+        default: "minmax(0, 1fr)",
+        ':is([data-columns="2"], [data-columns="3"], [data-columns="4"])':
+          "repeat(2, minmax(0, 1fr))",
+      },
+      "@container operator-matrix (max-width: 480px)": {
+        default: "minmax(0, 1fr)",
+        ':is([data-columns="2"], [data-columns="3"], [data-columns="4"])':
+          "minmax(0, 1fr)",
+      },
     },
-  }),
+  },
   cell: {
+    containerName: "operator-cell",
+    containerType: "inline-size",
     minWidth: 0,
     padding: "14px 16px 16px",
     borderWidth: 1,

@@ -31,6 +31,12 @@ export const noticeStyles: Record<
       gap: 12,
       paddingLeft: 14,
     },
+    "@container operator (max-width: 640px)": {
+      alignItems: "start",
+      flexWrap: "wrap",
+      gap: 12,
+      paddingLeft: 14,
+    },
     // Notice framing belongs here, not to a host's retired box rules.
     borderWidth: 0,
     borderRadius: 0,
