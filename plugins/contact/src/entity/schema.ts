@@ -42,12 +42,17 @@ type ContactFrontmatterSchema = z.ZodObject<
 
 export const contactFrontmatterSchema: ContactFrontmatterSchema = z
   .strictObject({
-    name: contactSubmissionSchema.shape.name,
-    email: contactSubmissionSchema.shape.email,
-    receivedAt: z.iso.datetime(),
-    expiresAt: z.iso.datetime(),
+    // Who wrote in and what happened since: facts, not fields to edit.
+    name: contactSubmissionSchema.shape.name.meta({
+      studioWidget: "provenance",
+    }),
+    email: contactSubmissionSchema.shape.email.meta({
+      studioWidget: "provenance",
+    }),
+    receivedAt: z.iso.datetime().meta({ studioWidget: "provenance" }),
+    expiresAt: z.iso.datetime().meta({ studioWidget: "provenance" }),
     status: statusSchema,
-    notification: notificationSchema,
+    notification: notificationSchema.meta({ studioWidget: "provenance" }),
   })
   .refine((value) => {
     const lifetime = Date.parse(value.expiresAt) - Date.parse(value.receivedAt);

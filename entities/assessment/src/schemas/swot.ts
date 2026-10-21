@@ -39,7 +39,7 @@ export const swotFrontmatterSchema: SwotFrontmatterSchema = z.object({
   weaknesses: z.array(swotItemSchema).default([]),
   opportunities: z.array(swotItemSchema).default([]),
   threats: z.array(swotItemSchema).default([]),
-  derivedAt: z.string().datetime(),
+  derivedAt: z.string().datetime().meta({ studioWidget: "provenance" }),
 });
 
 export interface SwotMetadata {

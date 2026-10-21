@@ -32,8 +32,8 @@ export const newsletterFrontmatterSchema: z.ZodObject<{
   status: newsletterStatusSchema,
   entityIds: z.array(z.string()).optional(),
   scheduledFor: z.string().datetime().optional(),
-  sentAt: z.string().datetime().optional(),
-  sourceEntityType: z.string().optional(),
+  sentAt: z.string().datetime().optional().meta({ studioWidget: "provenance" }),
+  sourceEntityType: z.string().optional().meta({ studioWidget: "provenance" }),
 });
 
 export type NewsletterFrontmatter = z.output<
