@@ -1,5 +1,24 @@
 # @brains/app
 
+## 0.2.0-alpha.577
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.577
+  - @brains/contracts@0.2.0-alpha.577
+  - @brains/site-composition@0.2.0-alpha.577
+  - @brains/theme-base@0.2.0-alpha.577
+  - @brains/utils@0.2.0-alpha.577
+  - @brains/conversation-service@0.2.0-alpha.577
+  - @brains/core@0.2.0-alpha.577
+  - @brains/entity-service@0.2.0-alpha.577
+  - @brains/job-queue@0.2.0-alpha.577
+  - @brains/mcp-service@0.2.0-alpha.577
+  - @brains/plugins@0.2.0-alpha.577
+  - @brains/runtime-state@0.2.0-alpha.577
+  - @brains/templates@0.2.0-alpha.577
+
 ## 0.2.0-alpha.576
 
 ### Patch Changes

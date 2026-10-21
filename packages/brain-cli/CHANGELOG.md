@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.577
+
+### Patch Changes
+
+- [#696](https://github.com/rizom-ai/brains/pull/696) [`4a45567`](https://github.com/rizom-ai/brains/commit/4a45567fe67b49c65ac8abeff55bddfbf42f4787) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A card on the Board is assigned to one of the brain's members: New card and Track as action item offer the members (everyone but suspended people) instead of a free-text name, and the card stores the member's id with the name. An assignee who is not a member is refused. Across Studio, an optional dropdown now starts on an empty "None" choice instead of preselecting its first option.
+
 ## 0.2.0-alpha.576
 
 ### Patch Changes
