@@ -6,6 +6,7 @@ import { groupingValueLabel } from "./grouping-value";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import { GroupingMembershipField } from "./grouping-membership-field";
 import { StudioStatus } from "./studio-status";
+import { SystemReadOnlyValue } from "./read-only-value";
 import { BrainMembersField, PeopleNames } from "./people-fields";
 import { ProvenanceFact } from "./provenance-field";
 import {
@@ -596,21 +597,16 @@ function FieldControl(props: {
 
   if (descriptor.widget === "list" || descriptor.widget === "object") {
     // Nested structured widgets remain read-only; the value round-trips
-    // untouched because saves only send changed draft keys.
+    // untouched because saves only send changed draft keys. It reads as
+    // content, never as JSON.
     return (
-      <label {...stylex.props(f.field)} data-studio-field="structured">
+      <div {...stylex.props(f.field)} data-studio-field="structured">
         <span {...stylex.props(f.label)}>
           {descriptor.label}
           <em {...stylex.props(f.kind)}>read-only</em>
         </span>
-        <Textarea
-          {...validation}
-          xstyle={[f.control, f.readOnly]}
-          value={JSON.stringify(value ?? null, null, 2)}
-          disabled
-          rows={4}
-        />
-      </label>
+        <SystemReadOnlyValue value={value} fields={descriptor.fields} />
+      </div>
     );
   }
 

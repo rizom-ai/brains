@@ -50,8 +50,8 @@ export const linkFrontmatterSchema: LinkFrontmatterSchema = z.object({
   title: z.string(),
   url: z.string().url(),
   description: z.string().optional(),
-  capturedAt: z.string().datetime(),
-  source: linkSourceSchema,
+  capturedAt: z.string().datetime().meta({ studioWidget: "provenance" }),
+  source: linkSourceSchema.meta({ studioWidget: "provenance" }),
 });
 
 export type LinkFrontmatter = z.output<typeof linkFrontmatterSchema>;

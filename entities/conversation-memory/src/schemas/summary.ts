@@ -74,14 +74,20 @@ export const SUMMARY_RETIRED_FIELDS: readonly string[] = [
   "projectionVersion",
 ];
 
+/** Studio shows a summary's origin as facts and hides its projection hash. */
 export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
-  channelId: z.string(),
-  channelName: z.string().optional(),
-  interfaceType: z.string(),
-  timeRange: summaryTimeRangeSchema.optional(),
-  messageCount: z.number().int().min(0),
-  participants: z.array(summaryParticipantSchema).optional(),
-  sourceHash: z.string(),
+  channelId: z.string().meta({ studioWidget: "provenance" }),
+  channelName: z.string().optional().meta({ studioWidget: "provenance" }),
+  interfaceType: z.string().meta({ studioWidget: "provenance" }),
+  timeRange: summaryTimeRangeSchema
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  messageCount: z.number().int().min(0).meta({ studioWidget: "provenance" }),
+  participants: z
+    .array(summaryParticipantSchema)
+    .optional()
+    .meta({ studioWidget: "people" }),
+  sourceHash: z.string().meta({ studioWidget: "hidden" }),
 });
 
 const summaryParticipantParserSchema: z.ZodPreprocess<

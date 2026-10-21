@@ -149,7 +149,7 @@ for (const width of [1440, 768, 390])
       );
       const fields = doc.querySelector("fieldset"),
         number = doc.querySelector("input[type=number]"),
-        raw = doc.querySelector("textarea"),
+        raw = doc.querySelector('[data-studio-field="structured"]'),
         tag = doc.querySelector("[data-studio-field=tags] input"),
         remove = doc.querySelector('button[aria-label="Remove Exact tag α"]');
       if (!fields || !number || !raw || !tag || !remove)
@@ -158,11 +158,12 @@ for (const width of [1440, 768, 390])
         0,
       );
       expect(number.getAttribute("value")).toBe("0");
-      expect(raw.hasAttribute("disabled")).toBe(true);
-      expect(raw.textContent).toBe(
-        JSON.stringify({ zero: 0, off: false, empty: null }, null, 2),
-      );
-      expect(window.getComputedStyle(raw).borderTopStyle).toBe("dashed");
+      // Read-only structure reads as content, keeping falsy values visible.
+      expect(raw.querySelector("textarea")).toBeNull();
+      expect(raw.textContent).toContain("zero0");
+      expect(raw.textContent).toContain("offNo");
+      expect(raw.textContent).toContain("emptyNot set");
+      expect(raw.textContent).not.toContain("{");
       expect(parseFloat(window.getComputedStyle(tag).borderTopWidth)).toBe(0);
       expect(
         parseFloat(

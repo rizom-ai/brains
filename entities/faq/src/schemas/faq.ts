@@ -79,9 +79,17 @@ export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
   question: z.string(),
   status: faqStatusSchema,
   /** How many chat replies asked this question. */
-  asked: z.number().int().min(1).default(1),
+  asked: z
+    .number()
+    .int()
+    .min(1)
+    .default(1)
+    .meta({ studioWidget: "provenance" }),
   /** What the answer drew on, kept from the reply that first gave it. */
-  sources: z.array(faqSourceSchema).optional(),
+  sources: z
+    .array(faqSourceSchema)
+    .optional()
+    .meta({ studioWidget: "provenance" }),
   /** The owner's place for it on a site, 1 first; unranked FAQs follow. */
   rank: z.number().int().min(1).optional(),
 });

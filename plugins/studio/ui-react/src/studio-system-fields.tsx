@@ -11,10 +11,10 @@ import {
 import type { FieldDescriptor, ValidationIssue } from "./api";
 import { applyFieldChange } from "./editor-workflow";
 import { Field, isFieldVisible } from "./entity-fields";
-import { GroupingValue } from "./grouping-value-display";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import { isRecord } from "@brains/utils/is-record";
 import { StudioStatus } from "./studio-status";
+import { SystemReadOnlyValue } from "./read-only-value";
 import { systemFieldStyles as s } from "./studio-system-fields.styles";
 
 const pairedLists = new Set(["preferredTerms", "preferred", "avoid"]);
@@ -30,69 +30,6 @@ function presentedField(field: FieldDescriptor): FieldDescriptor {
   return field.widget === "string" && longFields.has(field.name)
     ? { ...field, widget: "text" }
     : field;
-}
-
-export function SystemReadOnlyValue({
-  value,
-  fields,
-  literalStrings,
-  vocabulary,
-}: {
-  vocabulary?: GroupingValueRules | undefined;
-  literalStrings?: boolean | undefined;
-  value: unknown;
-  fields?: FieldDescriptor[] | undefined;
-}): ReactElement {
-  if (literalStrings && typeof value === "string")
-    return <GroupingValue value={value} vocabulary={vocabulary} />;
-  if (value === undefined || value === null || value === "")
-    return <span>Not set</span>;
-  if (Array.isArray(value))
-    return value.length ? (
-      <ul {...stylex.props(s.list)}>
-        {value.map((item, index) => (
-          <li key={index}>
-            <SystemReadOnlyValue
-              value={item}
-              fields={fields}
-              literalStrings={literalStrings}
-              vocabulary={vocabulary}
-            />
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <span>None</span>
-    );
-  if (isRecord(value))
-    return (
-      <dl {...stylex.props(s.profile)}>
-        {Object.entries(value).map(([key, item]) => (
-          <div key={key} {...stylex.props(s.row)}>
-            <dt {...stylex.props(s.term)}>
-              {fields?.find((field) => field.name === key)?.label ?? key}
-            </dt>
-            <dd {...stylex.props(s.value)}>
-              <SystemReadOnlyValue
-                value={item}
-                fields={fields?.find((field) => field.name === key)?.fields}
-              />
-            </dd>
-          </div>
-        ))}
-      </dl>
-    );
-  if (typeof value === "string" && /^https?:\/\//.test(value))
-    return (
-      <a href={value} {...stylex.props(s.link)}>
-        {value}
-      </a>
-    );
-  return (
-    <span>
-      {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
-    </span>
-  );
 }
 
 export function StudioSystemFields(props: {

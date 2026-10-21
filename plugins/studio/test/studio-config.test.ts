@@ -7,6 +7,20 @@ import {
   zodFieldToStudioWidget,
 } from "../src/config";
 
+describe("values Studio cannot edit as text", () => {
+  it("become read-only structure instead of a blank text box", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "sections",
+        z.record(z.string(), z.object({ blurb: z.string() })),
+      ),
+    ).toMatchObject({ widget: "object" });
+    expect(zodFieldToStudioWidget("payload", z.unknown())).toMatchObject({
+      widget: "object",
+    });
+  });
+});
+
 describe("people fields", () => {
   const people = z.array(
     z.object({ name: z.string(), id: z.string().optional() }),
