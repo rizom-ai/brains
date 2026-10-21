@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.587
+
+### Patch Changes
+
+- [#710](https://github.com/rizom-ai/brains/pull/710) [`8ea6226`](https://github.com/rizom-ai/brains/commit/8ea62265d48981a2f25c5c21909ded6fdc4245fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ sources no longer keep an excerpt. Each source is one line in the body: its title linked to its address and the brain it came from. FAQs stored with quoted excerpts under their sources are read without them and written without them on their next save or import.
+
 ## 0.2.0-alpha.586
 
 ### Patch Changes
