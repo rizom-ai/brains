@@ -1,5 +1,85 @@
 # @brains/ops
 
+## 0.2.0-alpha.574
+
+No changes in this release.
+
+## 0.2.0-alpha.573
+
+No changes in this release.
+
+## 0.2.0-alpha.572
+
+No changes in this release.
+
+## 0.2.0-alpha.571
+
+No changes in this release.
+
+## 0.2.0-alpha.570
+
+No changes in this release.
+
+## 0.2.0-alpha.569
+
+No changes in this release.
+
+## 0.2.0-alpha.568
+
+No changes in this release.
+
+## 0.2.0-alpha.567
+
+### Patch Changes
+
+- [#683](https://github.com/rizom-ai/brains/pull/683) [`03e9285`](https://github.com/rizom-ai/brains/commit/03e9285d867deefaf66ba35a75e716d3e5a1c3a6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include an exact version-and-pin-set digest in every pinned runtime image tag, including short readable tags, and refuse colliding requirements instead of dropping one. Normalize duplicate pins and preserve deterministic ordering.
+
+  Pinned images use new immutable tags after this change. Existing registry tags must not be overwritten or retagged as a migration workaround.
+
+## 0.2.0-alpha.566
+
+No changes in this release.
+
+## 0.2.0-alpha.565
+
+No changes in this release.
+
+## 0.2.0-alpha.564
+
+No changes in this release.
+
+## 0.2.0-alpha.563
+
+No changes in this release.
+
+## 0.2.0-alpha.562
+
+### Patch Changes
+
+- [#675](https://github.com/rizom-ai/brains/pull/675) [`1389314`](https://github.com/rizom-ai/brains/commit/13893144ccbc119bc82f22b66fdbb726aa444cc4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Discord opt-in for newly scaffolded pilot users. Browser chat/passkey onboarding is now the default, while `--discord` enables Discord explicitly and `--anchor-id` continues to imply it for compatibility.
+
+## 0.2.0-alpha.561
+
+No changes in this release.
+
+## 0.2.0-alpha.560
+
+No changes in this release.
+
+## 0.2.0-alpha.559
+
+### Patch Changes
+
+- [#662](https://github.com/rizom-ai/brains/pull/662) [`312f2b4`](https://github.com/rizom-ai/brains/commit/312f2b4710a48939e5b8e8fb3cc0207a439f8129) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require reviewed per-image runtime manifests and Bun lockfiles for new fleet image builds. Add a planning-only `images:lock` command, pin the selector-parser security fix in generated manifests, and install production dependencies frozen with lifecycle scripts disabled. Existing published images remain immutable; adopting the scaffold or preparing locks does not replace running containers.
+
+## 0.2.0-alpha.558
+
+No changes in this release.
+
+## 0.2.0-alpha.557
+
+No changes in this release.
+
 ## 0.2.0-alpha.556
 
 No changes in this release.

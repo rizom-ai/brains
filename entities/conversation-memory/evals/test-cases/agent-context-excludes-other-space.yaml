@@ -18,7 +18,7 @@ input:
   channelName: Relay Team
   userPermissionLevel: trusted
   memory:
-    - id: summary-other
+    - id: other-team-conv
       entityType: summary
       conversationId: other-team-conv
       interfaceType: mcp
@@ -29,7 +29,7 @@ input:
       excerpt: Other team chose a higher-scoring but unrelated memory policy.
       score: 0.99
       updated: "2026-05-04T11:01:00Z"
-    - id: summary-same
+    - id: relay-team-conv
       entityType: summary
       conversationId: relay-team-conv
       interfaceType: mcp
@@ -44,7 +44,7 @@ input:
 expectedOutput:
   validateEach:
     - path: items[0].id
-      equals: summary-same
+      equals: relay-team-conv
     - path: items[0].provenance.spaceId
       equals: mcp:relay-team
     - path: items[1]

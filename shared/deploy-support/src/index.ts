@@ -164,7 +164,24 @@ export function isStaleDeployDockerfile(content: string): boolean {
     content.includes(
       'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
-  if (hasCurrentRuntime) return false;
+  if (hasCurrentRuntime) {
+    const priorFleetSection = `# --- fleet: install published brain at pinned version (ops deploy) ---
+FROM runtime AS fleet
+ARG BRAIN_VERSION
+ARG SITE_PACKAGES
+RUN test -n "$BRAIN_VERSION" \\
+ && printf '{"name":"rover-pilot-runtime","private":true}\\n' > package.json \\
+ && if [ -n "$SITE_PACKAGES" ]; then \\
+      bun add @rizom/brain@$BRAIN_VERSION $SITE_PACKAGES; \\
+    else \\
+      bun add @rizom/brain@$BRAIN_VERSION; \\
+    fi
+`;
+    const fleetStart = dockerfileTemplate.indexOf("# --- fleet:");
+    return (
+      content === dockerfileTemplate.slice(0, fleetStart) + priorFleetSection
+    );
+  }
 
   const hasGeneratedCommand = [
     'CMD ["./node_modules/.bin/brain", "start"]',

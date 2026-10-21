@@ -1,6 +1,6 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import {
@@ -10,7 +10,7 @@ import {
 import type { Series } from "../src/schemas/series";
 
 describe("SeriesGenerationHandler", () => {
-  it("classifies source-derived descriptions as neutral", async () => {
+  it("passes voice guidance to descriptions without injecting identity", async () => {
     const series = createTestEntity<Series>("series", {
       id: "systems-series",
       content: `---
@@ -40,6 +40,16 @@ slug: systems-series
             ]
           : [],
     });
+    spyOn(context.entityService, "getEntity")
+      .mockResolvedValueOnce(series)
+      .mockResolvedValueOnce(
+        createTestEntity("style-guide", {
+          id: "style-guide",
+          content:
+            "---\nname: Voice\nvoice:\n  summary: Plain and exact\n---\n",
+          metadata: {},
+        }),
+      );
     const handler = new SeriesGenerationHandler(
       createSilentLogger("test"),
       context,
@@ -51,6 +61,7 @@ slug: systems-series
       expect.objectContaining({
         templateName: "series:description",
         representedIdentity: "none",
+        styleGuide: { voice: expect.stringContaining("Plain and exact") },
       }),
       generatedSeriesDescriptionSchema,
     );

@@ -11,8 +11,7 @@ import type { ShellConfig } from "../config";
 import type { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
-import { runConcurrentPhase } from "../effect-runtime";
-import { Effect } from "@brains/utils/effect";
+import { Effect, runConcurrentPhase } from "@brains/utils/effect";
 import { createId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
 import {
@@ -285,6 +284,13 @@ export class ShellBootloader {
       });
       // Existing membership becomes queryable before grouping reads are admitted.
       await this.services.entityService.reprojectRegisteredGroupings();
+      // Stored entities lose frontmatter fields their type has retired.
+      const retired = await this.services.entityService.rewriteRetiredFields();
+      if (retired.rewritten > 0) {
+        this.services.logger.info("Rewrote entities carrying retired fields", {
+          rewritten: retired.rewritten,
+        });
+      }
 
       if (initialSyncPending) {
         pendingStartupContent = initialSync.promise
@@ -396,12 +402,45 @@ export class ShellBootloader {
   private async prepareReadyState(): Promise<void> {
     await this.initializeIdentityServices();
 
-    const count = await materializePrompts(
+    const { logger } = this.services;
+    const prompts = await materializePrompts(
       this.services.templateRegistry,
       this.services.entityService,
     );
-    if (count > 0) {
-      this.services.logger.debug(`Materialized ${count} prompt entities`);
+    if (prompts.created.length > 0) {
+      logger.debug(`Materialized ${prompts.created.length} prompt entities`);
+    }
+    if (prompts.refreshed.length > 0) {
+      logger.info("Refreshed untouched prompts to their current defaults", {
+        targets: prompts.refreshed,
+      });
+    }
+    if (prompts.retitled.length > 0) {
+      logger.info("Corrected generated prompt titles", {
+        targets: prompts.retitled,
+      });
+    }
+    if (prompts.staleOverrides.length > 0) {
+      logger.info("Edited prompts are based on an older default", {
+        targets: prompts.staleOverrides,
+      });
+    }
+    if (prompts.unverifiedOverrides.length > 0) {
+      logger.info(
+        "Prompts without provenance differ from their default and are kept; delete one to restore its default",
+        { targets: prompts.unverifiedOverrides },
+      );
+    }
+    if (prompts.removedLegacy.length > 0) {
+      logger.info(
+        "Removed prompt copies stored under ids generation never read",
+        {
+          ids: prompts.removedLegacy,
+        },
+      );
+    }
+    for (const { target, error } of prompts.failed) {
+      logger.warn(`Could not sync prompt ${target}: ${error}`);
     }
   }
 

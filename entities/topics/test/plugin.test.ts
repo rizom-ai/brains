@@ -2,6 +2,11 @@ import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsPlugin } from "../src";
 import { createPluginHarness } from "@brains/plugins/test";
+import { TopicAdapter } from "../src/lib/topic-adapter";
+import {
+  topicExtractionStores,
+  topicVotePromptVersion,
+} from "../src/lib/topic-extraction-run";
 
 describe("TopicsPlugin", () => {
   let plugin: TopicsPlugin;
@@ -155,6 +160,66 @@ describe("TopicsPlugin", () => {
       expect(pluginWithEmpty.shouldProcessEntityType("topic", allowAll)).toBe(
         false,
       );
+    });
+  });
+});
+
+describe("topic-distribution report wiring", () => {
+  it("counts sources from the extraction votes the plugin recorded", async () => {
+    const harness = createPluginHarness<TopicsPlugin>({});
+    // Resolving the votes prompt stores a prompt entity; in a brain the
+    // prompt plugin excludes its type from topic sources.
+    await harness.installPlugin(
+      new TopicsPlugin({ excludeEntityTypes: ["prompt"] }),
+    );
+    const context = harness.getEntityContext("topics");
+    const note = createTestEntity("note", {
+      id: "read",
+      contentHash: "read-hash",
+      visibility: "public",
+      metadata: {},
+    });
+    harness.getMockShell().addEntities([
+      createTestEntity("topic", {
+        id: "ethics",
+        content: new TopicAdapter().createTopicBody({
+          title: "Ethics",
+          content: "",
+        }),
+        visibility: "public",
+      }),
+      note,
+      createTestEntity("note", {
+        id: "unread",
+        visibility: "public",
+        metadata: {},
+      }),
+      // Extraction reads public sources only, so it never reads this one.
+      createTestEntity("note", {
+        id: "private",
+        visibility: "restricted",
+        metadata: {},
+      }),
+    ]);
+    const stores = topicExtractionStores(context);
+    await stores.votes.set("note:read", {
+      contentHash: "read-hash",
+      promptVersion: await topicVotePromptVersion(context),
+      visibility: "public",
+      supported: [{ slug: "morals", title: "Morals", relevanceScore: 0.9 }],
+      proposal: null,
+    });
+    await stores.aliases.set("morals", "ethics");
+
+    const result = await harness.getMockShell().getAnalyticsRegistry().run({
+      type: "topic-distribution",
+      entityService: harness.getEntityService(),
+      permission: "admin",
+    });
+
+    expect(result).toEqual({
+      topics: [{ topic: "ethics", title: "Ethics", sources: 1 }],
+      coverage: { sourceEntities: 2, attributed: 1, unattributed: 1 },
     });
   });
 });

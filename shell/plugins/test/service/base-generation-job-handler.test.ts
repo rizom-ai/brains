@@ -302,4 +302,34 @@ describe("BaseGenerationJobHandler", () => {
     expect(updatedEntity?.content).toContain("status: failed");
     expect(updatedEntity?.content).toContain("error: planned failure");
   });
+
+  it("marks a still-generating stub failed when the queue terminally fails the job", async () => {
+    const stub = createStub();
+    const { context, getUpdatedEntity } = createTrackingContext(stub);
+    const handler = new TestGenerationHandler(context);
+
+    await handler.onTerminalError(new Error("Attempt lease expired"), {
+      entityId: "stub-id",
+    });
+
+    const updatedEntity = getUpdatedEntity();
+    expect(updatedEntity?.metadata["status"]).toBe("failed");
+    expect(updatedEntity?.metadata["error"]).toBe("Attempt lease expired");
+    expect(updatedEntity?.content).toContain("status: failed");
+  });
+
+  it("leaves an already generated entity alone when the job fails terminally afterwards", async () => {
+    const stub = createStub({
+      content: "---\ntitle: Generated\nstatus: draft\n---\nGenerated body",
+      metadata: { title: "Generated", status: "draft" },
+    });
+    const { context, getUpdatedEntity } = createTrackingContext(stub);
+    const handler = new TestGenerationHandler(context);
+
+    await handler.onTerminalError(new Error("cover image follow-up failed"), {
+      entityId: "stub-id",
+    });
+
+    expect(getUpdatedEntity()).toBeUndefined();
+  });
 });

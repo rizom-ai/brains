@@ -1,5 +1,185 @@
 # @rizom/brain
 
+## 0.2.0-alpha.574
+
+### Patch Changes
+
+- [#686](https://github.com/rizom-ai/brains/pull/686) [`9215754`](https://github.com/rizom-ai/brains/commit/921575475d110922ffa7440ff85ea776e6649f45) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio links in documents and Chat render as styled links again; following an external link asks first in a proper dialog instead of dropping an unstyled prompt into the paragraph.
+
+  Studio names things the way people write them: "New note", "New FAQ", "New series", "Ask Content" and "Site Info" instead of "New Notes", "New faq", "New serie", "Ask Contents" and "Site Infos"; field and prompt labels keep acronyms ("OG Image", "Canonical URL", "AI", "LinkedIn"); choice lists show "Published" rather than "published"; and Studio copy uses American spelling ("Summarize body").
+
+  Studio names entries by their title instead of their id: skills by name and FAQs by question in lists and editor headings, Overview's recent activity ("Resilience Is Not Redundancy" · "Post updated"), and ⌘K search results. Administration names passkeys "Synced passkey" or "Device passkey" as Account does, and Site shows when the live copy was published and how many pages it has, keeping the build id with the render details.
+
+  Studio speaks plainly: a new entry asks for a "File name" and says where it saves; path errors, the delete confirmation and folder lists drop storage jargon; lists count "entries" once (no pager for a single page); Guest chat reads "Turn on guest chat", "$0.00" and "0 bytes of 4 MB"; Traffic says which days have no traffic collected; and dashboard cards link to "Open Site" and "Open Publishing" rather than "Open in Studio".
+
+  New entries open on Source, read "Not created yet" until they exist, offer a "Create" action and say why it is unavailable; a blank new entry is no longer "unsaved". ⌘K offers Studio's own pages (Overview, Chat, workspaces, Account, and every collection on search) and no longer spell-checks the query. Administration and Account agree on linked identities (a passkey is a sign-in credential), Account names only the sections it has, a new operator lands in Studio after registering their first passkey, and derived skills keep their names across reruns instead of being deleted and recreated.
+
+  Studio looks right in the details: the collapsed rail centers Commands, glyph buttons such as "•••" no longer wrap on phones, phone titles keep three lines before clamping, Chat's composer shows one focus ring, captioned figures (Guest chat, Traffic) line up in columns, a selected row reads as selected rather than as an error in the dark climate, and a failed site build shows its actual error instead of "Handler returned failure". A port set through `plugins.webserver.productionPort` now also sets the local site URL, so the first-passkey setup link printed at startup uses the right port.
+
+  The console strip's Studio door opens Studio itself rather than its `/cms` redirect alias, a singleton that does not exist yet is named by its title, and Overview names entries written by projections (derived skills and topics) by their titles too.
+
+  Only public turns and site visitors' questions become draft FAQs; an operator's own Studio Chat questions no longer land in the Inbox as FAQs.
+
+  Prompts whose title is still the old generated form are corrected at boot ("…AI Response", "…LinkedIn"); titles you edited are kept.
+
+  Obsidian vault bases take the same names as Studio's collections ("FAQs.base", "Site Content.base"); a base under its earlier name moves once, keeping any edits.
+
+## 0.2.0-alpha.573
+
+### Patch Changes
+
+- [#694](https://github.com/rizom-ai/brains/pull/694) [`8a74229`](https://github.com/rizom-ai/brains/commit/8a7422918abeaee4f8ed448e3b2607bf404a01c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Board has a New card button: a title, optional details and an assignee add a card to To do. A card added by hand records who added it and when, and shows "Board" where other cards show their channel or the Inbox.
+
+## 0.2.0-alpha.572
+
+### Patch Changes
+
+- [#692](https://github.com/rizom-ai/brains/pull/692) [`34154cf`](https://github.com/rizom-ai/brains/commit/34154cfc4f6126be21349515372c4c934c91f8ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Search returns only entity types the brain loads. Rows left by a plugin the brain no longer runs used to take result slots and log an error on every search. An unknown entity type now reports itself as unknown rather than as a failed registration.
+
+## 0.2.0-alpha.571
+
+### Patch Changes
+
+- [#691](https://github.com/rizom-ai/brains/pull/691) [`b0ae327`](https://github.com/rizom-ai/brains/commit/b0ae32764292843a6c211c198a2a75f2aee917e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A passkey setup link that cannot register says why: its delivery has not been confirmed, it was already used or expired, or its delivery address is no longer valid. It used to report every case as "Passkey registration user is unavailable".
+
+## 0.2.0-alpha.570
+
+### Patch Changes
+
+- [#687](https://github.com/rizom-ai/brains/pull/687) [`d343cb9`](https://github.com/rizom-ai/brains/commit/d343cb9e486841acd8741d48783a408fb618f089) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Slack member an Admin has attached to a person now speaks with that person's role, the same way an attached Discord user does. A revoked or suspended binding drops the speaker to public; unbound Slack members still follow `slack:*` permission rules.
+
+- [#689](https://github.com/rizom-ai/brains/pull/689) [`b445dc9`](https://github.com/rizom-ai/brains/commit/b445dc94e3a7e72c6977647aba2b573132c0add1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `topic-distribution` report is now a distribution. Each topic carries `sources`: the visible source entities whose current extraction votes support it, merged topics folded in, so a source may count for several topics. Topics are sorted by that count. A new `coverage` counts the visible source entities that extraction reads, how many it has read in their current version (`attributed`), and how many are pending extraction (`unattributed`), so a partly extracted brain does not read as a settled one. With no topics, `unextracted` now counts only the sources extraction reads; when a caller sees source content but extraction reads none of it, the report returns `outsideExtraction` instead, pointing to `system_search` without saying topics are on their way. Content extraction never reads, such as entities outside its visibility or drafts it skips, is left out of `coverage`. Previously the report listed topic ids and titles only, and the agent could not say which topics were most common.
+
+## 0.2.0-alpha.569
+
+### Patch Changes
+
+- [#684](https://github.com/rizom-ai/brains/pull/684) [`3fc892c`](https://github.com/rizom-ai/brains/commit/3fc892c84d2f683113eed0e5abd16c3ddf6811a5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity type can retire frontmatter fields it no longer uses. Stored entities carrying a retired field still load, and the brain removes the field from them on start, including from synced files. Blog posts retire `ogDescription`, `twitterCard` and `atprotoUri`, which nothing read; publishing a post to ATProto no longer writes its record URI back into the post.
+
+  Agents retire `cardObservedAt`, `cardLastCheckedAt`, `a2aEndpoint`, `did` (the agent page shows `brainDid`) and `anchorDid`. The card refresh loop now keeps its failure counts, unavailability and stale deadlines outside the agent, starting from the values the agent already carries.
+
+  Newsletters retire `buttondownId` and `resendBroadcastId`; sending no longer writes the provider delivery id into the newsletter.
+
+  Docs retire `sourcePath`, and site content retires `routeId` and `sectionId`, which repeated the section's `route:section` id.
+
+  Decisions and action items retire `spaceId`, `sourceSummaryId`, `sourceMessageCount` and `projectionVersion`. An action item is now written in its trimmed shape on any save, so the rewrite on start migrates stored cards completely.
+
+  Conversation summaries retire `conversationId` (the summary's id is its conversation), `entryCount` (counted from the body) and `projectionVersion` (already part of the source hash).
+
+  Links retire `domain`; the link list, link page and ATProto record take the hostname from the URL.
+
+  Traffic snapshots retire `week`, `start` and `end`: a snapshot's days fix its ISO week and dates.
+
+  Mail items retire `source.senderKey` and `source.domain`, which nothing read. A type can now retire a field inside a frontmatter object, and a persist validator no longer sees retired fields.
+
+  Email reply drafts retire `updatedAt`; a draft reports its update time from the entity.
+
+  A type can list translated fields: stored keys its parser still reads to fill their new place, never written back. Action items use it for `timeRange`, which was kept in stored cards; the next start removes it.
+
+  Directory sync writes an imported file back in its stored form when the brain drops one of its fields, so a brain bootstrapped from an older content repository cleans its files too.
+
+## 0.2.0-alpha.568
+
+### Patch Changes
+
+- [#685](https://github.com/rizom-ai/brains/pull/685) [`45caedb`](https://github.com/rizom-ai/brains/commit/45caedbbd913f88f32461f38c023278c3db41307) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a synced file omits its visibility, the brain keeps the entity's stored non-public tier and now writes it back into the file, so the file no longer understates who can see the entity.
+
+## 0.2.0-alpha.567
+
+### Patch Changes
+
+- [#683](https://github.com/rizom-ai/brains/pull/683) [`03e9285`](https://github.com/rizom-ai/brains/commit/03e9285d867deefaf66ba35a75e716d3e5a1c3a6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Recheck the full public FAQ revision after semantic confirmation, settle auxiliary generation and embedding usage across hits, misses and failures, and count persisted answered-before replies through their existing durable capture identity without reclassification. Keep unreported work unknown and propagate guest cancellation to auxiliary providers.
+
+  Stop old web and worker writers before rollout. Older answered-before replies without capture provenance need manual count reconciliation; existing capture claims and receipts must not be expired, removed or replayed automatically. Mixed-version operation and downgrade are unsupported.
+
+## 0.2.0-alpha.566
+
+### Patch Changes
+
+- [#664](https://github.com/rizom-ai/brains/pull/664) [`fe97986`](https://github.com/rizom-ai/brains/commit/fe9798645d407b13c580222854ba5f7fb09dc450) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio has a Board under Work: the team's action items in To do, Doing, Blocked and Done columns. Drag a card to another column, or use its Move menu; a card someone else already moved is reported rather than overridden. Open a card to read its text and notes, and add a note. Filter the board to a project, a value of the brain's `projects` grouping, and see the project's counts and blocked cards. Blocked cards appear in the Inbox with Resume, Done and Drop, and an Inbox item can be tracked on the board as a card. In chat, `action_item_update` moves a card or adds a note. Cards moved, grouped or edited stay put when a conversation is summarized again. Studio Overview lists blocked action items under Needs you and links to the board.
+
+  Action item frontmatter is trimmed to what a card uses: status, capture time, its conversation or Inbox source, and flat `assignedTo` and `requestedBy` entries (`{ name, id }`). Items stored in the earlier shape are read as before and rewritten in the trimmed shape on their next change.
+
+## 0.2.0-alpha.565
+
+### Patch Changes
+
+- [#679](https://github.com/rizom-ai/brains/pull/679) [`3f08d82`](https://github.com/rizom-ai/brains/commit/3f08d8286b54505da81814eabffd77f92b8ac55e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The style guide also wins over voice wording in a generation request. The precedence statement now covers the request's additional instructions as well as the template's, and the agent is told to write `system_generate` prompts from what the user asked for, without adding "engaging", "a compelling hook", "invite discussion" or other voice directions of its own.
+
+## 0.2.0-alpha.564
+
+### Patch Changes
+
+- [#677](https://github.com/rizom-ai/brains/pull/677) [`00ca271`](https://github.com/rizom-ai/brains/commit/00ca2717771a96e3cb064d113cbce2cfbca596c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site build goes ahead of embeddings and projections in the job queue, so a new brain's site is built once its first import is stored instead of after every entity is embedded and read.
+
+## 0.2.0-alpha.563
+
+### Patch Changes
+
+- [#672](https://github.com/rizom-ai/brains/pull/672) [`a2e3e92`](https://github.com/rizom-ai/brains/commit/a2e3e92ec1f5067d462929a19624b40f5089de1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `port` in `brain.yaml` now sets the port the production server listens on, not only the URLs the brain prints. An explicit `plugins.webserver.productionPort` still takes precedence.
+
+- [#673](https://github.com/rizom-ai/brains/pull/673) [`8a82dff`](https://github.com/rizom-ai/brains/commit/8a82dff9418c6b4961945af2a02581d96cb0f5cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Built-in commands such as `brain tool` now refuse `--remote` instead of ignoring it and booting a local brain against the same data. Remote mode applies to the brain's own commands, e.g. `brain build-site preview --remote <url>`.
+
+- [#676](https://github.com/rizom-ai/brains/pull/676) [`b2e1d9d`](https://github.com/rizom-ai/brains/commit/b2e1d9dac7e2cb97790e1d6cdfb96d292ac0473a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation that dies with its worker no longer leaves its entity stuck at "generating". When the job queue fails an expired attempt for good on reclaim, it now runs the handler's terminal error callback, which the queue skipped before; generation jobs use it to mark a still-generating placeholder failed. If `system_generate` cannot queue its job at all, it removes the placeholder it just created instead of leaving it behind.
+
+- [#625](https://github.com/rizom-ai/brains/pull/625) [`b94a75c`](https://github.com/rizom-ai/brains/commit/b94a75c7c5dda9dada4131fc5768ff4821b3518b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking to create a note from an upload with changes (rewritten, restructured, summarised or translated) now generates a new note from the upload's content instead of importing the original unchanged. Importing an upload as-is still preserves its wording.
+
+## 0.2.0-alpha.562
+
+No changes in this release.
+
+## 0.2.0-alpha.561
+
+### Patch Changes
+
+- [#668](https://github.com/rizom-ai/brains/pull/668) [`2abd6d1`](https://github.com/rizom-ai/brains/commit/2abd6d1e4434c1e119232d0f39441a355b4431a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync no longer re-imports the brain's own exports. Auto-sync commits what the brain writes, and the next periodic pull listed those files as changed and queued an import job for each, which could only skip. Changed markdown files whose content already matches their stored entity are now left out of the pull's import batch; a pull whose changes are all such echoes queues nothing and still advances its checkpoint.
+
+## 0.2.0-alpha.560
+
+### Patch Changes
+
+- [#661](https://github.com/rizom-ai/brains/pull/661) [`9881c9e`](https://github.com/rizom-ai/brains/commit/9881c9e2bb89e14ff06618567270d6b1a376545d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prompt copies follow their defaults. Each prompt the brain writes into `prompt/` now records the hash of the default it was written from (`defaultHash`). At startup an untouched copy is replaced when its default changes, so improvements to built-in prompts reach existing brains; an edited copy is kept and logged once its default has moved. Copies from before this change are stamped when they still equal the default and otherwise kept and logged as unverified overrides; delete one to restore its default. Copies are now stored under the template key generation reads, and stale copies written under a template's short name are removed.
+
+- [#659](https://github.com/rizom-ai/brains/pull/659) [`368d83e`](https://github.com/rizom-ai/brains/commit/368d83eb626bf8ec44433ddaef7353b5502f383e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generated content follows the style guide on voice and form. When a style guide is supplied, the system prompt now says that it governs voice, tone, wording and form, while the template governs the task, required content, length, platform constraints and output format; on a conflict about voice or form, the style guide wins. The template's instructions are no longer repeated at the top of the user prompt, which had doubled their weight against the style guide.
+
+- [#665](https://github.com/rizom-ai/brains/pull/665) [`8b1039d`](https://github.com/rizom-ai/brains/commit/8b1039d2e75edcdd0e76b365c439d72330bfccbf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generation templates hold the task and the style guide holds the voice. The LinkedIn, newsletter and portfolio templates no longer set their own tone, hooks, line breaks, structure, engagement questions or closings; they keep their length, hashtag, subject-line and format constraints and defer voice and form to the style guide. Blog excerpts, deck and series descriptions and generated site sections now receive the style guide's voice too (site sections only from a public style guide), still without identity injected. "Engaging" and "compelling" wording is gone from generation prompts, and the social-media generation eval runs with the style guide like real generation does.
+
+## 0.2.0-alpha.559
+
+No changes in this release.
+
+## 0.2.0-alpha.558
+
+### Patch Changes
+
+- [#658](https://github.com/rizom-ai/brains/pull/658) [`2ef9585`](https://github.com/rizom-ai/brains/commit/2ef9585165c575c4de60e41f659d7b51aaf6fe5a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Slugs keep the letters and digits of every script, so a Chinese, Japanese, Korean or Cyrillic title gets an id and URL of its own instead of an empty slug. Topic and skill ids derived from such titles are now the same on every run; before, each extraction gave them a new random id, replaced the entity and triggered itself again, an endless loop of embedding and extraction jobs. Text with no letters or digits at all is named by a stable hash of the text.
+
+## 0.2.0-alpha.557
+
+### Patch Changes
+
+- [#653](https://github.com/rizom-ai/brains/pull/653) [`7f2beaa`](https://github.com/rizom-ai/brains/commit/7f2beaa754bfb308cdaed240af773b2b21112ab3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An agent whose ATProto brain card is reported unavailable again, without a new stale deadline, keeps its deadline in place in the agent's frontmatter instead of having it moved to the end.
+
+- [#650](https://github.com/rizom-ai/brains/pull/650) [`4127492`](https://github.com/rizom-ai/brains/commit/41274926c24f76ae0f174905c7e4e280cfa43609) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a Git pull is interrupted, a startup that later fails during inherited-work reconciliation or Git initialization now records the recovery as failed, as connect, startup replay, and initial-sync failures already did. Before this fix, sync status kept showing a `pulling` run while directory sync was disabled.
+
+- [#654](https://github.com/rizom-ai/brains/pull/654) [`d031b9b`](https://github.com/rizom-ai/brains/commit/d031b9b14529fa4af6ed5e1fa0fc209b325c70db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface built on the public `MessageInterfacePlugin` now releases its progress tracking when it shuts down: pending delayed cleanup is interrupted and tracked progress events are cleared after the interface's own `onShutdown` runs.
+
+- [#657](https://github.com/rizom-ai/brains/pull/657) [`e365b80`](https://github.com/rizom-ai/brains/commit/e365b80df0149b3985ced660fd4b22387fdc6eb2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Work is no longer lost when the job queue refuses an enqueue because another process held the queue's write lock past the enqueue budget. Each of these is enqueued again until the queue admits it:
+
+  - A requested site build. It is retried first after one debounce window, then backing off to once a minute.
+  - A scheduled or catch-up recurring check run. It is retried until the next scheduled run supersedes it, or until the check is unregistered or stopped.
+  - A FAQ capture or fold, a topic extraction wakeup, and a scheduled social post or newsletter generation. These are retried until the plugin shuts down.
+  - A publish asset preflight. Each retry re-reads the entity, so nothing is queued for an entity that is no longer published or whose asset already exists.
+  - A watched file change in directory sync. It is retried until its sync generation stops.
+  - The embedding job of an entity just created or updated. The entity write now resolves without throwing, and the embedding is retried once per entity, with the latest content winning, until the entity service closes. The startup embedding backfill still covers a retry pending when the process exits. Directory sync's import wait no longer polls an empty job id until it times out.
+  - A generated post's cover or social image. The generation job now succeeds, because the post exists, and the image is retried until the plugin shuts down.
+
+  Retries start after a second and double up to a minute.
+
+- [#651](https://github.com/rizom-ai/brains/pull/651) [`b00fe78`](https://github.com/rizom-ai/brains/commit/b00fe7876f0ab8205eafabf782ed343a8ed4489d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Studio workspace can declare `publishesEntityTypes: true` to receive the editor's publication actions for the entity types it covers. Studio no longer assumes the content pipeline publishes; the Publishing workspace now says so itself.
+
+- [#647](https://github.com/rizom-ai/brains/pull/647) [`9cdf93e`](https://github.com/rizom-ai/brains/commit/9cdf93e68dedd27902954a6e679586f7c9c894e9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A topic that absorbs a near-duplicate keeps its place when topics are trimmed to the ceiling. The weakest topic is judged on the votes after the merge, so the topic that gained the duplicate's votes is no longer dropped and re-minted with a new description.
+
 ## 0.2.0-alpha.556
 
 ### Patch Changes

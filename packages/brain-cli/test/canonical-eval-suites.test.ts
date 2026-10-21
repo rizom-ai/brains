@@ -29,12 +29,21 @@ import { canonicalBrain } from "../src/model/canonical-brain";
 
 const manifestPath = join(import.meta.dir, "..", "brain.eval.yaml");
 
-/** Boot, then let the queued startup import finish, as the eval runner does. */
+const STARTUP_IMPORT_JOB = "directory-sync:directory-import";
+
+/**
+ * Boot, then let the queued startup import finish. The eval runner drains every
+ * job, but here embedding and topic jobs call the AI provider with a
+ * placeholder key: they only fail, and waiting on them ties these tests to
+ * network latency and machine load. The assertions need the imported entities.
+ */
 async function initializeImported(app: App): Promise<void> {
   await app.initialize();
   const jobs = app.getShell().getJobQueueService();
   await waitUntil(
-    async () => (await jobs.getActiveJobs()).length === 0,
+    async () =>
+      (await jobs.getRecentJobs([STARTUP_IMPORT_JOB], 1)).length > 0 &&
+      (await jobs.getActiveJobs([STARTUP_IMPORT_JOB])).length === 0,
     "the startup import to finish",
     { timeoutMs: 60_000, intervalMs: 50 },
   );
@@ -69,10 +78,10 @@ const expectedMembers: Record<SuiteName, string> = {
   headless:
     "a2a agents ask-content directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
+    "a2a action-board admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a action-board admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
@@ -373,11 +382,19 @@ describe("canonical eval recipe ladder", () => {
     try {
       await initializeImported(app);
       const service = app.getShell().getEntityService();
-      const playbook = await service.getEntity({
+      const playbookRequest = {
         entityType: "playbook",
         id: "onboarding",
         visibilityScope: internalFullScope("onboarding playbook shape check"),
-      });
+      };
+      // Onboarding seeds its playbook once startup content settles, after the
+      // import job has finished.
+      await waitUntil(
+        async () => (await service.getEntity(playbookRequest)) !== null,
+        "the onboarding playbook to be seeded",
+        { timeoutMs: 60_000, intervalMs: 50 },
+      );
+      const playbook = await service.getEntity(playbookRequest);
       if (!playbook) throw new Error("Missing onboarding playbook");
       const instruction = playbook.content
         .split("\n")

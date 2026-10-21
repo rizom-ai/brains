@@ -2,6 +2,7 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import { GENERATE_CHANNELS, IMAGE_CHANNELS } from "@brains/contracts";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
+import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
@@ -87,11 +88,16 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
   GenerationJobData,
   GenerationResult
 > {
-  constructor(logger: Logger, context: EntityPluginContext) {
+  constructor(
+    logger: Logger,
+    context: EntityPluginContext,
+    retries?: RetryScope,
+  ) {
     super(logger, context, {
       schema: generationJobSchema,
       jobTypeName: "social-post-generation",
       entityType: "social-post",
+      retries,
     });
   }
 
@@ -174,7 +180,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
       const generated = await this.context.ai.generate(
         {
-          prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
+          prompt: `Write a ${platform} post to share this ${sourceEntityType}:
 
 Source: ${sourceEntityType}/${slug}
 
@@ -310,20 +316,25 @@ ${sourceEntity.content}`,
       });
 
       const title = generated.title ?? "Social Post";
-      await this.context.jobs.enqueue({
-        type: IMAGE_CHANNELS.generate,
-        data: {
-          prompt: `Social media graphic for: ${title}`,
-          title: `${title} Image`,
-          aspectRatio: "16:9",
-          targetEntityType: "social-post",
-          targetEntityId: entityId,
-        },
-        toolContext: {
-          interfaceType: "job",
-          actor: { kind: "service", serviceId: "social-media-generation" },
-        },
-      });
+      await this.enqueueFollowUp(
+        () =>
+          this.context.jobs.enqueue({
+            type: IMAGE_CHANNELS.generate,
+            data: {
+              prompt: `Social media graphic for: ${title}`,
+              title: `${title} Image`,
+              aspectRatio: "16:9",
+              targetEntityType: "social-post",
+              targetEntityId: entityId,
+            },
+            toolContext: {
+              interfaceType: "job",
+              actor: { kind: "service", serviceId: "social-media-generation" },
+            },
+          }),
+        `queue the image for social-post:${entityId}`,
+        `social-image:social-post:${entityId}`,
+      );
     }
 
     await this.context.messaging.send({

@@ -1,13 +1,15 @@
+import { actionItemBodyHash } from "@brains/action-items";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, spyOn } from "bun:test";
 import { summarySchema } from "../../src/schemas/summary";
-import { createExternalActorId } from "@brains/contracts";
+import { actorRefKey, createExternalActorId } from "@brains/contracts";
 import type {
   Conversation,
   ConversationMessageActor,
   Message,
 } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils/hash";
 import {
   getActorsMentionedInText,
   SummaryProjector,
@@ -248,7 +250,8 @@ describe("SummaryProjector", () => {
 
     const entity = upsertSpy.mock.calls[0]?.[0]?.entity;
     expect(entity?.id).toBe("conv-1");
-    expect(entity?.metadata["conversationId"]).toBe("conv-1");
+    // The summary is its conversation: no stored copy of the id.
+    expect(entity?.metadata).not.toHaveProperty("conversationId");
     expect(entity?.metadata["messageCount"]).toBe(2);
     expect(entity?.visibility).toBe(
       summaryConfigSchema.parse({}).memoryVisibility,
@@ -378,14 +381,14 @@ describe("SummaryProjector", () => {
     expect(actionItemEntity?.entityType).toBe("action-item");
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
       {
-        identity: externalIdentity("discord:user-daniel"),
-        displayName: "Daniel",
+        name: "Daniel",
+        id: actorRefKey(externalIdentity("discord:user-daniel")),
       },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
       {
-        identity: externalIdentity("discord:user-daniel"),
-        displayName: "Daniel",
+        name: "Daniel",
+        id: actorRefKey(externalIdentity("discord:user-daniel")),
       },
     ]);
   });
@@ -466,15 +469,27 @@ describe("SummaryProjector", () => {
     const actionItemEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
       {
-        identity: externalIdentity("discord:user-daniel"),
-        displayName: "Daniel",
+        name: "Daniel",
+        id: actorRefKey(externalIdentity("discord:user-daniel")),
       },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
       {
-        identity: externalIdentity("discord:user-mira"),
-        displayName: "Mira Ops",
+        name: "Mira Ops",
+        id: actorRefKey(externalIdentity("discord:user-mira")),
       },
+    ]);
+    // The card names its conversation and when it was captured, nothing more.
+    expect(Object.keys(actionItemEntity?.metadata ?? {}).sort()).toEqual([
+      "assignedTo",
+      "capturedAt",
+      "channelId",
+      "channelName",
+      "conversationId",
+      "interfaceType",
+      "projectedBodyHash",
+      "requestedBy",
+      "status",
     ]);
   });
 
@@ -543,24 +558,10 @@ describe("SummaryProjector", () => {
 
     const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
     expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
-      {
-        identity: {
-          kind: "user",
-          userId: "usr_daniel",
-          canonicalId: "person:daniel",
-        },
-        displayName: "Daniel D.",
-      },
+      { name: "Daniel D.", id: "user:usr_daniel" },
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
-      {
-        identity: {
-          kind: "user",
-          userId: "usr_daniel",
-          canonicalId: "person:daniel",
-        },
-        displayName: "Daniel D.",
-      },
+      { name: "Daniel D.", id: "user:usr_daniel" },
     ]);
   });
 
@@ -725,25 +726,19 @@ describe("SummaryProjector", () => {
     const adapter = new SummaryAdapter();
     const existing = createMockSummaryEntity({
       content: adapter.composeContent([existingEntry], {
-        conversationId: "conv-1",
         channelId: "cli-terminal",
         channelName: "CLI Terminal",
         interfaceType: "cli",
         messageCount: 2,
-        entryCount: 1,
         sourceHash: "old-hash",
-        projectionVersion: 1,
         timeRange: existingEntry.timeRange,
       }),
       metadata: {
-        conversationId: "conv-1",
         channelId: "cli-terminal",
         channelName: "CLI Terminal",
         interfaceType: "cli",
         messageCount: 2,
-        entryCount: 1,
         sourceHash: "old-hash",
-        projectionVersion: 1,
         timeRange: existingEntry.timeRange,
       },
     });
@@ -856,14 +851,11 @@ describe("SummaryProjector", () => {
         content: "# Conversation Summary\n",
         visibility: "public",
         metadata: {
-          conversationId: "conv-1",
           channelId: "cli-terminal",
           channelName: "CLI Terminal",
           interfaceType: "cli",
           messageCount: 2,
-          entryCount: 1,
           sourceHash: source.sourceHash,
-          projectionVersion: 1,
         },
       }),
     );
@@ -888,14 +880,11 @@ describe("SummaryProjector", () => {
         content: "# Conversation Summary\n",
         visibility: "shared",
         metadata: {
-          conversationId: "conv-1",
           channelId: "cli-terminal",
           channelName: "CLI Terminal",
           interfaceType: "cli",
           messageCount: 2,
-          entryCount: 1,
           sourceHash: "stale-hash",
-          projectionVersion: 1,
         },
       }),
     );
@@ -980,14 +969,11 @@ describe("SummaryProjector", () => {
       createMockSummaryEntity({
         content: "# Conversation Summary\n",
         metadata: {
-          conversationId: "conv-1",
           channelId: "cli-terminal",
           channelName: "CLI Terminal",
           interfaceType: "cli",
           messageCount: 2,
-          entryCount: 1,
           sourceHash: source.sourceHash,
-          projectionVersion: 1,
           timeRange: {
             start: "2026-01-01T00:00:00.000Z",
             end: "2026-01-01T00:01:00.000Z",
@@ -1003,5 +989,148 @@ describe("SummaryProjector", () => {
     expect(result.skipped).toBe(true);
     expect(upsertSpy).not.toHaveBeenCalled();
     expect(generateSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("SummaryProjector and the board", () => {
+  const owned = "Book the venue for the spring gathering.";
+  const fresh = "Ask the venue about accessibility.";
+  const textHash = (text: string): string =>
+    computeContentHash(text).slice(0, 12);
+
+  function staleSummary(): ReturnType<typeof createMockSummaryEntity> {
+    return createMockSummaryEntity({
+      content: "# Conversation Summary\n",
+      visibility: "shared",
+      metadata: {
+        channelId: "cli-terminal",
+        channelName: "CLI Terminal",
+        interfaceType: "cli",
+        messageCount: 2,
+        sourceHash: "stale-hash",
+      },
+    });
+  }
+
+  function extracting(
+    context: ReturnType<typeof createMockEntityPluginContext>,
+    actionItems: string[],
+  ): void {
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Spring gathering",
+          summary: "The team planned the venue.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: [],
+          actionItems,
+        },
+      ],
+    });
+  }
+
+  function projectorFor(
+    context: ReturnType<typeof createMockEntityPluginContext>,
+  ): SummaryProjector {
+    return new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+  }
+
+  function upsertedActionItems(
+    upsertSpy: ReturnType<
+      typeof spyOn<
+        ReturnType<typeof createMockEntityPluginContext>["entityService"],
+        "upsertEntity"
+      >
+    >,
+  ): { id: string; content: string; metadata: Record<string, unknown> }[] {
+    return upsertSpy.mock.calls
+      .map((call) => call[0].entity)
+      .filter((entity) => entity.entityType === "action-item");
+  }
+
+  it("stores the body hash it projected on each new action item", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    extracting(context, [fresh]);
+
+    await projectorFor(context).projectConversation("conv-1");
+
+    const [item] = upsertedActionItems(upsertSpy);
+    expect(item?.metadata["projectedBodyHash"]).toBe(
+      actionItemBodyHash(item?.content ?? ""),
+    );
+  });
+
+  it("keeps board-owned action items when replacing memory and adds only new ones", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(staleSummary());
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    const moved = createMockActionItemEntity(
+      `conv-1:action-item:1:${textHash(owned)}`,
+      "shared",
+    );
+    moved.metadata = { ...moved.metadata, status: "doing" };
+    const untouched = createMockActionItemEntity(
+      `conv-1:action-item:2:${textHash("An item nobody touched.")}`,
+      "shared",
+    );
+    spyOn(context.entityService, "listEntities")
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([moved, untouched]);
+    const deleteEntitySpy = spyOn(context.entityService, "deleteEntity");
+    // The board-owned item comes back second, after a reworded newcomer.
+    extracting(context, [fresh, owned]);
+
+    await projectorFor(context).projectConversation("conv-1");
+
+    expect(deleteEntitySpy).toHaveBeenCalledWith({
+      entityType: "action-item",
+      id: untouched.id,
+    });
+    expect(deleteEntitySpy).not.toHaveBeenCalledWith({
+      entityType: "action-item",
+      id: moved.id,
+    });
+    const upserted = upsertedActionItems(upsertSpy).map((entity) => entity.id);
+    expect(upserted).toEqual([`conv-1:action-item:1:${textHash(fresh)}`]);
+  });
+
+  it("never overwrites a board-owned action item on a first projection", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    const blocked = createMockActionItemEntity(
+      `conv-1:action-item:1:${textHash(owned)}`,
+      "shared",
+    );
+    blocked.metadata = { ...blocked.metadata, status: "blocked" };
+    spyOn(context.entityService, "listEntities").mockResolvedValue([blocked]);
+    extracting(context, [owned]);
+
+    await projectorFor(context).projectConversation("conv-1");
+
+    expect(upsertedActionItems(upsertSpy)).toEqual([]);
   });
 });

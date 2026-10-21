@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
-import type { ReactElement, ReactNode } from "react";
+import type { DragEvent, ReactElement, ReactNode } from "react";
 import { listStyles as s } from "./operator-list.styles";
 type Density = "compact" | "comfortable";
 type Tone = "neutral" | "good" | "warn" | "error";
@@ -34,9 +34,14 @@ export function OperatorRecordRow(props: {
   stacked?: boolean | undefined;
   children: ReactNode;
   trailing?: ReactNode;
+  /** A row that can be picked up and dropped elsewhere. */
+  drag?: { onStart: (event: DragEvent) => void; onEnd: () => void } | undefined;
 }): ReactElement {
   return (
     <li
+      draggable={props.drag ? true : undefined}
+      onDragStart={props.drag?.onStart}
+      onDragEnd={props.drag?.onEnd}
       {...stylex.props(
         s.row,
         props.density === "compact" && s.compactRow,

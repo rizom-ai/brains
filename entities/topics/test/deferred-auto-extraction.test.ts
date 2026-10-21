@@ -2,8 +2,10 @@ import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type PluginCapabilities } from "@brains/plugins";
 import {
   createPluginHarness,
+  refuseEnqueues,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 import { TopicsPlugin } from "../src";
 
 type Queue = ReturnType<
@@ -122,5 +124,36 @@ describe("ranked topic extraction triggers", () => {
     );
     expect(registerHandler).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("queues an extraction the queue refused once it admits it", async () => {
+    const harness = createPluginHarness<TopicsPlugin>({
+      logContext: "topics-test",
+    });
+    const queue = harness.getMockShell().getJobQueueService();
+    const refused = refuseEnqueues(queue, 1);
+    await harness.installPlugin(
+      new TopicsPlugin({
+        enableAutoExtraction: true,
+        includeEntityTypes: ["post"],
+      }),
+    );
+
+    await harness.sendMessage(
+      "entity:updated",
+      { entityType: "post", entityId: "post-1" },
+      "entity-service",
+    );
+    expect(refused.count).toBe(1);
+
+    await waitUntil(
+      async () =>
+        (await queue.getActiveJobs()).some(
+          (job) => job.type === "topics:extract",
+        ),
+      "the refused extraction to be queued",
+      { timeoutMs: 5_000 },
+    );
+    await harness.reset();
   });
 });

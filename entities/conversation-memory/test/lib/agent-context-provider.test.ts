@@ -1,13 +1,11 @@
+import { type ActionItemEntity } from "@brains/action-items";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AgentContextRequest } from "@brains/contracts";
 import { buildConversationMemoryAgentContext } from "../../src/lib/agent-context-provider";
 import { conversationMemorySearchEntitySchema } from "../../src/lib/conversation-memory-retriever";
 import type { SummaryEntity } from "../../src/schemas/summary";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
-} from "../../src/schemas/conversation-memory";
+import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 import {
   createMockActionItemEntity,
@@ -19,16 +17,14 @@ const defaultVisibility = "restricted" as const;
 describe("buildConversationMemoryAgentContext", () => {
   it("returns relevant same-space memory as agent context", async () => {
     const sameSpace = createSummary({
-      id: "summary-team",
-      conversationId: "conv-team",
+      id: "conv-team",
       channelId: "relay-team",
       channelName: "Relay Team",
       content:
         "# Conversation Summary\n\nTeam chose same-space memory retrieval.",
     });
     const otherSpace = createSummary({
-      id: "summary-other",
-      conversationId: "conv-other",
+      id: "conv-other",
       channelId: "other-team",
       channelName: "Other Team",
       content: "# Conversation Summary\n\nOther team memory should not appear.",
@@ -60,7 +56,7 @@ describe("buildConversationMemoryAgentContext", () => {
     );
     expect(response.items).toHaveLength(1);
     expect(response.items[0]).toMatchObject({
-      id: "summary-team",
+      id: "conv-team",
       source: "conversation-memory",
       title: "summary from Relay Team",
       content: "Team chose same-space memory retrieval.",
@@ -83,7 +79,7 @@ describe("buildConversationMemoryAgentContext", () => {
         itemCount: 1,
         items: [
           expect.objectContaining({
-            id: "summary-team",
+            id: "conv-team",
             entityType: "summary",
             conversationId: "conv-team",
             spaceId: "mcp:relay-team",
@@ -139,8 +135,7 @@ describe("buildConversationMemoryAgentContext", () => {
 
   it("falls back to recent same-space memory when search has no matches", async () => {
     const summary = createSummary({
-      id: "summary-recent",
-      conversationId: "conv-recent",
+      id: "conv-recent",
       channelId: "relay-team",
       channelName: "Relay Team",
       content: "# Conversation Summary\n\nRecent same-space memory.",
@@ -161,7 +156,7 @@ describe("buildConversationMemoryAgentContext", () => {
 
     expect(response.items).toEqual([
       expect.objectContaining({
-        id: "summary-recent",
+        id: "conv-recent",
         content: "Recent same-space memory.",
       }),
     ]);
@@ -169,8 +164,7 @@ describe("buildConversationMemoryAgentContext", () => {
 
   it("expands structured summary entries for agent context", async () => {
     const summary = createSummary({
-      id: "summary-team",
-      conversationId: "conv-team",
+      id: "conv-team",
       channelId: "relay-team",
       channelName: "Relay Team",
       content: [
@@ -208,8 +202,7 @@ describe("buildConversationMemoryAgentContext", () => {
 
   it("preserves summary, decision, and action item provenance", async () => {
     const summary = createSummary({
-      id: "summary-team",
-      conversationId: "conv-team",
+      id: "conv-team",
       channelId: "relay-team",
       channelName: "Relay Team",
       content: "# Conversation Summary\n\nDurable summary memory.",
@@ -229,13 +222,14 @@ describe("buildConversationMemoryAgentContext", () => {
 
     expect(response.items).toEqual([
       expect.objectContaining({
-        id: "summary-team",
+        id: "conv-team",
         provenance: expect.objectContaining({
           entityType: "summary",
           conversationId: "conv-team",
           spaceId: "mcp:relay-team",
           messageCount: 2,
-          entryCount: 1,
+          // Counted from the body, which holds no entries here.
+          entryCount: 0,
         }),
       }),
       expect.objectContaining({
@@ -287,9 +281,9 @@ function createRequest(channelId: string): AgentContextRequest {
   };
 }
 
+/** A summary is its conversation: its id is the conversation id. */
 function createSummary(params: {
   id: string;
-  conversationId: string;
   channelId: string;
   channelName: string;
   content: string;
@@ -299,7 +293,6 @@ function createSummary(params: {
     visibility: defaultVisibility,
     content: params.content,
     metadata: {
-      conversationId: params.conversationId,
       channelId: params.channelId,
       channelName: params.channelName,
       interfaceType: "mcp",
@@ -308,9 +301,7 @@ function createSummary(params: {
         end: "2026-01-01T00:10:00.000Z",
       },
       messageCount: 2,
-      entryCount: 1,
       sourceHash: `${params.id}-hash`,
-      projectionVersion: 1,
     },
   });
 }
@@ -324,7 +315,6 @@ function createDecision(id: string, channelId: string): DecisionEntity {
       interfaceType: "mcp",
       channelId,
       channelName: "Relay Team",
-      spaceId: `mcp:${channelId}`,
     },
   };
 }
@@ -338,7 +328,6 @@ function createActionItem(id: string, channelId: string): ActionItemEntity {
       interfaceType: "mcp",
       channelId,
       channelName: "Relay Team",
-      spaceId: `mcp:${channelId}`,
     },
   };
 }

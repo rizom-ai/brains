@@ -1,3 +1,13 @@
+import {
+  ACTION_ITEM_ENTITY_TYPE,
+  ActionItemAdapter,
+  actionItemSchema,
+  type ActionItemEntity,
+  type ActionItemMetadata,
+  type MemoryActorReference,
+  actionItemBodyHash,
+  isBoardOwned,
+} from "@brains/action-items";
 import { actorRefKey } from "@brains/contracts";
 import {
   conversationMessageMetadataSchema,
@@ -9,24 +19,13 @@ import { type Logger } from "@brains/utils/logger";
 import { pLimit } from "@brains/utils/p-limit";
 import { truncateText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import {
-  ACTION_ITEM_ENTITY_TYPE,
-  DECISION_ENTITY_TYPE,
-  SUMMARY_ENTITY_TYPE,
-} from "./constants";
-import {
-  ActionItemAdapter,
-  DecisionAdapter,
-} from "../adapters/conversation-memory-adapters";
+import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
+import { DecisionAdapter } from "../adapters/conversation-memory-adapters";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import {
-  actionItemSchema,
   decisionSchema,
-  type ActionItemEntity,
-  type ActionItemMetadata,
   type DecisionEntity,
   type DecisionMetadata,
-  type MemoryActorReference,
 } from "../schemas/conversation-memory";
 import {
   summaryProjectionDecisionSchema,
@@ -47,10 +46,14 @@ import {
 import { buildSummaryProjectionDecisionPrompt } from "./summary-prompt";
 import {
   evaluateSummaryEligibility,
-  getConversationSpaceId,
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
+
+/** The text hash that ends a projected memory id; stable when extraction order shifts. */
+function textHashOf(id: string): string {
+  return id.slice(id.lastIndexOf(":") + 1);
+}
 
 const CHUNK_EXTRACTION_CONCURRENCY = 3;
 
@@ -113,11 +116,36 @@ export function getActorsMentionedInText(
   return matches;
 }
 
+/** An actor as a card names them: an id, its aliases, and a name when known. */
+function flatPerson(actor: MemoryActorReference): {
+  id: string;
+  name?: string;
+  aliases?: string[];
+} {
+  const id = actorRefKey(actor.identity);
+  const aliases = (actor.identityAliases ?? [])
+    .map(actorRefKey)
+    .filter((alias) => alias !== id);
+  return {
+    id,
+    ...(actor.displayName ? { name: actor.displayName } : {}),
+    ...(aliases.length > 0 ? { aliases } : {}),
+  };
+}
+
+/** A summary's metadata with the conversation it belongs to, which is its id. */
+type ProjectedConversation = SummaryMetadata & { conversationId: string };
+
 export class SummaryProjector {
   private readonly context: EntityPluginContext;
   private readonly logger: Logger;
   private readonly config: SummaryConfig;
   private readonly adapter = new SummaryAdapter();
+
+  /** A summary's entry count is its body's, not a stored copy. */
+  private entryCountOf(summary: SummaryEntity): number {
+    return this.adapter.parseBody(summary.content).entries.length;
+  }
   private readonly decisionAdapter = new DecisionAdapter();
   private readonly actionItemAdapter = new ActionItemAdapter();
   private readonly sourceReader: SummarySourceReader;
@@ -179,7 +207,7 @@ export class SummaryProjector {
         conversationId,
         created: false,
         skipped: true,
-        entryCount: existing.metadata.entryCount,
+        entryCount: this.entryCountOf(existing),
         messageCount: existing.metadata.messageCount,
         sourceHash: source.sourceHash,
         skipReason: "unchanged",
@@ -199,7 +227,7 @@ export class SummaryProjector {
         conversationId,
         created: false,
         skipped: true,
-        entryCount: existing?.metadata.entryCount ?? 0,
+        entryCount: existing ? this.entryCountOf(existing) : 0,
         messageCount: source.messages.length,
         sourceHash: source.sourceHash,
         skipReason: "ai-skip",
@@ -220,7 +248,7 @@ export class SummaryProjector {
         conversationId,
         created: false,
         skipped: true,
-        entryCount: existing?.metadata.entryCount ?? 0,
+        entryCount: existing ? this.entryCountOf(existing) : 0,
         messageCount: source.messages.length,
         sourceHash: source.sourceHash,
         skipReason: "ai-skip",
@@ -229,7 +257,6 @@ export class SummaryProjector {
 
     const timeRange = this.getTimeRange(source.messages);
     const metadata: SummaryMetadata = {
-      conversationId,
       channelId: source.conversation.channelId,
       ...(source.conversation.channelName
         ? { channelName: source.conversation.channelName }
@@ -237,10 +264,8 @@ export class SummaryProjector {
       interfaceType: source.conversation.interfaceType,
       ...(timeRange ? { timeRange } : {}),
       messageCount: source.messages.length,
-      entryCount: projected.entries.length,
       ...this.getParticipantsMetadata(source.messages),
       sourceHash: source.sourceHash,
-      projectionVersion: this.config.projectionVersion,
     };
 
     const content = this.adapter.composeContent(projected.entries, metadata);
@@ -259,14 +284,18 @@ export class SummaryProjector {
 
     await this.context.entityService.upsertEntity({ entity });
 
-    if (decision.decision === "update") {
-      await this.deleteConversationMemory(conversationId);
-    }
+    const boardOwned =
+      decision.decision === "update"
+        ? await this.replaceConversationMemory(conversationId)
+        : (await this.listConversationActionItems(conversationId)).filter(
+            isBoardOwned,
+          );
     await this.upsertConversationMemory(
       projected,
-      metadata,
+      { ...metadata, conversationId },
       now,
       source.messages,
+      boardOwned,
     );
 
     this.logger.info("Projected conversation memory", {
@@ -363,12 +392,35 @@ export class SummaryProjector {
     };
   }
 
-  private async deleteConversationMemory(
+  private async listConversationActionItems(
     conversationId: string,
-  ): Promise<void> {
+  ): Promise<ActionItemEntity[]> {
+    const visibilityScope = this.config.memoryVisibility;
+    const actionItems = await this.context.entityService.listEntities(
+      {
+        entityType: ACTION_ITEM_ENTITY_TYPE,
+        options: {
+          filter: { metadata: { conversationId }, visibilityScope },
+          limit: this.config.maxEntries * 4,
+        },
+      },
+      actionItemSchema,
+    );
+    return actionItems.filter(
+      (entity) => entity.visibility === visibilityScope,
+    );
+  }
+
+  /**
+   * Replace a conversation's projected memory: decisions and untouched action
+   * items go; action items the board owns stay. Returns those it kept.
+   */
+  private async replaceConversationMemory(
+    conversationId: string,
+  ): Promise<ActionItemEntity[]> {
     const limit = this.config.maxEntries * 4;
     const visibilityScope = this.config.memoryVisibility;
-    const [decisions, actionItems] = await Promise.all([
+    const [decisions, listedActionItems] = await Promise.all([
       this.context.entityService.listEntities(
         {
           entityType: DECISION_ENTITY_TYPE,
@@ -379,17 +431,12 @@ export class SummaryProjector {
         },
         decisionSchema,
       ),
-      this.context.entityService.listEntities(
-        {
-          entityType: ACTION_ITEM_ENTITY_TYPE,
-          options: {
-            filter: { metadata: { conversationId }, visibilityScope },
-            limit,
-          },
-        },
-        actionItemSchema,
-      ),
+      this.listConversationActionItems(conversationId),
     ]);
+    const boardOwned = listedActionItems.filter(isBoardOwned);
+    const actionItems = listedActionItems.filter(
+      (entity) => !isBoardOwned(entity),
+    );
 
     await Promise.all([
       ...decisions
@@ -400,29 +447,42 @@ export class SummaryProjector {
             id: entity.id,
           }),
         ),
-      ...actionItems
-        .filter((entity) => entity.visibility === visibilityScope)
-        .map((entity) =>
-          this.context.entityService.deleteEntity({
-            entityType: ACTION_ITEM_ENTITY_TYPE,
-            id: entity.id,
-          }),
-        ),
+      ...actionItems.map((entity) =>
+        this.context.entityService.deleteEntity({
+          entityType: ACTION_ITEM_ENTITY_TYPE,
+          id: entity.id,
+        }),
+      ),
     ]);
+    return boardOwned;
   }
 
   private async upsertConversationMemory(
     projected: ProjectedConversationMemory,
-    summaryMetadata: SummaryMetadata,
+    summaryMetadata: ProjectedConversation,
     now: string,
     messages: Message[],
+    boardOwned: ActionItemEntity[],
   ): Promise<void> {
     const decisionEntities = projected.decisions.map((item, index) =>
       this.createDecisionEntity(item, summaryMetadata, index, now, messages),
     );
-    const actionItemEntities = projected.actionItems.map((item, index) =>
-      this.createActionItemEntity(item, summaryMetadata, index, now, messages),
+    // A re-extracted item the board already owns keeps its card, wherever it
+    // now falls in the extraction order.
+    const ownedTexts = new Set(
+      boardOwned.map((entity) => textHashOf(entity.id)),
     );
+    const actionItemEntities = projected.actionItems
+      .map((item, index) =>
+        this.createActionItemEntity(
+          item,
+          summaryMetadata,
+          index,
+          now,
+          messages,
+        ),
+      )
+      .filter((entity) => !ownedTexts.has(textHashOf(entity.id)));
 
     await Promise.all(
       [...decisionEntities, ...actionItemEntities].map((entity) =>
@@ -433,7 +493,7 @@ export class SummaryProjector {
 
   private createDecisionEntity(
     item: ExtractedConversationMemoryItem,
-    summaryMetadata: SummaryMetadata,
+    summaryMetadata: ProjectedConversation,
     index: number,
     now: string,
     messages: Message[],
@@ -447,11 +507,7 @@ export class SummaryProjector {
         ? { channelName: summaryMetadata.channelName }
         : {}),
       interfaceType: summaryMetadata.interfaceType,
-      spaceId: this.getSpaceId(summaryMetadata),
       timeRange: item.timeRange,
-      sourceSummaryId: summaryMetadata.conversationId,
-      sourceMessageCount: item.sourceMessageCount,
-      projectionVersion: summaryMetadata.projectionVersion,
       status: "active",
       ...(attributedActors.length > 0
         ? { decidedBy: attributedActors, mentionedBy: attributedActors }
@@ -483,7 +539,7 @@ export class SummaryProjector {
 
   private createActionItemEntity(
     item: ExtractedConversationMemoryItem,
-    summaryMetadata: SummaryMetadata,
+    summaryMetadata: ProjectedConversation,
     index: number,
     now: string,
     messages: Message[],
@@ -503,27 +559,32 @@ export class SummaryProjector {
         ? { channelName: summaryMetadata.channelName }
         : {}),
       interfaceType: summaryMetadata.interfaceType,
-      spaceId: this.getSpaceId(summaryMetadata),
-      timeRange: item.timeRange,
-      sourceSummaryId: summaryMetadata.conversationId,
-      sourceMessageCount: item.sourceMessageCount,
-      projectionVersion: summaryMetadata.projectionVersion,
+      capturedAt: item.timeRange.end,
       status: "open",
       ...(assignedActors.length > 0
         ? {
             assignedTo: assignedActors.map((actor) => ({
-              identity: actor.identity,
-              displayName: actor.displayName ?? actorRefKey(actor.identity),
+              ...flatPerson(actor),
+              name: actor.displayName ?? actorRefKey(actor.identity),
             })),
           }
         : {}),
-      ...(requesterActors.length > 0 ? { requestedBy: requesterActors } : {}),
+      ...(requesterActors.length > 0
+        ? { requestedBy: requesterActors.map(flatPerson) }
+        : {}),
     };
     const title = this.titleForMemory("Action item", item.text);
+    const projectedBodyHash = actionItemBodyHash(
+      this.actionItemAdapter.composeContent(title, item.text, metadata),
+    );
+    const projectedMetadata: ActionItemMetadata = {
+      ...metadata,
+      projectedBodyHash,
+    };
     const content = this.actionItemAdapter.composeContent(
       title,
       item.text,
-      metadata,
+      projectedMetadata,
     );
 
     return {
@@ -539,7 +600,7 @@ export class SummaryProjector {
       visibility: this.config.memoryVisibility,
       created: now,
       updated: now,
-      metadata,
+      metadata: projectedMetadata,
     };
   }
 
@@ -721,10 +782,6 @@ export class SummaryProjector {
   private titleForMemory(prefix: string, text: string): string {
     const normalized = text.replace(/\s+/g, " ").trim();
     return `${prefix}: ${truncateText(normalized, 80)}`;
-  }
-
-  private getSpaceId(metadata: SummaryMetadata): string {
-    return getConversationSpaceId(metadata);
   }
 
   private chunkMessages(messages: Message[]): Message[][] {

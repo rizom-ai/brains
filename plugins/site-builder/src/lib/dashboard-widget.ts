@@ -152,7 +152,7 @@ function siteLinks(data: SiteHealthWidgetData): DashboardOperatorViewBlock {
           ]
         : []),
       {
-        label: "Open in Studio",
+        label: "Open Site",
         target: { launch: { target: "site" } },
       },
     ],
@@ -301,7 +301,7 @@ function presentEnvironment(
   if (environment.lastFailure) {
     const retained =
       environment.publication?.state === "published"
-        ? ` Published generation ${environment.publication.buildId} remains active.`
+        ? " The last published version is still live."
         : "";
     return {
       state: "failed",
@@ -405,7 +405,7 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
     links.push(actionLink(data.site.liveUrl, "Open live"));
   }
   if (data.managementUrl) {
-    links.push(actionLink(data.managementUrl, "Open in Studio", "manage"));
+    links.push(actionLink(data.managementUrl, "Open Site", "manage"));
   }
 
   return h("div", { class: "pipeline-digest site-health-widget" }, [

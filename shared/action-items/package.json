@@ -1,0 +1,32 @@
+{
+  "name": "@brains/action-items",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.574",
+  "description": "Action-item schema, board ownership, and the one write path for moves, notes and tracking",
+  "dependencies": {
+    "@brains/contracts": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/entity-service": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "bun-types": "^1.4.0",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

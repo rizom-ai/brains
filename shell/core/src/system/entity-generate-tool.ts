@@ -5,7 +5,7 @@ import {
   resolveEntityOrError,
 } from "@brains/entity-service";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
-import { slugify } from "@brains/utils/string-utils";
+import { slugify, truncateSlug } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { generateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
@@ -195,7 +195,7 @@ async function executePromptGenerate(
   toolContext: GenerateToolContext,
 ): Promise<ToolResponse> {
   const { entityService, jobs } = services;
-  const proposedId = slugify(createInput.title ?? prompt).slice(0, 100);
+  const proposedId = truncateSlug(slugify(createInput.title ?? prompt), 100);
   if (!proposedId) {
     return {
       success: false,
@@ -263,6 +263,19 @@ async function executePromptGenerate(
       data: { entityId: resolvedEntityId, status: "generating", jobId },
     };
   } catch (error) {
+    // No job will ever fill the stub; left behind it would stay "generating".
+    await entityService
+      .deleteEntity({
+        entityType: createInput.entityType,
+        id: resolvedEntityId,
+      })
+      .catch((cleanupError: unknown) => {
+        services.logger.warn("Failed to remove unqueued generation stub", {
+          entityType: createInput.entityType,
+          entityId: resolvedEntityId,
+          error: cleanupError,
+        });
+      });
     return {
       success: false,
       error: getErrorMessage(error, "Failed to queue generation job"),
@@ -480,7 +493,7 @@ async function prepareGenerate(
 
   if (!interceptor && !replace) {
     const candidateId = createInput.prompt
-      ? slugify(createInput.title ?? createInput.prompt).slice(0, 100)
+      ? truncateSlug(slugify(createInput.title ?? createInput.prompt), 100)
       : createInput.title
         ? slugify(createInput.title)
         : undefined;

@@ -135,7 +135,7 @@ for (const status of [401, 403])
         );
         expect(document.body.textContent).not.toContain("Private result");
         expect(document.body.textContent).not.toContain(
-          search ? "1 entity" : "1 collection",
+          search ? "1 entry" : "1 collection",
         );
         expect(requests).toBe(2);
         phase = "trusted";

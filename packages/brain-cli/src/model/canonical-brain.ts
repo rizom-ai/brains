@@ -48,6 +48,7 @@ import { styleGuidePlugin } from "@brains/style-guide";
 import { askContentPlugin } from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
+import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
 import { wishlistPlugin } from "@brains/wishlist";
@@ -161,6 +162,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
 
     ["conversation-memory", conversationMemoryPlugin, undefined],
+    ["action-board", actionBoardPlugin, undefined],
     ["faq", faqPlugin, undefined],
     ["docs", docsPlugin, undefined],
     ["book", bookPlugin, undefined],

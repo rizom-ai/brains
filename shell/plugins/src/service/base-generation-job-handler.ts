@@ -3,6 +3,7 @@ import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
+import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { getErrorMessage } from "@brains/utils/error";
@@ -28,6 +29,13 @@ export interface GenerationJobHandlerConfig<TInput> {
   jobTypeName: string;
   /** Entity type being generated (e.g., "post", "note", "deck") */
   entityType: string;
+  /**
+   * The owning plugin's retry scope (`this.retries`). A follow-up job the
+   * queue refuses after the entity is created, such as its cover image, is
+   * retried through it instead of failing the generation. Without it the
+   * refusal fails the job.
+   */
+  retries?: RetryScope | undefined;
 }
 
 /**
@@ -166,6 +174,7 @@ export abstract class BaseGenerationJobHandler<
 > extends BaseJobHandler<string, TInput, TResult> {
   protected readonly context: EntityPluginContext;
   protected readonly entityType: string;
+  private readonly retries: RetryScope | undefined;
 
   constructor(
     logger: Logger,
@@ -178,6 +187,25 @@ export abstract class BaseGenerationJobHandler<
     });
     this.context = context;
     this.entityType = config.entityType;
+    this.retries = config.retries;
+  }
+
+  /**
+   * Enqueue a follow-up job for an entity this generation created. The entity
+   * exists by now, so a refusal (another process holding the job queue's
+   * write lock) leaves the job pending in the plugin's retry scope, one retry
+   * per `key`, and the generation succeeds.
+   */
+  protected async enqueueFollowUp(
+    enqueue: () => Promise<string>,
+    description: string,
+    key: string,
+  ): Promise<void> {
+    if (!this.retries) {
+      await enqueue();
+      return;
+    }
+    await this.retries.run(enqueue, description, key);
   }
 
   /**
@@ -427,9 +455,21 @@ export abstract class BaseGenerationJobHandler<
     };
   }
 
+  /**
+   * The queue failed the job for good, possibly without process() settling
+   * (its process died mid-attempt). A stub still generating would otherwise
+   * stay generating forever; one already written is left alone.
+   */
+  async onTerminalError(error: Error, data: TInput): Promise<void> {
+    await this.markPreallocatedStubFailed(data, error.message, {
+      onlyWhileGenerating: true,
+    });
+  }
+
   private async markPreallocatedStubFailed(
     data: TInput,
     error: string,
+    options: { onlyWhileGenerating?: boolean } = {},
   ): Promise<void> {
     const entityId = getPreallocatedEntityId(data);
     if (!entityId) return;
@@ -441,6 +481,12 @@ export abstract class BaseGenerationJobHandler<
         visibilityScope: "restricted",
       });
       if (!existing) return;
+      if (
+        options.onlyWhileGenerating &&
+        existing.metadata["status"] !== "generating"
+      ) {
+        return;
+      }
 
       await this.context.entityService.updateEntity({
         entity: {
@@ -481,22 +527,28 @@ export abstract class BaseGenerationJobHandler<
     });
 
     const title = generated.title ?? entityId;
-    await this.context.jobs.enqueue({
-      type: IMAGE_CHANNELS.generate,
-      data: {
-        prompt: coverImage.prompt ?? `Editorial cover image for: ${title}. `,
-        title: `${title} Cover`,
-        aspectRatio: "16:9",
-        targetEntityType: this.entityType,
-        targetEntityId: entityId,
-        entityTitle: title,
-        entityContent: generated.content,
-      },
-      toolContext: {
-        interfaceType: "job",
-        actor: { kind: "service", serviceId: "generation-job-handler" },
-      },
-    });
+    await this.enqueueFollowUp(
+      () =>
+        this.context.jobs.enqueue({
+          type: IMAGE_CHANNELS.generate,
+          data: {
+            prompt:
+              coverImage.prompt ?? `Editorial cover image for: ${title}. `,
+            title: `${title} Cover`,
+            aspectRatio: "16:9",
+            targetEntityType: this.entityType,
+            targetEntityId: entityId,
+            entityTitle: title,
+            entityContent: generated.content,
+          },
+          toolContext: {
+            interfaceType: "job",
+            actor: { kind: "service", serviceId: "generation-job-handler" },
+          },
+        }),
+      `queue the cover image for ${this.entityType}:${entityId}`,
+      `cover-image:${this.entityType}:${entityId}`,
+    );
   }
 
   /**

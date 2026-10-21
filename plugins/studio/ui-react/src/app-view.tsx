@@ -14,6 +14,7 @@ import { editorClassName as editorClass } from "./studio-editor.styles";
 import type { EntityTypeInfo, StudioWorkspaceInfo, TypeSchema } from "./api";
 import { TypeSwitcher } from "./entity-fields";
 import { DeleteDialog } from "./editor-status";
+import { entityTitle } from "./ui-utils";
 import { StudioChrome } from "./studio-chrome";
 import {
   navigationClassName as navClass,
@@ -234,7 +235,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       </div>
       {deleteOpen && mode.kind === "edit" && canDelete && (
         <DeleteDialog
-          entityId={mode.entity.id}
+          title={entityTitle(mode.entity)}
           deleting={deleting}
           onCancel={() => dispatchEditor({ type: "deleteCancelled" })}
           onConfirm={remove}

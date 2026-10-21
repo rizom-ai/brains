@@ -13,6 +13,7 @@ import {
   parseAgentBody,
   skillDataSchema,
 } from "@brains/plugins";
+import { normalizeTags } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
 export interface CapabilityProfileSkill {
@@ -32,27 +33,6 @@ export interface CapabilityProfile {
   description?: string;
   notes?: string;
   skills: CapabilityProfileSkill[];
-}
-
-export function normalizeTag(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, "-");
-}
-
-export function normalizeTags(raw: string[]): string[] {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-
-  for (const tag of raw) {
-    const value = normalizeTag(tag);
-    if (!value || seen.has(value)) continue;
-    seen.add(value);
-    normalized.push(value);
-  }
-
-  return normalized;
 }
 
 const capabilityAgentFrontmatterSchema = z.object({

@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
+import { createTestEntity } from "@brains/entity-service/test";
+import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
 import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -19,6 +21,49 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
     harness.subscribe("publish:register", async (msg) => {
       receivedMessages.push({ type: "publish:register", payload: msg.payload });
       return { success: true };
+    });
+  });
+
+  describe("generation evals", () => {
+    it("generates eval posts in the anchor's voice from the style guide", async () => {
+      let generationHandler: EvalHandler | undefined;
+      const mockShell = harness.getMockShell();
+      mockShell.registerEvalHandler = (_pluginId, handlerId, handler): void => {
+        if (handlerId === "generation") generationHandler = handler;
+      };
+      spyOn(mockShell.getEntityService(), "getEntity").mockResolvedValue(
+        createTestEntity<StyleGuideEntity>("style-guide", {
+          id: "style-guide",
+          content: styleGuideAdapter.createStyleGuideContent({
+            name: "Voice",
+            voice: { summary: "Full paragraphs, no engagement bait" },
+          }),
+          metadata: {},
+        }),
+      );
+      const generateContent = spyOn(
+        mockShell,
+        "generateContent",
+      ).mockResolvedValue({ content: "Post" });
+
+      await harness.installPlugin(new SocialMediaPlugin({}));
+      if (!generationHandler) {
+        throw new Error("Social generation eval handler was not registered");
+      }
+      await generationHandler({ prompt: "Write about resilient systems" });
+
+      expect(generateContent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "social-media:linkedin",
+          representedIdentity: "anchor",
+          styleGuide: {
+            voice: expect.stringContaining(
+              "Full paragraphs, no engagement bait",
+            ),
+          },
+        }),
+        undefined,
+      );
     });
   });
 

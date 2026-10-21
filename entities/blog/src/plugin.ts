@@ -51,6 +51,8 @@ export class BlogPlugin extends EntityPlugin<
       defaultSort: [{ field: "publishedAt", direction: "desc" }],
       projectionSourceRole: "primary",
       publish: { publishStatuses: ["queued", "published"] },
+      // Read by nothing: not the head, the site, nor ATProto.
+      retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
     };
   }
 

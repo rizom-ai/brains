@@ -9,7 +9,8 @@ export interface DirectoryWatcherOptions {
   syncPath: string;
   watchInterval: number;
   importEntities: (paths?: string[]) => Promise<ImportResult>;
-  jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
+  jobQueueCallback?:
+    ((job: JobRequest) => Promise<string | undefined>) | undefined;
   fileOperations: FileOperations;
   deleteOnFileRemoval: boolean;
 }

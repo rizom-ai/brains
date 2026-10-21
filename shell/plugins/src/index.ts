@@ -444,6 +444,7 @@ export type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
+  NearestEntity,
   NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,

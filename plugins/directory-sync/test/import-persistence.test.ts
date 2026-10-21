@@ -123,7 +123,7 @@ describe("persistImportEntity authority", () => {
     );
   });
   it("updates only the admitted full revision", async () => {
-    const f = setup(makeExistingEntity());
+    const f = setup(makeExistingEntity("public"));
     await f.importFile();
     expect(f.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -217,5 +217,83 @@ describe("persistImportEntity visibility", () => {
     const hash = f.entity().contentHash;
     expect(hash).toBe(computeContentHash(`canonical:restricted:${content}`));
     expect(hash).not.toBe(computeContentHash(content));
+  });
+});
+
+describe("persistImportEntity with fields the brain no longer keeps", () => {
+  const canonical = "---\ntitle: Note\nsource:\n  ref: a\n---\nBody\n";
+  const withDropped =
+    "---\ntitle: Note\nogDescription: Old\nsource:\n  ref: a\n---\nBody\n";
+  const withNestedDropped =
+    "---\ntitle: Note\nsource:\n  ref: a\n  senderKey: b\n---\nBody\n";
+
+  function storing(existing: BaseEntity | null): ReturnType<typeof setup> {
+    const f = setup(existing);
+    spyOn(f.deps.entityService, "serializeEntity").mockImplementation(
+      () => canonical,
+    );
+    return f;
+  }
+
+  function origin(f: ReturnType<typeof setup>): unknown {
+    return f.upsert.mock.calls[0]?.[0].options?.persistenceOrigin;
+  }
+
+  it("imports a file holding a dropped field as an ordinary write, so its stored form is exported", async () => {
+    const f = storing(null);
+    await f.importFile(undefined, withDropped);
+    expect(origin(f)).toBe("ordinary");
+  });
+
+  it("exports the stored form even when the row already matches it", async () => {
+    const f = storing({
+      ...makeExistingEntity("public"),
+      metadata: { title: "Note" },
+      contentHash: computeContentHash(canonical),
+    });
+    await f.importFile(undefined, withNestedDropped);
+    expect(origin(f)).toBe("ordinary");
+    expect(f.result.imported).toBe(1);
+  });
+
+  it("leaves a file alone when it differs only in form", async () => {
+    const f = storing(null);
+    await f.importFile(
+      undefined,
+      "---\ntitle: Note\nvisibility: public\nsource:\n  ref: a\n---\nBody",
+    );
+    expect(origin(f)).toBe("directory-sync");
+  });
+});
+
+describe("persistImportEntity with a retained visibility", () => {
+  function origin(f: ReturnType<typeof setup>): unknown {
+    return f.upsert.mock.calls[0]?.[0].options?.persistenceOrigin;
+  }
+
+  it("writes the retained tier back to a file that declares none", async () => {
+    const f = setup(makeExistingEntity("restricted"));
+    await f.importFile();
+    expect(f.entity().visibility).toBe("restricted");
+    expect(origin(f)).toBe("ordinary");
+  });
+
+  it("writes it back even when the row already matches the file", async () => {
+    const content = "# Note\n\nUpdated body.";
+    const f = setup({
+      ...makeExistingEntity("restricted"),
+      content,
+      metadata: { title: "Note" },
+      contentHash: computeContentHash(`canonical:restricted:${content}`),
+    });
+    await f.importFile(undefined, content);
+    expect(origin(f)).toBe("ordinary");
+    expect(f.result.imported).toBe(1);
+  });
+
+  it("imports as directory sync when the file and stored tier agree", async () => {
+    const f = setup(makeExistingEntity("public"));
+    await f.importFile();
+    expect(origin(f)).toBe("directory-sync");
   });
 });

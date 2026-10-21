@@ -12,13 +12,14 @@ import {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { slugify } from "@brains/utils/string-utils";
+import { slugify, truncateSlug } from "@brains/utils/string-utils";
 import { getGuestSourceCards } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import type { FaqFrontmatter, FaqSource } from "../schemas/faq";
 import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
 import type { CapturedReplyStore } from "../lib/captured-replies";
+import { countAskedBefore } from "../lib/count-asked-before";
 
 /** Messages before the reply searched for the question it answers. */
 const QUESTION_LOOKBACK = 20;
@@ -86,6 +87,7 @@ export interface FaqCaptureDeps extends FaqStoreDeps {
     | "getEntity"
     | "updateEntity"
     | "getEntityMutationReceipt"
+    | "getEntityWriteSnapshot"
     | "applyEntityMutationOnce"
   >;
   conversations: Pick<IConversationsNamespace, "getMessages">;
@@ -97,10 +99,10 @@ const ID_SLUG_LENGTH = 60;
 
 /**
  * A FAQ's readable id: the question's slug, or "faq" for a question with no
- * latin letters. A taken slug gets a -2, -3, … suffix when the FAQ is created.
+ * letters or digits. A taken slug gets a -2, -3, … suffix when the FAQ is created.
  */
 export function faqSlug(question: string): string {
-  const slug = slugify(question).slice(0, ID_SLUG_LENGTH).replace(/-+$/, "");
+  const slug = truncateSlug(slugify(question), ID_SLUG_LENGTH);
   return slug || "faq";
 }
 
@@ -237,6 +239,21 @@ export class FaqCaptureHandler extends BaseJobHandler<
 
     const question = findQuestion(messages, answerIndex);
     if (!question) return { captured: false, reason: "no-question" };
+
+    if (
+      answer.metadata["askedBefore"] !== undefined &&
+      data.userPermissionLevel !== "public"
+    )
+      return { captured: false, reason: "not-reusable" };
+    const counted = await countAskedBefore(
+      this.deps.entityService,
+      answer,
+      receipt,
+    );
+    if (counted !== undefined)
+      return counted
+        ? { captured: true, ...counted }
+        : { captured: false, reason: "not-reusable" };
 
     const classification = await classifyExchange(
       this.deps.ai,

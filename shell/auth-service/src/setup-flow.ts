@@ -36,6 +36,8 @@ export interface SetupFlowOptions {
   setupStateStore: TargetedSetupStatePersistence;
   passkeyService: PasskeyService;
   setupTokenTtlSeconds?: number;
+  /** Where a person lands after registering their first passkey; defaults to "/". */
+  resolveHomePath?: () => string;
   resolveSessionUserId?: (request: Request) => Promise<string | undefined>;
 }
 
@@ -50,6 +52,7 @@ export class SetupFlow {
   private readonly resolveSessionUserId:
     ((request: Request) => Promise<string | undefined>) | undefined;
   private readonly setupOperations = new SerialQueue();
+  private readonly resolveHomePath: () => string;
   private setupToken: SetupTokenState | undefined;
 
   constructor(options: SetupFlowOptions) {
@@ -58,6 +61,7 @@ export class SetupFlow {
     this.setupTokenTtlSeconds =
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
     this.resolveSessionUserId = options.resolveSessionUserId;
+    this.resolveHomePath = options.resolveHomePath ?? ((): string => "/");
   }
 
   ensureSetupToken(): Promise<SetupTokenState | undefined> {
@@ -236,7 +240,7 @@ export class SetupFlow {
       );
     }
 
-    return htmlResponse(renderSetupPage(setup.token));
+    return htmlResponse(renderSetupPage(setup.token, this.resolveHomePath()));
   }
 
   async hasSetupDelivery(

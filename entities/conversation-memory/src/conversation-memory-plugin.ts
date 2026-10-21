@@ -5,7 +5,11 @@ import {
   type EntityTypeConfig,
   type Template,
 } from "@brains/plugins";
-import { summarySchema, type SummaryEntity } from "./schemas/summary";
+import {
+  SUMMARY_RETIRED_FIELDS,
+  summarySchema,
+  type SummaryEntity,
+} from "./schemas/summary";
 import {
   summaryConfigSchema,
   type SummaryConfig,
@@ -13,11 +17,15 @@ import {
 } from "./schemas/summary-config";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import {
+  ACTION_ITEM_ENTITY_TYPE,
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
   ActionItemAdapter,
-  DecisionAdapter,
-} from "./adapters/conversation-memory-adapters";
-import {
   actionItemSchema,
+} from "@brains/action-items";
+import { DecisionAdapter } from "./adapters/conversation-memory-adapters";
+import {
+  DECISION_RETIRED_FIELDS,
   decisionSchema,
 } from "./schemas/conversation-memory";
 import { summaryListTemplate } from "./templates/summary-list";
@@ -31,7 +39,6 @@ import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import {
-  ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
   SUMMARY_PLUGIN_ID,
@@ -82,7 +89,11 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
-    return { projectionSource: false, projectionSourceRole: "excluded" };
+    return {
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+      retiredFields: SUMMARY_RETIRED_FIELDS,
+    };
   }
 
   protected override async onRegister(
@@ -92,11 +103,16 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       DECISION_ENTITY_TYPE,
       decisionSchema,
       decisionAdapter,
+      { retiredFields: DECISION_RETIRED_FIELDS },
     );
     context.entities.register(
       ACTION_ITEM_ENTITY_TYPE,
       actionItemSchema,
       actionItemAdapter,
+      {
+        retiredFields: ACTION_ITEM_RETIRED_FIELDS,
+        translatedFields: ACTION_ITEM_TRANSLATED_FIELDS,
+      },
     );
 
     registerActionItemsWidget({ context });

@@ -879,6 +879,7 @@ html {
 .xkv9d8c:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
 .xqz5wv3:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 32px 80px -28px color-mix(in srgb,var(--console-bg-deep) 72%,transparent)}
 .x1yrie1r:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 2px 24px rgba(0,0,0,.5)}
+.xfv7mty:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 2px 0 0 var(--console-accent)}
 .x1gnnqk1:not(#\\#):not(#\\#):not(#\\#){box-shadow:none}
 .x9f619:not(#\\#):not(#\\#):not(#\\#){box-sizing:border-box}
 .x1gj8qfm:not(#\\#):not(#\\#):not(#\\#){clip-path:none}
@@ -1023,6 +1024,7 @@ html {
 .xnby9oq:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}
 .x185a7wo:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}
 .x1sipb5g:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(4,minmax(0,1fr))}
+.x1g9xdvi:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
 .x1jsv65m:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))}
 .xp2hupy:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fit,minmax(min(128px,100%),1fr))}
 .x1lelaru:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))}
@@ -5873,15 +5875,16 @@ html {
     var inputRow = el("div", "cp-input-row");
     input = el("input", "cp-input");
     input.type = "text";
-    input.placeholder = "Search entities, tabs, surfaces\\u2026";
+    input.placeholder = "Search pages and entries\\u2026";
     input.setAttribute("aria-label", "Search the console");
+    input.setAttribute("spellcheck", "false");
+    input.setAttribute("autocomplete", "off");
     inputRow.appendChild(input);
     inputRow.appendChild(el("kbd", "cp-esc", "esc"));
     groupsEl = el("div", "cp-groups");
     var foot = el("div", "cp-foot");
     foot.appendChild(el("span", null, "\\u2191\\u2193 navigate"));
     foot.appendChild(el("span", null, "\\u21B5 open"));
-    foot.appendChild(el("span", null, "one index across the console"));
     palette.appendChild(inputRow);
     palette.appendChild(groupsEl);
     palette.appendChild(foot);

@@ -136,7 +136,9 @@ const trafficWorkspace = defineStudioWorkspace({
     const gaps = [
       ...(overview.missingDays.length > 0
         ? [
-            `${overview.missingDays.length} ${overview.missingDays.length === 1 ? "day has" : "days have"} no snapshot yet.`,
+            overview.missingDays.length === 1
+              ? "One day in this period has no traffic collected yet."
+              : `${overview.missingDays.length} days in this period have no traffic collected yet.`,
           ]
         : []),
       ...(overview.estimated

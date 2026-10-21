@@ -10,38 +10,24 @@ import type { TemplateRegistry } from "@brains/templates";
 import type { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import { resolvePrompt, readPromptOverride } from "@brains/plugins";
+import { generationContextSchema } from "@brains/content-service";
 
-export const GenerationContextSchema: z.ZodObject<{
-  prompt: z.ZodOptional<z.ZodString>;
-  conversationHistory: z.ZodOptional<z.ZodString>;
-  data: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-  representedIdentity: z.ZodOptional<
-    z.ZodEnum<{ brain: "brain"; anchor: "anchor"; none: "none" }>
-  >;
-  styleGuide: z.ZodOptional<
-    z.ZodObject<{
-      voice: z.ZodOptional<z.ZodString>;
-      visual: z.ZodOptional<z.ZodString>;
-    }>
-  >;
-  templateName: z.ZodString;
-}> = z.object({
-  prompt: z.string().optional(),
-  conversationHistory: z.string().optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
-  representedIdentity: z.enum(["brain", "anchor", "none"]).optional(),
-  styleGuide: z
-    .object({
-      voice: z.string().optional(),
-      visual: z.string().optional(),
-    })
-    .optional(),
+export const GenerationContextSchema: z.ZodObject<
+  (typeof generationContextSchema)["shape"] & { templateName: z.ZodString }
+> = generationContextSchema.extend({
   templateName: z.string(),
 });
 
 export type GenerationContext = z.output<typeof GenerationContextSchema>;
 
 const entitySlugSchema = z.object({ slug: z.string() });
+
+const STYLE_GUIDE_PRECEDENCE =
+  "The style guide governs voice, tone, wording and form: paragraphing, sentence rhythm, hooks, rhetorical questions and calls to action. The instructions below and any additional instructions in the request govern the task, required content, length limits, platform constraints and output format. When either conflicts with the style guide on voice or form, follow the style guide.";
+
+// The template instructions live in the system prompt; providers reject an empty user turn.
+const EMPTY_REQUEST_PROMPT =
+  "Generate the content described in your instructions.";
 
 function isAIGenerationSchema<T>(schema: {
   parse(data: unknown): T;
@@ -162,11 +148,7 @@ export class AIContentDataSource implements DataSource {
       : [];
 
     signal?.throwIfAborted();
-    const enhancedPrompt = await this.buildPrompt(
-      { basePrompt },
-      context,
-      relevantEntities,
-    );
+    const enhancedPrompt = this.buildPrompt(context, relevantEntities);
 
     // Bootstrap identity/profile caches are loaded with internal-full scope.
     // Scoped generation must read the persisted singletons afresh instead.
@@ -244,7 +226,14 @@ export class AIContentDataSource implements DataSource {
     }
     const styleGuidance = this.selectStyleGuidance(context);
     if (styleGuidance) {
-      sections.push("# Style Guide", styleGuidance, "");
+      sections.push(
+        "# Style Guide",
+        styleGuidance,
+        "",
+        "# Precedence",
+        STYLE_GUIDE_PRECEDENCE,
+        "",
+      );
     }
     sections.push("# Instructions", templateBasePrompt);
     return sections.join("\n");
@@ -263,33 +252,36 @@ export class AIContentDataSource implements DataSource {
     return sections.join("\n");
   }
 
-  private async buildPrompt(
-    template: { basePrompt: string },
+  private buildPrompt(
     context: GenerationContext,
     relevantEntities: SearchResult[] = [],
-  ): Promise<string> {
-    let prompt = template.basePrompt;
+  ): string {
+    const parts: string[] = [];
 
     if (context.conversationHistory) {
-      prompt += `\n\nRecent conversation context:\n${context.conversationHistory}`;
+      parts.push(
+        `Recent conversation context:\n${context.conversationHistory}`,
+      );
     }
 
     if (relevantEntities.length > 0) {
       const entityContext = relevantEntities
         .map((result) => this.formatRelevantEntity(result, this.entityUrls))
         .join("\n");
-      prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
+      parts.push(
+        `Relevant context from your knowledge base:\n${entityContext}`,
+      );
     }
 
     if (context.data) {
-      prompt += `\n\nContext data:\n${JSON.stringify(context.data, null, 2)}`;
+      parts.push(`Context data:\n${JSON.stringify(context.data, null, 2)}`);
     }
 
     if (context.prompt) {
-      prompt += `\n\nAdditional instructions: ${context.prompt}`;
+      parts.push(`Additional instructions: ${context.prompt}`);
     }
 
-    return prompt;
+    return parts.length > 0 ? parts.join("\n\n") : EMPTY_REQUEST_PROMPT;
   }
 
   private formatRelevantEntity(

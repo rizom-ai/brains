@@ -38,6 +38,7 @@ const workspaceRegistrationSchema = z.object({
       }),
     ])
     .default([]),
+  publishesEntityTypes: z.literal(true).optional(),
   accessHandler: z.custom<StudioWorkspaceRegistration["accessHandler"]>(
     (value) => typeof value === "function",
     { message: "Expected Studio workspace access handler function" },
@@ -141,6 +142,7 @@ export class StudioWorkspaceRegistry {
       ...(parsed.urlQuery ? { urlQuery: true } : {}),
       ...(parsed.aliases ? { aliases: parsed.aliases } : {}),
       entityTypes,
+      ...(parsed.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
       accessHandler: async (actor): Promise<boolean> =>
         meetsFloor(actor, parsed.permission)
           ? parsed.accessHandler(actor)
@@ -168,6 +170,21 @@ export class StudioWorkspaceRegistry {
     };
     this.workspaces.set(workspace.id, workspace);
     return workspace;
+  }
+
+  /** Every registered workspace, for offering by floor; access is checked on open. */
+  listOffered(): Pick<
+    StoredStudioWorkspace,
+    "id" | "label" | "permission" | "priority"
+  >[] {
+    return Array.from(this.workspaces.values()).map(
+      ({ id, label, permission, priority }) => ({
+        id,
+        label,
+        permission,
+        priority,
+      }),
+    );
   }
 
   get(id: string): StoredStudioWorkspace | undefined {
@@ -218,6 +235,9 @@ export class StudioWorkspaceRegistry {
               typeof workspace.entityTypes === "function"
                 ? await workspace.entityTypes(actor)
                 : workspace.entityTypes,
+            ...(workspace.publishesEntityTypes
+              ? { publishesEntityTypes: true }
+              : {}),
             ...(badge !== undefined ? { badge } : {}),
           };
           return descriptor;

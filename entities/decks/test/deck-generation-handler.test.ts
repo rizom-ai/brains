@@ -75,7 +75,19 @@ describe("DeckGenerationJobHandler", () => {
       );
     });
 
-    it("keeps source-style-preserving descriptions neutral", async () => {
+    it("passes voice guidance to descriptions without injecting identity", async () => {
+      const styleEntity = createTestEntity<StyleGuideEntity>("style-guide", {
+        id: "style-guide",
+        content: styleGuideAdapter.createStyleGuideContent({
+          name: "Deck voice",
+          voice: { summary: "Decisive and evidence-led" },
+        }),
+        metadata: {},
+      });
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValueOnce(
+        styleEntity,
+      );
+
       await handler.process(
         {
           title: "Existing Deck",
@@ -89,6 +101,9 @@ describe("DeckGenerationJobHandler", () => {
         expect.objectContaining({
           templateName: "decks:description",
           representedIdentity: "none",
+          styleGuide: {
+            voice: expect.stringContaining("Decisive and evidence-led"),
+          },
         }),
         generatedDeckDescriptionSchema,
       );

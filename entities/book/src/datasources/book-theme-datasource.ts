@@ -1,7 +1,4 @@
-import {
-  findRelatedEntities,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type {
   BaseDataSourceContext,
   DataSource,
@@ -11,12 +8,11 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { bookSchema, type BookWithData } from "../schemas/book";
 import {
-  bookSectionSchema,
-  type BookSectionWithData,
+  bookSectionMetadataSchema,
+  type BookSectionMetadata,
 } from "../schemas/book-section";
-import { parseBookData, parseBookSectionData } from "./book-datasource";
+import { parseBookData } from "./book-datasource";
 import { THEME_DISTANCE, THEME_PASSAGES, THEME_REACH } from "../lib/themes";
-
 /** A book's share of a theme. */
 export interface StrandEntry {
   book: string;
@@ -44,11 +40,17 @@ const topicFrontmatterSchema = z.object({ title: z.string() });
 
 type EntityServiceClient = BaseDataSourceContext["entityService"];
 
+/** A section near a theme, as the store's index reads it: no text. */
+interface NearSection {
+  id: string;
+  metadata: BookSectionMetadata;
+}
+
 /**
  * A long section is split across entries that share its siglum; it counts
  * once, by its closest entry.
  */
-function oncePerSection(entries: BookSectionWithData[]): BookSectionWithData[] {
+function oncePerSection(entries: NearSection[]): NearSection[] {
   const seen = new Set<string>();
   return entries.filter((entry) => {
     const key = `${entry.metadata.book}:${entry.metadata.section ?? entry.id}`;
@@ -88,16 +90,24 @@ export class BookThemeDataSource implements DataSource {
       topicFrontmatterSchema,
     );
 
-    const related = await findRelatedEntities(entityService, {
-      origin: { entityType: "topic", entityId: id },
-      types: ["book-section"],
-      maxDistance: THEME_DISTANCE,
-      limit: THEME_REACH,
-    });
+    // Up to THEME_REACH sections count toward the strand, so each is read
+    // from the index's fields, never loaded with its text.
+    const nearest = await entityService
+      .nearestToEntity({
+        origin: { entityType: "topic", entityId: id },
+        types: ["book-section"],
+        maxDistance: THEME_DISTANCE,
+        limit: THEME_REACH,
+        includeMetadata: true,
+        ...(context.publishedOnly && { publishedOnly: true }),
+      })
+      // A brain without embeddings has no theme to trace; the page shows none.
+      .catch(() => []);
     const sections = oncePerSection(
-      related.map(({ entity }) =>
-        parseBookSectionData(bookSectionSchema.parse(entity)),
-      ),
+      nearest.map(({ entityId, metadata }) => ({
+        id: entityId,
+        metadata: bookSectionMetadataSchema.parse(metadata),
+      })),
     );
     const books = await this.booksOf(
       [...new Set(sections.map((entry) => entry.metadata.book))],
@@ -123,7 +133,7 @@ export class BookThemeDataSource implements DataSource {
   }
 
   private strandOf(
-    sections: BookSectionWithData[],
+    sections: NearSection[],
     books: Map<string, BookWithData>,
   ): StrandEntry[] {
     const counts = sections.reduce<Map<string, number>>(

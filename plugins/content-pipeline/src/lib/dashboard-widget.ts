@@ -94,7 +94,7 @@ const publicationPipelineWidget = defineDashboardWidget({
         type: "links",
         items: [
           {
-            label: "Open in Studio",
+            label: "Open Publishing",
             target: { launch: { target: "publishing" } },
           },
         ],

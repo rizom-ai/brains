@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.556",
+  "version": "0.2.0-alpha.574",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
@@ -50,6 +50,7 @@
     "./predicates": "./src/predicates.ts",
     "./progress": "./src/progress.ts",
     "./record-fields": "./src/record-fields.ts",
+    "./retry-backoff": "./src/retry-backoff.ts",
     "./run-process": "./src/run-process.ts",
     "./process-signals": "./src/process-signals.ts",
     "./query": "./src/query.ts",

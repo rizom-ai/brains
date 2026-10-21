@@ -3,22 +3,30 @@ import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
   DEFAULT_FAVICON_SVG,
+  ROUTE_CONCURRENCY,
   RouteRegistry,
   type JsonObject,
+  type PreparedRoute,
+  type PreparedSiteEnvelope,
   type ResolvedSiteImage,
   type SiteImageLookup,
   type SiteImageMap,
 } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
 import { sha256Hex } from "@brains/utils/hash";
-import type { ProgressNotification } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
-import { prepareSiteBuild } from "../../src/lib/prepare-site-build";
+import {
+  prepareSiteBuild,
+  type PreparedPages,
+  type PrepareSiteBuildOptions,
+} from "../../src/lib/prepare-site-build";
+import { fingerprintPreparedRoute } from "../../src/lib/site-input-fingerprint";
+import type { SiteBuildDiagnostic } from "../../src/types/site-builder-types";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { SiteBuildProfile } from "../../src/lib/site-build-profile-service";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
@@ -106,6 +114,32 @@ function createRoute(content: unknown): RouteDefinition {
   };
 }
 
+/** Prepare a build and visit every page as a renderer would, keeping the
+ *  pages handed over in route order. */
+async function prepareAll(options: PrepareSiteBuildOptions): Promise<{
+  preparedBuild: PreparedSiteEnvelope & { routes: PreparedRoute[] };
+  diagnostics: SiteBuildDiagnostic[];
+  pages: PreparedPages;
+}> {
+  const prepared = await prepareSiteBuild(options);
+  const visited: PreparedRoute[] = [];
+  await prepared.routes.each(async (route) => {
+    visited.push(route);
+  }, options.signal);
+  const order = options.routes.map((route) => route.id);
+  const pages = prepared.pages();
+  return {
+    preparedBuild: {
+      ...prepared.envelope,
+      routes: visited.sort(
+        (left, right) => order.indexOf(left.id) - order.indexOf(right.id),
+      ),
+    },
+    diagnostics: [...prepared.diagnostics, ...pages.diagnostics],
+    pages,
+  };
+}
+
 describe("prepareSiteBuild", () => {
   const testDirectories: string[] = [];
   const missingPublicDir = join(tmpdir(), "site-builder-missing-public-assets");
@@ -122,7 +156,7 @@ describe("prepareSiteBuild", () => {
     const routes = [createRoute({ heading: "Prepared heading" })];
     const pipelineContext = createPipelineContext(routes);
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "prepared-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
@@ -196,42 +230,6 @@ describe("prepareSiteBuild", () => {
     );
   });
 
-  it("reports progress as each route is prepared", async () => {
-    // A large site spends minutes here; the job's deadline is renewed by
-    // progress, so preparation has to report it.
-    const routes: RouteDefinition[] = ["one", "two", "three"].map((id) => ({
-      ...createRoute({ heading: id }),
-      id,
-      path: `/${id}`,
-    }));
-    const notifications: ProgressNotification[] = [];
-
-    await prepareSiteBuild({
-      buildId: "progress-build",
-      preparedAt: "2026-07-22T00:00:00.000Z",
-      routes,
-      publicDir: missingPublicDir,
-      signal: new AbortController().signal,
-      parsedOptions: {
-        environment: "preview",
-        siteConfig: { title: "Fixture Site", description: "Fixture" },
-      },
-      buildOptions: {},
-      pipelineContext: createPipelineContext(routes),
-      imageBuildService,
-      siteMetadata: { title: "Fixture Site", description: "Fixture" },
-      onProgress: (notification) => notifications.push(notification),
-    });
-
-    expect(
-      notifications.map(({ progress, total }) => [progress, total]),
-    ).toEqual([
-      [1, 3],
-      [2, 3],
-      [3, 3],
-    ]);
-  });
-
   it("gives the event loop a turn between sections", async () => {
     const order: string[] = [];
     const countedSchema = z.custom<JsonObject>((value) => {
@@ -262,7 +260,7 @@ describe("prepareSiteBuild", () => {
           }
         : undefined;
 
-    await prepareSiteBuild({
+    await prepareAll({
       buildId: "yielding-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
@@ -299,7 +297,7 @@ describe("prepareSiteBuild", () => {
       }),
     ];
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "undefined-content-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
@@ -338,7 +336,7 @@ describe("prepareSiteBuild", () => {
       }),
     ];
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "unsupported-content-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
@@ -360,7 +358,9 @@ describe("prepareSiteBuild", () => {
       },
     });
 
-    expect(result.preparedBuild.routes[0]?.sections).toEqual([]);
+    // The page failed to prepare, so it is never handed to the renderer.
+    expect(result.preparedBuild.routes).toEqual([]);
+    expect(result.diagnostics[0]?.severity).toBe("error");
     expect(result.diagnostics[0]?.message).toContain(
       "Unsupported non-JSON value at $.unsupported: Date",
     );
@@ -371,7 +371,7 @@ describe("prepareSiteBuild", () => {
     const routes = [createRoute({ heading: 42 })];
     const pipelineContext = createPipelineContext(routes);
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "invalid-content-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
@@ -417,7 +417,7 @@ describe("prepareSiteBuild", () => {
       throw new Error("datasource unavailable");
     });
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "resolution-failure-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [route],
@@ -446,6 +446,8 @@ describe("prepareSiteBuild", () => {
         message: expect.stringContaining("datasource unavailable"),
       }),
     ]);
+    // A page that failed to prepare is never handed to the renderer.
+    expect(result.preparedBuild.routes).toEqual([]);
   });
 
   it("snapshots binary public assets and reports inline overrides", async () => {
@@ -457,7 +459,7 @@ describe("prepareSiteBuild", () => {
     await fs.writeFile(join(publicDir, "icons", "mark.svg"), "<svg />");
     const pipelineContext = createPipelineContext([]);
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "public-assets-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [],
@@ -501,7 +503,7 @@ describe("prepareSiteBuild", () => {
     await fs.mkdir(publicDir);
     await fs.symlink("../outside.txt", join(publicDir, "linked.txt"));
 
-    const result = await prepareSiteBuild({
+    const result = await prepareAll({
       buildId: "invalid-public-assets-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [],
@@ -538,8 +540,8 @@ describe("prepareSiteBuild", () => {
     const routes = [createRoute({ heading: "Prepared heading" })];
     const prepare = (
       staticAssets: Record<string, string>,
-    ): ReturnType<typeof prepareSiteBuild> =>
-      prepareSiteBuild({
+    ): ReturnType<typeof prepareAll> =>
+      prepareAll({
         buildId: "icon-build",
         preparedAt: "2026-07-22T00:00:00.000Z",
         routes,
@@ -572,5 +574,91 @@ describe("prepareSiteBuild", () => {
     expect(own.preparedBuild.staticAssets["/favicon.svg"]).toBe(
       "<svg>own</svg>",
     );
+  });
+
+  function sourceOptions(
+    routes: RouteDefinition[],
+    pipelineContext: BuildPipelineContext = createPipelineContext(routes),
+  ): PrepareSiteBuildOptions {
+    return {
+      buildId: "source-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
+      routes,
+      publicDir: missingPublicDir,
+      signal: new AbortController().signal,
+      parsedOptions: {
+        environment: "preview",
+        siteConfig: { title: "Fixture Site", description: "Fixture" },
+      },
+      buildOptions: {},
+      pipelineContext,
+      imageBuildService,
+      siteMetadata: { title: "Fixture Site", description: "Fixture" },
+    };
+  }
+
+  function manyRoutes(count: number): RouteDefinition[] {
+    return Array.from({ length: count }, (_, index) => ({
+      ...createRoute({ heading: `page ${index}` }),
+      id: `page-${index}`,
+      path: `/page-${index}`,
+    }));
+  }
+
+  it("prepares a page only as it is visited, a few at a time", async () => {
+    const routes = manyRoutes(12);
+    let prepared = 0;
+    let finished = 0;
+    let mostHeld = 0;
+    // Each page has one section, resolved once as the page is prepared.
+    const pipelineContext = createPipelineContext(routes);
+    pipelineContext.services.resolveTemplateContent = async (
+      _templateName,
+      resolution,
+    ): Promise<unknown> => {
+      prepared++;
+      return resolution?.fallback;
+    };
+    const source = await prepareSiteBuild(
+      sourceOptions(routes, pipelineContext),
+    );
+
+    expect(prepared).toBe(0);
+    await source.routes.each(async () => {
+      mostHeld = Math.max(mostHeld, prepared - finished);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      finished++;
+    }, new AbortController().signal);
+
+    expect(source.routes.count).toBe(12);
+    expect(finished).toBe(12);
+    expect(mostHeld).toBeLessThanOrEqual(ROUTE_CONCURRENCY);
+  });
+
+  it("leaves of each page its summary and digest, in route order", async () => {
+    const routes = manyRoutes(6);
+    const source = await prepareSiteBuild(sourceOptions(routes));
+    const visited = new Map<string, PreparedRoute>();
+    await source.routes.each(async (route) => {
+      visited.set(route.id, route);
+    }, new AbortController().signal);
+    const pages = source.pages();
+
+    expect(pages.routes.map((route) => route.id)).toEqual(
+      routes.map((route) => route.id),
+    );
+    expect(pages.routes[0]).toEqual({
+      id: "page-0",
+      path: "/page-0",
+      headScripts: visited.get("page-0")?.headScripts ?? [],
+    });
+    expect(pages.digests).toEqual(
+      routes.map((route) => {
+        const page = visited.get(route.id);
+        if (!page) throw new Error(`Expected ${route.id} to be visited`);
+        return fingerprintPreparedRoute(page);
+      }),
+    );
+    expect(pages.templates).toEqual(["fixture:hero"]);
   });
 });

@@ -162,11 +162,15 @@ Add your conclusion here`;
         message: "Generating description with AI",
       });
 
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(this.context.entityService),
+      );
       const descGenerated = await this.context.ai.generate(
         {
           prompt: `Title: ${title}\n\nContent:\n${content}`,
           templateName: "decks:description",
           representedIdentity: "none",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
         },
         generatedDeckDescriptionSchema,
       );

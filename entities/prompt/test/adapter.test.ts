@@ -34,6 +34,19 @@ Write blog posts.`;
 
       expect(result.metadata?.slug).toBe("blog-generation");
     });
+
+    it("carries the default hash a copy was written from into metadata", () => {
+      const markdown = `---
+title: Blog Generation
+target: blog:generation
+defaultHash: abc123
+---
+Write blog posts.`;
+
+      const result = promptAdapter.fromMarkdown(markdown);
+
+      expect(result.metadata?.defaultHash).toBe("abc123");
+    });
   });
 
   describe("toMarkdown", () => {
@@ -63,6 +76,27 @@ You are writing blog posts.`;
       expect(result).toContain("title: Blog Generation");
       expect(result).toContain("blog:generation");
       expect(result).toContain("You are writing blog posts.");
+    });
+
+    it("keeps the default hash in exported frontmatter", () => {
+      const entity: Prompt = {
+        id: "blog-generation",
+        entityType: "prompt",
+        content:
+          "---\ntitle: Blog Generation\ntarget: blog:generation\ndefaultHash: abc123\n---\nPrompt text.",
+        visibility: "public",
+        metadata: {
+          title: "Blog Generation",
+          target: "blog:generation",
+          slug: "blog-generation",
+          defaultHash: "abc123",
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "abc",
+      };
+
+      expect(promptAdapter.toMarkdown(entity)).toContain("defaultHash: abc123");
     });
   });
 

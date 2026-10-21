@@ -1,18 +1,18 @@
+import {
+  actionItemOrigin,
+  actionItemSchema,
+  ACTION_ITEM_ENTITY_TYPE,
+} from "@brains/action-items";
 import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import {
-  actionItemSchema,
   decisionSchema,
   type DecisionEntity,
 } from "../schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../schemas/summary";
 import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
-import {
-  ACTION_ITEM_ENTITY_TYPE,
-  DECISION_ENTITY_TYPE,
-  SUMMARY_ENTITY_TYPE,
-} from "./constants";
+import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
 import { getConversationSpaceId } from "./summary-space-eligibility";
 import { buildFallbackExcerpt } from "./excerpt";
 
@@ -99,6 +99,10 @@ export class ConversationMemoryRetriever {
     );
 
     const scopedCandidates = candidates
+      // Action items tracked from the Inbox have no conversation to recall.
+      .filter(
+        (candidate) => this.conversationOf(candidate.entity) !== undefined,
+      )
       .filter((candidate) => {
         if (!spaceId || input.includeOtherSpaces) return true;
         return this.getEntitySpaceId(candidate.entity) === spaceId;
@@ -204,16 +208,15 @@ export class ConversationMemoryRetriever {
 
   private toMemory(candidate: MemoryCandidate): RetrievedConversationMemory {
     const { entity } = candidate;
-    const metadata = entity.metadata;
+    const conversation = this.conversationOf(entity);
+    if (!conversation) {
+      throw new Error(`Memory ${entity.id} has no conversation`);
+    }
     const excerpt = candidate.excerpt || buildFallbackExcerpt(entity);
     return {
       id: entity.id,
       entityType: entity.entityType,
-      conversationId: metadata.conversationId,
-      spaceId: this.getEntitySpaceId(entity),
-      channelId: metadata.channelId,
-      ...(metadata.channelName ? { channelName: metadata.channelName } : {}),
-      interfaceType: metadata.interfaceType,
+      ...conversation,
       updated: entity.updated,
       visibility: entity.visibility,
       score: candidate.score,
@@ -222,7 +225,7 @@ export class ConversationMemoryRetriever {
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
-            entryCount: entity.metadata.entryCount,
+            entryCount: summaryAdapter.parseBody(entity.content).entries.length,
           }
         : { status: entity.metadata.status }),
     };
@@ -233,32 +236,35 @@ export class ConversationMemoryRetriever {
     input: Pick<RetrieveConversationMemoryInput, "identity">,
   ): boolean {
     if (!input.identity) return true;
-    const expectedKey = actorRefKey(input.identity);
-    return this.getIdentityReferences(entity).some((reference) =>
-      [reference.identity, ...(reference.identityAliases ?? [])].some(
-        (identity) =>
-          identity !== undefined && actorRefKey(identity) === expectedKey,
-      ),
-    );
+    return this.identityKeys(entity).includes(actorRefKey(input.identity));
   }
 
-  private getIdentityReferences(entity: ConversationMemorySearchEntity): Array<{
-    identity?: ActorRef | undefined;
-    identityAliases?: ActorRef[] | undefined;
-  }> {
-    if (this.isSummaryEntity(entity)) {
-      return entity.metadata.participants ?? [];
-    }
-    if (this.isDecisionEntity(entity)) {
-      return [
-        ...(entity.metadata.decidedBy ?? []),
-        ...(entity.metadata.mentionedBy ?? []),
-      ];
+  /** Every actor id a memory names, aliases included. */
+  private identityKeys(entity: ConversationMemorySearchEntity): string[] {
+    if (this.isSummaryEntity(entity) || this.isDecisionEntity(entity)) {
+      const references: Array<{
+        identity?: ActorRef | undefined;
+        identityAliases?: ActorRef[] | undefined;
+      }> = this.isSummaryEntity(entity)
+        ? (entity.metadata.participants ?? [])
+        : [
+            ...(entity.metadata.decidedBy ?? []),
+            ...(entity.metadata.mentionedBy ?? []),
+          ];
+      return references
+        .flatMap((reference) => [
+          reference.identity,
+          ...(reference.identityAliases ?? []),
+        ])
+        .flatMap((identity) => (identity ? [actorRefKey(identity)] : []));
     }
     return [
       ...(entity.metadata.assignedTo ?? []),
       ...(entity.metadata.requestedBy ?? []),
-    ];
+    ].flatMap((person) => [
+      ...(person.id ? [person.id] : []),
+      ...(person.aliases ?? []),
+    ]);
   }
 
   private buildContextContent(
@@ -311,10 +317,43 @@ export class ConversationMemoryRetriever {
   }
 
   private getEntitySpaceId(entity: ConversationMemorySearchEntity): string {
-    const metadata = entity.metadata;
-    if ("spaceId" in metadata && typeof metadata.spaceId === "string") {
-      return metadata.spaceId;
+    return this.conversationOf(entity)?.spaceId ?? "";
+  }
+
+  /** The conversation a memory belongs to; none for an Inbox-tracked action item. */
+  private conversationOf(entity: ConversationMemorySearchEntity):
+    | {
+        conversationId: string;
+        spaceId: string;
+        channelId: string;
+        channelName?: string;
+        interfaceType: string;
+      }
+    | undefined {
+    if (entity.entityType === ACTION_ITEM_ENTITY_TYPE) {
+      const origin = actionItemOrigin(entity.metadata);
+      if (origin.kind !== "conversation") return undefined;
+      return {
+        conversationId: origin.conversationId,
+        spaceId: getConversationSpaceId(origin),
+        channelId: origin.channelId,
+        ...(origin.channelName ? { channelName: origin.channelName } : {}),
+        interfaceType: origin.interfaceType,
+      };
     }
-    return getConversationSpaceId(metadata);
+    const metadata = entity.metadata;
+    return {
+      // A summary is its conversation: its id is the conversation id.
+      conversationId: this.isSummaryEntity(entity)
+        ? entity.id
+        : entity.metadata.conversationId,
+      spaceId:
+        "spaceId" in metadata && typeof metadata.spaceId === "string"
+          ? metadata.spaceId
+          : getConversationSpaceId(metadata),
+      channelId: metadata.channelId,
+      ...(metadata.channelName ? { channelName: metadata.channelName } : {}),
+      interfaceType: metadata.interfaceType,
+    };
   }
 }

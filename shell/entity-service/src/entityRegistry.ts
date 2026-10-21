@@ -11,6 +11,7 @@ import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
   type InvalidFieldPolicy,
+  unwrittenFields,
 } from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
 import {
@@ -112,6 +113,16 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
 
+    const declared = declaredMetadataKeys(schema);
+    const stillDeclared = unwrittenFields(config ?? {}).find((field) =>
+      declared.has(field),
+    );
+    if (stillDeclared !== undefined) {
+      throw new Error(
+        `Entity type registration failed: ${type} retires ${stillDeclared}, which its metadata schema still declares`,
+      );
+    }
+
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
@@ -153,9 +164,7 @@ export class EntityRegistry implements IEntityRegistry {
   getSchema(type: string): UnknownEntitySchema {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
-      throw new Error(
-        `Entity type registration failed for ${type}: No schema registered for entity type`,
-      );
+      throw new Error(`Unknown entity type ${type}: no schema registered`);
     }
     return schema;
   }
@@ -167,9 +176,7 @@ export class EntityRegistry implements IEntityRegistry {
   getAdapter(type: string): EntityAdapter<BaseEntity> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
-      throw new Error(
-        `Entity type registration failed for ${type}: No adapter registered for entity type`,
-      );
+      throw new Error(`Unknown entity type ${type}: no adapter registered`);
     }
 
     const effectiveSchema = this.mergeExtensions(
@@ -708,4 +715,18 @@ export class EntityRegistry implements IEntityRegistry {
       }
     });
   }
+}
+
+/**
+ * The top-level metadata keys an entity schema declares. A retired field is
+ * dropped from stored metadata, so the schema must not require it.
+ */
+function declaredMetadataKeys(
+  schema: UnknownEntitySchema,
+): ReadonlySet<string> {
+  if (!(schema instanceof z.ZodObject)) return new Set();
+  const metadata: unknown = schema.shape["metadata"];
+  return metadata instanceof z.ZodObject
+    ? new Set(Object.keys(metadata.shape))
+    : new Set();
 }

@@ -46,7 +46,7 @@ export interface PublishExecutorDeps {
   providerRegistry: ProviderRegistry;
   publishAssetPreflight?:
     | {
-        ensureForEntity(entity: BaseEntity): Promise<unknown>;
+        ensureOrRetry(entity: BaseEntity): Promise<unknown>;
       }
     | undefined;
 }
@@ -142,7 +142,7 @@ export class PublishExecutor implements PublishEntityExecutor {
   private async runPublishAssetPreflight(entity: BaseEntity): Promise<void> {
     if (!this.deps.publishAssetPreflight) return;
     try {
-      await this.deps.publishAssetPreflight.ensureForEntity(entity);
+      await this.deps.publishAssetPreflight.ensureOrRetry(entity);
     } catch (error) {
       this.deps.context.logger.warn("Publish asset preflight failed", {
         entityType: entity.entityType,

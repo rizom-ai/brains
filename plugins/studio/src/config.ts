@@ -1,5 +1,5 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import { formatLabel, pluralize } from "@brains/utils/string-utils";
+import { formatLabel, pluralizeLabel } from "@brains/utils/string-utils";
 import {
   getArrayElement,
   getKind,
@@ -56,11 +56,6 @@ const LONG_TEXT_FIELDS = new Set([
   "tagline",
   "story",
 ]);
-
-function pluralizeLabel(label: string): string {
-  if (label.endsWith("s")) return label;
-  return pluralize(label);
-}
 
 /**
  * Notes use whole-document editing unless their type participates in a

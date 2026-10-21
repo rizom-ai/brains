@@ -126,6 +126,15 @@ export function createMockEntityService(
         filterEntries.every(([key, value]) => e.metadata[key] === value),
       );
     }
+    const prefixEntries = Object.entries(
+      request.options?.filter?.metadataPrefix ?? {},
+    );
+    results = results.filter((e) =>
+      prefixEntries.every(([key, prefix]) => {
+        const value = e.metadata[key];
+        return typeof value === "string" && value.startsWith(prefix);
+      }),
+    );
     return results;
   }
 
@@ -454,6 +463,7 @@ export function createMockEntityService(
     storeEmbedding: async (): Promise<void> => {},
     countEmbeddings: async (): Promise<number> => 0,
     backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
+    rewriteRetiredFields: async () => ({ rewritten: 0 }),
     isIndexReady: (): boolean => true,
     awaitIndexReady: async () => ({
       ready: true,

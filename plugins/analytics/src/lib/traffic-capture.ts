@@ -159,9 +159,6 @@ export class TrafficCapture {
     );
     freshDays.forEach((d) => merged.set(d.date, d));
     const frontmatter = {
-      week: week.id,
-      start: week.start,
-      end: week.end,
       days: [...merged.values()].sort((a, b) => a.date.localeCompare(b.date)),
     };
     const content = trafficSnapshotAdapter.createContent(frontmatter);

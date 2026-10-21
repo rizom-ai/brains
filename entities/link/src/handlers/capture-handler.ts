@@ -180,7 +180,6 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
             url,
             description: error,
             summary: error,
-            domain: title,
             capturedAt,
             source,
           });
@@ -257,7 +256,6 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           url,
           description: extractionResult.description,
           summary: extractionResult.summary,
-          domain: new URL(url).hostname,
           capturedAt,
           source,
         });
@@ -300,7 +298,6 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         url,
         description: extractionResult.description,
         summary: extractionResult.summary,
-        domain: new URL(url).hostname,
         capturedAt,
         source,
       });

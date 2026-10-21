@@ -6,6 +6,7 @@ import {
   type InterfacePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { formatByteSize } from "@brains/utils/string-utils";
 import {
   NOTE_CAPTURE_MESSAGE,
   type NoteCaptureRequest,
@@ -97,7 +98,7 @@ type MonitorData = z.output<typeof monitorDataSchema>;
 /** Opens guest chat with a monthly budget, or changes the budget while open. */
 const switchOnAction = defineWorkspaceAction({
   name: "switch-on",
-  label: "Open guest chat",
+  label: "Turn on guest chat",
   permission: "admin",
   confirmation: { kind: "prepared" },
   // At least one answer's cap; admission refuses anything smaller.
@@ -107,7 +108,7 @@ const switchOnAction = defineWorkspaceAction({
 /** The kill switch: one step, never behind a confirmation. */
 const switchOffAction = defineWorkspaceAction({
   name: "switch-off",
-  label: "Close guest chat",
+  label: "Turn off guest chat",
   permission: "admin",
   input: z.object({}),
   output: z.object({ open: z.boolean() }),
@@ -167,8 +168,10 @@ function outcome(event: MonitorData["recent"][number]): string {
 const total = (counts: Period["refused"]): number =>
   Object.values(counts).reduce((sum, value) => sum + value, 0);
 
+/** Whole cents, except a measured cost below a cent keeps its precision. */
 function money(microUsd: number): string {
-  return `$${(microUsd / 1_000_000).toFixed(4)}`;
+  const usd = microUsd / 1_000_000;
+  return `$${usd > 0 && usd < 0.01 ? usd.toFixed(4) : usd.toFixed(2)}`;
 }
 
 /** A budget in whole cents. */
@@ -192,7 +195,7 @@ function budgetForm(door: MonitorData["door"]): {
     },
     form: {
       presentation: "disclosure",
-      submitLabel: door.open ? "Change budget" : "Open guest chat",
+      submitLabel: door.open ? "Change budget" : "Turn on guest chat",
       fields: {
         monthlyUsd: { label: "Monthly budget (USD)", control: "number" },
       },
@@ -342,7 +345,7 @@ const guestMonitor = defineStudioWorkspace({
           type: "key-values",
           id: "guest-recording",
           items: [
-            { label: "Recording", value: data.recording.message },
+            { label: "Usage record", value: data.recording.message },
             {
               label: "Kept for",
               value: `${data.recording.retentionDays} days`,
@@ -353,7 +356,7 @@ const guestMonitor = defineStudioWorkspace({
             },
             {
               label: "Question text",
-              value: `${data.recording.storedBytes} of ${data.recording.maxStoredBytes} bytes`,
+              value: `${formatByteSize(data.recording.storedBytes)} of ${formatByteSize(data.recording.maxStoredBytes)}`,
             },
           ],
         },
@@ -608,7 +611,7 @@ export async function registerGuestMonitor(
                 throw new Error("Guest chat cannot be switched here");
               const budget = Math.round(input.monthlyUsd * 1_000_000);
               return {
-                summary: `Open guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
+                summary: `Turn on guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
                 revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
               };
             },

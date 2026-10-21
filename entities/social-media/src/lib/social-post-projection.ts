@@ -124,7 +124,7 @@ async function deriveSocialPosts(
 
     const generated = await context.ai.generate(
       {
-        prompt: `Create an engaging linkedin post to promote this post:\n\nSource: post/${source.slug}\n\n${source.content}`,
+        prompt: `Write a linkedin post to share this post:\n\nSource: post/${source.slug}\n\n${source.content}`,
         templateName: linkedinTemplate.name,
         representedIdentity: "anchor",
         ...(input.voiceGuidance && {

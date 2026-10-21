@@ -1,6 +1,6 @@
 id: social-media-generate-linkedin-post
 name: Generate LinkedIn post from prompt
-description: Tests that AI generates an engaging LinkedIn post from a topic prompt
+description: Tests that AI generates a LinkedIn post from a topic prompt
 type: plugin
 tags:
   - social-media

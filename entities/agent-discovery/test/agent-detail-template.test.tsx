@@ -10,7 +10,7 @@ const connected = createTemplateAgent({
   name: "Metis",
   url: "https://jo.rizom.ai",
   status: "approved",
-  did: "did:plc:h7k2abcdef9fq4",
+  brainDid: "did:plc:h7k2abcdef9fq4",
 });
 const sighting = createTemplateAgent({
   name: "Phoney",

@@ -27,7 +27,7 @@ import {
   type FaqReconcileJobData,
 } from "./handlers/faq-reconcile-handler";
 import { FaqDataSource } from "./datasources/faq-datasource";
-import { SAME_QUESTION_DISTANCE, type FaqStoreDeps } from "./lib/faq-store";
+import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
 import { answerAskedBefore } from "./lib/asked-before";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
@@ -148,7 +148,7 @@ export class FaqPlugin extends EntityPlugin<
     // A visitor's question a published FAQ already answers is answered from
     // it before the model is asked; the web process answers the shell here.
     if (!context.executionOnly) {
-      const askedBeforeDeps: FaqStoreDeps = {
+      const askedBeforeDeps = {
         entityService: context.entityService,
         searchWithDistances: context.entityService.searchWithDistances.bind(
           context.entityService,
@@ -169,6 +169,9 @@ export class FaqPlugin extends EntityPlugin<
       );
     }
 
+    // A refused enqueue is retried until the queue admits it (this.retries):
+    // these events are not delivered again, so a dropped job is never made.
+
     // A FAQ becomes findable by meaning once its embedding exists; that is
     // when a duplicate captured moments earlier can be folded away. The
     // embedding is made where the job runs, so that process queues the fold.
@@ -178,19 +181,25 @@ export class FaqPlugin extends EntityPlugin<
         const ready = embeddingReadySchema.safeParse(message.payload);
         if (ready.success && ready.data.entityType === "faq") {
           const data: FaqReconcileJobData = { entityId: ready.data.entityId };
-          await context.jobs.enqueue({ type: "faq-reconcile", data });
+          await this.retries.run(
+            () => context.jobs.enqueue({ type: "faq-reconcile", data }),
+            "queue a FAQ fold",
+          );
         }
         return { success: true };
       },
     );
 
-    // Replies without a recorded permission level have no known visibility
-    // and are never captured.
+    // Only public turns are captured: an operator asking about their own
+    // brain is not a question a FAQ answers. Replies without a recorded
+    // permission level have no known visibility and are never captured.
     context.messaging.subscribe(
       CONVERSATION_MESSAGE_ADDED_CHANNEL,
       async (message) => {
         const reply = assistantReplySchema.safeParse(message.payload);
         if (!reply.success) return { success: true };
+        if (reply.data.metadata.userPermissionLevel !== "public")
+          return { success: true };
 
         // The reply is the newest message now, so the count is its position.
         const position = await context.conversations.countMessages(
@@ -202,7 +211,10 @@ export class FaqPlugin extends EntityPlugin<
           userPermissionLevel: reply.data.metadata.userPermissionLevel,
           position,
         };
-        await context.jobs.enqueue({ type: "faq-capture", data });
+        await this.retries.run(
+          () => context.jobs.enqueue({ type: "faq-capture", data }),
+          "queue a FAQ capture",
+        );
         return { success: true };
       },
     );
@@ -220,7 +232,10 @@ export class FaqPlugin extends EntityPlugin<
           userPermissionLevel: "public",
           position: reply.data.position,
         };
-        await context.jobs.enqueue({ type: "faq-capture", data });
+        await this.retries.run(
+          () => context.jobs.enqueue({ type: "faq-capture", data }),
+          "queue a FAQ capture",
+        );
         return { success: true };
       },
     );

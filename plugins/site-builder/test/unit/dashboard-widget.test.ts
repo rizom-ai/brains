@@ -45,7 +45,7 @@ describe("SiteHealthWidget", () => {
     expect(html).toContain("Template failed");
     expect(html).toContain("Open preview");
     expect(html).toContain("Open live");
-    expect(html).toContain("Open in Studio");
+    expect(html).toContain("Open Site");
     expect(html).toContain("widget-action--primary");
     expect(html).not.toContain("Build preview");
     expect(html).not.toContain("Update live site");

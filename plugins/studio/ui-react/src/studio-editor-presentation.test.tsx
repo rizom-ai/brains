@@ -134,7 +134,7 @@ for (const width of [1440, 768, 390])
         const title = head.querySelector("h1");
         if (!title) throw new Error("Page title must be a level-one heading");
         expect(window.getComputedStyle(title).fontSize).toBe(
-          width <= 640 ? "29px" : "36px",
+          width <= 640 ? "26px" : "36px",
         );
         expect(window.getComputedStyle(title).fontWeight).toBe("600");
         expect(window.getComputedStyle(head).borderBottomWidth).toBe("2px");
@@ -227,7 +227,9 @@ test("compiled prose retains safe links, fenced-code controls and ordered-list s
   );
   expect(html).toContain('start="3"');
   expect(html).toContain('data-streamdown="link"');
-  expect(html).toContain('type="button">Exact link</button>');
+  expect(html).toContain('href="https://example.com/path?q=a%2Fb"');
+  expect(html).toContain('target="_blank" rel="noopener noreferrer"');
+  expect(html).toMatch(/<a [^>]*>Exact link<\/a>/);
   expect(html).toContain('data-streamdown="code-block-actions"');
   expect(html).toContain('data-streamdown="code-block-copy-button"');
   expect(html).not.toContain('data-streamdown="code-block-download-button"');

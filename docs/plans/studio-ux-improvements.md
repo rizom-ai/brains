@@ -1,18 +1,16 @@
 # Plan: Studio UX follow-through
 
-Last updated: 2026-09-15
+Last updated: 2026-10-16
 
 ## Status
 
-Two reviewed UX batches shipped in `@rizom/brain@0.2.0-alpha.368` and `0.2.0-alpha.371`. They delivered recovery-oriented Chat behavior, URL-backed collection navigation, server-side entity/session search, validation and upload recovery, readable Markdown/code/tables, unified page-head/action/typography geometry, responsive working context, and automated visual/accessibility coverage.
-
-Those outcomes are now maintained in Studio/Web Chat tests, package changelogs, and [`plugins/studio/README.md`](../../plugins/studio/README.md). This plan retains only the deferred decisions and reviewed gaps below; completed checkpoint logs were removed.
+Three reviewed UX batches have shipped: the first two in `@rizom/brain@0.2.0-alpha.368` and `0.2.0-alpha.371`, and the presentation batch (PR #264) in `0.2.0-alpha.385`. Their outcomes are maintained in Studio/Web Chat tests, package changelogs, and the [Studio README](../../plugins/studio/README.md). Remaining: release-candidate verification with a working AI provider and configured site-launch URLs, manual accessibility verification, and the draft-recovery decision; drafts remain in memory only.
 
 None of the remaining items gates stable `v0.2.0` unless a release-candidate acceptance run exposes it as a concrete regression.
 
 ## Presentation implementation
 
-The complete presentation batch is in PR #264, not yet merged. The checks below describe implemented code, not release or authenticated acceptance:
+The presentation batch shipped in PR #264 (`0.2.0-alpha.385`):
 
 - [x] Distinct collapsed rail marks with accessible names and preserved routing.
 - [x] Properties width and unclipped native date/time controls and upload guidance.
@@ -23,7 +21,7 @@ The complete presentation batch is in PR #264, not yet merged. The checks below 
 - [x] Shared collection search/filter/range/pager presentation with separate query semantics, truthful unknown totals, bounded filters, and keyboard dismissal.
 - [x] Defined relative/absolute time policy, singular wording, and exact semantic timestamps.
 
-CI-native visual review and the acceptance checks below are required before closing this plan. No per-workspace variants or persistent drafts were introduced.
+No per-workspace variants or persistent drafts were introduced.
 
 ## Local acceptance evidence
 
@@ -55,7 +53,7 @@ Until then, drafts remain in memory only. Do not infer approval from the shipped
 - Keep Studio's editorial language and shared page grammar; this is follow-through, not another redesign.
 - Preserve URL-backed collection/session state, permission-scoped server queries, and source-owned titles.
 - Do not move authorization, persistence, search, or entity hierarchy into browser components.
-- Structured folder navigation has shipped; see the [Studio README](../../plugins/studio/README.md). Cross-type, metadata-derived grouping is separate and tracked in [studio-virtual-collections.md](./studio-virtual-collections.md).
+- Structured folder navigation has shipped; see the [Studio README](../../plugins/studio/README.md). Cross-type, metadata-derived grouping is separate and tracked in [studio-grouping-definitions.md](./studio-grouping-definitions.md).
 - Public guest Chat policy remains in [public-ask.md](./public-ask.md).
 
 ## Validation

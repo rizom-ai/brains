@@ -21,7 +21,12 @@ import {
   type StudioPageHeadModel,
 } from "./studio-page-head";
 import { folderLabel } from "./studio-hierarchy";
-import { entityPublicationState, entityTitle, singularLabel } from "./ui-utils";
+import {
+  entityPublicationState,
+  entityTitle,
+  sentenceLabel,
+  singularLabel,
+} from "./ui-utils";
 import type { StudioAppViewProps } from "./app-view-props";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 
@@ -43,20 +48,217 @@ export function workspaceRailBadges(
   );
 }
 
-/** The workspace that publishes a type, when the content pipeline offers one. */
+/** The workspace the server declares as the publisher of a type, if any. */
 export function publicationWorkspaceFor(
   workspaces: StudioWorkspaceInfo[],
   entityType: string,
 ): StudioWorkspaceInfo | undefined {
   return workspaces.find(
     (workspace) =>
-      workspace.pluginId === "content-pipeline" &&
+      workspace.publishesEntityTypes === true &&
       workspace.entityTypes.includes(entityType),
   );
 }
 
+/** What the open editor lets the current user do with the active type. */
+export interface EditorCapabilities {
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canPublish: boolean;
+  canAssist: boolean;
+  namedCreate: boolean;
+  fieldIssues: ValidationIssue[] | undefined;
+  destinationBlocked: boolean;
+}
+
+export function deriveEditorCapabilities(
+  props: Pick<
+    StudioAppViewProps,
+    "editor" | "collectionQuery" | "creationDestination"
+  >,
+  activeType: EntityTypeInfo | undefined,
+): EditorCapabilities {
+  const { mode, save: saveState } = props.editor;
+  const capabilities = activeType?.capabilities;
+  // A flat type only holds entries at its root.
+  const atCreatableLevel =
+    activeType?.hierarchy.nested === true ||
+    (mode.kind === "create"
+      ? !mode.prefix
+      : props.collectionQuery.prefix === null);
+  const canCreate = capabilities?.canCreate === true && atCreatableLevel;
+  const canEdit =
+    mode.kind === "create"
+      ? canCreate
+      : mode.kind === "edit" && capabilities?.canUpdate === true;
+  const namedCreate = mode.kind === "create" && mode.segment !== undefined;
+  const destination = props.creationDestination;
+  const destinationIssues =
+    namedCreate && destination.error instanceof ApiError
+      ? destination.error.issues
+      : undefined;
+  return {
+    canCreate,
+    canEdit,
+    canDelete: capabilities?.canDelete === true,
+    canPublish: capabilities?.canPublish === true,
+    canAssist: canEdit && capabilities?.canAssist === true,
+    namedCreate,
+    fieldIssues:
+      saveState.kind === "error" ? saveState.issues : destinationIssues,
+    destinationBlocked:
+      namedCreate &&
+      (!destination.data || destination.pending || Boolean(destination.error)),
+  };
+}
+
+/** "1 entry", "2 entries". */
+function countOf(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+/** The collection listing's head and the facts it was phrased from. */
+export interface ListingHead {
+  collectionFiltered: boolean;
+  directFolderCount: boolean;
+  listingHead: StudioPageHeadModel;
+}
+
+export function deriveListingHead(
+  props: Pick<
+    StudioAppViewProps,
+    "entityType" | "entityTotal" | "folders" | "collectionQuery"
+  >,
+  context: {
+    activeType: EntityTypeInfo | undefined;
+    hierarchyKind: "page" | "folder";
+    syncPending: boolean;
+  },
+): ListingHead {
+  const { entityTotal, folders, collectionQuery: query } = props;
+  const { hierarchyKind } = context;
+  // The server counts what the query matched, so the head says so rather than
+  // reporting a filtered count as if the collection had shrunk.
+  const collectionFiltered =
+    Boolean(query.q) || query.visibility !== "all" || Boolean(query.status);
+  const directFolderCount =
+    query.scope === "folder" &&
+    !query.q &&
+    (query.prefix !== null || folders.length > 0);
+  // A filtered count belongs to the filter bar, which states the matches.
+  const entryCount = collectionFiltered
+    ? []
+    : directFolderCount
+      ? entityTotal > 0
+        ? [`${countOf(entityTotal, "entry", "entries")} here`]
+        : []
+      : [countOf(entityTotal, "entry", "entries")];
+  const descendantTotal = folders.reduce(
+    (sum, folder) => sum + folder.descendantCount,
+    entityTotal,
+  );
+  const levelCount =
+    folders.length > 0
+      ? [
+          `${countOf(folders.length, hierarchyKind, `${hierarchyKind}s`)} · ${countOf(descendantTotal, "entry", "entries")} in total`,
+        ]
+      : [];
+  const scope =
+    query.prefix && !directFolderCount
+      ? [
+          query.scope === "collection"
+            ? "Whole collection"
+            : `In this ${hierarchyKind}`,
+        ]
+      : [];
+  return {
+    collectionFiltered,
+    directFolderCount,
+    listingHead: {
+      kicker: "Content library",
+      access: studioAccessRequirement("trusted"),
+      title: context.activeType?.label ?? props.entityType ?? "Library",
+      metadata: [
+        ...entryCount,
+        ...levelCount,
+        ...scope,
+        ...(context.syncPending ? ["Sync pending"] : []),
+      ],
+      totals: [],
+    },
+  };
+}
+
+/** The editor's head and the labels it names the open entry with. */
+export interface EditorHead {
+  heading: string | null;
+  collectionLabel: string;
+  entryLabel: string;
+  publicationState: "draft" | "published" | null;
+  editorHead: StudioPageHeadModel;
+}
+
+export function deriveEditorHead(
+  props: Pick<StudioAppViewProps, "entityType" | "editor">,
+  context: {
+    activeType: EntityTypeInfo | undefined;
+    activeWorkspace: StudioWorkspaceInfo | undefined;
+    entitySchema: TypeSchema;
+    systemDesign: SystemEditorCopy | undefined;
+  },
+): EditorHead {
+  const { entityType } = props;
+  const { mode } = props.editor;
+  const { activeType, entitySchema, systemDesign } = context;
+  const typeLabel = activeType?.label ?? entityType;
+  const typeEntryLabel =
+    activeType?.singularLabel ?? singularLabel(typeLabel ?? "Entry");
+  const singletonLabel = activeType?.isSingleton
+    ? activeType.singularLabel
+    : undefined;
+  const heading =
+    mode.kind === "edit"
+      ? (singletonLabel ?? entityTitle(mode.entity))
+      : mode.kind === "create"
+        ? (singletonLabel ?? `New ${sentenceLabel(typeEntryLabel)}`)
+        : typeLabel;
+  const collectionLabel =
+    context.activeWorkspace?.label ??
+    systemDesign?.title ??
+    singletonLabel ??
+    typeLabel ??
+    "Studio";
+  const entryLabel =
+    context.activeWorkspace || systemDesign
+      ? singularLabel(collectionLabel)
+      : typeEntryLabel;
+  const publicationState =
+    mode.kind === "edit" && typeHasPublicationField(entitySchema.fields)
+      ? entityPublicationState(mode.entity)
+      : null;
+  const entryState =
+    mode.kind === "create" ? "new" : (publicationState ?? undefined);
+  return {
+    heading,
+    collectionLabel,
+    entryLabel,
+    publicationState,
+    editorHead: {
+      kicker: entitySchema.isSingleton
+        ? `${studioArea(activeType ?? null, null)} / singleton`
+        : collectionLabel,
+      access: studioAccessRequirement("trusted"),
+      title: systemDesign?.title ?? heading ?? "Editor",
+      metadata: entryState ? [`${entryLabel} · ${entryState}`] : [],
+      totals: [],
+    },
+  };
+}
+
 /** Everything StudioAppView derives from its props before rendering. */
-export interface StudioAppModel {
+export interface StudioAppModel
+  extends EditorCapabilities, ListingHead, EditorHead {
   activeType: EntityTypeInfo | undefined;
   activeWorkspace: StudioWorkspaceInfo | undefined;
   entitySchema: TypeSchema;
@@ -66,28 +268,12 @@ export interface StudioAppModel {
   groupingVocabularies: Record<string, GroupingValueRules>;
   systemDesign: SystemEditorCopy | undefined;
   editing: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  namedCreate: boolean;
-  fieldIssues: ValidationIssue[] | undefined;
-  destinationBlocked: boolean;
   hierarchyKind: "page" | "folder";
   folderContext: string;
-  canDelete: boolean;
-  canPublish: boolean;
-  canAssist: boolean;
-  heading: string | null;
-  collectionLabel: string;
-  entryLabel: string;
   syncPending: boolean;
   publicationWorkspace: StudioWorkspaceInfo | undefined;
   pageEnd: number;
   workspaceBadges: Record<string, number>;
-  collectionFiltered: boolean;
-  directFolderCount: boolean;
-  listingHead: StudioPageHeadModel;
-  publicationState: "draft" | "published" | null;
-  editorHead: StudioPageHeadModel;
   declarativeHead: StudioPageHeadModel | null;
 }
 
@@ -105,10 +291,7 @@ export function deriveStudioAppModel(
     entityLimit,
     entityTotal,
     schema,
-    editor,
-    syncStatus,
   } = props;
-  const { mode, save: saveState } = editor;
   const activeType = types.find((info) => info.entityType === entityType);
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
@@ -116,47 +299,13 @@ export function deriveStudioAppModel(
 
   // Workspace branches do not read these entity fallbacks.
   const entitySchema = schema ?? EMPTY_TYPE_SCHEMA;
-  const presentation = studioEditorPresentation(
-    entitySchema.entityType,
-    entitySchema.hasBody,
-  );
   const selectedEntityType = entityType ?? "";
   const editorGroupings = (props.groupings?.items ?? []).filter((grouping) =>
     grouping.types.includes(selectedEntityType),
   );
-  const groupingFields = editorGroupings.map((grouping) => grouping.field);
-  const groupingVocabularies = Object.fromEntries(
-    editorGroupings.map((grouping) => [
-      grouping.field,
-      grouping.rules ?? { multiple: true },
-    ]),
-  );
   const systemDesign = systemEditorCopy(selectedEntityType);
-  const editing =
-    !props.groupingView && !activeWorkspaceId && mode.kind !== "browse";
-  const canCreate =
-    activeType?.capabilities.canCreate === true &&
-    (activeType.hierarchy.nested ||
-      (mode.kind === "create"
-        ? !mode.prefix
-        : props.collectionQuery.prefix === null));
-  const canEdit =
-    mode.kind === "create"
-      ? canCreate
-      : mode.kind === "edit" && activeType?.capabilities.canUpdate === true;
-  const namedCreate = mode.kind === "create" && mode.segment !== undefined;
-  const fieldIssues =
-    saveState.kind === "error"
-      ? saveState.issues
-      : namedCreate && props.creationDestination.error instanceof ApiError
-        ? props.creationDestination.error.issues
-        : undefined;
-  const destinationBlocked =
-    namedCreate &&
-    (!props.creationDestination.data ||
-      props.creationDestination.pending ||
-      Boolean(props.creationDestination.error));
   const hierarchyKind = activeType?.hierarchy.kind ?? "folder";
+  const syncPending = props.syncStatus?.git?.hasChanges === true;
   const folderContext =
     props.collectionQuery.prefix
       ?.map(
@@ -167,129 +316,53 @@ export function deriveStudioAppModel(
     activeType?.label ??
     entityType ??
     "Collection";
-  const canDelete = activeType?.capabilities.canDelete === true;
-  const canPublish = activeType?.capabilities.canPublish === true;
-  const canAssist = canEdit && activeType?.capabilities.canAssist === true;
-  const heading =
-    mode.kind === "edit"
-      ? activeType?.isSingleton
-        ? singularLabel(activeType.label)
-        : entityTitle(mode.entity)
-      : mode.kind === "create"
-        ? `New ${activeType?.label ?? entityType}`
-        : (activeType?.label ?? entityType);
-  const collectionLabel =
-    activeWorkspace?.label ??
-    systemDesign?.title ??
-    (activeType?.isSingleton
-      ? singularLabel(activeType.label)
-      : activeType?.label) ??
-    entityType ??
-    "Studio";
-  const entryLabel = singularLabel(collectionLabel);
-  const syncPending = syncStatus?.git?.hasChanges === true;
-  const publicationWorkspace = publicationWorkspaceFor(
-    workspaces,
-    selectedEntityType,
-  );
-  const pageEnd = Math.min(
-    entityOffset + (entities?.length ?? entityLimit),
-    entityTotal,
-  );
-  const workspaceBadges = workspaceRailBadges(workspaces);
-  // The server counts what the query matched, so the head says so rather than
-  // reporting a filtered count as if the collection had shrunk.
-  const collectionFiltered =
-    Boolean(props.collectionQuery.q) ||
-    props.collectionQuery.visibility !== "all" ||
-    Boolean(props.collectionQuery.status);
-  const directFolderCount =
-    props.collectionQuery.scope === "folder" &&
-    !props.collectionQuery.q &&
-    (props.collectionQuery.prefix !== null || props.folders.length > 0);
-  const listingHead: StudioPageHeadModel = {
-    kicker: "Content library",
-    access: studioAccessRequirement("trusted"),
-    title: activeType?.label ?? entityType ?? "Library",
-    metadata: [
-      directFolderCount
-        ? `${entityTotal} ${collectionFiltered ? "matching " : ""}${entityTotal === 1 ? "entry" : "entries"} here`
-        : collectionFiltered
-          ? `${entityTotal} matching ${entityTotal === 1 ? "entity" : "entities"}`
-          : `${entityTotal} ${entityTotal === 1 ? "entity" : "entities"}`,
-      ...(props.folders.length > 0
-        ? [
-            `${props.folders.length} ${hierarchyKind}${props.folders.length === 1 ? "" : "s"} · ${entityTotal + props.folders.reduce((sum, folder) => sum + folder.descendantCount, 0)} in total`,
-          ]
-        : []),
-      ...(props.collectionQuery.prefix && !directFolderCount
-        ? [
-            props.collectionQuery.scope === "collection"
-              ? "Whole collection"
-              : `In this ${hierarchyKind}`,
-          ]
-        : []),
-      ...(syncPending ? ["Sync pending"] : []),
-    ],
-    totals: [],
-  };
-  const publicationState =
-    typeHasPublicationField(entitySchema.fields) && mode.kind === "edit"
-      ? entityPublicationState(mode.entity)
-      : null;
-  const editorHead: StudioPageHeadModel = {
-    kicker: entitySchema.isSingleton
-      ? `${studioArea(activeType ?? null, null)} / singleton`
-      : collectionLabel,
-    access: studioAccessRequirement("trusted"),
-    title: systemDesign?.title ?? heading ?? "Editor",
-    metadata:
-      mode.kind === "create"
-        ? [`${entryLabel} · new`]
-        : publicationState
-          ? [`${entryLabel} · ${publicationState}`]
-          : [],
-    totals: [],
-  };
-  const declarativeHead =
-    activeWorkspace && declarativeWorkspaceData
-      ? declarativeStudioPageHead(
-          activeWorkspace,
-          declarativeWorkspaceData.view,
-        )
-      : null;
   return {
     activeType,
     activeWorkspace,
     entitySchema,
-    presentation,
+    presentation: studioEditorPresentation(
+      entitySchema.entityType,
+      entitySchema.hasBody,
+    ),
     selectedEntityType,
-    groupingFields,
-    groupingVocabularies,
+    groupingFields: editorGroupings.map((grouping) => grouping.field),
+    groupingVocabularies: Object.fromEntries(
+      editorGroupings.map((grouping) => [
+        grouping.field,
+        grouping.rules ?? { multiple: true },
+      ]),
+    ),
     systemDesign,
-    editing,
-    canCreate,
-    canEdit,
-    namedCreate,
-    fieldIssues,
-    destinationBlocked,
+    editing:
+      !props.groupingView &&
+      !activeWorkspaceId &&
+      props.editor.mode.kind !== "browse",
+    ...deriveEditorCapabilities(props, activeType),
     hierarchyKind,
     folderContext,
-    canDelete,
-    canPublish,
-    canAssist,
-    heading,
-    collectionLabel,
-    entryLabel,
+    ...deriveEditorHead(props, {
+      activeType,
+      activeWorkspace,
+      entitySchema,
+      systemDesign,
+    }),
     syncPending,
-    publicationWorkspace,
-    pageEnd,
-    workspaceBadges,
-    collectionFiltered,
-    directFolderCount,
-    listingHead,
-    publicationState,
-    editorHead,
-    declarativeHead,
+    publicationWorkspace: publicationWorkspaceFor(
+      workspaces,
+      selectedEntityType,
+    ),
+    pageEnd: Math.min(
+      entityOffset + (entities?.length ?? entityLimit),
+      entityTotal,
+    ),
+    workspaceBadges: workspaceRailBadges(workspaces),
+    ...deriveListingHead(props, { activeType, hierarchyKind, syncPending }),
+    declarativeHead:
+      activeWorkspace && declarativeWorkspaceData
+        ? declarativeStudioPageHead(
+            activeWorkspace,
+            declarativeWorkspaceData.view,
+          )
+        : null,
   };
 }

@@ -1,26 +1,24 @@
 import { MessageInterfacePlugin as RuntimeMessageInterfacePlugin } from "../message-interface/message-interface-plugin";
 import type {
-  InterfacePluginContext as RuntimeInterfacePluginContext,
-  MessageInterfacePluginContext as RuntimeMessageInterfacePluginContext,
-} from "../interface/context";
-import type {
   EditMessageRequest,
   SendMessageToChannelRequest,
   SendMessageWithIdRequest,
 } from "../message-interface/message-interface-plugin";
-import type { WebRouteDefinition } from "../types/web-routes";
 import type { PermissionLookupContext } from "@brains/templates";
 import type { PluginConfigSchema } from "../config";
-import { InterfacePlugin, type InterfacePluginHooks } from "./interface-plugin";
+import { InterfacePlugin } from "./interface-plugin";
 import type {
   InterfacePluginContext,
   JobProgressEvent,
   MessageInterfacePluginContext,
   MessageJobTrackingInfo,
-  Resource,
-  Tool,
 } from "./types";
-import type { PluginPackageJson, RuntimePluginDelegate } from "./public-plugin";
+import {
+  forwardInterfaceHooks,
+  type InterfacePluginHooks,
+  type PluginPackageJson,
+  type RuntimePluginDelegate,
+} from "./public-plugin";
 
 interface MessageInterfacePluginHooks extends InterfacePluginHooks<InterfacePluginContext> {
   onRegister(context: MessageInterfacePluginContext): Promise<void>;
@@ -37,8 +35,12 @@ class MessageInterfacePluginDelegate<
   TConfig,
   TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo,
-> extends RuntimeMessageInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
-  private readonly hooks: MessageInterfacePluginHooks;
+> extends forwardInterfaceHooks(RuntimeMessageInterfacePlugin)<
+  TConfig,
+  TConfigInput,
+  TTrackingInfo
+> {
+  protected readonly hooks: MessageInterfacePluginHooks;
 
   constructor(
     id: string,
@@ -49,43 +51,6 @@ class MessageInterfacePluginDelegate<
   ) {
     super(id, packageJson, config, configSchema);
     this.hooks = hooks;
-  }
-
-  protected override async onRegister(
-    context: RuntimeMessageInterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    await this.hooks.onRegister(context);
-  }
-
-  protected override onReady(
-    context: RuntimeInterfacePluginContext,
-  ): Promise<void> {
-    return this.hooks.onReady(context);
-  }
-
-  protected override onShutdown(): Promise<void> {
-    return this.hooks.onShutdown();
-  }
-
-  protected override getTools(): Promise<Tool[]> {
-    return this.hooks.getTools();
-  }
-
-  protected override getResources(): Promise<Resource[]> {
-    return this.hooks.getResources();
-  }
-
-  protected override getInstructions(): Promise<string | undefined> {
-    return this.hooks.getInstructions();
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return this.hooks.getWebRoutes();
-  }
-
-  override requiresDaemonStartup(): boolean {
-    return this.hooks.requiresDaemonStartup();
   }
 
   protected override sendMessageToChannel(

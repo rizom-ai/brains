@@ -9,7 +9,7 @@ import type { Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { ServiceEntityService } from "@brains/plugins";
+import type { BaseEntity, ServiceEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 const entityWithSlugSchema: z.ZodObject<
@@ -269,25 +269,25 @@ export async function collectAllImageIds(
     for (const entityType of entityTypes) {
       if (entityType === "image") continue; // Skip image entities themselves
 
-      const entities = await entityService.listEntities({ entityType });
-
-      for (const entity of entities) {
-        const coverImageId = extractCoverImageId(entity);
-        if (coverImageId) {
-          imageIds.add(coverImageId);
-        }
-        const ogImageId = extractOgImageId(entity);
-        if (ogImageId) {
-          imageIds.add(ogImageId);
-        }
-        if (entity.content.includes("entity://image/")) {
-          mapMarkdownImageUrls(entity.content, (url) => {
-            const match = /^entity:\/\/image\/(.+)$/.exec(url);
-            if (match?.[1]) imageIds.add(match[1]);
-            return url;
-          });
-        }
-      }
+      await forEachEntityPage(entityService, entityType, (entities) =>
+        entities.forEach((entity) => {
+          const coverImageId = extractCoverImageId(entity);
+          if (coverImageId) {
+            imageIds.add(coverImageId);
+          }
+          const ogImageId = extractOgImageId(entity);
+          if (ogImageId) {
+            imageIds.add(ogImageId);
+          }
+          if (entity.content.includes("entity://image/")) {
+            mapMarkdownImageUrls(entity.content, (url) => {
+              const match = /^entity:\/\/image\/(.+)$/.exec(url);
+              if (match?.[1]) imageIds.add(match[1]);
+              return url;
+            });
+          }
+        }),
+      );
     }
   } catch (error) {
     logger.warn("Failed to collect image IDs for pre-resolution", {
@@ -296,4 +296,32 @@ export async function collectAllImageIds(
   }
 
   return [...imageIds];
+}
+
+/** Entities a scan holds at once: a book brain has tens of thousands. */
+const SCAN_PAGE_SIZE = 1000;
+
+/** Visit every entity of a type, one page at a time, in stable id order. */
+async function forEachEntityPage(
+  entityService: ServiceEntityService,
+  entityType: string,
+  visit: (entities: BaseEntity[]) => void,
+  offset = 0,
+): Promise<void> {
+  const page = await entityService.listEntities({
+    entityType,
+    options: {
+      limit: SCAN_PAGE_SIZE,
+      offset,
+      sortFields: [{ field: "id", direction: "asc" }],
+    },
+  });
+  visit(page);
+  if (page.length < SCAN_PAGE_SIZE) return;
+  await forEachEntityPage(
+    entityService,
+    entityType,
+    visit,
+    offset + page.length,
+  );
 }

@@ -29,7 +29,11 @@ import {
   formatChatNoticePayload,
   toPlatformPostOutput,
 } from "./chat-output";
-import { chunkForChannel, ownsChatPlatform } from "./chat-platform";
+import {
+  chunkForChannel,
+  ownsChatPlatform,
+  toPlatformText,
+} from "./chat-platform";
 import type { ChatResponseCoordinator } from "./chat-response-coordinator";
 import type { ChatSdkApp } from "./chat-sdk-app";
 import type { ChatUploadCoordinator } from "./chat-upload-coordinator";
@@ -359,7 +363,7 @@ export class ChatTurnController {
     }
     const text = typeof payload === "string" ? payload : "Message failed.";
     for (const chunk of chunkForChannel(channelId, text)) {
-      await thread.post(chunk);
+      await thread.post(toPlatformText(channelId, chunk));
     }
   }
 

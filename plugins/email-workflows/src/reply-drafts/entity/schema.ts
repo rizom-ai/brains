@@ -10,7 +10,6 @@ type EmailReplyDraftFrontmatterSchema = z.ZodObject<{
   mailItemId: typeof inboxItemIdSchema;
   revision: z.ZodNumber;
   status: typeof emailReplyDraftStatusSchema;
-  updatedAt: z.ZodISODateTime;
   sentAt: z.ZodOptional<z.ZodISODateTime>;
   providerDeliveryId: z.ZodOptional<z.ZodString>;
 }>;
@@ -20,7 +19,6 @@ export const emailReplyDraftFrontmatterSchema: EmailReplyDraftFrontmatterSchema 
     mailItemId: inboxItemIdSchema,
     revision: z.number().int().positive(),
     status: emailReplyDraftStatusSchema,
-    updatedAt: z.iso.datetime(),
     sentAt: z.iso.datetime().optional(),
     providerDeliveryId: z.string().trim().min(1).max(1_000).optional(),
   });
@@ -28,12 +26,7 @@ export const emailReplyDraftFrontmatterSchema: EmailReplyDraftFrontmatterSchema 
 type EmailReplyDraftMetadataSchema = z.ZodObject<
   Pick<
     EmailReplyDraftFrontmatterSchema["shape"],
-    | "mailItemId"
-    | "revision"
-    | "status"
-    | "updatedAt"
-    | "sentAt"
-    | "providerDeliveryId"
+    "mailItemId" | "revision" | "status" | "sentAt" | "providerDeliveryId"
   >
 >;
 
@@ -42,7 +35,6 @@ const emailReplyDraftMetadataSchema: EmailReplyDraftMetadataSchema =
     mailItemId: true,
     revision: true,
     status: true,
-    updatedAt: true,
     sentAt: true,
     providerDeliveryId: true,
   });

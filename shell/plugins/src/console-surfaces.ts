@@ -22,6 +22,9 @@ const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
  * governed by that plan — until then, the table lives here, next to the
  * route registry it reads, rather than in the theme package.
  */
+/** Studio routes that are not its door: Chat's own, and its redirect aliases. */
+const STUDIO_NON_DOORS = new Set(["/chat", "/cms", "/admin", "/account"]);
+
 const SURFACE_PLUGINS: ReadonlyArray<{
   id: string;
   pluginId: string;
@@ -95,7 +98,7 @@ export function deriveConsoleSurfaces(
       .filter(
         (route) =>
           route.pluginId === pluginId &&
-          !(id === "studio" && route.fullPath === "/chat"),
+          !(id === "studio" && STUDIO_NON_DOORS.has(route.fullPath)),
       )
       .map((route) => route.fullPath)
       .sort((a, b) => a.length - b.length);

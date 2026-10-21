@@ -25,7 +25,8 @@ export class DocsPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "primary" };
+    // sourcePath was written by the docs sync script and read by nothing.
+    return { projectionSourceRole: "primary", retiredFields: ["sourcePath"] };
   }
 
   protected override getTemplates(): Record<string, Template> {

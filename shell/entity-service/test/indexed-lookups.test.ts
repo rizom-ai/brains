@@ -19,6 +19,8 @@ import {
   postSchema,
 } from "./helpers/test-schemas";
 import { createTestEntity } from "../src/test/index";
+import { insertTestEntity } from "./helpers/test-entity-db";
+import { MOCK_DIMENSIONS as DIMENSIONS } from "./helpers/mock-services";
 import {
   setupEntityService,
   type EntityServiceTestContext,
@@ -103,6 +105,18 @@ describe("indexed entity lookups", () => {
     expect(plan).not.toContain("SCAN entities");
   });
 
+  test("lists entities by a slug prefix through the index, as a range", async () => {
+    await queries().listEntities("post", {
+      filter: { metadataPrefix: { slug: "erstes/" } },
+    });
+
+    const [plan] = await plansOf();
+    expect(plan).toContain(
+      "USING INDEX entities_type_slug_idx (entityType=? AND <expr>>? AND <expr><?)",
+    );
+    expect(plan).not.toContain("SCAN entities");
+  });
+
   test("finds the nearest entities of a type without scanning", async () => {
     await attachEmbeddingDatabase(
       client,
@@ -165,6 +179,90 @@ describe("metadata filter keys", () => {
       ctx.entityService.listEntities({
         entityType: "post",
         options: { filter: { metadata: { "slug') OR ('1": "x" } } },
+      }),
+    ).rejects.toThrow("Invalid metadata filter key");
+  });
+});
+
+describe("metadata prefix filter", () => {
+  let ctx: EntityServiceTestContext;
+  const slugs = [
+    "erstes",
+    "erstes/1",
+    "erstes/2",
+    "erstes-x2/1",
+    "erstes0",
+    "zweites/1",
+    "über/1",
+    "überall/1",
+    "\u{D7FF}a",
+    "\u{E000}a",
+    "\u{10FFFF}z",
+  ];
+
+  beforeEach(async () => {
+    ctx = await setupEntityService([
+      { name: "post", schema: postSchema, adapter: postAdapter },
+    ]);
+    await Promise.all(
+      slugs.map((slug, index) =>
+        insertTestEntity(
+          ctx.dbConfig,
+          {
+            id: `post-${index}`,
+            entityType: "post",
+            content: slug,
+            metadata: { slug },
+            created: Date.now(),
+            updated: Date.now(),
+            embedding: new Float32Array(DIMENSIONS),
+          },
+          ctx.embeddingDbConfig,
+        ),
+      ),
+    );
+    await ctx.entityService.initialize();
+  });
+
+  afterEach(async () => {
+    await ctx.cleanup();
+  });
+
+  async function slugsStartingWith(prefix: string): Promise<string[]> {
+    const listed = await ctx.entityService.listEntities({
+      entityType: "post",
+      options: { filter: { metadataPrefix: { slug: prefix } } },
+    });
+    return listed.map((entity) => entity.content).sort();
+  }
+
+  test("lists exactly the entities whose field starts with the prefix", async () => {
+    expect(await slugsStartingWith("erstes/")).toEqual([
+      "erstes/1",
+      "erstes/2",
+    ]);
+    expect(await slugsStartingWith("über/")).toEqual(["über/1"]);
+    expect(await slugsStartingWith("nichts/")).toEqual([]);
+    // Prefixes at the edges of Unicode: before the surrogates, and the last
+    // code point, above which no string sorts.
+    expect(await slugsStartingWith("\u{D7FF}")).toEqual(["\u{D7FF}a"]);
+    expect(await slugsStartingWith("\u{10FFFF}")).toEqual(["\u{10FFFF}z"]);
+  });
+
+  test("counts the entities whose field starts with the prefix", async () => {
+    expect(
+      await ctx.entityService.countEntities({
+        entityType: "post",
+        options: { filter: { metadataPrefix: { slug: "erstes/" } } },
+      }),
+    ).toBe(2);
+  });
+
+  test("refuses a key that is not a field name", async () => {
+    expect(
+      ctx.entityService.listEntities({
+        entityType: "post",
+        options: { filter: { metadataPrefix: { "slug') OR ('1": "x" } } },
       }),
     ).rejects.toThrow("Invalid metadata filter key");
   });

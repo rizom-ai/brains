@@ -33,6 +33,8 @@ export interface SkillDeriverInput {
   topicTitles: string[];
   toolDescriptions: string[];
   tagVocabulary: TagVocabularyEntry[];
+  /** Names of the skills derived last time, offered for keeping. */
+  currentSkills?: string[] | undefined;
 }
 
 export function buildSkillPrompt(input: SkillDeriverInput): string {
@@ -52,6 +54,12 @@ export function buildSkillPrompt(input: SkillDeriverInput): string {
 
   const primer = formatVocabularyForPrompt(input.tagVocabulary);
   if (primer) sections.push(primer);
+
+  if (input.currentSkills?.length) {
+    sections.push(
+      `The brain currently advertises these skills. When one still fits, keep its name exactly; rename or drop it only when the domains no longer support it:\n${input.currentSkills.map((name) => `- ${name}`).join("\n")}`,
+    );
+  }
 
   return `You are analyzing a brain's content to identify its high-level capabilities.
 

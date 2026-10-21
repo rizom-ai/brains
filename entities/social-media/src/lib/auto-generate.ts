@@ -3,14 +3,18 @@ import { type EntityPluginContext } from "@brains/plugins";
 import { GENERATE_CHANNELS } from "@brains/contracts";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils/logger";
+import type { RetryScope } from "@brains/utils/retry-backoff";
 
 /**
  * Subscribe to generate:execute to handle explicitly scheduled generation.
  * This command workflow is not a projection and does not enter the derivation graph.
+ * A refused enqueue is retried through `retries` until the queue admits it;
+ * the scheduled run does not come again until its next cycle.
  */
 export function subscribeToGenerateExecute(
   context: EntityPluginContext,
   logger: Logger,
+  retries: RetryScope,
 ): void {
   context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
     GENERATE_CHANNELS.execute,
@@ -77,27 +81,33 @@ export function subscribeToGenerateExecute(
           return { success: true };
         }
 
-        const jobId = await context.jobs.enqueue({
-          type: `${socialPostAdapter.entityType}:generation`,
-          data: {
-            sourceEntityType: "post",
-            sourceEntityId: sourcePost.id,
-            platform: "linkedin",
-            addToQueue: false,
+        const sourcePostId = sourcePost.id;
+        await retries.run(
+          async () => {
+            const jobId = await context.jobs.enqueue({
+              type: `${socialPostAdapter.entityType}:generation`,
+              data: {
+                sourceEntityType: "post",
+                sourceEntityId: sourcePostId,
+                platform: "linkedin",
+                addToQueue: false,
+              },
+              toolContext: {
+                interfaceType: "job",
+                actor: {
+                  kind: "service",
+                  serviceId: "social-media-auto-generate",
+                },
+              },
+            });
+            logger.info("Social post generation job queued", {
+              jobId,
+              sourcePostId,
+            });
           },
-          toolContext: {
-            interfaceType: "job",
-            actor: {
-              kind: "service",
-              serviceId: "social-media-auto-generate",
-            },
-          },
-        });
-
-        logger.info("Social post generation job queued", {
-          jobId,
-          sourcePostId: sourcePost.id,
-        });
+          "queue a scheduled social post generation",
+          "generate:social-post",
+        );
 
         return { success: true };
       } catch (error) {

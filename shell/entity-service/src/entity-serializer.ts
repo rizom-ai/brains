@@ -7,7 +7,12 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import type { EntityData } from "./entity-data";
 import { toEntityValidationError } from "./errors";
-import { preserveSourceFrontmatter } from "./frontmatter-extensions";
+import {
+  dropFields,
+  preserveSourceFrontmatter,
+  unwrittenFields,
+  withoutFrontmatterFields,
+} from "./frontmatter-extensions";
 
 /**
  * EntitySerializer handles conversion between entities and markdown
@@ -39,6 +44,9 @@ export class EntitySerializer {
         .getGroupings()
         .filter((grouping) => grouping.types.includes(entity.entityType))
         .map((grouping) => grouping.field),
+      unwrittenFields(
+        this.entityRegistry.getEntityTypeConfig(entity.entityType),
+      ),
     );
   }
 
@@ -51,9 +59,13 @@ export class EntitySerializer {
     entityType: string,
   ): Partial<BaseEntity> {
     const adapter = this.entityRegistry.getAdapter(entityType);
+    const current = withoutFrontmatterFields(
+      markdown,
+      this.retiredFields(entityType),
+    );
     let parsedFromMarkdown: Partial<BaseEntity>;
     try {
-      parsedFromMarkdown = adapter.fromMarkdown(markdown);
+      parsedFromMarkdown = adapter.fromMarkdown(current);
     } catch (error) {
       throw toEntityValidationError(entityType, error) ?? error;
     }
@@ -68,9 +80,10 @@ export class EntitySerializer {
     const metadata = this.stripPolicyMetadata(
       this.entityRegistry.projectMetadata(
         entityType,
-        markdown,
+        current,
         parsedMetadata ?? {},
       ),
+      entityType,
     );
     return {
       ...parsed,
@@ -125,7 +138,13 @@ export class EntitySerializer {
    */
   public reconstructEntity(entityData: EntityData): BaseEntity {
     const adapter = this.entityRegistry.getAdapter(entityData.entityType);
-    const parsedContent = adapter.fromMarkdown(entityData.content);
+    // Stored content keeps retired keys until rewritten; parse past them.
+    const parsedContent = adapter.fromMarkdown(
+      withoutFrontmatterFields(
+        entityData.content,
+        this.retiredFields(entityData.entityType),
+      ),
+    );
     // Strip parsed metadata — DB metadata is the source of truth.
     // `system_update({ operation: { kind: "fields" } })` mutates DB metadata without touching
     // markdown, so parsed frontmatter can be stale. Body-parsed top-level
@@ -145,8 +164,11 @@ export class EntitySerializer {
       updated: new Date(entityData.updated).toISOString(),
       visibility: entityData.visibility,
       ...parsedRest,
-      ...this.stripPolicyMetadata(entityData.metadata),
-      metadata: this.stripPolicyMetadata(entityData.metadata),
+      ...this.stripPolicyMetadata(entityData.metadata, entityData.entityType),
+      metadata: this.stripPolicyMetadata(
+        entityData.metadata,
+        entityData.entityType,
+      ),
     };
 
     return adapter.schema.parse(entity);
@@ -175,15 +197,41 @@ export class EntitySerializer {
         markdown,
         adapter.extractMetadata(entity),
       ),
+      entityType,
     );
 
     return { markdown, metadata };
   }
 
+  /**
+   * The entity with its type's retired fields left out of its content, so
+   * validators and storage see only the fields the type still owns.
+   */
+  public withoutRetiredFields<
+    T extends { entityType: string; content: string },
+  >(entity: T): T {
+    const content = withoutFrontmatterFields(
+      entity.content,
+      this.retiredFields(entity.entityType),
+    );
+    return content === entity.content ? entity : { ...entity, content };
+  }
+
+  /** Metadata without policy fields or the type's retired fields. */
   private stripPolicyMetadata(
     metadata: Record<string, unknown>,
+    entityType: string,
   ): Record<string, unknown> {
     const { visibility: _visibility, ...rest } = metadata;
-    return rest;
+    const unwritten = unwrittenFields(
+      this.entityRegistry.getEntityTypeConfig(entityType),
+    );
+    return dropFields(rest, unwritten) ?? rest;
+  }
+
+  private retiredFields(entityType: string): readonly string[] {
+    return (
+      this.entityRegistry.getEntityTypeConfig(entityType).retiredFields ?? []
+    );
   }
 }

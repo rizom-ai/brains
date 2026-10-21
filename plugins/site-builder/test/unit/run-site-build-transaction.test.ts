@@ -20,6 +20,12 @@ function createPipelineContext(): BuildPipelineContext {
 // The real builder writes the prepared static assets (the default icon among
 // them) before anything can fail late; the mocks do the same, so the output
 // commit finds every asset the build declared.
+/** Every path under a directory, sorted: what a build left behind. */
+async function listTree(directory: string): Promise<string[]> {
+  const entries = await fs.readdir(directory, { recursive: true });
+  return entries.map(String).sort();
+}
+
 async function writeStaticAssets(
   context: SiteBuildContext,
   outputDir: string,
@@ -159,7 +165,7 @@ describe("runSiteBuild transactional output", () => {
     expect(generations).toHaveLength(1);
   });
 
-  it("skips rendering when the prepared site input fingerprint is unchanged", async () => {
+  it("publishes nothing new when the site input fingerprint is unchanged", async () => {
     let renderCount = 0;
     const factory: StaticSiteBuilderFactory = (options) => ({
       clean: mock(async () => undefined),
@@ -195,6 +201,9 @@ describe("runSiteBuild transactional output", () => {
       staticSiteBuilderFactory: factory,
       signal: new AbortController().signal,
     });
+    const manifestPath = join(outputDir, ".site-build-manifest.json");
+    const published = await fs.readFile(manifestPath, "utf8");
+    const generations = await listTree(testDir);
     const second = await runSiteBuild({
       buildOptions,
       progress: undefined,
@@ -205,7 +214,11 @@ describe("runSiteBuild transactional output", () => {
 
     expect(first.success).toBe(true);
     expect(second).toMatchObject({ success: true, skipped: true });
-    expect(renderCount).toBe(1);
+    // Pages are rendered as they are prepared, so the second build renders
+    // into staging; its output is discarded and the first stays published.
+    expect(renderCount).toBe(2);
+    expect(await fs.readFile(manifestPath, "utf8")).toBe(published);
+    expect(await listTree(testDir)).toEqual(generations);
     expect(
       JSON.parse(
         await fs.readFile(join(outputDir, ".site-build-manifest.json"), "utf8"),

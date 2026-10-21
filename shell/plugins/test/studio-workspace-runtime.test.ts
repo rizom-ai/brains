@@ -6,6 +6,7 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  defineEntityCatalog,
   defineStudioWorkspace,
   defineServicePlugin,
   defineWorkspaceAction,
@@ -1448,6 +1449,67 @@ describe("operator detail composition", () => {
     });
   });
 
+  it("opens rows of a matrix master, so a board can show a card beside its columns", () => {
+    const board = {
+      type: "matrix",
+      id: "board",
+      columns: 2,
+      cells: [
+        {
+          id: "open",
+          label: "To do",
+          empty: "Nothing waiting.",
+          items: [
+            {
+              id: "card-1",
+              title: "Book the venue",
+              link: { detail: { itemId: "card-1" } },
+            },
+          ],
+        },
+        { id: "done", label: "Done", empty: "Nothing done.", items: [] },
+      ],
+    };
+    const result = safeParseRuntimeStudioOperatorView(
+      detailView(
+        {
+          forId: "card-1",
+          title: "Book the venue",
+          blocks: [{ type: "text", id: "card-text", text: "Venue for May." }],
+        },
+        board,
+      ),
+      { actions: [], permission: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "detail",
+            master: {
+              type: "matrix",
+              cells: [
+                {
+                  id: "open",
+                  items: [
+                    {
+                      id: "card-1",
+                      link: { kind: "detail", itemId: "card-1" },
+                    },
+                  ],
+                },
+                { id: "done" },
+              ],
+            },
+            open: { forId: "card-1", title: "Book the venue" },
+          },
+        ],
+      },
+    });
+  });
+
   it("keeps the open detail when its row is outside the current page", () => {
     // Paging or filtering can move the selected row out of the master. Losing
     // the reading pane because the operator turned a page would be worse than
@@ -1725,5 +1787,85 @@ describe("operator columns composition", () => {
       { actions: [], permission: "trusted" },
     );
     expect(result.success).toBe(false);
+  });
+});
+
+describe("publication workspace registration", () => {
+  const publicationActions = (
+    ["queue", "remove", "retry", "reorder", "publish"] as const
+  ).map((name) =>
+    defineWorkspaceAction({
+      name,
+      label: name,
+      permission: "trusted",
+      input: z.object({ entityType: z.string(), entityId: z.string() }),
+      output: z.object({ success: z.literal(true) }),
+    }),
+  );
+  const publishing = defineStudioWorkspace({
+    id: "publishing",
+    label: "Publishing",
+    permission: "trusted",
+    publishesEntityTypes: true,
+    entityCatalog: defineEntityCatalog({
+      id: "publishable",
+      label: "Publishable",
+    }),
+    data: z.object({}),
+    actions: publicationActions,
+    view: () => ({ blocks: [] }),
+  });
+
+  it("tells the host which workspace publishes its entity types", async () => {
+    const definition = defineServicePlugin({
+      id: "publishing-operator",
+      config: z.object({}),
+      studioWorkspaces: (context) => [
+        workspace.bind(context, {
+          actions: [
+            refresh.bind(context, ({ input }) => ({ refreshed: input.id })),
+          ],
+          load: () => ({ count: 0 }),
+        }),
+        publishing.bind(context, {
+          actions: publicationActions.map((action) =>
+            action.bind(context, () => ({ success: true as const })),
+          ),
+          load: () => ({}),
+          listEntityTypes: () => ["post"],
+        }),
+      ],
+    });
+    const shell = createMockShell({
+      logger: createSilentLogger("publication-studio-runtime"),
+    });
+    const registrations: StudioWorkspaceRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<StudioWorkspaceRegistration>(
+        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        (message) => {
+          registrations.push(message.payload);
+          return {
+            success: true,
+            data: { workspaceUrl: "/studio/workspaces/x" },
+          };
+        },
+      );
+
+    const plugin = instantiate(definition);
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
+
+    const byLocalId = (localId: string): StudioWorkspaceRegistration => {
+      const found = registrations.find((registration) =>
+        registration.id.endsWith(`:${localId}`),
+      );
+      if (!found) throw new Error(`${localId} was not registered`);
+      return found;
+    };
+    expect(byLocalId("publishing").publishesEntityTypes).toBe(true);
+    expect(byLocalId("library")).not.toHaveProperty("publishesEntityTypes");
+    await plugin.shutdown?.();
   });
 });

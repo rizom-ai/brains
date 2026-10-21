@@ -24,7 +24,6 @@ function createMockAgent(
     ...(discoveredAt ? { discoveredAt } : {}),
     organization: "Rizom",
     brainName: `${name}'s Brain`,
-    did: `did:web:${name.toLowerCase()}.io`,
     about: `${name} is a brain agent.`,
     notes: "Connected via A2A.",
   });

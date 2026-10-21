@@ -106,6 +106,14 @@ async function selectSkillInput(
     topicTitles,
     toolDescriptions: [],
     tagVocabulary,
+    currentSkills: existingSkills
+      .filter(
+        (skill) =>
+          skill.visibility === targetVisibility &&
+          projectionOwnership.get(skill.id) === true,
+      )
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((skill) => skill.metadata.name),
   });
 
   return {

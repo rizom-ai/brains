@@ -56,6 +56,8 @@ export type EditorWorkflowAction =
   | {
       type: "creationStarted";
       singleton?: boolean;
+      /** Content handed over to the new entry counts as unsaved work. */
+      prefilled?: boolean;
       draft: Record<string, unknown>;
       body?: string | undefined;
       prefix?: EntityIdPath | null;
@@ -131,6 +133,7 @@ export function hasUnsavedEditorChanges(state: EditorWorkflowState): boolean {
     const initial = state.mode.initial;
     if (!initial) return true;
     return (
+      Boolean(state.mode.segment) ||
       state.body !== initial.body ||
       JSON.stringify(state.draft) !== initial.draft
     );
@@ -162,7 +165,7 @@ export function editorWorkflowReducer(
       return {
         mode: {
           kind: "create",
-          ...(action.singleton && {
+          ...(!action.prefilled && {
             initial: {
               draft: JSON.stringify(action.draft),
               body: action.body ?? "",

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Not started in the current tree: `@rizom/ops` still accepts `--anchor-id` without an explicit `--discord` flag, and the rover-pilot operator docs still describe Discord as the primary/default pilot interface. This remains active until the scaffold defaults, secrets template, reconcile behavior, docs, and tests all make Discord opt-in.
+Implemented: `@rizom/ops user:add` now scaffolds Discord-disabled users by default, supports explicit `--discord`, keeps `--anchor-id` as enabling Discord for compatibility, omits the Discord secret/config when disabled, and documents browser chat/passkey setup as the default. Publishing the package and regenerating the downstream rover-pilot fleet remain.
 
 ## Goal
 

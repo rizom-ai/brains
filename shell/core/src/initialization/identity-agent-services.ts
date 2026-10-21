@@ -6,6 +6,7 @@ import {
   openAiGuestPricing,
   type ChatAttachment,
   type EmbeddingUsageMeter,
+  type GenerationUsageMeter,
   type ChatAttachmentSource,
   type IAgentService,
   type IAIService,
@@ -56,6 +57,7 @@ export interface IdentityAndAgentServiceOptions {
   embeddingService: IEmbeddingService;
   /** Where the embedding provider reports usage; guest turns are measured. */
   embeddingUsage?: EmbeddingUsageMeter;
+  generationUsage?: GenerationUsageMeter;
   entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
@@ -286,6 +288,9 @@ export function initializeIdentityAndAgentServices(
       canonicalIdentityResolver: canonicalIdentityService,
       // A turn's sources link to the pages the site shows them on.
       entityLinks,
+      ...(options.generationUsage
+        ? { generationUsage: options.generationUsage }
+        : {}),
       ...(options.embeddingUsage
         ? { embeddingUsage: options.embeddingUsage }
         : {}),

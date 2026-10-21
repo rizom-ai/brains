@@ -23,8 +23,13 @@ import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFo
 import { directorySyncStatusSchema } from "./schemas";
 import { DirectorySyncRequestJobHandler } from "./handlers";
 import { registerDirectorySyncJobHandlers } from "./lib/register-job-handlers";
+import { RetryScope } from "@brains/utils/retry-backoff";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
+import {
+  createInterruptedPullRecovery,
+  type InterruptedPullRecovery,
+} from "./lib/interrupted-pull-recovery";
 import { validateSeedContentEntityTypes } from "./lib/file-discovery";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { DurableEntityExportDispatcher } from "./lib/durable-entity-export-dispatcher";
@@ -45,7 +50,6 @@ import {
 } from "./lib/active-sync-facades";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
-import { getErrorMessage } from "@brains/utils/error";
 
 export function resolveRuntimeSyncPath(options: {
   configuredSyncPath: string | undefined;
@@ -187,6 +191,31 @@ export class DirectorySyncPlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    const { syncPath, recovery } = await this.registerCommon(context);
+
+    if (this.isGitConfigured()) {
+      await this.registerGit(context, syncPath, recovery);
+    } else {
+      await recovery.requiresRepository();
+    }
+
+    if (context.executionOnly) {
+      this.bindCleanupAdmission(context, this.requireDirectorySync());
+    } else {
+      this.registerServingRole(context, recovery);
+    }
+  }
+
+  /**
+   * What every role needs before Git: the status template, the sync
+   * directory, operation status, and the job handlers. Reading operation
+   * status is also where a pull left in flight by a previous process shows
+   * up, so the recovery handle is created here, once.
+   */
+  private async registerCommon(context: ServicePluginContext): Promise<{
+    syncPath: string;
+    recovery: InterruptedPullRecovery;
+  }> {
     context.templates.register({
       status: {
         name: "status",
@@ -219,30 +248,12 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.logger.child("OperationStatus"),
       syncPath,
     );
-    const interruptedPull = await this.operationStatus.initialize();
-    if (!context.executionOnly) {
-      context.operationalHealth.register("git-progress", () =>
-        this.requireOperationStatus().getOperationalHealth(),
-      );
-      // Two different questions. The first is what this role believes about
-      // its own sync run; the second is what the checkout owner reports
-      // about the work it is actually holding, which is the only place a
-      // wedged Git child is visible at all.
-      const socketPath = context.gitBrokerSocket;
-      if (this.isGitConfigured() && socketPath !== undefined) {
-        context.operationalHealth.register(
-          "git-broker",
-          createBrokerHealthCheck({
-            // A fresh read-only connection. Asking through this role's own
-            // client would let a health request reattach, notice a new
-            // owner, and schedule durable replay — writes from a read.
-            probe: probeBrokerActivity(socketPath),
-            now: (): number => Date.now(),
-            progressTimeoutMs: resolveBrokerProgressTimeoutMs(),
-          }),
-        );
-      }
-    }
+    const recovery = createInterruptedPullRecovery({
+      operationStatus: this.operationStatus,
+      interruptedPull: await this.operationStatus.initialize(),
+      executionOnly: context.executionOnly,
+    });
+    this.registerOperationalHealth(context);
     this.gitReconciliation = new GitReconciliationService(context.runtimeState);
 
     if (!context.executionOnly && this.config.autoSync) {
@@ -251,6 +262,10 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.directorySync,
         syncPath,
         this.operationStatus,
+        await this.runtime.acquire(
+          async () => new RetryScope({ logger: this.logger }),
+          (retries) => retries.dispose(),
+        ),
       );
     }
 
@@ -262,24 +277,53 @@ export class DirectorySyncPlugin extends ServicePlugin<
       );
     }
 
-    if (this.isGitConfigured()) {
-      let connectedGitSync: BrokerGitSync;
-      try {
-        if (!context.executionOnly) await this.bootstrapContentRemote();
-        connectedGitSync = await this.connectToGitBroker(
-          syncPath,
-          this.requireDirectorySync(),
-        );
-        this.gitSync = connectedGitSync;
-      } catch (error) {
-        if (!context.executionOnly && interruptedPull) {
-          await this.operationStatus.finishInterruptedPull(interruptedPull.id, {
-            recovered: false,
-            message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
-          });
-        }
-        throw error;
-      }
+    return { syncPath, recovery };
+  }
+
+  private registerOperationalHealth(context: ServicePluginContext): void {
+    if (context.executionOnly) return;
+    context.operationalHealth.register("git-progress", () =>
+      this.requireOperationStatus().getOperationalHealth(),
+    );
+    // Two different questions. The first is what this role believes about
+    // its own sync run; the second is what the checkout owner reports
+    // about the work it is actually holding, which is the only place a
+    // wedged Git child is visible at all.
+    const socketPath = context.gitBrokerSocket;
+    if (!this.isGitConfigured() || socketPath === undefined) return;
+    context.operationalHealth.register(
+      "git-broker",
+      createBrokerHealthCheck({
+        // A fresh read-only connection. Asking through this role's own
+        // client would let a health request reattach, notice a new
+        // owner, and schedule durable replay — writes from a read.
+        probe: probeBrokerActivity(socketPath),
+        now: (): number => Date.now(),
+        progressTimeoutMs: resolveBrokerProgressTimeoutMs(),
+      }),
+    );
+  }
+
+  /**
+   * Reach the checkout's owner, account for what a previous owner left, and
+   * only then let `initialize` mutate the checkout. Every role connects;
+   * inherited-work reconciliation and the startup replay are the serving
+   * role's alone.
+   */
+  private async registerGit(
+    context: ServicePluginContext,
+    syncPath: string,
+    recovery: InterruptedPullRecovery,
+  ): Promise<void> {
+    // Any of these failing leaves the checkout unreconciled, so each one
+    // settles an interrupted pull as a failed recovery.
+    const gitSync = await recovery.guard(async () => {
+      if (!context.executionOnly) await this.bootstrapContentRemote();
+      const connected = await this.connectToGitBroker(
+        syncPath,
+        this.requireDirectorySync(),
+      );
+      this.gitSync = connected;
       // A replacement owner holds mutations until someone has accounted
       // for what the lost generation left. Only a scheduling role can do
       // that — the queue and the checkpoint live here — and only one of
@@ -287,7 +331,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       if (!context.executionOnly) {
         await this.reconcileInheritedWork(
           context,
-          connectedGitSync,
+          connected,
           this.requireDirectorySync(),
         );
       }
@@ -295,88 +339,77 @@ export class DirectorySyncPlugin extends ServicePlugin<
       // intentionally after inherited-work replay: a replacement starts with
       // mutation admission closed, so doing this first would prevent the role
       // from ever reaching the reconciliation that opens it.
-      await connectedGitSync.initialize();
-      this.logger.info("Git integration enabled", {
-        repo: this.config.git?.repo,
-      });
+      await connected.initialize();
+      return connected;
+    });
+    this.logger.info("Git integration enabled", {
+      repo: this.config.git?.repo,
+    });
 
-      context.jobs.registerHandler(
-        "sync-request",
-        new DirectorySyncRequestJobHandler(
-          this.logger.child("DirectorySyncRequestJobHandler"),
-          context,
-          () => this.requireDirectorySync(),
-          () => this.requireGitSync(),
-          this.requireGitReconciliation(),
-          this.operationStatus,
-        ),
-      );
-      if (!context.executionOnly && !this.config.initialSync) {
-        try {
-          if (interruptedPull) {
-            await this.operationStatus.markProgress(interruptedPull.id);
-          }
-          await this.requireGitReconciliation().replayAndQueue({
-            gitSync: this.gitSync,
-            directorySync: this.requireDirectorySync(),
-            context,
-            source: "startup-replay",
-          });
-          if (interruptedPull) {
-            await this.operationStatus.finishInterruptedPull(
-              interruptedPull.id,
-              {
-                recovered: true,
-                message: "Recovered interrupted Git handoff during startup",
-              },
-            );
-          }
-        } catch (error) {
-          if (interruptedPull) {
-            await this.operationStatus.finishInterruptedPull(
-              interruptedPull.id,
-              {
-                recovered: false,
-                message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
-              },
-            );
-          }
-          throw error;
-        }
-      }
-    } else if (!context.executionOnly && interruptedPull) {
-      await this.operationStatus.finishInterruptedPull(interruptedPull.id, {
-        recovered: false,
-        message:
-          "Interrupted Git handoff recovery requires a configured repository",
-      });
-    }
-
-    if (!context.executionOnly) {
-      const dispatcher = this.createEntityExportDispatcher(
+    context.jobs.registerHandler(
+      "sync-request",
+      new DirectorySyncRequestJobHandler(
+        this.logger.child("DirectorySyncRequestJobHandler"),
         context,
-        this.runtime,
-        this.requireDirectorySync(),
-        this.gitSync,
-      );
-      this.entityExportDispatcher = dispatcher;
-      this.bindCleanupAdmission(
-        context,
-        this.requireDirectorySync(),
-        dispatcher,
-      );
-      setupAutoSync(
-        context,
-        () => this.requireEntityExportDispatcher().wake(),
-        this.logger,
-        this.config.entityTypes,
+        () => this.requireDirectorySync(),
+        () => this.requireGitSync(),
+        this.requireGitReconciliation(),
         this.operationStatus,
-      );
-    } else {
-      this.bindCleanupAdmission(context, this.requireDirectorySync());
+      ),
+    );
+    if (!context.executionOnly && !this.config.initialSync) {
+      await this.replayAtStartup(context, gitSync, recovery);
     }
+  }
 
-    if (!context.executionOnly && this.config.initialSync) {
+  /**
+   * Without initial sync nothing pulls at startup, so queue whatever the
+   * checkout already holds beyond the durable checkpoint. That replay is
+   * what recovers a pull a previous process left in flight.
+   */
+  private replayAtStartup(
+    context: ServicePluginContext,
+    gitSync: BrokerGitSync,
+    recovery: InterruptedPullRecovery,
+  ): Promise<void> {
+    return recovery.guard(async () => {
+      await recovery.progress();
+      await this.requireGitReconciliation().replayAndQueue({
+        gitSync,
+        directorySync: this.requireDirectorySync(),
+        context,
+        source: "startup-replay",
+      });
+      await recovery.succeeded("startup");
+    });
+  }
+
+  /**
+   * What only the serving role registers. An execution-only process runs
+   * queued jobs; durable export, auto-sync, initial sync, the Studio
+   * workspace, and message handling all belong to the role that schedules.
+   */
+  private registerServingRole(
+    context: ServicePluginContext,
+    recovery: InterruptedPullRecovery,
+  ): void {
+    const dispatcher = this.createEntityExportDispatcher(
+      context,
+      this.runtime,
+      this.requireDirectorySync(),
+      this.gitSync,
+    );
+    this.entityExportDispatcher = dispatcher;
+    this.bindCleanupAdmission(context, this.requireDirectorySync(), dispatcher);
+    setupAutoSync(
+      context,
+      () => this.requireEntityExportDispatcher().wake(),
+      this.logger,
+      this.config.entityTypes,
+      this.operationStatus,
+    );
+
+    if (this.config.initialSync) {
       setupInitialSync({
         context,
         getDirectorySync: () => this.requireDirectorySync(),
@@ -386,55 +419,28 @@ export class DirectorySyncPlugin extends ServicePlugin<
         reconciliation: this.gitSync
           ? this.requireGitReconciliation()
           : undefined,
-        recovery:
-          interruptedPull && this.gitSync
-            ? {
-                onGitProgress:
-                  this.requireOperationStatus().createProgressObserver(
-                    interruptedPull.id,
-                  ),
-                onGitRecoverySucceeded: (): Promise<void> =>
-                  this.requireOperationStatus().finishInterruptedPull(
-                    interruptedPull.id,
-                    {
-                      recovered: true,
-                      message:
-                        "Recovered interrupted Git handoff during initial sync",
-                    },
-                  ),
-                onGitRecoveryFailed: (error): Promise<void> =>
-                  this.requireOperationStatus().finishInterruptedPull(
-                    interruptedPull.id,
-                    {
-                      recovered: false,
-                      message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
-                    },
-                  ),
-              }
-            : undefined,
+        recovery: this.gitSync ? recovery.initialSyncRecovery() : undefined,
         operationStatus: this.operationStatus,
       });
     }
 
-    if (!context.executionOnly) {
-      this.workspaceProvider = new DirectorySyncWorkspaceProvider({
-        context,
-        config: this.config,
-        getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
-        getGitSync: (): IGitSync | undefined => this.gitSync,
-        operationStatus: this.operationStatus,
-      });
+    this.workspaceProvider = new DirectorySyncWorkspaceProvider({
+      context,
+      config: this.config,
+      getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
+      getGitSync: (): IGitSync | undefined => this.gitSync,
+      operationStatus: this.requireOperationStatus(),
+    });
 
-      registerMessageHandlers(
-        context,
-        () => this.requireDirectorySync(),
-        (options) => this.configure(options),
-        this.logger,
-        this.config.git,
-        () => this.gitSync,
-        () => this.studioWorkspaceUrl,
-      );
-    }
+    registerMessageHandlers(
+      context,
+      () => this.requireDirectorySync(),
+      (options) => this.configure(options),
+      this.logger,
+      this.config.git,
+      () => this.gitSync,
+      () => this.studioWorkspaceUrl,
+    );
   }
 
   protected override async onReady(): Promise<void> {
@@ -505,6 +511,10 @@ export class DirectorySyncPlugin extends ServicePlugin<
           candidateDirectorySync,
           syncPath,
           this.operationStatus,
+          await candidateRuntime.acquire(
+            async () => new RetryScope({ logger: this.logger }),
+            (retries) => retries.dispose(),
+          ),
         );
       }
       if (this.isGitConfigured()) {

@@ -75,19 +75,32 @@ const GERMAN_LETTERS: Record<string, string> = {
 };
 
 /**
- * Convert a string to a URL-safe slug. Letters are transliterated, not
- * dropped: German umlauts and ß as German writes them, other accents bare.
+ * Convert a string to a URL-safe slug. Letters and digits of every script
+ * are kept. Latin letters are transliterated, not dropped: German umlauts and
+ * ß as German writes them, other accents bare. Compatibility forms such as
+ * full-width letters fold to their plain equivalents.
  */
 export function slugify(text: string): string {
   return text
     .toLowerCase()
     .trim()
     .replace(/[äöüß]/g, (letter) => GERMAN_LETTERS[letter] ?? letter)
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "") // Drop accents left by decomposition
-    .replace(/[^\w\s-]/g, "") // Remove non-word chars
+    .normalize("NFKC")
+    .replace(/\p{Script=Latin}/gu, (letter) =>
+      letter.normalize("NFD").replace(/\p{M}/gu, ""),
+    ) // Drop Latin accents
+    .replace(/[^\p{L}\p{M}\p{N}\s_-]/gu, "") // Remove symbols and punctuation
+    .replace(/(^|[^\p{L}\p{M}])\p{M}+/gu, "$1") // Drop marks left without a letter
     .replace(/[\s_-]+/g, "-") // Replace spaces, underscores, hyphens with single hyphen
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
+
+/**
+ * Shorten a slug to at most `maxLength` characters, counting whole code
+ * points so no character is cut in half, without a trailing hyphen.
+ */
+export function truncateSlug(slug: string, maxLength: number): string {
+  return Array.from(slug).slice(0, maxLength).join("").replace(/-+$/, "");
 }
 
 /**
@@ -106,16 +119,35 @@ export function slugifyUrl(url: string): string {
 }
 
 /**
- * Generate a unique ID from text by slugifying it, with optional suffix
+ * Derive an ID from text by slugifying it, with optional suffix. The same
+ * text always gives the same ID, because derived entities are matched by it.
  */
 export function generateIdFromText(text: string, suffix?: string): string {
   const slug = slugify(text);
   if (!slug) {
-    // Fallback for edge cases where slug is empty
-    const timestamp = Date.now().toString(36);
-    return suffix ? `id-${timestamp}-${suffix}` : `id-${timestamp}`;
+    // Text without letters or digits: name it by a hash of the text.
+    const hash = textHash(text);
+    return suffix ? `id-${hash}-${suffix}` : `id-${hash}`;
   }
   return suffix ? `${slug}-${suffix}` : slug;
+}
+
+/**
+ * Normalize a free-form tag conservatively: trim, lowercase, and turn runs
+ * of whitespace or underscores into a single hyphen. Other characters stay.
+ */
+export function normalizeTag(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+}
+
+/**
+ * Normalize tags and drop empties and duplicates, keeping first-seen order.
+ */
+export function normalizeTags(raw: string[]): string[] {
+  return Array.from(new Set(raw.map(normalizeTag).filter(Boolean)));
 }
 
 /**
@@ -156,23 +188,71 @@ export function formatLabel(name: string): string {
   return name
     .replace(/[-_]/g, " ")
     .replace(/([A-Z])/g, " $1")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .replace(/\s+/g, " ")
-    .trim();
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(
+      (word) =>
+        LABEL_WORDS[word.toLowerCase()] ??
+        word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(" ");
+}
+
+/** Metadata keys that name an entry, in the order people expect to read them. */
+const TITLE_KEYS = ["title", "name", "question"] as const;
+
+/** The readable name in an entry's metadata, if it has one. */
+export function displayTitleFrom(
+  metadata: Record<string, unknown>,
+): string | undefined {
+  for (const key of TITLE_KEYS) {
+    const value = metadata[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+/** Words whose usual written form is not plain title case. */
+const LABEL_WORDS: Record<string, string> = {
+  ai: "AI",
+  api: "API",
+  atproto: "AT Protocol",
+  css: "CSS",
+  cta: "CTA",
+  faq: "FAQ",
+  github: "GitHub",
+  html: "HTML",
+  id: "ID",
+  json: "JSON",
+  linkedin: "LinkedIn",
+  og: "OG",
+  pdf: "PDF",
+  rss: "RSS",
+  seo: "SEO",
+  ui: "UI",
+  uri: "URI",
+  url: "URL",
+};
+
+/** Words a label names as an amount, not as countable items. */
+const MASS_NOUNS = new Set(["content", "info", "information", "data", "media"]);
+
+/**
+ * Pluralize a display label for people, not for paths: a label already
+ * plural or ending in a mass noun ("Ask Content", "Site Info") stays as is.
+ */
+export function pluralizeLabel(label: string): string {
+  const last = label.split(" ").at(-1)?.toLowerCase() ?? "";
+  if (label.endsWith("s") || MASS_NOUNS.has(last)) return label;
+  return pluralize(label);
 }
 
 /**
- * Convert a kebab-case entity type to a human-friendly display name.
- * Splits on hyphens, title-cases each word, pluralizes the last word.
+ * Convert a kebab-case entity type to a human-friendly collection name:
+ * "social-post" → "Social Posts", "faq" → "FAQs", "site-info" → "Site Info".
  */
 export function toDisplayName(entityType: string): string {
-  const words = entityType.split("-");
-  const titleCased = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
-  const lastWord = titleCased.pop();
-  if (lastWord) {
-    titleCased.push(pluralize(lastWord));
-  }
-  return titleCased.join(" ");
+  return pluralizeLabel(formatLabel(entityType));
 }
 
 const LINK_LABEL_CANONICAL: Record<string, string> = {
@@ -258,4 +338,22 @@ export function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+/** 32-bit FNV-1a of the text in base 36: short, stable, browser-safe. */
+function textHash(text: string): string {
+  const hash = Array.from(text).reduce(
+    (state, char) =>
+      Math.imul(state ^ (char.codePointAt(0) ?? 0), 0x01000193) >>> 0,
+    0x811c9dc5,
+  );
+  return hash.toString(36);
+}
+
+/** A size as people read it: bytes, then decimal kilobytes and megabytes. */
+export function formatByteSize(bytes: number): string {
+  if (bytes < 1_000) return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+  const [size, unit] =
+    bytes < 1_000_000 ? [bytes / 1_000, "KB"] : [bytes / 1_000_000, "MB"];
+  return `${Number(size.toFixed(1))} ${unit}`;
 }

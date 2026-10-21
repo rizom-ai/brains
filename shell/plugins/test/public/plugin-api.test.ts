@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
+import { JOB_CHANNELS } from "@brains/contracts";
 import { createPluginHarness } from "../../src/test/harness";
 import { createTool } from "../../src/public/types";
 import { EntityPlugin } from "../../src/public/entity-plugin";
@@ -198,6 +199,47 @@ describe("public plugin API", () => {
     // message-interface runtime plugin has.
     plugin.startProcessingInput("channel-1");
     plugin.endProcessingInput();
+    expect(plugin.getProgressEvents()).toEqual([]);
+  });
+
+  it("releases a message interface's progress state on shutdown, after its own hook", async () => {
+    const shutdownSaw: number[] = [];
+
+    class TestMessageInterface extends MessageInterfacePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
+      constructor() {
+        super(
+          "test-message-interface",
+          { name: "test-message-interface", version: "1.0.0" },
+          {},
+          emptyConfig,
+        );
+      }
+
+      protected override async onShutdown(): Promise<void> {
+        shutdownSaw.push(this.getProgressEvents().length);
+      }
+    }
+
+    const plugin = new TestMessageInterface();
+    const harness = createPluginHarness<TestMessageInterface>();
+    await harness.installPlugin(plugin);
+    await harness.sendMessage(JOB_CHANNELS.progress, {
+      id: "job-1",
+      type: "job",
+      status: "processing",
+      message: "Working",
+      metadata: { operationType: "content_operations", rootJobId: "job-1" },
+    });
+    expect(plugin.getProgressEvents().map(({ id }) => id)).toEqual(["job-1"]);
+
+    await plugin.shutdown();
+
+    // The author's hook still sees live state; the runtime then closes the
+    // progress coordinator, as it does for every runtime message interface.
+    expect(shutdownSaw).toEqual([1]);
     expect(plugin.getProgressEvents()).toEqual([]);
   });
 

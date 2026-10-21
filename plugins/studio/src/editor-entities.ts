@@ -17,6 +17,7 @@ import {
   entityIdPathSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { displayTitleFrom } from "@brains/utils/string-utils";
 import { isRawEntityType } from "./config";
 import {
   studioMutationOptions,
@@ -54,11 +55,12 @@ export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
-  const title =
-    context.entities.getAdapter(entity.entityType)?.extractMetadata(entity)[
-      "title"
-    ] ?? entity.metadata["title"];
-  return typeof title === "string" && title.trim() ? title.trim() : undefined;
+  return (
+    displayTitleFrom(
+      context.entities.getAdapter(entity.entityType)?.extractMetadata(entity) ??
+        {},
+    ) ?? displayTitleFrom(entity.metadata)
+  );
 }
 
 /** Authoring reads preserve source; rendering must never change a save draft. */

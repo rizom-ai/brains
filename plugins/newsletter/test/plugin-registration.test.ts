@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  baseEntitySchema,
+  createPluginHarness,
+  createTestEntityAdapter,
+  refuseEnqueues,
+} from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 import { NewsletterPlugin } from "../src/entity/plugin";
 
 describe("NewsletterPlugin registration", () => {
@@ -16,6 +22,8 @@ describe("NewsletterPlugin registration", () => {
     ).toMatchObject({
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
+      // Provider delivery ids were written after sending and never read.
+      retiredFields: ["buttondownId", "resendBroadcastId"],
     });
     expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toBeUndefined();
@@ -40,5 +48,47 @@ describe("NewsletterPlugin registration", () => {
     );
 
     expect(messages).toEqual([]);
+  });
+});
+
+describe("NewsletterPlugin scheduled generation", () => {
+  it("queues a scheduled generation the queue refused once it admits it", async () => {
+    const harness = createPluginHarness<NewsletterPlugin>({
+      dataDir: "/tmp/test-newsletter-refused-generation",
+    });
+    harness
+      .getEntityRegistry()
+      .registerEntityType(
+        "post",
+        baseEntitySchema,
+        createTestEntityAdapter("post"),
+      );
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "post",
+        content: "A post",
+        visibility: "public",
+        metadata: { status: "published" },
+      },
+    });
+    const queue = harness.getMockShell().getJobQueueService();
+    const refusals = refuseEnqueues(queue, 1);
+    await harness.installPlugin(new NewsletterPlugin({}));
+
+    await harness.sendMessage("generate:execute", {
+      entityType: "newsletter",
+    });
+    expect(refusals.count).toBe(1);
+
+    await waitUntil(
+      async () =>
+        (await queue.getActiveJobs()).some((job) =>
+          job.type.includes("generation"),
+        ),
+      "the refused generation to be queued",
+      { timeoutMs: 5_000 },
+    );
+    await harness.reset();
   });
 });

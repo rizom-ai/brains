@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 export const statsStyles: Record<
   | "root"
+  | "captioned"
   | "item"
   | "label"
   | "value"
@@ -27,6 +28,13 @@ export const statsStyles: Record<
     gap: "12px 24px",
     margin: 0,
     minWidth: 0,
+  },
+  // A set of captioned figures lines up in even columns, not wherever
+  // a wrapping row happens to place them.
+  captioned: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
+    alignItems: "start",
   },
   item: {
     display: "flex",

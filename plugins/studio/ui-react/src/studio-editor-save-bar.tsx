@@ -17,6 +17,10 @@ import {
   SaveStateNotice,
 } from "./editor-status";
 import type { StudioAppModel } from "./studio-app-model";
+import {
+  STUDIO_SAVE_REASON_ID,
+  editorSaveBlockReason,
+} from "./editor-save-rule";
 import { StudioConflictRecovery } from "./studio-conflict-recovery";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import {
@@ -33,6 +37,10 @@ export function StudioEditorSaveBar(
   const { mode, draft, body, save: saveState } = editor;
   const { entitySchema, presentation, canEdit, canDelete } = props.model;
   const requestDelete = (): void => dispatchEditor({ type: "deleteRequested" });
+  const saveBlockReason =
+    canEdit || presentation === "split"
+      ? editorSaveBlockReason(editor, props.model, hasUnsavedChanges)
+      : undefined;
 
   return (
     <footer
@@ -47,8 +55,19 @@ export function StudioEditorSaveBar(
         >
           {!canEdit && presentation !== "split"
             ? "Read-only"
-            : editorSaveLabel(saveState, hasUnsavedChanges)}
+            : editorSaveLabel(
+                saveState,
+                hasUnsavedChanges,
+                mode.kind !== "create"
+                  ? "edit"
+                  : entitySchema.isSingleton
+                    ? "first-save"
+                    : "create",
+              )}
         </span>
+        {saveBlockReason && (
+          <span id={STUDIO_SAVE_REASON_ID}>{saveBlockReason}</span>
+        )}
         {props.readError && (
           <StudioStatus tone="error">
             Your draft is unchanged. {props.readError}

@@ -2,6 +2,10 @@ import { z } from "@brains/utils/zod";
 import type { AnyWorkspaceActionDefinition } from "./workspace-action-definition-contract";
 import { operatorFieldControlSchema } from "./operator-field-contract";
 import { linkTargetSchema } from "./operator-link-schemas";
+import {
+  addDuplicateIssues,
+  type OperatorIssueContext,
+} from "./operator-schema-refinements";
 import { spatialBlockSchema } from "./operator-spatial-schemas";
 import type { StudioViewSource } from "./operator-studio-source-types";
 import { validationIssues } from "./operator-view-diagnostics";
@@ -100,39 +104,25 @@ const queryDefinitionSchema = z
   })
   .strict();
 
+function refineQueryControls(
+  query: z.output<typeof queryDefinitionSchema>,
+  context: OperatorIssueContext,
+): void {
+  addDuplicateIssues(context, query.controls, (control) => control.key, {
+    label: "Query key",
+    path: ["controls", "key"],
+  });
+}
+
 const queryBlockSchema = queryDefinitionSchema
   .extend({
     type: z.literal("query"),
     id: identifierSchema,
   })
   .strict()
-  .superRefine((block, context) => {
-    const keys = new Set<string>();
-    for (const [index, control] of block.controls.entries()) {
-      if (keys.has(control.key)) {
-        context.addIssue({
-          code: "custom",
-          message: `Query key "${control.key}" is duplicated`,
-          path: ["controls", index, "key"],
-        });
-      }
-      keys.add(control.key);
-    }
-  });
+  .superRefine(refineQueryControls);
 
-const tableQuerySchema = queryDefinitionSchema.superRefine((query, context) => {
-  const keys = new Set<string>();
-  for (const [index, control] of query.controls.entries()) {
-    if (keys.has(control.key)) {
-      context.addIssue({
-        code: "custom",
-        message: `Query key "${control.key}" is duplicated`,
-        path: ["controls", index, "key"],
-      });
-    }
-    keys.add(control.key);
-  }
-});
+const tableQuerySchema = queryDefinitionSchema.superRefine(refineQueryControls);
 
 const linksBlockSchema = z
   .object({
@@ -177,17 +167,12 @@ const listFilterSchema = z
   })
   .strict()
   .superRefine((filter, context) => {
-    const values = new Set<string>();
-    for (const [index, option] of filter.options.entries()) {
-      if (values.has(option.value)) {
-        context.addIssue({
-          code: "custom",
-          message: `List filter value "${option.value}" is duplicated`,
-          path: ["options", index, "value"],
-        });
-      }
-      values.add(option.value);
-    }
+    const values = addDuplicateIssues(
+      context,
+      filter.options,
+      (option) => option.value,
+      { label: "List filter value", path: ["options", "value"] },
+    );
     if (!values.has(filter.defaultValue)) {
       context.addIssue({
         code: "custom",
@@ -228,7 +213,7 @@ const listPresentationSchema = z.enum([
   "attention",
   "activity",
 ]);
-const listBlockSchema = z
+const listBlockObjectSchema = z
   .object({
     type: z.literal("list"),
     id: identifierSchema,
@@ -237,37 +222,36 @@ const listBlockSchema = z
     filter: listFilterSchema.optional(),
     items: z.array(listItemSchema).max(MAX_LIST_ITEMS),
   })
-  .strict()
-  .superRefine((block, context) => {
-    const ids = new Set<string>();
-    for (const [index, item] of block.items.entries()) {
-      if (ids.has(item.id)) {
+  .strict();
+
+/** Shared by the dashboard list and the Studio list, whose items extend it. */
+function refineListBlock(
+  block: z.output<typeof listBlockObjectSchema>,
+  context: OperatorIssueContext,
+): void {
+  addDuplicateIssues(context, block.items, (item) => item.id, {
+    label: "List item id",
+    path: ["items", "id"],
+  });
+  if (!block.filter) return;
+  const optionValues = new Set(
+    block.filter.options.map((option) => option.value),
+  );
+  const allValue = block.filter.allValue ?? "all";
+  for (const [index, item] of block.items.entries()) {
+    for (const value of item.filterValues ?? []) {
+      if (value !== allValue && !optionValues.has(value)) {
         context.addIssue({
           code: "custom",
-          message: `List item id "${item.id}" is duplicated`,
-          path: ["items", index, "id"],
+          message: `List item filter value "${value}" has no matching option`,
+          path: ["items", index, "filterValues"],
         });
       }
-      ids.add(item.id);
     }
-    if (block.filter) {
-      const optionValues = new Set(
-        block.filter.options.map((option) => option.value),
-      );
-      const allValue = block.filter.allValue ?? "all";
-      for (const [index, item] of block.items.entries()) {
-        for (const value of item.filterValues ?? []) {
-          if (value !== allValue && !optionValues.has(value)) {
-            context.addIssue({
-              code: "custom",
-              message: `List item filter value "${value}" has no matching option`,
-              path: ["items", index, "filterValues"],
-            });
-          }
-        }
-      }
-    }
-  });
+  }
+}
+
+const listBlockSchema = listBlockObjectSchema.superRefine(refineListBlock);
 
 const tableColumnSchema = z
   .object({
@@ -305,7 +289,7 @@ const tableRowSchema = z
   })
   .strict();
 
-const tableBlockSchema = z
+const tableBlockObjectSchema = z
   .object({
     type: z.literal("table"),
     id: identifierSchema,
@@ -314,38 +298,32 @@ const tableBlockSchema = z
     columns: z.array(tableColumnSchema).min(1).max(30),
     rows: z.array(tableRowSchema).max(500),
   })
-  .strict()
-  .superRefine((block, context) => {
-    const columnKeys = new Set<string>();
-    for (const [index, column] of block.columns.entries()) {
-      if (columnKeys.has(column.key)) {
-        context.addIssue({
-          code: "custom",
-          message: `Table column key "${column.key}" is duplicated`,
-          path: ["columns", index, "key"],
-        });
-      }
-      columnKeys.add(column.key);
+  .strict();
+
+/** Shared by the dashboard table and the Studio table, whose rows extend it. */
+function refineTableBlock(
+  block: z.output<typeof tableBlockObjectSchema>,
+  context: OperatorIssueContext,
+): void {
+  const columnKeys = addDuplicateIssues(
+    context,
+    block.columns,
+    (column) => column.key,
+    { label: "Table column key", path: ["columns", "key"] },
+  );
+  for (const [index, filter] of (block.filters ?? []).entries()) {
+    if (!columnKeys.has(filter.key)) {
+      context.addIssue({
+        code: "custom",
+        message: `Table filter key "${filter.key}" has no matching column`,
+        path: ["filters", index, "key"],
+      });
     }
-    for (const [index, filter] of (block.filters ?? []).entries()) {
-      if (!columnKeys.has(filter.key)) {
-        context.addIssue({
-          code: "custom",
-          message: `Table filter key "${filter.key}" has no matching column`,
-          path: ["filters", index, "key"],
-        });
-      }
-    }
-    const rowIds = new Set<string>();
-    for (const [rowIndex, row] of block.rows.entries()) {
-      if (rowIds.has(row.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Table row id "${row.id}" is duplicated`,
-          path: ["rows", rowIndex, "id"],
-        });
-      }
-      rowIds.add(row.id);
+  }
+  addDuplicateIssues(context, block.rows, (row) => row.id, {
+    label: "Table row id",
+    path: ["rows", "id"],
+    each: (row, rowIndex) => {
       for (const key of Object.keys(row.cells)) {
         if (!columnKeys.has(key)) {
           context.addIssue({
@@ -355,10 +333,13 @@ const tableBlockSchema = z
           });
         }
       }
-    }
+    },
   });
+}
 
-const matrixCellSchema = z
+const tableBlockSchema = tableBlockObjectSchema.superRefine(refineTableBlock);
+
+const matrixCellObjectSchema = z
   .object({
     id: identifierSchema,
     label: labelSchema,
@@ -366,21 +347,20 @@ const matrixCellSchema = z
     empty: shortTextSchema,
     items: z.array(listItemSchema).max(100),
   })
-  .strict()
-  .superRefine((cell, context) => {
-    const ids = new Set<string>();
-    for (const [index, item] of cell.items.entries()) {
-      if (ids.has(item.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Matrix item id "${item.id}" is duplicated`,
-          path: ["items", index, "id"],
-        });
-      }
-      ids.add(item.id);
-    }
+  .strict();
+
+function refineMatrixCell(
+  cell: z.output<typeof matrixCellObjectSchema>,
+  context: OperatorIssueContext,
+): void {
+  addDuplicateIssues(context, cell.items, (item) => item.id, {
+    label: "Matrix item id",
+    path: ["items", "id"],
   });
-const matrixBlockSchema = z
+}
+
+const matrixCellSchema = matrixCellObjectSchema.superRefine(refineMatrixCell);
+const matrixBlockObjectSchema = z
   .object({
     type: z.literal("matrix"),
     id: identifierSchema,
@@ -389,20 +369,52 @@ const matrixBlockSchema = z
       .optional(),
     cells: z.array(matrixCellSchema).min(1).max(12),
   })
-  .strict()
-  .superRefine((block, context) => {
-    const ids = new Set<string>();
-    for (const [index, cell] of block.cells.entries()) {
-      if (ids.has(cell.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Matrix cell id "${cell.id}" is duplicated`,
-          path: ["cells", index, "id"],
-        });
-      }
-      ids.add(cell.id);
-    }
+  .strict();
+
+function refineMatrixBlock(
+  block: z.output<typeof matrixBlockObjectSchema>,
+  context: OperatorIssueContext,
+): void {
+  addDuplicateIssues(context, block.cells, (cell) => cell.id, {
+    label: "Matrix cell id",
+    path: ["cells", "id"],
   });
+}
+
+const matrixBlockSchema =
+  matrixBlockObjectSchema.superRefine(refineMatrixBlock);
+
+/** Dashboard and Studio tabs hold different block unions; both need only ids. */
+function refineTabsBlock(
+  block: {
+    readonly defaultTab: string;
+    readonly tabs: readonly { readonly id: string }[];
+  },
+  context: OperatorIssueContext,
+): void {
+  const ids = addDuplicateIssues(context, block.tabs, (tab) => tab.id, {
+    label: "Tab id",
+    path: ["tabs", "id"],
+  });
+  if (!ids.has(block.defaultTab)) {
+    context.addIssue({
+      code: "custom",
+      message: `Default tab "${block.defaultTab}" has no matching tab`,
+      path: ["defaultTab"],
+    });
+  }
+}
+
+/** Dashboard and Studio views hold different block unions; both need only ids. */
+function refineViewBlockIds(
+  view: { readonly blocks: readonly { readonly id?: string | undefined }[] },
+  context: OperatorIssueContext,
+): void {
+  addDuplicateIssues(context, view.blocks, (block) => block.id, {
+    label: "Operator view block id",
+    path: ["blocks", "id"],
+  });
+}
 
 const dashboardPanelBlockSchema = z.union([
   statsBlockSchema,
@@ -440,26 +452,7 @@ const dashboardTabsBlockSchema = z
       .max(12),
   })
   .strict()
-  .superRefine((block, context) => {
-    const ids = new Set<string>();
-    for (const [index, tab] of block.tabs.entries()) {
-      if (ids.has(tab.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Tab id "${tab.id}" is duplicated`,
-          path: ["tabs", index, "id"],
-        });
-      }
-      ids.add(tab.id);
-    }
-    if (!ids.has(block.defaultTab)) {
-      context.addIssue({
-        code: "custom",
-        message: `Default tab "${block.defaultTab}" has no matching tab`,
-        path: ["defaultTab"],
-      });
-    }
-  });
+  .superRefine(refineTabsBlock);
 
 function isWorkspaceActionDefinition(
   value: unknown,
@@ -546,46 +539,9 @@ const studioListItemSchema = listItemSchema.extend({
   actionsLabel: labelSchema.optional(),
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
-const studioListBlockSchema = z
-  .object({
-    type: z.literal("list"),
-    id: identifierSchema,
-    empty: shortTextSchema,
-    presentation: listPresentationSchema.optional(),
-    filter: listFilterSchema.optional(),
-    items: z.array(studioListItemSchema).max(MAX_LIST_ITEMS),
-  })
-  .strict()
-  .superRefine((block, context) => {
-    const ids = new Set<string>();
-    for (const [index, item] of block.items.entries()) {
-      if (ids.has(item.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `List item id "${item.id}" is duplicated`,
-          path: ["items", index, "id"],
-        });
-      }
-      ids.add(item.id);
-    }
-    if (block.filter) {
-      const optionValues = new Set(
-        block.filter.options.map((option) => option.value),
-      );
-      const allValue = block.filter.allValue ?? "all";
-      for (const [index, item] of block.items.entries()) {
-        for (const value of item.filterValues ?? []) {
-          if (value !== allValue && !optionValues.has(value)) {
-            context.addIssue({
-              code: "custom",
-              message: `List item filter value "${value}" has no matching option`,
-              path: ["items", index, "filterValues"],
-            });
-          }
-        }
-      }
-    }
-  });
+const studioListBlockSchema = listBlockObjectSchema
+  .extend({ items: z.array(studioListItemSchema).max(MAX_LIST_ITEMS) })
+  .superRefine(refineListBlock);
 
 const studioTableRowSchema = tableRowSchema.extend({
   compact: tableCompactRowSchema.optional(),
@@ -602,94 +558,82 @@ const studioTableBlockSchema = z
     rows: z.array(studioTableRowSchema).max(500),
   })
   .strict()
-  .superRefine((block, context) => {
-    const columnKeys = new Set<string>();
-    for (const [index, column] of block.columns.entries()) {
-      if (columnKeys.has(column.key)) {
-        context.addIssue({
-          code: "custom",
-          message: `Table column key "${column.key}" is duplicated`,
-          path: ["columns", index, "key"],
-        });
-      }
-      columnKeys.add(column.key);
-    }
-    for (const [index, filter] of (block.filters ?? []).entries()) {
-      if (!columnKeys.has(filter.key)) {
-        context.addIssue({
-          code: "custom",
-          message: `Table filter key "${filter.key}" has no matching column`,
-          path: ["filters", index, "key"],
-        });
-      }
-    }
-    const rowIds = new Set<string>();
-    for (const [rowIndex, row] of block.rows.entries()) {
-      if (rowIds.has(row.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Table row id "${row.id}" is duplicated`,
-          path: ["rows", rowIndex, "id"],
-        });
-      }
-      rowIds.add(row.id);
-      for (const key of Object.keys(row.cells)) {
-        if (!columnKeys.has(key)) {
+  .superRefine(refineTableBlock);
+
+/** A card's action can also run when the card is dropped on another cell. */
+const studioMatrixActionControlSchema = sourceActionControlSchema.extend({
+  dropTarget: identifierSchema.optional(),
+});
+const studioMatrixItemSchema = listItemSchema.extend({
+  actionsLabel: labelSchema.optional(),
+  actions: z.array(studioMatrixActionControlSchema).max(20).optional(),
+});
+const studioMatrixCellSchema = matrixCellObjectSchema
+  .extend({ items: z.array(studioMatrixItemSchema).max(100) })
+  .superRefine(refineMatrixCell);
+
+/**
+ * A drop names another cell of the same matrix, one action per card answers
+ * it, and that action runs at once: a drop cannot confirm or fill a form.
+ */
+function refineMatrixDrops(
+  block: {
+    readonly cells: readonly {
+      readonly id: string;
+      readonly items: readonly {
+        readonly actions?:
+          | readonly {
+              readonly action: { readonly confirmation?: unknown };
+              readonly form?: unknown;
+              readonly dropTarget?: string | undefined;
+            }[]
+          | undefined;
+      }[];
+    }[];
+  },
+  context: OperatorIssueContext,
+): void {
+  const cellIds = new Set(block.cells.map((cell) => cell.id));
+  block.cells.forEach((cell, cellIndex) =>
+    cell.items.forEach((item, itemIndex) => {
+      const targets = new Set<string>();
+      (item.actions ?? []).forEach((action, actionIndex) => {
+        const target = action.dropTarget;
+        if (target === undefined) return;
+        const message = !cellIds.has(target)
+          ? `Drop target "${target}" is not a cell of this matrix`
+          : target === cell.id
+            ? `Drop target "${target}" is the card's own cell`
+            : targets.has(target)
+              ? `Drop target "${target}" has more than one action on this card`
+              : action.action.confirmation !== undefined ||
+                  action.form !== undefined
+                ? `Drop target "${target}" needs an action that runs without confirmation or a form`
+                : undefined;
+        targets.add(target);
+        if (message)
           context.addIssue({
             code: "custom",
-            message: `Table cell key "${key}" has no matching column`,
-            path: ["rows", rowIndex, "cells", key],
+            message,
+            path: [
+              "cells",
+              cellIndex,
+              "items",
+              itemIndex,
+              "actions",
+              actionIndex,
+              "dropTarget",
+            ],
           });
-        }
-      }
-    }
-  });
+      });
+    }),
+  );
+}
 
-const studioMatrixCellSchema = z
-  .object({
-    id: identifierSchema,
-    label: labelSchema,
-    tone: toneSchema.optional(),
-    empty: shortTextSchema,
-    items: z.array(studioListItemSchema).max(100),
-  })
-  .strict()
-  .superRefine((cell, context) => {
-    const ids = new Set<string>();
-    for (const [index, item] of cell.items.entries()) {
-      if (ids.has(item.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Matrix item id "${item.id}" is duplicated`,
-          path: ["items", index, "id"],
-        });
-      }
-      ids.add(item.id);
-    }
-  });
-const studioMatrixBlockSchema = z
-  .object({
-    type: z.literal("matrix"),
-    id: identifierSchema,
-    columns: z
-      .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
-      .optional(),
-    cells: z.array(studioMatrixCellSchema).min(1).max(12),
-  })
-  .strict()
-  .superRefine((block, context) => {
-    const ids = new Set<string>();
-    for (const [index, cell] of block.cells.entries()) {
-      if (ids.has(cell.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Matrix cell id "${cell.id}" is duplicated`,
-          path: ["cells", index, "id"],
-        });
-      }
-      ids.add(cell.id);
-    }
-  });
+const studioMatrixBlockSchema = matrixBlockObjectSchema
+  .extend({ cells: z.array(studioMatrixCellSchema).min(1).max(12) })
+  .superRefine(refineMatrixBlock)
+  .superRefine(refineMatrixDrops);
 
 const studioActionBlockSchema = sourceActionControlSchema.extend({
   type: z.literal("action"),
@@ -754,26 +698,7 @@ const studioTabsBlockSchema = z
       .max(12),
   })
   .strict()
-  .superRefine((block, context) => {
-    const ids = new Set<string>();
-    for (const [index, tab] of block.tabs.entries()) {
-      if (ids.has(tab.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Tab id "${tab.id}" is duplicated`,
-          path: ["tabs", index, "id"],
-        });
-      }
-      ids.add(tab.id);
-    }
-    if (!ids.has(block.defaultTab)) {
-      context.addIssue({
-        code: "custom",
-        message: `Default tab "${block.defaultTab}" has no matching tab`,
-        path: ["defaultTab"],
-      });
-    }
-  });
+  .superRefine(refineTabsBlock);
 
 /**
  * Master/detail is a container in the same closed union as tabs: one collection
@@ -812,7 +737,11 @@ const studioDetailBlockSchema = z
     /** Canonical query field the host writes with the open row's id. */
     queryKey: identifierSchema,
     empty: shortTextSchema,
-    master: z.union([studioListBlockSchema, studioTableBlockSchema]),
+    master: z.union([
+      studioListBlockSchema,
+      studioTableBlockSchema,
+      studioMatrixBlockSchema,
+    ]),
     open: z
       .object({
         forId: rowIdentifierSchema,
@@ -875,20 +804,7 @@ const studioViewSourceSchema = z
       .max(50),
   })
   .strict()
-  .superRefine((view, context) => {
-    const ids = new Set<string>();
-    for (const [index, block] of view.blocks.entries()) {
-      if (block.id === undefined) continue;
-      if (ids.has(block.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Operator view block id "${block.id}" is duplicated`,
-          path: ["blocks", index, "id"],
-        });
-      }
-      ids.add(block.id);
-    }
-  });
+  .superRefine(refineViewBlockIds);
 
 const viewSchema: z.ZodObject<
   {
@@ -911,20 +827,7 @@ const viewSchema: z.ZodObject<
       .max(50),
   })
   .strict()
-  .superRefine((view, context) => {
-    const ids = new Set<string>();
-    for (const [index, block] of view.blocks.entries()) {
-      if (block.id === undefined) continue;
-      if (ids.has(block.id)) {
-        context.addIssue({
-          code: "custom",
-          message: `Operator view block id "${block.id}" is duplicated`,
-          path: ["blocks", index, "id"],
-        });
-      }
-      ids.add(block.id);
-    }
-  });
+  .superRefine(refineViewBlockIds);
 
 const digestSchema: z.ZodObject<
   {

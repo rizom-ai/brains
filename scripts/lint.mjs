@@ -2,7 +2,11 @@
 
 import { join } from "node:path";
 
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+// The pre-commit hook passes --skip-scripts when nothing under scripts/ is
+// staged: that eslint pass is uncached and dominates a warm lint run.
+const skipScripts = rawArgs.includes("--skip-scripts");
+const args = rawArgs.filter((arg) => arg !== "--skip-scripts");
 const separatorIndex = args.indexOf("--");
 const turboArgs = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
 const eslintArgs = separatorIndex === -1 ? [] : args.slice(separatorIndex + 1);
@@ -40,6 +44,10 @@ const proc = Bun.spawn(
 );
 
 const turboExit = await proc.exited;
+
+if (skipScripts) {
+  process.exit(turboExit);
+}
 
 /*
  * Turbo only visits workspace packages, so this directory linted nothing —

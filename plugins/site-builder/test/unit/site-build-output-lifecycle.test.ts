@@ -4,6 +4,7 @@ import {
   type PreparedSiteBuild,
 } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
+import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -30,11 +31,6 @@ function createPreparedBuild(buildId: string): PreparedSiteBuild {
       {
         id: "home",
         path: "/",
-        title: "Home",
-        description: "Home route",
-        layout: "default",
-        fullscreen: false,
-        sections: [],
         headScripts: [],
       },
     ],
@@ -135,6 +131,42 @@ describe("TransactionalSiteBuildOutput", () => {
     // swap. Once the new generation is verified it is gone, so nothing about
     // migration outlives the build that performed it.
     expect(await fs.readdir(target.environmentDir)).toEqual(["build-one"]);
+  });
+
+  it("records each file's size and SHA-256, a large one read in parts", async () => {
+    const preparedBuild = createPreparedBuild("build-hashes");
+    const target = await lifecycle.begin({
+      outputDir,
+      environment: "preview",
+      buildId: preparedBuild.buildId,
+    });
+    await writeCompleteGeneration(target, "hashed output");
+    // Larger than one read of a stream, so its hash spans several chunks.
+    const large = "x".repeat(200_000) + "end";
+    await fs.writeFile(join(target.generationDir, "large.txt"), large);
+
+    const { manifest } = await lifecycle.commit({
+      target,
+      preparedBuild,
+      warnings: [],
+    });
+
+    const sha256 = (content: string): string =>
+      createHash("sha256").update(content).digest("hex");
+    expect(manifest.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "index.html",
+          size: Buffer.byteLength("hashed output"),
+          sha256: sha256("hashed output"),
+        }),
+        expect.objectContaining({
+          path: "large.txt",
+          size: large.length,
+          sha256: sha256(large),
+        }),
+      ]),
+    );
   });
 
   it("preserves a pre-upgrade image cache while migrating", async () => {

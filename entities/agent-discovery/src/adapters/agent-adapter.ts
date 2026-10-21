@@ -48,19 +48,14 @@ export interface CreateAgentContentInput {
   organization?: string | undefined;
   brainName: string;
   url: string;
-  did?: string | undefined;
   repoDid?: string | undefined;
   brainDid?: string | undefined;
-  anchorDid?: string | undefined;
   cardUri?: string | undefined;
   cardCid?: string | undefined;
-  cardObservedAt?: string | undefined;
-  cardLastCheckedAt?: string | undefined;
   cardLastError?: string | undefined;
   cardFailureCount?: number | undefined;
   cardUnavailableAt?: string | undefined;
   cardStaleAfter?: string | undefined;
-  a2aEndpoint?: string | undefined;
   status: AgentStatus | string;
   discoveredAt: string;
   introducedBy?: string[] | undefined;
@@ -68,6 +63,12 @@ export interface CreateAgentContentInput {
   about: string;
   skills: AgentSkill[];
   notes: string;
+}
+
+/** An agent's markdown, read back into its frontmatter and body sections. */
+export interface ParsedAgent {
+  frontmatter: AgentFrontmatter;
+  body: { about: string; skills: AgentSkill[]; notes: string };
 }
 
 export class AgentAdapter extends BaseEntityAdapter<
@@ -104,15 +105,8 @@ export class AgentAdapter extends BaseEntityAdapter<
         slug,
         ...(frontmatter.repoDid && { repoDid: frontmatter.repoDid }),
         ...(frontmatter.brainDid && { brainDid: frontmatter.brainDid }),
-        ...(frontmatter.anchorDid && { anchorDid: frontmatter.anchorDid }),
         ...(frontmatter.cardUri && { cardUri: frontmatter.cardUri }),
         ...(frontmatter.cardCid && { cardCid: frontmatter.cardCid }),
-        ...(frontmatter.cardObservedAt && {
-          cardObservedAt: frontmatter.cardObservedAt,
-        }),
-        ...(frontmatter.cardLastCheckedAt && {
-          cardLastCheckedAt: frontmatter.cardLastCheckedAt,
-        }),
         ...(frontmatter.cardLastError && {
           cardLastError: frontmatter.cardLastError,
         }),
@@ -125,9 +119,6 @@ export class AgentAdapter extends BaseEntityAdapter<
         ...(frontmatter.cardStaleAfter && {
           cardStaleAfter: frontmatter.cardStaleAfter,
         }),
-        ...(frontmatter.a2aEndpoint && {
-          a2aEndpoint: frontmatter.a2aEndpoint,
-        }),
       },
     };
   }
@@ -139,16 +130,10 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.organization && { organization: input.organization }),
       brainName: input.brainName,
       url: input.url,
-      ...(input.did && { did: input.did }),
       ...(input.repoDid && { repoDid: input.repoDid }),
       ...(input.brainDid && { brainDid: input.brainDid }),
-      ...(input.anchorDid && { anchorDid: input.anchorDid }),
       ...(input.cardUri && { cardUri: input.cardUri }),
       ...(input.cardCid && { cardCid: input.cardCid }),
-      ...(input.cardObservedAt && { cardObservedAt: input.cardObservedAt }),
-      ...(input.cardLastCheckedAt && {
-        cardLastCheckedAt: input.cardLastCheckedAt,
-      }),
       ...(input.cardLastError && { cardLastError: input.cardLastError }),
       ...(input.cardFailureCount !== undefined && {
         cardFailureCount: input.cardFailureCount,
@@ -157,7 +142,6 @@ export class AgentAdapter extends BaseEntityAdapter<
         cardUnavailableAt: input.cardUnavailableAt,
       }),
       ...(input.cardStaleAfter && { cardStaleAfter: input.cardStaleAfter }),
-      ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,
       ...(input.introducedBy?.length && { introducedBy: input.introducedBy }),
@@ -173,6 +157,21 @@ export class AgentAdapter extends BaseEntityAdapter<
     return this.buildMarkdown(body, frontmatter);
   }
 
+  /**
+   * Rebuild a parsed agent's markdown with only `patch` changed. A patched
+   * field follows createAgentContent's rules: undefined or empty drops it.
+   */
+  public rewriteAgentContent(
+    parsed: ParsedAgent,
+    patch: Partial<CreateAgentContentInput> = {},
+  ): string {
+    return this.createAgentContent({
+      ...parsed.frontmatter,
+      ...parsed.body,
+      ...patch,
+    });
+  }
+
   public parseAgentContent(content: string): {
     about: string;
     skills: AgentSkill[];
@@ -181,10 +180,7 @@ export class AgentAdapter extends BaseEntityAdapter<
     return parseAgentBody(this.extractBody(content));
   }
 
-  public parseEntity(entity: AgentEntity): {
-    frontmatter: AgentFrontmatter;
-    body: { about: string; skills: AgentSkill[]; notes: string };
-  } {
+  public parseEntity(entity: AgentEntity): ParsedAgent {
     return {
       frontmatter: this.parseFrontMatter(
         withCurrentKind(entity.content),

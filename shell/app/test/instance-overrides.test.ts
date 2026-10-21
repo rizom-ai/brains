@@ -845,6 +845,8 @@ describe("resolve with instance overrides", () => {
     const webserver = config.plugins?.find((p) => p.id === "webserver");
     expect(webserver).toBeDefined();
     expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
+    // Local links and the dev sign-in issuer follow the port actually served.
+    expect(config.deployment.ports.production).toBe(9090);
   });
 
   test("should apply targeted override after construction", () => {
@@ -1569,6 +1571,39 @@ describe("resolve with site package", () => {
     const webserver = config.plugins?.find((p) => p.id === "webserver");
 
     expect(getConfig(webserver)["enablePreview"]).toBe(false);
+  });
+
+  test("should serve production on the port brain.yaml sets", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+    });
+
+    const config = resolve(def, {}, { port: 8090 });
+    const webserver = config.plugins?.find((p) => p.id === "webserver");
+
+    expect(getConfig(webserver)["productionPort"]).toBe(8090);
+    expect(config.deployment.ports.production).toBe(8090);
+  });
+
+  test("should let an explicit webserver productionPort win over port", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      { port: 8090, plugins: { webserver: { productionPort: 9000 } } },
+    );
+    const webserver = config.plugins?.find((p) => p.id === "webserver");
+
+    expect(getConfig(webserver)["productionPort"]).toBe(9000);
   });
 
   test("should keep entityDisplay in shell config instead of injecting it into studio", () => {

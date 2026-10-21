@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import { routeSourceOf } from "@brains/site-engine";
 import type {
   BuildContext,
   StaticSiteBuilder,
@@ -21,12 +22,12 @@ const buildContext: BuildContext = {
       },
       copyright: "© Test Site",
     },
-    routes: [],
     images: {},
     staticAssets: {},
     publicAssets: {},
     globalHeadScripts: [],
   },
+  routes: routeSourceOf([]),
   viewTemplates: {},
   layouts: {},
 };

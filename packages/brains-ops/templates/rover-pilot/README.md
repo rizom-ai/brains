@@ -30,7 +30,7 @@ The repo also checks in its deploy contract:
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 Use separate GitHub tokens: `CONTENT_REPO_ADMIN_TOKEN` for operator-side content repo creation/checks, and `GIT_SYNC_TOKEN` for runtime directory-sync git access.
-The fleet publishes one immutable image per effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>` for instances with one (the pins spelled out and sorted, or a digest of them when too long). Instances with the same version and pins share an image; a site's pin change builds that site's image and no other, and smoke-to-fleet promotion reuses the tested image because its name already carries its pins. Build and Deploy verify installed package versions against an image's name before reusing it.
+The fleet publishes one immutable image per effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>--s<digest>` for instances with one (sorted readable pins plus an exact-identity digest; long names omit the readable pins). Pinned images use new immutable tags after this format change; existing registry tags must not be overwritten. Instances with the same version and pins share an image; a site's pin change builds that site's image and no other, and smoke-to-fleet promotion reuses the tested image because its name already carries its pins. Build and Deploy verify installed package versions against an image's name before reusing it.
 When an effective brain version (`pilot.yaml.brainVersion`, or a cohort override) or a site pin changes and you push, CI builds every missing image, refreshes generated user env files (an instance with site pins names its image there as `IMAGE_TAG`), and redeploys affected users. Every external site and theme package keeps its own exact version pin. Published tags remain immutable: a new pin set is a new tag.
 When a push changes only deploy contract files, CI prints `No affected user configs; skipping deploy.` and stops before Kamal.
 
@@ -39,7 +39,7 @@ When a push changes only deploy contract files, CI prints `No affected user conf
 - `brains-ops init <repo>`
 - `brains-ops upgrade <repo>` — bumps `@rizom/ops` (or `--to <version>`) and refreshes the generated scaffold; the Upgrade workflow runs this on a schedule and opens a PR
 - `brains-ops render <repo>` — regenerates `views/users.md` with live DNS, `/health/ready`, and unauthenticated `/mcp` status checks
-- `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
+- `brains-ops user:add <repo> <handle> --cohort <cohort> [--discord] [--anchor-id <id>]` — scaffolds a browser-chat-first user with Discord disabled by default; use `--discord` to include Discord config and its per-user secret
 - `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo with separate admin and sync tokens
 - `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`

@@ -172,27 +172,33 @@ const styles = stylex.create({
     paddingBlock: "10px",
     paddingInline: "20px",
   },
+  // Icon buttons often carry a glyph label such as "•••"; it must never wrap
+  // inside the fixed square, including the wider phone touch target.
   icon: {
     height: "36px",
     minHeight: "36px",
     padding: 0,
+    whiteSpace: "nowrap",
     width: "36px",
   },
   iconXs: {
     height: "28px",
     minHeight: "28px",
     padding: 0,
+    whiteSpace: "nowrap",
     width: "28px",
   },
   iconSm: {
     height: "32px",
     minHeight: "32px",
     padding: 0,
+    whiteSpace: "nowrap",
     width: "32px",
   },
   iconLg: {
     height: "42px",
     minHeight: "42px",
+    whiteSpace: "nowrap",
     padding: 0,
     width: "42px",
   },

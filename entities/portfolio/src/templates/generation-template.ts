@@ -16,7 +16,7 @@ export const projectGenerationSchema: z.ZodObject<{
     .string()
     .max(80)
     .describe(
-      "A clear, compelling project title (3-8 words). Should capture the essence of the project.",
+      "A clear project title (3-8 words). Should capture the essence of the project.",
     ),
   description: z
     .string()
@@ -62,7 +62,7 @@ export const projectGenerationTemplate: Template =
 
 IMPORTANT: The project request is the primary source of truth. Retrieved knowledge-base context is useful only when it clearly describes the same project and does not conflict with the request. Ignore unrelated projects, prior drafts, or context for a different title/domain. Extract facts, technologies, challenges, and outcomes only from the request and directly matching context. Do NOT invent or fabricate details.
 
-Your task is to structure the provided information into a compelling case study narrative.
+Your task is to structure the provided information into a case study.
 
 Guidelines:
 1. Title: Clear and professional (3-8 words). Derive from the project topic.
@@ -74,6 +74,7 @@ Guidelines:
 
 CRITICAL: Only include information that can be derived from the project request or directly matching provided content. If information is missing, keep that section brief rather than inventing details. If knowledge context mentions another project, do not blend it into this case study.
 
-Tone: Professional but accessible. Write for someone evaluating real work.
-Structure: Use markdown formatting. Break long sections into paragraphs for readability.`,
+Write for someone evaluating real work. Use markdown formatting.
+
+Follow the supplied style guide for voice, tone, wording and form.`,
   });

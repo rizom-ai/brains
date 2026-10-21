@@ -46,19 +46,14 @@ export type AgentFrontmatterSchema = z.ZodObject<{
   organization: z.ZodOptional<z.ZodString>;
   brainName: z.ZodString;
   url: z.ZodString;
-  did: z.ZodOptional<z.ZodString>;
   repoDid: z.ZodOptional<z.ZodString>;
   brainDid: z.ZodOptional<z.ZodString>;
-  anchorDid: z.ZodOptional<z.ZodString>;
   cardUri: z.ZodOptional<z.ZodString>;
   cardCid: z.ZodOptional<z.ZodString>;
-  cardObservedAt: z.ZodOptional<z.ZodString>;
-  cardLastCheckedAt: z.ZodOptional<z.ZodString>;
   cardLastError: z.ZodOptional<z.ZodString>;
   cardFailureCount: z.ZodOptional<z.ZodNumber>;
   cardUnavailableAt: z.ZodOptional<z.ZodString>;
   cardStaleAfter: z.ZodOptional<z.ZodString>;
-  a2aEndpoint: z.ZodOptional<z.ZodString>;
   status: AgentStatusSchema;
   discoveredAt: z.ZodString;
   introducedBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -79,22 +74,10 @@ export const agentFrontmatterSchema: AgentFrontmatterSchema = z.object({
   // Brain (what)
   brainName: z.string().describe("Name of the brain instance"),
   url: z.string().url().describe("Brain endpoint URL"),
-  did: z.string().optional().describe("Decentralized identifier (public)"),
   repoDid: z.string().optional().describe("ATProto repo DID"),
   brainDid: z.string().optional().describe("ATProto brain DID"),
-  anchorDid: z.string().optional().describe("ATProto anchor DID"),
   cardUri: z.string().optional().describe("ATProto brain card URI"),
   cardCid: z.string().optional().describe("ATProto brain card CID"),
-  cardObservedAt: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("When the ATProto brain card snapshot last changed"),
-  cardLastCheckedAt: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("When the ATProto brain card was last checked"),
   cardLastError: z
     .string()
     .optional()
@@ -115,7 +98,6 @@ export const agentFrontmatterSchema: AgentFrontmatterSchema = z.object({
     .datetime()
     .optional()
     .describe("When a never-approved unavailable card may be archived"),
-  a2aEndpoint: z.string().url().optional().describe("A2A endpoint URL"),
 
   // Relationship
   status: agentStatusSchema,
@@ -150,16 +132,12 @@ export type AgentMetadataSchema = z.ZodObject<{
   slug: z.ZodString;
   repoDid: z.ZodOptional<z.ZodString>;
   brainDid: z.ZodOptional<z.ZodString>;
-  anchorDid: z.ZodOptional<z.ZodString>;
   cardUri: z.ZodOptional<z.ZodString>;
   cardCid: z.ZodOptional<z.ZodString>;
-  cardObservedAt: z.ZodOptional<z.ZodString>;
-  cardLastCheckedAt: z.ZodOptional<z.ZodString>;
   cardLastError: z.ZodOptional<z.ZodString>;
   cardFailureCount: z.ZodOptional<z.ZodNumber>;
   cardUnavailableAt: z.ZodOptional<z.ZodString>;
   cardStaleAfter: z.ZodOptional<z.ZodString>;
-  a2aEndpoint: z.ZodOptional<z.ZodString>;
 }>;
 
 /**
@@ -173,16 +151,12 @@ export const agentMetadataSchema: AgentMetadataSchema = z.object({
   slug: z.string(),
   repoDid: z.string().optional(),
   brainDid: z.string().optional(),
-  anchorDid: z.string().optional(),
   cardUri: z.string().optional(),
   cardCid: z.string().optional(),
-  cardObservedAt: z.string().datetime().optional(),
-  cardLastCheckedAt: z.string().datetime().optional(),
   cardLastError: z.string().optional(),
   cardFailureCount: z.number().int().nonnegative().optional(),
   cardUnavailableAt: z.string().datetime().optional(),
   cardStaleAfter: z.string().datetime().optional(),
-  a2aEndpoint: z.string().url().optional(),
 });
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;

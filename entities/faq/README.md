@@ -5,7 +5,7 @@
 ## Capture flow
 
 1. The conversation service broadcasts `conversation:messageAdded` for every stored message. For a site visitor's conversation it broadcasts `conversation:guestMessageAdded` instead, which carries only where the message is (conversation, message id, role, position), never its text; no other plugin hears visitor messages.
-2. For an assistant reply whose metadata records `userPermissionLevel`, the plugin enqueues one `faq-capture` job carrying the reply's position in its conversation. Replies without a recorded level are skipped. A reply to a visitor answered a public turn, so its job carries `public`; the job reads the exchange through its conversation access, so an expired visitor conversation is gone. A visitor's own messages are never captured, and a refusal is no answer, so it creates nothing.
+2. For an assistant reply to a public turn (metadata `userPermissionLevel: public`), the plugin enqueues one `faq-capture` job carrying the reply's position in its conversation. Replies to Trusted or Admin turns are not captured: an operator asking about their own brain is not a question a FAQ answers. Replies without a recorded level are skipped. A reply to a visitor answered a public turn, so its job carries `public`; the job reads the exchange through its conversation access, so an expired visitor conversation is gone. A visitor's own messages are never captured, and a refusal is no answer, so it creates nothing.
 3. The job checks for a completed capture receipt or a legacy claim before loading the messages around the reply's recorded position (its message count when stored). It pairs the reply with the nearest preceding user message, so later chat traffic cannot push the reply out of reach. It records a terminal decision if the reply is gone or there is no question; it does not claim unfinished classification as completed.
 4. One structured AI call decides whether the exchange is reusable and rewrites the question and answer to stand alone, without who asked: a visitor's name, organisation or address does not reach the FAQ (eval `faq-classify-drops-asker-identity`), and instructions inside the exchange are not followed (eval `faq-classify-ignores-instructions-in-exchange`). A rejected exchange creates nothing.
 5. The job measures the new FAQ's markdown against stored FAQ embeddings and shortlists FAQs of exactly the turn's visibility within cosine distance 0.25. Distance barely registers opposite meaning ("publish" vs "unpublish" sit at 0.195), so one short AI check per shortlisted FAQ, closest first, decides whether one answer serves both. The first confirmed FAQ counts one more `asked` and keeps its answer; a differing answer joins its alternatives. The write only lands over the version that was read; a concurrent merge makes it re-read and retry.
@@ -20,18 +20,17 @@ Classification can run again after interruption or overlap between attempts; thi
 
 Existing `faq.captured-replies` entries contain only a timestamp and cannot distinguish successful captures from interrupted ones. They are preserved and are not replayed automatically. Already-stuck legacy entries therefore require manual review; the new protocol does not retroactively resolve them. Stop old claim-writing workers before running the new capture protocol. Older runtimes do not understand new receipts, so a downgrade requires disabling capture or a separately verified migration; mixed-version capture is not supported.
 
+## Answered-before replies
+
+A public, published FAQ can answer a visitor after semantic confirmation. The complete canonical revision is re-read after that asynchronous check; changed or withdrawn eligibility yields no hit. This read does not increment `asked`. The persisted assistant reply records the confirmed FAQ question, and its normal capture receipt owns the increment. Capture checks the same public question and answer with full-revision CAS, without classifying an already approved answer again.
+
+Stop old web and worker writers before upgrading this protocol. Older fast-path replies lack capture provenance and may already have incremented without a receipt. Their pending capture jobs require manual reconciliation; they are neither counted again nor silently claimed complete. Existing capture claims and receipts retain their identities and are not expired or removed. Mixed-version operation and downgrade are unsupported.
+
+Confirmation generation and embeddings belong to guest settlement even on a miss or failed check. Unreported, unfinished or unpriced work makes cost unknown, not known zero. Auxiliary provider attempts share the request lifetime; measured requests disable hidden SDK retries. These are accounting and cancellation guarantees, not a provider-spend ceiling or a bounded database-scan guarantee.
+
 ## Visibility
 
-The FAQ takes the visibility of the turn that produced the answer:
-
-| Turn permission | FAQ visibility |
-| --------------- | -------------- |
-| `admin`         | `restricted`   |
-| `trusted`       | `shared`       |
-| `public`        | `public`       |
-| site visitor    | `public`       |
-
-The answer could only draw on content visible at that level, so the FAQ is never readable more widely than its source. A reply never merges into a FAQ of another visibility.
+Only public turns and site visitors are captured, so a captured FAQ is a `public` draft: the answer could only draw on public content, so the FAQ is never readable more widely than its source. The capture job still maps a level to its visibility (`admin` → `restricted`, `trusted` → `shared`) for jobs queued before this rule, and a reply never merges into a FAQ of another visibility. FAQs written by hand keep whatever visibility they are given.
 
 ## Entity
 

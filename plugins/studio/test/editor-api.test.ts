@@ -1,4 +1,4 @@
-import { MCP_INTERACTION_ID } from "@brains/contracts";
+import { CONSOLE_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 
 async function readAssetManifest(): Promise<
@@ -94,6 +94,7 @@ const typeListPayloadSchema = z.object({
     z.looseObject({
       entityType: z.string(),
       label: z.string().optional(),
+      singularLabel: z.string().optional(),
       isSingleton: z.boolean(),
       hasBody: z.boolean(),
       count: z.number().optional(),
@@ -799,7 +800,7 @@ describe("studio editor api", () => {
         cookie,
         method: "POST",
         body: {
-          variant: "summarise",
+          variant: "summarize",
           entityType: "post",
           id: "hello-world",
           targetField: "summary",
@@ -810,7 +811,7 @@ describe("studio editor api", () => {
     );
     expect(summary.status).toBe(200);
     expect(await summary.json()).toEqual({
-      variant: "summarise",
+      variant: "summarize",
       targetField: "summary",
       suggestion: "A concise summary.",
     });
@@ -855,7 +856,7 @@ describe("studio editor api", () => {
 
     for (const body of [
       {
-        variant: "summarise",
+        variant: "summarize",
         entityType: "post",
         id: "hello-world",
         targetField: "tags",
@@ -1056,6 +1057,50 @@ describe("studio editor api", () => {
     }
   });
 
+  it("offers its pages to the ⌘K palette, by the caller's permission", async () => {
+    const shell = createEditorTestShell();
+    await registerPlugin(shell);
+    const ask = async (
+      permissionLevel: "public" | "trusted" | "admin",
+    ): Promise<unknown> =>
+      (
+        await shell.getMessageBus().collect({
+          type: CONSOLE_CHANNELS.jumpDestinations,
+          sender: "test",
+          payload: { permissionLevel },
+        })
+      ).flatMap((answer) =>
+        "data" in answer && Array.isArray(answer.data) ? answer.data : [],
+      );
+
+    const admin = await ask("admin");
+    expect(admin).toContainEqual(
+      expect.objectContaining({
+        title: "Overview",
+        href: "/studio/workspaces/studio%3Aoverview",
+        primary: true,
+      }),
+    );
+    expect(admin).toContainEqual(
+      expect.objectContaining({ title: "Account", primary: true }),
+    );
+    expect(admin).toContainEqual({
+      id: "studio/entities/post",
+      title: "Posts",
+      sub: "Library",
+      href: "/studio/entities/post",
+    });
+    // The mock registers every type as content; system types read "System".
+    expect(admin).toContainEqual(
+      expect.objectContaining({ title: "Site Info", sub: "Library" }),
+    );
+
+    const visitor = JSON.stringify(await ask("public"));
+    expect(visitor).toContain("Account");
+    expect(visitor).not.toContain("Overview");
+    expect(visitor).not.toContain("Posts");
+  });
+
   it("lists entity types with adapter flags", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
@@ -1073,6 +1118,7 @@ describe("studio editor api", () => {
       entityType: "post",
       classification: "content",
       label: "Posts",
+      singularLabel: "Post",
       isSingleton: false,
       hasBody: true,
       count: 1,
@@ -1105,6 +1151,9 @@ describe("studio editor api", () => {
     expect(payload.types.find((t) => t.entityType === "post")?.label).toBe(
       "Essays",
     );
+    expect(
+      payload.types.find((t) => t.entityType === "post")?.singularLabel,
+    ).toBe("Essay");
   });
 
   it("returns field descriptors for a type", async () => {

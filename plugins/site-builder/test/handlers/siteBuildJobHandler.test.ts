@@ -285,6 +285,46 @@ describe("SiteBuildJobHandler", () => {
     });
   }
 
+  it("tells the queue why a build failed, not that a handler failed", async () => {
+    const builder: ISiteBuilder = {
+      build: mock(async () => ({
+        success: false,
+        outputDir: "/tmp/output",
+        filesGenerated: 0,
+        routesBuilt: 0,
+        errors: ["tailwindcss: Can't resolve 'tailwindcss'", "Second problem"],
+      })),
+    };
+    const { sendMessage } = createMockMessageSender();
+    const handler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder: builder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+      },
+    );
+    const progressReporter = CallbackProgressReporter.from(async () => {});
+    if (!progressReporter) throw new Error("Expected progress reporter");
+
+    const result = await handler.process(
+      { outputDir: "/tmp/output", environment: "preview" },
+      "job-failed",
+      progressReporter,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(
+      "tailwindcss: Can't resolve 'tailwindcss'; Second problem",
+    );
+  });
+
   it("records unchanged inputs as skipped instead of successful", async () => {
     const markSuccess = mock(async () => undefined);
     const markSkipped = mock(async () => undefined);

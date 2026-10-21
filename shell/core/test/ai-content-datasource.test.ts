@@ -319,6 +319,54 @@ describe("AIContentDataSource", () => {
 
       expect(getSystemPrompt()).not.toContain("# Style Guide");
     });
+
+    it("states that the style guide governs voice and form over the instructions", async () => {
+      await generate("Hello", "test-template", undefined, {
+        styleGuide: { voice: "Voice: full paragraphs" },
+      });
+
+      const systemPrompt = getSystemPrompt();
+      expect(systemPrompt).toContain("# Precedence");
+      expect(systemPrompt).toContain(
+        "When either conflicts with the style guide on voice or form, follow the style guide.",
+      );
+      expect(systemPrompt.indexOf("# Style Guide")).toBeLessThan(
+        systemPrompt.indexOf("# Precedence"),
+      );
+      expect(systemPrompt.indexOf("# Precedence")).toBeLessThan(
+        systemPrompt.indexOf("# Instructions"),
+      );
+    });
+
+    it("puts the request's additional instructions under the style guide on voice and form", async () => {
+      await generate(
+        "Make it engaging with a compelling hook",
+        "test-template",
+        undefined,
+        {
+          styleGuide: { voice: "Voice: full paragraphs" },
+        },
+      );
+
+      expect(getSystemPrompt()).toContain(
+        "The instructions below and any additional instructions in the request govern the task",
+      );
+      expect(getUserPrompt()).toContain(
+        "Additional instructions: Make it engaging with a compelling hook",
+      );
+    });
+
+    it("states no precedence when no style-guide payload is supplied", async () => {
+      await generate("Hello");
+
+      expect(getSystemPrompt()).not.toContain("# Precedence");
+    });
+
+    it("states no precedence when the style-guide payload has no facets", async () => {
+      await generate("Hello", "test-template", undefined, { styleGuide: {} });
+
+      expect(getSystemPrompt()).not.toContain("# Precedence");
+    });
   });
 
   describe("entity context with URLs", () => {
@@ -521,6 +569,25 @@ describe("AIContentDataSource", () => {
       const userPrompt = getUserPrompt();
       expect(userPrompt).toContain("Recent conversation context");
       expect(userPrompt).toContain("Tell me about AI");
+    });
+
+    it("sends the template instructions only in the system prompt", async () => {
+      await generate("Hello");
+
+      expect(getSystemPrompt()).toContain("You are a helpful assistant.");
+      expect(getUserPrompt()).not.toContain("You are a helpful assistant.");
+      expect(getUserPrompt()).toStartWith("Additional instructions: Hello");
+    });
+
+    it("sends a non-empty user prompt when the request carries no context", async () => {
+      await aiContentDataSource.generate(
+        { templateName: "test-template" },
+        messageSchema,
+      );
+
+      expect(getUserPrompt()).toBe(
+        "Generate the content described in your instructions.",
+      );
     });
 
     it("should validate output against schema", async () => {

@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { join } from "path";
 import { ServicePlugin, toolSuccess, toolError } from "@brains/plugins";
 import type { ServicePluginContext, ToolResult } from "@brains/plugins";
@@ -12,6 +19,7 @@ import { generateTemplate } from "./lib/template-generator";
 import { generateFileClass } from "./lib/fileclass-generator";
 import {
   generateBase,
+  previousDisplayName,
   generatePipelineBase,
   generateSettingsBase,
 } from "./lib/base-generator";
@@ -22,12 +30,18 @@ export interface ObsidianVaultDeps {
   mkdir: (path: string, options?: { recursive: boolean }) => void;
   writeFile: (path: string, content: string) => void;
   existsFile: (path: string) => boolean;
+  readFile: (path: string) => string;
+  renameFile: (from: string, to: string) => void;
+  removeFile: (path: string) => void;
 }
 
 const defaultDeps: ObsidianVaultDeps = {
   mkdir: mkdirSync,
   writeFile: writeFileSync,
   existsFile: existsSync,
+  readFile: (path) => readFileSync(path, "utf8"),
+  renameFile: renameSync,
+  removeFile: (path) => rmSync(path, { force: true }),
 };
 
 export class ObsidianVaultPlugin extends ServicePlugin<
@@ -35,6 +49,37 @@ export class ObsidianVaultPlugin extends ServicePlugin<
   ObsidianVaultConfigInput
 > {
   private readonly deps: ObsidianVaultDeps;
+
+  /**
+   * Move a base written under its previous name ("Faqs.base") to the current
+   * one. An untouched base is regenerated; an edited one keeps its content.
+   */
+  private renamePreviousBase(
+    entityType: string,
+    fields: ReturnType<typeof introspectSchema>,
+    basesDir: string,
+    basePath: string,
+  ): void {
+    const before = generateBase(
+      entityType,
+      fields,
+      previousDisplayName(entityType),
+    );
+    const beforePath = join(basesDir, before.filename);
+    if (
+      beforePath === basePath ||
+      !this.deps.existsFile(beforePath) ||
+      this.deps.existsFile(basePath)
+    )
+      return;
+    if (this.deps.readFile(beforePath) === before.content) {
+      this.deps.writeFile(basePath, generateBase(entityType, fields).content);
+      this.deps.removeFile(beforePath);
+    } else {
+      this.deps.renameFile(beforePath, basePath);
+    }
+    this.logger.info(`Renamed base ${before.filename} to its current name`);
+  }
 
   constructor(
     config: ObsidianVaultConfigInput = {},
@@ -140,6 +185,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<
         // Generate base (non-singletons only, if missing)
         const baseResult = generateBase(entityType, fields);
         const basePath = join(basesDir, baseResult.filename);
+        this.renamePreviousBase(entityType, fields, basesDir, basePath);
         if (!this.deps.existsFile(basePath)) {
           this.deps.writeFile(basePath, baseResult.content);
           bases.push(entityType);

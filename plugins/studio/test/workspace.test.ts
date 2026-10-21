@@ -446,6 +446,72 @@ describe("optional Studio workspaces", () => {
     ).not.toHaveProperty("urlQuery");
   });
 
+  it("tells the browser which workspace publishes its entity types", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      entityTypes: ["post"],
+      publishesEntityTypes: true,
+      accessHandler: () => true,
+      dataProvider: async () => ({ queue: [] }),
+    });
+    await registerWorkspace(shell, {
+      id: "traffic",
+      pluginId: "analytics",
+      label: "Traffic",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 45,
+      entityTypes: ["post"],
+      accessHandler: () => true,
+      dataProvider: async () => ({ pages: [] }),
+    });
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const descriptors = z
+      .object({ workspaces: z.array(z.record(z.string(), z.unknown())) })
+      .parse(await response.json()).workspaces;
+
+    expect(
+      descriptors.find((descriptor) => descriptor["id"] === "publishing"),
+    ).toMatchObject({ entityTypes: ["post"], publishesEntityTypes: true });
+    expect(
+      descriptors.find((descriptor) => descriptor["id"] === "traffic"),
+    ).not.toHaveProperty("publishesEntityTypes");
+  });
+
+  it("rejects a publication declaration that is not literally true", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    const response = await shell.getMessageBus().send({
+      type: "studio:register-workspace",
+      payload: {
+        id: "publishing",
+        pluginId: "content-pipeline",
+        label: "Publishing",
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: 40,
+        entityTypes: ["post"],
+        publishesEntityTypes: "yes",
+        accessHandler: () => true,
+        dataProvider: async () => ({ queue: [] }),
+      },
+      sender: "content-pipeline",
+    });
+
+    expect(response).toMatchObject({ success: false });
+  });
+
   it("exposes registered descriptors and provider data to the browser", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);

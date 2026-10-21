@@ -24,6 +24,7 @@ import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
 import {
   assertProductionReactBundle,
+  copyMigrations,
   findInternalDeclarationImports,
   formatDeclarationLeakError,
   productionReactJsx,
@@ -430,9 +431,6 @@ cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true });
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 
-const migrationsDir = join(outdir, "migrations");
-mkdirSync(migrationsDir, { recursive: true });
-
 const migrationSources = [
   {
     name: "auth-service",
@@ -453,11 +451,10 @@ const migrationSources = [
   },
 ];
 
-for (const { name, path } of migrationSources) {
-  if (existsSync(path)) {
-    cpSync(path, join(migrationsDir, name), { recursive: true });
-  }
-}
+const copiedMigrations = copyMigrations(
+  migrationSources,
+  join(outdir, "migrations"),
+);
 
 // ─── Report ───────────────────────────────────────────────────────────────
 
@@ -472,10 +469,5 @@ for (const entry of libraryEntries) {
   reportSize(entry.name);
 }
 
-console.log(
-  `Migrations: ${migrationSources
-    .filter((s) => existsSync(s.path))
-    .map((s) => s.name)
-    .join(", ")}`,
-);
+console.log(`Migrations: ${copiedMigrations.join(", ")}`);
 console.log("Done.");

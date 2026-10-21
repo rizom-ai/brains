@@ -12,7 +12,7 @@ export const hierarchyStyles: Record<
   | "destination"
   | "segment"
   | "input"
-  | "preview"
+  | "saveAs"
   | "value"
   | "error"
   | "context"
@@ -133,23 +133,17 @@ export const hierarchyStyles: Record<
     fontFamily: "var(--console-mono)",
     fontSize: 13,
   },
-  preview: {
-    display: "grid",
-    gridTemplateColumns: "90px minmax(0, 1fr)",
-    gap: "10px 16px",
-    margin: "20px 0 0",
-    padding: "16px 0",
-    fontFamily: "var(--console-mono)",
-    fontSize: 11,
+  saveAs: {
+    margin: "12px 0 0",
+    fontFamily: "var(--console-ui)",
+    fontSize: 12,
     color: "var(--console-text-muted)",
-    "@media (max-width: 640px)": { gridTemplateColumns: "1fr", gap: 6 },
   },
   value: {
-    margin: 0,
     color: "var(--console-text)",
+    fontFamily: "var(--console-mono)",
     overflowWrap: "anywhere",
     whiteSpace: "pre-wrap",
-    "@media (max-width: 640px)": { marginBottom: 10 },
   },
   error: {
     color: "var(--console-text)",

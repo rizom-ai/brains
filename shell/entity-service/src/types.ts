@@ -593,6 +593,8 @@ export interface ListOptions<
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** String metadata fields that start with a prefix, e.g. `{ slug: "book/" }`: an index range on an indexed field. */
+    metadataPrefix?: Record<string, string> | undefined;
     /** Literal substring search through serialized content, including frontmatter. */
     contentContains?: string | undefined;
     /** Exact visibility, intersected with visibilityScope rather than widening it. */
@@ -652,6 +654,18 @@ export interface EntityTypeConfig {
   defaultSort?: SortField[];
   /** Accepts upload text extraction through system_create extract-markdown. */
   markdownImport?: boolean;
+  /**
+   * Frontmatter keys this type no longer owns. Stored entities may still
+   * carry them: they are read past, never written back, and removed from
+   * stored content by `rewriteRetiredFields`.
+   */
+  retiredFields?: readonly string[];
+  /**
+   * Retired keys whose stored value the type still reads, moving it to its
+   * new field when it parses. Unlike `retiredFields` they reach the parser;
+   * like them they are never written back and are rewritten on start.
+   */
+  translatedFields?: readonly string[];
   /**
    * The type's own minimum action policy, from whoever registers it. It
    * tightens wildcard defaults without relaxing stricter rules, including
@@ -834,6 +848,22 @@ export interface NearestToEntityRequest {
   limit?: number | undefined;
   /** Undefined fails closed to public-only visibility, origin included. */
   visibilityScope?: ContentVisibility | undefined;
+  /** Only entries their type counts as published, as for published-only listings. */
+  publishedOnly?: boolean | undefined;
+  /**
+   * Carry each entry's metadata, so a caller that needs only its fields
+   * loads no entry: a theme page reads up to thousands of neighbours.
+   */
+  includeMetadata?: boolean | undefined;
+}
+
+/** An entity near another, closest first. */
+export interface NearestEntity {
+  entityId: string;
+  entityType: string;
+  distance: number;
+  /** Present when the request asked for it. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProjectSemanticSpaceRequest {
@@ -1047,9 +1077,7 @@ export interface ICoreEntityService {
    * closest first, by raw cosine distance. It reads one vector and asks the
    * store for the rest, so it costs no API call and stays linear.
    */
-  nearestToEntity(
-    request: NearestToEntityRequest,
-  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+  nearestToEntity(request: NearestToEntityRequest): Promise<NearestEntity[]>;
 
   /** Project visible entities into a provider-independent semantic space. */
   projectSemanticSpace(
@@ -1268,6 +1296,8 @@ export interface EntityServiceClient extends ICoreEntityService {
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void>;
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
+  /** Rewrite stored entities whose content still carries a retired frontmatter field. */
+  rewriteRetiredFields(): Promise<{ rewritten: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

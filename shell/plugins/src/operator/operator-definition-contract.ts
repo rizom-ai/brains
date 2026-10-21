@@ -177,6 +177,11 @@ export interface StudioWorkspaceDefinition<
   readonly permission: UserPermissionLevel;
   readonly entities?: readonly AnyEntityDefinition[] | undefined;
   readonly entityCatalog?: OperatorEntityCatalogDefinition | undefined;
+  /**
+   * Studio publishes the covered entity types through this workspace: the
+   * editor sends its publication actions here instead of guessing a host.
+   */
+  readonly publishesEntityTypes?: true | undefined;
   readonly query?: OperatorSchema | undefined;
   readonly data: TDataSchema;
   readonly actions: TActions;
@@ -316,6 +321,37 @@ export function getStudioWorkspaceExecutor<
   return executor;
 }
 
+/** The actions Studio's editor sends to the workspace that publishes a type. */
+const STUDIO_PUBLICATION_ACTION_NAMES = [
+  "queue",
+  "remove",
+  "retry",
+  "reorder",
+  "publish",
+] as const;
+
+function assertPublicationWorkspace(
+  definition: Pick<
+    StudioWorkspaceDefinition,
+    "id" | "entities" | "entityCatalog"
+  >,
+  actionNames: ReadonlySet<string>,
+): void {
+  if (!definition.entities?.length && !definition.entityCatalog) {
+    throw new Error(
+      `Studio workspace "${definition.id}" publishes entity types but declares neither entities nor an entity catalog`,
+    );
+  }
+  const missing = STUDIO_PUBLICATION_ACTION_NAMES.find(
+    (name) => !actionNames.has(name),
+  );
+  if (missing) {
+    throw new Error(
+      `Studio workspace "${definition.id}" publishes entity types without declaring the "${missing}" action`,
+    );
+  }
+}
+
 export function defineStudioWorkspace<
   const TId extends string,
   TDataSchema extends OperatorSchema,
@@ -353,6 +389,9 @@ export function defineStudioWorkspace<
         `Studio workspace "${definition.id}" action "${action.name}" permission cannot be lower than the workspace permission`,
       );
     }
+  }
+  if (definition.publishesEntityTypes) {
+    assertPublicationWorkspace(definition, actionNames);
   }
 
   const workspace: StudioWorkspaceDefinition<TId, TDataSchema, TActions> = {

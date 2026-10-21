@@ -42,9 +42,7 @@ export const socialMediaConfigSchema: SocialMediaConfigSchema = z.object({
   /** Enable automatic publishing (default: true) */
   enabled: z.boolean().default(true),
   /** Default prompt for generating social posts */
-  defaultPrompt: z
-    .string()
-    .default("Create an engaging social media post that drives engagement"),
+  defaultPrompt: z.string().default("Write a social media post"),
   /** Maximum retry attempts before marking post as failed (default: 3) */
   maxRetries: z.number().default(3),
   /** Auto-generate social post when a blog post is published (default: false) */

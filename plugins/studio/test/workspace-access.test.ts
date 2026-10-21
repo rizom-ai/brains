@@ -111,6 +111,7 @@ function actionRequest(id: string): Request {
 const expectedActor: StudioWorkspaceActor = {
   interfaceType: "studio",
   userId: principal.userId,
+  displayName: principal.displayName,
   actor: {
     kind: "user",
     userId: principal.userId,

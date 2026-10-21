@@ -5,12 +5,18 @@ import {
 } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
+import {
+  DEFAULT_RETRY_MAX_DELAY_MS,
+  retryWithBackoff,
+} from "@brains/utils/retry-backoff";
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
 interface ProjectionWaveReadyMessage {
   payload: ProjectionWaveReady;
 }
+
+type BuildEnvironment = "preview" | "production";
 
 interface AutoRebuildContext {
   messaging: {
@@ -46,6 +52,13 @@ interface AutoRebuildContext {
 }
 
 /**
+ * The queue claims the lowest priority first. Embeddings and projections queue
+ * at the default, 0, so a build goes ahead of them: a new brain's site is up
+ * after its first import is stored, not once every entity is embedded and read.
+ */
+const SITE_BUILD_PRIORITY = -10;
+
+/**
  * Manages debounced site rebuilds triggered by entity changes or explicit
  * build requests. Separate debounces per environment so preview and production
  * do not interfere with each other.
@@ -54,6 +67,11 @@ interface AutoRebuildContext {
  * waves while the worker runs builds, so no one process sees both. The queue
  * skips a build only behind a pending one, which has yet to read its input;
  * a change during a running build leaves one pending behind it.
+ *
+ * The queue refuses an enqueue once another process has held its write lock
+ * past the enqueue budget, and no budget bounds how long a stalled commit can
+ * hold it. A requested build therefore stays requested: a refused enqueue is
+ * retried until the queue admits it or the manager is disposed.
  */
 export class RebuildManager {
   private readonly config: SiteBuilderConfig;
@@ -62,6 +80,10 @@ export class RebuildManager {
   private readonly logger: Logger;
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
+  private readonly enqueueRetries = new Map<
+    BuildEnvironment,
+    AbortController
+  >();
   private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
@@ -175,6 +197,8 @@ export class RebuildManager {
       }
     }
     this.debounces.clear();
+    for (const retry of this.enqueueRetries.values()) retry.abort();
+    this.enqueueRetries.clear();
 
     for (const unsubscribe of this.unsubscribeFunctions) {
       try {
@@ -203,45 +227,92 @@ export class RebuildManager {
   }
 
   private async enqueueBuild(
-    environment: "preview" | "production",
+    environment: BuildEnvironment,
     failClosed: boolean = false,
   ): Promise<void> {
-    const outputDir =
-      environment === "production"
-        ? this.config.productionOutputDir
-        : this.config.previewOutputDir;
-
     this.logger.debug(`Triggering ${environment} site rebuild`);
 
     try {
-      const jobId = await this.context.jobs.enqueue({
-        type: "site-build",
-        data: {
-          environment,
-          outputDir,
-          workingDir: this.config.workingDir,
-          enableContentGeneration: true,
-          metadata: {
-            trigger: "debounced-rebuild",
-            timestamp: new Date().toISOString(),
-          },
-        },
-        options: {
-          priority: 0,
-          source: this.pluginId,
-          metadata: {
-            operationType: "content_operations",
-          },
-          deduplication: "skip",
-          deduplicationKey: `site-build:${environment}`,
-        },
-      });
+      const jobId = await this.enqueueBuildJob(environment);
+      this.cancelEnqueueRetry(environment);
       await this.statusService?.markQueued(environment, jobId);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {
-      await this.statusService?.clearActive(environment);
-      this.logger.error("Failed to enqueue site rebuild", { error });
-      if (failClosed) throw error;
+      // An unacknowledged wave stays incomplete and the scheduler's sweep
+      // advances it again, so a wave's build request fails closed instead.
+      if (failClosed || this.disposed) {
+        await this.statusService?.clearActive(environment);
+        this.logger.error("Failed to enqueue site rebuild", { error });
+        if (failClosed) throw error;
+        return;
+      }
+      this.retryEnqueue(environment, error);
     }
+  }
+
+  private enqueueBuildJob(environment: BuildEnvironment): Promise<string> {
+    return this.context.jobs.enqueue({
+      type: "site-build",
+      data: {
+        environment,
+        outputDir:
+          environment === "production"
+            ? this.config.productionOutputDir
+            : this.config.previewOutputDir,
+        workingDir: this.config.workingDir,
+        enableContentGeneration: true,
+        metadata: {
+          trigger: "debounced-rebuild",
+          timestamp: new Date().toISOString(),
+        },
+      },
+      options: {
+        priority: SITE_BUILD_PRIORITY,
+        source: this.pluginId,
+        metadata: {
+          operationType: "content_operations",
+        },
+        deduplication: "skip",
+        deduplicationKey: `site-build:${environment}`,
+      },
+    });
+  }
+
+  /** Keep the build requested and enqueue it again after a backoff. */
+  private retryEnqueue(environment: BuildEnvironment, error: unknown): void {
+    this.cancelEnqueueRetry(environment);
+    const controller = new AbortController();
+    this.enqueueRetries.set(environment, controller);
+    this.runTrackedTask(`retry ${environment} build`, async () => {
+      const outcome = await retryWithBackoff(
+        () => this.enqueueBuildJob(environment),
+        error,
+        {
+          firstDelayMs: this.config.rebuildDebounce,
+          // First after one debounce window, then backing off to a minute.
+          maxDelayMs: DEFAULT_RETRY_MAX_DELAY_MS,
+          signal: controller.signal,
+          onRetry: (refusal, delayMs) => {
+            this.logger.warn(
+              `Failed to enqueue ${environment} site rebuild; retrying in ${delayMs}ms`,
+              { error: refusal },
+            );
+          },
+        },
+      );
+      if (this.enqueueRetries.get(environment) === controller) {
+        this.enqueueRetries.delete(environment);
+      }
+      if (outcome.kind === "succeeded") {
+        await this.statusService?.markQueued(environment, outcome.value);
+        this.logger.debug("Site rebuild enqueued");
+      }
+    });
+  }
+
+  /** A newer enqueue, a newer retry, or disposal supersedes a pending retry. */
+  private cancelEnqueueRetry(environment: BuildEnvironment): void {
+    this.enqueueRetries.get(environment)?.abort();
+    this.enqueueRetries.delete(environment);
   }
 }

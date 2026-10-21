@@ -62,6 +62,7 @@ function applyPluginDefaults(
   options: {
     webserverEnabled: boolean;
     siteBuilderEnabled: boolean;
+    port: number | undefined;
     site: SitePackage | undefined;
     theme: string | undefined;
     anchor: NonNullable<BrainDefinition["anchor"]>;
@@ -71,6 +72,7 @@ function applyPluginDefaults(
   const {
     webserverEnabled,
     siteBuilderEnabled,
+    port,
     site,
     theme,
     anchor,
@@ -81,6 +83,8 @@ function applyPluginDefaults(
     const webserverExplicit = pluginOverrides["webserver"] ?? {};
     const webserverDefaults: Record<string, unknown> = {
       enablePreview: siteBuilderEnabled,
+      // brain.yaml's top-level port is the production server port.
+      ...(port !== undefined && { productionPort: port }),
     };
 
     pluginOverrides["webserver"] = deepMerge(
@@ -224,6 +228,8 @@ function buildIdentity(
 function buildDeployment(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
+  /** The port the webserver will actually listen on, once overrides apply. */
+  servedPort?: number,
 ): DeploymentConfigInput {
   const deployment: DeploymentConfigInput = {
     ...(definition.deployment ?? {}),
@@ -232,10 +238,11 @@ function buildDeployment(
   if (overrides?.domain) {
     deployment.domain = overrides.domain;
   }
-  if (overrides?.port) {
+  const port = overrides?.port ?? servedPort;
+  if (port) {
     deployment.ports = {
       ...(deployment.ports ?? {}),
-      production: overrides.port,
+      production: port,
     };
   }
 
@@ -381,6 +388,7 @@ function resolveRuntimeDefinition(
   applyPluginDefaults(pluginOverrides, {
     webserverEnabled,
     siteBuilderEnabled,
+    port: overrides?.port,
     site,
     theme,
     anchor: effectiveAnchor,
@@ -414,7 +422,12 @@ function resolveRuntimeDefinition(
   );
 
   const identity = buildIdentity(definition);
-  const deployment = buildDeployment(definition, overrides);
+  const servedPort = pluginOverrides["webserver"]?.["productionPort"];
+  const deployment = buildDeployment(
+    definition,
+    overrides,
+    typeof servedPort === "number" ? servedPort : undefined,
+  );
   const agentInstructions = [
     ...(definition.agentInstructions ?? []),
     ...selection.resolution.agentInstructions,

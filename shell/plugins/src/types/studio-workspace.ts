@@ -11,6 +11,8 @@ export const DECLARATIVE_STUDIO_WORKSPACE_RENDERER =
 export interface StudioWorkspaceActor {
   interfaceType: "studio";
   userId: string;
+  /** The signed-in person's name, for providers that record who acted. */
+  displayName?: string | undefined;
   actor: ActorRef;
   userPermissionLevel: UserPermissionLevel;
   visibilityScope: ContentVisibility;
@@ -64,6 +66,8 @@ export interface StudioWorkspaceRegistration {
     | string[]
     | ((actor: StudioWorkspaceActor) => string[] | Promise<string[]>)
     | undefined;
+  /** Studio sends publication actions for the covered entity types here. */
+  publishesEntityTypes?: true | undefined;
   accessHandler: (actor: StudioWorkspaceActor) => boolean | Promise<boolean>;
   dataProvider: (
     actor: StudioWorkspaceActor,
@@ -96,6 +100,8 @@ export interface StudioWorkspaceDescriptor {
   urlQuery?: true | undefined;
   aliases?: readonly StudioWorkspaceAlias[] | undefined;
   entityTypes: string[];
+  /** Studio sends publication actions for the covered entity types here. */
+  publishesEntityTypes?: true | undefined;
   badge?: number | undefined;
 }
 

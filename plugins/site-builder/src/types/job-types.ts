@@ -28,6 +28,8 @@ export type SiteBuildJobData = z.output<typeof siteBuildJobSchema>;
  */
 export interface SiteBuildJobResult {
   success: boolean;
+  /** Why the build did not complete, as the job queue records it. */
+  error?: string;
   cancelled?: boolean;
   skipped?: boolean;
   routesBuilt: number;

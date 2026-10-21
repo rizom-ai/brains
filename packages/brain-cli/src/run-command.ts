@@ -454,12 +454,20 @@ export async function runCommand(
 ): Promise<CommandResult> {
   const resolved = resolveSubcommand(registry, parsed.command, parsed.args);
   const command = registry.get(resolved.name);
+  const remote = getStringFlag(parsed.flags, "remote");
   if (command) {
+    // Built-in commands run in this process. Ignoring --remote would boot a
+    // second brain against the same data as the one the user meant to reach.
+    if (remote) {
+      return {
+        success: false,
+        message: `\`brain ${resolved.name}\` runs in this process and does not support --remote. Remote mode calls the brain's own commands, e.g. \`brain build-site preview --remote ${remote}\`.`,
+      };
+    }
     return command.run({ args: resolved.args, flags: parsed.flags }, dir);
   }
 
   // Remote mode — query deployed brain via MCP HTTP
-  const remote = getStringFlag(parsed.flags, "remote");
   if (remote) {
     const url = resolveRemoteUrl(remote);
     const token = resolveToken(getStringFlag(parsed.flags, "token"));

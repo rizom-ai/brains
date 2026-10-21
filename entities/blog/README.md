@@ -123,10 +123,8 @@ coverImage: https://example.com/image.jpg # Optional
 seriesName: My Series # Optional
 seriesIndex: 1 # Optional
 
-# SEO Metadata (Optional) - Ready for site-builder integration
+# SEO Metadata (Optional)
 ogImage: https://example.com/og-image.jpg # OpenGraph image (defaults to coverImage)
-ogDescription: Custom social media description # (defaults to excerpt)
-twitterCard: summary_large_image # "summary" or "summary_large_image"
 canonicalUrl: https://example.com/posts/my-post # Canonical URL
 ---
 # Post Content
@@ -136,14 +134,10 @@ Your markdown content here...
 
 ### SEO Metadata
 
-The blog plugin includes support for SEO metadata fields in blog post frontmatter:
+Two optional frontmatter fields carry SEO metadata:
 
-- **`ogImage`**: OpenGraph image URL for social media previews (defaults to `coverImage`)
-- **`ogDescription`**: OpenGraph description for social media (defaults to `excerpt`)
-- **`twitterCard`**: Twitter card type - `"summary"` or `"summary_large_image"`
-- **`canonicalUrl`**: Canonical URL for duplicate content management
-
-**Status**: Schema support is complete. Full integration with site-builder's HeadCollector for automatic meta tag generation is planned for a future update. Currently, these fields are stored in frontmatter and available for manual use in custom templates.
+- **`ogImage`**: OpenGraph image URL for the post page's social previews (defaults to `coverImage`)
+- **`canonicalUrl`**: the post's canonical URL, used by the ATProto record and the printable view
 
 ## Tools
 
@@ -159,13 +153,10 @@ Queue a job to create a new blog post draft.
   title?: string;         // Post title (AI generated if not provided)
   content?: string;       // Post content (AI generated if not provided)
   excerpt?: string;       // Summary (AI generated if not provided)
-  coverImage?: string;    // Cover image URL
+  coverImageId?: string;  // Image entity to use as the cover
   seriesName?: string;    // Series name
   seriesIndex?: number;   // Position in series (auto-incremented if not provided)
-  ogImage?: string;       // OpenGraph image URL for social media
-  ogDescription?: string; // OpenGraph description (falls back to excerpt)
-  twitterCard?: string;   // Twitter card type: "summary" or "summary_large_image"
-  canonicalUrl?: string;  // Canonical URL for SEO
+  skipAi?: boolean;       // Create a skeleton post with placeholders, without AI
 }
 ```
 

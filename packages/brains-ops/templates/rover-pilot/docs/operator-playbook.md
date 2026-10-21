@@ -19,14 +19,48 @@ The deploy scripts and workflows should read from that contract instead of inven
 
 The fleet has one image topology:
 
-- one immutable image is published for each effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>` for instances with one (pins spelled out and sorted, or a digest when too long)
+- one immutable image is published for each effective Brain version and site pin set: `brain-${brainVersion}` for instances without a site override, `brain-${brainVersion}--<pins>--s<digest>` for instances with one (sorted readable pins plus an exact-identity digest; long names omit readable pins); this format selects new immutable tags, never overwrites existing registry images
 - instances with the same version and pins share an image; a site's pin change builds that site's image and no other
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`, and `IMAGE_TAG=<tag>` for an instance with site pins
 - build and deploy derive the same effective image tag from the resolved registry
 
+## Reviewed runtime dependencies
+
+Use Bun 1.4.0 to prepare the full dependency graph before building a new image:
+
+```sh
+brains-ops images:lock .
+# Or prepare one version/pin set before promotion:
+brains-ops images:lock . --brain-version <exact-version> --site-packages "<exact site/theme pins>"
+```
+
+Review and commit each new `deploy/runtime/<image-tag>/package.json` and `bun.lock`
+together with its desired-state change. The manifest pins Brain and exactly that
+image's site/theme packages, and overrides `postcss-selector-parser` to 7.1.6.
+Review fresh runtime audit and behavior checks; a frozen lock is not proof that
+bundled code, operating-system packages, or every dependency is vulnerability-free.
+
+The command resolves dependencies with lifecycle scripts disabled; it does not
+build, publish, deploy, decrypt secrets, or inspect fleet hosts. Existing entries
+are validated and left untouched, never refreshed. A failed new entry retains an
+`.incomplete` marker and diagnostic files and blocks reuse; inspect and preserve
+that evidence before separately approving any recovery.
+
+Build refuses missing, incomplete, or mismatched manifests. Docker copies only the
+reviewed manifest and lock for the selected tag and installs production packages
+with `--frozen-lockfile --ignore-scripts`; it never resolves updates with `bun add`.
+Commit both inputs: changing only the manifest without a matching lock fails the
+frozen install before publication.
+
+Existing published tags remain immutable and are not rebuilt by adopting this
+scaffold. Existing-image verification still checks only the exact top-level Brain
+and site/theme versions; it does not certify a legacy image's transitive graph.
+The parser fix reaches running instances only through a separately approved new
+image/version rollout, never by overwriting a deployed tag.
+
 ## Version bump flow
 
-When `pilot.yaml.brainVersion` changes and you push:
+First generate and review the matching runtime locks. When `pilot.yaml.brainVersion` changes and you push:
 
 1. build publishes each missing image, named by Brain version and site pins, and verifies existing images against what their names say they hold
 2. reconcile refreshes generated `users/<handle>/.env`
@@ -396,9 +430,11 @@ Notes:
 
 ## Discord application credential checklist
 
-Use this when enabling Discord for a pilot user.
+Discord is optional. Browser chat with passkey setup is the default pilot interface. Use this checklist only when enabling Discord for a user.
 
-1. Pick the user handle (for example `smoke`).
+1. Add the user with Discord enabled:
+   - `bunx brains-ops user:add . <handle> --cohort <cohort> --discord`
+   - Add `--anchor-id <discord-user-id>` if the user should be a Discord anchor. For compatibility, `--anchor-id` also enables Discord when `--discord` is omitted.
 2. Open the Discord Developer Portal.
 3. Create a **new application** for that user's brain.
 4. Add a **Bot** to the application.
@@ -407,7 +443,7 @@ Use this when enabling Discord for a pilot user.
    - `DISCORD_BOT_TOKEN=...`
    - `DISCORD_PUBLIC_KEY=...`
    - `DISCORD_APPLICATION_ID=...`
-7. Keep `discord.enabled: true` in `users/<handle>.yaml` unless you explicitly want to disable the primary pilot interface.
+7. Confirm `users/<handle>.yaml` contains `discord.enabled: true` and its secrets template contains `discordBotToken`.
 8. Encrypt the current per-user credential payload:
    - `bunx brains-ops secrets:encrypt . <handle>`
 9. Reconcile/deploy the user or cohort:
@@ -420,7 +456,7 @@ Notes:
 
 - Use **one Discord application credential set per user/brain**.
 - Do not reuse the same Discord application across multiple pilot users.
-- Discord is the default pilot interface moving forward.
+- Discord-disabled users generate `anchors: []`, no `plugins.discord` block, and require no Discord secret.
 - The encrypted `users/<handle>.secrets.yaml.age` file is the durable checked-in deploy input; your local env is only the operator staging source.
 - Direct MCP client access should use OAuth/passkey-capable clients where possible.
 - When explaining the content workflow, describe it first as a normal **git repo** of **markdown/text files**.

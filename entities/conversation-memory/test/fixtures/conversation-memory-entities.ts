@@ -1,9 +1,7 @@
+import { type ActionItemEntity } from "@brains/action-items";
 import { createTestEntity } from "@brains/entity-service/test";
 import type { ContentVisibility } from "@brains/plugins";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
-} from "../../src/schemas/conversation-memory";
+import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 
 export function createMockDecisionEntity(
   id: string,
@@ -17,14 +15,10 @@ export function createMockDecisionEntity(
       channelId: "cli-terminal",
       channelName: "CLI Terminal",
       interfaceType: "cli",
-      spaceId: "cli:cli-terminal",
       timeRange: {
         start: "2026-01-01T00:00:00.000Z",
         end: "2026-01-01T00:01:00.000Z",
       },
-      sourceSummaryId: "conv-1",
-      sourceMessageCount: 2,
-      projectionVersion: 1,
       status: "active",
     },
   });
@@ -42,14 +36,7 @@ export function createMockActionItemEntity(
       channelId: "cli-terminal",
       channelName: "CLI Terminal",
       interfaceType: "cli",
-      spaceId: "cli:cli-terminal",
-      timeRange: {
-        start: "2026-01-01T00:00:00.000Z",
-        end: "2026-01-01T00:01:00.000Z",
-      },
-      sourceSummaryId: "conv-1",
-      sourceMessageCount: 2,
-      projectionVersion: 1,
+      capturedAt: "2026-01-01T00:01:00.000Z",
       status: "open",
     },
   });
