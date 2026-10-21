@@ -226,24 +226,37 @@ function requireOriginFields(
   }
 }
 
+/** Where a card came from: facts Studio shows, never fields it edits. */
+const provenance = { studioWidget: "provenance" } as const;
+
 const originShape = {
-  origin: z.enum(["conversation", "inbox", "board"]).optional(),
-  conversationId: z.string().optional(),
-  interfaceType: z.string().optional(),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  sourceRef: actionItemSourceRefSchema.optional(),
-  capturedAt: z.iso.datetime(),
+  origin: z
+    .enum(["conversation", "inbox", "board"])
+    .optional()
+    .meta(provenance),
+  conversationId: z.string().optional().meta(provenance),
+  interfaceType: z.string().optional().meta(provenance),
+  channelId: z.string().optional().meta(provenance),
+  channelName: z.string().optional().meta(provenance),
+  sourceRef: actionItemSourceRefSchema.optional().meta(provenance),
+  capturedAt: z.iso.datetime().meta(provenance),
 };
 
 export const actionItemMetadataSchema: ActionItemMetadataSchema = z
   .object({
     ...originShape,
     status: actionItemStatusSchema,
-    assignedTo: z.array(actionItemAssigneeSchema).optional(),
-    requestedBy: z.array(actionItemRequesterSchema).optional(),
+    // Studio assigns from the brain's members and shows people by name.
+    assignedTo: z
+      .array(actionItemAssigneeSchema)
+      .optional()
+      .meta({ studioWidget: "members" }),
+    requestedBy: z
+      .array(actionItemRequesterSchema)
+      .optional()
+      .meta({ studioWidget: "people" }),
     /** Body hash when the projector wrote the item; a different body is the board's. */
-    projectedBodyHash: z.string().optional(),
+    projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
   })
   .superRefine(requireOriginFields);
 
@@ -263,7 +276,7 @@ export const actionItemStoredMetadataSchema: z.ZodPreprocess<
       status: actionItemStatusSchema,
       assignedTo: z.array(storedAssigneeSchema).optional(),
       requestedBy: z.array(storedRequesterSchema).optional(),
-      projectedBodyHash: z.string().optional(),
+      projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
     })
     .superRefine(requireOriginFields),
 );

@@ -1,3 +1,4 @@
+import type { StudioMember } from "../../src/editor-contracts";
 import type {
   RuntimeStudioWorkspaceData,
   StudioWorkspaceDescriptor,
@@ -104,6 +105,8 @@ export interface FieldDescriptor {
   field?: FieldDescriptor;
   fields?: FieldDescriptor[];
 }
+
+export type { StudioMember } from "../../src/editor-contracts";
 
 export interface TypeSchema {
   groupingDefinitions?: {
@@ -589,6 +592,13 @@ export class StudioApi {
         body: JSON.stringify(input),
       },
     );
+  }
+
+  async fetchMembers(): Promise<StudioMember[]> {
+    const { members } = await this.requestJson<{ members: StudioMember[] }>(
+      this.path("members"),
+    );
+    return members;
   }
 
   async fetchSyncStatus(): Promise<SyncStatus> {

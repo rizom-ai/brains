@@ -403,6 +403,16 @@ export function createEditorRoutes(
       },
     },
     {
+      path: apiPath("members"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return jsonResponse({ members: (await options.listMembers?.()) ?? [] });
+      },
+    },
+    {
       path: apiPath("schema"),
       method: "GET",
       public: true,
@@ -845,10 +855,11 @@ async function handleGetSchema(
   );
   const domainFields = raw
     ? []
-    : Object.keys(schema.shape).map((name) => {
+    : Object.keys(schema.shape).flatMap((name) => {
         const field = zodFieldToStudioWidget(name, schema.shape[name]);
+        if (field.widget === "hidden") return [];
         const label = labels.get(name);
-        return label === undefined ? field : { ...field, label };
+        return [label === undefined ? field : { ...field, label }];
       });
   const visibilityField = {
     name: "visibility",

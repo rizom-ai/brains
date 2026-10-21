@@ -55,11 +55,11 @@ export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
+  const adapter = context.entities.getAdapter(entity.entityType);
   return (
-    displayTitleFrom(
-      context.entities.getAdapter(entity.entityType)?.extractMetadata(entity) ??
-        {},
-    ) ?? displayTitleFrom(entity.metadata)
+    adapter?.displayTitle?.(entity) ??
+    displayTitleFrom(adapter?.extractMetadata(entity) ?? {}) ??
+    displayTitleFrom(entity.metadata)
   );
 }
 

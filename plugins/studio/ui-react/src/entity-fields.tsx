@@ -6,6 +6,8 @@ import { groupingValueLabel } from "./grouping-value";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import { GroupingMembershipField } from "./grouping-membership-field";
 import { StudioStatus } from "./studio-status";
+import { BrainMembersField, PeopleNames } from "./people-fields";
+import { ProvenanceFact } from "./provenance-field";
 import {
   Button,
   Input,
@@ -563,6 +565,31 @@ function FieldControl(props: {
         descriptor={descriptor}
         value={value}
         onChange={onChange}
+      />
+    );
+  }
+
+  if (descriptor.widget === "provenance") {
+    return (
+      <ProvenanceFact
+        name={descriptor.name}
+        label={descriptor.label}
+        value={value}
+      />
+    );
+  }
+
+  if (descriptor.widget === "people") {
+    return <PeopleNames label={descriptor.label} value={value} />;
+  }
+
+  if (descriptor.widget === "members") {
+    return (
+      <BrainMembersField
+        label={descriptor.label}
+        value={value}
+        onChange={onChange}
+        readOnly={props.readOnly}
       />
     );
   }

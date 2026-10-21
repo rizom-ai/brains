@@ -123,6 +123,25 @@ function readStudioCondition(
   return { field: condition["field"], value: condition["value"] };
 }
 
+/** Presentations a schema can ask Studio for, by `studioWidget` metadata. */
+const STUDIO_WIDGETS = [
+  // People assigned from the brain's members.
+  "members",
+  // People named, by name only.
+  "people",
+  // Facts about where an entry came from: shown read-only, never edited.
+  "provenance",
+  // Bookkeeping no one reads or edits: left off the form.
+  "hidden",
+] as const;
+
+function readStudioWidget(
+  schema: unknown,
+): (typeof STUDIO_WIDGETS)[number] | undefined {
+  const widget = readMetadata(schema)?.["studioWidget"];
+  return STUDIO_WIDGETS.find((candidate) => candidate === widget);
+}
+
 /**
  * String fields holding image-entity ids follow the <role>ImageId naming
  * convention (coverImageId, ogImageId, plain imageId).
@@ -151,6 +170,9 @@ export function zodFieldToStudioWidget(
     ...(effectiveDefault !== undefined && { default: effectiveDefault }),
     ...(condition && { condition }),
   };
+
+  const studioWidget = readStudioWidget(fieldSchema);
+  if (studioWidget) return { ...base, widget: studioWidget };
 
   switch (kind) {
     case "string": {

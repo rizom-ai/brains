@@ -504,6 +504,12 @@ export interface EntityAdapter<
   // Extract metadata from entity for search/filtering - now strongly typed
   extractMetadata(entity: TEntity): TMetadata;
 
+  /**
+   * What the entity is called where it is shown, when its title lives
+   * somewhere other than a metadata title (a body heading, say).
+   */
+  displayTitle?(entity: TEntity): string | undefined;
+
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
     markdown: string,

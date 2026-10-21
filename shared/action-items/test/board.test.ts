@@ -275,6 +275,12 @@ describe("moving a card", () => {
     expect(stored["capturedAt"]).toBe("2026-01-01T00:01:00.000Z");
   });
 
+  it("names a card in Studio by its text, not its id", () => {
+    expect(adapter.displayTitle(storedItem(storedBeforeTrim))).toBe(
+      "Book the venue",
+    );
+  });
+
   it("refuses a move from a status the card no longer has", () => {
     expect(() =>
       applyMove(projected({ status: "done" }), { from: "open", to: "blocked" }),

@@ -97,6 +97,10 @@ function apiRouteRequests(): RouteRequest[] {
         request("/studio/api/workspace", { cookie, method: "POST", body: {} }),
     },
     {
+      routePath: "/studio/api/members",
+      request: (cookie) => request("/studio/api/members", { cookie }),
+    },
+    {
       routePath: "/studio/api/schema",
       request: (cookie) => request("/studio/api/schema", { cookie }),
     },
