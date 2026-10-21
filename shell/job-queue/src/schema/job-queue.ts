@@ -5,6 +5,7 @@ import {
   index,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createId } from "@brains/utils/id";
 import type {
   SqliteIntegerColumn,
@@ -208,6 +209,12 @@ export const jobQueue: JobQueueTable = sqliteTable(
     ),
     // Index for source filtering
     jobSourceIdx: index("idx_job_queue_source").on(table.source),
+    // An enqueue that deduplicates by key reads only that key's active jobs.
+    deduplicationIdx: index("idx_job_queue_deduplication").on(
+      table.type,
+      sql`json_extract(${table.metadata}, '$.deduplicationKey')`,
+      table.status,
+    ),
   }),
 );
 

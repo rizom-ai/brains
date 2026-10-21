@@ -251,6 +251,7 @@ export class JobQueueRepository {
     const activeJobs = await this.getActiveDeduplicationCandidates(
       transaction,
       jobData.type,
+      deduplicationKey,
     );
     const duplicate = this.deduplicator.findDuplicate(
       activeJobs,
@@ -307,16 +308,39 @@ export class JobQueueRepository {
     };
   }
 
+  /**
+   * The type's active jobs a new one could duplicate: with a key, only that
+   * key's, found through the deduplication index. Reading every active job of
+   * the type made each enqueue cost as much as the queue was long, so a burst
+   * of thousands of jobs held the thread for seconds.
+   */
   private async getActiveDeduplicationCandidates(
     transaction: Transaction,
     type: string,
+    deduplicationKey: string | undefined,
   ): Promise<DeduplicationCandidate[]> {
-    const result = await transaction.execute({
-      sql: `SELECT \`id\`, \`status\`, \`createdAt\`, \`metadata\`
-            FROM \`job_queue\`
-            WHERE \`type\` = ? AND \`status\` IN (?, ?)`,
-      args: [type, JOB_STATUS.PENDING, JOB_STATUS.PROCESSING],
-    });
+    const result = await transaction.execute(
+      deduplicationKey
+        ? {
+            sql: `SELECT \`id\`, \`status\`, \`createdAt\`, \`metadata\`
+                  FROM \`job_queue\`
+                  WHERE \`type\` = ?
+                    AND json_extract(\`metadata\`, '$.deduplicationKey') = ?
+                    AND \`status\` IN (?, ?)`,
+            args: [
+              type,
+              deduplicationKey,
+              JOB_STATUS.PENDING,
+              JOB_STATUS.PROCESSING,
+            ],
+          }
+        : {
+            sql: `SELECT \`id\`, \`status\`, \`createdAt\`, \`metadata\`
+                  FROM \`job_queue\`
+                  WHERE \`type\` = ? AND \`status\` IN (?, ?)`,
+            args: [type, JOB_STATUS.PENDING, JOB_STATUS.PROCESSING],
+          },
+    );
     return result.rows.map((row) => this.parseDeduplicationCandidate(row));
   }
 

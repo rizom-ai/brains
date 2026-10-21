@@ -1,0 +1,1 @@
+CREATE INDEX `idx_job_queue_deduplication` ON `job_queue` (`type`,json_extract(`metadata`, '$.deduplicationKey'),`status`);
