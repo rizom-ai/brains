@@ -1,14 +1,7 @@
 import type { ContentFormatter } from "../types";
 import { z, type ZodType } from "@brains/utils/zod";
 import { remark } from "remark";
-import type {
-  Root,
-  Heading,
-  Paragraph,
-  PhrasingContent,
-  RootContent,
-  ListItem,
-} from "mdast";
+import type { Root, Heading, RootContent } from "mdast";
 import { getErrorMessage } from "@brains/utils/error";
 
 const recordSchema = z.record(z.string(), z.unknown());
@@ -141,7 +134,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private readSections(markdown: string): Record<string, unknown> {
     const tree = this.processor.parse(markdown);
     const sections = this.extractSections(tree, 2);
-    return this.buildDataFromSections(sections, this.config.mappings);
+    return this.buildDataFromSections(sections, this.config.mappings, markdown);
   }
 
   /**
@@ -362,6 +355,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private buildDataFromSections(
     sections: Map<string, RootContent[]>,
     mappings: FieldMapping[],
+    source: string,
     depth: number = 2,
   ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
@@ -371,7 +365,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
       // Handle custom parser if provided
       if (mapping.type === "custom" && mapping.parser && section) {
-        const textValue = this.getTextFromSection(section);
+        const textValue = this.getTextFromSection(section, source);
         const value = mapping.parser(textValue);
         this.setValueByPath(result, mapping.key, value);
       } else if (mapping.type === "object" && mapping.children && section) {
@@ -380,6 +374,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         const objectValue = this.buildDataFromSections(
           subsections,
           mapping.children,
+          source,
           depth + 1,
         );
         this.setValueByPath(result, mapping.key, objectValue);
@@ -391,11 +386,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
             section,
             depth + 1,
             mapping.itemMappings,
+            source,
           );
           this.setValueByPath(result, mapping.key, items);
         } else {
           // Extract simple list items
-          const items = this.extractSimpleArrayItems(section);
+          const items = this.extractSimpleArrayItems(section, source);
           this.setValueByPath(
             result,
             mapping.key,
@@ -404,7 +400,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         }
       } else if (section) {
         // Extract text content for string/number types
-        const textValue = this.getTextFromSection(section);
+        const textValue = this.getTextFromSection(section, source);
         const value = mapping.type === "number" ? Number(textValue) : textValue;
         this.setValueByPath(result, mapping.key, value);
       }
@@ -447,79 +443,49 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   }
 
   /**
-   * Extract text content from a section
+   * A section's text as authored: the markdown source between its first and
+   * last node, so links, code, quotes and headings inside it survive. The
+   * template's placeholder comments are not content.
    */
-  private getTextFromSection(content: RootContent[]): string {
-    const textParts: string[] = [];
-
-    for (const node of content) {
-      if (node.type === "paragraph") {
-        const text = this.extractTextFromParagraph(node);
-        if (text) {
-          textParts.push(text);
-        }
-      } else if (node.type === "list") {
-        // Extract text from list items
-        const list = node;
-        for (const item of list.children) {
-          const itemText = this.extractTextFromListItem(item);
-          if (itemText) {
-            textParts.push(`- ${itemText}`);
-          }
-        }
-      }
-    }
-
-    // Join multiple paragraphs with newlines
-    return textParts.join("\n");
+  private getTextFromSection(content: RootContent[], source: string): string {
+    const authored = content.filter((node) => !this.isPlaceholderComment(node));
+    return this.unescapeBlockMarkup(this.sourceOf(authored, source));
   }
 
-  /**
-   * Extract text from a paragraph node.
-   *
-   * Preserves inline markdown emphasis (`*em*`) and strong (`**strong**`)
-   * so layouts that opt into custom rendering (e.g. an accent-highlight
-   * treatment for `*...*` runs) can still see the author's markup.
-   * Plain consumers that read the string as-is receive the markers as
-   * literal characters — that's faithful to what was authored.
-   */
-  private extractTextFromParagraph(paragraph: Paragraph): string {
-    return this.extractInlineText(paragraph.children).trim();
+  /** The source text spanning `nodes`, or "" when there are none. */
+  private sourceOf(nodes: readonly RootContent[], source: string): string {
+    const start = nodes[0]?.position?.start.offset;
+    const end = nodes.at(-1)?.position?.end.offset;
+    if (start === undefined || end === undefined) return "";
+    return source.slice(start, end).trim();
   }
 
-  /**
-   * Walk a phrasing-content tree and emit a string that re-serializes
-   * inline markup. Used by paragraph + list-item extraction so both
-   * treat emphasis consistently.
-   */
-  private extractInlineText(children: readonly PhrasingContent[]): string {
-    const parts: string[] = [];
-    for (const child of children) {
-      if (child.type === "text") {
-        parts.push(this.extractTextValue(child));
-      } else if (child.type === "emphasis") {
-        const inner = this.extractInlineText(child.children);
-        if (inner) parts.push(`*${inner}*`);
-      } else if (child.type === "strong") {
-        const inner = this.extractInlineText(child.children);
-        if (inner) parts.push(`**${inner}**`);
-      }
-    }
-    return parts.join("");
+  private isPlaceholderComment(node: RootContent): boolean {
+    return node.type === "html" && node.value.trim().startsWith("<!--");
+  }
+
+  /** Undo {@link escapeBlockMarkup} on read. */
+  private unescapeBlockMarkup(value: string): string {
+    return value.replace(/^(\s*)\\#/gm, "$1#");
   }
 
   /**
    * Extract simple array items from list nodes
    */
-  private extractSimpleArrayItems(content: RootContent[]): string[] {
+  private extractSimpleArrayItems(
+    content: RootContent[],
+    source: string,
+  ): string[] {
     const items: string[] = [];
 
     for (const node of content) {
       if (node.type === "list") {
         const listNode = node;
         for (const item of listNode.children) {
-          // List.children is already typed as ListItem[]
-          const text = this.extractTextFromListItem(item);
+          // Each item reads back as the markdown it was written as.
+          const text = this.unescapeBlockMarkup(
+            this.sourceOf(item.children, source),
+          );
           if (text) {
             items.push(text);
           }
@@ -537,6 +503,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     content: RootContent[],
     targetDepth: number,
     itemMappings: FieldMapping[],
+    source: string,
   ): Record<string, unknown>[] {
     const items: Record<string, unknown>[] = [];
     let currentItemContent: RootContent[] = [];
@@ -553,6 +520,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
           const item = this.buildDataFromSections(
             subsections,
             itemMappings,
+            source,
             targetDepth + 1,
           );
           items.push(item);
@@ -575,29 +543,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       const item = this.buildDataFromSections(
         subsections,
         itemMappings,
+        source,
         targetDepth + 1,
       );
       items.push(item);
     }
 
     return items;
-  }
-
-  /**
-   * Extract text from a list item
-   */
-  private extractTextFromListItem(listItem: ListItem): string {
-    const parts: string[] = [];
-
-    for (const child of listItem.children) {
-      if (child.type === "paragraph") {
-        const text = this.extractTextFromParagraph(child);
-        if (text) {
-          parts.push(text);
-        }
-      }
-    }
-
-    return parts.join("\n");
   }
 }
