@@ -17,6 +17,11 @@ import {
 } from "../src/render-book";
 import { writeBook } from "../src/write-book";
 
+/** No fetch: every book here is read from its reader. */
+async function noFetch(url: string): Promise<string> {
+  throw new Error(`No fetch for ${url}`);
+}
+
 const longParagraph = Array.from(
   { length: 400 },
   (_, index) => `Satz ${index} steht hier.`,
@@ -178,10 +183,12 @@ books:
       - siglum: EB-II
         title: Zweiter Theil
 `);
-    await importBooks(manifest, brainData, fromSource);
+    await importBooks(manifest, brainData, noFetch, { ekgwb: fromSource });
     const again = await mkdtemp(join(tmpdir(), "book-import-again-"));
     try {
-      await importBooks(manifest, again, await corpusReader(brainData));
+      await importBooks(manifest, again, noFetch, {
+        ekgwb: await corpusReader(brainData),
+      });
 
       expect(await treeOf(again)).toEqual(await treeOf(brainData));
     } finally {

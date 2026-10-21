@@ -61,6 +61,17 @@ export function germanSlug(text: string): string {
   );
 }
 
+/** A file name's room for its title's slug, beside its order and suffix, in a name of 255 bytes. */
+const NAME_ROOM = 255 - ORDER_DIGITS - "-.md".length;
+
+/** A title's slug as a file or folder name: as much of it as a name holds, cut at a word. */
+function nameSlug(title: string): string {
+  const slug = germanSlug(title);
+  if (slug.length <= NAME_ROOM) return slug;
+  const cut = slug.slice(0, NAME_ROOM);
+  return cut.slice(0, Math.max(cut.lastIndexOf("-"), 1));
+}
+
 function padded(order: number): string {
   return String(order).padStart(ORDER_DIGITS, "0");
 }
@@ -117,7 +128,7 @@ function placeEntries(units: BookUnit[]): PlacedEntry[] {
         const key = unit.parents.slice(0, depth + 1).join("\u0000");
         const existing = state.folders.get(key);
         if (existing) return existing;
-        const folder = `${padded(firstOrder)}-${germanSlug(unit.parents[depth] ?? "")}`;
+        const folder = `${padded(firstOrder)}-${nameSlug(unit.parents[depth] ?? "")}`;
         state.folders.set(key, folder);
         return folder;
       });
@@ -134,20 +145,22 @@ function placeEntries(units: BookUnit[]): PlacedEntry[] {
   ).entries;
 }
 
-/** Top-level parts, each linked at its first entry. */
+/**
+ * Top-level parts, each linked at its first entry; a part's later entries
+ * follow it, and a title repeated further on is another part.
+ */
 function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
-  const lines = entries.reduce<{ seen: Set<string>; lines: string[] }>(
+  const lines = entries.reduce<{ last: string | null; lines: string[] }>(
     (state, entry) => {
       const heading = entry.unit.parents[0] ?? entry.unit.title;
-      if (state.seen.has(heading)) return state;
-      state.seen.add(heading);
+      if (heading === state.last) return state;
       const href = `/books/${bookSectionSlug(book.slug, entry.order)}`;
       return {
-        seen: state.seen,
+        last: heading,
         lines: [...state.lines, `- [${heading}](${href})`],
       };
     },
-    { seen: new Set(), lines: [] },
+    { last: null, lines: [] },
   ).lines;
   return `## Contents\n\n${lines.join("\n")}\n`;
 }
@@ -187,7 +200,7 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
     path: [
       paths.sections,
       ...entry.folders,
-      `${padded(entry.order)}-${germanSlug(entry.unit.title)}.md`,
+      `${padded(entry.order)}-${nameSlug(entry.unit.title)}.md`,
     ].join("/"),
     markdown: generateMarkdownWithFrontmatter(`${entry.body}\n`, {
       title: entry.unit.title,

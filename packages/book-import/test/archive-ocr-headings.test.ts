@@ -1,0 +1,191 @@
+import { describe, expect, it } from "bun:test";
+import {
+  createSpelling,
+  headingLineOf,
+  headingOf,
+  isWordy,
+  namesTitle,
+  retitled,
+} from "../src/adapters/archive-ocr-headings";
+
+describe("createSpelling", () => {
+  it("cases each word as the text spells it, and keeps an initial a capital", () => {
+    const { cased } = createSpelling([
+      "Die Kranke war dreißig Jahre alt, als Miss Lucy kam.",
+      // The OCR leaves single small letters about the page.
+      "r u r",
+    ]);
+
+    expect(cased("MISS LUCY R., DREISSIG JAHRE")).toBe(
+      "Miss Lucy R., dreißig Jahre",
+    );
+  });
+});
+
+describe("createSpelling after a full stop", () => {
+  it("opens a subtitle with a capital, but no word after a date's number or a lettered label", () => {
+    const { cased } = createSpelling([
+      "Das Fest fand am 26. und 27. Juni statt, und Vogt und andere kamen.",
+    ]);
+
+    expect(cased("Centralfest zu Lausanne. (26. und 27. Juni 1859.)")).toBe(
+      "Centralfest zu Lausanne. (26. und 27. Juni 1859.)",
+    );
+    expect(cased("16. Nachtrag. a) K. Vogt und La Cimentaire.")).toBe(
+      "16. Nachtrag. a) K. Vogt und La Cimentaire.",
+    );
+    expect(cased("NACHTRAG. DIE SACHE")).toBe("Nachtrag. Die Sache");
+    // A number that opens the title labels it.
+    expect(cased("1. DIE SACHE")).toBe("1. Die Sache");
+  });
+});
+
+describe("createSpelling after an apostrophe", () => {
+  it("keeps a possessive s small", () => {
+    const { cased } = createSpelling([
+      "Le Bon schildert die Masse, wie Le Bon es sieht.",
+    ]);
+
+    expect(cased("LE BON’S SCHILDERUNG")).toBe("Le Bon’s Schilderung");
+  });
+});
+
+describe("headingLineOf", () => {
+  it("reads a numbered chapter however it names itself", () => {
+    expect(headingLineOf("1. KAPITEL", 80)?.kind).toBe("chapter");
+    expect(headingLineOf("IX. VORLESUNG", 80)?.kind).toBe("chapter");
+  });
+});
+
+describe("headingLineOf on a chapter named by its ordinal", () => {
+  it("reads an ordinal chapter, however long the ordinal, with its full stop", () => {
+    expect(headingLineOf("Erstes Kapitel.", 50)).toEqual({
+      kind: "chapter",
+      numeral: "Erstes",
+      named: true,
+    });
+    expect(headingLineOf("Siebentes Kapitel.", 50)).toEqual({
+      kind: "chapter",
+      numeral: "Siebentes",
+      named: true,
+    });
+  });
+});
+
+describe("headingLineOf on a part spelled the old way", () => {
+  it("reads Erster Theil as a part, and keeps its spelling", () => {
+    expect(headingLineOf("Erster Theil.", 79)).toEqual({
+      kind: "part",
+      text: "Erster Theil",
+    });
+    expect(headingLineOf("Zweiter Teil", 79)).toEqual({
+      kind: "part",
+      text: "Zweiter Teil",
+    });
+  });
+});
+
+describe("headingLineOf on a section's name", () => {
+  it("reads a preface's or a closing section's name as a heading, however set", () => {
+    expect(headingLineOf("Vorwort.", 50)).toEqual({
+      kind: "caps",
+      text: "Vorwort.",
+      size: 50,
+    });
+    expect(headingLineOf("Nachtrag", 50)?.kind).toBe("caps");
+    expect(headingLineOf("Vorwort und Dank", 50)).toBeNull();
+  });
+});
+
+describe("headingLineOf on a title with its qualifier", () => {
+  it("reads a title in capitals with a bracketed qualifier as a title", () => {
+    expect(
+      headingLineOf("DR. FERENCZI SANDOR (Zum 50. Geburtstag)", 80)?.kind,
+    ).toBe("caps");
+  });
+});
+
+describe("headingOf", () => {
+  it("reads a lettered heading that names a part as a part", () => {
+    const heading = headingOf([
+      { kind: "letter", letter: "C" },
+      { kind: "caps", text: "THEORETISCHER TEIL", size: 80 },
+    ]);
+
+    expect(heading.level).toBe(0);
+  });
+});
+
+describe("isWordy", () => {
+  const spelling = createSpelling([
+    "Die Traumzensur entstellt den Traum; die Traumzensur ist frei.",
+    // Scraps the OCR read from a picture.
+    "Eee Free Eee",
+  ]);
+
+  it("takes a title in capitals made of the work's words", () => {
+    expect(isWordy("DIE TRAUMZENSUR", spelling)).toBe(true);
+  });
+
+  it("leaves out a picture's scraps, however often the OCR repeats them", () => {
+    expect(isWordy("RE EEE FREE EEE EEE", spelling)).toBe(false);
+    expect(isWordy("ST NR NREEN ES RE E", spelling)).toBe(false);
+  });
+});
+
+describe("createSpelling, roman numerals", () => {
+  it("keeps a roman numeral in a title as printed", () => {
+    const { cased } = createSpelling(["Der Anhang folgt dem Text."]);
+
+    expect(cased("Anhang II.")).toBe("Anhang II.");
+    expect(cased("ANHANG III")).toBe("Anhang III");
+  });
+});
+
+describe("createSpelling, apostrophes", () => {
+  it("lowers only a possessive s after an apostrophe, not a name", () => {
+    const { cased } = createSpelling(["Die Triebe der Frau."]);
+
+    expect(cased("oder Clemence d'Harville.")).toBe(
+      "Oder Clemence d'Harville.",
+    );
+    expect(cased("FREUD'S TRÄUME")).toBe("Freud's Träume");
+  });
+});
+
+describe("retitled", () => {
+  const uses =
+    (counts: Record<string, number>) =>
+    (word: string): number =>
+      counts[word.toLowerCase()] ?? 0;
+
+  it("spells a title word the text never uses as the text spells it with a t for a k or l", () => {
+    expect(
+      retitled(
+        "Die kürkische Frage im Parlamenk. — Russische Diplomalie.",
+        uses({ türkische: 5, parlament: 3, diplomatie: 1 }),
+      ),
+    ).toBe("Die türkische Frage im Parlament. — Russische Diplomatie.");
+  });
+
+  it("leaves a word the text uses, however much more it uses a t", () => {
+    expect(retitled("Das Werk.", uses({ werk: 1, wert: 50 }))).toBe(
+      "Das Werk.",
+    );
+  });
+});
+
+describe("namesTitle, closely", () => {
+  it("names a heading by its whole title, not one that runs on from it", () => {
+    expect(
+      namesTitle("Die türkische Frage.", "Die türkische Frage.", true),
+    ).toBe(true);
+    expect(
+      namesTitle(
+        "Die türkische Frage im Unterhaus.",
+        "Die türkische Frage.",
+        true,
+      ),
+    ).toBe(false);
+  });
+});

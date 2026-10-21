@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 export interface PoliteFetchOptions {
@@ -9,6 +10,10 @@ export interface PoliteFetchOptions {
   userAgent: string;
   /** Minimum time between two requests to the source. */
   minIntervalMs: number;
+  /** Headers a source asks for, such as the cookie of its bot check. */
+  headersFor?: (url: string) => Record<string, string>;
+  /** First pause before asking again when the source is unavailable; doubles each time. */
+  retryDelayMs?: number;
   fetchFn?: FetchText;
 }
 
@@ -18,13 +23,44 @@ export type FetchText = (
   init: { headers: Record<string, string> },
 ) => Promise<Response>;
 
-export type PoliteFetch = (url: string) => Promise<string>;
+/** Text from a source, kept in the cache; bytes, such as page images, not kept. */
+export type PoliteFetch = ((url: string) => Promise<string>) & {
+  bytes: (url: string) => Promise<Uint8Array>;
+};
 
 function cachePath(cacheDir: string, url: string): string {
   return join(
     cacheDir,
     `${createHash("sha256").update(url).digest("hex")}.txt`,
   );
+}
+
+/** Answers that mean the source is briefly unavailable, not that the page is wrong. */
+function isTransient(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+const RETRIES = 4;
+
+/** A charset an answer or its page names: charset=ISO-8859-1. */
+const CHARSET = /charset\s*=\s*["']?([\w-]+)/i;
+
+/**
+ * An answer's text in the charset its header names, else the one its page's
+ * meta tag names, else UTF-8: old pages are often Latin-1, said only in the page.
+ */
+async function decoded(response: Response): Promise<string> {
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const header = CHARSET.exec(response.headers.get("content-type") ?? "")?.[1];
+  const head = new TextDecoder("latin1").decode(bytes.slice(0, 1024));
+  const meta = /<meta[^>]*charset[^>]*>/i.exec(head)?.[0];
+  const named = header ?? (meta ? CHARSET.exec(meta)?.[1] : undefined);
+  try {
+    return new TextDecoder(named ?? "utf-8").decode(bytes);
+  } catch {
+    // A charset the decoder does not know is read as UTF-8, the web's default.
+    return new TextDecoder("utf-8").decode(bytes);
+  }
 }
 
 async function readCached(path: string): Promise<string | null> {
@@ -38,36 +74,93 @@ async function readCached(path: string): Promise<string | null> {
 
 /**
  * Fetch text from a source one request at a time, at most one per interval,
- * identifying the importer and serving every repeat from the cache.
+ * identifying the importer and serving every repeat from the cache. A source
+ * that is briefly unavailable is asked again after a growing pause.
  */
 export function createPoliteFetch(options: PoliteFetchOptions): PoliteFetch {
   const fetchFn = options.fetchFn ?? fetch;
   const state = { queue: Promise.resolve(), last: 0 };
 
-  const request = async (url: string): Promise<string> => {
+  const retryDelayMs = options.retryDelayMs ?? 5000;
+
+  // A timer may end a little early under load; the clock decides.
+  const waitTurn = async (): Promise<void> => {
     const wait = state.last + options.minIntervalMs - Date.now();
-    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-    state.last = Date.now();
-    const response = await fetchFn(url, {
-      headers: { "user-agent": options.userAgent },
-    });
-    if (!response.ok) throw new Error(`${response.status} ${url}`);
-    return response.text();
+    if (wait <= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    return waitTurn();
   };
 
-  return async (url) => {
-    const path = cachePath(options.cacheDir, url);
-    const cached = await readCached(path);
-    if (cached !== null) return cached;
+  const request = async (url: string, retries: number): Promise<Response> => {
+    await waitTurn();
+    const pending = fetchFn(url, {
+      headers: {
+        "user-agent": options.userAgent,
+        ...(options.headersFor?.(url) ?? {}),
+      },
+    });
+    // The interval runs from the request, not from before it.
+    state.last = Date.now();
+    const again = async (): Promise<Response> => {
+      const pause = retryDelayMs * 2 ** (RETRIES - retries);
+      await new Promise((resolve) => setTimeout(resolve, pause));
+      return request(url, retries - 1);
+    };
+    const response = await pending.catch((error: unknown) => {
+      // A request the network lost, its name not looked up in time or its
+      // connection reset, is asked again as a briefly unavailable source is.
+      if (retries > 0) return null;
+      throw error;
+    });
+    if (response === null) return again();
+    if (response.ok) return response;
+    if (retries > 0 && isTransient(response.status)) return again();
+    throw new Error(`${response.status} ${url}`);
+  };
 
-    const turn = state.queue.then(() => request(url));
+  // Requests wait their turn in one queue, whatever they fetch.
+  const queued = (url: string): Promise<Response> => {
+    const turn = state.queue.then(() => request(url, RETRIES));
     state.queue = turn.then(
       () => undefined,
       () => undefined,
     );
-    const text = await turn;
-    await mkdir(options.cacheDir, { recursive: true });
-    await writeFile(path, text);
-    return text;
+    return turn;
   };
+
+  const text = async (url: string): Promise<string> => {
+    const path = cachePath(options.cacheDir, url);
+    const cached = await readCached(path);
+    if (cached !== null) return cached;
+    const body = await decoded(await queued(url));
+    await mkdir(options.cacheDir, { recursive: true });
+    await writeFile(path, body);
+    return body;
+  };
+
+  return Object.assign(text, {
+    bytes: async (url: string): Promise<Uint8Array> =>
+      new Uint8Array(await (await queued(url)).arrayBuffer()),
+  });
+}
+
+/** Where the importer keeps what it fetched and recognised. */
+export function importerCacheDir(): string {
+  return (
+    process.env["BOOK_IMPORT_CACHE"] ?? join(homedir(), ".cache", "book-import")
+  );
+}
+
+/** The importer's fetch: cached in the user's cache, one request a second. */
+export function createImporterFetch(): PoliteFetch {
+  return createPoliteFetch({
+    cacheDir: importerCacheDir(),
+    userAgent: "rizom-brains-book-import (yeehaa@rizom.ai)",
+    minIntervalMs: 1000,
+    // The Textarchiv lets a client through its bot check with this cookie.
+    headersFor: (url) =>
+      url.startsWith("https://www.deutschestextarchiv.de/")
+        ? { cookie: "verified=1" }
+        : {},
+  });
 }
