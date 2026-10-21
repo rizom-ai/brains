@@ -20,6 +20,12 @@ import {
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 const adapter = new ActionItemAdapter();
 
+/** The brain's members, as the auth service lists them. */
+const MEMBERS = [
+  { id: "u-alex", name: "Alex Morgan" },
+  { id: "u-sam", name: "Sam Rivera" },
+];
+
 const niels: StudioWorkspaceActor = {
   interfaceType: "studio",
   userId: "u-niels",
@@ -89,6 +95,7 @@ async function registered(
   await registerBoardWorkspace(context, {
     now: () => NOW,
     visibility: "shared",
+    members: async () => MEMBERS,
   });
   if (!registration) throw new Error("Board was not registered");
   return registration;
@@ -339,7 +346,7 @@ describe("the Board workspace", () => {
             entityId: "req-1",
             title: "Reply about the field notes",
             text: "Grace asks whether we would share our field notes.",
-            assignee: "Alex Morgan",
+            assigneeId: "u-alex",
           },
         },
         niels,
@@ -395,7 +402,7 @@ describe("the Board workspace", () => {
           input: {
             title: "Order name badges",
             text: "Two hundred, with the new logo.",
-            assignee: "Alex Morgan",
+            assigneeId: "u-alex",
           },
         },
         niels,
@@ -410,6 +417,63 @@ describe("the Board workspace", () => {
     expect(links).toContain('"label":"Open in editor"');
     expect(links).not.toContain("Inbox source");
     expect(links).not.toContain("Conversation summary");
+  });
+
+  it("offers the brain's members to assign a new card to", async () => {
+    const registration = await registered(await brain([]));
+    const view = JSON.stringify(await registration.dataProvider(niels, {}));
+
+    expect(view).toContain('"name":"assigneeId"');
+    expect(view).toContain('"control":"select"');
+    expect(view).toContain('{"value":"u-alex","label":"Alex Morgan"}');
+    expect(view).toContain('{"value":"u-sam","label":"Sam Rivera"}');
+  });
+
+  it("assigns a new card to the member chosen, by id", async () => {
+    const context = await brain([]);
+    const registration = await registered(context);
+    if (!registration.actionHandler) throw new Error("Board has no actions");
+
+    await registration.actionHandler(
+      {
+        actionId: "create",
+        input: { title: "Rent tables", assigneeId: "u-sam" },
+      },
+      niels,
+    );
+
+    const [stored] = await context.entityService.listEntities(
+      {
+        entityType: "action-item",
+        options: { filter: { visibilityScope: "shared" } },
+      },
+      actionItemSchema,
+    );
+    expect(stored?.metadata.assignedTo).toEqual([
+      { name: "Sam Rivera", id: "user:u-sam" },
+    ]);
+  });
+
+  it("refuses to assign a card to someone who is not a member", async () => {
+    const context = await brain([]);
+    const registration = await registered(context);
+    if (!registration.actionHandler) throw new Error("Board has no actions");
+
+    expect(
+      await registration.actionHandler(
+        {
+          actionId: "create",
+          input: { title: "Rent tables", assigneeId: "u-gone" },
+        },
+        niels,
+      ),
+    ).toEqual({ status: "That person is not a member of this brain." });
+    expect(
+      await context.entityService.listEntities({
+        entityType: "action-item",
+        options: { filter: { visibilityScope: "shared" } },
+      }),
+    ).toEqual([]);
   });
 
   it("adds a note under the signed-in name", async () => {

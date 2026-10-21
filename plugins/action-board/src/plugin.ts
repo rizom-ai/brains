@@ -5,6 +5,7 @@ import {
   type ServicePluginContext,
   type Tool,
 } from "@brains/plugins";
+import { getActiveAuthService } from "@brains/auth-service";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import {
@@ -13,6 +14,7 @@ import {
   trackHref,
 } from "./board-workspace";
 import { ActionItemInboxSource } from "./inbox-source";
+import { boardMembers } from "./members";
 import { createActionItemUpdateTool } from "./tools/action-item-update";
 
 const actionBoardConfigSchema: z.ZodObject<{
@@ -80,6 +82,8 @@ export class ActionBoardPlugin extends ServicePlugin<
     this.boardUrl = await registerBoardWorkspace(context, {
       visibility: this.config.cardVisibility,
       projectGrouping: this.config.projectGrouping,
+      members: async () =>
+        boardMembers((await getActiveAuthService()?.listUsers()) ?? []),
     });
   }
 

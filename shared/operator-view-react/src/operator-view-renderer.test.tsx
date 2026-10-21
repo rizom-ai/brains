@@ -1486,6 +1486,71 @@ describe("OperatorViewRenderer confirmations", () => {
     ).toContain("This card changed; add it again.");
   });
 
+  it("lets an optional select be left empty, sending nothing for it", async () => {
+    const invocations: RuntimeOperatorActionControl[] = [];
+    const data: RuntimeStudioWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "action",
+            actionId: "create",
+            label: "New card",
+            input: {},
+            form: {
+              submitLabel: "Add to To do",
+              fields: [
+                {
+                  name: "title",
+                  label: "Title",
+                  control: "text",
+                  required: true,
+                },
+                {
+                  name: "assigneeId",
+                  label: "Assign to",
+                  control: "select",
+                  required: false,
+                  options: [
+                    { value: "u-alex", label: "Alex Morgan" },
+                    { value: "u-sam", label: "Sam Rivera" },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data,
+          onAction: async (invocation) => {
+            invocations.push(invocation);
+            return {};
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    const select = container.querySelector<HTMLSelectElement>(
+      'select[name="assigneeId"]',
+    );
+    const title = container.querySelector<HTMLInputElement>(
+      'input[name="title"]',
+    );
+    if (!select || !title) throw new Error("Expected the form");
+    expect(
+      Array.from(select.options).map((option) => option.textContent),
+    ).toEqual(["None", "Alex Morgan", "Sam Rivera"]);
+    expect(select.value).toBe("");
+    title.value = "Order name badges";
+    await clickButton("Add to To do");
+
+    expect(invocations[0]?.input).toEqual({ title: "Order name badges" });
+  });
+
   it("shows a prepared summary in the dialog and executes with its token", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     await act(async () => {

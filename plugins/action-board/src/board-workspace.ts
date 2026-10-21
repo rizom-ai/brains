@@ -149,8 +149,16 @@ const projectsSchema = z.object({
   selected: rollupSchema.optional(),
 });
 
+const memberSchema: z.ZodObject<{ id: z.ZodString; name: z.ZodString }> =
+  z.object({ id: z.string(), name: z.string() });
+
+/** A brain member a card can be assigned to. */
+export type BoardMember = z.output<typeof memberSchema>;
+
 const dataSchema = z.object({
   cards: z.array(cardSchema),
+  /** Who a card can be assigned to: the brain's members. */
+  members: z.array(memberSchema),
   open: openCardSchema.optional(),
   track: trackSchema.optional(),
   /** Present when the brain defines a project grouping over action items. */
@@ -225,7 +233,8 @@ const trackAction = defineWorkspaceAction({
     entityId: z.string().min(1),
     title: z.string().trim().min(1).max(500),
     text: z.string().max(4_000),
-    assignee: z.string().max(200).optional(),
+    /** The member who should do it. */
+    assigneeId: z.string().max(200).optional(),
   }),
   output: moveResultSchema,
 });
@@ -236,7 +245,8 @@ const createAction = defineWorkspaceAction({
   input: z.object({
     title: z.string().trim().min(1).max(500),
     text: z.string().max(4_000).optional(),
-    assignee: z.string().max(200).optional(),
+    /** The member who should do it. */
+    assigneeId: z.string().max(200).optional(),
   }),
   output: moveResultSchema,
 });
@@ -409,6 +419,7 @@ const boardWorkspace = defineStudioWorkspace({
                       action: trackAction,
                       label: "Track on the board",
                       input: {
+                        ...unassignable(data.members),
                         sourceId: data.track.sourceId,
                         entityType: data.track.entityType,
                         entityId: data.track.entityId,
@@ -421,10 +432,7 @@ const boardWorkspace = defineStudioWorkspace({
                         fields: {
                           title: { label: "Title", control: "text" as const },
                           text: { label: "Details", control: "text" as const },
-                          assignee: {
-                            label: "Assign to",
-                            control: "text" as const,
-                          },
+                          ...assigneeField(data.members),
                         },
                       },
                       result: trackResult,
@@ -438,14 +446,14 @@ const boardWorkspace = defineStudioWorkspace({
         id: "new-card",
         action: createAction,
         label: "New card",
-        input: {},
+        input: unassignable(data.members),
         form: {
           presentation: "disclosure" as const,
           submitLabel: "Add to To do",
           fields: {
             title: { label: "Title", control: "text" as const },
             text: { label: "Details", control: "text" as const },
-            assignee: { label: "Assign to", control: "text" as const },
+            ...assigneeField(data.members),
           },
         },
         result: createResult,
@@ -482,6 +490,38 @@ const boardWorkspace = defineStudioWorkspace({
     ],
   }),
 });
+
+/** The Assign to choice, among the brain's members; none when it has none. */
+function assigneeField(members: readonly BoardMember[]): {
+  assigneeId?: {
+    label: string;
+    control: "select";
+    options: { value: string; label: string }[];
+  };
+} {
+  if (members.length === 0) return {};
+  return {
+    assigneeId: {
+      label: "Assign to",
+      control: "select",
+      options: members.map((member) => ({
+        value: member.id,
+        label: member.name,
+      })),
+    },
+  };
+}
+
+/**
+ * With no members to choose from, the form offers no Assign to, so the action
+ * input carries the empty choice instead: Studio needs every input field
+ * either on the form or bound.
+ */
+function unassignable(members: readonly BoardMember[]): {
+  assigneeId?: string;
+} {
+  return members.length === 0 ? { assigneeId: "" } : {};
+}
 
 function cardItem(card: BoardCard): {
   id: string;
@@ -629,7 +669,11 @@ export interface BoardWorkspaceDeps {
   projectGrouping?: string;
   /** The visibility the brain gives action items, for cards tracked from the Inbox. */
   visibility: ContentVisibility;
+  /** The brain's members, who cards can be assigned to; none where unknown. */
+  members?: () => Promise<readonly BoardMember[]>;
 }
+
+const NOT_A_MEMBER = "That person is not a member of this brain.";
 
 /** Registers the Board workspace; a no-op where Studio does not run. */
 export async function registerBoardWorkspace(
@@ -637,6 +681,17 @@ export async function registerBoardWorkspace(
   deps: BoardWorkspaceDeps,
 ): Promise<string | undefined> {
   const now = (): Date => deps.now?.() ?? new Date();
+  const members = async (): Promise<BoardMember[]> => [
+    ...((await deps.members?.()) ?? []),
+  ];
+  /** The member an action names, or false when it names someone else. */
+  const assigneeFor = async (
+    assigneeId: string | undefined,
+  ): Promise<{ name: string; id: string } | undefined | false> => {
+    if (!assigneeId) return undefined;
+    const member = (await members()).find(({ id }) => id === assigneeId);
+    return member ? { name: member.name, id: `user:${member.id}` } : false;
+  };
 
   const move = async (
     caller: OperatorCaller | null,
@@ -747,6 +802,7 @@ export async function registerBoardWorkspace(
               )
             : null;
           return {
+            members: await members(),
             cards: shown
               .flatMap((cards) => cards.slice(0, COLUMN_LIMIT))
               .map((entity) => toCard(entity, at)),
@@ -788,6 +844,8 @@ export async function registerBoardWorkspace(
             if (!caller) {
               throw new Error("Tracking requires a signed-in member");
             }
+            const assignee = await assigneeFor(input.assigneeId);
+            if (assignee === false) return { status: NOT_A_MEMBER };
             const result = await trackInboxItem(
               {
                 entityService: context.entityService,
@@ -802,7 +860,7 @@ export async function registerBoardWorkspace(
                 },
                 title: input.title,
                 text: input.text,
-                assignee: input.assignee,
+                assignee,
                 actor: { kind: "user", userId: caller.actor.id },
                 actorName: caller.actor.displayName,
               },
@@ -815,6 +873,8 @@ export async function registerBoardWorkspace(
             if (!caller) {
               throw new Error("Adding a card requires a signed-in member");
             }
+            const assignee = await assigneeFor(input.assigneeId);
+            if (assignee === false) return { status: NOT_A_MEMBER };
             await createBoardCard(
               {
                 entityService: context.entityService,
@@ -824,7 +884,7 @@ export async function registerBoardWorkspace(
               {
                 title: input.title,
                 text: input.text ?? "",
-                assignee: input.assignee,
+                assignee,
                 actor: { kind: "user", userId: caller.actor.id },
                 actorName: caller.actor.displayName,
               },
