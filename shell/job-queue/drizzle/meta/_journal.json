@@ -43,6 +43,13 @@
       "when": 1792583389313,
       "tag": "0005_noisy_mentor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792589509512,
+      "tag": "0006_bright_red_ghost",
+      "breakpoints": true
     }
   ]
 }
