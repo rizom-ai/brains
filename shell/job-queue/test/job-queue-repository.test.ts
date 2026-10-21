@@ -1064,6 +1064,43 @@ describe("JobQueueRepository fenced attempts", () => {
     }
   });
 
+  it("finds a batch's jobs through the root-job index, not by reading the queue", async () => {
+    const plan = await client.execute({
+      sql: `EXPLAIN QUERY PLAN
+        SELECT * FROM job_queue
+        WHERE json_extract(metadata, '$.rootJobId') = ?
+        ORDER BY createdAt, id`,
+      args: ["batch-1"],
+    });
+
+    expect(plan.rows.map((row) => String(row["detail"]))).toEqual([
+      expect.stringContaining(
+        "SEARCH job_queue USING INDEX idx_job_queue_root_job",
+      ),
+    ]);
+  });
+
+  it("lists a batch's jobs in the order they were queued", async () => {
+    const batchJob = (id: string, createdAt: number): TestInsertJob =>
+      createTestJob({
+        id,
+        createdAt,
+        metadata: { operationType: "data_processing", rootJobId: "batch-1" },
+      });
+    await repository.insert(batchJob("second", 2_000));
+    await repository.insert(
+      createTestJob({
+        id: "other",
+        metadata: { operationType: "data_processing", rootJobId: "batch-2" },
+      }),
+    );
+    await repository.insert(batchJob("first", 1_000));
+
+    const jobs = await repository.getJobsByRootJobId("batch-1");
+
+    expect(jobs.map((job) => job.id)).toEqual(["first", "second"]);
+  });
+
   it("deduplicates by key among many other keys' active jobs", async () => {
     await Promise.all(
       Array.from({ length: 50 }, (_, index) =>
