@@ -1,5 +1,73 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.581
+  - @brains/atproto-contracts@0.2.0-alpha.581
+  - @brains/content-formatters@0.2.0-alpha.581
+  - @brains/contracts@0.2.0-alpha.581
+  - @brains/http-signatures@0.2.0-alpha.581
+  - @brains/ui-library@0.2.0-alpha.581
+  - @brains/utils@0.2.0-alpha.581
+  - @brains/auth-service@0.2.0-alpha.581
+  - @brains/mcp-service@0.2.0-alpha.581
+  - @brains/plugins@0.2.0-alpha.581
+  - @brains/templates@0.2.0-alpha.581
+
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.580
+  - @brains/atproto-contracts@0.2.0-alpha.580
+  - @brains/content-formatters@0.2.0-alpha.580
+  - @brains/contracts@0.2.0-alpha.580
+  - @brains/http-signatures@0.2.0-alpha.580
+  - @brains/ui-library@0.2.0-alpha.580
+  - @brains/utils@0.2.0-alpha.580
+  - @brains/auth-service@0.2.0-alpha.580
+  - @brains/mcp-service@0.2.0-alpha.580
+  - @brains/plugins@0.2.0-alpha.580
+  - @brains/templates@0.2.0-alpha.580
+
+## 0.2.0-alpha.579
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.579
+  - @brains/atproto-contracts@0.2.0-alpha.579
+  - @brains/content-formatters@0.2.0-alpha.579
+  - @brains/contracts@0.2.0-alpha.579
+  - @brains/http-signatures@0.2.0-alpha.579
+  - @brains/ui-library@0.2.0-alpha.579
+  - @brains/utils@0.2.0-alpha.579
+  - @brains/auth-service@0.2.0-alpha.579
+  - @brains/mcp-service@0.2.0-alpha.579
+  - @brains/plugins@0.2.0-alpha.579
+  - @brains/templates@0.2.0-alpha.579
+
+## 0.2.0-alpha.578
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.578
+  - @brains/atproto-contracts@0.2.0-alpha.578
+  - @brains/content-formatters@0.2.0-alpha.578
+  - @brains/contracts@0.2.0-alpha.578
+  - @brains/http-signatures@0.2.0-alpha.578
+  - @brains/ui-library@0.2.0-alpha.578
+  - @brains/utils@0.2.0-alpha.578
+  - @brains/auth-service@0.2.0-alpha.578
+  - @brains/mcp-service@0.2.0-alpha.578
+  - @brains/plugins@0.2.0-alpha.578
+  - @brains/templates@0.2.0-alpha.578
+
 ## 0.2.0-alpha.577
 
 ### Patch Changes

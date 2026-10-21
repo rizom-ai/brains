@@ -1,3 +1,4 @@
+import { deleteEntityFts } from "./entity-fts";
 import type { EntityDB } from "./db";
 import { publishedStatusCondition } from "./published-condition";
 import type {
@@ -792,9 +793,7 @@ export class EntityQueries {
       );
 
     // Delete FTS5 index entry
-    await this.db.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-    );
+    await deleteEntityFts(this.db, entityType, id);
 
     // Delete entity
     await this.db

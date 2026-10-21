@@ -103,6 +103,7 @@ export const statsStyles: Record<
     gridTemplateColumns: {
       default: "repeat(4,minmax(0,1fr))",
       "@media (max-width: 640px)": "repeat(2,minmax(0,1fr))",
+      "@container operator (max-width: 640px)": "repeat(2,minmax(0,1fr))",
     },
     gap: 0,
     alignItems: "stretch",

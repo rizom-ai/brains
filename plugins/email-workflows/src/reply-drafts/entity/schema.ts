@@ -16,11 +16,17 @@ type EmailReplyDraftFrontmatterSchema = z.ZodObject<{
 
 export const emailReplyDraftFrontmatterSchema: EmailReplyDraftFrontmatterSchema =
   z.strictObject({
-    mailItemId: inboxItemIdSchema,
-    revision: z.number().int().positive(),
+    mailItemId: inboxItemIdSchema.meta({ studioWidget: "provenance" }),
+    revision: z.number().int().positive().meta({ studioWidget: "hidden" }),
     status: emailReplyDraftStatusSchema,
-    sentAt: z.iso.datetime().optional(),
-    providerDeliveryId: z.string().trim().min(1).max(1_000).optional(),
+    sentAt: z.iso.datetime().optional().meta({ studioWidget: "provenance" }),
+    providerDeliveryId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(1_000)
+      .optional()
+      .meta({ studioWidget: "hidden" }),
   });
 
 type EmailReplyDraftMetadataSchema = z.ZodObject<

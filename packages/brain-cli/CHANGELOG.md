@@ -1,5 +1,31 @@
 # @rizom/brain
 
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- [#702](https://github.com/rizom-ai/brains/pull/702) [`4d7f623`](https://github.com/rizom-ai/brains/commit/4d7f623c4df9dfcf4fdafecd70b20ff8939f1aba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that crashed during a large import starts again in seconds. Recovering the import batches a crashed start left open read the whole job queue once per batch, so each crash made the next start slower until it missed its startup deadline every time; a batch's jobs are now found through an index on their root job.
+
+- [#701](https://github.com/rizom-ai/brains/pull/701) [`4a8b28e`](https://github.com/rizom-ai/brains/commit/4a8b28ed24df9b18d418b256ba425acb09088132) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's workspace cards hold together at every width. Blocks embedded in Studio now lay out by the width they are given, not only the window's, so beside the section navigation a board pairs its columns instead of squeezing four into a narrow pane, two-column pages stack, and rows wrap. A matrix lays out by its own width in any host, and a board card stacks its title over its actions in a narrow column, so titles no longer break mid-word. Facts flow into columns on wide pages and give a long value its own line. Routes tables span their column and read as compact entries on phones. Action forms gain a `textarea` control, used for a board card's details. Fields use the interface's type size on desktop, keeping 16px on phones and touch screens. Dialog and menu shadows no longer draw a pale halo on the paper climate. An empty series collapses to its timeline, Traffic's overview totals caption their change instead of repeating the total, Content sync's runs read like Site's builds, and a run of skipped site builds folds into one entry.
+
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- [#700](https://github.com/rizom-ai/brains/pull/700) [`6c0edde`](https://github.com/rizom-ai/brains/commit/6c0eddefe8e4401a8e4fab08ab5475baa44c8c0b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's editor no longer shows frontmatter as JSON on any entity type. Lists and objects read as content; a record or unknown value is read-only instead of a blank box that would overwrite it. Fields written by the brain rather than a person show as read-only facts and disappear when empty: where an FAQ, decision, summary, link, mail item, reply draft, contact request, social post, agent, book, newsletter, SWOT or wish came from. People show by name, never by id, and internal hashes and refresh state are off the form. Decisions are headed by their text and summaries by their channel and day, not their ids.
+
+## 0.2.0-alpha.579
+
+### Patch Changes
+
+- [#699](https://github.com/rizom-ai/brains/pull/699) [`d0e5a7f`](https://github.com/rizom-ai/brains/commit/d0e5a7f9e15e54213b700f3579f016a3fb80b9bd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain no longer stalls its worker for seconds at a time under heavy content changes, which on a small server let the supervisor take the worker for hung and stop the brain. The local database client gives the event loop a turn whenever a run of statements has kept it for 50 ms, so timers and the worker's heartbeat keep running; deleting an entity removes its keyword-search row by rowid instead of reading the whole search index; a job deduplicated by key reads only that key's active jobs, through a new index; the embedding backfill runs once the brain is serving instead of holding up its start; and removing entities whose files are gone checks every entity of a type, not only the first 1,000.
+
+## 0.2.0-alpha.578
+
+### Patch Changes
+
+- [#697](https://github.com/rizom-ai/brains/pull/697) [`c088ccd`](https://github.com/rizom-ai/brains/commit/c088ccda264377d50c7755179dd05718a28a3cd0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's editor shows an action item the way the board does. Assigned To lists people by name and adds them from the brain's members; Requested By names who added the card. Where a card came from (origin, channel, source, capture time) shows as read-only facts and disappears when empty, the body hash is no longer on the form, and the page is headed by the card's text instead of its id. Entity adapters can now name an entry for display with an optional `displayTitle`, and schemas can mark fields for Studio with `studioWidget` metadata (`members`, `people`, `provenance`, `hidden`).
+
 ## 0.2.0-alpha.577
 
 ### Patch Changes

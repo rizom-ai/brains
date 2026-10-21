@@ -12,6 +12,7 @@ import { addDays } from "../lib/iso-week";
 import { readStoredDays } from "../lib/traffic-days";
 import type { TrafficReports } from "../reports/traffic-reports";
 import type { createTrafficByEntityReport } from "../reports/traffic-by-entity";
+import { changeCaption } from "../lib/change-caption";
 
 export interface TrafficWorkspaceReports extends TrafficReports {
   byEntity: ReturnType<typeof createTrafficByEntityReport>;
@@ -94,11 +95,6 @@ const publishedWork = defineEntityCatalog({
   id: "traffic-published-work",
   label: "Published work",
 });
-
-function changeCaption(change: number | null): string {
-  if (change === null) return "nothing to compare with";
-  return `${change > 0 ? "+" : ""}${change}% on the period before`;
-}
 
 function busiestDay(
   points: TrafficWorkspaceData["series"]["points"],

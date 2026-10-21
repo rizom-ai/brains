@@ -5,6 +5,7 @@ import {
   bunTestTargets,
   collectWorkspacePackages,
   packagesMissingTestScript,
+  packagesRebuildingInTests,
   readRootScripts,
   readWorkflowInvokedScripts,
   scriptPathsThatDoNotExist,
@@ -14,6 +15,7 @@ import {
   collectLocalFactories,
   uncoveredScriptTestFiles,
   workspaceScriptTestFiles,
+  type WorkspacePackage,
 } from "./test-wiring-inventory";
 
 const repositoryRoot = join(import.meta.dir, "..");
@@ -77,6 +79,24 @@ describe("packagesMissingTestScript", () => {
     ]);
 
     expect(missing).toEqual(["a"]);
+  });
+});
+
+describe("packagesRebuildingInTests", () => {
+  test("reports test scripts that rebuild the package turbo already built", () => {
+    const pkg = (dir: string, test: string): WorkspacePackage => ({
+      dir,
+      name: dir,
+      scripts: { test },
+      hasTestFiles: true,
+    });
+    expect(
+      packagesRebuildingInTests([
+        pkg("shared/a", "bun run build && bun test"),
+        pkg("shared/b", "bun test"),
+        pkg("shared/c", "bun run build:ui && bun test"),
+      ]),
+    ).toEqual(["shared/a", "shared/c"]);
   });
 });
 
@@ -166,6 +186,14 @@ describe("repository test wiring", () => {
     const packages = await collectWorkspacePackages(repositoryRoot);
 
     expect(packagesMissingTestScript(packages)).toEqual([]);
+  });
+
+  // Turbo builds a package before its tests and before its dependents' tests.
+  // A test script that builds again rewrites dist while dependents read it.
+  test("no package test script rebuilds what turbo already built", async () => {
+    const packages = await collectWorkspacePackages(repositoryRoot);
+
+    expect(packagesRebuildingInTests(packages)).toEqual([]);
   });
 
   test("every scripts/ test file is run by a root script that CI invokes", async () => {

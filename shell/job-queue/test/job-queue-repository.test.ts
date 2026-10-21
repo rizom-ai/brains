@@ -73,6 +73,21 @@ class CommitConflictTransaction implements Transaction {
   }
 }
 
+/** A transaction that records the statements it runs. */
+class RecordingTransaction extends CommitConflictTransaction {
+  private readonly recorded: InStatement[];
+
+  constructor(delegate: Transaction, recorded: InStatement[]) {
+    super(delegate, { commitCalls: 0, remainingFailures: 0 });
+    this.recorded = recorded;
+  }
+
+  public override execute(statement: InStatement): Promise<ResultSet> {
+    this.recorded.push(statement);
+    return super.execute(statement);
+  }
+}
+
 function createTestJob(overrides: Partial<InsertJobQueue> = {}): TestInsertJob {
   const { id: overrideId, ...restOverrides } = overrides;
   const id = overrideId ?? createId();
@@ -1044,6 +1059,153 @@ describe("JobQueueRepository fenced attempts", () => {
       expect((await committingRepository.getStatus(job.id))?.status).toBe(
         JOB_STATUS.PENDING,
       );
+    } finally {
+      database.client.close();
+    }
+  });
+
+  it("finds a batch's jobs through the root-job index, not by reading the queue", async () => {
+    const plan = await client.execute({
+      sql: `EXPLAIN QUERY PLAN
+        SELECT * FROM job_queue
+        WHERE json_extract(metadata, '$.rootJobId') = ?
+        ORDER BY createdAt, id`,
+      args: ["batch-1"],
+    });
+
+    expect(plan.rows.map((row) => String(row["detail"]))).toEqual([
+      expect.stringContaining(
+        "SEARCH job_queue USING INDEX idx_job_queue_root_job",
+      ),
+    ]);
+  });
+
+  it("lists a batch's jobs in the order they were queued", async () => {
+    const batchJob = (id: string, createdAt: number): TestInsertJob =>
+      createTestJob({
+        id,
+        createdAt,
+        metadata: { operationType: "data_processing", rootJobId: "batch-1" },
+      });
+    await repository.insert(batchJob("second", 2_000));
+    await repository.insert(
+      createTestJob({
+        id: "other",
+        metadata: { operationType: "data_processing", rootJobId: "batch-2" },
+      }),
+    );
+    await repository.insert(batchJob("first", 1_000));
+
+    const jobs = await repository.getJobsByRootJobId("batch-1");
+
+    expect(jobs.map((job) => job.id)).toEqual(["first", "second"]);
+  });
+
+  it("deduplicates by key among many other keys' active jobs", async () => {
+    await Promise.all(
+      Array.from({ length: 50 }, (_, index) =>
+        repository.insert(
+          createTestJob({
+            type: "type:a",
+            metadata: {
+              operationType: "data_processing",
+              rootJobId: `other-${index}`,
+              deduplicationKey: `other-${index}`,
+            },
+          }),
+        ),
+      ),
+    );
+    const target = createTestJob({
+      id: "target-job",
+      type: "type:a",
+      metadata: {
+        operationType: "data_processing",
+        rootJobId: "target-job",
+        deduplicationKey: "target",
+      },
+    });
+    await repository.insert(target);
+
+    const repeated = await repository.enqueueAtomic({
+      jobData: createAtomicTestJob({
+        type: "type:a",
+        metadata: {
+          operationType: "data_processing",
+          rootJobId: "repeated",
+          deduplicationKey: "target",
+        },
+      }),
+      strategy: "skip",
+      deduplicationKey: "target",
+    });
+    const fresh = createAtomicTestJob({
+      type: "type:a",
+      metadata: {
+        operationType: "data_processing",
+        rootJobId: "fresh",
+        deduplicationKey: "fresh",
+      },
+    });
+    const inserted = await repository.enqueueAtomic({
+      jobData: fresh,
+      strategy: "skip",
+      deduplicationKey: "fresh",
+    });
+
+    expect(repeated).toEqual({ kind: "skipped", jobId: target.id });
+    expect(inserted).toEqual({ kind: "inserted", jobId: fresh.id });
+  });
+
+  it("finds a key's active jobs through the deduplication index, not by reading the type's", async () => {
+    const database = createJobQueueDatabase(config);
+    const statements: InStatement[] = [];
+    const recordingClient: JobQueueWriteTransactionClient = {
+      transaction: async (mode) =>
+        new RecordingTransaction(
+          await database.client.transaction(mode),
+          statements,
+        ),
+    };
+    const recording = new JobQueueRepository(
+      database.db,
+      recordingClient,
+      `${database.url}:dedup-plan-test`,
+      createSilentLogger(),
+    );
+
+    try {
+      await recording.enqueueAtomic({
+        jobData: createAtomicTestJob({
+          type: "type:a",
+          metadata: {
+            operationType: "data_processing",
+            rootJobId: "planned",
+            deduplicationKey: "planned-key",
+          },
+        }),
+        strategy: "skip",
+        deduplicationKey: "planned-key",
+      });
+      const candidates = statements.find(
+        (statement) =>
+          typeof statement !== "string" &&
+          /^\s*SELECT/u.test(statement.sql) &&
+          statement.sql.includes("deduplicationKey"),
+      );
+      if (!candidates || typeof candidates === "string") {
+        throw new Error("Expected the candidate query to filter by key");
+      }
+      const plan = await client.execute({
+        sql: `EXPLAIN QUERY PLAN ${candidates.sql}`,
+        args: candidates.args ?? [],
+      });
+
+      expect(plan.rows.map((row) => String(row["detail"]))).toEqual([
+        expect.stringContaining(
+          "SEARCH job_queue USING INDEX idx_job_queue_deduplication",
+        ),
+      ]);
     } finally {
       database.client.close();
     }

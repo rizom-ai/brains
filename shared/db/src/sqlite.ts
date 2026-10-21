@@ -11,6 +11,7 @@ import {
 } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import { yieldWhenStarved } from "@brains/utils/yield-to-event-loop";
 
 export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
 
@@ -112,7 +113,11 @@ async function retryContention<T>(
 
 /**
  * A local client that never waits on a lock natively: busy waiting blocks the
- * application thread. Every entry point that can need a write lock instead
+ * application thread. Local libSQL also answers every statement synchronously,
+ * so a run of awaited statements never gives the event loop a turn by itself:
+ * timers, I/O and a supervised worker's heartbeat starve until the run ends.
+ * Each entry point therefore first yields once the loop has gone its
+ * starvation budget without a turn. Every entry point that can need a write lock instead
  * retries a refusal asynchronously under one policy: single statements
  * (`execute`), batches and migrations, which a refusal leaves unapplied, and
  * transaction acquisition. Statements inside an open transaction and
@@ -156,10 +161,11 @@ export function createSqliteClient(
     // so a refused one applied nothing and is safe to run again.
     function execute(stmt: InStatement): Promise<ResultSet>;
     function execute(sql: string, args?: InArgs): Promise<ResultSet>;
-    function execute(
+    async function execute(
       stmtOrSql: InStatement | string,
       args?: InArgs,
     ): Promise<ResultSet> {
+      await yieldWhenStarved();
       return retryContention(
         () =>
           typeof stmtOrSql === "string"
@@ -169,15 +175,23 @@ export function createSqliteClient(
       );
     }
     client.execute = execute;
-    client.batch = (
+    client.batch = async (
       stmts: Parameters<Client["batch"]>[0],
       mode?: TransactionMode,
-    ): Promise<ResultSet[]> =>
-      retryContention(() => rawBatch(stmts, mode), reopening);
-    client.migrate = (stmts: InStatement[]): Promise<ResultSet[]> =>
-      retryContention(() => rawMigrate(stmts), reopening);
-    client.transaction = (mode?: TransactionMode): Promise<Transaction> =>
-      retryContention(() => begin(mode), reopening);
+    ): Promise<ResultSet[]> => {
+      await yieldWhenStarved();
+      return retryContention(() => rawBatch(stmts, mode), reopening);
+    };
+    client.migrate = async (stmts: InStatement[]): Promise<ResultSet[]> => {
+      await yieldWhenStarved();
+      return retryContention(() => rawMigrate(stmts), reopening);
+    };
+    client.transaction = async (
+      mode?: TransactionMode,
+    ): Promise<Transaction> => {
+      await yieldWhenStarved();
+      return retryContention(() => begin(mode), reopening);
+    };
   }
   return client;
 }

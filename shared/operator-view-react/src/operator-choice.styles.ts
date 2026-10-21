@@ -90,14 +90,26 @@ export const choiceStyles: Record<
   attention: { color: "var(--console-warn)" },
   tools: {
     display: { default: "flex", ":is([hidden])": "none" },
-    alignItems: { default: "center", "@media (max-width: 640px)": "stretch" },
-    flexDirection: { default: "row", "@media (max-width: 640px)": "column" },
+    alignItems: {
+      default: "center",
+      "@media (max-width: 640px)": "stretch",
+      "@container operator (max-width: 640px)": "stretch",
+    },
+    flexDirection: {
+      default: "row",
+      "@media (max-width: 640px)": "column",
+      "@container operator (max-width: 640px)": "column",
+    },
     gap: 10,
     marginBottom: 10,
     minWidth: 0,
   },
   search: {
-    width: { default: "min(100%, 280px)", "@media (max-width: 640px)": "100%" },
+    width: {
+      default: "min(100%, 280px)",
+      "@media (max-width: 640px)": "100%",
+      "@container operator (max-width: 640px)": "100%",
+    },
     minWidth: 0,
     minHeight: { default: 0, "@media (max-width: 640px)": 44 },
     boxSizing: "border-box",
@@ -130,7 +142,11 @@ export const choiceStyles: Record<
     letterSpacing: ".06em",
     textTransform: "uppercase",
     minHeight: { default: 0, "@media (max-width: 640px)": 44 },
-    alignSelf: { default: "auto", "@media (max-width: 640px)": "start" },
+    alignSelf: {
+      default: "auto",
+      "@media (max-width: 640px)": "start",
+      "@container operator (max-width: 640px)": "start",
+    },
   },
   focus: {
     outlineStyle: { default: "none", ":focus-visible": "solid" },

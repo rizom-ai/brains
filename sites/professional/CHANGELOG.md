@@ -1,5 +1,85 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.581
+  - @brains/decks@0.2.0-alpha.581
+  - @brains/faq@0.2.0-alpha.581
+  - @brains/site-info@0.2.0-alpha.581
+  - @brains/topics@0.2.0-alpha.581
+  - @brains/profile@0.2.0-alpha.581
+  - @brains/content-formatters@0.2.0-alpha.581
+  - @brains/contracts@0.2.0-alpha.581
+  - @brains/site-atlas@0.2.0-alpha.581
+  - @brains/site-composition@0.2.0-alpha.581
+  - @brains/ui-library@0.2.0-alpha.581
+  - @brains/utils@0.2.0-alpha.581
+  - @brains/plugins@0.2.0-alpha.581
+  - @brains/templates@0.2.0-alpha.581
+
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.580
+  - @brains/decks@0.2.0-alpha.580
+  - @brains/faq@0.2.0-alpha.580
+  - @brains/site-info@0.2.0-alpha.580
+  - @brains/topics@0.2.0-alpha.580
+  - @brains/profile@0.2.0-alpha.580
+  - @brains/content-formatters@0.2.0-alpha.580
+  - @brains/contracts@0.2.0-alpha.580
+  - @brains/site-atlas@0.2.0-alpha.580
+  - @brains/site-composition@0.2.0-alpha.580
+  - @brains/ui-library@0.2.0-alpha.580
+  - @brains/utils@0.2.0-alpha.580
+  - @brains/plugins@0.2.0-alpha.580
+  - @brains/templates@0.2.0-alpha.580
+
+## 0.2.0-alpha.579
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.579
+  - @brains/decks@0.2.0-alpha.579
+  - @brains/faq@0.2.0-alpha.579
+  - @brains/site-info@0.2.0-alpha.579
+  - @brains/topics@0.2.0-alpha.579
+  - @brains/profile@0.2.0-alpha.579
+  - @brains/content-formatters@0.2.0-alpha.579
+  - @brains/contracts@0.2.0-alpha.579
+  - @brains/site-atlas@0.2.0-alpha.579
+  - @brains/site-composition@0.2.0-alpha.579
+  - @brains/ui-library@0.2.0-alpha.579
+  - @brains/utils@0.2.0-alpha.579
+  - @brains/plugins@0.2.0-alpha.579
+  - @brains/templates@0.2.0-alpha.579
+
+## 0.2.0-alpha.578
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.578
+  - @brains/decks@0.2.0-alpha.578
+  - @brains/faq@0.2.0-alpha.578
+  - @brains/site-info@0.2.0-alpha.578
+  - @brains/topics@0.2.0-alpha.578
+  - @brains/profile@0.2.0-alpha.578
+  - @brains/content-formatters@0.2.0-alpha.578
+  - @brains/contracts@0.2.0-alpha.578
+  - @brains/site-atlas@0.2.0-alpha.578
+  - @brains/site-composition@0.2.0-alpha.578
+  - @brains/ui-library@0.2.0-alpha.578
+  - @brains/utils@0.2.0-alpha.578
+  - @brains/plugins@0.2.0-alpha.578
+  - @brains/templates@0.2.0-alpha.578
+
 ## 0.2.0-alpha.577
 
 ### Patch Changes

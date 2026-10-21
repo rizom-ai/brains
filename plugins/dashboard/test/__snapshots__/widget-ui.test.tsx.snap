@@ -74,7 +74,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "attributes": [
             [
               "class",
-              "declarative-blocks xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw x62c7l xugsc6q",
+              "declarative-blocks xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw x62c7l xugsc6q x1c2rghm xyedrc3 x1tkkb8",
             ],
             [
               "data-operator-blocks",
@@ -102,7 +102,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                   "attributes": [
                     [
                       "class",
-                      "declarative-table-scroll operator-table-scroll x193iq5w xeuugli xw2csxc x1lliihq xfsj286 x1a92eo6 x18d9i69 x1yy75ev x1yieemc xsjhqdm x3y8eqj xqwvrdo xosa0jh x1668a04 x1defwea",
+                      "declarative-table-scroll operator-table-scroll x193iq5w xeuugli xw2csxc x1lliihq xplwmzv x22zvs4 xfsj286 x1a92eo6 x18d9i69 x1aciil0 xs4y3db x1yy75ev x1yieemc xsjhqdm x5zp4vj x1douzxv x3y8eqj xqwvrdo xosa0jh xvwifah x1rfhg52 x1668a04 x1defwea",
                     ],
                   ],
                   "children": [
@@ -110,7 +110,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                       "attributes": [
                         [
                           "class",
-                          "declarative-table operator-table x14atkfc x1j9oiuk x193iq5w x1mwwwfo xgi1xjn xfifm61",
+                          "declarative-table operator-table xh8yej3 x193iq5w x1mwwwfo xgi1xjn xfifm61",
                         ],
                       ],
                       "children": [
@@ -179,7 +179,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                               "attributes": [
                                 [
                                   "class",
-                                  "xf5m44m x1fdxwjo x1kvcy9f xjbqb8w xd8d5gp x1b32d6n x1gnnqk1 x1v17x4h",
+                                  "xf5m44m x1lu4wmf x15zwrp0 x1fdxwjo x1kvcy9f xjbqb8w xd8d5gp x1b32d6n x1gnnqk1 x1v17x4h",
                                 ],
                               ],
                               "children": [

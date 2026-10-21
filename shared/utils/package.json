@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.577",
+  "version": "0.2.0-alpha.581",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
@@ -64,7 +64,8 @@
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",
     "./expect-defined": "./src/expect-defined.ts",
-    "./is-record": "./src/is-record.ts"
+    "./is-record": "./src/is-record.ts",
+    "./yield-to-event-loop": "./src/yield-to-event-loop.ts"
   },
   "private": true,
   "scripts": {

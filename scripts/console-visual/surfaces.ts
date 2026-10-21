@@ -18,6 +18,7 @@ export function consoleSurfaces(): string[] {
     "studio-content-sync",
     "studio-site",
     "studio-publishing",
+    "studio-board",
     "studio-administration",
     "studio-administration-invitations",
     "studio-administration-invitations-form",
@@ -66,6 +67,39 @@ export function isStudioAppShellSurface(surface: string): boolean {
   );
 }
 
+/** Workspace surfaces captured at their own Studio workspace. */
+const WORKSPACE_SURFACES: Partial<Record<string, string>> = {
+  "studio-account": "studio:account",
+  "studio-overview": "studio:overview",
+  "studio-inbox": "unified-inbox:inbox",
+  "studio-content-sync": "directory-sync:sync",
+  "studio-site": "site-builder:site",
+  "studio-publishing": "content-pipeline:publishing",
+  "studio-board": "action-board:board",
+};
+
+function workspaceRoute(id: string): string {
+  return `/studio/workspaces/${encodeURIComponent(id)}`;
+}
+
+/**
+ * Whether a viewport captures a surface. The 1024 desktop keeps the section
+ * nav beside the content, the narrowest content a workspace gets on desktop;
+ * the library and editor have their own pinned layouts there.
+ */
+export function viewportCapturesSurface(
+  surface: string,
+  viewport: { width: number },
+): boolean {
+  if (viewport.width === 768) return !isStudioSecondarySurface(surface);
+  if (viewport.width === 1024)
+    return (
+      WORKSPACE_SURFACES[surface] !== undefined ||
+      surface.startsWith("studio-administration")
+    );
+  return true;
+}
+
 export interface SurfacePlan {
   /** Studio System surfaces swap the fixture type list to the system types. */
   reviewingSystem: boolean;
@@ -100,27 +134,17 @@ export function planSurface(
     isStudioSecondary;
   const route = isDashboard
     ? "/dashboard"
-    : surface === "studio-account"
-      ? "/studio/workspaces/studio%3Aaccount"
-      : surface === "studio-overview"
-        ? "/studio/workspaces/studio%3Aoverview"
-        : surface.startsWith("studio-chat")
-          ? "/chat"
-          : surface === "studio-inbox"
-            ? "/studio/workspaces/unified-inbox%3Ainbox"
-            : surface === "studio-content-sync"
-              ? "/studio/workspaces/directory-sync%3Async"
-              : surface === "studio-site"
-                ? "/studio/workspaces/site-builder%3Asite"
-                : surface === "studio-publishing"
-                  ? "/studio/workspaces/content-pipeline%3Apublishing"
-                  : surface.startsWith("studio-administration")
-                    ? "/studio/workspaces/admin%3Aadministration"
-                    : surface.startsWith("studio-system")
-                      ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
-                      : isStudioEditor
-                        ? "/studio/entities/posts/field-notes"
-                        : "/studio/entities/posts";
+    : surface.startsWith("studio-chat")
+      ? "/chat"
+      : surface.startsWith("studio-administration")
+        ? workspaceRoute("admin:administration")
+        : surface.startsWith("studio-system")
+          ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
+          : WORKSPACE_SURFACES[surface] !== undefined
+            ? workspaceRoute(WORKSPACE_SURFACES[surface])
+            : isStudioEditor
+              ? "/studio/entities/posts/field-notes"
+              : "/studio/entities/posts";
   const workspaceQuery = surface.startsWith("studio-administration-invitations")
     ? `&tab=invitations`
     : surface === "studio-administration-audit"

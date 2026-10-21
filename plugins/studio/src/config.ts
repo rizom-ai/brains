@@ -213,6 +213,12 @@ export function zodFieldToStudioWidget(
       );
       return { ...base, widget: "object", fields };
     }
+    // A record or an unknown value cannot be typed as text: it reads as
+    // structure instead of a blank box that would overwrite it.
+    case "record":
+    case "unknown":
+    case "any":
+      return { ...base, widget: "object" };
     case "literal":
       return { ...base, widget: "string" };
     default:

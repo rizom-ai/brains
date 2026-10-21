@@ -99,9 +99,11 @@ export const mailItemFrontmatterSchema: MailItemFrontmatterSchema =
     priority: mailPrioritySchema,
     status: mailStatusSchema,
     needsReply: z.boolean(),
-    receivedAt: z.iso.datetime(),
-    source: mailItemSourceSchema,
-    senderLabel: mailSenderLabelSchema.optional(),
+    receivedAt: z.iso.datetime().meta({ studioWidget: "provenance" }),
+    source: mailItemSourceSchema.meta({ studioWidget: "provenance" }),
+    senderLabel: mailSenderLabelSchema
+      .optional()
+      .meta({ studioWidget: "provenance" }),
     organization: z.string().min(1).max(200).optional(),
     requestedActions: z.array(z.string().min(1).max(240)).max(10),
   });
