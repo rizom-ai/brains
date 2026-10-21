@@ -60,3 +60,23 @@ export function parseStoredFaqBody(body: string): {
     .filter((alternative) => alternative.answer.length > 0);
   return { answer: answer.trim(), alternatives };
 }
+
+/*
+ * Sources once kept what they quoted (legacy) as "> " lines under their list
+ * item. The quotes are read past, and the next write leaves them out.
+ */
+const STORED_EXCERPT_LINE = /^\s*>/;
+
+/** The Sources section's markdown without the quotes sources kept before. */
+export function withoutStoredExcerpts(sources: string): string {
+  return sources
+    .split("\n")
+    .filter((line) => !STORED_EXCERPT_LINE.test(line))
+    .join("\n");
+}
+
+/** Whether a body's Sources section still keeps quotes. */
+export function hasStoredExcerpts(body: string): boolean {
+  const sources = body.split(/^## Sources[ \t]*$/m)[1]?.split(/^## /m)[0];
+  return sources !== undefined && withoutStoredExcerpts(sources) !== sources;
+}

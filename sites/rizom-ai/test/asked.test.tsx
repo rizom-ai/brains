@@ -18,14 +18,12 @@ const faqs = [
         id: "post:handoffs",
         title: "Handoffs between teams",
         url: "https://becca.rizom.ai/essays/handoffs",
-        excerpt: "Before anyone leaves a task we write three things down.",
         brain: { name: "Becca", url: "https://becca.rizom.ai/" },
       },
       {
         id: "post:what-a-brain-is",
         title: "What a brain is",
         url: "https://rizom.ai/essays/what-a-brain-is",
-        excerpt: null,
         brain: null,
       },
     ],
@@ -115,9 +113,7 @@ describe("the Asked-before chapter", () => {
     expect(row?.querySelector("a")?.getAttribute("href")).toBe(
       "https://becca.rizom.ai/essays/handoffs",
     );
-    expect(row?.querySelector("q")?.textContent).toBe(
-      "Before anyone leaves a task we write three things down.",
-    );
+    expect(row?.querySelector("q")).toBe(null);
     expect(first?.querySelector("strong")?.textContent).toBe("Becca's");
     expect(second?.getAttribute("data-ask-answer")).toBe("[]");
     expect(second?.querySelector(".asked__by")).toBe(null);

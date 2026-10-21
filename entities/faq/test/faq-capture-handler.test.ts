@@ -256,7 +256,6 @@ describe("FaqCaptureHandler", () => {
         id: "post:handoffs",
         title: "Handoffs between teams",
         url: "https://becca.rizom.ai/essays/handoffs",
-        excerpt: "Before anyone leaves a task we write three things down.",
         brain: { name: "Becca", url: "https://becca.rizom.ai/" },
       },
       {

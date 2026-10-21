@@ -15,7 +15,6 @@ type FaqItemSourceSchema = z.ZodObject<{
   id: z.ZodString;
   title: z.ZodString;
   url: z.ZodNullable<z.ZodString>;
-  excerpt: z.ZodNullable<z.ZodString>;
   brain: z.ZodNullable<
     z.ZodObject<{ name: z.ZodString; url: z.ZodNullable<z.ZodString> }>
   >;
@@ -26,7 +25,6 @@ export const faqItemSourceSchema: FaqItemSourceSchema = z.object({
   id: z.string(),
   title: z.string(),
   url: z.string().nullable(),
-  excerpt: z.string().nullable(),
   brain: z.object({ name: z.string(), url: z.string().nullable() }).nullable(),
 });
 
@@ -37,7 +35,6 @@ function itemSource(source: FaqSource): FaqItemSource {
     id: source.id,
     title: source.title,
     url: source.url ?? null,
-    excerpt: source.excerpt ?? null,
     brain: source.brain
       ? { name: source.brain.name, url: source.brain.url ?? null }
       : null,
