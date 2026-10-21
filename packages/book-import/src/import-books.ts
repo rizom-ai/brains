@@ -41,6 +41,7 @@ const manifestPartSchema: z.ZodObject<{
 interface BookFields {
   slug: z.ZodString;
   shortTitle: z.ZodOptional<z.ZodString>;
+  part: z.ZodOptional<z.ZodString>;
   published: z.ZodDefault<z.ZodBoolean>;
   author: z.ZodString;
   year: z.ZodNumber;
@@ -55,6 +56,11 @@ const bookFields: BookFields = {
   slug: z.string().min(1),
   /** A title short enough for a book's spine. */
   shortTitle: z.string().min(1).optional(),
+  /**
+   * In a book joined from several entries, the title this entry's sections
+   * sit under: "Vorwort zu Charcot, Neue Vorlesungen (1886)".
+   */
+  part: z.string().min(1).optional(),
   /** False for writings published only after the author's death. */
   published: z.boolean().default(true),
   author: z.string().min(1),
@@ -1232,6 +1238,24 @@ function loadersOf(
  * One book read from the entries that share its slug, each in turn: its
  * details are the first entry's, and it credits every source.
  */
+/** An entry's sections, set under the part it names. */
+function withPart(
+  load: () => Promise<LoadedBook>,
+  part: string | undefined,
+): () => Promise<LoadedBook> {
+  if (part === undefined) return load;
+  return async () => {
+    const { book, units } = await load();
+    return {
+      book,
+      units: units.map((unit) => ({
+        ...unit,
+        parents: [part, ...unit.parents],
+      })),
+    };
+  };
+}
+
 async function loadJoined(
   loads: Array<() => Promise<LoadedBook>>,
 ): Promise<LoadedBook> {
@@ -1265,7 +1289,9 @@ export async function importBooks(
   return slugs.reduce<Promise<ImportResult[]>>(async (done, slug) => {
     const results = await done;
     const { book, units } = await loadJoined(
-      loaders.filter((_, index) => manifest.books[index]?.slug === slug),
+      loaders
+        .map((load, index) => withPart(load, manifest.books[index]?.part))
+        .filter((_, index) => manifest.books[index]?.slug === slug),
     );
     if (units.length === 0) {
       throw new Error(`No sections found for ${book.slug}`);

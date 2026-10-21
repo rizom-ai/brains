@@ -1048,6 +1048,39 @@ books:
     );
   });
 
+  it("sets each entry's sections under the part it names", async () => {
+    const parted = piecesManifest
+      .replace(
+        "    citation: GW XIII\n",
+        "    citation: GW XIII\n    part: Aus den Gesammelten Werken\n",
+      )
+      .replace(
+        "    citation: Z II\n",
+        "    citation: Z II\n    part: Aus der Zeitschrift\n",
+      );
+    await importBooks(parseManifest(parted), brainData, fetchTwoVolumes);
+    const files = (
+      await Array.fromAsync(
+        new Bun.Glob("book/kleine-schriften/**/*.md").scan(brainData),
+      )
+    ).sort();
+    const headingsOf = async (file: string): Promise<unknown> =>
+      bookSectionAdapter.parseFrontMatter(
+        await readFile(join(brainData, file), "utf8"),
+        bookSectionAdapter.frontmatterSchema,
+      )["headings"];
+    const first = files[0];
+    const last = files.at(-1);
+    if (!first || !last) throw new Error("Expected sections");
+
+    expect(await headingsOf(first)).toEqual(
+      expect.arrayContaining(["Aus den Gesammelten Werken"]),
+    );
+    expect(await headingsOf(last)).toEqual(
+      expect.arrayContaining(["Aus der Zeitschrift"]),
+    );
+  });
+
   it("credits the scan of each volume a book is read from", async () => {
     await importBooks(
       parseManifest(piecesManifest),
