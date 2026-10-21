@@ -97,6 +97,8 @@ export class FaqPlugin extends EntityPlugin<
       // FAQs restate the brain's own answers; as search sources they would
       // feed unreviewed answers back into new ones.
       includeInBroadSearch: false,
+      // Sources moved from frontmatter to the body: read, then rewritten.
+      translatedFields: ["sources"],
       publish: { publishStatuses: ["published"] },
     };
   }

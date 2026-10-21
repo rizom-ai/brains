@@ -270,11 +270,12 @@ export class FaqCaptureHandler extends BaseJobHandler<
       question: classification.question,
       status: "draft",
       asked: 1,
-      ...(sources.length > 0 ? { sources } : {}),
     };
     const content = faqAdapter.createFaqContent(
       frontmatter,
       classification.answer,
+      [],
+      sources,
     );
 
     const match = await findSameFaq(this.deps, { content, visibility });

@@ -26,19 +26,6 @@ export const faqAlternativeSchema: FaqAlternativeSchema = z.object({
 
 export type FaqAlternative = z.output<typeof faqAlternativeSchema>;
 
-type FaqBodySchema = z.ZodObject<{
-  answer: z.ZodString;
-  alternatives: z.ZodArray<FaqAlternativeSchema>;
-}>;
-
-/** A FAQ body: the answer, then the alternatives below it. */
-export const faqBodySchema: FaqBodySchema = z.object({
-  answer: z.string(),
-  alternatives: z.array(faqAlternativeSchema),
-});
-
-export type FaqBody = z.output<typeof faqBodySchema>;
-
 type FaqSourceSchema = z.ZodObject<{
   id: z.ZodString;
   title: z.ZodString;
@@ -62,16 +49,33 @@ export const faqSourceSchema: FaqSourceSchema = z.object({
 
 export type FaqSource = z.output<typeof faqSourceSchema>;
 
+type FaqBodySchema = z.ZodObject<{
+  answer: z.ZodString;
+  sources: z.ZodOptional<z.ZodArray<FaqSourceSchema>>;
+  alternatives: z.ZodOptional<z.ZodArray<FaqAlternativeSchema>>;
+}>;
+
 /**
- * FAQ frontmatter: only what a reader needs. The body holds the answer and
- * any alternatives; which chat replies were counted is plugin state, not
- * part of the document.
+ * A FAQ body: the answer, the sources it drew on, then any alternatives.
+ * Empty lists are left out of the markdown, so they read back absent.
+ */
+export const faqBodySchema: FaqBodySchema = z.object({
+  answer: z.string(),
+  sources: z.array(faqSourceSchema).optional(),
+  alternatives: z.array(faqAlternativeSchema).optional(),
+});
+
+export type FaqBody = z.output<typeof faqBodySchema>;
+
+/**
+ * FAQ frontmatter: only what a reader needs. The body holds the answer, the
+ * sources it drew on and any alternatives; which chat replies were counted
+ * is plugin state, not part of the document.
  */
 type FaqFrontmatterSchema = z.ZodObject<{
   question: z.ZodString;
   status: typeof faqStatusSchema;
   asked: z.ZodDefault<z.ZodNumber>;
-  sources: z.ZodOptional<z.ZodArray<FaqSourceSchema>>;
   rank: z.ZodOptional<z.ZodNumber>;
 }>;
 
@@ -84,11 +88,6 @@ export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
     .int()
     .min(1)
     .default(1)
-    .meta({ studioWidget: "provenance" }),
-  /** What the answer drew on, kept from the reply that first gave it. */
-  sources: z
-    .array(faqSourceSchema)
-    .optional()
     .meta({ studioWidget: "provenance" }),
   /** The owner's place for it on a site, 1 first; unranked FAQs follow. */
   rank: z.number().int().min(1).optional(),
