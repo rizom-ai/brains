@@ -82,6 +82,7 @@ import {
   type SurfacePlan,
   consoleSurfaces,
   planSurface,
+  viewportCapturesSurface,
 } from "./console-visual/surfaces";
 
 /** Interactions that bring a surface into the state its capture pins. */
@@ -211,7 +212,7 @@ try {
         if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
           continue;
         const plan = planSurface(surface, STUDY_STATE);
-        if (plan.isStudioSecondary && viewport.width === 768) continue;
+        if (!viewportCapturesSurface(surface, viewport)) continue;
         const caseName = `${surface} ${viewport.width}x${viewport.height} ${climate}`;
         console.error(`→ ${caseName}`);
         await withDeadline(

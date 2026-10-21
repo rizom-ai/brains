@@ -8,6 +8,7 @@ import { renderDashboardPageHtml } from "@brains/dashboard";
 import type { studioAssetManifestSchema } from "../../plugins/studio/src/ui-assets";
 import type { createAdministrationFixture } from "../fixtures/studio-administration";
 import type { createDeliveryViewFixtures } from "../fixtures/studio-delivery-views";
+import type { createBoardFixture } from "../fixtures/studio-board";
 import type { createSyncViewFixture } from "../fixtures/studio-sync-view";
 import { systemFixtures } from "../fixtures/studio-system";
 import type { StudioStudyState } from "../fixtures/studio-study-state";
@@ -51,6 +52,7 @@ export interface FixtureRouteContext {
   workViews: Awaited<ReturnType<typeof createWorkViewFixtures>>;
   deliveryViews: Awaited<ReturnType<typeof createDeliveryViewFixtures>>;
   syncView: Awaited<ReturnType<typeof createSyncViewFixture>>;
+  board: Awaited<ReturnType<typeof createBoardFixture>>;
 }
 
 export interface FixtureRoutes {
@@ -296,6 +298,7 @@ export function createFixtureRoutes(
       (url): Promise<unknown> => context.workViews.inbox(workspaceQuery(url)),
     ],
     ["directory-sync:sync", (): Promise<unknown> => context.syncView()],
+    ["action-board:board", (): Promise<unknown> => context.board()],
     ["site-builder:site", (): Promise<unknown> => context.deliveryViews.site()],
     [
       "content-pipeline:publishing",
