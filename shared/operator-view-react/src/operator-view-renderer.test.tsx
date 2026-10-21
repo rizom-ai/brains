@@ -14,6 +14,7 @@ import { OperatorViewRenderer } from "./operator-view-renderer";
 import {
   OperatorActionButton,
   actionFailureMessage,
+  presentedActionResult,
 } from "./operator-view-actions";
 import type { OperatorViewComponents } from "./operator-view-host";
 
@@ -1393,6 +1394,96 @@ describe("OperatorViewRenderer confirmations", () => {
       );
     });
     expect(container.querySelector(".declarative-action-result")).toBeNull();
+  });
+
+  it("presents nothing for a reply that carries none of the declared fields", () => {
+    expect(
+      presentedActionResult(
+        {
+          actionId: "move",
+          label: "Move",
+          input: {},
+          result: {
+            title: "Move",
+            fields: [{ name: "status", label: "Outcome" }],
+          },
+        },
+        {},
+      ),
+    ).toBeNull();
+  });
+
+  const newCard = async (reply: Record<string, string>): Promise<void> => {
+    const data: RuntimeStudioWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "action",
+            actionId: "create",
+            label: "New card",
+            input: {},
+            form: {
+              presentation: "disclosure",
+              submitLabel: "Add to To do",
+              fields: [
+                {
+                  name: "title",
+                  label: "Title",
+                  control: "text",
+                  required: true,
+                },
+              ],
+            },
+            result: {
+              title: "New card",
+              fields: [{ name: "status", label: "Outcome" }],
+            },
+          },
+        ],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data,
+          onAction: async () => reply,
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+  };
+
+  const fillAndSubmit = async (): Promise<void> => {
+    const details = container.querySelector("details");
+    const title = container.querySelector<HTMLInputElement>(
+      'input[name="title"]',
+    );
+    if (!details || !title) throw new Error("Expected the New card form");
+    details.open = true;
+    title.value = "Order name badges";
+    await clickButton("Add to To do");
+  };
+
+  it("closes and clears a form whose action reports nothing, without a result box", async () => {
+    await newCard({});
+    await fillAndSubmit();
+
+    expect(container.querySelector(".declarative-action-result")).toBeNull();
+    expect(container.textContent).not.toContain("Completed.");
+    expect(container.querySelector("details")?.open).toBe(false);
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="title"]')?.value,
+    ).toBe("");
+  });
+
+  it("keeps a form open with its result when the action reports one", async () => {
+    await newCard({ status: "This card changed; add it again." });
+    await fillAndSubmit();
+
+    expect(container.querySelector("details")?.open).toBe(true);
+    expect(
+      container.querySelector(".declarative-action-result")?.textContent,
+    ).toContain("This card changed; add it again.");
   });
 
   it("shows a prepared summary in the dialog and executes with its token", async () => {

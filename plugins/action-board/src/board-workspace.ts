@@ -179,8 +179,11 @@ const boardSources = defineEntityCatalog({
   label: "Action items and their sources",
 });
 
-/** How a move went, in a sentence the board shows the mover. */
-const moveResultSchema = z.object({ status: z.string() });
+/**
+ * What went wrong with a board action, in a sentence for the person who ran
+ * it. An action that worked says nothing: the board itself shows the change.
+ */
+const moveResultSchema = z.object({ status: z.string().optional() });
 
 const moveResult = {
   title: "Move",
@@ -476,11 +479,6 @@ const boardWorkspace = defineStudioWorkspace({
             }
           : {}),
       },
-      {
-        type: "text",
-        id: "board-done-window",
-        text: `Done shows the ${DONE_LIMIT} most recently finished cards; older ones stay in the Library.`,
-      },
     ],
   }),
 });
@@ -643,7 +641,7 @@ export async function registerBoardWorkspace(
   const move = async (
     caller: OperatorCaller | null,
     request: { id: string; from: ActionItemStatus; to: ActionItemStatus },
-  ): Promise<{ status: string }> => {
+  ): Promise<{ status?: string }> => {
     if (!caller) throw new Error("Moving a card requires a signed-in member");
     const result = await moveActionItem(
       {
@@ -656,7 +654,7 @@ export async function registerBoardWorkspace(
     // Outcomes travel as the action result: the host redacts thrown errors.
     switch (result.status) {
       case "moved":
-        return { status: `Moved to ${STATUS_LABELS[request.to]}.` };
+        return {};
       case "not-found":
         return { status: "This card is no longer on the board." };
       case "conflict":
@@ -809,12 +807,9 @@ export async function registerBoardWorkspace(
                 actorName: caller.actor.displayName,
               },
             );
-            return {
-              status:
-                result.status === "tracked"
-                  ? "Tracked on the board."
-                  : "This Inbox item is already on the board.",
-            };
+            return result.status === "tracked"
+              ? {}
+              : { status: "This Inbox item is already on the board." };
           }),
           createAction.bind(bindingContext, async ({ caller, input }) => {
             if (!caller) {
@@ -834,7 +829,7 @@ export async function registerBoardWorkspace(
                 actorName: caller.actor.displayName,
               },
             );
-            return { status: "Added to To do." };
+            return {};
           }),
           noteAction.bind(bindingContext, async ({ caller, input }) => {
             if (!caller)
@@ -851,14 +846,14 @@ export async function registerBoardWorkspace(
                 actorName: caller.actor.displayName,
               },
             );
-            return {
-              status:
-                result.status === "noted"
-                  ? "Note added."
-                  : result.status === "not-found"
-                    ? "This card is no longer on the board."
-                    : "This card changed while you wrote; add the note again.",
-            };
+            return result.status === "noted"
+              ? {}
+              : {
+                  status:
+                    result.status === "not-found"
+                      ? "This card is no longer on the board."
+                      : "This card changed while you wrote; add the note again.",
+                };
           }),
         ],
       }),

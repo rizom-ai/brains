@@ -344,7 +344,7 @@ describe("the Board workspace", () => {
         },
         niels,
       ),
-    ).toEqual({ status: "Tracked on the board." });
+    ).toEqual({});
 
     // The follow-up link still names the item: the board says it is tracked.
     const after = JSON.stringify(
@@ -365,6 +365,14 @@ describe("the Board workspace", () => {
     const links = JSON.stringify(card?.links);
     expect(links).toContain('"label":"Inbox source"');
     expect(links).toContain('"entityType":"contact-request"');
+  });
+
+  it("explains no fetch limit under the board", async () => {
+    const registration = await registered(await brain([]));
+    const view = JSON.stringify(await registration.dataProvider(niels, {}));
+
+    expect(view).not.toContain("board-done-window");
+    expect(view).not.toContain("most recently finished");
   });
 
   it("offers a New card form on the board", async () => {
@@ -392,7 +400,7 @@ describe("the Board workspace", () => {
         },
         niels,
       ),
-    ).toEqual({ status: "Added to To do." });
+    ).toEqual({});
 
     const [card] = column(await board(registration), "open");
     expect(card?.title).toBe("Order name badges");
@@ -416,7 +424,7 @@ describe("the Board workspace", () => {
         { actionId: "note", input: { id: "a", text: "Started a draft." } },
         niels,
       ),
-    ).toEqual({ status: "Note added." });
+    ).toEqual({});
 
     const stored = await context.entityService.getEntity(
       { entityType: "action-item", id: "a", visibilityScope: "restricted" },
@@ -440,7 +448,8 @@ describe("the Board workspace", () => {
       niels,
     );
 
-    expect(outcome).toEqual({ status: "Moved to Blocked." });
+    // A move that lands says nothing: the card in its new column says it.
+    expect(outcome).toEqual({});
 
     const stored = await context.entityService.getEntity(
       { entityType: "action-item", id: "a", visibilityScope: "restricted" },
