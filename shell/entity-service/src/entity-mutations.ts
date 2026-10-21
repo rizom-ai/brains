@@ -1,3 +1,4 @@
+import { deleteEntityFts, insertEntityFts } from "./entity-fts";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
 import { EntityMutationReceiptStore } from "./entity-mutation-receipt-store";
@@ -1281,9 +1282,7 @@ export class EntityMutations {
   ): Promise<void> {
     await this.deleteFtsIndex(database, entityId, entityType);
     if (!this.isFullTextSearchable(entityType)) return;
-    await database.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
-    );
+    await insertEntityFts(database, entityType, entityId, content);
   }
 
   private async pruneFtsIndexIfExcluded(
@@ -1300,9 +1299,7 @@ export class EntityMutations {
     entityId: string,
     entityType: string,
   ): Promise<void> {
-    await database.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
+    await deleteEntityFts(database, entityType, entityId);
   }
 
   private isFullTextSearchable(entityType: string): boolean {

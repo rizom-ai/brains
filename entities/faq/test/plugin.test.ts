@@ -237,6 +237,17 @@ describe("FaqPlugin site surface", () => {
     ).toMatchObject({ includeInBroadSearch: false });
   });
 
+  it("moves sources stored in frontmatter into the body", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("faq"),
+    ).toMatchObject({ translatedFields: ["sources"] });
+  });
+
   it("makes publishing a FAQ a publish action", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,

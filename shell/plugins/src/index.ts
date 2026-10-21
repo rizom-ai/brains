@@ -67,6 +67,10 @@ export {
   materializePrompts,
 } from "./entity/prompt-resolver";
 export {
+  entityDisplayTitle,
+  type DisplayTitleAdapters,
+} from "./entity/display-title";
+export {
   createPendingEntity,
   failPendingEntity,
   saveProcessedEntity,

@@ -1,6 +1,6 @@
 # Console visual regression
 
-The committed baselines cover Dashboard, Chat (plain conversation and the card-states session), the Studio library and editor, Account, Administration, Inbox, Content sync, Site, and Publishing at 1440×1000, 768×1024, and 390×844 in both console climates.
+The committed baselines cover Dashboard, Chat (plain conversation and the card-states session), the Studio library and editor, Account, Administration, Inbox, Content sync, Site, Publishing, and a populated Board at 1440×1000, 768×1024, and 390×844 in both console climates. Studio workspaces are also captured at 1024×900, where the section navigation leaves them the narrowest desktop content width.
 
 The harness drives Chromium through `Bun.WebView`. Build the two client assets, provide a Chromium executable, then run the comparison:
 
@@ -44,4 +44,4 @@ After reviewing and approving an intentional visual change, regenerate all basel
 bun run visual:console --update
 ```
 
-The harness also asserts viewport width, document-level overflow, responsive editor/chat modes, modal-sheet bounds, and bottom composer/save-bar placement. A comparison fails when more than 0.2% of pixels differ beyond the per-channel tolerance. Failed captures are written to `artifacts/` for review and are not committed. Core CI builds both app bundles and runs this comparison with Chrome.
+The harness also asserts viewport width, document-level overflow, that no prose word breaks across lines, responsive editor/chat modes, modal-sheet bounds, and bottom composer/save-bar placement. A comparison fails when more than 0.2% of pixels differ beyond the per-channel tolerance. Failed captures are written to `artifacts/` for review and are not committed. Core CI builds both app bundles and runs this comparison with Chrome.

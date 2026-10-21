@@ -1,5 +1,181 @@
 # @brains/plugins
 
+## 0.2.0-alpha.585
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.585
+  - @brains/contracts@0.2.0-alpha.585
+  - @brains/site-composition@0.2.0-alpha.585
+  - @brains/utils@0.2.0-alpha.585
+  - @brains/ai-service@0.2.0-alpha.585
+  - @brains/content-service@0.2.0-alpha.585
+  - @brains/conversation-service@0.2.0-alpha.585
+  - @brains/entity-service@0.2.0-alpha.585
+  - @brains/identity-service@0.2.0-alpha.585
+  - @brains/job-queue@0.2.0-alpha.585
+  - @brains/mcp-service@0.2.0-alpha.585
+  - @brains/messaging-service@0.2.0-alpha.585
+  - @brains/recurring-checks@0.2.0-alpha.585
+  - @brains/runtime-state@0.2.0-alpha.585
+  - @brains/scheduler@0.2.0-alpha.585
+  - @brains/templates@0.2.0-alpha.585
+
+## 0.2.0-alpha.584
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.584
+  - @brains/contracts@0.2.0-alpha.584
+  - @brains/site-composition@0.2.0-alpha.584
+  - @brains/utils@0.2.0-alpha.584
+  - @brains/ai-service@0.2.0-alpha.584
+  - @brains/content-service@0.2.0-alpha.584
+  - @brains/conversation-service@0.2.0-alpha.584
+  - @brains/entity-service@0.2.0-alpha.584
+  - @brains/identity-service@0.2.0-alpha.584
+  - @brains/job-queue@0.2.0-alpha.584
+  - @brains/mcp-service@0.2.0-alpha.584
+  - @brains/messaging-service@0.2.0-alpha.584
+  - @brains/recurring-checks@0.2.0-alpha.584
+  - @brains/runtime-state@0.2.0-alpha.584
+  - @brains/scheduler@0.2.0-alpha.584
+  - @brains/templates@0.2.0-alpha.584
+
+## 0.2.0-alpha.583
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.583
+  - @brains/contracts@0.2.0-alpha.583
+  - @brains/site-composition@0.2.0-alpha.583
+  - @brains/utils@0.2.0-alpha.583
+  - @brains/ai-service@0.2.0-alpha.583
+  - @brains/content-service@0.2.0-alpha.583
+  - @brains/conversation-service@0.2.0-alpha.583
+  - @brains/entity-service@0.2.0-alpha.583
+  - @brains/identity-service@0.2.0-alpha.583
+  - @brains/job-queue@0.2.0-alpha.583
+  - @brains/mcp-service@0.2.0-alpha.583
+  - @brains/messaging-service@0.2.0-alpha.583
+  - @brains/recurring-checks@0.2.0-alpha.583
+  - @brains/runtime-state@0.2.0-alpha.583
+  - @brains/scheduler@0.2.0-alpha.583
+  - @brains/templates@0.2.0-alpha.583
+
+## 0.2.0-alpha.582
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.582
+  - @brains/contracts@0.2.0-alpha.582
+  - @brains/site-composition@0.2.0-alpha.582
+  - @brains/utils@0.2.0-alpha.582
+  - @brains/ai-service@0.2.0-alpha.582
+  - @brains/content-service@0.2.0-alpha.582
+  - @brains/conversation-service@0.2.0-alpha.582
+  - @brains/entity-service@0.2.0-alpha.582
+  - @brains/identity-service@0.2.0-alpha.582
+  - @brains/job-queue@0.2.0-alpha.582
+  - @brains/mcp-service@0.2.0-alpha.582
+  - @brains/messaging-service@0.2.0-alpha.582
+  - @brains/recurring-checks@0.2.0-alpha.582
+  - @brains/runtime-state@0.2.0-alpha.582
+  - @brains/scheduler@0.2.0-alpha.582
+  - @brains/templates@0.2.0-alpha.582
+
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.581
+  - @brains/contracts@0.2.0-alpha.581
+  - @brains/site-composition@0.2.0-alpha.581
+  - @brains/utils@0.2.0-alpha.581
+  - @brains/ai-service@0.2.0-alpha.581
+  - @brains/content-service@0.2.0-alpha.581
+  - @brains/conversation-service@0.2.0-alpha.581
+  - @brains/entity-service@0.2.0-alpha.581
+  - @brains/identity-service@0.2.0-alpha.581
+  - @brains/job-queue@0.2.0-alpha.581
+  - @brains/mcp-service@0.2.0-alpha.581
+  - @brains/messaging-service@0.2.0-alpha.581
+  - @brains/recurring-checks@0.2.0-alpha.581
+  - @brains/runtime-state@0.2.0-alpha.581
+  - @brains/scheduler@0.2.0-alpha.581
+  - @brains/templates@0.2.0-alpha.581
+
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.580
+  - @brains/contracts@0.2.0-alpha.580
+  - @brains/site-composition@0.2.0-alpha.580
+  - @brains/utils@0.2.0-alpha.580
+  - @brains/ai-service@0.2.0-alpha.580
+  - @brains/content-service@0.2.0-alpha.580
+  - @brains/conversation-service@0.2.0-alpha.580
+  - @brains/entity-service@0.2.0-alpha.580
+  - @brains/identity-service@0.2.0-alpha.580
+  - @brains/job-queue@0.2.0-alpha.580
+  - @brains/mcp-service@0.2.0-alpha.580
+  - @brains/messaging-service@0.2.0-alpha.580
+  - @brains/recurring-checks@0.2.0-alpha.580
+  - @brains/runtime-state@0.2.0-alpha.580
+  - @brains/scheduler@0.2.0-alpha.580
+  - @brains/templates@0.2.0-alpha.580
+
+## 0.2.0-alpha.579
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.579
+  - @brains/contracts@0.2.0-alpha.579
+  - @brains/site-composition@0.2.0-alpha.579
+  - @brains/utils@0.2.0-alpha.579
+  - @brains/ai-service@0.2.0-alpha.579
+  - @brains/content-service@0.2.0-alpha.579
+  - @brains/conversation-service@0.2.0-alpha.579
+  - @brains/entity-service@0.2.0-alpha.579
+  - @brains/identity-service@0.2.0-alpha.579
+  - @brains/job-queue@0.2.0-alpha.579
+  - @brains/mcp-service@0.2.0-alpha.579
+  - @brains/messaging-service@0.2.0-alpha.579
+  - @brains/recurring-checks@0.2.0-alpha.579
+  - @brains/runtime-state@0.2.0-alpha.579
+  - @brains/scheduler@0.2.0-alpha.579
+  - @brains/templates@0.2.0-alpha.579
+
+## 0.2.0-alpha.578
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.578
+  - @brains/contracts@0.2.0-alpha.578
+  - @brains/site-composition@0.2.0-alpha.578
+  - @brains/utils@0.2.0-alpha.578
+  - @brains/ai-service@0.2.0-alpha.578
+  - @brains/content-service@0.2.0-alpha.578
+  - @brains/conversation-service@0.2.0-alpha.578
+  - @brains/entity-service@0.2.0-alpha.578
+  - @brains/identity-service@0.2.0-alpha.578
+  - @brains/job-queue@0.2.0-alpha.578
+  - @brains/mcp-service@0.2.0-alpha.578
+  - @brains/messaging-service@0.2.0-alpha.578
+  - @brains/recurring-checks@0.2.0-alpha.578
+  - @brains/runtime-state@0.2.0-alpha.578
+  - @brains/scheduler@0.2.0-alpha.578
+  - @brains/templates@0.2.0-alpha.578
+
 ## 0.2.0-alpha.577
 
 ### Patch Changes

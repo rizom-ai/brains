@@ -11,6 +11,8 @@ type SeriesPoint = SeriesBlock["points"][number];
 const COLUMN = 10;
 const BAR = 8;
 const HEIGHT = 100;
+/** With nothing to plot the chart is a strip; slivers keep their size. */
+const FLAT_HEIGHT = 10;
 /** A zero still shows as a sliver, so it reads apart from a missing point. */
 const MIN_BAR = 0.75;
 
@@ -28,15 +30,17 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
   const first = points[0];
   const last = points[points.length - 1];
   const width = points.length * COLUMN;
+  const flat = peak === 0;
+  const chartHeight = flat ? FLAT_HEIGHT : HEIGHT;
 
   return (
     <figure {...stylex.props(s.figure)} data-series={props.block.id}>
       <figcaption {...stylex.props(s.caption)}>{label}</figcaption>
       <svg
-        {...stylex.props(s.chart)}
+        {...stylex.props(s.chart, flat && s.flat)}
         role="img"
         aria-label={`${label}: ${points.length} points, peak ${peak}${unit ? ` ${unit}` : ""}`}
-        viewBox={`0 0 ${width} ${HEIGHT}`}
+        viewBox={`0 0 ${width} ${chartHeight}`}
         preserveAspectRatio="none"
       >
         {points.map((point, index) => {
@@ -44,7 +48,7 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
           const height =
             point.value === null || peak === 0
               ? MIN_BAR
-              : Math.max(MIN_BAR, (point.value / peak) * HEIGHT);
+              : Math.max(MIN_BAR, (point.value / peak) * chartHeight);
           return (
             <g
               key={point.id}
@@ -60,7 +64,7 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
                   x={x}
                   y={0}
                   width={COLUMN}
-                  height={HEIGHT}
+                  height={chartHeight}
                 />
               )}
               <rect
@@ -68,13 +72,13 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
                 x={x}
                 y={0}
                 width={COLUMN}
-                height={HEIGHT}
+                height={chartHeight}
               />
               {point.value === null ? (
                 <rect
                   {...stylex.props(s.missing)}
                   x={x + (COLUMN - BAR) / 2}
-                  y={HEIGHT - 2}
+                  y={chartHeight - 2}
                   width={BAR}
                   height={2}
                 />
@@ -85,7 +89,7 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
                     point.tone && point.tone !== "neutral" && s[point.tone],
                   )}
                   x={x + (COLUMN - BAR) / 2}
-                  y={HEIGHT - height}
+                  y={chartHeight - height}
                   width={BAR}
                   height={height}
                 />
@@ -97,8 +101,9 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
       <div {...stylex.props(s.axis)} data-series-axis="">
         <span>{first?.label}</span>
         <span {...stylex.props(s.peak)}>
-          peak {peak}
-          {unit ? ` ${unit}` : ""}
+          {flat
+            ? `no ${unit ?? "values"}`
+            : `peak ${peak}${unit ? ` ${unit}` : ""}`}
         </span>
         <span>{last?.label}</span>
       </div>

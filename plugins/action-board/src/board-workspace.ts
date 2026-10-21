@@ -431,7 +431,10 @@ const boardWorkspace = defineStudioWorkspace({
                         submitLabel: "Track on the board",
                         fields: {
                           title: { label: "Title", control: "text" as const },
-                          text: { label: "Details", control: "text" as const },
+                          text: {
+                            label: "Details",
+                            control: "textarea" as const,
+                          },
                           ...assigneeField(data.members),
                         },
                       },
@@ -452,7 +455,7 @@ const boardWorkspace = defineStudioWorkspace({
           submitLabel: "Add to To do",
           fields: {
             title: { label: "Title", control: "text" as const },
-            text: { label: "Details", control: "text" as const },
+            text: { label: "Details", control: "textarea" as const },
             ...assigneeField(data.members),
           },
         },

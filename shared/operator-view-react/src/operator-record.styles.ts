@@ -29,7 +29,7 @@ export const recordStyles: Record<
     lineHeight: 1.4,
     letterSpacing: 0,
     color: "var(--console-text)",
-    overflowWrap: "anywhere",
+    overflowWrap: "break-word",
   },
   compactTitle: {
     fontFamily: "var(--console-display)",

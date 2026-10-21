@@ -171,7 +171,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
           {
             type: "list",
             id: "changed-files",
-            presentation: "editorial",
+            presentation: "activity",
             empty: "No changed files.",
             items: data.git.changedFiles.map((file, index) => ({
               id: `changed-${index + 1}`,
@@ -241,7 +241,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
       {
         type: "list",
         id: "recent-runs",
-        presentation: "editorial",
+        presentation: "activity",
         empty: "No directory sync runs have completed yet.",
         items: data.recentRuns.map((run) => ({
           id: run.id,

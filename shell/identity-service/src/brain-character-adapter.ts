@@ -69,7 +69,9 @@ export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
     entity: BrainCharacterEntity,
   ): Record<string, unknown> {
     const data = this.parseFrontmatter(entity.content);
+    // The name is how lists, search and the ⌘K palette name this entry.
     return {
+      name: data.name,
       role: data.role,
       values: data.values,
     };

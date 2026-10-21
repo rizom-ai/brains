@@ -5,7 +5,11 @@ export const tableStyles: Record<
   stylex.StyleXStyles
 > = stylex.create({
   compact: {
-    display: { default: "none", "@media (max-width: 640px)": "block" },
+    display: {
+      default: "none",
+      "@media (max-width: 640px)": "block",
+      "@container operator (max-width: 640px)": "block",
+    },
   },
   scroll: {
     maxWidth: "100%",
@@ -17,10 +21,18 @@ export const tableStyles: Record<
         default: "block",
         ':is([data-has-unannotated="false"])': "none",
       },
+      "@container operator (max-width: 640px)": {
+        default: "block",
+        ':is([data-has-unannotated="false"])': "none",
+      },
     },
     paddingBottom: {
       default: 0,
       "@media (max-width: 640px)": {
+        default: 0,
+        ':is([data-has-unannotated="true"])': 5,
+      },
+      "@container operator (max-width: 640px)": {
         default: 0,
         ':is([data-has-unannotated="true"])': 5,
       },
@@ -31,6 +43,10 @@ export const tableStyles: Record<
         default: "auto",
         ':is([data-has-unannotated="true"])': "contain",
       },
+      "@container operator (max-width: 640px)": {
+        default: "auto",
+        ':is([data-has-unannotated="true"])': "contain",
+      },
     },
     scrollbarWidth: {
       default: "auto",
@@ -38,11 +54,14 @@ export const tableStyles: Record<
         default: "auto",
         ':is([data-has-unannotated="true"])': "thin",
       },
+      "@container operator (max-width: 640px)": {
+        default: "auto",
+        ':is([data-has-unannotated="true"])': "thin",
+      },
     },
   },
   table: {
-    width: "auto",
-    minWidth: "min(100%, 520px)",
+    width: "100%",
     maxWidth: "100%",
     borderCollapse: "collapse",
     color: "var(--console-text-dim)",
@@ -52,6 +71,10 @@ export const tableStyles: Record<
     display: {
       default: "table-row",
       "@media (max-width: 640px)": {
+        default: "table-row",
+        ':is([data-compact-row="true"])': "none",
+      },
+      "@container operator (max-width: 640px)": {
         default: "table-row",
         ':is([data-compact-row="true"])': "none",
       },

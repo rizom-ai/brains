@@ -101,13 +101,13 @@ export class FaqDataSource extends BaseEntityDataSource<
   }
 
   protected transformEntity(entity: FaqEntity): FaqItem {
-    const { answer, frontmatter } = faqAdapter.parseFaqContent(entity.content);
+    const { answer, sources } = faqAdapter.parseFaqContent(entity.content);
     return {
       id: entity.id,
       question: entity.metadata.question,
       answer,
       asked: entity.metadata.asked,
-      sources: (frontmatter.sources ?? []).map(itemSource),
+      sources: sources.map(itemSource),
     };
   }
 

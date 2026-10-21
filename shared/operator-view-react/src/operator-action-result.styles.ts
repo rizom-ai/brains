@@ -56,8 +56,13 @@ export const actionResultStyles: Record<
     gridTemplateColumns: {
       default: "130px minmax(0, 1fr)",
       "@media (max-width: 640px)": "minmax(0, 1fr)",
+      "@container operator (max-width: 640px)": "minmax(0, 1fr)",
     },
-    gap: { default: 10, "@media (max-width: 640px)": 3 },
+    gap: {
+      default: 10,
+      "@media (max-width: 640px)": 3,
+      "@container operator (max-width: 640px)": 3,
+    },
     alignItems: "center",
     minWidth: 0,
   },

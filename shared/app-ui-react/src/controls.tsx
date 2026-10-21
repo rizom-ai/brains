@@ -218,7 +218,13 @@ const styles = stylex.create({
     boxSizing: "border-box",
     color: "var(--console-text)",
     fontFamily: "var(--console-ui)",
-    fontSize: "16px",
+    // The UI's own size on desktop; 16px where a touch browser would zoom
+    // into a smaller field on focus.
+    fontSize: {
+      default: "13px",
+      "@media (max-width: 640px)": "16px",
+      "@media (pointer: coarse)": "16px",
+    },
     lineHeight: 1.35,
     minHeight: "40px",
     minWidth: 0,

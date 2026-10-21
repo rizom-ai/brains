@@ -1,4 +1,5 @@
-import { and, eq, sql } from "drizzle-orm";
+import { deleteEntityFts, insertEntityFts } from "./entity-fts";
+import { and, eq } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import type { EntityDB } from "./db";
 import type { EntityExportStore } from "./entity-export-store";
@@ -125,9 +126,7 @@ export class ProjectionWriteIntentApplier {
         .where(
           and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
         );
-      await transaction.run(
-        sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-      );
+      await deleteEntityFts(transaction, entityType, entityId);
       await this.entityExportStore.record(transaction, {
         entityType,
         entityId,
@@ -189,9 +188,7 @@ export class ProjectionWriteIntentApplier {
         canonicalProjectionJson(entity.metadata)
     ) {
       if (this.storagePolicy?.isFullTextSearchable(entityType) === false) {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-        );
+        await deleteEntityFts(transaction, entityType, entityId);
       }
       return null;
     }
@@ -228,13 +225,9 @@ export class ProjectionWriteIntentApplier {
       });
     }
 
-    await transaction.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
+    await deleteEntityFts(transaction, entityType, entityId);
     if (this.storagePolicy?.isFullTextSearchable(entityType) !== false) {
-      await transaction.run(
-        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${entity.content})`,
-      );
+      await insertEntityFts(transaction, entityType, entityId, entity.content);
     }
     await this.entityExportStore.record(transaction, {
       entityType,

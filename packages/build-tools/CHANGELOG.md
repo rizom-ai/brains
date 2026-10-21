@@ -1,5 +1,37 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.585
+
+No changes in this release.
+
+## 0.2.0-alpha.584
+
+No changes in this release.
+
+## 0.2.0-alpha.583
+
+No changes in this release.
+
+## 0.2.0-alpha.582
+
+No changes in this release.
+
+## 0.2.0-alpha.581
+
+No changes in this release.
+
+## 0.2.0-alpha.580
+
+No changes in this release.
+
+## 0.2.0-alpha.579
+
+No changes in this release.
+
+## 0.2.0-alpha.578
+
+No changes in this release.
+
 ## 0.2.0-alpha.577
 
 No changes in this release.

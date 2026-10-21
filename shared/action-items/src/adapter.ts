@@ -6,7 +6,11 @@ import type {
 } from "@brains/plugins";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
-import { actionItemBody, actionItemFrontmatter } from "./board";
+import {
+  actionItemBody,
+  actionItemFrontmatter,
+  actionItemTitle,
+} from "./board";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
   actionItemMetadataSchema,
@@ -48,6 +52,12 @@ export class MemoryEntityAdapter<
       frontmatterSchema: config.metadataSchema,
     });
     this.metadataSchema = config.parseMetadata;
+  }
+
+  /** An entry is named by its body heading; its id is a reference. */
+  public displayTitle(entity: TEntity): string | undefined {
+    const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    return heading !== undefined && heading.length > 0 ? heading : undefined;
   }
 
   public composeContent(
@@ -94,6 +104,11 @@ export class ActionItemAdapter extends MemoryEntityAdapter<
       metadataSchema: actionItemMetadataSchema,
       parseMetadata: actionItemStoredMetadataSchema,
     });
+  }
+
+  /** A card is named by its text; its id is a reference. */
+  public override displayTitle(entity: ActionItemEntity): string {
+    return actionItemTitle(entity);
   }
 
   /** Writes the current shape, so any save migrates a card stored in an older one. */

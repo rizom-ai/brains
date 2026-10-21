@@ -137,9 +137,8 @@ export function prepareFaqMerge(
   faq: FaqEntity,
   merge: { asks: number; alternatives?: FaqAlternative[] },
 ): FaqEntity {
-  const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
-    faq.content,
-  );
+  const { frontmatter, answer, sources, alternatives } =
+    faqAdapter.parseFaqContent(faq.content);
   const known = [
     answer,
     ...alternatives.map((alternative) => alternative.answer),
@@ -154,10 +153,12 @@ export function prepareFaqMerge(
   };
   return {
     ...faq,
-    content: faqAdapter.createFaqContent(merged, answer, [
-      ...alternatives,
-      ...newAlternatives,
-    ]),
+    content: faqAdapter.createFaqContent(
+      merged,
+      answer,
+      [...alternatives, ...newAlternatives],
+      sources,
+    ),
     metadata: faqMetadata(merged),
   };
 }

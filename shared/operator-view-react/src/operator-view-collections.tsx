@@ -319,6 +319,7 @@ export function TableBlock(props: {
           >
             <ListItems
               items={compactRows}
+              presentation="activity"
               onAction={props.onAction}
               onOpenEntity={props.onOpenEntity}
               onLaunch={props.onLaunch}
@@ -454,62 +455,69 @@ export function MatrixBlock(props: {
     }
   };
   return (
-    <div
-      {...stylex.props(rendererLayout.matrix(columns))}
-      data-columns={columns}
-    >
-      {failure && (
-        <p {...stylex.props(rendererLayout.error)} role="alert">
-          {failure}
-        </p>
-      )}
-      {props.block.cells.map((cell) => {
-        const action = dragging
-          ? dropActions(dragging).find(
-              (candidate) => candidate.dropTarget === cell.id,
-            )
-          : undefined;
-        return (
-          <section
-            {...stylex.props(
-              rendererLayout.cell,
-              action && rendererLayout.dropAllowed,
-            )}
-            key={cell.id}
-            data-tone={cell.tone ?? "neutral"}
-            data-drop={action ? "allowed" : undefined}
-            onDragOver={
-              action ? (event): void => event.preventDefault() : undefined
-            }
-            onDrop={
-              action
-                ? (event): void => {
-                    event.preventDefault();
-                    setDragging(null);
-                    void drop(action);
-                  }
-                : undefined
-            }
-          >
-            <h3 {...stylex.props(rendererLayout.caption)}>{cell.label}</h3>
-            {cell.items.length === 0 ? (
-              <p {...stylex.props(rendererLayout.empty)}>{cell.empty}</p>
-            ) : (
-              <ListItems
-                items={cell.items}
-                onAction={props.onAction}
-                onOpenEntity={props.onOpenEntity}
-                onLaunch={props.onLaunch}
-                openId={props.openId}
-                drag={{
-                  start: setDragging,
-                  end: (): void => setDragging(null),
-                }}
-              />
-            )}
-          </section>
-        );
-      })}
+    <div {...stylex.props(rendererLayout.matrixFrame)}>
+      <div {...stylex.props(rendererLayout.matrix)} data-columns={columns}>
+        {failure && (
+          <p {...stylex.props(rendererLayout.error)} role="alert">
+            {failure}
+          </p>
+        )}
+        {props.block.cells.map((cell) => {
+          const action = dragging
+            ? dropActions(dragging).find(
+                (candidate) => candidate.dropTarget === cell.id,
+              )
+            : undefined;
+          return (
+            <section
+              {...stylex.props(
+                rendererLayout.cell,
+                action && rendererLayout.dropAllowed,
+              )}
+              key={cell.id}
+              data-tone={cell.tone ?? "neutral"}
+              data-matrix-cell=""
+              data-drop={action ? "allowed" : undefined}
+              onDragOver={
+                action ? (event): void => event.preventDefault() : undefined
+              }
+              onDrop={
+                action
+                  ? (event): void => {
+                      event.preventDefault();
+                      setDragging(null);
+                      void drop(action);
+                    }
+                  : undefined
+              }
+            >
+              <h3 {...stylex.props(rendererLayout.caption)}>{cell.label}</h3>
+              {cell.items.length === 0 ? (
+                <p
+                  {...stylex.props(
+                    rendererLayout.empty,
+                    rendererLayout.cellEmpty,
+                  )}
+                >
+                  {cell.empty}
+                </p>
+              ) : (
+                <ListItems
+                  items={cell.items}
+                  onAction={props.onAction}
+                  onOpenEntity={props.onOpenEntity}
+                  onLaunch={props.onLaunch}
+                  openId={props.openId}
+                  drag={{
+                    start: setDragging,
+                    end: (): void => setDragging(null),
+                  }}
+                />
+              )}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }

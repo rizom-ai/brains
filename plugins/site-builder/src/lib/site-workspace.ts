@@ -23,6 +23,7 @@ import {
 } from "./site-publication-status";
 import { resolveSiteMetadata } from "./site-metadata";
 import { publicationFacts, renderDetailFacts } from "./site-workspace-facts";
+import { recentBuildItems } from "./recent-build-items";
 
 export const siteWorkspaceActionSchema: z.ZodDiscriminatedUnion<
   [
@@ -350,31 +351,10 @@ const siteWorkspace = defineStudioWorkspace({
                         id: "recent-builds",
                         presentation: "activity",
                         empty: "No site builds have completed yet.",
-                        items: data.recentBuilds
-                          .filter(
-                            (build) =>
-                              build.environment === environment.environment,
-                          )
-                          .map((build) => ({
-                            id: build.jobId,
-                            title: `${build.environment} · ${build.outcome}`,
-                            description: build.message,
-                            tone:
-                              build.outcome === "succeeded"
-                                ? "good"
-                                : build.outcome === "failed"
-                                  ? "error"
-                                  : "neutral",
-                            metadata: [
-                              `Completed: ${build.completedAt}`,
-                              ...(build.routesBuilt === undefined
-                                ? []
-                                : [`Routes: ${build.routesBuilt}`]),
-                              ...(build.warnings?.length
-                                ? [`Warnings: ${build.warnings.length}`]
-                                : []),
-                            ],
-                          })),
+                        items: recentBuildItems(
+                          data.recentBuilds,
+                          environment.environment,
+                        ),
                       },
                     ],
                   },

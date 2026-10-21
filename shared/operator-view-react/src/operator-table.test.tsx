@@ -73,6 +73,12 @@ test("compiled tables preserve cell hierarchy, alignment and source-authored com
       );
       expect(window.getComputedStyle(plain).display).toBe("table-row");
       expect(window.getComputedStyle(scroll).display).toBe("block");
+      // The table spans its column like the rules around it, and its phone
+      // rows read as compact entries rather than page-sized records.
+      expect(window.getComputedStyle(table).width).toBe("100%");
+      const compactTitle = compact.querySelector("strong");
+      if (!compactTitle) throw Error("Missing compact title");
+      expect(window.getComputedStyle(compactTitle).fontSize).toBe("14px");
       scroll.setAttribute("data-has-unannotated", "false");
       expect(window.getComputedStyle(scroll).display).toBe(
         width === 390 ? "none" : "block",

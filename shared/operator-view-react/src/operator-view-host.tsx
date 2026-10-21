@@ -26,6 +26,7 @@ import {
   type ReactElement,
   type ReactNode,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 import {
   ConfirmDialog as CssConfirmDialog,
@@ -84,6 +85,10 @@ export interface OperatorViewComponents {
   >;
   readonly Select: ComponentType<
     SelectHTMLAttributes<HTMLSelectElement> & OperatorControlPresentationProps
+  >;
+  readonly Textarea: ComponentType<
+    TextareaHTMLAttributes<HTMLTextAreaElement> &
+      OperatorControlPresentationProps
   >;
   readonly ConfirmDialog: ComponentType<ConfirmDialogProps>;
   readonly Disclosure: ComponentType<OperatorDisclosureProps>;
@@ -144,6 +149,23 @@ function CssSelect({
   const styleProps = stylex.props(xstyle);
   return (
     <select
+      className={[styleProps.className, className].filter(Boolean).join(" ")}
+      style={{ ...styleProps.style, ...style }}
+      {...props}
+    />
+  );
+}
+
+function CssTextarea({
+  xstyle,
+  className,
+  style,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> &
+  OperatorControlPresentationProps): ReactElement {
+  const styleProps = stylex.props(xstyle);
+  return (
+    <textarea
       className={[styleProps.className, className].filter(Boolean).join(" ")}
       style={{ ...styleProps.style, ...style }}
       {...props}
@@ -245,6 +267,7 @@ export const CSS_COMPONENTS: OperatorViewComponents = {
   Button: CssButton,
   Input: CssInput,
   Select: CssSelect,
+  Textarea: CssTextarea,
   ConfirmDialog: CssConfirmDialog,
   Disclosure: CssDisclosure,
   Tabs: CssTabs,

@@ -162,21 +162,26 @@ describe("FaqDataSource", () => {
       question: "How does Rizom keep memory?",
       status: "published",
       asked: 5,
-      sources: [
-        {
-          id: "post:handoffs",
-          title: "Handoffs between teams",
-          url: "https://becca.rizom.ai/essays/handoffs",
-          excerpt: "Before anyone leaves a task we write three things down.",
-          brain: { name: "Becca", url: "https://becca.rizom.ai/" },
-        },
-      ],
     };
     await context.entityService.createEntity({
       entity: {
         id: "sourced",
         entityType: "faq",
-        content: faqAdapter.createFaqContent(frontmatter, "In their brains."),
+        content: faqAdapter.createFaqContent(
+          frontmatter,
+          "In their brains.",
+          [],
+          [
+            {
+              id: "post:handoffs",
+              title: "Handoffs between teams",
+              url: "https://becca.rizom.ai/essays/handoffs",
+              excerpt:
+                "Before anyone leaves a task we write three things down.",
+              brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+            },
+          ],
+        ),
         visibility: "public",
         metadata: faqMetadata(frontmatter),
       },
