@@ -72,6 +72,7 @@ import {
   buildAgentContactCandidates,
   buildEntityMemoryRefs,
   buildRetrievedEntityRefs,
+  buildToolErrorFallback,
   buildToolResultPromptFallback,
   withAnswerSources,
   type AgentContactCandidate,
@@ -580,7 +581,9 @@ export class TurnProcessor {
         ? "Confirmation required."
         : result.text.trim().length > 0
           ? result.text
-          : (buildToolResultPromptFallback(toolResults) ?? result.text);
+          : (buildToolResultPromptFallback(toolResults) ??
+            (guest ? undefined : buildToolErrorFallback(toolResults)) ??
+            result.text);
     const entityMemoryRefs =
       guest || pendingConfirmations.length > 0
         ? []

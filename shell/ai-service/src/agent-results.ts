@@ -126,6 +126,19 @@ export function buildToolResultPromptFallback(
   return undefined;
 }
 
+/**
+ * The reply for a turn whose model text is empty after a failed tool call:
+ * the latest tool error, so the caller is not left with a blank answer.
+ */
+export function buildToolErrorFallback(
+  toolResults: ToolResultData[],
+): string | undefined {
+  const failed = [...toolResults].reverse().find((result) => result.error);
+  return failed?.error
+    ? `I couldn't complete that: ${failed.error.message}`
+    : undefined;
+}
+
 export function buildAttachmentCardFromToolData(
   data: unknown,
 ): StructuredChatCard | undefined {

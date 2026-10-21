@@ -4560,6 +4560,56 @@ describe("AgentService", () => {
       );
     });
 
+    it("reports a failed tool call when the model returns no text after it", async () => {
+      mockAgentGenerateResult = {
+        text: "",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "playbook_manage",
+                toolCallId: "call1",
+                input: { action: "start", lifecycle: "first-knowledge-loop" },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "playbook_manage",
+                toolCallId: "call1",
+                output: {
+                  success: false,
+                  error:
+                    "Invalid playbook_manage input: playbookId is required for action=start.",
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 0, totalTokens: 50 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Start playbook first-knowledge-loop.",
+        "test-conversation",
+      );
+
+      const expected =
+        "I couldn't complete that: Invalid playbook_manage input: playbookId is required for action=start.";
+      expect(response.text).toBe(expected);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ role: "assistant", content: expected }),
+      );
+    });
+
     it("should include tool results in response when agent calls tools", async () => {
       // Mock agent to return tool calls with data output
       mockAgentGenerateResult = {
