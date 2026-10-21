@@ -1,5 +1,13 @@
 # @brains/profile
 
+## 0.2.0-alpha.576
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.576
+  - @brains/plugins@0.2.0-alpha.576
+
 ## 0.2.0-alpha.575
 
 ### Patch Changes
