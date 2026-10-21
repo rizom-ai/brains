@@ -84,6 +84,16 @@ export class SummaryAdapter extends BaseEntityAdapter<
       .map((section) => this.parseEntry(section));
   }
 
+  /** A summary is named by where and when its conversation happened. */
+  public displayTitle(entity: SummaryEntity): string {
+    const place = entity.metadata.channelName ?? entity.metadata.channelId;
+    const day = (entity.metadata.timeRange?.start ?? entity.created).slice(
+      0,
+      10,
+    );
+    return `${place} · ${day}`;
+  }
+
   public override toMarkdown(entity: SummaryEntity): string {
     const { entries } = this.parseBody(entity.content);
     // Visibility is the system frontmatter envelope, not summary metadata —

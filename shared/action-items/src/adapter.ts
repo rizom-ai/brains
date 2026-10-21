@@ -54,6 +54,12 @@ export class MemoryEntityAdapter<
     this.metadataSchema = config.parseMetadata;
   }
 
+  /** An entry is named by its body heading; its id is a reference. */
+  public displayTitle(entity: TEntity): string | undefined {
+    const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    return heading !== undefined && heading.length > 0 ? heading : undefined;
+  }
+
   public composeContent(
     title: string,
     text: string,
@@ -101,7 +107,7 @@ export class ActionItemAdapter extends MemoryEntityAdapter<
   }
 
   /** A card is named by its text; its id is a reference. */
-  public displayTitle(entity: ActionItemEntity): string {
+  public override displayTitle(entity: ActionItemEntity): string {
     return actionItemTitle(entity);
   }
 

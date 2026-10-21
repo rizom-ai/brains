@@ -74,52 +74,58 @@ export const agentFrontmatterSchema: AgentFrontmatterSchema = z.object({
   // Brain (what)
   brainName: z.string().describe("Name of the brain instance"),
   url: z.string().url().describe("Brain endpoint URL"),
-  repoDid: z.string().optional().describe("ATProto repo DID"),
-  brainDid: z.string().optional().describe("ATProto brain DID"),
-  cardUri: z.string().optional().describe("ATProto brain card URI"),
-  cardCid: z.string().optional().describe("ATProto brain card CID"),
-  cardLastError: z
+  repoDid: z
     .string()
     .optional()
-    .describe("Last ATProto brain card refresh error"),
-  cardFailureCount: z
-    .number()
-    .int()
-    .nonnegative()
-    .optional()
-    .describe("Consecutive ATProto brain card refresh failures"),
-  cardUnavailableAt: z
+    .meta({ description: "ATProto repo DID", studioWidget: "provenance" }),
+  brainDid: z
     .string()
-    .datetime()
     .optional()
-    .describe("When the remote ATProto brain card became unavailable"),
-  cardStaleAfter: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("When a never-approved unavailable card may be archived"),
+    .meta({ description: "ATProto brain DID", studioWidget: "provenance" }),
+  cardUri: z.string().optional().meta({
+    description: "ATProto brain card URI",
+    studioWidget: "provenance",
+  }),
+  cardCid: z.string().optional().meta({
+    description: "ATProto brain card CID",
+    studioWidget: "provenance",
+  }),
+  cardLastError: z.string().optional().meta({
+    description: "Last ATProto brain card refresh error",
+    studioWidget: "hidden",
+  }),
+  cardFailureCount: z.number().int().nonnegative().optional().meta({
+    description: "Consecutive ATProto brain card refresh failures",
+    studioWidget: "hidden",
+  }),
+  cardUnavailableAt: z.string().datetime().optional().meta({
+    description: "When the remote ATProto brain card became unavailable",
+    studioWidget: "hidden",
+  }),
+  cardStaleAfter: z.string().datetime().optional().meta({
+    description: "When a never-approved unavailable card may be archived",
+    studioWidget: "hidden",
+  }),
 
   // Relationship
   status: agentStatusSchema,
-  discoveredAt: z
-    .string()
-    .datetime()
-    .describe("When this agent was first discovered"),
+  discoveredAt: z.string().datetime().meta({
+    description: "When this agent was first discovered",
+    studioWidget: "provenance",
+  }),
 
   // Sighting provenance — present on second-order agents discovered
   // through a connected peer's directory. A discovered agent with
   // introducers charts as a sighting on the proximity map; approval
   // promotes it to a first-order contact and drops the provenance.
-  introducedBy: z
-    .array(z.string())
-    .optional()
-    .describe("Agent ids of the peers whose directories reported this agent"),
-  hops: z
-    .number()
-    .int()
-    .min(2)
-    .optional()
-    .describe("Discovery order: 2 = sighted through a first-order peer"),
+  introducedBy: z.array(z.string()).optional().meta({
+    description: "Agent ids of the peers whose directories reported this agent",
+    studioWidget: "provenance",
+  }),
+  hops: z.number().int().min(2).optional().meta({
+    description: "Discovery order: 2 = sighted through a first-order peer",
+    studioWidget: "provenance",
+  }),
 });
 
 export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;

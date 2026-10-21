@@ -185,6 +185,50 @@ describe("supervised runtime process roles", () => {
     for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
   });
 
+  it("reaches web readiness while the embedding backfill is still queueing", async () => {
+    const testDirectory = await createTestDirectory();
+    cleanups.push(testDirectory.cleanup);
+    await Promise.all([
+      migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDirectory.dir}/test-runtime-state.db`,
+      }),
+    ]);
+    const shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir),
+      {
+        logger: createSilentLogger("web-backfill-test"),
+        jobQueueWorker: createTrackingWorker(() => undefined),
+      },
+      { processRole: "web" },
+    );
+    shells.push(shell);
+    // A brain with thousands of entities to embed queues for a long time.
+    let releaseBackfill = (): void => undefined;
+    let backfillStarted = (): void => undefined;
+    const started = new Promise<void>((resolve) => {
+      backfillStarted = resolve;
+    });
+    spyOn(
+      shell.getEntityService(),
+      "backfillMissingEmbeddings",
+    ).mockImplementation(() => {
+      backfillStarted();
+      return new Promise((resolve) => {
+        releaseBackfill = (): void => resolve({ queued: 0, skipped: 0 });
+      });
+    });
+
+    await shell.initialize();
+
+    expect(shell.isInitialized()).toBe(true);
+    // It still runs, in the background, once the runtime serves.
+    await started;
+    releaseBackfill();
+  });
+
   it("reaches web readiness without starting a queue worker", async () => {
     const testDirectory = await createTestDirectory();
     cleanups.push(testDirectory.cleanup);
@@ -238,8 +282,12 @@ describe("supervised runtime process roles", () => {
     );
     await shell.initialize();
 
-    // Stored entities lose retired frontmatter once groupings are current.
-    expect(order).toEqual(["embeddings", "groupings", "retired fields"]);
+    // Stored entities lose retired frontmatter once groupings are current;
+    // the embedding backfill runs off the boot path.
+    expect(order.filter((step) => step !== "embeddings")).toEqual([
+      "groupings",
+      "retired fields",
+    ]);
     expect(shell.getEntityService().areGroupingsReady()).toBe(true);
     expect(shell.isInitialized()).toBe(true);
     expect(workerStarted).toBe(false);

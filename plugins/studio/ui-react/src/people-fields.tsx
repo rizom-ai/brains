@@ -18,9 +18,12 @@ function people(value: unknown): Person[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry: unknown) => {
     if (typeof entry !== "object" || entry === null) return [];
-    const name: unknown = Reflect.get(entry, "name");
+    // Board people carry a name; conversation memory, a display name.
+    const named: unknown =
+      Reflect.get(entry, "name") ?? Reflect.get(entry, "displayName");
     const id: unknown = Reflect.get(entry, "id");
-    if (typeof name !== "string" || name.length === 0) return [];
+    const name =
+      typeof named === "string" && named.length > 0 ? named : "Someone";
     return [{ name, ...(typeof id === "string" ? { id } : {}) }];
   });
 }
@@ -30,28 +33,28 @@ function memberKey(member: StudioMember): string {
   return `user:${member.id}`;
 }
 
-/** People a field names, shown by name only: their ids are references. */
+/**
+ * People a field names, shown by name only: their ids are references. A field
+ * naming nobody shows nothing; it records no one, not that there was no one.
+ */
 export function PeopleNames(props: {
   label: string;
   value: unknown;
-}): ReactElement {
+}): ReactElement | null {
   const names = people(props.value);
+  if (names.length === 0) return null;
   return (
     <div {...stylex.props(f.field)} data-studio-field="people">
       <div {...stylex.props(f.label)}>
         <span>{props.label}</span>
       </div>
-      {names.length === 0 ? (
-        <span>Nobody</span>
-      ) : (
-        <div {...stylex.props(f.tags)}>
-          {names.map((person, index) => (
-            <span key={`${index}:${person.name}`} {...stylex.props(f.tag)}>
-              {person.name}
-            </span>
-          ))}
-        </div>
-      )}
+      <div {...stylex.props(f.tags)}>
+        {names.map((person, index) => (
+          <span key={`${index}:${person.name}`} {...stylex.props(f.tag)}>
+            {person.name}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

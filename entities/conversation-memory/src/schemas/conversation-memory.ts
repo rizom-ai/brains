@@ -26,15 +26,22 @@ export const DECISION_RETIRED_FIELDS: readonly string[] = [
   "projectionVersion",
 ];
 
+/** Studio shows where a decision came from as facts, and its people by name. */
 export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
-  conversationId: z.string(),
-  channelId: z.string(),
-  channelName: z.string().optional(),
-  interfaceType: z.string(),
-  timeRange: summaryTimeRangeSchema,
+  conversationId: z.string().meta({ studioWidget: "provenance" }),
+  channelId: z.string().meta({ studioWidget: "provenance" }),
+  channelName: z.string().optional().meta({ studioWidget: "provenance" }),
+  interfaceType: z.string().meta({ studioWidget: "provenance" }),
+  timeRange: summaryTimeRangeSchema.meta({ studioWidget: "provenance" }),
   status: z.enum(["active", "superseded"]),
-  decidedBy: z.array(memoryActorReferenceSchema).optional(),
-  mentionedBy: z.array(memoryActorReferenceSchema).optional(),
+  decidedBy: z
+    .array(memoryActorReferenceSchema)
+    .optional()
+    .meta({ studioWidget: "people" }),
+  mentionedBy: z
+    .array(memoryActorReferenceSchema)
+    .optional()
+    .meta({ studioWidget: "people" }),
 });
 
 const decisionEntityMetadataParserSchema: z.ZodObject<

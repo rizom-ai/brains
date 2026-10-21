@@ -923,3 +923,39 @@ describe("applySqlitePragmas", () => {
     expect(executed).toEqual([]);
   });
 });
+
+describe("createSqliteClient, a long run of statements", () => {
+  it("lets due timers run before a run of statements past the starvation budget ends", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sqlite-starvation-"));
+    const client = createSqliteClient({
+      url: `file:${join(dir, "db.sqlite")}`,
+    });
+    // A statement that takes a few milliseconds: SQLite answers it
+    // synchronously, so awaiting it never gives the loop a turn by itself.
+    const slow =
+      "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 200000) SELECT count(*) FROM c";
+    const statements = 40;
+    let completed = 0;
+    let completedWhenTimerRan = -1;
+    try {
+      setTimeout(() => {
+        completedWhenTimerRan = completed;
+      }, 0);
+
+      await Array.from({ length: statements }).reduce<Promise<void>>(
+        async (previous) => {
+          await previous;
+          await client.execute(slow);
+          completed++;
+        },
+        Promise.resolve(),
+      );
+
+      expect(completedWhenTimerRan).toBeGreaterThanOrEqual(0);
+      expect(completedWhenTimerRan).toBeLessThan(statements);
+    } finally {
+      client.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
