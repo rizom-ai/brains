@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- [#702](https://github.com/rizom-ai/brains/pull/702) [`4d7f623`](https://github.com/rizom-ai/brains/commit/4d7f623c4df9dfcf4fdafecd70b20ff8939f1aba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that crashed during a large import starts again in seconds. Recovering the import batches a crashed start left open read the whole job queue once per batch, so each crash made the next start slower until it missed its startup deadline every time; a batch's jobs are now found through an index on their root job.
+
+- [#701](https://github.com/rizom-ai/brains/pull/701) [`4a8b28e`](https://github.com/rizom-ai/brains/commit/4a8b28ed24df9b18d418b256ba425acb09088132) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's workspace cards hold together at every width. Blocks embedded in Studio now lay out by the width they are given, not only the window's, so beside the section navigation a board pairs its columns instead of squeezing four into a narrow pane, two-column pages stack, and rows wrap. A matrix lays out by its own width in any host, and a board card stacks its title over its actions in a narrow column, so titles no longer break mid-word. Facts flow into columns on wide pages and give a long value its own line. Routes tables span their column and read as compact entries on phones. Action forms gain a `textarea` control, used for a board card's details. Fields use the interface's type size on desktop, keeping 16px on phones and touch screens. Dialog and menu shadows no longer draw a pale halo on the paper climate. An empty series collapses to its timeline, Traffic's overview totals caption their change instead of repeating the total, Content sync's runs read like Site's builds, and a run of skipped site builds folds into one entry.
+
 ## 0.2.0-alpha.580
 
 ### Patch Changes

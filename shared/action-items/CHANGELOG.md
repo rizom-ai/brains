@@ -1,5 +1,14 @@
 # @brains/action-items
 
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.581
+  - @brains/utils@0.2.0-alpha.581
+  - @brains/plugins@0.2.0-alpha.581
+
 ## 0.2.0-alpha.580
 
 ### Patch Changes
