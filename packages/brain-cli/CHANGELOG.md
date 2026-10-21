@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.584
+
+### Patch Changes
+
+- [#707](https://github.com/rizom-ai/brains/pull/707) [`1afc54f`](https://github.com/rizom-ai/brains/commit/1afc54fed98f124c2eff2a2d9dba5f85b3191ec8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An FAQ's sources live in its body, not its frontmatter. The body uses the shared structured content layout: the answer under "## Answer", the sources as a list of links (with the brain each came from, and what it said as a quote below), then any alternative answers. Studio's form loses the long sources block; existing FAQs are read as before and written in the new layout on their next save or import.
+
 ## 0.2.0-alpha.583
 
 ### Patch Changes
