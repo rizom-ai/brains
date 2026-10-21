@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- [#700](https://github.com/rizom-ai/brains/pull/700) [`6c0edde`](https://github.com/rizom-ai/brains/commit/6c0eddefe8e4401a8e4fab08ab5475baa44c8c0b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's editor no longer shows frontmatter as JSON on any entity type. Lists and objects read as content; a record or unknown value is read-only instead of a blank box that would overwrite it. Fields written by the brain rather than a person show as read-only facts and disappear when empty: where an FAQ, decision, summary, link, mail item, reply draft, contact request, social post, agent, book, newsletter, SWOT or wish came from. People show by name, never by id, and internal hashes and refresh state are off the form. Decisions are headed by their text and summaries by their channel and day, not their ids.
+
 ## 0.2.0-alpha.579
 
 ### Patch Changes
