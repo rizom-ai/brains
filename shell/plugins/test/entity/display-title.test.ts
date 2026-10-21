@@ -37,3 +37,16 @@ describe("entityDisplayTitle", () => {
     expect(entityDisplayTitle(none, entity({}))).toBeUndefined();
   });
 });
+
+it("prefers an adapter's own title, such as a body heading", () => {
+  const adapters = {
+    getAdapter: (): {
+      extractMetadata: () => Record<string, unknown>;
+      displayTitle: () => string;
+    } => ({
+      extractMetadata: (): Record<string, unknown> => ({ name: "Metadata" }),
+      displayTitle: (): string => "Heading",
+    }),
+  };
+  expect(entityDisplayTitle(adapters, entity({}))).toBe("Heading");
+});

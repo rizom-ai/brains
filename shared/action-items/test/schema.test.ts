@@ -40,6 +40,34 @@ function entity(metadata: unknown): unknown {
   };
 }
 
+describe("action-item people in Studio", () => {
+  it("are marked so Studio shows names, and assigns from the brain's members", () => {
+    expect(actionItemMetadataSchema.shape.assignedTo.meta()).toMatchObject({
+      studioWidget: "members",
+    });
+    expect(actionItemMetadataSchema.shape.requestedBy.meta()).toMatchObject({
+      studioWidget: "people",
+    });
+  });
+
+  it("show where a card came from as read-only facts, and hide the body hash", () => {
+    const shape = actionItemMetadataSchema.shape;
+    for (const field of [
+      shape.origin,
+      shape.conversationId,
+      shape.interfaceType,
+      shape.channelId,
+      shape.channelName,
+      shape.sourceRef,
+      shape.capturedAt,
+    ])
+      expect(field.meta()).toMatchObject({ studioWidget: "provenance" });
+    expect(shape.projectedBodyHash.meta()).toMatchObject({
+      studioWidget: "hidden",
+    });
+  });
+});
+
 describe("action-item origin", () => {
   it("reads a conversation item by its conversation and channel", () => {
     const metadata = actionItemMetadataSchema.parse(conversation);

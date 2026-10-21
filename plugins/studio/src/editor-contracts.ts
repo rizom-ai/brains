@@ -61,6 +61,14 @@ export interface EditorRouteOptions {
   getGroupingDefinitions?: () => GroupingDefinitionsSnapshot;
   recordAuditEvent?:
     ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
+  /** The brain's members, who people fields are assigned from. */
+  listMembers?: (() => Promise<StudioMember[]>) | undefined;
+}
+
+/** A brain member as people fields offer them: an id and a name. */
+export interface StudioMember {
+  id: string;
+  name: string;
 }
 
 export type StudioRequestAccessResolution =

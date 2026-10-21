@@ -7,6 +7,47 @@ import {
   zodFieldToStudioWidget,
 } from "../src/config";
 
+describe("people fields", () => {
+  const people = z.array(
+    z.object({ name: z.string(), id: z.string().optional() }),
+  );
+
+  it("become a members widget when the schema assigns from members", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "assignedTo",
+        people.optional().meta({ studioWidget: "members" }),
+      ),
+    ).toMatchObject({ name: "assignedTo", widget: "members", required: false });
+  });
+
+  it("become read-only facts or disappear as the schema marks them", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "origin",
+        z.enum(["conversation", "board"]).optional().meta({
+          studioWidget: "provenance",
+        }),
+      ),
+    ).toMatchObject({ name: "origin", widget: "provenance" });
+    expect(
+      zodFieldToStudioWidget(
+        "projectedBodyHash",
+        z.string().optional().meta({ studioWidget: "hidden" }),
+      ),
+    ).toMatchObject({ widget: "hidden" });
+  });
+
+  it("become a people widget when the schema only names people", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "requestedBy",
+        people.optional().meta({ studioWidget: "people" }),
+      ),
+    ).toMatchObject({ name: "requestedBy", widget: "people" });
+  });
+});
+
 describe("zodFieldToStudioWidget", () => {
   it("should map z.string() to string widget", () => {
     const result = zodFieldToStudioWidget("title", z.string());
