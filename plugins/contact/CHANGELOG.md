@@ -1,5 +1,16 @@
 # @brains/contact
 
+## 0.2.0-alpha.583
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.583
+  - @brains/contracts@0.2.0-alpha.583
+  - @brains/site-composition@0.2.0-alpha.583
+  - @brains/utils@0.2.0-alpha.583
+  - @brains/plugins@0.2.0-alpha.583
+
 ## 0.2.0-alpha.582
 
 ### Patch Changes

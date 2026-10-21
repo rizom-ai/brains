@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.583
+
+### Patch Changes
+
+- [#706](https://github.com/rizom-ai/brains/pull/706) [`af6562c`](https://github.com/rizom-ai/brains/commit/af6562c47a58863dde11ccae8b6d9815a19c5194) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Structured entity bodies keep their markdown. Reading a section used to rebuild its text from plain words, emphasis and strong only, so links, inline code, code blocks, quotes and headings inside a field were lost on the next save. A section now reads back exactly as written, list items included, and a custom field parser receives the section's markdown.
+
 ## 0.2.0-alpha.582
 
 ### Patch Changes
