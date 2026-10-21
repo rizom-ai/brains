@@ -866,6 +866,7 @@ html {
 .xdo6va6:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-err) 7%,transparent)}
 .x1xlsm2u:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-frame) 94%,transparent)}
 .x382npu:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 4%,transparent)}
+.x18jj7c1:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 5%,transparent)}
 .x1ghvq8m:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 7%,transparent)}
 .x1mh3lbe:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-warn) 15%,transparent)}
 .xc1c755:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-warn) 7%,transparent)}

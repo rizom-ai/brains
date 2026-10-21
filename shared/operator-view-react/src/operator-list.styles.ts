@@ -84,13 +84,16 @@ export const listStyles: Record<
       gap: 10,
     },
   },
-  master: { alignItems: "start" },
+  // Beside an open detail every row keeps a gutter, so the open row's
+  // marker never touches its text and titles stay aligned.
+  master: { alignItems: "start", paddingLeft: 14, paddingRight: 14 },
   stacked: { flexDirection: "column", alignItems: "stretch", gap: 12 },
   stackedTrailing: { maxWidth: "100%", justifyContent: "flex-start" },
-  // The current choice, as Studio navigation marks it: card surface and an
-  // accent edge. An accent wash read as a warning on the dark climate.
+  // The current choice: an accent edge on a neutral tint. The card surface
+  // vanished on a board column of the same colour, and an accent wash read
+  // as a warning on the dark climate.
   selected: {
-    backgroundColor: "var(--console-card)",
+    backgroundColor: "color-mix(in srgb, var(--console-text) 5%, transparent)",
     boxShadow: "inset 2px 0 0 var(--console-accent)",
   },
   interactive: {
