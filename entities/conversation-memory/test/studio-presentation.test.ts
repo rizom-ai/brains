@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { DecisionAdapter } from "../src/adapters/conversation-memory-adapters";
+import { SummaryAdapter } from "../src/adapters/summary-adapter";
 import { decisionMetadataSchema } from "../src/schemas/conversation-memory";
 import { summaryMetadataSchema } from "../src/schemas/summary";
 
@@ -43,6 +44,31 @@ describe("conversation memory in Studio", () => {
       participants: "people",
       sourceHash: "hidden",
     });
+  });
+
+  it("names a summary by its channel and day", () => {
+    expect(
+      new SummaryAdapter().displayTitle({
+        id: "team-poc-sync",
+        entityType: "summary",
+        content: "# Conversation Summary\n",
+        contentHash: "hash",
+        visibility: "shared",
+        created: "2026-05-06T10:18:00.000Z",
+        updated: "2026-05-06T10:18:00.000Z",
+        metadata: {
+          channelId: "team-poc",
+          channelName: "team-poc",
+          interfaceType: "discord",
+          timeRange: {
+            start: "2026-05-06T10:00:00.000Z",
+            end: "2026-05-06T10:18:00.000Z",
+          },
+          messageCount: 8,
+          sourceHash: "hash",
+        },
+      }),
+    ).toBe("team-poc · 2026-05-06");
   });
 
   it("names a decision by its heading", () => {

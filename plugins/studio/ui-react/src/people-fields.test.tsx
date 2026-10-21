@@ -216,3 +216,21 @@ test("a provenance field reads time ranges and lists of sources", async () => {
   expect(text).toContain("Field notes");
   expect(text).not.toContain("{");
 });
+
+test("an empty people field shows nothing rather than claiming nobody", async () => {
+  await act(async () =>
+    root.render(
+      <Field
+        descriptor={{
+          name: "decidedBy",
+          label: "Decided By",
+          widget: "people",
+        }}
+        value={undefined}
+        onChange={() => {}}
+      />,
+    ),
+  );
+
+  expect(document.body.textContent).toBe("");
+});

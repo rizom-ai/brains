@@ -33,28 +33,28 @@ function memberKey(member: StudioMember): string {
   return `user:${member.id}`;
 }
 
-/** People a field names, shown by name only: their ids are references. */
+/**
+ * People a field names, shown by name only: their ids are references. A field
+ * naming nobody shows nothing; it records no one, not that there was no one.
+ */
 export function PeopleNames(props: {
   label: string;
   value: unknown;
-}): ReactElement {
+}): ReactElement | null {
   const names = people(props.value);
+  if (names.length === 0) return null;
   return (
     <div {...stylex.props(f.field)} data-studio-field="people">
       <div {...stylex.props(f.label)}>
         <span>{props.label}</span>
       </div>
-      {names.length === 0 ? (
-        <span>Nobody</span>
-      ) : (
-        <div {...stylex.props(f.tags)}>
-          {names.map((person, index) => (
-            <span key={`${index}:${person.name}`} {...stylex.props(f.tag)}>
-              {person.name}
-            </span>
-          ))}
-        </div>
-      )}
+      <div {...stylex.props(f.tags)}>
+        {names.map((person, index) => (
+          <span key={`${index}:${person.name}`} {...stylex.props(f.tag)}>
+            {person.name}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
