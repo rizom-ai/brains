@@ -1,7 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 
 export const tableStyles: Record<
-  "compact" | "scroll" | "table" | "row" | "head" | "cell",
+  "compact" | "scroll" | "table" | "row" | "head" | "cell" | "gutter",
   stylex.StyleXStyles
 > = stylex.create({
   compact: {
@@ -132,4 +132,6 @@ export const tableStyles: Record<
       ':is([data-align="end"])': "right",
     },
   },
+  // The first column beside an open row: room for the row's accent edge.
+  gutter: { paddingLeft: 14 },
 });

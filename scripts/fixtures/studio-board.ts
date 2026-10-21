@@ -46,7 +46,7 @@ const CARDS: ReadonlyArray<{
 /** Seed action items, then read the production Board workspace. */
 export async function createBoardFixture(
   now: number,
-): Promise<() => Promise<unknown>> {
+): Promise<(query: Record<string, string>) => Promise<unknown>> {
   const context = createServicePluginContext(createMockShell(), "action-board");
   const adapter = new ActionItemAdapter();
   context.entities.register("action-item", actionItemSchema, adapter);
@@ -99,5 +99,5 @@ export async function createBoardFixture(
     visibilityScope: "restricted",
     isAnchor: false,
   };
-  return () => workspace.dataProvider(actor, {});
+  return (query) => workspace.dataProvider(actor, query);
 }
