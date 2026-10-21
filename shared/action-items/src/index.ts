@@ -45,6 +45,7 @@ export {
 export {
   addActionItemNote,
   createBoardCard,
+  type ActionItemAssigneeMember,
   inboxCardId,
   moveActionItem,
   trackInboxItem,

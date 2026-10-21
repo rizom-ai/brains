@@ -123,6 +123,13 @@ export async function addActionItemNote(
   return outcome.status === "written" ? { status: "noted" } : outcome;
 }
 
+/** A brain member a card is assigned to: its name and its actor key. */
+export interface ActionItemAssigneeMember {
+  name: string;
+  /** `user:<id>`, the key the brain's actors use. */
+  id: string;
+}
+
 export interface TrackInboxItemDeps {
   entityService: Pick<
     EntityPluginContext["entityService"],
@@ -137,8 +144,8 @@ export interface TrackInboxItemRequest {
   sourceRef: ActionItemSourceRef;
   title: string;
   text: string;
-  /** Who should do it, by name. */
-  assignee?: string | undefined;
+  /** The member who should do it. */
+  assignee?: ActionItemAssigneeMember | undefined;
   actor: ActorRef;
   actorName?: string | undefined;
 }
@@ -166,13 +173,15 @@ export async function trackInboxItem(
   });
   if (existing) return { status: "already-tracked", id };
 
-  const assignee = request.assignee?.trim();
+  const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
     origin: "inbox",
     sourceRef: request.sourceRef,
     capturedAt: (deps.now?.() ?? new Date()).toISOString(),
     status: "open",
-    ...(assignee ? { assignedTo: [{ name: assignee }] } : {}),
+    ...(assignee
+      ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
+      : {}),
     requestedBy: [
       {
         ...(request.actorName ? { name: request.actorName } : {}),
@@ -201,8 +210,8 @@ export async function trackInboxItem(
 export interface CreateBoardCardRequest {
   title: string;
   text: string;
-  /** Who should do it, by name. */
-  assignee?: string | undefined;
+  /** The member who should do it. */
+  assignee?: ActionItemAssigneeMember | undefined;
   actor: ActorRef;
   actorName?: string | undefined;
 }
@@ -220,12 +229,14 @@ export async function createBoardCard(
   request: CreateBoardCardRequest,
 ): Promise<CreateBoardCardResult> {
   const id = `board:${createId()}`;
-  const assignee = request.assignee?.trim();
+  const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
     origin: "board",
     capturedAt: (deps.now?.() ?? new Date()).toISOString(),
     status: "open",
-    ...(assignee ? { assignedTo: [{ name: assignee }] } : {}),
+    ...(assignee
+      ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
+      : {}),
     requestedBy: [
       {
         ...(request.actorName ? { name: request.actorName } : {}),

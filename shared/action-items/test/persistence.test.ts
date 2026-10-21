@@ -285,7 +285,7 @@ describe("tracking an Inbox item", () => {
     },
     title: "Reply about the field notes",
     text: "Grace asks whether we would share our field notes.",
-    assignee: "Alex Morgan",
+    assignee: { name: "Alex Morgan", id: "user:u-alex" },
     actor: niels,
     actorName: "Niels Ward",
   };
@@ -316,7 +316,7 @@ describe("tracking an Inbox item", () => {
       sourceRef: request.sourceRef,
       capturedAt: "2026-10-15T08:02:00.000Z",
       status: "open",
-      assignedTo: [{ name: "Alex Morgan" }],
+      assignedTo: [{ name: "Alex Morgan", id: "user:u-alex" }],
       requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
     });
     expect(actionItemBody(card?.content ?? "")).toContain(
@@ -349,7 +349,7 @@ describe("creating a card on the board", () => {
       {
         title: "Order name badges",
         text: "Two hundred, with the new logo.",
-        assignee: "Alex Morgan",
+        assignee: { name: "Alex Morgan", id: "user:u-alex" },
         actor: niels,
         actorName: "Niels Ward",
       },
@@ -371,7 +371,7 @@ describe("creating a card on the board", () => {
       origin: "board",
       capturedAt: "2026-10-15T08:02:00.000Z",
       status: "open",
-      assignedTo: [{ name: "Alex Morgan" }],
+      assignedTo: [{ name: "Alex Morgan", id: "user:u-alex" }],
       requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
     });
     expect(actionItemBody(card.content)).toContain(

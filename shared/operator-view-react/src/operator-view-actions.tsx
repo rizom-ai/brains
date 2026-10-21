@@ -219,8 +219,13 @@ function ActionFormFields(props: {
       (props.action.form?.fields ?? []).flatMap((field) => {
         if (field.control !== "select") return [];
         const value = initial[field.name];
+        // An optional select starts on its empty choice.
         const selectedValue =
-          typeof value === "string" ? value : field.options?.[0]?.value;
+          typeof value === "string"
+            ? value
+            : field.required
+              ? field.options?.[0]?.value
+              : undefined;
         return selectedValue ? [[field.name, selectedValue]] : [];
       }),
     ),
@@ -260,7 +265,13 @@ function ActionFormFields(props: {
               <Select
                 {...controlStyles}
                 name={field.name}
-                defaultValue={typeof value === "string" ? value : undefined}
+                defaultValue={
+                  typeof value === "string"
+                    ? value
+                    : field.required
+                      ? undefined
+                      : ""
+                }
                 required={field.required}
                 onChange={(event) =>
                   setSelected((current) => ({
@@ -269,6 +280,7 @@ function ActionFormFields(props: {
                   }))
                 }
               >
+                {!field.required && <option value="">None</option>}
                 {field.options?.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
