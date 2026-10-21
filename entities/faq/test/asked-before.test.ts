@@ -65,7 +65,6 @@ describe("answering a question asked before", () => {
       question: "How does Rizom keep memory?",
       status,
       asked: 3,
-      sources,
     };
     await context.entityService.createEntity({
       entity: {
@@ -74,6 +73,8 @@ describe("answering a question asked before", () => {
         content: faqAdapter.createFaqContent(
           frontmatter,
           "In the brains of the people who hold it.",
+          [],
+          sources,
         ),
         visibility,
         metadata: faqMetadata(frontmatter),

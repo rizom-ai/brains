@@ -10,6 +10,7 @@ import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import {
   faqSchema,
   type FaqAlternative,
+  type FaqSource,
   type FaqEntity,
   type FaqFrontmatter,
 } from "../schemas/faq";
@@ -25,6 +26,7 @@ interface ParsedFaq {
   entity: FaqEntity;
   frontmatter: FaqFrontmatter;
   answer: string;
+  sources: FaqSource[];
   alternatives: FaqAlternative[];
 }
 
@@ -118,9 +120,9 @@ export class FaqInboxSource implements InboxSource {
   ): Promise<InboxItemDetail> {
     requireAdmin(actor);
     signal.throwIfAborted();
-    const { frontmatter, answer, alternatives } = await this.load(itemId);
+    const { frontmatter, answer, alternatives, sources } =
+      await this.load(itemId);
     signal.throwIfAborted();
-    const sources = frontmatter.sources ?? [];
     const sections = [
       frontmatter.question,
       `${frontmatter.status === "draft" ? "Drafted answer" : "Current answer"}:\n${answer}`,
@@ -176,6 +178,7 @@ export class FaqInboxSource implements InboxSource {
           frontmatter,
           chosen,
           actionId === "publish" ? faq.alternatives : [],
+          faq.sources,
         ),
         metadata: faqMetadata(frontmatter),
       },

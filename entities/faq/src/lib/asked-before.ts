@@ -84,14 +84,16 @@ export async function answerAskedBefore(
     current.metadata.status !== "published"
   )
     return {};
-  const { frontmatter, answer } = faqAdapter.parseFaqContent(current.content);
+  const { frontmatter, answer, sources } = faqAdapter.parseFaqContent(
+    current.content,
+  );
   if (frontmatter.status !== "published") return {};
   return {
     hit: {
       faqId: faq.id,
       faqQuestion: frontmatter.question,
       answer,
-      sources: (frontmatter.sources ?? []).map(citationOf),
+      sources: sources.map(citationOf),
     },
   };
 }

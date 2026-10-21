@@ -251,9 +251,7 @@ describe("FaqCaptureHandler", () => {
       { entityType: "faq", options: { filter: { visibilityScope: "public" } } },
       faqSchema,
     );
-    expect(
-      faqAdapter.parseFaqContent(faq?.content ?? "").frontmatter.sources,
-    ).toEqual([
+    expect(faqAdapter.parseFaqContent(faq?.content ?? "").sources).toEqual([
       {
         id: "post:handoffs",
         title: "Handoffs between teams",
