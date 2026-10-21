@@ -54,16 +54,22 @@ export interface ConsoleJumpEntityHit {
   title: string;
 }
 
-/** A search result as the palette names it: its title, else its id. */
-export function jumpEntityHit(entity: {
-  entityType: string;
-  id: string;
-  metadata: Record<string, unknown>;
-}): ConsoleJumpEntityHit {
+/**
+ * A search result as the palette names it: the title its type's adapter
+ * reads, else the one in its metadata, else its id.
+ */
+export function jumpEntityHit(
+  entity: {
+    entityType: string;
+    id: string;
+    metadata: Record<string, unknown>;
+  },
+  title?: string,
+): ConsoleJumpEntityHit {
   return {
     entityType: entity.entityType,
     id: entity.id,
-    title: displayTitleFrom(entity.metadata) ?? entity.id,
+    title: title ?? displayTitleFrom(entity.metadata) ?? entity.id,
   };
 }
 
