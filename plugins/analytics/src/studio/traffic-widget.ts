@@ -4,6 +4,7 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { changeCaption } from "../lib/change-caption";
 import { shortDate } from "../lib/short-date";
 import type { TrafficReports } from "../reports/traffic-reports";
 
@@ -52,12 +53,12 @@ const trafficWidget = defineDashboardWidget({
           {
             label: "Pageviews",
             value: data.pageviews,
-            caption: withChange(data.pageviews, data.change.pageviews),
+            caption: changeCaption(data.change.pageviews),
           },
           {
             label: "Visits",
             value: data.visits,
-            caption: withChange(data.visits, data.change.visits),
+            caption: changeCaption(data.change.visits),
           },
         ],
       },

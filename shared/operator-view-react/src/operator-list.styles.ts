@@ -31,23 +31,54 @@ export const listStyles: Record<
     borderTopStyle: "solid",
     borderTopColor: "var(--console-rule-strong)",
   },
+  // Beside its actions while the row has room; in a narrow board column the
+  // title takes the full width and the actions follow.
   row: {
     display: "flex",
-    alignItems: "center",
+    flexDirection: {
+      default: "row",
+      "@container operator-cell (max-width: 420px)": "column",
+    },
+    flexWrap: {
+      default: "nowrap",
+      "@media (max-width: 640px)": "wrap",
+      "@container operator (max-width: 640px)": "wrap",
+    },
+    alignItems: {
+      default: "center",
+      "@container operator-cell (max-width: 420px)": "stretch",
+    },
     justifyContent: "space-between",
-    gap: 20,
-    padding: "22px 0",
-    borderBottomWidth: 1,
+    gap: {
+      default: 20,
+      "@media (max-width: 640px)": 12,
+      "@container operator (max-width: 640px)": 12,
+      "@container operator-cell (max-width: 420px)": 12,
+    },
+    // A board card sits tighter in its column, which pads the last one.
+    padding: {
+      default: "22px 0",
+      ":is([data-matrix-cell] li)": "14px 0",
+      ":is([data-matrix-cell] li:last-child)": "14px 0 4px",
+    },
+    borderBottomWidth: {
+      default: 1,
+      ":is([data-matrix-cell] li:last-child)": 0,
+    },
     borderBottomStyle: "solid",
     borderBottomColor: "var(--console-rule)",
     minWidth: 0,
     position: "relative",
-    "@media (max-width: 640px)": { flexWrap: "wrap", gap: 12 },
   },
   compactRow: {
     padding: "13px 6px 13px 0",
     alignItems: "start",
     "@media (max-width: 720px)": {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 10,
+    },
+    "@container operator (max-width: 720px)": {
       flexDirection: "column",
       alignItems: "stretch",
       gap: 10,
@@ -72,14 +103,23 @@ export const listStyles: Record<
     display: "flex",
     flexWrap: "wrap",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: {
+      default: "flex-end",
+      "@media (max-width: 640px)": "flex-start",
+      "@container operator (max-width: 640px)": "flex-start",
+      "@container operator-cell (max-width: 420px)": "flex-start",
+    },
     gap: 8,
     minWidth: 0,
-    maxWidth: { default: "40%", "@media (max-width: 720px)": "100%" },
+    maxWidth: {
+      default: "40%",
+      "@media (max-width: 720px)": "100%",
+      "@container operator (max-width: 720px)": "100%",
+      "@container operator-cell (max-width: 420px)": "100%",
+    },
     flexShrink: 0,
     position: "relative",
     zIndex: 1,
-    "@media (max-width: 640px)": { justifyContent: "flex-start" },
   },
   controls: { position: "relative", zIndex: 1, minWidth: 0 },
   count: {
@@ -92,7 +132,7 @@ export const listStyles: Record<
   links: {
     display: "flex",
     flexWrap: "wrap",
-    gap: 14,
+    gap: "6px 14px",
     fontSize: 12,
     position: "relative",
     zIndex: 1,

@@ -84,6 +84,36 @@ describe("app control vocabulary", () => {
     expect(primary).toContain('color: "var(--console-on-accent)"');
   });
 
+  it("sets fields in the UI's type size, 16px only where touch browsers zoom", () => {
+    const source = readFileSync(
+      new URL("../src/controls.tsx", import.meta.url),
+      "utf8",
+    );
+    const control = source.slice(
+      source.indexOf("  control: {"),
+      source.indexOf("  select: {"),
+    );
+    const fontSize = control.slice(control.indexOf("fontSize: {"));
+    expect(fontSize).toContain('default: "13px"');
+    expect(fontSize).toContain('"@media (max-width: 640px)": "16px"');
+    expect(fontSize).toContain('"@media (pointer: coarse)": "16px"');
+  });
+
+  it("casts overlay shadows in the climate's ink, not a paper-light halo", () => {
+    const source = readFileSync(
+      new URL("../src/interactive.tsx", import.meta.url),
+      "utf8",
+    );
+    for (const surface of ["  dialog: {", "  popup: {"]) {
+      const block = source.slice(source.indexOf(surface));
+      const shadow = block.slice(
+        block.indexOf("boxShadow:"),
+        block.indexOf("color:"),
+      );
+      expect(shadow).toContain("var(--console-shadow-ink,");
+    }
+  });
+
   it("keeps a hover cue when motion is reduced and the lift is disabled", () => {
     const source = readFileSync(
       new URL("../src/controls.tsx", import.meta.url),

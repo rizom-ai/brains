@@ -35,6 +35,7 @@ export const layoutStyles: Record<
       default: "minmax(0,1fr) auto",
       ":has(> details[open])": "minmax(0,1fr)",
       "@media (max-width: 640px)": "minmax(0,1fr)",
+      "@container operator (max-width: 640px)": "minmax(0,1fr)",
     },
     alignItems: "center",
     gap: 16,
@@ -181,11 +182,16 @@ export const layoutStyles: Record<
       gridTemplateColumns: "minmax(0,1fr)",
       gap: 32,
     },
+    "@container operator (max-width: 900px)": {
+      gridTemplateColumns: "minmax(0,1fr)",
+      gap: 32,
+    },
   },
   compactColumns: {
     gridTemplateColumns: {
       default: "minmax(0,1.5fr) minmax(250px,0.6fr)",
       "@media (max-width: 900px)": "minmax(0,1fr)",
+      "@container operator (max-width: 900px)": "minmax(0,1fr)",
     },
     gap: 30,
   },

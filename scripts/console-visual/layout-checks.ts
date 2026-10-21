@@ -61,6 +61,7 @@ export async function checkLayout(
       studioTypeRoles,
       hostedCardHeadings,
       tagPlaceholdersFit,
+      wordsStayWhole,
     ]);
   if (surface === "studio-overview") await checkOverviewNavigation(page);
   if (surface.startsWith("studio-chat"))
@@ -432,6 +433,32 @@ function tagPlaceholdersFit(): void {
       context.measureText(input.placeholder).width + 2
     )
       throw new Error("Tag placeholder clips its label or caret");
+  }
+}
+
+/**
+ * Prose words never break across lines: a narrow column that splits "Review"
+ * into "Revie / w" is squeezed, not wrapped. Identifiers and URLs may break.
+ */
+function wordsStayWhole(): void {
+  const root = document.querySelector("main") ?? document.body;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? "";
+    for (const match of text.matchAll(
+      /(?<=^|\s)[A-Za-z]{2,}(?=[.,:;!?)]*(?:\s|$))/g,
+    )) {
+      const range = document.createRange();
+      range.setStart(node, match.index);
+      range.setEnd(node, match.index + match[0].length);
+      const tops = new Set(
+        Array.from(range.getClientRects())
+          .filter((rect) => rect.width > 0)
+          .map((rect) => Math.round(rect.top)),
+      );
+      if (tops.size > 1)
+        throw new Error(`The word "${match[0]}" breaks across lines`);
+    }
   }
 }
 

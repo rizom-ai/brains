@@ -369,6 +369,16 @@ export function studioWorkspaces(badges: {
       entityTypes: [],
     },
     {
+      id: "action-board:board",
+      pluginId: "action-board",
+      label: "Board",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 45,
+      permission: "trusted",
+      urlQuery: true,
+      entityTypes: [],
+    },
+    {
       id: "site-builder:site",
       pluginId: "site-builder",
       label: "Site",

@@ -4,6 +4,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { studioAssetManifestSchema } from "../../plugins/studio/src/ui-assets";
 import { createAdministrationFixture } from "../fixtures/studio-administration";
 import { createDeliveryViewFixtures } from "../fixtures/studio-delivery-views";
+import { createBoardFixture } from "../fixtures/studio-board";
 import { createSyncViewFixture } from "../fixtures/studio-sync-view";
 import { createWorkViewFixtures } from "../fixtures/studio-work-views";
 import {
@@ -58,6 +59,7 @@ export async function startFixtureServer(): Promise<FixtureServer> {
   const workViews = await createWorkViewFixtures(STUDY_STATE);
   const deliveryViews = await createDeliveryViewFixtures(STUDY_STATE);
   const syncView = await createSyncViewFixture(STUDY_STATE);
+  const board = await createBoardFixture(FIXED_NOW);
   const state: FixtureServerState = {
     reviewingSystem: false,
     lastSystemSave: undefined,
@@ -71,6 +73,7 @@ export async function startFixtureServer(): Promise<FixtureServer> {
     workViews,
     deliveryViews,
     syncView,
+    board,
   });
   const server = Bun.serve({
     port: 0,

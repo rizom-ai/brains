@@ -209,7 +209,7 @@ export function ActionResult(props: {
 function ActionFormFields(props: {
   action: RuntimeOperatorActionControl;
 }): ReactElement {
-  const { Input, Select, engine } = useContext(
+  const { Input, Select, Textarea, engine } = useContext(
     OperatorRendererHostContext,
   ).components;
   const controlStyles = { xstyle: engine === "css" && fieldStyles.control };
@@ -287,6 +287,28 @@ function ActionFormFields(props: {
                   </option>
                 ))}
               </Select>
+            </label>
+          );
+        }
+        if (field.control === "textarea") {
+          return (
+            <label
+              key={field.name}
+              {...stylex.props(fieldStyles.label, fieldStyles.wideLabel)}
+            >
+              <span>{label}</span>
+              <Textarea
+                xstyle={
+                  engine === "css" && [
+                    fieldStyles.control,
+                    fieldStyles.textarea,
+                  ]
+                }
+                name={field.name}
+                defaultValue={typeof value === "string" ? value : ""}
+                required={field.required}
+                rows={4}
+              />
             </label>
           );
         }

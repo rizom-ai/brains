@@ -31,6 +31,12 @@ const data: RuntimeStudioWorkspaceData = {
             },
             { name: "url", label: "URL", control: "url", required: false },
             {
+              name: "details",
+              label: "Details",
+              control: "textarea",
+              required: false,
+            },
+            {
               name: "total",
               label: "Total",
               control: "number",
@@ -123,6 +129,13 @@ test("compiled native form fields preserve validation, defaults and secret suppr
       expect(token.getAttribute("type")).toBe("password");
       expect(token.getAttribute("value")).toBe("");
       expect(token.getAttribute("autocomplete")).toBe("new-password");
+      // Longer text gets room to write: a textarea across the whole form row.
+      const details = doc.querySelector('textarea[name="details"]');
+      if (!details) throw Error("Missing details textarea");
+      expect(details.closest("label")?.textContent).toContain("Details");
+      expect(
+        window.getComputedStyle(details.closest("label") ?? details).gridColumn,
+      ).toBe("1 / -1");
     } finally {
       await window.happyDOM.close();
     }
