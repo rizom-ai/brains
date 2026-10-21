@@ -148,3 +148,71 @@ test("a provenance field shows a fact read-only, and nothing when empty", async 
   expect(text).not.toContain("null");
   expect(document.querySelector("input, select, textarea")).toBeNull();
 });
+
+test("a people field names people stored by identity and display name", async () => {
+  await act(async () =>
+    root.render(
+      <Field
+        descriptor={{
+          name: "decidedBy",
+          label: "Decided By",
+          widget: "people",
+        }}
+        value={[
+          {
+            identity: { kind: "user", userId: "u-sam" },
+            displayName: "Sam Rivera",
+          },
+          { identity: { kind: "user", userId: "u-anon" } },
+        ]}
+        onChange={() => {}}
+      />,
+    ),
+  );
+
+  const text = document.body.textContent;
+  expect(text).toContain("Sam Rivera");
+  expect(text).toContain("Someone");
+  expect(text).not.toContain("u-sam");
+});
+
+test("a provenance field reads time ranges and lists of sources", async () => {
+  await act(async () =>
+    root.render(
+      <>
+        <Field
+          descriptor={{
+            name: "timeRange",
+            label: "Time Range",
+            widget: "provenance",
+          }}
+          value={{
+            start: "2026-10-01T10:00:00.000Z",
+            end: "2026-10-01T10:05:00.000Z",
+          }}
+          onChange={() => {}}
+        />
+        <Field
+          descriptor={{
+            name: "sources",
+            label: "Sources",
+            widget: "provenance",
+          }}
+          value={[
+            {
+              id: "post-1",
+              title: "Field notes",
+              url: "https://example.com/notes",
+            },
+          ]}
+          onChange={() => {}}
+        />
+      </>,
+    ),
+  );
+
+  const text = document.body.textContent;
+  expect(text).toContain("2026-10-01 10:00 UTC → 2026-10-01 10:05 UTC");
+  expect(text).toContain("Field notes");
+  expect(text).not.toContain("{");
+});

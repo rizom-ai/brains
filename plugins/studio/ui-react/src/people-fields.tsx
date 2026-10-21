@@ -18,9 +18,12 @@ function people(value: unknown): Person[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry: unknown) => {
     if (typeof entry !== "object" || entry === null) return [];
-    const name: unknown = Reflect.get(entry, "name");
+    // Board people carry a name; conversation memory, a display name.
+    const named: unknown =
+      Reflect.get(entry, "name") ?? Reflect.get(entry, "displayName");
     const id: unknown = Reflect.get(entry, "id");
-    if (typeof name !== "string" || name.length === 0) return [];
+    const name =
+      typeof named === "string" && named.length > 0 ? named : "Someone";
     return [{ name, ...(typeof id === "string" ? { id } : {}) }];
   });
 }
