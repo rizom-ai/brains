@@ -1,3 +1,4 @@
+export { assignableMembers, type AssignableMember } from "./assignable-members";
 export { AUTH_ACCOUNT_MUTATION_ACTIONS } from "./account-contracts";
 export type {
   AuthAccountConnectedChannel,
