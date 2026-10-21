@@ -194,7 +194,7 @@ const manageInputSchema = {
     .min(1)
     .optional()
     .describe(
-      "For action=status, this field is REQUIRED whenever the user's request names a specific playbook. Pass that playbook's stable slug/id; omit only when the user asks for conversation-wide status without naming one.",
+      "The playbook's stable slug/id. REQUIRED for action=start. For action=status, this field is REQUIRED whenever the user's request names a specific playbook; omit only when the user asks for conversation-wide status without naming one.",
     ),
   lifecycle: z.string().min(1).optional(),
   event: z.string().min(1).optional(),
@@ -222,6 +222,28 @@ const playbookManageInputSchema = z.discriminatedUnion("action", [
     context: z.record(z.string(), z.unknown()).optional(),
   }),
 ]);
+
+/**
+ * A readable answer for input the action union rejects, so the model can
+ * correct its call instead of reading a raw Zod issue list.
+ */
+function formatManageInputError(input: unknown, error: z.ZodError): string {
+  const provided = z.looseObject({ action: z.string() }).safeParse(input);
+  const issues = error.issues.map((issue) => {
+    const field = issue.path.join(".");
+    const [key] = issue.path;
+    if (
+      provided.success &&
+      issue.path.length === 1 &&
+      typeof key === "string" &&
+      provided.data[key] === undefined
+    ) {
+      return `${field} is required for action=${provided.data.action}`;
+    }
+    return field ? `${field}: ${issue.message}` : issue.message;
+  });
+  return `Invalid playbook_manage input: ${issues.join("; ")}.`;
+}
 
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
@@ -452,7 +474,14 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = playbookManageInputSchema.parse(input);
+          const result = playbookManageInputSchema.safeParse(input);
+          if (!result.success) {
+            return {
+              success: false,
+              error: formatManageInputError(input, result.error),
+            };
+          }
+          const parsed = result.data;
           if (parsed.action === "status") {
             return this.handleStatus(parsed, toolContext);
           }
