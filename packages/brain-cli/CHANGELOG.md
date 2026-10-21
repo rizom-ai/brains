@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- [#709](https://github.com/rizom-ai/brains/pull/709) [`533891a`](https://github.com/rizom-ai/brains/commit/533891a6e04303a7932b0058636117d06cb723a3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An open card or row in Studio no longer has its accent edge drawn on its text. While a detail is open, the list or table beside it keeps a 14px gutter on every row, so the marker sits clear of the open row's title and the titles stay aligned, and the open row takes a faint neutral tint that shows even on a board column of the same colour as the card.
+
 ## 0.2.0-alpha.585
 
 ### Patch Changes

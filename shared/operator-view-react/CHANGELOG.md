@@ -1,5 +1,13 @@
 # @brains/operator-view-react
 
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.586
+  - @brains/plugins@0.2.0-alpha.586
+
 ## 0.2.0-alpha.585
 
 ### Patch Changes
