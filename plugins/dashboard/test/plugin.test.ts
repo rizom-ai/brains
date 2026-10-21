@@ -16,7 +16,11 @@ import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
 import { consoleJumpResponseSchema } from "../src/console-jump";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  baseEntitySchema,
+  createPluginHarness,
+  createTestEntityAdapter,
+} from "@brains/plugins/test";
 
 describe("DashboardPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -347,6 +351,30 @@ describe("DashboardPlugin", () => {
         metadata: {},
         contentHash: "",
       };
+      // A singleton whose name only its adapter reads from the content.
+      const character = {
+        id: "brain-character",
+        entityType: "brain-character",
+        content: "",
+        created: "",
+        updated: "",
+        visibility: "public" as const,
+        metadata: {},
+        contentHash: "",
+      };
+      const characterAdapter = createTestEntityAdapter("brain-character", {
+        isSingleton: true,
+      });
+      characterAdapter.extractMetadata = (): Record<string, unknown> => ({
+        name: "Profound Specialist",
+      });
+      harness
+        .getEntityRegistry()
+        .registerEntityType(
+          "brain-character",
+          baseEntitySchema,
+          characterAdapter,
+        );
       function searchStub(
         request: EntitySearchRequest,
       ): Promise<SearchResult<BaseEntity>[]>;
@@ -361,6 +389,7 @@ describe("DashboardPlugin", () => {
         const results = [
           { entity: titledNote, score: 1, excerpt: "" },
           { entity: untitledNote, score: 0.5, excerpt: "" },
+          { entity: character, score: 0.4, excerpt: "" },
         ];
         return schema
           ? results.map((result) => ({
@@ -396,6 +425,13 @@ describe("DashboardPlugin", () => {
           title: "untitled-note",
           sub: "Note",
           href: "/studio/entities/note/untitled-note",
+          tag: "studio",
+        },
+        {
+          id: "brain-character/brain-character",
+          title: "Profound Specialist",
+          sub: "Brain Character",
+          href: "/studio/entities/brain-character/brain-character",
           tag: "studio",
         },
       ]);

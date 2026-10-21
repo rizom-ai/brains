@@ -29,7 +29,7 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "./dashboard-page";
-import { deriveConsoleSurfaces } from "@brains/plugins";
+import { deriveConsoleSurfaces, entityDisplayTitle } from "@brains/plugins";
 import {
   buildConsoleJumpGroups,
   jumpEntityHit,
@@ -406,7 +406,12 @@ export class DashboardPlugin extends ServicePlugin<
             }
 
             if (results) {
-              entities = results.map((result) => jumpEntityHit(result.entity));
+              entities = results.map((result) =>
+                jumpEntityHit(
+                  result.entity,
+                  entityDisplayTitle(ctx.entities, result.entity),
+                ),
+              );
             }
           }
 

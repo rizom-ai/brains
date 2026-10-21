@@ -15,9 +15,9 @@ import {
   preserveSourceFrontmatter,
   getPublishBoundaryState,
   entityIdPathSchema,
+  entityDisplayTitle as sharedEntityDisplayTitle,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { displayTitleFrom } from "@brains/utils/string-utils";
 import { isRawEntityType } from "./config";
 import {
   studioMutationOptions,
@@ -51,16 +51,12 @@ import {
 } from "./collection-query";
 
 /** Entity adapters own title derivation; Studio must not reinterpret source. */
+/** How Studio names an entry; the same rule the ⌘K palette uses. */
 export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
-  return (
-    displayTitleFrom(
-      context.entities.getAdapter(entity.entityType)?.extractMetadata(entity) ??
-        {},
-    ) ?? displayTitleFrom(entity.metadata)
-  );
+  return sharedEntityDisplayTitle(context.entities, entity);
 }
 
 /** Authoring reads preserve source; rendering must never change a save draft. */
