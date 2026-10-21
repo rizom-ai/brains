@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.582
+
+### Patch Changes
+
+- [#698](https://github.com/rizom-ai/brains/pull/698) [`9a30c7c`](https://github.com/rizom-ai/brains/commit/9a30c7ce1c6f7c16ce209c4211a59edb3a639434) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The ⌘K palette names every search hit the way Studio does, through its type: a Brain Character hit reads as its name ("Profound Specialist") instead of its id, and the Brain Character's name is now part of its searchable metadata.
+
 ## 0.2.0-alpha.581
 
 ### Patch Changes
