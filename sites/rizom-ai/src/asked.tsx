@@ -19,7 +19,6 @@ type AskedSourceSchema = z.ZodObject<{
   id: z.ZodString;
   title: z.ZodString;
   url: z.ZodNullable<z.ZodString>;
-  excerpt: z.ZodNullable<z.ZodString>;
   brain: z.ZodNullable<
     z.ZodObject<{ name: z.ZodString; url: z.ZodNullable<z.ZodString> }>
   >;
@@ -29,7 +28,6 @@ const askedSourceSchema: AskedSourceSchema = z.object({
   id: z.string(),
   title: z.string(),
   url: z.string().nullable(),
-  excerpt: z.string().nullable(),
   brain: z.object({ name: z.string(), url: z.string().nullable() }).nullable(),
 });
 
@@ -131,7 +129,6 @@ function Sources({ sources }: { sources: AskedSource[] }): JSX.Element | null {
                 <span>{source.title}</span>
               )}
             </span>
-            {source.excerpt && <q>{source.excerpt}</q>}
           </li>
         ))}
       </ul>

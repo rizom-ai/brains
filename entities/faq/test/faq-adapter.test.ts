@@ -16,7 +16,6 @@ const sources = [
     id: "post:handoffs",
     title: "Handoffs between [teams]",
     url: "https://becca.rizom.ai/essays/handoffs",
-    excerpt: "Before anyone leaves a task we write three things down.",
     brain: { name: "Becca", url: "https://becca.rizom.ai/" },
   },
   { id: "post:publishing", title: "Publishing from Studio" },
@@ -113,7 +112,7 @@ describe("FaqAdapter", () => {
 });
 
 describe("FAQ sources", () => {
-  it("are a list of links under the answer, each quoting what it drew on", () => {
+  it("are a list of links under the answer", () => {
     const markdown = faqAdapter.createFaqContent(
       frontmatter,
       "Open it in Studio and choose Publish.",
@@ -127,20 +126,17 @@ describe("FAQ sources", () => {
         "## Sources",
         "",
         '- [Handoffs between \\[teams\\]](https://becca.rizom.ai/essays/handoffs "post:handoffs") — from [Becca](https://becca.rizom.ai/)',
-        "  > Before anyone leaves a task we write three things down.",
         "- [Publishing from Studio](post:publishing)",
       ].join("\n"),
     );
     expect(faqAdapter.parseFaqContent(markdown).sources).toEqual(sources);
   });
 
-  it("keep references with spaces and excerpts over several lines", () => {
+  it("keep references with spaces", () => {
     const awkward = [
       {
         id: "note:Executive Team Meeting 2026-10-06",
         title: "Executive Team Meeting 2026-10-06",
-        excerpt:
-          "--- title: Knowledge Networks ---\n# Executive Team Meeting\n\nTopics discussed.",
         brain: { name: "Rizom Core Team", url: "https://team.rizom.ai/" },
       },
     ];
@@ -199,11 +195,7 @@ describe("FAQs stored before the formatter", () => {
       { answer: "A place your knowledge lives." },
     ]);
     expect(parsed.sources).toEqual([
-      {
-        id: "post:publishing",
-        title: "Publishing from Studio",
-        excerpt: "Choose Publish in the editor.",
-      },
+      { id: "post:publishing", title: "Publishing from Studio" },
     ]);
   });
 
@@ -213,8 +205,9 @@ describe("FAQs stored before the formatter", () => {
 
     expect(body).toContain("## Answer\nA personal knowledge service.");
     expect(body).toContain(
-      "- [Publishing from Studio](post:publishing)\n  > Choose Publish in the editor.",
+      "## Sources\n\n- [Publishing from Studio](post:publishing)\n",
     );
+    expect(body).not.toContain("Choose Publish in the editor.");
     expect(faqAdapter.parseFaqContent(written)).toMatchObject({
       answer: "A personal knowledge service.",
       alternatives: [
@@ -234,6 +227,47 @@ describe("FAQs stored before the formatter", () => {
     expect(
       faqAdapter.toMarkdown(stored(current)).split("---").slice(2).join("---"),
     ).toBe(current.split("---").slice(2).join("---"));
+  });
+});
+
+describe("FAQs stored with source excerpts", () => {
+  const quoted = [
+    "---",
+    "question: How do I publish a draft?",
+    "status: draft",
+    "asked: 2",
+    "---",
+    "# FAQ",
+    "",
+    "## Answer",
+    "Open it in Studio and choose Publish.",
+    "",
+    "## Sources",
+    "",
+    '- [Handoffs between \\[teams\\]](https://becca.rizom.ai/essays/handoffs "post:handoffs") — from [Becca](https://becca.rizom.ai/)',
+    "  > Before anyone leaves a task",
+    "  >",
+    "  > we write three things down.",
+    "- [Publishing from Studio](post:publishing)",
+    "",
+  ].join("\n");
+
+  it("read the sources without what they quoted", () => {
+    expect(faqAdapter.parseFaqContent(quoted).sources).toEqual(sources);
+  });
+
+  it("drop the quotes on their next write", () => {
+    const written = faqAdapter.toMarkdown(stored(quoted));
+
+    expect(written).not.toContain(">");
+    expect(written).toBe(
+      faqAdapter.createFaqContent(
+        frontmatter,
+        "Open it in Studio and choose Publish.",
+        [],
+        sources,
+      ),
+    );
   });
 });
 
