@@ -413,10 +413,6 @@
   color: var(--ask-muted);
   font-size: 11px;
 }
-:where([data-ask-styled] .web-chat-source-excerpt) {
-  margin: 4px 0 0;
-  color: var(--ask-muted);
-}
 :where([data-ask-styled] .brain-box-sr-only) {
   position: absolute;
   width: 1px;
