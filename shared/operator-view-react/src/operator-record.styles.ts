@@ -105,8 +105,11 @@ export const recordStyles: Record<
     outlineWidth: 2,
     outlineColor: "var(--console-accent)",
   },
+  // The title opens its whole row, so the row draws the focus ring; the
+  // title's own ring would be clipped by its two-line clamp.
   stretchedLink: {
     position: "static",
+    outlineStyle: "none",
     "::after": {
       content: '""',
       position: "absolute",

@@ -11,11 +11,16 @@ const styled = [
 ];
 /**
  * A focus ring sits 2px outside a button or link, or 2px inside a field,
- * pane or navigation row. The primary button's reduced-motion hover cue is
- * not a focus ring: it draws inside the filled button, clear of its edge.
+ * pane or navigation row. Two exceptions: a list row rings 6px out when its
+ * title has focus, since a row has no side padding to keep a 2px ring off
+ * its text; and the primary button's reduced-motion hover cue, which is not
+ * a focus ring.
  */
 const allowed = new Set(["2", "-2", '"2px"', '"-2px"']);
-const exceptions = new Set(['shared/app-ui-react/src/controls.tsx: "-4px"']);
+const exceptions = new Set([
+  'shared/app-ui-react/src/controls.tsx: "-4px"',
+  "shared/operator-view-react/src/operator-list.styles.ts: 6",
+]);
 
 describe("console focus rings", () => {
   test("every outline offset is one of the two focus-ring offsets", () => {

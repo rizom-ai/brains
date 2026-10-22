@@ -103,6 +103,7 @@ export function OperatorTextLink(props: LinkProps): ReactElement {
         {...compiled}
         className={className}
         href={props.href}
+        data-row-link={props.stretch ? "" : undefined}
         {...(props.external ? { target: "_blank", rel: "noreferrer" } : {})}
       >
         {props.children}
@@ -113,6 +114,7 @@ export function OperatorTextLink(props: LinkProps): ReactElement {
         className={className}
         type="button"
         onClick={props.onClick}
+        data-row-link={props.stretch ? "" : undefined}
       >
         {props.children}
       </button>

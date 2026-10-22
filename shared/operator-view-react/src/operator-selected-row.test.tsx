@@ -165,3 +165,23 @@ test("an open table row's marker sits in a gutter too", async () => {
     await closed.happyDOM.close();
   }
 });
+
+test("a focused row title rings its whole row, not the clipped title", async () => {
+  const window = render(board);
+  try {
+    const row = window.document.querySelector("[data-matrix-cell] li");
+    const title = row?.querySelector("button[data-row-link]");
+    if (!row || !title) throw new Error("Missing row title link");
+    // The row draws the ring while its title link has keyboard focus.
+    const rowRing = [...row.classList].filter((name) =>
+      operatorViewStylexCSS.includes(
+        `.${name}:has([data-row-link]:focus-visible):not(#\\#)`,
+      ),
+    );
+    expect(rowRing.length).toBeGreaterThan(0);
+    // The title's own ring would be clipped by its two-line clamp.
+    expect(window.getComputedStyle(title).outlineStyle).toBe("none");
+  } finally {
+    await window.happyDOM.close();
+  }
+});
