@@ -26,19 +26,18 @@ import {
 import {
   safeParseRuntimeStudioOperatorView,
   type RuntimeStudioWorkspaceData,
-  type RuntimeOperatorValidationIssue,
 } from "./operator-view-runtime";
+import {
+  parseOperatorData,
+  runtimeError,
+  validationDetail,
+  type OperatorRuntimeIdentity,
+} from "./operator-runtime-errors";
 import {
   getWorkspaceActionExecutor,
   type AnyWorkspaceActionDefinition,
   type BoundWorkspaceAction,
 } from "./workspace-action-definition-contract";
-
-interface RuntimeWorkspaceIdentity {
-  readonly publicServiceId: string;
-  readonly packageName: string;
-  readonly workspaceId: string;
-}
 
 const actionRequestSchema = z
   .object({
@@ -89,7 +88,7 @@ const jsonValueSchema: ReturnType<typeof z.json> = z.json();
 function createOperatorQueryReader(
   schema: OperatorSchema | undefined,
   rawQuery: unknown,
-  identity: RuntimeWorkspaceIdentity,
+  identity: OperatorRuntimeIdentity,
 ): OperatorQueryReader {
   const parsed = schema?.safeParse(rawQuery ?? {});
   if (parsed && !parsed.success) {
@@ -116,28 +115,6 @@ function createOperatorQueryReader(
   });
 }
 
-function runtimeError(
-  identity: RuntimeWorkspaceIdentity,
-  stage: string,
-  detail?: string,
-): Error {
-  return new Error(
-    `Service "${identity.publicServiceId}" package "${identity.packageName}" Studio workspace "${identity.workspaceId}" ${stage}${detail ? `: ${detail}` : ""}`,
-  );
-}
-
-function validationDetail(
-  issues: readonly RuntimeOperatorValidationIssue[],
-): string {
-  return issues
-    .slice(0, 5)
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join(".") : "value";
-      return `${path}: ${issue.message}`;
-    })
-    .join("; ");
-}
-
 function operatorCaller(actor: StudioWorkspaceActor): OperatorCaller {
   return Object.freeze({
     actor: Object.freeze({
@@ -154,22 +131,6 @@ function requestSignal(
   signal: AbortSignal | undefined,
 ): AbortSignal {
   return signal ? AbortSignal.any([signal, runtimeSignal]) : runtimeSignal;
-}
-
-function parseWorkspaceData<TSchema extends z.ZodType<unknown, unknown>>(
-  schema: TSchema,
-  input: unknown,
-  identity: RuntimeWorkspaceIdentity,
-): z.output<TSchema> {
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) {
-    throw runtimeError(
-      identity,
-      "returned invalid data; return a value matching its data schema",
-      validationDetail(parsed.error.issues),
-    );
-  }
-  return parsed.data;
 }
 
 function parseActionInput<TSchema extends z.ZodType<unknown, unknown>>(
@@ -248,10 +209,11 @@ export function createDeclarativeStudioWorkspaceRegistration<
 }): Omit<StudioWorkspaceRegistration, "pluginId"> {
   const definition = input.binding.definition;
   const executor = getStudioWorkspaceExecutor(input.binding);
-  const identity: RuntimeWorkspaceIdentity = {
+  const identity: OperatorRuntimeIdentity = {
     publicServiceId: input.publicServiceId,
     packageName: input.packageName,
-    workspaceId: definition.id,
+    surface: "Studio workspace",
+    id: definition.id,
   };
   if (definition.query) {
     const initialQuery = definition.query.safeParse({});
@@ -357,7 +319,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
         throw runtimeError(identity, "data loader failed");
       }
       combinedSignal.throwIfAborted();
-      const data = parseWorkspaceData(definition.data, rawData, identity);
+      const data = parseOperatorData(definition.data, rawData, identity);
 
       let rawView: unknown;
       try {
@@ -565,7 +527,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
           ): Promise<number> => {
             const signal = input.runtimeSignal;
             if (!(await admitted(actor, signal))) return 0;
-            const data = parseWorkspaceData(
+            const data = parseOperatorData(
               definition.data,
               await executor.load(await contextFor(actor, signal, undefined)),
               identity,
