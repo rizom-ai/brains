@@ -1,5 +1,16 @@
 # @brains/site-info
 
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.591
+  - @brains/site-composition@0.2.0-alpha.591
+  - @brains/utils@0.2.0-alpha.591
+  - @brains/entity-service@0.2.0-alpha.591
+  - @brains/plugins@0.2.0-alpha.591
+
 ## 0.2.0-alpha.590
 
 ### Patch Changes

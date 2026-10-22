@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- [#717](https://github.com/rizom-ai/brains/pull/717) [`6ddbdf7`](https://github.com/rizom-ai/brains/commit/6ddbdf79c1bc510bc399b0fb1cc21beda1f2d214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Action items and decisions are stored as flat files: a card added on the board is named after its title (`action-item/order-name-badges-k3f9a2.md`), an Inbox card is `inbox-<source>-<item>` and conversation memory is `<conversation>-<type>-<n>-<hash>`, with no colon to nest them in folders. Existing ones move to their flat ids once startup content settles, keeping their content, visibility and dates.
+
+- [#716](https://github.com/rizom-ai/brains/pull/716) [`d058a1f`](https://github.com/rizom-ai/brains/commit/d058a1f4cf5612c0445f7f408c03787bb3df0cde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a tool call fails and the model ends its turn with no text, the reply now reports the tool's error instead of arriving empty. `playbook_manage` tells the model that `action=start` requires `playbookId`, and an action missing a required field returns a readable error naming the field. The playbook entity instructions name `playbook_manage action=status` instead of the removed `playbook_status`.
+
 ## 0.2.0-alpha.590
 
 ### Patch Changes
