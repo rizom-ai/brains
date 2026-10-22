@@ -964,6 +964,7 @@ html {
 .x2lah0s:not(#\\#):not(#\\#):not(#\\#){flex-shrink:0}
 .xozqiw3:not(#\\#):not(#\\#):not(#\\#){flex-wrap:nowrap}
 .x1a02dak:not(#\\#):not(#\\#):not(#\\#){flex-wrap:wrap}
+.x18mqm2i:not(#\\#):not(#\\#):not(#\\#){float:right}
 .xjb2p0i:not(#\\#):not(#\\#):not(#\\#){font-family:inherit}
 .xssy22x:not(#\\#):not(#\\#):not(#\\#){font-family:var(--console-display)}
 .xa9opjo:not(#\\#):not(#\\#):not(#\\#){font-family:var(--console-mono)}
@@ -983,6 +984,7 @@ html {
 .x1j61zf2:not(#\\#):not(#\\#):not(#\\#){font-size:16px}
 .x19d36u7:not(#\\#):not(#\\#):not(#\\#){font-size:17px}
 .xosj86m:not(#\\#):not(#\\#):not(#\\#){font-size:18px}
+.x1q7jzdg:not(#\\#):not(#\\#):not(#\\#){font-size:19px}
 .xwsyq91:not(#\\#):not(#\\#):not(#\\#){font-size:20px}
 .x1i1m3gp:not(#\\#):not(#\\#):not(#\\#){font-size:22px}
 .x5heo1l:not(#\\#):not(#\\#):not(#\\#){font-size:23px}
@@ -1107,6 +1109,7 @@ html {
 .xggjnk3:not(#\\#):not(#\\#):not(#\\#){line-height:normal}
 .xd0avp8:not(#\\#):not(#\\#):not(#\\#){line-height:var(--operator-secondary-leading,1.3)}
 .x3ct3a4:not(#\\#):not(#\\#):not(#\\#){list-style-type:none}
+.xyqm7xq:not(#\\#):not(#\\#):not(#\\#){margin-inline-start:16px}
 .xvc5jky:not(#\\#):not(#\\#):not(#\\#){margin-inline-start:auto}
 .xao0n3f:not(#\\#):not(#\\#):not(#\\#){opacity:.13}
 .x19pb5yz:not(#\\#):not(#\\#):not(#\\#){opacity:.24}
@@ -1115,6 +1118,8 @@ html {
 .xf9vgkq:not(#\\#):not(#\\#):not(#\\#){opacity:.72}
 .xg01cxk:not(#\\#):not(#\\#):not(#\\#){opacity:0}
 .x1hc1fzr:not(#\\#):not(#\\#):not(#\\#){opacity:1}
+.x9ek82g:not(#\\#):not(#\\#):not(#\\#){order:1}
+.x14yy4lh:not(#\\#):not(#\\#):not(#\\#){order:2}
 .x1itw484:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-accent)}
 .x100b2on:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-rule-accent)}
 .x2ssjo2:not(#\\#):not(#\\#):not(#\\#){outline-offset:-2px}
@@ -1557,6 +1562,7 @@ html {
 .x5w4yej:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:160px}
 .xfb3i0g:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:180px}
 .xg3ba1e:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:25px}
+.x1fns5xo:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:40px}
 .x113rx6s:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:var(--radix-select-trigger-width,180px)}
 .xw2csxc:not(#\\#):not(#\\#):not(#\\#):not(#\\#){overflow-x:auto}
 .x101abm8:not(#\\#):not(#\\#):not(#\\#):not(#\\#){overflow-x:clip}

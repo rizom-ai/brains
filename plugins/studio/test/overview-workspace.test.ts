@@ -254,6 +254,52 @@ describe("Overview composition", () => {
     expect(titles).not.toContain("yesterday");
   });
 
+  it("shows each source's own figures on its collapsed row", async () => {
+    const registry = new StudioOverviewRegistry();
+    registry.register(contribution());
+    registry.register(
+      contribution({
+        id: "action-items",
+        pluginId: "conversation-memory",
+        title: "Open action items",
+        dataProvider: async () => ({
+          view: {
+            blocks: [
+              { type: "list", id: "action-items", empty: "None", items: [] },
+            ],
+          },
+          digest: {
+            items: [
+              { label: "Open actions", value: "6" },
+              { label: "Blocked", value: "1", tone: "warn" },
+              { label: "Latest", value: "Confirm the workshop venue" },
+            ],
+          },
+        }),
+      }),
+    );
+    const workspace = createStudioOverviewWorkspace({
+      context: createServicePluginContext(createMockShell(), "studio"),
+      registry,
+    });
+
+    const aside = cards(
+      columnsOf(await workspace.dataProvider(admin, {})).aside,
+    );
+
+    expect(aside.map((card) => card.summary)).toEqual([
+      [
+        { label: "Queued", value: 1 },
+        { label: "Failed", value: 2, tone: "warn" },
+      ],
+      [
+        { label: "Open actions", value: "6" },
+        { label: "Blocked", value: "1", tone: "warn" },
+      ],
+      undefined,
+    ]);
+  });
+
   it("stacks every source beside the work above standing brain facts", async () => {
     const registry = new StudioOverviewRegistry();
     registry.register(contribution());

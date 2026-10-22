@@ -17,6 +17,7 @@ import {
   operatorTextSchema as textSchema,
   operatorToneSchema as toneSchema,
   operatorScalarSchema as scalarSchema,
+  operatorStatItemSchema as statItemSchema,
   operatorStatsBlockSchema as statsBlockSchema,
   operatorKeyValuesBlockSchema as keyValuesBlockSchema,
   operatorNoticeBlockSchema as noticeBlockSchema,
@@ -716,6 +717,8 @@ const studioCardBlockSchema = z
     label: labelSchema,
     presentation: z.enum(["section", "disclosure", "feature"]).optional(),
     metadata: z.array(shortTextSchema).max(20).optional(),
+    // Figures a closed disclosure shows beside its label.
+    summary: z.array(statItemSchema).max(4).optional(),
     tone: toneSchema.optional(),
     blocks: z.array(studioPanelBlockSchema).max(12),
   })

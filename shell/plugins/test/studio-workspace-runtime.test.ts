@@ -49,6 +49,34 @@ it("retains full diagnostic source text beyond the prose limit while enforcing t
   ).toBe(false);
 });
 
+it("lets a card carry up to four summary figures", () => {
+  const card = (summary: unknown[]): unknown => ({
+    blocks: [
+      {
+        type: "card",
+        id: "inbox",
+        label: "Inbox",
+        presentation: "disclosure",
+        summary,
+        blocks: [],
+      },
+    ],
+  });
+  const figure = { label: "open", value: 7, tone: "warn" };
+  expect(
+    safeParseRuntimeStudioOperatorView(card([figure]), {
+      actions: [],
+      permission: "trusted",
+    }),
+  ).toMatchObject({ success: true, data: { blocks: [{ summary: [figure] }] } });
+  expect(
+    safeParseRuntimeStudioOperatorView(card(Array(5).fill(figure)), {
+      actions: [],
+      permission: "trusted",
+    }).success,
+  ).toBe(false);
+});
+
 it("keeps a view's status facts and bounds how many it may carry", () => {
   const facts = [
     { label: "Brain running", tone: "good" },

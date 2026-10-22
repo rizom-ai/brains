@@ -3,11 +3,15 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactElement, ReactNode } from "react";
 import { layoutStyles as s } from "./operator-layout.styles";
 import { actionLayoutStyles } from "./operator-action-layout.styles";
+import { toneText } from "@brains/app-ui-react";
+import type { RuntimeStudioOperatorCardBlock } from "@brains/plugins";
 import { OperatorMetadata } from "./operator-metadata";
 
 export function OperatorCard(props: {
   label: string;
   metadata?: readonly string[] | undefined;
+  /** Figures a closed disclosure shows beside its label. */
+  summary?: RuntimeStudioOperatorCardBlock["summary"];
   tone?: "neutral" | "good" | "warn" | "error" | undefined;
   presentation?: "section" | "disclosure" | "feature" | undefined;
   density: "compact" | "comfortable";
@@ -66,9 +70,26 @@ export function OperatorCard(props: {
         {...stylex.props(
           s.summary,
           !compact && s.comfortableSummary,
+          Boolean(props.summary?.length) && s.figuresSummary,
           attention && s.attentionSummary,
         )}
       >
+        {props.summary && props.summary.length > 0 && (
+          <dl data-card-summary="" {...stylex.props(s.figures)}>
+            {props.summary.map((figure, index) => (
+              <div
+                key={`${figure.label}:${index}`}
+                data-tone={figure.tone ?? "neutral"}
+                {...stylex.props(s.figure)}
+              >
+                <dt {...stylex.props(s.figureLabel)}>{figure.label}</dt>
+                <dd {...stylex.props(s.figureValue, toneText(figure.tone))}>
+                  {figure.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {props.label}
         {metadata && <> {metadata}</>}
       </summary>

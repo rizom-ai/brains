@@ -915,6 +915,8 @@ export interface OperatorCardBlock<
   readonly presentation?: "section" | "disclosure" | "feature" | undefined;
   /** Separate disclosure trigger; keeps the card heading visible when closed. */
   readonly disclosureLabel?: string | undefined;
+  /** Figures a closed disclosure shows beside its label. */
+  readonly summary?: readonly OperatorStatItem[] | undefined;
   readonly tone?: OperatorTone | undefined;
   readonly blocks: readonly OperatorPanelBlock<TAction>[];
 }

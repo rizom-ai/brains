@@ -553,6 +553,7 @@ export interface RuntimeStudioOperatorCardBlock {
   readonly label: string;
   readonly presentation?: "section" | "disclosure" | "feature" | undefined;
   readonly metadata?: readonly string[] | undefined;
+  readonly summary?: readonly RuntimeOperatorStatItem[] | undefined;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
   readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
 }

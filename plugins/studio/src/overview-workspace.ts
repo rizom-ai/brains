@@ -331,9 +331,47 @@ function sourcePanelBlocks(
   );
 }
 
+type SourceFigure = NonNullable<
+  RuntimeStudioOperatorCardBlock["summary"]
+>[number];
+
+const MAX_SOURCE_FIGURES = 3;
+/** Longer digest values are sentences, which do not read as a figure. */
+const MAX_FIGURE_LENGTH = 12;
+
+/**
+ * A closed source shows its own stats, or failing those its short digest
+ * values, so the ledger answers "how much" without opening anything.
+ */
+function sourceFigures(
+  loaded: LoadedContribution,
+  panels: readonly RuntimeStudioOperatorPanelBlock[],
+): readonly SourceFigure[] {
+  const stats = panels.find((panel) => panel.type === "stats");
+  if (stats) {
+    return stats.items
+      .slice(0, MAX_SOURCE_FIGURES)
+      .map(({ label, value, tone }) => ({
+        label,
+        value,
+        ...(tone ? { tone } : {}),
+      }));
+  }
+  return loaded.digest
+    .filter((line) => line.value.length <= MAX_FIGURE_LENGTH)
+    .slice(0, MAX_SOURCE_FIGURES)
+    .map(({ label, value, tone }) => ({
+      label,
+      value,
+      ...(tone === "good" || tone === "warn" ? { tone } : {}),
+    }));
+}
+
 function sourceCard(
   loaded: LoadedContribution,
 ): RuntimeStudioOperatorCardBlock {
+  const panels = sourcePanelBlocks(loaded.data);
+  const figures = loaded.data ? sourceFigures(loaded, panels) : [];
   return {
     type: "card",
     id: boundedId(
@@ -342,8 +380,9 @@ function sourceCard(
     ),
     label: loaded.contribution.title,
     presentation: "disclosure",
+    ...(figures.length > 0 ? { summary: figures } : {}),
     tone: loaded.failed ? "error" : "neutral",
-    blocks: sourcePanelBlocks(loaded.data),
+    blocks: panels,
   };
 }
 

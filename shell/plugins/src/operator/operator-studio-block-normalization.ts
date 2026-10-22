@@ -244,6 +244,7 @@ export function normalizeStudioBlock(
           ...(block.presentation ? { presentation: block.presentation } : {}),
           ...definedFields({ disclosureLabel: block.disclosureLabel }),
           ...(block.metadata ? { metadata: block.metadata } : {}),
+          ...(block.summary ? { summary: block.summary } : {}),
           ...(block.tone ? { tone: block.tone } : {}),
           blocks: panels,
         },

@@ -328,6 +328,7 @@ function CardBlock(props: {
     <OperatorCard
       label={props.block.label}
       metadata={props.block.metadata}
+      summary={props.block.summary}
       framed={props.framed}
       tone={props.block.tone}
       presentation={props.block.presentation}
