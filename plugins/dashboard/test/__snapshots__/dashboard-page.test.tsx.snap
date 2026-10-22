@@ -1665,7 +1665,6 @@ html {
 .xkzz1zq:is([data-tone=error]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-err)}
 .x178oq3p:focus-visible:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-secondary)}
 .x1qdoa1:is([aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-secondary)}
-.x1vsfrql:is([data-tone=warn]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-warn)}
 .xoy5xpq:is([data-tone="error"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-color:var(--console-err)}
 .xvw7cn:is([data-tone="good"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-color:var(--console-ok)}
 .x1qaj2f5:is([data-tone="warn"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-color:var(--console-warn)}

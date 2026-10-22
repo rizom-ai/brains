@@ -84,8 +84,7 @@ export const listStyles: Record<
     borderLeftWidth: 3,
     borderLeftStyle: "solid",
     borderLeftColor: {
-      default: "transparent",
-      ":is([data-tone=warn])": "var(--console-warn)",
+      default: "var(--console-warn)",
       ":is([data-tone=error])": "var(--console-err)",
     },
   },

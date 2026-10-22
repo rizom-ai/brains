@@ -76,7 +76,10 @@ export function ListItems(props: {
               props.presentation === "activity" ||
               props.presentation === "attention"
             }
-            railed={props.presentation === "attention"}
+            railed={
+              props.presentation === "attention" &&
+              (item.tone === "warn" || item.tone === "error")
+            }
             interactive={Boolean(item.link ?? item.links?.length)}
             drag={
               drag && dropActions(item).length > 0

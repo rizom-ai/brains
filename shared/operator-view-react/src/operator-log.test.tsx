@@ -107,3 +107,32 @@ describe("log and attention list presentations", () => {
     expect(html).toMatch(/data-variant="outline"[^>]*>Open site</);
   });
 });
+
+describe("attention rail", () => {
+  it("rails only rows that wait on the operator", () => {
+    const html = render({
+      view: {
+        blocks: [
+          {
+            type: "list",
+            id: "needs",
+            presentation: "attention",
+            empty: "Nothing needs you.",
+            items: [
+              { id: "failed", title: "Build failed", tone: "error" },
+              { id: "blocked", title: "Blocked card" },
+            ],
+          },
+        ],
+      },
+    });
+    const rowClass = (id: string): string =>
+      new RegExp(`class="([^"]*)"[^>]*data-row-id="${id}"`).exec(html)?.[1] ??
+      "";
+
+    expect(rowClass("failed")).not.toBe(rowClass("blocked"));
+    expect(rowClass("failed").split(" ").length).toBeGreaterThan(
+      rowClass("blocked").split(" ").length,
+    );
+  });
+});
