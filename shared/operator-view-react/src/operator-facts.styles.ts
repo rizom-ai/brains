@@ -11,10 +11,7 @@ export const factStyles: Record<
   | "referenceRoot"
   | "referenceRow"
   | "referenceLabel"
-  | "referenceValue"
-  | "good"
-  | "warn"
-  | "error",
+  | "referenceValue",
   stylex.StyleXStyles
 > = stylex.create({
   // Facts flow into as many columns as keep a label near its value.
@@ -107,7 +104,4 @@ export const factStyles: Record<
     textAlign: "right",
     color: "var(--console-text-dim)",
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
 });

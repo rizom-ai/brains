@@ -16,9 +16,7 @@ export const mapStyles: Record<
   | "valueCell"
   | "label"
   | "status"
-  | "statusDot"
-  | "good"
-  | "warn",
+  | "statusDot",
   stylex.StyleXStyles
 > = stylex.create({
   frame: {
@@ -192,6 +190,4 @@ export const mapStyles: Record<
     backgroundColor: "currentColor",
     boxShadow: "0 0 0 5px color-mix(in srgb, currentColor 9%, transparent)",
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
 });

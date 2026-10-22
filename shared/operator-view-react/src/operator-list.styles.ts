@@ -16,9 +16,6 @@ export const listStyles: Record<
   | "tags"
   | "badge"
   | "compactBadge"
-  | "good"
-  | "warn"
-  | "error"
   | "compactGood"
   | "compactWarn"
   | "compactError"
@@ -165,9 +162,6 @@ export const listStyles: Record<
     letterSpacing: "0.08em",
     textTransform: "uppercase",
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   compactGood: { backgroundColor: "var(--console-ok-soft)" },
   compactWarn: {
     backgroundColor: "color-mix(in srgb,var(--console-warn) 15%,transparent)",

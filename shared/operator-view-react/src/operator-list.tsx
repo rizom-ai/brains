@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import type { DragEvent, ReactElement, ReactNode } from "react";
 import { listStyles as s } from "./operator-list.styles";
 type Density = "compact" | "comfortable";
@@ -77,9 +78,7 @@ export function OperatorBadge(props: {
       {...stylex.props(
         s.badge,
         compact && s.compactBadge,
-        tone === "good" && s.good,
-        tone === "warn" && s.warn,
-        tone === "error" && s.error,
+        toneText(tone),
         compact && tone === "good" && s.compactGood,
         compact && tone === "warn" && s.compactWarn,
         compact && tone === "error" && s.compactError,

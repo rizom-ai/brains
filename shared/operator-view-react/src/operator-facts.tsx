@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
 import { factStyles as s } from "./operator-facts.styles";
 import { OperatorMetadata } from "./operator-metadata";
@@ -47,9 +48,7 @@ export function OperatorFacts(props: {
                 s.value,
                 compact && s.compactValue,
                 reference && s.referenceValue,
-                item.tone === "good" && s.good,
-                item.tone === "warn" && s.warn,
-                item.tone === "error" && s.error,
+                toneText(item.tone),
               )}
             >
               {typeof item.value === "string" ? (
