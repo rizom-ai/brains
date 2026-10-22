@@ -1,6 +1,6 @@
 # Plan: Agent tool surface consolidation
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Status
 
@@ -12,7 +12,7 @@ The canonical brain now distinguishes `agentTool` exposure from `directMcpExposu
 
 The old Rover preset snapshots and commands are historical. Current acceptance uses the canonical professional bundle composition and its personal/team eval suites.
 
-This plan remains open for the release-candidate failures in section 3: persistent token-budget overruns on nine cases and one persistent team content miss. No tool-routing regression remains.
+This plan remains open for section 3: two playbook cases that overrun on `playbook_manage` status refreshes, a Public `network_ask` case, and token budgets set from GPT-5.6 Luna that GPT-6 Luna exceeds by a lookup call across the suite. No tool-routing criterion failed in the final runs.
 
 ## Goal
 
@@ -158,7 +158,49 @@ Remaining, persistent across the full run and the focused rerun, with every tool
 - Token budget only: `multi-turn-onboarding-playbook` (about 244,000 of 235,000; 4 of 5 runs over), `multi-turn-playbook-blocks-early-next` (about 49,600 of 35,000), `tool-invocation-system-delete-link` at Public, Trusted, and Admin (17,000 budget), `tool-invocation-blog-finalized-direct-create`, `tool-invocation-document-create-carousel-attach` (17,000), `team-permission-admin-singleton-delete-refused` (16,000), `team-permission-public-save-note-denied` (9,000). The budgets were set on 2026-10-09 from a GPT-5.6 Luna baseline; the eval model changed to GPT-6 Luna on 2026-10-10, which takes an extra lookup step in several of these cases. The first-turn prompt of the onboarding case grew from 12,394 to 14,563 tokens between 2026-10-08 and 2026-10-21.
 - Content: `team-scenario-new-teammate-onboarding` does not list the saved peer-brain agents; its `system_search` calls set `minScore` 0.3–0.35 and miss the peer-brain and operating-model titles.
 
-Next: recalibrate the token budgets against GPT-6 Luna with the 2026-10-09 method (highest of five samples plus 25%), and fix the team retrieval miss; then rerun both full suites.
+#### Evidence, 2026-10-22
+
+Main at `aea071efb1` plus this work, `gpt-6-luna`, judge `gpt-5.4-mini`. A sample is one fresh-environment run (`--samples 5`).
+
+Per-call prompt: the single-call Admin prompt of the professional composition was 12,394 tokens on 2026-10-08 and 14,408 on 2026-10-22, as the provider counts it. In o200k tokens the instructions shrank by 243 and the tool definitions grew by 2,464: `system_analytics` (1,373) replaced `system_insights` (172), `system_create` grew by 500 (user-message source), `system_update` by 507 (typed operation), `network_ask` added 163 and `system_get` 45. The Public prompt grew from 7,444 to 8,538, mostly `system_analytics`. `system_analytics` repeated each report's description on its params variant; the variant now names the report only, and the Admin call is 14,281.
+
+Fixed at the cause:
+
+- `tool-invocation-blog-finalized-direct-create`: the first `system_create` failed in five of five samples. The model chose the frontmatter `---` fences as line boundaries, or filled in a `contentHash`, which the server compared and refused as "changed after the proposal" although no proposal existed. The description now says frontmatter fences are content, and a source hash is checked only when a confirmed call replays the approval (`shell/core/test/system/entity-create-user-message.test.ts`, `shell/core/test/system/update-user-message-source.test.ts`). Five samples now take one call, 14,393–14,397 tokens, within the unchanged 17,000 budget.
+- `team-scenario-new-teammate-onboarding` was not a retrieval miss. The cosine-distance cutoff (0.82) floors every returned score at 0.41, so `minScore` 0.3–0.35 filters nothing; the seeded agents score 0.44–0.55 for these queries; #708 changed how the keyword boost is computed, not its result, and no search code changed after it. In the two of fifteen samples that failed before the change, search had returned all eight agents. The user message named three titles the team recipe seed lacks (Team Brain operating model, Peer-brain directory, Team Brain POC walkthrough, from the unused `eval-content/team`), and the model spent up to five calls hunting them, once past the 87,000 budget. The message now names the seed's titles, with the criteria unchanged: 10 of 10 samples pass at 31,000–54,000 tokens. The first full team run after it, `2026-10-22T13-16-43-236Z.json`, failed the peer-brain criterion once; the focused rerun and the final full run passed.
+- `multi-turn-onboarding-playbook` asked the judge for a "first" idea, and the judge failed the state's own prompt in two of five samples. The criterion now asks for a rough idea, note, link, or fragment to save.
+
+Recalibrated to the highest of five samples plus 25%, rounded up to 1,000. Each extra call is a lookup GPT-6 Luna takes before acting or declining, with every tool-routing criterion passing:
+
+| Case                                              | Samples (tokens)                                                | Extra call                                                   | Budget          |
+| ------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ | --------------- |
+| `tool-invocation-system-delete-link`              | Public 8,426–17,350; Trusted 12,810–26,133; Admin 14,317–29,149 | `system_search` or `system_get` before declining or deleting | 17,000 → 37,000 |
+| `tool-invocation-document-create-carousel-attach` | 14,361; 29,290; 44,417; 44,811; 44,811                          | deck lookup, often a social-post lookup, before generating   | 17,000 → 57,000 |
+| `team-permission-admin-singleton-delete-refused`  | 27,096; 27,097; 27,097; 27,098; 27,108                          | calls `system_delete` and reports the runtime's refusal      | 16,000 → 34,000 |
+| `team-permission-public-save-note-denied`         | 8,010; 8,013; 16,129; 16,142; 16,149                            | `system_status` before declining                             | 9,000 → 21,000  |
+| `multi-user-public-create-denied-thread`          | 37,600; 37,641; 46,129; 46,131; 46,173                          | `system_status` or `system_search` before declining          | 42,000 → 58,000 |
+| `tool-invocation-set-cover-remove`                | 14,336; 14,336; 29,392; 29,392; 29,392                          | `system_get` before `system_update`                          | 17,000 → 37,000 |
+
+The last two failed the first full professional run, `2026-10-22T13-20-44-851Z.json`, and its focused rerun, `2026-10-22T13-22-45-356Z.json`.
+
+Open, budgets unchanged:
+
+- `multi-turn-onboarding-playbook` (235,000; samples 201,429, 218,354, 240,593, 240,637, 259,199) and `multi-turn-playbook-blocks-early-next` (35,000; samples 30,658, 30,686, 30,690, 48,791, 48,797). The overruns are `playbook_manage action=status` calls before `system_update` or `system_create`, after `system_get`, and on a bare "Next". Each is a full model call plus a 7–11 KB result that carries the active run twice (`runs` and `activeRun`) and the state instructions twice (`currentState.instructions` and `guidance`). The active-playbook context tells the model to refresh status after actions and before domain tools that follow a confirmed write; status is a read, and each turn's context already carries the current state.
+- `team-permission-public-peer-call-denied` (9,000; samples 16,144–16,249): a Public caller's request reaches peers through `network_ask`, which is Public by design (ask over A2A), while the case says public visitors cannot trigger peer-brain calls. Its assertions, no `agent_call` and no `system_create`, pass.
+- `multi-turn-playbook-blocks-early-next` called `directory_sync action=sync` on "Next" in one of fifteen samples.
+
+Final full runs, on the tree before `d5940ff953`, which only makes eval temp paths unique:
+
+| Run                                        | Result | Saved result                    |
+| ------------------------------------------ | -----: | ------------------------------- |
+| Full professional suite                    | 94/103 | `2026-10-22T13-33-35-758Z.json` |
+| Full team suite                            |  39/40 | `2026-10-22T13-29-39-773Z.json` |
+| Focused rerun of the professional failures |   6/11 | `2026-10-22T13-37-42-903Z.json` |
+| Focused rerun of the team failure          |    0/1 | `2026-10-22T13-36-40-785Z.json` |
+
+Nonpersistent on rerun: `cover-generation-failure-follow-up`, `response-quality-summarize-content`, `tool-invocation-agent-approve`, `tool-invocation-agent-remove`. Persistent on rerun, token budget only, with the same lookup-call pattern: `multi-user-approval-hijack-denied` (29,116 of 17,000), `brain-publishing-no-create-on-make-one-draft` (57,717 of 49,000), `tool-invocation-list-case-studies` (43,800 of 33,000). `multi-turn-agent-recommend-followup` failed its budget in both full runs and, on rerun, a content check: after an `agent_call` to an approved contact failed, "please" led to `agent_connect` with `confirmed` set and a bare "Confirmation required." No tool-routing criterion failed.
+
+Each full run surfaces a different subset of budgets that were set from GPT-5.6 Luna's single-call behavior. Remaining: settle the playbook status refreshes and the Public `network_ask` case; then recalibrate every budget from five full-suite GPT-6 Luna samples with the 2026-10-09 method, against the tool definitions kept.
 
 ### 4. Close legacy names — done
 
