@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { ConversationMemoryPlugin } from "../src";
 import {
   createPluginHarness,
@@ -48,6 +49,31 @@ describe("ConversationMemoryPlugin", () => {
       retiredFields: dropped,
       translatedFields: ["timeRange"],
     });
+  });
+
+  it("flattens stored action item and decision ids once startup content settles", async () => {
+    await harness.installPlugin(plugin);
+    const listSpy = spyOn(harness.getEntityService(), "listEntities");
+
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+    );
+
+    const listed = listSpy.mock.calls.map((call) => call[0]);
+    expect(listed).toContainEqual(
+      expect.objectContaining({
+        entityType: "action-item",
+        options: { filter: { visibilityScope: "restricted" } },
+      }),
+    );
+    expect(listed).toContainEqual(
+      expect.objectContaining({
+        entityType: "decision",
+        options: { filter: { visibilityScope: "restricted" } },
+      }),
+    );
   });
 
   it("keeps memory entities immutable through entity CRUD", () => {

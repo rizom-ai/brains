@@ -93,7 +93,7 @@ describe("how Studio presents an entity", () => {
     const { context } = studio();
     expect(
       entityDisplayTitle(context, {
-        id: "board:OLqbIVsaQUHA",
+        id: "order-name-badges-k3f9a2",
         entityType: "card",
         content: "# Rent tables\n\nFor the spring gathering.\n",
         contentHash: "hash",

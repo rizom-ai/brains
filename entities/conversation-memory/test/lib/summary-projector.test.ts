@@ -1057,6 +1057,46 @@ describe("SummaryProjector and the board", () => {
       .filter((entity) => entity.entityType === "action-item");
   }
 
+  it("names projected decisions and action items with flat ids, colons and all", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue({
+      ...conversation,
+      id: "cli:session-7",
+    });
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Spring gathering",
+          summary: "The team planned the venue.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: ["Hold it in the old library."],
+          actionItems: [fresh],
+        },
+      ],
+    });
+
+    await projectorFor(context).projectConversation("cli:session-7");
+
+    const ids = upsertSpy.mock.calls
+      .map((call) => call[0].entity)
+      .filter((entity) => entity.entityType !== "summary")
+      .map((entity) => entity.id);
+    expect(ids).toEqual([
+      `cli-session-7-decision-1-${textHash("Hold it in the old library.")}`,
+      `cli-session-7-action-item-1-${textHash(fresh)}`,
+    ]);
+  });
+
   it("stores the body hash it projected on each new action item", async () => {
     const context = createMockEntityPluginContext({
       spaces: ["cli:cli-terminal"],
@@ -1084,12 +1124,12 @@ describe("SummaryProjector and the board", () => {
     spyOn(context.entityService, "getEntity").mockResolvedValue(staleSummary());
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     const moved = createMockActionItemEntity(
-      `conv-1:action-item:1:${textHash(owned)}`,
+      `conv-1-action-item-1-${textHash(owned)}`,
       "shared",
     );
     moved.metadata = { ...moved.metadata, status: "doing" };
     const untouched = createMockActionItemEntity(
-      `conv-1:action-item:2:${textHash("An item nobody touched.")}`,
+      `conv-1-action-item-2-${textHash("An item nobody touched.")}`,
       "shared",
     );
     spyOn(context.entityService, "listEntities")
@@ -1110,7 +1150,7 @@ describe("SummaryProjector and the board", () => {
       id: moved.id,
     });
     const upserted = upsertedActionItems(upsertSpy).map((entity) => entity.id);
-    expect(upserted).toEqual([`conv-1:action-item:1:${textHash(fresh)}`]);
+    expect(upserted).toEqual([`conv-1-action-item-1-${textHash(fresh)}`]);
   });
 
   it("never overwrites a board-owned action item on a first projection", async () => {
@@ -1122,7 +1162,7 @@ describe("SummaryProjector and the board", () => {
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     const blocked = createMockActionItemEntity(
-      `conv-1:action-item:1:${textHash(owned)}`,
+      `conv-1-action-item-1-${textHash(owned)}`,
       "shared",
     );
     blocked.metadata = { ...blocked.metadata, status: "blocked" };
