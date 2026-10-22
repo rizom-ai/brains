@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.588
+
+### Patch Changes
+
+- [#712](https://github.com/rizom-ai/brains/pull/712) [`b9b5e53`](https://github.com/rizom-ai/brains/commit/b9b5e538a91c39a4a5fecfb8bc742d5f31e4da95) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio shows a site build's real outcome, and a build after a failed one renders again. A brain's web and worker processes each kept their own copy of the build status and wrote it back whole, so one could erase the other's update: a build that published could still show as failed. Status records are now read and written back atomically by every process. A build with unchanged inputs used to skip publication even right after a failed build; it now renders and publishes again until a build succeeds.
+
+- [#713](https://github.com/rizom-ai/brains/pull/713) [`5312f34`](https://github.com/rizom-ai/brains/commit/5312f34e940e85817011ee52310cce4dc1f4edd7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard's site health widget renders without React warnings: it passed `class` instead of `className` and gave its fixed children as unkeyed lists, so every render logged warnings.
+
 ## 0.2.0-alpha.587
 
 ### Patch Changes
