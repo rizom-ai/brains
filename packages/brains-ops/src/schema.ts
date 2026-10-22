@@ -335,6 +335,7 @@ export const userSchema: z.ZodObject<{
   profileKind: z.ZodOptional<typeof profileKindSchema>;
   anchorKind: z.ZodOptional<typeof anchorKindSchema>;
   plugins: z.ZodOptional<typeof userPluginsSchema>;
+  spaces: z.ZodOptional<z.ZodArray<z.ZodString>>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
   skillDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -360,6 +361,8 @@ export const userSchema: z.ZodObject<{
   profileKind: profileKindSchema.optional(),
   anchorKind: anchorKindSchema.optional(),
   plugins: userPluginsSchema.optional(),
+  /** Shared conversation spaces, e.g. "discord:<channel id>": their members are trusted. */
+  spaces: z.array(z.string().min(1)).optional(),
   embeddingEnabled: z.boolean().optional(),
   topicExtractionEnabled: z.boolean().optional(),
   skillDerivationEnabled: z.boolean().optional(),

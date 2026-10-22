@@ -115,6 +115,7 @@ export interface ResolvedUserIdentity {
   anchorKind?: AnchorKind | undefined;
   embeddingEnabled?: boolean | undefined;
   plugins?: UserConfig["plugins"];
+  spaces?: string[] | undefined;
   topicExtractionEnabled?: boolean | undefined;
   skillDerivationEnabled?: boolean | undefined;
   swotDerivationEnabled?: boolean | undefined;
@@ -241,6 +242,9 @@ export async function loadPilotRegistry(
           : {}),
         ...(userFile.data.embeddingEnabled !== undefined
           ? { embeddingEnabled: userFile.data.embeddingEnabled }
+          : {}),
+        ...(userFile.data.spaces !== undefined
+          ? { spaces: userFile.data.spaces }
           : {}),
         ...(userFile.data.plugins !== undefined
           ? { plugins: userFile.data.plugins }
