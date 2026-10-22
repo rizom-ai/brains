@@ -343,18 +343,18 @@ function EnvironmentMetric(props: {
   return h(
     "div",
     {
-      class: `pipeline-metric site-health-metric site-health-metric--${presentation.state}`,
+      className: `pipeline-metric site-health-metric site-health-metric--${presentation.state}`,
     },
-    [
-      h("dt", {}, [
-        h("span", { class: "site-health-dot", "aria-hidden": "true" }),
-        props.label,
-      ]),
-      h("dd", {}, presentation.state),
-      props.environment
-        ? h("small", { class: "muted" }, presentation.detail)
-        : null,
-    ],
+    h(
+      "dt",
+      {},
+      h("span", { className: "site-health-dot", "aria-hidden": "true" }),
+      props.label,
+    ),
+    h("dd", {}, presentation.state),
+    props.environment
+      ? h("small", { className: "muted" }, presentation.detail)
+      : null,
   );
 }
 
@@ -366,25 +366,24 @@ function actionLink(
   return h(
     "a",
     {
-      class: `widget-action widget-action--${kind === "manage" ? "primary" : "secondary"}`,
+      key: label,
+      className: `widget-action widget-action--${kind === "manage" ? "primary" : "secondary"}`,
       href,
       ...(kind === "external" ? { target: "_blank", rel: "noreferrer" } : {}),
     },
-    [
-      h("span", {}, label),
-      h(
-        "span",
-        { class: "widget-action-arrow", "aria-hidden": "true" },
-        kind === "external" ? "↗" : "→",
-      ),
-    ],
+    h("span", {}, label),
+    h(
+      "span",
+      { className: "widget-action-arrow", "aria-hidden": "true" },
+      kind === "external" ? "↗" : "→",
+    ),
   );
 }
 
 export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
   const parsed = siteHealthWidgetDataSchema.safeParse(props.data);
   if (!parsed.success) {
-    return h("p", { class: "muted" }, "Site health is unavailable.");
+    return h("p", { className: "muted" }, "Site health is unavailable.");
   }
 
   const data = parsed.data;
@@ -408,37 +407,38 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
     links.push(actionLink(data.managementUrl, "Open Site", "manage"));
   }
 
-  return h("div", { class: "pipeline-digest site-health-widget" }, [
-    h("dl", { class: "pipeline-metrics" }, [
+  return h(
+    "div",
+    { className: "pipeline-digest site-health-widget" },
+    h(
+      "dl",
+      { className: "pipeline-metrics" },
       h(EnvironmentMetric, { label: "Preview", environment: preview }),
       h(EnvironmentMetric, { label: "Live", environment: production }),
-    ]),
+    ),
     failures.length > 0
-      ? h("section", { class: "pipeline-failures" }, [
+      ? h(
+          "section",
+          { className: "pipeline-failures" },
           h("h4", {}, "Previous build failures"),
-          ...failures.map((failure) =>
+          failures.map((failure) =>
             h(
               "div",
-              {
-                class: "pipeline-failure",
-                key: failure.environment,
-              },
-              [
-                h("strong", {}, failureLabel(failure)),
-                h("span", {}, failure.lastFailure?.message),
-              ],
+              { className: "pipeline-failure", key: failure.environment },
+              h("strong", {}, failureLabel(failure)),
+              h("span", {}, failure.lastFailure?.message),
             ),
           ),
-        ])
+        )
       : null,
     links.length > 0
       ? h(
           "nav",
-          { class: "widget-actions", "aria-label": "Site actions" },
+          { className: "widget-actions", "aria-label": "Site actions" },
           links,
         )
       : null,
-  ]);
+  );
 }
 
 export async function registerSiteHealthWidget(
