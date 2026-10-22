@@ -469,6 +469,19 @@ function greekShare(text: string): number {
   return greek.length / Math.max(1, letters.length);
 }
 
+/**
+ * Greek letters a roman print sets alike: a reading made of these alone,
+ * such as a heading's numeral read as Ι. or ΧΧΙΙΙ, is no sign of Greek.
+ */
+const LOOKALIKE = new Set([..."ΑΒΕΖΗΙΚΜΝΟΡΤΥΧο"]);
+
+/** A reading holding a letter only Greek prints. */
+function readsGreek(text: string): boolean {
+  return [...text].some(
+    (char) => /\p{Script=Greek}/u.test(char) && !LOOKALIKE.has(char),
+  );
+}
+
 /** How sure the Greek model must be of a word before its reading is taken. */
 const GREEK_CONFIDENCE = 40;
 
@@ -481,6 +494,9 @@ const GREEK_CONFIDENCE = 40;
  */
 export function withGreekReadings(hocr: string, greekHocr: string): string {
   const greek = readWords(greekHocr);
+  // A Greek word the page's model read as two takes the place of the first;
+  // the second, read already, is left empty.
+  const taken = new Set<ReadWord>();
   return hocr.replace(
     HOCR_WORD,
     (
@@ -506,12 +522,16 @@ export function withGreekReadings(hocr: string, greekHocr: string): string {
       const reading = read.map((word) => word.text).join(" ");
       // A reading with figures in it is no Greek word: the model's guess at
       // letters of another script.
-      return greekShare(reading) >= 0.8 &&
+      const isGreek =
+        greekShare(reading) >= 0.8 &&
         !/\d/u.test(reading) &&
+        readsGreek(reading) &&
         surest >= GREEK_CONFIDENCE &&
-        surest > Number(confidence)
-        ? `${open}${reading}${close}`
-        : whole;
+        surest > Number(confidence);
+      if (!isGreek) return whole;
+      const fresh = read.filter((word) => !taken.has(word));
+      read.forEach((word) => taken.add(word));
+      return `${open}${fresh.map((word) => word.text).join(" ")}${close}`;
     },
   );
 }

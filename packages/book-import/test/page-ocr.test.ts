@@ -474,6 +474,22 @@ describe("withGreekReadings", () => {
     expect(texts(merged)).toEqual(["als", "πελάγους", "ἀποδυρομένη"]);
   });
 
+  it("reads a Greek word once where the page's model split it in two", () => {
+    const greek = linePage([{ text: "κέλομαι", conf: 88, left: 0 }]).replace(
+      "bbox 0 300 100 360",
+      "bbox 0 300 200 360",
+    );
+    const merged = withGreekReadings(
+      linePage([
+        { text: "xé", conf: 20, left: 0 },
+        { text: "Aowaı", conf: 10, left: 100 },
+      ]),
+      greek,
+    );
+
+    expect(texts(merged).filter((text) => text !== "")).toEqual(["κέλομαι"]);
+  });
+
   it("keeps a word the page's model reads surer than the Greek one", () => {
     const merged = withGreekReadings(
       linePage([{ text: "Gedicht,", conf: 89, left: 0 }]),
@@ -499,6 +515,22 @@ describe("withGreekReadings", () => {
     );
 
     expect(texts(merged)).toEqual(["Sseine"]);
+  });
+
+  it("keeps a word the Greek model reads only in letters both scripts print alike", () => {
+    // A heading's numeral I. the page's model misread as IT, and XXIII.
+    const merged = withGreekReadings(
+      linePage([
+        { text: "IT", conf: 30, left: 0 },
+        { text: "XXIIL", conf: 37, left: 200 },
+      ]),
+      linePage([
+        { text: "Ι.", conf: 95, left: 0 },
+        { text: "ΧΧΙΙΙ", conf: 86, left: 200 },
+      ]),
+    );
+
+    expect(texts(merged)).toEqual(["IT", "XXIIL"]);
   });
 
   it("keeps a word the Greek model reads as no Greek", () => {
