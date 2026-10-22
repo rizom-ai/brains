@@ -24,12 +24,12 @@ Bundles contribute fixed members and bounded defaults. Instance-level `add`, `re
 
 Recipes are scaffold-time conveniences. They emit explicit YAML and have no runtime meaning.
 
-| Recipe         | Selection                                                                 |
-| -------------- | ------------------------------------------------------------------------- |
-| `headless`     | `core`                                                                    |
-| `personal`     | `core + media + web + chat`                                               |
-| `professional` | `core + media + automation + web + chat + site + publishing + federation` |
-| `team`         | `core + media + automation + web + chat + site + team`, plus `docs`       |
+| Recipe         | Selection                                                                              |
+| -------------- | -------------------------------------------------------------------------------------- |
+| `headless`     | `core`                                                                                 |
+| `personal`     | `core + media + web + chat`                                                            |
+| `professional` | `core + media + automation + web + chat + site + publishing + federation`              |
+| `team`         | `core + media + automation + web + chat + site + team`, plus `docs` and `action-board` |
 
 ## Durable knowledge
 
@@ -83,7 +83,7 @@ A core-only brain is headless and private. It can call approved peers, but it se
 - Discord and Slack adapters through one Chat SDK interface;
 - email transport;
 - notification delivery;
-- conversation summaries, decisions, and action items.
+- conversation summaries, decisions, and action items, which stay in the Library and Overview.
 
 The live Inbox remains core-owned. Dashboard is a web rendering and notifications are a chat delivery channel; neither owns the underlying projection.
 
@@ -118,12 +118,13 @@ Agent networking supports:
 `team` owns no members. It changes policy only while the targeted members are active:
 
 - conversation memory becomes shared;
+- cards tracked from the Inbox share the team's action-item visibility;
 - topic extraction includes draft and published team material;
 - trusted collaborators may create and update selected notes, links, images, docs, decisions, and action items;
 - HTTP MCP becomes Admin-only;
 - team-specific agent instructions are added.
 
-The team recipe explicitly adds `docs`; assessment, decks, and other optional product capabilities remain visible opt-ins.
+The team recipe explicitly adds `docs` and `action-board`, the shared Board where the team works the action items its conversations surface; assessment, decks, and other optional product capabilities remain visible opt-ins.
 
 ## Shared system tools
 

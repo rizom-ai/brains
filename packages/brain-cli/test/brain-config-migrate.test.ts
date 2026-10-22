@@ -132,7 +132,7 @@ const recipeExpectations: Record<
     anchor: "team",
     kind: "team",
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
-    add: ["docs"],
+    add: ["docs", "action-board"],
     site: {
       package: "@brains/site-organization",
       theme: "@brains/theme-rizom",
@@ -249,19 +249,19 @@ describe("brain config migration preview", () => {
     });
     expectMigrationSelection("relay", "core", {
       bundles: ["core", "media", "automation", "web", "chat", "team"],
-      add: ["docs"],
+      add: ["docs", "action-board"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("relay", "default", {
       bundles: teamBundles,
-      add: ["docs"],
+      add: ["docs", "action-board"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("relay", "full", {
       bundles: teamBundles,
-      add: ["docs"],
+      add: ["docs", "action-board"],
       anchor: "team",
       kind: "team",
     });
@@ -328,13 +328,7 @@ describe("brain config migration preview", () => {
           ),
           "obsidian-vault",
         ],
-        added: [
-          "action-board",
-          "conversation-memory",
-          "faq",
-          "studio",
-          "unified-inbox",
-        ],
+        added: ["conversation-memory", "faq", "studio", "unified-inbox"],
         removed: ["account", "assessment", "cms", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
@@ -475,7 +469,7 @@ plugins:
 `);
     const parsed = parseInstanceOverrides(result.output);
 
-    expect(parsed.add).toEqual(["assessment", "docs"]);
+    expect(parsed.add).toEqual(["assessment", "docs", "action-board"]);
     expect(parsed.remove).toEqual(["analytics"]);
     expect(parsed.site).toEqual({
       package: "@custom/team-site",
