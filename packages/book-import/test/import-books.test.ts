@@ -338,6 +338,54 @@ books:
       "source: 'https://www.deutschestextarchiv.de/book/show/marx_kapital01_1867'",
     );
   });
+
+  /** The Kapital fixture, its header linking another licence. */
+  async function underLicence(target: string): Promise<string> {
+    return (
+      await readFile(
+        join(import.meta.dir, "fixtures", "dta-kapital.xml"),
+        "utf8",
+      )
+    ).replace(/<licence target="[^"]*"/u, `<licence target="${target}"`);
+  }
+
+  const kapital = parseManifest(`
+source: dta-tei
+books:
+  - id: marx_kapital01_1867
+    citation: Kapital I
+    slug: das-kapital-1
+    title: Das Kapital. Erster Band
+    edition: "Das Kapital. Buch I: Der Produktionsprocess des Kapitals. Hamburg: Otto Meissner, 1867"
+    author: Karl Marx
+    year: 1867
+    kind: work
+`);
+
+  it("reads a work the Textarchiv dedicates to the public domain as public domain", async () => {
+    const licence = "http://creativecommons.org/publicdomain/zero/1.0/";
+    await importBooks(kapital, brainData, async () => underLicence(licence));
+    const title = await readFile(
+      join(brainData, "book", "das-kapital-1.md"),
+      "utf8",
+    );
+
+    expect(title).toContain("license: public-domain");
+    // The front matter folds long values over lines.
+    expect(title.replace(/\s+/gu, " ")).toContain(
+      `Deutsches Textarchiv (deutschestextarchiv.de), ${licence}`,
+    );
+  });
+
+  it("refuses a work under a licence that does not allow its reuse", async () => {
+    expect(
+      importBooks(kapital, brainData, async () =>
+        underLicence("https://creativecommons.org/licenses/by-nc/4.0/"),
+      ),
+    ).rejects.toThrow(
+      "marx_kapital01_1867 is neither under CC BY-SA nor in the public domain",
+    );
+  });
 });
 
 describe("importBooks from Wikisource", () => {

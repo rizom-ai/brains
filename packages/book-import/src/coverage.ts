@@ -49,7 +49,7 @@ function renderBySource(manifest: Manifest): string {
   const entries = [
     ...manifest.books.map((book) => ({
       year: book.year,
-      line: `- ${book.title ?? book.slug} (${book.year}) — imported${"edition" in book ? ` from ${book.edition}` : ""}${book.published ? "" : ", published after the author's death"}`,
+      line: `- ${book.title ?? book.slug} (${book.year}) — imported${"edition" in book ? ` from ${book.edition}` : ""}${book.published ? "" : ", from the author's papers"}`,
     })),
     ...manifest.gaps.flatMap((gap) =>
       gap.year === undefined
@@ -100,7 +100,7 @@ export function renderCoverage(manifest: Manifest): string {
     ...books.map((book) => ({
       citation: book.citation,
       start: startOf(book.firstPage),
-      line: `- ${book.title} (${book.year}, ${book.citation}, ${book.firstPage}–${book.lastPage}) — imported${book.published ? "" : ", published after the author's death"}`,
+      line: `- ${book.title} (${book.year}, ${book.citation}, ${book.firstPage}–${book.lastPage}) — imported${book.published ? "" : ", from the author's papers"}`,
     })),
     ...manifest.gaps.flatMap((gap) =>
       gap.citation === undefined

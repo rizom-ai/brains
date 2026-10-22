@@ -61,7 +61,7 @@ const bookFields: BookFields = {
    * sit under: "Vorwort zu Charcot, Neue Vorlesungen (1886)".
    */
   part: z.string().min(1).optional(),
-  /** False for writings published only after the author's death. */
+  /** False for writings the author left unpublished, read from his papers. */
   published: z.boolean().default(true),
   author: z.string().min(1),
   year: z.number().int(),
@@ -839,6 +839,22 @@ export async function fetchVolumeHocr(
 
 const DTA = "https://www.deutschestextarchiv.de/book/";
 
+/**
+ * The licence a Textarchiv transcription is imported under, from the one its
+ * header links; none when the transcription may not be reused.
+ */
+function dtaLicense(
+  licence: string | null,
+): "CC-BY-SA-4.0" | "public-domain" | undefined {
+  // CC BY-SA 2.0 lets an adaptation take a later version of the licence.
+  if (licence?.includes("/by-sa/")) return "CC-BY-SA-4.0";
+  // CC0, or the Public Domain Mark of a text the Textarchiv took from Wikisource.
+  if (/\/publicdomain\/(?:zero|mark)\//u.test(licence ?? "")) {
+    return "public-domain";
+  }
+  return undefined;
+}
+
 /** A work transcribed by the Deutsches Textarchiv, from its TEI. */
 async function loadDtaTeiBook(
   entry: z.output<typeof dtaTeiBookSchema>,
@@ -848,9 +864,11 @@ async function loadDtaTeiBook(
     await fetchText(`${DTA}download_xml/${entry.id}`),
     entry,
   );
-  // CC BY-SA 2.0 lets an adaptation take a later version of the licence.
-  if (!licence?.includes("/by-sa/")) {
-    throw new Error(`${entry.id} is not under CC BY-SA: ${licence}`);
+  const license = dtaLicense(licence);
+  if (!license) {
+    throw new Error(
+      `${entry.id} is neither under CC BY-SA nor in the public domain: ${licence}`,
+    );
   }
   return {
     book: {
@@ -860,7 +878,7 @@ async function loadDtaTeiBook(
       year: entry.year,
       kind: entry.kind,
       edition: entry.edition,
-      license: "CC-BY-SA-4.0",
+      license,
       attribution: `Deutsches Textarchiv (deutschestextarchiv.de), ${licence}`,
       source: `${DTA}show/${entry.id}`,
       published: entry.published,
