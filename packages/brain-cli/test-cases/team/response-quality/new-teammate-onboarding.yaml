@@ -32,12 +32,11 @@ turns:
       onboard me: what is Team Brain for, what should I read first, what workflows are
       already supported, and what should I avoid assuming exists? Begin by
       saying you searched saved Team Brain memory. In the read-first section,
-      prioritize saved handbook/team-knowledge titles if present: Team Brain operating
-      model, Capture and synthesis, Peer-brain directory, Team Brain POC walkthrough,
-      and Team Brain POC team notes. Do not put README/eval-content/capture-rules
-      internals in the read-first list unless no handbook, deck, or team-note
-      title is available. Separate supported workflows from out-of-scope
-      assumptions.
+      prioritize saved handbook/team-knowledge titles if present, such as Capture
+      and synthesis and Team Brain POC team notes. Do not put
+      README/eval-content/capture-rules internals in the read-first list unless no
+      handbook or team-note title is available. Separate supported workflows from
+      out-of-scope assumptions.
 
 successCriteria:
   expectedTools:
