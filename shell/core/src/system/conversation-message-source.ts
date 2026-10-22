@@ -23,12 +23,15 @@ export type ConversationMessageRef = Extract<
  * Reads the referenced message text on the server, so verbatim content never
  * passes through the model. A user-message source selects the text between
  * its boundaries and, once frozen for confirmation, must still hash to the
- * approved text.
+ * approved text. Only a confirmed call carries an approved hash: on a first
+ * request there is no approval yet, so a hash the model filled in is ignored
+ * and the proposal pins the hash of the text the server read.
  */
 export async function resolveConversationMessageContent(
   services: SystemServices,
   input: ConversationMessageRef,
   toolContext: ToolContext,
+  { confirmed }: { confirmed: boolean },
 ): Promise<
   | { success: true; messageId: string; content: string }
   | { success: false; error: string }
@@ -135,7 +138,8 @@ export async function resolveConversationMessageContent(
     };
   }
   const content = message.content.slice(start.offset, end.offset);
-  if (input.contentHash && input.contentHash !== computeContentHash(content)) {
+  const approvedHash = confirmed ? input.contentHash : undefined;
+  if (approvedHash && approvedHash !== computeContentHash(content)) {
     return {
       success: false,
       error:

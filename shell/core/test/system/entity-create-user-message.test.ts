@@ -194,6 +194,35 @@ describe("system_create user-message source", () => {
     expect(services.getEntities().size).toBe(0);
   });
 
+  test("proposes from the stored text when an initial request guesses a source hash", async () => {
+    const { services, tool } = fixture([
+      message(`${startAfter}original${endBefore}`),
+    ]);
+    const args = confirmationSchema.parse(
+      expectConfirmationArgs(
+        await tool.handler(
+          {
+            ...input(),
+            source: {
+              kind: "user-message",
+              startAfter,
+              endBefore,
+              contentHash: "TO_BE_RETURNED",
+            },
+          },
+          context,
+        ),
+      ),
+    );
+    expect(args).toMatchObject({
+      source: { contentHash: computeContentHash("original") },
+    });
+    expect(await tool.handler(args, context)).toMatchObject({ success: true });
+    expect(services.getEntities().get("verbatim-source")?.content).toBe(
+      "original",
+    );
+  });
+
   test("rejects boundary tampering even when replacement bytes have the same hash", async () => {
     const { services, tool } = fixture([
       message(`${startAfter}body${endBefore}\nOTHER START\nbody\nOTHER END`),
