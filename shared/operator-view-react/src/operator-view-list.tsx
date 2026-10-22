@@ -66,6 +66,7 @@ export function ListItems(props: {
         return (
           <OperatorRecordRow
             key={item.id}
+            rowId={item.id}
             density={components.density}
             tone={item.tone}
             selected={props.openId === item.id}

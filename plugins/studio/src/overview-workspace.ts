@@ -703,10 +703,50 @@ const severity: Record<
   number
 > = { error: 0, warn: 1, neutral: 2, good: 3 };
 
+/** The row in Needs you that lists a failed event. */
+function failureRowId(item: OverviewActivity): string {
+  return boundedId("attention", item.id);
+}
+
+/**
+ * The day at a glance: every event of the activity window as a light, each
+ * pointing at the row that describes it.
+ */
+function dayTimeline(
+  activity: readonly OverviewActivity[],
+  now: number,
+): RuntimeStudioOperatorPanelBlock {
+  return {
+    type: "timeline",
+    id: "overview-day",
+    label: "Last 24 hours",
+    start: new Date(now - ACTIVITY_WINDOW_MS).toISOString(),
+    end: new Date(now).toISOString(),
+    legend: [
+      { label: "Done", tone: "good" },
+      { label: "Changed", tone: "neutral" },
+      { label: "Running or removed", tone: "warn" },
+      { label: "Failed", tone: "error" },
+    ],
+    items: [...activity].reverse().map((item) => ({
+      id: boundedId("light", item.id),
+      at: item.at,
+      // Entity events name the change; job titles already say what happened.
+      title:
+        item.link?.kind === "entity"
+          ? `${item.metadata[0]}: ${item.title}`
+          : item.title,
+      tone: item.tone,
+      target: item.tone === "error" ? failureRowId(item) : item.id,
+    })),
+  };
+}
+
 function overviewView(
   loaded: readonly LoadedContribution[],
   activity: readonly OverviewActivity[],
   facts: BrainFacts,
+  now: number,
 ): RuntimeStudioOperatorView {
   const failedActivity = activity.filter((item) => item.tone === "error");
   const attention =
@@ -714,7 +754,7 @@ function overviewView(
     failedActivity.length;
   const failedAttentionItems: RuntimeStudioOperatorListItem[] =
     failedActivity.map((item) => ({
-      id: boundedId("attention", item.id),
+      id: failureRowId(item),
       title: item.title,
       ...(item.description ? { description: item.description } : {}),
       metadata: item.metadata,
@@ -758,6 +798,7 @@ function overviewView(
     title: "Overview",
     facts: overviewStatusFacts(facts),
     blocks: [
+      dayTimeline(activity, now),
       {
         type: "columns",
         id: "overview-columns",
@@ -775,7 +816,10 @@ function overviewView(
 export function createStudioOverviewWorkspace(input: {
   context: ServicePluginContext;
   registry: StudioOverviewRegistry;
+  /** The clock the timeline window ends at; tests and fixtures pin it. */
+  now?: () => number;
 }): StudioWorkspaceRegistration {
+  const now = input.now ?? Date.now;
   return {
     id: STUDIO_OVERVIEW_WORKSPACE_ID,
     pluginId: "studio",
@@ -793,7 +837,7 @@ export function createStudioOverviewWorkspace(input: {
       const loaded = await input.registry.load(actor, signal);
       const facts = await brainFacts(input.context, actor);
       return {
-        view: overviewView(loaded, input.registry.listActivity(), facts),
+        view: overviewView(loaded, input.registry.listActivity(), facts, now()),
         refreshAfterMs: STUDIO_OVERVIEW_REFRESH_MS,
       };
     },

@@ -39,6 +39,8 @@ export type {
   RuntimeOperatorProgressBlock,
   RuntimeOperatorSeriesPoint,
   RuntimeOperatorSeriesBlock,
+  RuntimeOperatorTimelineBlock,
+  RuntimeOperatorTimelineItem,
   RuntimeOperatorQueryOption,
   RuntimeOperatorQueryDefinition,
   RuntimeOperatorQueryBlock,

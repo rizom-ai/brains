@@ -54,7 +54,7 @@ it("combines an empty attention/activity state without hiding standing runtime i
         { label: "Brain running", tone: "good" },
         { label: "Queue idle" },
       ],
-      blocks: [{ type: "columns" }],
+      blocks: [{ type: "timeline", items: [] }, { type: "columns" }],
     },
   });
   expect(JSON.stringify(empty)).not.toContain('"id":"overview-attention"');
@@ -63,6 +63,7 @@ it("combines an empty attention/activity state without hiding standing runtime i
   expect(attentionWithoutActivity).toMatchObject({
     view: {
       blocks: [
+        { type: "timeline" },
         {
           type: "columns",
           primary: [
@@ -298,6 +299,49 @@ describe("Overview composition", () => {
       ],
       undefined,
     ]);
+  });
+
+  it("puts the day's events on a timeline that points at their rows", async () => {
+    const now = Date.parse("2026-07-11T16:40:00.000Z");
+    const registry = new StudioOverviewRegistry({ now: (): number => now });
+    await registry.recordEntity("updated", {
+      entityType: "note",
+      entityId: "quiet-infrastructure",
+    });
+    registry.recordJob({
+      id: "preview-build",
+      type: "job",
+      status: "failed",
+      jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
+    });
+    const workspace = createStudioOverviewWorkspace({
+      context: createServicePluginContext(createMockShell(), "studio"),
+      registry,
+      now: (): number => now,
+    });
+
+    const data = await workspace.dataProvider(admin, {});
+    if (!isWorkspaceData(data)) throw new Error("Overview returned no view");
+    const [timeline] = data.view.blocks;
+    if (timeline?.type !== "timeline") throw new Error("Expected a timeline");
+
+    expect(timeline).toMatchObject({
+      label: "Last 24 hours",
+      start: "2026-07-10T16:40:00.000Z",
+      end: "2026-07-11T16:40:00.000Z",
+    });
+    expect(timeline.items.map(({ title, tone }) => ({ title, tone }))).toEqual([
+      { title: "Note updated: quiet-infrastructure", tone: "neutral" },
+      { title: "Site build failed", tone: "error" },
+    ]);
+    const rows = cards(columnsOf(data).primary).flatMap((card) =>
+      card.blocks.flatMap((block) =>
+        block.type === "list" ? block.items.map((item) => item.id) : [],
+      ),
+    );
+    const targets = timeline.items.map((item) => item.target ?? "");
+    expect(targets).toHaveLength(2);
+    expect(rows).toEqual(expect.arrayContaining(targets));
   });
 
   it("stacks every source beside the work above standing brain facts", async () => {
@@ -538,6 +582,7 @@ describe("Studio Overview workspace", () => {
             kicker: "Operator home",
             title: "Overview",
             blocks: [
+              { type: "timeline", label: "Last 24 hours" },
               {
                 type: "columns",
                 primary: [

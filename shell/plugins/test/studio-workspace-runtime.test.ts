@@ -77,6 +77,52 @@ it("lets a card carry up to four summary figures", () => {
   ).toBe(false);
 });
 
+it("accepts a timeline of dated events within a forward window", () => {
+  const timeline = (block: Record<string, unknown>): unknown => ({
+    blocks: [
+      {
+        type: "timeline",
+        id: "day",
+        label: "Last 24 hours",
+        start: "2026-07-10T16:40:00.000Z",
+        end: "2026-07-11T16:40:00.000Z",
+        items: [
+          {
+            id: "event",
+            at: "2026-07-11T16:28:00.000Z",
+            title: "Note updated",
+            tone: "good",
+            target: "row",
+          },
+        ],
+        ...block,
+      },
+    ],
+  });
+  const parse = (input: unknown): boolean =>
+    safeParseRuntimeStudioOperatorView(input, {
+      actions: [],
+      permission: "trusted",
+    }).success;
+
+  expect(parse(timeline({}))).toBe(true);
+  expect(parse(timeline({ end: "2026-07-10T16:40:00.000Z" }))).toBe(false);
+  expect(
+    parse(timeline({ items: [{ id: "event", at: "yesterday", title: "x" }] })),
+  ).toBe(false);
+  expect(
+    parse(
+      timeline({
+        items: Array.from({ length: 501 }, (_, index) => ({
+          id: `event-${index}`,
+          at: "2026-07-11T16:28:00.000Z",
+          title: "x",
+        })),
+      }),
+    ),
+  ).toBe(false);
+});
+
 it("keeps a view's status facts and bounds how many it may carry", () => {
   const facts = [
     { label: "Brain running", tone: "good" },

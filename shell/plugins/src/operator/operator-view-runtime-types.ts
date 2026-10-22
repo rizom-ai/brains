@@ -10,6 +10,8 @@ import type {
   OperatorScalar,
   OperatorSeriesBlock,
   OperatorSeriesPoint,
+  OperatorTimelineBlock,
+  OperatorTimelineItem,
   OperatorStatItem,
   OperatorStatsBlock,
   OperatorTextBlock,
@@ -123,6 +125,8 @@ export type RuntimeOperatorMeterBlock = OperatorMeterBlock;
 export type RuntimeOperatorProgressBlock = OperatorProgressBlock;
 export type RuntimeOperatorSeriesPoint = OperatorSeriesPoint;
 export type RuntimeOperatorSeriesBlock = OperatorSeriesBlock;
+export type RuntimeOperatorTimelineItem = OperatorTimelineItem;
+export type RuntimeOperatorTimelineBlock = OperatorTimelineBlock;
 
 export interface RuntimeOperatorQueryOption {
   readonly value: string;
@@ -500,6 +504,7 @@ export type RuntimeStudioOperatorPanelBlock =
   | RuntimeOperatorMeterBlock
   | RuntimeOperatorProgressBlock
   | RuntimeOperatorSeriesBlock
+  | RuntimeOperatorTimelineBlock
   | RuntimeOperatorQueryBlock
   | RuntimeOperatorLinksBlock
   | RuntimeStudioOperatorListBlock

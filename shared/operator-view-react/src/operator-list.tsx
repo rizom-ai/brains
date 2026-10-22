@@ -25,6 +25,8 @@ export function OperatorList(props: {
 /** Historical outcomes remain text/badges, not another active exception stripe. */
 export function OperatorRecordRow(props: {
   density: Density;
+  /** The item id, so other blocks in the view can point at this row. */
+  rowId?: string | undefined;
   tone?: Tone | undefined;
   selected?: boolean | undefined;
   interactive?: boolean | undefined;
@@ -48,6 +50,7 @@ export function OperatorRecordRow(props: {
         props.interactive && s.interactive,
         props.selected && selection.current,
       )}
+      data-row-id={props.rowId}
       data-tone={props.tone ?? "neutral"}
       aria-current={props.selected ? "true" : undefined}
     >

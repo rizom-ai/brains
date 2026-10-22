@@ -56,7 +56,7 @@ export async function startFixtureServer(): Promise<FixtureServer> {
     FIXED_NOW,
     STUDY_STATE,
   );
-  const workViews = await createWorkViewFixtures(STUDY_STATE);
+  const workViews = await createWorkViewFixtures(STUDY_STATE, FIXED_NOW);
   const deliveryViews = await createDeliveryViewFixtures(STUDY_STATE);
   const syncView = await createSyncViewFixture(STUDY_STATE);
   const board = await createBoardFixture(FIXED_NOW);
