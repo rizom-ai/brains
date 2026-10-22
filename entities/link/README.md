@@ -124,7 +124,6 @@ example.com
 
 The plugin follows the established plugin pattern with clear separation of concerns:
 
-- **LinkService**: Core business logic for link operations
 - **LinkAdapter**: Entity adapter implementing the EntityAdapter interface
 - **Tools**: Thin wrappers around service methods
 - **Schemas**: Zod schemas for validation and type safety
