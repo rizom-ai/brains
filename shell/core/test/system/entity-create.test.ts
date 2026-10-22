@@ -315,6 +315,17 @@ describe("system_create tool", () => {
     );
   });
 
+  it("tells models frontmatter fences are content, not line boundaries", () => {
+    const services = createMockSystemServices();
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_create",
+    );
+
+    expect(tool?.description).toContain(
+      "Frontmatter --- fences are part of the content, never boundaries",
+    );
+  });
+
   it("directs edits of known entities to system_update concisely", () => {
     const services = createMockSystemServices();
     const tool = createSystemTools(services).find(
