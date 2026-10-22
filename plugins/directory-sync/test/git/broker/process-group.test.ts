@@ -60,11 +60,19 @@ async function childProcessGroups(): Promise<number[]> {
   return groups;
 }
 
-/** Whether anything answers on `port` within the budget. */
-async function accepts(port: number, budgetMs: number): Promise<boolean> {
+/**
+ * Whether connections to `port` reach `open` within the budget. A killed
+ * listener can hold its socket for a moment after the signal, so closing is
+ * waited for like opening, never assumed after a fixed sleep.
+ */
+async function portReaches(
+  port: number,
+  open: boolean,
+  budgetMs: number,
+): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   const attempt = async (): Promise<boolean> => {
-    const open = await Bun.connect({
+    const connected = await Bun.connect({
       hostname: "127.0.0.1",
       port,
       socket: { data: (): void => {} },
@@ -75,12 +83,17 @@ async function accepts(port: number, budgetMs: number): Promise<boolean> {
       },
       () => false,
     );
-    if (open) return true;
+    if (connected === open) return true;
     if (Date.now() >= deadline) return false;
     await Bun.sleep(50);
     return attempt();
   };
   return attempt();
+}
+
+/** Whether anything answers on `port` within the budget. */
+function accepts(port: number, budgetMs: number): Promise<boolean> {
+  return portReaches(port, true, budgetMs);
 }
 
 /** Live `git` processes sharing `group`, read from the OS. */
@@ -173,7 +186,6 @@ describe.skipIf(!LINUX)("a git child of the broker", () => {
     for (const pid of survivors) {
       process.kill(pid, "SIGKILL");
     }
-    await Bun.sleep(200);
-    expect(await accepts(port, 1_000)).toBe(false);
+    expect(await portReaches(port, false, 5_000)).toBe(true);
   }, 60_000);
 });
