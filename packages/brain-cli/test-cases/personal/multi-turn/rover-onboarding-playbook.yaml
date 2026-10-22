@@ -88,7 +88,7 @@ turns:
         - "I cannot"
         - "I don't have access"
       responseCriteria:
-        - "Asks the operator for a first rough idea, note, link, or fragment to save."
+        - "Asks the operator for a rough idea, note, link, or fragment to save."
 
   - userMessage: "Save this first idea: resilient software is a climate strategy because systems that fail less waste less energy and operator attention."
     successCriteria:
