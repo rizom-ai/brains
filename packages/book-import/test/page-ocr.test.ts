@@ -492,6 +492,15 @@ describe("withGreekReadings", () => {
     expect(texts(merged)).toEqual(["'ganze"]);
   });
 
+  it("keeps a word whose Greek reading holds figures, which no Greek word does", () => {
+    const merged = withGreekReadings(
+      linePage([{ text: "Sseine", conf: 30, left: 0 }]),
+      linePage([{ text: "561η6", conf: 70, left: 0 }]),
+    );
+
+    expect(texts(merged)).toEqual(["Sseine"]);
+  });
+
   it("keeps a word the Greek model reads as no Greek", () => {
     const merged = withGreekReadings(
       linePage([{ text: "1868.", conf: 40, left: 0 }]),

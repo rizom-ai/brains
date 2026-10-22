@@ -3,6 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bookAdapter, bookSectionAdapter } from "@brains/book";
+import { deferred } from "@brains/utils/deferred";
 import {
   fetchVolumeHocr,
   firstOfEachVolume,
@@ -873,8 +874,74 @@ books:
     expect(results).toEqual([
       { slug: "jenseits-des-lustprinzips", entries: 3 },
     ]);
+    const greekRead = recognised
+      .filter((entry) => entry.startsWith("grc_agocr "))
+      .map((entry) => entry.slice("grc_agocr ".length));
     expect(recognised).toContain(`deu ${first}`);
-    expect(recognised).toContain(`grc ${first}`);
+    expect(greekRead.length).toBeGreaterThan(0);
+    expect(greekRead.every((url) => recognised.includes(`deu ${url}`))).toBe(
+      true,
+    );
+  });
+
+  it("reads several of a volume's pages at once", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    // The first page is read only once the second is being read: a reader
+    // that reads one page after another never gets to the second.
+    const secondStarted = deferred();
+
+    const results = await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          () =>
+          async (url): Promise<string> => {
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            if (leaf === 1) secondStarted.resolve();
+            if (leaf === 0) await secondStarted.promise;
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+  });
+
+  it("reads no page with the Greek model that its own model read no words on", async () => {
+    const recognised: string[] = [];
+    const blank =
+      "<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 2600 4400'></div></body></html>";
+
+    await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n    greek: true\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            recognised.push(`${model} ${url}`);
+            return blank;
+          },
+      },
+    ).catch((error: unknown) => {
+      // A volume of blank pages holds no work; only the readings matter here.
+      expect(String(error)).toContain("jenseits-des-lustprinzips");
+    });
+
+    expect(recognised.length).toBeGreaterThan(0);
+    expect(recognised.filter((entry) => entry.startsWith("grc_agocr"))).toEqual(
+      [],
+    );
   });
 
   it("reads a scan another library holds from the page images the work lists, and names that library", async () => {

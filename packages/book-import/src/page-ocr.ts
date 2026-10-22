@@ -58,12 +58,20 @@ export function createPageOcr(options: PageOcrOptions): PageOcr {
 
 /**
  * Models Tesseract does not bring, by where they are published: frak2021,
- * UB Mannheim's Fraktur model trained on historical prints (Apache-2.0).
+ * UB Mannheim's Fraktur model trained on historical prints (Apache-2.0),
+ * and grc_agocr, Nick White's Ancient Greek model trained on the
+ * nineteenth century's Greek types (ancientgreekocr.org, Apache-2.0), which
+ * reads their curled kappa and theta that Tesseract's own grc reads as chi
+ * and upsilon.
  */
 const MODELS: Record<string, string> = {
   frak2021:
     "https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/frak2021/tessdata_best/frak2021-0.905.traineddata",
+  grc_agocr: "https://ancientgreekocr.org/2.0/grc.traineddata",
 };
+
+/** The model a print's Greek is read with. */
+export const GREEK_MODEL = "grc_agocr";
 
 async function exists(path: string): Promise<boolean> {
   return Bun.file(path).exists();
@@ -496,7 +504,10 @@ export function withGreekReadings(hocr: string, greekHocr: string): string {
       if (read.length === 0) return whole;
       const surest = Math.min(...read.map((word) => word.confidence));
       const reading = read.map((word) => word.text).join(" ");
+      // A reading with figures in it is no Greek word: the model's guess at
+      // letters of another script.
       return greekShare(reading) >= 0.8 &&
+        !/\d/u.test(reading) &&
         surest >= GREEK_CONFIDENCE &&
         surest > Number(confidence)
         ? `${open}${reading}${close}`

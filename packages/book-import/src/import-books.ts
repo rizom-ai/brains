@@ -18,6 +18,7 @@ import {
 import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
   frakturRead,
+  GREEK_MODEL,
   hyphenRead,
   volumeOfPages,
   withGreekReadings,
@@ -258,7 +259,7 @@ const archiveOcrBookSchema: z.ZodObject<
   binarise: z.boolean().default(false),
   /**
    * The work quotes Greek, which the page's model reads as Latin letters:
-   * each page is read again with Tesseract's Ancient Greek model, and a word
+   * each page is read again with an Ancient Greek model, and a word
    * it reads as Greek, and surer, takes that reading. Needs `ocr`.
    */
   greek: z.boolean().default(false),
@@ -1000,15 +1001,29 @@ export async function ocrVolumeHocr(
   );
 }
 
-/** A scan's page images read one after another, as one volume. */
+/**
+ * Pages read at once: recognising a page takes the reader up to half a
+ * minute, and one page after another a volume takes hours.
+ */
+const PAGES_AT_ONCE = 8;
+
+/** A scan's page images read, several at once, as one volume in their order. */
 async function imagesHocr(
   images: string[],
   pageOcr: PageOcr,
   numbers?: Array<number | undefined>,
   read: (hocr: string) => string = frakturRead,
 ): Promise<string> {
-  const pages = await images.reduce<Promise<string[]>>(
-    async (done, image) => [...(await done), await pageOcr(image)],
+  const batches = Array.from(
+    { length: Math.ceil(images.length / PAGES_AT_ONCE) },
+    (_, index) =>
+      images.slice(index * PAGES_AT_ONCE, (index + 1) * PAGES_AT_ONCE),
+  );
+  const pages = await batches.reduce<Promise<string[]>>(
+    async (done, batch) => [
+      ...(await done),
+      ...(await Promise.all(batch.map((image) => pageOcr(image)))),
+    ],
     Promise.resolve([]),
   );
   return volumeOfPages(pages, numbers, read);
@@ -1041,11 +1056,21 @@ export async function volumeHocr(
   }
   const own = pageOcr({ model: book.ocr, binarise: book.binarise });
   const greek = book.greek
-    ? pageOcr({ model: "grc", binarise: book.binarise })
+    ? pageOcr({ model: GREEK_MODEL, binarise: book.binarise })
     : null;
   const read: PageOcr = greek
-    ? async (url): Promise<string> =>
-        withGreekReadings(await own(url), await greek(url))
+    ? async (url): Promise<string> => {
+        const page = await own(url);
+        // A page its model read no letters on, such as a blank leaf, has no
+        // Greek to read, and the Greek model fails on one.
+        const text = (/<body>([\s\S]*)<\/body>/u.exec(page)?.[1] ?? "").replace(
+          /<[^>]*>/gu,
+          "",
+        );
+        return /\p{L}/u.test(text)
+          ? withGreekReadings(page, await greek(url))
+          : page;
+      }
     : own;
   // A Fraktur model's reading is read as roman type sets it, a German one's
   // hyphens as hyphens; an English or French print's dashes stay dashes.
