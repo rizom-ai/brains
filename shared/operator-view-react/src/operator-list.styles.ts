@@ -61,6 +61,16 @@ export const listStyles: Record<
       default: 1,
       ":is([data-matrix-cell] li:last-child)": 0,
     },
+    // A keyboard-focused row title rings the row it opens, 6px out: a row
+    // has no side padding, so a 2px ring would crowd its text. The board
+    // column's 16px padding holds the ring.
+    outlineStyle: {
+      default: "none",
+      ":has([data-row-link]:focus-visible)": "solid",
+    },
+    outlineWidth: 2,
+    outlineColor: "var(--console-accent)",
+    outlineOffset: 6,
     borderBottomStyle: "solid",
     borderBottomColor: "var(--console-rule)",
     minWidth: 0,

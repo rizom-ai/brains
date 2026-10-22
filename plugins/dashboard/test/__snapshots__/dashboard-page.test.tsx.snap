@@ -1120,6 +1120,7 @@ html {
 .x2ssjo2:not(#\\#):not(#\\#):not(#\\#){outline-offset:-2px}
 .xr2mjdv:not(#\\#):not(#\\#):not(#\\#){outline-offset:-4px}
 .x1hl8ikr:not(#\\#):not(#\\#):not(#\\#){outline-offset:2px}
+.x8wkva7:not(#\\#):not(#\\#):not(#\\#){outline-offset:6px}
 .x1t137rt:not(#\\#):not(#\\#):not(#\\#){outline-style:none}
 .xaatb59:not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .x1k57tk5:not(#\\#):not(#\\#):not(#\\#){outline-width:0}
@@ -1281,6 +1282,7 @@ html {
 .x110e2yq:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){z-index:4}
 .x1qm06za:focus-visible:not(#\\#):not(#\\#):not(#\\#){z-index:4}
 .x79gikr:has(> details[open]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}
+.xokuw57:has([data-row-link]:focus-visible):not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .xbd3v37:first-child:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text)}
 .xq648tx:first-child:not(#\\#):not(#\\#):not(#\\#){font-size:14px}
 .xsnqk1y:first-child:not(#\\#):not(#\\#):not(#\\#){font-weight:500}
