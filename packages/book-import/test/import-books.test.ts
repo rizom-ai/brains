@@ -844,6 +844,39 @@ books:
     expect(await files(join(brainData, "book"))).toEqual(fromArchive);
   });
 
+  it("reads a work that quotes Greek with the Greek model as well, page by page", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const recognised: string[] = [];
+
+    const results = await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n    greek: true\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            recognised.push(`${model} ${url}`);
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+
+    const first =
+      "https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg";
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+    expect(recognised).toContain(`deu ${first}`);
+    expect(recognised).toContain(`grc ${first}`);
+  });
+
   it("reads a scan another library holds from the page images the work lists, and names that library", async () => {
     const volume = await readFile(
       join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),

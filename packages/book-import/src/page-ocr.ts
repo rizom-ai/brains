@@ -415,3 +415,92 @@ export function hyphenRead(hocr: string): string {
       .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L}|[,;])/gu, "$1-")
   );
 }
+
+/** A word of a Tesseract hOCR page: where it stands, how sure, what it reads. */
+interface ReadWord {
+  box: [number, number, number, number];
+  confidence: number;
+  text: string;
+}
+
+const HOCR_WORD =
+  /(<span class='ocrx_word'[^>]*title='bbox (\d+) (\d+) (\d+) (\d+); x_wconf (\d+)'[^>]*>)(.*?)(<\/span>)/gsu;
+
+function readWords(hocr: string): ReadWord[] {
+  return [...hocr.matchAll(HOCR_WORD)].map((match) => ({
+    box: [
+      Number(match[2]),
+      Number(match[3]),
+      Number(match[4]),
+      Number(match[5]),
+    ],
+    confidence: Number(match[6]),
+    text: match[7] ?? "",
+  }));
+}
+
+function boxArea([left, top, right, bottom]: ReadWord["box"]): number {
+  return Math.max(0, right - left) * Math.max(0, bottom - top);
+}
+
+/** Two words read as one where their boxes share a good part of the smaller. */
+function sameWord(a: ReadWord["box"], b: ReadWord["box"]): boolean {
+  const shared = boxArea([
+    Math.max(a[0], b[0]),
+    Math.max(a[1], b[1]),
+    Math.min(a[2], b[2]),
+    Math.min(a[3], b[3]),
+  ]);
+  return shared > 0.4 * Math.min(boxArea(a), boxArea(b));
+}
+
+/** Of a reading's letters, the share in Greek script. */
+function greekShare(text: string): number {
+  const letters = [...text].filter((char) => /\p{L}/u.test(char));
+  const greek = letters.filter((char) => /\p{Script=Greek}/u.test(char));
+  return greek.length / Math.max(1, letters.length);
+}
+
+/** How sure the Greek model must be of a word before its reading is taken. */
+const GREEK_CONFIDENCE = 40;
+
+/**
+ * A page read with its language's model, each word the Greek model reads as
+ * Greek, and surer, taking the Greek reading: a print that quotes Greek in
+ * German or Latin text is read by neither model alone, and each misreads the
+ * other's script. Both readings are of the same prepared image, so a word
+ * stands in the same place in both.
+ */
+export function withGreekReadings(hocr: string, greekHocr: string): string {
+  const greek = readWords(greekHocr);
+  return hocr.replace(
+    HOCR_WORD,
+    (
+      whole,
+      open: string,
+      left,
+      top,
+      right,
+      bottom,
+      confidence,
+      _text,
+      close,
+    ) => {
+      const box: ReadWord["box"] = [
+        Number(left),
+        Number(top),
+        Number(right),
+        Number(bottom),
+      ];
+      const read = greek.filter((word) => sameWord(word.box, box));
+      if (read.length === 0) return whole;
+      const surest = Math.min(...read.map((word) => word.confidence));
+      const reading = read.map((word) => word.text).join(" ");
+      return greekShare(reading) >= 0.8 &&
+        surest >= GREEK_CONFIDENCE &&
+        surest > Number(confidence)
+        ? `${open}${reading}${close}`
+        : whole;
+    },
+  );
+}

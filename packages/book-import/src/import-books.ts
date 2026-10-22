@@ -20,6 +20,7 @@ import {
   frakturRead,
   hyphenRead,
   volumeOfPages,
+  withGreekReadings,
   type OcrReading,
   type PageOcr,
 } from "./page-ocr";
@@ -213,6 +214,7 @@ const archiveOcrBookSchema: z.ZodObject<
       frontLeaf: z.ZodOptional<z.ZodNumber>;
       scan: z.ZodOptional<typeof scanSchema>;
       binarise: z.ZodDefault<z.ZodBoolean>;
+      greek: z.ZodDefault<z.ZodBoolean>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       lastPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       title: z.ZodString;
@@ -254,6 +256,12 @@ const archiveOcrBookSchema: z.ZodObject<
   scan: scanSchema.optional(),
   /** The scan's paper is uneven in tone and its lines askew: each page is straightened and set black on white before it is read anew. */
   binarise: z.boolean().default(false),
+  /**
+   * The work quotes Greek, which the page's model reads as Latin letters:
+   * each page is read again with Tesseract's Ancient Greek model, and a word
+   * it reads as Greek, and surer, takes that reading. Needs `ocr`.
+   */
+  greek: z.boolean().default(false),
   /** The work's printed pages in the volume. */
   firstPage: printedPageSchema,
   lastPage: printedPageSchema,
@@ -660,6 +668,7 @@ export function volumeKey(book: ScannedBook): string {
     book.item,
     book.ocr ?? "",
     book.binarise ? "binarised" : "",
+    book.greek ? "greek" : "",
     book.frontLeaf === undefined ? "" : `I@${book.frontLeaf}`,
     book.columns ? "columns" : "",
   ].join("|");
@@ -1017,13 +1026,27 @@ export async function volumeHocr(
       book.frontLeaf === undefined ? hocr : withFrontPage(hocr, book.frontLeaf),
       book.columns ? { columns: true } : {},
     );
-  if (!book.ocr) return marked(await fetchVolumeHocr(book.item, fetchText));
+  if (!book.ocr) {
+    if (book.greek) {
+      throw new Error(
+        `${book.slug} reads Greek anew, but names no model (ocr)`,
+      );
+    }
+    return marked(await fetchVolumeHocr(book.item, fetchText));
+  }
   if (!pageOcr) {
     throw new Error(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
-  const read = pageOcr({ model: book.ocr, binarise: book.binarise });
+  const own = pageOcr({ model: book.ocr, binarise: book.binarise });
+  const greek = book.greek
+    ? pageOcr({ model: "grc", binarise: book.binarise })
+    : null;
+  const read: PageOcr = greek
+    ? async (url): Promise<string> =>
+        withGreekReadings(await own(url), await greek(url))
+    : own;
   // A Fraktur model's reading is read as roman type sets it, a German one's
   // hyphens as hyphens; an English or French print's dashes stay dashes.
   const reading = FRAKTUR_MODEL.test(book.ocr)

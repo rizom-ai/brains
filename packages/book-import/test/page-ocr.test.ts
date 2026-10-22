@@ -9,6 +9,7 @@ import {
   scanImages,
   tessdataFor,
   volumeOfPages,
+  withGreekReadings,
   type PageOcr,
 } from "../src/page-ocr";
 
@@ -432,5 +433,71 @@ describe("scanImages", () => {
     expect(fetched).toEqual(["http://iapsop.com/weekly.pdf"]);
     expect(rendered).toEqual(["37 5", "37 6"]);
     expect(cut).toEqual(["5 0.37,0.1,0.27,0.3"]);
+  });
+});
+
+describe("withGreekReadings", () => {
+  interface Word {
+    text: string;
+    conf: number;
+    left: number;
+  }
+
+  /** A line of words as Tesseract reads it, each 100 wide at its left. */
+  function linePage(words: Word[]): string {
+    const spans = words.map(
+      (word, index) =>
+        `<span class='ocrx_word' id='word_1_${index + 1}' title='bbox ${word.left} 300 ${word.left + 100} 360; x_wconf ${word.conf}'>${word.text}</span>`,
+    );
+    return `<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 1600 2600'><span class='ocr_line' id='line_1_1' title='bbox 0 300 1600 360'>${spans.join(" ")}</span></div></body></html>`;
+  }
+
+  const texts = (hocr: string): string[] =>
+    [...hocr.matchAll(/class='ocrx_word'[^>]*>([^<]*)</gu)].map(
+      (match) => match[1] ?? "",
+    );
+
+  it("takes the Greek reading of words the page's model read as Latin letters", () => {
+    const merged = withGreekReadings(
+      linePage([
+        { text: "als", conf: 92, left: 0 },
+        { text: "Tm2hdyous", conf: 0, left: 200 },
+        { text: "dArodupouwEvN", conf: 16, left: 400 },
+      ]),
+      linePage([
+        { text: "αἷς", conf: 30, left: 0 },
+        { text: "πελάγους", conf: 91, left: 200 },
+        { text: "ἀποδυρομένη", conf: 89, left: 400 },
+      ]),
+    );
+
+    expect(texts(merged)).toEqual(["als", "πελάγους", "ἀποδυρομένη"]);
+  });
+
+  it("keeps a word the page's model reads surer than the Greek one", () => {
+    const merged = withGreekReadings(
+      linePage([{ text: "Gedicht,", conf: 89, left: 0 }]),
+      linePage([{ text: "(σϑαϊοπί,", conf: 7, left: 0 }]),
+    );
+
+    expect(texts(merged)).toEqual(["Gedicht,"]);
+  });
+
+  it("keeps a word whose Greek reading is unsure, however unsure the page's model", () => {
+    const merged = withGreekReadings(
+      linePage([{ text: "'ganze", conf: 0, left: 0 }]),
+      linePage([{ text: "σᾶηΖε", conf: 17, left: 0 }]),
+    );
+
+    expect(texts(merged)).toEqual(["'ganze"]);
+  });
+
+  it("keeps a word the Greek model reads as no Greek", () => {
+    const merged = withGreekReadings(
+      linePage([{ text: "1868.", conf: 40, left: 0 }]),
+      linePage([{ text: "1868.", conf: 90, left: 0 }]),
+    );
+
+    expect(texts(merged)).toEqual(["1868."]);
   });
 });
