@@ -84,6 +84,7 @@ export {
   type SaveProcessedEntityRequest,
   type SaveProcessedEntityResult,
 } from "./entity/pending-ingestion";
+export { createUploadSaveHandler } from "./entity/upload-save";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 export {
