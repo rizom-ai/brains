@@ -24,11 +24,7 @@ export function OperatorFacts(props: {
     reference && s.referenceRoot,
   );
   return (
-    <dl
-      {...root}
-      className={`operator-key-values ${root.className ?? ""}`}
-      data-facts-presentation={props.presentation}
-    >
+    <dl {...root} data-facts="" data-facts-presentation={props.presentation}>
       {props.items.map((item, index) => (
         <div
           key={`${item.label}:${index}`}

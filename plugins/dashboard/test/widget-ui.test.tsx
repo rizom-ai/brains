@@ -119,7 +119,7 @@ describe("widget UI primitives", () => {
       "Queue &lt;script&gt;alert(&#x27;nope&#x27;)&lt;/script&gt;",
     );
     expect(html).not.toContain("<script>alert('nope')</script>");
-    expect(html).toContain("operator-table");
+    expect(html).toContain("<table");
     expect(html).toContain('href="/studio/entities/bookmark/saved-1"');
     expect(
       normalizeRendererHtml(html, { ignoreImagePreloads: true }),

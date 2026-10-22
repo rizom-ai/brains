@@ -106,7 +106,7 @@ for (const density of ["compact", "comfortable"] as const) {
           }
         />,
       );
-      const columns = doc.querySelector(".declarative-columns");
+      const columns = doc.querySelector("[data-columns]");
       const details = doc.querySelector("details");
       if (!columns || !details) throw new Error("Missing semantic layout");
       expect(window.getComputedStyle(columns).display).toBe("grid");
@@ -129,7 +129,7 @@ for (const density of ["compact", "comfortable"] as const) {
           "break-word",
         );
       for (const element of doc.querySelectorAll(
-        "strong a,.declarative-column:first-child p,small",
+        "strong a,[data-column]:first-child p,small",
       ))
         expect(window.getComputedStyle(element).overflowWrap).toBe("anywhere");
       expect(doc.querySelector("time")?.getAttribute("datetime")).toBe(

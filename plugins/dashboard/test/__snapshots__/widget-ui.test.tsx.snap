@@ -7,11 +7,15 @@ exports[`widget UI primitives renders validated declarative views with host-owne
       "attributes": [
         [
           "class",
-          "declarative-workspace operator-view x2lwn1j x186ixgm xdbnglg x1odjw0f x1cb063g",
+          "x2lwn1j x186ixgm xdbnglg x1odjw0f x1cb063g",
         ],
         [
           "data-control-engine",
           "css",
+        ],
+        [
+          "data-operator-view",
+          "",
         ],
       ],
       "children": [
@@ -74,7 +78,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "attributes": [
             [
               "class",
-              "declarative-blocks xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw x62c7l xugsc6q x1c2rghm xyedrc3 x1tkkb8",
+              "xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw x62c7l xugsc6q x1c2rghm xyedrc3 x1tkkb8",
             ],
             [
               "data-operator-blocks",
@@ -86,7 +90,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
               "attributes": [
                 [
                   "class",
-                  "operator-block operator-block--table xeuugli x1osaytk",
+                  "xeuugli x1osaytk",
                 ],
                 [
                   "data-block",
@@ -102,7 +106,11 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                   "attributes": [
                     [
                       "class",
-                      "declarative-table-scroll operator-table-scroll x193iq5w xeuugli xw2csxc x1lliihq xplwmzv x22zvs4 xfsj286 x1a92eo6 x18d9i69 x1aciil0 xs4y3db x1yy75ev x1yieemc xsjhqdm x5zp4vj x1douzxv x3y8eqj xqwvrdo xosa0jh xvwifah x1rfhg52 x1668a04 x1defwea",
+                      "x193iq5w xeuugli xw2csxc x1lliihq xplwmzv x22zvs4 xfsj286 x1a92eo6 x18d9i69 x1aciil0 xs4y3db x1yy75ev x1yieemc xsjhqdm x5zp4vj x1douzxv x3y8eqj xqwvrdo xosa0jh xvwifah x1rfhg52 x1668a04 x1defwea",
+                    ],
+                    [
+                      "data-table-scroll",
+                      "",
                     ],
                   ],
                   "children": [
@@ -110,7 +118,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                       "attributes": [
                         [
                           "class",
-                          "declarative-table operator-table xh8yej3 x193iq5w x1mwwwfo xgi1xjn xfifm61",
+                          "xh8yej3 x193iq5w x1mwwwfo xgi1xjn xfifm61",
                         ],
                       ],
                       "children": [

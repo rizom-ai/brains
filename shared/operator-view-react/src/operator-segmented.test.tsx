@@ -42,7 +42,7 @@ test("compiled segmented controls preserve native states, hiding and bounded pho
       await window.happyDOM.close();
     }
   }
-  expect(operatorViewStylexCSS).not.toContain(".declarative-tabs");
+  expect(operatorViewStylexCSS).not.toContain("[data-tabs]");
 });
 
 test("CSS renderer tabs retain exact counts and switch only the active panel", async () => {

@@ -44,8 +44,6 @@ export function OperatorCard(props: {
     props.tone === "error" && s.error,
     compact && props.tone === "good" && s.good,
   );
-  // Retain the structural hook for panel styles still being migrated, not card styling.
-  const className = `declarative-card ${root.className ?? ""}`;
   const body = (
     <div
       data-operator-card-body=""
@@ -63,11 +61,7 @@ export function OperatorCard(props: {
     </div>
   );
   return props.presentation === "disclosure" && !props.renderDisclosure ? (
-    <details
-      {...root}
-      className={className}
-      data-tone={props.tone ?? "neutral"}
-    >
+    <details {...root} data-card="" data-tone={props.tone ?? "neutral"}>
       <summary
         {...stylex.props(
           s.summary,
@@ -81,11 +75,7 @@ export function OperatorCard(props: {
       {body}
     </details>
   ) : (
-    <section
-      {...root}
-      className={className}
-      data-tone={props.tone ?? "neutral"}
-    >
+    <section {...root} data-card="" data-tone={props.tone ?? "neutral"}>
       <header
         {...stylex.props(
           s.heading,

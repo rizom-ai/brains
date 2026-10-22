@@ -3634,7 +3634,11 @@ html {
                                   "attributes": [
                                     [
                                       "class",
-                                      "declarative-columns xrvj5dj x7a106z xpr710q xirox3h x1af02g3 xeuugli",
+                                      "xrvj5dj x7a106z xpr710q xirox3h x1af02g3 xeuugli",
+                                    ],
+                                    [
+                                      "data-columns",
+                                      "",
                                     ],
                                     [
                                       "data-columns-presentation",
@@ -3646,7 +3650,11 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "declarative-column xrvj5dj x10ukxgv xnby9oq x57k0db x1af02g3 xeuugli",
+                                          "xrvj5dj x10ukxgv xnby9oq x57k0db x1af02g3 xeuugli",
+                                        ],
+                                        [
+                                          "data-column",
+                                          "primary",
                                         ],
                                       ],
                                       "children": [
@@ -4355,7 +4363,11 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "operator-key-values x27jn57 x1wh94ac x7a106z x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                  "x27jn57 x1wh94ac x7a106z x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                ],
+                                                [
+                                                  "data-facts",
+                                                  "",
                                                 ],
                                                 [
                                                   "data-facts-presentation",
@@ -5258,7 +5270,11 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "declarative-column declarative-aside xmzwrfy x12h1iku x10ukxgv x78zum5 x1dtk984 xdt5ytf x1af02g3 xeuugli x11pl5mh x57k0db",
+                                          "xmzwrfy x12h1iku x10ukxgv x78zum5 x1dtk984 xdt5ytf x1af02g3 xeuugli x11pl5mh x57k0db",
+                                        ],
+                                        [
+                                          "data-column",
+                                          "aside",
                                         ],
                                       ],
                                       "children": [
@@ -5321,7 +5337,11 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "operator-key-values x27jn57 x1wh94ac x7a106z x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                  "x27jn57 x1wh94ac x7a106z x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                ],
+                                                [
+                                                  "data-facts",
+                                                  "",
                                                 ],
                                                 [
                                                   "data-facts-presentation",
