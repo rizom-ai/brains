@@ -1,5 +1,14 @@
 # @brains/style-guide
 
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.597
+  - @brains/utils@0.2.0-alpha.597
+  - @brains/plugins@0.2.0-alpha.597
+
 ## 0.2.0-alpha.596
 
 ### Patch Changes

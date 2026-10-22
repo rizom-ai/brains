@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- [#727](https://github.com/rizom-ai/brains/pull/727) [`552c5fe`](https://github.com/rizom-ai/brains/commit/552c5fed70e2d4af56cd37d575fe3906f1e0924c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keyboard focus rings in Studio and the dashboard sit at one of two distances: 2px outside buttons, links and disclosure summaries, and 2px inside fields, panes and navigation rows. Links, back buttons, summaries and quiet record links drew theirs 3px or 4px out, and Studio's navigation rows 3px in.
+
 ## 0.2.0-alpha.596
 
 ### Patch Changes
