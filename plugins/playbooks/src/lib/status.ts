@@ -4,10 +4,8 @@ import {
   playbookAudienceSchema,
   playbookStateSchema,
   playbookStatusSchema,
-  playbookTransitionSchema,
 } from "../entity";
-import { playbookRunSchema } from "../run-store";
-import { lifecycleConfigSchema } from "./lifecycle-starters";
+import { playbookRunSchema, playbookRunStatusSchema } from "../run-store";
 
 type StrictObjectSchema<Shape extends z.ZodRawShape> = z.ZodObject<
   Shape,
@@ -42,30 +40,54 @@ export const playbookSummarySchema: StrictObjectSchema<{
 
 export type PlaybookSummary = z.output<typeof playbookSummarySchema>;
 
-/** Shared result of status, start, and send-event; full source stays in the engine. */
+/** Another run in scope, named for reference; its record is a status call away. */
+export const playbookRunSummarySchema: StrictObjectSchema<{
+  id: z.ZodString;
+  playbookId: z.ZodString;
+  currentState: z.ZodString;
+  status: typeof playbookRunStatusSchema;
+}> = z
+  .object({
+    id: z.string().min(1),
+    playbookId: z.string().min(1),
+    currentState: z.string().min(1),
+    status: playbookRunStatusSchema,
+  })
+  .strict();
+
+export type PlaybookRunSummary = z.output<typeof playbookRunSummarySchema>;
+
+const eventNamesSchema: z.ZodArray<z.ZodString> = z.array(z.string().min(1));
+
+/**
+ * Shared result of status, start, and send-event; full source stays in the
+ * engine. Each fact appears once: the active run only in `activeRun`, the
+ * state's instructions, Done When, and transitions only in `currentState`.
+ * The event lists name events of `currentState.transitions`, and
+ * `guidance` appears only after an operator action, to carry its source
+ * state. Per-turn rules live in the active-playbook context item.
+ */
 export const playbookStatusResponseSchema: StrictObjectSchema<{
-  runs: z.ZodArray<typeof playbookRunSchema>;
+  otherRuns: z.ZodOptional<z.ZodArray<typeof playbookRunSummarySchema>>;
   activeRun: z.ZodOptional<typeof playbookRunSchema>;
   playbook: z.ZodOptional<typeof playbookSummarySchema>;
   currentState: z.ZodOptional<typeof playbookStateSchema>;
-  validEvents: z.ZodOptional<z.ZodArray<typeof playbookTransitionSchema>>;
-  operatorActions: z.ZodOptional<z.ZodArray<typeof playbookTransitionSchema>>;
-  blockedEvents: z.ZodOptional<z.ZodArray<typeof playbookTransitionSchema>>;
+  validEvents: z.ZodOptional<typeof eventNamesSchema>;
+  operatorActions: z.ZodOptional<typeof eventNamesSchema>;
+  blockedEvents: z.ZodOptional<typeof eventNamesSchema>;
   guidance: z.ZodOptional<z.ZodString>;
   cards: z.ZodOptional<z.ZodArray<typeof ActionsCardSchema>>;
-  lifecycle: z.ZodRecord<z.ZodString, typeof lifecycleConfigSchema>;
 }> = z
   .object({
-    runs: z.array(playbookRunSchema),
+    otherRuns: z.array(playbookRunSummarySchema).optional(),
     activeRun: playbookRunSchema.optional(),
     playbook: playbookSummarySchema.optional(),
     currentState: playbookStateSchema.optional(),
-    validEvents: z.array(playbookTransitionSchema).optional(),
-    operatorActions: z.array(playbookTransitionSchema).optional(),
-    blockedEvents: z.array(playbookTransitionSchema).optional(),
+    validEvents: eventNamesSchema.optional(),
+    operatorActions: eventNamesSchema.optional(),
+    blockedEvents: eventNamesSchema.optional(),
     guidance: z.string().optional(),
     cards: z.array(ActionsCardSchema).optional(),
-    lifecycle: z.record(z.string(), lifecycleConfigSchema),
   })
   .strict();
 

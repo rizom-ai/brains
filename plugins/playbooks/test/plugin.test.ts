@@ -109,13 +109,6 @@ function addPlaybookEntity(
   ]);
 }
 
-const transitionSchema = z
-  .object({
-    event: z.string().min(1),
-    target: z.string().min(1),
-  })
-  .passthrough();
-
 const runSummarySchema = z
   .object({
     id: z.string().min(1),
@@ -158,12 +151,23 @@ const currentStateSchema = z
 
 const playbookToolDataSchema = z
   .object({
-    runs: z.array(runSummarySchema).default([]),
+    otherRuns: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            playbookId: z.string().min(1),
+            currentState: z.string().min(1),
+            status: z.string(),
+          })
+          .strict(),
+      )
+      .default([]),
     activeRun: runSummarySchema,
     currentState: currentStateSchema.optional(),
-    validEvents: z.array(transitionSchema).default([]),
-    operatorActions: z.array(transitionSchema).default([]),
-    blockedEvents: z.array(transitionSchema).default([]),
+    validEvents: z.array(z.string()).default([]),
+    operatorActions: z.array(z.string()).default([]),
+    blockedEvents: z.array(z.string()).default([]),
     guidance: z.string().optional(),
     cards: z
       .array(
@@ -551,7 +555,7 @@ describe("PlaybooksPlugin", () => {
       });
       expectSuccess(response);
       const data = playbookStatusResponseSchema.parse(response.data);
-      expect(data.runs).toEqual([]);
+      expect(data.otherRuns).toBeUndefined();
       expect(data.activeRun).toBeUndefined();
       expect(data.currentState).toBeUndefined();
       expect(data.playbook).toEqual({
@@ -643,7 +647,10 @@ describe("PlaybooksPlugin", () => {
     const completedData = playbookStatusResponseSchema.parse(completed.data);
     expect(completedData.activeRun?.status).toBe("completed");
     expect(completedData.currentState).toEqual(futureState);
-    expect(completedData.guidance).toContain(futureInstructions);
+    expect(completedData.currentState?.instructions).toEqual([
+      futureInstructions,
+    ]);
+    expect(completedData.guidance).toBeUndefined();
     expect(
       await harness
         .getEntityService()
@@ -662,7 +669,7 @@ describe("PlaybooksPlugin", () => {
     expect(data.playbook).toBeUndefined();
     expect(data.activeRun).toBeUndefined();
     expect(data.currentState).toBeUndefined();
-    expect(data.runs).toEqual([]);
+    expect(data.otherRuns).toBeUndefined();
   });
 
   it("routes status, start, and send-event through playbook_manage", async () => {
@@ -680,7 +687,7 @@ describe("PlaybooksPlugin", () => {
     expect(startedData.activeRun.currentState).toBe("welcome");
     const startedSummary = playbookStatusResponseSchema.parse(started.data);
     expect(startedSummary.currentState).toEqual(welcomeState);
-    expect(startedSummary.operatorActions).toEqual(welcomeState.transitions);
+    expect(startedSummary.operatorActions).toEqual(["NEXT", "SKIP"]);
     expect(startedSummary.cards?.[0]?.actions).toEqual([
       expect.objectContaining({ event: "NEXT", fromState: "welcome" }),
       expect.objectContaining({ event: "SKIP", fromState: "welcome" }),
@@ -716,7 +723,7 @@ describe("PlaybooksPlugin", () => {
     );
     const advancedSummary = playbookStatusResponseSchema.parse(advanced.data);
     expect(advancedSummary.currentState).toEqual(seedState);
-    expect(advancedSummary.validEvents).toEqual(seedState.transitions);
+    expect(advancedSummary.validEvents).toEqual(["NEXT"]);
     expect(advancedSummary.cards).toBeUndefined();
     expect(advancedSummary.activeRun?.status).toBe("active");
     expect(advancedSummary.playbook?.version).toBe(
@@ -727,6 +734,99 @@ describe("PlaybooksPlugin", () => {
       expect(response.data).not.toHaveProperty("body");
       expect(JSON.stringify(response.data)).not.toContain("Teach by doing.");
     }
+  });
+
+  it("states each status fact once", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({
+        lifecycle: {
+          onboarding: {
+            trigger: "first-admin-web-chat",
+            playbookId: "rover-onboarding",
+            starterText: "Configured lifecycle starter text",
+            starterPrompt: "Start the Rover onboarding playbook.",
+          },
+        },
+      }),
+    );
+    addPlaybookEntity(harness);
+    addPlaybookEntity(harness, playbookBody, "second-playbook", {
+      title: "Second Playbook",
+    });
+    const conversationId = "status-facts-once";
+    const runId = await startRun(harness, conversationId);
+    const secondRunId = await startRun(
+      harness,
+      conversationId,
+      "second-playbook",
+    );
+
+    const status = await harness.executeTool(
+      "playbook_manage",
+      { action: "status", playbookId: "rover-onboarding" },
+      { conversationId },
+    );
+    expectSuccess(status);
+    const data = playbookStatusResponseSchema.parse(status.data);
+    const serialized = JSON.stringify(data);
+    const occurrences = (text: string): number =>
+      serialized.split(JSON.stringify(text).slice(1, -1)).length - 1;
+
+    expect(Object.keys(data).sort()).toEqual([
+      "activeRun",
+      "cards",
+      "currentState",
+      "operatorActions",
+      "otherRuns",
+      "playbook",
+    ]);
+    expect(data.activeRun?.id).toBe(runId);
+    expect(data.otherRuns).toEqual([
+      {
+        id: secondRunId,
+        playbookId: "second-playbook",
+        currentState: "welcome",
+        status: "active",
+      },
+    ]);
+    expect(data.currentState).toEqual(welcomeState);
+    for (const instruction of welcomeState.instructions) {
+      expect(occurrences(instruction)).toBe(1);
+    }
+    expect(occurrences(welcomeState.prompt ?? "")).toBe(1);
+    expect(data.operatorActions).toEqual(["NEXT", "SKIP"]);
+    expect(serialized).not.toContain("Configured lifecycle starter text");
+  });
+
+  it("names the selected operator action once after it advances the run", async () => {
+    const harness = await installHarness();
+    const conversationId = "operator-action-guidance";
+    await startRun(harness, conversationId);
+
+    const advanced = await harness.executeTool(
+      "playbook_manage",
+      { action: "send-event", event: "NEXT", fromState: "welcome" },
+      { conversationId },
+    );
+    expectSuccess(advanced);
+    const data = playbookStatusResponseSchema.parse(advanced.data);
+    expect(data.currentState).toEqual(seedState);
+    expect(data.validEvents).toEqual(["NEXT"]);
+    expect(data.guidance).toContain("Selected operator action: Keep going");
+    expect(data.guidance).toContain("- Explain the playbook.");
+    expect(data.guidance).not.toContain("Save a first note.");
+    expect(JSON.stringify(data).split("Save a first note.").length - 1).toBe(1);
+
+    const refreshed = await harness.executeTool(
+      "playbook_manage",
+      { action: "status" },
+      { conversationId },
+    );
+    expectSuccess(refreshed);
+    expect(
+      playbookStatusResponseSchema.parse(refreshed.data).guidance,
+    ).toBeUndefined();
   });
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
@@ -837,7 +937,9 @@ describe("PlaybooksPlugin", () => {
       { conversationId },
     );
     expectSuccess(status);
-    expect(parsePlaybookToolData(status.data).runs).toHaveLength(1);
+    const statusData = parsePlaybookToolData(status.data);
+    expect(runIds.has(statusData.activeRun.id)).toBe(true);
+    expect(statusData.otherRuns).toEqual([]);
   });
 
   it("returns lifecycle starters for active admin web-chat playbooks", async () => {
@@ -1317,7 +1419,7 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(status);
     const statusData = parsePlaybookToolData(status.data);
     expect(statusData.activeRun.id).toBe(secondRun.id);
-    expect(statusData.runs).toHaveLength(1);
+    expect(statusData.otherRuns).toEqual([]);
   });
 
   it("tracks playbook transitions and completion", async () => {
@@ -1338,11 +1440,8 @@ describe("PlaybooksPlugin", () => {
     const startedData = parsePlaybookToolData(started.data);
     const runId = startedData.activeRun.id;
     expect(startedData.activeRun.currentState).toBe("welcome");
-    expect(startedData.validEvents.map((event) => event.event)).toEqual([]);
-    expect(startedData.operatorActions.map((event) => event.event)).toEqual([
-      "NEXT",
-      "SKIP",
-    ]);
+    expect(startedData.validEvents).toEqual([]);
+    expect(startedData.operatorActions).toEqual(["NEXT", "SKIP"]);
 
     const transitioned = await harness.executeTool("playbook_manage", {
       action: "send-event",
@@ -1491,11 +1590,18 @@ describe("PlaybooksPlugin", () => {
     });
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
-    expect(data.validEvents.map((event) => event.event)).toEqual(["SKIP"]);
-    expect(data.operatorActions.map((event) => event.event)).toEqual([]);
-    expect(data.blockedEvents.map((event) => event.event)).toEqual(["NEXT"]);
-    expect(data.guidance).toContain("Current state: identity");
-    expect(data.guidance).toContain("No matching evidence.");
+    expect(data.validEvents).toEqual(["SKIP"]);
+    expect(data.operatorActions).toEqual([]);
+    expect(data.blockedEvents).toEqual(["NEXT"]);
+    expect(data.currentState?.id).toBe("identity");
+    expect(data.activeRun.gateVerdicts).toEqual([
+      expect.objectContaining({
+        stateId: "identity",
+        met: false,
+        reason: "No matching evidence.",
+      }),
+    ]);
+    expect(data.guidance).toBeUndefined();
   });
 
   it("uses context judge for production goal checks when no stub is injected", async () => {
@@ -1609,9 +1715,9 @@ describe("PlaybooksPlugin", () => {
       runId,
     });
     expectSuccess(status);
-    expect(parsePlaybookToolData(status.data).guidance).toContain(
-      "judge unavailable",
-    );
+    expect(
+      parsePlaybookToolData(status.data).activeRun.gateVerdicts[0]?.reason,
+    ).toContain("judge unavailable");
   });
 
   it("includes entity details in runtime evidence for generic goal checks", async () => {
