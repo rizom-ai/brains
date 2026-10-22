@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.596
+
+### Patch Changes
+
+- [#725](https://github.com/rizom-ai/brains/pull/725) [`859a765`](https://github.com/rizom-ai/brains/commit/859a765df620909f3bee9d094c06e48ef7120a24) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `playbook_manage` status, start, and send-event results state each fact once, so a status refresh on the onboarding playbook carries about 3.4–4.6 KB instead of 8–10.6 KB. The active run appears only in `activeRun`; `runs` is replaced by `otherRuns`, a summary (id, playbook, current state, status) of the other runs in scope, omitted when there are none. The state's instructions, Done When, and transitions appear only in `currentState`, and `validEvents`, `operatorActions`, and `blockedEvents` now list event names of those transitions instead of repeating them. The per-state `guidance` text and the configured `lifecycle` map are gone: the active-playbook context of each turn carries the state, its goal status, and the event rules, the goal verdict stays in `activeRun.gateVerdicts`, and the registered instructions list the configured lifecycles. `guidance` now appears only after an operator action, naming that action and its source state. The unread XState run snapshot is no longer returned.
+
 ## 0.2.0-alpha.595
 
 ### Patch Changes
