@@ -3,7 +3,7 @@ import { z } from "@brains/utils/zod";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
 import { UrlFetcher } from "./url-fetcher";
-import type { LinkSource, LinkStatus } from "../schemas/link";
+import type { LinkFrontmatter, LinkSource, LinkStatus } from "../schemas/link";
 import { readLinkStatus } from "../schemas/link";
 import { linkExtractionSchema } from "../templates/extraction-template";
 
@@ -38,6 +38,28 @@ export const linkCaptureOptionsSchema: z.ZodType<LinkCaptureOptions> = z.object(
     metadata: linkCaptureOptionsMetadataSchema.optional(),
   },
 );
+
+export type LinkSummary = Pick<
+  LinkFrontmatter,
+  "title" | "url" | "description" | "capturedAt"
+> & {
+  id: string;
+  domain: string;
+};
+
+/**
+ * Map a link's id and parsed frontmatter to its summary shape
+ */
+function toLinkSummary(id: string, frontmatter: LinkFrontmatter): LinkSummary {
+  return {
+    id,
+    title: frontmatter.title,
+    url: frontmatter.url,
+    ...(frontmatter.description && { description: frontmatter.description }),
+    domain: new URL(frontmatter.url).hostname,
+    capturedAt: frontmatter.capturedAt,
+  };
+}
 
 export interface LinkServiceOptions {
   /** Jina Reader API key for higher rate limits */
@@ -246,41 +268,8 @@ export class LinkService {
   /**
    * List captured links
    */
-  async listLinks(limit: number = 10): Promise<
-    Array<{
-      id: string;
-      title: string;
-      url: string;
-      description?: string;
-      domain: string;
-      capturedAt: string;
-    }>
-  > {
-    const results = await this.context.entityService.search({
-      query: "",
-      options: {
-        types: ["link"],
-        limit,
-        sortBy: "created",
-        sortDirection: "desc",
-      },
-    });
-
-    return results.map((result) => {
-      const { frontmatter } = this.linkAdapter.parseLinkContent(
-        result.entity.content,
-      );
-      return {
-        id: result.entity.id,
-        title: frontmatter.title,
-        url: frontmatter.url,
-        ...(frontmatter.description && {
-          description: frontmatter.description,
-        }),
-        domain: new URL(frontmatter.url).hostname,
-        capturedAt: frontmatter.capturedAt,
-      };
-    });
+  async listLinks(limit: number = 10): Promise<LinkSummary[]> {
+    return this.searchLinks("", limit);
   }
 
   /**
@@ -289,16 +278,7 @@ export class LinkService {
   async searchLinks(
     query?: string,
     limit: number = 20,
-  ): Promise<
-    Array<{
-      id: string;
-      title: string;
-      url: string;
-      description?: string;
-      domain: string;
-      capturedAt: string;
-    }>
-  > {
+  ): Promise<LinkSummary[]> {
     const searchQuery = query ?? "";
 
     const results = await this.context.entityService.search({
@@ -311,36 +291,20 @@ export class LinkService {
       },
     });
 
-    return results.map((result) => {
-      const { frontmatter } = this.linkAdapter.parseLinkContent(
-        result.entity.content,
-      );
-      return {
-        id: result.entity.id,
-        title: frontmatter.title,
-        url: frontmatter.url,
-        ...(frontmatter.description && {
-          description: frontmatter.description,
-        }),
-        domain: new URL(frontmatter.url).hostname,
-        capturedAt: frontmatter.capturedAt,
-      };
-    });
+    return results.map((result) =>
+      toLinkSummary(
+        result.entity.id,
+        this.linkAdapter.parseLinkContent(result.entity.content).frontmatter,
+      ),
+    );
   }
 
   /**
    * Get a specific link by ID
    */
-  async getLink(linkId: string): Promise<{
-    id: string;
-    title: string;
-    url: string;
-    description?: string;
-    summary?: string;
-    domain: string;
-    capturedAt: string;
-    status: LinkStatus;
-  } | null> {
+  async getLink(
+    linkId: string,
+  ): Promise<(LinkSummary & { summary?: string; status: LinkStatus }) | null> {
     const entity = await this.context.entityService.getEntity({
       entityType: "link",
       id: linkId,
@@ -353,13 +317,8 @@ export class LinkService {
       entity.content,
     );
     return {
-      id: entity.id,
-      title: frontmatter.title,
-      url: frontmatter.url,
-      ...(frontmatter.description && { description: frontmatter.description }),
+      ...toLinkSummary(entity.id, frontmatter),
       ...(summary && { summary }),
-      domain: new URL(frontmatter.url).hostname,
-      capturedAt: frontmatter.capturedAt,
       status: readLinkStatus(entity.metadata),
     };
   }
