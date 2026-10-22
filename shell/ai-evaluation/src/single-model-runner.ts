@@ -2,10 +2,8 @@ import type { AppConfig } from "@brains/app";
 
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
-import { RemoteAgentService } from "./remote-agent-service";
-import { MCPProtocolAgentService } from "./mcp-protocol-agent-service";
-import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
-import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
+import { prepareEvalEnvironment } from "./eval-environment";
+import { runEvalSession } from "./eval-session";
 
 export interface SingleModelRunOptions {
   config: AppConfig;
@@ -38,64 +36,19 @@ export async function runSingleModelEvaluation(
   });
   if (options.cloneData) console.log("Cloned data for eval");
 
-  const hasPrebuiltDatabase = hasPrebuiltEvalDatabase(evalDbBase);
-  const app = await bootEvalApp({
-    evalDbBase,
-    config: options.config,
-    evalHandlerRegistry: options.evalHandlerRegistry,
-  });
-
-  const shell = app.getShell();
-  if (!hasPrebuiltDatabase && !options.remoteUrl) {
-    // Without a prebuilt database the boot's initial sync is still ingesting
-    // seed content; settle the brain instead of racing the ingestion jobs.
-    await waitForJobsToDrain(shell.getJobQueueService());
-  }
-  const aiService = shell.getAIService();
-  let mcpAgentService: MCPProtocolAgentService | undefined;
-
-  try {
-    mcpAgentService = options.mcpBasic
-      ? await MCPProtocolAgentService.connect(shell.getMCPService())
-      : undefined;
-    const agentService = options.remoteUrl
-      ? RemoteAgentService.createFresh({
-          baseUrl: options.remoteUrl,
-          authToken: options.authToken,
-        })
-      : (mcpAgentService ?? shell.getAgentService());
-
+  await runEvalSession({ ...options, evalDbBase }, async (runOptions) => {
     if (options.remoteUrl) {
       console.log(`\nConnecting to remote brain: ${options.remoteUrl}`);
-    } else if (mcpAgentService) {
+    } else if (options.mcpBasic) {
       console.log("\nEvaluating through basic MCP chat/confirm");
     }
 
     await options.runEvaluations({
-      agentService,
-      aiService,
-      ...(!options.remoteUrl
-        ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
-        : {}),
-      testCasesDir: options.testCasesDirs,
-      skipLLMJudge: options.skipLLMJudge,
-      verbose: options.verbose,
-      parallel: options.parallel,
-      maxParallel: options.maxParallel,
-      ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
-      ...(options.tags && { tags: options.tags }),
-      ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
-      ...(options.testType && { testType: options.testType }),
+      ...runOptions,
       ...(options.compareAgainst !== undefined && {
         compareAgainst: options.compareAgainst,
       }),
       ...(options.saveBaseline && { saveBaseline: options.saveBaseline }),
     });
-    if (!options.remoteUrl) {
-      await waitForJobsToDrain(shell.getJobQueueService());
-    }
-  } finally {
-    await mcpAgentService?.close();
-    await shell.shutdown();
-  }
+  });
 }

@@ -144,14 +144,8 @@ export interface TrackInboxItemDeps {
   now?: () => Date;
 }
 
-export interface TrackInboxItemRequest {
+export interface TrackInboxItemRequest extends CreateBoardCardRequest {
   sourceRef: ActionItemSourceRef;
-  title: string;
-  text: string;
-  /** The member who should do it. */
-  assignee?: ActionItemAssigneeMember | undefined;
-  actor: ActorRef;
-  actorName?: string | undefined;
 }
 
 export type TrackInboxItemResult =
@@ -193,37 +187,12 @@ export async function trackInboxItem(
   });
   if (existing) return { status: "already-tracked", id };
 
-  const assignee = request.assignee;
-  const metadata: ActionItemMetadata = {
-    origin: "inbox",
-    sourceRef: request.sourceRef,
-    capturedAt: (deps.now?.() ?? new Date()).toISOString(),
-    status: "open",
-    ...(assignee
-      ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
-      : {}),
-    requestedBy: [
-      {
-        ...(request.actorName ? { name: request.actorName } : {}),
-        id: actorRefKey(request.actor),
-      },
-    ],
-  };
-  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
-  await deps.entityService.createEntity({
-    entity: {
-      id,
-      entityType: ACTION_ITEM_ENTITY_TYPE,
-      visibility: deps.visibility,
-      content: inboxItemAdapter.composeContent(
-        `Action item: ${title}`,
-        request.text.trim() || title,
-        metadata,
-      ),
-      metadata,
-    },
-    options: { eventContext: { actor: request.actor } },
-  });
+  await createOpenCard(
+    deps,
+    id,
+    { origin: "inbox", sourceRef: request.sourceRef },
+    request,
+  );
   return { status: "tracked", id };
 }
 
@@ -241,18 +210,29 @@ export interface CreateBoardCardResult {
   id: string;
 }
 
-/** Add an open card on the board by hand, naming who added it. */
-export async function createBoardCard(
-  deps: Omit<TrackInboxItemDeps, "entityService"> & {
-    entityService: Pick<EntityPluginContext["entityService"], "createEntity">;
-  },
+type CreateCardDeps = Omit<TrackInboxItemDeps, "entityService"> & {
+  entityService: Pick<EntityPluginContext["entityService"], "createEntity">;
+};
+
+/** A title on one line, short enough to head a card. */
+function cardTitle(title: string): string {
+  return truncateText(title.replace(/\s+/g, " ").trim(), 80);
+}
+
+/**
+ * Write an open card naming who asked for it and, when given, who should do
+ * it. Where the card came from leads its metadata.
+ */
+async function createOpenCard(
+  deps: CreateCardDeps,
+  id: string,
+  origin: Pick<ActionItemMetadata, "origin" | "sourceRef">,
   request: CreateBoardCardRequest,
-): Promise<CreateBoardCardResult> {
-  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
-  const id = boardCardId(title);
+): Promise<void> {
+  const title = cardTitle(request.title);
   const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
-    origin: "board",
+    ...origin,
     capturedAt: (deps.now?.() ?? new Date()).toISOString(),
     status: "open",
     ...(assignee
@@ -279,5 +259,14 @@ export async function createBoardCard(
     },
     options: { eventContext: { actor: request.actor } },
   });
+}
+
+/** Add an open card on the board by hand, naming who added it. */
+export async function createBoardCard(
+  deps: CreateCardDeps,
+  request: CreateBoardCardRequest,
+): Promise<CreateBoardCardResult> {
+  const id = boardCardId(cardTitle(request.title));
+  await createOpenCard(deps, id, { origin: "board" }, request);
   return { status: "created", id };
 }

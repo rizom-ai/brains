@@ -1,6 +1,6 @@
 {
   "name": "@brains/onboarding",
-  "version": "0.2.0-alpha.597",
+  "version": "0.2.0-alpha.598",
   "description": "Canonical onboarding playbook bundle and activation plugin",
   "dependencies": {
     "@brains/contracts": "workspace:*",

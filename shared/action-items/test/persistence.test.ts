@@ -424,3 +424,104 @@ describe("creating a card on the board", () => {
     );
   });
 });
+
+describe("the card an Inbox item and the board both write", () => {
+  /** The real service, recording what each writer hands it. */
+  type CreateInput = Parameters<EntityService["createEntity"]>[0];
+
+  function recording(service: EntityService): {
+    entityService: Pick<EntityService, "getEntity" | "createEntity">;
+    created: CreateInput[];
+  } {
+    const created: CreateInput[] = [];
+    return {
+      created,
+      entityService: {
+        getEntity: service.getEntity.bind(service),
+        createEntity: (input): Promise<EntityMutationResult> => {
+          created.push(input);
+          return service.createEntity(input);
+        },
+      },
+    };
+  }
+
+  it("collapses and truncates an Inbox title and names an unnamed tracker by id", async () => {
+    const { entityService, created } = recording(await brain());
+
+    await trackInboxItem(
+      { entityService, now: at, visibility: "shared" },
+      {
+        sourceRef: {
+          sourceId: "mail",
+          entityType: "mail-item",
+          entityId: "m-1",
+        },
+        title:
+          "  Reply\n about   the\tnotes from the spring field trip, the venue walk-through and the tasting ",
+        text: "  Grace asks for the notes.  ",
+        actor: niels,
+      },
+    );
+
+    expect(created).toEqual([
+      {
+        entity: {
+          id: "inbox-mail-m-1",
+          entityType: "action-item",
+          visibility: "shared",
+          content:
+            "---\norigin: inbox\nsourceRef:\n  sourceId: mail\n  entityType: mail-item\n  entityId: m-1\ncapturedAt: '2026-10-15T08:02:00.000Z'\nstatus: open\nrequestedBy:\n  - id: 'user:u-niels'\n---\n# Action item: Reply about the notes from the spring field trip, the venue walk-through and...\n\nGrace asks for the notes.\n",
+          metadata: {
+            origin: "inbox",
+            sourceRef: {
+              sourceId: "mail",
+              entityType: "mail-item",
+              entityId: "m-1",
+            },
+            capturedAt: "2026-10-15T08:02:00.000Z",
+            status: "open",
+            requestedBy: [{ id: "user:u-niels" }],
+          },
+        },
+        options: { eventContext: { actor: niels } },
+      },
+    ]);
+  });
+
+  it("writes a board card in the same shape, without a source", async () => {
+    const { entityService, created } = recording(await brain());
+
+    const { id } = await createBoardCard(
+      { entityService, now: at, visibility: "shared" },
+      {
+        title: "  Book\n the   venue ",
+        text: "",
+        assignee: { name: "Alex Morgan", id: "user:u-alex" },
+        actor: niels,
+        actorName: "Niels Ward",
+      },
+    );
+
+    expect(id).toMatch(/^book-the-venue-[0-9a-z]{6}$/);
+    expect(created).toEqual([
+      {
+        entity: {
+          id,
+          entityType: "action-item",
+          visibility: "shared",
+          content:
+            "---\norigin: board\ncapturedAt: '2026-10-15T08:02:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nrequestedBy:\n  - name: Niels Ward\n    id: 'user:u-niels'\n---\n# Action item: Book the venue\n\nBook the venue\n",
+          metadata: {
+            origin: "board",
+            capturedAt: "2026-10-15T08:02:00.000Z",
+            status: "open",
+            assignedTo: [{ name: "Alex Morgan", id: "user:u-alex" }],
+            requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
+          },
+        },
+        options: { eventContext: { actor: niels } },
+      },
+    ]);
+  });
+});

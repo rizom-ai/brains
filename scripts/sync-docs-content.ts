@@ -12,13 +12,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
-interface ManifestEntry {
-  id: string;
-  title: string;
-  section: string;
-  order: number;
-  source: string;
-}
+import { type DocsManifestEntry, parseDocsManifest } from "./docs-manifest";
 
 interface Args {
   outDir?: string;
@@ -52,88 +46,6 @@ function parseArgs(argv: string[]): Args {
   }
 
   return args;
-}
-
-function unquote(value: string): string {
-  const trimmed = value.trim();
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
-}
-
-function assignField(
-  entry: Partial<ManifestEntry>,
-  key: string,
-  rawValue: string,
-  lineNumber: number,
-): void {
-  const value = unquote(rawValue);
-  switch (key) {
-    case "id":
-    case "title":
-    case "section":
-    case "source":
-      entry[key] = value;
-      return;
-    case "order": {
-      const parsed = Number(value);
-      if (!Number.isInteger(parsed)) {
-        throw new Error(`Invalid order at line ${lineNumber}: ${rawValue}`);
-      }
-      entry.order = parsed;
-      return;
-    }
-    default:
-      throw new Error(`Unknown manifest field at line ${lineNumber}: ${key}`);
-  }
-}
-
-function parseManifest(content: string): ManifestEntry[] {
-  const entries: Array<Partial<ManifestEntry>> = [];
-  let current: Partial<ManifestEntry> | undefined;
-
-  for (const [index, rawLine] of content.split(/\r?\n/).entries()) {
-    const line = rawLine.replace(/\s+#.*$/, "");
-    if (!line.trim()) continue;
-    if (line.trim() === "docs:") continue;
-
-    const itemMatch = line.match(/^\s*-\s+([a-zA-Z]+):\s*(.+)$/);
-    if (itemMatch) {
-      current = {};
-      entries.push(current);
-      assignField(current, itemMatch[1] ?? "", itemMatch[2] ?? "", index + 1);
-      continue;
-    }
-
-    const fieldMatch = line.match(/^\s{4}([a-zA-Z]+):\s*(.+)$/);
-    if (fieldMatch && current) {
-      assignField(current, fieldMatch[1] ?? "", fieldMatch[2] ?? "", index + 1);
-      continue;
-    }
-
-    throw new Error(
-      `Unsupported manifest syntax at line ${index + 1}: ${rawLine}`,
-    );
-  }
-
-  return entries.map((entry, index) => {
-    for (const field of [
-      "id",
-      "title",
-      "section",
-      "order",
-      "source",
-    ] as const) {
-      if (entry[field] === undefined || entry[field] === "") {
-        throw new Error(`Manifest entry ${index + 1} missing ${field}`);
-      }
-    }
-    return entry as ManifestEntry;
-  });
 }
 
 function normalizeRepoPath(value: string): string {
@@ -252,7 +164,7 @@ function quoteYaml(value: string): string {
 }
 
 function buildDoc(
-  entry: ManifestEntry,
+  entry: DocsManifestEntry,
   sourceToId: Map<string, string>,
 ): string {
   const sourceFile = path.join(root, entry.source);
@@ -289,7 +201,7 @@ function listMarkdownFiles(dir: string): string[] {
 }
 
 function syncDocs(
-  entries: ManifestEntry[],
+  entries: DocsManifestEntry[],
   outDir: string,
   check: boolean,
 ): void {
@@ -353,7 +265,7 @@ try {
     throw new Error("Missing docs/docs-manifest.yaml");
   }
 
-  const entries = parseManifest(readFileSync(manifestPath, "utf8"));
+  const entries = parseDocsManifest(readFileSync(manifestPath, "utf8"));
   syncDocs(entries, args.outDir, args.check);
 } catch (error) {
   console.error(getErrorMessage(error));

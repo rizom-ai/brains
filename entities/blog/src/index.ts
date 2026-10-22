@@ -16,7 +16,11 @@ export {
   buildBlogAtprotoPostRecord,
   createBlogAtprotoProjection,
 } from "./atproto-projection";
-export { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
+export {
+  BlogListTemplate,
+  blogPostToContentItem,
+  type BlogListProps,
+} from "./templates/blog-list";
 export { BlogPostTemplate, type BlogPostProps } from "./templates/blog-post";
 export {
   blogViewSchema,
