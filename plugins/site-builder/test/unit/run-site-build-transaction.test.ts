@@ -226,6 +226,49 @@ describe("runSiteBuild transactional output", () => {
     ).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("publishes unchanged inputs again when asked to", async () => {
+    const factory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async (context: SiteBuildContext) => {
+        await writeStaticAssets(context, options.outputDir);
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: { title: "Retried Site", description: "Retry fixture" },
+      siteUrl: "https://retried.example",
+      layouts: { default: TestLayout },
+    };
+    const build = (
+      publishUnchanged: boolean,
+    ): ReturnType<typeof runSiteBuild> =>
+      runSiteBuild({
+        buildOptions: { ...buildOptions, publishUnchanged },
+        progress: undefined,
+        pipelineContext: createPipelineContext(),
+        staticSiteBuilderFactory: factory,
+        signal: new AbortController().signal,
+      });
+
+    await build(false);
+    const before = await fs.readlink(outputDir);
+    const republished = await build(true);
+
+    expect(republished.success).toBe(true);
+    expect(republished.skipped).not.toBe(true);
+    expect(await fs.readlink(outputDir)).not.toBe(before);
+  });
+
   it("renders again after a restart, which may bring new renderer code", async () => {
     let renderCount = 0;
     const factory: StaticSiteBuilderFactory = (options) => ({

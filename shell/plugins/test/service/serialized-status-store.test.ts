@@ -1,4 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdtemp, rm } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
+import { RuntimeStateService } from "@brains/runtime-state";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { waitUntil } from "@brains/test-utils";
 import { deferred } from "@brains/utils/deferred";
 import { z } from "@brains/utils/zod";
@@ -56,9 +61,24 @@ function createMemoryNamespace(): MemoryNamespace {
         writes += 1;
         records.set(`${options.namespace}:${key}`, options.schema.parse(value));
       },
-      setIfNotExists: async (): Promise<boolean> => false,
-      compareAndSet: async (): Promise<boolean> => {
-        throw new Error("Unexpected compare-and-set in status fixture");
+      setIfNotExists: async (key, value): Promise<boolean> => {
+        const id = `${options.namespace}:${key}`;
+        if (records.has(id)) return false;
+        writes += 1;
+        records.set(id, options.schema.parse(value));
+        return true;
+      },
+      compareAndSet: async (key, expected, value): Promise<boolean> => {
+        const id = `${options.namespace}:${key}`;
+        if (
+          JSON.stringify(records.get(id)) !==
+          JSON.stringify(options.schema.parse(expected))
+        ) {
+          return false;
+        }
+        writes += 1;
+        records.set(id, options.schema.parse(value));
+        return true;
       },
       delete: async (key): Promise<boolean> =>
         records.delete(`${options.namespace}:${key}`),
@@ -117,19 +137,22 @@ describe("SerializedStatusStore", () => {
     expect(result).toBe("total=5");
   });
 
-  it("reads the backing store only once across many mutations", async () => {
+  it("reads the stored state for every mutation and snapshot", async () => {
     const memory = createMemoryNamespace();
     const store = createStore(memory);
 
     await store.mutate((state) => {
       state.total += 1;
     });
+    memory.seed("current", { total: 10, notes: ["written elsewhere"] });
     await store.mutate((state) => {
       state.total += 1;
     });
-    await store.snapshot();
 
-    expect(memory.reads()).toBe(1);
+    expect(await store.snapshot()).toEqual({
+      total: 11,
+      notes: ["written elsewhere"],
+    });
     expect(memory.writes()).toBe(2);
   });
 
@@ -284,5 +307,90 @@ describe("SerializedStatusStore", () => {
 
     expect(memory.peek("status")).toEqual({ total: 4, notes: [] });
     expect(memory.peek("current")).toBeUndefined();
+  });
+});
+
+/**
+ * A brain's web and worker processes each hold a store over the same runtime
+ * state; a write from one must never erase what the other wrote.
+ */
+describe("SerializedStatusStore across processes", () => {
+  let tempDir: string;
+  let url: string;
+  const services: RuntimeStateService[] = [];
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "serialized-status-store-"));
+    url = `file:${join(tempDir, "runtime-state.db")}`;
+    await migrateRuntimeState({ url });
+  });
+
+  afterEach(async () => {
+    for (const service of services.splice(0)) service.close();
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  function processStore(): SerializedStatusStore<Counter> {
+    const service = RuntimeStateService.createFresh({ url });
+    services.push(service);
+    return new SerializedStatusStore<Counter>({
+      runtimeState: service,
+      namespace: NAMESPACE,
+      schema: counterSchema,
+      createEmpty,
+    });
+  }
+
+  it("keeps each process's update when they write in turn", async () => {
+    const web = processStore();
+    const worker = processStore();
+
+    await web.mutate((state) => {
+      state.notes.push("web");
+    });
+    await worker.mutate((state) => {
+      state.notes.push("worker");
+    });
+    await web.mutate((state) => {
+      state.total += 1;
+    });
+
+    expect(await processStore().snapshot()).toEqual({
+      total: 1,
+      notes: ["web", "worker"],
+    });
+  });
+
+  it("reapplies a mutation another process overtook, keeping both", async () => {
+    const web = processStore();
+    const worker = processStore();
+    const webHasRead = deferred();
+    const workerHasWritten = deferred();
+
+    const webWrite = web.mutate(async (state) => {
+      webHasRead.resolve();
+      await workerHasWritten.promise;
+      state.notes.push("web");
+    });
+    await webHasRead.promise;
+    await worker.mutate((state) => {
+      state.notes.push("worker");
+    });
+    workerHasWritten.resolve();
+    await webWrite;
+
+    expect((await processStore().snapshot()).notes).toEqual(["worker", "web"]);
+  });
+
+  it("shows another process's write in a snapshot", async () => {
+    const web = processStore();
+    const worker = processStore();
+    await web.snapshot();
+
+    await worker.mutate((state) => {
+      state.total = 4;
+    });
+
+    expect((await web.snapshot()).total).toBe(4);
   });
 });

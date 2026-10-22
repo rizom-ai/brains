@@ -180,6 +180,7 @@ describe("SiteBuildJobHandler", () => {
     // rather than each method. Only markCancelled is asserted; the rest are
     // present so the recorder is a whole one, checked rather than asserted.
     const statusService: BuildStatusRecorder = {
+      hasUnresolvedFailure: mock(async () => false),
       markBuilding: mock(async () => undefined),
       markSuccess: mock(async () => undefined),
       markSkipped: mock(async () => undefined),
@@ -329,6 +330,7 @@ describe("SiteBuildJobHandler", () => {
     const markSuccess = mock(async () => undefined);
     const markSkipped = mock(async () => undefined);
     const statusService: BuildStatusRecorder = {
+      hasUnresolvedFailure: mock(async () => false),
       markBuilding: mock(async () => undefined),
       markSuccess,
       markSkipped,
@@ -377,8 +379,56 @@ describe("SiteBuildJobHandler", () => {
     ).toBe(false);
   });
 
+  for (const lastBuildFailed of [true, false]) {
+    it(`publishes unchanged inputs again only after a failed build (failed=${lastBuildFailed})`, async () => {
+      const statusService: BuildStatusRecorder = {
+        hasUnresolvedFailure: mock(async () => lastBuildFailed),
+        markBuilding: mock(async () => undefined),
+        markSuccess: mock(async () => undefined),
+        markSkipped: mock(async () => undefined),
+        markFailure: mock(async () => undefined),
+        markCancelled: mock(async () => undefined),
+      };
+      const build = mock(async () => ({
+        success: true,
+        outputDir: "/tmp/output",
+        filesGenerated: 10,
+        routesBuilt: 10,
+      }));
+      const retryHandler = new SiteBuildJobHandler(
+        createSilentLogger("test"),
+        createMockMessageSender().sendMessage,
+        {
+          siteBuilder: { build },
+          layouts: {},
+          defaultSiteConfig: {
+            represents: "anchor",
+            title: "Test Site",
+            description: "Test Description",
+          },
+          sharedImagesDir: "./dist/images",
+          statusService,
+        },
+      );
+      const progressReporter = CallbackProgressReporter.from(async () => {});
+      if (!progressReporter) throw new Error("Expected progress reporter");
+
+      await retryHandler.process(
+        { outputDir: "/tmp/output", environment: "preview" },
+        "job-after",
+        progressReporter,
+      );
+
+      expect(build).toHaveBeenCalledWith(
+        expect.objectContaining({ publishUnchanged: lastBuildFailed }),
+        expect.anything(),
+      );
+    });
+  }
+
   it("does not fail the build when a status write fails", async () => {
     const statusService: BuildStatusRecorder = {
+      hasUnresolvedFailure: mock(async () => false),
       markBuilding: mock(async () => undefined),
       markSuccess: mock(async () => {
         throw new Error("runtime-state write failed");
