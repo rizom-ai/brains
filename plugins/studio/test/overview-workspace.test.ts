@@ -8,6 +8,9 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   type DashboardWidgetProviderContext,
+  type RuntimeStudioOperatorCardBlock,
+  type RuntimeStudioOperatorColumnsBlock,
+  type RuntimeStudioWorkspaceData,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
   type StudioWorkspaceActor,
@@ -20,6 +23,7 @@ import {
 } from "@brains/plugins/test";
 
 import { afterEach, describe, expect, it } from "bun:test";
+import { isRecord } from "@brains/utils/is-record";
 import { studioPlugin, type StudioPlugin } from "../src";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
@@ -55,7 +59,6 @@ it("combines an empty attention/activity state without hiding standing runtime i
     },
   });
   expect(JSON.stringify(empty)).not.toContain('"id":"overview-attention"');
-  expect(JSON.stringify(empty)).not.toContain('"id":"overview-activity"');
   registry.register(contribution());
   const attentionWithoutActivity = await workspace.dataProvider(actor, {});
   expect(attentionWithoutActivity).toMatchObject({
@@ -63,21 +66,21 @@ it("combines an empty attention/activity state without hiding standing runtime i
       blocks: [
         {
           type: "columns",
-          aside: [
+          primary: [
+            { id: "overview-attention" },
             {
               id: "overview-activity",
-              label: "Recent activity",
+              label: "What happened",
               blocks: [
                 {
                   type: "list",
                   items: [],
-                  empty: "No recent autonomous activity.",
+                  empty: "Nothing happened in the last 24 hours.",
                 },
               ],
             },
-            { id: "overview-system" },
-            { id: "overview-network" },
           ],
+          aside: [{ label: "Publication Pipeline" }, { id: "overview-brain" }],
         },
       ],
     },
@@ -89,6 +92,182 @@ it("combines an empty attention/activity state without hiding standing runtime i
   const active = await workspace.dataProvider(actor, {});
   expect(JSON.stringify(active)).not.toContain('"id":"overview-at-rest"');
   expect(JSON.stringify(active)).toContain('"id":"overview-activity"');
+});
+
+const admin: StudioWorkspaceActor = {
+  interfaceType: "studio",
+  userId: "fixture",
+  actor: { kind: "user", userId: "fixture" },
+  userPermissionLevel: "admin",
+  visibilityScope: "restricted",
+  isAnchor: false,
+};
+
+function isWorkspaceData(value: unknown): value is RuntimeStudioWorkspaceData {
+  return (
+    isRecord(value) &&
+    isRecord(value["view"]) &&
+    Array.isArray(value["view"]["blocks"])
+  );
+}
+
+function columnsOf(data: unknown): RuntimeStudioOperatorColumnsBlock {
+  if (!isWorkspaceData(data)) throw new Error("Overview returned no view");
+  const columns = data.view.blocks.find(
+    (block): block is RuntimeStudioOperatorColumnsBlock =>
+      block.type === "columns",
+  );
+  if (!columns) throw new Error("Overview has no columns");
+  return columns;
+}
+
+function cards(
+  region: RuntimeStudioOperatorColumnsBlock["primary"],
+): RuntimeStudioOperatorCardBlock[] {
+  return region.filter(
+    (block): block is RuntimeStudioOperatorCardBlock => block.type === "card",
+  );
+}
+
+function titlesIn(data: unknown, cardId: string): string[] {
+  const card = cards(columnsOf(data).primary).find(
+    (block) => block.id === cardId,
+  );
+  const list = card?.blocks[0];
+  return list?.type === "list" ? list.items.map((item) => item.title) : [];
+}
+
+describe("Overview composition", () => {
+  it("ranks failures above sources that wait on the operator", async () => {
+    const registry = new StudioOverviewRegistry();
+    registry.register(contribution());
+    registry.recordJob({
+      id: "preview-build",
+      type: "job",
+      status: "failed",
+      message: "Preview render failed.",
+      jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
+    });
+    const workspace = createStudioOverviewWorkspace({
+      context: createServicePluginContext(createMockShell(), "studio"),
+      registry,
+    });
+
+    const view = await workspace.dataProvider(admin, {});
+
+    expect(titlesIn(view, "overview-attention")).toEqual([
+      "Site build failed",
+      "Publication Pipeline",
+    ]);
+  });
+
+  it("leaves failures already in Needs you out of What happened", async () => {
+    const registry = new StudioOverviewRegistry();
+    await registry.recordEntity("updated", {
+      entityType: "note",
+      entityId: "quiet-infrastructure",
+    });
+    registry.recordJob({
+      id: "preview-build",
+      type: "job",
+      status: "failed",
+      jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
+    });
+    const workspace = createStudioOverviewWorkspace({
+      context: createServicePluginContext(createMockShell(), "studio"),
+      registry,
+    });
+
+    const view = await workspace.dataProvider(admin, {});
+
+    expect(titlesIn(view, "overview-activity")).toEqual([
+      "quiet-infrastructure",
+    ]);
+  });
+
+  it("names jobs in words rather than by their job type", () => {
+    const registry = new StudioOverviewRegistry();
+    registry.recordJob({
+      id: "dispatch-1",
+      type: "job",
+      status: "completed",
+      jobDetails: {
+        jobType: "newsletter:dispatch",
+        priority: 0,
+        retryCount: 0,
+      },
+    });
+
+    expect(registry.listActivity()[0]?.title).toBe(
+      "Newsletter dispatch completed",
+    );
+  });
+
+  it("keeps every event of the last 24 hours and drops older ones", async () => {
+    let now = Date.parse("2026-07-10T12:00:00.000Z");
+    const registry = new StudioOverviewRegistry({ now: (): number => now });
+    await registry.recordEntity("updated", {
+      entityType: "note",
+      entityId: "yesterday",
+    });
+    now += 25 * 60 * 60 * 1000;
+    for (const index of Array.from({ length: 30 }, (_, i) => i)) {
+      await registry.recordEntity("updated", {
+        entityType: "note",
+        entityId: `today-${index}`,
+      });
+    }
+
+    const titles = registry.listActivity().map((item) => item.title);
+    expect(titles).toHaveLength(30);
+    expect(titles).not.toContain("yesterday");
+  });
+
+  it("stacks every source beside the work above standing brain facts", async () => {
+    const registry = new StudioOverviewRegistry();
+    registry.register(contribution());
+    registry.register(
+      contribution({
+        id: "site-health",
+        pluginId: "site-builder",
+        title: "Site health",
+        section: "sidebar",
+      }),
+    );
+    const workspace = createStudioOverviewWorkspace({
+      context: createServicePluginContext(createMockShell(), "studio"),
+      registry,
+    });
+
+    const columns = columnsOf(await workspace.dataProvider(admin, {}));
+
+    expect(cards(columns.primary).map((block) => block.id)).toEqual([
+      "overview-attention",
+      "overview-activity",
+    ]);
+    const aside = cards(columns.aside);
+    expect(aside.map((block) => block.label)).toEqual([
+      "Publication Pipeline",
+      "Site health",
+      "Brain",
+    ]);
+    const brain = aside.at(-1);
+    if (!brain) throw new Error("Overview has no Brain card");
+    expect(brain.presentation).toBeUndefined();
+    const facts = brain.blocks[0];
+    expect(
+      facts?.type === "key-values" ? facts.items.map((item) => item.label) : [],
+    ).toEqual([
+      "Runtime",
+      "Jobs",
+      "Failed jobs",
+      "Version",
+      "Interactions",
+      "Channels",
+      "Inbox sources",
+      "Entity types",
+    ]);
+  });
 });
 
 it("names entity activity by its title and readable type", async () => {
@@ -313,20 +492,19 @@ describe("Studio Overview workspace", () => {
                   },
                   {
                     type: "card",
-                    label: "Publication Pipeline",
-                    presentation: "disclosure",
-                    tone: "neutral",
-                    blocks: expect.any(Array),
+                    label: "What happened",
+                    blocks: [{ type: "list", items: [] }],
                   },
                 ],
                 aside: [
                   {
                     type: "card",
-                    label: "Recent activity",
-                    blocks: [{ type: "list", items: [] }],
+                    label: "Publication Pipeline",
+                    presentation: "disclosure",
+                    tone: "neutral",
+                    blocks: expect.any(Array),
                   },
-                  { type: "card", label: "System" },
-                  { type: "card", label: "Network" },
+                  { type: "card", label: "Brain" },
                 ],
               },
             ],
@@ -458,11 +636,11 @@ describe("Studio Overview workspace", () => {
     );
     const payload = JSON.stringify(await response.json());
 
-    expect(payload).toContain("Recent activity");
+    expect(payload).toContain("What happened");
     expect(payload).toContain('"presentation":"attention"');
     expect(payload).toContain('"presentation":"activity"');
-    expect(payload).toContain("site:build completed");
-    expect(payload).toContain("newsletter:dispatch failed");
+    expect(payload).toContain("Site build completed");
+    expect(payload).toContain("Newsletter dispatch failed");
     expect(payload).toContain("Transport rejected the payload");
     expect(payload).toContain('"title":"field-log"');
     expect(payload).toContain("Note updated");

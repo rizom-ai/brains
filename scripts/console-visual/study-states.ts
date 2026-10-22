@@ -159,8 +159,8 @@ async function verifyStudyStateSource(
     });
   } else if (studyState === "restart") {
     await waitForText(page, "Needs you");
-    await waitForText(page, "Recent activity");
-    await waitForText(page, "No recent autonomous activity.");
+    await waitForText(page, "What happened");
+    await waitForText(page, "Nothing happened in the last 24 hours.");
   } else await waitForText(page, "unexpected-native-status");
 }
 

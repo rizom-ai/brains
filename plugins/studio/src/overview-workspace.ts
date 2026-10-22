@@ -181,6 +181,8 @@ const jobProgressPayloadSchema = z.object({
 
 interface OverviewActivity {
   readonly id: string;
+  /** When the event happened, as an ISO timestamp. */
+  readonly at: string;
   readonly title: string;
   readonly description?: string | undefined;
   readonly metadata: readonly string[];
@@ -219,6 +221,18 @@ function boundedId(prefix: string, value: string): string {
   const suffix = (hash >>> 0).toString(36);
   const stemLength = Math.max(0, 118 - prefix.length - suffix.length);
   return `${prefix}-${normalized.slice(0, stemLength)}-${suffix}`;
+}
+
+const ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MAX_ACTIVITY = 200;
+
+/** "site:build" reads as "Site build". */
+function jobName(jobType: string): string {
+  const words = jobType
+    .split(/[-_:.\s]+/)
+    .filter(Boolean)
+    .join(" ");
+  return `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
 }
 
 function titleCase(value: string): string {
@@ -338,34 +352,46 @@ function activityCard(
   return {
     type: "card",
     id: "overview-activity",
-    label: "Recent activity",
+    label: "What happened",
     blocks: [
       {
         type: "list",
         id: "overview-activity-list",
         presentation: "activity",
-        empty: "No recent autonomous activity.",
-        items: activity.map((item) => ({
-          id: item.id,
-          title: item.title,
-          // Failed-job diagnostics already appear in Needs you above.
-          ...(item.description && item.tone !== "error"
-            ? { description: item.description }
-            : {}),
-          metadata: item.metadata,
-          tone: item.tone,
-          ...(item.link ? { link: item.link } : {}),
-        })),
+        empty: "Nothing happened in the last 24 hours.",
+        // Failures are listed in Needs you; repeating them here adds nothing.
+        items: activity
+          .filter((item) => item.tone !== "error")
+          .map((item) => ({
+            id: item.id,
+            title: item.title,
+            ...(item.description ? { description: item.description } : {}),
+            metadata: item.metadata,
+            tone: item.tone,
+            ...(item.link ? { link: item.link } : {}),
+          })),
       },
     ],
   };
 }
 
-async function runtimeCards(
+/** Standing facts about the brain itself, read once per Overview load. */
+interface BrainFacts {
+  readonly runtime: string;
+  readonly degraded: boolean;
+  readonly activeJobs: number;
+  readonly failedJobs: number;
+  readonly version: string;
+  readonly interactions: number;
+  readonly channels: number;
+  readonly inboxSources: number;
+  readonly entityTypes: number;
+}
+
+async function brainFacts(
   context: ServicePluginContext,
   actor: StudioWorkspaceActor,
-  sourceCount: number,
-): Promise<readonly RuntimeStudioOperatorCardBlock[]> {
+): Promise<BrainFacts> {
   const [appInfoResult, readinessResult, countsResult] =
     await Promise.allSettled([
       context.appInfo(),
@@ -381,10 +407,6 @@ async function runtimeCards(
   const pending = queue?.totals.pending ?? 0;
   const processing = queue?.totals.processing ?? 0;
   const failed = queue?.totals.failed ?? 0;
-  const systemTone =
-    readiness?.operationalStatus === "degraded" || failed > 0
-      ? "warn"
-      : "neutral";
   const visibleInteractions =
     appInfo?.interactions.filter((interaction) =>
       PermissionService.hasPermission(
@@ -405,58 +427,55 @@ async function runtimeCards(
     // Overview degrades to zero sources rather than failing the whole view.
   }
 
-  return [
-    {
-      type: "card",
-      id: "overview-system",
-      label: "System",
-      tone: systemTone,
-      blocks: [
-        {
-          type: "key-values",
-          items: [
-            {
-              label: "Runtime",
-              value: readiness?.operationalStatus ?? "unavailable",
-            },
-            {
-              label: "Jobs",
-              value:
-                pending + processing === 0
-                  ? "idle"
-                  : `${pending + processing} active`,
-            },
-            { label: "Queue", value: `${pending} waiting` },
-            { label: "Failed", value: failed },
-            { label: "Version", value: appInfo?.version ?? "unknown" },
-          ],
-        },
-      ],
-    },
-    {
-      type: "card",
-      id: "overview-network",
-      label: "Network",
-      tone: "neutral",
-      blocks: [
-        {
-          type: "key-values",
-          items: [
-            { label: "Interactions", value: visibleInteractions },
-            { label: "Channels", value: channels },
-            { label: "Inbox sources", value: inboxSources },
-            { label: "Operational sources", value: sourceCount },
-            { label: "Entity types", value: counts.length },
-          ],
-        },
-      ],
-    },
-  ];
+  return {
+    runtime: readiness?.operationalStatus ?? "unavailable",
+    degraded: readiness?.operationalStatus === "degraded",
+    activeJobs: pending + processing,
+    failedJobs: failed,
+    version: appInfo?.version ?? "unknown",
+    interactions: visibleInteractions,
+    channels,
+    inboxSources,
+    entityTypes: counts.length,
+  };
+}
+
+function brainCard(facts: BrainFacts): RuntimeStudioOperatorCardBlock {
+  return {
+    type: "card",
+    id: "overview-brain",
+    label: "Brain",
+    tone: facts.degraded || facts.failedJobs > 0 ? "warn" : "neutral",
+    blocks: [
+      {
+        type: "key-values",
+        items: [
+          { label: "Runtime", value: facts.runtime },
+          {
+            label: "Jobs",
+            value:
+              facts.activeJobs === 0 ? "idle" : `${facts.activeJobs} active`,
+          },
+          { label: "Failed jobs", value: facts.failedJobs },
+          { label: "Version", value: facts.version },
+          { label: "Interactions", value: facts.interactions },
+          { label: "Channels", value: facts.channels },
+          { label: "Inbox sources", value: facts.inboxSources },
+          { label: "Entity types", value: facts.entityTypes },
+        ],
+      },
+    ],
+  };
 }
 
 export class StudioOverviewRegistry {
   private readonly contributions = new Map<string, StoredContribution>();
   private activity: OverviewActivity[] = [];
+  private readonly now: () => number;
+
+  constructor(options: { now?: () => number } = {}) {
+    this.now = options.now ?? Date.now;
+  }
 
   register(input: StudioOverviewContributionRegistration): void {
     const contribution = contributionSchema.parse(input);
@@ -490,7 +509,7 @@ export class StudioOverviewRegistry {
   ): Promise<void> {
     const parsed = entityActivityPayloadSchema.safeParse(payload);
     if (!parsed.success) return;
-    const timestamp = new Date(Date.now()).toISOString();
+    const timestamp = new Date(this.now()).toISOString();
     const { title, typeLabel } = await describe(
       parsed.data.entityType,
       parsed.data.entity,
@@ -501,6 +520,7 @@ export class StudioOverviewRegistry {
         "entity",
         `${timestamp}-${action}-${parsed.data.entityType}-${parsed.data.entityId}`,
       ),
+      at: timestamp,
       title: title ?? parsed.data.entityId,
       metadata: [`${typeLabel} ${action}`, timestamp],
       tone:
@@ -515,20 +535,21 @@ export class StudioOverviewRegistry {
         id: parsed.data.entityId,
       },
     };
-    this.activity = [next, ...this.activity].slice(0, 12);
+    this.keep([next, ...this.activity]);
   }
 
   recordJob(payload: unknown): void {
     const parsed = jobProgressPayloadSchema.safeParse(payload);
     if (!parsed.success) return;
-    const timestamp = new Date(Date.now()).toISOString();
+    const timestamp = new Date(this.now()).toISOString();
     const jobType = parsed.data.jobDetails?.jobType ?? parsed.data.type;
     const progress = parsed.data.progress
       ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
       : undefined;
     const next: OverviewActivity = {
       id: boundedId("job", `${parsed.data.type}-${parsed.data.id}`),
-      title: `${jobType} ${parsed.data.status}`,
+      at: timestamp,
+      title: `${jobName(jobType)} ${parsed.data.status}`,
       ...(parsed.data.message ? { description: parsed.data.message } : {}),
       metadata: ["Job activity", timestamp, ...(progress ? [progress] : [])],
       tone:
@@ -538,14 +559,20 @@ export class StudioOverviewRegistry {
             ? "good"
             : "warn",
     };
-    this.activity = [
-      next,
-      ...this.activity.filter((item) => item.id !== next.id),
-    ].slice(0, 12);
+    this.keep([next, ...this.activity.filter((item) => item.id !== next.id)]);
+  }
+
+  /** A day of events, newest first, bounded so a burst cannot grow it unchecked. */
+  private keep(activity: readonly OverviewActivity[]): void {
+    const since = this.now() - ACTIVITY_WINDOW_MS;
+    this.activity = activity
+      .filter((item) => Date.parse(item.at) >= since)
+      .slice(0, MAX_ACTIVITY);
   }
 
   listActivity(): readonly OverviewActivity[] {
-    return this.activity;
+    const since = this.now() - ACTIVITY_WINDOW_MS;
+    return this.activity.filter((item) => Date.parse(item.at) >= since);
   }
 
   private list(permission: UserPermissionLevel): StoredContribution[] {
@@ -602,10 +629,15 @@ export class StudioOverviewRegistry {
   }
 }
 
+const severity: Record<
+  NonNullable<RuntimeStudioOperatorListItem["tone"]>,
+  number
+> = { error: 0, warn: 1, neutral: 2, good: 3 };
+
 function overviewView(
   loaded: readonly LoadedContribution[],
   activity: readonly OverviewActivity[],
-  runtime: readonly RuntimeStudioOperatorCardBlock[],
+  facts: BrainFacts,
 ): RuntimeStudioOperatorView {
   const failedActivity = activity.filter((item) => item.tone === "error");
   const attention =
@@ -620,13 +652,18 @@ function overviewView(
       tone: "error",
       ...(item.link ? { link: item.link } : {}),
     }));
+  // Failures first, then what waits on the operator; the sort is stable, so
+  // sources keep their priority order within a tone.
   const attentionItems = [
     ...loaded.flatMap((source) => {
       const item = attentionItem(source);
       return item ? [item] : [];
     }),
     ...failedAttentionItems,
-  ];
+  ].sort(
+    (left, right) =>
+      severity[left.tone ?? "neutral"] - severity[right.tone ?? "neutral"],
+  );
   const attentionCard: RuntimeStudioOperatorCardBlock = {
     type: "card",
     id: "overview-attention",
@@ -642,14 +679,11 @@ function overviewView(
       },
     ],
   };
-  const recentActivity =
-    attention > 0 || activity.length > 0 ? activityCard(activity) : undefined;
-  const primarySources = loaded
-    .filter((source) => source.contribution.section !== "sidebar")
-    .map(sourceCard);
-  const sidebarSources = loaded
-    .filter((source) => source.contribution.section === "sidebar")
-    .map(sourceCard);
+  // Sources read as one ledger beside the work; sidebar ones close it.
+  const sources = [
+    ...loaded.filter((source) => source.contribution.section !== "sidebar"),
+    ...loaded.filter((source) => source.contribution.section === "sidebar"),
+  ].map(sourceCard);
   const view: RuntimeStudioOperatorView = {
     kicker: "Operator home",
     title: "Overview",
@@ -668,17 +702,10 @@ function overviewView(
         type: "columns",
         id: "overview-columns",
         primary: [
-          ...(attention === 0 && activity.length === 0 ? [] : [attentionCard]),
-          ...primarySources,
+          ...(attention === 0 ? [] : [attentionCard]),
+          activityCard(activity),
         ],
-        aside: [
-          ...(recentActivity ? [recentActivity] : []),
-          ...runtime.map((card) => ({
-            ...card,
-            presentation: "disclosure" as const,
-          })),
-          ...sidebarSources,
-        ],
+        aside: [...sources, brainCard(facts)],
       },
     ],
   };
@@ -704,9 +731,9 @@ export function createStudioOverviewWorkspace(input: {
       signal,
     ): Promise<RuntimeStudioWorkspaceData> => {
       const loaded = await input.registry.load(actor, signal);
-      const runtime = await runtimeCards(input.context, actor, loaded.length);
+      const facts = await brainFacts(input.context, actor);
       return {
-        view: overviewView(loaded, input.registry.listActivity(), runtime),
+        view: overviewView(loaded, input.registry.listActivity(), facts),
         refreshAfterMs: STUDIO_OVERVIEW_REFRESH_MS,
       };
     },
