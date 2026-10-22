@@ -200,11 +200,16 @@ function DetailBlock(props: {
 
   return (
     <div
-      className={`declarative-detail ${stylex.props(detail.root, requested !== undefined && detail.split).className ?? ""}`}
+      {...stylex.props(detail.root, requested !== undefined && detail.split)}
+      data-detail=""
       data-open={requested === undefined ? "false" : "true"}
     >
       <section
-        className={`declarative-detail-master ${stylex.props(detail.master, requested !== undefined && detail.hiddenMaster).className ?? ""}`}
+        {...stylex.props(
+          detail.master,
+          requested !== undefined && detail.hiddenMaster,
+        )}
+        data-detail-master=""
         aria-label="Items"
       >
         <OpenDetailContext.Provider value={openItem}>
@@ -216,14 +221,15 @@ function DetailBlock(props: {
       {requested !== undefined && (
         <section
           data-operator-detail-pane=""
-          className={`declarative-detail-pane ${stylex.props(detail.pane).className ?? ""}`}
+          {...stylex.props(detail.pane)}
           aria-label={open ? open.title : "Detail"}
         >
           {open ? (
             <>
               <button
                 type="button"
-                className={`declarative-detail-back ${stylex.props(detail.back).className ?? ""}`}
+                {...stylex.props(detail.back)}
+                data-detail-back=""
                 onClick={closeItem}
               >
                 ← Back
@@ -269,7 +275,8 @@ function DetailBlock(props: {
             <>
               <button
                 type="button"
-                className={`declarative-detail-back ${stylex.props(detail.back).className ?? ""}`}
+                {...stylex.props(detail.back)}
+                data-detail-back=""
                 onClick={closeItem}
               >
                 ← Back
@@ -488,7 +495,10 @@ export function ViewBlock(props: {
     ...(tab.count !== undefined ? { count: tab.count } : {}),
     content: tab.blocks.map((block, index) => (
       <section
-        className={`operator-block operator-block--${block.type} ${stylex.props(workspace.section, index > 0 && workspace.sectionAfter).className ?? ""}`}
+        {...stylex.props(
+          workspace.section,
+          index > 0 && workspace.sectionAfter,
+        )}
         key={block.id ?? `${block.type}:${index}`}
       >
         <ViewBlock

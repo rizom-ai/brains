@@ -238,7 +238,7 @@ export function ListBlock(props: {
     <div>
       {props.block.filter && (
         <OperatorSegmentedGroup
-          className="declarative-filter"
+          data-filter=""
           role="group"
           aria-label={props.block.filter.label}
         >
@@ -316,10 +316,7 @@ export function TableBlock(props: {
     ) : (
       <>
         {compactRows.length > 0 && (
-          <div
-            {...stylex.props(tableStyle.compact)}
-            className={`declarative-compact-rows ${stylex.props(tableStyle.compact).className ?? ""}`}
-          >
+          <div {...stylex.props(tableStyle.compact)} data-compact-rows="">
             <ListItems
               items={compactRows}
               presentation="activity"
@@ -332,17 +329,14 @@ export function TableBlock(props: {
         )}
         <div
           {...stylex.props(tableStyle.scroll)}
-          className={`declarative-table-scroll operator-table-scroll ${stylex.props(tableStyle.scroll).className ?? ""}`}
+          data-table-scroll=""
           {...(compactRows.length > 0
             ? {
                 "data-has-unannotated": hasUnannotatedRows ? "true" : "false",
               }
             : {})}
         >
-          <table
-            {...stylex.props(tableStyle.table)}
-            className={`declarative-table operator-table ${stylex.props(tableStyle.table).className ?? ""}`}
-          >
+          <table {...stylex.props(tableStyle.table)}>
             <thead>
               <tr>
                 {props.block.columns.map((column, index) => (
@@ -421,7 +415,7 @@ export function TableBlock(props: {
     );
   if (!props.block.query) return table;
   return (
-    <div className="declarative-table-collection">
+    <div data-table-collection="">
       <QueryBlock
         block={props.block.query}
         query={props.query}

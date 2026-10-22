@@ -162,7 +162,7 @@ export function ActionResult(props: {
   return (
     <section
       {...frame}
-      className={`declarative-action-result ${frame.className ?? ""}`}
+      data-action-result=""
       data-operator-action-result=""
       aria-live="polite"
     >
@@ -469,7 +469,7 @@ export function OperatorActionButton(props: {
     <form
       key={`${actionKey}:${completions}`}
       {...formStyles}
-      className={`declarative-action-form ${formStyles.className ?? ""}`}
+      data-action-form=""
       onSubmit={(event) => {
         event.preventDefault();
         const input = actionFormInput(
@@ -588,10 +588,7 @@ export function Actions(props: {
     props.align === "end" && actionLayout.end,
   );
   const content = (
-    <div
-      {...layout}
-      className={`declarative-actions ${layout.className ?? ""}`}
-    >
+    <div {...layout} data-actions="">
       {props.actions.map((action, index) => (
         <OperatorActionButton
           key={`${action.actionId}:${action.capabilityId ?? "static"}:${index}`}

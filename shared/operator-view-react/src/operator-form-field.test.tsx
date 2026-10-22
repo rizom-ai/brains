@@ -140,5 +140,5 @@ test("compiled native form fields preserve validation, defaults and secret suppr
       await window.happyDOM.close();
     }
   }
-  expect(operatorViewStylexCSS).not.toContain(".declarative-action-form");
+  expect(operatorViewStylexCSS).not.toContain("[data-action-form]");
 });

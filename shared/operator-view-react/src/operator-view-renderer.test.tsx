@@ -227,7 +227,7 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain(
       "Second failure\nOccurred: 2026-09-05T09:15:00.000Z",
     );
-    expect(html).toContain("operator-source");
+    expect(html).toContain('data-source=""');
     expect(html).not.toContain('open=""');
   });
   it("keeps readable warning excerpts and full diagnostics on demand in both hosts", () => {
@@ -292,7 +292,7 @@ describe("OperatorViewRenderer", () => {
     const app = render(components);
     expect(app).toContain('class="operator-issue-details"');
     expect(app).toContain(description);
-    expect(app).toContain("operator-source");
+    expect(app).toContain('data-source=""');
     expect(app).toContain("<pre");
     expect(app).toMatch(/<p\b[^>]*>A required title is missing\.<\/p>/);
     const css = render();
@@ -351,7 +351,7 @@ describe("OperatorViewRenderer", () => {
 
     const head = html.slice(
       html.indexOf("<header"),
-      html.indexOf('class="declarative-blocks"'),
+      html.indexOf('data-operator-blocks=""'),
     );
     expect(head).toContain("Reading library");
     expect(head).toContain('data-stats-placement="head"');
@@ -397,7 +397,7 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    expect(html).toContain('class="declarative-table-collection"');
+    expect(html).toContain('data-table-collection=""');
     expect(html).toContain("All actors");
     expect(html).toContain("1–1 of 1");
     expect(html.indexOf("All actors")).toBeLessThan(html.indexOf("Signed in"));
@@ -455,7 +455,7 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    expect(html).toContain('class="declarative-compact-rows ');
+    expect(html).toContain('data-compact-rows=""');
     expect(html).toContain('data-compact-row="true"');
     expect(html).toContain('data-has-unannotated="true"');
     expect(html).toContain("Owns this brain");
@@ -463,8 +463,7 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain('data-tone="good" data-record-badge="true"');
     expect(html).toContain("Legacy row");
     expect(html.match(/Review/g)).toHaveLength(2);
-    expect(operatorViewStylexCSS).not.toContain(".declarative-compact-rows");
-    expect(operatorViewStylexCSS).not.toContain(".declarative-table");
+    expect(operatorViewStylexCSS).not.toContain("[data-compact-rows]");
     expect(html).toContain('data-record-trailing="true"');
   });
 
@@ -724,8 +723,7 @@ describe("OperatorViewRenderer conformance", () => {
       expect(footer.textContent).not.toContain("Earlier link");
       expect(footer.textContent).not.toContain("published-1");
       expect(
-        window.document.querySelectorAll(".declarative-card [data-block]")
-          .length,
+        window.document.querySelectorAll("[data-card] [data-block]").length,
       ).toBe(4);
     } finally {
       await window.happyDOM.abort();
@@ -822,12 +820,12 @@ describe("OperatorViewRenderer conformance", () => {
     );
 
     for (const marker of [
-      "operator-key-values",
+      "data-facts",
       'data-block="matrix"',
       "data-ui-spatial",
-      "declarative-tabs",
-      "declarative-columns",
-      "declarative-card",
+      "data-tabs",
+      "data-columns",
+      "data-card",
     ]) {
       expect(html).toContain(marker);
     }
@@ -1245,7 +1243,7 @@ describe("OperatorViewRenderer confirmations", () => {
       await actionResult;
     });
 
-    const receipt = container.querySelector(".declarative-action-receipt");
+    const receipt = container.querySelector('[data-block="action"]');
     expect(receipt?.textContent).toContain(
       "Delivery provider accepted the invitation.",
     );
@@ -1256,7 +1254,7 @@ describe("OperatorViewRenderer confirmations", () => {
     await clickButton("Copy");
     expect(copied).toBe("https://brain.test/setup?token=setup_latest");
     await clickButton("Dismiss");
-    expect(container.querySelector(".declarative-action-receipt")).toBeNull();
+    expect(container.querySelector('[data-block="action"]')).toBeNull();
   });
 
   it("submits typed form input and presents bounded action results", async () => {
@@ -1362,7 +1360,7 @@ describe("OperatorViewRenderer confirmations", () => {
       deliveryToken: "private-token",
       role: "admin",
     });
-    const result = container.querySelector(".declarative-action-result");
+    const result = container.querySelector("[data-action-result]");
     expect(result?.textContent).toContain("Manual delivery pending");
     expect(result?.textContent).toContain(
       "https://brain.test/auth/setup/token-1",
@@ -1394,7 +1392,7 @@ describe("OperatorViewRenderer confirmations", () => {
         }),
       );
     });
-    expect(container.querySelector(".declarative-action-result")).toBeNull();
+    expect(container.querySelector("[data-action-result]")).toBeNull();
   });
 
   it("presents nothing for a reply that carries none of the declared fields", () => {
@@ -1469,7 +1467,7 @@ describe("OperatorViewRenderer confirmations", () => {
     await newCard({});
     await fillAndSubmit();
 
-    expect(container.querySelector(".declarative-action-result")).toBeNull();
+    expect(container.querySelector("[data-action-result]")).toBeNull();
     expect(container.textContent).not.toContain("Completed.");
     expect(container.querySelector("details")?.open).toBe(false);
     expect(
@@ -1483,7 +1481,7 @@ describe("OperatorViewRenderer confirmations", () => {
 
     expect(container.querySelector("details")?.open).toBe(true);
     expect(
-      container.querySelector(".declarative-action-result")?.textContent,
+      container.querySelector("[data-action-result]")?.textContent,
     ).toContain("This card changed; add it again.");
   });
 
@@ -1667,8 +1665,8 @@ describe("OperatorViewRenderer master/detail", () => {
       }),
     );
 
-    expect(html).toContain("declarative-detail-master");
-    expect(html).toContain("declarative-detail-pane");
+    expect(html).toContain("data-detail-master");
+    expect(html).toContain("data-operator-detail-pane");
     expect(html).toContain('data-open="true"');
     expect(html).toContain("The original message body.");
     // The open row is marked from the detail's forId, not a per-item flag.
@@ -1734,7 +1732,7 @@ describe("OperatorViewRenderer master/detail", () => {
         query: { card: "card-1" },
       }),
     );
-    expect(html).toContain("declarative-detail-pane");
+    expect(html).toContain("data-operator-detail-pane");
     expect(html).toContain("Venue for May.");
     expect(html).toContain("To do");
     expect(html).toContain('aria-current="true"');
@@ -1928,9 +1926,8 @@ describe("OperatorViewRenderer master/detail", () => {
       );
     });
 
-    const back = container.querySelector<HTMLButtonElement>(
-      ".declarative-detail-back",
-    );
+    const back =
+      container.querySelector<HTMLButtonElement>("[data-detail-back]");
     if (!back) throw new Error("Expected a back control");
     await act(async () => back.click());
 
@@ -1970,7 +1967,7 @@ describe("OperatorViewRenderer detail pending state", () => {
     );
 
     expect(html).toContain('data-open="false"');
-    expect(html).not.toContain("declarative-detail-pane");
+    expect(html).not.toContain("data-operator-detail-pane");
     expect(html).not.toContain('aria-current="true"');
   });
 });

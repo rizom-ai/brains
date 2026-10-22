@@ -189,7 +189,7 @@ function CssDisclosure(props: OperatorDisclosureProps): ReactElement {
 function CssTabs(props: OperatorTabsProps): ReactElement {
   const active = props.tabs.find((tab) => tab.value === props.value);
   return (
-    <div className="declarative-tabs">
+    <div data-tabs="">
       <OperatorSegmentedGroup role="tablist" aria-label={props.label}>
         {props.tabs.map((tab) => (
           <OperatorSegmentedButton
@@ -217,14 +217,13 @@ export function StaticAllTabs(props: {
 }): ReactElement {
   return (
     <div data-ui-tabs data-ui-tabs-default={props.defaultValue}>
-      <OperatorTabStrip className="widget-tabs" aria-label={props.label}>
+      <OperatorTabStrip aria-label={props.label}>
         {props.tabs.map((tab) => {
           const active = tab.value === props.defaultValue;
           return (
             <OperatorTabButton
               key={tab.value}
               id={`${props.id}-tab-${tab.value}`}
-              className="widget-tab"
               type="button"
               role="tab"
               data-ui-tab={tab.value}
@@ -233,9 +232,7 @@ export function StaticAllTabs(props: {
             >
               {tab.label}
               {tab.count !== undefined && (
-                <OperatorTabCount className="widget-tab-count">
-                  {tab.count}
-                </OperatorTabCount>
+                <OperatorTabCount>{tab.count}</OperatorTabCount>
               )}
             </OperatorTabButton>
           );

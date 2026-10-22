@@ -97,5 +97,5 @@ test("list filters preserve source counts, custom all-values, gap emphasis and e
       restoreGlobals();
     }
   }
-  expect(operatorViewStylexCSS).not.toContain(".declarative-filter");
+  expect(operatorViewStylexCSS).not.toContain("[data-filter]");
 });

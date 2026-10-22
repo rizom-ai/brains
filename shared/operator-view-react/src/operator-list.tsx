@@ -17,11 +17,7 @@ export function OperatorList(props: {
     props.density === "compact" && s.compactList,
   );
   return (
-    <ol
-      {...root}
-      className={`operator-record-list ${root.className ?? ""}`}
-      data-presentation={props.presentation}
-    >
+    <ol {...root} data-record-list="" data-presentation={props.presentation}>
       {props.children}
     </ol>
   );
