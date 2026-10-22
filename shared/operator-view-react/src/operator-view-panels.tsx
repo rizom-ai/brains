@@ -39,11 +39,9 @@ import {
   ProgressBlock,
   QueryBlock,
 } from "./operator-view-blocks";
-import {
-  ListBlock,
-  TableBlock,
-  MatrixBlock,
-} from "./operator-view-collections";
+import { ListBlock } from "./operator-view-list";
+import { MatrixBlock } from "./operator-view-matrix";
+import { TableBlock } from "./operator-view-table";
 import { SpatialBlock } from "./operator-view-spatial";
 
 function PanelBlock(props: {
