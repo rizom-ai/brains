@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.593
+
+### Patch Changes
+
+- [#721](https://github.com/rizom-ai/brains/pull/721) [`708d158`](https://github.com/rizom-ai/brains/commit/708d158447147d8102ba4981780e2a4ee25f3948) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An open table row in Studio now looks like an open list row: the same accent edge on a neutral tint, instead of the card surface. Lists and tables beside an open detail share one selection style.
+
 ## 0.2.0-alpha.592
 
 ### Patch Changes
