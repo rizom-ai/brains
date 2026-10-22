@@ -86,6 +86,7 @@ async function normalizeOperation(
         services,
         requested.source,
         context,
+        { confirmed: input.confirmed === true },
       );
       if (!resolved.success) return resolved;
       return withReplacementContent(

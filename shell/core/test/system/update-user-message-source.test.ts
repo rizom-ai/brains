@@ -160,6 +160,33 @@ describe("system_update user-message source", () => {
     expect(services.getLastUpdateRequest()).toBeUndefined();
   });
 
+  test("proposes from the stored text when an initial request guesses a source hash", async () => {
+    const { services, tool } = fixture([message(pasted("New body.\n"))]);
+    const args = confirmationSchema.parse(
+      expectConfirmationArgs(
+        await tool.handler(
+          {
+            ...input(),
+            operation: {
+              kind: "source",
+              source: { ...source, contentHash: "sha256:9e1b6b9af2" },
+            },
+          },
+          context,
+        ),
+      ),
+    );
+    expect(args).toMatchObject({
+      operation: {
+        source: { contentHash: computeContentHash("New body.\n") },
+      },
+    });
+    expect(await tool.handler(args, context)).toMatchObject({ success: true });
+    expect(services.getLastUpdateRequest()?.entity.content).toBe(
+      `${frontmatter}New body.\n`,
+    );
+  });
+
   test("rejects ambiguous boundaries without proposing an update", async () => {
     const { services, tool } = fixture([
       message(`${pasted("Body.\n")}\nEND EXACT CONTENT`),
