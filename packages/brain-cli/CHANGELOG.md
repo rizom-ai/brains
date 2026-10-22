@@ -1,5 +1,37 @@
 # @rizom/brain
 
+## 0.2.0-alpha.590
+
+### Patch Changes
+
+- [#715](https://github.com/rizom-ai/brains/pull/715) [`ff7e335`](https://github.com/rizom-ai/brains/commit/ff7e33579f76efa2278219bf7c1c834bc8fcaa92) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat source lists name and link each source without its excerpt, in the web chat (the guest Ask box) and in Studio's chat thread.
+
+## 0.2.0-alpha.589
+
+### Patch Changes
+
+- [#714](https://github.com/rizom-ai/brains/pull/714) [`3780862`](https://github.com/rizom-ai/brains/commit/37808629ea6d5192cb522721a0741df2430c237b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Board is now a team capability. `action-board` is no longer part of the `chat` bundle; the team recipe adds it alongside `docs`, so personal and professional brains no longer get the Board, Inbox card tracking or the `action_item_update` tool. Action items extracted from conversations still appear in the Library and on the Overview. A brain that wants the Board without the team posture adds it explicitly with `add: [action-board]`.
+
+## 0.2.0-alpha.588
+
+### Patch Changes
+
+- [#712](https://github.com/rizom-ai/brains/pull/712) [`b9b5e53`](https://github.com/rizom-ai/brains/commit/b9b5e538a91c39a4a5fecfb8bc742d5f31e4da95) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio shows a site build's real outcome, and a build after a failed one renders again. A brain's web and worker processes each kept their own copy of the build status and wrote it back whole, so one could erase the other's update: a build that published could still show as failed. Status records are now read and written back atomically by every process. A build with unchanged inputs used to skip publication even right after a failed build; it now renders and publishes again until a build succeeds.
+
+- [#713](https://github.com/rizom-ai/brains/pull/713) [`5312f34`](https://github.com/rizom-ai/brains/commit/5312f34e940e85817011ee52310cce4dc1f4edd7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard's site health widget renders without React warnings: it passed `class` instead of `className` and gave its fixed children as unkeyed lists, so every render logged warnings.
+
+## 0.2.0-alpha.587
+
+### Patch Changes
+
+- [#710](https://github.com/rizom-ai/brains/pull/710) [`8ea6226`](https://github.com/rizom-ai/brains/commit/8ea62265d48981a2f25c5c21909ded6fdc4245fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ sources no longer keep an excerpt. Each source is one line in the body: its title linked to its address and the brain it came from. FAQs stored with quoted excerpts under their sources are read without them and written without them on their next save or import.
+
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- [#709](https://github.com/rizom-ai/brains/pull/709) [`533891a`](https://github.com/rizom-ai/brains/commit/533891a6e04303a7932b0058636117d06cb723a3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An open card or row in Studio no longer has its accent edge drawn on its text. While a detail is open, the list or table beside it keeps a 14px gutter on every row, so the marker sits clear of the open row's title and the titles stay aligned, and the open row takes a faint neutral tint that shows even on a board column of the same colour as the card.
+
 ## 0.2.0-alpha.585
 
 ### Patch Changes

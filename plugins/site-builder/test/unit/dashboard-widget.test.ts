@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import {
@@ -49,6 +49,18 @@ describe("SiteHealthWidget", () => {
     expect(html).toContain("widget-action--primary");
     expect(html).not.toContain("Build preview");
     expect(html).not.toContain("Update live site");
+  });
+
+  it("renders without React warnings", () => {
+    const warnings = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      render(h(SiteHealthWidget, { title: "Site health", data: siteHealth }));
+      render(h(SiteHealthWidget, { title: "Site health", data: null }));
+
+      expect(warnings.mock.calls.map((call) => String(call[0]))).toEqual([]);
+    } finally {
+      warnings.mockRestore();
+    }
   });
 
   it("shows the generation selected by the active published output", () => {

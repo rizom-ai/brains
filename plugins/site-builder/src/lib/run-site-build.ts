@@ -269,7 +269,10 @@ export async function runSiteBuild(
       parsedOptions.outputDir,
     );
     options.signal.throwIfAborted();
-    if (currentManifest?.inputFingerprint === inputFingerprint) {
+    if (
+      !options.buildOptions.publishUnchanged &&
+      currentManifest?.inputFingerprint === inputFingerprint
+    ) {
       // The pages were rendered as they were prepared; their output is the
       // published one, so the staged generation is dropped unpublished.
       await abortQuietly(

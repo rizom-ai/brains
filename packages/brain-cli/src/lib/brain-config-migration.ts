@@ -139,7 +139,7 @@ function migrationTarget(
         anchor: "team",
         kind: "team",
         bundles: teamCoreBundles,
-        add: ["docs"],
+        add: ["docs", "action-board"],
         plugins: {
           "directory-sync": { seedContentPath: "./seed-content" },
         },

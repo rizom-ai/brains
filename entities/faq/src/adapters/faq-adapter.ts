@@ -14,7 +14,12 @@ import {
   type FaqMetadata,
   type FaqSource,
 } from "../schemas/faq";
-import { isStoredFaqBody, parseStoredFaqBody } from "./stored-body";
+import {
+  hasStoredExcerpts,
+  isStoredFaqBody,
+  parseStoredFaqBody,
+  withoutStoredExcerpts,
+} from "./stored-body";
 
 /** The query-friendly metadata a FAQ's frontmatter implies. */
 export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
@@ -28,13 +33,11 @@ export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
 
 /**
  * One source as a list item: its title linked to its address (the brain's
- * reference to it rides as the link title when it has a public address),
- * the brain it came from, and what it said as a quote below.
+ * reference to it rides as the link title when it has a public address)
+ * and the brain it came from.
  */
 const SOURCE_LINE =
   /^- \[((?:\\.|[^\]\\])+)\]\((<[^>]*>|\S+?)(?: "([^"]+)")?\)(?: — from (?:\[((?:\\.|[^\]\\])+)\]\((\S+?)\)|(.+)))?$/;
-
-const QUOTE_LINE = /^\s*>\s?(.*)$/;
 
 const HTTP_URL = /^https?:\/\//;
 
@@ -60,20 +63,14 @@ function sourceItem(source: FaqSource): string {
           : source.brain.name
       }`
     : "";
-  const quote = source.excerpt
-    ? source.excerpt
-        .split("\n")
-        .map((line) => (line ? `\n  > ${line}` : "\n  >"))
-        .join("")
-    : "";
-  return `- ${link}${brain}${quote}`;
+  return `- ${link}${brain}`;
 }
 
 /**
  * A source read back from its list item. A line that is not one comes back
  * without an id, so the body fails validation instead of losing it.
  */
-function parseSourceItem(line: string, quote: string[]): FaqSource {
+function parseSourceItem(line: string): FaqSource {
   const match = SOURCE_LINE.exec(line);
   if (!match) return { id: "", title: line };
   const [
@@ -88,32 +85,23 @@ function parseSourceItem(line: string, quote: string[]): FaqSource {
   const brainName = brainLinked
     ? unescapeLinkText(brainLinked)
     : brainPlain?.trim();
-  const excerpt = quote.join("\n").trim();
   const destination = target.replace(/^<(.*)>$/, "$1");
   return {
     id: reference ?? destination,
     title: unescapeLinkText(rawTitle),
     ...(HTTP_URL.test(destination) ? { url: destination } : {}),
-    ...(excerpt ? { excerpt } : {}),
     ...(brainName
       ? { brain: { name: brainName, ...(brainUrl ? { url: brainUrl } : {}) } }
       : {}),
   };
 }
 
-/** The Sources section's markdown back as sources: items, each with its quote. */
+/** The Sources section's markdown back as sources, one per list item. */
 function parseSources(markdown: string): FaqSource[] {
-  const items = markdown
+  return withoutStoredExcerpts(markdown)
     .split("\n")
     .filter((line) => line.trim().length > 0)
-    .reduce<Array<{ line: string; quote: string[] }>>((list, line) => {
-      const quote = QUOTE_LINE.exec(line);
-      const last = list.at(-1);
-      if (quote && last) last.quote.push(quote[1] ?? "");
-      else list.push({ line: line.trim(), quote: [] });
-      return list;
-    }, []);
-  return items.map(({ line, quote }) => parseSourceItem(line, quote));
+    .map((line) => parseSourceItem(line.trim()));
 }
 
 /** Markdown body ↔ FAQ body, through the structured content formatter. */
@@ -208,13 +196,15 @@ export class FaqAdapter extends BaseEntityAdapter<
 
   /**
    * The body as stored, unless the FAQ is still in the layout from before
-   * the formatter or keeps its sources in frontmatter: then it is written in
-   * the formatter's layout, sources in the body.
+   * the formatter, keeps its sources in frontmatter or keeps what they
+   * quoted: then it is written in the formatter's layout, sources in the
+   * body without quotes.
    */
   protected override renderBody(entity: FaqEntity): string {
     const body = this.extractBody(entity.content);
     if (
       !isStoredFaqBody(body) &&
+      !hasStoredExcerpts(body) &&
       this.storedSources(entity.content).length === 0
     )
       return body;

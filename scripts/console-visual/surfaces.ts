@@ -19,6 +19,7 @@ export function consoleSurfaces(): string[] {
     "studio-site",
     "studio-publishing",
     "studio-board",
+    "studio-board-open",
     "studio-administration",
     "studio-administration-invitations",
     "studio-administration-invitations-form",
@@ -76,6 +77,7 @@ const WORKSPACE_SURFACES: Partial<Record<string, string>> = {
   "studio-site": "site-builder:site",
   "studio-publishing": "content-pipeline:publishing",
   "studio-board": "action-board:board",
+  "studio-board-open": "action-board:board",
 };
 
 function workspaceRoute(id: string): string {
@@ -145,13 +147,16 @@ export function planSurface(
             : isStudioEditor
               ? "/studio/entities/posts/field-notes"
               : "/studio/entities/posts";
-  const workspaceQuery = surface.startsWith("studio-administration-invitations")
-    ? `&tab=invitations`
-    : surface === "studio-administration-audit"
-      ? `&tab=audit`
-      : surface.startsWith("studio-chat") && studyState !== "empty"
-        ? `&session=responsive`
-        : "";
+  const workspaceQuery =
+    surface === "studio-board-open"
+      ? "&card=partner-update"
+      : surface.startsWith("studio-administration-invitations")
+        ? `&tab=invitations`
+        : surface === "studio-administration-audit"
+          ? `&tab=audit`
+          : surface.startsWith("studio-chat") && studyState !== "empty"
+            ? `&session=responsive`
+            : "";
   return {
     reviewingSystem,
     systemCollection,

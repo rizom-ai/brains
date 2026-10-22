@@ -284,6 +284,8 @@ export function TableBlock(props: {
   const hasActions = props.block.rows.some(
     (row) => (row.actions?.length ?? 0) > 0,
   );
+  // Beside an open row, the first column keeps a gutter for its marker.
+  const gutter = props.openId !== undefined;
   const compactRows: readonly RuntimeListItem[] = props.block.rows.flatMap(
     (row): RuntimeListItem[] => {
       if (!row.compact) return [];
@@ -342,9 +344,12 @@ export function TableBlock(props: {
           >
             <thead>
               <tr>
-                {props.block.columns.map((column) => (
+                {props.block.columns.map((column, index) => (
                   <th
-                    {...stylex.props(tableStyle.head)}
+                    {...stylex.props(
+                      tableStyle.head,
+                      gutter && index === 0 && tableStyle.gutter,
+                    )}
                     key={column.key}
                     data-align={column.align ?? "start"}
                   >
@@ -372,7 +377,10 @@ export function TableBlock(props: {
                     const value = displayCell(row.cells[column.key]);
                     return (
                       <td
-                        {...stylex.props(tableStyle.cell)}
+                        {...stylex.props(
+                          tableStyle.cell,
+                          gutter && index === 0 && tableStyle.gutter,
+                        )}
                         key={column.key}
                         data-align={column.align ?? "start"}
                       >

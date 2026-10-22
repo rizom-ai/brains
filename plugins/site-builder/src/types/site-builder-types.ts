@@ -54,6 +54,11 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaInput {
   siteUrl: string | undefined;
   /** Optional caller cancellation combined with the builder-owned signal. */
   signal?: AbortSignal | undefined;
+  /**
+   * Publish even when the inputs match the published output. A build after a
+   * failed one renders in full rather than trusting that nothing changed.
+   */
+  publishUnchanged?: boolean | undefined;
 }
 
 /**

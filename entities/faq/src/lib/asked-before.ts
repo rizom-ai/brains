@@ -27,7 +27,6 @@ function citationOf(source: FaqSource): SourceCitation {
     entityId,
     title: source.title,
     ...(source.url ? { url: source.url } : {}),
-    ...(source.excerpt ? { excerpt: source.excerpt } : {}),
     ...(source.brain ? { brain: source.brain } : {}),
   };
 }

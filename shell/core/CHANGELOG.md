@@ -1,5 +1,85 @@
 # @brains/core
 
+## 0.2.0-alpha.590
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.590
+  - @brains/image@0.2.0-alpha.590
+  - @brains/operation-context@0.2.0-alpha.590
+  - @brains/site-composition@0.2.0-alpha.590
+  - @brains/utils@0.2.0-alpha.590
+  - @brains/plugins@0.2.0-alpha.590
+  - @brains/recurring-checks@0.2.0-alpha.590
+  - @brains/runtime-state@0.2.0-alpha.590
+  - @brains/scheduler@0.2.0-alpha.590
+  - @brains/templates@0.2.0-alpha.590
+
+## 0.2.0-alpha.589
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.589
+  - @brains/image@0.2.0-alpha.589
+  - @brains/operation-context@0.2.0-alpha.589
+  - @brains/site-composition@0.2.0-alpha.589
+  - @brains/utils@0.2.0-alpha.589
+  - @brains/plugins@0.2.0-alpha.589
+  - @brains/recurring-checks@0.2.0-alpha.589
+  - @brains/runtime-state@0.2.0-alpha.589
+  - @brains/scheduler@0.2.0-alpha.589
+  - @brains/templates@0.2.0-alpha.589
+
+## 0.2.0-alpha.588
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.588
+  - @brains/image@0.2.0-alpha.588
+  - @brains/operation-context@0.2.0-alpha.588
+  - @brains/site-composition@0.2.0-alpha.588
+  - @brains/utils@0.2.0-alpha.588
+  - @brains/plugins@0.2.0-alpha.588
+  - @brains/recurring-checks@0.2.0-alpha.588
+  - @brains/runtime-state@0.2.0-alpha.588
+  - @brains/scheduler@0.2.0-alpha.588
+  - @brains/templates@0.2.0-alpha.588
+
+## 0.2.0-alpha.587
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.587
+  - @brains/image@0.2.0-alpha.587
+  - @brains/operation-context@0.2.0-alpha.587
+  - @brains/site-composition@0.2.0-alpha.587
+  - @brains/utils@0.2.0-alpha.587
+  - @brains/plugins@0.2.0-alpha.587
+  - @brains/recurring-checks@0.2.0-alpha.587
+  - @brains/runtime-state@0.2.0-alpha.587
+  - @brains/scheduler@0.2.0-alpha.587
+  - @brains/templates@0.2.0-alpha.587
+
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.586
+  - @brains/image@0.2.0-alpha.586
+  - @brains/operation-context@0.2.0-alpha.586
+  - @brains/site-composition@0.2.0-alpha.586
+  - @brains/utils@0.2.0-alpha.586
+  - @brains/plugins@0.2.0-alpha.586
+  - @brains/recurring-checks@0.2.0-alpha.586
+  - @brains/runtime-state@0.2.0-alpha.586
+  - @brains/scheduler@0.2.0-alpha.586
+  - @brains/templates@0.2.0-alpha.586
+
 ## 0.2.0-alpha.585
 
 ### Patch Changes

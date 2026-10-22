@@ -5,7 +5,7 @@ import { createChatClient } from "@brains/contracts/chat";
 import { ChatTurn } from "./studio-chat-thread";
 
 describe("a turn's sources", () => {
-  test("name and link each source, without its raw record", () => {
+  test("name and link each source, without its raw record or excerpt", () => {
     const html = renderToStaticMarkup(
       <ChatTurn
         disabled={false}
@@ -47,5 +47,6 @@ describe("a turn's sources", () => {
     expect(html).toContain("book-section");
     expect(html).not.toContain("Source details");
     expect(html).not.toContain("provenance");
+    expect(html).not.toContain("der tiefste Einwand");
   });
 });

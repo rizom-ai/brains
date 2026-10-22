@@ -75,6 +75,11 @@ describe("planSurface", () => {
     );
     expect(planSurface("studio-chat", "empty").workspaceQuery).toBe("");
     expect(planSurface("studio-library", undefined).workspaceQuery).toBe("");
+    // The board with a card open, so the open row's marker is captured.
+    expect(planSurface("studio-board-open", undefined)).toMatchObject({
+      route: "/studio/workspaces/action-board%3Aboard",
+      workspaceQuery: "&card=partner-update",
+    });
   });
 
   it("names the reviewed System type, single document or collection", () => {

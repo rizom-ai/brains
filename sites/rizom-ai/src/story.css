@@ -1839,15 +1839,6 @@
 .asked .asked__piece a:hover {
   color: var(--color-accent);
 }
-.asked .asked__sources q {
-  grid-column: 2;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 0.98rem;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-  quotes: "“" "”";
-}
 /* The Ask room's lead layer (the room script draws into it; the kit styles
    the leads): leads join words to the drawing across the page, so the
    viewport is their frame. On a phone the opening's drawing joins the open

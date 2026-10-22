@@ -62,6 +62,7 @@ export async function checkLayout(
       hostedCardHeadings,
       tagPlaceholdersFit,
       wordsStayWhole,
+      selectedMarkersClear,
     ]);
   if (surface === "studio-overview") await checkOverviewNavigation(page);
   if (surface.startsWith("studio-chat"))
@@ -459,6 +460,36 @@ function wordsStayWhole(): void {
       if (tops.size > 1)
         throw new Error(`The word "${match[0]}" breaks across lines`);
     }
+  }
+}
+
+/**
+ * An open row's accent edge keeps clear of its text: a marker drawn on a
+ * flush row sits on the first letter of every line it spans.
+ */
+function selectedMarkersClear(): void {
+  for (const row of document.querySelectorAll<HTMLElement>(
+    'main [aria-current="true"]',
+  )) {
+    // A master hidden beside its open detail draws no marker.
+    if (row.getClientRects().length === 0) continue;
+    if (!getComputedStyle(row).boxShadow.includes("inset")) continue;
+    const text = document.evaluate(
+      ".//text()[normalize-space()]",
+      row,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null,
+    ).singleNodeValue;
+    if (!text) continue;
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const gap =
+      range.getBoundingClientRect().left - row.getBoundingClientRect().left;
+    if (gap < 8)
+      throw new Error(
+        `An open row's marker sits ${Math.round(gap)}px from its text`,
+      );
   }
 }
 

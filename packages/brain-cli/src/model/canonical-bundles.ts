@@ -82,7 +82,6 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
     "email",
     "notifications",
     "conversation-memory",
-    "action-board",
     "faq",
   ],
   permissions: [

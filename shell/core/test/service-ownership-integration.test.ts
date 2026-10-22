@@ -199,6 +199,8 @@ describe("Shell service ownership integration", () => {
     return directory;
   }
 
+  // Three shell boots and two migrations: a loaded CI runner needs more than
+  // the default 5 s.
   it("runs two persistent no-interface shells without sharing service state", async () => {
     const directoryA = await createDirectory();
     const directoryB = await createDirectory();
@@ -283,7 +285,7 @@ describe("Shell service ownership integration", () => {
     expect(
       await reopenedShellA.getJobQueueService().getStatus(recordA.jobId),
     ).not.toBeNull();
-  });
+  }, 30_000);
 
   it("keeps a running shell usable after another shell fails construction and initialization", async () => {
     const directoryA = await createDirectory();

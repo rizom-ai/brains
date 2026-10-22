@@ -1,5 +1,65 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.590
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.590
+  - @brains/console-theme@0.2.0-alpha.590
+  - @brains/contracts@0.2.0-alpha.590
+  - @brains/utils@0.2.0-alpha.590
+  - @brains/auth-service@0.2.0-alpha.590
+  - @brains/plugins@0.2.0-alpha.590
+
+## 0.2.0-alpha.589
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.589
+  - @brains/console-theme@0.2.0-alpha.589
+  - @brains/contracts@0.2.0-alpha.589
+  - @brains/utils@0.2.0-alpha.589
+  - @brains/auth-service@0.2.0-alpha.589
+  - @brains/plugins@0.2.0-alpha.589
+
+## 0.2.0-alpha.588
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.588
+  - @brains/console-theme@0.2.0-alpha.588
+  - @brains/contracts@0.2.0-alpha.588
+  - @brains/utils@0.2.0-alpha.588
+  - @brains/auth-service@0.2.0-alpha.588
+  - @brains/plugins@0.2.0-alpha.588
+
+## 0.2.0-alpha.587
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.587
+  - @brains/console-theme@0.2.0-alpha.587
+  - @brains/contracts@0.2.0-alpha.587
+  - @brains/utils@0.2.0-alpha.587
+  - @brains/auth-service@0.2.0-alpha.587
+  - @brains/plugins@0.2.0-alpha.587
+
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.586
+  - @brains/console-theme@0.2.0-alpha.586
+  - @brains/contracts@0.2.0-alpha.586
+  - @brains/utils@0.2.0-alpha.586
+  - @brains/auth-service@0.2.0-alpha.586
+  - @brains/plugins@0.2.0-alpha.586
+
 ## 0.2.0-alpha.585
 
 ### Patch Changes

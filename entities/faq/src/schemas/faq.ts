@@ -29,21 +29,18 @@ export type FaqAlternative = z.output<typeof faqAlternativeSchema>;
 type FaqSourceSchema = z.ZodObject<{
   id: z.ZodString;
   title: z.ZodString;
-  url: z.ZodOptional<z.ZodString>;
-  excerpt: z.ZodOptional<z.ZodString>;
+  url: z.ZodOptional<z.ZodURL>;
   brain: z.ZodOptional<typeof sourceBrainSchema>;
 }>;
 
 /**
  * A source the answer drew on when it was first given: the piece, its
- * address, its opening words and, when it came from another brain, that
- * brain. An asked-before answer shows them again without a lookup.
+ * address and, when it came from another brain, that brain. An asked-before answer shows them again without a lookup.
  */
 export const faqSourceSchema: FaqSourceSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  url: z.string().url().optional(),
-  excerpt: z.string().min(1).optional(),
+  url: z.url().optional(),
   brain: sourceBrainSchema.optional(),
 });
 

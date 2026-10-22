@@ -144,7 +144,6 @@ export function replySources(reply: Message): FaqSource[] {
       // A vetted card always titles its sources; the key stands in otherwise.
       title: source.title ?? source.id,
       ...(source.url ? { url: source.url } : {}),
-      ...(source.excerpt ? { excerpt: source.excerpt } : {}),
       ...(source.brain ? { brain: source.brain } : {}),
     })),
   );

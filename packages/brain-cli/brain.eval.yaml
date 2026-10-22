@@ -86,6 +86,7 @@ suites:
       - team
     add:
       - docs
+      - action-board
     tags:
       - recipe-team
     plugins:

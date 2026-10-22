@@ -154,11 +154,6 @@ function MessageCard(props: {
               <span className={chatClass("", chatLayout.sourceType)}>
                 {source.entityType ?? source.source}
               </span>
-              {source.excerpt && (
-                <p className={chatClass("", chatLayout.paragraph)}>
-                  {source.excerpt}
-                </p>
-              )}
             </li>
           ))}
         </ul>

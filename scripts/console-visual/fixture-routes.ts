@@ -298,7 +298,10 @@ export function createFixtureRoutes(
       (url): Promise<unknown> => context.workViews.inbox(workspaceQuery(url)),
     ],
     ["directory-sync:sync", (): Promise<unknown> => context.syncView()],
-    ["action-board:board", (): Promise<unknown> => context.board()],
+    [
+      "action-board:board",
+      (url): Promise<unknown> => context.board(workspaceQuery(url)),
+    ],
     ["site-builder:site", (): Promise<unknown> => context.deliveryViews.site()],
     [
       "content-pipeline:publishing",
