@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.589
+
+### Patch Changes
+
+- [#714](https://github.com/rizom-ai/brains/pull/714) [`3780862`](https://github.com/rizom-ai/brains/commit/37808629ea6d5192cb522721a0741df2430c237b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Board is now a team capability. `action-board` is no longer part of the `chat` bundle; the team recipe adds it alongside `docs`, so personal and professional brains no longer get the Board, Inbox card tracking or the `action_item_update` tool. Action items extracted from conversations still appear in the Library and on the Overview. A brain that wants the Board without the team posture adds it explicitly with `add: [action-board]`.
+
 ## 0.2.0-alpha.588
 
 ### Patch Changes
