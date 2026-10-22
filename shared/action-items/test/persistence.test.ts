@@ -29,7 +29,7 @@ import {
 
 const adapter = new ActionItemAdapter();
 const niels = { kind: "user", userId: "u-niels" } as const;
-const ID = "conv-1:action-item:1:abc123abc123";
+const ID = "conv-1-action-item-1-abc123abc123";
 const at = (): Date => new Date("2026-10-15T08:02:00.000Z");
 
 const metadata: ActionItemMetadata = {
@@ -300,12 +300,12 @@ describe("tracking an Inbox item", () => {
 
     expect(result).toEqual({
       status: "tracked",
-      id: "inbox:contact-requests:req-1",
+      id: "inbox-contact-requests-req-1",
     });
     const card = await service.getEntity(
       {
         entityType: "action-item",
-        id: "inbox:contact-requests:req-1",
+        id: "inbox-contact-requests-req-1",
         visibilityScope: "restricted",
       },
       actionItemSchema,
@@ -335,7 +335,28 @@ describe("tracking an Inbox item", () => {
 
     expect(await trackInboxItem(deps, request)).toEqual({
       status: "already-tracked",
-      id: "inbox:contact-requests:req-1",
+      id: "inbox-contact-requests-req-1",
+    });
+  });
+
+  it("keeps the card's id flat when the Inbox item's own id has colons", async () => {
+    const service = await brain();
+
+    const result = await trackInboxItem(
+      { entityService: service, now: at, visibility: "shared" },
+      {
+        ...request,
+        sourceRef: {
+          sourceId: "mail",
+          entityType: "mail-item",
+          entityId: "imap:inbox:42",
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "tracked",
+      id: "inbox-mail-imap-inbox-42",
     });
   });
 });
@@ -356,7 +377,8 @@ describe("creating a card on the board", () => {
     );
 
     expect(result.status).toBe("created");
-    expect(result.id).toMatch(/^board:/);
+    // Named after its title, with a short suffix: one flat file per card.
+    expect(result.id).toMatch(/^order-name-badges-[0-9a-z]{6}$/);
     const card = await service.getEntity(
       {
         entityType: "action-item",

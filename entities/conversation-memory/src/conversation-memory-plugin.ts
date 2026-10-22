@@ -1,5 +1,6 @@
 import {
   EntityPlugin,
+  SYSTEM_CHANNELS,
   type DataSource,
   type EntityPluginContext,
   type EntityTypeConfig,
@@ -38,6 +39,7 @@ import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-mem
 import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
+import { flattenMemoryIds } from "./lib/flat-memory-ids";
 import {
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
@@ -112,6 +114,20 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       {
         retiredFields: ACTION_ITEM_RETIRED_FIELDS,
         translatedFields: ACTION_ITEM_TRANSLATED_FIELDS,
+      },
+    );
+
+    // Moved once the startup import has every stored file's entity in place.
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.startupContentSettled,
+      async () => {
+        const moved = await flattenMemoryIds(context.entityService);
+        if (moved > 0) {
+          this.logger.info(
+            `Moved ${moved} action items and decisions to flat ids`,
+          );
+        }
+        return { success: true };
       },
     );
 

@@ -6,6 +6,7 @@ import {
   type ActionItemMetadata,
   type MemoryActorReference,
   actionItemBodyHash,
+  flatId,
   isBoardOwned,
 } from "@brains/action-items";
 import { actorRefKey } from "@brains/contracts";
@@ -51,8 +52,11 @@ import {
 import { SummarySourceReader } from "./summary-source-reader";
 
 /** The text hash that ends a projected memory id; stable when extraction order shifts. */
+const TEXT_HASH_LENGTH = 12;
+
+/** The hash of an item's text, which ends its id. */
 function textHashOf(id: string): string {
-  return id.slice(id.lastIndexOf(":") + 1);
+  return id.slice(-TEXT_HASH_LENGTH);
 }
 
 const CHUNK_EXTRACTION_CONCURRENCY = 3;
@@ -776,7 +780,12 @@ export class SummaryProjector {
     index: number,
     text: string,
   ): string {
-    return `${conversationId}:${type}:${index + 1}:${computeContentHash(text).slice(0, 12)}`;
+    return flatId(
+      conversationId,
+      type,
+      String(index + 1),
+      computeContentHash(text).slice(0, TEXT_HASH_LENGTH),
+    );
   }
 
   private titleForMemory(prefix: string, text: string): string {

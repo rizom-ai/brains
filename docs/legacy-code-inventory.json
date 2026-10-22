@@ -19,6 +19,18 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "memory-colon-ids",
+      "paths": ["entities/conversation-memory/src/lib/flat-memory-ids.ts"],
+      "symbol": "Startup move of action items and decisions to flat ids",
+      "owner": "@brains/conversation-memory",
+      "class": "durable-data-compatibility",
+      "behavior": "Once startup content settles, moves every stored action item and decision whose id has a colon (\"board:<id>\", \"inbox:<source>:<entity>\", \"<conversation>:<type>:<n>:<hash>\"), which directory sync stores as nested folders, to its flat id, keeping content, visibility and timestamps. A hand-added card is named after its title. A move that stopped after writing the flat id is finished on the next start.",
+      "currentConsumers": "Action items and decisions stored in deployed brains and their synced content repos before flat ids.",
+      "removalPrerequisite": "Observe zero stored action items or decisions with a colon in their id across supported upgrade sources.",
+      "rollbackDependency": "A brain rolled back to a release before flat ids derives colon ids again, so it can take an Inbox item onto the board twice or re-add a conversation card the board already owns.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "action-item-retired-fields",
       "paths": ["shared/action-items/src/stored-shape.ts"],
       "symbol": "action-item stored metadata read path",

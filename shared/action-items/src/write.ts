@@ -2,8 +2,12 @@ import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import { applyMove, applyNote } from "./board";
-import { createId } from "@brains/utils/id";
-import { truncateText } from "@brains/utils/string-utils";
+import { createShortId } from "@brains/utils/id";
+import {
+  slugify,
+  truncateSlug,
+  truncateText,
+} from "@brains/utils/string-utils";
 import { ActionItemAdapter } from "./adapter";
 import {
   actionItemSchema,
@@ -155,9 +159,25 @@ export type TrackInboxItemResult =
 
 const inboxItemAdapter = new ActionItemAdapter();
 
+/**
+ * Parts joined into one id without colons: directory sync stores a colon in
+ * an id as a folder, and each card is one flat file.
+ */
+export function flatId(...parts: string[]): string {
+  return parts.join("-").replaceAll(":", "-");
+}
+
 /** The card an Inbox item becomes; one per item. */
 export function inboxCardId(sourceRef: ActionItemSourceRef): string {
-  return `inbox:${sourceRef.sourceId}:${sourceRef.entityId}`;
+  return flatId("inbox", sourceRef.sourceId, sourceRef.entityId);
+}
+
+/** A hand-added card's id: its title as a slug and a short unique suffix. */
+export function boardCardId(
+  title: string,
+  suffix: string = createShortId(),
+): string {
+  return `${truncateSlug(slugify(title), 60) || "card"}-${suffix}`;
 }
 
 /** Turn an Inbox item into an open card that points back at its source; once per item. */
@@ -228,7 +248,8 @@ export async function createBoardCard(
   },
   request: CreateBoardCardRequest,
 ): Promise<CreateBoardCardResult> {
-  const id = `board:${createId()}`;
+  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  const id = boardCardId(title);
   const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
     origin: "board",
@@ -244,7 +265,6 @@ export async function createBoardCard(
       },
     ],
   };
-  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
   await deps.entityService.createEntity({
     entity: {
       id,
