@@ -175,27 +175,17 @@ export async function loadPilotRegistry(
 
   const cohortMembership = resolveMemberships(userFiles, cohortFiles);
   const cohorts = cohortFiles
-    .map((cohortFile) => ({
+    .map((cohortFile): ResolvedCohort => ({
       id: cohortFile.id,
       members: [...cohortFile.data.members].sort(),
-      ...(cohortFile.data.brainVersionOverride
-        ? { brainVersionOverride: cohortFile.data.brainVersionOverride }
-        : {}),
-      ...(cohortFile.data.bundlesOverride
-        ? { bundlesOverride: cohortFile.data.bundlesOverride }
-        : {}),
-      ...(cohortFile.data.addOverride
-        ? { addOverride: cohortFile.data.addOverride }
-        : {}),
-      ...(cohortFile.data.removeOverride
-        ? { removeOverride: cohortFile.data.removeOverride }
-        : {}),
-      ...(cohortFile.data.aiApiKeyOverride
-        ? { aiApiKeyOverride: cohortFile.data.aiApiKeyOverride }
-        : {}),
-      ...(cohortFile.data.gitSyncTokenOverride
-        ? { gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride }
-        : {}),
+      ...definedFields({
+        brainVersionOverride: cohortFile.data.brainVersionOverride,
+        bundlesOverride: cohortFile.data.bundlesOverride,
+        addOverride: cohortFile.data.addOverride,
+        removeOverride: cohortFile.data.removeOverride,
+        aiApiKeyOverride: cohortFile.data.aiApiKeyOverride,
+        gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride,
+      }),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 

@@ -7,6 +7,7 @@ import { toYaml } from "@brains/utils/yaml";
 import {
   loadPilotRegistry,
   resolveUserIdentity,
+  type ResolvedCohort,
   type ResolvedUserIdentity,
 } from "../src/load-registry";
 import {
@@ -307,5 +308,85 @@ describe("loadPilotRegistry user identity", () => {
       ...baseIdentity,
       ...testCase.expected,
     });
+  });
+});
+
+interface CohortCase {
+  name: string;
+  cohort: Omit<CohortConfigInput, "members">;
+  expected: Omit<ResolvedCohort, "id" | "members">;
+}
+
+const cohortCases: CohortCase[] = [
+  {
+    name: "resolves a cohort without overrides to its sorted members",
+    cohort: {},
+    expected: {},
+  },
+  {
+    name: "passes every cohort override through",
+    cohort: {
+      brainVersionOverride: "0.2.0-alpha.101",
+      bundlesOverride: ["core", "publishing"],
+      addOverride: ["cohort-add"],
+      removeOverride: ["cohort-remove"],
+      aiApiKeyOverride: "COHORT_AI_API_KEY",
+      gitSyncTokenOverride: "COHORT_GIT_SYNC_TOKEN",
+    },
+    expected: {
+      brainVersionOverride: "0.2.0-alpha.101",
+      bundlesOverride: ["core", "publishing"],
+      addOverride: ["cohort-add"],
+      removeOverride: ["cohort-remove"],
+      aiApiKeyOverride: "COHORT_AI_API_KEY",
+      gitSyncTokenOverride: "COHORT_GIT_SYNC_TOKEN",
+    },
+  },
+  {
+    name: "passes empty add and remove overrides through",
+    cohort: { addOverride: [], removeOverride: [] },
+    expected: { addOverride: [], removeOverride: [] },
+  },
+];
+
+async function loadCohortsThroughLoader(
+  cohorts: Record<string, CohortConfigInput>,
+): Promise<ResolvedCohort[]> {
+  const root = await createTempDir("resolve-cohort-");
+  await mkdir(join(root, "users"), { recursive: true });
+  await mkdir(join(root, "cohorts"), { recursive: true });
+  await writeFile(join(root, "pilot.yaml"), toYaml(pilot));
+  await Promise.all(
+    Object.entries(cohorts).flatMap(([id, cohort]) => [
+      writeFile(join(root, "cohorts", `${id}.yaml`), toYaml(cohort)),
+      ...cohort.members.map((handle) =>
+        writeFile(
+          join(root, "users", `${handle}.yaml`),
+          toYaml({ ...baseUser, handle }),
+        ),
+      ),
+    ]),
+  );
+
+  return (await loadPilotRegistry(root)).cohorts;
+}
+
+describe("loadPilotRegistry cohorts", () => {
+  it.each(cohortCases)("$name", async (testCase) => {
+    expect(
+      await loadCohortsThroughLoader({
+        canary: { ...testCase.cohort, members: ["zed", "ada-lovelace"] },
+      }),
+    ).toStrictEqual([
+      { id: "canary", members: ["ada-lovelace", "zed"], ...testCase.expected },
+    ]);
+  });
+
+  it("sorts cohorts by id", async () => {
+    const cohorts = await loadCohortsThroughLoader({
+      steady: { members: ["bob"] },
+      canary: { members: ["ada-lovelace"] },
+    });
+    expect(cohorts.map((cohort) => cohort.id)).toEqual(["canary", "steady"]);
   });
 });
