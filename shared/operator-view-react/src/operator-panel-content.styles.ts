@@ -96,7 +96,7 @@ export const panelContentStyles: Record<
       outlineWidth: 2,
       outlineStyle: "solid",
       outlineColor: "var(--console-accent)",
-      outlineOffset: 3,
+      outlineOffset: 2,
     },
   },
   copy: { minWidth: 0, overflowWrap: "anywhere" },

@@ -26,7 +26,7 @@ export const actionLayoutStyles: Record<
     ":hover": { textDecorationLine: "underline" },
     ":focus-visible": {
       outline: "2px solid var(--console-accent)",
-      outlineOffset: 4,
+      outlineOffset: 2,
     },
     ":disabled": { opacity: 0.5, cursor: "not-allowed" },
   },
