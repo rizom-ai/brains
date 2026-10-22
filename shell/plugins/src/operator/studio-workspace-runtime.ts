@@ -1,5 +1,4 @@
 import type { JsonValue } from "@brains/contracts";
-import { createHash, randomUUID } from "node:crypto";
 import { z } from "@brains/utils/zod";
 import type { BasePluginContext } from "../base/context";
 import {
@@ -27,6 +26,7 @@ import {
   safeParseRuntimeStudioOperatorView,
   type RuntimeStudioWorkspaceData,
 } from "./operator-view-runtime";
+import { createPreparedConfirmationStore } from "./prepared-confirmation-store";
 import {
   parseOperatorData,
   runtimeError,
@@ -60,30 +60,20 @@ const preparedConfirmationSchema = z.object({
   summary: z.string().trim().min(1).max(500),
   revision: z.string().trim().min(1).max(500),
 });
-const PREPARED_CONFIRMATION_TTL_MS = 5 * 60 * 1_000;
-const MAX_PREPARED_CONFIRMATIONS_PER_WORKSPACE = 1_000;
-
-interface PreparedConfirmationRecord {
-  readonly callerId: string;
-  readonly actionId: string;
-  readonly inputDigest: string;
-  readonly revision: string;
-  readonly expiresAt: number;
-}
-
-function canonicalJson(value: JsonValue): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  return `{${Object.keys(value)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key] ?? null)}`)
-    .join(",")}}`;
-}
-
-function inputDigest(value: JsonValue): string {
-  return createHash("sha256").update(canonicalJson(value)).digest("hex");
-}
 const jsonValueSchema: ReturnType<typeof z.json> = z.json();
+
+function requiresPreparedConfirmation(
+  action: AnyWorkspaceActionDefinition,
+  input: unknown,
+): boolean {
+  if (action.confirmation?.kind !== "prepared") return false;
+  if (action.confirmation.conditional !== true) return true;
+  const conditional = conditionalPreparedInputSchema.safeParse(input);
+  return (
+    conditional.success &&
+    conditional.data.capability.confirmation === "prepared"
+  );
+}
 
 function createOperatorQueryReader(
   schema: OperatorSchema | undefined,
@@ -228,7 +218,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
       throw runtimeError(identity, "query state must be JSON-native");
     }
   }
-  const preparedConfirmations = new Map<string, PreparedConfirmationRecord>();
+  const preparedConfirmations = createPreparedConfirmationStore();
 
   async function contextFor(
     actor: StudioWorkspaceActor,
@@ -272,6 +262,154 @@ export function createDeclarativeStudioWorkspaceRegistration<
       );
     }
     return allowed;
+  }
+
+  type RuntimeContext = Awaited<ReturnType<typeof contextFor>>;
+  interface ParsedActionRequest {
+    readonly binding: (typeof input.binding.actions)[number];
+    readonly mode: "prepare" | "execute";
+    readonly confirmationToken: string | undefined;
+    readonly input: unknown;
+    readonly jsonInput: JsonValue;
+  }
+
+  function parseActionRequest(
+    rawRequest: unknown,
+    actor: StudioWorkspaceActor,
+  ): ParsedActionRequest {
+    const request = actionRequestSchema.safeParse(rawRequest);
+    if (!request.success) {
+      throw runtimeError(identity, "received an invalid action request");
+    }
+    const binding = input.binding.actions.find(
+      (candidate) => candidate.definition.name === request.data.actionId,
+    );
+    if (!binding) {
+      throw runtimeError(
+        identity,
+        `does not declare action "${request.data.actionId}"`,
+      );
+    }
+    const action = binding.definition;
+    if (
+      action.permission !== undefined &&
+      !meetsPermission(actor.userPermissionLevel, action.permission)
+    ) {
+      throw runtimeError(
+        identity,
+        `action "${action.name}" was requested below its minimum permission`,
+      );
+    }
+    const parsedInput = action.input.safeParse(request.data.input);
+    if (!parsedInput.success) {
+      throw runtimeError(
+        identity,
+        `action "${action.name}" received invalid input`,
+        validationDetail(parsedInput.error.issues),
+      );
+    }
+    const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
+    if (!jsonInput.success) {
+      throw runtimeError(
+        identity,
+        `action "${action.name}" input must be JSON-native`,
+      );
+    }
+    return {
+      binding,
+      mode: request.data.mode,
+      confirmationToken: request.data.confirmationToken,
+      input: parsedInput.data,
+      jsonInput: jsonInput.data,
+    };
+  }
+
+  async function issuePreparedConfirmation(
+    request: ParsedActionRequest,
+    actor: StudioWorkspaceActor,
+    runtimeContext: RuntimeContext,
+  ): Promise<JsonValue> {
+    const prepared = await prepareActionBinding(
+      request.binding,
+      runtimeContext,
+      request.input,
+    );
+    const { token, expiresAt } = preparedConfirmations.issue({
+      callerId: actor.userId,
+      actionId: request.binding.definition.name,
+      input: request.jsonInput,
+      revision: prepared.revision,
+    });
+    return {
+      kind: "prepared-confirmation",
+      token,
+      summary: prepared.summary,
+      expiresAt: new Date(expiresAt).toISOString(),
+    };
+  }
+
+  async function confirmPreparedConfirmation(
+    request: ParsedActionRequest,
+    actor: StudioWorkspaceActor,
+    runtimeContext: RuntimeContext,
+  ): Promise<void> {
+    const actionName = request.binding.definition.name;
+    const stale = (): Error =>
+      runtimeError(
+        identity,
+        `action "${actionName}" prepared confirmation is invalid or stale`,
+      );
+    const redeemed = preparedConfirmations.redeem(request.confirmationToken, {
+      callerId: actor.userId,
+      actionId: actionName,
+      input: request.jsonInput,
+    });
+    if (!redeemed) throw stale();
+    const current = await prepareActionBinding(
+      request.binding,
+      runtimeContext,
+      request.input,
+    ).catch((): never => {
+      throw stale();
+    });
+    if (current.revision !== redeemed.revision) throw stale();
+  }
+
+  async function executeAction(
+    request: ParsedActionRequest,
+    runtimeContext: RuntimeContext,
+    signal: AbortSignal,
+  ): Promise<JsonValue> {
+    const action = request.binding.definition;
+    let rawOutput: unknown;
+    try {
+      rawOutput = await executeActionBinding(
+        request.binding,
+        runtimeContext,
+        request.input,
+      );
+    } catch (error) {
+      if (signal.aborted) {
+        throw signal.reason ?? error;
+      }
+      throw runtimeError(identity, `action "${action.name}" failed`);
+    }
+    const parsedOutput = action.output.safeParse(rawOutput);
+    if (!parsedOutput.success) {
+      throw runtimeError(
+        identity,
+        `action "${action.name}" returned invalid output`,
+        validationDetail(parsedOutput.error.issues),
+      );
+    }
+    const jsonOutput = jsonValueSchema.safeParse(parsedOutput.data);
+    if (!jsonOutput.success) {
+      throw runtimeError(
+        identity,
+        `action "${action.name}" output must be JSON-native`,
+      );
+    }
+    return jsonOutput.data;
   }
   const listEntityTypes = executor.listEntityTypes;
 
@@ -367,158 +505,25 @@ export function createDeclarativeStudioWorkspaceRegistration<
           "action was requested below its admission policy",
         );
       }
-      const request = actionRequestSchema.safeParse(rawRequest);
-      if (!request.success) {
-        throw runtimeError(identity, "received an invalid action request");
-      }
-      const binding = input.binding.actions.find(
-        (candidate) => candidate.definition.name === request.data.actionId,
-      );
-      if (!binding) {
-        throw runtimeError(
-          identity,
-          `does not declare action "${request.data.actionId}"`,
-        );
-      }
-      const action = binding.definition;
-      if (
-        action.permission !== undefined &&
-        !meetsPermission(actor.userPermissionLevel, action.permission)
-      ) {
-        throw runtimeError(
-          identity,
-          `action "${action.name}" was requested below its minimum permission`,
-        );
-      }
-      const parsedInput = action.input.safeParse(request.data.input);
-      if (!parsedInput.success) {
-        throw runtimeError(
-          identity,
-          `action "${action.name}" received invalid input`,
-          validationDetail(parsedInput.error.issues),
-        );
-      }
-      const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-      if (!jsonInput.success) {
-        throw runtimeError(
-          identity,
-          `action "${action.name}" input must be JSON-native`,
-        );
-      }
+      const request = parseActionRequest(rawRequest, actor);
       const runtimeContext = await contextFor(actor, combinedSignal, undefined);
-      const conditionalConfirmation = conditionalPreparedInputSchema.safeParse(
-        parsedInput.data,
+      const needsPreparedConfirmation = requiresPreparedConfirmation(
+        request.binding.definition,
+        request.input,
       );
-      const needsPreparedConfirmation =
-        action.confirmation?.kind === "prepared" &&
-        (action.confirmation.conditional !== true ||
-          (conditionalConfirmation.success &&
-            conditionalConfirmation.data.capability.confirmation ===
-              "prepared"));
-      if (request.data.mode === "prepare") {
+      if (request.mode === "prepare") {
         if (!needsPreparedConfirmation) {
           throw runtimeError(
             identity,
-            `action "${action.name}" does not support prepared confirmation`,
+            `action "${request.binding.definition.name}" does not support prepared confirmation`,
           );
         }
-        const prepared = await prepareActionBinding(
-          binding,
-          runtimeContext,
-          parsedInput.data,
-        );
-        const now = Date.now();
-        for (const [token, record] of preparedConfirmations) {
-          if (record.expiresAt <= now) preparedConfirmations.delete(token);
-        }
-        while (
-          preparedConfirmations.size >= MAX_PREPARED_CONFIRMATIONS_PER_WORKSPACE
-        ) {
-          const oldest = preparedConfirmations.keys().next();
-          if (oldest.done) break;
-          preparedConfirmations.delete(oldest.value);
-        }
-        const token = randomUUID();
-        const expiresAt = now + PREPARED_CONFIRMATION_TTL_MS;
-        preparedConfirmations.set(token, {
-          callerId: actor.userId,
-          actionId: action.name,
-          inputDigest: inputDigest(jsonInput.data),
-          revision: prepared.revision,
-          expiresAt,
-        });
-        return {
-          kind: "prepared-confirmation",
-          token,
-          summary: prepared.summary,
-          expiresAt: new Date(expiresAt).toISOString(),
-        };
+        return issuePreparedConfirmation(request, actor, runtimeContext);
       }
       if (needsPreparedConfirmation) {
-        const token = request.data.confirmationToken;
-        const record = token ? preparedConfirmations.get(token) : undefined;
-        if (token) preparedConfirmations.delete(token);
-        if (
-          record === undefined ||
-          record.expiresAt <= Date.now() ||
-          record.callerId !== actor.userId ||
-          record.actionId !== action.name ||
-          record.inputDigest !== inputDigest(jsonInput.data)
-        ) {
-          throw runtimeError(
-            identity,
-            `action "${action.name}" prepared confirmation is invalid or stale`,
-          );
-        }
-        let current: z.output<typeof preparedConfirmationSchema>;
-        try {
-          current = await prepareActionBinding(
-            binding,
-            runtimeContext,
-            parsedInput.data,
-          );
-        } catch {
-          throw runtimeError(
-            identity,
-            `action "${action.name}" prepared confirmation is invalid or stale`,
-          );
-        }
-        if (current.revision !== record.revision) {
-          throw runtimeError(
-            identity,
-            `action "${action.name}" prepared confirmation is invalid or stale`,
-          );
-        }
+        await confirmPreparedConfirmation(request, actor, runtimeContext);
       }
-      let rawOutput: unknown;
-      try {
-        rawOutput = await executeActionBinding(
-          binding,
-          runtimeContext,
-          parsedInput.data,
-        );
-      } catch (error) {
-        if (combinedSignal.aborted) {
-          throw combinedSignal.reason ?? error;
-        }
-        throw runtimeError(identity, `action "${action.name}" failed`);
-      }
-      const parsedOutput = action.output.safeParse(rawOutput);
-      if (!parsedOutput.success) {
-        throw runtimeError(
-          identity,
-          `action "${action.name}" returned invalid output`,
-          validationDetail(parsedOutput.error.issues),
-        );
-      }
-      const jsonOutput = jsonValueSchema.safeParse(parsedOutput.data);
-      if (!jsonOutput.success) {
-        throw runtimeError(
-          identity,
-          `action "${action.name}" output must be JSON-native`,
-        );
-      }
-      return jsonOutput.data;
+      return executeAction(request, runtimeContext, combinedSignal);
     },
     ...(definition.badge
       ? {

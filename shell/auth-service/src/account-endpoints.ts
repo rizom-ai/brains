@@ -1,4 +1,3 @@
-import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import type { AccountSettingsRegistry } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -15,6 +14,7 @@ import {
 import { issuerFromRequest, isSecureRequest } from "./issuer";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
 import { clearAuthSessionCookie } from "./session-store";
+import { registrationResponseSchema } from "./webauthn-request-schemas";
 
 export interface AuthAccountOperations {
   resolveSession(request: Request): Promise<AuthAccountContext | undefined>;
@@ -247,14 +247,16 @@ async function handlePasskeyVerify(
 ): Promise<Response> {
   const requestError = requireSameOriginJson(request);
   if (requestError) return requestError;
-  const response = await readJsonRequest(request);
-  if (!isRegistrationResponseJSON(response)) {
+  const credential = registrationResponseSchema.safeParse(
+    await readJsonRequest(request),
+  );
+  if (!credential.success) {
     return privateJsonResponse({ error: "Invalid passkey response" }, 400);
   }
 
   const verified = await context.service.verifyPasskeyRegistration(
     context.account,
-    response,
+    credential.data,
     webAuthnRequestContext(request),
   );
   if (!verified) {
@@ -292,94 +294,4 @@ function webAuthnRequestContext(request: Request): {
 } {
   const issuer = new URL(issuerFromRequest(request));
   return { origin: issuer.origin, rpID: issuer.hostname };
-}
-
-const registrationResponseKeys = new Set([
-  "id",
-  "rawId",
-  "response",
-  "authenticatorAttachment",
-  "clientExtensionResults",
-  "type",
-]);
-const attestationResponseKeys = new Set([
-  "clientDataJSON",
-  "attestationObject",
-  "authenticatorData",
-  "transports",
-  "publicKeyAlgorithm",
-  "publicKey",
-]);
-const authenticatorTransports = new Set([
-  "ble",
-  "cable",
-  "hybrid",
-  "internal",
-  "nfc",
-  "smart-card",
-  "usb",
-]);
-
-function isRegistrationResponseJSON(
-  value: unknown,
-): value is RegistrationResponseJSON {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.keys(value).some((key) => !registrationResponseKeys.has(key))) {
-    return false;
-  }
-  if (!("id" in value) || typeof value.id !== "string") return false;
-  if (!("rawId" in value) || typeof value.rawId !== "string") return false;
-  if (!("type" in value) || value.type !== "public-key") return false;
-  if (
-    !("clientExtensionResults" in value) ||
-    typeof value.clientExtensionResults !== "object" ||
-    value.clientExtensionResults === null
-  ) {
-    return false;
-  }
-  if (
-    "authenticatorAttachment" in value &&
-    value.authenticatorAttachment !== "platform" &&
-    value.authenticatorAttachment !== "cross-platform"
-  ) {
-    return false;
-  }
-  if (!("response" in value)) return false;
-  const response = value.response;
-  if (typeof response !== "object" || response === null) return false;
-  if (Object.keys(response).some((key) => !attestationResponseKeys.has(key))) {
-    return false;
-  }
-  if (
-    !("clientDataJSON" in response) ||
-    typeof response.clientDataJSON !== "string" ||
-    !("attestationObject" in response) ||
-    typeof response.attestationObject !== "string"
-  ) {
-    return false;
-  }
-  if (
-    "transports" in response &&
-    (!Array.isArray(response.transports) ||
-      !response.transports.every(
-        (transport) =>
-          typeof transport === "string" &&
-          authenticatorTransports.has(transport),
-      ))
-  ) {
-    return false;
-  }
-  if (
-    "authenticatorData" in response &&
-    typeof response.authenticatorData !== "string"
-  ) {
-    return false;
-  }
-  if ("publicKey" in response && typeof response.publicKey !== "string") {
-    return false;
-  }
-  return (
-    !("publicKeyAlgorithm" in response) ||
-    typeof response.publicKeyAlgorithm === "number"
-  );
 }

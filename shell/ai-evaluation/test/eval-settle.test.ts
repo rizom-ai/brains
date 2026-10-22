@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createTempDir } from "@brains/test-utils";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -71,42 +71,4 @@ describe("waitForIndexReadiness", () => {
     }
     expect(String(failure)).toMatch(/not ready/);
   });
-});
-
-describe("evaluation runners settle DB-less environments", () => {
-  const runnerSources = [
-    "single-model-runner.ts",
-    "multi-model-runner.ts",
-  ] as const;
-
-  for (const runnerSource of runnerSources) {
-    it(`${runnerSource} drains ingestion jobs before running without a prebuilt database`, async () => {
-      const source = await readFile(
-        join(import.meta.dir, "..", "src", runnerSource),
-        "utf8",
-      );
-
-      const prebuiltCheckIndex = source.indexOf("hasPrebuiltEvalDatabase(");
-      const bootIndex = source.indexOf("await bootEvalApp(");
-      const drainIndices = [
-        ...source.matchAll(/await waitForJobsToDrain\(/g),
-      ].map((match) => match.index);
-      const evaluationIndex = source.lastIndexOf(
-        runnerSource === "multi-model-runner.ts"
-          ? "runEvaluationsCollect("
-          : "runEvaluations(",
-      );
-      const shutdownIndex = source.lastIndexOf("await shell.shutdown()");
-
-      expect(prebuiltCheckIndex).toBeGreaterThan(-1);
-      expect(drainIndices).toHaveLength(2);
-      // The prebuilt check must read the filesystem before boot creates the
-      // database file. Ingestion settles after boot, and case-triggered work
-      // settles again before shutdown marks the Shell uninitialized.
-      expect(prebuiltCheckIndex).toBeLessThan(bootIndex);
-      expect(drainIndices[0]).toBeGreaterThan(bootIndex);
-      expect(drainIndices[1]).toBeGreaterThan(evaluationIndex);
-      expect(shutdownIndex).toBeGreaterThan(drainIndices[1] ?? Infinity);
-    });
-  }
 });

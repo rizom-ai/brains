@@ -365,6 +365,189 @@ describe("tool invocation events", () => {
     });
   });
 
+  describe("exact payloads", () => {
+    const fullContextInfo = {
+      conversationId: "matrix-room-123",
+      channelId: "!abc:matrix.org",
+      channelName: "General Chat",
+      interfaceType: "matrix",
+      actor: {
+        kind: "user" as const,
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+      },
+      displayName: "Mira",
+    };
+    const fullContext = {
+      conversationId: "matrix-room-123",
+      interfaceType: "matrix",
+      actor: { kind: "user", userId: "usr_mira", canonicalId: "user:mira" },
+      displayName: "Mira",
+      channelId: "!abc:matrix.org",
+      channelName: "General Chat",
+      toolCallId: "call-1",
+    };
+    const minimalContextInfo = {
+      conversationId: "cli-conv",
+      interfaceType: "cli",
+    };
+    // Strict equality: absent optional fields must be absent keys, not undefined.
+    const minimalContext = {
+      conversationId: "cli-conv",
+      interfaceType: "cli",
+      actor: { kind: "agent", agentId: "brain-agent" },
+    };
+
+    it("carries every context field and the toolCallId on success", async () => {
+      const { emitter, events } = recordEvents();
+      const wrapper = createToolExecuteWrapper(
+        "search_notes",
+        async () => ({ ok: true }),
+        fullContextInfo,
+        emitter,
+      );
+
+      await wrapper({ query: "x" }, { toolCallId: "call-1" });
+
+      expect(events).toStrictEqual([
+        {
+          type: "tool:invoking",
+          payload: {
+            toolName: "search_notes",
+            args: { query: "x" },
+            ...fullContext,
+          },
+        },
+        {
+          type: "tool:completed",
+          payload: { toolName: "search_notes", ...fullContext },
+        },
+      ]);
+    });
+
+    it("carries every context field and the toolCallId on failure", async () => {
+      const { emitter, events } = recordEvents();
+      const wrapper = createToolExecuteWrapper(
+        "search_notes",
+        async () => {
+          throw new Error("boom");
+        },
+        fullContextInfo,
+        emitter,
+      );
+
+      await rejection(wrapper({ query: "x" }, { toolCallId: "call-1" }));
+
+      expect(events).toStrictEqual([
+        {
+          type: "tool:invoking",
+          payload: {
+            toolName: "search_notes",
+            args: { query: "x" },
+            ...fullContext,
+          },
+        },
+        {
+          type: "tool:failed",
+          payload: { toolName: "search_notes", error: "boom", ...fullContext },
+        },
+      ]);
+    });
+
+    it("omits every optional field when absent on success", async () => {
+      const { emitter, events } = recordEvents();
+      const wrapper = createToolExecuteWrapper(
+        "search_notes",
+        async () => ({ ok: true }),
+        minimalContextInfo,
+        emitter,
+      );
+
+      await wrapper({ query: "x" });
+
+      expect(events).toStrictEqual([
+        {
+          type: "tool:invoking",
+          payload: {
+            toolName: "search_notes",
+            args: { query: "x" },
+            ...minimalContext,
+          },
+        },
+        {
+          type: "tool:completed",
+          payload: { toolName: "search_notes", ...minimalContext },
+        },
+      ]);
+    });
+
+    it("omits every optional field when absent on failure", async () => {
+      const { emitter, events } = recordEvents();
+      const wrapper = createToolExecuteWrapper(
+        "search_notes",
+        async () => {
+          throw new Error("boom");
+        },
+        minimalContextInfo,
+        emitter,
+      );
+
+      await rejection(wrapper({ query: "x" }, {}));
+
+      expect(events).toStrictEqual([
+        {
+          type: "tool:invoking",
+          payload: {
+            toolName: "search_notes",
+            args: { query: "x" },
+            ...minimalContext,
+          },
+        },
+        {
+          type: "tool:failed",
+          payload: {
+            toolName: "search_notes",
+            error: "boom",
+            ...minimalContext,
+          },
+        },
+      ]);
+    });
+
+    it("omits optional fields explicitly set to undefined", async () => {
+      const { emitter, events } = recordEvents();
+      const wrapper = createToolExecuteWrapper(
+        "search_notes",
+        async () => ({ ok: true }),
+        {
+          ...minimalContextInfo,
+          actor: undefined,
+          displayName: undefined,
+          channelId: undefined,
+          channelName: undefined,
+        },
+        emitter,
+      );
+
+      await wrapper(undefined, { toolCallId: undefined });
+
+      expect(events).toStrictEqual([
+        {
+          type: "tool:invoking",
+          payload: {
+            toolName: "search_notes",
+            args: undefined,
+            ...minimalContext,
+          },
+        },
+        {
+          type: "tool:completed",
+          payload: { toolName: "search_notes", ...minimalContext },
+        },
+      ]);
+    });
+  });
+
   describe("without emitter", () => {
     it("should work without emitter (no events emitted)", async () => {
       const handler = mock(async () => ({ status: "ok", data: {} }));

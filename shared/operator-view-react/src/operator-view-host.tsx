@@ -11,7 +11,8 @@ import {
 import { OperatorDisclosure } from "./operator-disclosure";
 import { Button as AppButton } from "@brains/app-ui-react";
 import { actionLayoutStyles as actionLayout } from "./operator-action-layout.styles";
-import * as stylex from "@stylexjs/stylex";
+import type * as stylex from "@stylexjs/stylex";
+import { styledProps } from "./styled-props";
 import type {
   RuntimeStudioOperatorView,
   RuntimeOperatorActionControl,
@@ -97,80 +98,36 @@ export interface OperatorViewComponents {
 
 function CssButton({
   variant = "primary",
-  className,
   xstyle,
-  style,
   ...props
 }: OperatorControlButtonProps): ReactElement {
   if (variant !== "link")
-    return (
-      <AppButton
-        variant={variant}
-        xstyle={xstyle}
-        className={className}
-        style={style}
-        {...props}
-      />
-    );
-  const styleProps = stylex.props(actionLayout.link, xstyle);
-  return (
-    <button
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+    return <AppButton variant={variant} xstyle={xstyle} {...props} />;
+  return <button {...styledProps(props, actionLayout.link, xstyle)} />;
 }
 
 function CssInput({
   xstyle,
-  className,
-  style,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> &
   OperatorControlPresentationProps): ReactElement {
-  const styleProps = stylex.props(xstyle);
-  return (
-    <input
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+  return <input {...styledProps(props, xstyle)} />;
 }
 
 function CssSelect({
   xstyle,
-  className,
-  style,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> &
   OperatorControlPresentationProps): ReactElement {
-  const styleProps = stylex.props(xstyle);
-  return (
-    <select
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+  return <select {...styledProps(props, xstyle)} />;
 }
 
 function CssTextarea({
   xstyle,
-  className,
-  style,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> &
   OperatorControlPresentationProps): ReactElement {
-  const styleProps = stylex.props(xstyle);
-  return (
-    <textarea
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+  return <textarea {...styledProps(props, xstyle)} />;
 }
 
 function CssDisclosure(props: OperatorDisclosureProps): ReactElement {
