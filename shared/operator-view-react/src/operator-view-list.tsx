@@ -3,7 +3,6 @@ import {
   OperatorSegmentedGroup,
   OperatorSegmentedButton,
 } from "./operator-segmented";
-import { tableStyles as tableStyle } from "./operator-table.styles";
 import {
   OperatorRecordCopy,
   OperatorRecordDescription,
@@ -17,7 +16,6 @@ import { listStyles as list } from "./operator-list.styles";
 import { OperatorSource } from "./operator-source";
 import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layout.styles";
 import * as stylex from "@stylexjs/stylex";
-import { selectionStyles as selection } from "./operator-selection.styles";
 import { OperatorMetadata } from "./operator-metadata";
 import type {
   RuntimeStudioOperatorPanelBlock,
@@ -29,22 +27,15 @@ import {
   OperatorRendererHostContext,
   OpenDetailContext,
 } from "./operator-view-host";
-import type { OperatorViewQuery } from "./operator-view-host";
-import { displayCell } from "./operator-view-format";
 import { OperatorLink } from "./operator-view-links";
-import {
-  Actions,
-  actionFailureMessage,
-  presentedActionResult,
-} from "./operator-view-actions";
-import { QueryBlock } from "./operator-view-blocks";
+import { Actions } from "./operator-view-actions";
 
-type RuntimeListItem = Extract<
+export type RuntimeListItem = Extract<
   RuntimeStudioOperatorPanelBlock,
   { type: "list" }
 >["items"][number];
 
-function ListItems(props: {
+export function ListItems(props: {
   items: readonly RuntimeListItem[];
   presentation?: Extract<
     RuntimeStudioOperatorPanelBlock,
@@ -273,257 +264,11 @@ export function ListBlock(props: {
   );
 }
 
-export function TableBlock(props: {
-  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "table" }>;
-  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
-  onOpenEntity: (entityType: string, id: string) => void;
-  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: OperatorViewQuery;
-  onQueryChange: (query: OperatorViewQuery) => void;
-  openId?: string | undefined;
-}): ReactElement {
-  const hasActions = props.block.rows.some(
-    (row) => (row.actions?.length ?? 0) > 0,
-  );
-  // Beside an open row, the first column keeps a gutter for its marker.
-  const gutter = props.openId !== undefined;
-  const compactRows: readonly RuntimeListItem[] = props.block.rows.flatMap(
-    (row): RuntimeListItem[] => {
-      if (!row.compact) return [];
-      return [
-        {
-          id: row.id,
-          title: row.compact.title,
-          ...(row.compact.description
-            ? { description: row.compact.description }
-            : {}),
-          ...(row.compact.metadata ? { metadata: row.compact.metadata } : {}),
-          ...(row.compact.badges ? { badges: row.compact.badges } : {}),
-          ...(row.compact.count !== undefined
-            ? { count: row.compact.count }
-            : {}),
-          ...(row.compact.tone ? { tone: row.compact.tone } : {}),
-          ...(row.link ? { link: row.link } : {}),
-          ...(row.actions ? { actions: row.actions } : {}),
-        },
-      ];
-    },
-  );
-  const hasUnannotatedRows = props.block.rows.some((row) => !row.compact);
-  const table =
-    props.block.rows.length === 0 ? (
-      <p {...stylex.props(rendererLayout.empty)}>{props.block.empty}</p>
-    ) : (
-      <>
-        {compactRows.length > 0 && (
-          <div {...stylex.props(tableStyle.compact)} data-compact-rows="">
-            <ListItems
-              items={compactRows}
-              presentation="activity"
-              onAction={props.onAction}
-              onOpenEntity={props.onOpenEntity}
-              onLaunch={props.onLaunch}
-              openId={props.openId}
-            />
-          </div>
-        )}
-        <div
-          {...stylex.props(tableStyle.scroll)}
-          data-table-scroll=""
-          {...(compactRows.length > 0
-            ? {
-                "data-has-unannotated": hasUnannotatedRows ? "true" : "false",
-              }
-            : {})}
-        >
-          <table {...stylex.props(tableStyle.table)}>
-            <thead>
-              <tr>
-                {props.block.columns.map((column, index) => (
-                  <th
-                    {...stylex.props(
-                      tableStyle.head,
-                      gutter && index === 0 && tableStyle.gutter,
-                    )}
-                    key={column.key}
-                    data-align={column.align ?? "start"}
-                  >
-                    {column.label}
-                  </th>
-                ))}
-                {hasActions && (
-                  <th {...stylex.props(tableStyle.head)} data-align="end">
-                    Actions
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {props.block.rows.map((row) => (
-                <tr
-                  {...stylex.props(
-                    tableStyle.row,
-                    props.openId === row.id && selection.current,
-                  )}
-                  key={row.id}
-                  {...(row.compact ? { "data-compact-row": "true" } : {})}
-                  {...(props.openId === row.id
-                    ? { "aria-current": "true" }
-                    : {})}
-                >
-                  {props.block.columns.map((column, index) => {
-                    const value = displayCell(row.cells[column.key]);
-                    return (
-                      <td
-                        {...stylex.props(
-                          tableStyle.cell,
-                          gutter && index === 0 && tableStyle.gutter,
-                        )}
-                        key={column.key}
-                        data-align={column.align ?? "start"}
-                      >
-                        {index === 0 && row.link ? (
-                          <OperatorLink
-                            target={row.link}
-                            onOpenEntity={props.onOpenEntity}
-                            onLaunch={props.onLaunch}
-                          >
-                            {value}
-                          </OperatorLink>
-                        ) : (
-                          value
-                        )}
-                      </td>
-                    );
-                  })}
-                  {hasActions && (
-                    <td {...stylex.props(tableStyle.cell)} data-align="end">
-                      <Actions
-                        align="end"
-                        actions={row.actions ?? []}
-                        onAction={props.onAction}
-                        subordinate
-                      />
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </>
-    );
-  if (!props.block.query) return table;
-  return (
-    <div data-table-collection="">
-      <QueryBlock
-        block={props.block.query}
-        query={props.query}
-        onQueryChange={props.onQueryChange}
-      />
-      {table}
-    </div>
-  );
-}
-
 /** The card's actions that run when it is dropped on another cell. */
-function dropActions(
+export function dropActions(
   item: RuntimeListItem,
 ): readonly RuntimeOperatorActionControl[] {
   return (item.actions ?? []).filter(
     (action) => action.dropTarget !== undefined && action.disabled !== true,
-  );
-}
-
-export function MatrixBlock(props: {
-  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "matrix" }>;
-  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
-  onOpenEntity: (entityType: string, id: string) => void;
-  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  /** The open card when this matrix is a detail master. */
-  openId?: string | undefined;
-}): ReactElement {
-  const host = useContext(OperatorRendererHostContext);
-  const [dragging, setDragging] = useState<RuntimeListItem | null>(null);
-  const [failure, setFailure] = useState("");
-  // Beside an open card there is room for one column of cards, not four.
-  const columns = props.openId !== undefined ? 1 : (props.block.columns ?? 2);
-  const drop = async (action: RuntimeOperatorActionControl): Promise<void> => {
-    setFailure("");
-    try {
-      const presented = presentedActionResult(
-        action,
-        await props.onAction(action),
-      );
-      if (presented) host.onDetachedActionResult?.(presented);
-    } catch (error) {
-      setFailure(actionFailureMessage(error));
-    }
-  };
-  return (
-    <div {...stylex.props(rendererLayout.matrixFrame)}>
-      <div {...stylex.props(rendererLayout.matrix)} data-columns={columns}>
-        {failure && (
-          <p {...stylex.props(rendererLayout.error)} role="alert">
-            {failure}
-          </p>
-        )}
-        {props.block.cells.map((cell) => {
-          const action = dragging
-            ? dropActions(dragging).find(
-                (candidate) => candidate.dropTarget === cell.id,
-              )
-            : undefined;
-          return (
-            <section
-              {...stylex.props(
-                rendererLayout.cell,
-                action && rendererLayout.dropAllowed,
-              )}
-              key={cell.id}
-              data-tone={cell.tone ?? "neutral"}
-              data-matrix-cell=""
-              data-drop={action ? "allowed" : undefined}
-              onDragOver={
-                action ? (event): void => event.preventDefault() : undefined
-              }
-              onDrop={
-                action
-                  ? (event): void => {
-                      event.preventDefault();
-                      setDragging(null);
-                      void drop(action);
-                    }
-                  : undefined
-              }
-            >
-              <h3 {...stylex.props(rendererLayout.caption)}>{cell.label}</h3>
-              {cell.items.length === 0 ? (
-                <p
-                  {...stylex.props(
-                    rendererLayout.empty,
-                    rendererLayout.cellEmpty,
-                  )}
-                >
-                  {cell.empty}
-                </p>
-              ) : (
-                <ListItems
-                  items={cell.items}
-                  onAction={props.onAction}
-                  onOpenEntity={props.onOpenEntity}
-                  onLaunch={props.onLaunch}
-                  openId={props.openId}
-                  drag={{
-                    start: setDragging,
-                    end: (): void => setDragging(null),
-                  }}
-                />
-              )}
-            </section>
-          );
-        })}
-      </div>
-    </div>
   );
 }

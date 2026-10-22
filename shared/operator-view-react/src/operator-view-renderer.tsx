@@ -18,7 +18,8 @@ import type {
   OperatorViewComponents,
   PresentedActionResult,
 } from "./operator-view-host";
-import { ActionResult, OperatorActionButton } from "./operator-view-actions";
+import { ActionResult } from "./operator-action-result";
+import { OperatorActionButton } from "./operator-view-actions";
 import { StatsBlock } from "./operator-view-blocks";
 import { ViewBlock, blockSpan } from "./operator-view-panels";
 

@@ -12,10 +12,10 @@ import { Window } from "happy-dom";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { OperatorViewRenderer } from "./operator-view-renderer";
 import {
-  OperatorActionButton,
   actionFailureMessage,
   presentedActionResult,
-} from "./operator-view-actions";
+} from "./operator-action-result";
+import { OperatorActionButton } from "./operator-view-actions";
 import type { OperatorViewComponents } from "./operator-view-host";
 
 const data: RuntimeStudioWorkspaceData = {
