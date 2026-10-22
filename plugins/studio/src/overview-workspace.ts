@@ -11,6 +11,7 @@ import {
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorView,
+  type RuntimeStudioOperatorViewFact,
   type RuntimeStudioWorkspaceData,
   type ServicePluginContext,
   type StudioOverviewContributionRegistration,
@@ -376,7 +377,7 @@ function activityCard(
 }
 
 /** Standing facts about the brain itself, read once per Overview load. */
-interface BrainFacts {
+export interface BrainFacts {
   readonly runtime: string;
   readonly degraded: boolean;
   readonly activeJobs: number;
@@ -438,6 +439,35 @@ async function brainFacts(
     inboxSources,
     entityTypes: counts.length,
   };
+}
+
+/** The status line under the title: health first, then the job queue. */
+export function overviewStatusFacts(
+  facts: BrainFacts,
+): RuntimeStudioOperatorViewFact[] {
+  const jobs = facts.activeJobs === 1 ? "job" : "jobs";
+  const failed = facts.failedJobs === 1 ? "job" : "jobs";
+  return [
+    facts.degraded
+      ? { label: "Brain degraded", tone: "error" }
+      : facts.runtime === "operational"
+        ? { label: "Brain running", tone: "good" }
+        : { label: "Runtime unavailable", tone: "warn" },
+    facts.activeJobs === 0
+      ? { label: "Queue idle" }
+      : {
+          label: `${facts.activeJobs} ${jobs} active`,
+          ...(facts.degraded ? { tone: "warn" as const } : {}),
+        },
+    ...(facts.failedJobs > 0
+      ? [
+          {
+            label: `${facts.failedJobs} failed ${failed}`,
+            tone: "warn" as const,
+          },
+        ]
+      : []),
+  ];
 }
 
 function brainCard(facts: BrainFacts): RuntimeStudioOperatorCardBlock {
@@ -687,17 +717,8 @@ function overviewView(
   const view: RuntimeStudioOperatorView = {
     kicker: "Operator home",
     title: "Overview",
+    facts: overviewStatusFacts(facts),
     blocks: [
-      ...(attention === 0 && activity.length === 0
-        ? [
-            {
-              type: "notice" as const,
-              id: "overview-at-rest",
-              title: "Nothing needs your attention.",
-              text: "No recent activity is available.",
-            },
-          ]
-        : []),
       {
         type: "columns",
         id: "overview-columns",

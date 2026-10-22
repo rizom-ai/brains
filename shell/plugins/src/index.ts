@@ -893,6 +893,7 @@ export {
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioOperatorViewStatus,
+  type RuntimeStudioOperatorViewFact,
   type RuntimeStudioOperatorDetailBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorView,

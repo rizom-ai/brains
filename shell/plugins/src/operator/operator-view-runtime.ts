@@ -90,6 +90,7 @@ export type {
   RuntimeStudioOperatorColumnsBlock,
   RuntimeStudioOperatorBlock,
   RuntimeStudioOperatorViewStatus,
+  RuntimeStudioOperatorViewFact,
   RuntimeStudioOperatorView,
   RuntimeStudioWorkspaceData,
   RuntimeDashboardDigest,
@@ -155,6 +156,7 @@ export function safeParseRuntimeStudioOperatorView(
         ? { description: parsed.data.description }
         : {}),
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
+      ...(parsed.data.facts ? { facts: parsed.data.facts } : {}),
       ...(primaryAction.controls[0]
         ? { primaryAction: primaryAction.controls[0] }
         : {}),

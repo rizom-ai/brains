@@ -580,11 +580,17 @@ export interface RuntimeStudioOperatorViewStatus {
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
 }
 
+export interface RuntimeStudioOperatorViewFact {
+  readonly label: string;
+  readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
+}
+
 export interface RuntimeStudioOperatorView {
   readonly kicker?: string | undefined;
   readonly title?: string | undefined;
   readonly description?: string | undefined;
   readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly facts?: readonly RuntimeStudioOperatorViewFact[] | undefined;
   readonly primaryAction?: RuntimeOperatorActionControl | undefined;
   readonly blocks: readonly RuntimeStudioOperatorBlock[];
 }

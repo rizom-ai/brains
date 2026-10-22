@@ -790,6 +790,13 @@ const studioViewSourceSchema = z
       })
       .strict()
       .optional(),
+    // Short standing facts the head lists under the title, such as health.
+    facts: z
+      .array(
+        z.object({ label: labelSchema, tone: toneSchema.optional() }).strict(),
+      )
+      .max(6)
+      .optional(),
     primaryAction: sourceActionControlSchema.optional(),
     blocks: z
       .array(

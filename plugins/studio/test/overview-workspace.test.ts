@@ -29,6 +29,7 @@ import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
   createStudioOverviewWorkspace,
+  overviewStatusFacts,
 } from "../src/overview-workspace";
 
 it("combines an empty attention/activity state without hiding standing runtime information", async () => {
@@ -48,14 +49,12 @@ it("combines an empty attention/activity state without hiding standing runtime i
   const empty = await workspace.dataProvider(actor, {});
   expect(empty).toMatchObject({
     view: {
-      blocks: [
-        {
-          id: "overview-at-rest",
-          title: "Nothing needs your attention.",
-          text: "No recent activity is available.",
-        },
-        { type: "columns" },
+      title: "Overview",
+      facts: [
+        { label: "Brain running", tone: "good" },
+        { label: "Queue idle" },
       ],
+      blocks: [{ type: "columns" }],
     },
   });
   expect(JSON.stringify(empty)).not.toContain('"id":"overview-attention"');
@@ -90,7 +89,6 @@ it("combines an empty attention/activity state without hiding standing runtime i
     entityId: "source",
   });
   const active = await workspace.dataProvider(actor, {});
-  expect(JSON.stringify(active)).not.toContain('"id":"overview-at-rest"');
   expect(JSON.stringify(active)).toContain('"id":"overview-activity"');
 });
 
@@ -138,6 +136,39 @@ function titlesIn(data: unknown, cardId: string): string[] {
 }
 
 describe("Overview composition", () => {
+  it("says in the status line when the brain is degraded or jobs failed", () => {
+    const facts = {
+      runtime: "degraded",
+      degraded: true,
+      activeJobs: 5,
+      failedJobs: 1,
+      version: "1.0.0",
+      interactions: 0,
+      channels: 0,
+      inboxSources: 0,
+      entityTypes: 0,
+    };
+
+    expect(overviewStatusFacts(facts)).toEqual([
+      { label: "Brain degraded", tone: "error" },
+      { label: "5 jobs active", tone: "warn" },
+      { label: "1 failed job", tone: "warn" },
+    ]);
+    expect(
+      overviewStatusFacts({
+        ...facts,
+        degraded: false,
+        runtime: "unavailable",
+        activeJobs: 1,
+        failedJobs: 2,
+      }),
+    ).toEqual([
+      { label: "Runtime unavailable", tone: "warn" },
+      { label: "1 job active" },
+      { label: "2 failed jobs", tone: "warn" },
+    ]);
+  });
+
   it("ranks failures above sources that wait on the operator", async () => {
     const registry = new StudioOverviewRegistry();
     registry.register(contribution());

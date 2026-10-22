@@ -49,6 +49,30 @@ it("retains full diagnostic source text beyond the prose limit while enforcing t
   ).toBe(false);
 });
 
+it("keeps a view's status facts and bounds how many it may carry", () => {
+  const facts = [
+    { label: "Brain running", tone: "good" },
+    { label: "Queue idle" },
+  ];
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      { facts, blocks: [] },
+      { actions: [], permission: "trusted" },
+    ),
+  ).toMatchObject({ success: true, data: { facts } });
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      {
+        facts: Array.from({ length: 7 }, (_, index) => ({
+          label: `Fact ${index}`,
+        })),
+        blocks: [],
+      },
+      { actions: [], permission: "trusted" },
+    ).success,
+  ).toBe(false);
+});
+
 function instantiate(
   definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
 ): NonNullable<ReturnType<typeof instantiatePluginPackageDefinition>[number]> {
