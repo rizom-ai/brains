@@ -34,7 +34,7 @@ export async function exerciseDashboard({
       page,
       `dashboard-system-${viewport.width}x${viewport.height}-${climate}.png`,
     );
-    if (viewport.width <= 700) {
+    if (viewport.width <= 720) {
       await evaluatePage(page, () =>
         document
           .querySelector(".system-checks-card")
@@ -45,7 +45,7 @@ export async function exerciseDashboard({
         `dashboard-system-checks-${viewport.width}x${viewport.height}-${climate}.png`,
       );
     }
-    if (viewport.width <= 960) {
+    if (viewport.width <= 900) {
       await evaluatePage(page, () =>
         document
           .querySelector(".system-runtime-card")
@@ -150,7 +150,7 @@ async function verifyEmptyMaps({
           Math.abs(empty.getBoundingClientRect().width - frame.clientWidth) >
             1 ||
           getComputedStyle(empty).minHeight !==
-            (window.innerWidth <= 700 ? "260px" : "360px")
+            (window.innerWidth <= 720 ? "260px" : "360px")
         )
           throw new Error("Empty map lost its full-width reading state");
         window.scrollTo(0, 0);
@@ -184,10 +184,10 @@ async function verifyDeclarativeNetwork({
       graphic.getAttribute("viewBox") !== "0 0 980 560" ||
       Math.abs(
         graphic.getBoundingClientRect().width / frame.clientWidth -
-          (window.innerWidth <= 700 ? 1.55 : 1),
+          (window.innerWidth <= 720 ? 1.55 : 1),
       ) > 0.01 ||
       getComputedStyle(graphic).minHeight !==
-        (window.innerWidth <= 700 ? "260px" : "360px") ||
+        (window.innerWidth <= 720 ? "260px" : "360px") ||
       !getComputedStyle(frame).backgroundImage.includes("radial-gradient")
     )
       throw new Error("Declarative network lost its compiled projection frame");
@@ -224,7 +224,7 @@ async function verifyDenseAtlas({
     )
       throw new Error("Dense atlas lost source detail or bounds");
     if (
-      window.innerWidth > 700 &&
+      window.innerWidth > 720 &&
       note.getBoundingClientRect().top <
         remainder.getBoundingClientRect().bottom - 1
     )
@@ -238,7 +238,7 @@ async function verifyDenseAtlas({
           ),
         ) -
           1 ||
-      (window.innerWidth > 700 &&
+      (window.innerWidth > 720 &&
         note.getBoundingClientRect().bottom >
           index.getBoundingClientRect().bottom + 1)
     )
@@ -246,7 +246,7 @@ async function verifyDenseAtlas({
     for (const control of controls) {
       if (
         control.title !== control.querySelector("strong")?.textContent ||
-        (window.innerWidth <= 700 &&
+        (window.innerWidth <= 720 &&
           control.getBoundingClientRect().height < 44)
       )
         throw new Error("Dense atlas lost full labels or usable controls");
