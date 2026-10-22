@@ -131,7 +131,7 @@ export const layoutStyles: Record<
     fontSize: 13,
     lineHeight: 1.6,
     color: "var(--console-text-dim)",
-    outlineOffset: 4,
+    outlineOffset: 2,
     overflowWrap: "anywhere",
   },
   disclosure: {

@@ -141,10 +141,10 @@ export const chromeStyles: Record<
     display: { default: "inline-flex", "@media (max-width: 640px)": "none" },
   },
   focus: {
-    outlineOffset: 3,
+    outlineOffset: 2,
     ":focus-visible": {
       outline: "2px solid var(--console-accent)",
-      outlineOffset: 3,
+      outlineOffset: 2,
     },
   },
   masthead: {

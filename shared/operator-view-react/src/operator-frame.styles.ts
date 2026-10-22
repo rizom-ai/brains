@@ -136,7 +136,7 @@ export const frameStyles: Record<
       outlineWidth: 2,
       outlineStyle: "solid",
       outlineColor: "var(--console-accent)",
-      outlineOffset: 3,
+      outlineOffset: 2,
     },
   },
 });

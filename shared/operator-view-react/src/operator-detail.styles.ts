@@ -69,7 +69,7 @@ export const detailStyles: Record<
     cursor: "pointer",
     ":focus-visible": {
       outline: "2px solid var(--console-accent)",
-      outlineOffset: 3,
+      outlineOffset: 2,
     },
   },
   body: { display: "grid", gap: 20, minWidth: 0 },

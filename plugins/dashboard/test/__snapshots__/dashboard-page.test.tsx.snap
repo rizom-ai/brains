@@ -1120,8 +1120,6 @@ html {
 .x2ssjo2:not(#\\#):not(#\\#):not(#\\#){outline-offset:-2px}
 .xr2mjdv:not(#\\#):not(#\\#):not(#\\#){outline-offset:-4px}
 .x1hl8ikr:not(#\\#):not(#\\#):not(#\\#){outline-offset:2px}
-.x1ewu8gn:not(#\\#):not(#\\#):not(#\\#){outline-offset:3px}
-.x2wh2y9:not(#\\#):not(#\\#):not(#\\#){outline-offset:4px}
 .x1t137rt:not(#\\#):not(#\\#):not(#\\#){outline-style:none}
 .xaatb59:not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .x1k57tk5:not(#\\#):not(#\\#):not(#\\#){outline-width:0}
@@ -1267,8 +1265,7 @@ html {
 .x64nxkd:is([data-ui-spatial-active] *):not([aria-pressed="true"]):not([data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){opacity:.3}
 .x1k4xm7o:is([data-disabled]):not(#\\#):not(#\\#):not(#\\#){opacity:.45}
 .xxh1od1:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-accent)}
-.xj3ae5l:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-offset:3px}
-.x12ijfkc:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-offset:4px}
+.x7s97pk:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-offset:2px}
 .x9v5kkp:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .x4xl6zf:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-width:1px}
 .xiaifju:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){outline-width:1px}
@@ -1830,7 +1827,7 @@ html {
                   "attributes": [
                     [
                       "class",
-                      "x3nfvp2 xeuugli x2lwn1j x1c4ya5t x6s0dn4 x15gj94b x1otypdl xqvuw85 xkrqix3 x1ewu8gn x16dl9wz xj3ae5l",
+                      "x3nfvp2 xeuugli x2lwn1j x1c4ya5t x6s0dn4 x15gj94b x1otypdl xqvuw85 xkrqix3 x1hl8ikr x16dl9wz x7s97pk",
                     ],
                     [
                       "href",
@@ -1914,7 +1911,7 @@ html {
                       "attributes": [
                         [
                           "class",
-                          "public-header-sign-in x3nfvp2 xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x1csxjeb x1xnq73d xmkeg23 x1y0btm7 x8tuc8h xqvuw85 x8bwlc1 xz2iokx x1ewu8gn x16dl9wz xj3ae5l",
+                          "public-header-sign-in x3nfvp2 xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x1csxjeb x1xnq73d xmkeg23 x1y0btm7 x8tuc8h xqvuw85 x8bwlc1 xz2iokx x1hl8ikr x16dl9wz x7s97pk",
                         ],
                         [
                           "href",
@@ -1939,7 +1936,7 @@ html {
                         ],
                         [
                           "class",
-                          "public-header-climate xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x14qfxbe xzy26m8 x1717udv xmkeg23 x1y0btm7 x8tuc8h xjbqb8w xgi1xjn x1ypdohk x8bwlc1 xz2iokx x3nfvp2 xkaaz9w x1ewu8gn x16dl9wz xj3ae5l",
+                          "public-header-climate xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x14qfxbe xzy26m8 x1717udv xmkeg23 x1y0btm7 x8tuc8h xjbqb8w xgi1xjn x1ypdohk x8bwlc1 xz2iokx x3nfvp2 xkaaz9w x1hl8ikr x16dl9wz x7s97pk",
                         ],
                         [
                           "id",
@@ -2077,7 +2074,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2130,7 +2127,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2183,7 +2180,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2236,7 +2233,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",

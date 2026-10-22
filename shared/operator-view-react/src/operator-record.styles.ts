@@ -100,7 +100,7 @@ export const recordStyles: Record<
     textDecorationColor: "var(--console-rule-accent)",
     cursor: "pointer",
     overflowWrap: "anywhere",
-    outlineOffset: 4,
+    outlineOffset: 2,
     outlineStyle: { default: "none", ":focus-visible": "solid" },
     outlineWidth: 2,
     outlineColor: "var(--console-accent)",
