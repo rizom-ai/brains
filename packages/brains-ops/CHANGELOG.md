@@ -1,5 +1,9 @@
 # @brains/ops
 
+## 0.2.0-alpha.594
+
+No changes in this release.
+
 ## 0.2.0-alpha.593
 
 No changes in this release.

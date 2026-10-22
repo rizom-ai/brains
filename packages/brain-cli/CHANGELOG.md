@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.594
+
+### Patch Changes
+
+- [#722](https://github.com/rizom-ai/brains/pull/722) [`9bd1b58`](https://github.com/rizom-ai/brains/commit/9bd1b58d8a55b5d17f0898fba303896d25f30dcd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving a pasted document that starts with frontmatter no longer takes a failed attempt first: `system_create` now says the frontmatter `---` fences belong to the content, so the agent selects the document after the save instruction instead of treating the fences as delimiters. A first `system_create` or `system_update` request that fills in a user-message source hash is no longer refused as "changed after the proposal"; the hash is checked only when an approval is replayed. `system_analytics` names each report's params without repeating the report's description, which the tool description already carries, so every agent call sends about 200 fewer tokens.
+
 ## 0.2.0-alpha.593
 
 ### Patch Changes
