@@ -75,6 +75,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
           },
         }
       : {}),
+    ...(user.spaces && user.spaces.length > 0 ? { spaces: user.spaces } : {}),
     anchors:
       user.discordEnabled && user.discordAnchorUserId
         ? [`discord:${user.discordAnchorUserId}`]
