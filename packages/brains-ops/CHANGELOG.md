@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- [#724](https://github.com/rizom-ai/brains/pull/724) [`3045b2f`](https://github.com/rizom-ai/brains/commit/3045b2f645076186cffe3d6edbd0cb20e0bce032) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A fleet user file can name shared conversation `spaces` (for example `discord:<channel id>`), rendered into the brain's `brain.yaml`. People in a space are trusted, and the brain keeps the space's conversations as team memory.
+
 ## 0.2.0-alpha.594
 
 No changes in this release.

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- [#723](https://github.com/rizom-ai/brains/pull/723) [`bc97019`](https://github.com/rizom-ai/brains/commit/bc97019d33a717c4b9c1f151e3f20c9d32dd6e0b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator views no longer emit the old `declarative-*` and `operator-*` class names (`declarative-detail-master`, `declarative-columns`, `operator-key-values`, `declarative-card` and others); no stylesheet read them. Their elements carry data attributes instead (`data-detail-master`, `data-columns`, `data-facts`, `data-card`, …), alongside the existing `data-block` and `data-operator-blocks`. Disclosures keep their class hooks, which are passed through the host component's `className`.
+
 ## 0.2.0-alpha.594
 
 ### Patch Changes
