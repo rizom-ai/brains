@@ -19,10 +19,7 @@ export const headStyles: Record<
   | "totalLabel"
   | "totalValue"
   | "action"
-  | "navigation"
-  | "good"
-  | "warn"
-  | "error",
+  | "navigation",
   stylex.StyleXStyles
 > = stylex.create({
   inset: {
@@ -123,9 +120,6 @@ export const headStyles: Record<
     fontSize: 12,
     fontWeight: 600,
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   action: {
     position: "relative",
     zIndex: 4,

@@ -8,7 +8,7 @@ import type {
   PublishingActionResult,
   PublishConfirmationArgs,
 } from "./api";
-import { Button, ConfirmDialog } from "@brains/app-ui-react";
+import { Button, ConfirmDialog, toneText } from "@brains/app-ui-react";
 import { errorMessage } from "./ui-utils";
 
 export function isPublishingActionError(
@@ -116,9 +116,15 @@ export function PublicationActions(props: {
         <b
           {...stylex.props(
             s.state,
-            props.status === "queued" && s.warning,
-            props.status === "failed" && s.error,
-            props.status === "published" && s.good,
+            toneText(
+              props.status === "queued"
+                ? "warn"
+                : props.status === "failed"
+                  ? "error"
+                  : props.status === "published"
+                    ? "good"
+                    : undefined,
+            ),
           )}
         >
           {props.status}
@@ -129,7 +135,7 @@ export function PublicationActions(props: {
         save pipeline below.
       </p>
       {props.unsaved && (
-        <p {...stylex.props(s.copy, s.warning)}>
+        <p {...stylex.props(s.copy, toneText("warn"))}>
           Save changes before changing publication state.
         </p>
       )}

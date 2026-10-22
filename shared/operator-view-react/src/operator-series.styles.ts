@@ -8,9 +8,6 @@ export const seriesStyles: Record<
   | "hit"
   | "marker"
   | "bar"
-  | "good"
-  | "warn"
-  | "error"
   | "missing"
   | "axis"
   | "peak",
@@ -50,9 +47,6 @@ export const seriesStyles: Record<
     },
     transition: "fill 120ms ease",
   },
-  good: { fill: "var(--console-ok)" },
-  warn: { fill: "var(--console-warn)" },
-  error: { fill: "var(--console-err)" },
   missing: {
     fill: "none",
     stroke: "var(--console-rule-strong)",

@@ -6,9 +6,6 @@ export const panelContentStyles: Record<
   | "muted"
   | "lead"
   | "status"
-  | "good"
-  | "warn"
-  | "error"
   | "empty"
   | "list"
   | "row"
@@ -63,9 +60,6 @@ export const panelContentStyles: Record<
       boxShadow: "0 0 0 4px color-mix(in srgb, currentColor 14%, transparent)",
     },
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   empty: {
     margin: 0,
     padding: "9px 0",

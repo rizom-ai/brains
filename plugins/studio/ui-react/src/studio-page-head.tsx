@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import { headStyles as s } from "./studio-page-head.styles";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import type {
@@ -140,9 +141,7 @@ export function StudioPageHead(props: {
               className={editorClass(
                 "studio-head-status",
                 editorStyles.status,
-                props.model.status.tone === "good" && s.good,
-                props.model.status.tone === "warn" && s.warn,
-                props.model.status.tone === "error" && s.error,
+                toneText(props.model.status.tone),
                 totals.length > 0 && s.phoneHidden,
               )}
               data-tone={props.model.status.tone ?? "neutral"}
@@ -170,14 +169,7 @@ export function StudioPageHead(props: {
                   )}
                 >
                   <dt {...stylex.props(s.totalLabel)}>{item.label}</dt>
-                  <dd
-                    {...stylex.props(
-                      s.totalValue,
-                      item.tone === "good" && s.good,
-                      item.tone === "warn" && s.warn,
-                      item.tone === "error" && s.error,
-                    )}
-                  >
+                  <dd {...stylex.props(s.totalValue, toneText(item.tone))}>
                     {item.value}
                   </dd>
                 </div>
