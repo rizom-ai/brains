@@ -8,7 +8,11 @@ import type {
   ServicePluginContext,
   Tool,
 } from "@brains/plugins";
-import { createPendingEntity, ServicePlugin } from "@brains/plugins";
+import {
+  createPendingEntity,
+  createUploadSaveHandler,
+  ServicePlugin,
+} from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
@@ -135,23 +139,12 @@ export class DocumentPlugin extends ServicePlugin<
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
       mediaTypes: ["application/pdf"],
-      handler: async (input, executionContext) => {
-        const interception = await this.promoteUpload(
-          {
-            entityType: this.entityType,
-            ...(input.title !== undefined ? { title: input.title } : {}),
-            ...(input.visibility !== undefined
-              ? { visibility: input.visibility }
-              : {}),
-            from: input.upload,
-          },
-          context,
-          executionContext,
-        );
-        return interception.kind === "handled"
-          ? interception.result
-          : { success: false, error: "Document upload save was not handled" };
-      },
+      handler: createUploadSaveHandler(
+        this.entityType,
+        (input, executionContext) =>
+          this.promoteUpload(input, context, executionContext),
+        "Document upload save was not handled",
+      ),
     });
     context.jobs.registerHandler(
       "generate",
