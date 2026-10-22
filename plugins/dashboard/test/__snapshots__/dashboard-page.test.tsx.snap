@@ -1222,7 +1222,6 @@ html {
 .x1n1caiv:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .xn4j7m4:is([data-status=active] > *, [data-status=complete] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .xvs6z26:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
-.x1b32d6n:is([aria-current="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-card)}
 .x1amwds0:is([data-status=failed] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-err)}
 .x1bguay0:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-on-accent)}
 .x1foxddj:focus-visible:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-secondary-soft)}
@@ -1238,7 +1237,6 @@ html {
 .x13hqkim:is([data-climate="paper"] *):not(#\\#):not(#\\#):not(#\\#){box-shadow:0 22px 40px -28px rgba(90,60,20,.28)}
 .x18rpbmq:focus-visible:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--console-accent) 35%,transparent)}
 .x1m85y3v:is([data-climate="paper"] *):not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 2px 18px rgba(90,60,20,.22)}
-.x1v17x4h:is([aria-current="true"]):not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 2px 0 0 var(--console-accent)}
 .x1r2bfix:focus-visible:not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .x1s1kr4f:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .x1mvgbya:is([data-tone="error"]):not(#\\#):not(#\\#):not(#\\#){color:var(--console-err)}
