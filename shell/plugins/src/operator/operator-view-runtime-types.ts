@@ -179,6 +179,7 @@ export interface RuntimeOperatorListItem {
   readonly description?: string | undefined;
   readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
+  readonly at?: string | undefined;
   readonly tags?: readonly string[] | undefined;
   readonly count?: number | undefined;
   readonly badges?: readonly RuntimeOperatorBadge[] | undefined;
@@ -207,7 +208,7 @@ export interface RuntimeOperatorListBlock {
   readonly id: string;
   readonly empty: string;
   readonly presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   readonly filter?: RuntimeOperatorListFilter | undefined;
   readonly items: readonly RuntimeOperatorListItem[];
 }

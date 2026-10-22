@@ -225,6 +225,7 @@ function boundedId(prefix: string, value: string): string {
 }
 
 const ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const JOB_ACTIVITY = "Job activity";
 const MAX_ACTIVITY = 200;
 
 /** "site:build" reads as "Site build". */
@@ -397,7 +398,7 @@ function activityCard(
       {
         type: "list",
         id: "overview-activity-list",
-        presentation: "activity",
+        presentation: "log",
         empty: "Nothing happened in the last 24 hours.",
         // Failures are listed in Needs you; repeating them here adds nothing.
         items: activity
@@ -406,7 +407,11 @@ function activityCard(
             id: item.id,
             title: item.title,
             ...(item.description ? { description: item.description } : {}),
-            metadata: item.metadata,
+            at: item.at,
+            // The log shows the time itself; a job needs no "job" label.
+            metadata: item.metadata.filter(
+              (value) => value !== item.at && value !== JOB_ACTIVITY,
+            ),
             tone: item.tone,
             ...(item.link ? { link: item.link } : {}),
           })),
@@ -620,7 +625,7 @@ export class StudioOverviewRegistry {
       at: timestamp,
       title: `${jobName(jobType)} ${parsed.data.status}`,
       ...(parsed.data.message ? { description: parsed.data.message } : {}),
-      metadata: ["Job activity", timestamp, ...(progress ? [progress] : [])],
+      metadata: [JOB_ACTIVITY, timestamp, ...(progress ? [progress] : [])],
       tone:
         parsed.data.status === "failed"
           ? "error"

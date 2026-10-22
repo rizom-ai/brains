@@ -9,7 +9,7 @@ type Tone = "neutral" | "good" | "warn" | "error";
 export function OperatorList(props: {
   density: Density;
   presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   children: ReactNode;
 }): ReactElement {
   const root = stylex.props(
@@ -32,6 +32,8 @@ export function OperatorRecordRow(props: {
   interactive?: boolean | undefined;
   master?: boolean | undefined;
   stacked?: boolean | undefined;
+  /** A rail in the row's tone marks it as waiting on the operator. */
+  railed?: boolean | undefined;
   children: ReactNode;
   trailing?: ReactNode;
   /** A row that can be picked up and dropped elsewhere. */
@@ -47,6 +49,7 @@ export function OperatorRecordRow(props: {
         props.density === "compact" && s.compactRow,
         props.master && s.master,
         props.stacked && s.stacked,
+        props.railed && s.railed,
         props.interactive && s.interactive,
         props.selected && selection.current,
       )}

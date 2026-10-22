@@ -70,6 +70,7 @@ export function normalizeStudioListItem(
       ...(item.description ? { description: item.description } : {}),
       ...(item.meta ? { meta: item.meta } : {}),
       ...(item.metadata ? { metadata: item.metadata } : {}),
+      ...(item.at ? { at: item.at } : {}),
       ...(item.tags ? { tags: item.tags } : {}),
       ...definedFields({ count: item.count }),
       ...(item.badges ? { badges: item.badges } : {}),

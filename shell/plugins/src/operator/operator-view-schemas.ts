@@ -192,6 +192,8 @@ const listItemSchema = z
     meta: shortTextSchema.optional(),
     metadata: z.array(shortTextSchema).max(20).optional(),
     tags: z.array(labelSchema).max(30).optional(),
+    // When the item happened; a log presentation reads rows by it.
+    at: z.iso.datetime({ offset: true }).optional(),
     count: z.number().finite().optional(),
     badges: z.array(badgeSchema).max(10).optional(),
     filterValues: z
@@ -214,6 +216,7 @@ const listPresentationSchema = z.enum([
   "editorial",
   "attention",
   "activity",
+  "log",
 ]);
 const listBlockObjectSchema = z
   .object({

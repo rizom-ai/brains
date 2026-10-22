@@ -3,6 +3,7 @@ export const listStyles: Record<
   | "list"
   | "compactList"
   | "row"
+  | "railed"
   | "compactRow"
   | "master"
   | "interactive"
@@ -77,6 +78,16 @@ export const listStyles: Record<
     },
     transitionProperty: "background-color, box-shadow",
     transitionDuration: "200ms",
+  },
+  railed: {
+    paddingLeft: 16,
+    borderLeftWidth: 3,
+    borderLeftStyle: "solid",
+    borderLeftColor: {
+      default: "transparent",
+      ":is([data-tone=warn])": "var(--console-warn)",
+      ":is([data-tone=error])": "var(--console-err)",
+    },
   },
   compactRow: {
     padding: "13px 6px 13px 0",

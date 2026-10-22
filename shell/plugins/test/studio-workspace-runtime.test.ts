@@ -123,6 +123,35 @@ it("accepts a timeline of dated events within a forward window", () => {
   ).toBe(false);
 });
 
+it("lets list items carry the time they happened, read as a log", () => {
+  const log = (at: string): unknown => ({
+    blocks: [
+      {
+        type: "list",
+        id: "log",
+        presentation: "log",
+        empty: "Nothing happened.",
+        items: [{ id: "event", title: "Note updated", at }],
+      },
+    ],
+  });
+  expect(
+    safeParseRuntimeStudioOperatorView(log("2026-07-11T16:28:00.000Z"), {
+      actions: [],
+      permission: "trusted",
+    }),
+  ).toMatchObject({
+    success: true,
+    data: { blocks: [{ items: [{ at: "2026-07-11T16:28:00.000Z" }] }] },
+  });
+  expect(
+    safeParseRuntimeStudioOperatorView(log("this morning"), {
+      actions: [],
+      permission: "trusted",
+    }).success,
+  ).toBe(false);
+});
+
 it("keeps a view's status facts and bounds how many it may carry", () => {
   const facts = [
     { label: "Brain running", tone: "good" },

@@ -684,6 +684,8 @@ export interface OperatorListItem<
   /** @deprecated Use metadata for multiple semantic values. */
   readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
+  /** When the item happened, as an ISO timestamp; a log groups rows by it. */
+  readonly at?: string | undefined;
   readonly tags?: readonly string[] | undefined;
   readonly count?: number | undefined;
   readonly badges?: readonly OperatorBadge[] | undefined;
@@ -718,7 +720,7 @@ export interface OperatorListBlock<
   readonly empty: string;
   /** Reading hierarchy, independent of the workspace or transport rendering it. */
   readonly presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   readonly filter?: OperatorListFilter | undefined;
   readonly items: readonly OperatorListItem<TAction>[];
 }

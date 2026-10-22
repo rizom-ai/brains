@@ -217,6 +217,48 @@ describe("Overview composition", () => {
     ]);
   });
 
+  it("reads What happened as a timed log without raw timestamps", async () => {
+    const now = Date.parse("2026-07-11T16:40:00.000Z");
+    const registry = new StudioOverviewRegistry({ now: (): number => now });
+    await registry.recordEntity("updated", {
+      entityType: "note",
+      entityId: "quiet-infrastructure",
+    });
+    registry.recordJob({
+      id: "sync",
+      type: "job",
+      status: "completed",
+      jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
+    });
+    const workspace = createStudioOverviewWorkspace({
+      context: createServicePluginContext(createMockShell(), "studio"),
+      registry,
+      now: (): number => now,
+    });
+
+    const card = cards(
+      columnsOf(await workspace.dataProvider(admin, {})).primary,
+    ).find((block) => block.id === "overview-activity");
+    const log = card?.blocks[0];
+    if (log?.type !== "list") throw new Error("Expected the activity log");
+
+    expect(log.presentation).toBe("log");
+    expect(
+      log.items.map(({ title, at, metadata }) => ({ title, at, metadata })),
+    ).toEqual([
+      {
+        title: "Directory sync completed",
+        at: "2026-07-11T16:40:00.000Z",
+        metadata: [],
+      },
+      {
+        title: "quiet-infrastructure",
+        at: "2026-07-11T16:40:00.000Z",
+        metadata: ["Note updated"],
+      },
+    ]);
+  });
+
   it("names jobs in words rather than by their job type", () => {
     const registry = new StudioOverviewRegistry();
     registry.recordJob({
@@ -760,7 +802,7 @@ describe("Studio Overview workspace", () => {
 
     expect(payload).toContain("What happened");
     expect(payload).toContain('"presentation":"attention"');
-    expect(payload).toContain('"presentation":"activity"');
+    expect(payload).toContain('"presentation":"log"');
     expect(payload).toContain("Site build completed");
     expect(payload).toContain("Newsletter dispatch failed");
     expect(payload).toContain("Transport rejected the payload");
