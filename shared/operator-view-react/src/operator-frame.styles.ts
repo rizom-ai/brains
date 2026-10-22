@@ -89,9 +89,9 @@ export const frameStyles: Record<
     justifyContent: "space-between",
     alignItems: {
       default: "baseline",
-      "@media (max-width: 700px)": "flex-start",
+      "@media (max-width: 720px)": "flex-start",
     },
-    flexDirection: { default: "row", "@media (max-width: 700px)": "column" },
+    flexDirection: { default: "row", "@media (max-width: 720px)": "column" },
     gap: 18,
     fontFamily: "var(--console-mono)",
     fontSize: 10,
@@ -109,7 +109,7 @@ export const frameStyles: Record<
     gap: 16,
     justifyContent: {
       default: "flex-end",
-      "@media (max-width: 700px)": "flex-start",
+      "@media (max-width: 720px)": "flex-start",
     },
   },
   footerLink: {

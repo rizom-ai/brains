@@ -9,7 +9,7 @@ export const statsBandStyles: Record<
     display: "grid",
     gridTemplateColumns: {
       default: "repeat(3,minmax(0,1fr))",
-      "@media (max-width: 700px)": "minmax(0,1fr)",
+      "@media (max-width: 720px)": "minmax(0,1fr)",
     },
     margin: "0 -18px",
     borderTopWidth: 1,
@@ -24,13 +24,13 @@ export const statsBandStyles: Record<
     borderLeftWidth: {
       default: 1,
       ":first-child": 0,
-      "@media (max-width: 700px)": 0,
+      "@media (max-width: 720px)": 0,
     },
     borderLeftStyle: "solid",
     borderLeftColor: "var(--console-rule)",
     borderTopWidth: {
       default: 0,
-      "@media (max-width: 700px)": { default: 1, ":first-child": 0 },
+      "@media (max-width: 720px)": { default: 1, ":first-child": 0 },
     },
     borderTopStyle: "solid",
     borderTopColor: "var(--console-rule)",

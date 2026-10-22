@@ -56,7 +56,7 @@ export const systemFieldStyles: Record<SystemFieldStyle, stylex.StyleXStyles> =
       display: "grid",
       gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
       gap: "22px 28px",
-      "@media (max-width: 1000px)": { gridTemplateColumns: "minmax(0, 1fr)" },
+      "@media (max-width: 900px)": { gridTemplateColumns: "minmax(0, 1fr)" },
     },
     wide: { gridColumn: "1 / -1", minWidth: 0 },
     onlyField: { gridColumn: { default: null, ":only-child": "1 / -1" } },

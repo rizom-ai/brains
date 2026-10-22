@@ -20,15 +20,15 @@ export const detailStyles: Record<
   split: {
     gridTemplateColumns: {
       default: "minmax(0,.9fr) minmax(0,1.1fr)",
-      "@media (max-width: 860px)": "minmax(0,1fr)",
-      "@container operator (max-width: 860px)": "minmax(0,1fr)",
+      "@media (max-width: 900px)": "minmax(0,1fr)",
+      "@container operator (max-width: 900px)": "minmax(0,1fr)",
     },
   },
   master: { minWidth: 0 },
   hiddenMaster: {
     minWidth: 0,
-    "@media (max-width: 860px)": { display: "none" },
-    "@container operator (max-width: 860px)": { display: "none" },
+    "@media (max-width: 900px)": { display: "none" },
+    "@container operator (max-width: 900px)": { display: "none" },
   },
   pane: {
     minWidth: 0,
@@ -54,8 +54,8 @@ export const detailStyles: Record<
   back: {
     display: {
       default: "none",
-      "@media (max-width: 860px)": "inline-flex",
-      "@container operator (max-width: 860px)": "inline-flex",
+      "@media (max-width: 900px)": "inline-flex",
+      "@container operator (max-width: 900px)": "inline-flex",
     },
     alignItems: "center",
     minHeight: "var(--console-touch)",
