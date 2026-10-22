@@ -458,6 +458,14 @@ export class SiteBuildStatusService {
     });
   }
 
+  /** Whether the environment's last recorded build failed: no success since. */
+  async hasUnresolvedFailure(
+    environment: SiteBuildEnvironment,
+  ): Promise<boolean> {
+    const state = await this.store.snapshot();
+    return state[environment].lastFailure !== undefined;
+  }
+
   clearActive(environment: SiteBuildEnvironment): Promise<void> {
     return this.mutate((state: StoredSiteBuildStatus) => {
       delete state[environment].active;
