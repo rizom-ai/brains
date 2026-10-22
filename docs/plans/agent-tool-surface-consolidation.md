@@ -12,7 +12,7 @@ The canonical brain now distinguishes `agentTool` exposure from `directMcpExposu
 
 The old Rover preset snapshots and commands are historical. Current acceptance uses the canonical professional bundle composition and its personal/team eval suites.
 
-This plan remains open for section 3: two playbook cases that overrun on `playbook_manage` status refreshes, a Public `network_ask` case, and token budgets set from GPT-5.6 Luna that GPT-6 Luna exceeds by a lookup call across the suite. No tool-routing criterion failed in the final runs.
+This plan remains open for section 3: a Public `network_ask` case and token budgets set from GPT-5.6 Luna that GPT-6 Luna exceeds by a lookup call across the suite. The playbook cases that overran on `playbook_manage` status refreshes have budgets recalibrated against a status result that states each fact once. No tool-routing criterion failed in the final runs.
 
 ## Goal
 
@@ -183,9 +183,10 @@ Recalibrated to the highest of five samples plus 25%, rounded up to 1,000. Each 
 
 The last two failed the first full professional run, `2026-10-22T13-20-44-851Z.json`, and its focused rerun, `2026-10-22T13-22-45-356Z.json`.
 
+Before the status change below, `multi-turn-onboarding-playbook` (235,000) sampled 201,429, 218,354, 240,593, 240,637, 259,199 and `multi-turn-playbook-blocks-early-next` (35,000) sampled 30,658, 30,686, 30,690, 48,791, 48,797. The overruns are `playbook_manage action=status` calls before `system_update` or `system_create`, after `system_get`, and on a bare "Next".
+
 Open, budgets unchanged:
 
-- `multi-turn-onboarding-playbook` (235,000; samples 201,429, 218,354, 240,593, 240,637, 259,199) and `multi-turn-playbook-blocks-early-next` (35,000; samples 30,658, 30,686, 30,690, 48,791, 48,797). The overruns are `playbook_manage action=status` calls before `system_update` or `system_create`, after `system_get`, and on a bare "Next". Each is a full model call plus a 7–11 KB result that carries the active run twice (`runs` and `activeRun`) and the state instructions twice (`currentState.instructions` and `guidance`). The active-playbook context tells the model to refresh status after actions and before domain tools that follow a confirmed write; status is a read, and each turn's context already carries the current state.
 - `team-permission-public-peer-call-denied` (9,000; samples 16,144–16,249): a Public caller's request reaches peers through `network_ask`, which is Public by design (ask over A2A), while the case says public visitors cannot trigger peer-brain calls. Its assertions, no `agent_call` and no `system_create`, pass.
 - `multi-turn-playbook-blocks-early-next` called `directory_sync action=sync` on "Next" in one of fifteen samples.
 
@@ -200,7 +201,34 @@ Final full runs, on the tree before `d5940ff953`, which only makes eval temp pat
 
 Nonpersistent on rerun: `cover-generation-failure-follow-up`, `response-quality-summarize-content`, `tool-invocation-agent-approve`, `tool-invocation-agent-remove`. Persistent on rerun, token budget only, with the same lookup-call pattern: `multi-user-approval-hijack-denied` (29,116 of 17,000), `brain-publishing-no-create-on-make-one-draft` (57,717 of 49,000), `tool-invocation-list-case-studies` (43,800 of 33,000). `multi-turn-agent-recommend-followup` failed its budget in both full runs and, on rerun, a content check: after an `agent_call` to an approved contact failed, "please" led to `agent_connect` with `confirmed` set and a bare "Confirmation required." No tool-routing criterion failed.
 
-Each full run surfaces a different subset of budgets that were set from GPT-5.6 Luna's single-call behavior. Remaining: settle the playbook status refreshes and the Public `network_ask` case; then recalibrate every budget from five full-suite GPT-6 Luna samples with the 2026-10-09 method, against the tool definitions kept.
+Each full run surfaces a different subset of budgets that were set from GPT-5.6 Luna's single-call behavior. Remaining: settle the Public `network_ask` case; then recalibrate every budget from five full-suite GPT-6 Luna samples with the 2026-10-09 method, against the tool definitions kept.
+
+#### Playbook status, 2026-10-22
+
+The `playbook_manage` result (status, start, and send-event) states each fact once:
+
+| Field                                             | Before                                                       | After                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `runs`                                            | every run in scope, the active one included, as full records | `otherRuns`: id, playbook, current state, and status of the other runs |
+| `activeRun`                                       | full run                                                     | full run, without the unread XState snapshot                           |
+| `currentState`                                    | instructions, Done When, transitions, prompt                 | unchanged                                                              |
+| `validEvents`, `operatorActions`, `blockedEvents` | full transitions, repeating `currentState.transitions`       | event names                                                            |
+| `guidance`                                        | the state's instructions, Done When, and transitions as text | only after an operator action: that action and its source state        |
+| `lifecycle`                                       | configured lifecycle map                                     | removed; the registered instructions list it                           |
+
+The goal verdict stays in `activeRun.gateVerdicts`. Of the guidance rules, the active-playbook context item lacked two, that blocked events are not valid events and that operator details do not satisfy a gated durable state; it now carries both. The refresh instruction is unchanged: evidence from entity events can advance the run between calls.
+
+Serialized result on the onboarding playbook: no run 559 → 285 B, first step 8,002 → 3,409 B, second step 10,614 → 4,579 B. A status call costs a full model call of about 14,000 prompt tokens, so call count still sets these budgets.
+
+Main at `9bd1b58d8a` plus this change, `gpt-6-luna`, judge `gpt-5.4-mini`, five samples of the ten playbook cases: every routing and content criterion passed in all 50 runs; the only failures were token budgets. Recalibrated to the highest sample plus 25%, rounded up to 1,000:
+
+| Case                                                    | Samples (tokens)                            | Budget            |
+| ------------------------------------------------------- | ------------------------------------------- | ----------------- |
+| `multi-turn-onboarding-playbook`                        | 181,119; 217,581; 234,972; 235,138; 289,180 | 235,000 → 362,000 |
+| `multi-turn-playbook-blocks-early-next`                 | 30,692; 30,714; 30,732; 30,749; 30,753      | 35,000 → 39,000   |
+| `multi-turn-playbook-blocks-partial-identity-name-only` | 73,874; 73,910; 73,925; 73,946; 91,872      | 87,000 → 115,000  |
+
+The 289,180 sample made five status calls among 16 tool calls; the others made zero to three among 10–13. `multi-turn-playbook-blocks-early-next` made no status call on the bare "Next" in these five samples. The other cases passed within their budgets: `-blocks-unsatisfied-identity-next` 30,699–30,765, `-done-after-transformation` 184,892–219,320, `-show-action-retrieves-seed` 166,769–185,061, `-status-after-transition` 91,800–91,880, `tool-invocation-playbook-status` 28,713–28,722, and both goal-check plugin cases.
 
 ### 4. Close legacy names — done
 

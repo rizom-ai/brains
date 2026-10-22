@@ -39,11 +39,7 @@ import {
   getState,
   getValidTransitions,
 } from "./lib/run-machine";
-import {
-  buildInstructions,
-  buildStateGuidance,
-  renderAgentContextItem,
-} from "./lib/render";
+import { buildInstructions, renderAgentContextItem } from "./lib/render";
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
@@ -54,6 +50,7 @@ import {
 import {
   playbookManageOutputSchema,
   playbookStatusResponseSchema,
+  type PlaybookRunSummary,
   type PlaybookStatusResponse,
   type PlaybookSummary,
 } from "./lib/status";
@@ -825,10 +822,9 @@ export class PlaybooksPlugin extends ServicePlugin<
       currentState && activeRun && parsedPlaybook
         ? getBlockedTransitions(activeRun, parsedPlaybook.body, currentState)
         : [];
-    const guidance =
-      currentState && activeRun && parsedPlaybook
-        ? buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
-        : undefined;
+    const otherRuns = (input.conversationId ? conversationRuns : runs)
+      .filter((run) => run.id !== activeRun?.id)
+      .map(summarizeRun);
 
     const actionsCard =
       activeRun && parsedPlaybook && operatorActions.length > 0
@@ -840,20 +836,22 @@ export class PlaybooksPlugin extends ServicePlugin<
         : undefined;
 
     return playbookStatusResponseSchema.parse({
-      runs: (input.conversationId ? conversationRuns : runs).map(
-        sanitizeRunForModelOutput,
-      ),
+      ...(otherRuns.length > 0 ? { otherRuns } : {}),
       ...(activeRun ? { activeRun: sanitizeRunForModelOutput(activeRun) } : {}),
       ...(parsedPlaybook
         ? { playbook: summarizePlaybook(parsedPlaybook) }
         : {}),
       ...(currentState ? { currentState } : {}),
-      ...(validEvents.length > 0 ? { validEvents } : {}),
-      ...(operatorActions.length > 0 ? { operatorActions } : {}),
-      ...(blockedEvents.length > 0 ? { blockedEvents } : {}),
-      ...(guidance ? { guidance } : {}),
+      ...(validEvents.length > 0
+        ? { validEvents: eventNames(validEvents) }
+        : {}),
+      ...(operatorActions.length > 0
+        ? { operatorActions: eventNames(operatorActions) }
+        : {}),
+      ...(blockedEvents.length > 0
+        ? { blockedEvents: eventNames(blockedEvents) }
+        : {}),
       ...(actionsCard ? { cards: [actionsCard] } : {}),
-      lifecycle: this.config.lifecycle,
     });
   }
 
@@ -1044,15 +1042,28 @@ function withOperatorActionGuidance(
     "Source-state instructions for the selected action:",
     sourceInstructions || "- none",
   ].join("\n");
+  return { ...status, guidance: actionGuidance };
+}
+
+/** Event names, once each; the transitions themselves live in currentState. */
+function eventNames(transitions: PlaybookTransition[]): string[] {
+  return [...new Set(transitions.map((transition) => transition.event))];
+}
+
+function summarizeRun(run: PlaybookRun): PlaybookRunSummary {
   return {
-    ...status,
-    guidance: status.guidance
-      ? `${actionGuidance}\n\n${status.guidance}`
-      : actionGuidance,
+    id: run.id,
+    playbookId: run.playbookId,
+    currentState: run.currentState,
+    status: run.status,
   };
 }
 
-function sanitizeRunForModelOutput(run: PlaybookRun): PlaybookRun {
+/** The run without its unread XState snapshot, with evidence reduced to references. */
+function sanitizeRunForModelOutput({
+  snapshot: _snapshot,
+  ...run
+}: PlaybookRun): PlaybookRun {
   return {
     ...run,
     evidence: run.evidence.map((evidence) => ({
