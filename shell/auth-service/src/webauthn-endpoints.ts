@@ -91,25 +91,8 @@ export class WebAuthnEndpoints {
   }
 
   async handleRegistrationOptions(request: Request): Promise<Response> {
-    const setup = await this.setupFlow.resolveSetupToken(request);
-    if (
-      (await this.passkeyService.hasCredentials()) &&
-      setup?.targetUserId == null
-    ) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Passkey setup already completed",
-      );
-    }
-    if (!setup) {
-      return oauthErrorResponse("access_denied", "Invalid setup token");
-    }
-    if (await this.setupFlow.hasConflictingAccountSession(request, setup)) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Sign out before using a setup link for another account",
-      );
-    }
+    const setup = await this.resolveRegistrationSetup(request);
+    if (setup instanceof Response) return setup;
 
     try {
       const options = await this.passkeyService.generateRegistrationOptions(
@@ -126,25 +109,8 @@ export class WebAuthnEndpoints {
   }
 
   async handleRegistrationVerify(request: Request): Promise<Response> {
-    const setup = await this.setupFlow.resolveSetupToken(request);
-    if (
-      (await this.passkeyService.hasCredentials()) &&
-      setup?.targetUserId == null
-    ) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Passkey setup already completed",
-      );
-    }
-    if (!setup) {
-      return oauthErrorResponse("access_denied", "Invalid setup token");
-    }
-    if (await this.setupFlow.hasConflictingAccountSession(request, setup)) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Sign out before using a setup link for another account",
-      );
-    }
+    const setup = await this.resolveRegistrationSetup(request);
+    if (setup instanceof Response) return setup;
 
     if (setup.targetUserId) {
       try {
@@ -207,6 +173,36 @@ export class WebAuthnEndpoints {
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });
+  }
+
+  /**
+   * The setup gate both registration endpoints sit behind: a setup token is
+   * required, and once a passkey exists only a targeted token can add one.
+   * Returns the resolved setup, or the refusal to send instead.
+   */
+  private async resolveRegistrationSetup(
+    request: Request,
+  ): Promise<ResolvedSetupToken | Response> {
+    const setup = await this.setupFlow.resolveSetupToken(request);
+    if (
+      (await this.passkeyService.hasCredentials()) &&
+      setup?.targetUserId == null
+    ) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Passkey setup already completed",
+      );
+    }
+    if (!setup) {
+      return oauthErrorResponse("access_denied", "Invalid setup token");
+    }
+    if (await this.setupFlow.hasConflictingAccountSession(request, setup)) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Sign out before using a setup link for another account",
+      );
+    }
+    return setup;
   }
 
   private async recordRegistrationFailure(

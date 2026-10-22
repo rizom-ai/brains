@@ -323,4 +323,157 @@ describe("WebAuthnEndpoints", () => {
     expect(response.status).toBe(200);
     expect(calls).toEqual(["session:usr_member"]);
   });
+
+  /**
+   * Both registration endpoints sit behind the same setup gate. Each case
+   * leaves out the setup-flow methods it must not reach, so a gate that
+   * checked in a different order would fail on the throwing stub.
+   */
+  describe("registration setup gate", () => {
+    const bootstrapSetup = {
+      token: "setup-token",
+      targetUserId: null,
+      deliveryClaimId: null,
+    };
+    const targetedSetup = {
+      token: "setup-token",
+      targetUserId: "usr_invited",
+      deliveryClaimId: "aid_email",
+    };
+
+    function gatedEndpoints(gate: {
+      hasCredentials: boolean;
+      setup: typeof bootstrapSetup | typeof targetedSetup | undefined;
+      conflictingSession?: boolean;
+    }): WebAuthnEndpoints {
+      return new WebAuthnEndpoints({
+        passkeyService: passkeys({
+          hasCredentials: async () => gate.hasCredentials,
+          generateRegistrationOptions: async () => ({
+            rp: { name: "Brain" },
+            user: { id: "user-id", name: "Mira", displayName: "Mira" },
+            challenge: "challenge",
+            pubKeyCredParams: [],
+          }),
+          verifyRegistrationResponse: async () => ({
+            verified: true,
+            subject: gate.setup?.targetUserId ?? "usr_anchor",
+          }),
+        }),
+        sessionStore: {
+          createSession: async (
+            subject: string,
+          ): Promise<CreateAuthSessionResult> => ({
+            subject,
+            cookie: "brains_auth_session=session-token",
+            expiresAt: Date.now() + 60_000,
+          }),
+        } satisfies EndpointSessions,
+        setupFlow: setup({
+          resolveSetupToken: async () => gate.setup,
+          ...(gate.conflictingSession !== undefined && {
+            hasConflictingAccountSession: async () =>
+              gate.conflictingSession === true,
+          }),
+          consumeSetupToken: async () => {},
+        }),
+        registrationUserProvider: async (): Promise<{
+          subject: string;
+          userName: string;
+          userDisplayName: string;
+        }> => ({
+          subject: gate.setup?.targetUserId ?? "usr_anchor",
+          userName: "Mira",
+          userDisplayName: "Mira",
+        }),
+        validateTargetedRegistration: async (): Promise<void> => {},
+        completeTargetedRegistration: async (): Promise<void> => {},
+        recordAuditEvent: async (): Promise<void> => {},
+      });
+    }
+
+    const refusals = [
+      {
+        name: "no setup token once a passkey exists",
+        gate: { hasCredentials: true, setup: undefined },
+        description: "Passkey setup already completed",
+      },
+      {
+        name: "a bootstrap setup token once a passkey exists",
+        gate: { hasCredentials: true, setup: bootstrapSetup },
+        description: "Passkey setup already completed",
+      },
+      {
+        name: "no setup token before any passkey exists",
+        gate: { hasCredentials: false, setup: undefined },
+        description: "Invalid setup token",
+      },
+      {
+        name: "a setup token used while signed in as another account",
+        gate: {
+          hasCredentials: true,
+          setup: targetedSetup,
+          conflictingSession: true,
+        },
+        description: "Sign out before using a setup link for another account",
+      },
+    ];
+    const admissions = [
+      {
+        name: "a bootstrap setup token before any passkey exists",
+        gate: {
+          hasCredentials: false,
+          setup: bootstrapSetup,
+          conflictingSession: false,
+        },
+      },
+      {
+        name: "a targeted setup token once a passkey exists",
+        gate: {
+          hasCredentials: true,
+          setup: targetedSetup,
+          conflictingSession: false,
+        },
+      },
+    ];
+
+    for (const endpoint of ["options", "verify"] as const) {
+      const handle = (
+        endpoints: WebAuthnEndpoints,
+        request: Request,
+      ): Promise<Response> =>
+        endpoint === "options"
+          ? endpoints.handleRegistrationOptions(request)
+          : endpoints.handleRegistrationVerify(request);
+      const request = (): Request =>
+        new Request(
+          `https://brain.example.com/webauthn/register/${endpoint}?setup_token=setup-token`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: registrationCredential,
+          },
+        );
+
+      for (const { name, gate, description } of refusals) {
+        it(`${endpoint} refuses ${name}`, async () => {
+          const response = await handle(gatedEndpoints(gate), request());
+
+          expect(response.status).toBe(400);
+          expect(await response.json()).toEqual({
+            error: "access_denied",
+            error_description: description,
+          });
+        });
+      }
+
+      for (const { name, gate } of admissions) {
+        it(`${endpoint} admits ${name}`, async () => {
+          const response = await handle(gatedEndpoints(gate), request());
+
+          expect(response.status).toBe(200);
+        });
+      }
+    }
+  });
 });
