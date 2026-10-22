@@ -1,0 +1,35 @@
+id: providers-stock-photo-search
+name: Configured stock-photo key exposes stock-photo_search
+description: >-
+  With a stock-photo key configured, an Admin request for a stock photo routes
+  to stock-photo_search rather than AI image generation. The suite's key is a
+  placeholder, so the provider call fails; the reply must not invent photos.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-providers
+  - stock-photo
+  - optional-provider
+  - anti-hallucination
+
+turns:
+  - userMessage: "Find me a stock photo of a wind farm at sunset."
+
+successCriteria:
+  expectedTools:
+    - toolName: stock-photo_search
+      shouldBeCalled: true
+    - toolName: system_generate
+      shouldBeCalled: false
+    - toolName: stock-photo_select
+      shouldBeCalled: false
+  responseNotContains:
+    - "unsplash.com/photos"
+    - "images.unsplash.com"
+  responseCriteria:
+    - "Does not present any specific photo as found; reports that the stock photo search failed or returned nothing."
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 40000

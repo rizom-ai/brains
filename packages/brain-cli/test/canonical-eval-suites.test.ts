@@ -67,7 +67,13 @@ if (!manifestResult.ok) {
   throw new Error(`invalid brain.eval.yaml: ${manifestResult.error}`);
 }
 const rawManifest = manifestResult.data;
-const suiteNames = ["headless", "personal", "professional", "team"] as const;
+const suiteNames = [
+  "headless",
+  "personal",
+  "professional",
+  "providers",
+  "team",
+] as const;
 type SuiteName = (typeof suiteNames)[number];
 
 const catalogIds = [
@@ -81,12 +87,15 @@ const expectedMembers: Record<SuiteName, string> = {
     "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  providers:
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
   personal: 27,
-  professional: 87,
+  professional: 92,
+  providers: 2,
   team: 38,
 };
 const tempDirectories: string[] = [];
@@ -236,6 +245,14 @@ describe("canonical eval recipe ladder", () => {
       ],
       tags: ["recipe-professional"],
     });
+    expect(suiteSelection("providers")).toMatchObject({
+      bundles: suiteSelection("professional").bundles,
+      tags: ["recipe-providers"],
+      plugins: {
+        newsletter: { provider: { type: "buttondown" } },
+        "stock-photo": { apiKey: expect.any(String) },
+      },
+    });
     expect(suiteSelection("team")).toMatchObject({
       anchor: "team",
       kind: "team",
@@ -270,7 +287,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(205);
+    expect(testCases.length).toBe(212);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -762,6 +779,47 @@ describe("canonical eval recipe ladder", () => {
         ]) {
           expect(adminDebugTools).toContain(toolName);
         }
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
+
+  test.each([
+    ["professional", []],
+    [
+      "providers",
+      ["newsletter_subscribers", "stock-photo_search", "stock-photo_select"],
+    ],
+  ] as const)(
+    "exposes optional-provider tools to Admin agents only in %s",
+    async (name, adminProviderTools) => {
+      const providerTools = [
+        "newsletter_signup",
+        "newsletter_subscribers",
+        "stock-photo_search",
+        "stock-photo_select",
+      ];
+      const selection = suiteSelection(name);
+      const { app } = createSuiteApp(
+        name,
+        selection,
+        seedContentPath(selection),
+      );
+      try {
+        await initializeImported(app);
+        const mcpService = app.getShell().getMCPService();
+        const exposed = (level: "public" | "trusted" | "admin"): string[] =>
+          mcpService
+            .listAgentToolsForPermissionLevel(level)
+            .map(({ tool }) => tool.name)
+            .filter((toolName) => providerTools.includes(toolName))
+            .sort();
+
+        expect(exposed("public")).toEqual([]);
+        expect(exposed("trusted")).toEqual([]);
+        expect(exposed("admin")).toEqual([...adminProviderTools]);
       } finally {
         await app.stop();
       }

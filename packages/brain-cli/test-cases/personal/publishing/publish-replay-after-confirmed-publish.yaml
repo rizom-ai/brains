@@ -1,0 +1,100 @@
+id: brain-publishing-replay-after-confirmed-publish
+name: Repeated publish after a confirmed publish is not replayed
+description: >-
+  Covers confirmation replay protection for direct publication. After the user
+  approves a direct publish through publishing_manage, asking to publish the
+  same post again must not reuse the consumed approval, request a new publish
+  confirmation, or claim a second publication: the post is already published.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - brain
+  - publishing
+  - confirmation
+  - anti-fabrication
+  - recipe-professional
+
+turns:
+  - userMessage: >-
+      Change the blog post "Urban Sensing Networks and the Data Commons" to draft.
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            operation.kind: fields
+            operation.fields.status: draft
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: >-
+      Approve the status change.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            id: urban-sensing-networks
+
+  - userMessage: >-
+      Publish it now.
+    successCriteria:
+      expectedTools:
+        - toolName: publishing_manage
+          shouldBeCalled: true
+          argsContain:
+            action: publish
+            entityType: post
+            id: urban-sensing-networks
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: >-
+      Approve the publish.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: publishing_manage
+          shouldBeCalled: true
+          argsContain:
+            action: publish
+            entityType: post
+            id: urban-sensing-networks
+            confirmed: true
+
+  - userMessage: >-
+      Publish it again.
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: false
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "Confirmation required"
+        - "published it again"
+        - "republished"
+      responseCriteria:
+        - "Says the post is already published and does not claim it was published a second time."
+
+successCriteria:
+  expectedTools:
+    - toolName: publishing_manage
+      shouldBeCalled: true
+      argsContain:
+        action: publish
+        entityType: post
+        id: urban-sensing-networks
+        confirmed: true
+    - toolName: system_create
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 80000

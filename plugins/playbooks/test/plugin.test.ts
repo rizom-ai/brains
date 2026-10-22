@@ -487,6 +487,35 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
+  it("tells the model that start requires the playbook id", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const manageTool = capabilities.tools.find(
+      (tool) => tool.name === "playbook_manage",
+    );
+
+    expect(
+      JSON.stringify(z.toJSONSchema(z.object(manageTool?.inputSchema ?? {}))),
+    ).toContain("REQUIRED for action=start");
+  });
+
+  it("answers an action missing its required fields with a readable error", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness);
+
+    const response = await harness.executeTool("playbook_manage", {
+      action: "start",
+      lifecycle: "rover-onboarding",
+    });
+
+    expect(response).toEqual({
+      success: false,
+      error:
+        "Invalid playbook_manage input: playbookId is required for action=start.",
+    });
+  });
+
   it("declares playbook tool visibility and side effects", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     const capabilities = await harness.installPlugin(playbooksPlugin({}));

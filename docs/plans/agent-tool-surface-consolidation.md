@@ -1,10 +1,10 @@
 # Plan: Agent tool surface consolidation
 
-Last updated: 2026-10-20
+Last updated: 2026-10-21
 
 ## Status
 
-**Implementation and measurement complete; focused behavioral evidence and legacy-name closeout remain.** Chat-only MCP basic mode shipped in `0.2.0-alpha.400` after its reintroduction gate (focused `--mcp-basic` 4/4, personal 22/22, team 40/40 on 2026-09-20). Analytics has one typed agent surface: `system_analytics`, with traffic reports replacing `analytics_query` (`0.2.0-alpha.523`); the analytics plugin registers no tools.
+**Implementation, measurement, focused behavioral coverage, and legacy-name closeout complete; the release-candidate token budgets remain.** Chat-only MCP basic mode shipped in `0.2.0-alpha.400` after its reintroduction gate (focused `--mcp-basic` 4/4, personal 22/22, team 40/40 on 2026-09-20). Analytics has one typed agent surface: `system_analytics`, with traffic reports replacing `analytics_query` (`0.2.0-alpha.523`); the analytics plugin registers no tools.
 
 The chat-only MCP basic surface has met its deterministic and live-model reintroduction gates. Canonical protocol acceptance proves the replacement path, focused basic-MCP evals prove live routing and exact note fidelity, and clean personal/team release-candidate runs prove the broader regression boundary.
 
@@ -12,10 +12,7 @@ The canonical brain now distinguishes `agentTool` exposure from `directMcpExposu
 
 The old Rover preset snapshots and commands are historical. Current acceptance uses the canonical professional bundle composition and its personal/team eval suites.
 
-This plan remains open for:
-
-- the focused behavioral coverage in section 3, beyond the release-candidate suites; and
-- closing legacy names (section 4): none is registered, and the unregistered `createQueueTool` (`publish-pipeline_queue`) and `createPublishTool` (`publish-pipeline_publish`) factories are removed from `plugins/content-pipeline/src/tools/`.
+This plan remains open for the release-candidate failures in section 3: persistent token-budget overruns on nine cases and one persistent team content miss. No tool-routing regression remains.
 
 ## Goal
 
@@ -121,7 +118,51 @@ Run coverage and focused evals through the canonical `packages/brain-cli` postur
 
 Then run the full relevant eval suite against the nominated release candidate. Stochastic content misses may be classified only after focused reruns; persistent tool-routing regressions block completion.
 
-### 4. Close legacy names
+#### Coverage
+
+| Area                                     | Cases                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Playbook status and transitions          | `tool-invocation-playbook-status`, `multi-turn-onboarding-playbook`, `multi-turn-playbook-blocks-early-next`, `-blocks-partial-identity-name-only`, `-blocks-unsatisfied-identity-next`, `-done-after-transformation`, `-show-action-retrieves-seed`; new `multi-turn-playbook-status-after-transition`                                                                          |
+| Directory sync and status follow-up      | `tool-invocation-directory-sync` (headless), `team-tool-directory-sync-status`; new `multi-turn-directory-sync-status-follow-up` (sync, bare status follow-up, repeated sync)                                                                                                                                                                                                    |
+| Directory sync history                   | No live coverage: `history` exists only in the git variant, and in-process eval runs without the supervised Git broker. The `requires-supervised-git` cases cannot run remotely either, because `--url` sends a bearer token and web-chat accepts only a session cookie. Deterministic coverage: `plugins/directory-sync/test/tools/history-tool.test.ts`, `sync-tools.test.ts`. |
+| Publication queueing and direct publish  | `brain-permission-admin-can-queue-publish-draft`, `social-media-queue-list-agent`, `brain-publishing-followup-uses-updated-post`, `brain-permission-trusted-draft-edit-no-publish`                                                                                                                                                                                               |
+| Confirmation replay protection           | new `brain-publishing-replay-after-confirmed-publish`                                                                                                                                                                                                                                                                                                                            |
+| Repeated actions and stale confirmations | new `brain-publishing-stale-confirmation-after-edit`; repeated sync in `multi-turn-directory-sync-status-follow-up`. `tool-invocation-repeated-actions` needs a built site runtime and stays outside the suites.                                                                                                                                                                 |
+| Inline versus durable generation         | new `multi-turn-inline-then-durable-generation`; inline outline turns in the onboarding cases; `tool-invocation-blog-generate`, `tool-invocation-newsletter-generate-from-post`                                                                                                                                                                                                  |
+| Optional-provider exposure               | new `providers` suite (professional plus placeholder Buttondown and stock-photo keys): `providers-newsletter-subscribers-list` at Public, Trusted, and Admin, `providers-stock-photo-search`; the canonical suite test asserts the provider tools reach Admin agents only                                                                                                        |
+
+#### Runtime fixes from the focused runs
+
+- `multi-turn-playbook-show-action-retrieves-seed` called `playbook_manage` `start` without `playbookId`; the schema described the field only for `status`, and the Zod failure came back as a raw issue list. The schema now says it is required for `start`, and a rejected action returns a readable error naming the missing field (`plugins/playbooks/test/plugin.test.ts`).
+- That turn's reply was empty: the model ended the turn after the failed call with no text. Non-guest turns now fall back to the latest tool error (`shell/ai-service/test/agent-service.test.ts`).
+- The playbook entity instructions still named the removed `playbook_status`; they now name `playbook_manage action=status` (`plugins/playbooks/test/entity-instructions.test.ts`).
+
+#### Evidence, 2026-10-21
+
+Merged tree `fafcc32936` (main at `7f3bbf4345` merged into this work), `gpt-6-luna`, judge `gpt-5.4-mini`.
+
+| Run                                          | Result | Saved result                    |
+| -------------------------------------------- | -----: | ------------------------------- |
+| Focused professional cases for the six areas |  17/18 | `2026-10-21T20-40-44-042Z.json` |
+| Focused `providers` suite                    |    4/4 | `2026-10-21T20-46-37-942Z.json` |
+| Full professional suite                      | 92/103 | `2026-10-21T21-05-11-031Z.json` |
+| Full team suite                              |  34/40 | `2026-10-21T21-11-32-090Z.json` |
+| Full `providers` suite                       |    4/4 | `2026-10-21T21-12-43-823Z.json` |
+| Focused rerun of the professional failures   |   4/11 | `2026-10-21T21-17-06-326Z.json` |
+| Focused rerun of the team failures           |    3/6 | `2026-10-21T21-18-22-340Z.json` |
+
+Every new case passed on the merged tree. Nonpersistent on rerun: `multi-turn-agent-recommend-followup`, `multi-user-public-create-denied-thread`, `tool-invocation-agent-remove`, `tool-invocation-set-cover-remove`, `team-scenario-site-owner-demo-audit`, `team-tool-operator-dashboard-studio-status`, `team-permission-public-peer-call-denied`.
+
+Remaining, persistent across the full run and the focused rerun, with every tool-routing criterion passing:
+
+- Token budget only: `multi-turn-onboarding-playbook` (about 244,000 of 235,000; 4 of 5 runs over), `multi-turn-playbook-blocks-early-next` (about 49,600 of 35,000), `tool-invocation-system-delete-link` at Public, Trusted, and Admin (17,000 budget), `tool-invocation-blog-finalized-direct-create`, `tool-invocation-document-create-carousel-attach` (17,000), `team-permission-admin-singleton-delete-refused` (16,000), `team-permission-public-save-note-denied` (9,000). The budgets were set on 2026-10-09 from a GPT-5.6 Luna baseline; the eval model changed to GPT-6 Luna on 2026-10-10, which takes an extra lookup step in several of these cases. The first-turn prompt of the onboarding case grew from 12,394 to 14,563 tokens between 2026-10-08 and 2026-10-21.
+- Content: `team-scenario-new-teammate-onboarding` does not list the saved peer-brain agents; its `system_search` calls set `minScore` 0.3–0.35 and miss the peer-brain and operating-model titles.
+
+Next: recalibrate the token budgets against GPT-6 Luna with the 2026-10-09 method (highest of five samples plus 25%), and fix the team retrieval miss; then rerun both full suites.
+
+### 4. Close legacy names — done
+
+No legacy name is registered. `createQueueTool` (`publish-pipeline_queue`) and `createPublishTool` (`publish-pipeline_publish`) were removed in #688, and the last instruction reference to `playbook_status` now names `playbook_manage action=status`.
 
 For every old registered name:
 
