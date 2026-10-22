@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.590
+
+### Patch Changes
+
+- [#715](https://github.com/rizom-ai/brains/pull/715) [`ff7e335`](https://github.com/rizom-ai/brains/commit/ff7e33579f76efa2278219bf7c1c834bc8fcaa92) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat source lists name and link each source without its excerpt, in the web chat (the guest Ask box) and in Studio's chat thread.
+
 ## 0.2.0-alpha.589
 
 ### Patch Changes
