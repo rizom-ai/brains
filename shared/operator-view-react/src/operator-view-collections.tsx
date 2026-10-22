@@ -17,6 +17,7 @@ import { listStyles as list } from "./operator-list.styles";
 import { OperatorSource } from "./operator-source";
 import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layout.styles";
 import * as stylex from "@stylexjs/stylex";
+import { selectionStyles as selection } from "./operator-selection.styles";
 import { OperatorMetadata } from "./operator-metadata";
 import type {
   RuntimeStudioOperatorPanelBlock,
@@ -366,7 +367,10 @@ export function TableBlock(props: {
             <tbody>
               {props.block.rows.map((row) => (
                 <tr
-                  {...stylex.props(tableStyle.row)}
+                  {...stylex.props(
+                    tableStyle.row,
+                    props.openId === row.id && selection.current,
+                  )}
                   key={row.id}
                   {...(row.compact ? { "data-compact-row": "true" } : {})}
                   {...(props.openId === row.id

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { selectionStyles as selection } from "./operator-selection.styles";
 import { toneText } from "@brains/app-ui-react";
 import type { DragEvent, ReactElement, ReactNode } from "react";
 import { listStyles as s } from "./operator-list.styles";
@@ -49,7 +50,7 @@ export function OperatorRecordRow(props: {
         props.master && s.master,
         props.stacked && s.stacked,
         props.interactive && s.interactive,
-        props.selected && s.selected,
+        props.selected && selection.current,
       )}
       data-tone={props.tone ?? "neutral"}
       aria-current={props.selected ? "true" : undefined}

@@ -58,6 +58,15 @@ const table: Master = {
   ],
 };
 
+/** The classes on `element` whose compiled rule is the open-row tint. */
+function tintClasses(element: { classList: Iterable<string> }): string[] {
+  return [...element.classList].filter((name) =>
+    operatorViewStylexCSS.includes(
+      `.${name}:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 5%,transparent)}`,
+    ),
+  );
+}
+
 function render(master: Master, open?: string): Window {
   const html = renderToStaticMarkup(
     <OperatorViewRenderer
@@ -108,12 +117,7 @@ test("an open card's marker sits in a gutter its column reserves, never on the t
     // Every row of an open master keeps the same gutter, so titles align.
     expect(window.getComputedStyle(other).paddingLeft).toBe("14px");
     // A neutral tint marks the row where the card surface matches its column.
-    const tint = [...selected.classList].filter((name) =>
-      operatorViewStylexCSS.includes(
-        `.${name}:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 5%,transparent)}`,
-      ),
-    );
-    expect(tint).toHaveLength(1);
+    expect(tintClasses(selected)).toHaveLength(1);
   } finally {
     await window.happyDOM.close();
   }
@@ -145,6 +149,10 @@ test("an open table row's marker sits in a gutter too", async () => {
     if (!current || !other) throw new Error("Missing table rows");
     expect(window.getComputedStyle(current).paddingLeft).toBe("14px");
     expect(window.getComputedStyle(other).paddingLeft).toBe("14px");
+    // The open table row looks like an open list row: the same tint and edge.
+    const row = current.parentElement;
+    if (!row) throw new Error("Missing current row");
+    expect(tintClasses(row)).toHaveLength(1);
   } finally {
     await window.happyDOM.close();
   }
