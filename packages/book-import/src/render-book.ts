@@ -64,11 +64,18 @@ export function germanSlug(text: string): string {
 /** A file name's room for its title's slug, beside its order and suffix, in a name of 255 bytes. */
 const NAME_ROOM = 255 - ORDER_DIGITS - "-.md".length;
 
-/** A title's slug as a file or folder name: as much of it as a name holds, cut at a word. */
+/**
+ * A title's slug as a file or folder name: as much of it as a name's bytes
+ * hold, cut at a word. A Greek letter takes two or three bytes.
+ */
 function nameSlug(title: string): string {
   const slug = germanSlug(title);
-  if (slug.length <= NAME_ROOM) return slug;
-  const cut = slug.slice(0, NAME_ROOM);
+  if (bytes(slug) <= NAME_ROOM) return slug;
+  const letters = [...slug];
+  const fitting = letters.findIndex(
+    (_, index) => bytes(letters.slice(0, index + 1).join("")) > NAME_ROOM,
+  );
+  const cut = letters.slice(0, fitting).join("");
   return cut.slice(0, Math.max(cut.lastIndexOf("-"), 1));
 }
 

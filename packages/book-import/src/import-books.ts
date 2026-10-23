@@ -260,7 +260,8 @@ const archiveOcrBookSchema: z.ZodObject<
   /**
    * The work quotes Greek, which the page's model reads as Latin letters:
    * each page is read again with an Ancient Greek model, and a word
-   * it reads as Greek, and surer, takes that reading. Needs `ocr`.
+   * it reads as Greek, and surer, takes that reading; the Greek is read from
+   * the page as scanned, binarised or not. Needs `ocr`.
    */
   greek: z.boolean().default(false),
   /** The work's printed pages in the volume. */
@@ -1056,7 +1057,9 @@ export async function volumeHocr(
   }
   const own = pageOcr({ model: book.ocr, binarise: book.binarise });
   const greek = book.greek
-    ? pageOcr({ model: GREEK_MODEL, binarise: book.binarise })
+    ? // The Greek model, trained on scans as they are, reads a binarised
+      // page worse than the page itself.
+      pageOcr({ model: GREEK_MODEL, binarise: false })
     : null;
   const read: PageOcr = greek
     ? async (url): Promise<string> => {

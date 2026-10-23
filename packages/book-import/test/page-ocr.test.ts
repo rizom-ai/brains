@@ -533,6 +533,15 @@ describe("withGreekReadings", () => {
     expect(texts(merged)).toEqual(["IT", "XXIIL"]);
   });
 
+  it("keeps a section sign, which no Greek word holds", () => {
+    const merged = withGreekReadings(
+      linePage([{ text: "[§", conf: 40, left: 0 }]),
+      linePage([{ text: "[ξ", conf: 90, left: 0 }]),
+    );
+
+    expect(texts(merged)).toEqual(["[§"]);
+  });
+
   it("keeps a word the Greek model reads as no Greek", () => {
     const merged = withGreekReadings(
       linePage([{ text: "1868.", conf: 40, left: 0 }]),

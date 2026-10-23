@@ -916,6 +916,35 @@ books:
     ]);
   });
 
+  it("reads a binarised work's Greek from its page as scanned", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const readings = new Set<string>();
+
+    await importBooks(
+      parseManifest(
+        ocrManifest + "    ocr: deu\n    binarise: true\n    greek: true\n",
+      ),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model, binarise }) =>
+          async (url): Promise<string> => {
+            readings.add(`${model}${binarise ? " binarised" : ""}`);
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+
+    expect([...readings].sort()).toEqual(["deu binarised", "grc_agocr"]);
+  });
+
   it("reads no page with the Greek model that its own model read no words on", async () => {
     const recognised: string[] = [];
     const blank =

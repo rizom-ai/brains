@@ -507,7 +507,7 @@ export function withGreekReadings(hocr: string, greekHocr: string): string {
       right,
       bottom,
       confidence,
-      _text,
+      text: string,
       close,
     ) => {
       const box: ReadWord["box"] = [
@@ -517,7 +517,8 @@ export function withGreekReadings(hocr: string, greekHocr: string): string {
         Number(bottom),
       ];
       const read = greek.filter((word) => sameWord(word.box, box));
-      if (read.length === 0) return whole;
+      // A section sign is the page's own: no Greek word holds one.
+      if (read.length === 0 || text.includes("§")) return whole;
       const surest = Math.min(...read.map((word) => word.confidence));
       const reading = read.map((word) => word.text).join(" ");
       // A reading with figures in it is no Greek word: the model's guess at
