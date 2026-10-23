@@ -1,8 +1,6 @@
 import { chmod, link, lstat, mkdir, mkdtemp, rm, unlink } from "fs/promises";
-import { tmpdir } from "os";
-import { dirname, join, resolve } from "path";
+import { dirname, join } from "path";
 import { createId } from "@brains/utils/id";
-import { sha256Hex } from "@brains/utils/hash";
 import { getErrorMessage } from "@brains/utils/error";
 import { deferred } from "@brains/utils/deferred";
 import { Effect, Exit, Layer, Scope } from "@brains/utils/effect";
@@ -25,6 +23,9 @@ import { isMutatingOperation } from "./operations";
 import type { GitOperationName } from "./operations";
 import type { CheckoutExecutorOptions } from "./checkout-executor";
 import { MAX_PAYLOAD_BYTES } from "./protocol";
+import { gitBrokerSocketPath } from "./paths";
+
+export { gitBrokerRuntimeDir, gitBrokerSocketPath } from "./paths";
 import { BrokerJournal } from "./journal";
 import type { AmbiguousRequest, JournalStart } from "./journal";
 
@@ -66,37 +67,6 @@ export interface GitBrokerServerOptions {
   resolveCheckout: (
     checkoutPath: string,
   ) => CheckoutExecutorOptions | undefined;
-}
-
-/**
- * The one place this path is spelled. The supervisor hands it to every role
- * and the broker binds it, so a second derivation would be a way for owner
- * and clients to disagree about which socket is the singleton boundary.
- */
-/** Linux allows 108 bytes including the terminating NUL. */
-const MAX_UNIX_SOCKET_PATH = 107;
-
-/**
- * The instance-owned runtime directory: journal, and the socket when it fits.
- * Derived here for the supervisor and the broker child alike; it is never
- * inside a checkout, which the supervisor verifies against the sync path.
- */
-export function gitBrokerRuntimeDir(cwd: string): string {
-  return join(cwd, ".brain-runtime");
-}
-
-export function gitBrokerSocketPath(runtimeDir: string): string {
-  const instanceSocket = join(runtimeDir, "git-broker.sock");
-  if (Buffer.byteLength(instanceSocket) <= MAX_UNIX_SOCKET_PATH) {
-    return instanceSocket;
-  }
-  // A unix socket address is bounded and the kernel truncates rather than
-  // refusing, so a deep instance directory cannot hold its own socket. The
-  // address then lives in the OS temp dir, named by the instance: still one
-  // socket per instance, never inside a checkout, and bound to 0600 like the
-  // in-instance one.
-  const instance = sha256Hex(resolve(runtimeDir)).slice(0, 24);
-  return join(tmpdir(), `brain-git-broker-${instance}.sock`);
 }
 
 /**

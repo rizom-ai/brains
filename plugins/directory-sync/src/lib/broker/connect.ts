@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import { getGitRemoteFingerprint } from "../git-options";
-import { BrokerConnection } from "./client";
+import type { BrokerConnection } from "./client";
+import { connectBroker } from "./load-client";
 import { BrokerGitSync } from "./git-sync-client";
 
 /**
@@ -46,8 +47,7 @@ export async function connectGitSync(
   const gitSync = new BrokerGitSync({
     // Re-opened rather than held: a proven-safe broker replacement leaves this
     // role running, and it has to be able to find the new owner.
-    connect: (): Promise<BrokerConnection> =>
-      BrokerConnection.connect(socketPath),
+    connect: (): Promise<BrokerConnection> => connectBroker(socketPath),
     checkoutPath: options.checkoutPath,
     branch: options.branch,
     remoteFingerprint: getGitRemoteFingerprint(options.remoteUrl),
