@@ -652,7 +652,6 @@ export {
   type MessageWithPayload,
 } from "./contracts/messaging";
 export type {
-  ConversationDigestPayload,
   GetMessagesOptions,
   IConversationService,
 } from "@brains/conversation-service";
@@ -661,7 +660,6 @@ export {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,
-  conversationDigestPayloadSchema,
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,
   conversationMessageSourceSchema,

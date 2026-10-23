@@ -27,15 +27,6 @@ export const CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL =
 export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
 
 /**
- * Configuration for ConversationService
- */
-export interface ConversationServiceConfig {
-  // Digest configuration
-  digestTriggerInterval?: number; // Trigger digest every N messages (default: 10)
-  digestWindowSize?: number; // Size of message window in digest (default: 20)
-}
-
-/**
  * Metadata for a conversation
  */
 export interface ConversationMetadata {
@@ -280,35 +271,6 @@ export const messageSchema: z.ZodObject<{
   timestamp: z.string(),
   metadata: z.string().nullable(),
 });
-
-/**
- * Schema for conversation digest payload validation
- */
-export const conversationDigestPayloadSchema: z.ZodObject<{
-  conversationId: z.ZodString;
-  messageCount: z.ZodNumber;
-  messages: z.ZodArray<typeof messageSchema>;
-  windowStart: z.ZodNumber;
-  windowEnd: z.ZodNumber;
-  windowSize: z.ZodNumber;
-  timestamp: z.ZodString;
-}> = z.object({
-  conversationId: z.string(),
-  messageCount: z.number(),
-  messages: z.array(messageSchema),
-  windowStart: z.number(),
-  windowEnd: z.number(),
-  windowSize: z.number(),
-  timestamp: z.string(),
-});
-
-/**
- * Payload for conversation digest events
- * Broadcast every N messages with overlapping message windows
- */
-export type ConversationDigestPayload = z.output<
-  typeof conversationDigestPayloadSchema
->;
 
 /**
  * Database configuration for conversation service

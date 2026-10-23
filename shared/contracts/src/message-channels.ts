@@ -17,10 +17,6 @@ export const CHAT_CHANNELS = {
   spaceNoticeAction: "chat:space-notice-action",
 } as const;
 
-export const CONVERSATION_CHANNELS = {
-  digest: "conversation:digest",
-} as const;
-
 export const CONSOLE_CHANNELS = {
   /**
    * Collected by the ⌘K palette: each surface answers with the destinations
