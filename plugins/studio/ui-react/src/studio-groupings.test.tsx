@@ -3,7 +3,8 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StudioGroupingContent } from "./studio-groupings";
 import { groupingQuery } from "./grouping-url-query";
-import { TypeSwitcher, studioMobileSelection } from "./entity-fields";
+import { TypeSwitcher } from "./studio-type-navigation";
+import { studioMobileSelection } from "./studio-navigation-parts";
 
 const common = {
   basePath: "/studio",

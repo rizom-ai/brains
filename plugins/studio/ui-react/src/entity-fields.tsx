@@ -638,15 +638,3 @@ function FieldControl(props: {
     </label>
   );
 }
-
-// Navigation and type classification moved to studio-type-navigation.tsx.
-// Re-exported here so the many call sites that reach for them through this
-// module keep working; import from the navigation module in new code.
-export type { StudioEditorPresentation } from "./studio-type-navigation";
-export {
-  StudioBrowseDestinations,
-  TypeSwitcher,
-  studioArea,
-  studioEditorPresentation,
-  studioMobileSelection,
-} from "./studio-type-navigation";

@@ -31,9 +31,7 @@ import {
   Field,
   FieldAssistControls,
   fieldAssistVariant,
-  studioMobileSelection,
   typeHasPublicationField,
-  TypeSwitcher,
 } from "./entity-fields";
 import {
   PublicationActions,
@@ -63,6 +61,8 @@ import type {
   TypeSchema,
 } from "./api";
 import { studioTypeHierarchy } from "../../src/config";
+import { studioMobileSelection } from "./studio-navigation-parts";
+import { TypeSwitcher } from "./studio-type-navigation";
 
 async function successfulPublishingAction(): Promise<PublishingActionResult> {
   return { success: true };
