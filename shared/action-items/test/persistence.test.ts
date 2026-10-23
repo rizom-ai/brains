@@ -88,21 +88,26 @@ async function brain(): Promise<EntityService> {
       entityType: "action-item",
       visibility: "shared",
       content: projectedContent(),
-      metadata,
+      // The projector stores the body hash in metadata as in the content.
+      metadata: { ...metadata, projectedBodyHash: projectedBodyHash() },
     },
   });
   return service;
 }
 
-function projectedContent(): string {
-  const title = "Action item: Book the venue";
-  const text = "Book the venue for the spring gathering.";
-  const projectedBodyHash = actionItemBodyHash(
-    adapter.composeContent(title, text, metadata),
+const PROJECTED_TITLE = "Action item: Book the venue";
+const PROJECTED_TEXT = "Book the venue for the spring gathering.";
+
+function projectedBodyHash(): string {
+  return actionItemBodyHash(
+    adapter.composeContent(PROJECTED_TITLE, PROJECTED_TEXT, metadata),
   );
-  return adapter.composeContent(title, text, {
+}
+
+function projectedContent(): string {
+  return adapter.composeContent(PROJECTED_TITLE, PROJECTED_TEXT, {
     ...metadata,
-    projectedBodyHash,
+    projectedBodyHash: projectedBodyHash(),
   });
 }
 
@@ -406,6 +411,63 @@ describe("creating a card someone asked for in a conversation", () => {
       requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
     });
     expect(actionItemSource(card)).toMatchObject({ place: "#executive-room" });
+  });
+});
+
+describe("creating a card the channel pickup found", () => {
+  const found = {
+    id: "discord-1466-message-12-1",
+    title: "Send the INC proposal",
+    text: "Jo will send the INC proposal on Friday.",
+    actor: { kind: "user", userId: "u-jo" } as const,
+    actorName: "Jo",
+    origin: {
+      kind: "conversation",
+      conversationId: "discord:1466",
+      interfaceType: "discord",
+      channelId: "1466",
+      channelName: "executive-room",
+    } as const,
+    projected: true,
+  };
+
+  it("stores it under the id it was found by, marked as the pickup's own", async () => {
+    const service = await brain();
+
+    const result = await createActionItem(
+      { entityService: service, now: at, visibility: "shared" },
+      found,
+    );
+
+    expect(result).toEqual({ status: "created", id: found.id });
+    const card = await service.getEntity(
+      {
+        entityType: "action-item",
+        id: found.id,
+        visibilityScope: "restricted",
+      },
+      actionItemSchema,
+    );
+    if (!card) throw new Error("The card was not stored");
+    expect(card.metadata.projectedBodyHash).toBe(
+      actionItemBodyHash(card.content),
+    );
+    expect(isBoardOwned(card)).toBe(false);
+  });
+
+  it("finds it already there when the same message is processed again", async () => {
+    const service = await brain();
+    const deps = {
+      entityService: service,
+      now: at,
+      visibility: "shared" as const,
+    };
+    await createActionItem(deps, found);
+
+    expect(await createActionItem(deps, found)).toEqual({
+      status: "exists",
+      id: found.id,
+    });
   });
 });
 

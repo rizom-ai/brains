@@ -1,7 +1,7 @@
 import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { applyMove, applyNote } from "./board";
+import { actionItemBodyHash, applyMove, applyNote } from "./board";
 import { createShortId } from "@brains/utils/id";
 import {
   slugify,
@@ -185,54 +185,24 @@ export async function trackInboxItem(
   deps: TrackInboxItemDeps,
   request: TrackInboxItemRequest,
 ): Promise<TrackInboxItemResult> {
-  const id = inboxCardId(request.sourceRef);
-  const existing = await deps.entityService.getEntity({
-    entityType: ACTION_ITEM_ENTITY_TYPE,
-    id,
-    visibilityScope: "restricted",
+  const { sourceRef, ...card } = request;
+  const result = await createActionItem(deps, {
+    ...card,
+    id: inboxCardId(sourceRef),
+    origin: { kind: "inbox", sourceRef },
   });
-  if (existing) return { status: "already-tracked", id };
-
-  const assignee = request.assignee;
-  const metadata: ActionItemMetadata = {
-    origin: "inbox",
-    sourceRef: request.sourceRef,
-    capturedAt: (deps.now?.() ?? new Date()).toISOString(),
-    status: "open",
-    ...(assignee
-      ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
-      : {}),
-    requestedBy: [
-      {
-        ...(request.actorName ? { name: request.actorName } : {}),
-        id: actorRefKey(request.actor),
-      },
-    ],
-  };
-  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
-  await deps.entityService.createEntity({
-    entity: {
-      id,
-      entityType: ACTION_ITEM_ENTITY_TYPE,
-      visibility: deps.visibility,
-      content: inboxItemAdapter.composeContent(
-        `Action item: ${title}`,
-        request.text.trim() || title,
-        metadata,
-      ),
-      metadata,
-    },
-    options: { eventContext: { actor: request.actor } },
-  });
-  return { status: "tracked", id };
+  return result.status === "created"
+    ? { status: "tracked", id: result.id }
+    : { status: "already-tracked", id: result.id };
 }
 
 /**
- * Where a card someone asked for comes from: added on the board by hand, or
- * asked for in a conversation, which it then names.
+ * Where a card comes from: added on the board by hand, tracked from an Inbox
+ * item, or asked for or found in a conversation, which it then names.
  */
 export type CreateActionItemOrigin =
   | { kind: "board" }
+  | { kind: "inbox"; sourceRef: ActionItemSourceRef }
   | {
       kind: "conversation";
       conversationId: string;
@@ -249,10 +219,18 @@ export interface CreateActionItemRequest {
   actor: ActorRef;
   actorName?: string | undefined;
   origin: CreateActionItemOrigin;
+  /** A card found in a conversation keeps the id it was found by. */
+  id?: string | undefined;
+  /**
+   * Written by the channel pickup, which may still revise it: its body hash
+   * is stored, so any later edit makes it the board's.
+   */
+  projected?: boolean | undefined;
 }
 
 export interface CreateActionItemResult {
-  status: "created";
+  /** "exists" when a card with the requested id is already there. */
+  status: "created" | "exists";
   id: string;
 }
 
@@ -260,9 +238,17 @@ function originMetadata(
   origin: CreateActionItemOrigin,
 ): Pick<
   ActionItemMetadata,
-  "origin" | "conversationId" | "interfaceType" | "channelId" | "channelName"
+  | "origin"
+  | "conversationId"
+  | "interfaceType"
+  | "channelId"
+  | "channelName"
+  | "sourceRef"
 > {
   if (origin.kind === "board") return { origin: "board" };
+  if (origin.kind === "inbox") {
+    return { origin: "inbox", sourceRef: origin.sourceRef };
+  }
   return {
     origin: "conversation",
     conversationId: origin.conversationId,
@@ -275,12 +261,25 @@ function originMetadata(
 /** Add an open card someone asked for, naming who asked and where. */
 export async function createActionItem(
   deps: Omit<TrackInboxItemDeps, "entityService"> & {
-    entityService: Pick<EntityPluginContext["entityService"], "createEntity">;
+    entityService: Pick<
+      EntityPluginContext["entityService"],
+      "createEntity" | "getEntity"
+    >;
   },
   request: CreateActionItemRequest,
 ): Promise<CreateActionItemResult> {
   const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
-  const id = boardCardId(title);
+  const id = request.id ?? boardCardId(title);
+  if (
+    request.id !== undefined &&
+    (await deps.entityService.getEntity({
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      id,
+      visibilityScope: "restricted",
+    }))
+  ) {
+    return { status: "exists", id };
+  }
   const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
     ...originMetadata(request.origin),
@@ -296,17 +295,23 @@ export async function createActionItem(
       },
     ],
   };
+  const heading = `Action item: ${title}`;
+  const text = request.text.trim() || title;
+  const stored: ActionItemMetadata = request.projected
+    ? {
+        ...metadata,
+        projectedBodyHash: actionItemBodyHash(
+          inboxItemAdapter.composeContent(heading, text, metadata),
+        ),
+      }
+    : metadata;
   await deps.entityService.createEntity({
     entity: {
       id,
       entityType: ACTION_ITEM_ENTITY_TYPE,
       visibility: deps.visibility,
-      content: inboxItemAdapter.composeContent(
-        `Action item: ${title}`,
-        request.text.trim() || title,
-        metadata,
-      ),
-      metadata,
+      content: inboxItemAdapter.composeContent(heading, text, stored),
+      metadata: stored,
     },
     options: { eventContext: { actor: request.actor } },
   });

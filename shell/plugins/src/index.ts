@@ -478,6 +478,7 @@ export {
   canWriteVisibility,
   contentVisibilitySchema,
   emptyFrontmatterSchema,
+  ENTITY_SYSTEM_FIELDS,
   internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,

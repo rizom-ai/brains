@@ -1,4 +1,5 @@
 import { computeContentHash } from "@brains/utils/hash";
+import { ENTITY_SYSTEM_FIELDS } from "@brains/plugins";
 import {
   generateMarkdown,
   readMarkdownFrontmatter,
@@ -24,6 +25,8 @@ const RETIRED_FIELDS: ReadonlySet<string> = new Set([
   ...ACTION_ITEM_RETIRED_FIELDS,
   ...ACTION_ITEM_TRANSLATED_FIELDS,
 ]);
+/** Keys the entity service writes on every card, such as its visibility. */
+const SYSTEM_FIELDS: ReadonlySet<string> = new Set(ENTITY_SYSTEM_FIELDS);
 
 /** A card's status moved underneath the person moving it. */
 export class StaleActionItemStatusError extends Error {
@@ -87,7 +90,10 @@ export function isBoardOwned(entity: ActionItemEntity): boolean {
   const fields = Object.keys(frontmatterFields(entity.content));
   if (
     fields.some(
-      (field) => !OWNED_FIELDS.has(field) && !RETIRED_FIELDS.has(field),
+      (field) =>
+        !OWNED_FIELDS.has(field) &&
+        !RETIRED_FIELDS.has(field) &&
+        !SYSTEM_FIELDS.has(field),
     )
   )
     return true;

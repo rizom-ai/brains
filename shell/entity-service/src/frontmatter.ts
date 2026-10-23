@@ -35,8 +35,11 @@ export interface FrontmatterValidationSchema<T> {
   parse(data: unknown): T;
 }
 
-// Default system fields that should not be in frontmatter
-const DEFAULT_SYSTEM_FIELDS: Array<keyof BaseEntity> = [
+/**
+ * The fields the entity service owns on every entity, never a type's own
+ * metadata. Of these only `visibility` is written into stored frontmatter.
+ */
+export const ENTITY_SYSTEM_FIELDS: readonly (keyof BaseEntity)[] = [
   "id",
   "entityType",
   "content",
@@ -56,7 +59,7 @@ export function extractMetadata<T extends BaseEntity>(
 ): Record<string, unknown> {
   const { includeFields, excludeFields = [], customSerializers } = config ?? {};
   const excludedFieldNames = new Set<string>([
-    ...DEFAULT_SYSTEM_FIELDS.map(String),
+    ...ENTITY_SYSTEM_FIELDS.map(String),
     ...excludeFields.map(String),
   ]);
 
