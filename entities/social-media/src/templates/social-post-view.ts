@@ -1,6 +1,6 @@
-import { contentVisibilitySchema } from "@brains/plugins";
+import { entityViewFields, type EntityViewFields } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields } from "@brains/templates";
+import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import {
   platformSchema,
   socialPostStatusSchema,
@@ -72,39 +72,28 @@ type JsonReady<T> = T extends undefined
 /** Datasource payload after the view schema normalizes optionals. */
 export type SocialPostSchemaData = JsonReady<EnrichedSocialPost>;
 
-export const socialPostViewSchema: z.ZodObject<{
-  id: z.ZodString;
-  entityType: z.ZodLiteral<"social-post">;
-  content: z.ZodString;
-  created: z.ZodString;
-  updated: z.ZodString;
-  visibility: typeof contentVisibilitySchema;
-  metadata: typeof metadataSchema;
-  contentHash: z.ZodString;
-  frontmatter: typeof frontmatterSchema;
-  body: z.ZodString;
-  url: typeof nullableString;
-  listUrl: typeof nullableString;
-  listLabel: typeof nullableString;
-  typeLabel: typeof nullableString;
-  coverImageUrl: typeof nullableString;
-  coverImageWidth: typeof nullableNumber;
-  coverImageHeight: typeof nullableNumber;
-}> = z.object({
-  id: z.string(),
-  entityType: z.literal("social-post"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: metadataSchema,
-  contentHash: z.string(),
-  frontmatter: frontmatterSchema,
+export const socialPostViewSchema: z.ZodObject<
+  EntityViewFields<
+    "social-post",
+    typeof metadataSchema,
+    typeof frontmatterSchema
+  > & {
+    body: z.ZodString;
+    url: typeof viewLinkFields.url;
+    listUrl: typeof viewLinkFields.listUrl;
+    listLabel: typeof viewLinkFields.listLabel;
+    typeLabel: typeof viewLinkFields.typeLabel;
+    coverImageUrl: typeof nullableString;
+    coverImageWidth: typeof nullableNumber;
+    coverImageHeight: typeof nullableNumber;
+  }
+> = z.object({
+  ...entityViewFields("social-post", metadataSchema, frontmatterSchema),
   body: z.string(),
-  url: nullableString,
-  listUrl: nullableString,
-  listLabel: nullableString,
-  typeLabel: nullableString,
+  url: viewLinkFields.url,
+  listUrl: viewLinkFields.listUrl,
+  listLabel: viewLinkFields.listLabel,
+  typeLabel: viewLinkFields.typeLabel,
   coverImageUrl: nullableString,
   coverImageWidth: nullableNumber,
   coverImageHeight: nullableNumber,
