@@ -1,5 +1,29 @@
 # @rizom/brain
 
+## 0.2.0-alpha.600
+
+### Patch Changes
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`a119ef1`](https://github.com/rizom-ai/brains/commit/a119ef13ad00c05e53e32472f7b0fa613ad65538) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking the brain for an action item creates a whole card: a new `action_item_create` tool on the action board writes it open, requested by the caller, from the conversation it was asked in and at the board's visibility (`shared` on a team brain), assigned to the member named, to the caller who takes it on, or to nobody. Action items no longer go through `system_create`, which could not set their capture time and status and made them public.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`7ca05ec`](https://github.com/rizom-ai/brains/commit/7ca05ec6f4f3880f0a6357f52aea939a26a26052) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A shared action item written by conversation memory no longer counts as edited on the board just because its file records its visibility: the entity service's own fields, now one exported list (`ENTITY_SYSTEM_FIELDS`), are ignored when telling a card the board owns.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`583e6e6`](https://github.com/rizom-ai/brains/commit/583e6e67b4040c2785b8a943c86f6dba7cc4a27b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The cards a channel pickup adds are announced in the channel: the brain pins each source message with 📌 and posts one short note listing the cards, with an Undo button per card. Notices are recorded with the pickup's bookmark and posted by the process running the chat app when it hears the pickup finish, or at the next start when a post failed or the process restarted.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`514584b`](https://github.com/rizom-ai/brains/commit/514584b9d85960da9a75ef7ba442653dae87d4a4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain picks up action items from the chat spaces it is configured for (`spaces`), without anyone mentioning it: each stored message wakes a job that reads the space's messages after a saved bookmark, with earlier ones as context, and adds a card for each action item they commit to, requested by its speaker and assigned to its owner when they have a brain account, at conversation memory's visibility. A catch-up at startup and daily queues any space whose messages are past its bookmark.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`5a183b2`](https://github.com/rizom-ai/brains/commit/5a183b29bd1515015aeed3ffc6e68927c87094fa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The channel pickup revises its own cards when later messages change them: a card someone else takes over gets its new owner and text, and a card the conversation calls off or reports done is withdrawn for good. Cards the board has moved, noted, edited or reassigned are never changed. The channel note lists what was updated or withdrawn.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`3b478cb`](https://github.com/rizom-ai/brains/commit/3b478cb7922709dc1e4724998791395ed30fedbf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Undo on a channel notice takes the card back: the card is deleted unless the board has already changed it, the notice strikes it through with who removed it, and the pickup never writes that card again. A card the board changed stays, and the notice says so. Chat interfaces send a click on any space notice to `chat:space-notice-action`, and the plugin that posted the notice answers with its new content.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`0423923`](https://github.com/rizom-ai/brains/commit/0423923d9543863f4ed1e26a5fc4ca510742c853) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A card found in conversation also records who it was assigned to, so a card whose owner someone changes counts as the board's, like one moved, noted or edited. The shared card writer can revise a found card's title, text and owner, and leaves every card the board has touched as it is.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`fa36dbf`](https://github.com/rizom-ai/brains/commit/fa36dbf1de65e76aff6f1501874c9a21d01c557f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The conversation service no longer broadcasts `conversation:digest` every few messages; nothing listened to it. `ConversationDigestPayload`, `conversationDigestPayloadSchema` and the service's digest configuration are gone. A plugin that follows a conversation listens to `conversation:messageAdded` and reads the stored messages it needs.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`2deb9d7`](https://github.com/rizom-ai/brains/commit/2deb9d7023dbfd4bc6d5451fe4ec6fec2ec9c9a1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Conversation memory drops its whole-conversation summary projector, which nothing in a running brain called since projection became scheduler-only: the summary extractor, its prompt and AI template, the source reader, the space eligibility check (which never matched a Discord space) and the admin "Conversation memory coverage" widget that measured it. Their evals go too. The plugin's configuration keeps only `memoryVisibility`; the other options were read only by the projector. Stored summaries and decisions are still read, listed and recalled.
+
+- [#739](https://github.com/rizom-ai/brains/pull/739) [`245a8ef`](https://github.com/rizom-ai/brains/commit/245a8ef5ea5a1465c03f20c32bf9949dbb50e3b8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Each message a chat interface stores for a configured space records the space it belongs to (`spaceId`, e.g. `discord:<channel id>`), so plugins can tell a space's messages apart without parsing the chat SDK's composite channel ids, which selectors do not match.
+
 ## 0.2.0-alpha.599
 
 ### Patch Changes
