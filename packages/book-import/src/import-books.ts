@@ -1070,9 +1070,15 @@ export async function volumeHocr(
           /<[^>]*>/gu,
           "",
         );
-        return /\p{L}/u.test(text)
-          ? withGreekReadings(page, await greek(url))
-          : page;
+        if (!/\p{L}/u.test(text)) return page;
+        try {
+          return withGreekReadings(page, await greek(url));
+        } catch (error) {
+          // The Greek model's engine fails on a page of specks its own model
+          // read a few letters into; the page keeps that reading, and says so.
+          console.warn(`No Greek reading of ${url}: ${String(error)}`);
+          return page;
+        }
       }
     : own;
   // A Fraktur model's reading is read as roman type sets it, a German one's

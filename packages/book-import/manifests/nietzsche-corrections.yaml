@@ -1,0 +1,340 @@
+werk17niet:
+  # Holzer's notes on what he left out of the Basel programme: Rohde's
+  # description of the codex Burbonicus (§ 6) and a collation of Diogenes'
+  # list of Democritus' writings, neither Nietzsche's text.
+  - page: 194
+    from: ‚ 1) [ξ 6. »Der codex Bu.rbonicus des Laertius Diogenes« eine Be-
+    to: ""
+    by: scan
+  - page: 194
+    from: schreibung durch Erwin Rohde, ist weggeblieben, da der incorrecte
+    to: ""
+    by: scan
+  - page: 194
+    from: Druck ohne das verlorengegangene Druckmanuskript nicht rectificirt
+    to: ""
+    by: scan
+  - page: 194
+    from: werden konnte, Vgl. Einleitung.]
+    to: ""
+    by: scan
+  - page: 199
+    from: ?) [Das Verzeichniss La. IX, 45 sqq. nach Kollation Wachsmuth’s
+    to: ""
+    by: scan
+  - page: 199
+    from: und Rohde’s blieb weg, wie oben ἓ 6, p. 194, Anm. 1.]
+    to: ""
+    by: scan
+  # GOA XVII p. 1: Holzer's item number, the title and his source line
+  - page: 1
+    from: "A A E E E , D E"
+    to: ""
+    by: scan
+  - page: 1
+    from: "Zur Gesch1chte der Theogmdenschen E"
+    to: ""
+    by: scan
+  - page: 1
+    from: "Spruchsammlung."
+    to: ""
+    by: scan
+  - page: 1
+    from: "(Rhein. Museum für Philologie, N. F., Bd. XXII (1867),"
+    to: ""
+    by: scan
+  - page: 1
+    from: "Heft 2, S. 161—200)"
+    to: ""
+    by: scan
+  - page: 1
+    from: "Die Ιεῒῑῒε Redactmn der Theogmdea"
+    to: "Die letzte Redaction der Theognidea."
+    by: scan
+  - page: 1
+    from: "]eder Leser des ’Theognis muss es bemerken, dass ihm"
+    to: "Jeder Leser des Theognis muss es bemerken, dass ihm"
+    by: scan
+  # GOA XVII p. 55
+  - page: 55
+    from: "A e e D A B e G .. ——"
+    to: ""
+    by: scan
+  - page: 55
+    from: "Beiträge zur Kr1t1k der gr1ech15chen"
+    to: ""
+    by: scan
+  - page: 55
+    from: "Lyriker."
+    to: ""
+    by: scan
+  - page: 55
+    from: "(Rhem Mus. Bd. XXIII (1868), S. 480—480.)"
+    to: ""
+    by: scan
+  # GOA XVII p. 69
+  - page: 69
+    from: "p tnm Y r t ÁáUO — ÀN C MR UOOUUÁUÁRUÉÁÉÁUEÀÁÀNUNWVDTWO00 000 9R 000 000 9 0000 0 0000 WUO O0UUUÓMÁÉUTNOTU0UU0U0U0 RUT U0 RRENS 0U0UR T w T0 00 T m w"
+    to: ""
+    by: scan
+  - page: 69
+    from: "-. De Laertii Diogenis tontibus."
+    to: ""
+    by: scan
+  - page: 69
+    from: "(Rhein. Mus. Bd. XXIII (1868), S. 632—053, ebendaselbst"
+    to: ""
+    by: scan
+  - page: 69
+    from: "Bd. XXIV (1869), S. 181—228) - -"
+    to: ""
+    by: scan
+  - page: 69
+    from: "De Diocle Magnete. ,"
+    to: "De Diocle Magnete."
+    by: scan
+  - page: 111
+    from: "ZT Demetrm Dloclls fonte."
+    to: "De Demetrio Dioclis fonte."
+    by: scan
+  - page: 130
+    from: "De Laertio et Hesychlo."
+    to: "De Laertio et Hesychio."
+    by: scan
+  # GOA XVII p. 153
+  - page: 153
+    from: "4. -"
+    to: ""
+    by: scan
+  - page: 153
+    from: "Analecta Laertlana"
+    to: ""
+    by: scan
+  - page: 153
+    from: "(Rhem Museum für Phllologle Bd. XXV. (1870),"
+    to: ""
+    by: scan
+  - page: 153
+    from: "| 9. 217—231) |"
+    to: ""
+    by: scan
+  # the chapter's numeral the OCR lost
+  - page: 154
+    from: "eundemque erroreim etiam in alterum transferret locum."
+    to: "eundemque errorem etiam in alterum transferret locum.\nII."
+    by: scan
+  # GOA XVII p. 171
+  - page: 171
+    from: "E N"
+    to: ""
+    by: scan
+  - page: 171
+    from: "Béiträge zur Quellenkunde und Kritik"
+    to: ""
+    by: scan
+  - page: 171
+    from: "des Laertius Diogenes. '"
+    to: ""
+    by: scan
+  - page: 171
+    from: "(Programm und Gratulationsschrift des Baseler Päda-"
+    to: ""
+    by: scan
+  - page: 171
+    from: "gogiums . zur Feier der fünfzigjährigen Lehrthätigkeit Prof."
+    to: ""
+    by: scan
+  - page: 171
+    from: "Dr. F. D. Gerlachs, Frühjahr 1870.)"
+    to: ""
+    by: scan
+  - page: 189
+    from: "| Uebérreste platonischer Schriftenverzeichnisse."
+    to: "Ueberreste platonischer Schriftenverzeichnisse."
+    by: scan
+  - page: 197
+    from: "Das Zeugmss Timons uber Democnt"
+    to: "Das Zeugniss Timons über Democrit."
+    by: scan
+  - page: 199
+    from: "'l'hrasyll’s Verze1chmss der democritischen. Sclmften"
+    to: "Thrasyll's Verzeichniss der democritischen Schriften."
+    by: scan
+  # GOA XVII p. 215
+  - page: 215
+    from: "Der FlörentihisChe Tractat über Homer"
+    to: ""
+    by: scan
+  - page: 215
+    from: "und Hesiod, ihr Geschlecht und 1hren"
+    to: ""
+    by: scan
+  - page: 215
+    from: ". Wettkampf."
+    to: ""
+    by: scan
+  - page: 215
+    from: "(l IL, Rhem Museum für Ph11010g1e Bd XXV (1870),"
+    to: ""
+    by: scan
+  - page: 215
+    from: "ὃ. 528—540 1L.—V. daselbst Bd. XXVII (1873)"
+    to: ""
+    by: scan
+  - page: 215
+    from: "b 211—-249) ‘"
+    to: ""
+    by: scan
+  - page: 215
+    from: "« Die: Form des Wettkampfes"
+    to: "Die Form des Wettkampfes."
+    by: scan
+  - page: 243
+    from: "Der Tod Hesnods nach Alc1damas"
+    to: "Der Tod Hesiods nach Alcidamas."
+    by: scan
+  - page: 261
+    from: "Die Ueberheferung des Certamen"
+    to: "Die Ueberlieferung des Certamen."
+    by: scan
+  # GOA XVII p. 277: the item number, the title, and Holzer's source lines under each review
+  - page: 277
+    from: "| Recensmnen aus. dem L11eranschen"
+    to: ""
+    by: scan
+  - page: 277
+    from: "„ Centralblatt."
+    to: ""
+    by: scan
+  - page: 277
+    from: "(Jahrgang 1868, 1869, 1870.)"
+    to: ""
+    by: scan
+  - page: 277
+    from: "Die he$z'odz's\"clze T, heogohz'e, ausgelegt und beurtheilt"
+    to: "Die hesiodische Theogonie, ausgelegt und beurtheilt"
+    by: scan
+  - page: 277
+    from: "L1terar Centralblatt 1868, No 18, 2o Apr11 S. 481 f£."
+    to: ""
+    by: scan
+  - page: 278
+    from: "Ebendas. No. 45, 31. Oktober, S. 1224."
+    to: ""
+    by: scan
+  - page: 279
+    from: "Nitgsche, Rich., quaestionum Eudocianarium capita"
+    to: "Nitzsche, Rich., quaestionum Eudocianarum capita"
+    by: scan
+  - page: 279
+    from: "Ebendas. No. 48, 21. November, S. 1309. -"
+    to: ""
+    by: scan
+  - page: 281
+    from: "Ebendas. _Iahrgang 1869, Nr 6, 30, Januar, S 144."
+    to: ""
+    by: scan
+  - page: 282
+    from: "Ebendas. S. 145,"
+    to: ""
+    by: scan
+  - page: 283
+    from: "Ἀριστοξένου ἁρμονικῶν τὰ σωζόμενα. Die harmoni-"
+    to: "Ἀριστοξένου ἁρμονικῶν τὰ σωζόμενα. Die harmoni-"
+    by: scan
+  - page: 283
+    from: "Ebendas, S. 145 f."
+    to: ""
+    by: scan
+  - page: 285
+    from: "Kohde, Erwin, UÜeber Lucians Schrift: Λούκιος"
+    to: "Rohde, Erwin, Ueber Lucians Schrift: Λούκιος"
+    by: scan
+  - page: 285
+    from: "Ebendas S 426f"
+    to: ""
+    by: scan
+  - page: 287
+    from: "C gratuhren | C Fr. N."
+    to: "gratuliren. Fr. N."
+    by: scan
+  - page: 287
+    from: "Byk S. A Der Hellen13rnus und der Plato-"
+    to: "Byk, S. A., Der Hellenismus und der Plato-"
+    by: scan
+  - page: 287
+    from: "nismus. Le1p21g 1870, Pernitzsch (45 S. 8)."
+    to: "nismus. Leipzig 1870, Pernitzsch (45 S. 8)."
+    by: scan
+  - page: 287
+    from: "i Ebendas, _Iahrgang 1870, No. 37, 3. September, S. 1001f"
+    to: ""
+    by: scan
+  - page: 55
+    from: "2."
+    to: ""
+    by: scan
+  - page: 153
+    from: "[."
+    to: "I."
+    by: scan
+  - page: 158
+    from: "II."
+    to: "III."
+    by: scan
+  # the chapter numerals and section signs the headings carry
+  - page: 130
+    from: "VI. ."
+    to: ""
+    by: scan
+  - page: 171
+    from: "| g 1."
+    to: ""
+    by: scan
+  - page: 197
+    from: "| S 8, a"
+    to: ""
+    by: scan
+  - page: 199
+    from: "S 9°)."
+    to: ""
+    by: scan
+  # specks above the chapter heading
+  - page: 243
+    from: "T G ——"
+    to: ""
+    by: scan
+  - page: 243
+    from: "- T"
+    to: ""
+    by: scan
+  - page: 243
+    from: "A ΙΨ. -"
+    to: ""
+    by: scan
+  - page: 261
+    from: "Χῖ."
+    to: ""
+    by: scan
+  - page: 22
+    from: "Ueber Zweck, Zeit und Schicksale der Redaction. /"
+    to: "Ueber Zweck, Zeit und Schicksale der Redaction."
+    by: scan
+  - page: 186
+    from: "Favorinus als Nebenquelle des Laertius Dmgenes."
+    to: "Favorinus als Nebenquelle des Laertius Diogenes."
+    by: scan
+  - page: 230
+    from: "Das Museum des Aleidamas."
+    to: "Das Museum des Alcidamas."
+    by: scan
+  # the section's sign, which its heading carries
+  - page: 205
+    from: "S 10."
+    to: ""
+    by: scan
+  # stray bars the OCR read as a rule
+  - page: 205
+    from: "p. 22 ss. | |"
+    to: "p. 22 ss."
+    by: scan

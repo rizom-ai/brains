@@ -7,8 +7,8 @@
 source: ekgwb
 coverage:
   author: Friedrich Nietzsche
-  edition: the Digitale Kritische Gesamtausgabe Werke und Briefe (eKGWB), after the Kritische Gesamtausgabe by Giorgio Colli and Mazzino Montinari, published by Nietzsche Source (ed. Paolo D'Iorio), and for his philological writings, which it does not hold, the Deutsches Textarchiv's transcription of the first print
-  license: eKGWB's texts are under CC BY-NC-ND 4.0; the Textarchiv's transcription is in the public domain (CC0).
+  edition: the Digitale Kritische Gesamtausgabe Werke und Briefe (eKGWB), after the Kritische Gesamtausgabe by Giorgio Colli and Mazzino Montinari, published by Nietzsche Source (ed. Paolo D'Iorio), and for his philological writings, which it does not hold, the Deutsches Textarchiv's transcription of the first print of his Homer lecture and the papers and reviews he published in 1867–1873 as Ernst Holzer reprinted them (Nietzsche's Werke, Band XVII, Leipzig 1910), read from the Internet Archive's scan
+  license: eKGWB's texts are under CC BY-NC-ND 4.0; the Textarchiv's transcription is in the public domain (CC0), and so is the text of the 1910 volume, whose editor's preface and source lines are left out.
 books:
   # His inaugural lecture at Basel, which he had printed privately; the
   # Textarchiv transcribes the first print.
@@ -21,6 +21,161 @@ books:
     edition: Homer und die klassische Philologie. Ein Vortrag (Basel, 1869)
     author: Friedrich Nietzsche
     year: 1869
+    kind: work
+  # His philological papers and reviews of 1867–1873 as Holzer reprinted
+  # them in GOA XVII ("ein unveränderter Neudruck", misprints corrected),
+  # read anew with the Greek they quote; Holzer's preface and the source
+  # lines he set under each title are left out.
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: deu
+    binarise: true
+    greek: true
+    firstPage: 1
+    lastPage: 54
+    headings:
+      - { page: 1, opens: Die letzte Redaction, level: 1, label: I }
+      - { page: 22, opens: "Ueber Zweck, Zeit", level: 1, label: II }
+      - { page: 37, opens: Der Zustand der Theognidea, level: 1, label: III }
+    slug: zur-geschichte-der-theognideischen-spruchsammlung
+    title: "Zur Geschichte der Theognideischen Spruchsammlung"
+    shortTitle: Theognis
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 1–54; zuerst im Rheinischen Museum für Philologie, N. F. 22 (1867), S. 161–200"
+    author: Friedrich Nietzsche
+    year: 1867
+    kind: work
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: deu
+    binarise: true
+    greek: true
+    firstPage: 55
+    lastPage: 68
+    headings:
+      - { page: 55, opens: Der Danae Klage, level: 1, label: I }
+    slug: beitraege-zur-kritik-der-griechischen-lyriker
+    title: "Beiträge zur Kritik der griechischen Lyriker. I. Der Danae Klage"
+    shortTitle: Der Danae Klage
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 55–68; zuerst im Rheinischen Museum für Philologie, N. F. 23 (1868), S. 480–489"
+    author: Friedrich Nietzsche
+    year: 1868
+    kind: work
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: lat
+    binarise: true
+    greek: true
+    firstPage: 69
+    lastPage: 152
+    headings:
+      - { page: 69, opens: De Diocle Magnete, level: 1, label: I }
+      - { page: 82, opens: De Favorino Arelatensi, level: 1, label: II }
+      - { page: 95, opens: De Demetrio Magnete, level: 1, label: III }
+      - { page: 111, opens: De Demetrio Dioclis, level: 1, label: IV }
+      - { page: 120, opens: De ceteris Dioclis, level: 1, label: V }
+      - { page: 130, opens: De Laertio et Hesychio, level: 1, label: VI }
+    slug: de-laertii-diogenis-fontibus
+    title: "De Laertii Diogenis fontibus"
+    shortTitle: De Laertii fontibus
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 69–152; zuerst im Rheinischen Museum für Philologie, N. F. 23 (1868), S. 632–653, und 24 (1869), S. 181–228"
+    author: Friedrich Nietzsche
+    year: 1868
+    kind: work
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: lat
+    binarise: true
+    greek: true
+    firstPage: 153
+    lastPage: 170
+    headings:
+      - { page: 153, opens: I., level: 1 }
+      - { page: 154, opens: II., level: 1 }
+      - { page: 158, opens: III., level: 1 }
+      - { page: 164, opens: IV., level: 1 }
+      - { page: 166, opens: V., level: 1 }
+      - { page: 170, opens: VI., level: 1 }
+    slug: analecta-laertiana
+    title: "Analecta Laertiana"
+    shortTitle: Analecta Laertiana
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 153–170; zuerst im Rheinischen Museum für Philologie, N. F. 25 (1870), S. 217–231"
+    author: Friedrich Nietzsche
+    year: 1870
+    kind: work
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: deu
+    binarise: true
+    greek: true
+    firstPage: 171
+    lastPage: 214
+    headings:
+      - { page: 171, opens: Laertius Diogenes als Epigrammendichter, level: 1, label: "§ 1" }
+      - { page: 180, opens: Diocles als Hauptquelle, level: 1, label: "§ 2" }
+      - { page: 186, opens: Favorinus als Nebenquelle, level: 1, label: "§ 3" }
+      - { page: 189, opens: Ueberreste platonischer, level: 1, label: "§ 4" }
+      - { page: 192, opens: Eine angebliche Schrift, level: 1, label: "§ 5" }
+      - { page: 194, opens: Diocles über Democrit, level: 1, label: "§ 7" }
+      - { page: 197, opens: Das Zeugniss Timons, level: 1, label: "§ 8" }
+      - { page: 199, opens: Thrasyll, level: 1, label: "§ 9" }
+      - { page: 205, opens: Hermippus oder Menippus, level: 1, label: "§ 10" }
+      - { page: 206, opens: Der Cyniker Menippus, level: 1, label: "§ 11" }
+    slug: beitraege-zur-quellenkunde-und-kritik-des-laertius-diogenes
+    title: "Beiträge zur Quellenkunde und Kritik des Laertius Diogenes"
+    shortTitle: Beiträge zu Laertius
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 171–214; zuerst als Programm und Gratulationsschrift des Pädagogiums zu Basel (Basel 1870)"
+    author: Friedrich Nietzsche
+    year: 1870
+    kind: work
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: deu
+    binarise: true
+    greek: true
+    firstPage: 215
+    lastPage: 276
+    headings:
+      - { page: 215, opens: Die Form des Wettkampfes, level: 1, label: I }
+      - { page: 225, opens: Alcidamas als der Urheber, level: 1, label: II }
+      - { page: 230, opens: Das Museum des Alcidamas, level: 1, label: III }
+      - { page: 243, opens: Der Tod Hesiods, level: 1, label: IV }
+      - { page: 261, opens: Die Ueberlieferung des Certamen, level: 1, label: V }
+    slug: der-florentinische-tractat-ueber-homer-und-hesiod
+    title: "Der Florentinische Tractat über Homer und Hesiod, ihr Geschlecht und ihren Wettkampf"
+    shortTitle: Der Florentinische Tractat
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 215–276; zuerst im Rheinischen Museum für Philologie, N. F. 25 (1870), S. 528–540, und 28 (1873), S. 211–249"
+    author: Friedrich Nietzsche
+    year: 1870
+    kind: work
+  - item: werk17niet
+    source: archive-ocr
+    citation: GOA XVII
+    ocr: deu
+    binarise: true
+    greek: true
+    firstPage: 277
+    lastPage: 288
+    headings:
+      - { page: 277, opens: Die hesiodische, title: "G. F. Schoemann, Die hesiodische Theogonie" }
+      - { page: 278, opens: Anacreontis, title: "Val. Rose, Anacreontis Teii quae vocantur Συμποσιακὰ ἡμιάμβια" }
+      - { page: 279, opens: "Nitzsche, Rich.", title: "Rich. Nitzsche, Quaestionum Eudocianarum capita quatuor" }
+      - { page: 281, opens: Theognidis Elegiae, title: "Christophorus Ziegler, Theognidis Elegiae" }
+      - { page: 282, opens: "Bernays, Jakob", title: "Jakob Bernays, Die Heraklitischen Briefe" }
+      - { page: 283, opens: Ἀριστοξένου, title: "Paul Marquard, Die harmonischen Fragmente des Aristoxenus" }
+      - { page: 285, opens: "Rohde, Erwin", title: "Erwin Rohde, Ueber Lucians Schrift Λούκιος ἢ Ὄνος" }
+      - { page: 287, opens: "Byk, S.", title: "S. A. Byk, Der Hellenismus und der Platonismus" }
+    slug: recensionen-aus-dem-literarischen-centralblatt
+    title: "Recensionen aus dem Literarischen Centralblatt"
+    shortTitle: Recensionen
+    edition: "Nietzsche's Werke, Band XVII: Philologica, Band I, hg. von Ernst Holzer (Leipzig, Kröner, 1910), S. 277–288; zuerst im Literarischen Centralblatt für Deutschland, 1868–1870"
+    author: Friedrich Nietzsche
+    year: 1868
     kind: work
   - siglum: GT
     slug: die-geburt-der-tragoedie

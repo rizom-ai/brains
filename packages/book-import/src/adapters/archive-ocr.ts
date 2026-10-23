@@ -576,7 +576,7 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
 }
 
 /** The scan's pages, each with its lines, position and type size. */
-function readPages(hocr: string, columns = false): Page[] {
+export function readPages(hocr: string, columns = false): Page[] {
   const window = new Window();
   try {
     const document = window.document;
@@ -1222,7 +1222,9 @@ function headingOpeningOf(
 ): ({ opens: string } & HeadingOpening) | undefined {
   return (volume.headingOpenings ?? []).find(
     (opening) =>
-      opening.numeral === undefined && line.text.startsWith(opening.opens),
+      // Read as the corrections read it, without the scan's stray marks.
+      opening.numeral === undefined &&
+      normalised(line.text).startsWith(opening.opens),
   );
 }
 
@@ -1291,7 +1293,7 @@ function isPicture(lines: Line[]): boolean {
 }
 
 /** The OCR reads a note marker, a 1 beside digits, and an i, as a dotless i. */
-function normalised(text: string): string {
+export function normalised(text: string): string {
   return (
     text
       // A dot the OCR set before a word inside the line is a speck.
@@ -2274,9 +2276,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         {
           kind: "caps",
           text:
-            label !== null && line.text.startsWith(label)
-              ? line.text.slice(label.length).replace(/^[.,:]?\s+/u, "")
-              : line.text,
+            label !== null && normalised(line.text).startsWith(label)
+              ? normalised(line.text)
+                  .slice(label.length)
+                  .replace(/^[.,:]?\s+/u, "")
+              : normalised(line.text),
           size: line.size,
           misread: true,
         },

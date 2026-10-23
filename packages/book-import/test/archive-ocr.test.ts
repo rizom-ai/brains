@@ -1165,6 +1165,21 @@ describe("parseArchiveOcrWork, a title its running heads misread", () => {
     lastPage: 4,
   };
 
+  it("opens a chapter the manifest names on a line the OCR set stray marks around", () => {
+    const units = parseArchiveOcrWork(
+      hocr(
+        "\\ Geschichte der cerebralen Kinderlähmung. _",
+        "Geschichte der cerebralen Kinderlähmung.",
+      ),
+      {
+        ...work,
+        headings: [{ page: 1, opens: "Geschichte der cerebralen", level: 1 }],
+      },
+    );
+
+    expect(units[0]?.title).toBe("Geschichte der cerebralen Kinderlähmung.");
+  });
+
   it("titles a chapter by its heading as corrected, not by the heads that misread it", () => {
     const units = parseArchiveOcrWork(
       hocr("Geschichte der eerebralen Kinderlähmung."),

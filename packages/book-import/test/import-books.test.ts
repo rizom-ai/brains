@@ -945,6 +945,37 @@ books:
     expect([...readings].sort()).toEqual(["deu binarised", "grc_agocr"]);
   });
 
+  it("keeps a page as its own model read it where the Greek model fails on it", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const page = (url: string): string => {
+      const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+      return `<html><body>${(pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "")}</body></html>`;
+    };
+
+    const results = await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n    greek: true\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            if (model === "grc_agocr")
+              throw new Error("tesseract failed (134)");
+            return page(url);
+          },
+      },
+    );
+
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+  });
+
   it("reads no page with the Greek model that its own model read no words on", async () => {
     const recognised: string[] = [];
     const blank =
