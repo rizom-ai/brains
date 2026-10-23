@@ -84,7 +84,7 @@ export const timelineStyles: Record<
     color: "var(--console-text-muted)",
     cursor: "pointer",
     transform: "translate(-50%, -50%)",
-    outlineOffset: 1,
+    outlineOffset: 2,
   },
   dot: {
     width: 12,
@@ -104,14 +104,13 @@ export const timelineStyles: Record<
       transitionDuration: "0s",
     },
   },
+  // A failure carries a ring around its light, drawn as a shadow: it is not
+  // a focus ring.
   failedDot: {
     width: 16,
     height: 16,
-    outlineWidth: 1.5,
-    outlineStyle: "solid",
-    outlineColor: "color-mix(in srgb, currentColor 50%, transparent)",
-    outlineOffset: 3,
-    boxShadow: "0 0 16px 4px color-mix(in srgb, currentColor 55%, transparent)",
+    boxShadow:
+      "0 0 0 3px var(--console-bg-deep), 0 0 0 4.5px color-mix(in srgb, currentColor 50%, transparent), 0 0 16px 4px color-mix(in srgb, currentColor 55%, transparent)",
   },
   activeDot: { transform: "scale(1.5)" },
   legend: {

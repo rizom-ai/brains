@@ -903,10 +903,10 @@ html {
 .xopnk0n:not(#\\#):not(#\\#):not(#\\#){background-size:48px 48px}
 .x6khlng:not(#\\#):not(#\\#):not(#\\#){background-size:5px 5px,5px 5px}
 .x1mwwwfo:not(#\\#):not(#\\#):not(#\\#){border-collapse:collapse}
+.xzvbwyp:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 3px var(--console-bg-deep),0 0 0 4.5px color-mix(in srgb,currentColor 50%,transparent),0 0 16px 4px color-mix(in srgb,currentColor 55%,transparent)}
 .xh2qvui:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 5px color-mix(in srgb,currentColor 9%,transparent)}
 .xohzo4b:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 10px 1px color-mix(in srgb,currentColor 45%,transparent)}
 .x11svnkv:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 14px currentColor}
-.x1mxdtzr:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 16px 4px color-mix(in srgb,currentColor 55%,transparent)}
 .xkeuntj:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 28px color-mix(in srgb,var(--console-ok) 9%,transparent)}
 .x17y309f:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 7px color-mix(in srgb,currentColor 60%,transparent)}
 .x1b33ckz:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 7px color-mix(in srgb,currentColor 70%,transparent)}
@@ -1132,19 +1132,15 @@ html {
 .x1hc1fzr:not(#\\#):not(#\\#):not(#\\#){opacity:1}
 .x9ek82g:not(#\\#):not(#\\#):not(#\\#){order:1}
 .x14yy4lh:not(#\\#):not(#\\#):not(#\\#){order:2}
-.x1w32ttt:not(#\\#):not(#\\#):not(#\\#){outline-color:color-mix(in srgb,currentColor 50%,transparent)}
 .x1itw484:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-accent)}
 .x100b2on:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-rule-accent)}
 .x2ssjo2:not(#\\#):not(#\\#):not(#\\#){outline-offset:-2px}
 .xr2mjdv:not(#\\#):not(#\\#):not(#\\#){outline-offset:-4px}
-.x1y3gkto:not(#\\#):not(#\\#):not(#\\#){outline-offset:1px}
 .x1hl8ikr:not(#\\#):not(#\\#):not(#\\#){outline-offset:2px}
-.x1ewu8gn:not(#\\#):not(#\\#):not(#\\#){outline-offset:3px}
 .x8wkva7:not(#\\#):not(#\\#):not(#\\#){outline-offset:6px}
 .x1t137rt:not(#\\#):not(#\\#):not(#\\#){outline-style:none}
 .xaatb59:not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .x1k57tk5:not(#\\#):not(#\\#):not(#\\#){outline-width:0}
-.x1eybxrj:not(#\\#):not(#\\#):not(#\\#){outline-width:1.5px}
 .x1de99jn:not(#\\#):not(#\\#):not(#\\#){outline-width:2px}
 .xj0a0fe:not(#\\#):not(#\\#):not(#\\#){overflow-wrap:anywhere}
 .x1mzt3pk:not(#\\#):not(#\\#):not(#\\#){overflow-wrap:break-word}
