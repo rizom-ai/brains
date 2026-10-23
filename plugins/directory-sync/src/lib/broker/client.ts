@@ -26,20 +26,9 @@ import { BROKER_PROTOCOL_VERSION } from "./protocol";
 import type { StatusMessage } from "./protocol";
 import { parseGitOperationResult } from "./operations";
 import type { GitOperation, GitOperationResult } from "./operations";
+import { BrokerOperationError, BrokerUnavailableError } from "./errors";
 
-/** Giving up observation never cancels broker-owned Git work. */
-export class BrokerUnavailableError extends Error {
-  constructor(socketPath: string, cause: string) {
-    super(`Git broker at ${socketPath} is unavailable: ${cause}`);
-    this.name = "BrokerUnavailableError";
-  }
-}
-export class BrokerOperationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "BrokerOperationError";
-  }
-}
+export { BrokerOperationError, BrokerUnavailableError };
 
 type Client = RpcClient.RpcClient<BrokerRpc, RpcClientError.RpcClientError>;
 interface InFlightRequest {

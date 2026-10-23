@@ -5,7 +5,7 @@ import type {
   GitSyncStatus,
   PullResult,
 } from "../../types";
-import { BrokerUnavailableError } from "./client";
+import { BrokerUnavailableError } from "./errors";
 import type { BrokerConnection } from "./client";
 import type { StatusMessage } from "./protocol";
 import { isMutatingOperation } from "./operations";

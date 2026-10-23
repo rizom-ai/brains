@@ -9,17 +9,16 @@ export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
 /**
- * The broker child's entry points. The supervisor decides whether a broker
- * runs at all and where it listens, so it needs the socket-path rule and the
- * checkout rule without booting a Brain.
+ * The supervisor decides whether a broker runs at all and where it listens, so
+ * it needs the socket-path rule and the checkout rule without booting a Brain.
+ * The broker endpoints themselves are in `@brains/directory-sync/broker-runtime`.
  */
-export { startGitBrokerHost, resolveCheckoutPath } from "./lib/broker/host";
-export type { GitBrokerHostOptions } from "./lib/broker/host";
 export {
   gitBrokerRuntimeDir,
   gitBrokerSocketPath,
-  GitBrokerServer,
-} from "./lib/broker/server";
+  resolveCheckoutPath,
+} from "./lib/broker/paths";
+export type { GitBrokerHostOptions } from "./lib/broker/host";
 export {
   GIT_BROKER_CHECKOUT_ENV,
   GIT_BROKER_SOCKET_ENV,
@@ -31,9 +30,6 @@ export {
   probeBrokerActivity,
   resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
-// Reaching a broker directly is what a recovery proof has to do: it observes
-// the owner from outside rather than through a role that trusts it.
-export { BrokerConnection } from "./lib/broker/client";
 export { getGitRemoteFingerprint } from "./lib/git-options";
 
 export type {
