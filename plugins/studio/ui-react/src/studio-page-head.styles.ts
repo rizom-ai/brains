@@ -14,6 +14,9 @@ export const headStyles: Record<
   | "metadata"
   | "phoneHidden"
   | "statusDetail"
+  | "facts"
+  | "fact"
+  | "factMark"
   | "totals"
   | "total"
   | "totalLabel"
@@ -105,6 +108,27 @@ export const headStyles: Record<
     fontFamily: "var(--console-ui)",
     fontSize: 11,
     lineHeight: 1.5,
+  },
+  facts: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px 22px",
+    margin: 0,
+    padding: 0,
+    listStyle: "none",
+    color: "var(--console-text-muted)",
+    fontFamily: "var(--console-ui)",
+    fontSize: 14,
+    "@media (max-width: 640px)": { fontSize: 13 },
+  },
+  fact: { display: "inline-flex", alignItems: "center", gap: 8 },
+  // The mark carries the tone; a neutral fact keeps the muted text colour.
+  factMark: {
+    width: 8,
+    height: 8,
+    flexShrink: 0,
+    borderRadius: "50%",
+    backgroundColor: "currentColor",
   },
   totals: { display: "flex", flexWrap: "wrap", gap: 12, margin: 0 },
   total: { display: "inline-flex", alignItems: "baseline", gap: 5 },

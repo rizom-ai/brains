@@ -51,7 +51,7 @@ export async function runStudyStateCase(
 }
 
 const emptyCopy: Record<string, string> = {
-  "studio-overview": "Nothing needs your attention.",
+  "studio-overview": "Nothing happened in the last 24 hours.",
   "studio-chat":
     "No messages yet. Your draft stays in the composer until you send it.",
   "studio-inbox": "Nothing needs attention for these filters.",
@@ -72,8 +72,7 @@ async function verifyStudyStateSource(
     const expected = emptyCopy[surface];
     if (!expected) throw Error(`No empty-state assertion for ${surface}`);
     await waitForText(page, expected);
-    if (surface === "studio-overview")
-      await waitForText(page, "No recent activity is available.");
+    if (surface === "studio-overview") await waitForText(page, "Queue idle");
     if (surface === "studio-inbox")
       await waitForText(
         page,
@@ -159,8 +158,8 @@ async function verifyStudyStateSource(
     });
   } else if (studyState === "restart") {
     await waitForText(page, "Needs you");
-    await waitForText(page, "Recent activity");
-    await waitForText(page, "No recent autonomous activity.");
+    await waitForText(page, "What happened");
+    await waitForText(page, "Nothing happened in the last 24 hours.");
   } else await waitForText(page, "unexpected-native-status");
 }
 

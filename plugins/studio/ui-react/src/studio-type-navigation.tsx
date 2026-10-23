@@ -3,12 +3,6 @@ import { type ReactElement } from "react";
 import type { StudioWorkspaceInfo, EntityTypeInfo } from "./api";
 import type { GroupingNavigation } from "./grouping-url-query";
 import { SITE_ENTITY_TYPES, SYSTEM_TYPE_GROUPS } from "./studio-areas";
-export { studioArea, type StudioArea } from "./studio-areas";
-export {
-  StudioBrowseDestinations,
-  studioMobileSelection,
-} from "./studio-navigation-parts";
-export type { MobileNavigationOption } from "./studio-navigation-parts";
 import { DesktopNavigation } from "./studio-desktop-navigation";
 import { MobileNavigation } from "./studio-mobile-navigation";
 import { deriveNavigationModel } from "./studio-navigation-model";

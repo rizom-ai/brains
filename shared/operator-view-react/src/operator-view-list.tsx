@@ -29,6 +29,7 @@ import {
 } from "./operator-view-host";
 import { OperatorLink } from "./operator-view-links";
 import { Actions } from "./operator-view-actions";
+import { LogList } from "./operator-log";
 
 export type RuntimeListItem = Extract<
   RuntimeStudioOperatorPanelBlock,
@@ -66,6 +67,7 @@ export function ListItems(props: {
         return (
           <OperatorRecordRow
             key={item.id}
+            rowId={item.id}
             density={components.density}
             tone={item.tone}
             selected={props.openId === item.id}
@@ -73,6 +75,10 @@ export function ListItems(props: {
             stacked={
               props.presentation === "activity" ||
               props.presentation === "attention"
+            }
+            railed={
+              props.presentation === "attention" &&
+              (item.tone === "warn" || item.tone === "error")
             }
             interactive={Boolean(item.link ?? item.links?.length)}
             drag={
@@ -91,15 +97,8 @@ export function ListItems(props: {
               item.count !== undefined ||
               Boolean(item.badges?.length) ||
               Boolean(item.actions?.length) ||
-              Boolean(item.links?.length) ||
-              (props.presentation === "attention" && metadata.length > 0) ? (
+              Boolean(item.links?.length) ? (
                 <>
-                  {props.presentation === "attention" &&
-                    metadata.length > 0 && (
-                      <small {...stylex.props(list.footerMetadata)}>
-                        <OperatorMetadata values={metadata} />
-                      </small>
-                    )}
                   {item.links && item.links.length > 0 && (
                     <nav
                       {...stylex.props(list.links)}
@@ -109,7 +108,12 @@ export function ListItems(props: {
                         <OperatorLink
                           key={`${link.label}:${index}`}
                           target={link.target}
-                          emphasis="normal"
+                          emphasis={
+                            // Attention links are what to do next, offered as buttons.
+                            props.presentation === "attention"
+                              ? "action"
+                              : "normal"
+                          }
                           onOpenEntity={props.onOpenEntity}
                           onLaunch={props.onLaunch}
                         >
@@ -143,6 +147,13 @@ export function ListItems(props: {
           >
             <OperatorRecordCopy
               density={components.density}
+              lead={
+                props.presentation === "attention" && metadata.length > 0 ? (
+                  <small {...stylex.props(list.footerMetadata)}>
+                    <OperatorMetadata values={metadata} />
+                  </small>
+                ) : undefined
+              }
               metadata={props.presentation === "attention" ? [] : metadata}
               presentation={props.presentation}
               primary={index === 0}
@@ -250,6 +261,12 @@ export function ListBlock(props: {
       )}
       {items.length === 0 ? (
         <p {...stylex.props(rendererLayout.empty)}>{props.block.empty}</p>
+      ) : props.block.presentation === "log" ? (
+        <LogList
+          items={items}
+          onOpenEntity={props.onOpenEntity}
+          onLaunch={props.onLaunch}
+        />
       ) : (
         <ListItems
           items={items}

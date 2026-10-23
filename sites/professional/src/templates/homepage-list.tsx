@@ -7,7 +7,7 @@ import {
   type HomepageOpeningContent,
 } from "@brains/site-atlas";
 import type { ProfessionalProfile } from "../schemas";
-import type { BlogPostView } from "@brains/blog";
+import { blogPostToContentItem, type BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-info";
 import {
@@ -105,20 +105,7 @@ export const HomepageListLayout = ({
     ? profile.tagline
     : profile.description;
 
-  const postItems: ContentItem[] = posts.map((post) => ({
-    id: post.id,
-    url: post.url,
-    title: post.metadata.title,
-    date: post.metadata.publishedAt ?? post.created,
-    description: post.frontmatter.excerpt,
-    series:
-      post.frontmatter.seriesName && post.frontmatter.seriesIndex
-        ? {
-            name: post.frontmatter.seriesName,
-            index: post.frontmatter.seriesIndex,
-          }
-        : undefined,
-  }));
+  const postItems = posts.map(blogPostToContentItem);
 
   const deckItems: ContentItem[] = decks.map((deck) => ({
     id: deck.id,

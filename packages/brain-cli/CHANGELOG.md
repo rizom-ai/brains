@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.599
+
+### Patch Changes
+
+- [#751](https://github.com/rizom-ai/brains/pull/751) [`592b0e7`](https://github.com/rizom-ai/brains/commit/592b0e7ba80af24b9b16d6b7b405552da7c84f71) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's Overview is redesigned. A status line under the title says whether the brain is running and how its job queue stands. A Last 24 hours band shows every event of the day as a light; choosing one highlights its row. Needs you lists failures first, and its rows offer their links as buttons. What happened reads as a timed log grouped by time of day and leaves out failures already listed under Needs you. Each source shows its figures on its collapsed row, and the brain's runtime facts sit in one card that is always visible.
+
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- [#735](https://github.com/rizom-ai/brains/pull/735) [`9711864`](https://github.com/rizom-ai/brains/commit/9711864bd00590a352f62f13847ab3190b3ac293) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Account passkey registration now drops unknown fields from the credential response instead of rejecting it, matching passkey sign-in.
+
+- [#729](https://github.com/rizom-ai/brains/pull/729) [`bc6dc25`](https://github.com/rizom-ai/brains/commit/bc6dc251cd744afc2350947e4febd1cc7f5f099d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A keyboard-focused card or row title in Studio now rings the whole card or row it opens. Titles in the board, Inbox and Administration lists are clamped to two lines, which clipped their own focus ring to a sliver beside the text; the row now draws the ring 6px outside itself, clear of its text.
+
 ## 0.2.0-alpha.597
 
 ### Patch Changes

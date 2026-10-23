@@ -31,11 +31,13 @@ export function OperatorRecordDescription(props: {
 
 export function OperatorRecordCopy(props: {
   title: ReactNode;
+  /** A line above the title, such as the source an attention row came from. */
+  lead?: ReactNode;
   description?: ReactNode;
   metadata: readonly string[];
   density: "compact" | "comfortable";
   presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   primary?: boolean | undefined;
   clamp?: boolean | undefined;
   children?: ReactNode;
@@ -43,6 +45,7 @@ export function OperatorRecordCopy(props: {
   const compact = props.density === "compact";
   return (
     <div {...stylex.props(s.copy)}>
+      {props.lead}
       <strong
         {...stylex.props(
           s.title,

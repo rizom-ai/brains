@@ -49,6 +49,133 @@ it("retains full diagnostic source text beyond the prose limit while enforcing t
   ).toBe(false);
 });
 
+it("lets a card carry up to four summary figures", () => {
+  const card = (summary: unknown[]): unknown => ({
+    blocks: [
+      {
+        type: "card",
+        id: "inbox",
+        label: "Inbox",
+        presentation: "disclosure",
+        summary,
+        blocks: [],
+      },
+    ],
+  });
+  const figure = { label: "open", value: 7, tone: "warn" };
+  expect(
+    safeParseRuntimeStudioOperatorView(card([figure]), {
+      actions: [],
+      permission: "trusted",
+    }),
+  ).toMatchObject({ success: true, data: { blocks: [{ summary: [figure] }] } });
+  expect(
+    safeParseRuntimeStudioOperatorView(card(Array(5).fill(figure)), {
+      actions: [],
+      permission: "trusted",
+    }).success,
+  ).toBe(false);
+});
+
+it("accepts a timeline of dated events within a forward window", () => {
+  const timeline = (block: Record<string, unknown>): unknown => ({
+    blocks: [
+      {
+        type: "timeline",
+        id: "day",
+        label: "Last 24 hours",
+        start: "2026-07-10T16:40:00.000Z",
+        end: "2026-07-11T16:40:00.000Z",
+        items: [
+          {
+            id: "event",
+            at: "2026-07-11T16:28:00.000Z",
+            title: "Note updated",
+            tone: "good",
+            target: "row",
+          },
+        ],
+        ...block,
+      },
+    ],
+  });
+  const parse = (input: unknown): boolean =>
+    safeParseRuntimeStudioOperatorView(input, {
+      actions: [],
+      permission: "trusted",
+    }).success;
+
+  expect(parse(timeline({}))).toBe(true);
+  expect(parse(timeline({ end: "2026-07-10T16:40:00.000Z" }))).toBe(false);
+  expect(
+    parse(timeline({ items: [{ id: "event", at: "yesterday", title: "x" }] })),
+  ).toBe(false);
+  expect(
+    parse(
+      timeline({
+        items: Array.from({ length: 501 }, (_, index) => ({
+          id: `event-${index}`,
+          at: "2026-07-11T16:28:00.000Z",
+          title: "x",
+        })),
+      }),
+    ),
+  ).toBe(false);
+});
+
+it("lets list items carry the time they happened, read as a log", () => {
+  const log = (at: string): unknown => ({
+    blocks: [
+      {
+        type: "list",
+        id: "log",
+        presentation: "log",
+        empty: "Nothing happened.",
+        items: [{ id: "event", title: "Note updated", at }],
+      },
+    ],
+  });
+  expect(
+    safeParseRuntimeStudioOperatorView(log("2026-07-11T16:28:00.000Z"), {
+      actions: [],
+      permission: "trusted",
+    }),
+  ).toMatchObject({
+    success: true,
+    data: { blocks: [{ items: [{ at: "2026-07-11T16:28:00.000Z" }] }] },
+  });
+  expect(
+    safeParseRuntimeStudioOperatorView(log("this morning"), {
+      actions: [],
+      permission: "trusted",
+    }).success,
+  ).toBe(false);
+});
+
+it("keeps a view's status facts and bounds how many it may carry", () => {
+  const facts = [
+    { label: "Brain running", tone: "good" },
+    { label: "Queue idle" },
+  ];
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      { facts, blocks: [] },
+      { actions: [], permission: "trusted" },
+    ),
+  ).toMatchObject({ success: true, data: { facts } });
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      {
+        facts: Array.from({ length: 7 }, (_, index) => ({
+          label: `Fact ${index}`,
+        })),
+        blocks: [],
+      },
+      { actions: [], permission: "trusted" },
+    ).success,
+  ).toBe(false);
+});
+
 function instantiate(
   definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
 ): NonNullable<ReturnType<typeof instantiatePluginPackageDefinition>[number]> {

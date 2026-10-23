@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { SeriesBlock } from "./operator-series";
+import { TimelineBlock } from "./operator-timeline";
 import { OperatorCard } from "./operator-card";
 import { OperatorColumns } from "./operator-columns";
 import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layout.styles";
@@ -44,14 +45,20 @@ import { MatrixBlock } from "./operator-view-matrix";
 import { TableBlock } from "./operator-view-table";
 import { SpatialBlock } from "./operator-view-spatial";
 
-function PanelBlock(props: {
-  block: RuntimeStudioOperatorPanelBlock;
+/** What every container hands down to the blocks it holds. */
+interface BlockHandlers {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
-}): ReactElement {
+}
+
+type BlockProps<Block> = BlockHandlers & { block: Block };
+
+function PanelBlock(
+  props: BlockProps<RuntimeStudioOperatorPanelBlock>,
+): ReactElement {
   switch (props.block.type) {
     case "stats":
       return <StatsBlock block={props.block} />;
@@ -69,6 +76,8 @@ function PanelBlock(props: {
       return <MetersBlock block={props.block} />;
     case "series":
       return <SeriesBlock block={props.block} />;
+    case "timeline":
+      return <TimelineBlock block={props.block} />;
     case "progress":
       return <ProgressBlock block={props.block} />;
     case "query":
@@ -133,15 +142,11 @@ function PanelBlock(props: {
  * are canonical query changes, so the URL stays the source of truth and a
  * reload restores the same pair.
  */
-function DetailBlock(props: {
-  block: Extract<RuntimeStudioOperatorBlock, { type: "detail" }>;
-  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
-  onOpenEntity: (entityType: string, id: string) => void;
-  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: OperatorViewQuery;
-  onQueryChange: (query: OperatorViewQuery) => void;
-}): ReactElement {
-  const { block, query, onQueryChange } = props;
+function DetailBlock(
+  props: BlockProps<Extract<RuntimeStudioOperatorBlock, { type: "detail" }>>,
+): ReactElement {
+  const { block, ...handlers } = props;
+  const { query, onQueryChange } = handlers;
   const headingRef = useRef<HTMLHeadingElement>(null);
   // What the query asks for, not what has arrived: the two differ while a
   // detail is loading, and a click must be answered immediately rather than
@@ -246,24 +251,9 @@ function DetailBlock(props: {
                     data-block={panel.type}
                   >
                     {panel.type === "card" ? (
-                      <CardBlock
-                        framed={false}
-                        block={panel}
-                        onAction={props.onAction}
-                        onOpenEntity={props.onOpenEntity}
-                        onLaunch={props.onLaunch}
-                        query={query}
-                        onQueryChange={onQueryChange}
-                      />
+                      <CardBlock framed={false} block={panel} {...handlers} />
                     ) : (
-                      <PanelBlock
-                        block={panel}
-                        onAction={props.onAction}
-                        onOpenEntity={props.onOpenEntity}
-                        onLaunch={props.onLaunch}
-                        query={query}
-                        onQueryChange={onQueryChange}
-                      />
+                      <PanelBlock block={panel} {...handlers} />
                     )}
                   </section>
                 ))}
@@ -290,17 +280,14 @@ function DetailBlock(props: {
   );
 }
 
-function CardBlock(props: {
-  framed?: boolean;
-  block: Extract<RuntimeStudioOperatorBlock, { type: "card" }>;
-  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
-  onOpenEntity: (entityType: string, id: string) => void;
-  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: OperatorViewQuery;
-  onQueryChange: (query: OperatorViewQuery) => void;
-}): ReactElement {
+function CardBlock(
+  props: BlockProps<Extract<RuntimeStudioOperatorBlock, { type: "card" }>> & {
+    framed?: boolean;
+  },
+): ReactElement {
+  const { framed, block, ...handlers } = props;
   const { components } = useContext(OperatorRendererHostContext);
-  const panels = props.block.blocks;
+  const panels = block.blocks;
   // Adjacent trailing navigation and mutation controls share one action line.
   const footerStart =
     panels.reduce(
@@ -314,31 +301,25 @@ function CardBlock(props: {
     index: number,
   ): ReactElement => (
     <div key={panel.id ?? `${panel.type}:${index}`} data-block={panel.type}>
-      <PanelBlock
-        block={panel}
-        onAction={props.onAction}
-        onOpenEntity={props.onOpenEntity}
-        onLaunch={props.onLaunch}
-        query={props.query}
-        onQueryChange={props.onQueryChange}
-      />
+      <PanelBlock block={panel} {...handlers} />
     </div>
   );
   return (
     <OperatorCard
-      label={props.block.label}
-      metadata={props.block.metadata}
-      framed={props.framed}
-      tone={props.block.tone}
-      presentation={props.block.presentation}
+      label={block.label}
+      metadata={block.metadata}
+      summary={block.summary}
+      framed={framed}
+      tone={block.tone}
+      presentation={block.presentation}
       density={components.density}
       renderDisclosure={
-        props.block.presentation === "disclosure" &&
-        props.block.disclosureLabel !== undefined
+        block.presentation === "disclosure" &&
+        block.disclosureLabel !== undefined
           ? (content): ReactElement => (
               <components.Disclosure
-                title={props.block.label}
-                triggerLabel={props.block.disclosureLabel}
+                title={block.label}
+                triggerLabel={block.disclosureLabel}
                 triggerVariant="outline"
               >
                 {content}
@@ -365,14 +346,10 @@ function CardBlock(props: {
  * A column of work beside a rail of standing facts. Both regions hold panels
  * and cards; the host owns the ratio and the narrow-viewport stacking.
  */
-function ColumnsBlock(props: {
-  block: Extract<RuntimeStudioOperatorBlock, { type: "columns" }>;
-  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
-  onOpenEntity: (entityType: string, id: string) => void;
-  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: OperatorViewQuery;
-  onQueryChange: (query: OperatorViewQuery) => void;
-}): ReactElement {
+function ColumnsBlock(
+  props: BlockProps<Extract<RuntimeStudioOperatorBlock, { type: "columns" }>>,
+): ReactElement {
+  const { block, ...handlers } = props;
   const { components } = useContext(OperatorRendererHostContext);
   const region = (
     entries: readonly RuntimeStudioOperatorRegionBlock[],
@@ -390,23 +367,9 @@ function ColumnsBlock(props: {
           data-block={entry.type}
         >
           {entry.type === "card" ? (
-            <CardBlock
-              block={entry}
-              onAction={props.onAction}
-              onOpenEntity={props.onOpenEntity}
-              onLaunch={props.onLaunch}
-              query={props.query}
-              onQueryChange={props.onQueryChange}
-            />
+            <CardBlock block={entry} {...handlers} />
           ) : (
-            <PanelBlock
-              block={entry}
-              onAction={props.onAction}
-              onOpenEntity={props.onOpenEntity}
-              onLaunch={props.onLaunch}
-              query={props.query}
-              onQueryChange={props.onQueryChange}
-            />
+            <PanelBlock block={entry} {...handlers} />
           )}
         </section>
       ))}
@@ -417,110 +380,60 @@ function ColumnsBlock(props: {
     <OperatorColumns
       density={components.density}
       joined={components.density === "comfortable"}
-      primary={region(props.block.primary)}
-      aside={region(props.block.aside)}
+      primary={region(block.primary)}
+      aside={region(block.aside)}
     />
   );
 }
 
-export function ViewBlock(props: {
-  block: RuntimeBlock;
-  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
-  onOpenEntity: (entityType: string, id: string) => void;
-  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: OperatorViewQuery;
-  onQueryChange: (query: OperatorViewQuery) => void;
-}): ReactElement {
-  const tabDefault = props.block.type === "tabs" ? props.block.defaultTab : "";
-  const tabQueryKey =
-    props.block.type === "tabs" ? props.block.queryKey : undefined;
+export function ViewBlock(props: BlockProps<RuntimeBlock>): ReactElement {
+  const { block, ...handlers } = props;
+  const tabDefault = block.type === "tabs" ? block.defaultTab : "";
+  const tabQueryKey = block.type === "tabs" ? block.queryKey : undefined;
   const [localActiveTab, setLocalActiveTab] = useState(tabDefault);
   useEffect(() => {
     if (!tabQueryKey) setLocalActiveTab(tabDefault);
   }, [tabDefault, tabQueryKey]);
   const host = useContext(OperatorRendererHostContext);
-  if (props.block.type === "columns") {
-    return (
-      <ColumnsBlock
-        block={props.block}
-        onAction={props.onAction}
-        onOpenEntity={props.onOpenEntity}
-        onLaunch={props.onLaunch}
-        query={props.query}
-        onQueryChange={props.onQueryChange}
-      />
-    );
+  switch (block.type) {
+    case "columns":
+      return <ColumnsBlock block={block} {...handlers} />;
+    case "card":
+      return <CardBlock block={block} {...handlers} />;
+    case "detail":
+      return <DetailBlock block={block} {...handlers} />;
+    case "tabs":
+      break;
+    default:
+      return <PanelBlock block={block} {...handlers} />;
   }
-  if (props.block.type === "card") {
-    return (
-      <CardBlock
-        block={props.block}
-        onAction={props.onAction}
-        onOpenEntity={props.onOpenEntity}
-        onLaunch={props.onLaunch}
-        query={props.query}
-        onQueryChange={props.onQueryChange}
-      />
-    );
-  }
-  if (props.block.type === "detail") {
-    return (
-      <DetailBlock
-        block={props.block}
-        onAction={props.onAction}
-        onOpenEntity={props.onOpenEntity}
-        onLaunch={props.onLaunch}
-        query={props.query}
-        onQueryChange={props.onQueryChange}
-      />
-    );
-  }
-  if (props.block.type !== "tabs") {
-    return (
-      <PanelBlock
-        block={props.block}
-        onAction={props.onAction}
-        onOpenEntity={props.onOpenEntity}
-        onLaunch={props.onLaunch}
-        query={props.query}
-        onQueryChange={props.onQueryChange}
-      />
-    );
-  }
-  const tabs = props.block.tabs.map((tab) => ({
+  const tabs = block.tabs.map((tab) => ({
     value: tab.id,
     label: tab.label,
     ...(tab.count !== undefined ? { count: tab.count } : {}),
-    content: tab.blocks.map((block, index) => (
+    content: tab.blocks.map((child, index) => (
       <section
         {...stylex.props(
           workspace.section,
           index > 0 && workspace.sectionAfter,
         )}
-        key={block.id ?? `${block.type}:${index}`}
+        key={child.id ?? `${child.type}:${index}`}
       >
-        <ViewBlock
-          block={block}
-          onAction={props.onAction}
-          onOpenEntity={props.onOpenEntity}
-          onLaunch={props.onLaunch}
-          query={props.query}
-          onQueryChange={props.onQueryChange}
-        />
+        <ViewBlock block={child} {...handlers} />
       </section>
     )),
   }));
   if (host.renderAllTabs) {
     return (
       <StaticAllTabs
-        id={`operator-${props.block.id}`}
-        label={props.block.label}
-        defaultValue={props.block.defaultTab}
+        id={`operator-${block.id}`}
+        label={block.label}
+        defaultValue={block.defaultTab}
         tabs={tabs}
       />
     );
   }
-  const requestedTab = tabQueryKey ? props.query[tabQueryKey] : undefined;
+  const requestedTab = tabQueryKey ? handlers.query[tabQueryKey] : undefined;
   const activeTab =
     typeof requestedTab === "string" ? requestedTab : localActiveTab;
   const activeValue = tabs.some((tab) => tab.value === activeTab)
@@ -529,12 +442,12 @@ export function ViewBlock(props: {
   const { Tabs } = host.components;
   return (
     <Tabs
-      label={props.block.label}
+      label={block.label}
       value={activeValue}
       tabs={tabs}
       onValueChange={(value) => {
         if (tabQueryKey) {
-          props.onQueryChange({ [tabQueryKey]: value });
+          handlers.onQueryChange({ [tabQueryKey]: value });
         } else {
           setLocalActiveTab(value);
         }

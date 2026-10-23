@@ -3,6 +3,7 @@ export const listStyles: Record<
   | "list"
   | "compactList"
   | "row"
+  | "railed"
   | "compactRow"
   | "master"
   | "interactive"
@@ -75,6 +76,27 @@ export const listStyles: Record<
     borderBottomColor: "var(--console-rule)",
     minWidth: 0,
     position: "relative",
+    // The row a timeline light points at, after the light is chosen.
+    backgroundColor: {
+      default: null,
+      ":is([data-timeline-active])": "var(--console-accent-soft)",
+    },
+    boxShadow: {
+      default: null,
+      ":is([data-timeline-active])":
+        "-8px 0 0 var(--console-accent-soft), 8px 0 0 var(--console-accent-soft)",
+    },
+    transitionProperty: "background-color, box-shadow",
+    transitionDuration: "200ms",
+  },
+  railed: {
+    paddingLeft: 16,
+    borderLeftWidth: 3,
+    borderLeftStyle: "solid",
+    borderLeftColor: {
+      default: "var(--console-warn)",
+      ":is([data-tone=error])": "var(--console-err)",
+    },
   },
   compactRow: {
     padding: "13px 6px 13px 0",

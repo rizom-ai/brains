@@ -344,6 +344,75 @@ export const operatorSeriesBlockSchema: z.ZodObject<
   .strict();
 export type OperatorSeriesBlock = z.output<typeof operatorSeriesBlockSchema>;
 
+/** One dated event on a timeline; `target` names a row elsewhere in the view. */
+export const operatorTimelineItemSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    at: z.ZodISODateTime;
+    title: z.ZodString;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+    target: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    id: operatorRowIdentifierSchema,
+    at: z.iso.datetime({ offset: true }),
+    title: operatorLabelSchema,
+    tone: operatorToneSchema.optional(),
+    target: operatorRowIdentifierSchema.optional(),
+  })
+  .strict();
+export type OperatorTimelineItem = z.output<typeof operatorTimelineItemSchema>;
+
+/** What each tone means on one timeline. */
+export const operatorTimelineLegendItemSchema: z.ZodObject<
+  { label: z.ZodString; tone: z.ZodOptional<typeof operatorToneSchema> },
+  z.core.$strict
+> = z
+  .object({ label: operatorLabelSchema, tone: operatorToneSchema.optional() })
+  .strict();
+
+/**
+ * Events placed on a time window, drawn as points along a band: a day of
+ * activity at a glance. Events outside the window are not drawn.
+ */
+export const operatorTimelineBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"timeline">;
+    id: z.ZodString;
+    label: z.ZodString;
+    start: z.ZodISODateTime;
+    end: z.ZodISODateTime;
+    legend: z.ZodOptional<
+      z.ZodReadonly<z.ZodArray<typeof operatorTimelineLegendItemSchema>>
+    >;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorTimelineItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("timeline"),
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    start: z.iso.datetime({ offset: true }),
+    end: z.iso.datetime({ offset: true }),
+    legend: z
+      .array(operatorTimelineLegendItemSchema)
+      .max(6)
+      .readonly()
+      .optional(),
+    items: z.array(operatorTimelineItemSchema).max(500).readonly(),
+  })
+  .strict()
+  .refine((block) => Date.parse(block.start) < Date.parse(block.end), {
+    message: "Timeline start must come before its end",
+    path: ["end"],
+  });
+export type OperatorTimelineBlock = z.output<
+  typeof operatorTimelineBlockSchema
+>;
+
 export interface OperatorQueryOption {
   readonly value: string;
   readonly label: string;
@@ -615,6 +684,8 @@ export interface OperatorListItem<
   /** @deprecated Use metadata for multiple semantic values. */
   readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
+  /** When the item happened, as an ISO timestamp; a log groups rows by it. */
+  readonly at?: string | undefined;
   readonly tags?: readonly string[] | undefined;
   readonly count?: number | undefined;
   readonly badges?: readonly OperatorBadge[] | undefined;
@@ -649,7 +720,7 @@ export interface OperatorListBlock<
   readonly empty: string;
   /** Reading hierarchy, independent of the workspace or transport rendering it. */
   readonly presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   readonly filter?: OperatorListFilter | undefined;
   readonly items: readonly OperatorListItem<TAction>[];
 }
@@ -841,6 +912,7 @@ export type OperatorPanelBlock<
   | OperatorMeterBlock
   | OperatorProgressBlock
   | OperatorSeriesBlock
+  | OperatorTimelineBlock
   | OperatorQueryBlock
   | OperatorLinksBlock
   | OperatorActionBlock<TAction>
@@ -915,6 +987,8 @@ export interface OperatorCardBlock<
   readonly presentation?: "section" | "disclosure" | "feature" | undefined;
   /** Separate disclosure trigger; keeps the card heading visible when closed. */
   readonly disclosureLabel?: string | undefined;
+  /** Figures a closed disclosure shows beside its label. */
+  readonly summary?: readonly OperatorStatItem[] | undefined;
   readonly tone?: OperatorTone | undefined;
   readonly blocks: readonly OperatorPanelBlock<TAction>[];
 }

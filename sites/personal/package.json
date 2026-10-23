@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-personal",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.597",
+  "version": "0.2.0-alpha.599",
   "description": "Personal site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",
@@ -34,6 +34,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"
