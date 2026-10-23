@@ -2,6 +2,7 @@ import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
+  actionItemAssigneeHash,
   actionItemBodyHash,
   applyMove,
   applyNote,
@@ -343,25 +344,122 @@ export async function createActionItem(
       },
     ],
   };
-  const heading = `Action item: ${title}`;
   const text = request.text.trim() || title;
-  const stored: ActionItemMetadata = request.projected
-    ? {
-        ...metadata,
-        projectedBodyHash: actionItemBodyHash(
-          inboxItemAdapter.composeContent(heading, text, metadata),
+  const card = request.projected
+    ? foundCard(title, text, metadata)
+    : {
+        content: inboxItemAdapter.composeContent(
+          `Action item: ${title}`,
+          text,
+          metadata,
         ),
-      }
-    : metadata;
+        metadata,
+      };
   await deps.entityService.createEntity({
     entity: {
       id,
       entityType: ACTION_ITEM_ENTITY_TYPE,
       visibility: deps.visibility,
-      content: inboxItemAdapter.composeContent(heading, text, stored),
-      metadata: stored,
+      ...card,
     },
     options: { eventContext: { actor: request.actor } },
   });
   return { status: "created", id };
+}
+
+/**
+ * A card as its finder writes it, with the hashes of its body and owner, so
+ * a later change by anyone else gives it to the board.
+ */
+function foundCard(
+  title: string,
+  text: string,
+  metadata: ActionItemMetadata,
+): { content: string; metadata: ActionItemMetadata } {
+  const heading = `Action item: ${title}`;
+  const {
+    projectedBodyHash: _body,
+    projectedAssigneeHash: _owner,
+    ...rest
+  } = metadata;
+  const stored: ActionItemMetadata = {
+    ...rest,
+    projectedBodyHash: actionItemBodyHash(
+      inboxItemAdapter.composeContent(heading, text, rest),
+    ),
+    projectedAssigneeHash: actionItemAssigneeHash(rest.assignedTo),
+  };
+  return {
+    content: inboxItemAdapter.composeContent(heading, text, stored),
+    metadata: stored,
+  };
+}
+
+export interface ReviseActionItemDeps {
+  entityService: Pick<
+    EntityPluginContext["entityService"],
+    "getEntity" | "updateEntity"
+  >;
+  visibilityScope: ContentVisibility;
+}
+
+export interface ReviseActionItemRequest {
+  id: string;
+  title: string;
+  text: string;
+  /** The owner now; none takes the card's owner away. */
+  assignee: ActionItemAssigneeMember | undefined;
+}
+
+export interface ReviseActionItemResult {
+  status: "revised" | "unchanged" | "kept" | "not-found";
+}
+
+/**
+ * Rewrite a card its finder wrote, when later messages change it. A card the
+ * board has touched is kept: the write holds only while the card is the
+ * version read, and a refused write is decided again from the fresh card.
+ */
+export async function reviseActionItem(
+  deps: ReviseActionItemDeps,
+  request: ReviseActionItemRequest,
+  attempts = 2,
+): Promise<ReviseActionItemResult> {
+  const entity = await deps.entityService.getEntity(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      id: request.id,
+      visibilityScope: deps.visibilityScope,
+    },
+    actionItemSchema,
+  );
+  if (!entity) return { status: "not-found" };
+  if (isBoardOwned(entity)) return { status: "kept" };
+  const { assignedTo: _assignedTo, ...unassigned } = entity.metadata;
+  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  const revised = foundCard(title, request.text.trim() || title, {
+    ...unassigned,
+    ...(request.assignee
+      ? {
+          assignedTo: [
+            { name: request.assignee.name, id: request.assignee.id },
+          ],
+        }
+      : {}),
+  });
+  if (
+    revised.metadata.projectedBodyHash === actionItemBodyHash(entity.content) &&
+    revised.metadata.projectedAssigneeHash ===
+      actionItemAssigneeHash(entity.metadata.assignedTo)
+  ) {
+    return { status: "unchanged" };
+  }
+  const result = await deps.entityService.updateEntity({
+    entity: { ...entity, ...revised },
+    options: { expectedContentHash: entity.contentHash },
+  });
+  if (result.skipReason !== "content-conflict") return { status: "revised" };
+  return attempts > 1
+    ? reviseActionItem(deps, request, attempts - 1)
+    : { status: "kept" };
 }

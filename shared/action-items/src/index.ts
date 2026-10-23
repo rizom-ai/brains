@@ -29,6 +29,7 @@ export {
 } from "./stored-shape";
 export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
 export {
+  actionItemAssigneeHash,
   actionItemBody,
   actionItemBodyHash,
   actionItemCapturedAt,
@@ -50,6 +51,7 @@ export {
   flatId,
   inboxCardId,
   moveActionItem,
+  reviseActionItem,
   trackInboxItem,
   type ActionItemMoveDeps,
   type ActionItemMoveRequest,
@@ -59,6 +61,9 @@ export {
   type CreateActionItemOrigin,
   type CreateActionItemRequest,
   type CreateActionItemResult,
+  type ReviseActionItemDeps,
+  type ReviseActionItemRequest,
+  type ReviseActionItemResult,
   type TrackInboxItemDeps,
   type TrackInboxItemRequest,
   type TrackInboxItemResult,

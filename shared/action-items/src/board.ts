@@ -13,6 +13,7 @@ import {
 import {
   actionItemMetadataSchema,
   actionItemOrigin,
+  type ActionItemAssignee,
   type ActionItemEntity,
   type ActionItemStatus,
 } from "./schema";
@@ -80,6 +81,15 @@ export function actionItemBodyHash(content: string): string {
   return computeContentHash(actionItemBody(content));
 }
 
+/** Who a card is assigned to, as a hash of their ids in any order. */
+export function actionItemAssigneeHash(
+  assignedTo: readonly Pick<ActionItemAssignee, "id">[] | undefined,
+): string {
+  return computeContentHash(
+    JSON.stringify((assignedTo ?? []).map((assignee) => assignee.id).sort()),
+  );
+}
+
 /**
  * Once anything but the projector has written an item it belongs to the board,
  * and re-projection must neither delete nor overwrite it. Read from stored
@@ -95,6 +105,12 @@ export function isBoardOwned(entity: ActionItemEntity): boolean {
         !RETIRED_FIELDS.has(field) &&
         !SYSTEM_FIELDS.has(field),
     )
+  )
+    return true;
+  const assignees = entity.metadata.projectedAssigneeHash;
+  if (
+    assignees !== undefined &&
+    actionItemAssigneeHash(entity.metadata.assignedTo) !== assignees
   )
     return true;
   const projected = entity.metadata.projectedBodyHash;
