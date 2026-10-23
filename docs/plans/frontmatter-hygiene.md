@@ -58,7 +58,7 @@ Each trim is verified against current readers. "Drop" means: add to `retiredFiel
 ### Conversation memory (`entities/conversation-memory`)
 
 - **decision:** drop `sourceSummaryId` (always equals `conversationId`), `sourceMessageCount` and `projectionVersion` (no readers), and `spaceId` (the retriever already derives `interfaceType:channelId`).
-- **summary:** drop `projectionVersion` (no reader; the version is folded into `sourceHash`); drop `conversationId` (equals the id; `widgets/coverage.ts` and `summary-datasource.ts` switch to the id); drop `entryCount` (derived from the body, as `summary-datasource.ts` already does; the coverage widget and retriever switch to it).
+- **summary:** drop `projectionVersion` (no reader; the version is folded into `sourceHash`); drop `conversationId` (equals the id; `summary-datasource.ts` switches to the id); drop `entryCount` (derived from the body, as `summary-datasource.ts` already does; the retriever switches to it).
 - **action-item:** move its retired list from `stored-shape.ts` onto `retiredFields`, and `timeRange` onto `translatedFields`; the person and `capturedAt` translations stay.
 
 ### Agents (`entities/agent-discovery`)
@@ -89,7 +89,6 @@ Verified as needed despite looking redundant:
 - `slug` on post, deck, project and doc: routes look entities up by slug, and generated ids can differ from it.
 - post `canonicalUrl` (ATProto projection, printable provider), `ogImage` and `ogImageId` (both resolved).
 - agent `brainName` (the brain's name, distinct from the anchor's `name`), `discoveredAt` (reset on reconnect; sorts the network list), `repoDid`, `brainDid`.
-- summary `sourceHash` (projector skip check, coverage staleness).
 - decision `timeRange` (decisions widget).
 - social-post `platform`, `title` (the id derives from it) and `documents`.
 - link `capturedAt` (sort key, set after capture) and `source`.

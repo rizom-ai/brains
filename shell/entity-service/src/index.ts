@@ -248,6 +248,7 @@ export {
 
 export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export {
+  ENTITY_SYSTEM_FIELDS,
   entityTitle,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

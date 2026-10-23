@@ -1,0 +1,40 @@
+id: channel-action-items-withdrawn
+name: Withdraws an own card a later message calls off
+description: >-
+  An earlier message gave Jo the venue booking. Now the event moved online, so
+  no venue is needed. The pickup withdraws the card and adds nothing.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  processedThrough: 2
+  cards:
+    - title: Book the venue for the spring gathering
+      text: Jo books the venue for the spring gathering.
+      owner: Jo
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: We need a venue for the spring gathering. Jo, can you book one?
+    - speaker: Jo
+      userId: usr_jo
+      content: Yes, I'll book it this week.
+    - speaker: Niels
+      userId: usr_niels
+      content: Change of plans, the spring gathering will be online this year, so we don't need a venue anymore.
+    - speaker: Jo
+      userId: usr_jo
+      content: Ok, then I won't book anything.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0
+    - path: withdrawals[0].card
+      equals: card-1
+    - path: updates[0]
+      exists: false

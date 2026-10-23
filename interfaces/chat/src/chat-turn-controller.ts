@@ -1,3 +1,4 @@
+import { CHAT_CHANNELS } from "@brains/contracts";
 import { matchSpaceSelector } from "@brains/plugins";
 import type {
   InterfacePluginContext,
@@ -16,6 +17,7 @@ import {
   APPROVAL_CANCEL_ACTION,
   APPROVAL_CONFIRM_ACTION,
   PROMPT_ACTION,
+  SPACE_NOTICE_ACTION,
 } from "./chat-cards";
 import {
   buildChatActionEventMetadata,
@@ -47,6 +49,7 @@ import {
   shouldRouteChatMessage,
 } from "./discord-routing";
 import type { PromptActionStore } from "./prompt-action-store";
+import { handleSpaceNoticeAction } from "./space-notice";
 import type { SubscriptionRouter } from "./subscription-router";
 import type { ThreadRegistry } from "./thread-registry";
 import type { ChatPlatform, ChatThread } from "./types";
@@ -173,6 +176,26 @@ export class ChatTurnController {
     app.onAction(async (event) => {
       if (!event.actionId.startsWith(`${PROMPT_ACTION}:`)) return;
       await this.handlePromptAction(event);
+    });
+
+    app.onAction(SPACE_NOTICE_ACTION, async (event) => {
+      const context = this.deps.host.getContext();
+      if (!context || !event.thread) return;
+      if (!isEnabledChatPlatform(this.deps.config, event.adapter.name)) return;
+      const platformConfig = this.getPlatformConfig(event.thread);
+      if (!shouldHandleChatAction(event.thread, platformConfig)) return;
+      // Every plugin hears the click; only the notice's poster answers.
+      await handleSpaceNoticeAction(async (action) => {
+        const responses = await context.messaging.collect({
+          type: CHAT_CHANNELS.spaceNoticeAction,
+          payload: action,
+        });
+        return responses.flatMap((response) =>
+          "noop" in response || !response.success || !response.data
+            ? []
+            : [response.data],
+        )[0];
+      }, event);
     });
   }
 

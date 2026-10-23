@@ -51,7 +51,6 @@ export type {
   ToolContext,
   IEntityService,
   IMessageBus,
-  ConversationDigestPayload,
   BatchOperation,
 } from "./src/index";
 // Logger comes from @brains/utils

@@ -31,15 +31,15 @@ import {
 } from "./schemas/conversation-memory";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
-import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
+import { channelActionItemsTemplate } from "./templates/channel-action-items";
 import { SummaryDataSource } from "./datasources/summary-datasource";
 import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
 import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
-import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
-import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
+import { registerMemoryEvalHandlers } from "./lib/eval-handlers";
 import { flattenMemoryIds } from "./lib/flat-memory-ids";
+import { registerChannelActionItems } from "./lib/channel-action-items/register";
 import {
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
@@ -82,7 +82,7 @@ export class ConversationMemoryPlugin extends EntityPlugin<
     return {
       "summary-list": summaryListTemplate,
       "summary-detail": summaryDetailTemplate,
-      "ai-response": summaryAiResponseTemplate,
+      "channel-action-items": channelActionItemsTemplate,
     };
   }
 
@@ -114,6 +114,9 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       {
         retiredFields: ACTION_ITEM_RETIRED_FIELDS,
         translatedFields: ACTION_ITEM_TRANSLATED_FIELDS,
+        // A card is only whole with its origin, capture time and status,
+        // which only the action-item writers set: never system_create.
+        actionPolicy: { create: "never" },
       },
     );
 
@@ -131,21 +134,18 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       },
     );
 
+    registerChannelActionItems(context, {
+      logger: this.logger,
+      visibility: this.config.memoryVisibility,
+    });
+
     registerActionItemsWidget({ context });
     registerDecisionsWidget({ context });
     registerRecentConversationMemoryWidget({ context });
-    registerSummaryCoverageWidget({
-      context,
-      config: this.config,
-    });
 
     registerConversationMemoryAgentContext(context);
 
-    registerSummaryEvalHandlers({
-      context,
-      logger: this.logger,
-      config: this.config,
-    });
+    registerMemoryEvalHandlers({ context });
   }
 }
 

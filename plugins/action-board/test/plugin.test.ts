@@ -26,10 +26,11 @@ describe("ActionBoardPlugin", () => {
     ).toThrow();
   });
 
-  it("registers the action-item update tool for chat", async () => {
+  it("registers the action-item tools for chat", async () => {
     const capabilities = await harness.installPlugin(plugin);
 
     expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+      "action_item_create",
       "action_item_update",
     ]);
   });

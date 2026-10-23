@@ -66,6 +66,8 @@ export interface ChatSdkApp {
     actionIds: string[] | string,
     handler: (event: ActionEvent) => Promise<void>,
   ): void;
+  /** A channel to post into outside a received message, by its chat SDK id. */
+  channel(channelId: string): Channel;
 }
 
 interface ChatSdkAppHostDeps {

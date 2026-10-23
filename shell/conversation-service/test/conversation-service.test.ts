@@ -10,7 +10,6 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
 import type { ConversationDB } from "../src/database";
 import type {
-  ConversationServiceConfig,
   ConversationMetadata,
   StartConversationRequest,
 } from "../src/types";
@@ -31,7 +30,6 @@ describe("ConversationService", () => {
   let db: ConversationDB;
   let client: Client;
   let logger: Logger;
-  let config: ConversationServiceConfig;
   let messageBus: MessageBus;
   let cleanup: () => Promise<void>;
   let dbPath: string;
@@ -57,11 +55,8 @@ describe("ConversationService", () => {
     // Create MessageBus for tests
     messageBus = MessageBus.createFresh(logger);
 
-    // Create config
-    config = {};
-
     // Create service with real database
-    service = ConversationService.createFresh(db, logger, messageBus, config);
+    service = ConversationService.createFresh(db, logger, messageBus);
   });
 
   afterEach(async () => {
@@ -1385,17 +1380,13 @@ describe("ConversationService", () => {
     });
   });
 
-  describe("digest window calculations", () => {
+  describe("reading a range of messages", () => {
     it("should calculate correct window ranges for small conversations", async () => {
       // Create a service that can access private methods for testing
       const testService = ConversationService.createFresh(
         db,
         logger,
         messageBus,
-        {
-          digestTriggerInterval: 2,
-          digestWindowSize: 5,
-        },
       );
 
       const conversationId = "test-window";
@@ -1423,7 +1414,6 @@ describe("ConversationService", () => {
         content: "Message 3",
       });
 
-      // Test getMessages with range (this is the same logic digest uses)
       const window1to2 = await testService.getMessages(conversationId, {
         range: { start: 1, end: 2 },
       });
@@ -1443,10 +1433,6 @@ describe("ConversationService", () => {
         db,
         logger,
         messageBus,
-        {
-          digestTriggerInterval: 10,
-          digestWindowSize: 20,
-        },
       );
 
       const conversationId = "test-large-window";

@@ -191,6 +191,7 @@ type ActionItemMetadataSchema = z.ZodObject<{
   assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
   requestedBy: z.ZodOptional<z.ZodArray<typeof actionItemRequesterSchema>>;
   projectedBodyHash: z.ZodOptional<z.ZodString>;
+  projectedAssigneeHash: z.ZodOptional<z.ZodString>;
 }>;
 
 const CONVERSATION_FIELDS = [
@@ -257,6 +258,11 @@ export const actionItemMetadataSchema: ActionItemMetadataSchema = z
       .meta({ studioWidget: "people" }),
     /** Body hash when the projector wrote the item; a different body is the board's. */
     projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
+    /** Owner hash when a finder wrote the item; a different owner is the board's. */
+    projectedAssigneeHash: z
+      .string()
+      .optional()
+      .meta({ studioWidget: "hidden" }),
   })
   .superRefine(requireOriginFields);
 
@@ -277,6 +283,10 @@ export const actionItemStoredMetadataSchema: z.ZodPreprocess<
       assignedTo: z.array(storedAssigneeSchema).optional(),
       requestedBy: z.array(storedRequesterSchema).optional(),
       projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
+      projectedAssigneeHash: z
+        .string()
+        .optional()
+        .meta({ studioWidget: "hidden" }),
     })
     .superRefine(requireOriginFields),
 );

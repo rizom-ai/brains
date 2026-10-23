@@ -1,4 +1,5 @@
 import { computeContentHash } from "@brains/utils/hash";
+import { ENTITY_SYSTEM_FIELDS } from "@brains/plugins";
 import {
   generateMarkdown,
   readMarkdownFrontmatter,
@@ -12,6 +13,7 @@ import {
 import {
   actionItemMetadataSchema,
   actionItemOrigin,
+  type ActionItemAssignee,
   type ActionItemEntity,
   type ActionItemStatus,
 } from "./schema";
@@ -24,6 +26,8 @@ const RETIRED_FIELDS: ReadonlySet<string> = new Set([
   ...ACTION_ITEM_RETIRED_FIELDS,
   ...ACTION_ITEM_TRANSLATED_FIELDS,
 ]);
+/** Keys the entity service writes on every card, such as its visibility. */
+const SYSTEM_FIELDS: ReadonlySet<string> = new Set(ENTITY_SYSTEM_FIELDS);
 
 /** A card's status moved underneath the person moving it. */
 export class StaleActionItemStatusError extends Error {
@@ -77,6 +81,15 @@ export function actionItemBodyHash(content: string): string {
   return computeContentHash(actionItemBody(content));
 }
 
+/** Who a card is assigned to, as a hash of their ids in any order. */
+export function actionItemAssigneeHash(
+  assignedTo: readonly Pick<ActionItemAssignee, "id">[] | undefined,
+): string {
+  return computeContentHash(
+    JSON.stringify((assignedTo ?? []).map((assignee) => assignee.id).sort()),
+  );
+}
+
 /**
  * Once anything but the projector has written an item it belongs to the board,
  * and re-projection must neither delete nor overwrite it. Read from stored
@@ -87,8 +100,17 @@ export function isBoardOwned(entity: ActionItemEntity): boolean {
   const fields = Object.keys(frontmatterFields(entity.content));
   if (
     fields.some(
-      (field) => !OWNED_FIELDS.has(field) && !RETIRED_FIELDS.has(field),
+      (field) =>
+        !OWNED_FIELDS.has(field) &&
+        !RETIRED_FIELDS.has(field) &&
+        !SYSTEM_FIELDS.has(field),
     )
+  )
+    return true;
+  const assignees = entity.metadata.projectedAssigneeHash;
+  if (
+    assignees !== undefined &&
+    actionItemAssigneeHash(entity.metadata.assignedTo) !== assignees
   )
     return true;
   const projected = entity.metadata.projectedBodyHash;
@@ -126,6 +148,13 @@ export function actionItemTitle(entity: ActionItemEntity): string {
   const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
   const title = heading?.replace(/^Action item:\s*/, "");
   return title !== undefined && title.length > 0 ? title : entity.id;
+}
+
+/** A card's text: its body under the heading, notes included. */
+export function actionItemText(entity: ActionItemEntity): string {
+  return actionItemBody(entity.content)
+    .replace(/^#[^\n]*\n/, "")
+    .trim();
 }
 
 export interface ActionItemNote {

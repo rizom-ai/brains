@@ -1,6 +1,9 @@
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { CHAT_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { ConversationMemoryPlugin } from "../src";
+import { channelBookmarks } from "../src/lib/channel-action-items/pickup";
+import { channelPickupJob } from "../src/lib/channel-action-items/trigger";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -59,6 +62,7 @@ describe("ConversationMemoryPlugin", () => {
       SYSTEM_CHANNELS.startupContentSettled,
       {},
       "shell",
+      true,
     );
 
     const listed = listSpy.mock.calls.map((call) => call[0]);
@@ -76,6 +80,162 @@ describe("ConversationMemoryPlugin", () => {
     );
   });
 
+  it("keeps action items out of system_create, so only a writer that sets their fields adds one", async () => {
+    await harness.installPlugin(plugin);
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("action-item")
+        .actionPolicy,
+    ).toEqual({ create: "never" });
+  });
+
+  it("registers the channel pickup job, which a brain with no spaces never queues", async () => {
+    const queue = harness.getMockShell().getJobQueueService();
+    const registerHandler = mock(queue.registerHandler);
+    const enqueue = mock(queue.enqueue);
+    harness.getMockShell().getJobQueueService = (): typeof queue => ({
+      ...queue,
+      registerHandler,
+      enqueue,
+    });
+    await harness.installPlugin(plugin);
+
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+      true,
+    );
+
+    expect(registerHandler).toHaveBeenCalledWith(
+      "conversation-memory:channel-action-items",
+      expect.anything(),
+      "conversation-memory",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  describe("posting channel notices", () => {
+    const ROOM = "discord-discord:guild-1:1466";
+    // As the conversation service stores it.
+    const room = {
+      id: ROOM,
+      sessionId: ROOM,
+      interfaceType: "discord",
+      channelId: "discord:guild-1:1466",
+      personId: null,
+      started: "2026-10-23T09:00:00.000Z",
+      lastActive: "2026-10-23T09:00:00.000Z",
+      created: "2026-10-23T09:00:00.000Z",
+      updated: "2026-10-23T09:00:00.000Z",
+      metadata: null,
+    };
+    const pending = {
+      key: "1-5",
+      cards: [{ id: "card-1", title: "Book the venue" }],
+    };
+
+    async function brainWithPendingNotice(): Promise<ReturnType<typeof mock>> {
+      const shell = harness.getMockShell();
+      const conversations = shell.getConversationService();
+      shell.getConversationService = (): typeof conversations => ({
+        ...conversations,
+        getConversation: async (id) => (id === ROOM ? room : null),
+        listConversations: async () => [room],
+      });
+      await channelBookmarks(shell.getRuntimeState()).set(ROOM, {
+        processedThrough: 5,
+        notices: [pending],
+      });
+      const posted = mock(() => ({
+        success: true,
+        data: { messageId: "notice-1" },
+      }));
+      harness.subscribe(CHAT_CHANNELS.spaceNotice, posted);
+      await harness.installPlugin(plugin);
+      return posted;
+    }
+
+    async function notices(): Promise<unknown> {
+      const bookmark = await channelBookmarks(
+        harness.getMockShell().getRuntimeState(),
+      ).get(ROOM);
+      return bookmark?.notices;
+    }
+
+    it("posts a conversation's notices when its pickup finishes", async () => {
+      const posted = await brainWithPendingNotice();
+
+      await harness.sendMessage(
+        JOB_CHANNELS.progress,
+        {
+          id: "job-1",
+          type: "job",
+          status: "completed",
+          metadata: {
+            rootJobId: "job-1",
+            ...channelPickupJob(ROOM).options.metadata,
+          },
+          jobDetails: {
+            jobType: "conversation-memory:channel-action-items",
+            priority: 0,
+            retryCount: 0,
+          },
+        },
+        "job-progress-monitor",
+        true,
+      );
+
+      expect(posted).toHaveBeenCalledTimes(1);
+      expect(await notices()).toEqual([
+        { ...pending, postedMessageId: "notice-1" },
+      ]);
+    });
+
+    it("answers an Undo on a notice it posted with the notice as it now reads", async () => {
+      await brainWithPendingNotice();
+      await harness.sendMessage(
+        SYSTEM_CHANNELS.startupContentSettled,
+        {},
+        "shell",
+        true,
+      );
+
+      const answer = await harness.sendMessage(
+        CHAT_CHANNELS.spaceNoticeAction,
+        {
+          conversationId: ROOM,
+          noticeMessageId: "notice-1",
+          value: "card-1",
+          by: "Mira",
+        },
+        "chat",
+      );
+
+      expect(answer).toEqual({
+        title: "Added to the board",
+        lines: ["~~Book the venue~~ · removed by Mira"],
+        actions: [],
+      });
+    });
+
+    it("posts notices a restart left pending", async () => {
+      const posted = await brainWithPendingNotice();
+
+      await harness.sendMessage(
+        SYSTEM_CHANNELS.startupContentSettled,
+        {},
+        "shell",
+        true,
+      );
+
+      expect(posted).toHaveBeenCalledTimes(1);
+      expect(await notices()).toEqual([
+        { ...pending, postedMessageId: "notice-1" },
+      ]);
+    });
+  });
+
   it("keeps memory entities immutable through entity CRUD", () => {
     expect(plugin.entityActionPolicy).toEqual({
       summary: {
@@ -88,27 +248,15 @@ describe("ConversationMemoryPlugin", () => {
     });
   });
 
-  it("keeps projector configuration for explicit evaluations", async () => {
+  it("keeps summaries out of entity projection", async () => {
     await harness.installPlugin(plugin);
-    const config = plugin.getConfig();
 
-    expect(config.maxSourceMessages).toBe(1000);
-    expect(config.maxMessagesPerChunk).toBe(40);
-    expect(config.maxEntries).toBe(50);
-    expect(config.projectionVersion).toBe(1);
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("summary"),
     ).toMatchObject({
       projectionSource: false,
       projectionSourceRole: "excluded",
     });
-  });
-
-  it("accepts custom evaluation config", async () => {
-    const customPlugin = new ConversationMemoryPlugin({ maxEntries: 10 });
-    await harness.installPlugin(customPlugin);
-
-    expect(customPlugin.getConfig().maxEntries).toBe(10);
   });
 
   it("registers no tools, plus templates and datasource", async () => {

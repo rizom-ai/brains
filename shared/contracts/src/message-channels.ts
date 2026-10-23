@@ -10,8 +10,11 @@ export const BUTTONDOWN_CHANNELS = {
   send: "buttondown:send",
 } as const;
 
-export const CONVERSATION_CHANNELS = {
-  digest: "conversation:digest",
+export const CHAT_CHANNELS = {
+  /** Post a space notice; the payload is `SpaceNoticeRequest`. */
+  spaceNotice: "chat:space-notice",
+  /** A click on a space notice; the payload is `SpaceNoticeAction`. */
+  spaceNoticeAction: "chat:space-notice-action",
 } as const;
 
 export const CONSOLE_CHANNELS = {

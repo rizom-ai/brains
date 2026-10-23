@@ -1,4 +1,3 @@
-import { CONVERSATION_CHANNELS } from "./conversation-channels";
 import {
   guestInterfaceType,
   guestConversationOwnershipSchema,
@@ -10,11 +9,9 @@ import { coerceConversationMetadata } from "./metadata";
 import type { Client } from "@libsql/client";
 import type {
   IConversationService,
-  ConversationServiceConfig,
   ConversationDbConfig,
   GetMessagesOptions,
   ListConversationsOptions,
-  ConversationDigestPayload,
   StartConversationRequest,
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
@@ -63,25 +60,14 @@ export class ConversationService implements IConversationService {
   private readonly db: ConversationDB;
   private readonly logger: Logger;
   private readonly messageBus: MessageBus;
-  private readonly config: ConversationServiceConfig;
   private dbClient: Client | null = null;
   private dbUrl: string | null = null;
   private pragmaInitialization: Promise<void> | null = null;
 
-  constructor(
-    db: ConversationDB,
-    logger: Logger,
-    messageBus: MessageBus,
-    config: ConversationServiceConfig = {},
-  ) {
+  constructor(db: ConversationDB, logger: Logger, messageBus: MessageBus) {
     this.db = db;
     this.logger = logger;
     this.messageBus = messageBus;
-    this.config = {
-      digestTriggerInterval: 5,
-      digestWindowSize: 10,
-      ...config,
-    };
   }
 
   /**
@@ -130,9 +116,8 @@ export class ConversationService implements IConversationService {
     db: ConversationDB,
     logger: Logger,
     messageBus: MessageBus,
-    config?: ConversationServiceConfig,
   ): ConversationService {
-    return new ConversationService(db, logger, messageBus, config);
+    return new ConversationService(db, logger, messageBus);
   }
 
   /** Create a fresh instance that owns the database opened from config. */
@@ -140,10 +125,9 @@ export class ConversationService implements IConversationService {
     logger: Logger,
     messageBus: MessageBus,
     dbConfig: ConversationDbConfig,
-    config?: ConversationServiceConfig,
   ): ConversationService {
     const { db, client, url } = createConversationDatabase(dbConfig);
-    const instance = new ConversationService(db, logger, messageBus, config);
+    const instance = new ConversationService(db, logger, messageBus);
     instance.dbClient = client;
     instance.dbUrl = url;
     return instance;
@@ -365,9 +349,6 @@ export class ConversationService implements IConversationService {
       sender: "conversation-service",
       broadcast: true,
     });
-
-    // Check if digest should be broadcast
-    await this.checkAndBroadcastDigest(conversationId, now);
   }
 
   /**
@@ -637,65 +618,5 @@ export class ConversationService implements IConversationService {
     if (existing.interfaceType !== guestInterfaceType)
       this.logger.debug("Deleted conversation", { conversationId });
     return true;
-  }
-
-  /**
-   * Check if digest should be broadcast and do so if needed
-   */
-  private async checkAndBroadcastDigest(
-    conversationId: string,
-    timestamp: string,
-  ): Promise<void> {
-    const messageCount = await this.countMessages(conversationId);
-
-    // Check if we should trigger a digest
-    const triggerInterval = this.config.digestTriggerInterval ?? 10;
-    if (messageCount > 0 && messageCount % triggerInterval === 0) {
-      await this.broadcastDigest(conversationId, messageCount, timestamp);
-    }
-  }
-
-  /**
-   * Broadcast conversation digest with overlapping message window
-   */
-  private async broadcastDigest(
-    conversationId: string,
-    messageCount: number,
-    timestamp: string,
-  ): Promise<void> {
-    const windowSize = this.config.digestWindowSize ?? 20;
-    const windowStart = Math.max(1, messageCount - windowSize + 1);
-    const windowEnd = messageCount;
-
-    // Fetch the message window
-    const windowMessages = await this.getMessages(conversationId, {
-      range: { start: windowStart, end: windowEnd },
-    });
-
-    const digestPayload: ConversationDigestPayload = {
-      conversationId,
-      messageCount,
-      messages: windowMessages,
-      windowStart,
-      windowEnd,
-      windowSize: windowMessages.length,
-      timestamp,
-    };
-
-    // Broadcast digest event
-    await this.messageBus.send({
-      type: CONVERSATION_CHANNELS.digest,
-      payload: digestPayload,
-      sender: "conversation-service",
-      broadcast: true,
-    });
-
-    this.logger.debug("Broadcast conversation digest", {
-      conversationId,
-      messageCount,
-      windowStart,
-      windowEnd,
-      windowSize: windowMessages.length,
-    });
   }
 }
