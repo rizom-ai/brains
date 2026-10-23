@@ -109,7 +109,7 @@ async function exerciseSurface(
   if (surface.startsWith("studio-chat")) await exerciseStudioChat(visualCase);
   if (plan.isDashboard) await exerciseDashboard(visualCase);
   if (surface === "studio-library") await exerciseStudioLibrary(visualCase);
-  if (surface === "studio-overview") await waitForText(page, "Recent activity");
+  if (surface === "studio-overview") await waitForText(page, "What happened");
   if (surface === "studio-content-sync") await exerciseContentSync(visualCase);
   if (surface === "studio-site") await exerciseStudioSite(page);
   if (surface === "studio-publishing") await exerciseStudioPublishing(page);

@@ -17,12 +17,14 @@ import {
   operatorTextSchema as textSchema,
   operatorToneSchema as toneSchema,
   operatorScalarSchema as scalarSchema,
+  operatorStatItemSchema as statItemSchema,
   operatorStatsBlockSchema as statsBlockSchema,
   operatorKeyValuesBlockSchema as keyValuesBlockSchema,
   operatorNoticeBlockSchema as noticeBlockSchema,
   operatorTextBlockSchema as textBlockSchema,
   operatorMeterBlockSchema as meterBlockSchema,
   operatorSeriesBlockSchema as seriesBlockSchema,
+  operatorTimelineBlockSchema as timelineBlockSchema,
   operatorProgressBlockSchema as progressBlockSchema,
 } from "./operator-view-contract";
 import type {
@@ -190,6 +192,8 @@ const listItemSchema = z
     meta: shortTextSchema.optional(),
     metadata: z.array(shortTextSchema).max(20).optional(),
     tags: z.array(labelSchema).max(30).optional(),
+    // When the item happened; a log presentation reads rows by it.
+    at: z.iso.datetime({ offset: true }).optional(),
     count: z.number().finite().optional(),
     badges: z.array(badgeSchema).max(10).optional(),
     filterValues: z
@@ -212,6 +216,7 @@ const listPresentationSchema = z.enum([
   "editorial",
   "attention",
   "activity",
+  "log",
 ]);
 const listBlockObjectSchema = z
   .object({
@@ -656,6 +661,7 @@ const studioPanelBlockSchema = z.union([
   meterBlockSchema,
   progressBlockSchema,
   seriesBlockSchema,
+  timelineBlockSchema,
   queryBlockSchema,
   linksBlockSchema,
   studioListBlockSchema,
@@ -716,6 +722,8 @@ const studioCardBlockSchema = z
     label: labelSchema,
     presentation: z.enum(["section", "disclosure", "feature"]).optional(),
     metadata: z.array(shortTextSchema).max(20).optional(),
+    // Figures a closed disclosure shows beside its label.
+    summary: z.array(statItemSchema).max(4).optional(),
     tone: toneSchema.optional(),
     blocks: z.array(studioPanelBlockSchema).max(12),
   })
@@ -789,6 +797,13 @@ const studioViewSourceSchema = z
         tone: toneSchema.optional(),
       })
       .strict()
+      .optional(),
+    // Short standing facts the head lists under the title, such as health.
+    facts: z
+      .array(
+        z.object({ label: labelSchema, tone: toneSchema.optional() }).strict(),
+      )
+      .max(6)
       .optional(),
     primaryAction: sourceActionControlSchema.optional(),
     blocks: z

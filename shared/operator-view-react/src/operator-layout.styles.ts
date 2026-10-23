@@ -15,6 +15,11 @@ export const layoutStyles: Record<
   | "comfortableSummary"
   | "attentionSummary"
   | "attentionMetadata"
+  | "figuresSummary"
+  | "figures"
+  | "figure"
+  | "figureLabel"
+  | "figureValue"
   | "body"
   | "disclosedBody"
   | "warn"
@@ -154,6 +159,42 @@ export const layoutStyles: Record<
     color: "var(--console-text)",
   },
   attentionMetadata: { display: "block", marginTop: 8 },
+  // A closed source that shows its figures reads as a ledger row.
+  figuresSummary: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: "var(--console-text)",
+  },
+  figures: {
+    float: "right",
+    display: "flex",
+    gap: 18,
+    margin: 0,
+    marginInlineStart: 16,
+  },
+  figure: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    minWidth: 40,
+  },
+  figureLabel: {
+    order: 2,
+    color: "var(--console-text-muted)",
+    fontSize: 11.5,
+    fontWeight: 400,
+    lineHeight: 1.3,
+    whiteSpace: "nowrap",
+  },
+  figureValue: {
+    order: 1,
+    margin: 0,
+    color: "var(--console-text)",
+    fontSize: 19,
+    fontWeight: 500,
+    fontVariantNumeric: "tabular-nums",
+    lineHeight: 1.1,
+  },
   body: { display: "grid", gap: 16, minWidth: 0 },
   disclosedBody: { paddingTop: 16 },
   warn: {

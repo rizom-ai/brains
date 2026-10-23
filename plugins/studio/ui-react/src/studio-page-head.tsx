@@ -6,6 +6,7 @@ import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import type {
   RuntimeOperatorActionControl,
   RuntimeStudioOperatorView,
+  RuntimeStudioOperatorViewFact,
   RuntimeStudioOperatorViewStatus,
   UserPermissionLevel,
 } from "@brains/plugins";
@@ -35,6 +36,7 @@ export interface StudioPageHeadModel {
   readonly metadata?: readonly string[] | undefined;
   readonly description?: string | undefined;
   readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly facts?: readonly RuntimeStudioOperatorViewFact[] | undefined;
   readonly totals: readonly StudioHeadTotal[];
   readonly primaryAction?: RuntimeOperatorActionControl | undefined;
 }
@@ -187,6 +189,23 @@ export function StudioPageHead(props: {
           </div>
         )}
       </div>
+      {props.model.facts && props.model.facts.length > 0 && (
+        <ul aria-label="Status" {...stylex.props(s.facts)}>
+          {props.model.facts.map((fact, index) => (
+            <li
+              key={`${fact.label}:${index}`}
+              data-tone={fact.tone ?? "neutral"}
+              {...stylex.props(s.fact)}
+            >
+              <span
+                aria-hidden="true"
+                {...stylex.props(s.factMark, toneText(fact.tone))}
+              />
+              {fact.label}
+            </li>
+          ))}
+        </ul>
+      )}
     </header>
   );
 }
@@ -202,6 +221,7 @@ export function declarativeStudioPageHead(
     title: view.title ?? workspace.label,
     ...(view.description ? { description: view.description } : {}),
     ...(view.status ? { status: view.status } : {}),
+    ...(view.facts?.length ? { facts: view.facts } : {}),
     // Stats already appear in the workspace body; do not repeat them above it.
     totals: [],
     ...(view.primaryAction ? { primaryAction: view.primaryAction } : {}),
