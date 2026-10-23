@@ -4437,3 +4437,54 @@ describe("named notes beside specks at the page's edge", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, a work that ends in verse", () => {
+  const lines = [
+    "Es bleibt mir nur noch übrig, den Grundgedanken dieser",
+    "Untersuchung kurz zu wiederholen und zu begründen.",
+    "Simonidis fragm. 37.",
+    "– ⏑ ⏑ – ⏑ ⏑ –́ ⏑",
+    "ὅτε λάρνακι δαιδαλέᾳ",
+    "ἄνεμός τ’ ἐμάνη πνείων",
+  ];
+  const prose = [
+    "Die Thränen, mit denen Danae ihren Schmerzenserguss",
+    "einleitet, versiegen allmählich, wie sie das Kind anschaut.",
+    "Indem sie sich aber vertrauensvoll an Zeus wendet, hat sie",
+    "aufgehört zu klagen. Was will also Hartung damit sagen?",
+  ];
+  /** A page under its running head, its lines one below the other. */
+  const page = (leaf: number, number: number, text: string[]): string =>
+    `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}' title='bbox 0 0 2400 3800'>
+ <p class='ocr_par'><span class='ocr_line' title='bbox 1000 200 1400 270; x_size 62'>— ${number} —</span></p>
+ <p class='ocr_par'>${text
+   .map(
+     (line, at) =>
+       `<span class='ocr_line' title='bbox ${at === 0 ? 330 : 245} ${500 + at * 100} ${/[⏑ὅἄ]/u.test(line) ? 1500 : 2150} ${580 + at * 100}; x_size 78'>${line}</span>`,
+   )
+   .join("\n")}</p>
+</div>`;
+  const hocr = `<html><body>${page(10, 65, prose)}${page(11, 66, prose)}${page(12, 67, lines)}</body></html>`;
+  const work = {
+    item: "werk17",
+    title: "Der Danae Klage",
+    citation: "GOA XVII",
+    firstPage: 65,
+    lastPage: 67,
+  };
+
+  it("keeps its lines and their metrical schemes from the line the manifest names", () => {
+    const units = parseArchiveOcrWork(hocr, {
+      ...work,
+      verseFrom: { page: 67, opens: "Simonidis fragm." },
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n\n");
+
+    expect(text).toContain(
+      "Es bleibt mir nur noch übrig, den Grundgedanken dieser Untersuchung",
+    );
+    expect(text).toContain(
+      "Simonidis fragm. 37.  \n– ⏑ ⏑ – ⏑ ⏑ –́ ⏑  \nὅτε λάρνακι δαιδαλέᾳ  \nἄνεμός τ’ ἐμάνη πνείων",
+    );
+  });
+});

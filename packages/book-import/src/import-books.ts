@@ -238,6 +238,9 @@ const archiveOcrBookSchema: z.ZodObject<
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
       verse: z.ZodDefault<z.ZodBoolean>;
+      verseFrom: z.ZodOptional<
+        z.ZodObject<{ page: typeof printedPageSchema; opens: z.ZodString }>
+      >;
       opensWith: z.ZodOptional<z.ZodString>;
       closesWith: z.ZodOptional<z.ZodString>;
       columns: z.ZodDefault<z.ZodBoolean>;
@@ -317,6 +320,10 @@ const archiveOcrBookSchema: z.ZodObject<
   datelined: z.boolean().default(false),
   /** The work is verse: its lines stay lines, and a stanza opens below the space it leaves. */
   verse: z.boolean().default(false),
+  /** The line the work turns to verse at, to its end, as an essay closes on a poem. */
+  verseFrom: z
+    .object({ page: printedPageSchema, opens: z.string().min(1) })
+    .optional(),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
   /** The line the last page closes the work with, before another work begins. */

@@ -59,6 +59,9 @@ books:
     lastPage: 68
     headings:
       - { page: 55, opens: Der Danae Klage, level: 1, label: I }
+    # Simonides' Danae fragment closes the paper as Nietzsche set it out:
+    # its metrical schemes and its verses line by line.
+    verseFrom: { page: 67, opens: Simonidis fragm. }
     slug: beitraege-zur-kritik-der-griechischen-lyriker
     title: "Beiträge zur Kritik der griechischen Lyriker. I. Der Danae Klage"
     shortTitle: Der Danae Klage

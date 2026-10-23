@@ -118,6 +118,11 @@ export interface ArchiveOcrWork {
    */
   verse?: boolean;
   /**
+   * The line the work turns to verse at, to its end, as an essay closes on
+   * the poem it argues for: from it each line stays a line.
+   */
+  verseFrom?: { page: number | string; opens: string } | undefined;
+  /**
    * The line its first page opens the work with, where it follows another
    * work's end on that page, as a periodical prints it.
    */
@@ -254,8 +259,15 @@ function isWordToken(token: string): boolean {
 }
 
 /** A line without a word, and no citation: a mark on the scan. */
+/** A row of metrical signs, as a scheme above verse sets them: – ⏑ ⏑ –́. */
+const METRICAL = /[⏑⏒⏓]|–\u0301/u;
+
 function isWordless(text: string): boolean {
-  return !text.split(/\s+/u).some(isWordToken) && !isCitation(text);
+  return (
+    !text.split(/\s+/u).some(isWordToken) &&
+    !isCitation(text) &&
+    !METRICAL.test(text)
+  );
 }
 
 /** A line of several tokens and no word among them: a rule read as letters. */
@@ -2920,6 +2932,8 @@ interface WorkState {
   chapters: number;
   /** The level of a section the manifest leaves out, with the sections under it. */
   skipping: number | null;
+  /** Whether the work has turned to verse at the line the manifest names. */
+  verse?: boolean;
 }
 
 /** A heading's title in the work, its words cased as the text spells them. */
@@ -3797,16 +3811,29 @@ export function parseArchiveOcrWork(
                 work.title,
                 work.skipHeadings ?? [],
               )
-            : addPiece(
-                done,
-                piece,
-                {
-                  page: number,
-                  leaf: page.leaf,
-                  label,
-                },
-                volume.verse,
-              ),
+            : ((): WorkState => {
+                const turns =
+                  done.verse !== true &&
+                  piece.kind === "text" &&
+                  work.verseFrom !== undefined &&
+                  String(work.verseFrom.page) === label &&
+                  normalised(piece.text).startsWith(work.verseFrom.opens);
+                const verse = done.verse === true || turns;
+                return {
+                  ...addPiece(
+                    done,
+                    // The verse opens a stanza of its own.
+                    turns ? { ...piece, opens: true } : piece,
+                    {
+                      page: number,
+                      leaf: page.leaf,
+                      label,
+                    },
+                    volume.verse === true || verse,
+                  ),
+                  verse,
+                };
+              })(),
         state,
       ),
     {
