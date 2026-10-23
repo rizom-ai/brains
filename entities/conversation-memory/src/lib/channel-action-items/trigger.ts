@@ -1,12 +1,12 @@
-import type {
-  Conversation,
-  IConversationsNamespace,
-  IRuntimeStateStore,
-  JobOptions,
+import {
+  conversationMessageMetadataSchema,
+  type IConversationsNamespace,
+  type IRuntimeStateStore,
+  type JobOptions,
 } from "@brains/plugins";
+import { matchSpaceSelector } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { SUMMARY_PLUGIN_ID } from "../constants";
-import { evaluateSummaryEligibility } from "../summary-space-eligibility";
 import type { ChannelBookmark } from "./pickup";
 
 export const CHANNEL_ACTION_ITEMS_JOB_TYPE = "channel-action-items";
@@ -46,7 +46,7 @@ export function channelPickupJob(conversationId: string): {
 export interface ChannelTriggerDeps {
   conversations: Pick<
     IConversationsNamespace,
-    "get" | "list" | "countMessages"
+    "list" | "countMessages" | "getMessages"
   >;
   /** The brain's configured spaces, e.g. "discord:<channel id>". */
   spaces: readonly string[];
@@ -54,26 +54,36 @@ export interface ChannelTriggerDeps {
   enqueue: (conversationId: string) => Promise<void>;
 }
 
-const messageAddedSchema = z.object({ conversationId: z.string().min(1) });
+const messageAddedSchema = z.object({
+  conversationId: z.string().min(1),
+  metadata: z.unknown().optional(),
+});
 
-function inSpace(
-  conversation: Conversation,
-  spaces: readonly string[],
-): boolean {
-  return evaluateSummaryEligibility({ conversation, spaces: [...spaces] })
-    .eligible;
+/** The configured space a stored message belongs to, as the chat interface recorded it. */
+function spaceIdOf(metadata: unknown): string | undefined {
+  const parsed = conversationMessageMetadataSchema.safeParse(metadata ?? {});
+  return parsed.success ? parsed.data.spaceId : undefined;
 }
 
-/** A message was stored: queue its conversation's pickup when it is a space. */
+function inSpace(
+  spaceId: string | undefined,
+  spaces: readonly string[],
+): boolean {
+  return (
+    spaceId !== undefined &&
+    spaces.some((selector) => matchSpaceSelector(selector, spaceId))
+  );
+}
+
+/** A message was stored: queue its conversation's pickup when it is in a space. */
 export async function wakeUpChannel(
   deps: ChannelTriggerDeps,
   payload: unknown,
 ): Promise<void> {
   const parsed = messageAddedSchema.safeParse(payload);
-  if (!parsed.success || deps.spaces.length === 0) return;
-  const conversation = await deps.conversations.get(parsed.data.conversationId);
-  if (!conversation || !inSpace(conversation, deps.spaces)) return;
-  await deps.enqueue(conversation.id);
+  if (!parsed.success) return;
+  if (!inSpace(spaceIdOf(parsed.data.metadata), deps.spaces)) return;
+  await deps.enqueue(parsed.data.conversationId);
 }
 
 /** How many conversations one catch-up looks at, newest active first. */
@@ -91,17 +101,19 @@ export async function catchUpChannels(
     limit: CATCH_UP_LIMIT,
   });
   const behind = await Promise.all(
-    conversations
-      .filter((conversation) => inSpace(conversation, deps.spaces))
-      .map(async (conversation) => {
-        const [count, bookmark] = await Promise.all([
-          deps.conversations.countMessages(conversation.id),
-          deps.bookmarks.get(conversation.id),
-        ]);
-        return count > (bookmark?.processedThrough ?? 0)
-          ? [conversation.id]
-          : [];
-      }),
+    conversations.map(async (conversation) => {
+      const [count, bookmark] = await Promise.all([
+        deps.conversations.countMessages(conversation.id),
+        deps.bookmarks.get(conversation.id),
+      ]);
+      if (count <= (bookmark?.processedThrough ?? 0)) return [];
+      const [latest] = await deps.conversations.getMessages(conversation.id, {
+        range: { start: count, end: count },
+      });
+      return inSpace(spaceIdOf(latest?.metadata), deps.spaces)
+        ? [conversation.id]
+        : [];
+    }),
   );
   const queued = behind.flat();
   await Promise.all(queued.map((id) => deps.enqueue(id)));

@@ -8,6 +8,7 @@ import {
 } from "@brains/plugins";
 import {
   getChannelName,
+  getSpaceId,
   getThreadIdParts,
   type RoutedThread,
 } from "./discord-routing";
@@ -104,6 +105,7 @@ export function buildChatSpaceMessageMetadata(
 ): Record<string, unknown> {
   const ids = getThreadIdParts(thread.id);
   return {
+    spaceId: getSpaceId(platform, thread),
     actor: buildChatActorMetadata(
       platform,
       {

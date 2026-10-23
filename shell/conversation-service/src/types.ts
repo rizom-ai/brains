@@ -154,11 +154,14 @@ export const conversationMessageMetadataSchema: z.ZodObject<
   {
     actor: z.ZodOptional<typeof conversationMessageActorParserSchema>;
     source: z.ZodOptional<typeof conversationMessageSourceSchema>;
+    spaceId: z.ZodOptional<z.ZodString>;
   },
   z.core.$loose
 > = z.looseObject({
   actor: conversationMessageActorParserSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
+  /** The configured space a passively stored message belongs to, e.g. "discord:<channel id>". */
+  spaceId: z.string().min(1).optional(),
 });
 
 export type ConversationMessageMetadata = z.output<

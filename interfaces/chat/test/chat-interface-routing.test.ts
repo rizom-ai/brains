@@ -561,6 +561,8 @@ describe("ChatInterface message routing", () => {
             messageId: "message-123",
             channelId: "discord:guild-123:channel-123",
           }),
+          // The configured space the message belongs to, as selectors name it.
+          spaceId: "discord:channel-123",
         }),
       });
       expect(suite.agentService.chat).not.toHaveBeenCalled();

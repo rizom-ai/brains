@@ -38,11 +38,11 @@ Per space conversation, runtime state (`conversation-memory` namespace, key `act
 
 ### Wake-up
 
-A `conversation:messageAdded` event for a conversation in a configured space enqueues `channel-action-items` with `deduplication: "skip"` and key `channel-action-items:<conversation id>`. A channel therefore has at most one pending job, and a message that arrives during a run queues the next one. The unused digest broadcast and its configuration are removed.
+Each message the chat interface stores for a space carries the space it belongs to (`spaceId` in its metadata, e.g. `discord:<channel id>`); a space conversation's own channel id is the chat SDK's composite id (`discord:<guild>:<channel>`), which selectors do not match. A `conversation:messageAdded` event whose message carries a configured `spaceId` enqueues `channel-action-items` with `deduplication: "skip"` and key `channel-action-items:<conversation id>`. A channel therefore has at most one pending job, and a message that arrives during a run queues the next one. The unused digest broadcast and its configuration are removed.
 
 ### Catch-up
 
-On `startupContentSettled` and in a daily recurring check, the plugin compares each space conversation's message count with its `processedThrough` and enqueues the job for every conversation behind. A lost wake-up delays a batch; it never loses one.
+On `startupContentSettled` and in a daily recurring check, the plugin compares each conversation's message count with its `processedThrough` and enqueues the job for every conversation behind whose latest message carries a configured `spaceId`. A lost wake-up delays a batch; it never loses one.
 
 ### The job
 
@@ -101,7 +101,7 @@ Each phase is one capability with its tests and evals, and lands on its own.
 3. **Notice.** Space-notice capability in the chat interface, the pending-record flow and the 📌 reactions. Tests for posting once per batch and retry on start.
 4. **Undo.** Routed action, delete, rejection record, edited note. Tests that a rejected card is never recreated and a board-owned card is kept.
 5. **Revision.** `update` and `withdraw` against own cards, never board-owned ones. Evals for an owner change and a withdrawn item.
-6. **Cleanup.** Remove the digest broadcast and its configuration, and the conversation-memory evals that only exercise the unused whole-conversation projector.
+6. **Cleanup.** Remove the digest broadcast and its configuration, and the unused whole-conversation projector with its evals and its space eligibility check, which builds `<platform>:<composite channel id>` and so never matches a Discord space.
 
 ## Evals
 
