@@ -1,0 +1,29 @@
+id: channel-action-items-unowned-task
+name: Picks up an agreed task no one takes on, without an owner
+description: >-
+  The group agrees work needs doing but no one takes it on. The pickup finds
+  one action item and leaves its owner as nobody.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: We should update the pitch deck with the new numbers before the board meeting.
+    - speaker: Jo
+      userId: usr_jo
+      content: Agreed, it really needs updating.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].owner
+      equals: nobody
+    - path: items[0].title
+      matches: "[Dd]eck"

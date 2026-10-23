@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { ConversationMemoryPlugin } from "../src";
 import {
@@ -83,6 +83,31 @@ describe("ConversationMemoryPlugin", () => {
       harness.getEntityRegistry().getEntityTypeConfig("action-item")
         .actionPolicy,
     ).toEqual({ create: "never" });
+  });
+
+  it("registers the channel pickup job, which a brain with no spaces never queues", async () => {
+    const queue = harness.getMockShell().getJobQueueService();
+    const registerHandler = mock(queue.registerHandler);
+    const enqueue = mock(queue.enqueue);
+    harness.getMockShell().getJobQueueService = (): typeof queue => ({
+      ...queue,
+      registerHandler,
+      enqueue,
+    });
+    await harness.installPlugin(plugin);
+
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+    );
+
+    expect(registerHandler).toHaveBeenCalledWith(
+      "conversation-memory:channel-action-items",
+      expect.anything(),
+      "conversation-memory",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
   });
 
   it("keeps memory entities immutable through entity CRUD", () => {

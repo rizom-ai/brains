@@ -32,6 +32,7 @@ import {
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
+import { channelActionItemsTemplate } from "./templates/channel-action-items";
 import { SummaryDataSource } from "./datasources/summary-datasource";
 import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
@@ -40,6 +41,7 @@ import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import { flattenMemoryIds } from "./lib/flat-memory-ids";
+import { registerChannelActionItems } from "./lib/channel-action-items/register";
 import {
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
@@ -83,6 +85,7 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       "summary-list": summaryListTemplate,
       "summary-detail": summaryDetailTemplate,
       "ai-response": summaryAiResponseTemplate,
+      "channel-action-items": channelActionItemsTemplate,
     };
   }
 
@@ -133,6 +136,11 @@ export class ConversationMemoryPlugin extends EntityPlugin<
         return { success: true };
       },
     );
+
+    registerChannelActionItems(context, {
+      logger: this.logger,
+      visibility: this.config.memoryVisibility,
+    });
 
     registerActionItemsWidget({ context });
     registerDecisionsWidget({ context });

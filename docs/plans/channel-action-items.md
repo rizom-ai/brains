@@ -107,4 +107,4 @@ Each phase is one capability with its tests and evals, and lands on its own.
 
 The existing conversation-memory evals call `SummaryProjector` directly and pass while nothing in production runs it. The evals for this plan run through the pickup itself: messages stored in a space conversation, the job run, and the resulting cards checked for title, owner, `requestedBy`, `capturedAt`, `status` and visibility; plus negative cases (no cards for chatter or questions) and the revision cases.
 
-An eval turn has no speaker today: the brain's own agent is the caller, and the eval brain has no members. The channel evals need speaker identities that resolve to members, so the eval harness gains a speaker per turn and seeded members before phase 2's evals.
+The extractor's evals run through the conversation-memory plugin's `extractChannelActionItems` eval handler, with each message's speaker in its input; agent evals, whose caller is the brain's own agent, cover only tool choice and arguments.

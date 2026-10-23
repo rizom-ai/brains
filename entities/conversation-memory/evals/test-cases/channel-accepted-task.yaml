@@ -1,0 +1,33 @@
+id: channel-action-items-accepted-task
+name: Picks up a task someone accepts in a team channel
+description: >-
+  Niels asks for a task and Jo takes it on. The pickup finds one action item,
+  owned by Jo, citing Jo's message.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: The INC meeting went well. Someone needs to send them the proposal. Jo, can you do that?
+    - speaker: Jo
+      userId: usr_jo
+      content: Sure, I'll send it on Friday.
+    - speaker: Natalie
+      content: Great, thanks both!
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].owner
+      equals: Jo
+    - path: items[0].message
+      equals: 2
+    - path: items[0].title
+      matches: "[Pp]roposal"
