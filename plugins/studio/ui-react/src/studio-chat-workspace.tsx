@@ -18,7 +18,6 @@ import {
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioChatHandoff } from "../../src/chat-handoff-contract";
-import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
 import {
@@ -39,6 +38,7 @@ import { useChatDelete } from "./use-chat-delete";
 import { useChatHandoff } from "./use-chat-handoff";
 import { useChatThread } from "./use-chat-thread";
 import { useChatNavigationState } from "./use-chat-navigation-state";
+import { TypeSwitcher } from "./studio-type-navigation";
 
 export interface StudioChatWorkspaceProps {
   apiPath?: string | undefined;

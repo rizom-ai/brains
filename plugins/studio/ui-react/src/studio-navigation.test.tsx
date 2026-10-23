@@ -5,13 +5,11 @@ import { Window } from "happy-dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import {
-  StudioBrowseDestinations,
-  studioArea,
-  TypeSwitcher,
-} from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
 import { studioTypeHierarchy } from "../../src/config";
+import { StudioBrowseDestinations } from "./studio-navigation-parts";
+import { studioArea } from "./studio-areas";
+import { TypeSwitcher } from "./studio-type-navigation";
 
 let restoreGlobals: RestoreGlobals;
 let browser: Window;
