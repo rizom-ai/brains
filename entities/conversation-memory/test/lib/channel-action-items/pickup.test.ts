@@ -225,6 +225,23 @@ describe("picking up a channel's action items", () => {
     expect(await bookmark(deps)).toEqual({ processedThrough: 5, notices: [] });
   });
 
+  it("splits a batch into notices of at most ten cards", async () => {
+    const { deps, found } = brain();
+    found(
+      Array.from({ length: 12 }, (_, index) =>
+        item(2, jo, `Card ${index + 1}`),
+      ),
+    );
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    const notices = (await bookmark(deps))?.notices ?? [];
+    expect(notices.map((notice) => [notice.key, notice.cards.length])).toEqual([
+      ["1-5", 10],
+      ["1-5-2", 2],
+    ]);
+  });
+
   it("keeps a notice still to post when the next batch is processed", async () => {
     const { deps, found } = brain();
     const pending = {

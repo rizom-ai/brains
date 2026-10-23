@@ -1,4 +1,7 @@
-import type { SpaceNoticeRequest } from "@brains/contracts";
+import {
+  SPACE_NOTICE_VALUE_LIMIT,
+  type SpaceNoticeRequest,
+} from "@brains/contracts";
 import type {
   Conversation,
   IConversationsNamespace,
@@ -33,7 +36,10 @@ function undoLabel(title: string): string {
     : `${label.slice(0, LABEL_LIMIT - 1)}…`;
 }
 
-/** The notice as the chat interface posts it: a line and an Undo per card. */
+/**
+ * The notice as the chat interface posts it: a line and an Undo per card. A
+ * card whose id no button can carry is listed without one.
+ */
 export function noticeRequest(
   conversation: Conversation,
   notice: ChannelNotice,
@@ -48,10 +54,9 @@ export function noticeRequest(
     lines: notice.cards.map((card) =>
       card.owner ? `${card.title} · ${card.owner}` : card.title,
     ),
-    actions: notice.cards.map((card) => ({
-      label: undoLabel(card.title),
-      value: card.id,
-    })),
+    actions: notice.cards
+      .filter((card) => card.id.length <= SPACE_NOTICE_VALUE_LIMIT)
+      .map((card) => ({ label: undoLabel(card.title), value: card.id })),
     actionChannel: CHANNEL_NOTICE_ACTION_CHANNEL,
     reactions: sources.map((messageId) => ({ messageId, emoji: PIN })),
   };

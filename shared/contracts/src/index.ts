@@ -181,6 +181,8 @@ export {
   type ProvenanceEntityReference,
 } from "./operation-provenance";
 export {
+  SPACE_NOTICE_ITEM_LIMIT,
+  SPACE_NOTICE_VALUE_LIMIT,
   spaceNoticeRequestSchema,
   spaceNoticeResultSchema,
   type SpaceNoticeRequest,

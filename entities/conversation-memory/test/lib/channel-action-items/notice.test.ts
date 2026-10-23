@@ -83,6 +83,25 @@ describe("posting a channel's notices", () => {
     ]);
   });
 
+  it("lists a card whose id no button can carry, without an Undo", async () => {
+    const notices = deps(async () => "notice-message-1");
+    await notices.bookmarks.set(ROOM, {
+      processedThrough: 5,
+      notices: [
+        {
+          key: "1-5",
+          cards: [{ id: "x".repeat(83), title: "Book the venue" }],
+        },
+      ],
+    });
+
+    await postPendingNotices(notices, ROOM);
+
+    expect(notices.post).toHaveBeenCalledWith(
+      expect.objectContaining({ lines: ["Book the venue"], actions: [] }),
+    );
+  });
+
   it("leaves notices already posted alone", async () => {
     const notices = deps(async () => "again");
     await notices.bookmarks.set(ROOM, {

@@ -1,3 +1,4 @@
+import { SPACE_NOTICE_ITEM_LIMIT } from "@brains/contracts";
 import {
   createActionItem,
   flatId,
@@ -297,28 +298,33 @@ export async function pickUpChannelActionItems(
     const announced = new Set(
       notices.flatMap((notice) => notice.cards.map((card) => card.id)),
     );
-    const fresh = found.filter(({ id }) => !announced.has(id));
-    const notice: ChannelNotice[] =
-      fresh.length > 0
-        ? [
-            {
-              key: `${from}-${count}`,
-              cards: fresh.map(({ item, id }) => {
-                const owner = item.owner?.displayName;
-                const sourceMessageId = sourceMessageIdOf(item);
-                return {
-                  id,
-                  title: item.title,
-                  ...(owner ? { owner } : {}),
-                  ...(sourceMessageId ? { sourceMessageId } : {}),
-                };
-              }),
-            },
-          ]
-        : [];
+    const fresh = found
+      .filter(({ id }) => !announced.has(id))
+      .map(({ item, id }) => {
+        const owner = item.owner?.displayName;
+        const sourceMessageId = sourceMessageIdOf(item);
+        return {
+          id,
+          title: item.title,
+          ...(owner ? { owner } : {}),
+          ...(sourceMessageId ? { sourceMessageId } : {}),
+        };
+      });
+    // A notice holds what one chat message can show; a larger batch is
+    // announced in several, keyed "12-17", "12-17-2", ...
+    const batch: ChannelNotice[] = Array.from(
+      { length: Math.ceil(fresh.length / SPACE_NOTICE_ITEM_LIMIT) },
+      (_, index) => ({
+        key: `${from}-${count}${index > 0 ? `-${index + 1}` : ""}`,
+        cards: fresh.slice(
+          index * SPACE_NOTICE_ITEM_LIMIT,
+          (index + 1) * SPACE_NOTICE_ITEM_LIMIT,
+        ),
+      }),
+    );
     return {
       processedThrough: count,
-      notices: keptNotices([...notices, ...notice]),
+      notices: keptNotices([...notices, ...batch]),
     };
   });
   return { status: "processed", through: count, created: results };
