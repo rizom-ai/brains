@@ -248,27 +248,15 @@ describe("ConversationMemoryPlugin", () => {
     });
   });
 
-  it("keeps projector configuration for explicit evaluations", async () => {
+  it("keeps summaries out of entity projection", async () => {
     await harness.installPlugin(plugin);
-    const config = plugin.getConfig();
 
-    expect(config.maxSourceMessages).toBe(1000);
-    expect(config.maxMessagesPerChunk).toBe(40);
-    expect(config.maxEntries).toBe(50);
-    expect(config.projectionVersion).toBe(1);
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("summary"),
     ).toMatchObject({
       projectionSource: false,
       projectionSourceRole: "excluded",
     });
-  });
-
-  it("accepts custom evaluation config", async () => {
-    const customPlugin = new ConversationMemoryPlugin({ maxEntries: 10 });
-    await harness.installPlugin(customPlugin);
-
-    expect(customPlugin.getConfig().maxEntries).toBe(10);
   });
 
   it("registers no tools, plus templates and datasource", async () => {

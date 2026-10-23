@@ -4,14 +4,11 @@ export {
 } from "./conversation-memory-plugin";
 export { SummaryAdapter } from "./adapters/summary-adapter";
 export { DecisionAdapter } from "./adapters/conversation-memory-adapters";
-export { SummaryExtractor } from "./lib/summary-extractor";
-export { SummaryProjector } from "./lib/summary-projector";
 export {
   buildConversationMemoryAgentContext,
   registerConversationMemoryAgentContext,
 } from "./lib/agent-context-provider";
 export { ConversationMemoryRetriever } from "./lib/conversation-memory-retriever";
-export { SummarySourceReader } from "./lib/summary-source-reader";
 
 export type {
   SummaryEntity,
@@ -46,14 +43,6 @@ export type {
   DecisionMetadata,
 } from "./schemas/conversation-memory";
 
-export {
-  summaryExtractionResultSchema,
-  extractedSummaryEntrySchema,
-} from "./schemas/extraction";
-export type {
-  SummaryExtractionResult,
-  ExtractedSummaryEntry,
-} from "./schemas/extraction";
 export type {
   RetrieveConversationMemoryInput,
   RetrieveConversationMemoryResult,

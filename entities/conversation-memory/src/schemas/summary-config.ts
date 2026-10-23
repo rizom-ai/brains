@@ -26,42 +26,10 @@ export const summaryMemoryVisibilitySchema: z.ZodPipe<
   });
 
 export const summaryConfigSchema: z.ZodObject<{
-  maxSourceMessages: z.ZodDefault<z.ZodNumber>;
-  maxMessagesPerChunk: z.ZodDefault<z.ZodNumber>;
-  maxEntries: z.ZodDefault<z.ZodNumber>;
-  maxEntryLength: z.ZodDefault<z.ZodNumber>;
-  includeKeyPoints: z.ZodDefault<z.ZodBoolean>;
-  projectionVersion: z.ZodDefault<z.ZodNumber>;
   memoryVisibility: typeof summaryMemoryVisibilitySchema;
 }> = z.object({
-  maxSourceMessages: z
-    .number()
-    .int()
-    .min(1)
-    .default(1000)
-    .describe("Maximum recent messages to load for one projection"),
-  maxMessagesPerChunk: z
-    .number()
-    .int()
-    .min(1)
-    .default(40)
-    .describe("Maximum messages sent to one summary extraction call"),
-  maxEntries: z
-    .number()
-    .int()
-    .min(1)
-    .default(50)
-    .describe("Maximum summary entries per conversation"),
-  maxEntryLength: z
-    .number()
-    .int()
-    .min(100)
-    .default(800)
-    .describe("Target maximum length of each generated summary entry"),
-  includeKeyPoints: z.boolean().default(true),
-  projectionVersion: z.number().int().min(1).default(1),
   memoryVisibility: summaryMemoryVisibilitySchema.describe(
-    "Visibility applied to projected summaries, decisions, and action items",
+    "Visibility applied to the memory the plugin writes: action items found in channels",
   ),
 });
 
