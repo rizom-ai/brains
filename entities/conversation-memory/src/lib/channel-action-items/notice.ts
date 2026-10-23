@@ -43,20 +43,28 @@ function cardLine(card: NoticeCard): string {
   if (card.undo?.outcome === "kept") {
     return `${named} · kept: changed on the board`;
   }
+  if (card.change === "updated") return `Updated: ${named}`;
+  if (card.change === "withdrawn") return `Withdrawn: ~~${card.title}~~`;
   return named;
 }
 
 /**
- * What the notice reads: a line per card, and an Undo for each card nobody
- * has undone yet. A card whose id no button can carry is listed without one.
+ * What the notice reads: a line per card, and an Undo for each card still on
+ * the board that nobody has undone yet. A card whose id no button can carry
+ * is listed without one.
  */
 export function noticeContent(notice: ChannelNotice): SpaceNoticeContent {
   return {
-    title: "Added to the board",
+    title: notice.cards.every((card) => !card.change)
+      ? "Added to the board"
+      : "Board updated",
     lines: notice.cards.map(cardLine),
     actions: notice.cards
       .filter(
-        (card) => !card.undo && card.id.length <= SPACE_NOTICE_VALUE_LIMIT,
+        (card) =>
+          !card.undo &&
+          card.change !== "withdrawn" &&
+          card.id.length <= SPACE_NOTICE_VALUE_LIMIT,
       )
       .map((card) => ({ label: undoLabel(card.title), value: card.id })),
   };

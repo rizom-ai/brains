@@ -68,6 +68,16 @@ class ChannelPickupHandler extends BaseJobHandler<
 const evalChannelInputSchema = z.object({
   /** How many leading messages an earlier run already processed. */
   processedThrough: z.number().int().min(0).default(0),
+  /** Open cards earlier messages made, named card-1, card-2… */
+  cards: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        text: z.string().min(1),
+        owner: z.string().min(1).optional(),
+      }),
+    )
+    .default([]),
   messages: z.array(
     z.object({
       speaker: z.string().min(1),
@@ -192,13 +202,18 @@ export function registerChannelActionItems(
     async (input: unknown) => {
       const parsed = evalChannelInputSchema.parse(input);
       const positioned = evalChannelMessages(parsed);
-      const items = await new ChannelActionItemExtractor(
-        context,
-        options.logger.child("ChannelActionItemExtractor"),
-      ).extract({
-        context: positioned.slice(0, parsed.processedThrough),
-        fresh: positioned.slice(parsed.processedThrough),
-      });
+      const { items, updates, withdrawals } =
+        await new ChannelActionItemExtractor(
+          context,
+          options.logger.child("ChannelActionItemExtractor"),
+        ).extract({
+          context: positioned.slice(0, parsed.processedThrough),
+          fresh: positioned.slice(parsed.processedThrough),
+          cards: parsed.cards.map((card, index) => ({
+            ...card,
+            id: `card-${index + 1}`,
+          })),
+        });
       return {
         count: items.length,
         items: items.map((item) => ({
@@ -206,6 +221,20 @@ export function registerChannelActionItems(
           text: item.text,
           message: item.sourcePosition,
           owner: item.owner?.displayName ?? "nobody",
+        })),
+        updates: updates.map((update) => ({
+          card: update.cardId,
+          title: update.title,
+          text: update.text,
+          message: update.sourcePosition,
+          owner:
+            typeof update.owner === "string"
+              ? update.owner
+              : (update.owner.displayName ?? "nobody"),
+        })),
+        withdrawals: withdrawals.map((withdrawal) => ({
+          card: withdrawal.cardId,
+          message: withdrawal.sourcePosition,
         })),
       };
     },

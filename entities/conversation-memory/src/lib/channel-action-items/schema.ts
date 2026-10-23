@@ -9,6 +9,21 @@ type ChannelActionItemExtractionSchema = z.ZodObject<{
       owner: z.ZodString;
     }>
   >;
+  updates: z.ZodArray<
+    z.ZodObject<{
+      card: z.ZodString;
+      title: z.ZodString;
+      text: z.ZodString;
+      owner: z.ZodString;
+      message: z.ZodNumber;
+    }>
+  >;
+  withdrawals: z.ZodArray<
+    z.ZodObject<{
+      card: z.ZodString;
+      message: z.ZodNumber;
+    }>
+  >;
 }>;
 
 /** What the model returns: every field required, as models fill them all. */
@@ -20,6 +35,23 @@ export const channelActionItemExtractionSchema: ChannelActionItemExtractionSchem
         text: z.string(),
         message: z.number().int(),
         owner: z.string().min(1),
+      }),
+    ),
+    /** Own cards the new messages change, each restated in full. */
+    updates: z.array(
+      z.object({
+        card: z.string().min(1),
+        title: z.string().min(1).max(200),
+        text: z.string(),
+        owner: z.string().min(1),
+        message: z.number().int(),
+      }),
+    ),
+    /** Own cards the new messages call off or report done. */
+    withdrawals: z.array(
+      z.object({
+        card: z.string().min(1),
+        message: z.number().int(),
       }),
     ),
   });

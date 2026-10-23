@@ -34,6 +34,7 @@ export {
   actionItemBodyHash,
   actionItemCapturedAt,
   actionItemSource,
+  actionItemText,
   actionItemTitle,
   applyMove,
   applyNote,

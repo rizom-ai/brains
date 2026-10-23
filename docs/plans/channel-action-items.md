@@ -60,16 +60,18 @@ Every write is idempotent, so a rerun of the same range after a crash repeats wo
 A dedicated action-item extractor replaces the summary extractor for this path. Input: the context window, the new messages (with position and author), and the space's own open cards. Output, per item:
 
 - `add`: title, text, source message position, owner (a participant from the messages, or none);
-- `update`: card id and the changed owner or text;
-- `withdraw`: card id and the message that withdrew it.
+- `update`: the card (shown to the model as c1, c2, …), the whole card as it now reads (title, text), the owner (a participant, `nobody`, or `unchanged`) and the message that changes it;
+- `withdraw`: the card and the message that calls it off or reports it done.
 
-An item cites a message from the new range or, for `update` and `withdraw`, an own card; anything else is dropped.
+Every item cites a message from the new range, and an `update` or `withdraw` an own card the model was shown; anything else is dropped. A change of owner is an update only: a withdrawal of a card the same batch updates is dropped.
+
+Own cards are the conversation's open cards whose id carries the pickup's `<conversation>-message-` prefix and that the board does not own, the 30 most recent.
 
 ### Cards
 
 - The writer is shared by the pickup and explicit requests, and always sets `origin`, `capturedAt`, `status: open`, `requestedBy` (the author of the source message), `assignedTo` (the owner, when one is named and resolves to a brain member) and the brain's memory visibility.
 - A picked-up card's id derives from the conversation and its source message (`flatId(conversation id, "message", position, n)`), so a rerun upserts the same card.
-- `projectedBodyHash` is stored as today, so a board edit makes the card board-owned and out of reach for later updates and withdrawals.
+- `projectedBodyHash` is stored as today, and `projectedAssigneeHash` next to it, so a body edit or a reassignment by anyone but the pickup makes the card board-owned and out of reach for later updates and withdrawals. The shared writer's `reviseActionItem` and `withdrawActionItem` check this and write conditionally on the version read.
 - Explicit requests go through the action board's `action_item_create` tool, which uses the same writer. Its `assignee` is required: `nobody` unless the request names someone, a member's name, or `me` when the caller takes it on; a name that is not a member is refused. `action-item` refuses `system_create` (`actionPolicy.create: never`), which cannot write a whole card.
 
 ### Notice
@@ -79,6 +81,8 @@ The worker cannot reach Discord, so the notice is a durable record, posted from 
 - The job records the batch's pending notice in the bookmark, listing every card of the batch no earlier notice lists. When the job completes, the web process hears it through `job-progress`, and conversation-memory posts that conversation's pending notices. It claims each notice before posting (`postingAt`, two minutes), so a concurrent drain skips it, and on success marks it posted with the provider message id.
 - On start the web process posts every notice still pending, so a failed post or a restart is retried.
 - The chat interface gets a generic space-notice capability for this (`chat:space-notice`): post a title, lines and per-item buttons into a configured space and react to messages there; it answers with the posted message id.
+- A batch that revised or withdrew own cards lists them too ("Updated: …", "Withdrawn: ~~…~~") and the note is titled "Board updated"; a withdrawn card has no Undo.
+- A notice holds at most ten cards; a larger batch is announced in several.
 - The bookmark keeps every pending notice and the last 20 posted ones, for Undo.
 
 ### Undo

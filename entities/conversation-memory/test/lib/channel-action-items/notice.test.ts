@@ -100,6 +100,40 @@ describe("posting a channel's notices", () => {
     );
   });
 
+  it("says which cards a batch changed or withdrew, with an Undo only for those still on the board", async () => {
+    const notices = deps(async () => "notice-message-1");
+    await notices.bookmarks.set(ROOM, {
+      processedThrough: 5,
+      notices: [
+        {
+          key: "6-6",
+          cards: [
+            {
+              id: "card-1",
+              title: "Send INC the proposal",
+              owner: "Niels",
+              change: "updated",
+            },
+            { id: "card-2", title: "Book the venue", change: "withdrawn" },
+          ],
+        },
+      ],
+    });
+
+    await postPendingNotices(notices, ROOM);
+
+    expect(notices.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Board updated",
+        lines: [
+          "Updated: Send INC the proposal · Niels",
+          "Withdrawn: ~~Book the venue~~",
+        ],
+        actions: [{ label: "Undo: Send INC the proposal", value: "card-1" }],
+      }),
+    );
+  });
+
   it("leaves notices already posted alone", async () => {
     const notices = deps(async () => "again");
     await notices.bookmarks.set(ROOM, {

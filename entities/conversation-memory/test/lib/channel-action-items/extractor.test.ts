@@ -41,12 +41,19 @@ function said(
 const jo = { userId: "usr_jo", name: "Jo" };
 const niels = { userId: "usr_niels", name: "Niels" };
 
-function extractorReturning(items: unknown[]): {
+function extractorReturning(
+  items: unknown[],
+  revisions: { updates?: unknown[]; withdrawals?: unknown[] } = {},
+): {
   extractor: ChannelActionItemExtractor;
   generate: ReturnType<typeof spyOn>;
 } {
   const context = createMockEntityPluginContext();
-  const generate = spyOn(context.ai, "generate").mockResolvedValue({ items });
+  const generate = spyOn(context.ai, "generate").mockResolvedValue({
+    items,
+    updates: revisions.updates ?? [],
+    withdrawals: revisions.withdrawals ?? [],
+  });
   return {
     extractor: new ChannelActionItemExtractor(context, createSilentLogger()),
     generate,
@@ -71,7 +78,7 @@ describe("ChannelActionItemExtractor", () => {
       },
     ]);
 
-    const items = await extractor.extract({ context, fresh });
+    const { items } = await extractor.extract({ context, fresh, cards: [] });
 
     const joSaid = fresh[1];
     if (!joSaid) throw new Error("Missing fixture");
@@ -101,7 +108,9 @@ describe("ChannelActionItemExtractor", () => {
       },
     ]);
 
-    const [item] = await extractor.extract({ context, fresh });
+    const {
+      items: [item],
+    } = await extractor.extract({ context, fresh, cards: [] });
 
     expect(item?.owner).toBeUndefined();
     expect(item?.sourcePosition).toBe(11);
@@ -113,13 +122,15 @@ describe("ChannelActionItemExtractor", () => {
       { title: "Made up", text: "None.", message: 40, owner: "nobody" },
     ]);
 
-    expect(await extractor.extract({ context, fresh })).toEqual([]);
+    expect(
+      (await extractor.extract({ context, fresh, cards: [] })).items,
+    ).toEqual([]);
   });
 
   it("shows earlier messages as context only and numbers messages by position", async () => {
     const { extractor, generate } = extractorReturning([]);
 
-    await extractor.extract({ context, fresh });
+    await extractor.extract({ context, fresh, cards: [] });
 
     const prompt = String(generate.mock.calls[0]?.[0]?.prompt);
     expect(prompt).toContain("10. Jo (p1): The INC meeting went well.");
@@ -135,7 +146,155 @@ describe("ChannelActionItemExtractor", () => {
   it("does not ask the model when there is nothing new", async () => {
     const { extractor, generate } = extractorReturning([]);
 
-    expect(await extractor.extract({ context, fresh: [] })).toEqual([]);
+    expect(await extractor.extract({ context, fresh: [], cards: [] })).toEqual({
+      items: [],
+      updates: [],
+      withdrawals: [],
+    });
     expect(generate).not.toHaveBeenCalled();
+  });
+
+  describe("the channel's own cards", () => {
+    function freshMessage(index: number): Message {
+      const said = fresh[index]?.message;
+      if (!said) throw new Error("Missing fixture");
+      return said;
+    }
+
+    const cards = [
+      {
+        id: "discord-1466-message-3-1",
+        title: "Send INC the proposal",
+        text: "Jo sends INC the proposal on Friday.",
+        owner: "Jo",
+      },
+    ];
+
+    it("lists them for the model by a short reference", async () => {
+      const { extractor, generate } = extractorReturning([]);
+
+      await extractor.extract({ context, fresh, cards });
+
+      expect(String(generate.mock.calls[0]?.[0]?.prompt)).toContain(
+        "c1. Send INC the proposal: Jo sends INC the proposal on Friday. (owner: Jo)",
+      );
+    });
+
+    it("returns a card the new messages change, with its new owner", async () => {
+      const { extractor } = extractorReturning([], {
+        updates: [
+          {
+            card: "c1",
+            title: "Send INC the proposal",
+            text: "Niels sends INC the proposal on Monday.",
+            owner: "p2",
+            message: 11,
+          },
+        ],
+      });
+
+      const { updates } = await extractor.extract({ context, fresh, cards });
+
+      expect(updates).toEqual([
+        {
+          cardId: "discord-1466-message-3-1",
+          title: "Send INC the proposal",
+          text: "Niels sends INC the proposal on Monday.",
+          owner: {
+            identity: { kind: "user", userId: "usr_niels" },
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Niels",
+          },
+          sourcePosition: 11,
+          source: freshMessage(0),
+        },
+      ]);
+    });
+
+    it("keeps a changed card's owner when the model says it is unchanged", async () => {
+      const { extractor } = extractorReturning([], {
+        updates: [
+          {
+            card: "c1",
+            title: "Send INC the proposal",
+            text: "Jo sends INC the proposal on Monday.",
+            owner: "unchanged",
+            message: 12,
+          },
+        ],
+      });
+
+      const { updates } = await extractor.extract({ context, fresh, cards });
+
+      expect(updates[0]?.owner).toBe("unchanged");
+    });
+
+    it("returns a card the new messages withdraw", async () => {
+      const { extractor } = extractorReturning([], {
+        withdrawals: [{ card: "c1", message: 12 }],
+      });
+
+      const { withdrawals } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+      });
+
+      expect(withdrawals).toEqual([
+        {
+          cardId: "discord-1466-message-3-1",
+          sourcePosition: 12,
+          source: freshMessage(1),
+        },
+      ]);
+    });
+
+    it("never withdraws a card the same messages hand to someone else", async () => {
+      const { extractor } = extractorReturning([], {
+        updates: [
+          {
+            card: "c1",
+            title: "Send INC the proposal",
+            text: "Niels sends INC the proposal on Monday.",
+            owner: "p2",
+            message: 11,
+          },
+        ],
+        withdrawals: [{ card: "c1", message: 12 }],
+      });
+
+      const { updates, withdrawals } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+      });
+
+      expect(updates.map((update) => update.cardId)).toEqual([
+        "discord-1466-message-3-1",
+      ]);
+      expect(withdrawals).toEqual([]);
+    });
+
+    it("drops changes to cards it was not shown or that cite no new message", async () => {
+      const { extractor } = extractorReturning([], {
+        updates: [
+          {
+            card: "c9",
+            title: "Unknown",
+            text: "Unknown.",
+            owner: "nobody",
+            message: 12,
+          },
+        ],
+        withdrawals: [{ card: "c1", message: 10 }],
+      });
+
+      expect(await extractor.extract({ context, fresh, cards })).toEqual({
+        items: [],
+        updates: [],
+        withdrawals: [],
+      });
+    });
   });
 });

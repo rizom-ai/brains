@@ -150,6 +150,13 @@ export function actionItemTitle(entity: ActionItemEntity): string {
   return title !== undefined && title.length > 0 ? title : entity.id;
 }
 
+/** A card's text: its body under the heading, notes included. */
+export function actionItemText(entity: ActionItemEntity): string {
+  return actionItemBody(entity.content)
+    .replace(/^#[^\n]*\n/, "")
+    .trim();
+}
+
 export interface ActionItemNote {
   text: string;
   /** The writer's name as the signed-in surface knows it. */

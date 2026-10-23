@@ -1,8 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
   ActionItemAdapter,
+  actionItemBody,
   actionItemBodyHash,
   actionItemSchema,
+  moveActionItem,
   type ActionItemEntity,
 } from "@brains/action-items";
 import type { Conversation, Message } from "@brains/plugins";
@@ -11,7 +13,10 @@ import {
   createServicePluginContext,
   type ServicePluginContext,
 } from "@brains/plugins/test";
-import type { FoundActionItem } from "../../../src/lib/channel-action-items/extractor";
+import type {
+  ChannelExtractionResult,
+  FoundActionItem,
+} from "../../../src/lib/channel-action-items/extractor";
 import {
   channelBookmarks,
   pickUpChannelActionItems,
@@ -89,6 +94,7 @@ function brain(messages: Message[] = channel): {
   deps: ChannelPickupDeps;
   extract: ReturnType<typeof mock>;
   found: (items: FoundActionItem[]) => void;
+  revised: (revisions: Omit<ChannelExtractionResult, "items">) => void;
 } {
   const context = createServicePluginContext(
     createMockShell(),
@@ -99,8 +105,12 @@ function brain(messages: Message[] = channel): {
     actionItemSchema,
     new ActionItemAdapter(),
   );
-  const pending: { items: FoundActionItem[] } = { items: [] };
-  const extract = mock(async () => pending.items);
+  const pending: ChannelExtractionResult = {
+    items: [],
+    updates: [],
+    withdrawals: [],
+  };
+  const extract = mock(async () => ({ ...pending }));
   const deps: ChannelPickupDeps = {
     conversations: {
       get: async (id) => (id === CONVERSATION ? conversation : null),
@@ -125,7 +135,17 @@ function brain(messages: Message[] = channel): {
     found: (items): void => {
       pending.items = items;
     },
+    revised: (revisions): void => {
+      pending.updates = revisions.updates;
+      pending.withdrawals = revisions.withdrawals;
+    },
   };
+}
+
+function source(position: number, messages: Message[] = channel): Message {
+  const said = messages[position - 1];
+  if (!said) throw new Error(`No message ${position}`);
+  return said;
 }
 
 function item(
@@ -305,6 +325,7 @@ describe("picking up a channel's action items", () => {
         { position: 4, message: channel[3] },
         { position: 5, message: channel[4] },
       ],
+      cards: [],
     });
   });
 
@@ -389,5 +410,124 @@ describe("picking up a channel's action items", () => {
         ],
       },
     ]);
+  });
+});
+
+describe("revising the channel's own cards", () => {
+  const CARD = "discord-1466-message-2-1";
+
+  async function withCard(): Promise<{
+    context: ServicePluginContext;
+    deps: ChannelPickupDeps;
+    extract: ReturnType<typeof mock>;
+    found: (items: FoundActionItem[]) => void;
+    revised: (revisions: Omit<ChannelExtractionResult, "items">) => void;
+    messages: Message[];
+  }> {
+    const messages = [...channel];
+    const pickup = brain(messages);
+    pickup.found([item(2, jo, "Send INC the proposal")]);
+    await pickUpChannelActionItems(pickup.deps, CONVERSATION, "job-1");
+    pickup.found([]);
+    messages.push(message(6, niels, "Change of plan: I'll send it Monday."));
+    return { ...pickup, messages };
+  }
+
+  it("shows the model the open cards it made", async () => {
+    const { deps, extract } = await withCard();
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+
+    const [input] = extract.mock.calls[1] ?? [];
+    expect(input.cards).toEqual([
+      {
+        id: CARD,
+        title: "Send INC the proposal",
+        text: "Send INC the proposal.",
+        owner: "Jo",
+        assignee: { name: "Jo", id: "user:usr_jo" },
+      },
+    ]);
+  });
+
+  it("revises a card a later message changes and announces it", async () => {
+    const { context, deps, revised, messages } = await withCard();
+    revised({
+      updates: [
+        {
+          cardId: CARD,
+          title: "Send INC the proposal",
+          text: "Niels sends INC the proposal on Monday.",
+          owner: {
+            identity: niels,
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Niels",
+          },
+          sourcePosition: 6,
+          source: source(6, messages),
+        },
+      ],
+      withdrawals: [],
+    });
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+
+    const [card] = await cards(context);
+    expect(card?.metadata.assignedTo).toEqual([
+      { name: "Niels", id: "user:usr_niels" },
+    ]);
+    expect(actionItemBody(card?.content ?? "")).toContain(
+      "Niels sends INC the proposal on Monday.",
+    );
+    expect((await bookmark(deps))?.notices?.at(-1)).toEqual({
+      key: "6-6",
+      cards: [
+        {
+          id: CARD,
+          title: "Send INC the proposal",
+          owner: "Niels",
+          sourceMessageId: "discord-6",
+          change: "updated",
+        },
+      ],
+    });
+  });
+
+  it("withdraws a card a later message calls off, for good", async () => {
+    const { context, deps, revised, messages } = await withCard();
+    revised({
+      updates: [],
+      withdrawals: [
+        { cardId: CARD, sourcePosition: 6, source: source(6, messages) },
+      ],
+    });
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+
+    expect(await cards(context)).toEqual([]);
+    const after = await bookmark(deps);
+    expect(after?.rejected).toEqual([CARD]);
+    expect(after?.notices?.at(-1)?.cards).toEqual([
+      {
+        id: CARD,
+        title: "Send INC the proposal",
+        sourceMessageId: "discord-6",
+        change: "withdrawn",
+      },
+    ]);
+  });
+
+  it("never shows the model a card the board has moved", async () => {
+    const { context, deps, extract } = await withCard();
+    await moveActionItem(
+      { entityService: context.entityService, visibilityScope: "restricted" },
+      { id: CARD, from: "open", to: "doing" },
+    );
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+
+    const [input] = extract.mock.calls[1] ?? [];
+    expect(input.cards).toEqual([]);
   });
 });

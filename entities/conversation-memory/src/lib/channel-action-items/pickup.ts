@@ -1,11 +1,19 @@
 import { SPACE_NOTICE_ITEM_LIMIT } from "@brains/contracts";
 import {
+  ACTION_ITEM_ENTITY_TYPE,
+  actionItemSchema,
+  actionItemText,
+  actionItemTitle,
   createActionItem,
   flatId,
+  isBoardOwned,
+  reviseActionItem,
+  withdrawActionItem,
   type ActionItemAssigneeMember,
 } from "@brains/action-items";
 import type {
   ContentVisibility,
+  ConversationMessageActor,
   EntityPluginContext,
   IConversationsNamespace,
   IRuntimeStateNamespace,
@@ -16,6 +24,7 @@ import { z } from "@brains/utils/zod";
 import type {
   ChannelActionItemExtractor,
   FoundActionItem,
+  OwnCard,
   PositionedMessage,
 } from "./extractor";
 
@@ -27,6 +36,9 @@ type ChannelNoticeSchema = z.ZodObject<{
       title: z.ZodString;
       owner: z.ZodOptional<z.ZodString>;
       sourceMessageId: z.ZodOptional<z.ZodString>;
+      change: z.ZodOptional<
+        z.ZodEnum<{ updated: "updated"; withdrawn: "withdrawn" }>
+      >;
       undo: z.ZodOptional<
         z.ZodObject<{
           outcome: z.ZodEnum<{ removed: "removed"; kept: "kept" }>;
@@ -50,6 +62,8 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
       owner: z.string().min(1).optional(),
       /** The chat message the card was found in, to pin. */
       sourceMessageId: z.string().min(1).optional(),
+      /** What the batch did to an own card; absent for a card it added. */
+      change: z.enum(["updated", "withdrawn"]).optional(),
       /** What someone's Undo did: removed it, or kept it as the board changed it. */
       undo: z
         .object({
@@ -151,7 +165,11 @@ export interface ChannelPickupDeps {
   extractor: Pick<ChannelActionItemExtractor, "extract">;
   entityService: Pick<
     EntityPluginContext["entityService"],
-    "createEntity" | "getEntity"
+    | "createEntity"
+    | "getEntity"
+    | "listEntities"
+    | "updateEntity"
+    | "deleteEntity"
   >;
   /** The visibility the brain gives memory it makes. */
   visibility: ContentVisibility;
@@ -170,6 +188,10 @@ export type ChannelPickupResult =
 
 const DEFAULT_CLAIM_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_CONTEXT_SIZE = 10;
+/** How many of its most recent open cards the model sees. */
+const OWN_CARDS_LIMIT = 30;
+/** How many taken-back cards a conversation remembers. */
+export const REJECTED_KEPT = 500;
 
 /** A system actor, for a message whose speaker was not recorded. */
 const UNKNOWN_SPEAKER = {
@@ -177,11 +199,10 @@ const UNKNOWN_SPEAKER = {
   serviceId: "conversation-memory",
 } as const;
 
-/** The member a found item's owner is, when they have a brain account. */
+/** The member an owner is, when they have a brain account. */
 function assigneeOf(
-  item: FoundActionItem,
+  owner: ConversationMessageActor | undefined,
 ): ActionItemAssigneeMember | undefined {
-  const owner = item.owner;
   if (owner?.identity.kind !== "user") return undefined;
   return {
     name: owner.displayName ?? owner.identity.userId,
@@ -189,7 +210,9 @@ function assigneeOf(
   };
 }
 
-function sourceMessageIdOf(item: FoundActionItem): string | undefined {
+function sourceMessageIdOf(item: {
+  source: FoundActionItem["source"];
+}): string | undefined {
   const parsed = conversationMessageMetadataSchema.safeParse(
     item.source.metadata,
   );
@@ -208,6 +231,57 @@ function speakerOf(item: FoundActionItem): {
     actor: actor?.identity ?? UNKNOWN_SPEAKER,
     actorName: actor?.displayName,
   };
+}
+
+/** An own card with its owner as a member, for a revision that keeps it. */
+type OwnCardWithAssignee = OwnCard & {
+  assignee: ActionItemAssigneeMember | undefined;
+};
+
+/**
+ * The open cards this conversation's pickup made that the board has not
+ * touched, newest first: the ones later messages may still change.
+ */
+async function ownCards(
+  deps: ChannelPickupDeps,
+  conversationId: string,
+): Promise<OwnCardWithAssignee[]> {
+  const prefix = `${flatId(conversationId, "message")}-`;
+  const entities = await deps.entityService.listEntities(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      options: {
+        filter: {
+          metadata: { conversationId, status: "open" },
+          visibilityScope: deps.visibility,
+        },
+        sortFields: [{ field: "created", direction: "desc" }],
+        limit: OWN_CARDS_LIMIT,
+      },
+    },
+    actionItemSchema,
+  );
+  return entities
+    .filter((entity) => entity.id.startsWith(prefix) && !isBoardOwned(entity))
+    .map((entity) => {
+      const assignee = entity.metadata.assignedTo?.[0];
+      return {
+        id: entity.id,
+        title: actionItemTitle(entity),
+        text: actionItemText(entity),
+        owner: assignee?.name,
+        assignee: assignee?.id
+          ? { name: assignee.name, id: assignee.id }
+          : undefined,
+      };
+    });
+}
+
+type NoticeCard = ChannelNotice["cards"][number];
+
+/** What one notice line announces, so a rerun announces it once. */
+function announcement(card: NoticeCard): string {
+  return `${card.change ?? "added"}:${card.id}:${card.sourceMessageId ?? ""}`;
 }
 
 /**
@@ -254,9 +328,11 @@ export async function pickUpChannelActionItems(
     position: firstRead + index,
     message,
   }));
-  const items = await deps.extractor.extract({
+  const own = await ownCards(deps, conversationId);
+  const { items, updates, withdrawals } = await deps.extractor.extract({
     context: positioned.filter(({ position }) => position < from),
     fresh: positioned.filter(({ position }) => position >= from),
+    cards: own,
   });
 
   const origin = {
@@ -298,7 +374,7 @@ export async function pickUpChannelActionItems(
           projected: true,
           title: item.title,
           text: item.text,
-          assignee: assigneeOf(item),
+          assignee: assigneeOf(item.owner),
           ...speakerOf(item),
           origin,
         },
@@ -308,26 +384,86 @@ export async function pickUpChannelActionItems(
     Promise.resolve([]),
   );
 
-  // Finish only while the claim is still this run's; announce every card
-  // of the batch no earlier notice lists, so a crashed run's cards are too.
+  const owned = new Map(own.map((card) => [card.id, card]));
+  const writer = {
+    entityService: deps.entityService,
+    visibilityScope: deps.visibility,
+  };
+  const revisedCards = await updates.reduce<Promise<NoticeCard[]>>(
+    async (revisedSoFar, update) => {
+      const done = await revisedSoFar;
+      const card = owned.get(update.cardId);
+      if (!card) return done;
+      const assignee =
+        update.owner === "unchanged"
+          ? card.assignee
+          : update.owner === "nobody"
+            ? undefined
+            : assigneeOf(update.owner);
+      const revised = await reviseActionItem(writer, {
+        id: card.id,
+        title: update.title,
+        text: update.text,
+        assignee,
+      });
+      if (revised.status !== "revised") return done;
+      const sourceMessageId = sourceMessageIdOf(update);
+      return [
+        ...done,
+        {
+          id: card.id,
+          title: update.title,
+          ...(assignee ? { owner: assignee.name } : {}),
+          ...(sourceMessageId ? { sourceMessageId } : {}),
+          change: "updated" as const,
+        },
+      ];
+    },
+    Promise.resolve([]),
+  );
+  const withdrawnCards = await withdrawals.reduce<Promise<NoticeCard[]>>(
+    async (withdrawnSoFar, withdrawal) => {
+      const done = await withdrawnSoFar;
+      const card = owned.get(withdrawal.cardId);
+      if (!card) return done;
+      const withdrawn = await withdrawActionItem(writer, card.id);
+      if (withdrawn.status !== "removed") return done;
+      const sourceMessageId = sourceMessageIdOf(withdrawal);
+      return [
+        ...done,
+        {
+          id: card.id,
+          title: card.title,
+          ...(sourceMessageId ? { sourceMessageId } : {}),
+          change: "withdrawn" as const,
+        },
+      ];
+    },
+    Promise.resolve([]),
+  );
+
+  // Finish only while the claim is still this run's; announce everything
+  // the batch did that no earlier notice lists, so a crashed run's is too.
   await updateBookmark(deps.bookmarks, conversationId, (latest) => {
     if (latest?.claim?.jobId !== jobId) return undefined;
     const notices = latest.notices ?? [];
     const announced = new Set(
-      notices.flatMap((notice) => notice.cards.map((card) => card.id)),
+      notices.flatMap((notice) => notice.cards.map(announcement)),
     );
-    const fresh = found
-      .filter(({ id }) => !announced.has(id))
-      .map(({ item, id }) => {
-        const owner = item.owner?.displayName;
-        const sourceMessageId = sourceMessageIdOf(item);
-        return {
-          id,
-          title: item.title,
-          ...(owner ? { owner } : {}),
-          ...(sourceMessageId ? { sourceMessageId } : {}),
-        };
-      });
+    const added = found.map(({ item, id }): NoticeCard => {
+      const owner = item.owner?.displayName;
+      const sourceMessageId = sourceMessageIdOf(item);
+      return {
+        id,
+        title: item.title,
+        ...(owner ? { owner } : {}),
+        ...(sourceMessageId ? { sourceMessageId } : {}),
+      };
+    });
+    const fresh = [...added, ...revisedCards, ...withdrawnCards].filter(
+      (card) => !announced.has(announcement(card)),
+    );
+    const taken = withdrawnCards.map((card) => card.id);
     // A notice holds what one chat message can show; a larger batch is
     // announced in several, keyed "12-17", "12-17-2", ...
     const batch: ChannelNotice[] = Array.from(
@@ -343,6 +479,14 @@ export async function pickUpChannelActionItems(
     return {
       processedThrough: count,
       notices: keptNotices([...notices, ...batch]),
+      ...(latest.rejected || taken.length > 0
+        ? {
+            rejected: [
+              ...(latest.rejected ?? []).filter((id) => !taken.includes(id)),
+              ...taken,
+            ].slice(-REJECTED_KEPT),
+          }
+        : {}),
     };
   });
   return { status: "processed", through: count, created: results };
