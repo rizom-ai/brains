@@ -485,6 +485,12 @@ async function brainFacts(
   };
 }
 
+/** The runtime's state in the words the status line uses. */
+function runtimeState(facts: BrainFacts): string {
+  if (facts.degraded) return "Degraded";
+  return facts.runtime === "operational" ? "Running" : "Unavailable";
+}
+
 /** The status line under the title: health first, then the job queue. */
 export function overviewStatusFacts(
   facts: BrainFacts,
@@ -524,7 +530,7 @@ function brainCard(facts: BrainFacts): RuntimeStudioOperatorCardBlock {
       {
         type: "key-values",
         items: [
-          { label: "Runtime", value: facts.runtime },
+          { label: "Runtime", value: runtimeState(facts) },
           {
             label: "Jobs",
             value:

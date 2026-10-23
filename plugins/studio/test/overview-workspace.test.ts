@@ -418,6 +418,10 @@ describe("Overview composition", () => {
     if (!brain) throw new Error("Overview has no Brain card");
     expect(brain.presentation).toBeUndefined();
     const facts = brain.blocks[0];
+    expect(facts?.type === "key-values" ? facts.items[0] : undefined).toEqual({
+      label: "Runtime",
+      value: "Running",
+    });
     expect(
       facts?.type === "key-values" ? facts.items.map((item) => item.label) : [],
     ).toEqual([
