@@ -1,6 +1,7 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
+import { definedFields } from "@brains/utils/strip-undefined";
 import {
   parseYamlDocument,
   type YamlValidationSchema,
@@ -157,7 +158,7 @@ interface LoadedUserFile {
   data: UserConfig;
 }
 
-interface LoadedCohortFile {
+export interface LoadedCohortFile {
   id: string;
   data: CohortConfig;
 }
@@ -174,27 +175,17 @@ export async function loadPilotRegistry(
 
   const cohortMembership = resolveMemberships(userFiles, cohortFiles);
   const cohorts = cohortFiles
-    .map((cohortFile) => ({
+    .map((cohortFile): ResolvedCohort => ({
       id: cohortFile.id,
       members: [...cohortFile.data.members].sort(),
-      ...(cohortFile.data.brainVersionOverride
-        ? { brainVersionOverride: cohortFile.data.brainVersionOverride }
-        : {}),
-      ...(cohortFile.data.bundlesOverride
-        ? { bundlesOverride: cohortFile.data.bundlesOverride }
-        : {}),
-      ...(cohortFile.data.addOverride
-        ? { addOverride: cohortFile.data.addOverride }
-        : {}),
-      ...(cohortFile.data.removeOverride
-        ? { removeOverride: cohortFile.data.removeOverride }
-        : {}),
-      ...(cohortFile.data.aiApiKeyOverride
-        ? { aiApiKeyOverride: cohortFile.data.aiApiKeyOverride }
-        : {}),
-      ...(cohortFile.data.gitSyncTokenOverride
-        ? { gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride }
-        : {}),
+      ...definedFields({
+        brainVersionOverride: cohortFile.data.brainVersionOverride,
+        bundlesOverride: cohortFile.data.bundlesOverride,
+        addOverride: cohortFile.data.addOverride,
+        removeOverride: cohortFile.data.removeOverride,
+        aiApiKeyOverride: cohortFile.data.aiApiKeyOverride,
+        gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride,
+      }),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
@@ -207,81 +198,8 @@ export async function loadPilotRegistry(
         );
       }
 
-      const brainVersion =
-        cohort.data.brainVersionOverride ?? pilot.brainVersion;
       const identity: ResolvedUserIdentity = {
-        handle: userFile.data.handle,
-        cohort: cohort.id,
-        brainVersion,
-        bundleContract: pilot.bundleContract,
-        bundles: [...(cohort.data.bundlesOverride ?? pilot.bundles)],
-        add: uniqueStrings([
-          ...(cohort.data.addOverride ??
-            (cohort.data.bundlesOverride ? [] : (pilot.add ?? []))),
-          ...(userFile.data.addOverride ?? []),
-        ]),
-        remove: uniqueStrings([
-          ...(cohort.data.removeOverride ??
-            (cohort.data.bundlesOverride ? [] : (pilot.remove ?? []))),
-          ...(userFile.data.removeOverride ?? []),
-        ]),
-        domain:
-          userFile.data.domainOverride ??
-          `${userFile.data.handle}${pilot.domainSuffix}`,
-        ...(userFile.data.cloudflareZoneId
-          ? { cloudflareZoneId: userFile.data.cloudflareZoneId }
-          : {}),
-        contentRepo:
-          userFile.data.contentRepoOverride ??
-          `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
-        ...(userFile.data.profileKind
-          ? { profileKind: userFile.data.profileKind }
-          : {}),
-        ...(userFile.data.anchorKind
-          ? { anchorKind: userFile.data.anchorKind }
-          : {}),
-        ...(userFile.data.embeddingEnabled !== undefined
-          ? { embeddingEnabled: userFile.data.embeddingEnabled }
-          : {}),
-        ...(userFile.data.spaces !== undefined
-          ? { spaces: userFile.data.spaces }
-          : {}),
-        ...(userFile.data.plugins !== undefined
-          ? { plugins: userFile.data.plugins }
-          : {}),
-        ...(userFile.data.topicExtractionEnabled !== undefined
-          ? { topicExtractionEnabled: userFile.data.topicExtractionEnabled }
-          : {}),
-        ...(userFile.data.skillDerivationEnabled !== undefined
-          ? { skillDerivationEnabled: userFile.data.skillDerivationEnabled }
-          : {}),
-        ...(userFile.data.swotDerivationEnabled !== undefined
-          ? { swotDerivationEnabled: userFile.data.swotDerivationEnabled }
-          : {}),
-        ...(userFile.data.siteOverride
-          ? { siteOverride: { ...userFile.data.siteOverride } }
-          : {}),
-        discordEnabled: userFile.data.discord.enabled,
-        ...(userFile.data.discord.anchorUserId
-          ? { discordAnchorUserId: userFile.data.discord.anchorUserId }
-          : {}),
-        effectiveAiApiKey:
-          userFile.data.aiApiKeyOverride ??
-          cohort.data.aiApiKeyOverride ??
-          pilot.aiApiKey,
-        effectiveGitSyncToken:
-          userFile.data.gitSyncTokenOverride ??
-          cohort.data.gitSyncTokenOverride ??
-          pilot.gitSyncToken,
-        ...(userFile.data.setup ? { setup: userFile.data.setup } : {}),
-        ...(userFile.data.atproto ? { atproto: userFile.data.atproto } : {}),
-        ...(userFile.data.playbooks
-          ? { playbooks: userFile.data.playbooks }
-          : {}),
-        anchorProfile: resolveAnchorProfile(
-          userFile.data.handle,
-          userFile.data.anchorProfile,
-        ),
+        ...resolveUserIdentity(userFile.data, cohort, pilot),
         snapshotStatus: await resolveSnapshotStatus(
           rootDir,
           userFile.data.handle,
@@ -306,6 +224,74 @@ export async function loadPilotRegistry(
     cohorts,
     users,
   };
+}
+
+/**
+ * Resolve a user's desired state from the user → cohort → pilot cascade.
+ * Pure: the snapshot status is filesystem state and is added by the loader.
+ */
+export function resolveUserIdentity(
+  user: UserConfig,
+  cohort: LoadedCohortFile,
+  pilot: PilotConfig,
+): Omit<ResolvedUserIdentity, "snapshotStatus"> {
+  // A cohort bundle override also replaces the pilot's add/remove lists.
+  const inheritsPilotLists = cohort.data.bundlesOverride === undefined;
+
+  return {
+    handle: user.handle,
+    cohort: cohort.id,
+    brainVersion: cohort.data.brainVersionOverride ?? pilot.brainVersion,
+    bundleContract: pilot.bundleContract,
+    bundles: [...(cohort.data.bundlesOverride ?? pilot.bundles)],
+    add: cascadeCapabilityList(
+      cohort.data.addOverride ?? (inheritsPilotLists ? pilot.add : undefined),
+      user.addOverride,
+    ),
+    remove: cascadeCapabilityList(
+      cohort.data.removeOverride ??
+        (inheritsPilotLists ? pilot.remove : undefined),
+      user.removeOverride,
+    ),
+    domain: user.domainOverride ?? `${user.handle}${pilot.domainSuffix}`,
+    ...definedFields({ cloudflareZoneId: user.cloudflareZoneId }),
+    contentRepo:
+      user.contentRepoOverride ??
+      `${pilot.contentRepoPrefix}${user.handle}-content`,
+    ...definedFields({
+      profileKind: user.profileKind,
+      anchorKind: user.anchorKind,
+      embeddingEnabled: user.embeddingEnabled,
+      spaces: user.spaces,
+      plugins: user.plugins,
+      topicExtractionEnabled: user.topicExtractionEnabled,
+      skillDerivationEnabled: user.skillDerivationEnabled,
+      swotDerivationEnabled: user.swotDerivationEnabled,
+      siteOverride: user.siteOverride && { ...user.siteOverride },
+    }),
+    discordEnabled: user.discord.enabled,
+    ...definedFields({ discordAnchorUserId: user.discord.anchorUserId }),
+    effectiveAiApiKey:
+      user.aiApiKeyOverride ?? cohort.data.aiApiKeyOverride ?? pilot.aiApiKey,
+    effectiveGitSyncToken:
+      user.gitSyncTokenOverride ??
+      cohort.data.gitSyncTokenOverride ??
+      pilot.gitSyncToken,
+    ...definedFields({
+      setup: user.setup,
+      atproto: user.atproto,
+      playbooks: user.playbooks,
+    }),
+    anchorProfile: resolveAnchorProfile(user.handle, user.anchorProfile),
+  };
+}
+
+/** Inherited list (cohort, else pilot) plus the user's additions, deduplicated. */
+function cascadeCapabilityList(
+  inherited: string[] | undefined,
+  userAdditions: string[] | undefined,
+): string[] {
+  return uniqueStrings([...(inherited ?? []), ...(userAdditions ?? [])]);
 }
 
 async function loadUserFiles(rootDir: string): Promise<LoadedUserFile[]> {

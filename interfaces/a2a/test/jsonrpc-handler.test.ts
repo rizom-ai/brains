@@ -697,6 +697,175 @@ describe("JSON-RPC Handler", () => {
     });
   });
 
+  describe.each(["tasks/get", "tasks/cancel"])(
+    "%s task lookup responses",
+    (method) => {
+      const owner = {
+        callerPermissionLevel: "trusted" as const,
+        callerDomain: "peer-a.example",
+      };
+
+      async function workingTask(): Promise<string> {
+        const sendResponse = await handleJsonRpc(
+          rpcRequest("message/send", userMessage("Hello")),
+          {
+            taskManager,
+            turnSupervisor,
+            agentService: createCustomAgentService({
+              chat: async () => new Promise<AgentResponse>(() => {}),
+            }),
+            ...owner,
+          },
+        );
+        return expectSuccess(sendResponse).id;
+      }
+
+      it("answers missing params with the request id and -32602", async () => {
+        const response = await handleJsonRpc(rpcRequest(method, {}, 7), {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          ...owner,
+        });
+
+        expect(response).toEqual({
+          jsonrpc: "2.0",
+          id: 7,
+          error: {
+            code: -32602,
+            message: expect.stringMatching(/^Invalid params: .*"id"/s),
+          },
+        });
+      });
+
+      it("answers a mistyped id with -32602", async () => {
+        const response = await handleJsonRpc(
+          rpcRequest(method, { id: 42 }, 7),
+          { taskManager, turnSupervisor, agentService, ...owner },
+        );
+
+        expect(expectError(response).code).toBe(-32602);
+        expect(expectError(response).message).toStartWith("Invalid params: ");
+      });
+
+      it("answers an unknown task with its id in the message", async () => {
+        const response = await handleJsonRpc(
+          rpcRequest(method, { id: "nonexistent" }, "req-1"),
+          { taskManager, turnSupervisor, agentService, ...owner },
+        );
+
+        expect(response).toEqual({
+          jsonrpc: "2.0",
+          id: "req-1",
+          error: { code: -32001, message: "Task not found: nonexistent" },
+        });
+      });
+
+      it("answers another caller exactly as for an unknown task", async () => {
+        const taskId = await workingTask();
+
+        const response = await handleJsonRpc(
+          rpcRequest(method, { id: taskId }, "req-2"),
+          {
+            taskManager,
+            turnSupervisor,
+            agentService,
+            callerPermissionLevel: "trusted",
+            callerDomain: "peer-b.example",
+          },
+        );
+
+        expect(response).toEqual({
+          jsonrpc: "2.0",
+          id: "req-2",
+          error: { code: -32001, message: `Task not found: ${taskId}` },
+        });
+        expect(taskManager.getTask(taskId)?.task.status.state).toBe("working");
+      });
+
+      it("answers an anonymous caller exactly as for an unknown task", async () => {
+        const taskId = await workingTask();
+
+        const response = await handleJsonRpc(
+          rpcRequest(method, { id: taskId }, "req-3"),
+          {
+            taskManager,
+            turnSupervisor,
+            agentService,
+            callerPermissionLevel: "public",
+          },
+        );
+
+        expect(response).toEqual({
+          jsonrpc: "2.0",
+          id: "req-3",
+          error: { code: -32001, message: `Task not found: ${taskId}` },
+        });
+        expect(taskManager.getTask(taskId)?.task.status.state).toBe("working");
+      });
+    },
+  );
+
+  describe("task lookup successes", () => {
+    it("tasks/get returns the owner's task trimmed to historyLength", async () => {
+      const context = {
+        taskManager,
+        turnSupervisor,
+        agentService,
+        callerPermissionLevel: "trusted" as const,
+        callerDomain: "peer-a.example",
+      };
+      const taskId = expectSuccess(
+        await handleJsonRpc(
+          rpcRequest("message/send", userMessage("Hello")),
+          context,
+        ),
+      ).id;
+      await waitForTaskState(taskManager, taskId, "completed");
+
+      const response = await handleJsonRpc(
+        rpcRequest("tasks/get", { id: taskId, historyLength: 1 }, 9),
+        context,
+      );
+
+      expect<unknown>(response).toEqual({
+        jsonrpc: "2.0",
+        id: 9,
+        result: taskManager.getTaskWithHistory(taskId, 1),
+      });
+    });
+
+    it("tasks/cancel cancels the owner's working task", async () => {
+      const context = {
+        taskManager,
+        turnSupervisor,
+        callerPermissionLevel: "trusted" as const,
+        callerDomain: "peer-a.example",
+      };
+      const taskId = expectSuccess(
+        await handleJsonRpc(rpcRequest("message/send", userMessage("Hello")), {
+          ...context,
+          agentService: createCustomAgentService({
+            chat: async () => new Promise<AgentResponse>(() => {}),
+          }),
+        }),
+      ).id;
+
+      const response = await handleJsonRpc(
+        rpcRequest("tasks/cancel", { id: taskId }, 9),
+        { ...context, agentService },
+      );
+
+      const task = expectSuccess(response);
+      expect<unknown>(response).toEqual({
+        jsonrpc: "2.0",
+        id: 9,
+        result: taskManager.getTask(taskId)?.task,
+      });
+      expect(task.status.state).toBe("canceled");
+    });
+  });
+
   describe("protocol errors", () => {
     it("should return method not found for unknown methods", async () => {
       const response = await handleJsonRpc(rpcRequest("unknown/method", {}), {

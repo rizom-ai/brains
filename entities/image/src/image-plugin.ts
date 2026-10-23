@@ -11,6 +11,7 @@ import type {
 } from "@brains/plugins";
 import {
   createPendingEntity,
+  createUploadSaveHandler,
   EntityPlugin,
   resolveEntityOrError,
 } from "@brains/plugins";
@@ -623,23 +624,12 @@ export class ImagePlugin extends EntityPlugin<
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
       mediaTypes: ["image/*"],
-      handler: async (input, executionContext) => {
-        const interception = await this.promoteUpload(
-          {
-            entityType: this.entityType,
-            ...(input.title !== undefined ? { title: input.title } : {}),
-            ...(input.visibility !== undefined
-              ? { visibility: input.visibility }
-              : {}),
-            from: input.upload,
-          },
-          context,
-          executionContext,
-        );
-        return interception.kind === "handled"
-          ? interception.result
-          : { success: false, error: "Image upload save was not handled" };
-      },
+      handler: createUploadSaveHandler(
+        this.entityType,
+        (input, executionContext) =>
+          this.promoteUpload(input, context, executionContext),
+        "Image upload save was not handled",
+      ),
     });
 
     const handler = new ImageGenerationJobHandler(context, this.logger);

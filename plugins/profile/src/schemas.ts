@@ -186,27 +186,92 @@ export const organizationProfileSchema: OrganizationProfileSchema =
   anchorProfileBodySchema.extend(organizationProfileExtension.shape).strict();
 export type OrganizationProfile = z.output<typeof organizationProfileSchema>;
 
-type PublicProfileViewObjectSchema = ReturnType<
-  typeof anchorProfileBodySchema.extend<CommonProfileExtensionSchema["shape"]>
->;
-export type PublicProfileViewSchema = ReturnType<
-  PublicProfileViewObjectSchema["loose"]
->;
+type NullableStringSchema = z.ZodDefault<z.ZodNullable<z.ZodString>>;
 
-export const publicProfileViewSchema: PublicProfileViewSchema =
-  anchorProfileBodySchema.extend(commonProfileExtension.shape).loose();
+const nullableString: NullableStringSchema = z
+  .string()
+  .nullable()
+  .default(null);
 
-type ProfessionalProfileViewObjectSchema = ReturnType<
-  typeof publicProfileViewSchema.extend<
-    ProfessionalProfileFieldsSchema["shape"]
-  >
->;
+type SocialPlatformSchema = ReturnType<
+  (typeof anchorProfileBodySchema.shape.socialLinks)["unwrap"]
+>["element"]["shape"]["platform"];
+
+const socialPlatformSchema: SocialPlatformSchema =
+  anchorProfileBodySchema.shape.socialLinks.unwrap().element.shape.platform;
+
+export type PublicProfileViewSchema = z.ZodObject<{
+  name: z.ZodString;
+  organization: NullableStringSchema;
+  description: NullableStringSchema;
+  avatar: NullableStringSchema;
+  website: NullableStringSchema;
+  email: NullableStringSchema;
+  socialLinks: z.ZodDefault<
+    z.ZodNullable<
+      z.ZodArray<
+        z.ZodObject<{
+          platform: SocialPlatformSchema;
+          url: z.ZodString;
+          label: NullableStringSchema;
+        }>
+      >
+    >
+  >;
+  tagline: NullableStringSchema;
+  intro: NullableStringSchema;
+  story: NullableStringSchema;
+  audience: NullableStringSchema;
+}>;
+
+/**
+ * JSON-native public profile for site templates: the anchor profile plus the
+ * common extension, with every unset field present as null.
+ */
+export const publicProfileViewSchema: PublicProfileViewSchema = z.object({
+  name: z.string(),
+  organization: nullableString,
+  description: nullableString,
+  avatar: nullableString,
+  website: nullableString,
+  email: nullableString,
+  socialLinks: z
+    .array(
+      z.object({
+        platform: socialPlatformSchema,
+        url: z.string(),
+        label: nullableString,
+      }),
+    )
+    .nullable()
+    .default(null),
+  tagline: nullableString,
+  intro: nullableString,
+  story: nullableString,
+  audience: nullableString,
+});
+export type PublicProfileView = z.output<typeof publicProfileViewSchema>;
+
 export type ProfessionalProfileViewSchema = ReturnType<
-  ProfessionalProfileViewObjectSchema["loose"]
+  typeof publicProfileViewSchema.extend<{
+    role: NullableStringSchema;
+    expertise: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
+    currentFocus: NullableStringSchema;
+    availability: NullableStringSchema;
+  }>
 >;
 
+/** JSON-native public profile plus the professional fields. */
 export const professionalProfileViewSchema: ProfessionalProfileViewSchema =
-  publicProfileViewSchema.extend(professionalProfileFields.shape).loose();
+  publicProfileViewSchema.extend({
+    role: nullableString,
+    expertise: z.array(z.string()).nullable().default(null),
+    currentFocus: nullableString,
+    availability: nullableString,
+  });
+export type ProfessionalProfileView = z.output<
+  typeof professionalProfileViewSchema
+>;
 
 /** Backward-compatible name for the always-on base profile extension. */
 export const profileFrontmatterExtension: ProfileBaseFrontmatterExtension =

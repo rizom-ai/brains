@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- [#735](https://github.com/rizom-ai/brains/pull/735) [`9711864`](https://github.com/rizom-ai/brains/commit/9711864bd00590a352f62f13847ab3190b3ac293) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Account passkey registration now drops unknown fields from the credential response instead of rejecting it, matching passkey sign-in.
+
+- [#729](https://github.com/rizom-ai/brains/pull/729) [`bc6dc25`](https://github.com/rizom-ai/brains/commit/bc6dc251cd744afc2350947e4febd1cc7f5f099d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A keyboard-focused card or row title in Studio now rings the whole card or row it opens. Titles in the board, Inbox and Administration lists are clamped to two lines, which clipped their own focus ring to a sliver beside the text; the row now draws the ring 6px outside itself, clear of its text.
+
 ## 0.2.0-alpha.597
 
 ### Patch Changes

@@ -1,5 +1,6 @@
 import type { ActorRef } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
+import { definedFields } from "@brains/utils/strip-undefined";
 /**
  * Tool Events - Event emission for tool invocations
  *
@@ -83,30 +84,32 @@ export function createToolExecuteWrapper(
     kind: "agent",
     agentId: "brain-agent",
   };
+  // Routing context shared by every event this wrapper emits
+  const eventContext = {
+    conversationId: contextInfo.conversationId,
+    interfaceType: contextInfo.interfaceType,
+    actor,
+    ...definedFields({
+      displayName: contextInfo.displayName,
+      channelId: contextInfo.channelId,
+      channelName: contextInfo.channelName,
+    }),
+  };
   return async (
     args: unknown,
     options?: ToolExecutionOptionsLike,
   ): Promise<unknown> => {
+    const context = {
+      ...eventContext,
+      ...definedFields({ toolCallId: options?.toolCallId }),
+    };
+
     // Emit tool:invoking event
     if (emitter) {
       const invokingPayload: ToolInvocationEvent = {
         toolName,
         args,
-        conversationId: contextInfo.conversationId,
-        interfaceType: contextInfo.interfaceType,
-        actor,
-        ...(contextInfo.displayName !== undefined && {
-          displayName: contextInfo.displayName,
-        }),
-        ...(contextInfo.channelId !== undefined && {
-          channelId: contextInfo.channelId,
-        }),
-        ...(contextInfo.channelName !== undefined && {
-          channelName: contextInfo.channelName,
-        }),
-        ...(options?.toolCallId !== undefined && {
-          toolCallId: options.toolCallId,
-        }),
+        ...context,
       };
       await emitter.emit("tool:invoking", invokingPayload);
     }
@@ -119,24 +122,7 @@ export function createToolExecuteWrapper(
 
       // Emit tool:completed event
       if (emitter) {
-        const completedPayload: ToolCompletionEvent = {
-          toolName,
-          conversationId: contextInfo.conversationId,
-          interfaceType: contextInfo.interfaceType,
-          actor,
-          ...(contextInfo.displayName !== undefined && {
-            displayName: contextInfo.displayName,
-          }),
-          ...(contextInfo.channelId !== undefined && {
-            channelId: contextInfo.channelId,
-          }),
-          ...(contextInfo.channelName !== undefined && {
-            channelName: contextInfo.channelName,
-          }),
-          ...(options?.toolCallId !== undefined && {
-            toolCallId: options.toolCallId,
-          }),
-        };
+        const completedPayload: ToolCompletionEvent = { toolName, ...context };
         await emitter.emit("tool:completed", completedPayload);
       }
 
@@ -147,21 +133,7 @@ export function createToolExecuteWrapper(
         const failedPayload: ToolCompletionEvent = {
           toolName,
           error: getErrorMessage(error),
-          conversationId: contextInfo.conversationId,
-          interfaceType: contextInfo.interfaceType,
-          actor,
-          ...(contextInfo.displayName !== undefined && {
-            displayName: contextInfo.displayName,
-          }),
-          ...(contextInfo.channelId !== undefined && {
-            channelId: contextInfo.channelId,
-          }),
-          ...(contextInfo.channelName !== undefined && {
-            channelName: contextInfo.channelName,
-          }),
-          ...(options?.toolCallId !== undefined && {
-            toolCallId: options.toolCallId,
-          }),
+          ...context,
         };
         await emitter.emit("tool:failed", failedPayload);
       }
