@@ -16,6 +16,8 @@ import {
 export const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 export const APPROVAL_CANCEL_ACTION = "approval.cancel";
 export const PROMPT_ACTION = "chat.prompt";
+/** A button on a space notice; its value is the action the poster defined. */
+export const SPACE_NOTICE_ACTION = "chat.space-notice";
 const UNAVAILABLE_EVENT_ACTION = "chat.event.unavailable";
 
 const DISCORD_ACTION_ROW_LIMIT = 5;

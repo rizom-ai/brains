@@ -1,4 +1,5 @@
 import {
+  JobProgressEventSchema,
   conversationMessageMetadataSchema,
   type IConversationsNamespace,
   type IRuntimeStateStore,
@@ -10,6 +11,10 @@ import { SUMMARY_PLUGIN_ID } from "../constants";
 import type { ChannelBookmark } from "./pickup";
 
 export const CHANNEL_ACTION_ITEMS_JOB_TYPE = "channel-action-items";
+
+/** The job's type as the queue records it, prefixed with the plugin id. */
+const QUEUED_JOB_TYPE = `${SUMMARY_PLUGIN_ID}:${CHANNEL_ACTION_ITEMS_JOB_TYPE}`;
+const KEY_PREFIX = `${CHANNEL_ACTION_ITEMS_JOB_TYPE}:`;
 
 export const channelPickupJobDataSchema: z.ZodObject<{
   conversationId: z.ZodString;
@@ -26,7 +31,7 @@ export function channelPickupJob(conversationId: string): {
   data: ChannelPickupJobData;
   options: JobOptions;
 } {
-  const key = `${CHANNEL_ACTION_ITEMS_JOB_TYPE}:${conversationId}`;
+  const key = `${KEY_PREFIX}${conversationId}`;
   return {
     type: CHANNEL_ACTION_ITEMS_JOB_TYPE,
     data: { conversationId },
@@ -41,6 +46,24 @@ export function channelPickupJob(conversationId: string): {
       },
     },
   };
+}
+
+/**
+ * The conversation a job progress event reports a finished pickup for. The
+ * web process hears every process's job completions, so this is how it
+ * learns a worker's pickup recorded notices to post.
+ */
+export function finishedPickupOf(payload: unknown): string | undefined {
+  const event = JobProgressEventSchema.safeParse(payload);
+  if (!event.success) return undefined;
+  const { status, jobDetails, metadata } = event.data;
+  if (status !== "completed" || jobDetails?.jobType !== QUEUED_JOB_TYPE) {
+    return undefined;
+  }
+  const target = metadata.operationTarget;
+  return target?.startsWith(KEY_PREFIX)
+    ? target.slice(KEY_PREFIX.length)
+    : undefined;
 }
 
 export interface ChannelTriggerDeps {

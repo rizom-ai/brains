@@ -18,6 +18,41 @@ import type {
   PositionedMessage,
 } from "./extractor";
 
+type ChannelNoticeSchema = z.ZodObject<{
+  key: z.ZodString;
+  cards: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      title: z.ZodString;
+      owner: z.ZodOptional<z.ZodString>;
+      sourceMessageId: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+  postingAt: z.ZodOptional<z.ZodString>;
+  postedMessageId: z.ZodOptional<z.ZodString>;
+}>;
+
+/** The note a batch's cards are announced with, until it is posted. */
+const channelNoticeSchema: ChannelNoticeSchema = z.object({
+  /** The message range it covers, e.g. "12-17". */
+  key: z.string().min(1),
+  cards: z.array(
+    z.object({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      owner: z.string().min(1).optional(),
+      /** The chat message the card was found in, to pin. */
+      sourceMessageId: z.string().min(1).optional(),
+    }),
+  ),
+  /** When a drain started posting it; a fresh one makes others skip it. */
+  postingAt: z.string().optional(),
+  /** Set once the chat interface has posted it. */
+  postedMessageId: z.string().min(1).optional(),
+});
+
+export type ChannelNotice = z.output<typeof channelNoticeSchema>;
+
 type ChannelBookmarkSchema = z.ZodObject<{
   processedThrough: z.ZodNumber;
   claim: z.ZodOptional<
@@ -27,6 +62,7 @@ type ChannelBookmarkSchema = z.ZodObject<{
       at: z.ZodString;
     }>
   >;
+  notices: z.ZodOptional<z.ZodArray<ChannelNoticeSchema>>;
 }>;
 
 const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
@@ -40,9 +76,44 @@ const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
       at: z.string(),
     })
     .optional(),
+  /** Notices still to post, and recent posted ones for Undo. */
+  notices: z.array(channelNoticeSchema).optional(),
 });
 
 export type ChannelBookmark = z.output<typeof channelBookmarkSchema>;
+
+/**
+ * Change a bookmark by compare-and-set, re-reading on a concurrent write.
+ * `change` returns undefined to leave it as it is.
+ */
+export async function updateBookmark(
+  bookmarks: IRuntimeStateStore<ChannelBookmark>,
+  conversationId: string,
+  change: (current: ChannelBookmark | null) => ChannelBookmark | undefined,
+  attempts = 3,
+): Promise<boolean> {
+  const current = await bookmarks.get(conversationId);
+  const next = change(current);
+  if (!next) return false;
+  const written = current
+    ? await bookmarks.compareAndSet(conversationId, current, next)
+    : await bookmarks.setIfNotExists(conversationId, next);
+  if (written) return true;
+  return attempts > 1
+    ? updateBookmark(bookmarks, conversationId, change, attempts - 1)
+    : false;
+}
+
+/** How many posted notices a bookmark keeps, for Undo on recent cards. */
+const POSTED_NOTICES_KEPT = 20;
+
+function keptNotices(notices: ChannelNotice[]): ChannelNotice[] {
+  const posted = notices.filter((notice) => notice.postedMessageId);
+  const recent = new Set(posted.slice(-POSTED_NOTICES_KEPT));
+  return notices.filter(
+    (notice) => !notice.postedMessageId || recent.has(notice),
+  );
+}
 
 /** Per space conversation, how far its pickup got, keyed by conversation id. */
 export function channelBookmarks(
@@ -101,6 +172,13 @@ function assigneeOf(
   };
 }
 
+function sourceMessageIdOf(item: FoundActionItem): string | undefined {
+  const parsed = conversationMessageMetadataSchema.safeParse(
+    item.source.metadata,
+  );
+  return parsed.success ? parsed.data.source?.messageId : undefined;
+}
+
 function speakerOf(item: FoundActionItem): {
   actor: Parameters<typeof createActionItem>[1]["actor"];
   actorName: string | undefined;
@@ -139,8 +217,9 @@ export async function pickUpChannelActionItems(
     return { status: "claimed-elsewhere" };
   }
 
+  // The claim keeps what the bookmark holds, notices still to post included.
   const claimed: ChannelBookmark = {
-    processedThrough: current.processedThrough,
+    ...current,
     claim: { through: count, jobId, at: now.toISOString() },
   };
   const won = stored
@@ -172,18 +251,23 @@ export async function pickUpChannelActionItems(
       ? { channelName: conversation.channelName }
       : {}),
   } as const;
-  const results = await items.reduce<Promise<string[]>>(
-    async (created, item, index) => {
+  const found = items.map((item, index) => ({
+    item,
+    id: flatId(
+      conversationId,
+      "message",
+      String(item.sourcePosition),
+      String(
+        items
+          .slice(0, index)
+          .filter((earlier) => earlier.sourcePosition === item.sourcePosition)
+          .length + 1,
+      ),
+    ),
+  }));
+  const results = await found.reduce<Promise<string[]>>(
+    async (created, { item, id }) => {
       const done = await created;
-      const sameMessage = items
-        .slice(0, index)
-        .filter((earlier) => earlier.sourcePosition === item.sourcePosition);
-      const id = flatId(
-        conversationId,
-        "message",
-        String(item.sourcePosition),
-        String(sameMessage.length + 1),
-      );
       const result = await createActionItem(
         {
           entityService: deps.entityService,
@@ -205,8 +289,37 @@ export async function pickUpChannelActionItems(
     Promise.resolve([]),
   );
 
-  await deps.bookmarks.compareAndSet(conversationId, claimed, {
-    processedThrough: count,
+  // Finish only while the claim is still this run's; announce every card
+  // of the batch no earlier notice lists, so a crashed run's cards are too.
+  await updateBookmark(deps.bookmarks, conversationId, (latest) => {
+    if (latest?.claim?.jobId !== jobId) return undefined;
+    const notices = latest.notices ?? [];
+    const announced = new Set(
+      notices.flatMap((notice) => notice.cards.map((card) => card.id)),
+    );
+    const fresh = found.filter(({ id }) => !announced.has(id));
+    const notice: ChannelNotice[] =
+      fresh.length > 0
+        ? [
+            {
+              key: `${from}-${count}`,
+              cards: fresh.map(({ item, id }) => {
+                const owner = item.owner?.displayName;
+                const sourceMessageId = sourceMessageIdOf(item);
+                return {
+                  id,
+                  title: item.title,
+                  ...(owner ? { owner } : {}),
+                  ...(sourceMessageId ? { sourceMessageId } : {}),
+                };
+              }),
+            },
+          ]
+        : [];
+    return {
+      processedThrough: count,
+      notices: keptNotices([...notices, ...notice]),
+    };
   });
   return { status: "processed", through: count, created: results };
 }

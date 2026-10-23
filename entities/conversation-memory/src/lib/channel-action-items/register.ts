@@ -1,4 +1,9 @@
 import {
+  CHAT_CHANNELS,
+  JOB_CHANNELS,
+  spaceNoticeResultSchema,
+} from "@brains/contracts";
+import {
   BaseJobHandler,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   SYSTEM_CHANNELS,
@@ -13,6 +18,11 @@ import {
   type PositionedMessage,
 } from "./extractor";
 import {
+  postAllPendingNotices,
+  postPendingNotices,
+  type ChannelNoticeDeps,
+} from "./notice";
+import {
   channelBookmarks,
   pickUpChannelActionItems,
   type ChannelPickupDeps,
@@ -23,6 +33,7 @@ import {
   catchUpChannels,
   channelPickupJob,
   channelPickupJobDataSchema,
+  finishedPickupOf,
   wakeUpChannel,
   type ChannelPickupJobData,
   type ChannelTriggerDeps,
@@ -94,7 +105,9 @@ function evalChannelMessages(
 /**
  * Action items picked up from configured chat spaces: the job that turns a
  * space's new messages into cards, woken by each stored message, with a
- * catch-up at startup and daily so a lost wake-up only delays a batch.
+ * catch-up at startup and daily so a lost wake-up only delays a batch. The
+ * web process, where the chat app runs, posts each batch's notice when it
+ * hears the pickup finish, and at startup whatever a restart left pending.
  */
 export function registerChannelActionItems(
   context: EntityPluginContext,
@@ -130,9 +143,27 @@ export function registerChannelActionItems(
       return { success: true };
     },
   );
+  const notices: ChannelNoticeDeps = {
+    conversations: context.conversations,
+    bookmarks,
+    post: async (request) => {
+      const response = await context.messaging.send({
+        type: CHAT_CHANNELS.spaceNotice,
+        payload: request,
+      });
+      if ("noop" in response || !response.success) return undefined;
+      return spaceNoticeResultSchema.safeParse(response.data).data?.messageId;
+    },
+  };
+  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
+    const conversationId = finishedPickupOf(message.payload);
+    if (conversationId) await postPendingNotices(notices, conversationId);
+    return { success: true };
+  });
   context.messaging.subscribe(
     SYSTEM_CHANNELS.startupContentSettled,
     async () => {
+      await postAllPendingNotices(notices);
       await catchUpChannels(trigger);
       return { success: true };
     },

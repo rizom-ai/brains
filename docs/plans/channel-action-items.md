@@ -25,7 +25,7 @@ Decisions and summaries are not part of this plan.
 - **Digest.** `ConversationService` broadcasts `conversation:digest` every `digestTriggerInterval` messages. Nothing subscribes to it.
 - **Explicit requests.** An agent can only create an action item through `system_create`, which sets neither `capturedAt` nor `status`, so validation rejects it; an entity created without a visibility is `public`.
 - **Board ownership.** `isBoardOwned` (via `projectedBodyHash`) already tells a card the board changed from one only the producer wrote.
-- **Processes.** The message bus is per process. The Discord gateway runs as the chat interface's daemon in the web process; jobs run in the worker. The web process can `observe` what any process raises. No plugin can post into a Discord channel: the channel registry marks Discord as manual delivery and only the chat interface holds the connection.
+- **Processes.** The message bus is per process. The Discord gateway runs as the chat interface's daemon in the web process; jobs run in the worker. Only entity events cross processes: the web process can `observe` those wherever they were raised, and it hears every job's completion through `job-progress`, which it reads from the queue. No plugin can post into a Discord channel: the channel registry marks Discord as manual delivery and only the chat interface holds the connection.
 - **Building blocks.** Job deduplication `skip` matches only a pending job, so a message arriving while a job runs queues one more. Runtime state offers `compareAndSet`. Recurring checks run daily or weekly. `startupContentSettled` fires once startup content is in place.
 
 ## Design
@@ -34,7 +34,7 @@ The conversation database is the only source of truth. Events only wake work up;
 
 ### Bookmark
 
-Per space conversation, runtime state (`conversation-memory` namespace, key `action-items:<conversation id>`) holds `processedThrough` (the last message position handled) and an optional `claim` (`through`, job id, claimed at). Only a run holding the claim writes; the bookmark moves forward only after the batch's cards and notice record are written.
+Per space conversation, runtime state (namespace `conversation-memory.channel-action-items`, keyed by conversation id) holds `processedThrough` (the last message position handled), an optional `claim` (`through`, job id, claimed at) and the batch notices. Only a run holding the claim writes; the bookmark moves forward only after the batch's cards and notice record are written.
 
 ### Wake-up
 
@@ -74,11 +74,12 @@ An item cites a message from the new range or, for `update` and `withdraw`, an o
 
 ### Notice
 
-The worker cannot reach Discord, so the notice is a durable record plus a hint:
+The worker cannot reach Discord, so the notice is a durable record, posted from the web process:
 
-- The job writes the pending notice record and raises `channel-action-items:notice`. The chat interface observes it in the web process and posts the note into the space, reacting 📌 to each source message; on success it marks the record posted with the provider message id.
-- On start the chat interface posts every notice record still pending, so a lost hint or a failed post is retried.
-- The chat interface gets a generic space-notice capability for this: post a short text with per-item actions into a configured space, idempotent by record key.
+- The job records the batch's pending notice in the bookmark, listing every card of the batch no earlier notice lists. When the job completes, the web process hears it through `job-progress`, and conversation-memory posts that conversation's pending notices. It claims each notice before posting (`postingAt`, two minutes), so a concurrent drain skips it, and on success marks it posted with the provider message id.
+- On start the web process posts every notice still pending, so a failed post or a restart is retried.
+- The chat interface gets a generic space-notice capability for this (`chat:space-notice`): post a title, lines and per-item buttons into a configured space and react to messages there; it answers with the posted message id.
+- The bookmark keeps every pending notice and the last 20 posted ones, for Undo.
 
 ### Undo
 

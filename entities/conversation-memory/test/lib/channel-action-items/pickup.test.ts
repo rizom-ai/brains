@@ -70,6 +70,8 @@ function message(position: number, speaker: Speaker, content: string): Message {
         role: "user",
         displayName: nameOf(speaker),
       },
+      source: { messageId: `discord-${position}` },
+      spaceId: "discord:1466",
     },
   };
 }
@@ -197,7 +199,49 @@ describe("picking up a channel's action items", () => {
     expect(card.metadata.projectedBodyHash).toBe(
       actionItemBodyHash(card.content),
     );
-    expect(await bookmark(deps)).toEqual({ processedThrough: 5 });
+    expect(await bookmark(deps)).toEqual({
+      processedThrough: 5,
+      notices: [
+        {
+          key: "1-5",
+          cards: [
+            {
+              id: "discord-1466-message-2-1",
+              title: "Send INC the proposal",
+              owner: "Jo",
+              sourceMessageId: "discord-2",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("records no notice when the messages hold no action items", async () => {
+    const { deps } = brain();
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    expect(await bookmark(deps)).toEqual({ processedThrough: 5, notices: [] });
+  });
+
+  it("keeps a notice still to post when the next batch is processed", async () => {
+    const { deps, found } = brain();
+    const pending = {
+      key: "1-3",
+      cards: [{ id: "earlier-card", title: "Earlier card" }],
+    };
+    await deps.bookmarks.set(CONVERSATION, {
+      processedThrough: 3,
+      notices: [pending],
+    });
+    found([item(4, natalie, "Book the venue")]);
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    expect(
+      (await bookmark(deps))?.notices?.map((notice) => notice.key),
+    ).toEqual(["1-3", "4-5"]);
   });
 
   it("leaves a card unassigned when its owner has no brain account", async () => {
@@ -272,7 +316,7 @@ describe("picking up a channel's action items", () => {
 
     expect(result).toMatchObject({ status: "processed", through: 5 });
     expect(extract).toHaveBeenCalledTimes(1);
-    expect(await bookmark(deps)).toEqual({ processedThrough: 5 });
+    expect(await bookmark(deps)).toMatchObject({ processedThrough: 5 });
   });
 
   it("adds no second card when a run repeats the same messages", async () => {
@@ -286,5 +330,32 @@ describe("picking up a channel's action items", () => {
 
     expect(result).toEqual({ status: "processed", through: 5, created: [] });
     expect(await cards(context)).toHaveLength(1);
+    // Announced once: the first run's notice already lists the card.
+    expect((await bookmark(deps))?.notices).toHaveLength(1);
+  });
+
+  it("still announces cards a crashed run wrote but never recorded", async () => {
+    const { context, deps, found } = brain();
+    found([item(2, jo, "Send INC the proposal")]);
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    // The crash: the card exists, but its notice never reached the bookmark.
+    await deps.bookmarks.set(CONVERSATION, { processedThrough: 0 });
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+
+    expect(await cards(context)).toHaveLength(1);
+    expect((await bookmark(deps))?.notices).toEqual([
+      {
+        key: "1-5",
+        cards: [
+          {
+            id: "discord-1466-message-2-1",
+            title: "Send INC the proposal",
+            owner: "Jo",
+            sourceMessageId: "discord-2",
+          },
+        ],
+      },
+    ]);
   });
 });

@@ -5,6 +5,7 @@ import { channelBookmarks } from "../../../src/lib/channel-action-items/pickup";
 import {
   catchUpChannels,
   channelPickupJob,
+  finishedPickupOf,
   wakeUpChannel,
   type ChannelTriggerDeps,
 } from "../../../src/lib/channel-action-items/trigger";
@@ -132,5 +133,44 @@ describe("the pickup job", () => {
         },
       },
     });
+  });
+});
+
+describe("hearing a pickup finish", () => {
+  const job = channelPickupJob(ROOM);
+  function finished(overrides: Record<string, unknown> = {}): unknown {
+    return {
+      id: "job-1",
+      type: "job",
+      status: "completed",
+      metadata: { rootJobId: "job-1", ...job.options.metadata },
+      jobDetails: {
+        jobType: "conversation-memory:channel-action-items",
+        priority: 0,
+        retryCount: 0,
+      },
+      ...overrides,
+    };
+  }
+
+  it("names the conversation a completed pickup ran for", () => {
+    expect(finishedPickupOf(finished())).toBe(ROOM);
+  });
+
+  it("ignores a pickup still running or failed", () => {
+    expect(
+      finishedPickupOf(finished({ status: "processing" })),
+    ).toBeUndefined();
+    expect(finishedPickupOf(finished({ status: "failed" }))).toBeUndefined();
+  });
+
+  it("ignores other jobs", () => {
+    expect(
+      finishedPickupOf(
+        finished({
+          jobDetails: { jobType: "link:capture", priority: 0, retryCount: 0 },
+        }),
+      ),
+    ).toBeUndefined();
   });
 });

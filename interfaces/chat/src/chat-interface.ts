@@ -41,6 +41,8 @@ import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
 import { getActiveAuthService } from "@brains/auth-service";
+import { CHAT_CHANNELS, spaceNoticeRequestSchema } from "@brains/contracts";
+import { postSpaceNotice } from "./space-notice";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
@@ -261,6 +263,26 @@ export class ChatInterface extends MessageInterfacePlugin<
     this.turnController.registerHandlers(
       this.chatApp.build(context.runtimeState),
     );
+    // Another plugin's note for a configured space, e.g. the cards a channel
+    // pickup added; posted where the chat app runs.
+    context.messaging.subscribe(CHAT_CHANNELS.spaceNotice, async (message) => {
+      const request = spaceNoticeRequestSchema.safeParse(message.payload);
+      if (!request.success) {
+        return { success: false, error: "Not a space notice" };
+      }
+      return {
+        success: true,
+        data: await postSpaceNotice(
+          {
+            app: this.chatApp.instance,
+            discordBotToken: this.config.adapters.discord?.botToken,
+            logger: this.logger,
+            fetchFn: this.deps.fetch,
+          },
+          request.data,
+        ),
+      };
+    });
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
