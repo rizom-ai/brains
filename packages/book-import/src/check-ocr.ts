@@ -428,6 +428,9 @@ export function referenceCorrections(
       const lineOf = run[0]?.line;
       if (
         run.every((token) => isWord(token.word)) ||
+        // A word read in Greek script is read by a Greek model: a
+        // transcription that reads Greek as Latin letters cannot better it.
+        run.some((token) => /\p{Script=Greek}/u.test(token.word)) ||
         last - first + 1 > MAX_RUN ||
         !left2 ||
         !left1 ||

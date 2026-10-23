@@ -1,13 +1,1128 @@
 werk17niet:
-  # Holzer's notes on what he left out of the Basel programme: Rohde's
-  # description of the codex Burbonicus (§ 6) and a collation of Diogenes'
-  # list of Democritus' writings, neither Nietzsche's text.
-  - page: 194
-    from: ‚ 1) [ξ 6. »Der codex Bu.rbonicus des Laertius Diogenes« eine Be-
+  - page: 1
+    from: (Rhein. Museum für Philologie, N. F., Bd. XXII (1867),
     to: ""
     by: scan
+  - page: 1
+    from: "]eder Leser des ’Theognis muss es bemerken, dass ihm"
+    to: Jeder Leser des Theognis muss es bemerken, dass ihm
+    by: scan
+  - page: 1
+    from: A A E E E , D E
+    to: ""
+    by: scan
+  - page: 1
+    from: Die Ιεῒῑῒε Redactmn der Theogmdea
+    to: Die letzte Redaction der Theognidea.
+    by: scan
+  - page: 1
+    from: Heft 2, S. 161—200)
+    to: ""
+    by: scan
+  - page: 1
+    from: in der Samfnlung begegnen. Sieht
+    to: in der Sammlung begegnen. Sieht
+    by: reference
+  - page: 1
+    from: Spruchsammlung.
+    to: ""
+    by: scan
+  - page: 1
+    from: Zur Gesch1chte der Theogmdenschen E
+    to: ""
+    by: scan
+  - page: 2
+    from: in ihnen zweli grosse
+    to: in ihnen zwei grosse
+    by: reference
+  - page: 7
+    from: Ende des 15. ]ahrhunderts die den
+    to: Ende des 15. Jahrhunderts, die den
+    by: reference
+  - page: 9
+    from: eingeschoben. Die anderﬂ
+    to: eingeschoben. Die andern
+    by: reference
+  - page: 10
+    from: ohne Jjegliche Veranderung.
+    to: ohne Jjegliche Veränderung.
+    by: reference
+  - page: 13
+    from: nicht die Fragrnente
+    to: nicht die Fragmente
+    by: reference
+  - page: 14
+    from: Verbindung zeigen liesse. Nach
+    to: Verbindung zeigen Hesse. Nach
+    by: reference
+  - page: 14
+    from: zu werfen. MNicht einmal das
+    to: zu werfen. Nicht einmal das
+    by: reference
+  - page: 15
+    from: 10) Hochstens könnte man
+    to: 10) Höchstens könnte man
+    by: reference
+  - page: 15
+    from: erst von KElias Vinetus 1543 angefügt
+    to: erst von Elias Vinetus 1543 angefügt
+    by: reference
+  - page: 15
+    from: nun an grosseren Theilen des
+    to: nun an grösseren Theilen des
+    by: reference
+  - page: 15
+    from: Theognideischen Fragmenfen vor, die
+    to: Theognideischen Fragmenten vor, die
+    by: reference
+  - page: 16
+    from: Verblndung ist diese
+    to: Verbindung ist diese
+    by: scan
+  - page: 17
+    from: Fragmente bis 145 smd ohne Stich
+    to: Fragmente bis 145 sind ohne Stich
+    by: reference
+  - page: 21
+    from: mehr in Zwe1fel
+    to: mehr in Zweifel
+    by: reference
+  - page: 21
+    from: Nach diesen Ausfuhrungen wird man
+    to: Nach diesen Ausführungen wird man
+    by: reference
+  - page: 21
+    from: Wörter ohne ahnl1che Bedeutung
+    to: Wörter ohne ähnliche Bedeutung
+    by: scan
+  - page: 22
+    from: Ueber Zweck, Zeit und Schicksale der Redaction. /
+    to: Ueber Zweck, Zeit und Schicksale der Redaction.
+    by: scan
+  - page: 24
+    from: Theognis abstammte? OÖOder
+    to: Theognis abstammte? Oder
+    by: reference
+  - page: 25
+    from: alle das erkannie Stichwortprincip. Der
+    to: alle das erkannte Stichwortprincip. Der
+    by: reference
+  - page: 27
+    from: Vorwurf machen konne‚
+    to: Vorwurf machen könne,
+    by: reference
+  - page: 29
+    from: Ged1chten« so ist
+    to: Gedichten“, so ist
+    by: reference
+  - page: 29
+    from: Hes. p. 35 Westerrhann„ Sodann bedeutet
+    to: Hes. p. 35 Westermann. Sodann bedeutet
+    by: reference
+  - page: 29
+    from: scheint allerdings dafur zu
+    to: scheint allerdings dafür zu
+    by: reference
+  - page: 31
+    from: Theogmssammlung Verschlagen sind
+    to: Theognissammlung Verschlagen sind
+    by: reference
+  - page: 33
+    from: auch des Phokyhdes
+    to: auch des Phokylides,
+    by: reference
+  - page: 33
+    from: Solon ‚ des Tyrtaus auch des
+    to: Solon ‚ des Tyrtäus, auch des
+    by: reference
+  - page: 35
+    from: und Verstand smd Dann hat
+    to: und Verstand sind. Dann hat
+    by: reference
+  - page: 37
+    from: nach unserer Redact_1on am
+    to: nach unserer Redaction am
+    by: reference
+  - page: 38
+    from: Plato bis Ptolemaus
+    to: Plato bis Ptolemäus
+    by: reference
+  - page: 39
+    from: lehrsamkeit. Hesychius sélbst( war Heide
+    to: lehrsamkeit. Hesychius selbst war Heide
+    by: reference
+  - page: 39
+    from: vereinzelten Zweideéutigkeiten im Innern
+    to: vereinzelten Zweideutigkeiten im Innern
+    by: reference
+  - page: 40
+    from: Werke ungefähr gle1cher Zeit grössere
+    to: Werke ungefähr gleicher Zeit grössere
+    by: reference
+  - page: 43
+    from: Groil, und er
+    to: Groll, und er
+    by: reference
+  - page: 45
+    from: "beiden in emen zusammen : was"
+    to: "beiden in einen zusammen : was"
+    by: reference
+  - page: 50
+    from: war die Iradition über die
+    to: war die Tradition über die
+    by: reference
+  - page: 52
+    from: an diesen Awusfall zu denken
+    to: an diesen Ausfall zu denken
+    by: reference
+  - page: 53
+    from: des Theognis best1mx_nte.
+    to: des Theognis bestimmte.
+    by: reference
+  - page: 53
+    from: die Plutarch, Athenaus
+    to: die Plutarch, Athenäus,
+    by: reference
+  - page: 53
+    from: Volkmann’s habén
+    to: Volkmann’s haben
+    by: reference
+  - page: 55
+    from: (Rhem Mus. Bd. XXIII (1868), S. 480—480.)
+    to: ""
+    by: scan
+  - page: 55
+    from: "2."
+    to: ""
+    by: scan
+  - page: 55
+    from: A e e D A B e G .. ——
+    to: ""
+    by: scan
+  - page: 55
+    from: Beiträge zur Kr1t1k der gr1ech15chen
+    to: ""
+    by: scan
+  - page: 55
+    from: Lyriker.
+    to: ""
+    by: scan
+  - page: 56
+    from: handenen Ueberheferun<>* sich eine
+    to: handenen Ueberlieferung sich eine
+    by: reference
+  - page: 56
+    from: "widmet: Poet. Iyr. ed. III"
+    to: "widmet: Poet. lyr. ed. III"
+    by: reference
+  - page: 57
+    from: sie zugleich 1hrem Schmerze
+    to: sie zugleich ihrem Schmerze
+    by: reference
+  - page: 57
+    from: und - 1hrern Unheil ‘singt
+    to: und ihrem Unheil ‘singt
+    by: reference
+  - page: 57
+    from: Unheil ‘singt, smgt sie zugleich
+    to: Unheil ‘singt, singt sie zugleich
+    by: reference
+  - page: 58
+    from: gern ’dies Danaeljed als ein
+    to: gern ’dies Danaelied als ein
+    by: reference
+  - page: 61
+    from: Satz des Danaehedes
+    to: Satz des Danaeliedes
+    by: reference
+  - page: 63
+    from: einem nackten Saughng auf dem
+    to: einem nackten Säugling auf dem
+    by: reference
+  - page: 69
+    from: -. De Laertii Diogenis tontibus.
+    to: ""
+    by: scan
+  - page: 69
+    from: (Rhein. Mus. Bd. XXIII (1868), S. 632—053, ebendaselbst
+    to: ""
+    by: scan
+  - page: 69
+    from: Bd. XXIV (1869), S. 181—228) - -
+    to: ""
+    by: scan
+  - page: 69
+    from: De Diocle Magnete. ,
+    to: De Diocle Magnete.
+    by: scan
+  - page: 69
+    from: Eudemum Dlogenem Ptolemaeum Zenonem
+    to: Eudemum, Diogenem Ptolemaeum Zenonem
+    by: reference
+  - page: 69
+    from: p tnm Y r t ÁáUO — ÀN C MR UOOUUÁUÁRUÉÁÉÁUEÀÁÀNUNWVDTWO00 000 9R 000 000 9 0000 0 0000 WUO O0UUUÓMÁÉUTNOTU0UU0U0U0 RUT U0 RRENS 0U0UR T w T0 00 T m w
+    to: ""
+    by: scan
+  - page: 71
+    from: ceteras 5toicae doctrinae partes
+    to: ceteras Stoicae doctrinae partes
+    by: reference
+  - page: 71
+    from: Iam videamus, qvae sint consectaria
+    to: Iam videamus, quae sint consectaria
+    by: reference
+  - page: 73
+    from: aequa ceterorum hbrorum forma inducti
+    to: aequa ceterorum librorum forma inducti
+    by: reference
+  - page: 73
+    from: Italicam dividerent. EHuius sententiae et
+    to: Italicam dividerent. Huius sententiae et
+    by: reference
+  - page: 73
+    from: unum librum praetfixit prae
+    to: unum librum praefixit prae
+    by: reference
+  - page: 73
+    from: X observamus. lIure nostro iam
+    to: X observamus. Iure nostro iam
+    by: reference
+  - page: 74
+    from: Dionysius a 1usta rectaque Stoicorum
+    to: Dionysius a iusta rectaque Stoicorum
+    by: reference
+  - page: 74
+    from: nego. lllic VII. 160 neque
+    to: nego. Illic VII. 160 neque
+    by: reference
+  - page: 74
+    from: nomen in 1ndlce excidisse su
+    to: nomen in indice excidisse su
+    by: reference
+  - page: 74
+    from: Rose in Herm.
+    to: Rose in Herrn,
+    by: reference
+  - page: 75
+    from: igitur Aristonis Herllh Dlonysii sententiae, sed
+    to: igitur Aristonis Herilli Dionysii sententiae, sed
+    by: reference
+  - page: 75
+    from: verbis Stoicae doctrlnae 1mago
+    to: verbis Stoicae doctrinae imago
+    by: reference
+  - page: 76
+    from: potest, quamquam IHeckerus Batavus
+    to: potest, quamquam Heckerus Batavus
+    by: reference
+  - page: 76
+    from: sophorum fparentes, praeceptores, casus
+    to: sophorum parentes, praeceptores, casus
+    by: reference
+  - page: 77
+    from: Borbon. cod. Läurent. plüt. LXVIIII 35 saec
+    to: Borbon. cod. Laurent, plut. LXVIIII 35 saec
+    by: reference
+  - page: 77
+    from: eum post Posidoniü
+    to: eum post Posidonii
+    by: reference
+  - page: 77
+    from: in priore priml p
+    to: in priore primi p
+    by: reference
+  - page: 78
+    from: libri fragmenta lIoannes Stobensis servavit
+    to: libri fragmenta Ioannes Stobensis servavit
+    by: reference
+  - page: 79
+    from: expertus est Dlocles Magnes. Qui
+    to: expertus est Diocles Magnes. Qui
+    by: reference
+  - page: 79
+    from: Huius igitur cotionis, cuius memoriam
+    to: Huius igitur Sotionis, cuius memoriam
+    by: reference
+  - page: 79
+    from: imitatus eo prodnt ut ab
+    to: imitatus eo prodit, ut ab
+    by: reference
+  - page: 79
+    from: nomen usurpatur, contlglt ut hanc
+    to: nomen usurpatur, contigit ut hanc
+    by: reference
+  - page: 79
+    from: Quibus autem leglbus eius
+    to: Quibus autem legibus eius
+    by: reference
+  - page: 81
+    from: tur. EXCltantur enim et
+    to: tur. Excitantur enim et
+    by: reference
+  - page: 81
+    from: Vtinam Laertii 1udicium. tandem aliquando
+    to: Vtinam Laertii iudicium tandem aliquando
+    by: reference
+  - page: 83
+    from: ait ex multls et varis
+    to: ait ex multis et varis
+    by: reference
+  - page: 83
+    from: altero loco perstrlnglt qui neque
+    to: altero loco perstringit, qui neque
+    by: reference
+  - page: 83
+    from: Homo, ait Gelhus, nobis familiaris
+    to: Homo, ait Gellius, nobis familiaris
+    by: reference
+  - page: 83
+    from: iterum quaestlo proponitur, »cui
+    to: iterum quaestio proponitur, »cui
+    by: reference
+  - page: 83
+    from: qui neque usul
+    to: qui neque usui
+    by: reference
+  - page: 83
+    from: quod.sit àut voluptati legere
+    to: quod.sit aut voluptati legere
+    by: reference
+  - page: 83
+    from: suspitio in unaà
+    to: suspitio in una
+    by: reference
+  - page: 83
+    from: varis et remotls lectlonlbus ut ex
+    to: varis et remotis lectionibus, ut ex
+    by: reference
+  - page: 85
+    from: et quorunr ibi nominum
+    to: et quorum ibi nominum
+    by: reference
+  - page: 85
+    from: prior. éd. Vltimo loco
+    to: prior, ed. Vltimo loco
+    by: reference
+  - page: 86
+    from: Ad Favorlm omnigenam historiam
+    to: Ad Favorini omnigenam historiam
+    by: reference
+  - page: 86
+    from: "ceptetur: quale habeas Stephani"
+    to: "ceptetur: quäle habeas Stephani"
+    by: reference
+  - page: 86
+    from: quas apud Favorlnum extitisse a
+    to: quas apud Favorinum extitisse a
+    by: reference
+  - page: 87
+    from: Favorinum eodem iüre quo in
+    to: Favorinum eodem iure quo in
+    by: reference
+  - page: 87
+    from: praeceptore scripsisse, quale nosmet.e
+    to: praeceptore scripsisse, quäle nosmet.e
+    by: reference
+  - page: 88
+    from: Gellius omnigenam Mhistoriam . Favorino
+    to: Gellius omnigenam historiam Favorino
+    by: reference
+  - page: 88
+    from: rationem cómpositum, alterum, cuius
+    to: rationem compositum, alterum, cuius
+    by: reference
+  - page: 90
+    from: Lubentissime Sopatro larglmur libertatem — quidquid
+    to: Lubentissime Sopatro largimur libertatem — quidquid
+    by: reference
+  - page: 90
+    from: primo litteras À usque ad
+    to: primo litteras A usque ad
+    by: reference
+  - page: 91
+    from: desumpta, exceptis libais XIX usque
+    to: desumpta, exceptis libris XIX usque
+    by: reference
+  - page: 92
+    from: I. adv. lovin. cf
+    to: I. adv. Iovin. cf
+    by: reference
+  - page: 92
+    from: Pythagora primo puglle VIII. 47 eodem
+    to: Pythagora primo pugile VIII. 47 eodem
+    by: reference
+  - page: 93
+    from: modo de omnlgena historia statui
+    to: modo de omnigena historia statui
+    by: reference
+  - page: 93
+    from: quod optime confn*matur conlato Laertio
+    to: quod optime confirmatur conlato Laertio
+    by: reference
+  - page: 93
+    from: unam personam pertlnentla com
+    to: unam personam pertinentia com
+    by: reference
+  - page: 95
+    from: acriore studio hommes docti hac
+    to: acriore studio homines docti hac
+    by: reference
+  - page: 95
+    from: quod coniecerat lonsius p
+    to: quod coniecerat Ionsius p
+    by: reference
+  - page: 96
+    from: loco fontlbus quos usurpare
+    to: loco fontibus, quos usurpare
+    by: reference
+  - page: 96
+    from: nomen adposuerit. — ÍImmo
+    to: nomen adposuerit. Immo
+    by: reference
+  - page: 98
+    from: consilio est consectarlum rehquus eius aperte
+    to: consilio est consectarium, reliquiis eius aperte
+    by: reference
+  - page: 98
+    from: in utriusque blbhothecae indicibus
+    to: in utriusque bibliothecae indicibus
+    by: reference
+  - page: 98
+    from: metrium :áutem summam fecisse
+    to: metrium autem summam fecisse
+    by: reference
+  - page: 100
+    from: Favorini libris essc
+    to: Favorini libris est-
+    by: reference
+  - page: 100
+    from: Laertiüi partibus, quae
+    to: Laertii partibus, quae
+    by: reference
+  - page: 100
+    from: Rose. Bernaysius, MHeitzius. Ego
+    to: Rose. Bernaysius. Heitzius. Ego
+    by: reference
+  - page: 101
+    from: eosque ditissimos Hermlppum
+    to: eosque ditissimos Hermippum.
+    by: reference
+  - page: 101
+    from: "in Laertium íluxisse: qua re"
+    to: "in Laertium fluxisse: qua re"
+    by: reference
+  - page: 102
+    from: Apollodorus — 5atyrus — Timaeus — Aristippus
+    to: Apollodorus — Satyrus — Timaeus — Aristippus
+    by: reference
+  - page: 102
+    from: in Satyri Epltome —
+    to: in Satyri Epitome —
+    by: reference
+  - page: 102
+    from: indagare nisi Arrstlppl.
+    to: indagare nisi Aristippi,
+    by: reference
+  - page: 102
+    from: mippus — Hippoþotus' — Heraclides. VIII
+    to: mippus — Hippobotus — Heraclides. VIII
+    by: reference
+  - page: 103
+    from: c cf. Eplph adv. Haeres
+    to: c cf. Epiph. adv. Haeres
+    by: reference
+  - page: 103
+    from: Haeres. III. 9. Suld S. V
+    to: Haeres. III. 9. Suid. S. V
+    by: reference
+  - page: 104
+    from: probatur Dlogems indicibus .VI
+    to: probatur Diogenis indicibus .VI
+    by: reference
+  - page: 104
+    from: promptu est Sosmratem Satyrum, Sotionem
+    to: promptu est Sosicratem, Satyrum, Sotionem
+    by: reference
+  - page: 105
+    from: Theophr. p. 24, Arlstotehs Heltzms p. 46 ss
+    to: Theophr. p. 24, Aristotelis Heitzius p. 46 ss
+    by: reference
+  - page: 106
+    from: "indole discrepat.: Accedlt quod Suidas"
+    to: indole discrepat. Accedit, quod Suidas
+    by: reference
+  - page: 106
+    from: Plin. nat. hlSt XXX
+    to: Plin. nat. hist. XXX
+    by: reference
+  - page: 106
+    from: valde a catalogl in bibliothecae
+    to: valde a catalogi in bibliothecae
+    by: reference
+  - page: 107
+    from: unam contineat. lltteram
+    to: unam contineat litteram.
+    by: reference
+  - page: 107
+    from: unaquaeque ad 11tterarum ordinem
+    to: unaquaeque ad litterarum ordinem
+    by: reference
+  - page: 107
+    from: usquam hindicatur neque quo
+    to: usquam indicatur, neque quo
+    by: reference
+  - page: 108
+    from: quod e JDionysii Halicarnassensis testimonio
+    to: quod e Dionysii Halicarnassensis testimonio
+    by: reference
+  - page: 110
+    from: ante eundem Herachdem
+    to: ante eundem Heraclidem
+    by: reference
+  - page: 110
+    from: Heraclidem Lembum florult qui eius
+    to: Heraclidem Lembum floruit, qui eius
+    by: reference
+  - page: 110
+    from: igitur hac ratlone omnes. turbae
+    to: igitur hac ratione omnes. turbae
+    by: reference
+  - page: 111
+    from: Eandem quam. Valentlnus Rose et
+    to: Eandem quam Valentinus Rose et
+    by: reference
+  - page: 111
+    from: nos quoque amplectlmur omnes illos
+    to: nos quoque amplectimur, omnes illos
+    by: scan
+  - page: 111
+    from: uni Demetrio Magnetl vindicandos esse
+    to: uni Demetrio Magneti vindicandos esse
+    by: reference
+  - page: 111
+    from: ZT Demetrm Dloclls fonte.
+    to: De Demetrio Dioclis fonte.
+    by: scan
+  - page: 113
+    from: .alterlus indicis ultimum
+    to: alterius indicis ultimum
+    by: reference
+  - page: 113
+    from: huius prlorls indicis auctore
+    to: huius prioris indicis auctore
+    by: reference
+  - page: 113
+    from: in hac quldem re Laertius
+    to: in hac quidem re Laertius
+    by: reference
+  - page: 113
+    from: Laertius nos destltult qui cum
+    to: "Laertius nos destituit: qui cum"
+    by: reference
+  - page: 113
+    from: nihil cum. Demetrlo
+    to: nihil cum Demetrio
+    by: reference
+  - page: 113
+    from: videmur non cogltandum esse de
+    to: videmur non cogitandum esse de
+    by: reference
+  - page: 114
+    from: fundamentum destrui Vldebatur, iam pro
+    to: fundamentum destrui videbatur, iam pro
+    by: reference
+  - page: 114
+    from: nobiles, quot Hlppocratae.«
+    to: nobiles, quot Hippocratae.«
+    by: scan
+  - page: 114
+    from: primum totius dlsputatwms
+    to: primum totius disputationis
+    by: reference
+  - page: 115
+    from: ex probatis consectarla Cum
+    to: ex probatis consectaria. Cum
+    by: reference
+  - page: 115
+    from: loco Favorinus phllosophum
+    to: loco Favorinus philosophum
+    by: reference
+  - page: 115
+    from: ut Laertium dlcamus indices ex
+    to: ut Laertium dicamus indices ex
+    by: reference
+  - page: 116
+    from: atque inde proflclscendum ubl pedes In
+    to: atque inde proficiscendum, ubi pedes In
+    by: reference
+  - page: 116
+    from: fuerit an DlOCll.
+    to: fuerit an Diocli.
+    by: reference
+  - page: 116
+    from: indices in Laertlum irrepere possint
+    to: indices in Laertium irrepere possint
+    by: reference
+  - page: 117
+    from: in Stoicos odlum in Epi
+    to: in Stoicos odium, in Epi
+    by: reference
+  - page: 119
+    from: duobus omnino scrlptorlbus usus est
+    to: duobus omnino scriptoribus usus est
+    by: reference
+  - page: 119
+    from: electorum indicem confemt et qui
+    to: electorum indicem confecit et qui
+    by: reference
+  - page: 120
+    from: in historia phllosophorum componenda redierit
+    to: in historia philosophorum componenda redierit
+    by: reference
+  - page: 120
+    from: Laertlum excitata extant
+    to: Laertium excitata extant
+    by: reference
+  - page: 121
+    from: auctoritatem non. potulsse provocare
+    to: auctoritatem non potuisse provocare
+    by: reference
+  - page: 121
+    from: evolvamus Demetrii 1ndlces
+    to: evolvamus Demetrii indices.
+    by: reference
+  - page: 121
+    from: in nullo Arlstlpp1 hbrorum indice hic
+    to: in nullo Aristippi librorum indice hic
+    by: reference
+  - page: 121
+    from: nomen Satyrl Alexandrini usurpatum
+    to: nomen Satyri Alexandrini usurpatum
+    by: reference
+  - page: 121
+    from: Non enim cogltarl potest in
+    to: Non enim cogitari potest in
+    by: reference
+  - page: 121
+    from: quanta eum putablmus fuisse socordia
+    to: quanta eum putabimus fuisse socordia
+    by: reference
+  - page: 121
+    from: V. 3 hic Arlstlppus de
+    to: V. 3 hic Aristippus de
+    by: reference
+  - page: 122
+    from: antequam hoc concedamuüs, acrius investigandum
+    to: antequam hoc concedamus , acrius investigandum
+    by: reference
+  - page: 122
+    from: re perspecta hbrl imaginem in
+    to: re perspecta libri imaginem in
+    by: reference
+  - page: 123
+    from: qui de pyramldlbus scrlpserunt hi recensentur
+    to: qui de pyramidibus scripserunt, hi recensentur
+    by: reference
+  - page: 124
+    from: Laertiü fons.erat
+    to: Laertii fons.erat
+    by: reference
+  - page: 124
+    from: Larissaeus quartae Academiàe auctor (v
+    to: Larissaeus quartae Academiae auctor (v
+    by: reference
+  - page: 124
+    from: Laurent. in Herm. vol..I
+    to: Laurent. in Herrn, vol..I
+    by: reference
+  - page: 124
+    from: non narratur. JAtqui ipsius Laertii
+    to: non narratur. Atqui ipsius Laertii
+    by: reference
+  - page: 125
+    from: auctor non Perlpatetlcorum sententiam professus
+    to: auctor non Peripateticorum sententiam professus
+    by: reference
+  - page: 125
+    from: "praeter- eprstolas : item quod"
+    to: "praeter epistolas : item quod"
+    by: reference
+  - page: 129
+    from: "cinatione Hermippo Vlndlcavunus auctori: qui"
+    to: "cinatione Hermippo vindicavimus auctori: qui"
+    by: reference
+  - page: 129
+    from: de septem saplentum epistularum fundamento
+    to: de septem sapientum epistularum fundamento
+    by: reference
+  - page: 129
+    from: V. 91. Demetriü V. 78. Chrysippi
+    to: V. 91. Demetrii V. 78. Chrysippi
+    by: reference
+  - page: 130
+    from: De Laertio et Hesychlo.
+    to: De Laertio et Hesychio.
+    by: scan
+  - page: 130
+    from: est aptum htterls commen
+    to: est aptum litteris commen
+    by: reference
+  - page: 130
+    from: sermo recentiorem saplt orlglnem
+    to: sermo recentiorem sapit originem.
+    by: scan
+  - page: 130
+    from: VI. .
+    to: ""
+    by: scan
+  - page: 131
+    from: fere numerus Suidanaruüm
+    to: fere numerus Suidanarum
+    by: reference
+  - page: 131
+    from: in Suidae océano' natantia
+    to: in Suidae oceano natantia
+    by: reference
+  - page: 132
+    from: Culus argumenti acies
+    to: Cuius argumenti acies
+    by: reference
+  - page: 132
+    from: particularum auctore cogltemus
+    to: particularum auctore cogitemus.
+    by: reference
+  - page: 132
+    from: quo illius ratlones secuntur
+    to: quo illius rationes secuntur
+    by: reference
+  - page: 132
+    from: tiati spatlum inferserit, ordinem
+    to: tiati spatium inferserit, ordinem
+    by: reference
+  - page: 132
+    from: vitis e Laertu libro hausisse
+    to: vitis e Laertii libro hausisse
+    by: reference
+  - page: 133
+    from: .XVIL.' p. 453 ss
+    to: XVII. p. 453 ss
+    by: reference
+  - page: 133
+    from: HRhen. XXII..p
+    to: Rhen. XXII..p
+    by: reference
+  - page: 133
+    from: ib. p. 729, demque vid. Mus
+    to: ib. p. 729, denique vid. Mus
+    by: reference
+  - page: 133
+    from: opera abstinuisse. lIam vero has
+    to: opera abstinuisse. Iam vero has
+    by: reference
+  - page: 133
+    from: testatur), qui excerptls suis a
+    to: testatur), qui excerptis suis a
+    by: reference
+  - page: 133
+    from: tur. Ín verbis enim
+    to: tur. In verbis enim
+    by: reference
+  - page: 134
+    from: ad verum Hesychlum
+    to: ad verum Hesychium
+    by: reference
+  - page: 135
+    from: Aequalltas autem verborum
+    to: Aequalitas autem verborum
+    by: reference
+  - page: 135
+    from: augere«. Quae süspitio hac re
+    to: augere«. Quae suspitio hac re
+    by: reference
+  - page: 141
+    from: los Laértii . locos; id
+    to: los Laertii locos; id
+    by: reference
+  - page: 141
+    from: "obtruderet: Vnde àutem re vera"
+    to: "obtruderet: Vnde autem re vera"
+    by: reference
+  - page: 141
+    from: sententiam Val Roseé
+    to: sententiam Val. Rose
+    by: reference
+  - page: 141
+    from: vel Alexandrinorum studla quadrat non
+    to: vel Alexandrinorum studia quadrat non
+    by: reference
+  - page: 141
+    from: vitis docet 1ndeX Lauren
+    to: vitis docet index Lauren
+    by: reference
+  - page: 142
+    from: die von hRose ausgesprochene Meinung
+    to: die von Rose ausgesprochene Meinung
+    by: reference
+  - page: 143
+    from: HIS et alus artlbus fortasse genuina
+    to: His et aliis artibus fortasse genuina
+    by: scan
+  - page: 143
+    from: modo ille plenlora praebeat Exempla
+    to: modo ille pleniora praebeat Exempla
+    by: reference
+  - page: 150
+    from: "consectarium est: Demetrlus"
+    to: "consectarium est: Demetrius"
+    by: reference
+  - page: 150
+    from: Hesychlanamm particulae redeant
+    to: Hesychianarum particulae redeant
+    by: reference
+  - page: 150
+    from: "vero: hanc scrlptorum seriem oculis"
+    to: "vero: hanc scriptorum seriem oculis"
+    by: reference
+  - page: 151
+    from: alteri vel tertlo p. Chr
+    to: alteri vel tertio p. Chr
+    by: reference
+  - page: 151
+    from: mihi copia- fuerlt hanc . totam
+    to: mihi copia fuerit hanc . totam
+    by: reference
+  - page: 153
+    from: (Rhem Museum für Phllologle Bd. XXV. (1870),
+    to: ""
+    by: scan
+  - page: 153
+    from: "[."
+    to: I.
+    by: scan
+  - page: 153
+    from: "| 9. 217—231) |"
+    to: ""
+    by: scan
+  - page: 153
+    from: 4. -
+    to: ""
+    by: scan
+  - page: 153
+    from: Analecta Laertlana
+    to: ""
+    by: scan
+  - page: 154
+    from: eundemque erroreim etiam in alterum transferret locum.
+    to: |-
+      eundemque errorem etiam in alterum transferret locum.
+      II.
+    by: scan
+  - page: 155
+    from: exempla monstrant ahunde
+    to: exempla monstrant aliunde
+    by: reference
+  - page: 156
+    from: conlatis illorum scnptorum titulis
+    to: conlatis illorum scriptorum titulis
+    by: reference
+  - page: 158
+    from: II.
+    to: III.
+    by: scan
+  - page: 158
+    from: Laertius addit Hlppobotum neque
+    to: Laertius addit Hippobotum neque
+    by: reference
+  - page: 158
+    from: tegrum tradidisse Droclem hoc extat
+    to: tegrum tradidisse Dioclem hoc extat
+    by: reference
+  - page: 159
+    from: Mathem. VII. 'ï13'-hish verbis indicavit
+    to: Mathem. VII. 13 his verbis indicavit
+    by: reference
+  - page: 161
+    from: e Laertii prooemlo facile in
+    to: e Laertii prooemio facile in
+    by: reference
+  - page: 163
+    from: Forte vero quisplam mihi opprobrio
+    to: Forte vero quispiam mihi opprobrio
+    by: reference
+  - page: 168
+    from: Aeschineis exponeret iudiciun ? — Verum
+    to: Aeschineis exponeret iudicium? — Verum
+    by: reference
+  - page: 168
+    from: echt gehalten háütte'. Vnde tale
+    to: echt gehalten hätte'. Vnde tale
+    by: reference
+  - page: 168
+    from: nea re verà a Socratis
+    to: nea re vera a Socratis
+    by: reference
+  - page: 168
+    from: "usus conclusione: *Würe jene Vermuthung"
+    to: "usus conclusione: 'Wäre jene Vermuthung"
+    by: reference
+  - page: 171
+    from: (Programm und Gratulationsschrift des Baseler Päda-
+    to: ""
+    by: scan
+  - page: 171
+    from: "| g 1."
+    to: ""
+    by: scan
+  - page: 171
+    from: Béiträge zur Quellenkunde und Kritik
+    to: ""
+    by: scan
+  - page: 171
+    from: bezügliches Epigramm bel.
+    to: bezügliches Epigramm bei.
+    by: reference
+  - page: 171
+    from: des Laertius Diogenes. '
+    to: ""
+    by: scan
+  - page: 171
+    from: Dr. F. D. Gerlachs, Frühjahr 1870.)
+    to: ""
+    by: scan
+  - page: 171
+    from: E N
+    to: ""
+    by: scan
+  - page: 171
+    from: gogiums . zur Feier der fünfzigjährigen Lehrthätigkeit Prof.
+    to: ""
+    by: scan
+  - page: 173
+    from: dass Laertius seibst
+    to: dass Laertius selbst
+    by: reference
+  - page: 174
+    from: poeta qui varla epigrammata diversi
+    to: poeta qui varia epigrammata diversi
+    by: reference
+  - page: 174
+    from: susceperit, suum 1pslus
+    to: susceperit, suum ipsius
+    by: reference
+  - page: 174
+    from: wie dies $päter Benndorf gethan
+    to: wie dies später Benndorf gethan
+    by: reference
+  - page: 175
+    from: dazu, die Bucher die er
+    to: dazu, die Bücher, die er
+    by: reference
+  - page: 175
+    from: Wortstellung ist' wahrsche1nhch ent
+    to: Wortstellung ist wahrscheinlich ent
+    by: reference
+  - page: 181
+    from: "der epitomirte Diocies ist: eine"
+    to: "der epitomirte Diocles ist: eine"
+    by: reference
+  - page: 181
+    from: Diocles hat äber selbst Diffe
+    to: Diocles hat aber selbst Diffe
+    by: reference
+  - page: 181
+    from: libris Läertius ipse usus
+    to: libris Laertius ipse usus
+    by: reference
+  - page: 181
+    from: omnibus idem Aquis
+    to: omnibus idem quis
+    by: reference
+  - page: 181
+    from: zu den directern
+    to: zu den directen
+    by: reference
+  - page: 183
+    from: der VII, 181 Wortllch citirt wird
+    to: der VII, 181 wörtlich citirt wird
+    by: reference
+  - page: 184
+    from: alterum consor1pta sint. Idem
+    to: alterum conscripta sint. Idem
+    by: reference
+  - page: 184
+    from: rem eum ijam commentatores Epicteti
+    to: rem eum iam commentatores Epicteti
+    by: reference
+  - page: 184
+    from: verunt. Cetierum si quidem
+    to: verunt. Ceterum si quidem
+    by: reference
+  - page: 185
+    from: hat den Abschhitt über die
+    to: hat den Abschnitt über die
+    by: reference
+  - page: 186
+    from: Favorinus als Nebenquelle des Laertius Dmgenes.
+    to: Favorinus als Nebenquelle des Laertius Diogenes.
+    by: scan
+  - page: 186
+    from: Stelle zeigt deuthch an, in
+    to: Stelle zeigt deutlich an, in
+    by: reference
+  - page: 187
+    from: als den Gewahrsmann des Citats
+    to: als den Gewährsmann des Citats
+    by: reference
+  - page: 187
+    from: totius operis suil mutuatum esse
+    to: totius operis sui mutuatum esse
+    by: reference
+  - page: 187
+    from: zu Laertius _hatValentm Rose. Bekanntlich
+    to: zu Laertius hat Valentin Rose. Bekanntlich
+    by: reference
+  - page: 188
+    from: index librorum Demooeriti, qui ut
+    to: index librorum Democriti, qui ut
+    by: reference
+  - page: 188
+    from: sunt, ea omnila ad Favorini
+    to: sunt, ea omnia ad Favorini
+    by: reference
+  - page: 188
+    from: teneret, qulid tandem inde
+    to: teneret, quid tandem inde
+    by: reference
+  - page: 188
+    from: Thrasyllo de Demoeriti vita librisque
+    to: Thrasyllo de Democriti vita librisque
+    by: reference
+  - page: 188
+    from: venditat quod IIIL, 40. V
+    to: venditat quod III, 40. V
+    by: reference
+  - page: 189
+    from: "| Uebérreste platonischer Schriftenverzeichnisse."
+    to: Ueberreste platonischer Schriftenverzeichnisse.
+    by: scan
+  - page: 190
+    from: heraus. KEins der gewöhnlichsten
+    to: heraus. Eins der gewöhnlichsten
+    by: reference
+  - page: 190
+    from: welcher zu Gwunsten seiner
+    to: welcher zu Gunsten seiner
+    by: reference
+  - page: 191
+    from: Ordnung anzuerkennen. Kinen Versuch, nach
+    to: Ordnung anzuerkennen. Einen Versuch, nach
+    by: reference
+  - page: 193
+    from: Vergehungen der Crotomaten
+    to: Vergehungen der Krotoniaten
+    by: reference
   - page: 194
-    from: schreibung durch Erwin Rohde, ist weggeblieben, da der incorrecte
+    from: ‚ 1) [ξ 6. »Der codex Bu.rbonicus des Laertius Diogenes« eine Be-
     to: ""
     by: scan
   - page: 194
@@ -15,235 +1130,463 @@ werk17niet:
     to: ""
     by: scan
   - page: 194
+    from: schreibung durch Erwin Rohde, ist weggeblieben, da der incorrecte
+    to: ""
+    by: scan
+  - page: 194
     from: werden konnte, Vgl. Einleitung.]
     to: ""
     by: scan
+  - page: 195
+    from: Respect vor Demooecrit '
+    to: Respect vor Democrit
+    by: reference
+  - page: 195
+    from: und AÄAntisthenes 35 als Zeugen
+    to: und Antisthenes 35 als Zeugen
+    by: reference
+  - page: 196
+    from: der Tod Demoerits,
+    to: der Tod Democrits.
+    by: reference
+  - page: 196
+    from: Timo über Demoecrit folgen; Timo
+    to: Timo über Democrit folgen; Timo
+    by: reference
+  - page: 197
+    from: "| S 8, a"
+    to: ""
+    by: scan
+  - page: 197
+    from: Das Zeugmss Timons uber Democnt
+    to: Das Zeugniss Timons über Democrit.
+    by: scan
+  - page: 197
+    from: durch:das Excerp1ren
+    to: durch:das Excerpiren
+    by: reference
+  - page: 198
+    from: worden? Mag mani
+    to: worden? Mag man
+    by: reference
   - page: 199
     from: ?) [Das Verzeichniss La. IX, 45 sqq. nach Kollation Wachsmuth’s
     to: ""
     by: scan
   - page: 199
+    from: "'l'hrasyll’s Verze1chmss der democritischen. Sclmften"
+    to: Thrasyll's Verzeichniss der democritischen Schriften.
+    by: scan
+  - page: 199
+    from: S 9°).
+    to: ""
+    by: scan
+  - page: 199
+    from: seine in zwe1 erhaltenen Sätzen
+    to: seine in zwei erhaltenen Sätzen
+    by: reference
+  - page: 199
+    from: Steph Jex. ’s. V
+    to: Steph. lex. s. V
+    by: reference
+  - page: 199
     from: und Rohde’s blieb weg, wie oben ἓ 6, p. 194, Anm. 1.]
     to: ""
     by: scan
-  # GOA XVII p. 1: Holzer's item number, the title and his source line
-  - page: 1
-    from: "A A E E E , D E"
-    to: ""
-    by: scan
-  - page: 1
-    from: "Zur Gesch1chte der Theogmdenschen E"
-    to: ""
-    by: scan
-  - page: 1
-    from: "Spruchsammlung."
-    to: ""
-    by: scan
-  - page: 1
-    from: "(Rhein. Museum für Philologie, N. F., Bd. XXII (1867),"
-    to: ""
-    by: scan
-  - page: 1
-    from: "Heft 2, S. 161—200)"
-    to: ""
-    by: scan
-  - page: 1
-    from: "Die Ιεῒῑῒε Redactmn der Theogmdea"
-    to: "Die letzte Redaction der Theognidea."
-    by: scan
-  - page: 1
-    from: "]eder Leser des ’Theognis muss es bemerken, dass ihm"
-    to: "Jeder Leser des Theognis muss es bemerken, dass ihm"
-    by: scan
-  # GOA XVII p. 55
-  - page: 55
-    from: "A e e D A B e G .. ——"
-    to: ""
-    by: scan
-  - page: 55
-    from: "Beiträge zur Kr1t1k der gr1ech15chen"
-    to: ""
-    by: scan
-  - page: 55
-    from: "Lyriker."
-    to: ""
-    by: scan
-  - page: 55
-    from: "(Rhem Mus. Bd. XXIII (1868), S. 480—480.)"
-    to: ""
-    by: scan
-  # GOA XVII p. 69
-  - page: 69
-    from: "p tnm Y r t ÁáUO — ÀN C MR UOOUUÁUÁRUÉÁÉÁUEÀÁÀNUNWVDTWO00 000 9R 000 000 9 0000 0 0000 WUO O0UUUÓMÁÉUTNOTU0UU0U0U0 RUT U0 RRENS 0U0UR T w T0 00 T m w"
-    to: ""
-    by: scan
-  - page: 69
-    from: "-. De Laertii Diogenis tontibus."
-    to: ""
-    by: scan
-  - page: 69
-    from: "(Rhein. Mus. Bd. XXIII (1868), S. 632—053, ebendaselbst"
-    to: ""
-    by: scan
-  - page: 69
-    from: "Bd. XXIV (1869), S. 181—228) - -"
-    to: ""
-    by: scan
-  - page: 69
-    from: "De Diocle Magnete. ,"
-    to: "De Diocle Magnete."
-    by: scan
-  - page: 111
-    from: "ZT Demetrm Dloclls fonte."
-    to: "De Demetrio Dioclis fonte."
-    by: scan
-  - page: 130
-    from: "De Laertio et Hesychlo."
-    to: "De Laertio et Hesychio."
-    by: scan
-  # GOA XVII p. 153
-  - page: 153
-    from: "4. -"
-    to: ""
-    by: scan
-  - page: 153
-    from: "Analecta Laertlana"
-    to: ""
-    by: scan
-  - page: 153
-    from: "(Rhem Museum für Phllologle Bd. XXV. (1870),"
-    to: ""
-    by: scan
-  - page: 153
-    from: "| 9. 217—231) |"
-    to: ""
-    by: scan
-  # the chapter's numeral the OCR lost
-  - page: 154
-    from: "eundemque erroreim etiam in alterum transferret locum."
-    to: "eundemque errorem etiam in alterum transferret locum.\nII."
-    by: scan
-  # GOA XVII p. 171
-  - page: 171
-    from: "E N"
-    to: ""
-    by: scan
-  - page: 171
-    from: "Béiträge zur Quellenkunde und Kritik"
-    to: ""
-    by: scan
-  - page: 171
-    from: "des Laertius Diogenes. '"
-    to: ""
-    by: scan
-  - page: 171
-    from: "(Programm und Gratulationsschrift des Baseler Päda-"
-    to: ""
-    by: scan
-  - page: 171
-    from: "gogiums . zur Feier der fünfzigjährigen Lehrthätigkeit Prof."
-    to: ""
-    by: scan
-  - page: 171
-    from: "Dr. F. D. Gerlachs, Frühjahr 1870.)"
-    to: ""
-    by: scan
-  - page: 189
-    from: "| Uebérreste platonischer Schriftenverzeichnisse."
-    to: "Ueberreste platonischer Schriftenverzeichnisse."
-    by: scan
-  - page: 197
-    from: "Das Zeugmss Timons uber Democnt"
-    to: "Das Zeugniss Timons über Democrit."
-    by: scan
   - page: 199
-    from: "'l'hrasyll’s Verze1chmss der democritischen. Sclmften"
-    to: "Thrasyll's Verzeichniss der democritischen Schriften."
+    from: und was erklart seine in
+    to: und was erklärt seine in
+    by: reference
+  - page: 199
+    from: zeigen. Vielleicht genugt folgender Vorschlag
+    to: zeigen. Vielleicht genügt folgender Vorschlag
+    by: reference
+  - page: 203
+    from: und Demoerit, 9 Tetralogieen hier
+    to: und Democrit, 9 Tetralogieen hier
+    by: reference
+  - page: 205
+    from: p. 22 ss. | |
+    to: p. 22 ss.
     by: scan
-  # GOA XVII p. 215
-  - page: 215
-    from: "Der FlörentihisChe Tractat über Homer"
+  - page: 205
+    from: S 10.
     to: ""
     by: scan
+  - page: 207
+    from: Ihat nur dass
+    to: hat, nur dass
+    by: reference
+  - page: 208
+    from: Philol- XVIIL p. 420, vorgetragen
+    to: Philol. XVIII p. 420, vorgetragen
+    by: reference
+  - page: 209
+    from: er nicht Calhmachus
+    to: er nicht Callimachus'
+    by: reference
+  - page: 209
+    from: zugleich jede Berecht1gung zur
+    to: zugleich jede Berechtigung zur
+    by: reference
+  - page: 210
+    from: galt dem beruhmten akademischen
+    to: galt dem berühmten akademischen
+    by: reference
+  - page: 210
+    from: hatte der Cyn1ker viel auszusetzen
+    to: hatte der Cyniker viel auszusetzen
+    by: reference
+  - page: 211
+    from: Art der Cyn1kef‚
+    to: Art der Cyniker
+    by: reference
+  - page: 211
+    from: eine starke'\/'erwechslung begängen zu haben
+    to: eine starke Verwechslung begangen zu haben
+    by: reference
+  - page: 211
+    from: nicht zu Wlssen Er kann
+    to: nicht zu wissen. Er kann
+    by: reference
+  - page: 212
+    from: mit Menipp zusammén ge
+    to: mit Menipp zusammen ge
+    by: reference
+  - page: 213
+    from: Congenialität (societas ingenl)
+    to: Congenialität (societas ingenii)
+    by: reference
+  - page: 213
+    from: der societas ingenl.
+    to: der societas ingenii.
+    by: reference
+  - page: 213
+    from: "wahre societas ingeniu: wirkliich war"
+    to: "wahre societas ingenii: wirkliich war"
+    by: reference
   - page: 215
-    from: "und Hesiod, ihr Geschlecht und 1hren"
-    to: ""
-    by: scan
-  - page: 215
-    from: ". Wettkampf."
-    to: ""
-    by: scan
-  - page: 215
-    from: "(l IL, Rhem Museum für Ph11010g1e Bd XXV (1870),"
-    to: ""
-    by: scan
-  - page: 215
-    from: "ὃ. 528—540 1L.—V. daselbst Bd. XXVII (1873)"
-    to: ""
-    by: scan
-  - page: 215
-    from: "b 211—-249) ‘"
+    from: . Wettkampf.
     to: ""
     by: scan
   - page: 215
     from: "« Die: Form des Wettkampfes"
-    to: "Die Form des Wettkampfes."
+    to: Die Form des Wettkampfes.
+    by: scan
+  - page: 215
+    from: (l IL, Rhem Museum für Ph11010g1e Bd XXV (1870),
+    to: ""
+    by: scan
+  - page: 215
+    from: b 211—-249) ‘
+    to: ""
+    by: scan
+  - page: 215
+    from: Der FlörentihisChe Tractat über Homer
+    to: ""
+    by: scan
+  - page: 215
+    from: und Hesiod, ihr Geschlecht und 1hren
+    to: ""
+    by: scan
+  - page: 215
+    from: ὃ. 528—540 1L.—V. daselbst Bd. XXVII (1873)
+    to: ""
+    by: scan
+  - page: 217
+    from: ein, dass Izetzes und der
+    to: ein, dass Tzetzes und der
+    by: reference
+  - page: 218
+    from: an der angefuhrten Stelle der
+    to: an der angeführten Stelle der
+    by: reference
+  - page: 218
+    from: B. die Erklarung Bernhardys entgegen
+    to: B. die Erklärung Bernhardys entgegen
+    by: reference
+  - page: 218
+    from: dass der Iletzte
+    to: dass der letzte
+    by: reference
+  - page: 219
+    from: auf Euboa und - dem
+    to: auf Euböa und - dem
+    by: reference
+  - page: 219
+    from: der bis 3etzt /
+    to: der bis jetzt
+    by: reference
+  - page: 219
+    from: Ergastelle für unmoghch erklärte, behauptete
+    to: Ergastelle für unmöglich erklärte, behauptete
+    by: reference
+  - page: 219
+    from: jedenfalls aber Vorschr1ften über Landbau
+    to: jedenfalls aber Vorschriften über Landbau
+    by: reference
+  - page: 219
+    from: und Schifffahrt. Zwe1felhafter wäre es
+    to: und Schifffahrt. Zweifelhafter wäre es
+    by: reference
+  - page: 219
+    from: Verse bei volhger Verwerfung
+    to: Verse bei völliger Verwerfung
+    by: reference
+  - page: 220
+    from: Veberall erkennen wir
+    to: Überall erkennen wir
+    by: reference
+  - page: 221
+    from: Verfasser ]ener Schrift ist
+    to: Verfasser jener Schrift ist
+    by: reference
+  - page: 223
+    from: haben Anders fre1hch stellt es
+    to: haben Anders freilich stellt es
+    by: reference
+  - page: 223
+    from: Homer und Hesmd vertauschte
+    to: Homer und Hesiod vertauschte
+    by: reference
+  - page: 223
+    from: irgend welche(3erechtigkeit bei dem
+    to: irgend welche Gerechtigkeit bei dem
+    by: reference
+  - page: 228
+    from: die grosse _emgeschobene Doppelvita (die
+    to: die grosse eingeschobene Doppelvita (die
+    by: reference
+  - page: 228
+    from: Hömer im Wettkampfe
+    to: Homer im Wettkampfe
+    by: reference
+  - page: 229
+    from: antwortet. Die uberall gebrauchte Philosophie
+    to: antwortet. Die überall gebrauchte Philosophie
+    by: reference
+  - page: 229
+    from: zu betrachten Jist
+    to: zu betrachten ist
+    by: reference
+  - page: 230
+    from: Das Museum des Aleidamas.
+    to: Das Museum des Alcidamas.
+    by: scan
+  - page: 232
+    from: Crantor-Hypothese erklart werden
+    to: Crantor-Hypothese erklärt werden
+    by: reference
+  - page: 232
+    from: demnach ©ohne Hulfe jener
+    to: demnach ©ohne Hülfe jener
+    by: reference
+  - page: 234
+    from: denn von WVornherein ist schon
+    to: denn von vornherein ist schon
+    by: reference
+  - page: 235
+    from: "die Sentenz desSilen:"
+    to: "die Sentenz des Silen :"
+    by: reference
+  - page: 241
+    from: Attentate zum OÖpfer fällt, fügt
+    to: Attentate zum Opfer fällt, fügt
+    by: reference
+  - page: 241
+    from: leitungsstück am Ihore des Alcidamantischen
+    to: leitungsstück am Thore des Alcidamantischen
+    by: reference
+  - page: 243
+    from: "- T"
+    to: ""
     by: scan
   - page: 243
-    from: "Der Tod Hesnods nach Alc1damas"
-    to: "Der Tod Hesiods nach Alcidamas."
+    from: A ΙΨ. -
+    to: ""
+    by: scan
+  - page: 243
+    from: Abneigung des AÄlcidamas'‘ gegen Hesiod
+    to: Abneigung des Alcidamas gegen Hesiod
+    by: reference
+  - page: 243
+    from: Der Tod Hesnods nach Alc1damas
+    to: Der Tod Hesiods nach Alcidamas.
+    by: scan
+  - page: 243
+    from: Jernt. ‚Das Dichterische
+    to: lernt. Das Dichterische
+    by: reference
+  - page: 243
+    from: T G ——
+    to: ""
+    by: scan
+  - page: 245
+    from: diese Lochter? .Ich meine
+    to: diese Tochter ? Ich meine
+    by: reference
+  - page: 247
+    from: den trefflichen dSänger zu
+    to: den trefflichen Sänger zu
+    by: reference
+  - page: 247
+    from: Vaters des Stes1chorus ‚(oder. der
+    to: Vaters des Stesichorus (oder. der
+    by: reference
+  - page: 247
+    from: Version, und daärin zeigt sich
+    to: Version, und darin zeigt sich
+    by: reference
+  - page: 248
+    from: nach Bergks Nachwe13 gerade den
+    to: nach Bergks Nachweis, gerade den
+    by: reference
+  - page: 249
+    from: sonderbare und fruher nicht erkannte
+    to: sonderbare und früher nicht erkannte
+    by: reference
+  - page: 250
+    from: ein Anderer — KEratosthenes und ihn
+    to: ein Anderer — Eratosthenes und ihn
+    by: reference
+  - page: 250
+    from: Ssept. sapiient. — seli dies nun
+    to: Ssept. sapiient. — sei dies nun
+    by: reference
+  - page: 251
+    from: dass dieser Begle1ter ‚ des Hesiod
+    to: dass dieser Begleiter des Hesiod
+    by: reference
+  - page: 251
+    from: Namen Demodes? WUnd ist nicht
+    to: Namen Demodes? Und ist nicht
+    by: reference
+  - page: 253
+    from: Namen hatte. ]edenfalls ist der
+    to: Namen hatte. Jedenfalls ist der
+    by: reference
+  - page: 254
+    from: schehen? ÖOffenbar war auch
+    to: schehen? Offenbar war auch
+    by: reference
+  - page: 257
+    from: Somit wäre KEupalion zur Bezeichnung
+    to: Somit wäre Eupalion zur Bezeichnung
+    by: reference
+  - page: 259
+    from: dass hier uberall '
+    to: dass hier überall
+    by: reference
+  - page: 259
+    from: III, 102, Diod, XIL, 90. Jetzt steht
+    to: III, 102, Diod. XII, 90. Jetzt steht
+    by: reference
+  - page: 261
+    from: Die Ueberheferung des Certamen
+    to: Die Ueberlieferung des Certamen.
     by: scan
   - page: 261
-    from: "Die Ueberheferung des Certamen"
-    to: "Die Ueberlieferung des Certamen."
+    from: Χῖ.
+    to: ""
     by: scan
-  # GOA XVII p. 277: the item number, the title, and Holzer's source lines under each review
+  - page: 266
+    from: wenn nicht ]etzt_ aus dem
+    to: wenn nicht jetzt aus dem
+    by: reference
+  - page: 267
+    from: und zwar imit folgender entscheidender
+    to: und zwar mit folgender entscheidender
+    by: reference
+  - page: 269
+    from: "denken: was Gotthng thut. — Der"
+    to: "denken: was Göttling thut. — Der"
+    by: reference
+  - page: 270
+    from: den ganzen TIag, ohne etwas
+    to: den ganzen Tag, ohne etwas
+    by: reference
+  - page: 272
+    from: bleiben noch funf Verse übrig
+    to: bleiben noch fünf Verse übrig
+    by: reference
+  - page: 272
+    from: ist ohne Zwe1fel in Ordnung
+    to: ist ohne Zweifel in Ordnung
+    by: reference
+  - page: 272
+    from: jetzt, ihr Fremdhnge‚ und
+    to: jetzt, ihr Fremdlinge, und
+    by: reference
+  - page: 274
+    from: In dieser 1etzten Fassung ist
+    to: In dieser letzten Fassung ist
+    by: reference
+  - page: 277
+    from: „ Centralblatt.
+    to: ""
+    by: scan
+  - page: 277
+    from: (Jahrgang 1868, 1869, 1870.)
+    to: ""
+    by: scan
   - page: 277
     from: "| Recensmnen aus. dem L11eranschen"
     to: ""
     by: scan
   - page: 277
-    from: "„ Centralblatt."
+    from: Die he$z'odz's"clze T, heogohz'e, ausgelegt und beurtheilt
+    to: Die hesiodische Theogonie, ausgelegt und beurtheilt
+    by: scan
+  - page: 277
+    from: L1terar Centralblatt 1868, No 18, 2o Apr11 S. 481 f£.
     to: ""
     by: scan
   - page: 277
-    from: "(Jahrgang 1868, 1869, 1870.)"
-    to: ""
-    by: scan
-  - page: 277
-    from: "Die he$z'odz's\"clze T, heogohz'e, ausgelegt und beurtheilt"
-    to: "Die hesiodische Theogonie, ausgelegt und beurtheilt"
-    by: scan
-  - page: 277
-    from: "L1terar Centralblatt 1868, No 18, 2o Apr11 S. 481 f£."
-    to: ""
-    by: scan
+    from: sehr fragwürdigen — WUrtheogonie und hielten
+    to: sehr fragwürdigen — Urtheogonie und hielten
+    by: reference
   - page: 278
-    from: "Ebendas. No. 45, 31. Oktober, S. 1224."
+    from: Ebendas. No. 45, 31. Oktober, S. 1224.
     to: ""
     by: scan
   - page: 279
-    from: "Nitgsche, Rich., quaestionum Eudocianarium capita"
-    to: "Nitzsche, Rich., quaestionum Eudocianarum capita"
-    by: scan
-  - page: 279
-    from: "Ebendas. No. 48, 21. November, S. 1309. -"
+    from: Ebendas. No. 48, 21. November, S. 1309. -
     to: ""
     by: scan
+  - page: 279
+    from: Nitgsche, Rich., quaestionum Eudocianarium capita
+    to: Nitzsche, Rich., quaestionum Eudocianarum capita
+    by: scan
+  - page: 279
+    from: Veberlieferung und durch
+    to: Ueberlieferung und durch
+    by: reference
+  - page: 280
+    from: während der VUeberarbeiter durch seine
+    to: während der Ueberarbeiter durch seine
+    by: reference
   - page: 281
-    from: "Ebendas. _Iahrgang 1869, Nr 6, 30, Januar, S 144."
+    from: Ebendas. _Iahrgang 1869, Nr 6, 30, Januar, S 144.
     to: ""
     by: scan
   - page: 282
-    from: "Ebendas. S. 145,"
+    from: Ebendas. S. 145,
     to: ""
     by: scan
   - page: 283
-    from: "Ἀριστοξένου ἁρμονικῶν τὰ σωζόμενα. Die harmoni-"
-    to: "Ἀριστοξένου ἁρμονικῶν τὰ σωζόμενα. Die harmoni-"
+    from: Ebendas, S. 145 f.
+    to: ""
     by: scan
   - page: 283
-    from: "Ebendas, S. 145 f."
+    from: hier die Gründlage des ganzen
+    to: hier die Grundlage des ganzen
+    by: reference
+  - page: 283
+    from: Ἀριστοξένου ἁρμονικῶν τὰ σωζόμενα. Die harmoni-
+    to: Ἀριστοξένου ἁρμονικῶν τὰ σωζόμενα. Die harmoni-
+    by: scan
+  - page: 285
+    from: Ebendas S 426f
     to: ""
     by: scan
   - page: 285
@@ -251,90 +1594,38 @@ werk17niet:
     to: "Rohde, Erwin, Ueber Lucians Schrift: Λούκιος"
     by: scan
   - page: 285
-    from: "Ebendas S 426f"
+    from: und geben kem_
+    to: und geben kein
+    by: reference
+  - page: 285
+    from: und. ihr Verhaltmss zu Lucius
+    to: und. ihr Verhältniss zu Lucius
+    by: reference
+  - page: 287
+    from: Byk S. A Der Hellen13rnus und der Plato-
+    to: Byk, S. A., Der Hellenismus und der Plato-
+    by: scan
+  - page: 287
+    from: C gratuhren | C Fr. N.
+    to: gratuliren. Fr. N.
+    by: scan
+  - page: 287
+    from: die Lucianeische Handschr1ftenfrage mit specieller
+    to: die Lucianeische Handschriftenfrage mit specieller
+    by: reference
+  - page: 287
+    from: i Ebendas, _Iahrgang 1870, No. 37, 3. September, S. 1001f
     to: ""
     by: scan
   - page: 287
-    from: "C gratuhren | C Fr. N."
-    to: "gratuliren. Fr. N."
+    from: nismus. Le1p21g 1870, Pernitzsch (45 S. 8).
+    to: nismus. Leipzig 1870, Pernitzsch (45 S. 8).
     by: scan
-  - page: 287
-    from: "Byk S. A Der Hellen13rnus und der Plato-"
-    to: "Byk, S. A., Der Hellenismus und der Plato-"
-    by: scan
-  - page: 287
-    from: "nismus. Le1p21g 1870, Pernitzsch (45 S. 8)."
-    to: "nismus. Leipzig 1870, Pernitzsch (45 S. 8)."
-    by: scan
-  - page: 287
-    from: "i Ebendas, _Iahrgang 1870, No. 37, 3. September, S. 1001f"
-    to: ""
-    by: scan
-  - page: 55
-    from: "2."
-    to: ""
-    by: scan
-  - page: 153
-    from: "[."
-    to: "I."
-    by: scan
-  - page: 158
-    from: "II."
-    to: "III."
-    by: scan
-  # the chapter numerals and section signs the headings carry
-  - page: 130
-    from: "VI. ."
-    to: ""
-    by: scan
-  - page: 171
-    from: "| g 1."
-    to: ""
-    by: scan
-  - page: 197
-    from: "| S 8, a"
-    to: ""
-    by: scan
-  - page: 199
-    from: "S 9°)."
-    to: ""
-    by: scan
-  # specks above the chapter heading
-  - page: 243
-    from: "T G ——"
-    to: ""
-    by: scan
-  - page: 243
-    from: "- T"
-    to: ""
-    by: scan
-  - page: 243
-    from: "A ΙΨ. -"
-    to: ""
-    by: scan
-  - page: 261
-    from: "Χῖ."
-    to: ""
-    by: scan
-  - page: 22
-    from: "Ueber Zweck, Zeit und Schicksale der Redaction. /"
-    to: "Ueber Zweck, Zeit und Schicksale der Redaction."
-    by: scan
-  - page: 186
-    from: "Favorinus als Nebenquelle des Laertius Dmgenes."
-    to: "Favorinus als Nebenquelle des Laertius Diogenes."
-    by: scan
-  - page: 230
-    from: "Das Museum des Aleidamas."
-    to: "Das Museum des Alcidamas."
-    by: scan
-  # the section's sign, which its heading carries
-  - page: 205
-    from: "S 10."
-    to: ""
-    by: scan
-  # stray bars the OCR read as a rule
-  - page: 205
-    from: "p. 22 ss. | |"
-    to: "p. 22 ss."
-    by: scan
+  - page: 288
+    from: spruchsvolles IThema mit den
+    to: spruchsvolles Thema mit den
+    by: reference
+  - page: 35
+    from: nach unsern Handschr1ften also lautet
+    to: nach unsern Handschriften also lautet
+    by: reference
