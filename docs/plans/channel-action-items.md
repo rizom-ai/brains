@@ -83,7 +83,7 @@ The worker cannot reach Discord, so the notice is a durable record, posted from 
 
 ### Undo
 
-The Undo button carries the card id. The chat interface routes the click to the conversation-memory plugin in the web process, which deletes the card unless the board owns it (then it answers that the card has moved on the board), records `rejected:<card id>` in runtime state, and edits the note to show the card was removed. The pickup never recreates a rejected card.
+The Undo button carries the card id. The chat interface sends the click to `chat:space-notice-action` with the space conversation, the notice message, the card id and the clicker's name, and collects the answers: only the plugin that posted the notice answers, with the notice's new content, which replaces the notice. Conversation-memory takes the card back through the shared writer's `withdrawActionItem`, which deletes it only while the board has not touched it (conditional on the version read), records the card in the bookmark's `rejected` list and strikes it through on the notice; a card the board changed stays and the notice says so. The pickup never recreates a rejected card.
 
 ## Failure handling
 

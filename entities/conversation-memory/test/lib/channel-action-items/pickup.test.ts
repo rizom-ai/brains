@@ -217,6 +217,21 @@ describe("picking up a channel's action items", () => {
     });
   });
 
+  it("never recreates a card someone took back", async () => {
+    const { context, deps, found } = brain();
+    await deps.bookmarks.set(CONVERSATION, {
+      processedThrough: 0,
+      rejected: ["discord-1466-message-2-1"],
+    });
+    found([item(2, jo, "Send INC the proposal")]);
+
+    const result = await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    expect(result).toEqual({ status: "processed", through: 5, created: [] });
+    expect(await cards(context)).toEqual([]);
+    expect((await bookmark(deps))?.notices).toEqual([]);
+  });
+
   it("records no notice when the messages hold no action items", async () => {
     const { deps } = brain();
 

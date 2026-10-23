@@ -27,6 +27,12 @@ type ChannelNoticeSchema = z.ZodObject<{
       title: z.ZodString;
       owner: z.ZodOptional<z.ZodString>;
       sourceMessageId: z.ZodOptional<z.ZodString>;
+      undo: z.ZodOptional<
+        z.ZodObject<{
+          outcome: z.ZodEnum<{ removed: "removed"; kept: "kept" }>;
+          by: z.ZodString;
+        }>
+      >;
     }>
   >;
   postingAt: z.ZodOptional<z.ZodString>;
@@ -44,6 +50,13 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
       owner: z.string().min(1).optional(),
       /** The chat message the card was found in, to pin. */
       sourceMessageId: z.string().min(1).optional(),
+      /** What someone's Undo did: removed it, or kept it as the board changed it. */
+      undo: z
+        .object({
+          outcome: z.enum(["removed", "kept"]),
+          by: z.string().min(1),
+        })
+        .optional(),
     }),
   ),
   /** When a drain started posting it; a fresh one makes others skip it. */
@@ -64,6 +77,7 @@ type ChannelBookmarkSchema = z.ZodObject<{
     }>
   >;
   notices: z.ZodOptional<z.ZodArray<ChannelNoticeSchema>>;
+  rejected: z.ZodOptional<z.ZodArray<z.ZodString>>;
 }>;
 
 const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
@@ -79,6 +93,8 @@ const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
     .optional(),
   /** Notices still to post, and recent posted ones for Undo. */
   notices: z.array(channelNoticeSchema).optional(),
+  /** Cards someone took back with Undo; the pickup never writes them again. */
+  rejected: z.array(z.string().min(1)).optional(),
 });
 
 export type ChannelBookmark = z.output<typeof channelBookmarkSchema>;
@@ -252,7 +268,8 @@ export async function pickUpChannelActionItems(
       ? { channelName: conversation.channelName }
       : {}),
   } as const;
-  const found = items.map((item, index) => ({
+  const rejected = new Set(current.rejected ?? []);
+  const named = items.map((item, index) => ({
     item,
     id: flatId(
       conversationId,
@@ -266,6 +283,7 @@ export async function pickUpChannelActionItems(
       ),
     ),
   }));
+  const found = named.filter(({ id }) => !rejected.has(id));
   const results = await found.reduce<Promise<string[]>>(
     async (created, { item, id }) => {
       const done = await created;

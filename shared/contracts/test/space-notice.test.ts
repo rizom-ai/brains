@@ -11,7 +11,6 @@ function notice(cards: number, value = "card"): unknown {
       label: `Undo: Card ${index + 1}`,
       value: `${value}-${index + 1}`,
     })),
-    actionChannel: "conversation-memory:channel-notice-action",
     reactions: [],
   };
 }

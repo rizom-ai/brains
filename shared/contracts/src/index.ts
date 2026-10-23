@@ -183,8 +183,12 @@ export {
 export {
   SPACE_NOTICE_ITEM_LIMIT,
   SPACE_NOTICE_VALUE_LIMIT,
+  spaceNoticeActionSchema,
+  spaceNoticeContentSchema,
   spaceNoticeRequestSchema,
   spaceNoticeResultSchema,
+  type SpaceNoticeAction,
+  type SpaceNoticeContent,
   type SpaceNoticeRequest,
   type SpaceNoticeResult,
 } from "./space-notice";

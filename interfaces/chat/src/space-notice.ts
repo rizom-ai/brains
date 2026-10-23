@@ -1,9 +1,17 @@
-import type { SpaceNoticeRequest, SpaceNoticeResult } from "@brains/contracts";
+import {
+  spaceNoticeContentSchema,
+  type SpaceNoticeAction,
+  type SpaceNoticeContent,
+  type SpaceNoticeRequest,
+  type SpaceNoticeResult,
+} from "@brains/contracts";
 import type { FetchLike } from "@brains/utils/fetch-like";
-import type { CardElement } from "chat";
+import type { ActionEvent, CardElement } from "chat";
 import { SPACE_NOTICE_ACTION } from "./chat-cards";
+import { getChatConversationId } from "./chat-metadata";
 import type { ChatSdkApp } from "./chat-sdk-app";
 import { addDiscordReaction } from "./discord-message-components";
+import { getSpaceThreadId } from "./discord-routing";
 
 export interface SpaceNoticeDeps {
   app: Pick<ChatSdkApp, "channel"> | undefined;
@@ -16,7 +24,7 @@ export interface SpaceNoticeDeps {
 }
 
 /** The notice as a card: its lines, then one button per action. */
-export function spaceNoticeCard(request: SpaceNoticeRequest): CardElement {
+export function spaceNoticeCard(request: SpaceNoticeContent): CardElement {
   return {
     type: "card",
     title: request.title,
@@ -64,4 +72,36 @@ export async function postSpaceNotice(
     );
   }
   return { messageId: sent.id };
+}
+
+/** Ask the plugin that posted a notice about a click; its answer, if any. */
+export type AskNoticePoster = (action: SpaceNoticeAction) => Promise<unknown>;
+
+/**
+ * A click on a space notice's button. The notice's poster decides what it
+ * means and answers with the notice's new content, which replaces the notice;
+ * without an answer the notice stays as it is.
+ */
+export async function handleSpaceNoticeAction(
+  ask: AskNoticePoster,
+  event: Pick<
+    ActionEvent,
+    "adapter" | "thread" | "threadId" | "messageId" | "value" | "user"
+  >,
+): Promise<void> {
+  if (!event.thread || !event.value) return;
+  const answer = await ask({
+    conversationId: getChatConversationId(
+      event.adapter.name,
+      getSpaceThreadId(event.thread),
+    ),
+    noticeMessageId: event.messageId,
+    value: event.value,
+    by: event.user.fullName || event.user.userName,
+  });
+  const content = spaceNoticeContentSchema.safeParse(answer);
+  if (!content.success) return;
+  await event.adapter.editMessage(event.threadId, event.messageId, {
+    card: spaceNoticeCard(content.data),
+  });
 }

@@ -632,7 +632,7 @@ export interface MockActionEvent extends Omit<
   ActionEvent,
   "thread" | "adapter" | "openModal"
 > {
-  adapter: { name: string };
+  adapter: { name: string; editMessage?: Mock<() => Promise<unknown>> };
   thread: MockThread | null;
   openModal: ActionEvent["openModal"];
 }

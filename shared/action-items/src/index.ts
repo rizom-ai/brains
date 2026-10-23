@@ -62,5 +62,8 @@ export {
   type TrackInboxItemDeps,
   type TrackInboxItemRequest,
   type TrackInboxItemResult,
+  withdrawActionItem,
+  type WithdrawActionItemDeps,
+  type WithdrawActionItemResult,
 } from "./write";
 export { channelLabel, formatAge, formatShortDate } from "./format";

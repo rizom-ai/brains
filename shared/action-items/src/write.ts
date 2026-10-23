@@ -1,7 +1,12 @@
 import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { actionItemBodyHash, applyMove, applyNote } from "./board";
+import {
+  actionItemBodyHash,
+  applyMove,
+  applyNote,
+  isBoardOwned,
+} from "./board";
 import { createShortId } from "@brains/utils/id";
 import {
   slugify,
@@ -110,6 +115,49 @@ export async function moveActionItem(
   return outcome.status === "written"
     ? { status: "moved", entity: outcome.entity }
     : outcome;
+}
+
+export interface WithdrawActionItemDeps {
+  entityService: Pick<
+    EntityPluginContext["entityService"],
+    "getEntity" | "deleteEntity"
+  >;
+  visibilityScope: ContentVisibility;
+}
+
+export interface WithdrawActionItemResult {
+  status: "removed" | "kept" | "not-found";
+}
+
+/**
+ * Take back a card its finder wrote. A card the board has touched is kept:
+ * the delete holds only while the card is the version read, and a refused
+ * delete is decided again from the fresh card.
+ */
+export async function withdrawActionItem(
+  deps: WithdrawActionItemDeps,
+  id: string,
+  attempts = 2,
+): Promise<WithdrawActionItemResult> {
+  const entity = await deps.entityService.getEntity(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      id,
+      visibilityScope: deps.visibilityScope,
+    },
+    actionItemSchema,
+  );
+  if (!entity) return { status: "not-found" };
+  if (isBoardOwned(entity)) return { status: "kept" };
+  const deleted = await deps.entityService.deleteEntity({
+    entityType: ACTION_ITEM_ENTITY_TYPE,
+    id,
+    options: { expectedContentHash: entity.contentHash },
+  });
+  if (deleted) return { status: "removed" };
+  return attempts > 1
+    ? withdrawActionItem(deps, id, attempts - 1)
+    : { status: "kept" };
 }
 
 /** Add one dated, named note to a card. */

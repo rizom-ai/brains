@@ -3,6 +3,7 @@ import { CHAT_CHANNELS, type SpaceNoticeRequest } from "@brains/contracts";
 import {
   MockChatSdk,
   createPlugin,
+  createThread,
   setupChatInterfaceTest,
   stubFetch,
 } from "./harness/chat-interface-harness";
@@ -18,7 +19,6 @@ const request: SpaceNoticeRequest = {
     { label: "Undo: Send INC the proposal", value: "card-1" },
     { label: "Undo: Book the venue", value: "card-2" },
   ],
-  actionChannel: "conversation-memory:channel-notice-action",
   reactions: [
     { messageId: "message-12", emoji: "📌" },
     { messageId: "message-14", emoji: "📌" },
@@ -98,5 +98,84 @@ describe("ChatInterface space notices", () => {
 
     expect(response).toBeUndefined();
     expect(MockChatSdk.instances[0]?.channels.get(CHANNEL)).toBeUndefined();
+  });
+
+  describe("a click on a notice's button", () => {
+    const space = createThread({ id: CHANNEL, channelId: CHANNEL });
+
+    async function click(): Promise<ReturnType<typeof mock>> {
+      const editMessage = mock(() => Promise.resolve({}));
+      const handler = MockChatSdk.instances[0]?.handlers.actions.find(
+        ({ actionIds }) => actionIds === "chat.space-notice",
+      )?.handler;
+      await handler?.({
+        actionId: "chat.space-notice",
+        adapter: { name: "discord", editMessage },
+        messageId: "notice-1",
+        openModal: mock(() => Promise.resolve(undefined)),
+        raw: {},
+        thread: space,
+        threadId: space.id,
+        user: {
+          userId: "user-789",
+          userName: "mira",
+          fullName: "Mira Ops",
+          isBot: false,
+          isMe: false,
+        },
+        value: "card-1",
+      });
+      return editMessage;
+    }
+
+    it("goes to the notice's poster, and the notice is edited to its answer", async () => {
+      await suite.harness.installPlugin(createPlugin());
+      // Another plugin's notices share the channel; it passes on this one.
+      suite.harness.subscribe(CHAT_CHANNELS.spaceNoticeAction, () => ({
+        noop: true,
+      }));
+      const answer = mock(() => ({
+        success: true,
+        data: {
+          title: "Added to the board",
+          lines: ["~~Send INC the proposal~~ · removed by Mira Ops"],
+          actions: [],
+        },
+      }));
+      suite.harness.subscribe(CHAT_CHANNELS.spaceNoticeAction, answer);
+
+      const editMessage = await click();
+
+      expect(answer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: {
+            conversationId: `discord-${CHANNEL}`,
+            noticeMessageId: "notice-1",
+            value: "card-1",
+            by: "Mira Ops",
+          },
+        }),
+      );
+      expect(editMessage).toHaveBeenCalledWith(CHANNEL, "notice-1", {
+        card: {
+          type: "card",
+          title: "Added to the board",
+          children: [
+            {
+              type: "text",
+              content: "~~Send INC the proposal~~ · removed by Mira Ops",
+            },
+          ],
+        },
+      });
+    });
+
+    it("leaves the notice alone when no plugin answers for it", async () => {
+      await suite.harness.installPlugin(createPlugin());
+
+      const editMessage = await click();
+
+      expect(editMessage).not.toHaveBeenCalled();
+    });
   });
 });

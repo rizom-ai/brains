@@ -3,7 +3,6 @@ import type { SpaceNoticeRequest } from "@brains/contracts";
 import type { Conversation } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import {
-  CHANNEL_NOTICE_ACTION_CHANNEL,
   postAllPendingNotices,
   postPendingNotices,
   type ChannelNoticeDeps,
@@ -75,7 +74,6 @@ describe("posting a channel's notices", () => {
         { label: "Undo: Send INC the proposal", value: "card-1" },
         { label: "Undo: Book the venue", value: "card-2" },
       ],
-      actionChannel: CHANNEL_NOTICE_ACTION_CHANNEL,
       reactions: [{ messageId: "discord-2", emoji: "📌" }],
     });
     expect((await notices.bookmarks.get(ROOM))?.notices).toEqual([

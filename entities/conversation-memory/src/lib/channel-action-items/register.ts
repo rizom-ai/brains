@@ -1,6 +1,7 @@
 import {
   CHAT_CHANNELS,
   JOB_CHANNELS,
+  spaceNoticeActionSchema,
   spaceNoticeResultSchema,
 } from "@brains/contracts";
 import {
@@ -38,6 +39,7 @@ import {
   type ChannelPickupJobData,
   type ChannelTriggerDeps,
 } from "./trigger";
+import { undoNoticeCard } from "./undo";
 
 class ChannelPickupHandler extends BaseJobHandler<
   typeof CHANNEL_ACTION_ITEMS_JOB_TYPE,
@@ -107,7 +109,8 @@ function evalChannelMessages(
  * space's new messages into cards, woken by each stored message, with a
  * catch-up at startup and daily so a lost wake-up only delays a batch. The
  * web process, where the chat app runs, posts each batch's notice when it
- * hears the pickup finish, and at startup whatever a restart left pending.
+ * hears the pickup finish, and at startup whatever a restart left pending;
+ * an Undo on a notice takes its card back.
  */
 export function registerChannelActionItems(
   context: EntityPluginContext,
@@ -155,6 +158,22 @@ export function registerChannelActionItems(
       return spaceNoticeResultSchema.safeParse(response.data).data?.messageId;
     },
   };
+  context.messaging.subscribe(
+    CHAT_CHANNELS.spaceNoticeAction,
+    async (message) => {
+      const action = spaceNoticeActionSchema.safeParse(message.payload);
+      if (!action.success) return { noop: true };
+      const answer = await undoNoticeCard(
+        {
+          bookmarks,
+          entityService: context.entityService,
+          visibility: options.visibility,
+        },
+        action.data,
+      );
+      return answer ? { success: true, data: answer } : { noop: true };
+    },
+  );
   context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
     const conversationId = finishedPickupOf(message.payload);
     if (conversationId) await postPendingNotices(notices, conversationId);

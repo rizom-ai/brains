@@ -192,6 +192,33 @@ describe("ConversationMemoryPlugin", () => {
       ]);
     });
 
+    it("answers an Undo on a notice it posted with the notice as it now reads", async () => {
+      await brainWithPendingNotice();
+      await harness.sendMessage(
+        SYSTEM_CHANNELS.startupContentSettled,
+        {},
+        "shell",
+        true,
+      );
+
+      const answer = await harness.sendMessage(
+        CHAT_CHANNELS.spaceNoticeAction,
+        {
+          conversationId: ROOM,
+          noticeMessageId: "notice-1",
+          value: "card-1",
+          by: "Mira",
+        },
+        "chat",
+      );
+
+      expect(answer).toEqual({
+        title: "Added to the board",
+        lines: ["~~Book the venue~~ · removed by Mira"],
+        actions: [],
+      });
+    });
+
     it("posts notices a restart left pending", async () => {
       const posted = await brainWithPendingNotice();
 

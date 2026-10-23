@@ -1,5 +1,6 @@
 import {
   SPACE_NOTICE_VALUE_LIMIT,
+  type SpaceNoticeContent,
   type SpaceNoticeRequest,
 } from "@brains/contracts";
 import type {
@@ -12,10 +13,6 @@ import {
   type ChannelBookmark,
   type ChannelNotice,
 } from "./pickup";
-
-/** Where the chat interface forwards a click on a notice's Undo button. */
-export const CHANNEL_NOTICE_ACTION_CHANNEL =
-  "conversation-memory:channel-notice-action";
 
 const PIN = "📌";
 const POSTING_TIMEOUT_MS = 2 * 60 * 1000;
@@ -36,10 +33,36 @@ function undoLabel(title: string): string {
     : `${label.slice(0, LABEL_LIMIT - 1)}…`;
 }
 
+type NoticeCard = ChannelNotice["cards"][number];
+
+function cardLine(card: NoticeCard): string {
+  const named = card.owner ? `${card.title} · ${card.owner}` : card.title;
+  if (card.undo?.outcome === "removed") {
+    return `~~${card.title}~~ · removed by ${card.undo.by}`;
+  }
+  if (card.undo?.outcome === "kept") {
+    return `${named} · kept: changed on the board`;
+  }
+  return named;
+}
+
 /**
- * The notice as the chat interface posts it: a line and an Undo per card. A
- * card whose id no button can carry is listed without one.
+ * What the notice reads: a line per card, and an Undo for each card nobody
+ * has undone yet. A card whose id no button can carry is listed without one.
  */
+export function noticeContent(notice: ChannelNotice): SpaceNoticeContent {
+  return {
+    title: "Added to the board",
+    lines: notice.cards.map(cardLine),
+    actions: notice.cards
+      .filter(
+        (card) => !card.undo && card.id.length <= SPACE_NOTICE_VALUE_LIMIT,
+      )
+      .map((card) => ({ label: undoLabel(card.title), value: card.id })),
+  };
+}
+
+/** The notice as the chat interface posts it, pinning the messages it is about. */
 export function noticeRequest(
   conversation: Conversation,
   notice: ChannelNotice,
@@ -48,21 +71,15 @@ export function noticeRequest(
     ...new Set(notice.cards.flatMap((card) => card.sourceMessageId ?? [])),
   ];
   return {
+    ...noticeContent(notice),
     channelId: conversation.channelId,
     interfaceType: conversation.interfaceType,
-    title: "Added to the board",
-    lines: notice.cards.map((card) =>
-      card.owner ? `${card.title} · ${card.owner}` : card.title,
-    ),
-    actions: notice.cards
-      .filter((card) => card.id.length <= SPACE_NOTICE_VALUE_LIMIT)
-      .map((card) => ({ label: undoLabel(card.title), value: card.id })),
-    actionChannel: CHANNEL_NOTICE_ACTION_CHANNEL,
     reactions: sources.map((messageId) => ({ messageId, emoji: PIN })),
   };
 }
 
-function withNotice(
+/** A bookmark with one of its notices changed; undefined to leave it be. */
+export function withNotice(
   bookmark: ChannelBookmark | null,
   key: string,
   change: (notice: ChannelNotice) => ChannelNotice | undefined,

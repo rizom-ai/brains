@@ -20,6 +20,7 @@ import {
   createActionItem,
   moveActionItem,
   trackInboxItem,
+  withdrawActionItem,
 } from "../src";
 import {
   actionItemSchema,
@@ -243,6 +244,73 @@ describe("moving a stored card", () => {
     const result = await moveActionItem(
       { entityService: service, now: at, visibilityScope: "restricted" },
       { id: "missing", from: "open", to: "doing" },
+    );
+    expect(result).toEqual({ status: "not-found" });
+  });
+});
+
+describe("withdrawing a found card", () => {
+  it("deletes a card only its finder wrote", async () => {
+    const service = await brain();
+
+    const result = await withdrawActionItem(
+      { entityService: service, visibilityScope: "restricted" },
+      ID,
+    );
+
+    expect(result).toEqual({ status: "removed" });
+    expect(
+      await service.getEntity({
+        entityType: "action-item",
+        id: ID,
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps a card the board has changed", async () => {
+    const service = await brain();
+    await group(service, "Spring gathering");
+
+    const result = await withdrawActionItem(
+      { entityService: service, visibilityScope: "restricted" },
+      ID,
+    );
+
+    expect(result).toEqual({ status: "kept" });
+    expect(isBoardOwned(await stored(service))).toBe(true);
+  });
+
+  it("keeps a card the board changes between read and delete", async () => {
+    const service = await brain();
+    let interleaved = false;
+    const racing = {
+      getEntity: service.getEntity.bind(service),
+      deleteEntity: async (
+        ...args: Parameters<EntityService["deleteEntity"]>
+      ): Promise<boolean> => {
+        if (!interleaved) {
+          interleaved = true;
+          await group(service, "Spring gathering");
+        }
+        return service.deleteEntity(...args);
+      },
+    };
+
+    const result = await withdrawActionItem(
+      { entityService: racing, visibilityScope: "restricted" },
+      ID,
+    );
+
+    expect(result).toEqual({ status: "kept" });
+    expect(await stored(service)).toBeDefined();
+  });
+
+  it("reports a card that no longer exists", async () => {
+    const service = await brain();
+    const result = await withdrawActionItem(
+      { entityService: service, visibilityScope: "restricted" },
+      "missing",
     );
     expect(result).toEqual({ status: "not-found" });
   });
