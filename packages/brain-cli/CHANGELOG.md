@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.601
+
+### Patch Changes
+
+- [#753](https://github.com/rizom-ai/brains/pull/753) [`218fe3c`](https://github.com/rizom-ai/brains/commit/218fe3c7e8574f2f4439dd8f9785337871d87af0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Each Brain process uses about 25–40 MB less memory at rest. The Git broker's RPC client now loads on first connection, so Effect's RPC, Schema and HTTP modules no longer run their load-time setup in the runtime bundle's top level, which had made JavaScriptCore compile that whole ~1.4M-instruction body in the supervisor, web and worker processes.
+
 ## 0.2.0-alpha.600
 
 ### Patch Changes
