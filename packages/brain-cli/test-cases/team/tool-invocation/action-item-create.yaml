@@ -1,0 +1,33 @@
+id: team-tool-action-item-create
+name: Team Brain adds an action item someone takes on themselves
+description: >-
+  Verifies that Team Brain adds a requested action item through
+  action_item_create, assigning it to the caller who takes it on, and never
+  through system_create, which cannot write a whole card. The eval caller is
+  not a brain member, so the assignment itself is covered by the tool's
+  tests; this case pins the agent's tool choice and arguments.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - recipe-team
+  - team
+  - action-board
+
+turns:
+  - userMessage: "Can you add an action item for me stating that I am working on the innovation hub plan?"
+
+successCriteria:
+  expectedTools:
+    - toolName: action_item_create
+      shouldBeCalled: true
+      argsContain:
+        assignee: "me"
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "capturedAt"
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 31000

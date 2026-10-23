@@ -76,6 +76,15 @@ describe("ConversationMemoryPlugin", () => {
     );
   });
 
+  it("keeps action items out of system_create, so only a writer that sets their fields adds one", async () => {
+    await harness.installPlugin(plugin);
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("action-item")
+        .actionPolicy,
+    ).toEqual({ create: "never" });
+  });
+
   it("keeps memory entities immutable through entity CRUD", () => {
     expect(plugin.entityActionPolicy).toEqual({
       summary: {

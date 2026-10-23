@@ -44,7 +44,7 @@ export {
 } from "./board";
 export {
   addActionItemNote,
-  createBoardCard,
+  createActionItem,
   type ActionItemAssigneeMember,
   boardCardId,
   flatId,
@@ -56,8 +56,9 @@ export {
   type ActionItemMoveResult,
   type ActionItemNoteRequest,
   type ActionItemNoteResult,
-  type CreateBoardCardRequest,
-  type CreateBoardCardResult,
+  type CreateActionItemOrigin,
+  type CreateActionItemRequest,
+  type CreateActionItemResult,
   type TrackInboxItemDeps,
   type TrackInboxItemRequest,
   type TrackInboxItemResult,

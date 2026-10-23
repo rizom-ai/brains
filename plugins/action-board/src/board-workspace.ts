@@ -16,7 +16,7 @@ import {
   inboxCardId,
   moveActionItem,
   trackInboxItem,
-  createBoardCard,
+  createActionItem,
 } from "@brains/action-items";
 import {
   actionItemBody,
@@ -878,7 +878,7 @@ export async function registerBoardWorkspace(
             }
             const assignee = await assigneeFor(input.assigneeId);
             if (assignee === false) return { status: NOT_A_MEMBER };
-            await createBoardCard(
+            await createActionItem(
               {
                 entityService: context.entityService,
                 visibility: deps.visibility,
@@ -890,6 +890,7 @@ export async function registerBoardWorkspace(
                 assignee,
                 actor: { kind: "user", userId: caller.actor.id },
                 actorName: caller.actor.displayName,
+                origin: { kind: "board" },
               },
             );
             return {};

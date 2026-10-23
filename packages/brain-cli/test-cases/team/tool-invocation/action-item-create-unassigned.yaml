@@ -1,0 +1,34 @@
+id: team-tool-action-item-create-unassigned
+name: Team Brain adds an action item no one is named for
+description: >-
+  Verifies that Team Brain adds a requested action item with no owner through
+  action_item_create, never system_create, and confirms the card it added.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - recipe-team
+  - team
+  - action-board
+
+turns:
+  - userMessage: "Add an action item: book the venue for the spring gathering."
+
+successCriteria:
+  expectedTools:
+    - toolName: action_item_create
+      shouldBeCalled: true
+      argsContain:
+        assignee: "nobody"
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContains:
+    - "venue"
+  responseNotContains:
+    - "capturedAt"
+    - "not a member"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 31000

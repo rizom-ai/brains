@@ -114,6 +114,9 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       {
         retiredFields: ACTION_ITEM_RETIRED_FIELDS,
         translatedFields: ACTION_ITEM_TRANSLATED_FIELDS,
+        // A card is only whole with its origin, capture time and status,
+        // which only the action-item writers set: never system_create.
+        actionPolicy: { create: "never" },
       },
     );
 

@@ -70,7 +70,7 @@ An item cites a message from the new range or, for `update` and `withdraw`, an o
 - The writer is shared by the pickup and explicit requests, and always sets `origin`, `capturedAt`, `status: open`, `requestedBy` (the author of the source message), `assignedTo` (the owner, when one is named and resolves to a brain member) and the brain's memory visibility.
 - A picked-up card's id derives from the conversation and its source message (`flatId(conversation id, "message", position, n)`), so a rerun upserts the same card.
 - `projectedBodyHash` is stored as today, so a board edit makes the card board-owned and out of reach for later updates and withdrawals.
-- Explicit requests (`system_create` for `action-item`) route to the same writer instead of creating a bare entity.
+- Explicit requests go through the action board's `action_item_create` tool, which uses the same writer. Its `assignee` is required: `nobody` unless the request names someone, a member's name, or `me` when the caller takes it on; a name that is not a member is refused. `action-item` refuses `system_create` (`actionPolicy.create: never`), which cannot write a whole card.
 
 ### Notice
 
@@ -96,7 +96,7 @@ The Undo button carries the card id. The chat interface routes the click to the 
 
 Each phase is one capability with its tests and evals, and lands on its own.
 
-1. **Writer.** One action-item writer for explicit requests: `system_create` for `action-item` creates a valid, `shared` card. An agent eval asks the brain for an action item and checks the stored card's fields and visibility.
+1. **Writer.** One action-item writer (`createActionItem`, with a board or conversation origin) behind the board and a new `action_item_create` tool; `action-item` refuses `system_create`. Tests pin the stored card's origin, `capturedAt`, `status`, `requestedBy`, assignee and visibility; agent evals check the tool is chosen with the right assignee for a self-assigned and an unassigned request.
 2. **Pickup without a notice.** Bookmark, claim, wake-up, catch-up, the extractor's `add` items and card creation. Tests for the bookmark, claim takeover, rerun idempotence and catch-up; evals that a channel conversation yields the expected cards with owners, and none for chatter.
 3. **Notice.** Space-notice capability in the chat interface, the pending-record flow and the 📌 reactions. Tests for posting once per batch and retry on start.
 4. **Undo.** Routed action, delete, rejection record, edited note. Tests that a rejected card is never recreated and a board-owned card is kept.
@@ -106,3 +106,5 @@ Each phase is one capability with its tests and evals, and lands on its own.
 ## Evals
 
 The existing conversation-memory evals call `SummaryProjector` directly and pass while nothing in production runs it. The evals for this plan run through the pickup itself: messages stored in a space conversation, the job run, and the resulting cards checked for title, owner, `requestedBy`, `capturedAt`, `status` and visibility; plus negative cases (no cards for chatter or questions) and the revision cases.
+
+An eval turn has no speaker today: the brain's own agent is the caller, and the eval brain has no members. The channel evals need speaker identities that resolve to members, so the eval harness gains a speaker per turn and seeded members before phase 2's evals.

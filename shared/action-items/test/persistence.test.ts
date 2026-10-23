@@ -17,7 +17,7 @@ import { actionItemBody, actionItemBodyHash, isBoardOwned } from "../src";
 import {
   actionItemSource,
   addActionItemNote,
-  createBoardCard,
+  createActionItem,
   moveActionItem,
   trackInboxItem,
 } from "../src";
@@ -361,11 +361,59 @@ describe("tracking an Inbox item", () => {
   });
 });
 
+describe("creating a card someone asked for in a conversation", () => {
+  it("creates an open card that names who asked and the conversation it came from", async () => {
+    const service = await brain();
+
+    const result = await createActionItem(
+      { entityService: service, now: at, visibility: "shared" },
+      {
+        title: "Work on the innovation hub plan",
+        text: "Yeehaa is working on the innovation hub plan.",
+        assignee: { name: "Yeehaa", id: "user:u-yeehaa" },
+        actor: niels,
+        actorName: "Niels Ward",
+        origin: {
+          kind: "conversation",
+          conversationId: "discord:1466324999475429386",
+          interfaceType: "discord",
+          channelId: "1466324999475429386",
+          channelName: "executive-room",
+        },
+      },
+    );
+
+    expect(result.id).toMatch(/^work-on-the-innovation-hub-plan-[0-9a-z]{6}$/);
+    const card = await service.getEntity(
+      {
+        entityType: "action-item",
+        id: result.id,
+        visibilityScope: "restricted",
+      },
+      actionItemSchema,
+    );
+    if (!card) throw new Error("The card was not stored");
+    expect(card.visibility).toBe("shared");
+    expect(card.metadata).toEqual({
+      origin: "conversation",
+      conversationId: "discord:1466324999475429386",
+      interfaceType: "discord",
+      channelId: "1466324999475429386",
+      channelName: "executive-room",
+      capturedAt: "2026-10-15T08:02:00.000Z",
+      status: "open",
+      assignedTo: [{ name: "Yeehaa", id: "user:u-yeehaa" }],
+      requestedBy: [{ name: "Niels Ward", id: "user:u-niels" }],
+    });
+    expect(actionItemSource(card)).toMatchObject({ place: "#executive-room" });
+  });
+});
+
 describe("creating a card on the board", () => {
   it("creates an open card that names who added it and comes from no conversation", async () => {
     const service = await brain();
 
-    const result = await createBoardCard(
+    const result = await createActionItem(
       { entityService: service, now: at, visibility: "shared" },
       {
         title: "Order name badges",
@@ -373,6 +421,7 @@ describe("creating a card on the board", () => {
         assignee: { name: "Alex Morgan", id: "user:u-alex" },
         actor: niels,
         actorName: "Niels Ward",
+        origin: { kind: "board" },
       },
     );
 
@@ -408,9 +457,14 @@ describe("creating a card on the board", () => {
   it("uses the title as the text when no details are given", async () => {
     const service = await brain();
 
-    const { id } = await createBoardCard(
+    const { id } = await createActionItem(
       { entityService: service, now: at, visibility: "shared" },
-      { title: "Book the venue", text: "  ", actor: niels },
+      {
+        title: "Book the venue",
+        text: "  ",
+        actor: niels,
+        origin: { kind: "board" },
+      },
     );
 
     const card = await service.getEntity(

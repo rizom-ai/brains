@@ -227,32 +227,63 @@ export async function trackInboxItem(
   return { status: "tracked", id };
 }
 
-export interface CreateBoardCardRequest {
+/**
+ * Where a card someone asked for comes from: added on the board by hand, or
+ * asked for in a conversation, which it then names.
+ */
+export type CreateActionItemOrigin =
+  | { kind: "board" }
+  | {
+      kind: "conversation";
+      conversationId: string;
+      interfaceType: string;
+      channelId: string;
+      channelName?: string | undefined;
+    };
+
+export interface CreateActionItemRequest {
   title: string;
   text: string;
   /** The member who should do it. */
   assignee?: ActionItemAssigneeMember | undefined;
   actor: ActorRef;
   actorName?: string | undefined;
+  origin: CreateActionItemOrigin;
 }
 
-export interface CreateBoardCardResult {
+export interface CreateActionItemResult {
   status: "created";
   id: string;
 }
 
-/** Add an open card on the board by hand, naming who added it. */
-export async function createBoardCard(
+function originMetadata(
+  origin: CreateActionItemOrigin,
+): Pick<
+  ActionItemMetadata,
+  "origin" | "conversationId" | "interfaceType" | "channelId" | "channelName"
+> {
+  if (origin.kind === "board") return { origin: "board" };
+  return {
+    origin: "conversation",
+    conversationId: origin.conversationId,
+    interfaceType: origin.interfaceType,
+    channelId: origin.channelId,
+    ...(origin.channelName ? { channelName: origin.channelName } : {}),
+  };
+}
+
+/** Add an open card someone asked for, naming who asked and where. */
+export async function createActionItem(
   deps: Omit<TrackInboxItemDeps, "entityService"> & {
     entityService: Pick<EntityPluginContext["entityService"], "createEntity">;
   },
-  request: CreateBoardCardRequest,
-): Promise<CreateBoardCardResult> {
+  request: CreateActionItemRequest,
+): Promise<CreateActionItemResult> {
   const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
   const id = boardCardId(title);
   const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
-    origin: "board",
+    ...originMetadata(request.origin),
     capturedAt: (deps.now?.() ?? new Date()).toISOString(),
     status: "open",
     ...(assignee
