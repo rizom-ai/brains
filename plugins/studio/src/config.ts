@@ -182,6 +182,9 @@ export function zodFieldToStudioWidget(
       if (hasStringFormat(inner, "datetime")) {
         return { ...base, widget: "datetime" };
       }
+      if (hasStringFormat(inner, "date")) {
+        return { ...base, widget: "date" };
+      }
       if (LONG_TEXT_FIELDS.has(name)) {
         return { ...base, widget: "text" };
       }
