@@ -30,9 +30,15 @@ describe("chat metadata", () => {
       `discord-${thread.id}`,
     );
     expect(
-      buildChatUserMessageMetadata("discord", thread, message, {
-        supersededMessageCount: 1,
-      }),
+      buildChatUserMessageMetadata(
+        "discord",
+        thread,
+        thread.channelId,
+        message,
+        {
+          supersededMessageCount: 1,
+        },
+      ),
     ).toEqual({
       actor: {
         identity: {
@@ -71,7 +77,9 @@ describe("chat metadata", () => {
       },
     };
 
-    expect(buildChatActionEventMetadata("discord", thread, event)).toEqual({
+    expect(
+      buildChatActionEventMetadata("discord", thread, thread.channelId, event),
+    ).toEqual({
       actor: {
         identity: {
           kind: "external",

@@ -357,6 +357,28 @@ describe("picking up a channel's action items", () => {
     ]);
   });
 
+  it("names the card's channel as its newest message does", async () => {
+    // The conversation was started when only the channel's id was known.
+    const named = channel.map((said) => ({
+      ...said,
+      metadata: {
+        ...said.metadata,
+        source: { messageId: said.id, channelName: "executive-room" },
+      },
+    }));
+    const { context, deps, found } = brain(named);
+    deps.conversations.get = async (): Promise<Conversation> => ({
+      ...conversation,
+      channelName: conversation.channelId,
+    });
+    found([item(2, jo, "Send INC the proposal")]);
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    const [card] = await cards(context);
+    expect(card?.metadata.channelName).toBe("executive-room");
+  });
+
   it("assigns a card to the member the messages name", async () => {
     const { context, deps, found } = brain();
     found([

@@ -40,7 +40,6 @@ import type { ChatResponseCoordinator } from "./chat-response-coordinator";
 import type { ChatSdkApp } from "./chat-sdk-app";
 import type { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import {
-  getChannelName,
   getPermissionContext,
   getSpaceId,
   getSpaceThreadId,
@@ -50,6 +49,7 @@ import {
 } from "./discord-routing";
 import type { PromptActionStore } from "./prompt-action-store";
 import { handleSpaceNoticeAction } from "./space-notice";
+import type { ChannelNames } from "./channel-names";
 import type { SubscriptionRouter } from "./subscription-router";
 import type { ThreadRegistry } from "./thread-registry";
 import type { ChatPlatform, ChatThread } from "./types";
@@ -85,6 +85,7 @@ interface ChatTurnControllerDeps {
   responseCoordinator: ChatResponseCoordinator;
   /** Resolved per call so production reads the auth service mounted at boot. */
   identityAccess: () => ChatIdentityAccess | undefined;
+  channelNames: ChannelNames;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
     error: (message: string, context?: Record<string, unknown>) => void;
@@ -235,6 +236,7 @@ export class ChatTurnController {
     const { permissionLevel: userPermissionLevel, isAnchor } = identity;
     const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
+    const channelName = await this.deps.channelNames.nameOf(thread);
 
     await this.runAgentTurn({
       thread,
@@ -260,10 +262,11 @@ export class ChatTurnController {
             isAnchor,
             interfaceType: platform,
             channelId,
-            channelName: getChannelName(thread),
+            channelName,
             ...buildChatActionEventMetadata(
               platform,
               thread,
+              channelName,
               event,
               identity.principal,
             ),
@@ -323,6 +326,7 @@ export class ChatTurnController {
       metadata: buildChatActionEventMetadata(
         platform,
         thread,
+        await this.deps.channelNames.nameOf(thread),
         event,
         identity.principal,
       ),
@@ -402,6 +406,7 @@ export class ChatTurnController {
     this.deps.threadRegistry.set(thread);
     const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
+    const channelName = await this.deps.channelNames.nameOf(thread);
     const permissionContext = getPermissionContext(thread, message);
     const identity = await resolveChatIdentity(
       pluginContext.permissions,
@@ -456,6 +461,7 @@ export class ChatTurnController {
               metadata: buildChatUserMessageMetadata(
                 platform,
                 thread,
+                channelName,
                 message,
                 undefined,
                 identity.principal,
@@ -476,10 +482,11 @@ export class ChatTurnController {
             isAnchor,
             interfaceType: platform,
             channelId,
-            channelName: getChannelName(thread),
+            channelName,
             ...buildChatUserMessageMetadata(
               platform,
               thread,
+              channelName,
               message,
               coalescedInput.metadata,
               identity.principal,
@@ -544,7 +551,7 @@ export class ChatTurnController {
       getPermissionContext(thread, message),
       this.deps.identityAccess(),
     );
-    const channelName = getChannelName(thread);
+    const channelName = await this.deps.channelNames.nameOf(thread);
 
     await context.conversations.start({
       sessionId: conversationId,
@@ -563,6 +570,7 @@ export class ChatTurnController {
       metadata: buildChatSpaceMessageMetadata(
         platform,
         thread,
+        channelName,
         spaceThreadId,
         message,
         identity.principal,

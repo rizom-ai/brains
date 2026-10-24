@@ -212,6 +212,27 @@ function isWithBrain(message: PositionedMessage["message"]): boolean {
   return !parsed.success || !parsed.data.spaceId;
 }
 
+/**
+ * The channel's name: as the newest message records it, since a conversation
+ * keeps the name it was started with (once only the channel's id); never the
+ * id itself.
+ */
+function channelNameOf(
+  messages: PositionedMessage["message"][],
+  conversation: { channelId: string; channelName?: string | undefined },
+): string | undefined {
+  const named = [...messages]
+    .reverse()
+    .map(
+      (message) =>
+        conversationMessageMetadataSchema.safeParse(message.metadata).data
+          ?.source?.channelName,
+    )
+    .find((name) => name && name !== conversation.channelId);
+  const fallback = conversation.channelName;
+  return named ?? (fallback !== conversation.channelId ? fallback : undefined);
+}
+
 function sourceMessageIdOf(item: {
   source: FoundActionItem["source"];
 }): string | undefined {
@@ -339,14 +360,13 @@ export async function pickUpChannelActionItems(
     cards: own,
   });
 
+  const channelName = channelNameOf(messages, conversation);
   const origin = {
     kind: "conversation",
     conversationId,
     interfaceType: conversation.interfaceType,
     channelId: conversation.channelId,
-    ...(conversation.channelName
-      ? { channelName: conversation.channelName }
-      : {}),
+    ...(channelName ? { channelName } : {}),
   } as const;
   const rejected = new Set(current.rejected ?? []);
   const named = items.map((item, index) => ({
