@@ -1,0 +1,32 @@
+id: channel-action-items-with-brain-request
+name: Leaves a request to the brain to the brain
+description: >-
+  Yeehaa asks the brain directly to add an action item, and the brain answers.
+  The brain acts on that request itself, so the pickup finds nothing.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  members:
+    - Jan Hein
+    - Niels
+  messages:
+    - speaker: yeehaa
+      userId: usr_jan_hein
+      content: "@brain I am working on the innovation hub plan, add an action item for that please"
+      withBrain: true
+    - speaker: brain
+      content: I added "Work on the Innovation Hub plan" to the board, assigned to Jan Hein.
+      withBrain: true
+    - speaker: Niels
+      userId: usr_niels
+      content: Nice, looking forward to it.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0

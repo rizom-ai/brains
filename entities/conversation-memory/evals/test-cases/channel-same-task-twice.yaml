@@ -1,0 +1,33 @@
+id: channel-action-items-same-task-twice
+name: Adds a task the messages state twice only once
+description: >-
+  Jo takes on the pitch deck and restates it a few messages later. The pickup
+  finds one action item, not two.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  members:
+    - Jo
+    - Niels
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: I'll update the pitch deck with the new numbers before the board meeting.
+    - speaker: Niels
+      userId: usr_niels
+      content: Great, the board meets on Thursday.
+    - speaker: Jo
+      userId: usr_jo
+      content: Yes, so to be clear, the pitch deck update is on me this week.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].owner
+      equals: Jo

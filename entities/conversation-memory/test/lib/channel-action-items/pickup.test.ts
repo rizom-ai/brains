@@ -25,6 +25,10 @@ import {
 } from "../../../src/lib/channel-action-items/pickup";
 
 const CONVERSATION = "discord:1466";
+const MEMBERS = [
+  { id: "usr_jo", name: "Jo" },
+  { id: "usr_niels", name: "Niels" },
+];
 const NOW = new Date("2026-10-23T10:00:00.000Z");
 
 const conversation: Conversation = {
@@ -125,6 +129,7 @@ function brain(messages: Message[] = channel): {
     extractor: { extract },
     entityService: context.entityService,
     visibility: "shared",
+    members: async () => MEMBERS,
     now: () => NOW,
     contextSize: 2,
   };
@@ -161,12 +166,12 @@ function item(
     sourcePosition: position,
     source,
     owner: owner
-      ? {
-          identity: owner,
-          interfaceType: "discord",
-          role: "user",
-          displayName: nameOf(owner),
-        }
+      ? owner.kind === "user"
+        ? {
+            name: nameOf(owner),
+            assignee: { name: nameOf(owner), id: `user:${owner.userId}` },
+          }
+        : { name: nameOf(owner) }
       : undefined,
   };
 }
@@ -318,15 +323,59 @@ describe("picking up a channel's action items", () => {
     const [input] = extract.mock.calls[0] ?? [];
     expect(input).toEqual({
       context: [
-        { position: 2, message: channel[1] },
-        { position: 3, message: channel[2] },
+        { position: 2, message: channel[1], withBrain: false },
+        { position: 3, message: channel[2], withBrain: false },
       ],
       fresh: [
-        { position: 4, message: channel[3] },
-        { position: 5, message: channel[4] },
+        { position: 4, message: channel[3], withBrain: false },
+        { position: 5, message: channel[4], withBrain: false },
       ],
       cards: [],
+      members: MEMBERS,
     });
+  });
+
+  it("marks the messages of a conversation with the brain, which it never cites", async () => {
+    // An @mention the brain answered is stored by its own turn: no space id.
+    const request: Message = {
+      ...message(4, jo, "@brain add an action item: book the venue"),
+      metadata: { actor: message(4, jo, "").metadata["actor"] },
+    };
+    const answer: Message = {
+      ...message(5, jo, "Added the card."),
+      role: "assistant",
+    };
+    const { deps, extract } = brain([...channel.slice(0, 3), request, answer]);
+    await deps.bookmarks.set(CONVERSATION, { processedThrough: 3 });
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    const [input] = extract.mock.calls[0] ?? [];
+    expect(input.fresh).toEqual([
+      { position: 4, message: request, withBrain: true },
+      { position: 5, message: answer, withBrain: true },
+    ]);
+  });
+
+  it("assigns a card to the member the messages name", async () => {
+    const { context, deps, found } = brain();
+    found([
+      {
+        ...item(2, undefined, "Send INC the proposal"),
+        owner: {
+          name: "Niels",
+          assignee: { name: "Niels", id: "user:usr_niels" },
+        },
+      },
+    ]);
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    const [card] = await cards(context);
+    expect(card?.metadata.assignedTo).toEqual([
+      { name: "Niels", id: "user:usr_niels" },
+    ]);
+    expect((await bookmark(deps))?.notices?.[0]?.cards[0]?.owner).toBe("Niels");
   });
 
   it("does nothing when every message is processed", async () => {
@@ -459,10 +508,8 @@ describe("revising the channel's own cards", () => {
           title: "Send INC the proposal",
           text: "Niels sends INC the proposal on Monday.",
           owner: {
-            identity: niels,
-            interfaceType: "discord",
-            role: "user",
-            displayName: "Niels",
+            name: "Niels",
+            assignee: { name: "Niels", id: "user:usr_niels" },
           },
           sourcePosition: 6,
           source: source(6, messages),

@@ -11,6 +11,7 @@ function said(
   position: number,
   speaker: { userId: string; name: string } | "guest",
   content: string,
+  withBrain = false,
 ): PositionedMessage {
   const message: Message = {
     id: `m${position}`,
@@ -35,11 +36,17 @@ function said(
             },
     },
   };
-  return { position, message };
+  return { position, message, ...(withBrain ? { withBrain } : {}) };
 }
 
 const jo = { userId: "usr_jo", name: "Jo" };
 const niels = { userId: "usr_niels", name: "Niels" };
+// The brain's members, by account; Niels's account is named in full.
+const members = [
+  { id: "usr_jo", name: "Jo" },
+  { id: "usr_niels", name: "Niels Ward" },
+  { id: "usr_janhein", name: "Jan Hein" },
+];
 
 function extractorReturning(
   items: unknown[],
@@ -78,7 +85,12 @@ describe("ChannelActionItemExtractor", () => {
       },
     ]);
 
-    const { items } = await extractor.extract({ context, fresh, cards: [] });
+    const { items } = await extractor.extract({
+      context,
+      fresh,
+      cards: [],
+      members,
+    });
 
     const joSaid = fresh[1];
     if (!joSaid) throw new Error("Missing fixture");
@@ -88,12 +100,7 @@ describe("ChannelActionItemExtractor", () => {
         text: "Jo sends INC the proposal on Friday.",
         sourcePosition: 12,
         source: joSaid.message,
-        owner: {
-          identity: { kind: "user", userId: "usr_jo" },
-          interfaceType: "discord",
-          role: "user",
-          displayName: "Jo",
-        },
+        owner: { name: "Jo", assignee: { name: "Jo", id: "user:usr_jo" } },
       },
     ]);
   });
@@ -110,7 +117,7 @@ describe("ChannelActionItemExtractor", () => {
 
     const {
       items: [item],
-    } = await extractor.extract({ context, fresh, cards: [] });
+    } = await extractor.extract({ context, fresh, cards: [], members });
 
     expect(item?.owner).toBeUndefined();
     expect(item?.sourcePosition).toBe(11);
@@ -123,19 +130,19 @@ describe("ChannelActionItemExtractor", () => {
     ]);
 
     expect(
-      (await extractor.extract({ context, fresh, cards: [] })).items,
+      (await extractor.extract({ context, fresh, cards: [], members })).items,
     ).toEqual([]);
   });
 
   it("shows earlier messages as context only and numbers messages by position", async () => {
     const { extractor, generate } = extractorReturning([]);
 
-    await extractor.extract({ context, fresh, cards: [] });
+    await extractor.extract({ context, fresh, cards: [], members });
 
     const prompt = String(generate.mock.calls[0]?.[0]?.prompt);
     expect(prompt).toContain("10. Jo (p1): The INC meeting went well.");
     expect(prompt).toContain(
-      "11. Niels (p2): Someone needs to send INC the proposal.",
+      "11. Niels Ward (p2): Someone needs to send INC the proposal.",
     );
     expect(prompt).toContain("13. Natalie (p3): Great, thanks!");
     expect(prompt.indexOf("10. Jo")).toBeLessThan(
@@ -143,10 +150,137 @@ describe("ChannelActionItemExtractor", () => {
     );
   });
 
+  it("gives a card to a member the messages name, though they did not speak", async () => {
+    const { extractor, generate } = extractorReturning([
+      {
+        title: "Work on the Innovation Hub plan",
+        text: "Jan Hein works on the Innovation Hub plan.",
+        message: 11,
+        owner: "Jan Hein",
+      },
+    ]);
+
+    const { items } = await extractor.extract({
+      context,
+      fresh,
+      cards: [],
+      members,
+    });
+
+    expect(String(generate.mock.calls[0]?.[0]?.prompt)).toContain(
+      "Members of the brain: Jo, Niels Ward, Jan Hein",
+    );
+    expect(items[0]?.owner).toEqual({
+      name: "Jan Hein",
+      assignee: { name: "Jan Hein", id: "user:usr_janhein" },
+    });
+  });
+
+  it("names a speaker without an account as owner, without assigning the card", async () => {
+    const { extractor } = extractorReturning([
+      {
+        title: "Book the venue",
+        text: "Natalie books it.",
+        message: 13,
+        owner: "p3",
+      },
+    ]);
+
+    const { items } = await extractor.extract({
+      context,
+      fresh,
+      cards: [],
+      members,
+    });
+
+    expect(items[0]?.owner).toEqual({ name: "Natalie" });
+  });
+
+  it("never cites a message from a conversation with the brain", async () => {
+    const withBrain = [
+      ...fresh,
+      said(14, jo, "@brain add an action item: book the venue", true),
+    ];
+    const { extractor, generate } = extractorReturning([
+      {
+        title: "Book the venue",
+        text: "Book it.",
+        message: 14,
+        owner: "nobody",
+      },
+    ]);
+
+    const { items } = await extractor.extract({
+      context,
+      fresh: withBrain,
+      cards: [],
+      members,
+    });
+
+    expect(items).toEqual([]);
+    expect(String(generate.mock.calls[0]?.[0]?.prompt)).toContain(
+      "14. Jo (p1) [with the brain]: @brain add an action item: book the venue",
+    );
+  });
+
+  it("adds a task the messages state twice only once", async () => {
+    const { extractor } = extractorReturning([
+      {
+        title: "Work on the Innovation Hub plan",
+        text: "A.",
+        message: 11,
+        owner: "nobody",
+      },
+      {
+        title: "work on the innovation hub plan.",
+        text: "B.",
+        message: 12,
+        owner: "nobody",
+      },
+    ]);
+
+    const { items } = await extractor.extract({
+      context,
+      fresh,
+      cards: [],
+      members,
+    });
+
+    expect(items.map((item) => item.sourcePosition)).toEqual([11]);
+  });
+
+  it("does not add again a task the channel already has a card for", async () => {
+    const { extractor } = extractorReturning([
+      {
+        title: "Send INC the proposal",
+        text: "Again.",
+        message: 12,
+        owner: "p1",
+      },
+    ]);
+
+    const { items } = await extractor.extract({
+      context,
+      fresh,
+      cards: [
+        {
+          id: "discord-1466-message-3-1",
+          title: "Send INC the proposal",
+          text: "Jo sends INC the proposal on Friday.",
+        },
+      ],
+      members,
+    });
+
+    expect(items).toEqual([]);
+  });
+
   it("does not ask the model when there is nothing new", async () => {
     const { extractor, generate } = extractorReturning([]);
 
-    expect(await extractor.extract({ context, fresh: [], cards: [] })).toEqual({
+    expect(
+      await extractor.extract({ context, fresh: [], cards: [], members }),
+    ).toEqual({
       items: [],
       updates: [],
       withdrawals: [],
@@ -173,7 +307,7 @@ describe("ChannelActionItemExtractor", () => {
     it("lists them for the model by a short reference", async () => {
       const { extractor, generate } = extractorReturning([]);
 
-      await extractor.extract({ context, fresh, cards });
+      await extractor.extract({ context, fresh, cards, members });
 
       expect(String(generate.mock.calls[0]?.[0]?.prompt)).toContain(
         "c1. Send INC the proposal: Jo sends INC the proposal on Friday. (owner: Jo)",
@@ -193,7 +327,12 @@ describe("ChannelActionItemExtractor", () => {
         ],
       });
 
-      const { updates } = await extractor.extract({ context, fresh, cards });
+      const { updates } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+        members,
+      });
 
       expect(updates).toEqual([
         {
@@ -201,10 +340,8 @@ describe("ChannelActionItemExtractor", () => {
           title: "Send INC the proposal",
           text: "Niels sends INC the proposal on Monday.",
           owner: {
-            identity: { kind: "user", userId: "usr_niels" },
-            interfaceType: "discord",
-            role: "user",
-            displayName: "Niels",
+            name: "Niels Ward",
+            assignee: { name: "Niels Ward", id: "user:usr_niels" },
           },
           sourcePosition: 11,
           source: freshMessage(0),
@@ -225,7 +362,12 @@ describe("ChannelActionItemExtractor", () => {
         ],
       });
 
-      const { updates } = await extractor.extract({ context, fresh, cards });
+      const { updates } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+        members,
+      });
 
       expect(updates[0]?.owner).toBe("unchanged");
     });
@@ -239,6 +381,7 @@ describe("ChannelActionItemExtractor", () => {
         context,
         fresh,
         cards,
+        members,
       });
 
       expect(withdrawals).toEqual([
@@ -268,6 +411,7 @@ describe("ChannelActionItemExtractor", () => {
         context,
         fresh,
         cards,
+        members,
       });
 
       expect(updates.map((update) => update.cardId)).toEqual([
@@ -290,7 +434,9 @@ describe("ChannelActionItemExtractor", () => {
         withdrawals: [{ card: "c1", message: 10 }],
       });
 
-      expect(await extractor.extract({ context, fresh, cards })).toEqual({
+      expect(
+        await extractor.extract({ context, fresh, cards, members }),
+      ).toEqual({
         items: [],
         updates: [],
         withdrawals: [],

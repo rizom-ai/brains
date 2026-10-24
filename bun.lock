@@ -154,6 +154,7 @@
       "version": "0.2.0-alpha.582",
       "dependencies": {
         "@brains/action-items": "workspace:*",
+        "@brains/auth-service": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/conversation-service": "workspace:*",
