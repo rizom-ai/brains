@@ -64,6 +64,7 @@ describe("the action_item_create tool", () => {
         title: "Work on the innovation hub plan",
         details: "Niels is drafting the innovation hub plan.",
         assignee: "nobody",
+        due: "none",
       },
       inChannel,
     );
@@ -94,7 +95,7 @@ describe("the action_item_create tool", () => {
     const context = brain();
 
     await tool(context).handler(
-      { title: "Work on the innovation hub plan", assignee: "me" },
+      { title: "Work on the innovation hub plan", assignee: "me", due: "none" },
       inChannel,
     );
 
@@ -108,7 +109,7 @@ describe("the action_item_create tool", () => {
     const context = brain();
 
     await tool(context).handler(
-      { title: "Book the venue", assignee: "jo" },
+      { title: "Book the venue", assignee: "jo", due: "none" },
       inChannel,
     );
 
@@ -122,7 +123,7 @@ describe("the action_item_create tool", () => {
     const context = brain();
 
     const result = await tool(context).handler(
-      { title: "Book the venue" },
+      { title: "Book the venue", due: "none" },
       inChannel,
     );
 
@@ -130,11 +131,37 @@ describe("the action_item_create tool", () => {
     expect(await cards(context)).toEqual([]);
   });
 
+  it("gives the card the due date asked for", async () => {
+    const context = brain();
+
+    const result = await tool(context).handler(
+      { title: "Book the venue", assignee: "jo", due: "2026-10-30" },
+      inChannel,
+    );
+
+    expect(result).toMatchObject({ success: true });
+    const [card] = await cards(context);
+    expect(card?.metadata.dueDate).toBe("2026-10-30");
+  });
+
+  it("refuses a due date that is not a date, saying what today is", async () => {
+    const context = brain();
+
+    const result = await tool(context).handler(
+      { title: "Book the venue", assignee: "jo", due: "Friday" },
+      inChannel,
+    );
+
+    expect(result).toMatchObject({ success: false });
+    expect(JSON.stringify(result)).toContain("2026-10-23");
+    expect(await cards(context)).toEqual([]);
+  });
+
   it("refuses an assignee who is not a member, adding nothing", async () => {
     const context = brain();
 
     const result = await tool(context).handler(
-      { title: "Book the venue", assignee: "Natalie" },
+      { title: "Book the venue", assignee: "Natalie", due: "none" },
       inChannel,
     );
 
@@ -146,7 +173,7 @@ describe("the action_item_create tool", () => {
     const context = brain();
 
     await tool(context).handler(
-      { title: "Book the venue", assignee: "nobody" },
+      { title: "Book the venue", assignee: "nobody", due: "none" },
       {
         interfaceType: "mcp",
         actor: { kind: "user", userId: "usr_jo" },

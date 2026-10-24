@@ -32,7 +32,27 @@ const inputSchema = z.object({
     .describe(
       'Who should do it: "nobody" unless the request names someone; a member\'s name when it does; "me" only when the caller says they will do it themselves.',
     ),
+  due: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      'When it is due, as YYYY-MM-DD, when the request names a date (resolve "Friday" from today); "none" when it names none. Never guess a date.',
+    ),
 });
+
+/** The value that leaves a card without a due date. */
+const NO_DUE_DATE = "none";
+
+/** A real calendar date as YYYY-MM-DD, or undefined. */
+function isoDate(value: string): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+    ? undefined
+    : value;
+}
 
 /** A brain member a card can be assigned to; `id` is the member's user id. */
 export interface ActionItemCreateMember {
@@ -113,7 +133,16 @@ export function createActionItemCreateTool(
           error: `Invalid input: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`,
         };
       }
-      const { title, details, assignee } = parsed.data;
+      const { title, details, assignee, due } = parsed.data;
+      const dueDate =
+        due.toLowerCase() === NO_DUE_DATE ? undefined : isoDate(due);
+      if (due.toLowerCase() !== NO_DUE_DATE && !dueDate) {
+        const today = (deps.now?.() ?? new Date()).toISOString().slice(0, 10);
+        return {
+          success: false,
+          error: `"${due}" is not a date. Give the due date as YYYY-MM-DD (today is ${today}), or "none".`,
+        };
+      }
       const member = await assigneeOf(assignee, toolContext, deps.members);
       if (member && "error" in member) {
         return { success: false, error: member.error };
@@ -128,6 +157,7 @@ export function createActionItemCreateTool(
           title,
           text: details ?? "",
           assignee: member,
+          dueDate,
           actor: toolContext.actor,
           actorName: toolContext.displayName,
           origin: originOf(toolContext),
@@ -136,9 +166,7 @@ export function createActionItemCreateTool(
       return {
         success: true,
         data: { id },
-        message: member
-          ? `Added "${title}" for ${member.name}.`
-          : `Added "${title}".`,
+        message: `Added "${title}"${member ? ` for ${member.name}` : ""}${dueDate ? `, due ${dueDate}` : ""}.`,
       };
     },
   };

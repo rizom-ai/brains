@@ -23,6 +23,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         assignee: "me"
+        due: "none"
     - toolName: system_create
       shouldBeCalled: false
   responseNotContains:
