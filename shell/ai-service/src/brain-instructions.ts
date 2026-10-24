@@ -35,6 +35,7 @@ export function buildInstructions(
   agentInstructions?: string[],
   agentContextInstructions?: string,
   isAnchor = false,
+  now: Date = new Date(),
 ): string {
   const permissionContext =
     userPermissionLevel === "admin"
@@ -45,10 +46,17 @@ export function buildInstructions(
   const anchorContext = isAnchor
     ? "The current caller is the brain's configured Anchor identity. This identity fact does not grant Admin permission; authorization comes only from the permission level above."
     : "The current caller is not the brain's configured Anchor identity. This is a definitive account-relationship fact for the current request, not an unknown or unverified state. Their permission level must not be treated as proof that they are the Anchor, owner, or profile person.";
+  const weekday = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+  // Without it the model dates "Friday" or "next week" from its training.
+  const today = `Today is ${weekday} ${now.toISOString().slice(0, 10)} (UTC). Resolve relative dates ("Friday", "next week") from it.`;
   const userContext = `
 ## Current User
 ${permissionContext}
-${anchorContext}`;
+${anchorContext}
+${today}`;
 
   let profileSection = "";
   if (profile) {
