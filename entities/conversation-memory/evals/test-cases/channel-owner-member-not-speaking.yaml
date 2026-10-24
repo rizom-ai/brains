@@ -17,7 +17,7 @@ input:
   messages:
     - speaker: Jo
       userId: usr_jo
-      content: Niels told me this morning he will send INC the proposal on Friday.
+      content: Niels told me this morning he will send INC the proposal on Monday.
     - speaker: Jo
       userId: usr_jo
       content: So that is covered.

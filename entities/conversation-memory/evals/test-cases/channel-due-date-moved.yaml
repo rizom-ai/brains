@@ -1,0 +1,43 @@
+id: channel-action-items-due-date-moved
+name: Moves an own card's due date when a later message does
+description: >-
+  Jo's proposal card is due on 28 October. Jo now says it will be Monday
+  2 November. The pickup updates the card's due date and keeps its owner.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  processedThrough: 2
+  members:
+    - Jo
+    - Niels
+  cards:
+    - title: Send INC the proposal
+      text: Jo sends INC the proposal by Wednesday.
+      owner: Jo
+      dueDate: "2026-10-28"
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Someone needs to send INC the proposal.
+    - speaker: Jo
+      userId: usr_jo
+      content: I'll send it to them by Wednesday.
+    - speaker: Jo
+      userId: usr_jo
+      content: INC asked for the new numbers first, so the proposal moves to Monday 2 November.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0
+    - path: updates[0].card
+      equals: card-1
+    - path: updates[0].due
+      equals: "2026-11-02"
+    - path: withdrawals[0]
+      exists: false

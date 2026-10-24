@@ -43,6 +43,7 @@ interface Card {
   /** When the conversation it came from ended. */
   capturedDaysAgo?: number;
   assignee?: string;
+  dueDate?: string;
 }
 
 function daysAgo(days: number): string {
@@ -61,6 +62,7 @@ async function brain(cards: Card[]): Promise<ServicePluginContext> {
       capturedAt: daysAgo(card.capturedDaysAgo ?? 5),
       status: card.status,
       ...(card.assignee ? { assignedTo: [{ name: card.assignee }] } : {}),
+      ...(card.dueDate ? { dueDate: card.dueDate } : {}),
     };
     await context.entityService.createEntity({
       entity: {
@@ -105,7 +107,9 @@ const itemSchema = z.looseObject({
   id: z.string(),
   title: z.string(),
   metadata: z.array(z.string()).optional(),
-  badges: z.array(z.object({ label: z.string() })).optional(),
+  badges: z
+    .array(z.object({ label: z.string(), tone: z.string().optional() }))
+    .optional(),
   links: z
     .array(z.object({ label: z.string(), target: z.unknown() }))
     .optional(),
@@ -272,6 +276,48 @@ describe("the Board workspace", () => {
     expect(card?.metadata).toContain("Sam Rivera");
     expect(card?.metadata).toContain("#events");
   });
+  it("shows when a card is due, next to who is on it", async () => {
+    const registration = await registered(
+      await brain([
+        {
+          id: "c",
+          text: "Book the venue",
+          status: "open",
+          assignee: "Sam Rivera",
+          dueDate: "2026-10-20",
+        },
+      ]),
+    );
+    const [card] = column(await board(registration), "open");
+    if (!card) throw new Error("The card is not on the board");
+    expect(card.metadata?.slice(0, 2)).toEqual(["Sam Rivera", "due Oct 20"]);
+    expect(card.badges).toBeUndefined();
+  });
+
+  it("marks a card still to do past its due date overdue, never a finished one", async () => {
+    const registration = await registered(
+      await brain([
+        {
+          id: "a",
+          text: "Book the venue",
+          status: "open",
+          dueDate: "2026-10-10",
+        },
+        {
+          id: "b",
+          text: "Send the deck",
+          status: "done",
+          dueDate: "2026-10-10",
+        },
+      ]),
+    );
+    const view = await board(registration);
+    expect(column(view, "open")[0]?.badges).toEqual([
+      { label: "Overdue", tone: "warn" },
+    ]);
+    expect(column(view, "done")[0]?.badges).toBeUndefined();
+  });
+
   it("opens a card in place and links it to its editor and source summary", async () => {
     const registration = await registered(
       await brain([{ id: "a", text: "Draft the checklist", status: "open" }]),
@@ -294,6 +340,7 @@ describe("the Board workspace", () => {
           text: "Book the venue",
           status: "blocked",
           assignee: "Sam Rivera",
+          dueDate: "2026-10-20",
         },
       ]),
     );
@@ -307,6 +354,7 @@ describe("the Board workspace", () => {
     expect(open).toContain('"id":"card-text","text":"Book the venue"');
     expect(open).not.toContain("# Action item");
     expect(open).toContain('"label":"Assigned to"');
+    expect(open).toContain('{"label":"Due","value":"Oct 20"}');
     expect(open).not.toContain("History");
     expect(open).toContain("Sam Rivera");
     expect(open).toContain('"label":"Add a note"');

@@ -78,6 +78,7 @@ const evalChannelInputSchema = z.object({
         title: z.string().min(1),
         text: z.string().min(1),
         owner: z.string().min(1).optional(),
+        dueDate: z.iso.date().optional(),
       }),
     )
     .default([]),
@@ -246,6 +247,7 @@ export function registerChannelActionItems(
           text: item.text,
           message: item.sourcePosition,
           owner: item.owner?.name ?? "nobody",
+          due: item.dueDate ?? "none",
         })),
         updates: updates.map((update) => ({
           card: update.cardId,
@@ -254,6 +256,7 @@ export function registerChannelActionItems(
           message: update.sourcePosition,
           owner:
             typeof update.owner === "string" ? update.owner : update.owner.name,
+          due: update.dueDate,
         })),
         withdrawals: withdrawals.map((withdrawal) => ({
           card: withdrawal.cardId,

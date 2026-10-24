@@ -1,3 +1,4 @@
+import { formatShortDate } from "@brains/action-items";
 import {
   SPACE_NOTICE_VALUE_LIMIT,
   type SpaceNoticeContent,
@@ -38,7 +39,13 @@ function undoLabel(title: string): string {
 type NoticeCard = ChannelNotice["cards"][number];
 
 function cardLine(card: NoticeCard): string {
-  const named = card.owner ? `${card.title} · ${card.owner}` : card.title;
+  const named = [
+    card.title,
+    card.owner,
+    card.dueDate ? `due ${formatShortDate(card.dueDate)}` : undefined,
+  ]
+    .filter((part) => part !== undefined)
+    .join(" · ");
   if (card.undo?.outcome === "removed") {
     return `~~${card.title}~~ · removed by ${card.undo.by}`;
   }

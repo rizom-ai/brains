@@ -379,6 +379,19 @@ describe("picking up a channel's action items", () => {
     expect(card?.metadata.channelName).toBe("executive-room");
   });
 
+  it("gives a card the due date the messages named", async () => {
+    const { context, deps, found } = brain();
+    found([{ ...item(2, jo, "Send INC the proposal"), dueDate: "2026-10-28" }]);
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+
+    const [card] = await cards(context);
+    expect(card?.metadata.dueDate).toBe("2026-10-28");
+    expect((await bookmark(deps))?.notices?.[0]?.cards[0]?.dueDate).toBe(
+      "2026-10-28",
+    );
+  });
+
   it("assigns a card to the member the messages name", async () => {
     const { context, deps, found } = brain();
     found([
@@ -533,6 +546,7 @@ describe("revising the channel's own cards", () => {
             name: "Niels",
             assignee: { name: "Niels", id: "user:usr_niels" },
           },
+          dueDate: "unchanged",
           sourcePosition: 6,
           source: source(6, messages),
         },
@@ -561,6 +575,32 @@ describe("revising the channel's own cards", () => {
         },
       ],
     });
+  });
+
+  it("moves a card's due date when a later message does", async () => {
+    const { context, deps, revised, messages } = await withCard();
+    revised({
+      updates: [
+        {
+          cardId: CARD,
+          title: "Send INC the proposal",
+          text: "Send INC the proposal.",
+          owner: "unchanged",
+          dueDate: "2026-11-02",
+          sourcePosition: 6,
+          source: source(6, messages),
+        },
+      ],
+      withdrawals: [],
+    });
+
+    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+
+    const [card] = await cards(context);
+    expect(card?.metadata.dueDate).toBe("2026-11-02");
+    expect(card?.metadata.assignedTo).toEqual([
+      { name: "Jo", id: "user:usr_jo" },
+    ]);
   });
 
   it("withdraws a card a later message calls off, for good", async () => {

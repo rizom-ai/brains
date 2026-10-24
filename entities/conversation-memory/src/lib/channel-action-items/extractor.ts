@@ -51,6 +51,8 @@ export interface OwnCard {
   text: string;
   /** Its owner's name, when it has one. */
   owner?: string | undefined;
+  /** When it is due (YYYY-MM-DD), when it has a due date. */
+  dueDate?: string | undefined;
 }
 
 /** An action item the new messages commit to. */
@@ -62,6 +64,8 @@ export interface FoundActionItem {
   source: Message;
   /** Who will do it, when the messages name someone. */
   owner?: FoundOwner | undefined;
+  /** When it is due (YYYY-MM-DD), when the messages name a date. */
+  dueDate?: string | undefined;
 }
 
 /** A change the new messages make to one of the channel's own cards. */
@@ -71,6 +75,8 @@ export interface FoundUpdate {
   text: string;
   /** The owner now: a participant, nobody, or the card's owner as it was. */
   owner: FoundOwner | typeof NOBODY | typeof UNCHANGED;
+  /** The due date now: a date, none, or the card's as it was. */
+  dueDate: string | typeof NONE | typeof UNCHANGED;
   sourcePosition: number;
   source: Message;
 }
@@ -90,6 +96,35 @@ export interface ChannelExtractionResult {
 
 const NOBODY = "nobody";
 const UNCHANGED = "unchanged";
+const NONE = "none";
+
+/** A real calendar date as YYYY-MM-DD; anything else is no date. */
+function isoDate(value: string | undefined): string | undefined {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+    ? undefined
+    : value;
+}
+
+/** A message's day as the model reads it: weekday and date, e.g. "Fri 2026-10-23". */
+function dayOf(timestamp: string): string | undefined {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return undefined;
+  const weekday = date.toLocaleDateString("en-US", {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+  return `${weekday} ${date.toISOString().slice(0, 10)}`;
+}
+
+/** The one day all the messages were written on, if there is one. */
+function singleDay(messages: PositionedMessage[]): string | undefined {
+  const days = new Set(messages.map(({ message }) => dayOf(message.timestamp)));
+  const [day] = days;
+  return days.size === 1 ? day : undefined;
+}
 
 interface Participant {
   ref: string;
@@ -171,12 +206,14 @@ function titleKey(title: string): string {
 function formatLines(
   messages: PositionedMessage[],
   participants: Map<string, Participant>,
+  datedLines: boolean,
 ): string {
   if (messages.length === 0) return "(none)";
   return messages
     .map(({ position, message, withBrain }) => {
       const participant = participants.get(speakerKey(message));
-      return `${position}. ${participant?.label ?? message.role} (${participant?.ref ?? "?"})${withBrain ? " [with the brain]" : ""}: ${message.content}`;
+      const day = datedLines ? dayOf(message.timestamp) : undefined;
+      return `${position}. ${day ? `[${day}] ` : ""}${participant?.label ?? message.role} (${participant?.ref ?? "?"})${withBrain ? " [with the brain]" : ""}: ${message.content}`;
     })
     .join("\n");
 }
@@ -186,7 +223,7 @@ function formatCards(cards: OwnCard[]): string {
   return cards
     .map(
       (card, index) =>
-        `c${index + 1}. ${card.title}: ${card.text}${card.owner ? ` (owner: ${card.owner})` : ""}`,
+        `c${index + 1}. ${card.title}: ${card.text}${card.owner ? ` (owner: ${card.owner})` : ""}${card.dueDate ? ` (due ${card.dueDate})` : ""}`,
     )
     .join("\n");
 }
@@ -195,13 +232,23 @@ function buildPrompt(
   input: ChannelActionItemExtractionInput,
   participants: Map<string, Participant>,
 ): string {
-  return `Find the action items in the new messages of a team channel.
+  // Dates resolve "Friday" and "end of the month": once when every message
+  // is of one day, per message when they span days.
+  const day = singleDay([...input.context, ...input.fresh]);
+  const dated = day === undefined;
+  return `Find the action items in the new messages of a team channel.${
+    day
+      ? `
+
+The messages were written on ${day}.`
+      : ""
+  }
 
 Earlier messages (context only; never cite them):
-${formatLines(input.context, participants)}
+${formatLines(input.context, participants, dated)}
 
 New messages:
-${formatLines(input.fresh, participants)}
+${formatLines(input.fresh, participants, dated)}
 
 Open cards this channel already has:
 ${formatCards(input.cards)}
@@ -212,28 +259,31 @@ A message marked [with the brain] is a request to the brain or its answer;
 the brain acts on those itself, so never cite one.
 
 An action item is concrete work someone commits to, is asked to do, or the
-group agrees needs doing. Questions, opinions, thanks, chatter, and reports of
-work already done are not action items.
+group agrees needs doing; a report that someone will do something is one too,
+for them. Questions, opinions, thanks, chatter, and reports of work already
+done are not action items.
 
 For each action item in the new messages return:
 - title: a short imperative title, at most 80 characters, in the language of the messages;
 - text: one sentence saying what is to be done, by whom when someone takes it on;
 - message: the number of the new message that states it;
-- owner: who will do it: a participant (p1, p2, …), a member of the brain by name when the messages name them, or "${NOBODY}" when no one takes it on.
+- owner: who will do it: a participant (p1, p2, …), a member of the brain by name when the messages name them, or "${NOBODY}" when no one takes it on. Whoever raises the work is not its owner unless they take it on.
+- due: the date it is due as YYYY-MM-DD when the messages name one, resolving words like "Friday" or "end of the month" from the date of the message that says them; "${NONE}" when no date is named. Never guess a date.
 Return each task once, however often the messages state it.
 
-When a new message changes one of the open cards (someone else takes it over,
-a new date or scope), return it under updates:
+When a new message says the work of an open card is no longer needed or
+already done, return it under withdrawals with the card (c1, c2, …) and the
+message. A card that is called off is withdrawn, never updated.
+
+When a new message changes the work of an open card that goes on (someone else
+takes it over, a new date or scope), return it under updates:
 - card: the card (c1, c2, …);
 - title and text: the whole card as it now reads;
 - owner: who will do it now (a participant or a member by name), "${NOBODY}", or "${UNCHANGED}" to keep its owner;
+- due: the due date now as YYYY-MM-DD, "${NONE}" to take it away, or "${UNCHANGED}" to keep it;
 - message: the number of the new message that changes it.
 A change of owner is only an update: the work goes on, so never withdraw the
 card for it and never add its work again as a new action item.
-
-An update is for work that goes on. When a new message says the work of an
-open card is no longer needed or already done, return it under withdrawals
-with the card and the message, never as an update.
 
 Never return the work of an open card as a new action item.
 
@@ -301,10 +351,20 @@ export class ChannelActionItemExtractor {
       // A task is added once: not again when the batch repeats it, nor when
       // the channel already has an open card for it.
       const known = new Set(input.cards.map((card) => titleKey(card.title)));
+      // A message that changes or calls off one of the channel's cards is
+      // about that card: a new item citing it repeats the card.
+      const revising = new Set(
+        [...result.updates, ...result.withdrawals]
+          .filter(
+            (revision) =>
+              cards.has(revision.card) && fresh.has(revision.message),
+          )
+          .map((revision) => revision.message),
+      );
       const items = result.items.flatMap((item): FoundActionItem[] => {
         const source = fresh.get(item.message);
         const key = titleKey(item.title);
-        if (!source || known.has(key)) return [];
+        if (!source || known.has(key) || revising.has(item.message)) return [];
         known.add(key);
         return [
           {
@@ -313,10 +373,11 @@ export class ChannelActionItemExtractor {
             sourcePosition: item.message,
             source,
             owner: item.owner === NOBODY ? undefined : ownerOf(item.owner),
+            dueDate: isoDate(item.due),
           },
         ];
       });
-      const updates = result.updates.flatMap((update): FoundUpdate[] => {
+      const found = result.updates.flatMap((update): FoundUpdate[] => {
         const source = fresh.get(update.message);
         const card = cards.get(update.card);
         if (!source || !card) return [];
@@ -330,11 +391,22 @@ export class ChannelActionItemExtractor {
             title: update.title,
             text: update.text,
             owner,
+            dueDate:
+              update.due === NONE ? NONE : (isoDate(update.due) ?? UNCHANGED),
             sourcePosition: update.message,
             source,
           },
         ];
       });
+      // A card changed twice in one batch ends as its latest message says.
+      const updates = found.filter(
+        (update) =>
+          !found.some(
+            (other) =>
+              other.cardId === update.cardId &&
+              other.sourcePosition > update.sourcePosition,
+          ),
+      );
       // A card the same messages change goes on with its new owner or
       // scope, so a withdrawal of it alongside the change is dropped.
       const changed = new Set(updates.map((update) => update.cardId));

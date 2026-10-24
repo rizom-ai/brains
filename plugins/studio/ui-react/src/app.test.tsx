@@ -245,6 +245,15 @@ describe("Field", () => {
     expect(html).toContain('value="2026-07-11T14:30"');
   });
 
+  it("renders ISO dates with a native date control", () => {
+    const html = renderField(
+      { name: "dueDate", label: "Due date", widget: "date" },
+      "2026-10-30",
+    );
+    expect(html).toContain('type="date"');
+    expect(html).toContain('value="2026-10-30"');
+  });
+
   it("renders primitive string lists as removable tags", () => {
     const html = renderField(
       {

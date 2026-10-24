@@ -20,6 +20,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         assignee: "nobody"
+        due: "none"
     - toolName: system_create
       shouldBeCalled: false
   responseContains:

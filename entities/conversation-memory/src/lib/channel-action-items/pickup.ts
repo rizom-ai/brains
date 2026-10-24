@@ -35,6 +35,7 @@ type ChannelNoticeSchema = z.ZodObject<{
       id: z.ZodString;
       title: z.ZodString;
       owner: z.ZodOptional<z.ZodString>;
+      dueDate: z.ZodOptional<z.ZodString>;
       sourceMessageId: z.ZodOptional<z.ZodString>;
       change: z.ZodOptional<
         z.ZodEnum<{ updated: "updated"; withdrawn: "withdrawn" }>
@@ -60,6 +61,8 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
       id: z.string().min(1),
       title: z.string().min(1),
       owner: z.string().min(1).optional(),
+      /** When the card is due, as YYYY-MM-DD. */
+      dueDate: z.string().min(1).optional(),
       /** The chat message the card was found in, to pin. */
       sourceMessageId: z.string().min(1).optional(),
       /** What the batch did to an own card; absent for a card it added. */
@@ -293,6 +296,7 @@ async function ownCards(
         title: actionItemTitle(entity),
         text: actionItemText(entity),
         owner: assignee?.name,
+        dueDate: entity.metadata.dueDate,
         assignee: assignee?.id
           ? { name: assignee.name, id: assignee.id }
           : undefined,
@@ -399,6 +403,7 @@ export async function pickUpChannelActionItems(
           title: item.title,
           text: item.text,
           assignee: item.owner?.assignee,
+          dueDate: item.dueDate,
           ...speakerOf(item),
           origin,
         },
@@ -425,11 +430,18 @@ export async function pickUpChannelActionItems(
             ? { name: undefined, assignee: undefined }
             : update.owner;
       const assignee = owner.assignee;
+      const dueDate =
+        update.dueDate === "unchanged"
+          ? card.dueDate
+          : update.dueDate === "none"
+            ? undefined
+            : update.dueDate;
       const revised = await reviseActionItem(writer, {
         id: card.id,
         title: update.title,
         text: update.text,
         assignee,
+        dueDate,
       });
       if (revised.status !== "revised") return done;
       const sourceMessageId = sourceMessageIdOf(update);
@@ -439,6 +451,7 @@ export async function pickUpChannelActionItems(
           id: card.id,
           title: update.title,
           ...(owner.name ? { owner: owner.name } : {}),
+          ...(dueDate ? { dueDate } : {}),
           ...(sourceMessageId ? { sourceMessageId } : {}),
           change: "updated" as const,
         },
@@ -482,6 +495,7 @@ export async function pickUpChannelActionItems(
         id,
         title: item.title,
         ...(owner ? { owner } : {}),
+        ...(item.dueDate ? { dueDate: item.dueDate } : {}),
         ...(sourceMessageId ? { sourceMessageId } : {}),
       };
     });
