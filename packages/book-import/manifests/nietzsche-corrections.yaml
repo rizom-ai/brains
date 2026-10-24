@@ -25,11 +25,6 @@ werk17niet:
     by: scan
 
   - page: 1
-    from: "in der Samfnlung begegnen. Sieht"
-    to: "in der Sammlung begegnen. Sieht"
-    by: reference
-
-  - page: 1
     from: "Spruchsammlung."
     to: ""
     by: scan
@@ -52,11 +47,6 @@ werk17niet:
   - page: 9
     from: "eingeschoben. Die anderﬂ"
     to: "eingeschoben. Die andern"
-    by: reference
-
-  - page: 10
-    from: "ohne Jjegliche Veranderung."
-    to: "ohne Jjegliche Veränderung."
     by: reference
 
   - page: 13
@@ -15312,4 +15302,1110 @@ werk17niet:
   - page: 110
     from: "Athen. 556b Arist. Ran. Schol. 1539. ;Anthol. I. 44. 4."
     to: "Athen. 556b Arist. Ran. Schol. 1539. Anthol. I. 44. 4."
+    by: scan
+
+  - page: 1
+    from: "mehrere Gnomen oder, richtiger gesagt,. Fragmente zwei-"
+    to: "mehrere Gnomen oder, richtiger gesagt, Fragmente zwei-"
+    by: scan
+
+  - page: 1
+    from: "mal in der Samfnlung begegnen. Sieht er genauer zu, So"
+    to: "mal in der Sammlung begegnen. Sieht er genauer zu, so"
+    by: scan
+
+  - page: 1
+    from: "findet er, dass der bei weitem grösste Theil derart1ger"
+    to: "findet er, dass der bei weitem grösste Theil derartiger"
+    by: scan
+
+  - page: 1
+    from: "W1ederholungen von den neueren Herausgebern aus dem"
+    to: "Wiederholungen von den neueren Herausgebern aus dem"
+    by: scan
+
+  - page: 1
+    from: "in Wiederholungen. nichts Neues kennen. Vielleicht auch"
+    to: "in Wiederholungen nichts Neues kennen. Vielleicht auch"
+    by: scan
+
+  - page: 1
+    from: "mit Unrecht: denn mitunter lernen wir durch Sie. Es"
+    to: "mit Unrecht: denn mitunter lernen wir durch sie. Es"
+    by: scan
+
+  - page: 1
+    from: "nicht geschehen ;"
+    to: "nicht geschehen."
+    by: scan
+
+  - page: 1
+    from: ". Wäre zum Beispiel nachgew1esen dass diese Wieder-"
+    to: "Wäre zum Beispiel nachgewiesen, dass diese Wieder-"
+    by: scan
+
+  - page: 1
+    from: "‚. Wie aber, wenn es umgekehrt stände, wenn in der Jüngsten"
+    to: "Wie aber, wenn es umgekehrt stände, wenn in der jüngsten"
+    by: scan
+
+
+  - page: 2
+    from: "durch die beste und älteste Handschrift, den Cod. Mutinensiis,"
+    to: "durch die beste und älteste Handschrift, den Cod. Mutinensis,"
+    by: scan
+
+  - page: 2
+    from: "sind, sondern einzelne Worte, Strukturen, Ja ganze Verse"
+    to: "sind, sondern einzelne Worte, Strukturen, ja ganze Verse"
+    by: scan
+
+  - page: 2
+    from: "varliren. Unsere Herausgeber entscheiden sich für eine"
+    to: "variiren. Unsere Herausgeber entscheiden sich für eine"
+    by: scan
+
+  - page: 2
+    from: "doppelter Fassung iin den Text kommen konnte. Bevor"
+    to: "doppelter Fassung in den Text kommen konnte. Bevor"
+    by: scan
+
+  - page: 2
+    from: ". vorhanden, die Wiederholungen aus dem Texte zu ent-"
+    to: "vorhanden, die Wiederholungen aus dem Texte zu ent-"
+    by: scan
+
+  - page: 2
+    from: "Unsere Theognishandschriften!) schwanken, wie ge-"
+    to: "Unsere Theognishandschriften1) schwanken, wie ge-"
+    by: scan
+
+  - page: 2
+    from: "sagt, bedeutend in der Zahl dieser Wiederholungen.. Bevor"
+    to: "sagt, bedeutend in der Zahl dieser Wiederholungen. Bevor"
+    by: scan
+
+  - page: 2
+    from: "D D D L D L LL L L L L — D LLL"
+    to: ""
+    by: scan
+
+  - page: 2
+    from: "stark verschiedene Familien, deren eine durch ‘ den einzigen"
+    to: "stark verschiedene Familien, deren eine durch den einzigen"
+    by: scan
+
+  - page: 2
+    from: "Cod. A repräsentirt wird. .Diese höchst wichtige Pariser"
+    to: "Cod. A repräsentirt wird. Diese höchst wichtige Pariser"
+    by: scan
+
+  - page: 2
+    from: "Herren C. Wescher in Pariis und A. Wilmanns in Rom."
+    to: "Herren C. Wescher in Paris und A. Wilmanns in Rom."
+    by: scan
+
+  - page: 2
+    from: "' D. Red.]"
+    to: "D. Red.]"
+    by: scan
+
+  - page: 2
+    from: "x"
+    to: ""
+    by: scan
+
+  - page: 2
+    from: "n"
+    to: ""
+    by: scan
+
+  - page: 3
+    from: "Cod. Mutinensis?) genannt wird, stammt aus dem zehnten"
+    to: "Cod. Mutinensis2) genannt wird, stammt aus dem zehnten"
+    by: scan
+
+  - page: 3
+    from: "schrift Θεόγνιδος ἐλεγείων οἱ, den zweiten auf S. /l rechts"
+    to: "schrift Θεόγνιδος ἐλεγείων ά, den zweiten auf S. 71 rechts"
+    by: scan
+
+  - page: 3
+    from: "mit ἦ· ἐλεγείων B. Diesen zweiten Theil, eine Sammlung"
+    to: "mit † ἐλεγείων B. Diesen zweiten Theil, eine Sammlung"
+    by: scan
+
+  - page: 3
+    from: "von päderastischen Distichen, enthält sie allein νοῃ ειΠεη"
+    to: "von päderastischen Distichen, enthält sie allein von allen"
+    by: scan
+
+  - page: 3
+    from: "Codd. ‘ Die einzelnen Sentenzen werden in ihr nicht unter-"
+    to: "Codd. Die einzelnen Sentenzen werden in ihr nicht unter-"
+    by: scan
+
+  - page: 3
+    from: "findet sich auch εἰηε Ιεηείῃίεεὴε Interlinearübersetzung ἰῃ /"
+    to: "findet sich auch eine lateinische Interlinearübersetzung in"
+    by: scan
+
+  - page: 3
+    from: "der Handschrift, ungefähr aus dem Ende des 13. ]ahr-"
+    to: "der Handschrift, ungefähr aus dem Ende des 13. Jahr-"
+    by: scan
+
+  - page: 3
+    from: "ὴηηᾶετῒε, und zwar über folgenden Versen:"
+    to: "hunderts, und zwar über folgenden Versen:"
+    by: scan
+
+  - page: 3
+    from: "Χῖ. 1—256."
+    to: "V. 1—256."
+    by: scan
+
+  - page: 3
+    from: "Χῖ. 269—274,"
+    to: "V. 269—274."
+    by: scan
+
+  - page: 3
+    from: "Χῖ. 1231—1236."
+    to: "V. 1231—1236."
+    by: scan
+
+  - page: 3
+    from: "Als Probe dieser Uebersetzung diene Χῖ. 251:"
+    to: "Als Probe dieser Uebersetzung diene V. 251:"
+    by: scan
+
+  - page: 3
+    from: "οῑῃῃὼυε iovis quibus c[ur]ae e[st] et fut[ur]is 1[d est] fama ."
+    to: "omnibus iovis quibus c[ur]ae e[st] et fut[ur]is i[d est] fama"
+    by: scan
+
+  - page: 3
+    from: "πᾶσι διὸς οἷσι μέμηλε καὶ ἐσσομένοισιν ἀοιῧηῖ."
+    to: "πᾶσι διὸς οἷσι μέμηλε καὶ ἐσσομένοισιν ἀοιδηῖ."
+    by: scan
+
+  - page: 3
+    from: "ςεεςὴτίεὴεῃ zu sein. Fast ihre εὲὶῐῃῐῃῒΙίεὴεη Irrthümer und"
+    to: "geschrieben zu sein. Fast ihre sämmtlichen Irrthümer und"
+    by: scan
+
+  - page: 3
+    from: "einen durchaus lesbaren Text den 1rgend ein Grammat1ker"
+    to: "einen durchaus lesbaren Text, den irgend ein Grammatiker"
+    by: scan
+
+  - page: 3
+    from: "festgestellt hatte. Deshalb hat O. Schneider in Zimmer- ‘"
+    to: "festgestellt hatte. Deshalb hat O. Schneider in Zimmer-"
+    by: scan
+
+  - page: 3
+    from: "ιῃεῑῃῃε Zeitschr. f. Alterthw. 1838, S. 933 und ῃᾶςὴ ihm"
+    to: "manns Zeitschr. f. Alterthw. 1838, S. 933 und nach ihm"
+    by: scan
+
+  - page: 3
+    from: "— einige Interpolationen aufmerksam gemacht. Diese Sach-"
+    to: "einige Interpolationen aufmerksam gemacht. Diese Sach-"
+    by: scan
+
+  - page: 3
+    from: "lage hat Rintelen de Theogn. Megaren31 Münster 1863"
+    to: "lage hat Rintelen de Theogn. Megarensi, Münster 1863,"
+    by: scan
+
+  - page: 3
+    from: "S, 19 verkannt."
+    to: "S. 19 verkannt."
+    by: scan
+
+  - page: 3
+    from: "Ξὲὶῃῃῃῠίεὴε andern Handschr1ften gehen d1rect oder"
+    to: "Sämmtliche andern Handschriften gehen direct oder"
+    by: scan
+
+  - page: 3
+    from: "1nd1rect auf einen gemeinsamen Archetypos®) zurück, der"
+    to: "indirect auf einen gemeinsamen Archetypos3) zurück, der"
+    by: scan
+
+  - page: 3
+    from: "5) Die Grundzüge für eine Scheidung der Handschriftengruppen"
+    to: "3) Die Grundzüge für eine Scheidung der Handschriftengruppen"
+    by: scan
+
+  - page: 3
+    from: "im Rhein. Museum N. Ἠ. 3, S. 206 ff. gegeben. Bemerkungen dazu"
+    to: "im Rhein. Museum N. F. 3, S. 206 ff. gegeben. Bemerkungen dazu"
+    by: scan
+
+  - page: 3
+    from: "von Schneidewin im angef, Aufsatz."
+    to: "von Schneidewin im angef. Aufsatz."
+    by: scan
+
+  - page: 3
+    from: "1 %"
+    to: ""
+    by: scan
+
+  - page: 4
+    from: "besser gewesen wären als Cod. O und ΚΘ)."
+    to: "besser gewesen wären als Cod. O und K4)."
+    by: scan
+
+  - page: 4
+    from: "13. Jahrhunderts. Auf Jjeder Seite zwei Columnen von"
+    to: "13. Jahrhunderts. Auf jeder Seite zwei Columnen von"
+    by: scan
+
+  - page: 4
+    from: "hält. Theognis beginnt in der Mitte von f. 25\" und ist so"
+    to: "hält. Theognis beginnt in der Mitte von f. 25r und ist so"
+    by: scan
+
+  - page: 4
+    from: "34 Doppelzeilen, auf der ersten, fol. 257 deren achtzehn."
+    to: "34 Doppelzeilen, auf der ersten, fol. 25r deren achtzehn."
+    by: scan
+
+  - page: 4
+    from: "staben roth punktirt; dies beginnt mit V.815. Ausserdem"
+    to: "staben roth punktirt; dies beginnt mit V. 815. Ausserdem"
+    by: scan
+
+  - page: 4
+    from: "ἐνίοις γράφεται ί·κ.ς((’]ὃΰς’. Das hat aber K allein von den uns bekannten"
+    to: "ἐνίοις γράφεται ‘καδδύς’. Das hat aber K allein von den uns bekannten"
+    by: scan
+
+  - page: 4
+    from: "ut tria Venetiis exemplaria nancisceretur'. Das waren vielleicht"
+    to: "ut tria Venetiis exemplaria nancisceretur’. Das waren vielleicht"
+    by: scan
+
+  - page: 5
+    from: "S B a E E e wg SAr"
+    to: "— 5 —"
+    by: scan
+
+  - page: 5
+    from: "; steht vor folgenden Versen ‘[7’;.\\‚_‚ (also γνώμη); 694. 697."
+    to: "steht vor folgenden Versen Γων (also γνώμη): 694. 697."
+    by: scan
+
+  - page: 5
+    from: "K dagegen, Cod. Ven; Marcianus Nr. 522 ist: eine"
+    to: "K dagegen, Cod. Ven. Marcianus Nr. 522 ist eine"
+    by: scan
+
+  - page: 5
+    from: "dagegen durch ein unsinniges y’ ὄτταν verdeckt. V. 104"
+    to: "dagegen durch ein unsinniges γ’ ὅτταν verdeckt. V. 104"
+    by: scan
+
+  - page: 5
+    from: "macht jene grobe Hand aus rod μεγάλου δοῦναι Ü£hei, Was"
+    to: "macht jene grobe Hand aus τοῦ μεγάλου δοῦναι θέλει, was"
+    by: scan
+
+  - page: 5
+    from: "O hät, δοῦναι θέλει 7£ μέγας die richtige Lesart ist tob"
+    to: "O hat, δοῦναι θέλει τὸ μέγα; die richtige Lesart ist τοῦ"
+    by: scan
+
+  - page: 5
+    from: "μεταδοῦν 80gkoi. V. 632 steht in .O gegen das Metrum"
+    to: "μεταδοῦν ἐθέλοι. V. 632 steht in O gegen das Metrum"
+    by: scan
+
+  - page: 5
+    from: "κόρνε xal.‘ Also auch im Archetypos. Der librarius von"
+    to: "κύρνε καὶ. Also auch im Archetypos. Der librarius von"
+    by: scan
+
+  - page: 5
+    from: "K will den Fehler corrigiren und conJicirt aus KAI ein"
+    to: "K will den Fehler corrigiren und conjicirt aus ΚΑΙ ein"
+    by: scan
+
+  - page: 5
+    from: "JIAAY, ’a5, ‚was‘ natürlich Unsinn ist. Ebenso machte er"
+    to: "ΙΔΑΥ, ἰδ’αὖ, was natürlich Unsinn ist. Ebenso machte er"
+    by: scan
+
+  - page: 5
+    from: "dem Metrum zu genügen, πάντα ve ἐξαπίνης. Aus den an-"
+    to: "dem Metrum zu genügen, πάντα γε ἐξαπίνης. Aus den an-"
+    by: scan
+
+  - page: 5
+    from: "/ _schatzen - -"
+    to: "schätzen."
+    by: scan
+
+  - page: 5
+    from: "‚Ob I, Nr. 520 derselben Bibliothek, eine Papierhand-"
+    to: "Ob I, Nr. 520 derselben Bibliothek, eine Papierhand-"
+    by: scan
+
+  - page: 5
+    from: "schrift desselben 15. Jahrhunderts, nur eine Abschrift von. -"
+    to: "schrift desselben 15. Jahrhunderts, nur eine Abschrift von"
+    by: scan
+
+  - page: 5
+    from: "Collation von Bekker bekannt sind®), müssen als directe"
+    to: "Collation von Bekker bekannt sind5), müssen als directe"
+    by: scan
+
+  - page: 5
+    from: ".. Theognis 1620 mangelhaft verglichen hat, scheinen dieser Classe an-"
+    to: "Theognis 1620 mangelhaft verglichen hat, scheinen dieser Classe an-"
+    by: scan
+
+  - page: 5
+    from: "zugehören. 1 N"
+    to: "zugehören."
+    by: scan
+
+  - page: 6
+    from: "gebildet. -"
+    to: "gebildet."
+    by: scan
+
+  - page: 6
+    from: "B Pariser®) Papierhandschrift Nr. 2008, einst in Fon-"
+    to: "B Pariser6) Papierhandschrift Nr. 2008, einst in Fon-"
+    by: scan
+
+  - page: 6
+    from: "‚rechts. Sie scheint am Ende des 15. Jahrhunderts ge-"
+    to: "rechts. Sie scheint am Ende des 15. Jahrhunderts ge-"
+    by: scan
+
+  - page: 6
+    from: "rothe und ausser der Reihe stehende Initialen :von ein-"
+    to: "rothe und ausser der Reihe stehende Initialen von ein-"
+    by: scan
+
+  - page: 6
+    from: "ander getrennt. ."
+    to: "ander getrennt."
+    by: scan
+
+  - page: 6
+    from: "rechts bis fol. 197 rechts. H endlich Cod. Parisin., Nr. 2891"
+    to: "rechts bis fol. 197 rechts. H endlich Cod. Parisin. Nr. 2891"
+    by: scan
+
+  - page: 6
+    from: "dem Titel /"
+    to: "dem Titel"
+    by: scan
+
+  - page: 6
+    from: "ΘΕΦΓΞΙΔΦΣ INQM9ASTIA"
+    to: "ΘΕΟΓΞΙΔΟΣ ΓΝΩΜΟΛΟΓΙΑ"
+    by: scan
+
+  - page: 6
+    from: "also Θεόγξιὸος γνωμολογία. Dies Versehen scheint, wie Herr"
+    to: "also Θεόγξιδος γνωμολογία. Dies Versehen scheint, wie Herr"
+    by: scan
+
+  - page: 6
+    from: "war. Denn damals wurde N also geschrieben M. Daher"
+    to: "war. Denn damals wurde N also geschrieben H. Daher"
+    by: scan
+
+  - page: 6
+    from: "im Besitz der Medici gewesen zu Ssein, '"
+    to: "im Besitz der Medici gewesen zu sein."
+    by: scan
+
+  - page: 6
+    from: "e °) Ueber diese wie überhaupt über sämmtliche Pariser Theognis-"
+    to: "6) Ueber diese wie überhaupt über sämmtliche Pariser Theognis-"
+    by: scan
+
+  - page: 7
+    from: "942. 952. Vielmehr ‘ benutzte sie eine Handschrift, die nicht"
+    to: "942. 952. Vielmehr benutzte sie eine Handschrift, die nicht"
+    by: scan
+
+  - page: 7
+    from: "Cod. L steht. Vgl. 936..1066. 889. 1090. 1212. ."
+    to: "Cod. L steht. Vgl. 936. 1066. 889. 1090. 1212."
+    by: scan
+
+  - page: 7
+    from: "sprungs. in der Auslassung von χρόνος V.967, οἷον V. 898."
+    to: "sprungs in der Auslassung von χρόνος V. 967, οἷον V. 898."
+    by: scan
+
+  - page: 7
+    from: "Sie stellen V. 816 «al vor κωτίλλειν. V. 605 ἄνδρας vor %ön ."
+    to: "Sie stellen V. 816 καὶ vor κωτίλλειν. V. 605 ἄνδρας vor ἤδη."
+    by: scan
+
+  - page: 7
+    from: "Sie haben beide V. 157 u&v yap für γοίρ τοι u. s. w. L ist"
+    to: "Sie haben beide V. 157 μὲν γὰρ für γάρ τοι u. s. w. L ist"
+    by: scan
+
+  - page: 7
+    from: "E Cod. Paris. Nr. 2833 ist eine Pergamenthandschrift aus’"
+    to: "E Cod. Paris. Nr. 2833 ist eine Pergamenthandschrift aus"
+    by: scan
+
+  - page: 7
+    from: ". deren Abzeichen sie trägt. Sie enthält den Theoc*n13 von"
+    to: "deren Abzeichen sie trägt. Sie enthält den Theognis von"
+    by: scan
+
+  - page: 7
+    from: "Sentenzen nicht, ebenso wenig wie.L”7)."
+    to: "Sentenzen nicht, ebenso wenig wie L7)."
+    by: scan
+
+  - page: 7
+    from: "Eine dr1tte Gruppe. wird von G und C geb1]det"
+    to: "Eine dritte Gruppe wird von G und C gebildet."
+    by: scan
+
+  - page: 7
+    from: "κόσμῳ für εὐκόσμως. V. 284 συνημοσῦνη für φιλημοσύνη."
+    to: "κόσμῳ für εὐκόσμως. V. 284 συνημοσύνη für φιλημοσύνη."
+    by: scan
+
+  - page: 7
+    from: "V. 311 φέρειν T für φέροι td. V. 453 ἀνίης für. dvolns."
+    to: "V. 311 φέρειν τὰ für φέροι τά. V. 453 ἀνίης für ἀνοίης."
+    by: scan
+
+  - page: 7
+    from: "V. 465 ela . pro wik*,. omisso . ἵστω. V.. 477 δείξω für %Ew."
+    to: "V. 465 φίλα pro φιλ·, omisso ἵστω. V. 477 δείξω für ἥξω."
+    by: scan
+
+  - page: 7
+    from: "V. 551 τανυπτερύγεσσι für_ ταχυπτέρνοισι etc. C Cod. Paris."
+    to: "V. 551 τανυπτερύγεσσι für ταχυπτέρνοισι etc. C Cod. Paris."
+    by: scan
+
+  - page: 7
+    from: "_.dem Titel Θεόγνιδος Μεγαρέως Σικελιώτου γνῶμαι . ἐλεγειακαὶ"
+    to: "dem Titel Θεόγνιδος Μεγαρέως Σικελιώτου γνῶμαι ἐλεγειακαὶ"
+    by: scan
+
+  - page: 7
+    from: "') Brunck sagt in seiner praef. ad Gnom. 1784 ‘illam (Theognidis"
+    to: "7) Brunck sagt in seiner praef. ad Gnom. 1784 ‘illam (Theognidis"
+    by: scan
+
+  - page: 7
+    from: "Einen dieser vier nennt er zu V. 382 genauer Ms. Par, 2803. Das ist"
+    to: "Einen dieser vier nennt er zu V. 382 genauer Ms. Par. 2803. Das ist"
+    by: scan
+
+  - page: 7
+    from: "scheiden die Sentenzen nur BD auf den ersten fol. auch E, F aber"
+    to: "scheiden die Sentenzen nur BD, auf den ersten fol. auch E, F aber"
+    by: scan
+
+  - page: 8
+    from: "edit., nach C abgedruckt, vgl. V. 122 ψεδνός. Χῖ. 142 κας"
+    to: "edit., nach C abgedruckt, vgl. V. 122 ψεδνός. V. 142 κας"
+    by: scan
+
+  - page: 8
+    from: "φέτερον. Χῖ. 193 οὖσαν. Χῖ. 198 γὰρ μόνιμον. Χῖ. 204 γίνονται."
+    to: "φέτερον. V. 193 οὖσαν. V. 198 γὰρ μόνιμον. V. 204 γίνονται."
+    by: scan
+
+  - page: 8
+    from: "Χῖ. 236 λύειν ὡς πόλεως τείχοι ἀλωσαμένης. Χῖ. 285 ἐτέλει."
+    to: "V. 236 λύειν ὡς πόλεως τείχοι ἀλωσαμένης. V. 285 ἐτέλει."
+    by: scan
+
+  - page: 8
+    from: "Χῖ. 308 ἕτοιμα etc. Die Aldina ist wieder den verschiedenen"
+    to: "V. 308 ἐτοιμα etc. Die Aldina ist wieder den verschiedenen"
+    by: scan
+
+  - page: 8
+    from: "Juntinis zu Grunde gelegt. V.12 ἔπλει. Χῖ. 66 ἔστ’. Χῖ. 74."
+    to: "Juntinis zu Grunde gelegt. V. 12 ἔπλει. V. 66 ἔστ’. V. 74."
+    by: scan
+
+  - page: 8
+    from: "152 θέμενος. Χῖ. 285 ἐτέλει. Elias Vinetus benutzte zu seiner‘"
+    to: "152 θέμενος. V. 285 ἐτέλει. Elias Vinetus benutzte zu seiner"
+    by: scan
+
+  - page: 8
+    from: "Handschriften ausser CG haben eben dieses ἔστω. Vegl."
+    to: "Handschriften ausser CG haben eben dieses ἔστω. Vgl."
+    by: scan
+
+  - page: 8
+    from: "noch Χῖ. 1001. - Turnebus hat 1553 in den γνωμολογίαι"
+    to: "noch V. 1001. Turnebus hat 1553 in den γνωμολογίαι"
+    by: scan
+
+  - page: 8
+    from: "παλαιοτάτων ποιητῶν auch den I’heognis herausgegeben und"
+    to: "παλαιοτάτων ποιητῶν auch den Theognis herausgegeben und"
+    by: scan
+
+  - page: 8
+    from: "muthung erscheinen möchte. V.516 edirt er Ζεῦ φίλος &v,"
+    to: "muthung erscheinen möchte. V. 516 edirt er Ζεῦ φίλος ὢν,"
+    by: scan
+
+  - page: 8
+    from: "genau nach G. Χῖ. 506 schreibt er πειρήσω n1cht nach"
+    to: "genau nach G. V. 506 schreibt er πειρήσω nicht nach"
+    by: scan
+
+  - page: 8
+    from: "nach einem Marginalglossem von.G. So hat er ἀγγάλλεται"
+    to: "nach einem Marginalglossem von G. So hat er ἀγγάλλεται"
+    by: scan
+
+  - page: 8
+    from: "V. 531, ὃιαπρήσσουσι V. 553, beides mit G gemeinsam."
+    to: "V. 531, διαπρήσσουσι V. 553, beides mit G gemeinsam."
+    by: scan
+
+  - page: 8
+    from: "m n"
+    to: "x\nA x1\nO K\nx2 interpol.\nM N\nB\nD E L\nF H C G"
+    by: scan
+
+  - page: 8
+    from: "OK"
+    to: ""
+    by: scan
+
+  - page: 8
+    from: "x2 interpol."
+    to: ""
+    by: scan
+
+  - page: 8
+    from: "Ἥ-Ξ 2 mw EL"
+    to: ""
+    by: scan
+
+  - page: 8
+    from: "CG"
+    to: ""
+    by: scan
+
+  - page: 9
+    from: "In den angeführten Handschriften finden sich, wie zu"
+    to: "— 9 —\nIn den angeführten Handschriften finden sich, wie zu"
+    by: scan
+
+  - page: 9
+    from: ". ΞΠ bedeutender Zahlversch1edenhe1t Unsere Ausgaben ent-"
+    to: "in bedeutender Zahlverschiedenheit. Unsere Ausgaben ent-"
+    by: scan
+
+  - page: 9
+    from: "ᾖαΙῒεΠ nur noch folgende:"
+    to: "halten nur noch folgende:"
+    by: scan
+
+  - page: 9
+    from: "Χῖ. 39—40 ννίῑά Χῖ. 1081—-—82 wiederholt: jedoch. dit-"
+    to: "V. 39—40 wird V. 1081—82 wiederholt: jedoch dif-"
+    by: scan
+
+  - page: 9
+    from: "feriren die Ρεηῒειῑῃεῒεῑ"
+    to: "feriren die Pentameter"
+    by: scan
+
+  - page: 9
+    from: "‚40 εὐθυντῆρα κακῆς ὕβριος ἡμετέρης."
+    to: "40 εὐθυντῆρα κακῆς ὕβριος ἡμετέρης."
+    by: scan
+
+  - page: 9
+    from: "1082 ὑβριστὴν, χαλεπῆς ἡγεμόνα GtdoLOS."
+    to: "1082 ὑβριστὴν, χαλεπῆς ἡγεμόνα στάσιος."
+    by: scan
+
+  - page: 9
+    from: "Χῖ. 1081—82 om:.CG. Χῖ. 41—42 werden nach Χῖ. 1082"
+    to: "V. 1081—82 om. CG. V. 41—42 werden nach V. 1082"
+    by: scan
+
+  - page: 9
+    from: "von AOK bdfhmn Wiederh01t"
+    to: "von AOK bdfhmn wiederholt."
+    by: scan
+
+  - page: 9
+    from: "V. 41 ἔθ’ οἵδε — Χῖ. 1082 ἔασι."
+    to: "V. 41 ἔθ’ οἵδε — V. 1082 ἔασι."
+    by: scan
+
+  - page: 9
+    from: "Χῖ. 57—60 im Wesentlichen gleich 1109—14. - Ein"
+    to: "V. 57—60 im Wesentlichen gleich 1109—14. Ein"
+    by: scan
+
+  - page: 9
+    from: "Verse sind umgearbeitet. '"
+    to: "Verse sind umgearbeitet."
+    by: scan
+
+  - page: 9
+    from: "57 καὶ νῦν εἶ’σ’ ἀγαθοὶ, Πολυπαίὸη· οἱ δὲ πρὶν ἐσθλοὶ"
+    to: "57 καὶ νῦν εἴσ’ ἀγαθοὶ, Πολυπαΐδη· οἱ δὲ πρὶν ἐσθλοὶ"
+    by: scan
+
+  - page: 9
+    from: "— νῦν δειλοί. τίς κεν ταῦτ’ ἀνέχοιτ’ ἐσορῶν;"
+    to: "νῦν δειλοί. τίς κεν ταῦτ’ ἀνέχοιτ’ ἐσορῶν;"
+    by: scan
+
+  - page: 9
+    from: "11109 Κόρν’ οἱ πρόσθ’ ἀγαθοὶ νῦν αὖ κακοὶ, ol δὲ κακοὶ πρὶν"
+    to: "1109 Κύρν’ οἱ πρόσθ’ ἀγαθοὶ νῦν αὖ κακοὶ, οἱ δὲ κακοὶ πρὶν"
+    by: scan
+
+  - page: 9
+    from: "νῦν ἀγαθοί. τίς κεν ταῦτ’ ἀνέχοιτ’ ἐσορῶνς"
+    to: "νῦν ἀγαθοί. τίς κεν ταῦτ’ ἀνέχοιτ’ ἐσορῶν;"
+    by: scan
+
+  - page: 9
+    from: "59 ἀλλήλους 6° ἀπατῶσιν ἐπ’ ἀλλήλοισι γελῶντες"
+    to: "59 ἀλλήλους δ’ ἀπατῶσιν ἐπ’ ἀλλήλοισι γελῶντες"
+    by: scan
+
+  - page: 9
+    from: ".' 0 οὔτ’ ἀγαθῶν μνήμην εἰδότες οὔτε κακῶν."
+    to: "οὔτ’ ἀγαθῶν μνήμην εἰδότες οὔτε κακῶν."
+    by: scan
+
+  - page: 9
+    from: "V.213—18 wird Χῖ. 1071—74 wiederholt. Aenderungen"
+    to: "V. 213—18 wird V. 1071—74 wiederholt. Aenderungen:"
+    by: scan
+
+  - page: 9
+    from: "für θυμὲ — κόρνε,"
+    to: "für θυμὲ — κύρνε,"
+    by: scan
+
+  - page: 9
+    from: "συμμίσγων ὀργὴν οἷος ἕκαστος ἔφυ. |"
+    to: "συμμίσγων ὀργὴν οἷος ἕκαστος ἔφυ."
+    by: scan
+
+  - page: 9
+    from: "Χῖ. 215—16 ist in der V1ederholung ausgelassen"
+    to: "V. 215—16 ist in der Wiederholung ausgelassen"
+    by: scan
+
+  - page: 9
+    from: "für γίγνεται ἀτροπίης — καὶ μεγάλης dper ἀρετῆς."
+    to: "für γίγνεται ἀτροπίης — καὶ μεγάλης ἀρετῆς."
+    by: scan
+
+  - page: 9
+    from: "Χῖ. 209—10 wird 509—10- wiederholt"
+    to: "V. 209—10 wird 509—10 wiederholt"
+    by: scan
+
+  - page: 9
+    from: "für olvöv. τοι πίνειν πουλὺν κακὸν — οἶνος πινόμενος"
+    to: "für οἶνόν τοι πίνειν πουλὺν κακὸν — οἶνος πινόμενος"
+    by: scan
+
+  - page: 9
+    from: "| πουλὺς κακὸν."
+    to: "πουλὺς κακὸν,"
+    by: scan
+
+  - page: 9
+    from: "für 00 xaxds ἀλλ’ ἀγαθὸς — οὐ κακὸν ἀλλ’ ἀγαθόν."
+    to: "für οὐ κακὸς ἀλλ’ ἀγαθὸς — οὐ κακὸν ἀλλ’ ἀγαθόν."
+    by: scan
+
+  - page: 9
+    from: "Χῖ. 409—10 wird Χῖ. 1161—62 wiederholt"
+    to: "V. 409—10 wird V. 1161—62 wiederholt"
+    by: scan
+
+  - page: 9
+    from: "ἄμεινον n | - '"
+    to: "ἄμεινον"
+    by: scan
+
+  - page: 10
+    from: "für αἰδοῦς Hr ἀγαθοῖς ἀνδράσι Köpv’ ἕπεται- — altodow"
+    to: "für αἰδοῦς ἧτ’ ἀγαθοῖς ἀνδράσι Κύρν’ ἕπεται — αἰτοῦσιν"
+    by: scan
+
+  - page: 10
+    from: "ö’ dyadois ἀνδράσι Κύρνε δίδου."
+    to: "δ’ ἀγαθοῖς ἀνδράσι Κύρνε δίδου."
+    by: scan
+
+  - page: 10
+    from: "für πολλοί τοι πόσιος xal βρώσιος εἰσιν é1:oupm — πολλοὶ"
+    to: "für πολλοί τοι πόσιος καὶ βρώσιός εἰσιν ἑταῖροι — πολλοὶ"
+    by: scan
+
+  - page: 10
+    from: "Täp κρητῆρι φίλοι γίγνονται ἑταῖροι."
+    to: "πὰρ κρητῆρι φίλοι γίγνονται ἑταῖροι."
+    by: scan
+
+  - page: 10
+    from: "V. 301 — 1353"
+    to: "V. 301 = 1353"
+    by: scan
+
+  - page: 10
+    from: ". V. 597 =— 1243"
+    to: "V. 597 = 1243"
+    by: scan
+
+  - page: 10
+    from: "für dtdp t’ — ἔπειτ."
+    to: "für ἀτάρ τ’ — ἔπειτ."
+    by: scan
+
+  - page: 10
+    from: "V. 1086 == 1238."
+    to: "V. 1086 = 1238."
+    by: scan
+
+  - page: 10
+    from: "Hierzu kommen die Wiederholungen, die 91ch in unseren"
+    to: "Hierzu kommen die Wiederholungen, die sich in unseren"
+    by: scan
+
+  - page: 10
+    from: "Ausgaben der Po. Ilyr. - —"
+    to: "Ausgaben der Po. lyr."
+    by: scan
+
+  - page: 10
+    from: "für οὐδείς τοι — 00X%: ἔστιν,"
+    to: "für οὐδείς τοι — οὐχ ἔστιν,"
+    by: scan
+
+  - page: 10
+    from: "für ηβώοις — τέρπεὸ μοι."
+    to: "für ἡβώοις — τέρπεό μοι."
+    by: scan
+
+  - page: 10
+    from: "V. 853—54 nach 1038 ohne Jjegliche Veranderung."
+    to: "V. 853—54 nach 1038 ohne jegliche Veränderung."
+    by: scan
+
+  - page: 10
+    from: "für ἄλλη — ἄλλας."
+    to: "für ἄλλη — ἄλλας,"
+    by: scan
+
+  - page: 10
+    from: "für % ue φίλει ἀμφαδίην — ἀλλὰ φίλει ἐμφανέως."
+    to: "für ἤ με φίλει ἀμφαδίην — ἀλλὰ φίλει ἐμφανέως."
+    by: scan
+
+  - page: 10
+    from: "/ V. 571—72 von AO bdefhlmn nach 1104"
+    to: "V. 571—72 von AO bdefhlmn nach 1104"
+    by: scan
+
+  - page: 10
+    from: "für dyad@v — dyadol."
+    to: "für ἀγαθῶν — ἀγαθοί."
+    by: scan
+
+  - page: 10
+    from: "V. 619—20 von AOK mn nach 1114 -"
+    to: "V. 619—20 von AOK lmn nach 1114"
+    by: scan
+
+  - page: 10
+    from: "für πόλλ’ &v ἀμηχανίησι — πόλλα &’ ἀμηχανίησι,"
+    to: "für πόλλ’ ἐν ἀμηχανίῃσι — πόλλα δ’ ἀμηχανίῃσι,"
+    by: scan
+
+  - page: 10
+    from: "für ἄκρην ydp πενίην — ἀρχὴν Yap πενίης."
+    to: "für ἄκρην γὰρ πενίην — ἀρχὴν γὰρ πενίης."
+    by: scan
+
+  - page: 10
+    from: "V. 1095—96 von AOK bdefghlmn 'nach 1160"
+    to: "V. 1095—96 von AOK bdefghlmn nach 1160"
+    by: scan
+
+  - page: 10
+    from: "für σκέπτεο ÖN vDv ἄλλον — ὦ νέοι Ol vOv ἄνδρες."
+    to: "für σκέπτεο δὴ νῦν ἄλλον — ὦ νέοι οἱ νῦν ἄνδρες."
+    by: scan
+
+  - page: 10
+    from: "für ἐπίδηλος — OK ἐπίδηλον."
+    to: "für ἐπίδηλος — OK ἐπίδηλον,"
+    by: scan
+
+  - page: 10
+    from: "‚ für ἔχων μίμνειν — ὁμῶς μίσγειν."
+    to: "für ἔχων μίμνειν — ὁμῶς μίσγειν."
+    by: scan
+
+  - page: 10
+    from: "Kle1nere Var1anten s. bei Bekker zu V. 441—46."
+    to: "Kleinere Varianten s. bei Bekker zu V. 441—46."
+    by: scan
+
+  - page: 11
+    from: "L E E ."
+    to: ""
+    by: scan
+
+  - page: 11
+    from: ". ἔστω φίλος."
+    to: "ἔστω φίλος."
+    by: scan
+
+  - page: 11
+    from: "für ἐν ἄλγεσι κείμενον ἄνδρα — &v ἄλγεσιν ἦτορ (OI\\"
+    to: "für ἐν ἄλγεσι κείμενον ἄνδρα — ἐν ἄλγεσιν ἦτορ (OK"
+    by: scan
+
+  - page: 11
+    from: "V 367—68 AO nach 1182, K nach 1186"
+    to: "V. 367—68 AO nach 1182, K nach 1186"
+    by: scan
+
+  - page: 11
+    from: "für οὐ δύναμαι γνῶναι νόον ἀστῶν — οἰστῶν δ’ οὐ δύναμαι"
+    to: "für οὐ δύναμαι γνῶναι νόον ἀστῶν — ἀστῶν δ’ οὐ δύναμαι"
+    by: scan
+
+  - page: 11
+    from: "'Aus dieser Aufzählung erg1ebt 31ch dass . A sammt-"
+    to: "Aus dieser Aufzählung ergiebt sich, dass A sämmt-"
+    by: scan
+
+  - page: 11
+    from: ". liche Wiederholungen der anderen ΕΟᾶὰ. und noch einige"
+    to: "liche Wiederholungen der anderen Codd. und noch einige"
+    by: scan
+
+  - page: 11
+    from: ". MNBDHF, dann EL, endlich GC. A hat 44 Verse mehr"
+    to: "MNBDHF, dann EL, endlich GC. A hat 44 Verse mehr"
+    by: scan
+
+  - page: 11
+    from: "als unsere Ausgaben‚ O 38, K 30, MN 26, DBFH 24,"
+    to: "als unsere Ausgaben, O 38, K 30, MN 26, DBFH 24,"
+    by: scan
+
+  - page: 11
+    from: "L 20, E 18, G 12, C 108).. Es lassen sich also genaue"
+    to: "L 20, E 18, G 12, C 108). Es lassen sich also genaue"
+    by: scan
+
+  - page: 11
+    from: "‚der Zahl ihrer Wiederholungen. Die Vermuthung iist wohl"
+    to: "der Zahl ihrer Wiederholungen. Die Vermuthung ist wohl"
+    by: scan
+
+  - page: 11
+    from: "' gerechtfertigt, dass auch A nicht alle Wiederholungen"
+    to: "gerechtfertigt, dass auch A nicht alle Wiederholungen"
+    by: scan
+
+  - page: 11
+    from: "‚ wiedergegeben hat, dass vielmehr der Auslassungsprozess ®)"
+    to: "wiedergegeben hat, dass vielmehr der Auslassungsprozess9)"
+    by: scan
+
+  - page: 11
+    from: "anders erklärt werden müssen, So hat z. B. Cod. L 4 mal 48. Verse"
+    to: "anders erklärt werden müssen. So hat z. B. Cod. L 4 mal 48 Verse"
+    by: scan
+
+  - page: 11
+    from: "geführten Erklärung, wenn bedefghimn V. 1185—86, GL 1155—56,"
+    to: "geführten Erklärung, wenn bcdefghlmn V. 1185—86, GL 1155—56,"
+    by: scan
+
+  - page: 11
+    from: "bcdefghlmn 937—38, CG 877—78 und 729, CGBN 730 auslassen‚ denn"
+    to: "bcdefghlmn 937—38, CG 877—78 und 729, CGBN 730 auslassen, denn"
+    by: scan
+
+  - page: 11
+    from: "alle diese Verse enthalten Wiederholungen. '"
+    to: "alle diese Verse enthalten Wiederholungen."
+    by: scan
+
+  - page: 12
+    from: ". gedreht und einzelne neue Wendungen eingereiht sind,"
+    to: "gedreht und einzelne neue Wendungen eingereiht sind,"
+    by: scan
+
+  - page: 12
+    from: "3. gedanklich veränderte. . Die beiden Hauptfragen sind"
+    to: "3. gedanklich veränderte. Die beiden Hauptfragen sind"
+    by: scan
+
+  - page: 12
+    from: "2. sind diese Veränderungen in den WVWieder-"
+    to: "2. sind diese Veränderungen in den Wieder-"
+    by: scan
+
+  - page: 12
+    from: "‘ rungen nicht,"
+    to: "rungen nicht."
+    by: scan
+
+  - page: 12
+    from: "wahrscheinlich. Sodann aber würde-.dies die oft starken"
+    to: "wahrscheinlich. Sodann aber würde dies die oft starken"
+    by: scan
+
+  - page: 12
+    from: "gesslichkeit noch einmal iin seine Sammlung einschrieb,"
+    to: "gesslichkeit noch einmal in seine Sammlung einschrieb,"
+    by: scan
+
+  - page: 12
+    from: "diese hinter einander 'abgeschrieben, unbesorgt, ob’‘ dasselbe"
+    to: "diese hinter einander abgeschrieben, unbesorgt, ob dasselbe"
+    by: scan
+
+  - page: 12
+    from: ". erklärt. Unsere Sammlung wäre dann ein Aggregat von"
+    to: "erklärt. Unsere Sammlung wäre dann ein Aggregat von"
+    by: scan
+
+  - page: 13
+    from: "E E S E B e E"
+    to: ""
+    by: scan
+
+  - page: 13
+    from: "— 3 —"
+    to: "— 13 —"
+    by: scan
+
+  - page: 13
+    from: "1195—96 nach 1160 wiederholt wird u. s.'w. u. s. w. So"
+    to: "1195—96 nach 1160 wiederholt wird u. s. w. u. s. w. So"
+    by: scan
+
+  - page: 13
+    from: "yvidetur. Auch Bergk S5. 405 denkt an einen zweiten Be-"
+    to: "videtur. Auch Bergk S. 405 denkt an einen zweiten Be-"
+    by: scan
+
+  - page: 13
+    from: "aneinander gereihten Gnomologien würde ihre Widerlegung . ‘"
+    to: "aneinander gereihten Gnomologien würde ihre Widerlegung"
+    by: scan
+
+  - page: 13
+    from: "Princip geordnet waren, bevor 31e zusamrnengeschr1eben"
+    to: "Princip geordnet waren, bevor sie zusammengeschrieben"
+    by: scan
+
+  - page: 13
+    from: "doppelt niedergeschrieben haben in dem Glauben, dass er"
+    to: "doppelt niedergeschrieben haben, in dem Glauben, dass er"
+    by: scan
+
+  - page: 13
+    from: "gab er andere Fragmente unverändert wieder ? |"
+    to: "gab er andere Fragmente unverändert wieder?"
+    by: scan
+
+  - page: 13
+    from: "zwungen oder wenigstens verleitet Wurde ein Fragment"
+    to: "zwungen oder wenigstens verleitet wurde, ein Fragment"
+    by: scan
+
+  - page: 13
+    from: "zweimal seiner Sammlung e1nzuverle1ben Wäre z. B. er-"
+    to: "zweimal seiner Sammlung einzuverleiben. Wäre z. B. er-"
+    by: scan
+
+  - page: 13
+    from: "wiesen, dass er nach Argumenten, etwa wiie Welcker, die"
+    to: "wiesen, dass er nach Argumenten, etwa wie Welcker, die"
+    by: scan
+
+  - page: 13
+    from: "Sentenzen geordnet hätte, so Ware es erklärlich, wenn eine"
+    to: "Sentenzen geordnet hätte, so wäre es erklärlich, wenn eine"
+    by: scan
+
+  - page: 13
+    from: "Sentenz, die von ὀργή und φρόνησις handelt, zuerst im Capitel -"
+    to: "Sentenz, die von ὀργή und φρόνησις handelt, zuerst im Capitel"
+    by: scan
+
+  - page: 13
+    from: "περὶ ὀργῆς, dann im Capitel περὶ φρονήσεως vorkäme. Hat"
+    to: "περὶ ὀργῆς, dann im Capitel περὶ φρονήσεως vorkäme. Hat"
+    by: scan
+
+  - page: 13
+    from: "vielleicht erkannte Princip die W1ederholungen sammt ihren"
+    to: "vielleicht erkannte Princip die Wiederholungen sammt ihren"
+    by: scan
+
+  - page: 13
+    from: "Veränderungen erklärt. ‚"
+    to: "Veränderungen erklärt."
+    by: scan
+
+  - page: 13
+    from: "Nach der herkömmlichen. Ansicht gibt es ein solches"
+    to: "Nach der herkömmlichen Ansicht gibt es ein solches"
+    by: scan
+
+  - page: 13
+    from: "Princip gar nicht.. Wie oft ist nicht unsere Sammlung"
+    to: "Princip gar nicht. Wie oft ist nicht unsere Sammlung"
+    by: scan
+
+  - page: 13
+    from: "eine‘ rudis indigestaque moles genannt worden. Niemand"
+    to: "eine rudis indigestaque moles genannt worden. Niemand"
+    by: scan
+
+  - page: 13
+    from: "aufzuzeigen. Selbst nach bestimmten Titeln,.z. B. περὶ"
+    to: "aufzuzeigen. Selbst nach bestimmten Titeln, z. B. περὶ"
+    by: scan
+
+  - page: 13
+    from: "φίλων, περὶ οἴνου u. s. W., kann sie nicht geordnet sein. Das"
+    to: "φίλων, περὶ οἴνου u. s. w., kann sie nicht geordnet sein. Das"
     by: scan
