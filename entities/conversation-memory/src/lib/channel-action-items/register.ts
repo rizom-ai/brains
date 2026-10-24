@@ -11,6 +11,7 @@ import {
   type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
+import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -173,6 +174,12 @@ export function registerChannelActionItems(
   const notices: ChannelNoticeDeps = {
     conversations: context.conversations,
     bookmarks,
+    cardExists: async (id): Promise<boolean> =>
+      (await context.entityService.getEntity({
+        entityType: ACTION_ITEM_ENTITY_TYPE,
+        id,
+        visibilityScope: "restricted",
+      })) !== null,
     post: async (request) => {
       const response = await context.messaging.send({
         type: CHAT_CHANNELS.spaceNotice,

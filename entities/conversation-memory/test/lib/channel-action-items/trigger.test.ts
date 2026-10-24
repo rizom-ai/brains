@@ -125,6 +125,8 @@ describe("the pickup job", () => {
       options: {
         deduplication: "skip",
         deduplicationKey: "channel-action-items:discord:1466",
+        // Its own operation, so its completion is published for the notice.
+        detached: true,
         source: "conversation-memory",
         metadata: {
           operationType: "data_processing",

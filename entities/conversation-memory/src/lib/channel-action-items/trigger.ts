@@ -38,6 +38,10 @@ export function channelPickupJob(conversationId: string): {
     options: {
       deduplication: "skip",
       deduplicationKey: key,
+      // Woken by a message, but not a step of handling it: detached, the
+      // job is its own operation, so its completion is published and the
+      // web process posts the notice.
+      detached: true,
       source: SUMMARY_PLUGIN_ID,
       metadata: {
         operationType: "data_processing",

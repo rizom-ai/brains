@@ -21,6 +21,8 @@ const LABEL_LIMIT = 80;
 export interface ChannelNoticeDeps {
   conversations: Pick<IConversationsNamespace, "get" | "list">;
   bookmarks: IRuntimeStateStore<ChannelBookmark>;
+  /** Whether a card is still on the board; one deleted since is not announced. */
+  cardExists: (id: string) => Promise<boolean>;
   /** Post a space notice; the posted message's id, or undefined when it failed. */
   post: (request: SpaceNoticeRequest) => Promise<string | undefined>;
   now?: () => Date;
@@ -126,8 +128,33 @@ async function postNotice(
   if (!claimed) return false;
 
   const latest = await deps.bookmarks.get(conversation.id);
-  const notice = latest?.notices?.find((candidate) => candidate.key === key);
-  if (!notice) return false;
+  const pending = latest?.notices?.find((candidate) => candidate.key === key);
+  if (!pending) return false;
+  // A card deleted since the batch is not announced; a withdrawn one is gone
+  // by design and still is. A notice with nothing left is dropped.
+  const present = await Promise.all(
+    pending.cards.map(
+      async (card) =>
+        card.change === "withdrawn" || (await deps.cardExists(card.id)),
+    ),
+  );
+  const notice = {
+    ...pending,
+    cards: pending.cards.filter((_card, index) => present[index]),
+  };
+  if (notice.cards.length === 0) {
+    await updateBookmark(deps.bookmarks, conversation.id, (b) =>
+      b
+        ? {
+            ...b,
+            notices: (b.notices ?? []).filter(
+              (candidate) => candidate.key !== key,
+            ),
+          }
+        : undefined,
+    );
+    return false;
+  }
   // A failed post is not lost: the notice stays pending (its claim is
   // released below) and the next drain, on the next batch or start, retries.
   const messageId = await deps
@@ -135,7 +162,9 @@ async function postNotice(
     .catch(() => undefined);
   await updateBookmark(deps.bookmarks, conversation.id, (b) =>
     withNotice(b, key, ({ postingAt: _postingAt, ...rest }) =>
-      messageId ? { ...rest, postedMessageId: messageId } : rest,
+      messageId
+        ? { ...rest, cards: notice.cards, postedMessageId: messageId }
+        : rest,
     ),
   );
   return messageId !== undefined;

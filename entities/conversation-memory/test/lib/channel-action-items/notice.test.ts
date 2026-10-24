@@ -43,8 +43,10 @@ const pending: ChannelNotice = {
 
 function deps(
   post: (request: SpaceNoticeRequest) => Promise<string | undefined>,
+  gone: string[] = [],
 ): ChannelNoticeDeps & { post: ReturnType<typeof mock> } {
   return {
+    cardExists: async (id) => !gone.includes(id),
     conversations: {
       get: async (id) => (id === ROOM ? room : null),
       list: async () => [room],
@@ -56,6 +58,36 @@ function deps(
 }
 
 describe("posting a channel's notices", () => {
+  it("leaves out a card no longer on the board", async () => {
+    const notices = deps(async () => "notice-message-1", ["card-1"]);
+    await notices.bookmarks.set(ROOM, {
+      processedThrough: 5,
+      notices: [pending],
+    });
+
+    await postPendingNotices(notices, ROOM);
+
+    expect(notices.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lines: ["Book the venue"],
+        actions: [{ label: "Undo: Book the venue", value: "card-2" }],
+      }),
+    );
+  });
+
+  it("drops a notice whose cards are all gone, posting nothing", async () => {
+    const notices = deps(async () => "notice-message-1", ["card-1", "card-2"]);
+    await notices.bookmarks.set(ROOM, {
+      processedThrough: 5,
+      notices: [pending],
+    });
+
+    expect(await postPendingNotices(notices, ROOM)).toBe(0);
+
+    expect(notices.post).not.toHaveBeenCalled();
+    expect((await notices.bookmarks.get(ROOM))?.notices).toEqual([]);
+  });
+
   it("posts each pending notice into its space and marks it posted", async () => {
     const notices = deps(async () => "notice-message-1");
     await notices.bookmarks.set(ROOM, {

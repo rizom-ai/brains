@@ -132,6 +132,12 @@ export interface JobOptions {
   /** Projection identity used to advance inherited causal provenance. */
   projection?: ProjectionJobContext;
   /**
+   * Start an operation of its own rather than join the one enqueuing it: the
+   * job is its own root. For background work an event merely wakes up, whose
+   * completion is reported for itself, not as a step of the event's handling.
+   */
+  detached?: boolean;
+  /**
    * Override rootJobId for batch child jobs
    * External callers should not use this - it's set automatically by the job queue service
    * Batch jobs use this to link child jobs to the parent batch
