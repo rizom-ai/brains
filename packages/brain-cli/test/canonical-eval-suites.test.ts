@@ -82,7 +82,7 @@ const catalogIds = [
 ];
 const expectedMembers: Record<SuiteName, string> = {
   headless:
-    "a2a agents ask-content directory-sync link mcp note profile prompt style-guide topics unified-inbox",
+    "a2a agents directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
     "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:

@@ -25,7 +25,6 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "profile",
     "prompt",
     "style-guide",
-    "ask-content",
     "directory-sync",
     "note",
     "link",
@@ -79,6 +78,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
   members: [
     "chat",
     "web-chat",
+    "ask-content",
     "email",
     "notifications",
     "conversation-memory",

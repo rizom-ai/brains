@@ -66,7 +66,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "prompt",
     "profile",
     "style-guide",
-    "ask-content",
     "note",
     "link",
     "topics",
