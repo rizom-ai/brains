@@ -1,0 +1,32 @@
+id: channel-action-items-due-date-named
+name: Gives a card the due date the messages name
+description: >-
+  On Friday 23 October Jo takes on the proposal "by Wednesday". The card is
+  due on Wednesday 28 October.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  members:
+    - Jo
+    - Niels
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Someone needs to send INC the proposal.
+    - speaker: Jo
+      userId: usr_jo
+      content: I'll send it to them by Wednesday.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].owner
+      equals: Jo
+    - path: items[0].due
+      equals: "2026-10-28"

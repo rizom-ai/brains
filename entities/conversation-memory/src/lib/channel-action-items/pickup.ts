@@ -400,6 +400,7 @@ export async function pickUpChannelActionItems(
           title: item.title,
           text: item.text,
           assignee: item.owner?.assignee,
+          dueDate: item.dueDate,
           ...speakerOf(item),
           origin,
         },
@@ -431,7 +432,12 @@ export async function pickUpChannelActionItems(
         title: update.title,
         text: update.text,
         assignee,
-        dueDate: card.dueDate,
+        dueDate:
+          update.dueDate === "unchanged"
+            ? card.dueDate
+            : update.dueDate === "none"
+              ? undefined
+              : update.dueDate,
       });
       if (revised.status !== "revised") return done;
       const sourceMessageId = sourceMessageIdOf(update);

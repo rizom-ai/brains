@@ -1,0 +1,29 @@
+id: channel-action-items-due-date-none
+name: Leaves a card without a due date when the messages name none
+description: >-
+  Jo takes on the pitch deck without saying when. The card gets no due date.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  members:
+    - Jo
+    - Niels
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: The pitch deck still has last year's numbers.
+    - speaker: Jo
+      userId: usr_jo
+      content: I'll update it with the new numbers.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].due
+      equals: none

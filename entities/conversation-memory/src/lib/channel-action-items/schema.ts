@@ -7,6 +7,7 @@ type ChannelActionItemExtractionSchema = z.ZodObject<{
       text: z.ZodString;
       message: z.ZodNumber;
       owner: z.ZodString;
+      due: z.ZodString;
     }>
   >;
   updates: z.ZodArray<
@@ -15,6 +16,7 @@ type ChannelActionItemExtractionSchema = z.ZodObject<{
       title: z.ZodString;
       text: z.ZodString;
       owner: z.ZodString;
+      due: z.ZodString;
       message: z.ZodNumber;
     }>
   >;
@@ -35,6 +37,7 @@ export const channelActionItemExtractionSchema: ChannelActionItemExtractionSchem
         text: z.string(),
         message: z.number().int(),
         owner: z.string().min(1),
+        due: z.string().min(1),
       }),
     ),
     /** Own cards the new messages change, each restated in full. */
@@ -44,6 +47,7 @@ export const channelActionItemExtractionSchema: ChannelActionItemExtractionSchem
         title: z.string().min(1).max(200),
         text: z.string(),
         owner: z.string().min(1),
+        due: z.string().min(1),
         message: z.number().int(),
       }),
     ),

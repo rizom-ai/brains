@@ -275,6 +275,74 @@ describe("ChannelActionItemExtractor", () => {
     expect(items).toEqual([]);
   });
 
+  it("dates the messages once when they are all of one day", async () => {
+    const { extractor, generate } = extractorReturning([]);
+
+    await extractor.extract({ context, fresh, cards: [], members });
+
+    expect(String(generate.mock.calls[0]?.[0]?.prompt)).toContain(
+      "The messages were written on Fri 2026-10-23.",
+    );
+  });
+
+  it("dates each message when they span days", async () => {
+    const { extractor, generate } = extractorReturning([]);
+    const later = said(14, jo, "Still on it.");
+    later.message.timestamp = "2026-10-26T09:00:00.000Z";
+
+    await extractor.extract({
+      context,
+      fresh: [...fresh, later],
+      cards: [],
+      members,
+    });
+
+    const prompt = String(generate.mock.calls[0]?.[0]?.prompt);
+    expect(prompt).toContain(
+      "10. [Fri 2026-10-23] Jo (p1): The INC meeting went well.",
+    );
+    expect(prompt).toContain("14. [Mon 2026-10-26] Jo (p1): Still on it.");
+  });
+
+  it("keeps the due date the messages name, and none otherwise", async () => {
+    const { extractor } = extractorReturning([
+      {
+        title: "Send INC the proposal",
+        text: "Jo sends INC the proposal by Wednesday.",
+        message: 12,
+        owner: "p1",
+        due: "2026-10-28",
+      },
+      {
+        title: "Book the venue",
+        text: "Book it.",
+        message: 11,
+        owner: "nobody",
+        due: "none",
+      },
+      {
+        title: "Plan the dinner",
+        text: "Plan it.",
+        message: 13,
+        owner: "nobody",
+        due: "next week",
+      },
+    ]);
+
+    const { items } = await extractor.extract({
+      context,
+      fresh,
+      cards: [],
+      members,
+    });
+
+    expect(items.map((item) => item.dueDate)).toEqual([
+      "2026-10-28",
+      undefined,
+      undefined,
+    ]);
+  });
+
   it("does not ask the model when there is nothing new", async () => {
     const { extractor, generate } = extractorReturning([]);
 
@@ -343,9 +411,36 @@ describe("ChannelActionItemExtractor", () => {
             name: "Niels Ward",
             assignee: { name: "Niels Ward", id: "user:usr_niels" },
           },
+          dueDate: "unchanged",
           sourcePosition: 11,
           source: freshMessage(0),
         },
+      ]);
+    });
+
+    it("moves, clears or keeps a changed card's due date", async () => {
+      const { extractor } = extractorReturning([], {
+        updates: ["2026-11-02", "none", "unchanged"].map((due) => ({
+          card: "c1",
+          title: "Send INC the proposal",
+          text: "Jo sends INC the proposal.",
+          owner: "unchanged",
+          due,
+          message: 12,
+        })),
+      });
+
+      const { updates } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+        members,
+      });
+
+      expect(updates.map((update) => update.dueDate)).toEqual([
+        "2026-11-02",
+        "none",
+        "unchanged",
       ]);
     });
 
@@ -391,6 +486,64 @@ describe("ChannelActionItemExtractor", () => {
           source: freshMessage(1),
         },
       ]);
+    });
+
+    it("adds no new card from a message that changes one of the channel's cards", async () => {
+      const { extractor } = extractorReturning(
+        [
+          {
+            title: "Send INC proposal",
+            text: "Niels sends the INC proposal on Monday.",
+            message: 11,
+            owner: "p2",
+            due: "none",
+          },
+        ],
+        {
+          updates: [
+            {
+              card: "c1",
+              title: "Send INC the proposal",
+              text: "Niels sends INC the proposal on Monday.",
+              owner: "p2",
+              due: "unchanged",
+              message: 11,
+            },
+          ],
+        },
+      );
+
+      const { items, updates } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+        members,
+      });
+
+      expect(items).toEqual([]);
+      expect(updates).toHaveLength(1);
+    });
+
+    it("keeps only the latest change to a card", async () => {
+      const { extractor } = extractorReturning([], {
+        updates: [12, 11].map((message) => ({
+          card: "c1",
+          title: "Send INC the proposal",
+          text: `Change from message ${message}.`,
+          owner: "unchanged",
+          due: "unchanged",
+          message,
+        })),
+      });
+
+      const { updates } = await extractor.extract({
+        context,
+        fresh,
+        cards,
+        members,
+      });
+
+      expect(updates.map((update) => update.sourcePosition)).toEqual([12]);
     });
 
     it("never withdraws a card the same messages hand to someone else", async () => {
