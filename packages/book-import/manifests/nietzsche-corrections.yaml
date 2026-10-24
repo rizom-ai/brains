@@ -164,34 +164,9 @@ werk17niet:
     to: "Groll, und er"
     by: reference
 
-  - page: 45
-    from: "beiden in emen zusammen : was"
-    to: "beiden in einen zusammen : was"
-    by: reference
-
-  - page: 50
-    from: "war die Iradition über die"
-    to: "war die Tradition über die"
-    by: reference
-
-  - page: 52
-    from: "an diesen Awusfall zu denken"
-    to: "an diesen Ausfall zu denken"
-    by: reference
-
   - page: 53
     from: "des Theognis best1mx_nte."
     to: "des Theognis bestimmte."
-    by: reference
-
-  - page: 53
-    from: "die Plutarch, Athenaus"
-    to: "die Plutarch, Athenäus,"
-    by: reference
-
-  - page: 53
-    from: "Volkmann’s habén"
-    to: "Volkmann’s haben"
     by: reference
 
   - page: 55
@@ -8547,4 +8522,1350 @@ werk17niet:
   - page: 124
     from: "quibus. postea Clemens Alexandrinus, Iustinus Martyr, Eu-"
     to: "quibus postea Clemens Alexandrinus, Iustinus Martyr, Eu-"
+    by: scan
+
+  - page: 42
+    from: "42 —"
+    to: "— 42 —"
+    by: scan
+
+  - page: 42
+    from: "S, V. (θέω ν"
+    to: "s. v. Θέων"
+    by: scan
+
+  - page: 42
+    from: "ἔγραψε τέχνην ῑ’·ἰ’ῑ’ψῑκ·”ιν ἀρχαίαν ἱστορίαν καὶ ἄλλα"
+    to: "ἔγραψε τέχνην ῥητορικὴν ἀρχαίαν ἱστορίαν καὶ ἄλλα"
+    by: scan
+
+  - page: 42
+    from: "2 τινά."
+    to: "τινά."
+    by: scan
+
+  - page: 42
+    from: "S, V. Μυρώ |"
+    to: "s. v. Μυρώ"
+    by: scan
+
+  - page: 42
+    from: "* νόμους μαιῶν καὶ διαταγὰς : αὐτῶν ἐπαῡῑόάς τε καὶ"
+    to: "νόμους μαιῶν καὶ διαταγὰς αὐτῶν ἐπαοιδάς τε καὶ"
+    by: scan
+
+  - page: 42
+    from: "ἰατρικὰς ἐντεινοόσας ταῖς λέσχαις καὶ μητρικῶν"
+    to: "ἰατρικὰς ἐντεινούσας ταῖς λέσχαις καὶ μητρικῶν"
+    by: scan
+
+  - page: 42
+    from: "S. V. Νεάνθης"
+    to: "s. v. Νεάνθης"
+    by: scan
+
+  - page: 42
+    from: "ἔγραψε περὶ κακοζηλίαζ or„opzxr‚ καὶ λό’ίους πολλοὺς"
+    to: "ἔγραψε περὶ κακοζηλίας ῥητορικῆς καὶ λόγους πολλοὺς"
+    by: scan
+
+  - page: 42
+    from: "ED e"
+    to: ""
+    by: scan
+
+  - page: 42
+    from: "S, V. Ηροκόπιος"
+    to: "s. v. Προκόπιος"
+    by: scan
+
+  - page: 42
+    from: "Hepomi* Γετικά."
+    to: "Περσικὰ· Γετικά."
+    by: scan
+
+  - page: 42
+    from: "S. V. ῘῙρὸκλος |"
+    to: "s. v. Πρόκλος"
+    by: scan
+
+  - page: 42
+    from: "καὶ μητρῳακὴν βίβλον· ἔστι δὲ περὶ TOV θεῶν Veo-"
+    to: "καὶ μητρῳακὴν βίβλον· ἔστι δὲ περὶ τῶν θεῶν θεο-"
+    by: scan
+
+  - page: 42
+    from: "S. V. Ῥοῦφος |"
+    to: "s. v. Ῥοῦφος"
+    by: scan
+
+  - page: 42
+    from: "ἤτοι ἐφοδίων. περὶ οἴνου καὶ μέλιτος ἓν. περὶ τῶν TOD"
+    to: "ἤτοι ἐφοδίων. περὶ οἴνου καὶ μέλιτος ἕν. περὶ τῶν τοῦ"
+    by: scan
+
+  - page: 42
+    from: "ἀνθρώπου μορίων δύο· περὶ ὀστῶν ἔν, vgl. Suidas:"
+    to: "ἀνθρώπου μορίων δύο· περὶ ὀστῶν ἕν, vgl. Suidas:"
+    by: scan
+
+  - page: 42
+    from: "περὶ οἴνου βιβλίον Ev, περὶ μέλιτος."
+    to: "περὶ οἴνου βιβλίον ἕν, περὶ μέλιτος."
+    by: scan
+
+  - page: 42
+    from: "s. V. Σαλλούστιος Μοψεάτης"
+    to: "s. v. Σαλλούστιος Μοψεάτης"
+    by: scan
+
+  - page: 42
+    from: "καὶ ἄλλα ἰατρικὰ. ’"
+    to: "καὶ ἄλλα ἰατρικὰ."
+    by: scan
+
+  - page: 42
+    from: "S, V. χ. ..αννυρίων"
+    to: "s. v. Σαννυρίων"
+    by: scan
+
+  - page: 42
+    from: "i Ἰνώ. — Σαρδανάπαλος."
+    to: "Ἰνώ. — Σαρδανάπαλος."
+    by: scan
+
+  - page: 42
+    from: "S. V. Φιλήτας"
+    to: "s. v. Φιλήτας"
+    by: scan
+
+  - page: 42
+    from: "/ καὶ τὸ. καλούμενα Ναὲιακοί."
+    to: "καὶ τὰ καλούμενα Ναξιακά."
+    by: scan
+
+  - page: 42
+    from: "S. V. (Ι) ι’ λ (υ ν | |"
+    to: "s. v. Φίλων"
+    by: scan
+
+  - page: 42
+    from: "ἔγραψεν ἐπιγραμμάτων βίβλια δ’ 16)."
+    to: "ἔγραψεν ἐπιγραμμάτων βίβλια δ’16)."
+    by: scan
+
+  - page: 42
+    from: "Wenn man nun einen hohen Grad von Corruption des."
+    to: "Wenn man nun einen hohen Grad von Corruption des"
+    by: scan
+
+  - page: 42
+    from: "Suldas annimmt, um einiges, was Eudocia mehr hat, als"
+    to: "Suidas annimmt, um einiges, was Eudocia mehr hat, als"
+    by: scan
+
+  - page: 42
+    from: "O I n ——"
+    to: ""
+    by: scan
+
+  - page: 42
+    from: "die Eudocia allein hat: Δημήτριος Ἰλιεὺς, Δοῦρις, Κόραξ, Κλεόμβροτος, SO"
+    to: "die Eudocia allein hat: Δημήτριος Ἰλιεὺς, Δοῦρις, Κόραξ, Κλεόμβροτος, so"
+    by: scan
+
+  - page: 42
+    from: "wie ‚andere, in denen sie dasselbe, aber ausführlicher, erzählt, z. B."
+    to: "wie andere, in denen sie dasselbe, aber ausführlicher, erzählt, z. B."
+    by: scan
+
+  - page: 42
+    from: "S. ν. Ἴβυκος. ε. S. v. Δίκτυς. 0 '"
+    to: "s. v. Ἴβυκος. s. v. Δίκτυς."
+    by: scan
+
+  - page: 43
+    from: "e E S E e A E E D n D e — —n — — . —"
+    to: ""
+    by: scan
+
+  - page: 43
+    from: "‚ ."
+    to: ""
+    by: scan
+
+  - page: 43
+    from: "zumeist treu abgeschrieben zu haben, dass sie nicht kluger"
+    to: "zumeist treu abgeschrieben zu haben, dass sie nicht klüger"
+    by: scan
+
+  - page: 43
+    from: "sein wollten als ihr vorliegendes Handbuch"
+    to: "sein wollten als ihr vorliegendes Handbuch."
+    by: scan
+
+  - page: 43
+    from: "Dieselbe Hypothese bestarken auch noch folgende"
+    to: "Dieselbe Hypothese bestärken auch noch folgende"
+    by: scan
+
+  - page: 43
+    from: "In dem Artikel s. v. Κάλλιππος hat siich Eudocia ver-"
+    to: "In dem Artikel s. v. Κάλλιππος hat sich Eudocia ver-"
+    by: scan
+
+  - page: 43
+    from: "sehen, und aus Κέβης weiter abgeschr1eben. Um dies Ver-"
+    to: "sehen, und aus Κέβης weiter abgeschrieben. Um dies Ver-"
+    by: scan
+
+  - page: 43
+    from: "“ sehen zu erklären, ist es durchaus nöthig, dass die beiden"
+    to: "sehen zu erklären, ist es durchaus nöthig, dass die beiden"
+    by: scan
+
+  - page: 43
+    from: "Artikel Κάλλιππος und Κέβης nahe bei einander standen, So;"
+    to: "Artikel Κάλλιππος und Κέβης nahe bei einander standen, so"
+    by: scan
+
+  - page: 43
+    from: "dass der Blick von einem zum andern leicht uberschwe1fen"
+    to: "dass der Blick von einem zum andern leicht überschweifen"
+    by: scan
+
+  - page: 43
+    from: "konr_1te Im Suidas aber sind sie weit von einander. ge-‘"
+    to: "konnte. Im Suidas aber sind sie weit von einander ge-"
+    by: scan
+
+  - page: 43
+    from: "trennt: in der Bernhardy’schen Ausgabe steht z. B. Κοίλ-"
+    to: "trennt: in der Bernhardy’schen Ausgabe steht z. B. Κάλ-"
+    by: scan
+
+  - page: 43
+    from: "λιππος auf Seite 47, Κέβης auf S. 190."
+    to: "λιππος auf Seite 47, Κέβης auf S. 190."
+    by: scan
+
+  - page: 43
+    from: "— Eigene Zusatze des Suidas, also solche‚‘ die eine christ-"
+    to: "Eigene Zusätze des Suidas, also solche, die eine christ-"
+    by: scan
+
+  - page: 43
+    from: "standen haben können, finden.sich nirgends in der Eudocia."
+    to: "standen haben können, finden sich nirgends in der Eudocia."
+    by: scan
+
+  - page: 43
+    from: "Werke des Πρόκλος schliesst bei Suldas mit den Worten"
+    to: "Werke des Πρόκλος schliesst bei Suidas mit den Worten"
+    by: scan
+
+  - page: 43
+    from: "*ἐπιχειρήματα κατὰ Χριστιανῶν ιη”. Dieser Titel reizt seinen"
+    to: "‘ἐπιχειρήματα κατὰ Χριστιανῶν ιη’’. Dieser Titel reizt seinen"
+    by: scan
+
+  - page: 43
+    from: "Worten “οὖτός ἐστι Πρόκλος δεύτερος μετὰ Πορφύριον κατὰ"
+    to: "Worten: ‘οὗτός ἐστι Πρόκλος ὁ δεύτερος μετὰ Πορφύριον κατὰ"
+    by: scan
+
+  - page: 43
+    from: "Χριστιανῶν τὴν μιαρὰν καὶ ἐφύβριστον αὑτοῦ, γλῶσσαν κινήσας"
+    to: "Χριστιανῶν τὴν μιαρὰν καὶ ἐφύβριστον αὑτοῦ γλῶσσαν κινήσας"
+    by: scan
+
+  - page: 43
+    from: "‚ κτλ.’ Eudocia aber fährt ruhig nach dem angeführten Werke"
+    to: "κτλ.’ Eudocia aber fährt ruhig nach dem angeführten Werke"
+    by: scan
+
+  - page: 43
+    from: "‘eruysiphjuata κατὰ Χριστιανὼν ι·η” fort “καὶ μητρῳακὴν βίβλον"
+    to: "‘ἐπιχειρήματα κατὰ Χριστιανὼν ιη’’ fort ‘καὶ μητρῳακὴν βίβλον"
+    by: scan
+
+  - page: 43
+    from: "κτλ.’ Sie schrieb also das Veerzeichniss im Hesychius"
+    to: "κτλ.’ Sie schrieb also das Verzeichniss im Hesychius"
+    by: scan
+
+  - page: 43
+    from: "zwang, schon. be1 dem chnstenfemdhchen Werke Halt zu"
+    to: "zwang, schon bei dem christenfeindlichen Werke Halt zu"
+    by: scan
+
+  - page: 44
+    from: "44 —"
+    to: "— 44 —"
+    by: scan
+
+  - page: 44
+    from: "dürfen, dass Eudocia direct aus Hesychius!’)"
+    to: "dürfen, dass Eudocia direct aus Hesychius17)"
+    by: scan
+
+  - page: 44
+    from: "schöpfte, ebenso wie Suldas. Dass dies Resultat von"
+    to: "schöpfte, ebenso wie Suidas. Dass dies Resultat von"
+    by: scan
+
+  - page: 44
+    from: "haben aber geschlossen, dass auch die Suildasnotiz über"
+    to: "haben aber geschlossen, dass auch die Suidasnotiz über"
+    by: scan
+
+  - page: 44
+    from: "Καὶ Θέογνις ἕτερος Μεγαρεὺς τῶν ἐν Σικελία Μεγάρων γεγονὼς"
+    to: "Καὶ Θέογνις ἕτερος Μεγαρεὺς τῶν ἐν Σικελίᾳ Μεγάρων γεγονὼς"
+    by: scan
+
+  - page: 44
+    from: "σωθέντας τῶν Συρακοσίων (leg Συρακουσίων) ἐν τῇ πολιορκία καὶ"
+    to: "σωθέντας τῶν Συρακοσίων (leg. Συρακουσίων) ἐν τῇ πολιορκίᾳ καὶ"
+    by: scan
+
+  - page: 44
+    from: "γνώμας δι’ ἐλεγείας εἰς ἔπη δισχίλια ὀκτακόσια· ἔγραψε 63 καὶ"
+    to: "γνώμας δι’ ἐλεγείας εἰς ἔπη δισχίλια ὀκτακόσια· ἔγραψε δὲ καὶ"
+    by: scan
+
+  - page: 44
+    from: "der \"Iwvi& der Eudocia sagt: manumf1nterpolatons recen-"
+    to: "der Ἰωνιὰ der Eudocia sagt: ‘manum interpolatoris recen-"
+    by: scan
+
+  - page: 44
+    from: "alten Lit., herausgeg. ν. Tychsen, -sechstes Stück. S. 32)"
+    to: "alten Lit., herausgeg. v. Tychsen, sechstes Stück. S. 32)"
+    by: scan
+
+  - page: 44
+    from: "vielbesprochenen und vielfach missgedeuteten Worte des Ξιιίᾶ. s. v."
+    to: "vielbesprochenen und vielfach missgedeuteten Worte des Suid. s. v."
+    by: scan
+
+  - page: 44
+    from: "Ἡσυχιος Muiitzoins bestimmt:"
+    to: "Ἡσύχιος Μιλήσιος bestimmt:"
+    by: scan
+
+  - page: 44
+    from: "ἔγραψεν ὁνοματολόγον ἢ πίνακα τῶν ἐν παιδεία ὀνομαστῶν, οὗ ἐπι·"
+    to: "ἔγραψεν ὀνοματολόγον ἢ πίνακα τῶν ἐν παιδείᾳ ὀνομαστῶν, οὗ ἐπι-"
+    by: scan
+
+  - page: 44
+    from: "τομή ἐστι τοῦτο τὸ βιβλίον. '"
+    to: "τομή ἐστι τοῦτο τὸ βιβλίον."
+    by: scan
+
+  - page: 44
+    from: "‚Vielmehr lag ihm, so wie der Eudocia eine Epitome des Hesychius"
+    to: "Vielmehr lag ihm, so wie der Eudocia eine Epitome des Hesychius"
+    by: scan
+
+  - page: 44
+    from: "vor, deren Prolog : eben jener Suidasartikel s. v. Ἠσῦχιος bildete."
+    to: "vor, deren Prolog eben jener Suidasartikel s. v. Ἡσύχιος bildete."
+    by: scan
+
+  - page: 44
+    from: "Hierin‘ bin ich durchaus mit der Erörterung D. Volkmann’s in der"
+    to: "Hierin bin ich durchaus mit der Erörterung D. Volkmann’s in der"
+    by: scan
+
+  - page: 45
+    from: "D b A E E E A e A"
+    to: "— 45 —"
+    by: scan
+
+  - page: 45
+    from: "εἰς ἔπη βω’· καὶπρὸς Köpvov τὸν αὑτοῦ ἐρώμενον γνωμολογίαν δι’"
+    to: "εἰς ἔπη βω’· καὶ πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον γνωμολογίαν δι’"
+    by: scan
+
+  - page: 45
+    from: "ἐλεγείων· καὶ ἑτέρας ὑποθήκας παραινετικας πάντα ἐπικῶς."
+    to: "ἐλεγείων· καὶ ἑτέρας ὑποθήκας παραινετικὰς πάντα ἐπικῶς."
+    by: scan
+
+  - page: 45
+    from: "schädigt hat. | |"
+    to: "schädigt hat."
+    by: scan
+
+  - page: 45
+    from: "/ Art. I ist in Ordnung, bis auf den Schluss “%paws δὲ"
+    to: "Art. I ist in Ordnung, bis auf den Schluss ‘ἔγραψε δὲ"
+    by: scan
+
+  - page: 45
+    from: "καὶ γνώμας παραινετικάς’.- Hiermit würden die paränetischen"
+    to: "καὶ γνώμας παραινετικάς’. Hiermit würden die paränetischen"
+    by: scan
+
+  - page: 45
+    from: "° Gnomen entgegengesetzt den andern Gnomen: was ganz"
+    to: "Gnomen entgegengesetzt den andern Gnomen: was ganz"
+    by: scan
+
+  - page: 45
+    from: "verkehrt ist. Vielmehr. las der Ueberarbeiter den zweiten"
+    to: "verkehrt ist. Vielmehr las der Ueberarbeiter den zweiten"
+    by: scan
+
+  - page: 45
+    from: "ὑποθήκας παραινετικαςε indem er glaubte, dass damit etwas"
+    to: "ὑποθήκας παραινετικὰς: indem er glaubte, dass damit etwas"
+    by: scan
+
+  - page: 45
+    from: "Anderes gemeint sei‘ als jene γνῶμαι in 2800 Versen, schrieb"
+    to: "Anderes gemeint sei als jene γνῶμαι in 2800 Versen, schrieb"
+    by: scan
+
+  - page: 45
+    from: "er zu Art. I die thörichte Schlussbemerkung qpocy—‘ δὲ καὶ"
+    to: "er zu Art. I die thörichte Schlussbemerkung ‘ἔγραψε δὲ καὶ"
+    by: scan
+
+  - page: 45
+    from: "γνώμας παραινετικάς’. 1"
+    to: "γνώμας παραινετικάς’."
+    by: scan
+
+  - page: 45
+    from: "Bei Art. II angelangt vermisste er 'Wiederum etwas,"
+    to: "Bei Art. II angelangt vermisste er wiederum etwas,"
+    by: scan
+
+  - page: 45
+    from: "was in Αῑῒ. I stand: jene (γνώμας δι’ ἐλεγείας εἰς ἔπη -γω”’."
+    to: "was in Art. I stand: jene ‘γνώμας δι’ ἐλεγείας εἰς ἔπη βω’’."
+    by: scan
+
+  - page: 45
+    from: "Denn diese können, wie ich schon. zu dem Suidasartikel"
+    to: "Denn diese können, wie ich schon zu dem Suidasartikel"
+    by: scan
+
+  - page: 45
+    from: "in die zweite Stelle ein. a"
+    to: "in die zweite Stelle ein."
+    by: scan
+
+  - page: 45
+    from: "So haben wir die beiden Artikel des Hesych1us von"
+    to: "So haben wir die beiden Artikel des Hesychius von"
+    by: scan
+
+  - page: 45
+    from: "den‘ unnützen Zuthaten gerem1gt und lassen sie nun folgen."
+    to: "den unnützen Zuthaten gereinigt und lassen sie nun folgen."
+    by: scan
+
+  - page: 45
+    from: "‚I Θέογνις Μεγαρεὺς τῶν ἐν Σικελία Μεγάρων γεγονὼς ἐν"
+    to: "I. Θέογνις Μεγαρεὺς τῶν ἐν Σικελίᾳ Μεγάρων γεγονὼς ἐν"
+    by: scan
+
+  - page: 45
+    from: "τῇ νθ’ Ὀλυμπιάδι. ἔγραψεν Ἔλεγείαν εἰς τοὺς σωθέντας τῶν"
+    to: "τῇ νθ’ Ὀλυμπιάδι. ἔγραψεν Ἐλεγείαν εἰς τοὺς σωθέντας τῶν"
+    by: scan
+
+  - page: 45
+    from: "IL, Θέογνις Μεγαρεὺς (ἐκ Σικελίας fort. delend.) ἔγραψε"
+    to: "II. Θέογνις Μεγαρεὺς (ἐκ Σικελίας fort. delend.) ἔγραψε"
+    by: scan
+
+  - page: 45
+    from: "πρὸς Köpvov τὸν αὑτοῦ ἐρώμενον γνωμολογίαν δι’ ἐλεγείων καὶ"
+    to: "πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον γνωμολογίαν δι’ ἐλεγείων καὶ"
+    by: scan
+
+  - page: 45
+    from: "ἑτέρας ὑποθήκας παραινετικάς. τὰ πάντα ἐπικῶς (dies Wort 15t"
+    to: "ἑτέρας ὑποθήκας παραινετικάς. τὰ πάντα ἐπικῶς (dies Wort ist"
+    by: scan
+
+  - page: 45
+    from: "noch zu corrigiren). a -"
+    to: "noch zu corrigiren)."
+    by: scan
+
+  - page: 45
+    from: "Suidas schrieb diese beiden in emen zusammen : was"
+    to: "Suidas schrieb diese beiden in einen zusammen: was"
+    by: scan
+
+  - page: 45
+    from: "jetzt ersichtlich ist : |"
+    to: "jetzt ersichtlich ist:"
+    by: scan
+
+  - page: 45
+    from: "Θέογνις “Μέγαρεὺς τῶν ἐν Σικελία Μεγάρων, γεγονὼς ἐν τῇ"
+    to: "Θέογνις Μεγαρεὺς τῶν ἐν Σικελίᾳ Μεγάρων, γεγονὼς ἐν τῇ"
+    by: scan
+
+  - page: 45
+    from: "κουσίων ἐν τῇ πολιορκία, γνώμας δι’ ἐλεγείας εἰς ἔπη βω’ καὶ"
+    to: "κουσίων ἐν τῇ πολιορκίᾳ, γνώμας δι’ ἐλεγείας εἰς ἔπη βω’ καὶ"
+    by: scan
+
+  - page: 45
+    from: "πρὸς Κύρνον τὸνι αὑτοῦ ἐρώμενον γνωμολογίαν δι’ ἐλεγείων καὶ"
+    to: "πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον γνωμολογίαν δι’ ἐλεγείων καὶ"
+    by: scan
+
+  - page: 45
+    from: "Woher, fragen wir, ist‘ es nun zu erklaren dass"
+    to: "Woher, fragen wir, ist es nun zu erklären, dass"
+    by: scan
+
+  - page: 46
+    from: "wie ich.vermuthe, unsere Notizen herstammen, kann"
+    to: "wie ich vermuthe, unsere Notizen herstammen, kann"
+    by: scan
+
+  - page: 46
+    from: "Theognis an verschiedenen Stellen vorgekommen Ssein."
+    to: "Theognis an verschiedenen Stellen vorgekommen sein."
+    by: scan
+
+  - page: 46
+    from: "Vorgange von Laertius Diog. Zu dem Epitheton (φιλό-"
+    to: "Vorgange von Laertius Diog. Zu dem Epitheton ‘φιλό-"
+    by: scan
+
+  - page: 46
+    from: "περὶ ἀρετῆς καὶ κακίας ἀνθρώπωνῖ) KFasst ihn Plato legg. I,"
+    to: "περὶ ἀρετῆς καὶ κακίας ἀνθρώπων? Fasst ihn Plato legg. I,"
+    by: scan
+
+  - page: 46
+    from: "ρ. 630 nicht auf als Herold der δικαιοσύνη, σωφροσύνη und"
+    to: "p. 630 nicht auf als Herold der δικαιοσύνη, σωφροσύνη und"
+    by: scan
+
+  - page: 46
+    from: "φρόνησις Iim Gegensatz zu Tyrtäus, dem Sänger der ἀνδρίαῗ"
+    to: "φρόνησις im Gegensatz zu Tyrtäus, dem Sänger der ἀνδρία?"
+    by: scan
+
+  - page: 46
+    from: "Diog. VI, 16 eine ‚Schrift ethischen .Gehaltes verfasste,"
+    to: "Diog. VI, 16 eine Schrift ethischen Gehaltes verfasste,"
+    by: scan
+
+  - page: 46
+    from: "delten, die zwei letzten περὶ Θεόγνιδοςς als welcher hier"
+    to: "delten, die zwei letzten περὶ Θεόγνιδος; als welcher hier"
+    by: scan
+
+  - page: 46
+    from: "Empedokles: gestellt. In der schon angeführten Stelle"
+    to: "Empedokles gestellt. In der schon angeführten Stelle"
+    by: scan
+
+  - page: 47
+    from: "M e E E B E"
+    to: ""
+    by: scan
+
+  - page: 47
+    from: "Athen.. VIIL, 310A heisst Archestratos ιὁ τῶν ὀψοφάγων"
+    to: "Athen. VII, 310A heisst Archestratos ‘ὁ τῶν ὀψοφάγων"
+    by: scan
+
+  - page: 47
+    from: "Ἡσίοδος ἢ Θέογνις’, d. h. der Lehrer, der Katechismus. i"
+    to: "Ἡσίοδος ἢ Θέογνις’, d. h. der Lehrer, der Katechismus."
+    by: scan
+
+  - page: 47
+    from: "Philosoph genannt werden als z. B. Homer,-über dessen"
+    to: "Philosoph genannt werden als z. B. Homer, über dessen"
+    by: scan
+
+  - page: 47
+    from: "Philosophie Favorinus, Porphyrius, Max1mus Tyrius,"
+    to: "Philosophie Favorinus, Porphyrius, Maximus Tyrius,"
+    by: scan
+
+  - page: 47
+    from: "Laertius Diog. II, 11 von Homer gesagt haben soll “%dv"
+    to: "Laertius Diog. II, 11 von Homer gesagt haben soll ‘τὸν"
+    by: scan
+
+  - page: 47
+    from: "Ὁμήρου ποίησιν εἶναι περὶ ἀρετῆς καὶ δικαιοσύνῃ’, das konnte"
+    to: "Ὁμήρου ποίησιν εἶναι περὶ ἀρετῆς καὶ δικαιοσύνης’, das konnte"
+    by: scan
+
+  - page: 47
+    from: "mit gleichem Rechte von. Theognis gesagt werden; deshalb"
+    to: "mit gleichem Rechte von Theognis gesagt werden; deshalb"
+    by: scan
+
+  - page: 47
+    from: "für die der solonischen so Verwandte D1chtungsart des"
+    to: "für die der solonischen so verwandte Dichtungsart des"
+    by: scan
+
+  - page: 47
+    from: "Theognis. '"
+    to: "Theognis."
+    by: scan
+
+  - page: 47
+    from: "Alles dies zeigt, dass T’heognis unter den Ph11050phen"
+    to: "Alles dies zeigt, dass Theognis unter den Philosophen"
+    by: scan
+
+  - page: 47
+    from: "nicht Saul unter den Propheten ist, dass er mit Fug und —"
+    to: "nicht Saul unter den Propheten ist, dass er mit Fug und"
+    by: scan
+
+  - page: 47
+    from: "Recht in einem πίναξ τῶν φιλοσόφων eine Stelle finden konnte. '"
+    to: "Recht in einem πίναξ τῶν φιλοσόφων eine Stelle finden konnte."
+    by: scan
+
+  - page: 47
+    from: "Phokylides. Dieser wird :im Suidas, also im Hesychius"
+    to: "Phokylides. Dieser wird im Suidas, also im Hesychius"
+    by: scan
+
+  - page: 47
+    from: "‚ σόφων, ebenso wie die des Solon entnommen. Folglich be-"
+    to: "σόφων, ebenso wie die des Solon entnommen. Folglich be-"
+    by: scan
+
+  - page: 47
+    from: ". der hierhin einschlägige ist. Der zweite offenbar: er ent-"
+    to: "der hierhin einschlägige ist. Der zweite offenbar: er ent-"
+    by: scan
+
+  - page: 47
+    from: "hält nämlich keine Zeitbestimmung, da.diese in dem Pho-"
+    to: "hält nämlich keine Zeitbestimmung, da diese in dem Pho-"
+    by: scan
+
+  - page: 47
+    from: "kylidesartikel stand. Diese beiden Artikel {folgten also"
+    to: "kylidesartikel stand. Diese beiden Artikel folgten also"
+    by: scan
+
+  - page: 47
+    from: "geordneten ἀναγραφὴ tüv φιλοσόφων, die das Material für"
+    to: "geordneten ἀναγραφὴ τῶν φιλοσόφων, die das Material für"
+    by: scan
+
+  - page: 47
+    from: "alle Philosophenvitae des Hesych1us — oder seiner Quelle"
+    to: "alle Philosophenvitae des Hesychius — oder seiner Quelle"
+    by: scan
+
+  - page: 47
+    from: "sophen Theognis, ἔγραψε πρὸς Köpvov τὸν αὑτοῦ ἐρώμενον"
+    to: "sophen Theognis, ἔγραψε πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον"
+    by: scan
+
+  - page: 47
+    from: "γνωμολογίαν δι’ ἐλεγείων καὶ ἑτέρας ὑποθήκας παραινετικοίς. τὰ"
+    to: "γνωμολογίαν δι’ ἐλεγείων καὶ ἑτέρας ὑποθήκας παραινετικάς. τὰ"
+    by: scan
+
+  - page: 48
+    from: "48 —"
+    to: "— 48 —"
+    by: scan
+
+  - page: 48
+    from: "θήκας, Phokylides φιλόσοφος παραινέσεις Schrieb, so Theognis"
+    to: "θήκας, Phokylides φιλόσοφος παραινέσεις schrieb, so Theognis"
+    by: scan
+
+  - page: 48
+    from: "ὑποθήκας παραινετικοὶς. Vielleicht könnte zuerst Anstoss er-"
+    to: "ὑποθήκας παραινετικάς. Vielleicht könnte zuerst Anstoss er-"
+    by: scan
+
+  - page: 48
+    from: "regen ‘xpdz Küpvov τὸν αὑτοῦ ἐρι,,’)μενον’; es würde sich, könnte"
+    to: "regen ‘πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον’; es würde sich, könnte"
+    by: scan
+
+  - page: 48
+    from: "man sagen, die Nennung des ἐρώμενος Schlecht schicken zu"
+    to: "man sagen, die Nennung des ἐρώμενος schlecht schicken zu"
+    by: scan
+
+  - page: 48
+    from: "der Bezeichnung φιλόσοφοςῑ deshalb könne diese Bemerkung"
+    to: "der Bezeichnung φιλόσοφος: deshalb könne diese Bemerkung"
+    by: scan
+
+  - page: 48
+    from: "der Philosophen sind: mit der grössten Sorgfalt verzeichnet"
+    to: "der Philosophen sind mit der grössten Sorgfalt verzeichnet"
+    by: scan
+
+  - page: 48
+    from: "lect. Att. ξ 27, p. 246 ff. Aehnliche Tendenzen verfolgten"
+    to: "lect. Att. § 27, p. 246 ff. Aehnliche Tendenzen verfolgten"
+    by: scan
+
+  - page: 48
+    from: "die Werke des Aristippus, den Bergk po. Ilyr. ed. IIl,"
+    to: "die Werke des Aristippus, den Bergk po. lyr. ed. III,"
+    by: scan
+
+  - page: 48
+    from: "in der Schrift περὶ τῆς τῶν ἐνδόξων τροφῆςε wenn der Titel"
+    to: "in der Schrift περὶ τῆς τῶν ἐνδόξων τρυφῆς: wenn der Titel"
+    by: scan
+
+  - page: 48
+    from: "richtig hergestellt ist, vgl. Luzac lect. 8 3, p. 113. C. F."
+    to: "richtig hergestellt ist, vgl. Luzac lect. § 3, p. 113. C. F."
+    by: scan
+
+  - page: 48
+    from: "Dass nicht sämmtliche Anführungen von ἐρώμενοι. be-"
+    to: "Dass nicht sämmtliche Anführungen von ἐρώμενοι, be-"
+    by: scan
+
+  - page: 48
+    from: "φιλόσοφος ἱστορία des Porphyrius sich nur_ bis Plato er-"
+    to: "φιλόσοφος ἱστορία des Porphyrius sich nur bis Plato er-"
+    by: scan
+
+  - page: 48
+    from: "nicht, vgl. Suldas s. v. Πορφύριος und Cyrill, p. 19. Hier"
+    to: "nicht, vgl. Suidas s. v. Πορφύριος und Cyrill, p. 19. Hier"
+    by: scan
+
+  - page: 48
+    from: "ist aber eine Correktur nöthig. ‘“xpdwsi, heisst es von Por-"
+    to: "ist aber eine Correktur nöthig. ‘γράφει, heisst es von Por-"
+    by: scan
+
+  - page: 48
+    from: "phyrius, 62 οὕτως &v τῷ πρώτῳ βιβλίῳ τῆς φιλοσόφου ἱστορίας."
+    to: "phyrius, δὲ οὕτως ἐν τῷ πρώτῳ βιβλίῳ τῆς φιλοσόφου ἱστορίας."
+    by: scan
+
+  - page: 48
+    from: "Ἐννέα 62 ὄντων ἑπτὰ κληθῆναι σοφοὺς 5 αἰτίας τοιαύτης’."
+    to: "Ἐννέα δὲ ὄντων ἑπτὰ κληθῆναι σοφοὺς ἐξ αἰτίας τοιαύτης’."
+    by: scan
+
+  - page: 48
+    from: "Es ist zu schreiben *ypdozi 02 οὕτως 2v τῷ πρώτῳ βιβλίῳ τῆς"
+    to: "Es ist zu schreiben ‘γράφει δὲ οὕτως ἐν τῷ πρώτῳ βιβλίῳ τῆς"
+    by: scan
+
+  - page: 49
+    from: "l e"
+    to: ""
+    by: scan
+
+  - page: 49
+    from: "49 —"
+    to: "— 49 —"
+    by: scan
+
+  - page: 49
+    from: "‚ φιλοσόφου ἱστορίας, δὲ ὄντων· Ἑπτὰ κληθῆναι xch.” € ist‘"
+    to: "φιλοσόφου ἱστορίας, ε’ δὲ ὄντων· Ἑπτὰ κληθῆναι κτλ.’ Ε ist"
+    by: scan
+
+  - page: 49
+    from: "ε’"
+    to: ""
+    by: scan
+
+  - page: 49
+    from: "in © verschrieben und daher wieder falsch interpungiirt."
+    to: "in Θ verschrieben und daher wieder falsch interpungirt."
+    by: scan
+
+  - page: 49
+    from: "Casaubonus. 1 ‚_ n"
+    to: "Casaubonus."
+    by: scan
+
+  - page: 49
+    from: "Die Anführung‘ des Köpvos als ἐρώμενος macht also"
+    to: "Die Anführung des Κύρνος als ἐρώμενος macht also"
+    by: scan
+
+  - page: 49
+    from: "keine Schwierigkeit.. Schliesslich müssen hier auch die-"
+    to: "keine Schwierigkeit. Schliesslich müssen hier auch die"
+    by: scan
+
+  - page: 49
+    from: "viel besprochenen Worte‘ τὰ πάντα ἐπικῶς erledigt werden."
+    to: "viel besprochenen Worte τὰ πάντα ἐπικῶς erledigt werden."
+    by: scan
+
+  - page: 49
+    from: "Dass ἐπικῶς nicht. bleiben kann, ist unzweifelhaft. ἐπικῶς"
+    to: "Dass ἐπικῶς nicht bleiben kann, ist unzweifelhaft. ἐπικῶς"
+    by: scan
+
+  - page: 49
+    from: "kann nur heissen 1. »in Hexametefn«‚ 2. »in Versen«, nie"
+    to: "kann nur heissen 1. »in Hexametern«, 2. »in Versen«, nie"
+    by: scan
+
+  - page: 49
+    from: "aber »in Distichene. Wenn ἔπη von Distichen gesagt wird,"
+    to: "aber »in Distichen«. Wenn ἔπη von Distichen gesagt wird,"
+    by: scan
+
+  - page: 49
+    from: "‘“Oz6yvö6s ἐστιν Ern’”. Die erste Bedeutung I1st für unsere"
+    to: "‘Θεόγνιδός ἐστιν ἔπη’. Die erste Bedeutung ist für unsere"
+    by: scan
+
+  - page: 49
+    from: "Stelle unmöglich, die zweite ist nach der genaueren .Be-"
+    to: "Stelle unmöglich, die zweite ist nach der genaueren Be-"
+    by: scan
+
+  - page: 49
+    from: "stimmung ‘öi” ἐλεγείων’ höchst unwahrscheinlich.: Selbst"
+    to: "stimmung ‘δι’ ἐλεγείων’ höchst unwahrscheinlich. Selbst"
+    by: scan
+
+  - page: 49
+    from: "wenn. ἐπικῶς — was ich leugne — »in Distichen« bedeuten"
+    to: "wenn ἐπικῶς — was ich leugne — »in Distichen« bedeuten"
+    by: scan
+
+  - page: 49
+    from: "könnte, so wäre ' die Stelle nichts destowemger corrupt da"
+    to: "könnte, so wäre die Stelle nichts destoweniger corrupt, da"
+    by: scan
+
+  - page: 49
+    from: "ἐπικῶς dann zusammenfallen würde mit δι’ ” ἐλεγείων."
+    to: "ἐπικῶς dann zusammenfallen würde mit δι’ ἐλεγείων."
+    by: scan
+
+  - page: 49
+    from: "‚ Ohne die schon gemachten Verbesserungsversuche -"
+    to: "Ohne die schon gemachten Verbesserungsversuche"
+    by: scan
+
+  - page: 49
+    from: "einzeln zu besprechen, führe iich sogleich die zuletzt ge-"
+    to: "einzeln zu besprechen, führe ich sogleich die zuletzt ge-"
+    by: scan
+
+  - page: 49
+    from: "setzungen sehr ‚einleuchtende Conjectur K. Dilthey’s Rh."
+    to: "setzungen sehr einleuchtende Conjectur K. Dilthey’s Rh."
+    by: scan
+
+  - page: 49
+    from: "Mus. N. F. ΧΨΙΙΙ, p. 150 ff. an. Er schlägt vor ἠθικῶς"
+    to: "Mus. N. F. XVIII, p. 150 ff. an. Er schlägt vor ἠθικῶς"
+    by: scan
+
+  - page: 49
+    from: "für ἐπικῶς zu sSchreiben. Das ist ein.Wort, wie es vor-'"
+    to: "für ἐπικῶς zu schreiben. Das ist ein Wort, wie es vor-"
+    by: scan
+
+  - page: 49
+    from: "trefflich zu einer Philosophenvita stimm{i. : Mit diesem Nach-"
+    to: "trefflich zu einer Philosophenvita stimmt. Mit diesem Nach-"
+    by: scan
+
+  - page: 49
+    from: "satz “τὰ πάντα A01x@s wendet sich der Verfasser jener Notiz"
+    to: "satz ‘τὰ πάντα ἠθικῶς’ wendet sich der Verfasser jener Notiz"
+    by: scan
+
+  - page: 49
+    from: "gegen die mögliche Missdeutung von “πρὸς Κύρνον τὸν αὑτοῦ"
+    to: "gegen die mögliche Missdeutung von ‘πρὸς Κύρνον τὸν αὑτοῦ"
+    by: scan
+
+  - page: 49
+    from: "‚ ἐρώμενον’. Dagegen sind Dilthey’s Gründe gegen die oft"
+    to: "ἐρώμενον’. Dagegen sind Dilthey’s Gründe gegen die oft"
+    by: scan
+
+  - page: 49
+    from: "spiel, dass‘ in ähnlicher Weise zuerst die Verszahl einer"
+    to: "spiel, dass in ähnlicher Weise zuerst die Verszahl einer"
+    by: scan
+
+  - page: 49
+    from: "einzelnen Schriff; dann die der gesammten .Werke desselben"
+    to: "einzelnen Schrift, dann die der gesammten Werke desselben"
+    by: scan
+
+  - page: 49
+    from: "den Suidasartikel hineingebracht wurde.« ‘ Aber alle, die"
+    to: "den Suidasartikel hineingebracht wurde.« Aber alle, die"
+    by: scan
+
+  - page: 49
+    from: "die Conjectur &x7.... machten, giengen von der Voraus-"
+    to: "die Conjectur ἔπη.... machten, giengen von der Voraus-"
+    by: scan
+
+
+  - page: 50
+    from: "f"
+    to: ""
+    by: scan
+
+  - page: 50
+    from: "muthungen, Zrn βως’ nach Schömann. — Warum Dilthey"
+    to: "muthungen, ἔπη βως’ nach Schömann. — Warum Dilthey"
+    by: scan
+
+  - page: 50
+    from: "die Worte ‘xal πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον γνωμολογίαν"
+    to: "die Worte ‘καὶ πρὸς Κύρνον τὸν αὑτοῦ ἐρώμενον γνωμολογίαν"
+    by: scan
+
+  - page: 50
+    from: "‘“Mzyapzbc τῶν ἐν Σικελίᾳ λ’Ῑεγοίρων’, die einer durchaus irrigen"
+    to: "‘Μεγαρεὺς τῶν ἐν Σικελίᾳ Μεγάρων’, die einer durchaus irrigen"
+    by: scan
+
+  - page: 50
+    from: "ιέλεγείαν εἰς tobs σωθέντας τῶν Συρακουσίων ἐν τῇ πολιορκία’."
+    to: "‘ἐλεγείαν εἰς τοὺς σωθέντας τῶν Συρακουσίων ἐν τῇ πολιορκίᾳ’."
+    by: scan
+
+  - page: 50
+    from: "Dem, der' diese Notiz schrieb, waren also bekannt 1. eine"
+    to: "Dem, der diese Notiz schrieb, waren also bekannt 1. eine"
+    by: scan
+
+  - page: 50
+    from: "Gnomensammlung, 2. . eine Elegie auf ein einzelnes Er-"
+    to: "Gnomensammlung, 2. eine Elegie auf ein einzelnes Er-"
+    by: scan
+
+  - page: 50
+    from: "Elegie . und ausserdem eine Spruchsammlung: vielmehr,"
+    to: "Elegie und ausserdem eine Spruchsammlung: vielmehr,"
+    by: scan
+
+  - page: 50
+    from: "Analogie anderer elegischer Dichter urtheilen dürfen, . war"
+    to: "Analogie anderer elegischer Dichter urtheilen dürfen, war"
+    by: scan
+
+  - page: 50
+    from: "seine ganze Dichtung. Gelegenheitsdichtung. Mitten in den"
+    to: "seine ganze Dichtung Gelegenheitsdichtung. Mitten in den"
+    by: scan
+
+  - page: 50
+    from: "Dichtungen. Die γνῶμαι waren aus jenen excerpirt. Ge-."
+    to: "Dichtungen. Die γνῶμαι waren aus jenen excerpirt. Ge-"
+    by: scan
+
+  - page: 50
+    from: "zählt aber, somit ‘der Bibliothek einverleibt, wurden nur"
+    to: "zählt aber, somit der Bibliothek einverleibt, wurden nur"
+    by: scan
+
+  - page: 50
+    from: "die γνῶμαιε Was will also jene einzeln angeführte Elegie?"
+    to: "die γνῶμαι: was will also jene einzeln angeführte Elegie?"
+    by: scan
+
+  - page: 50
+    from: "Im Allgemeinen . war die Iradition über die Lebens-"
+    to: "Im Allgemeinen war die Tradition über die Lebens-"
+    by: scan
+
+  - page: 50
+    from: "Megara stammte, aber man.schwankte, ob aus dem attischen"
+    to: "Megara stammte, aber man schwankte, ob aus dem attischen"
+    by: scan
+
+  - page: 50
+    from: "bot eine Stelle aus Platos legg. I, p. 630A,.die man"
+    to: "bot eine Stelle aus Platos legg. I, p. 630 A, die man"
+    by: scan
+
+  - page: 50
+    from: "missverstand. ‚Zu derselben bemerkt das Scholion: ίπερὶ"
+    to: "missverstand. Zu derselben bemerkt das Scholion: ‘περὶ"
+    by: scan
+
+  - page: 51
+    from: "A τῆς - Ἀττικῆς. οὕτως 6 Δίδυμος ἐπιφυόμενος τῷ Πλάτωνι ὡς πα·-"
+    to: "τῆς Ἀττικῆς. οὕτως ὁ Δίδυμος ἐπιφυόμενος τῷ Πλάτωνι ὡς πα-"
+    by: scan
+
+  - page: 51
+    from: "‚ ριστοροῦντι. οἱ δὲ ὅτι dx Σικελίας xrh.’18)., Auf dies Urtheil:"
+    to: "ριστοροῦντι. οἱ δὲ ὅτι ἐκ Σικελίας κτλ.’18). Auf dies Urtheil"
+    by: scan
+
+  - page: 51
+    from: "des. Didymus geht auch offenbar folgende Stelle im Harpo-"
+    to: "des Didymus geht auch offenbar folgende Stelle im Harpo-"
+    by: scan
+
+  - page: 51
+    from: "cration zurück: ‘obtos δ’ ἦν Μεγαρεὺς ἀπὸ τῶν πρὸς τῇ Ἀττικῇ"
+    to: "cration zurück: ‘οὗτος δ’ ἦν Μεγαρεὺς ἀπὸ τῶν πρὸς τῇ Ἀττικῇ"
+    by: scan
+
+  - page: 51
+    from: "Μεγάρων· αὐτὸς γάρ φησιν ὁ ποιητής. nkﬂov μὲν γὰρ ἔγωγε"
+    to: "Μεγάρων· αὐτὸς γάρ φησιν ὁ ποιητής. ‘ἦλθον μὲν γὰρ ἔγωγε"
+    by: scan
+
+  - page: 51
+    from: "καὶ ἐς· Σικελήν ποτε γαῖαν’ (V. 783 ff.). (ῥ’ μὴ ἐπιστήσας"
+    to: "καὶ ἐς Σικελήν ποτε γαῖαν’ (V. 783 ff.). ᾧ μὴ ἐπιστήσας"
+    by: scan
+
+  - page: 51
+    from: "Πλάτων ἐν ά νόμων τῶν ἐν Σικελία Μεγαρέων πολίτην ἔφασκεν·"
+    to: "Πλάτων ἐν ά νόμων τῶν ἐν Σικελίᾳ Μεγαρέων πολίτην ἔφασκεν·"
+    by: scan
+
+  - page: 51
+    from: "κατηκολούθησαν δὲ τῷ Πλάτωνι οὐκ δλίγοι.’ Wenn es nun,"
+    to: "κατηκολούθησαν δὲ τῷ Πλάτωνι οὐκ ὀλίγοι.’ Wenn es nun"
+    by: scan
+
+  - page: 51
+    from: "für die: andere eine Stelle. des Dichters angeführt wurde,"
+    to: "für die andere eine Stelle des Dichters angeführt wurde,"
+    by: scan
+
+  - page: 51
+    from: "sSo musste es von Gewicht sein, wenn in einem Gedicht"
+    to: "so musste es von Gewicht sein, wenn in einem Gedicht"
+    by: scan
+
+  - page: 51
+    from: "bar in der Elegie “είς τοὺς σωθέντας τῶν Συρακουσίων κτλ.’,"
+    to: "bar in der Elegie ‘εἰς τοὺς σωθέντας τῶν Συρακουσίων κτλ.’,"
+    by: scan
+
+  - page: 51
+    from: "anderswo. vorfand und sie für seine Ansicht geltend machte,"
+    to: "anderswo vorfand und sie für seine Ansicht geltend machte."
+    by: scan
+
+  - page: 51
+    from: "Diese Elegie ist also in unserm Artikel nur ein. Zeugniss"
+    to: "Diese Elegie ist also in unserm Artikel nur ein Zeugniss"
+    by: scan
+
+  - page: 51
+    from: "für den Satz ‘“Mzsyapzdc τῶν &x Σικελίας Μεγάρωνῖ Aehnlich"
+    to: "für den Satz ‘Μεγαρεὺς τῶν ἐκ Σικελίας Μεγάρων’. Aehnlich"
+    by: scan
+
+  - page: 51
+    from: "dachte übrigens über diese Elegie . schon Elias Vinetus und"
+    to: "dachte übrigens über diese Elegie schon Elias Vinetus und"
+    by: scan
+
+  - page: 51
+    from: "neuerdings Hecker, Philol. 5, p. 473; ‘unde’, sagt. letzterer,"
+    to: "neuerdings Hecker, Philol. 5, p. 473; ‘unde’, sagt letzterer,"
+    by: scan
+
+  - page: 51
+    from: "‘{luxisse videtur fama de Theogmde 51c111a et urbe qu1dem."
+    to: "‘fluxisse videtur fama de Theognide Sicilia et urbe quidem"
+    by: scan
+
+  - page: 51
+    from: "Megaris ori1undo’ !9)."
+    to: "Megaris oriundo’19)."
+    by: scan
+
+  - page: 51
+    from: "Auf derartige ‘ Schlusse aus den D1chtungen heraus"
+    to: "Auf derartige Schlüsse aus den Dichtungen heraus"
+    by: scan
+
+  - page: 51
+    from: "waren die Alexandriner und die andern zeitgenössischen."
+    to: "waren die Alexandriner und die andern zeitgenössischen"
+    by: scan
+
+  - page: 51
+    from: "schiedene Traditionen, Eine, nach der er aus dem sicilischen Megara"
+    to: "schiedene Traditionen. Eine, nach der er aus dem sicilischen Megara"
+    by: scan
+
+  - page: 51
+    from: "stammen Ssolle, vgl. Suidas s, v. Ἐπίχαρμος, Steht im Zusammenhang"
+    to: "stammen solle, vgl. Suidas s. v. Ἐπίχαρμος, steht im Zusammenhang"
+    by: scan
+
+  - page: 51
+    from: "der schlechtesten Art lassen sich in der Geschichte . der literar-"
+    to: "der schlechtesten Art lassen sich in der Geschichte der literar-"
+    by: scan
+
+  - page: 51
+    from: "des Theognis der Revision bedürfen. Jedenfalls bedeutet‘ γεγονὼς ἐν"
+    to: "des Theognis der Revision bedürfen. Jedenfalls bedeutet γεγονὼς ἐν"
+    by: scan
+
+  - page: 51
+    from: "τῇ καθ’ ὀλυμπιάδι ‘natus est', nicht “floruit”."
+    to: "τῇ νθ’ ὀλυμπιάδι ‘natus est’, nicht ‘floruit’."
+    by: scan
+
+  - page: 52
+    from: "S"
+    to: "— 52 —"
+    by: scan
+
+  - page: 52
+    from: "S, V. Ἀλκμάν) für einen Λυδὸς x Σάρδεων erklärte, so berief"
+    to: "s. v. Ἀλκμάν) für einen Λυδὸς ἐκ Σάρδεων erklärte, so berief"
+    by: scan
+
+  - page: 52
+    from: "‘ala Σαρδίων dr ἀκρᾶν’. In einem γένος Νικάνδρου (Wester-"
+    to: "‘ἀλλὰ Σαρδίων ἀπ’ ἀκρᾶν’. In einem γένος Νικάνδρου (Wester-"
+    by: scan
+
+  - page: 52
+    from: "stimmte, sämmtlich :aus den Gedichten entnommen. Suid."
+    to: "stimmte, sämmtlich aus den Gedichten entnommen. Suid."
+    by: scan
+
+  - page: 52
+    from: "s. V. Διονύσιος Μουσωνίου Ifindet sich ein analoger Fall:"
+    to: "s. v. Διονύσιος Μουσωνίου findet sich ein analoger Fall:"
+    by: scan
+
+  - page: 52
+    from: "‘orokaußdvew Eti Διονύσιος 6 περιηγητὴς Βυζάντιος (leg. Βιθυνός"
+    to: "‘ὑπολαμβάνω ὅτι Διονύσιος ὁ περιηγητὴς Βυζάντιος (leg. Βιθυνός"
+    by: scan
+
+  - page: 52
+    from: "Voss. de hist. Gr. p. 217) ἦν öid τὸν ποταμὸν Ῥήβαν]"
+    to: "Voss. de hist. Gr. p. 217) ἦν διὰ τὸν ποταμὸν Ῥήβαν.’"
+    by: scan
+
+  - page: 52
+    from: "Ja, Ἄριστὸὖημος 6 Νυσάιεὺς. wie es im sechsten Ὁμήρου γένος"
+    to: "Ja, ‘Ἀριστόδημος ὁ Νυσαιεὺς, wie es im sechsten Ὁμήρου γένος"
+    by: scan
+
+  - page: 52
+    from: "bei Westermann heisst, Ῥωμαῖον αὐτὸν (Όμηρον) ἀποδείκνυσιν"
+    to: "bei Westermann heisst, ‘Ῥωμαῖον αὐτὸν (Ὅμηρον) ἀποδείκνυσιν"
+    by: scan
+
+  - page: 52
+    from: "Zu τινων H0 θῶν ῥωμαϊκῶν.’ SDpäter dienten wieder Stellen"
+    to: "ἔκ τινων ἠθῶν ῥωμαϊκῶν.’ Später dienten wieder Stellen"
+    by: scan
+
+  - page: 52
+    from: "historischen Ansicht, z. B. Suidas s. v. Ὠλὴν — μᾶλλον .62"
+    to: "historischen Ansicht, z. B. Suidas s. v. Ὠλὴν — μᾶλλον δὲ"
+    by: scan
+
+  - page: 52
+    from: "Λύκιος drd Ξάνθου Os δηλοῖ Καλλίμαχος al 6 πολυῖστωρ ἐν τοῖς"
+    to: "Λύκιος ἀπὸ Ξάνθου ὡς δηλοῖ Καλλίμαχος καὶ ὁ πολυΐστωρ ἐν τοῖς"
+    by: scan
+
+  - page: 52
+    from: "‚ περὶ Auxlas’. Gemeint ist hymn. in Del. V. 304—5 “Avux(ow"
+    to: "περὶ Λυκίας’. Gemeint ist hymn. in Del. V. 304—5 ‘Λυκίοιο"
+    by: scan
+
+  - page: 52
+    from: "γέροντος, ὅν τοι drd Ξάνθοιο θεόπροπος ἤγαγεν Qhnv. Vgl."
+    to: "γέροντος, ὅν τοι ἀπὸ Ξάνθοιο θεόπροπος ἤγαγεν Ὠλήν’. Vgl."
+    by: scan
+
+  - page: 52
+    from: "Suild. s. v. ὂιθυροιμβοόιδάσκάλοι."
+    to: "Suid. s. v. διθυραμβοδιδάσκαλοι."
+    by: scan
+
+  - page: 52
+    from: "‚. Unsere ’ Notiz zeigt also einen. Standpunkt in den"
+    to: "Unsere Notiz zeigt also einen Standpunkt in den"
+    by: scan
+
+  - page: 52
+    from: "Er nimmt. also einen grossen Ausfall an p. 394, und schreibt"
+    to: "Er nimmt also einen grossen Ausfall an p. 394, und schreibt"
+    by: scan
+
+  - page: 52
+    from: "also: Μεγαρεὺς drö τῶν πρὸς Tn Ἀττικῇ Μεγάρων, πολίτης 62"
+    to: "also: Μεγαρεὺς ἀπὸ τῶν πρὸς τῇ Ἀττικῇ Μεγάρων, πολίτης δὲ"
+    by: scan
+
+  - page: 52
+    from: "τῶν ἐν Σικελίᾳε wodurch er für sich zwar den Knoten zer-"
+    to: "τῶν ἐν Σικελίᾳ: wodurch er für sich zwar den Knoten zer-"
+    by: scan
+
+  - page: 52
+    from: "in der Eudocia. verbietet an diesen Awusfall zu denken."
+    to: "in der Eudocia verbietet an diesen Ausfall zu denken."
+    by: scan
+
+  - page: 52
+    from: "Dazu kommt, dass Didymus — weder 6 χαλκέντερος nNoch"
+    to: "Dazu kommt, dass Didymus — weder ὁ χαλκέντερος noch"
+    by: scan
+
+  - page: 52
+    from: "μουσικός — Überhaupt nicht der Gewährsmann der literar-"
+    to: "ὁ μουσικός — überhaupt nicht der Gewährsmann der literar-"
+    by: scan
+
+  - page: 52
+    from: "historischen Artikel im Hesychius ‚sein kann. Dagegen"
+    to: "historischen Artikel im Hesychius sein kann. Dagegen"
+    by: scan
+
+  - page: 52
+    from: "spricht schon, dass nach dem Beweise Bergks Poet. Ilyr."
+    to: "spricht schon, dass nach dem Beweise Bergks Poet. lyr."
+    by: scan
+
+  - page: 52
+    from: "gr. IIL, Aufl. p. 380 ff. der index Pindarischer Gedichte im"
+    to: "gr. III. Aufl. p. 380 ff. der index Pindarischer Gedichte im"
+    by: scan
+
+  - page: 52
+    from: "Suidas, ' also im Hesychius,. vor Aristophanes von Byzanz"
+    to: "Suidas, also im Hesychius, vor Aristophanes von Byzanz"
+    by: scan
+
+  - page: 52
+    from: "Callimachus stammt, vielleicht aber noch älter ist. . Die"
+    to: "Callimachus stammt, vielleicht aber noch älter ist. Die"
+    by: scan
+
+  - page: 53
+    from: "S n"
+    to: ""
+    by: scan
+
+  - page: 53
+    from: "Ueberhaupt glaube 1ch dass der Zusammenhang des"
+    to: "Ueberhaupt glaube ich, dass der Zusammenhang des"
+    by: scan
+
+  - page: 53
+    from: "Hesychischen πίναξ τῶν ἐν παιδεία ὀνομαστῶν mMit den Calli-"
+    to: "Hesychischen πίναξ τῶν ἐν παιδείᾳ ὀνομαστῶν mit den Calli-"
+    by: scan
+
+  - page: 53
+    from: "Jedenfalls aber geht unsere I’heognisnotiz auf jene Zeit"
+    to: "Jedenfalls aber geht unsere Theognisnotiz auf jene Zeit"
+    by: scan
+
+  - page: 53
+    from: "zurück : 1. der Zahl, εἰς ἔπη βω’. wegen, Ritschl alex. Bibl."
+    to: "zurück: 1. der Zahl, εἰς ἔπη βω’, wegen, Ritschl alex. Bibl."
+    by: scan
+
+  - page: 53
+    from: "vordidymeischen Ansicht halber (Μεγαρεὺς τῶν ἐν Σικελία -"
+    to: "vordidymeischen Ansicht halber ‘Μεγαρεὺς τῶν ἐν Σικελίᾳ"
+    by: scan
+
+  - page: 53
+    from: "Μεγάρων’. endlich 3. weil die vitae der Lyriker überhaupt"
+    to: "Μεγάρων’, endlich 3. weil die vitae der Lyriker überhaupt"
+    by: scan
+
+  - page: 53
+    from: "aus jenen gelehrten bibliothekarischen Studien der Alexan-i"
+    to: "aus jenen gelehrten bibliothekarischen Studien der Alexan-"
+    by: scan
+
+  - page: 53
+    from: "driner stammen?9), Daher kommt es, dass sie so viele ge-"
+    to: "driner stammen20). Daher kommt es, dass sie so viele ge-"
+    by: scan
+
+  - page: 53
+    from: "persischer und Iydischer Geschichte, Bezeichnung des"
+    to: "persischer und lydischer Geschichte, Bezeichnung des"
+    by: scan
+
+  - page: 53
+    from: "zählung der εὑρήματα eines Jeden, endlich Gle10hart1gke1t"
+    to: "zählung der εὑρήματα eines Jeden, endlich Gleichartigkeit"
+    by: scan
+
+  - page: 53
+    from: "besassen von Theognis nur noch eine. Gnomensammlung."
+    to: "besassen von Theognis nur noch eine Gnomensammlung."
+    by: scan
+
+  - page: 53
+    from: "zwischen Plato und Ptolemäus Philadelphus zu Ssetzen."
+    to: "zwischen Plato und Ptolemäus Philadelphus zu setzen."
+    by: scan
+
+  - page: 53
+    from: "Diese sSammlung also war es, die Plutarch, Athenaus"
+    to: "Diese Sammlung also war es, die Plutarch, Athenäus,"
+    by: scan
+
+  - page: 53
+    from: "Julian und Cyrill in den Handen hatten, d1e ihr Urthe1["
+    to: "Julian und Cyrill in den Händen hatten, die ihr Urtheil"
+    by: scan
+
+  - page: 53
+    from: "20) Nach der vortrefflichen Untersuchuhg D. Volkmann’s habén"
+    to: "20) Nach der vortrefflichen Untersuchung D. Volkmann’s haben"
+    by: scan
+
+  - page: 53
+    from: "wir uns diese vitae in Form von Prologen Oder Epilogen der Werke ‘"
+    to: "wir uns diese vitae in Form von Prologen oder Epilogen der Werke"
+    by: scan
+
+  - page: 54
+    from: "——"
+    to: ""
+    by: scan
+
+  - page: 54
+    from: "SN"
+    to: ""
     by: scan
