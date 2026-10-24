@@ -375,11 +375,6 @@ werk17niet:
     by: reference
 
   - page: 98
-    from: "consilio est consectarlum rehquus eius aperte"
-    to: "consilio est consectarium, reliquiis eius aperte"
-    by: reference
-
-  - page: 98
     from: "in utriusque blbhothecae indicibus"
     to: "in utriusque bibliothecae indicibus"
     by: reference
@@ -390,23 +385,8 @@ werk17niet:
     by: reference
 
   - page: 100
-    from: "Favorini libris essc"
-    to: "Favorini libris est-"
-    by: reference
-
-  - page: 100
     from: "Laertiüi partibus, quae"
     to: "Laertii partibus, quae"
-    by: reference
-
-  - page: 100
-    from: "Rose. Bernaysius, MHeitzius. Ego"
-    to: "Rose. Bernaysius. Heitzius. Ego"
-    by: reference
-
-  - page: 101
-    from: "eosque ditissimos Hermlppum"
-    to: "eosque ditissimos Hermippum."
     by: reference
 
   - page: 101
@@ -415,18 +395,8 @@ werk17niet:
     by: reference
 
   - page: 102
-    from: "Apollodorus — 5atyrus — Timaeus — Aristippus"
-    to: "Apollodorus — Satyrus — Timaeus — Aristippus"
-    by: reference
-
-  - page: 102
     from: "in Satyri Epltome —"
     to: "in Satyri Epitome —"
-    by: reference
-
-  - page: 102
-    from: "indagare nisi Arrstlppl."
-    to: "indagare nisi Aristippi,"
     by: reference
 
   - page: 102
@@ -434,29 +404,9 @@ werk17niet:
     to: "mippus — Hippobotus — Heraclides. VIII"
     by: reference
 
-  - page: 103
-    from: "c cf. Eplph adv. Haeres"
-    to: "c cf. Epiph. adv. Haeres"
-    by: reference
-
-  - page: 103
-    from: "Haeres. III. 9. Suld S. V"
-    to: "Haeres. III. 9. Suid. S. V"
-    by: reference
-
-  - page: 104
-    from: "probatur Dlogems indicibus .VI"
-    to: "probatur Diogenis indicibus .VI"
-    by: reference
-
   - page: 104
     from: "promptu est Sosmratem Satyrum, Sotionem"
     to: "promptu est Sosicratem, Satyrum, Sotionem"
-    by: reference
-
-  - page: 105
-    from: "Theophr. p. 24, Arlstotehs Heltzms p. 46 ss"
-    to: "Theophr. p. 24, Aristotelis Heitzius p. 46 ss"
     by: reference
 
   - page: 106
@@ -465,18 +415,8 @@ werk17niet:
     by: reference
 
   - page: 106
-    from: "Plin. nat. hlSt XXX"
-    to: "Plin. nat. hist. XXX"
-    by: reference
-
-  - page: 106
     from: "valde a catalogl in bibliothecae"
     to: "valde a catalogi in bibliothecae"
-    by: reference
-
-  - page: 107
-    from: "unam contineat. lltteram"
-    to: "unam contineat litteram."
     by: reference
 
   - page: 107
@@ -495,18 +435,8 @@ werk17niet:
     by: reference
 
   - page: 110
-    from: "ante eundem Herachdem"
-    to: "ante eundem Heraclidem"
-    by: reference
-
-  - page: 110
     from: "Heraclidem Lembum florult qui eius"
     to: "Heraclidem Lembum floruit, qui eius"
-    by: reference
-
-  - page: 110
-    from: "igitur hac ratlone omnes. turbae"
-    to: "igitur hac ratione omnes. turbae"
     by: reference
 
   - page: 111
@@ -12784,7 +12714,6 @@ werk17niet:
     to: "nermus aber erst mit unserm Redactor. Jene hat ein"
     by: scan
 
-
   - page: 34
     from: "(vgl. Volkmann de .Suid. biogr. qu. IL, symb. Bonn. II,"
     to: "(vgl. Volkmann de Suid. biogr. qu. II, symb. Bonn. II,"
@@ -13523,4 +13452,1864 @@ werk17niet:
   - page: 41
     from: "— καὶ περιήγησιν Ἑλλάδος καὶ ἄλλα."
     to: "καὶ περιήγησιν Ἑλλάδος καὶ ἄλλα."
+    by: scan
+
+  - page: 97
+    from: "PUR T aaác——a rÁ qure rÁ —— —— u7 0000 — Á X 1 w p ÉÓ Y0 0 TH9 RC 0 INCTUCOUUN WT 04 00 ÉN 0000 0 t NU ÁÁ tUt m 08"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "transcribere iuvabit, eruemus: ἀλλὰ Δημήτριος 6 Μάγνης ὃς"
+    to: "transcribere iuvabit, eruemus: ἀλλὰ Δημήτριος ὁ Μάγνης ὃς"
+    by: scan
+
+  - page: 97
+    from: "ἔδοξε γενέσθαι πολυίστωρ, ἐν τῇ περὶ τῶν ὁμωνύμων πραγματεία"
+    to: "ἔδοξε γενέσθαι πολυίστωρ, ἐν τῇ περὶ τῶν ὁμωνύμων πραγματείᾳ"
+    by: scan
+
+  - page: 97
+    from: "Y^"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "δὲ κωλύει καὶ τὰς λέξεις παραθέσθαι τοῦ ἀνδρός. ἔστι δὲ τα ὑπ’"
+    to: "δὲ κωλύει καὶ τὰς λέξεις παραθέσθαι τοῦ ἀνδρός. ἔστι δὲ τὰ ὑπ’"
+    by: scan
+
+  - page: 97
+    from: ", δ’, ό"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "αὐτοῦ γραφέντα τάδε. Δεινάρχοις δ’ ἐνετύχομεν ὧν ἐστιν O"
+    to: "αὐτοῦ γραφέντα τάδε. Δεινάρχοις δ’ ἐνετύχομεν δʹ, ὧν ἐστιν ὁ"
+    by: scan
+
+  - page: 97
+    from: "μὲν ἐκ τῶν ῥητόρων τῶν Ἀττικῶν, 6 ὅδὲ τὰς περὶ Κρήτην συναγηο-"
+    to: "μὲν ἐκ τῶν ῥητόρων τῶν Ἀττικῶν, ὁ δὲ τὰς περὶ Κρήτην συναγηο-"
+    by: scan
+
+  - page: 97
+    from: "δὲ"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "πρεσβύτερος μὲν ἀμφοῖν"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "χὼς (εἰς. Westerm.) μυθολογίας, ὁ o"
+    to: "χὼς (sic. Westerm.) μυθολογίας, ὁ δὲ πρεσβύτερος μὲν ἀμφοῖν"
+    by: scan
+
+  - page: 97
+    from: "τούτοιν, , Δήλιος δὲ τὸ γένος, πεπραγματευμένος τοῦτο μὲν ἔπος,"
+    to: "τούτοιν, Δήλιος δὲ τὸ γένος, πεπραγματευμένος τοῦτο μὲν ἔπος,"
+    by: scan
+
+  - page: 97
+    from: "τοῦτο δὲ πρᾶγμα, τέταρτος δ’ 60 περὶ Ἶμήρου λόγον συντεθεικώς,"
+    to: "τοῦτο δὲ πρᾶγμα, τέταρτος δ’ ὁ περὶ Ὁμήρου λόγον συντεθεικώς."
+    by: scan
+
+  - page: 97
+    from: "ἐθέλω δὲ πρὸς μέρος περὶ ἑκάστου διελθεῖν xal πρῶτον μὲν περὶ"
+    to: "ἐθέλω δὲ πρὸς μέρος περὶ ἑκάστου διελθεῖν καὶ πρῶτον μὲν περὶ"
+    by: scan
+
+  - page: 97
+    from: "λείπων τῆς Ὑπερείδου - ὥστ’ εἰπεῖν καὶ νύ κεν ἢ παρέ·-"
+    to: "λείπων τῆς Ὑπερείδου χάριτος, ὥστ’ εἰπεῖν καὶ νύ κεν ἢ παρέ-"
+    by: scan
+
+  - page: 97
+    from: "χάριτος, T|"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "μὴ ἄλλως γεγονέναι τὸ πρᾶγμα η ὡς αὐτὸς λέγει, καὶ νομίσειεν"
+    to: "μὴ ἄλλως γεγονέναι τὸ πρᾶγμα ἢ ὡς αὐτὸς λέγει, καὶ νομίσειεν"
+    by: scan
+
+  - page: 97
+    from: "μοσθένους εἶναι τούτου. πολὺ γαρ ἀπέχει τοῦ χαρακτῆρος. ἀλλ’"
+    to: "μοσθένους εἶναι τούτου. πολὺ γὰρ ἀπέχει τοῦ χαρακτῆρος. ἀλλ’"
+    by: scan
+
+  - page: 97
+    from: "τοσοῦτον σκότος ἐπιπεπόλακεν, ὥστε τοὺς μὲν ἄλλους αὐτοῦ"
+    to: "ὅμως τοσοῦτον σκότος ἐπιπεπόλακεν, ὥστε τοὺς μὲν ἄλλους αὐτοῦ"
+    by: scan
+
+  - page: 97
+    from: "ὅμως"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: ", , ὑπὲρ ξ’ καὶ ρ’ » , - συμβέβηκε,"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "λόγους, σχεδόν που & xal p ὄντας, ἀγνοεῖν τὸν"
+    to: "λόγους, σχεδόν που ὑπὲρ ξʹ καὶ ρʹ ὄντας, ἀγνοεῖν συμβέβηκε, τὸν"
+    by: scan
+
+  - page: 97
+    from: "’δὲ μὴ , ὑπ’ , αὐτοῦ μόνον 2"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "γραφέντα ἐκείνου νομίζεσθαι. η δε λέξις"
+    to: "δὲ μὴ γραφέντα ὑπ’ αὐτοῦ μόνον ἐκείνου νομίζεσθαι. ἡ δὲ λέξις"
+    by: scan
+
+  - page: 97
+    from: "ἐστὶ τοῦ Δεινάρχου κυρίως ἠθικὴ, πάθος κινοδσοι σχεδὸν τῇ πικρία"
+    to: "ἐστὶ τοῦ Δεινάρχου κυρίως ἠθικὴ, πάθος κινοῦσα σχεδὸν τῇ πικρίᾳ"
+    by: scan
+
+  - page: 97
+    from: "δὲ N"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "μόνον καὶ τῷ , ^ Δημοσθενικοῦ N , ^"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "T(p τόνῳ τοῦ χαρακτῆρος λειπομένη, του"
+    to: "μόνον καὶ τῷ τόνῳ τοῦ Δημοσθενικοῦ χαρακτῆρος λειπομένη, τοῦ"
+    by: scan
+
+  - page: 97
+    from: "πιθανοῦ καὶ κυρίου μηδὲν ἐνδέουσα."
+    to: "δὲ πιθανοῦ καὶ κυρίου μηδὲν ἐνδέουσα."
+    by: scan
+
+  - page: 97
+    from: "in Dinarchi vita contexenda praesto fuisse. Νεσυε difficile"
+    to: "in Dinarchi vita contexenda praesto fuisse. Neque difficile"
+    by: scan
+
+  - page: 97
+    from: "opere neglectus sit. Ηί enim unicuique rhetori vel philo-"
+    to: "opere neglectus sit. Hi enim unicuique rhetori vel philo-"
+    by: scan
+
+  - page: 97
+    from: "Id quod Dinarcho ειεείᾶίῖ postumae tamquam Eloquentiae"
+    to: "Id quod Dinarcho accidit postumae tamquam Eloquentiae"
+    by: scan
+
+  - page: 97
+    from: "Nietzsche, Werke. III. Abth., Bd. XVII. (Philologica I.) 7"
+    to: ""
+    by: scan
+
+  - page: 97
+    from: "PRURMRIEEN Q — — M hs —— -R —— A25 - - Ll a . -—"
+    to: ""
+    by: scan
+
+  - page: 98
+    from: "fecerunt.. His igitur illum numerorum errorem, quem Dio-"
+    to: "fecerunt. His igitur illum numerorum errorem, quem Dio-"
+    by: scan
+
+  - page: 98
+    from: "nysius, acerbe perstringit, imputaremus, nisi alia ratiocinatio"
+    to: "nysius acerbe perstringit, imputaremus, nisi alia ratiocinatio"
+    by: scan
+
+  - page: 98
+    from: "nos,maiore uti cautione iuberet. Quid quod Dionysius in-"
+    to: "nos maiore uti cautione iuberet. Quid quod Dionysius in-"
+    by: scan
+
+  - page: 98
+    from: "credibilem illum. numerum £' xaip' ut ficticium neque"
+    to: "credibilem illum numerum ξʹ καὶ ρʹ ut ficticium neque"
+    by: scan
+
+  - page: 98
+    from: "xal πλῆθος λόγων (Δημήτριος) εἶπεν οὐδενὶ xv ** συμφω-"
+    to: "καὶ πλῆθος λόγων (Δημήτριος) εἶπεν οὐδενὶ τῶν ** σύμφω-"
+    by: scan
+
+  - page: 98
+    from: "yov, sl Ost ** OX τούναντίον. Quae etsi valde mutila esse"
+    to: "νον, εἰ δεῖ ** δὲ τοὐναντίον. Quae etsi valde mutila esse"
+    by: scan
+
+  - page: 98
+    from: "nisi ex 1nd1c1bus aut Alexandrinis aut Pergamenls9 5i mihi"
+    to: "nisi ex indicibus aut Alexandrinis aut Pergamenis? Si mihi"
+    by: scan
+
+  - page: 98
+    from: "invenit, computando in unam summam coniungéret. Quod"
+    to: "invenit, computando in unam summam coniungeret. Quod"
+    by: scan
+
+  - page: 98
+    from: "Demetrium non invenisset, aut.e Callimachi aut Perga-"
+    to: "Demetrium non invenisset, aut e Callimachi aut Perga-"
+    by: scan
+
+  - page: 98
+    from: "Dionysitïs; ἀπορίαν hac via videmur solvere, ut hos pinaco-"
+    to: "Dionysius, ἀπορίαν hac via videmur solvere, ut hos pinaco-"
+    by: scan
+
+  - page: 98
+    from: "Verum hoc quidem quocunque modo' se habet, illud"
+    to: "Verum hoc quidem quocunque modo se habet, illud"
+    by: scan
+
+  - page: 98
+    from: "tenendum est Demetrium, si fontibus destitutus paucissima -"
+    to: "tenendum est Demetrium, si fontibus destitutus paucissima"
+    by: scan
+
+  - page: 98
+    from: "multi.diversis non quidem :nominibus, sed hominibus ab in-"
+    to: "multi diversis non quidem nominibus, sed hominibus ab in-"
+    by: scan
+
+  - page: 98
+    from: "doctis doctlsque tribuerentur; separatim de hac ὁμωνυμίᾳ"
+    to: "doctis doctisque tribuerentur, separatim de hac ὁμωνυμίᾳ"
+    by: scan
+
+  - page: 98
+    from: "agere ac. suum cuique restltuere instituit, adprlme plnaco- |"
+    to: "agere ac suum cuique restituere instituit, adprime pinaco-"
+    by: scan
+
+  - page: 98
+    from: "trianl . 11br1 consilio est consectarlum rehquus eius aperte"
+    to: "triani libri consilio est consectarium, reliquiis eius aperte"
+    by: scan
+
+  - page: 99
+    from: "confirmatur. . Quae'quamquam a breviatore:nimis in artum"
+    to: "confirmatur. Quae quamquam a breviatore nimis in artum"
+    by: scan
+
+  - page: 99
+    from: "coactae sunt, saep1551me tamen 1nd1cum vestigia: retment."
+    to: "coactae sunt, saepissime tamen indicum vestigia retinent."
+    by: scan
+
+  - page: 99
+    from: "Velutl"
+    to: "Veluti"
+    by: scan
+
+  - page: 99
+    from: ". lLl 04 Αἰσχίνης — δεύτερος ὁ τὰς τέχνας γεγραφὼς τὰς"
+    to: "II. 64 Αἰσχίνης — δεύτερος ὁ τὰς τέχνας γεγραφὼς τὰς"
+    by: scan
+
+  - page: 99
+    from: "ῥητορικάς. Π. 3 Ἀναξιμένης — ὃς ἀδελφῆς υἱὸς ῆν τοῦ τὰς"
+    to: "ῥητορικάς. II. 3 Ἀναξιμένης — ὃς ἀδελφῆς υἱὸς ἦν τοῦ τὰς"
+    by: scan
+
+  - page: 99
+    from: "Ἀλεξάνδρου πράξεις γεγραφότος. l. 83 Ἀρίστιππος - δεύτερος"
+    to: "Ἀλεξάνδρου πράξεις γεγραφότος. II. 83 Ἀρίστιππος — δεύτερος"
+    by: scan
+
+  - page: 99
+    from: "τευιιένος. τέταρτος πρὸς τὸν Ισοκράτους πανηγυρικὸν ἀντιγεγραφώς"
+    to: "τευμένος. τέταρτος πρὸς τὸν Ἰσοκράτους πανηγυρικὸν ἀντιγεγραφώς"
+    by: scan
+
+  - page: 99
+    from: "— ἕκτος γεγραφὼς περὶ ποιητικῆς — ογδοος — 00 φέρεται τέχνη"
+    to: "— ἕκτος γεγραφὼς περὶ ποιητικῆς — ὄγδοος — οὗ φέρεται τέχνη"
+    by: scan
+
+  - page: 99
+    from: "περὶ πλεονασμου — —— 7 - BEU |"
+    to: "περὶ πλεονασμοῦ"
+    by: scan
+
+  - page: 99
+    from: "docui in eis ηοῃῃιιῃσυοηι Demetrn Magnetis nomen auctori-"
+    to: "docui in eis nonnunquam Demetrii Magnetis nomen auctori-"
+    by: scan
+
+  - page: 99
+    from: "tatemque usurpari. IL. 57 : Ξενοφῶν — συνέγραψε δὲ — καὶ"
+    to: "tatemque usurpari. II. 57 Ξενοφῶν — συνέγραψε δὲ — καὶ"
+    by: scan
+
+  - page: 99
+    from: "Ἀθηναίων καὶ Λακεδαιμονίων πολιτείαν, ἦν φησιν οὐκ εἶναι Ξενο-"
+    to: "Ἀθηναίων καὶ Λακεδαιμονίων πολιτείαν, ἥν φησιν οὐκ εἶναι Ξενο-"
+    by: scan
+
+  - page: 99
+    from: "φῶντος 6 Μάγνης Δημ ιιήτριος. VIII. 85 τοῦτόν (Φιλόλαον) φησι"
+    to: "φῶντος ὁ Μάγνης Δημήτριος. VIII. 85 τοῦτόν (Φιλόλαον) φησι"
+    by: scan
+
+  - page: 99
+    from: "Δημήτριος év ὁμωνύμοις πρῶτον εκδοδναι τῶν Πυθαγορικῶν περὶ"
+    to: "Δημήτριος ἐν ὁμωνύμοις πρῶτον ἐκδοῦναι τῶν Πυθαγορικῶν περὶ"
+    by: scan
+
+  - page: 99
+    from: "φύσεως ὧν η αρχὴ ἥδε· κτλ. ὋἹΠ. 84 φησὶ δ αὐτὸν \" Δημή-"
+    to: "φύσεως, ὧν ἡ ἀρχὴ ἥδε· κτλ. VIII. 84 φησὶ δ’ αὐτὸν Δημή-"
+    by: scan
+
+  - page: 99
+    from: "τριος ἐν ὁμωνύμοις μηδὲν καταλιπεῖν σύγγραμμα. l. 112 φέρεται"
+    to: "τριος ἐν ὁμωνύμοις μηδὲν καταλιπεῖν σύγγραμμα. I. 112 φέρεται"
+    by: scan
+
+  - page: 99
+    from: "9 αὐτοῦ Y5 1 M Σόλωνα 1 νομοθέτην περιέχουσα EM"
+    to: "αὐτοῦ καὶ ἐπιστολὴ πρὸς Σόλωνα τὸν νομοθέτην περιέχουσα πολι-"
+    by: scan
+
+  - page: 99
+    from: "καὶ ἐπιστολὴ πρὸς τὸν πολι-"
+    to: ""
+    by: scan
+
+  - page: 99
+    from: "τὴν ἐπιστολὴν ὡς νεαρὰν καὶ μὴ τῇ Κρητικῇ φωνῇ γεγραμμένην, |"
+    to: "τὴν ἐπιστολὴν ὡς νεαρὰν καὶ μὴ τῇ Κρητικῇ φωνῇ γεγραμμένην,"
+    by: scan
+
+  - page: 99
+    from: "Ἀτθίδι δὲ καὶ ταύτῃ νέα. Demetrius Callimachi vestigiis"
+    to: "Ἀτθίδι δὲ καὶ ταύτῃ νέᾳ. Demetrius Callimachi vestigiis"
+    by: scan
+
+  - page: 99
+    from: "mstltlsse in πίναξιν ἰοίτίει scrlptorum exhlbentls etiam . his"
+    to: "institisse in πίναξιν initia scriptorum exhibentis etiam his"
+    by: scan
+
+  - page: 99
+    from: "exemplis proditur . VI. 81 γεγόνασι δὲ Διογένεις πέντε· — πρῶτος"
+    to: "exemplis proditur VI. 81 γεγόνασι δὲ Διογένεις πέντε· πρῶτος"
+    by: scan
+
+  - page: 99
+    from: "Ἀπολλωνιάτης φυσικός. ἀρχὴ 0' αὐτῷ τοῦ συγγράμματος ἥδε κτλ."
+    to: "Ἀπολλωνιάτης φυσικός. ἀρχὴ δ’ αὐτῷ τοῦ συγγράμματος ἥδε κτλ."
+    by: scan
+
+  - page: 99
+    from: "ΧῙΠΙ. 8Z γεγόνασι δ’ Ἀρχύται τέσσαρες — ἔνιοι καὶ πέμπτον"
+    to: "VIII. 82 γεγόνασι δ’ Ἀρχύται τέσσαρες — ἔνιοι καὶ πέμπτον"
+    by: scan
+
+  - page: 99
+    from: "ἀρχιτέκτονά φασιν 00 - φέρεται βιβλίον περὶ μηχανῆς ἀρχὴν ἔχον"
+    to: "ἀρχιτέκτονά φασιν οὗ φέρεται βιβλίον περὶ μηχανῆς ἀρχὴν ἔχον"
+    by: scan
+
+  - page: 99
+    from: "ταύτην κτλ. . . 119 Ἐρατοσθένης δ’ ἕνα μόνον (Φερεκύδην Σύριον"
+    to: "ταύτην κτλ. I. 119 Ἐρατοσθένης δ’ ἕνα μόνον (Φερεκύδην Σύριον"
+    by: scan
+
+  - page: 99
+    from: "γεγονέναι . φησὶ) καὶ ἕτερον Ἀθηναῖον γενεαλόγον. σώζεται δὲ τοῦ"
+    to: "γεγονέναι φησὶ) καὶ ἕτερον Ἀθηναῖον γενεαλόγον. σώζεται δὲ τοῦ"
+    by: scan
+
+  - page: 99
+    from: "Συρίου τόδε βιβλίον ὃ συνέγραψεν. ob ἡ ἀρχὴ κτλ. V. 85 δεύτερος"
+    to: "Συρίου τόδε βιβλίον ὃ συνέγραψεν. οὗ ἡ ἀρχὴ κτλ. V. 85 δεύτερος"
+    by: scan
+
+  - page: 99
+    from: "(Δημήτριος) ἐπῶν ποιητὴς οὗ μόνα σώζεται πρὸς τοὺς φθονερους"
+    to: "(Δημήτριος) ἐπῶν ποιητὴς οὗ μόνα σώζεται πρὸς τοὺς φθονεροὺς"
+    by: scan
+
+  - page: 99
+    from: "εἰρημένα τάδε κτλ. cf. VIIT. 83. IX. 51. 52. 112."
+    to: "εἰρημένα τάδε κτλ. cf. VIII. 83. IX. 51. 52. 112."
+    by: scan
+
+  - page: 99
+    from: "— — —— —— -- l"
+    to: ""
+    by: scan
+
+  - page: 100
+    from: "E Demetrii igiturlibro omnes illos indices?*),"
+    to: "E Demetrii igitur libro omnes illos indices4),"
+    by: scan
+
+  - page: 100
+    from: "lam via parata est, qua id, quod in Scheurleeri libello"
+    to: "Iam via parata est, qua id, quod in Scheurleeri libello"
+    by: scan
+
+  - page: 100
+    from: "iure desideravimus, facilime possit suppleri. Cum enim"
+    to: "iure desideravimus, facillime possit suppleri. Cum enim"
+    by: scan
+
+  - page: 100
+    from: "^) Id statuo etiam de indice Aristotelis Laertiano, qui"
+    to: "4) Id statuo etiam de indice Aristotelis Laertiano, qui"
+    by: scan
+
+  - page: 100
+    from: "dici nequit quantas turbas excitaverit. Quem e Favorini libris essc"
+    to: "dici nequit quantas turbas excitaverit. Quem e Favorini libris esse"
+    by: scan
+
+  - page: 100
+    from: "reiculum erit, Vbi etiam 1lla corruet sententia, quam V. Rose"
+    to: "reiculum erit. Vbi etiam illa corruet sententia, quam V. Rose"
+    by: scan
+
+  - page: 100
+    from: "p. 133. 'Den Katalog der aristotelischen Schriften habe ich ver-"
+    to: "p. 133. ‘Den Katalog der aristotelischen Schriften habe ich ver-"
+    by: scan
+
+  - page: 100
+    from: ". Schriften einstimmig im spáüteren Alterthum gehalten wird [erravit"
+    to: "Schriften einstimmig im späteren Alterthum gehalten wird [erravit"
+    by: scan
+
+  - page: 100
+    from: "Bernaysius] und seine Arbeit sicherlich die verbreitetste war'. Val."
+    to: "Bernaysius] und seine Arbeit sicherlich die verbreitetste war’. Val."
+    by: scan
+
+  - page: 100
+    from: "Rose in Ar. pseud. p. 8 *nemo dubitare poterit, quin (Favorinus) eosdem"
+    to: "Rose in Ar. pseud. p. 8 ‘nemo dubitare poterit, quin (Favorinus) eosdem"
+    by: scan
+
+  - page: 100
+    from: "eius aequalis, Contra Heitzius disputat p 46. 'Dagegen sind wir"
+    to: "eius aequalis’. Contra Heitzius disputat p 46. ‘Dagegen sind wir"
+    by: scan
+
+  - page: 100
+    from: "nicht im Stande, uns von der Unmaüoglichkeit zu überzeugen, dass"
+    to: "nicht im Stande, uns von der Unmöglichkeit zu überzeugen, dass"
+    by: scan
+
+  - page: 100
+    from: "nirgends bei Diogenes genannt wird, geschópft haben soll' Remoto"
+    to: "nirgends bei Diogenes genannt wird, geschöpft haben soll’. Remoto"
+    by: scan
+
+  - page: 100
+    from: "Val. Rose. Bernaysius, MHeitzius. Ego."
+    to: "Val. Rose. | Bernaysius. | Heitzius. | Ego."
+    by: scan
+
+  - page: 100
+    from: "index Arist. Laert. — ind. Ar. La. — ind. Ar. La. ind. Ar. La."
+    to: "index Arist. Laert. | ind. Ar. La. | ind. Ar. La. | ind. Ar. La."
+    by: scan
+
+  - page: 100
+    from: "- ex ex . ex, ex ."
+    to: "ex | ex | ex | ex"
+    by: scan
+
+  - page: 100
+    from: "Favorino | Andronico Favorino Diocle"
+    to: "Favorino | Andronico | Favorino | Diocle"
+    by: scan
+
+  - page: 100
+    from: "| ex | | ex ex"
+    to: "ex |  | ex | ex"
+    by: scan
+
+  - page: 100
+    from: "Andronico - . Hermippo Demetrio Magnete"
+    to: "Andronico |  | Hermippo | Demetrio Magnete"
+    by: scan
+
+  - page: 100
+    from: "| ex ."
+    to: " |  |  | ex"
+    by: scan
+
+  - page: 100
+    from: "Hermippo."
+    to: " |  |  | Hermippo."
+    by: scan
+
+  - page: 101
+    from: "w o ,T Á9"
+    to: ""
+    by: scan
+
+  - page: 101
+    from: "— 1001 —"
+    to: "— 101 —"
+    by: scan
+
+  - page: 101
+    from: "|in homonymorum llbrorum indicibus hi excitantur Demetrii"
+    to: "in homonymorum librorum indicibus hi excitantur Demetrii"
+    by: scan
+
+  - page: 101
+    from: "Apollodorus in chronicis VIII. 90, VI,. 101."
+    to: "Apollodorus in chronicis VIII. 90, VI. 101."
+    by: scan
+
+  - page: 101
+    from: "Antigonus Il..195. - |"
+    to: "Antigonus II. 15."
+    by: scan
+
+  - page: 101
+    from: "Aristoxenus V, 395."
+    to: "Aristoxenus V. 35."
+    by: scan
+
+  - page: 101
+    from: "Hermippus Flut. Demosth. c. 28."
+    to: "Hermippus Plut. Demosth. c. 28."
+    by: scan
+
+  - page: 101
+    from: "Hippobotus V. 89 'sq. IX. 39—40"
+    to: "Hippobotus V. 89 sq. IX. 39—40."
+    by: scan
+
+  - page: 101
+    from: ". Duris I. 38."
+    to: "Duris I. 38."
+    by: scan
+
+  - page: 101
+    from: "Neanthes I. 99,"
+    to: "Neanthes I. 99."
+    by: scan
+
+  - page: 101
+    from: "Callimachus IX. 17. :"
+    to: "Callimachus IX. 17."
+    by: scan
+
+  - page: 101
+    from: "| B.:. in librorum indicibus.,"
+    to: "B. in librorum indicibus."
+    by: scan
+
+  - page: 101
+    from: "Lobon Argivus I. 34. -"
+    to: "Lobon Argivus I. 34."
+    by: scan
+
+  - page: 101
+    from: "Peristratus Ephesius 1I. 60."
+    to: "Peristratus Ephesius II. 60."
+    by: scan
+
+  - page: 101
+    from: "Persaeus Il. 61. | ."
+    to: "Persaeus II. 61."
+    by: scan
+
+  - page: 101
+    from: "Panaetius II. 64. 85. VII. 163..—"
+    to: "Panaetius II. 64. 85. VII. 163."
+    by: scan
+
+  - page: 101
+    from: "sotion II. 85. VI. 80. VIII. 7."
+    to: "Sotion II. 85. VI. 80. VIII. 7."
+    by: scan
+
+  - page: 101
+    from: "catyrus VI. 80. '"
+    to: "Satyrus VI. 80."
+    by: scan
+
+  - page: 101
+    from: "Heraclides in Sotionis epitome VIII 7 56."
+    to: "Heraclides in Sotionis epitome VIII. 7. 58."
+    by: scan
+
+  - page: 101
+    from: ". Neanthes VIII. 58."
+    to: "Neanthes VIII. 58."
+    by: scan
+
+  - page: 101
+    from: "Hermippus VIII. 85. 88.. —"
+    to: "Hermippus VIII. 85. 88."
+    by: scan
+
+  - page: 101
+    from: ". Seleucus IX. 12. cf. III. 109, ."
+    to: "Seleucus IX. 12. cf. III. 109."
+    by: scan
+
+  - page: 101
+    from: "Aristoxenus IX. 40O."
+    to: "Aristoxenus IX. 40."
+    by: scan
+
+  - page: 101
+    from: "Antigonus Carystlus IX. 111."
+    to: "Antigonus Carystius IX. 111."
+    by: scan
+
+  - page: 101
+    from: "En igitur Demetrii fontes eosque ditissimos Hermlppum"
+    to: "En igitur Demetrii fontes eosque ditissimos Hermippum,"
+    by: scan
+
+  - page: 101
+    from: "Antigonum Carystium,' Panaetium, Apollodorum , alios."
+    to: "Antigonum Carystium, Panaetium, Apollodorum, alios."
+    by: scan
+
+  - page: 101
+    from: "Atqui idem scriptores etiam in, vitis, ad quas componendas"
+    to: "Atqui idem scriptores etiam in vitis, ad quas componendas"
+    by: scan
+
+  - page: 101
+    from: "in arcem totius de Laertii fontibus quaestionis intravimus.,"
+    to: "in arcem totius de Laertii fontibus quaestionis intravimus."
+    by: scan
+
+  - page: 102
+    from: "Quanto: vero opere sententia mea eo confirmetur, quod illi"
+    to: "Quanto vero opere sententia mea eo confirmetur, quod illi"
+    by: scan
+
+  - page: 102
+    from: "qui ex citandi ratione aliquid conligere. didicerunt. Veluti"
+    to: "qui ex citandi ratione aliquid conligere didicerunt. Veluti"
+    by: scan
+
+  - page: 102
+    from: "— Duris — Satyrus. .I. 95. 96 Sosicrates, Herodotus —"
+    to: "— Duris — Satyrus. I. 95. 96 Sosicrates, Herodotus —"
+    by: scan
+
+  - page: 102
+    from: "Aristippus περὶ παλαιᾶς xpoo7zc.. l. 101 Sosicrates :— Her-"
+    to: "Aristippus περὶ παλαιᾶς τρυφῆς. I. 101 Sosicrates — Her-"
+    by: scan
+
+  - page: 102
+    from: "Hieronymus. IIll. 2. 3 . Apollodorus — . Hermippus —"
+    to: "Hieronymus. III. 2. 3 Apollodorus — Hermippus —"
+    by: scan
+
+  - page: 102
+    from: "Neanthes. ÍV. 45 Hermippus, . Demetrius — Apollodorus."
+    to: "Neanthes. IV. 45 Hermippus, Demetrius — Apollodorus."
+    by: scan
+
+  - page: 102
+    from: "V.2.3.4 Hermlppus — Demetrius — Arlstlppus V. 58 ss."
+    to: "V. 2. 3. 4 Hermippus — Demetrius — Aristippus. V. 58 ss."
+    by: scan
+
+  - page: 102
+    from: "-Apollodorus — Demetrius. V. 78 Hermlppus — Heraclides"
+    to: "Apollodorus — Demetrius. V. 78 Hermippus — Heraclides"
+    by: scan
+
+  - page: 102
+    from: "\" Sosicrates. VII. 184 Sotion, Hermippus — Apollodorus —"
+    to: "Sosicrates. VII. 184 Sotion, Hermippus — Apollodorus —"
+    by: scan
+
+  - page: 102
+    from: "Demetrius. VIIIL. 40 Heraclides in Satyri.Epitome — Her-"
+    to: "Demetrius. VIII. 40 Heraclides in Satyri Epitome — Her-"
+    by: scan
+
+  - page: 102
+    from: ". — Apollodorus — 5atyrus — Timaeus — Aristippus, Satyrus"
+    to: "— Apollodorus — Satyrus — Timaeus — Aristippus, Satyrus"
+    by: scan
+
+  - page: 102
+    from: "— Heraclides; .VIII. 69 Hermlppus — Hippobotus. VIII. 72"
+    to: "— Heraclides. VIII. 69 Hermippus — Hippobotus. VIII. 72"
+    by: scan
+
+  - page: 102
+    from: "'Timaeus, Hippobotus — Neanthes. . VIII. 86 Callimachus"
+    to: "Timaeus, Hippobotus — Neanthes. VIII. 86 Callimachus"
+    by: scan
+
+  - page: 102
+    from: "Demetrius. — X. 14 Apollodorus — Hermlppus"
+    to: "Demetrius. — X. 14 Apollodorus — Hermippus."
+    by: scan
+
+  - page: 102
+    from: "Eo igitur ventum :est disputationis, ut maximam"
+    to: "Eo igitur ventum est disputationis, ut maximam"
+    by: scan
+
+  - page: 102
+    from: "Laertii partem uni deber1 Demetrlo Magnetl"
+    to: "Laertii partem uni deberi Demetrio Magneti"
+    by: scan
+
+  - page: 102
+    from: "ludlcaremus t - :"
+    to: "iudicaremus."
+    by: scan
+
+  - page: 102
+    from: ": Sed non licet ratlocmando progredl antequam quaestioni"
+    to: "Sed non licet ratiocinando progredi, antequam quaestioni"
+    by: scan
+
+  - page: 102
+    from: "1111 non responderimus gravissimae, quis esset scriptor, cuius"
+    to: "illi non responderimus gravissimae, quis esset scriptor, cuius"
+    by: scan
+
+  - page: 102
+    from: "Quem scriptorem non.possumus indagare nisi Arrstlppl."
+    to: "Quem scriptorem non possumus indagare nisi Aristippi,"
+    by: scan
+
+  - page: 102
+    from: "Aristippi igitur libri: hunc in modum enumerantur ut"
+    to: "Aristippi igitur libri hunc in modum enumerantur, ut"
+    by: scan
+
+  - page: 102
+    from: "e quattuor diversis πίναξι desumpti videantur. II. 83.sqq. ."
+    to: "e quattuor diversis πίναξι desumpti videantur. II. 83 sqq."
+    by: scan
+
+  - page: 103
+    from: "— 9 pv p - rÁ — — cty9mc — á—— M MO w 0 w rÁ t p AU0 00 É t t 00 O0 0 R— — 09 00 00 90 070 000 — —— CR oU Á 9ÓX — 0000 TM ÁÁ 990* X 0.W w"
+    to: ""
+    by: scan
+
+  - page: 103
+    from: "l) τοῦ δὲ Κυρηναϊκοῦ φιλοσόφου βιβλία τρία μὲν"
+    to: "I) τοῦ δὲ Κυρηναϊκοῦ φιλοσόφου φέρεται βιβλία τρία μὲν"
+    by: scan
+
+  - page: 103
+    from: "φέρεται"
+    to: ""
+    by: scan
+
+  - page: 103
+    from: "ἱστορίας τῶν κατὰ Λιβύην, ἀπεσταλμένα Διονυσίῳ. ἓν 0X, ἐν o"
+    to: "ἱστορίας τῶν κατὰ Λιβύην, ἀπεσταλμένα Διονυσίῳ. ἓν δὲ, ἐν ᾧ"
+    by: scan
+
+  - page: 103
+    from: "διάλογοι πέντε καὶ ε’ίκοσιν. ot μὲν Ἀτθίδι, οἱ δὲ Δωρίδι διαλέκτῳ"
+    to: "διάλογοι πέντε καὶ εἴκοσιν, οἱ μὲν Ἀτθίδι, οἱ δὲ Δωρίδι διαλέκτῳ"
+    by: scan
+
+  - page: 103
+    from: "γεγραμμέναε quorum index sequltur. , |"
+    to: "γεγραμμένα: quorum index sequitur."
+    by: scan
+
+  - page: 103
+    from: "Π) ἔνιοι δὲ καὶ διατριβῶν αὐτόν φασιν ἓξ γεγραφέναι."
+    to: "II) ἔνιοι δὲ καὶ διατριβῶν αὐτόν φασιν ἓξ γεγραφέναι."
+    by: scan
+
+  - page: 103
+    from: "7 ]I) ot δ’ οὐδ’ ὅλως γράψαι. ὧν ἐστι καὶ Σωσικράτης καὶ"
+    to: "III) οἱ δ’ οὐδ’ ὅλως γράψαι. ὧν ἐστι καὶ Σωσικράτης καὶ"
+    by: scan
+
+  - page: 103
+    from: "Παναίτιος ὁ Ῥόδιος. -- | | |"
+    to: "Παναίτιος ὁ Ῥόδιος."
+    by: scan
+
+  - page: 103
+    from: "s ΙΨ) κατὰ δὲ Σωτίωνα ἐν δευτέρῳ ἐστὶν αὐτῷ συγγράμματα"
+    to: "IV) κατὰ δὲ Σωτίωνα ἐν δευτέρῳ ἐστὶν αὐτῷ συγγράμματα"
+    by: scan
+
+  - page: 103
+    from: "τάδεε quae secuntur. . \"- | : |"
+    to: "τάδε: quae secuntur."
+    by: scan
+
+  - page: 103
+    from: "Quae scripsi, partlm e conlectura SCTIpSI. Codlces enim"
+    to: "Quae scripsi, partim e coniectura scripsi. Codices enim"
+    by: scan
+
+  - page: 103
+    from: "εΧὴίϋεΠῒ οἱ δ’ οὐδ’ ὅλως γράψαι· ὧν ἐστι καὶ Σωσικράτης O"
+    to: "exhibent οἱ δ’ οὐδ’ ὅλως γράψαι· ὧν ἐστι καὶ Σωσικράτης ὁ"
+    by: scan
+
+  - page: 103
+    from: "Ῥόδιος. κατὰ δὲ Σωτίωνα év δευτέρῳ καὶ Παναίτιον ἔστιν αὐτῷ"
+    to: "Ῥόδιος. κατὰ δὲ Σωτίωνα ἐν δευτέρῳ καὶ Παναίτιον ἔστιν αὐτῷ"
+    by: scan
+
+  - page: 103
+    from: "συγγράμματα τάδε. \" Μίϊυιῃ sane; quod hoc solo loco Ξοείοτῑιιί"
+    to: "συγγράμματα τάδε. Mirum sane, quod hoc solo loco Sosicrati"
+    by: scan
+
+  - page: 103
+    from: "Rhodus.patria adsignatur: in quo tamen ῃοη ὴαετετεῐη, ῃίεἰ"
+    to: "Rhodus patria adsignatur: in quo tamen non haererem, nisi"
+    by: scan
+
+  - page: 103
+    from: "gravior offensio accederet, in καὶ Παναίτιον νοςαὴυΙίε posita."
+    to: "gravior offensio accederet, in καὶ Παναίτιον vocabulis posita."
+    by: scan
+
+  - page: 103
+    from: "eorum habendus est, qui αὐτὸν οὐδ’ ὅλως γράψαι αάίίΐιῃῑὼειηῒ."
+    to: "eorum habendus est, qui αὐτὸν οὐδ’ ὅλως γράψαι adfirmabant."
+    by: scan
+
+  - page: 103
+    from: "Qua re restitui: ὧν ἐστιν καὶ Σωσικράτης καὶ Παναίτιος 6"
+    to: "Qua re restitui: ὧν ἐστιν καὶ Σωσικράτης καὶ Παναίτιος ὁ"
+    by: scan
+
+  - page: 103
+    from: "Ῥόδιος. Βεὶειρεα enim sunt καὶ Παναίτιος νοςεὼιιΙει ίη sequen-"
+    to: "Ῥόδιος. Delapsa enim sunt καὶ Παναίτιος vocabula in sequen-"
+    by: scan
+
+  - page: 103
+    from: "tem lineam. Ηειῃς igitur: habe 'corruptionis viam imagine"
+    to: "tem lineam. Hanc igitur habe corruptionis viam imagine"
+    by: scan
+
+  - page: 103
+    from: "εΧρΐεεεειῙῃ. ^ - —— - o ts |"
+    to: "expressam."
+    by: scan
+
+  - page: 103
+    from: "l. Genuina forma . (οἶν ἐστι καὶ Σωσικράτης καὶ"
+    to: "1. Genuina forma | ὧν ἐστι καὶ Σωσικράτης καὶ"
+    by: scan
+
+  - page: 103
+    from: "* 00 Παναίτιος ὁ Ῥόδιος· κατὰ δὲ"
+    to: " | Παναίτιος ὁ Ῥόδιος· κατὰ δὲ"
+    by: scan
+
+  - page: 103
+    from: "- Σωτίωνα ἐν β’ |"
+    to: " | Σωτίωνα ἐν βʹ"
+    by: scan
+
+  - page: 103
+    from: "2. neglegenter exhibita — : . ὧν ἐστι καὶ Σωσικράτης 6"
+    to: "2. neglegenter exhibita | ὧν ἐστι καὶ Σωσικράτης ὁ"
+    by: scan
+
+  - page: 103
+    from: "| | | | καὶ Παναίτιος"
+    to: " | καὶ Παναίτιος"
+    by: scan
+
+  - page: 103
+    from: "Ῥόδιος· Σωτίωνα ,"
+    to: " | Ῥόδιος· κατὰ δὲ Σωτίωνα ἐν βʹ"
+    by: scan
+
+  - page: 103
+    from: "κατὰ δὲ ἐν β’"
+    to: ""
+    by: scan
+
+  - page: 103
+    from: "3. Ιίὒῑειτίοϊυῐῃ ετῑοῑε ita — dv ἐστι καὶ Σωσικράτης ὁ"
+    to: "3. librariorum errore ita | ὧν ἐστι καὶ Σωσικράτης ὁ"
+    by: scan
+
+  - page: 103
+    from: "mutata . Ῥόδιος· xaxà δὲ Σωτίωνα ἐν β’"
+    to: "mutata | Ῥόδιος· κατὰ δὲ Σωτίωνα ἐν βʹ"
+    by: scan
+
+  - page: 103
+    from: ". | καὶ Παναίτιον"
+    to: " | καὶ Παναίτιον"
+    by: scan
+
+  - page: 103
+    from: "Panaetius haud raro ὁ Ῥόδιος appellatur ut ab Athenaeo"
+    to: "Panaetius haud raro ὁ Ῥόδιος appellatur ut ab Athenaeo"
+    by: scan
+
+  - page: 103
+    from: "556b5,.634c cf. Eplph adv. Haeres. III. 9. Suld S. V."
+    to: "556b, 634c cf. Epiph. adv. Haeres. III. 9. Suid. s. v."
+    by: scan
+
+  - page: 103
+    from: "Πολέμων. t g |"
+    to: "Πολέμων."
+    by: scan
+
+  - page: 103
+    from: "N ihil 1g1tur scr1p51sse Arlstlppum Sosmrates et Panaetlus"
+    to: "Nihil igitur scripsisse Aristippum Sosicrates et Panaetius"
+    by: scan
+
+  - page: 104
+    from: "genuinorum scriptorum semper esse minutum: non ἀιὼίῒο,"
+    to: "genuinorum scriptorum semper esse minutum: non dubito,"
+    by: scan
+
+  - page: 104
+    from: "probatur Dlogems indicibus .VI. 80."
+    to: "probatur Diogenis indicibus VI. 80."
+    by: scan
+
+  - page: 104
+    from: "| l) φέρεται δ’ αὐτοῦ βιβλία τάόεῑ quae secuntur."
+    to: "I) φέρεται δ’ αὐτοῦ βιβλία τάδε: quae secuntur."
+    by: scan
+
+  - page: 104
+    from: "1l Σωσικράτης δ’ ἐν τῷ πρώτῳ τῆς διαδοχῆς καὶ Σάτυρος"
+    to: "II) Σωσικράτης δ’ ἐν τῷ πρώτῳ τῆς διαδοχῆς καὶ Σάτυρος"
+    by: scan
+
+  - page: 104
+    from: "iy τῷ τετάρτῳ τῶν βίων οὐδὲν εἶναι Διογένους φασίν. τά τε"
+    to: "ἐν τῷ τετάρτῳ τῶν βίων οὐδὲν εἶναι Διογένους φασίν. τά τε"
+    by: scan
+
+  - page: 104
+    from: "τραγῳδάριά φησιν 6 Σάτυρος Φιλίσκου εἶναι τοῦ Αἰγινῆτου, γνω-"
+    to: "τραγῳδάριά φησιν ὁ Σάτυρος Φιλίσκου εἶναι τοῦ Αἰγινήτου, γνω-"
+    by: scan
+
+  - page: 104
+    from: "ρίμου τοῦ Διογένους. | B"
+    to: "ρίμου τοῦ Διογένους."
+    by: scan
+
+  - page: 104
+    from: "III) Σωτίων 9' ἐν τῷ ἑβδόμῳ ταῦτα μόνα φησὶ Διογένους"
+    to: "III) Σωτίων δ’ ἐν τῷ ἑβδόμῳ ταῦτα μόνα φησὶ Διογένους"
+    by: scan
+
+  - page: 104
+    from: "(0^"
+    to: ""
+    by: scan
+
+  - page: 104
+    from: "εἷναιε quae secuntur."
+    to: "εἶναι: quae secuntur."
+    by: scan
+
+  - page: 104
+    from: "indicem principe loco eXhlbltum, hunc ita, ut quaedam dam-"
+    to: "indicem principe loco exhibitum, hunc ita, ut quaedam dam-"
+    by: scan
+
+  - page: 104
+    from: "quae Diogenis nomine ferebantur, auctore. Εειᾶεὶῐη fere"
+    to: "quae Diogenis nomine ferebantur, auctore. Eadem fere"
+    by: scan
+
+  - page: 104
+    from: "ratio in Aristonis indicibus dispicitur VII. 163. ."
+    to: "ratio in Aristonis indicibus dispicitur VII. 163."
+    by: scan
+
+  - page: 104
+    from: "l) βιβλία δ’ αὐτοῦ φέρεται τάὸεῖ quae secuntur."
+    to: "I) βιβλία δ’ αὐτοῦ φέρεται τάδε: quae secuntur."
+    by: scan
+
+  - page: 104
+    from: "ID) Παναίτιος δὲ καὶ Σωσικράτης μόνας αὐτοῦ τὰς ἐπιστολάς"
+    to: "II) Παναίτιος δὲ καὶ Σωσικράτης μόνας αὐτοῦ τὰς ἐπιστολάς"
+    by: scan
+
+  - page: 104
+    from: "φασι. τα δὲ ἄλλα τοῦ περιπατητικοῦ Ἀρίστωνος. Priori igitur"
+    to: "φασι, τὰ δὲ ἄλλα τοῦ περιπατητικοῦ Ἀρίστωνος. Priori igitur"
+    by: scan
+
+  - page: 104
+    from: "haeresmt error ex Arlstonum ὁμωνυμία natus. |"
+    to: "haerescit error ex Aristonum ὁμωνυμίᾳ natus."
+    by: scan
+
+  - page: 104
+    from: "πίνακας. quamvis saepius aut lacunosos aut erroribus infectos."
+    to: "πίνακας, quamvis saepius aut lacunosos aut erroribus infectos."
+    by: scan
+
+  - page: 104
+    from: "S. ν. Καλλίμαχος — πίναξ τῶν Δημοκρίτου συνταγμάτων. Her-"
+    to: "s. v. Καλλίμαχος — πίναξ τῶν Δημοκρίτου συνταγμάτων. Her-"
+    by: scan
+
+  - page: 104
+    from: "mippum εωῒεὲῑη vitis etiam indices Inseruisse, haec produnt"
+    to: "mippum autem vitis etiam indices inseruisse, haec produnt"
+    by: scan
+
+  - page: 104
+    from: "con51gnata documenta :"
+    to: "consignata documenta:"
+    by: scan
+
+  - page: 105
+    from: "W v-w—pyupreer- m o v n o m ÓT CC o 003 oc m oD p p pv 9t mEREC0 00 m« 009 w o 0t Y 0 0 w 0v w 0 p m m 000 000 0009 0000 0009 08 — Mi"
+    to: ""
+    by: scan
+
+  - page: 105
+    from: ". Εᾶεΐῒ. ὊἸΙΙ. 88 (Εὔδοξος) γράψας τοῖς ἰδίοις πολίταις νόμους"
+    to: "Laert. VIII. 88 (Εὔδοξος) γράψας τοῖς ἰδίοις πολίταις νόμους"
+    by: scan
+
+  - page: 105
+    from: "ὥς φησιν (Ἐρμιππος iy τετάρτῃ περὶ τῶν ἑπτα σοφῶν, καὶ ἀστρο·"
+    to: "ὥς φησιν Ἕρμιππος ἐν τετάρτῃ περὶ τῶν ἑπτὰ σοφῶν, καὶ ἀστρο-"
+    by: scan
+
+  - page: 105
+    from: "λογοόμενα καὶ γεωμετρούμενα καὶ ἕτερ’ ἄττα ἀξιόλογα."
+    to: "λογούμενα καὶ γεωμετρούμενα καὶ ἕτερ’ ἄττα ἀξιόλογα."
+    by: scan
+
+  - page: 105
+    from: "ΓΈρμιππος λέγειν τινα τῶν συγγραφέων Πλάτωνα τὸν φιλόσοφον"
+    to: "Ἕρμιππος λέγειν τινὰ τῶν συγγραφέων Πλάτωνα τὸν φιλόσοφον"
+    by: scan
+
+  - page: 105
+    from: "arte dllerntlSSlme scr1p51t — indicibus quoque Volumlnum"
+    to: "arte diligentissime scripsit — indicibus quoque voluminum"
+    by: scan
+
+  - page: 105
+    from: "eius pOSltlS —"
+    to: "eius positis —"
+    by: scan
+
+  - page: 105
+    from: "Theophrasti περὶ φυτῶν ἱστορίας libro septimo in Vrbl-"
+    to: "Theophrasti περὶ φυτῶν ἱστορίας libro septimo in Vrbi-"
+    by: scan
+
+  - page: 105
+    from: "nate subscribitur: m |"
+    to: "nate subscribitur:"
+    by: scan
+
+  - page: 105
+    from: "Θεοφράστου περὶ φυτῶν ἱστορίας τὸ η’. (Έρμιππος δὲ περὶ"
+    to: "Θεοφράστου περὶ φυτῶν ἱστορίας τὸ ηʹ. Ἕρμιππος δὲ περὶ"
+    by: scan
+
+  - page: 105
+    from: "H The()phrasti fragm. metaphysico subscribitur:"
+    to: "Theophrasti fragm. metaphysico subscribitur:"
+    by: scan
+
+  - page: 105
+    from: "| τοῦτο τὸ βιβλίον Ἀνδρόνικος μὲν καὶ Ἕρμιππος ἀγνοοῦσιν."
+    to: "τοῦτο τὸ βιβλίον Ἀνδρόνικος μὲν καὶ Ἕρμιππος ἀγνοοῦσιν."
+    by: scan
+
+  - page: 105
+    from: "οὐδὲ γὰρ μνείαν αὐτοῦ ὅλως πεποίηνται Bv τῇ dv ἀναγραφῇ τῶν"
+    to: "οὐδὲ γὰρ μνείαν αὐτοῦ ὅλως πεποίηνται ἐν τῇ ἀναγραφῇ τῶν"
+    by: scan
+
+  - page: 105
+    from: "| lheophrasti indicem Laertlanum Vsenerus in Anal"
+    to: "Theophrasti indicem Laertianum Vsenerus in Anal."
+    by: scan
+
+  - page: 105
+    from: "Theophr. p. 24, Arlstotehs Heltzms p. 46 ss. Hermlppo"
+    to: "Theophr. p. 24, Aristotelis Heitzius p. 46 ss. Hermippo"
+    by: scan
+
+  - page: 105
+    from: "vindicant aucton |"
+    to: "vindicant auctori."
+    by: scan
+
+  - page: 105
+    from: "mach1 πίνακας intercesserit, disseramus. Vt a Callimacho ."
+    to: "machi πίνακας intercesserit, disseramus. Vt a Callimacho"
+    by: scan
+
+  - page: 105
+    from: "ἐν πάσῃ παιδεία ὃιαλαμψάντων καὶ ὧν συνέγραψαν confecisse in"
+    to: "ἐν πάσῃ παιδείᾳ διαλαμψάντων καὶ ὧν συνέγραψαν confecisse in"
+    by: scan
+
+  - page: 105
+    from: "Ιὶὶπίε CXX. In quo numero συεε vis insit, miror quod"
+    to: "libris CXX. In quo numero quae vis insit, miror quod"
+    by: scan
+
+  - page: 105
+    from: "εῑῑεῑνίῒ, qui hunc numerum nescio quibus causis motus in"
+    to: "erravit, qui hunc numerum nescio quibus causis motus in"
+    by: scan
+
+  - page: 105
+    from: "κ’ καὶ δ’ mutandum esse censuit in Philol. vol. V. p. 433."
+    to: "κʹ καὶ δʹ mutandum esse censuit in Philol. vol. V. p. 433."
+    by: scan
+
+  - page: 105
+    from: "Ξί quis eruere studet, quibus partibus generalibus illi"
+    to: "Si quis eruere studet, quibus partibus generalibus illi"
+    by: scan
+
+  - page: 105
+    from: ". catalogi bibliothecae Alexandrinae constiterint: ei profici-"
+    to: "catalogi bibliothecae Alexandrinae constiterint: ei profici-"
+    by: scan
+
+  - page: 105
+    from: "scendum erit ab illis partibus, quas scrlptores veteres nomi-"
+    to: "scendum erit ab illis partibus, quas scriptores veteres nomi-"
+    by: scan
+
+  - page: 105
+    from: "natim antestantur. Ηιιε sunt | |"
+    to: "natim antestantur. Hae sunt"
+    by: scan
+
+  - page: 105
+    from: "I) ἀναγραφὴ τῶν ῥητορικῶν Athen 669 d."
+    to: "I) ἀναγραφὴ τῶν ῥητορικῶν Athen. 669d."
+    by: scan
+
+  - page: 105
+    from: "II) ἀναγραφὴ τῶν ποιημάτων Etym. M. s. v. πίναξ ct."
+    to: "II) ἀναγραφὴ τῶν ποιημάτων Etym. M. s. v. πίναξ cf."
+    by: scan
+
+  - page: 105
+    from: "Wachsmuthius?) in Phil. XVI. Heckerus quaest. Call. p. 29."
+    to: "Wachsmuthius5) in Phil. XVI. Heckerus quaest. Call. p. 29."
+    by: scan
+
+  - page: 105
+    from: "5) (ἶ. Wachsmuthius p. 656 illum librum cum πινάκων öpere non"
+    to: "5) C. Wachsmuthius p. 656 illum librum cum πινάκων opere non"
+    by: scan
+
+  - page: 106
+    from: "— 100 —"
+    to: "— 106 —"
+    by: scan
+
+  - page: 106
+    from: "III) πίναξ παντοδαπῶν συγγραμμάτων Athen. 643c 244 a."
+    to: "III) πίναξ παντοδαπῶν συγγραμμάτων Athen. 643c, 244a."
+    by: scan
+
+  - page: 106
+    from: "Cert1551ma conlectura addlmus IV) ἀναγραφὴν ἱστορικῶν"
+    to: "Certissima coniectura addimus IV) ἀναγραφὴν ἱστορικῶν"
+    by: scan
+
+  - page: 106
+    from: "debebat confundere, qui a Suida hoc tltulo exhlbetur rlva- ul ἀνα·"
+    to: "debebat confundere, qui a Suida hoc titulo exhibetur ‘πίναξ καὶ ἀνα-"
+    by: scan
+
+  - page: 106
+    from: "γραφὴ tv κατὰ. χρόνους «al . ἀρχῆς γενομένων ὃιῧασκάλωνέ iam ipso"
+    to: "γραφὴ τῶν κατὰ χρόνους καὶ ἀπ’ ἀρχῆς γενομένων διδασκάλων’: iam ipso"
+    by: scan
+
+  - page: 106
+    from: "eam a πινάκων libris CXX distinguit. Id.sane est veri.simillimum hac"
+    to: "eam a πινάκων libris CXX distinguit. Id sane est veri simillimum hac"
+    by: scan
+
+  - page: 106
+    from: "tabula . chronologica Callimachum sese ad πινάκων certam partem, quae"
+    to: "tabula chronologica Callimachum sese ad πινάκων certam partem, quae"
+    by: scan
+
+  - page: 106
+    from: ".huic. ἀναγραφῇ p. 656 tribuit, maiore iure ad hanc πινάκων partem"
+    to: "huic ἀναγραφῇ p. 656 tribuit, maiore iure ad hanc πινάκων partem"
+    by: scan
+
+  - page: 106
+    from: "referimus, quae inscripta erat. ἀναγραφὴ tv ποιημάτων, ad litterarum"
+    to: "referimus, quae inscripta erat ἀναγραφὴ τῶν ποιημάτων, ad litterarum"
+    by: scan
+
+  - page: 106
+    from: "ordinem ut ceterae partes d1gesta — Cum priorum quattuor partxum"
+    to: "ordinem ut ceterae partes digesta. — Cum priorum quattuor partium"
+    by: scan
+
+  - page: 106
+    from: "haec ésset Γειτίο . ut scrlptores secundum 11tterarum ordmem enume-"
+    to: "haec esset ratio ut scriptores secundum litterarum ordinem enume-"
+    by: scan
+
+  - page: 106
+    from: "rarentur, in'quinta parte, quae «4 παντοδαπὰ συγγράμματα continebat,"
+    to: "rarentur, in quinta parte, quae τὰ παντοδαπὰ συγγράμματα continebat,"
+    by: scan
+
+  - page: 106
+    from: "alia domlnabatur d1str1but10., Conf. Athen XIV. p. 643e. οἶδα 62 «al"
+    to: "alia dominabatur distributio. Conf. Athen. XIV. p. 643e οἶδα δὲ καὶ"
+    by: scan
+
+  - page: 106
+    from: "Καλλίμαχον dy c4$ Óv παντοδαπῶν συγγραμμάτων πίνακι ἀναγράφοντα"
+    to: "Καλλίμαχον ἐν τῷ τῶν παντοδαπῶν συγγραμμάτων πίνακι ἀναγράφοντα"
+    by: scan
+
+  - page: 106
+    from: "πλακουντοποιικὰ A. συγγράμματα Αἰγιμίου w Ἡγησίππου «al Μητροβίου a"
+    to: "πλακουντοποιϊκὰ συγγράμματα Αἰγιμίου καὶ Ἡγησίππου καὶ Μητροβίου καὶ"
+    by: scan
+
+  - page: 106
+    from: "Φαίστου. Smgula igitur litterarum genera veluti νόμοι, πλακουντοποιικὰ,"
+    to: "Φαίστου. Singula igitur litterarum genera veluti νόμοι, πλακουντοποιϊκὰ,"
+    by: scan
+
+  - page: 106
+    from: "unius generis scriptores uno loco eique litterarum ordine, (ut indicavi"
+    to: "unius generis scriptores uno loco eique litterarum ordine (ut indicavi"
+    by: scan
+
+  - page: 106
+    from: "litteris maiusculis) conlocarentur. — 5Siquis post. Prelleri ,et Lozynskyi"
+    to: "litteris maiusculis) conlocarentur. — Siquis post Prelleri et Lozynskyi"
+    by: scan
+
+  - page: 106
+    from: "conamina Hermippi re11qu1as denuo et probabilius dlsponere vult eum"
+    to: "conamina Hermippi reliquias denuo et probabilius disponere vult, eum"
+    by: scan
+
+  - page: 106
+    from: "hanc d1sp051t10n15 rationem sequ1 iubeo,"
+    to: "hanc dispositionis rationem sequi iubeo."
+    by: scan
+
+  - page: 106
+    from: "B(ot t&àv éy παιδεία ὃιαλαμψάντων,"
+    to: "Βίοι τῶν ἐν παιδείᾳ διαλαμψάντων."
+    by: scan
+
+  - page: 106
+    from: "B! Βίοι TV ποιητῶν. 0 0077 s"
+    to: "I. Βίοι τῶν ποιητῶν."
+    by: scan
+
+  - page: 106
+    from: "Hipponactis Athen. 3270 Ut tUP UOE"
+    to: "Hipponactis Athen. 327c."
+    by: scan
+
+  - page: 106
+    from: "?S1by11ae Suid. s. v. Eurlpldls V1t ap VVest p. 138.."
+    to: "? Sibyllae. Suid. s. v. Euripidis Vit. ap. West. p. 138."
+    by: scan
+
+  - page: 106
+    from: "II Βίοι tv ῥητόρων. - !"
+    to: "II. Βίοι τῶν ῥητόρων."
+    by: scan
+
+  - page: 106
+    from: "Gorgiae. LX ap. Loz."
+    to: "Gorgiae LX ap. Loz."
+    by: scan
+
+  - page: 106
+    from: "Demostlienis LXV. : - !"
+    to: "Demosthenis LXV."
+    by: scan
+
+  - page: 106
+    from: "Aesionis LXIX. . | | m er"
+    to: "Aesionis LXIX."
+    by: scan
+
+  - page: 106
+    from: "Hyperidis LXX. LXXI, | '"
+    to: "Hyperidis LXX. LXXI."
+    by: scan
+
+  - page: 106
+    from: "Theocrii ᾙΧΧΙἯ."
+    to: "Theocriti LXXIV."
+    by: scan
+
+  - page: 106
+    from: "Aeschinis. Schol. ad Aesch de fals leg. init. Etym M."
+    to: "Aeschinis. Schol. ad Aesch. de fals. leg. init. Etym. M."
+    by: scan
+
+  - page: 106
+    from: ". 118, 11."
+    to: "118, 11."
+    by: scan
+
+  - page: 106
+    from: "III βίοι tÓYy ἱστορικῶν. |"
+    to: "III. βίοι τῶν ἱστορικῶν."
+    by: scan
+
+  - page: 106
+    from: "Thucydidis LXXVII. |"
+    to: "Thucydidis LXXVII."
+    by: scan
+
+  - page: 106
+    from: "IV. βίοι t*&óy Μάγων La. Diog. L 1. Plin. nat. hlSt XXX 2."
+    to: "IV. βίοι τῶν Μάγων La. Diog. I. 1. Plin. nat. hist. XXX. 2."
+    by: scan
+
+  - page: 106
+    from: ".Arnob., I..52 |"
+    to: "Arnob. I. 52."
+    by: scan
+
+  - page: 107
+    from: "pO M0 090 0 —R ov n m ÁEWNVO ÁÁ oYmw— 0oo9 À 0 o M—MÁ 008 00 009 XR009— 8 -- CU0 9000 —cÀ7 WE oc 030 08"
+    to: ""
+    by: scan
+
+  - page: 107
+    from: "— 10 —"
+    to: "— 107 —"
+    by: scan
+
+  - page: 107
+    from: "cuius plura sunt relicua cf. Wachsmuthlus p. 659. Ιεῑῐῃ"
+    to: "cuius plura sunt relicua cf. Wachsmuthius p. 659. Iam"
+    by: scan
+
+  - page: 107
+    from: "Callimachi πίνακες aimplexi sunt. Sexta enim pars neque"
+    to: "Callimachi πίνακες amplexi sunt. Sexta enim pars neque"
+    by: scan
+
+  - page: 107
+    from: "cogitari potest. En igitur blbhothecae cata!ogum in quinque"
+    to: "cogitari potest. En igitur bibliothecae catalogum in quinque"
+    by: scan
+
+  - page: 107
+    from: "erat dlgesta ut omnlum temporum consuetudo et res ipsa"
+    to: "erat digesta, ut omnium temporum consuetudo et res ipsa"
+    by: scan
+
+  - page: 107
+    from: "suadet |"
+    to: "suadet."
+    by: scan
+
+  - page: 107
+    from: "Ιεὶῐῃ SI m1h1 credls numerus CXX llbrorum ita est in-"
+    to: "Iam si mihi credis, numerus CXX librorum ita est in-"
+    by: scan
+
+  - page: 107
+    from: "telleorendus ut unlcutque parti spatium. concessum sit X XIV"
+    to: "tellegendus, ut unicuique parti spatium concessum sit XXIV"
+    by: scan
+
+  - page: 107
+    from: "llbrorum qu1sque autem liber unam contineat. lltteram"
+    to: "librorum, quisque autem liber unam contineat litteram."
+    by: scan
+
+  - page: 107
+    from: "Nemo. Vero qui bibliothecarum et catalogorum non est"
+    to: "Nemo vero, qui bibliothecarum et catalogorum non est"
+    by: scan
+
+  - page: 107
+    from: "nescius, in hac. re offendet, quod ambitum singulorum"
+    to: "nescius, in hac re offendet, quod ambitum singulorum"
+    by: scan
+
+  - page: 107
+    from: "βίοι tv σοφῶν. . - |"
+    to: "βίοι τῶν σοφῶν."
+    by: scan
+
+  - page: 107
+    from: "Solonis XVII. XIX. Periandri V."
+    to: "Solonis XVII. XIX. | Periandri V."
+    by: scan
+
+  - page: 107
+    from: "- .^* Thaletis La. I. 33. | Anacharsidis VIII. ."
+    to: "Thaletis La. I. 33. | Anacharsidis VIII."
+    by: scan
+
+  - page: 107
+    from: "- . . Chilonis II. III. . J Epimenidis VI VII. -"
+    to: "Chilonis II. III. | Epimenidis VI VII."
+    by: scan
+
+  - page: 107
+    from: "( 7.* . Mysons IV. . | . Pherecydis XLI. ."
+    to: "Mysonis IV. | Pherecydis XLI."
+    by: scan
+
+  - page: 107
+    from: "— B(ot tv cpümco'cpwv ( a s |"
+    to: "βίοι τῶν φιλοσόφων"
+    by: scan
+
+  - page: 107
+    from: "Anaxagorae XXI. Demetrii Phalerei XXX:"
+    to: "Anaxagorae XXI. | Demetrii Phalerei XXX."
+    by: scan
+
+  - page: 107
+    from: "Heracliti XXXVIIL — — Lyconis XXXIX . — ."
+    to: "Heracliti XXXVIII. | Lyconis XXXIX"
+    by: scan
+
+  - page: 107
+    from: "Zenonis LV. — Athenionis XLVII. ."
+    to: "Zenonis LV. | Athenionis XLVII."
+    by: scan
+
+  - page: 107
+    from: "Democriti XXXI. Antisthenis XXII."
+    to: "Democriti XXXI. | Antisthenis XXII."
+    by: scan
+
+  - page: 107
+    from: ". -Socratis XLIX. Philisci s. v. Suidas."
+    to: "Socratis XLIX. | Philisci s. v. Suidas."
+    by: scan
+
+  - page: 107
+    from: ". Alexini XX. . 05 Diogenis LVI."
+    to: "Alexini XX. | Diogenis LVI."
+    by: scan
+
+  - page: 107
+    from: ".. . Menedemi XL. Menippi LVII."
+    to: "Menedemi XL. | Menippi LVII."
+    by: scan
+
+  - page: 107
+    from: ". . Stilponis L. . . .. . Chrysippi XXIX.."
+    to: "Stilponis L. | Chrysippi XXIX."
+    by: scan
+
+  - page: 107
+    from: "| \" Platonis XLIII. Persaei LVIIT. . EM"
+    to: "Platonis XLIII. | Persaei LVIII."
+    by: scan
+
+  - page: 107
+    from: "Arcesilaii XXIIL — — Pythagorae XLIV—XLVII."
+    to: "Arcesilai XXIII. | Pythagorae XLIV—XLVII."
+    by: scan
+
+  - page: 107
+    from: "Aristotelis XXIV—*(XVII Philolai XLII. |"
+    to: "Aristotelis XXIV—XXVII. | Philolai XLII."
+    by: scan
+
+  - page: 107
+    from: "Theophrastl LI—LIV. .Diodori Aspendii XXXII. -"
+    to: "Theophrasti LI—LIV. | Diodori Aspendii XXXII."
+    by: scan
+
+  - page: 107
+    from: ". Heracliddis XXXVIT. . . Empedoclis XXIII—XXV. ."
+    to: "Heraclidis XXXVII. | Empedoclis XXIII—XXV."
+    by: scan
+
+  - page: 107
+    from: "Callisthenis X ΧΧΧῙΙΙΙ. Epicuri XXXVI. La. X. 51."
+    to: "Callisthenis XXVIII. | Epicuri XXXVI. La. X. 51."
+    by: scan
+
+  - page: 107
+    from: "V. Βίοι παντοδαπῶν c:y(pa.gäwv -"
+    to: "V. Βίοι παντοδαπῶν συγγραφέων."
+    by: scan
+
+  - page: 107
+    from: ".X. XI."
+    to: "X. XI."
+    by: scan
+
+  - page: 107
+    from: "Charondae XIII. ."
+    to: "Charondae XIII."
+    by: scan
+
+  - page: 108
+    from: "EM"
+    to: ""
+    by: scan
+
+  - page: 108
+    from: "|"
+    to: ""
+    by: scan
+
+  - page: 108
+    from: "librorum necessario fluctuasse dico. 'Totius autem catalogi"
+    to: "librorum necessario fluctuasse dico. Totius autem catalogi"
+    by: scan
+
+  - page: 108
+    from: "I. ἀναγραφὴ τῶν ποιημάτων Α-Ω — libr XXIV"
+    to: "I. ἀναγραφὴ τῶν ποιημάτων Α—Ω = libri XXIV"
+    by: scan
+
+  - page: 108
+    from: "Il. ἀναγραφὴ τῶν ῥητορικῶν . À—O — libri XXIV"
+    to: "II. ἀναγραφὴ τῶν ῥητορικῶν Α—Ω = libri XXIV"
+    by: scan
+
+  - page: 108
+    from: "ΠΙ. ἀναγραφὴ τῶν ἱστορικῶν — Α-Ω. — libri XXIV"
+    to: "III. ἀναγραφὴ τῶν ἱστορικῶν Α—Ω = libri XXIV"
+    by: scan
+
+  - page: 108
+    from: "IV. ἀναγραφὴ τῶν φιλοσόφων Α-Ω — libri XXIV"
+    to: "IV. ἀναγραφὴ τῶν φιλοσόφων Α—Ω = libri XXIV"
+    by: scan
+
+  - page: 108
+    from: "V. ἀναγραφὴ τῶν παντοδαπῶν Α-Ω. — libri XXIV"
+    to: "V. ἀναγραφὴ τῶν παντοδαπῶν Α—Ω = libri XXIV"
+    by: scan
+
+  - page: 108
+    from: "summa: libri CX X."
+    to: "Summa: libri CXX."
+    by: scan
+
+  - page: 108
+    from: "nuper ab Augusto Nauckio omnia 1am pridem expedita te- -"
+    to: "nuper ab Augusto Nauckio omnia iam pridem expedita te-"
+    by: scan
+
+  - page: 108
+    from: "ita disputavit: »Der Cyniker Menippus 1st bedeutend jünger"
+    to: "ita disputavit: »Der Cyniker Menippus ist bedeutend jünger"
+    by: scan
+
+  - page: 108
+    from: "als irgend ein Schüler des Callimachus. |Da Menippus"
+    to: "als irgend ein Schüler des Callimachus. Da Menippus"
+    by: scan
+
+  - page: 108
+    from: "dessen Erwühnung zu dem Buche περὶ τῶν ἐν παιδείᾳ δια-"
+    to: "dessen Erwähnung zu dem Buche περὶ τῶν ἐν παιδείᾳ δια-"
+    by: scan
+
+  - page: 108
+    from: "πρεψοὶντων δούλων ziehen. Nach Suidas s. v. Ἅβρων und"
+    to: "πρεψάντων δούλων ziehen. Nach Suidas s. v. Ἅβρων und"
+    by: scan
+
+  - page: 108
+    from: "Diogenes Laertius, der den Hermippus durchgáüngig d. h."
+    to: "Diogenes Laertius, der den Hermippus durchgängig d. h."
+    by: scan
+
+  - page: 108
+    from: "mehr als 30mal ohne irgend eine náhere Bestimmung"
+    to: "mehr als 30mal ohne irgend eine nähere Bestimmung"
+    by: scan
+
+  - page: 108
+    from: "Callimacho eiusque discipulis remoto: si1 quidem recte"
+    to: "Callimacho eiusque discipulis remoto: si quidem recte"
+    by: scan
+
+  - page: 109
+    from: "— 1090 —"
+    to: "— 109 —"
+    by: scan
+
+  - page: 109
+    from: "πολλοῦ καταγέλωτος γέμει xa( τι ἴσον xoig Μελεάγρου τοῦ xac'"
+    to: "πολλοῦ καταγέλωτος γέμει καί τι ἴσον τοῖς Μελεάγρου τοῦ κατ’"
+    by: scan
+
+  - page: 109
+    from: "αὐτὸ ν γενομέν ου, φησὶ δ’ (Έρμιππος ἢμεροδανειστὴν αὐτὸν κτλ."
+    to: "αὐτὸν γενομένου, φησὶ δ’ Ἕρμιππος ἡμεροδανειστὴν αὐτὸν κτλ."
+    by: scan
+
+  - page: 109
+    from: "luti losephus contra Apionem (πολλοὶ δὲ τὰ περὶ αὐτοῦΙ [llo-"
+    to: "luti Iosephus contra Apionem (πολλοὶ δὲ τὰ περὶ αὐτοῦ [Πυ-"
+    by: scan
+
+  - page: 109
+    from: "θαγόρου] ἱστορήκασι καὶ τούτων ἐπισημότατός Bouv (Ἕρμιππος."
+    to: "θαγόρου] ἱστορήκασι καὶ τούτων ἐπισημότατός ἐστιν Ἕρμιππος,"
+    by: scan
+
+  - page: 109
+    from: "sensis de Isaeo c. 1 (οὐδὲ γὰρ 6 τοὺς μαθητὰς [scil. Isocratis]"
+    to: "sensis de Isaeo c. 1 (οὐδὲ γὰρ ὁ τοὺς μαθητὰς [scil. Isocratis]"
+    by: scan
+
+  - page: 109
+    from: "88 vel Sosicrates La. I. 106 (ὥς φησι Σωσικρ ’της Ἕρμιππον"
+    to: "88 vel Sosicrates La. I. 106 (ὥς φησι Σωσικράτης Ἕρμιππον"
+    by: scan
+
+  - page: 109
+    from: "lorum vitas scripsit, floruisse ante losephum, PDionysium,"
+    to: "lorum vitas scripsit, floruisse ante Iosephum, Dionysium,"
+    by: scan
+
+  - page: 109
+    from: "ὁμωνυμία ortum, cuius similes designavit in Luciani schol."
+    to: "ὁμωνυμίᾳ ortum, cuius similes designavit in Luciani schol."
+    by: scan
+
+  - page: 109
+    from: "pisc. tom. IV. p. 97 Iac. Icaromenipp. I. p. 196 Iac. At."
+    to: "pisc. tom. IV. p. 97 Iac. Icaromenipp. I. p. 196 Iac. At"
+    by: scan
+
+  - page: 109
+    from: "desunt.certa indicia, quibus talis error prodatur. .Immo si"
+    to: "desunt certa indicia, quibus talis error prodatur. Immo si"
+    by: scan
+
+  - page: 109
+    from: "animum advertamus ad haec VI. 95: μαθηταὶ 9 αὐτοῦ"
+    to: "animum advertamus ad haec VI. 95: μαθηταὶ δ’ αὐτοῦ"
+    by: scan
+
+  - page: 109
+    from: "καὶ Κλεομένης, Θεομβρότου Δημήτριος 6 Ἀλεξανδρεὺς, Κλεομένους"
+    to: "καὶ Κλεομένης, Θεομβρότου Δημήτριος ὁ Ἀλεξανδρεὺς, Κλεομένους"
+    by: scan
+
+  - page: 109
+    from: "Τίμαρχος Ἀλεξανδρεὺς καὶ Ἐχεκλῆς Ἐφέσιος. o0 μὴν ἀλλὰ καὶ"
+    to: "Τίμαρχος Ἀλεξανδρεὺς καὶ Ἐχεκλῆς Ἐφέσιος. οὐ μὴν ἀλλὰ καὶ"
+    by: scan
+
+  - page: 109
+    from: "Ἐχεκλῆς Θεομβρότου διήκουσεν, οὗ Μενέδημος. περὶ ob λέξομεν."
+    to: "Ἐχεκλῆς Θεομβρότου διήκουσεν, οὗ Μενέδημος, περὶ οὗ λέξομεν."
+    by: scan
+
+  - page: 109
+    from: "ἐγένετο καὶ Μένιππος Σινωπεὺς ἐν αὐτοῖς έπιφανήςε ecce"
+    to: "ἐγένετο καὶ Μένιππος Σινωπεὺς ἐν αὐτοῖς ἐπιφανής: ecce"
+    by: scan
+
+  - page: 109
+    from: "consiltum hac re luculenter adparet, quod de Menedemo post"
+    to: "consilium hac re luculenter adparet, quod de Menedemo post"
+    by: scan
+
+  - page: 109
+    from: "audiverat. Observavit igitur temporum ordinem. lam vero"
+    to: "audiverat. Observavit igitur temporum ordinem. Iam vero"
+    by: scan
+
+  - page: 109
+    from: "seriem exhibet: γεγόνασι δὲ Μένιπποι ἕξ· πρῶτος O γράψας περὶ"
+    to: "seriem exhibet: γεγόνασι δὲ Μένιπποι ἕξ· πρῶτος ὁ γράψας περὶ"
+    by: scan
+
+  - page: 110
+    from: "Αυὸῶν καὶ Ξάνθον ἐπιτεμόμενος, δεύτερος αὐτὸς οὗτος, τρίτος Στρα-"
+    to: "Λυδῶν καὶ Ξάνθον ἐπιτεμόμενος, δεύτερος αὐτὸς οὗτος, τρίτος Στρα-"
+    by: scan
+
+  - page: 110
+    from: "τονικεὺς K2p κτλ. Demetrius autem, ut consuevit, de morte Me-"
+    to: "τονικεὺς Κὰρ κτλ. Demetrius autem, ut consuevit, de morte Me-"
+    by: scan
+
+  - page: 110
+    from: "nippi Hermippum consuluit, qui ei nairatiunculam . illam"
+    to: "nippi Hermippum consuluit, qui ei narratiunculam illam"
+    by: scan
+
+  - page: 110
+    from: "ίΙΙιΠΠ Laertii locum expediamus: non fere plus quam dua-"
+    to: "illum Laertii locum expediamus: non fere plus quam dua-"
+    by: scan
+
+  - page: 110
+    from: "rum litterarum Πιυῒειῖίυηρῑη nobis sumimus et unius vocis"
+    to: "rum litterarum mutationem nobis sumimus et unius vocis"
+    by: scan
+
+  - page: 110
+    from: "cimus: τοῖς Μελεάγρου τοῦ καὶ αὐτοῦ γενομένου κυνι-Δ -"
+    to: "cimus: τοῖς Μελεάγρου τοῦ καὶ αὐτοῦ γενομένου κυνι-"
+    by: scan
+
+  - page: 110
+    from: "x00. Ξεάεὶηωῑ igitur hac ratlone omnes. turbae, : quas"
+    to: "κοῦ. Sedantur igitur hac ratione omnes turbae, quas"
+    by: scan
+
+  - page: 110
+    from: "Nauckius excitavit. ;"
+    to: "Nauckius excitavit."
+    by: scan
+
+  - page: 110
+    from: "Consentimus autem de Ηετῐηίρρί aetate prorsus cum"
+    to: "Consentimus autem de Hermippi aetate prorsus cum"
+    by: scan
+
+  - page: 110
+    from: "ΡΓΕΙΙΕΓΟ, qui eum paullo post annum 204 a. Ch. scripsisse"
+    to: "Prellero, qui eum paullo post annum 204 a. Ch. scripsisse"
+    by: scan
+
+  - page: 110
+    from: "εῒειῒηίῒ. Quem terminum ut arctioribus circumscribamus"
+    to: "statuit. Quem terminum ut arctioribus circumscribamus"
+    by: scan
+
+  - page: 110
+    from: "cuntur : |"
+    to: "cuntur:"
+    by: scan
+
+  - page: 110
+    from: "Hermippus post 204 scripsit. |"
+    to: "Hermippus post 204 scripsit."
+    by: scan
+
+  - page: 110
+    from: "üoyác in artum coegit. |"
+    to: "δοχὰς in artum coegit."
+    by: scan
+
+  - page: 110
+    from: "Satyrus Aristarchi d1sc1pu1us ante eundem Herachdem"
+    to: "Satyrus Aristarchi discipulus ante eundem Heraclidem"
+    by: scan
+
+  - page: 110
+    from: "Hi tres.scriptores indices vitis philosophorum subiun-"
+    to: "Hi tres scriptores indices vitis philosophorum subiun-"
+    by: scan
+
+  - page: 110
+    from: "indices singulatim ΕΧειῑηίηᾶνίϊ, correxit, a δρυτίἱε, quantum"
+    to: "indices singulatim examinavit, correxit, a spuriis, quantum"
+    by: scan
+
+  - page: 110
+    from: "ἀντιγραφὴν πρὸς Ἑρμίππου βίουςε ac princeps conatus est κριτι-"
+    to: "ἀντιγραφὴν πρὸς Ἑρμίππου βίους: ac princeps conatus est κριτι-"
+    by: scan
+
+  - page: 110
+    from: "κώτατον Ατίεῖεῑῖεὴεί ingenium probans ad omnia Diogenis"
+    to: "κώτατον Aristarchei ingenium probans ad omnia Diogenis"
+    by: scan
+
+  - page: 110
+    from: "et Ατίεῒὶρρί libros ἀθετήσεως signa ἃάροῃετε. Qua"
+    to: "et Aristippi libros ἀθετήσεως signa adponere. Qua in"
+    by: scan
+
+  - page: 110
+    from: "ἰυάἰςίὶ severitate ροηνεεηίϊ ei saepius cum Panaetio Cra-"
+    to: "iudicii severitate convenit ei saepius cum Panaetio Cra-"
+    by: scan
+
+  - page: 110
+    from: "·ξ’ὃειν ὅτι θνητὸν ἐγέννησα auctore consentiunt conf. La. II. 13."
+    to: "ᾔδειν ὅτι θνητὸν ἐγέννησα auctore consentiunt conf. La. II. 13."
+    by: scan
+
+  - page: 110
+    from: "Plut. de ira cohib. Il. p. 463 Wytt. Aelian. V. H. III."
+    to: "Plut. de ira cohib. II. p. 463 Wytt. Aelian. V. H. III."
+    by: scan
+
+  - page: 110
+    from: "c..2. — qui Pergamenos φιλοσόφων πίνακας confecisse vide-"
+    to: "c. 2. — qui Pergamenos φιλοσόφων πίνακας confecisse vide-"
+    by: scan
+
+  - page: 110
+    from: "tur: cuius xavóva de dialogis Socraticis iam attigimus. Con-"
+    to: "tur: cuius κανόνα de dialogis Socraticis iam attigimus. Con-"
+    by: scan
+
+  - page: 110
+    from: "fer. Plut. Cimon. p. 431. Plut. Arist. vit. p. 335c. p. 319a,"
+    to: "fer. Plut. Cimon. p. 431. Plut. Arist. vit. p. 335c. p. 319a."
+    by: scan
+
+  - page: 110
+    from: "Athen. 556b Arist. Ran. Schol. 1539. ;Anthol. I. 44. 4."
+    to: "Athen. 556b Arist. Ran. Schol. 1539. Anthol. I. 44. 4."
     by: scan
