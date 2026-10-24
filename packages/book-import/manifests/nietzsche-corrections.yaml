@@ -754,26 +754,6 @@ werk17niet:
     to: "los Laertii locos; id"
     by: reference
 
-  - page: 141
-    from: "obtruderet: Vnde àutem re vera"
-    to: "obtruderet: Vnde autem re vera"
-    by: reference
-
-  - page: 141
-    from: "sententiam Val Roseé"
-    to: "sententiam Val. Rose"
-    by: reference
-
-  - page: 141
-    from: "vel Alexandrinorum studla quadrat non"
-    to: "vel Alexandrinorum studia quadrat non"
-    by: reference
-
-  - page: 141
-    from: "vitis docet 1ndeX Lauren"
-    to: "vitis docet index Lauren"
-    by: reference
-
   - page: 142
     from: "die von hRose ausgesprochene Meinung"
     to: "die von Rose ausgesprochene Meinung"
@@ -784,34 +764,9 @@ werk17niet:
     to: "His et aliis artibus fortasse genuina"
     by: scan
 
-  - page: 143
-    from: "modo ille plenlora praebeat Exempla"
-    to: "modo ille pleniora praebeat Exempla"
-    by: reference
-
-  - page: 150
-    from: "consectarium est: Demetrlus"
-    to: "consectarium est: Demetrius"
-    by: reference
-
   - page: 150
     from: "Hesychlanamm particulae redeant"
     to: "Hesychianarum particulae redeant"
-    by: reference
-
-  - page: 150
-    from: "vero: hanc scrlptorum seriem oculis"
-    to: "vero: hanc scriptorum seriem oculis"
-    by: reference
-
-  - page: 151
-    from: "alteri vel tertlo p. Chr"
-    to: "alteri vel tertio p. Chr"
-    by: reference
-
-  - page: 151
-    from: "mihi copia- fuerlt hanc . totam"
-    to: "mihi copia fuerit hanc . totam"
     by: reference
 
   - page: 153
@@ -9429,7 +9384,6 @@ werk17niet:
     to: "die Conjectur ἔπη.... machten, giengen von der Voraus-"
     by: scan
 
-
   - page: 50
     from: "f"
     to: ""
@@ -9868,4 +9822,2454 @@ werk17niet:
   - page: 54
     from: "SN"
     to: ""
+    by: scan
+
+  - page: 139
+    from: "— p p —— — —— — — —— Ó —— 06 y m o — 0s oO Vyo— o c RO , 00 009 0009 — — g MA ocÁ g,t c9009343.97 0000 0000 78 UNUUUTUMmTUUN m 0T m"
+    to: ""
+    by: scan
+
+  - page: 139
+    from: "— 189 —"
+    to: "— 139 —"
+    by: scan
+
+  - page: 139
+    from: "Ζήνωνος τοῦ - Κιτιέως, * ,"
+    to: "Ζήνωνος τοῦ Κιτιέως, | "
+    by: scan
+
+  - page: 139
+    from: "διήκουσε δὲ xat Βρύσω-"
+    to: "διήκουσε δὲ καὶ Βρύσω- | "
+    by: scan
+
+  - page: 139
+    from: "νος xai Πύρρωνος το ’ὕ"
+    to: "νος καὶ Πύρρωνος τοῦ | "
+    by: scan
+
+  - page: 139
+    from: "Ἐ φ ε κ τ ι κ ο ὖ."
+    to: "Ἐφεκτικοῦ. | "
+    by: scan
+
+  - page: 139
+    from: "Πλάτων — καὶ διεδέξαντο τὴν"
+    to: "Πλάτων — καὶ διεδέξαντο τὴν | "
+    by: scan
+
+  - page: 139
+    from: "σχολὴν αὐτοῦ καθ’ ἕνα οῖ’δε."
+    to: "σχολὴν αὐτοῦ καθ’ ἕνα οἵδε. | "
+    by: scan
+
+  - page: 139
+    from: "Ξενοκράτης, Πολέ- ---"
+    to: "Σπεύσιππος, Ξενοκράτης, Πολέ- | "
+    by: scan
+
+  - page: 139
+    from: "Σπεύσιππος,"
+    to: ""
+    by: scan
+
+  - page: 139
+    from: "μων, Κράντωρ, Κράτης, Ἀρκε-"
+    to: "μων, Κράντωρ, Κράτης, Ἀρκε- | "
+    by: scan
+
+  - page: 139
+    from: "σίλαος, Λακύδης Εὔανδρος"
+    to: "σίλαος, Λακύδης Εὔανδρος | "
+    by: scan
+
+  - page: 139
+    from: "Φωκαεὺς, Δάμων Λεον-"
+    to: "Φωκαεὺς, Δάμων Λεον- | "
+    by: scan
+
+  - page: 139
+    from: "τεὺς Μοσχίων Εὔανδρος"
+    to: "τεὺς Μοσχίων Εὔανδρος | "
+    by: scan
+
+  - page: 139
+    from: "Ἀ θ η ν αῖ ο ς , Ἡγησίνους Kap-"
+    to: "Ἀθηναῖος, Ἡγησίνους Καρ- | "
+    by: scan
+
+  - page: 139
+    from: "νεάδης Χαρμάδας. -"
+    to: "νεάδης Χαρμάδας. | "
+    by: scan
+
+  - page: 139
+    from: "Πυθαγόρας — οὗτος ἤκουσε οὗτος ἤκουσε μὲν — Φερεκύδου"
+    to: "Πυθαγόρας — οὗτος ἤκουσε | οὗτος ἤκουσε μὲν — Φερεκύδου"
+    by: scan
+
+  - page: 139
+    from: "πρῶτον Φερεκύδου τοῦ Συρίου τοῦ Συρίου, μετὰ δὲ τὴν ἐκείνου"
+    to: "πρῶτον Φερεκύδου τοῦ Συρίου | τοῦ Συρίου, μετὰ δὲ τὴν ἐκείνου"
+    by: scan
+
+  - page: 139
+    from: "ἐν Σ ά μ ῳ, εἶτα Ἑρμωδάμαντος τελευτὴν ἧκεν εἰς Σάμον καὶ"
+    to: "ἐν Σάμῳ, εἶτα Ἑρμωδάμαντος | τελευτὴν ἧκεν εἰς Σάμον καὶ"
+    by: scan
+
+  - page: 139
+    from: "ἤκουσεν Ἑρμοδάμαντος τοῦ ἀπο-"
+    to: "ἐν τῇ αὐτῇ Σάμῳ ὃς ἦν ἀπό- | ἤκουσεν Ἑρμοδάμαντος τοῦ ἀπο-"
+    by: scan
+
+  - page: 139
+    from: "ἐν τῇ αὐτῇ Σάμῳ ὃς ἦν ἀπό·"
+    to: ""
+    by: scan
+
+  - page: 139
+    from: "γονος Κρεωφύλου, εἶτ’ Ἀ β ά- - γόνου Κρεωφύλου, ἤδη πρεσβυ-"
+    to: "γονος Κρεωφύλου, εἶτ’ Ἀβά- | γόνου Κρεωφύλου, ἤδη πρεσβυ-"
+    by: scan
+
+  - page: 139
+    from: "- (Υπερβορέου . , τέρου. '"
+    to: "ριδος τοῦ Ὑπερβορέου | τέρου."
+    by: scan
+
+  - page: 139
+    from: "ρ ι δ ο ς τ ο ὖ"
+    to: ""
+    by: scan
+
+  - page: 139
+    from: "καὶ Ζάρητος τοῦ Μάγου."
+    to: "καὶ Ζάρητος τοῦ Μάγου. | "
+    by: scan
+
+  - page: 139
+    from: "Πύρρων — διήκουσε Βρύσωνος Πύρρων — ἤκουσε Βρύσωνος"
+    to: "Πύρρων — διήκουσε Βρύσωνος | Πύρρων — ἤκουσε Βρύσωνος"
+    by: scan
+
+  - page: 139
+    from: "τοῦ Κλεινομάχου μαθη- τοῦ Στίλπωνος. | \""
+    to: "τοῦ Κλεινομάχου μαθη- | τοῦ Στίλπωνος."
+    by: scan
+
+  - page: 139
+    from: "τοῦ."
+    to: "τοῦ. | "
+    by: scan
+
+  - page: 139
+    from: "Σωκράτης — τινὲς δὲ Dpó-"
+    to: "Σωκράτης — τινὲς δὲ Βρύ- | "
+    by: scan
+
+  - page: 139
+    from: "σωνα οὐ Σωκράτους ἀλλ’"
+    to: "σωνα οὐ Σωκράτους ἀλλ’ | "
+    by: scan
+
+  - page: 139
+    from: "Εὐκλείδου ἀκροατὴν γε-"
+    to: "Εὐκλείδου ἀκροατὴν γε- | "
+    by: scan
+
+  - page: 139
+    from: "γονέναι, τούτου δὲ xal"
+    to: "γονέναι, τούτου δὲ καὶ | "
+    by: scan
+
+  - page: 139
+    from: "Πύρρων ἠκροάσατο."
+    to: "Πύρρων ἠκροάσατο. | "
+    by: scan
+
+  - page: 139
+    from: "Σωκράτης — φιλοσόφους εἰρ-"
+    to: "Σωκράτης — φιλοσόφους εἰρ- | "
+    by: scan
+
+  - page: 139
+    from: "γάσατο — Εὐκλείδην — ἰδίαν"
+    to: "γάσατο — Εὐκλείδην — ἰδίαν | "
+    by: scan
+
+  - page: 139
+    from: "ἀπ’"
+    to: ""
+    by: scan
+
+  - page: 139
+    from: "συστησάμενον σχολὴν, ἥτις"
+    to: "συστησάμενον σχολὴν, ἥτις ἀπ’ | "
+    by: scan
+
+  - page: 139
+    from: "αὐτοῦ ἐκλήθη Μεγαρική- — ά πὸ Διαλεκτικῆς (SC. προέστη) Κλει·"
+    to: "αὐτοῦ ἐκλήθη Μεγαρική— ἀπὸ | Διαλεκτικῆς (sc. προέστη) Κλει-"
+    by: scan
+
+  - page: 139
+    from: "08 Κλεινομάχου τοῦ μα- τόμαχος Καρχηδόνιος (sic Co-"
+    to: "δὲ Κλεινομάχου τοῦ μα- | τόμαχος Καρχηδόνιος (sic Co-"
+    by: scan
+
+  - page: 139
+    from: "θητοῦ Εὐκλείδου ἐκλήθη betus; equidem scribi iubeo"
+    to: "θητοῦ Εὐκλείδου ἐκλήθη | betus; equidem scribi iubeo"
+    by: scan
+
+  - page: 139
+    from: "Κλεινόμαχος Καλχηδόνιος). -"
+    to: "Διαλεκτική — Ἀλκιβιάδην, | Κλεινόμαχος Καλχηδόνιος)."
+    by: scan
+
+  - page: 139
+    from: "Διαλεκτική — Ἀλκιβιάδην,"
+    to: ""
+    by: scan
+
+  - page: 139
+    from: "Κριτόβουλον,Ξενομήδην,"
+    to: "Κριτόβουλον, Ξενομήδην, | "
+    by: scan
+
+  - page: 139
+    from: "Ἀπολλόδωρον Ἀθηναίους,"
+    to: "Ἀπολλόδωρον Ἀθηναίους, | "
+    by: scan
+
+  - page: 140
+    from: "ἔτι δὲ Κρίτωνα καὶ Σίμωνα."
+    to: "ἔτι δὲ Κρίτωνα καὶ Σίμωνα, | "
+    by: scan
+
+  - page: 140
+    from: "Εὐμαρῆ τε (Ι) λιαῖσιον, Σιμ-"
+    to: "Εὐμαρῆ τε Φλιάσιον, Σιμ- | "
+    by: scan
+
+  - page: 140
+    from: "μίαν — Θηβαῖον ., lepitova"
+    to: "μίαν Θηβαῖον, Τερψίωνα | "
+    by: scan
+
+  - page: 140
+    from: "Μεγαρικὸν. Εὔηνον Xat-"
+    to: "Μεγαρικὸν, Εὔηνον Χαι- | "
+    by: scan
+
+  - page: 140
+    from: "ρ eqaovca."
+    to: "ρεφῶντα. | "
+    by: scan
+
+  - page: 140
+    from: "Φερεκύδης - — διδαχθῆναι 0 ὑπ’ — Φερεκύδης Πιττακοῦ διακήκοε."
+    to: "Φερεκύδης — διδαχθῆναι δ’ ὑπ’ | Φερεκύδης Πιττακοῦ διακήκοε."
+    by: scan
+
+  - page: 140
+    from: "αὐτοῦ , λόγος. ὦ τὸν"
+    to: "αὐτοῦ Πυθαγόραν λόγος, αὐτὸν | "
+    by: scan
+
+  - page: 140
+    from: "Πυθαγόραν α"
+    to: ""
+    by: scan
+
+  - page: 140
+    from: "Ó οὐκ ἐσχηκέναι καθη-"
+    to: "δ’ οὐκ ἐσχηκέναι καθη- | "
+    by: scan
+
+  - page: 140
+    from: "1Tn*3v. -"
+    to: "γητήν. | "
+    by: scan
+
+  - page: 140
+    from: "Αἰσχίνης — τινὲς δὲ Λυσανίου"
+    to: "Αἰσχίνης — τινὲς δὲ Λυσανίου | "
+    by: scan
+
+  - page: 140
+    from: "παῖδά φασιν Ἀθηναῖον Σφήτ-"
+    to: "παῖδά φασιν Ἀθηναῖον Σφήτ- | "
+    by: scan
+
+  - page: 140
+    from: "τιον. S. V. Σωκράτης — Αἰ·"
+    to: "τιον. s. v. Σωκράτης — Αἰ- | "
+    by: scan
+
+  - page: 140
+    from: "σχίνην Λυσανίου Σφήττιον."
+    to: "σχίνην Λυσανίου Σφήττιον. | "
+    by: scan
+
+  - page: 140
+    from: "Ἡρακλείδης — Ὀξυρυγχίτης. —— Ἡρακλείδης — Καλλατιανὸς ἢ"
+    to: "Ἡρακλείδης — Ὀξυρυγχίτης. | Ἡρακλείδης — Καλλατιανὸς ἢ"
+    by: scan
+
+  - page: 140
+    from: "Ἀλεξανδρεύς."
+    to: " | Ἀλεξανδρεύς."
+    by: scan
+
+  - page: 140
+    from: "Ἀναξαγόρας — ἐλθὼν év Λαμ· καὶ τέλος ἀποχωρήσας εἰς Λάμ-"
+    to: "Ἀναξαγόρας — ἐλθὼν ἐν Λαμ- | καὶ τέλος ἀποχωρήσας εἰς Λάμ-"
+    by: scan
+
+  - page: 140
+    from: "ψάκῳ — ἐκεῖσε καταστρέφει τὸν — daxov αὐτόθι κατέστρεψεν. -"
+    to: "ψάκῳ ἐκεῖσε καταστρέφει τὸν | ψακον αὐτόθι κατέστρεψεν."
+    by: scan
+
+  - page: 140
+    from: "βίον ἀποκαρτερήσας."
+    to: "βίον ἀποκαρτερήσας. | "
+    by: scan
+
+  - page: 140
+    from: "Διογένης — κατέστρεψε τὸν βίον"
+    to: "Διογένης — κατέστρεψε τὸν βίον | "
+    by: scan
+
+  - page: 140
+    from: "δηχθεὶς ὑπὸ κυνὸς τὸ σκέλος"
+    to: "δηχθεὶς ὑπὸ κυνὸς τὸ σκέλος | "
+    by: scan
+
+  - page: 140
+    from: "καὶ θεραπείας ὑπεριδών. -"
+    to: "καὶ θεραπείας ὑπεριδών. | "
+    by: scan
+
+  - page: 140
+    from: "Ex his, quae adhuc comparavimus, hoc.in aperto est,"
+    to: "Ex his, quae adhuc comparavimus, hoc in aperto est,"
+    by: scan
+
+  - page: 140
+    from: "alns fontibus in Laertiana interiecisse nullo modo putandus"
+    to: "aliis fontibus in Laertiana interiecisse nullo modo putandus"
+    by: scan
+
+  - page: 140
+    from: "t. Quis, ut exemplo utar, sibi persuadebit Hesychium non"
+    to: "sit. Quis, ut exemplo utar, sibi persuadebit Hesychium non"
+    by: scan
+
+  - page: 140
+    from: "εηίῑη iussit eum accuratiorem esse Laertio? Omnino nonne"
+    to: "enim iussit eum accuratiorem esse Laertio? Omnino nonne"
+    by: scan
+
+  - page: 140
+    from: "uno auctore cogitare? .An Hesychium putemus tantopere"
+    to: "uno auctore cogitare? An Hesychium putemus tantopere"
+    by: scan
+
+  - page: 140
+    from: "ab aequalium ςΓειΠιηιειῒίοοτηῐῃ more recessisse, qui excer-"
+    to: "ab aequalium grammaticorum more recessisse, qui excer-"
+    by: scan
+
+  - page: 140
+    from: "f —— — —— —— m m —"
+    to: ""
+    by: scan
+
+  - page: 141
+    from: "J —— M—MÓoÁÉ—MQpoo00 0 — M98À 0 m08 Á s Á cwVo 00cÀe w qWw 0000 00v 9 wv9yo 0 0 w m tv 0 9- o WT* CU0 . 0900 M — OCSTMAÓ 0088 000 3 VomrocRÁMocomwÁ 0Xmt 0000 0007 7w€ 7 *"
+    to: ""
+    by: scan
+
+  - page: 141
+    from: "* - '"
+    to: ""
+    by: scan
+
+  - page: 141
+    from: "bant, ut πίνακα τῶν ἐν παιδείᾳ ὀνομαστῶν componeret ex notis -"
+    to: "bant, ut πίνακα τῶν ἐν παιδείᾳ ὀνομαστῶν componeret ex notis"
+    by: scan
+
+  - page: 141
+    from: "Peripateticorum vel Alexandrinorum studla quadrat non ad"
+    to: "Peripateticorum vel Alexandrinorum studia quadrat, non ad"
+    by: scan
+
+  - page: 141
+    from: "Byzantinos sexti saeculi magistellos. - : |"
+    to: "Byzantinos sexti saeculi magistellos."
+    by: scan
+
+  - page: 141
+    from: "J At omnino ut rem conficiamus, quid, quaeso, est cur"
+    to: "At omnino ut rem conficiamus, quid, quaeso, est cur"
+    by: scan
+
+  - page: 141
+    from: "Laertio, nihil. omnino sequitur: nisi forte doceri potest"
+    to: "Laertio, nihil omnino sequitur: nisi forte doceri potest"
+    by: scan
+
+  - page: 141
+    from: "mus, quo de Hermippo, Sotione, Sosicrate, Dlocle Demetno"
+    to: "mus, quo de Hermippo, Sotione, Sosicrate, Diocle, Demetrio,"
+    by: scan
+
+  - page: 141
+    from: "alns i. e. nullo iure. |"
+    to: "aliis i. e. nullo iure."
+    by: scan
+
+  - page: 141
+    from: "extant quorum apud Laertium nec vola vec vestigium est,-"
+    to: "extant, quorum apud Laertium nec vola vec vestigium est,"
+    by: scan
+
+  - page: 141
+    from: "Ssed etiam quod plures vitae ex eisdem philosophiae tem- -"
+    to: "sed etiam quod plures vitae ex eisdem philosophiae tem-"
+    by: scan
+
+  - page: 141
+    from: "poribus et disciplinis apud 'Hesychium . produntur, quas -"
+    to: "poribus et disciplinis apud Hesychium produntur, quas"
+    by: scan
+
+  - page: 141
+    from: "teti, Theanus Metapontlnae Theodorl lasonis, Hippiae,"
+    to: "teti, Theanus Metapontinae, Theodori, Iasonis, Hippiae,"
+    by: scan
+
+  - page: 141
+    from: "Calhppl Persaei, Tyrannionis, Phamae Phlllppl Panaetii"
+    to: "Callippi, Persaei, Tyrannionis, Phaniae, Philippi. Panaetii"
+    by: scan
+
+  - page: 141
+    from: "et Posidonii nomina ex hac serie hanc ob causam sunt re-."
+    to: "et Posidonii nomina ex hac serie hanc ob causam sunt re-"
+    by: scan
+
+  - page: 141
+    from: "excidisse cum ahorum St01corum vitis docet 1ndeX Lauren-"
+    to: "excidisse cum aliorum Stoicorum vitis docet index Lauren-"
+    by: scan
+
+  - page: 141
+    from: "Nosmet 1g1tur praefracte negamus in Hesychu V1tls nil"
+    to: "Nosmet igitur praefracte negamus in Hesychii vitis nil"
+    by: scan
+
+  - page: 141
+    from: "nisi umbram Laertii dlSplCl in quam sententiam Val Roseé"
+    to: "nisi umbram Laertii dispici, in quam sententiam Val. Rose"
+    by: scan
+
+  - page: 141
+    from: "abiit, ut nobis speciosam- suam de Menaglana vita'e Laertio"
+    to: "abiit, ut nobis speciosam suam de Menagiana vita e Laertio"
+    by: scan
+
+  - page: 141
+    from: "repetenda opinionem obtruderet: Vnde àutem re vera huius"
+    to: "repetenda opinionem obtruderet. Vnde autem re vera huius"
+    by: scan
+
+  - page: 141
+    from: "vitae origines repetendae sint, iam nobis quaerendum- est."
+    to: "vitae origines repetendae sint, iam nobis quaerendum est."
+    by: scan
+
+  - page: 142
+    from: "Laertianum 'indicem interque Menagianum intercedente"
+    to: "Laertianum indicem interque Menagianum intercedente"
+    by: scan
+
+  - page: 142
+    from: "ziehen. Zu einem àühnlichen Resultate gelangen wir, wenn"
+    to: "ziehen. Zu einem ähnlichen Resultate gelangen wir, wenn"
+    by: scan
+
+  - page: 142
+    from: "biligen und einfach Diogenes als die Quelle des Anonymus"
+    to: "billigen und einfach Diogenes als die Quelle des Anonymus"
+    by: scan
+
+  - page: 142
+    from: "δῆλον Éx τῶν προγεγραμμένων συγγραμμάτων, & τὸν ἀριθμὸν ἐγ-"
+    to: "δῆλον ἐκ τῶν προγεγραμμένων συγγραμμάτων, ἃ τὸν ἀριθμὸν ἐγ-"
+    by: scan
+
+  - page: 142
+    from: "ἀγράφου φωνῆς εὐστοχήματα). llesychius vero etiam ψευδε-"
+    to: "ἀγράφου φωνῆς εὐστοχήματα). Hesychius vero etiam ψευδε-"
+    by: scan
+
+  - page: 142
+    from: "πίγραφοι ultimo loco adicit.. Quod autem ad ordinem, quo"
+    to: "πίγραφα ultimo loco adicit. Quod autem ad ordinem, quo"
+    by: scan
+
+  - page: 142
+    from: "manus in has duas diversasque formas abierit, quas| Laer-"
+    to: "manus in has duas diversasque formas abierit, quas Laer-"
+    by: scan
+
+  - page: 142
+    from: "tius et Hesychius repraesentant. |"
+    to: "tius et Hesychius repraesentant."
+    by: scan
+
+  - page: 142
+    from: "Μενέξενος. | προτρεπτικός. I περὶ εὐγενείας. a"
+    to: "Μενέξενος. | προτρεπτικός. | περὶ εὐγενείας."
+    by: scan
+
+  - page: 142
+    from: "ἐρωτικός. — | περὶ ψυχῆς. περὶ ἡδονῆς."
+    to: "ἐρωτικός. | περὶ ψυχῆς. | περὶ ἡδονῆς."
+    by: scan
+
+  - page: 142
+    from: "| . Laertiana:. . | .. Hesychiana: .- f—"
+    to: "Laertiana: | Hesychiana:"
+    by: scan
+
+  - page: 142
+    from: "σοφιστής. Μενέξενος. ἐρωτικός. σοφιστής. περὶ πλούτου. π. εὐχῆς."
+    to: "σοφιστής. Μενέξενος. ἐρωτικός. | σοφιστής. περὶ πλούτου. π. εὐχῆς."
+    by: scan
+
+  - page: 142
+    from: "περὶ πλούτου. προτρεπτικός. π. . Μενέξενος. προτρεπτ. π. εὐγε-"
+    to: "περὶ πλούτου. προτρεπτικός. π. | Μενέξενος. προτρεπτ. π. εὐγε-"
+    by: scan
+
+  - page: 142
+    from: "ψοχῆς. περὶ εὐχῆς. περὶ εὐγε- νείας. ἐρωτικός. περὶ ψυχῆς."
+    to: "ψυχῆς. περὶ εὐχῆς. περὶ εὐγε- | νείας. ἐρωτικός. περὶ ψυχῆς."
+    by: scan
+
+  - page: 142
+    from: "νείας. π. ἡδονῆς. — — . περὶ ἡδονῆς."
+    to: "νείας. π. ἡδονῆς. | περὶ ἡδονῆς."
+    by: scan
+
+  - page: 143
+    from: "-* VT 0 00 M HEUAPUC ÓUUA K n MNE NT E 09 000 0Y 0 0RT 0"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "& ? e"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: ". [ ."
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "Quod cum aliis relinquam, eo redeo, ubi"
+    to: "recuperari potest. Quod cum aliis relinquam, eo redeo, ubi"
+    by: scan
+
+  - page: 143
+    from: "recuperari potest."
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "Heitzius: pedibus. subsistit; : .Quod enim optime ille de co-"
+    to: "Heitzius pedibus subsistit. Quod enim optime ille de co-"
+    by: scan
+
+  - page: 143
+    from: "gnatione utriusque Arlstotehs indicis. observawt omnino in"
+    to: "gnatione utriusque Aristotelis indicis observavit, omnino in"
+    by: scan
+
+  - page: 143
+    from: "omnes Hesychianos et Laertianos . phllosophorum indices -"
+    to: "omnes Hesychianos et Laertianos philosophorum indices"
+    by: scan
+
+  - page: 143
+    from: "Quos institutàa comparatione docebo ab eodem fonte"
+    to: "valet. Quos instituta comparatione docebo ab eodem fonte"
+    by: scan
+
+  - page: 143
+    from: "valet."
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "Cuius cognationis vestigia in hac re agno-"
+    to: "stirpem deducere. Cuius cognationis vestigia in hac re agno-"
+    by: scan
+
+  - page: 143
+    from: "sticpem deducere."
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "quod .Laertius Hesychiusque unum semper"
+    to: "scenda sunt, quod Laertius Hesychiusque unum semper"
+    by: scan
+
+  - page: 143
+    from: "scenda sunt,"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "ita ut modo hic, modo ille plenlora praebeat Exempla vero"
+    to: "ita ut modo hic, modo ille pleniora praebeat. Exempla vero"
+    by: scan
+
+  - page: 143
+    from: "haec con51gnabo"
+    to: "haec consignabo:"
+    by: scan
+
+  - page: 143
+    from: "- «Hesychius: | Laertlus"
+    to: "Hesychius: | Laertius:"
+    by: scan
+
+  - page: 143
+    from: "Ἀναξίμανδρος — ἔγραψε mvepl xl Y£c xal θαλάσσης περί-"
+    to: "Ἀναξίμανδρος — ἔγραψε περὶ | καὶ γῆς καὶ θαλάσσης περί-"
+    by: scan
+
+  - page: 143
+    from: "μετρον πρῶτος ἔγραψεν. ἀλλὰ"
+    to: "φύσεως, γῆς περίοδον καὶ | μετρον πρῶτος ἔγραψεν. ἀλλὰ"
+    by: scan
+
+  - page: 143
+    from: "φύσεως , Tdüc περίοδον xai"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "περὶ tàóv ἀπλανῶν xai XQi σφαῖραν κατεσκεύασε."
+    to: "περὶ τῶν ἀπλανῶν καὶ | καὶ σφαῖραν κατεσκεύασε."
+    by: scan
+
+  - page: 143
+    from: "σφαῖραν xüutaAka τινά."
+    to: "σφαῖραν καὶ ἄλλα τινά. | "
+    by: scan
+
+  - page: 143
+    from: "Αἰσχίνης — διάλογοι Ó' αὐτοῦ ot Ó^ oóy» tàv Αἰσχίνου xb Xw-"
+    to: "Αἰσχίνης — διάλογοι δ’ αὐτοῦ | οἱ δ’ οὖν τῶν Αἰσχίνου τὸ Σω-"
+    by: scan
+
+  - page: 143
+    from: "Μιλτιάδης Καλλίας Ῥίνων Ἀσπα- κρατικὸν ἦθος ἀπομεμαγμένοι"
+    to: "Μιλτιάδης Καλλίας Ῥίνων Ἀσπα- | κρατικὸν ἦθος ἀπομεμαγμένοι"
+    by: scan
+
+  - page: 143
+    from: "Go Ἀξίοχος Τηλαύγης Ἀλκι- εἰσὶν ἑπτά. πρῶτος Muüudünc -"
+    to: "σία Ἀξίοχος Τηλαύγης Ἀλκι- | εἰσὶν ἑπτά. πρῶτος Μιλτιάδης"
+    by: scan
+
+  - page: 143
+    from: "Καλλίας Ἀξίοχος Ἀσπασία A)-"
+    to: "βιάδης, καὶ οἱ καλούμενοι ἀκέ- | Καλλίας Ἀξίοχος Ἀσπασία Ἀλ-"
+    by: scan
+
+  - page: 143
+    from: "βιάδης, xai ot καλούμενοι ἀκέ-"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "κιβιάδης Τηλαύγης. Ῥίνων."
+    to: "φαλοι: Φαίδων. Πολύαινος. | κιβιάδης Τηλαύγης. Ῥίνων."
+    by: scan
+
+  - page: 143
+    from: "φαλοιε O a(8cv. IIoXAóatvozc."
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "Δράκων. Ἐρυξίας. Περὶ"
+    to: "Δράκων. Ἐρυξίας. Περὶ | "
+    by: scan
+
+  - page: 143
+    from: "ἀρετῆς. Ἐρασίστρατος."
+    to: "ἀρετῆς. Ἐρασίστρατος. | "
+    by: scan
+
+  - page: 143
+    from: "Σκυθικοί. -"
+    to: "Σκυθικοί. | "
+    by: scan
+
+  - page: 143
+    from: "|—. V. Φαίδων — Σκυθικους λύγους."
+    to: " | v. Φαίδων — Σκυθικοὺς λόγους."
+    by: scan
+
+  - page: 143
+    from: "xat τούτους τινὲς Αἰσχίνου φασίν."
+    to: " | καὶ τούτους τινὲς Αἰσχίνου φασίν."
+    by: scan
+
+  - page: 143
+    from: "διεβάλλετο O' ὁ Αἰσχίνης xoi"
+    to: " | διεβάλλετο δ’ ὁ Αἰσχίνης καὶ"
+    by: scan
+
+  - page: 143
+    from: "μάλισθ’ Μενεδήμου — oD"
+    to: " | μάλισθ’ ὑπὸ Μενεδήμου τοῦ"
+    by: scan
+
+  - page: 143
+    from: "€ N"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "UO"
+    to: ""
+    by: scan
+
+  - page: 143
+    from: "Ἐρετριέως & τοὺς πλείστους"
+    to: " | Ἐρετριέως ὡς τοὺς πλείστους"
+    by: scan
+
+  - page: 143
+    from: "διαλόγους ὄντας Σωκράτους ύπο-"
+    to: " | διαλόγους ὄντας Σωκράτους ὑπο-"
+    by: scan
+
+  - page: 143
+    from: "βάλλοιτο λαμβάνων παρὰ Ξαν-"
+    to: " | βάλλοιτο λαμβάνων παρὰ Ξαν-"
+    by: scan
+
+  - page: 144
+    from: "— |44 —"
+    to: "— 144 —"
+    by: scan
+
+  - page: 144
+    from: "θίππης. ὧν οἱ μὲν καλούμενοι"
+    to: " | θίππης. ὧν οἱ μὲν καλούμενοι"
+    by: scan
+
+  - page: 144
+    from: "ἀκέφαλοι."
+    to: " | ἀκέφαλοι."
+    by: scan
+
+  - page: 144
+    from: ","
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "Ἀνάχαρσις -— ἔγραψε νόμιμα οὗτος ἐποίησε τῶν παρὰ τοῖς"
+    to: "Ἀνάχαρσις — ἔγραψε νόμιμα | οὗτος ἐποίησε τῶν τε παρὰ τοῖς"
+    by: scan
+
+  - page: 144
+    from: "oUtoc τε"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "σκυθικὰ δι’ ἐπῶν. Περὶ εὐτε- Σκύθαις νομίμων καὶ τῶν παρὰ"
+    to: "σκυθικὰ δι’ ἐπῶν. Περὶ εὐτε- | Σκύθαις νομίμων καὶ τῶν παρὰ"
+    by: scan
+
+  - page: 144
+    from: "τοῖς (Ἓλλησιν εἰς εὐτέλειαν βίου"
+    to: "λείας τῶν εἰς τὸν ἀνθρώπινον | τοῖς Ἕλλησιν εἰς εὐτέλειαν βίου"
+    by: scan
+
+  - page: 144
+    from: "λείας τῶν εἰς τὸν ἀνθρώπινον"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "βίον ἔπη πάντα διακόσια. καὶτὰ πόλεμον"
+    to: "βίον ἔπη πάντα διακόσια. | καὶ τὰ κατὰ τὸν πόλεμον"
+    by: scan
+
+  - page: 144
+    from: "κατὰ τὸν"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "ἔπη ὀκτακόσια."
+    to: " | ἔπη ὀκτακόσια."
+    by: scan
+
+  - page: 144
+    from: "Ἀντισθένης — οὗτος συνέγραψε φέρονται 0' αὐτοῦ συγγράμματα"
+    to: "Ἀντισθένης — οὗτος συνέγραψε | φέρονται δ’ αὐτοῦ συγγράμματα"
+    by: scan
+
+  - page: 144
+    from: "τόμους δέκα· πρῶτον .... τόμοι δέκα. πρῶτος κτλ."
+    to: "τόμους δέκα· πρῶτον . . . | τόμοι δέκα. πρῶτος κτλ."
+    by: scan
+
+  - page: 144
+    from: "Μαγικόν. ἀφηγεῖται δὲ"
+    to: "Μαγικόν. ἀφηγεῖται δὲ | "
+    by: scan
+
+  - page: 144
+    from: "περὶ Ζωροάστρου τινὸς"
+    to: "περὶ Ζωροάστρου τινὸς | "
+    by: scan
+
+  - page: 144
+    from: "Μάγου εὑρόντος τὴν σο-"
+    to: "Μάγου εὑρόντος τὴν σο- | "
+    by: scan
+
+  - page: 144
+    from: "cf. ind. Hes. Aristot. —"
+    to: "φίαν, τοῦτο δέ τινες Ἀριστο- | cf. ind. Hes. Aristot. —"
+    by: scan
+
+  - page: 144
+    from: "φίαν. τοῦτο δέ τινες Ἀριστο-"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "τέλει. οἱ δὲ Ῥοδίῳ [cf. La. ψευδεπίγραφα — μαγικόν."
+    to: "τέλει, οἱ δὲ Ῥοδίῳ [cf. La. | ψευδεπίγραφα — μαγικόν."
+    by: scan
+
+  - page: 144
+    from: "VI. 19] ἀνατιθέασι."
+    to: "VI. 19] ἀνατιθέασι. | "
+    by: scan
+
+  - page: 144
+    from: "Δημόκριτος — γνήσια δ’ τὰ δὲ βιβλία αὐτοῦ καὶ Θρά-"
+    to: "Δημόκριτος — γνήσια δ’ | τὰ δὲ βιβλία αὐτοῦ καὶ Θρά-"
+    by: scan
+
+  - page: 144
+    from: "αὐτοῦ βιβλία εἰσὶ D', 6 τε συλος ἀναγέγραφε κτλ."
+    to: "αὐτοῦ βιβλία εἰσὶ β’, ὅ τε | συλος ἀναγέγραφε κτλ."
+    by: scan
+
+  - page: 144
+    from: ", Διάκοσμος N N ' περὶ"
+    to: "μέγας Διάκοσμος καὶ τὸ περὶ | "
+    by: scan
+
+  - page: 144
+    from: "’μέγας καὶ τὸ"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "φύσεως κόσμου. ἔγραψε δὲ"
+    to: "φύσεως κόσμου. ἔγραψε δὲ | "
+    by: scan
+
+  - page: 144
+    from: "καὶ ἐπιστολάς. - |"
+    to: "καὶ ἐπιστολάς. | "
+    by: scan
+
+  - page: 144
+    from: "τὰ μὲν οὖν περὶ φύσεως αὐτΓ"
+    to: "Ἐμπεδοκλῆς — καὶ ἔγραψε δι’ | τὰ μὲν οὖν περὶ φύσεως αὐτῖ"
+    by: scan
+
+  - page: 144
+    from: "Ἐμπεδοκλῆς — καὶ ἔγραψε δι’ d"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "ἔπη"
+    to: "ἐπῶν περὶ φύσεως τῶν ὄντων | καὶ οἱ καθαρμοὶ εἰς ἔπη"
+    by: scan
+
+  - page: 144
+    from: "xal ot καθαρμοὶ εἰς"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "ἐπῶν περὶ φύσεως τῶν ὄντων"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "βιβλία γ. καὶ ἔστιν ἔπη ὡς τείνουσι πεντακισχίλια, ὁ δὲ"
+    to: "βιβλία γ̄. καὶ ἔστιν ἔπη ὡς | τείνουσι πεντακισχίλια, ὁ δὲ"
+    by: scan
+
+  - page: 144
+    from: "J ἰατρικὸς , ; ἔπη ἑξα-"
+    to: "͵β. Ἰατρικὰ καταλογάδην | ἰατρικὸς λόγος εἰς ἔπη ἑξα-"
+    by: scan
+
+  - page: 144
+    from: ".β. Ἰατρικὰ καταλογάδην λόγος εἰς"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "x κόσια."
+    to: "καὶ ἄλλα πολλά. | κόσια."
+    by: scan
+
+  - page: 144
+    from: "καὶ ἄλλα πολλά."
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "ὅτι γράψαντος"
+    to: " | καὶ δὴ ὅτι γράψαντος"
+    by: scan
+
+  - page: 144
+    from: "καὶ δὴ"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "? αὐτοῦ N ἄλλα | ποιήματα"
+    to: " | αὐτοῦ καὶ ἄλλα ποιήματα"
+    by: scan
+
+  - page: 144
+    from: "xat"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: ", τοῦ Ξέρξου διάβα-"
+    to: " | τήν τε τοῦ Ξέρξου διάβα-"
+    by: scan
+
+  - page: 144
+    from: "τήν τε"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "εἰς ."
+    to: " | σιν καὶ προοίμιον εἰς"
+    by: scan
+
+  - page: 144
+    from: "σιν καὶ προοίμιον"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "Ἀπόλλωνα — |"
+    to: " | Ἀπόλλωνα —"
+    by: scan
+
+  - page: 144
+    from: "καθόλου δέ φησιν (Ἰερώ-"
+    to: " | καθόλου δέ φησιν (Ἰερώ-"
+    by: scan
+
+  - page: 144
+    from: "νυμος) τραγῳδίας"
+    to: " | νυμος) καὶ τραγῳδίας"
+    by: scan
+
+  - page: 144
+    from: "καὶ"
+    to: ""
+    by: scan
+
+  - page: 144
+    from: "αὐτὸν γράψαι xal πολιὲ"
+    to: " | αὐτὸν γράψαι καὶ πολι-"
+    by: scan
+
+  - page: 144
+    from: "τικά κτλ."
+    to: " | τικά κτλ."
+    by: scan
+
+  - page: 144
+    from: "Ἐπιμενίδης - ἔγραψε ’δὲ πολλὰ ἐποίησε δὲ Κουρήτων καὶ ko-"
+    to: "Ἐπιμενίδης — ἔγραψε δὲ πολλὰ | ἐποίησε δὲ Κουρήτων καὶ Κο-"
+    by: scan
+
+  - page: 144
+    from: "ρυβάντων γένεσιν καὶ Θεογονίαν"
+    to: "ἐπικῶς καὶ καταλογάδην μυστή- | ρυβάντων γένεσιν καὶ Θεογονίαν"
+    by: scan
+
+  - page: 144
+    from: "ἐπικῶς xal καταλογάδην μυστή-"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "CUU MUET Á N UT PEOUNCUÁHTENPETIEITN T m TU Á 000 mo0o0s0m Á"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "ριά τινα καὶ καθαρμοὺς . καὶ ἔπη πεντακισχίλια. — Ἄργους ναυ-"
+    to: "ριά τινα καὶ καθαρμοὺς καὶ | ἔπη πεντακισχίλια. Ἄργους ναυ-"
+    by: scan
+
+  - page: 145
+    from: "πηγίαν τε καὶ Ἰάσονος εἰς"
+    to: "ἄλλα αἰνιγματώδη. | πηγίαν τε καὶ Ἰάσονος εἰς"
+    by: scan
+
+  - page: 145
+    from: "ἄλλα αἰνιγματώδη. |"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "Κόλχους ἀπόπλουν ἔπη ἑξα-"
+    to: " | Κόλχους ἀπόπλουν ἔπη ἑξα-"
+    by: scan
+
+  - page: 145
+    from: "κισχίλια ^ πεντακόσια."
+    to: " | κισχίλια πεντακόσια."
+    by: scan
+
+  - page: 145
+    from: "συνέγραψε δὲ καὶ καταλογάδην"
+    to: " | συνέγραψε δὲ καὶ καταλογάδην"
+    by: scan
+
+  - page: 145
+    from: "περὶ θυσιῶν xal τῆς έν Κρήτῃ"
+    to: " | περὶ θυσιῶν καὶ τῆς ἐν Κρήτῃ"
+    by: scan
+
+  - page: 145
+    from: "πολιτείας καὶ περὶ Μίνω — καὶ"
+    to: " | πολιτείας καὶ περὶ Μίνω καὶ"
+    by: scan
+
+  - page: 145
+    from: "Ῥαδαμάνθυος εἰς ἔπη τετρα-"
+    to: " | Ῥαδαμάνθυος εἰς ἔπη τετρα-"
+    by: scan
+
+  - page: 145
+    from: "κισχίλια. |"
+    to: " | κισχίλια."
+    by: scan
+
+  - page: 145
+    from: "Εὔδοξος — ἔγραψε δὲ πλεῖστα τὸν δκταετηρίδα κατά τινας συγ-"
+    to: "Εὔδοξος — ἔγραψε δὲ πλεῖστα | τὸν ὀκταετηρίδα κατά τινας συγ-"
+    by: scan
+
+  - page: 145
+    from: "τοῦ ε’ίδους τοότου καὶ δκταετη- γράψαι — — γράψας τοῖς ἰδίοις"
+    to: "τοῦ εἴδους τούτου καὶ ὀκταετη- | γράψαι — γράψας τοῖς ἰδίοις"
+    by: scan
+
+  - page: 145
+    from: "φησιν (Ἐρ-"
+    to: "ρίδα, ἔτι δὲ δι’ ἐπῶν ἀστρο- | πολίταις νόμους ὥς φησιν Ἕρ-"
+    by: scan
+
+  - page: 145
+    from: "πολίταις νόμους ὥς"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "ρίδα, ἔτι δὲ δι’ ἐπῶν ἀστρο-"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "νομίαν. (l έν d περὶ τῶν"
+    to: "νομίαν. | μιππος ἐν τετάρτῃ περὶ τῶν"
+    by: scan
+
+  - page: 145
+    from: "μιππος $y τετάρτῃ"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "ἀστρολογού-"
+    to: " | ἑπτὰ σοφῶν καὶ ἀστρολογού-"
+    by: scan
+
+  - page: 145
+    from: "ἑπτὰ U σοφῶν καὶ"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "καὶ"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "μενα γεωμετρούμενα"
+    to: " | μενα καὶ γεωμετρούμενα καὶ"
+    by: scan
+
+  - page: 145
+    from: "| καὶ"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "o ) ἄττα ἀξιόλογα. :"
+    to: " | ἕτερ’ ἄττα ἀξιόλογα."
+    by: scan
+
+  - page: 145
+    from: "ἕτερ’"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "Ζήνων Ἐλεάτης — ἔγραψεν φέρεται γοῦν αὐτοῦ βιβλία πολ·"
+    to: "Ζήνων Ἐλεάτης — ἔγραψεν | φέρεται γοῦν αὐτοῦ βιβλία πολ-"
+    by: scan
+
+  - page: 145
+    from: "λῆς συνέσεως γέμοντα. — ,"
+    to: "Ἔριδας, ἐξήγησιν τῶν | λῆς συνέσεως γέμοντα."
+    by: scan
+
+  - page: 145
+    from: "’Έριδας, ἐξήγησιν τῶν"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "Ἐμπεδοκλέους, πρὸς τοὺς"
+    to: "Ἐμπεδοκλέους, πρὸς τοὺς | "
+    by: scan
+
+  - page: 145
+    from: "φιλοσόφους πῘερὶ φόσεως."
+    to: "φιλοσόφους περὶ φύσεως. | "
+    by: scan
+
+  - page: 145
+    from: "Θαλῆς — ἔγραψε περὶ με· κατὰ δέ τινας δύο μόνα συν-’"
+    to: "Θαλῆς — ἔγραψε περὶ με- | κατὰ δέ τινας δύο μόνα συν-"
+    by: scan
+
+  - page: 145
+    from: "έγραψε, περὶ τροπῆς καὶ"
+    to: "τεώρων ἐν ἔπεσι, περὶ ἰση- | έγραψε, περὶ τροπῆς καὶ"
+    by: scan
+
+  - page: 145
+    from: "τεώρων $y ἔπεσι. περὶ ἰση-"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "ἰσημερίας —"
+    to: "μερίας καὶ ἄλλα τινά. | ἰσημερίας —"
+    by: scan
+
+  - page: 145
+    from: "μερίας καὶ ἄλλα τινά."
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "τὰ δὲ γεγραμμένα ὑπ’"
+    to: " | τὰ δὲ γεγραμμένα ὑπ’"
+    by: scan
+
+  - page: 145
+    from: "αὐτοῦ, φησι Λόβων ov 6 Ἀρ-"
+    to: " | αὐτοῦ, φησι Λόβων ὁ Ἀρ-"
+    by: scan
+
+  - page: 145
+    from: "γεῖος. εἰς ἔπη τείνει δια-"
+    to: " | γεῖος, εἰς ἔπη τείνει δια-"
+    by: scan
+
+  - page: 145
+    from: "κόσια. :"
+    to: " | κόσια."
+    by: scan
+
+  - page: 145
+    from: "Κέβης Y \" φέρονται"
+    to: "Κέβης — διάλογοι αὐτοῦ φέ- | Κέβης — καὶ τούτου φέρονται"
+    by: scan
+
+  - page: 145
+    from: "— καὶ τούτου"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "Κέβης — διάλογοι αὐτοῦ φέ-"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "διάλογοι τρεῖς. Πίναξ. Ἑβδόμη."
+    to: "ρονται τρεῖς Ἑβδόμη Φρύνιχος | διάλογοι τρεῖς. Πίναξ. Ἑβδόμη."
+    by: scan
+
+  - page: 145
+    from: "ρονται τρεῖς Ἑβδόμη Φρύνιχος"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "Πίναξ (ἔστι δὲ τῶν &v ἐνἍιδου Φρύνιχος."
+    to: "Πίναξ (ἔστι δὲ τῶν ἐν Ἅιδου | Φρύνιχος."
+    by: scan
+
+  - page: 145
+    from: "διήγησις) καὶ ἄλλα τινά."
+    to: "διήγησις) καὶ ἄλλα τινά. | "
+    by: scan
+
+  - page: 145
+    from: "Περίανδρος — ἔγραψεν ἐποίησε δὲ εἰς"
+    to: "Περίανδρος — ἔγραψεν ὑπο- | ἐποίησε δὲ καὶ ὑποθήκας εἰς"
+    by: scan
+
+  - page: 145
+    from: "καὶ ὑποθήκας"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "ὑπο·"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "θήκας εἰς τὸν ἀνθρώπινον ἔπη δισχίλια. MC"
+    to: "θήκας εἰς τὸν ἀνθρώπινον | ἔπη δισχίλια."
+    by: scan
+
+  - page: 145
+    from: "βίον ἔπη β’."
+    to: "βίον ἔπη β’. | "
+    by: scan
+
+  - page: 145
+    from: "ἐποίησε | δὲ καὶ ἐλεγεῖα ἔπη"
+    to: "Πιττακός — ἔγραψε νόμους — | ἐποίησε δὲ καὶ ἐλεγεῖα ἔπη"
+    by: scan
+
+  - page: 145
+    from: "Πιττακός — ἔγραψε νόμους - — —"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "ἐποίησε δὲ καὶ ἐλεγεῖα ἔπη χ’ ἑξακόσια καὶ ὑπὲρ νόμων κατα-"
+    to: "ἐποίησε δὲ καὶ ἐλεγεῖα ἔπη χ’ | ἑξακόσια καὶ ὑπὲρ νόμων κατα-"
+    by: scan
+
+  - page: 145
+    from: "καὶ ὑπὲρ νόμων καταλογάδην. λογάδην τοῖς πολίταις."
+    to: "καὶ ὑπὲρ νόμων καταλογάδην. | λογάδην τοῖς πολίταις."
+    by: scan
+
+  - page: 145
+    from: "Nietzsche, Werke. III. Abth., Βᾱ. XVII. (Philologica I.) . 10"
+    to: ""
+    by: scan
+
+  - page: 145
+    from: "À—am m m mo Am 4 mA"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "Πολέμων — . καὶ πολλὰ μὲν — ἱκανὰ συγγράμματα καταλι-"
+    to: "Πολέμων — καὶ πολλὰ μὲν | — ἱκανὰ συγγράμματα καταλι-"
+    by: scan
+
+  - page: 146
+    from: "συνέγραψε βιβλία, οὐδὲν δ’ πών."
+    to: "συνέγραψε βιβλία, οὐδὲν δ’ | πών."
+    by: scan
+
+  - page: 146
+    from: "αὐτοῦ φέρεταυ"
+    to: "αὐτοῦ φέρεται. | "
+    by: scan
+
+  - page: 146
+    from: "Πυθαγόρας - συνέγραψε δ’ 6 γέγραπται δὲ τῷ Πυθαγόρα συγ-"
+    to: "Πυθαγόρας — συνέγραψε δ’ ὁ | γέγραπται δὲ τῷ Πυθαγόρα συγ-"
+    by: scan
+
+  - page: 146
+    from: "Πυθαγόρας μόνα | τρία βιβλία. γράμματα τρία παιδευτικὸν πο-"
+    to: "Πυθαγόρας μόνα τρία βιβλία. | γράμματα τρία παιδευτικὸν πο-"
+    by: scan
+
+  - page: 146
+    from: "παιδευτικόν. πολιτικόν. N δὲ λιτικὸν φυσικόν. τὸ δὲ φερό-"
+    to: "παιδευτικόν. πολιτικόν. τὸ δὲ | λιτικὸν φυσικόν. τὸ δὲ φερό-"
+    by: scan
+
+  - page: 146
+    from: "τὸ"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "φερόμενον τρίτον ὡς Πυθαγόρου μενον ὡς Πυθαγόρου | Λύσιδός"
+    to: "φερόμενον τρίτον ὡς Πυθαγόρου | μενον ὡς Πυθαγόρου Λύσιδός"
+    by: scan
+
+  - page: 146
+    from: "ἐστι τοῦ Ταραντίνου."
+    to: "Λύσιδός ἐστι τοῦ Ταραντίνου — | ἐστι τοῦ Ταραντίνου."
+    by: scan
+
+  - page: 146
+    from: "Λύσιδός ἐστι τοῦ Ταραντίνου —"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "τινὲς ἀνατιθέασι αὐτῷ καὶ τὰ"
+    to: "τινὲς ἀνατιθέασι αὐτῷ καὶ τὰ | "
+    by: scan
+
+  - page: 146
+    from: "χρυσᾶ ἔπη. , |"
+    to: "χρυσᾶ ἔπη. | "
+    by: scan
+
+  - page: 146
+    from: ", | δὲ δῆλον | μὲν ὅτι | τοὺς"
+    to: "Σόλων — ἔγραψε νόμους Ἀθη- | γέγραφε δὲ δῆλον μὲν ὅτι τοὺς"
+    by: scan
+
+  - page: 146
+    from: "Σόλων — ἔγραψε νόμους Ἀθη- γέγραφε"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "ναίοις / | δι’ 2 / νόμους καὶ δημηγορίας δε"
+    to: "ναίοις — ποίημα δι’ ἐλεγείων | νόμους καὶ δημηγορίας δὲ"
+    by: scan
+
+  - page: 146
+    from: ".— ποίημα ἐλεγείων"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "N , ἑαυτὸν ὑποθήκας ,"
+    to: "ὃ Σαλαμὶς ἐπιγράφεται, ὑπο- | καὶ εἰς ἑαυτὸν ὑποθήκας"
+    by: scan
+
+  - page: 146
+    from: "ὃ Σαλαμὶς ἐπιγράφεται, ὑπο- καὶ εἰς"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "ἐλεγεῖα"
+    to: "θήκας δι’ ἐλεγείων καὶ ἄλλα. | ἐλεγεῖα καὶ τὰ περὶ Σαλαμῖνος"
+    by: scan
+
+  - page: 146
+    from: "θήκας δι’ ἐλεγείων καὶ ἄλλα. xal xà περὶ Σαλαμῖνος"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "καὶτῆς Ἀθηναίων πολι-"
+    to: " | καὶ τῆς Ἀθηναίων πολι-"
+    by: scan
+
+  - page: 146
+    from: "τείας έπη πεντακισχίλια."
+    to: " | τείας ἔπη πεντακισχίλια."
+    by: scan
+
+  - page: 146
+    from: "» ἐπῳδούς. *"
+    to: " | καὶ ἰάμβους καὶ ἐπῳδούς."
+    by: scan
+
+  - page: 146
+    from: "ἰάμβους καὶ"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "καὶ t"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: ",Τηλαύγης — ἔγραψε περὶ"
+    to: "Τηλαύγης — ἔγραψε περὶ | "
+    by: scan
+
+  - page: 146
+    from: "τῆς , δ’."
+    to: "τῆς τετρακτύος βιβλία δ’. | "
+    by: scan
+
+  - page: 146
+    from: "τετρακτύος βιβλία"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "Φαίδων — διάλογοι δ’ αὐτοῦ Διαλόγους δὲ συνέγραψε γνη-"
+    to: "Φαίδων — διάλογοι δ’ αὐτοῦ | Διαλόγους δὲ συνέγραψε γνη-"
+    by: scan
+
+  - page: 146
+    from: "Ζώπυρος Μήδιος ; Σίμων — Ἀντί- σίους μὲν Ζώπυρον Σίμωνα καὶ"
+    to: "Ζώπυρος Μήδιος Σίμων Ἀντί- | σίους μὲν Ζώπυρον Σίμωνα καὶ"
+    by: scan
+
+  - page: 146
+    from: "’Νικίας"
+    to: "μαχος ἢ πρεσβύτης, Νικίας | δισταζόμενον Νικίαν, Μή-"
+    by: scan
+
+  - page: 146
+    from: "μαχος T| πρεσβύτης, δισταζόμενον Νικίαν, Μή-"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "Σιμμίας Ἀλκιβιάδης Κρι- διον ὅν φασί τινες Αἰσχί-"
+    to: "Σιμμίας Ἀλκιβιάδης Κρι- | διον ὃν φασί τινες Αἰσχί-"
+    by: scan
+
+  - page: 146
+    from: "τόλαος ν ο υ, οἱ δὲ Πολυαίνου."
+    to: "τόλαος. | νου, οἱ δὲ Πολυαίνου."
+    by: scan
+
+  - page: 146
+    from: "Ἀντίμαχον ἢ πρεσβύτας. κ αὶ"
+    to: " | Ἀντίμαχον ἢ πρεσβύτας. καὶ"
+    by: scan
+
+  - page: 146
+    from: "'.'!"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "οὗτος διστάζεται. Σκυθυ"
+    to: " | οὗτος διστάζεται. Σκυθι-"
+    by: scan
+
+  - page: 146
+    from: "κοὺς λόγους. καὶ τούτους"
+    to: " | κοὺς λόγους. καὶ τούτους"
+    by: scan
+
+  - page: 146
+    from: "τινὲς Αἰσχίνου φασίν. ("
+    to: " | τινὲς Αἰσχίνου φασίν."
+    by: scan
+
+  - page: 146
+    from: "σώζεται δὲ τοδ Συρίου τότε"
+    to: "Φερεκύδης — ἔστι δ’ ἅπαντα ἃ | σώζεται δὲ τοῦ Συρίου τότε"
+    by: scan
+
+  - page: 146
+    from: "Φερεκύδης -- — ἔστι 0 ἅπαντα G"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "συνέγραψε ταῦτα. ἑπτάμυχος ήτοι βιβλίον ὃ συνέγραψεν οὗ η ἀρχὴ"
+    to: "συνέγραψε ταῦτα. ἑπτάμυχος ἤτοι | βιβλίον ὃ συνέγραψεν οὗ ἡ ἀρχὴ"
+    by: scan
+
+  - page: 146
+    from: "Θεοκρασία ἢ Θεογονία. ἔστι δὲ κτλ."
+    to: "Θεοκρασία ἢ Θεογονία. ἔστι δὲ | κτλ."
+    by: scan
+
+  - page: 146
+    from: "Θεολογία ἐν βιβλίοις ι’, ἔχουσα"
+    to: "Θεολογία ἐν βιβλίοις ι’, ἔχουσα | "
+    by: scan
+
+  - page: 146
+    from: ". θεῶν γένεσιν καὶ διαδόχους."
+    to: "θεῶν γένεσιν καὶ διαδόχους. | "
+    by: scan
+
+  - page: 146
+    from: "' & -"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "Φίλισκος — δια- τά τε τραγωδάριά (Διο-"
+    to: "Φίλισκος — ἔγραψε δια- | τά τε τραγωδάριά (Διο-"
+    by: scan
+
+  - page: 146
+    from: "γένους) φησιν ó Σάτυρος"
+    to: "λόγους ὧν ἐστι Κόδρος. | γένους) φησιν ὁ Σάτυρος"
+    by: scan
+
+  - page: 146
+    from: "λόγους ὧν ἐστι Κόδρος. -"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "Φιλίσκου τοῦ Αἰ-"
+    to: " | Φιλίσκου εἶναι τοῦ Αἰ-"
+    by: scan
+
+  - page: 146
+    from: "εἶναι"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "-"
+    to: ""
+    by: scan
+
+  - page: 146
+    from: "γινήτου. - ["
+    to: " | γινήτου."
+    by: scan
+
+  - page: 147
+    from: "CM r n—Ügey w p n 09 0oeveyo Y 3. u o o poreww0 9R rAv 08 9 m o 0009 uN moct 00 \"T-w RT . m 000 T U T-AX——t Ro 008 008"
+    to: ""
+    by: scan
+
+  - page: 147
+    from: "- - -"
+    to: ""
+    by: scan
+
+  - page: 147
+    from: "— 07 —"
+    to: "— 147 —"
+    by: scan
+
+  - page: 147
+    from: "Πεῐῃ. Tantum enim abest, ut Hesychius Laertium descrip-"
+    to: "nem. Tantum enim abest, ut Hesychius Laertium descrip-"
+    by: scan
+
+  - page: 147
+    from: "serit et. compilaverit, ut ab utroque ex uno ξοηῒε, sed cum"
+    to: "serit et compilaverit, ut ab utroque ex uno fonte, sed cum"
+    by: scan
+
+  - page: 147
+    from: "discrimine haustum esse censeamus. lam vero hic commu-"
+    to: "discrimine haustum esse censeamus. Iam vero hic commu-"
+    by: scan
+
+  - page: 147
+    from: "nis: Ῑοηε indagandus est. Cum autem pro certo statuendum"
+    to: "nis fons indagandus est. Cum autem pro certo statuendum"
+    by: scan
+
+  - page: 147
+    from: "sit, vitas Ηεεγσὴίειῃειε εΧ εσάεῐῃ fonte.fluxisse, unde in-."
+    to: "sit, vitas Hesychianas ex eodem fonte fluxisse, unde in-"
+    by: scan
+
+  - page: 147
+    from: "dices, ratio postulat, postquam edocti sumus Laertlanorum"
+    to: "dices, ratio postulat, postquam edocti sumus Laertianorum"
+    by: scan
+
+  - page: 147
+    from: "1nd1cum fontem eundem esse Hesychianorum, ut conllgamus"
+    to: "indicum fontem eundem esse Hesychianorum, ut conligamus,"
+    by: scan
+
+  - page: 147
+    from: "quidquid ex Hesychii vitis ad singulos 1llos quos eruimus"
+    to: "quidquid ex Hesychii vitis ad singulos illos quos eruimus"
+    by: scan
+
+  - page: 147
+    from: "fontes. Εῆετῖίἰ referendum est."
+    to: "fontes Laertii referendum est."
+    by: scan
+
+  - page: 147
+    from: "Hesychlus |"
+    to: "Hesychius: | "
+    by: scan
+
+  - page: 147
+    from: "Ἀναξαγόρας — ἔφυγε δ’ ἐξ Ἀθηνῶν Περικλέους Ξ Sotion ap."
+    to: "Ἀναξαγόρας — ἔφυγε δ’ ἐξ Ἀθηνῶν Περικλέους | = Sotion ap."
+    by: scan
+
+  - page: 147
+    from: "αὐτῷ συνειπόντος. καὶ ἐλθὼν ἐν Λαμψάκῳ ἐκεῖσε La. ."
+    to: "αὐτῷ συνειπόντος. καὶ ἐλθὼν ἐν Λαμψάκῳ ἐκεῖσε | La."
+    by: scan
+
+  - page: 147
+    from: "καταστρέψαι τὸν βίον ἀποκαρτερήσας — nE |"
+    to: "καταστρέψαι τὸν βίον ἀποκαρτερήσας — | "
+    by: scan
+
+  - page: 147
+    from: "διότι ὑπ’ Ἀθηναίων ἐνεβλήθη ἐν δεσμωτηρίῳ οἵ· — Hermlppus"
+    to: "διότι ὑπ’ Ἀθηναίων ἐνεβλήθη ἐν δεσμωτηρίῳ οἷ- | = Hermippus"
+    by: scan
+
+  - page: 147
+    from: "άτινα καινὴν δόξαν τοῦ θεοῦ παρεισφέρων. . — .00"
+    to: "άτινα καινὴν δόξαν τοῦ θεοῦ παρεισφέρων. | "
+    by: scan
+
+  - page: 147
+    from: "Ἀναξιμένης — γέγονεν ἐν τῇ νε’ ὀλυμπιάδι [ἐτε- :Apollodorus"
+    to: "Ἀναξιμένης — γέγονεν ἐν τῇ νε’ ὀλυμπιάδι [ἐτε- | = Apollodorus"
+    by: scan
+
+  - page: 147
+    from: "ὅτε"
+    to: ""
+    by: scan
+
+  - page: 147
+    from: "λεότησε δὲ suppl.] ἐν τῇ Σάρδεων ἁλώσει"
+    to: "λεύτησε δὲ suppl.] ἐν τῇ Σάρδεων ἁλώσει ὅτε | "
+    by: scan
+
+  - page: 147
+    from: "Κῦρος 6 Πέρσης Κροῖσον καθεῖλεν."
+    to: "Κῦρος ὁ Πέρσης Κροῖσον καθεῖλεν. | "
+    by: scan
+
+  - page: 147
+    from: "Ἀρίστιππος — πρῶτος δὲ τῶν Σωκρατικῶν μι· ’Ξ — Phanias II."
+    to: "Ἀρίστιππος — πρῶτος δὲ τῶν Σωκρατικῶν μι- | = Phanias II."
+    by: scan
+
+  - page: 147
+    from: "σθοὺς ἐπράξατο. 65."
+    to: "σθοὺς ἐπράξατο. | 65."
+    by: scan
+
+  - page: 147
+    from: "Ἀριστοτέλης — 6 δὲ Nuópayoc ἰατρὸς ἦν τοῦ — Hermippus"
+    to: "Ἀριστοτέλης — ὁ δὲ Νικόμαχος ἰατρὸς ἦν τοῦ | = Hermippus"
+    by: scan
+
+  - page: 147
+    from: "τῶν Ἀσκληπιαδῶν γένους. ἀπὸ Νικομάχου τοῦ N- | . V.."
+    to: "τῶν Ἀσκληπιαδῶν γένους, ἀπὸ Νικομάχου τοῦ Νι- | V. 1."
+    by: scan
+
+  - page: 147
+    from: "κάονος. DN | MM"
+    to: "κάονος. | "
+    by: scan
+
+  - page: 147
+    from: "— τραυλὸς τὴν φωνήν — —— — Τίῐῃοῒὴευε .."
+    to: "— τραυλὸς τὴν φωνήν — | = Timotheus\n | V. 1."
+    by: scan
+
+  - page: 147
+    from: "— ἐξ Ἑρπυλλίδος παλλακῆς. η ἠγάγετο μετὰ — Βεῐηεῒϊὶυις"
+    to: "— ἐξ Ἑρπυλλίδος παλλακῆς, ἣ ἠγάγετο μετὰ | = Demetrius"
+    by: scan
+
+  - page: 147
+    from: "Πυθιάδα τοῦ Ἑρμείου τοῦ Εὐνοόχου. ὅστις ἦν .. Magnes"
+    to: "Πυθιάδα τοῦ Ἑρμείου τοῦ Εὐνούχου, ὅστις ἦν | Magnes"
+    by: scan
+
+  - page: 147
+    from: "ἄρχων Ἀταρνέως — Εὐβούλου δὲ τοι]Ι Βιθυνοῦ 0 M."
+    to: "ἄρχων Ἀταρνέως — Εὐβούλου δὲ τοῦ Βιθυνοῦ | V. 3."
+    by: scan
+
+  - page: 147
+    from: "δοῦλος γεγονώς."
+    to: "δοῦλος γεγονώς. | "
+    by: scan
+
+  - page: 147
+    from: "— ἐγεννήθη δὲ ἐν τῇ ἐννενηκοστῇ ἐννάτῃ όλυμ· — Apollodorus"
+    to: "— ἐγεννήθη δὲ ἐν τῇ ἐννενηκοστῇ ἐννάτῃ ὀλυμ- | = Apollodorus"
+    by: scan
+
+  - page: 147
+    from: "πιάδι — 0 ts o ogpac 120 NSO9. V"
+    to: "πιάδι — | V. 9."
+    by: scan
+
+  - page: 147
+    from: "— οἱ δέ φασι νόσω αὐτὸν τελευτῆσαι | — Apollodorus"
+    to: "— οἱ δέ φασι νόσῳ αὐτὸν τελευτῆσαι | = Apollodorus\n | V. 10."
+    by: scan
+
+  - page: 147
+    from: "Ἀρχύτας — τοῦτόν φησι Φανίας ὁ Ἐρέσιος (codd. — ; Phanias."
+    to: "Ἀρχύτας — τοῦτόν φησι Φανίας ὁ Ἐρέσιος (codd. | = Phanias."
+    by: scan
+
+  - page: 147
+    from: "φανερῶς. emend. optime Bernhard.) γενέσθαι"
+    to: "φανερῶς. emend. optime Bernhard.) γενέσθαι | "
+    by: scan
+
+  - page: 147
+    from: "διδάσκαλον Ἐμπεδοκλέους."
+    to: "διδάσκαλον Ἐμπεδοκλέους. | "
+    by: scan
+
+  - page: 147
+    from: "10*"
+    to: ""
+    by: scan
+
+  - page: 148
+    from: "— ]48 —"
+    to: "— 148 —"
+    by: scan
+
+  - page: 148
+    from: "Δημήτριος — δηχθεὶς ὑπ’ ἀσπίδος ἀπέθανε καὶ — Hermippus"
+    to: "Δημήτριος — δηχθεὶς ὑπ’ ἀσπίδος ἀπέθανε καὶ | = Hermippus"
+    by: scan
+
+  - page: 148
+    from: "ἐτάφη ἐν τῷ Βουσιρίτῃ νόμῳ. | V. 78."
+    to: "ἐτάφη ἐν τῷ Βουσιρίτῃ νόμῳ. | V. 78."
+    by: scan
+
+  - page: 148
+    from: "Δημόκριτος — ὡς δέ τινες. καὶ Μάγων καὶ XaÀ- — Demetrius"
+    to: "Δημόκριτος — ὡς δέ τινες, καὶ Μάγων καὶ Χαλ- | = Demetrius"
+    by: scan
+
+  - page: 148
+    from: "δαίων τε καὶ Περσῶν. Magnes"
+    to: "δαίων τε καὶ Περσῶν. | Magnes"
+    by: scan
+
+  - page: 148
+    from: "| ! IX. 35."
+    to: " | IX. 35."
+    by: scan
+
+  - page: 148
+    from: "Διογένης — κατὰ τὴν αὐτὴν ἡμέραν, ὅτε καὶ 6 — Demetrius"
+    to: "Διογένης — κατὰ τὴν αὐτὴν ἡμέραν, ὅτε καὶ ὁ | = Demetrius"
+    by: scan
+
+  - page: 148
+    from: "Μακεδὼν Ἀλέξανδρος iv Βαβυλῶνι ἀπέθανεν. Magnes"
+    to: "Μακεδὼν Ἀλέξανδρος ἐν Βαβυλῶνι ἀπέθανεν. | Magnes"
+    by: scan
+
+  - page: 148
+    from: "' | , V]. 79."
+    to: " | VI. 79."
+    by: scan
+
+  - page: 148
+    from: "Ἰὖμπεδοκλῆς — τραγῳδίαι αὐτοῦ κδ’ — Heraclides"
+    to: "Ἐμπεδοκλῆς — τραγῳδίαι αὐτοῦ κδ’ | = Heraclides"
+    by: scan
+
+  - page: 148
+    from: "| VIII.: 58."
+    to: " | VIII. 58."
+    by: scan
+
+  - page: 148
+    from: "Ἰῧμπεδοκλῆς Μέτωνος — Hippobotus"
+    to: "Ἐμπεδοκλῆς Μέτωνος | = Hippobotus"
+    by: scan
+
+  - page: 148
+    from: "| | | ! VIII. 51."
+    to: " | VIII. 51."
+    by: scan
+
+  - page: 148
+    from: ". — Apollodorus"
+    to: " | = Apollodorus"
+    by: scan
+
+  - page: 148
+    from: "VIII. 52."
+    to: " | VIII. 52."
+    by: scan
+
+  - page: 148
+    from: "-- οἱ δὲ Ἐξαινέτου : j | Ξ Satyrus"
+    to: "— οἱ δὲ Ἐξαινέτου | = Satyrus"
+    by: scan
+
+  - page: 148
+    from: "| | U ' VIII. 53."
+    to: " | VIII. 53."
+    by: scan
+
+  - page: 148
+    from: "— οὗτος Ó Ἐμπεδοκλῆς στέμμα ἔχων ἐπὶ τῆς-ἵ — Neanthes"
+    to: "— οὗτος ὁ Ἐμπεδοκλῆς στέμμα ἔχων ἐπὶ τῆς | = Neanthes"
+    by: scan
+
+  - page: 148
+    from: "κεφαλῆς χρυσοῦν κτλ. | | VIII. 72."
+    to: "κεφαλῆς χρυσοῦν κτλ. | VIII. 72."
+    by: scan
+
+  - page: 148
+    from: "ἔρριψεν ἑαυτὸν εἰς κρατῆρα πυρὸς κτλ. - — Hippobotus -"
+    to: "— ἔρριψεν ἑαυτὸν εἰς κρατῆρα πυρὸς κτλ. | = Hippobotus"
+    by: scan
+
+  - page: 148
+    from: "VIII. 69."
+    to: " | VIII. 69."
+    by: scan
+
+  - page: 148
+    from: "— ἐπεκλήθη δὲ καὶ Κωλυσανέμας κτλ. | — '[imaeus"
+    to: "— ἐπεκλήθη δὲ καὶ Κωλυσανέμας κτλ. | = Timaeus"
+    by: scan
+
+  - page: 148
+    from: "m ] VIII. 60."
+    to: " | VIII. 60."
+    by: scan
+
+  - page: 148
+    from: "— γέγονε δὲ τούτου μαθητὴς Γοργίας ὁ ῥήτωρ — catyrus"
+    to: "— γέγονε δὲ τούτου μαθητὴς Γοργίας ὁ ῥήτωρ | = Satyrus"
+    by: scan
+
+  - page: 148
+    from: "ὁ Λεοντῖνος — — | VIII. 58."
+    to: "ὁ Λεοντῖνος — | VIII. 58."
+    by: scan
+
+  - page: 148
+    from: "meoopoc — πρῶτον μὲν $y Σάμῳ διατρίψας-Ξ — ΗΕΓειςΙίᾶθε"
+    to: "Ἐπίκουρος — πρῶτον μὲν ἐν Σάμῳ διατρίψας | = Heraclides"
+    by: scan
+
+  - page: 148
+    from: "σὺν τοῖς γονεῦσιν . in Sotionis"
+    to: "σὺν τοῖς γονεῦσιν | in Sotionis"
+    by: scan
+
+  - page: 148
+    from: "Epitome"
+    to: " | Epitome\n | X. 1."
+    by: scan
+
+  - page: 148
+    from: "— dxoócac δὲ Ναυσιφάνους τοῦ Δημοκριτείου καὶ — Ariston X."
+    to: "— ἀκούσας δὲ Ναυσιφάνους τοῦ Δημοκριτείου καὶ | = Ariston X."
+    by: scan
+
+  - page: 148
+    from: "Παμφίλου τοῦ Πλάτωνος μαθητοῦ 14."
+    to: "Παμφίλου τοῦ Πλάτωνος μαθητοῦ | 14."
+    by: scan
+
+  - page: 148
+    from: "— γέγονε δὲ ἐπὶ τῆς ρθ’ ὀλυμπιάδος κτλ. — Apollodorus"
+    to: "— γέγονε δὲ ἐπὶ τῆς ρθ’ ὀλυμπιάδος κτλ. | = Apollodorus\n | X. 14."
+    by: scan
+
+  - page: 148
+    from: "huöoEog — ᾧ τρεῖς ἐγένοντο θυγατέρες Ἀκτὶς Δελ· — Sotion VIII."
+    to: "Εὔδοξος — ᾧ τρεῖς ἐγένοντο θυγατέρες Ἀκτὶς Δελ- | = Sotion VIII."
+    by: scan
+
+  - page: 148
+    from: "φὶς Φιλτίς O9."
+    to: "φὶς Φιλτίς | 88."
+    by: scan
+
+  - page: 148
+    from: "Ζήνων — καθελεῖν δὲ θελήσας Νέαρχον. οἱ δὲ — Heraclides"
+    to: "Ζήνων — καθελεῖν δὲ θελήσας Νέαρχον, οἱ δὲ | = Heraclides"
+    by: scan
+
+  - page: 148
+    from: "Διομέδοντα τὸν Ἐλέας τύραννον ἑάλω | A din Satyri —"
+    to: "Διομέδοντα τὸν Ἐλέας τύραννον ἑάλω | in Satyri"
+    by: scan
+
+  - page: 148
+    from: "- : | | . Epitome"
+    to: " | Epitome"
+    by: scan
+
+  - page: 148
+    from: "IX. 206."
+    to: " | IX. 26."
+    by: scan
+
+  - page: 149
+    from: "—omrmeqp av n v n amamqpem v —— m OW MUMU a n Á 001 0 WE YR Á w o n M0 0v UTv xR UU0Y 00"
+    to: ""
+    by: scan
+
+  - page: 149
+    from: ". ."
+    to: ""
+    by: scan
+
+  - page: 149
+    from: "— καὶ ἐν ὅλμῳ βληθεὶς συνετρίβη πτισσόμενος. — Ηεὲῑῐηίρρυε"
+    to: "— καὶ ἐν ὅλμῳ βληθεὶς συνετρίβη πτισσόμενος. | = Hermippus\n | IX. 27."
+    by: scan
+
+  - page: 149
+    from: "Ἡρακλείδης — οὗτος καὶ δράκοντα ἔθρεψε xqi — Demetrius"
+    to: "Ἡρακλείδης — οὗτος καὶ δράκοντα ἔθρεψε καὶ | = Demetrius"
+    by: scan
+
+  - page: 149
+    from: "ἡμέρωσε xal εἶχε συνδιαιτώμενον αὐτῷ κτλ. — . . Magnes —"
+    to: "ἡμέρωσε καὶ εἶχε συνδιαιτώμενον αὐτῷ κτλ. | Magnes\n | V. 89."
+    by: scan
+
+  - page: 149
+    from: "Ἡράκλειτος -— ἀλλ’ αὐτὸς βολβίτῳ χρίσας 0Àov — — Neanthes"
+    to: "Ἡράκλειτος — ἀλλ’ αὐτὸς βολβίτῳ χρίσας ὅλον | = Neanthes"
+    by: scan
+
+  - page: 149
+    from: "ἑαυτὸν ε’ίασε ξηρανθῆναι τοῦτο ὑπὸ τοῦ ἡλίου κτλ. - IX. 4."
+    to: "ἑαυτὸν εἴασε ξηρανθῆναι τοῦτο ὑπὸ τοῦ ἡλίου κτλ. | IX. 4."
+    by: scan
+
+  - page: 149
+    from: "— τινὲς δὲ αὐτὸν ἔφασαν διακοῦσαι Ξενοφάνους — Ξοῒίοη IX.5."
+    to: "— τινὲς δὲ αὐτὸν ἔφασαν διακοῦσαι Ξενοφάνους | = Sotion IX. 5."
+    by: scan
+
+  - page: 149
+    from: "Θεανὼ — γαμετὴ δὲ τοῦ μεγάλου Πυθαγόρου ἐξ — Ηίρροῦοωὸ"
+    to: "Θεανὼ — γαμετὴ δὲ τοῦ μεγάλου Πυθαγόρου ἐξ | = Hippobotus"
+    by: scan
+
+  - page: 149
+    from: "οὗ ἔσχε Τηλαύγην. | — ΨΙΙΙ. 43."
+    to: "οὗ ἔσχε Τηλαύγην. | VIII. 43."
+    by: scan
+
+  - page: 149
+    from: "Θεόφραστος — ἐρώμενον δὲ (ἔσχεν) τὸν Ἀριστο- —. ΑΓῙΞῌΡΡΠΞ"
+    to: "Θεόφραστος — ἐρώμενον δὲ (ἔσχεν) τὸν Ἀριστο- | = Aristippus"
+    by: scan
+
+  - page: 149
+    from: "τέλους υἱὸν τοῦ φιλοσόφου Νικόμαχον 0070 N.39.."
+    to: "τέλους υἱὸν τοῦ φιλοσόφου Νικόμαχον | V. 39."
+    by: scan
+
+  - page: 149
+    from: "Κράτης — ὃς ἐξαργυρίσας τὴν οὐσίαν κτλ. ε Βεῐηεῒϊίυδ"
+    to: "Κράτης — ὃς ἐξαργυρίσας τὴν οὐσίαν κτλ. | = Demetrius"
+    by: scan
+
+  - page: 149
+    from: ": | E E Magnes -"
+    to: " | Magnes\n | VI. 88."
+    by: scan
+
+  - page: 149
+    from: "Πυθαγόρας Σάμιος . | . — Hermippus."
+    to: "Πυθαγόρας Σάμιος | = Hermippus."
+    by: scan
+
+  - page: 149
+    from: "»o— οὗτος ἤκουσε -— Ζάρητος — Aristodemus — — Alexander"
+    to: "— οὗτος ἤκουσε — Ζάρητος | = Aristodemus | = Alexander"
+    by: scan
+
+  - page: 149
+    from: "τοῦ μάγου . | . cf. Hippol. . — Ροὶγὴίεῒοτ"
+    to: "τοῦ μάγου | cf. Hippol. | Polyhistor"
+    by: scan
+
+  - page: 149
+    from: "ρὴὶΙΟεορὶι. . . vid. Cyr."
+    to: " | philosoph. | vid. Cyr."
+    by: scan
+
+  - page: 149
+    from: "p. 38 Wolf. ειάν. Iul."
+    to: " | p. 38 Wolf. | adv. Iul."
+    by: scan
+
+  - page: 149
+    from: "| | IX. 133."
+    to: " |  | IX. 133."
+    by: scan
+
+  - page: 149
+    from: "Πύρρων — καὶ πρότερον μὲν ἦν ζωγράφος —— — Apollodorus"
+    to: "Πύρρων — καὶ πρότερον μὲν ἦν ζωγράφος | = Apollodorus"
+    by: scan
+
+  - page: 149
+    from: "| | IX. 61."
+    to: " | IX. 61."
+    by: scan
+
+  - page: 149
+    from: "Σωκράτης — πρότερον γενόμενος λιθοξόος, ὥστε — Βυτίε Π. 19."
+    to: "Σωκράτης — πρότερον γενόμενος λιθοξόος, ὥστε | = Duris II. 19."
+    by: scan
+
+  - page: 149
+    from: "καί φασιν αὐτοῦ ἔργον εἶναι τὰς Ἀθήνησιν ἐνδε-"
+    to: "καί φασιν αὐτοῦ ἔργον εἶναι τὰς Ἀθήνησιν ἐνδε- | "
+    by: scan
+
+  - page: 149
+    from: "δυμένας Χάριτας. . . |"
+    to: "δυμένας Χάριτας. | "
+    by: scan
+
+  - page: 149
+    from: "— οἰκοῦσαι Δάμωνος —— , | — Alexander"
+    to: "— ἀκοῦσαι Δάμωνος | = Alexander"
+    by: scan
+
+  - page: 149
+    from: ". .. II. 19."
+    to: " | II. 19."
+    by: scan
+
+  - page: 149
+    from: "Ἀριστόξενος Ἀρχελάου | : \" — Aristoxenus."
+    to: "Ἀριστόξενος Ἀρχελάου | = Aristoxenus."
+    by: scan
+
+  - page: 149
+    from: "Φιλίσκος — αὐτὸς δ’ ἀκουστὴς ἦν τοῦ κυνὸς Διο- — Satyrus VI."
+    to: "Φιλίσκος — αὐτὸς δ’ ἀκουστὴς ἦν τοῦ κυνὸς Διο- | = Satyrus VI."
+    by: scan
+
+  - page: 149
+    from: "γένους. s 2 80. ."
+    to: "γένους. | 80."
+    by: scan
+
+  - page: 149
+    from: "κατὰ δ’ (Έρμιππον Στίλπωνος | — Hermippus."
+    to: "κατὰ δ’ Ἕρμιππον Στίλπωνος | = Hermippus."
+    by: scan
+
+  - page: 149
+    from: "-Χρόσιππος — Ταρσεύς — — Alexander"
+    to: "Χρύσιππος — Ταρσεύς — | = Alexander"
+    by: scan
+
+  - page: 149
+    from: ". | .. λῖΠ. 179."
+    to: " | VII. 179."
+    by: scan
+
+  - page: 149
+    from: "— καὶ τελευτήσας o' καὶ γ’ ἐτῶν ὑπὸ τοῦ πιεῖν — Hermippus"
+    to: "— καὶ τελευτήσας ο’ καὶ γ’ ἐτῶν ὑπὸ τοῦ πιεῖν | = Hermippus"
+    by: scan
+
+  - page: 149
+    from: "ἄκρατον καὶ ἰλιγγιάσαι. —— : . . . λῖΠ. 184."
+    to: "ἄκρατον καὶ ἰλιγγιάσαι. | VII. 184."
+    by: scan
+
+  - page: 149
+    from: "Tenemus igitur Hermippum, Satyrum, Durldem Ατί-"
+    to: "Tenemus igitur Hermippum, Satyrum, Duridem, Ari-"
+    by: scan
+
+  - page: 149
+    from: "stippum, Sotionem, Hippobotum, Heraclidem, Apollodqrum,"
+    to: "stippum, Sotionem, Hippobotum, Heraclidem, Apollodorum,"
+    by: scan
+
+  - page: 149
+    from: "—— Pa d m À m n m 0 MR m DLl"
+    to: ""
+    by: scan
+
+  - page: 150
+    from: "alios,; e quorum memoria conformatae sunt Hesychii philo-"
+    to: "alios, e quorum memoria conformatae sunt Hesychii philo-"
+    by: scan
+
+  - page: 150
+    from: "sophorum vitae. . Apertum vero est eum non omnes hos"
+    to: "sophorum vitae. Apertum vero est eum non omnes hos"
+    by: scan
+
+  - page: 150
+    from: "ipsum inspexisse: hoc. potius quaerimus, quis sit ille unus"
+    to: "ipsum inspexisse: hoc potius quaerimus, quis sit ille unus"
+    by: scan
+
+  - page: 150
+    from: "scriptor; qui horum omnium rivulos in agrum suum deri-"
+    to: "scriptor, qui horum omnium rivulos in agrum suum deri-"
+    by: scan
+
+  - page: 150
+    from: "vaverit 1deoque ab Hesychlo commod1551me potuerlt com-"
+    to: "vaverit ideoque ab Hesychio commodissime potuerit com-"
+    by: scan
+
+  - page: 150
+    from: "pllarl :"
+    to: "pilari."
+    by: scan
+
+  - page: 150
+    from: "Sl quis.vero: hanc scrlptorum seriem oculis perreptaverit,"
+    to: "Si quis vero hanc scriptorum seriem oculis perreptaverit,"
+    by: scan
+
+  - page: 150
+    from: "non dubitabit, quin suspitio. in uno certoque haereat homine."
+    to: "non dubitabit, quin suspitio in uno certoque haereat homine."
+    by: scan
+
+  - page: 150
+    from: "qui ceterorum scriptorum -doctrinam iam in usum suum. con-"
+    to: "qui ceterorum scriptorum doctrinam iam in usum suum con-"
+    by: scan
+
+  - page: 150
+    from: "verterat.. Atqui ex ipsa disputatione nostra adparet eosdem"
+    to: "verterat. Atqui ex ipsa disputatione nostra adparet eosdem"
+    by: scan
+
+  - page: 150
+    from: "prorsus Scriptores ad quorum auctoritatem singulae vitarum"
+    to: "prorsus scriptores, ad quorum auctoritatem singulae vitarum"
+    by: scan
+
+  - page: 150
+    from: "usurpatos. -"
+    to: "usurpatos."
+    by: scan
+
+  - page: 150
+    from: ".. Vt 1g1tur dicam, quod consectarium est: Demetrlus"
+    to: "Vt igitur dicam, quod consectarium est: Demetrius"
+    by: scan
+
+  - page: 150
+    from: "trinam suam hausit, Demetru Magnetis color"
+    to: "trinam suam hausit, Demetrii Magnetis color"
+    by: scan
+
+  - page: 150
+    from: "-fac1esque ex Hesychlo tamquam e palimpsesto"
+    to: "faciesque ex Hesychio tamquam e palimpsesto"
+    by: scan
+
+  - page: 150
+    from: "enitescit. | u [l"
+    to: "enitescit."
+    by: scan
+
+  - page: 150
+    from: "t1us effici potest, quod in quinto capite magis coniecerim"
+    to: "tius effici potest, quod in quinto capite magis coniecerim"
+    by: scan
+
+  - page: 150
+    from: "quam probaverim, Demetrlum Aristippi quoque περὶ παλαιᾶς"
+    to: "quam probaverim, Demetrium Aristippi quoque περὶ παλαιᾶς"
+    by: scan
+
+  - page: 150
+    from: "τρυφῆς librum usurpasse. Conf. Suid. s. v. Θεόφραστος. Laert."
+    to: "τρυφῆς librum usurpasse. Conf. Suid. s. v. Θεόφραστος. Laert."
+    by: scan
+
+  - page: 150
+    from: "V. 39. Idem de Hippoboto dicendum est cf. 5uid. s. v."
+    to: "V. 39. Idem de Hippoboto dicendum est cf. Suid. s. v."
+    by: scan
+
+  - page: 150
+    from: "Ἐμπεδοκλῆς. L:a. ΧῙΙΙΙ. 51. 69. Suid. s. v. Θεανώ La; VIII. 43."
+    to: "Ἐμπεδοκλῆς. La. VIII. 51. 69. Suid. s. v. Θεανώ La. VIII. 43."
+    by: scan
+
+  - page: 150
+    from: "Ἐπιμενίδης cf. La. L. 64. 112. Suid. s. v. Κλεόβουλος La. I."
+    to: "Ἐπιμενίδης cf. La. I. 64. 112. Suid. s. v. Κλεόβουλος La. I."
+    by: scan
+
+  - page: 150
+    from: "93. Suid. s. v. Ἱπποκράτης. Etiam Timotheus in Demetru'"
+    to: "93. Suid. s. v. Ἱπποκράτης. Etiam Timotheus in Demetrii"
+    by: scan
+
+  - page: 150
+    from: "fontium numero habendus est cf. Suld S. V. Ἀριστοτέλης."
+    to: "fontium numero habendus est cf. Suid. s. v. Ἀριστοτέλης."
+    by: scan
+
+  - page: 150
+    from: "La. V. 1. La. ΠΙ. 4. 5. Neanthes — Dicaearchus — Timo-"
+    to: "La. V. 1. La. III. 4. 5. Neanthes — Dicaearchus — Timo-"
+    by: scan
+
+  - page: 150
+    from: "Non erat acádemicae scholae addictus cf. La. III. 5. IV. 4"
+    to: "Non erat academicae scholae addictus cf. La. III. 5. IV. 4."
+    by: scan
+
+  - page: 150
+    from: "δοκλῆς La. VIIL.60. Restat, ut etiam Alexandrum Poly-"
+    to: "δοκλῆς La. VIII. 60. Restat, ut etiam Alexandrum Poly-"
+    by: scan
+
+  - page: 150
+    from: "historem. censeam Demetrio praesto fuisse cf. Suid. s. v."
+    to: "historem censeam Demetrio praesto fuisse cf. Suid. s. v."
+    by: scan
+
+  - page: 151
+    from: "G —— n g n r n — , o* m , o u t - o ÀÀ — M& H w- -* OM r u -7 —"
+    to: ""
+    by: scan
+
+  - page: 151
+    from: "r ^ £t oA C ROm, u p m E MU y r o Á m T WORO 9 RM L m Jgec o 0 r 7070 LI"
+    to: ""
+    by: scan
+
+  - page: 151
+    from: "— d ——"
+    to: "— 151 —"
+    by: scan
+
+  - page: 151
+    from: "Χρόσιππος La. VII 179. .Suid.;s. v. Xwoxpdcrc. La. II. 18"
+    to: "Χρύσιππος La. VII. 179. Suid. s. v. Σωκράτης. La. II. 18."
+    by: scan
+
+  - page: 151
+    from: "Suid. s. v. Πυθαγόρας. . Cyr. adv. Iul. IX. 153."
+    to: "Suid. s. v. Πυθαγόρας. Cyr. adv. Iul. IX. 133."
+    by: scan
+
+  - page: 151
+    from: "]am extat uno vitarum loco nomen a librariis corrup-"
+    to: "Iam extat uno vitarum loco nomen a librariis corrup-"
+    by: scan
+
+  - page: 151
+    from: "tum Ἀγρέσφων ày Ὁμωνύμοις, e cuius ductibus O. Schneiderus"
+    to: "tum Ἀγρέσφων ἐν Ὁμωνύμοις, e cuius ductibus O. Schneiderus"
+    by: scan
+
+  - page: 151
+    from: "feliciter Ἀργεσιφῶν eruit. Qui cum-ad Apollonios Tyanenses"
+    to: "feliciter Ἀργεσιφῶν eruit. Qui cum ad Apollonios Tyanenses"
+    by: scan
+
+  - page: 151
+    from: "excitetur, alteri vel tertlo p. Chr. saeculo ad51gnandus esse"
+    to: "excitetur, alteri vel tertio p. Chr. saeculo adsignandus esse"
+    by: scan
+
+  - page: 151
+    from: "egit Argesiphon. nisi ut Demetru indices usque ad aetatem"
+    to: "egit Argesiphon nisi ut Demetrii indices usque ad aetatem"
+    by: scan
+
+  - page: 151
+    from: "suam supplendo cont1nuaret9 Quam: operam paullo SOCOr-"
+    to: "suam supplendo continuaret? Quam operam paullo socor-"
+    by: scan
+
+  - page: 151
+    from: "exemplis demonstrabo, si mihi copia- fuerlt hanc . totam'-"
+    to: "exemplis demonstrabo, si mihi copia fuerit hanc totam"
+    by: scan
+
+  - page: 151
+    from: "materiam cum pulv1sculo exhauriendi ?). |"
+    to: "materiam cum pulvisculo exhauriendi9))."
+    by: scan
+
+  - page: 151
+    from: "Neque hoc neglegentlae vitium Argesiphon vitavit,"
+    to: "Neque hoc neglegentiae vitium Argesiphon vitavit,"
+    by: scan
+
+  - page: 151
+    from: ".quod nonnunquam ad verbum res descripsit, quas Demetrio"
+    to: "quod nonnunquam ad verbum res descripsit, quas Demetrio"
+    by: scan
+
+  - page: 151
+    from: "$. V. Ἐπίκουρος — xoi διέμεινεν ἡ αὐτοῦ σχολὴ Éwmc Καίσαρος"
+    to: "s. v. Ἐπίκουρος — καὶ διέμεινεν ἡ αὐτοῦ σχολὴ ἕως Καίσαρος"
+    by: scan
+
+  - page: 151
+    from: "«00 πρώτου &t GxC, $v otc διάδοχοι αὐτῆς ἐγένοντο (9'. ELHoc"
+    to: "τοῦ πρώτου ἔτη σκζ’, ἐν οἷς διάδοχοι αὐτῆς ἐγένοντο ιδ’. Hoc"
+    by: scan
+
+  - page: 151
+    from: "loco innisi Zumptius alii anno XLIII a. Chr. n. Epicureorum -"
+    to: "loco innisi Zumptius alii anno XLIII a. Chr. n. Epicureorum"
+    by: scan
+
+  - page: 151
+    from: "integris et continuis successionibus floruisse. 'Turbae vero"
+    to: "integris et continuis successionibus floruisse. Turbae vero"
+    by: scan
+
+  - page: 151
+    from: "firmantibus, hoc ipso anno ΧΙᾸΙΙ .Demetrlum Magnetem ."
+    to: "firmantibus, hoc ipso anno XLIII Demetrium Magnetem"
+    by: scan
+
+  - page: 151
+    from: "descripsit Suidas. |"
+    to: "descripsit Suidas."
+    by: scan
+
+  - page: 151
+    from: "Hanc 1g1tur accipe tabulam — ut tandem aliquando dis-"
+    to: "Hanc igitur accipe tabulam — ut tandem aliquando dis-"
+    by: scan
+
+  - page: 151
+    from: "?)) Haec, quae probavimus, non solum ad philosophorum, sed"
+    to: "9) Haec, quae probavimus, non solum ad philosophorum, sed"
+    by: scan
+
+  - page: 151
+    from: "possit, ex homonymorum indicibus profectum esse Hesychn compen-"
+    to: "possit, ex homonymorum indicibus profectum esse Hesychii compen-"
+    by: scan
+
+  - page: 151
+    from: "—— — — — —À À - - - - —2 a 4 —2 t ul"
+    to: ""
+    by: scan
+
+  - page: 152
+    from: "putationi finem imponamus. — qua totam rationem, quae"
+    to: "putationi finem imponamus — qua totam rationem, quae"
+    by: scan
+
+  - page: 152
+    from: "inter. ᾒᾶεῐῑῖίυπι Suidamque intercedit, adhibito stemmatis"
+    to: "inter Laertium Suidamque intercedit, adhibito stemmatis"
+    by: scan
+
+  - page: 152
+    from: "μ’·-ί"
+    to: ""
+    by: scan
+
+  - page: 152
+    from: "Argesiphon Diocles"
+    to: "Argesiphon | Diocles"
+    by: scan
+
+  - page: 152
+    from: "περὶ ὁμωνύμων | βίον. φιλοσόφων"
+    to: "περὶ ὁμωνύμων | βίοι φιλοσόφων"
+    by: scan
+
+  - page: 152
+    from: "Hesychius Milesius — Laertius Diogenes."
+    to: "Hesychius Milesius | Laertius Diogenes."
+    by: scan
+
+  - page: 152
+    from: "| . ὀνοματολόγος"
+    to: "ὀνοματολόγος"
+    by: scan
+
+  - page: 152
+    from: "| non servata"
+    to: "non servata"
+    by: scan
+
+  - page: 152
+    from: "oSuidas Eudocia cf. supra p. 43 sq."
+    to: "Suidas | Eudocia cf. supra p. 43 sq."
     by: scan
