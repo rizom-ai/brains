@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { CHAT_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
+import { createActionItem } from "@brains/action-items";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { ConversationMemoryPlugin } from "../src";
 import { channelBookmarks } from "../src/lib/channel-action-items/pickup";
@@ -153,6 +154,22 @@ describe("ConversationMemoryPlugin", () => {
       }));
       harness.subscribe(CHAT_CHANNELS.spaceNotice, posted);
       await harness.installPlugin(plugin);
+      // The card the notice announces, still on the board.
+      await createActionItem(
+        { entityService: harness.getEntityService(), visibility: "shared" },
+        {
+          id: "card-1",
+          title: "Book the venue",
+          text: "Book the venue.",
+          actor: { kind: "user", userId: "usr_jo" },
+          origin: {
+            kind: "conversation",
+            conversationId: ROOM,
+            interfaceType: "discord",
+            channelId: "discord:guild-1:1466",
+          },
+        },
+      );
       return posted;
     }
 
