@@ -54,9 +54,7 @@ describe("action-item people in Studio", () => {
     const shape = actionItemMetadataSchema.shape;
     for (const field of [
       shape.origin,
-      shape.conversationId,
       shape.interfaceType,
-      shape.channelId,
       shape.channelName,
       shape.sourceRef,
       shape.capturedAt,
@@ -65,6 +63,12 @@ describe("action-item people in Studio", () => {
     expect(shape.projectedBodyHash.meta()).toMatchObject({
       studioWidget: "hidden",
     });
+  });
+
+  it("hide the ids a card's origin is routed by, which no one reads", () => {
+    const shape = actionItemMetadataSchema.shape;
+    for (const field of [shape.conversationId, shape.channelId])
+      expect(field.meta()).toMatchObject({ studioWidget: "hidden" });
   });
 });
 

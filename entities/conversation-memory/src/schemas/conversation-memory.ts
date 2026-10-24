@@ -28,8 +28,9 @@ export const DECISION_RETIRED_FIELDS: readonly string[] = [
 
 /** Studio shows where a decision came from as facts, and its people by name. */
 export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
-  conversationId: z.string().meta({ studioWidget: "provenance" }),
-  channelId: z.string().meta({ studioWidget: "provenance" }),
+  // Routing ids, unreadable chat-app ids: never shown; channelName is.
+  conversationId: z.string().meta({ studioWidget: "hidden" }),
+  channelId: z.string().meta({ studioWidget: "hidden" }),
   channelName: z.string().optional().meta({ studioWidget: "provenance" }),
   interfaceType: z.string().meta({ studioWidget: "provenance" }),
   timeRange: summaryTimeRangeSchema.meta({ studioWidget: "provenance" }),
