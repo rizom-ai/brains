@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.602
+
+### Patch Changes
+
+- [#754](https://github.com/rizom-ai/brains/pull/754) [`666ba2a`](https://github.com/rizom-ai/brains/commit/666ba2a20c7af3d74f89d3d8ab0027dd1f163c90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `ask-content` moves from the core bundle to the chat bundle, beside Web Chat, its reader. A brain without the chat bundle no longer lists an Ask content entity type that nothing shows; every brain with chat keeps it, and existing `ask-content` notes are unchanged.
+
+- [#755](https://github.com/rizom-ai/brains/pull/755) [`07f8a24`](https://github.com/rizom-ai/brains/commit/07f8a241522e3b58c9b2732f3af0a273272f4569) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat messages and cards name their channel as the chat app does ("#executive-room") instead of carrying Discord's composite channel id, which also broke the board's layout. A card whose channel has no name shows the app ("Discord") rather than the id, including cards stored before this change.
+
+- [#755](https://github.com/rizom-ai/brains/pull/755) [`76d9eed`](https://github.com/rizom-ai/brains/commit/76d9eed0d2f1857f8873f7b1e88d1aa8a3e5e2f4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The channel action item pickup leaves requests to the brain (an @mention and the brain's answer) to the brain itself, so asking the brain for a card no longer adds a second one. A task the messages state twice, or one the channel already has an open card for, is added once. A card goes to the member the messages name: a linked speaker is known by their member name, and a member who did not speak can own a card too.
+
 ## 0.2.0-alpha.601
 
 ### Patch Changes

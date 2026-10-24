@@ -1,5 +1,9 @@
 # @brains/app-ui-react
 
+## 0.2.0-alpha.602
+
+No changes in this release.
+
 ## 0.2.0-alpha.601
 
 No changes in this release.
