@@ -76,7 +76,8 @@ export const SUMMARY_RETIRED_FIELDS: readonly string[] = [
 
 /** Studio shows a summary's origin as facts and hides its projection hash. */
 export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
-  channelId: z.string().meta({ studioWidget: "provenance" }),
+  // A routing id, unreadable for chat apps: never shown; channelName is.
+  channelId: z.string().meta({ studioWidget: "hidden" }),
   channelName: z.string().optional().meta({ studioWidget: "provenance" }),
   interfaceType: z.string().meta({ studioWidget: "provenance" }),
   timeRange: summaryTimeRangeSchema

@@ -229,15 +229,17 @@ function requireOriginFields(
 
 /** Where a card came from: facts Studio shows, never fields it edits. */
 const provenance = { studioWidget: "provenance" } as const;
+/** Ids the origin is routed by; unreadable chat-app ids, so never shown. */
+const routing = { studioWidget: "hidden" } as const;
 
 const originShape = {
   origin: z
     .enum(["conversation", "inbox", "board"])
     .optional()
     .meta(provenance),
-  conversationId: z.string().optional().meta(provenance),
+  conversationId: z.string().optional().meta(routing),
   interfaceType: z.string().optional().meta(provenance),
-  channelId: z.string().optional().meta(provenance),
+  channelId: z.string().optional().meta(routing),
   channelName: z.string().optional().meta(provenance),
   sourceRef: actionItemSourceRefSchema.optional().meta(provenance),
   capturedAt: z.iso.datetime().meta(provenance),
