@@ -7,7 +7,6 @@ import {
   type ConversationMessageActor,
 } from "@brains/plugins";
 import {
-  getChannelName,
   getSpaceId,
   getThreadIdParts,
   type RoutedThread,
@@ -68,6 +67,7 @@ export function buildChatCoalescedAgentInput(
 export function buildChatUserMessageMetadata(
   platform: string,
   thread: RoutedThread,
+  channelName: string,
   message: ChatMetadataMessage,
   metadata?: Record<string, unknown>,
   principal?: AuthPrincipal,
@@ -85,7 +85,7 @@ export function buildChatUserMessageMetadata(
     ),
     source: buildChatSourceMetadata(thread, {
       messageId: message.id,
-      channelName: getChannelName(thread),
+      channelName,
       ...(metadata ? { metadata } : {}),
     }),
   };
@@ -99,6 +99,7 @@ export function buildChatUserMessageMetadata(
 export function buildChatSpaceMessageMetadata(
   platform: string,
   thread: RoutedThread,
+  channelName: string,
   spaceThreadId: string,
   message: ChatMetadataMessage,
   principal?: AuthPrincipal,
@@ -119,7 +120,7 @@ export function buildChatSpaceMessageMetadata(
     source: buildMessageSourceMetadata({
       messageId: message.id,
       channelId: spaceThreadId,
-      channelName: getChannelName(thread),
+      channelName,
       ...(ids.threadId ? { threadId: ids.threadId } : {}),
       metadata: {
         ...(ids.guildId ? { guildId: ids.guildId } : {}),
@@ -131,6 +132,7 @@ export function buildChatSpaceMessageMetadata(
 export function buildChatActionEventMetadata(
   platform: string,
   thread: RoutedThread,
+  channelName: string,
   event: ChatMetadataActionEvent,
   principal?: AuthPrincipal,
 ): Record<string, unknown> {
@@ -147,7 +149,7 @@ export function buildChatActionEventMetadata(
     ),
     source: buildChatSourceMetadata(thread, {
       messageId: event.messageId,
-      channelName: getChannelName(thread),
+      channelName,
       metadata: {
         actionId: event.actionId,
         ...(event.value ? { actionValue: event.value } : {}),

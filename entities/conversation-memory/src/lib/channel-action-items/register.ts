@@ -11,11 +11,13 @@ import {
   type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
+import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   ChannelActionItemExtractor,
+  type BrainMember,
   type PositionedMessage,
 } from "./extractor";
 import {
@@ -78,15 +80,24 @@ const evalChannelInputSchema = z.object({
       }),
     )
     .default([]),
+  /** The brain's members by name; their account ids are derived from it. */
+  members: z.array(z.string().min(1)).default([]),
   messages: z.array(
     z.object({
       speaker: z.string().min(1),
       /** The speaker's brain account, when they have one. */
       userId: z.string().min(1).optional(),
       content: z.string(),
+      /** Part of a conversation with the brain, e.g. an @mention. */
+      withBrain: z.boolean().default(false),
     }),
   ),
 });
+
+/** An eval member's account id, as a speaker's `userId` names it. */
+function evalMemberId(name: string): string {
+  return `usr_${name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+}
 
 /** Channel messages as stored: positioned, each with its speaker. */
 function evalChannelMessages(
@@ -94,6 +105,7 @@ function evalChannelMessages(
 ): PositionedMessage[] {
   return input.messages.map((entry, index) => ({
     position: index + 1,
+    withBrain: entry.withBrain,
     message: {
       id: `eval-channel-${index + 1}`,
       conversationId: "eval-channel",
@@ -132,6 +144,8 @@ export function registerChannelActionItems(
     new ChannelPickupHandler(options.logger.child("ChannelActionItems"), {
       conversations: context.conversations,
       bookmarks,
+      members: async (): Promise<BrainMember[]> =>
+        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
       extractor: new ChannelActionItemExtractor(
         context,
         options.logger.child("ChannelActionItemExtractor"),
@@ -213,6 +227,10 @@ export function registerChannelActionItems(
             ...card,
             id: `card-${index + 1}`,
           })),
+          members: parsed.members.map((name) => ({
+            id: evalMemberId(name),
+            name,
+          })),
         });
       return {
         count: items.length,
@@ -220,7 +238,7 @@ export function registerChannelActionItems(
           title: item.title,
           text: item.text,
           message: item.sourcePosition,
-          owner: item.owner?.displayName ?? "nobody",
+          owner: item.owner?.name ?? "nobody",
         })),
         updates: updates.map((update) => ({
           card: update.cardId,
@@ -228,9 +246,7 @@ export function registerChannelActionItems(
           text: update.text,
           message: update.sourcePosition,
           owner:
-            typeof update.owner === "string"
-              ? update.owner
-              : (update.owner.displayName ?? "nobody"),
+            typeof update.owner === "string" ? update.owner : update.owner.name,
         })),
         withdrawals: withdrawals.map((withdrawal) => ({
           card: withdrawal.cardId,

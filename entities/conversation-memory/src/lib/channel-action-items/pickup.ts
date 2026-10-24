@@ -13,7 +13,6 @@ import {
 } from "@brains/action-items";
 import type {
   ContentVisibility,
-  ConversationMessageActor,
   EntityPluginContext,
   IConversationsNamespace,
   IRuntimeStateNamespace,
@@ -22,6 +21,7 @@ import type {
 import { conversationMessageMetadataSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type {
+  BrainMember,
   ChannelActionItemExtractor,
   FoundActionItem,
   OwnCard,
@@ -173,6 +173,8 @@ export interface ChannelPickupDeps {
   >;
   /** The visibility the brain gives memory it makes. */
   visibility: ContentVisibility;
+  /** The brain's members, who can own the cards the messages name them for. */
+  members: () => Promise<BrainMember[]>;
   now?: () => Date;
   /** How long a claim holds before another run may take it over. */
   claimTimeoutMs?: number;
@@ -199,15 +201,36 @@ const UNKNOWN_SPEAKER = {
   serviceId: "conversation-memory",
 } as const;
 
-/** The member an owner is, when they have a brain account. */
-function assigneeOf(
-  owner: ConversationMessageActor | undefined,
-): ActionItemAssigneeMember | undefined {
-  if (owner?.identity.kind !== "user") return undefined;
-  return {
-    name: owner.displayName ?? owner.identity.userId,
-    id: `user:${owner.identity.userId}`,
-  };
+/**
+ * Whether a stored message belongs to a conversation with the brain: its
+ * answer, or a request the brain's own turn stored (without the space id the
+ * channel capture records). The brain acts on those itself.
+ */
+function isWithBrain(message: PositionedMessage["message"]): boolean {
+  if (message.role !== "user") return true;
+  const parsed = conversationMessageMetadataSchema.safeParse(message.metadata);
+  return !parsed.success || !parsed.data.spaceId;
+}
+
+/**
+ * The channel's name: as the newest message records it, since a conversation
+ * keeps the name it was started with (once only the channel's id); never the
+ * id itself.
+ */
+function channelNameOf(
+  messages: PositionedMessage["message"][],
+  conversation: { channelId: string; channelName?: string | undefined },
+): string | undefined {
+  const named = [...messages]
+    .reverse()
+    .map(
+      (message) =>
+        conversationMessageMetadataSchema.safeParse(message.metadata).data
+          ?.source?.channelName,
+    )
+    .find((name) => name && name !== conversation.channelId);
+  const fallback = conversation.channelName;
+  return named ?? (fallback !== conversation.channelId ? fallback : undefined);
 }
 
 function sourceMessageIdOf(item: {
@@ -327,22 +350,23 @@ export async function pickUpChannelActionItems(
   const positioned: PositionedMessage[] = messages.map((message, index) => ({
     position: firstRead + index,
     message,
+    withBrain: isWithBrain(message),
   }));
   const own = await ownCards(deps, conversationId);
   const { items, updates, withdrawals } = await deps.extractor.extract({
     context: positioned.filter(({ position }) => position < from),
     fresh: positioned.filter(({ position }) => position >= from),
+    members: await deps.members(),
     cards: own,
   });
 
+  const channelName = channelNameOf(messages, conversation);
   const origin = {
     kind: "conversation",
     conversationId,
     interfaceType: conversation.interfaceType,
     channelId: conversation.channelId,
-    ...(conversation.channelName
-      ? { channelName: conversation.channelName }
-      : {}),
+    ...(channelName ? { channelName } : {}),
   } as const;
   const rejected = new Set(current.rejected ?? []);
   const named = items.map((item, index) => ({
@@ -374,7 +398,7 @@ export async function pickUpChannelActionItems(
           projected: true,
           title: item.title,
           text: item.text,
-          assignee: assigneeOf(item.owner),
+          assignee: item.owner?.assignee,
           ...speakerOf(item),
           origin,
         },
@@ -394,12 +418,13 @@ export async function pickUpChannelActionItems(
       const done = await revisedSoFar;
       const card = owned.get(update.cardId);
       if (!card) return done;
-      const assignee =
+      const owner =
         update.owner === "unchanged"
-          ? card.assignee
+          ? { name: card.owner, assignee: card.assignee }
           : update.owner === "nobody"
-            ? undefined
-            : assigneeOf(update.owner);
+            ? { name: undefined, assignee: undefined }
+            : update.owner;
+      const assignee = owner.assignee;
       const revised = await reviseActionItem(writer, {
         id: card.id,
         title: update.title,
@@ -413,7 +438,7 @@ export async function pickUpChannelActionItems(
         {
           id: card.id,
           title: update.title,
-          ...(assignee ? { owner: assignee.name } : {}),
+          ...(owner.name ? { owner: owner.name } : {}),
           ...(sourceMessageId ? { sourceMessageId } : {}),
           change: "updated" as const,
         },
@@ -451,7 +476,7 @@ export async function pickUpChannelActionItems(
       notices.flatMap((notice) => notice.cards.map(announcement)),
     );
     const added = found.map(({ item, id }): NoticeCard => {
-      const owner = item.owner?.displayName;
+      const owner = item.owner?.name;
       const sourceMessageId = sourceMessageIdOf(item);
       return {
         id,

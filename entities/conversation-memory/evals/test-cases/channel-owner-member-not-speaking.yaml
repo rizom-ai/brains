@@ -1,0 +1,30 @@
+id: channel-action-items-owner-member-not-speaking
+name: Gives a card to a member the messages name, though they did not speak
+description: >-
+  Jo reports that Niels will send the proposal. Niels says nothing in these
+  messages, but is a member of the brain: the owner is Niels.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  members:
+    - Jo
+    - Niels
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: Niels told me this morning he will send INC the proposal on Friday.
+    - speaker: Jo
+      userId: usr_jo
+      content: So that is covered.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].owner
+      equals: Niels

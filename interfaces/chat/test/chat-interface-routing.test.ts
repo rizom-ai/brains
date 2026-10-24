@@ -569,6 +569,40 @@ describe("ChatInterface message routing", () => {
       expect(thread.post).not.toHaveBeenCalled();
     });
 
+    it("records a space message under the channel's name, as the chat app gives it", async () => {
+      const conversationService = createConversationService();
+      await installWithSpaces(["discord:channel-123"], conversationService);
+      const chat = MockChatSdk.instances[0];
+      const thread = {
+        ...createThread(channelThread),
+        channel: {
+          fetchMetadata: async (): Promise<{ name: string }> => ({
+            name: "executive-room",
+          }),
+        },
+      };
+      const message = createMessage({
+        text: "Team update for summary",
+        isMention: false,
+        threadId: "discord:guild-123:channel-123",
+      });
+
+      await findCatchAllHandler(chat, message.text)?.(thread, message);
+
+      expect(conversationService.startConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({ channelName: "executive-room" }),
+        }),
+      );
+      expect(conversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: expect.objectContaining({ channelName: "executive-room" }),
+          }),
+        }),
+      );
+    });
+
     it("attributes passive space messages to linked canonical users", async () => {
       authState.resolveIdentityAccess = mock(async () => ({
         state: "resolved" as const,

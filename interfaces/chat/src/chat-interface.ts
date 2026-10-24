@@ -43,6 +43,7 @@ import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
 import { getActiveAuthService } from "@brains/auth-service";
 import { CHAT_CHANNELS, spaceNoticeRequestSchema } from "@brains/contracts";
 import { postSpaceNotice } from "./space-notice";
+import { ChannelNames } from "./channel-names";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
@@ -193,6 +194,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       chatInputBuilder: this.chatInputBuilder,
       uploadCoordinator: this.uploadCoordinator,
       responseCoordinator: this.responseCoordinator,
+      channelNames: new ChannelNames(),
       logger: {
         debug: (message, context): void => this.logger.debug(message, context),
         error: (message, context): void => this.logger.error(message, context),

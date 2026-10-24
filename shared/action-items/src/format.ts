@@ -37,5 +37,11 @@ export function channelLabel(
   channelId: string,
 ): string {
   const trimmed = channelName?.trim();
-  return `#${trimmed && trimmed.length > 0 ? trimmed : channelId}`;
+  if (trimmed && trimmed !== channelId) return `#${trimmed}`;
+  // A chat app's composite id ("discord:<guild>:<channel>") is no name: the
+  // app is the best label it has.
+  const [app, ...rest] = channelId.split(":");
+  return app && rest.length > 0
+    ? `${app.charAt(0).toUpperCase()}${app.slice(1)}`
+    : `#${channelId}`;
 }

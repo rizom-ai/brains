@@ -1,3 +1,4 @@
+import type { ActionItemAssigneeMember } from "@brains/action-items";
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
@@ -13,6 +14,17 @@ import { channelActionItemExtractionSchema } from "./schema";
 export interface PositionedMessage {
   position: number;
   message: Message;
+  /**
+   * Part of a conversation with the brain: a request to it or its answer.
+   * The brain acts on those itself, so nothing is picked up from them.
+   */
+  withBrain?: boolean | undefined;
+}
+
+/** A member of the brain, by account id and name. */
+export interface BrainMember {
+  id: string;
+  name: string;
 }
 
 export interface ChannelActionItemExtractionInput {
@@ -22,6 +34,14 @@ export interface ChannelActionItemExtractionInput {
   fresh: PositionedMessage[];
   /** Open cards the channel's pickup made, which the new messages may change. */
   cards: OwnCard[];
+  /** The brain's members, who can own a card the messages name them for. */
+  members: BrainMember[];
+}
+
+/** Who will do the work: a name, and the member assigned when there is one. */
+export interface FoundOwner {
+  name: string;
+  assignee?: ActionItemAssigneeMember | undefined;
 }
 
 /** An open card the pickup made and the board has not touched. */
@@ -40,8 +60,8 @@ export interface FoundActionItem {
   /** The position of the message that states it. */
   sourcePosition: number;
   source: Message;
-  /** The participant who will do it, when the messages name one. */
-  owner?: ConversationMessageActor | undefined;
+  /** Who will do it, when the messages name someone. */
+  owner?: FoundOwner | undefined;
 }
 
 /** A change the new messages make to one of the channel's own cards. */
@@ -50,7 +70,7 @@ export interface FoundUpdate {
   title: string;
   text: string;
   /** The owner now: a participant, nobody, or the card's owner as it was. */
-  owner: ConversationMessageActor | typeof NOBODY | typeof UNCHANGED;
+  owner: FoundOwner | typeof NOBODY | typeof UNCHANGED;
   sourcePosition: number;
   source: Message;
 }
@@ -74,7 +94,7 @@ const UNCHANGED = "unchanged";
 interface Participant {
   ref: string;
   label: string;
-  actor: ConversationMessageActor | undefined;
+  owner: FoundOwner;
 }
 
 function actorOf(message: Message): ConversationMessageActor | undefined {
@@ -100,21 +120,52 @@ function labelOf(message: Message): string {
   );
 }
 
+function memberOwner(member: BrainMember): FoundOwner {
+  return {
+    name: member.name,
+    assignee: { name: member.name, id: `user:${member.id}` },
+  };
+}
+
+/**
+ * Who a speaker is as an owner: a member under the member's name, someone
+ * else with an account under their own, anyone else by name alone.
+ */
+function speakerOwner(message: Message, members: BrainMember[]): FoundOwner {
+  const identity = actorOf(message)?.identity;
+  const label = labelOf(message);
+  if (identity?.kind !== "user") return { name: label };
+  const member = members.find((candidate) => candidate.id === identity.userId);
+  return member
+    ? memberOwner(member)
+    : { name: label, assignee: { name: label, id: `user:${identity.userId}` } };
+}
+
 /** Each distinct speaker, numbered p1, p2… in order of first appearance. */
 function participantsOf(
   messages: PositionedMessage[],
+  members: BrainMember[],
 ): Map<string, Participant> {
   return messages.reduce((participants, { message }) => {
     const key = speakerKey(message);
     if (!participants.has(key)) {
+      const owner = speakerOwner(message, members);
       participants.set(key, {
         ref: `p${participants.size + 1}`,
-        label: labelOf(message),
-        actor: actorOf(message),
+        label: owner.name,
+        owner,
       });
     }
     return participants;
   }, new Map<string, Participant>());
+}
+
+/** A title as a key, so the same task worded the same way is found twice. */
+function titleKey(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 }
 
 function formatLines(
@@ -123,9 +174,9 @@ function formatLines(
 ): string {
   if (messages.length === 0) return "(none)";
   return messages
-    .map(({ position, message }) => {
+    .map(({ position, message, withBrain }) => {
       const participant = participants.get(speakerKey(message));
-      return `${position}. ${participant?.label ?? message.role} (${participant?.ref ?? "?"}): ${message.content}`;
+      return `${position}. ${participant?.label ?? message.role} (${participant?.ref ?? "?"})${withBrain ? " [with the brain]" : ""}: ${message.content}`;
     })
     .join("\n");
 }
@@ -155,6 +206,11 @@ ${formatLines(input.fresh, participants)}
 Open cards this channel already has:
 ${formatCards(input.cards)}
 
+Members of the brain: ${input.members.map((member) => member.name).join(", ") || "(none)"}
+
+A message marked [with the brain] is a request to the brain or its answer;
+the brain acts on those itself, so never cite one.
+
 An action item is concrete work someone commits to, is asked to do, or the
 group agrees needs doing. Questions, opinions, thanks, chatter, and reports of
 work already done are not action items.
@@ -163,19 +219,21 @@ For each action item in the new messages return:
 - title: a short imperative title, at most 80 characters, in the language of the messages;
 - text: one sentence saying what is to be done, by whom when someone takes it on;
 - message: the number of the new message that states it;
-- owner: the participant (p1, p2, …) who will do it, or "${NOBODY}" when no one takes it on.
+- owner: who will do it: a participant (p1, p2, …), a member of the brain by name when the messages name them, or "${NOBODY}" when no one takes it on.
+Return each task once, however often the messages state it.
 
 When a new message changes one of the open cards (someone else takes it over,
 a new date or scope), return it under updates:
 - card: the card (c1, c2, …);
 - title and text: the whole card as it now reads;
-- owner: the participant who will do it now, "${NOBODY}", or "${UNCHANGED}" to keep its owner;
+- owner: who will do it now (a participant or a member by name), "${NOBODY}", or "${UNCHANGED}" to keep its owner;
 - message: the number of the new message that changes it.
 A change of owner is only an update: the work goes on, so never withdraw the
 card for it and never add its work again as a new action item.
 
-Only when a new message says the work of an open card is no longer needed or
-already done, return it under withdrawals with the card and the message.
+An update is for work that goes on. When a new message says the work of an
+open card is no longer needed or already done, return it under withdrawals
+with the card and the message, never as an update.
 
 Never return the work of an open card as a new action item.
 
@@ -202,15 +260,29 @@ export class ChannelActionItemExtractor {
     if (input.fresh.length === 0) {
       return { items: [], updates: [], withdrawals: [] };
     }
-    const participants = participantsOf([...input.context, ...input.fresh]);
+    const participants = participantsOf(
+      [...input.context, ...input.fresh],
+      input.members,
+    );
     const byRef = new Map(
       [...participants.values()].map((participant) => [
         participant.ref,
         participant,
       ]),
     );
+    const ownerOf = (owner: string): FoundOwner | undefined => {
+      const participant = byRef.get(owner);
+      if (participant) return participant.owner;
+      const member = input.members.find(
+        (candidate) => candidate.name.toLowerCase() === owner.toLowerCase(),
+      );
+      return member ? memberOwner(member) : undefined;
+    };
+    // Only the new messages the brain was not part of can be cited.
     const fresh = new Map(
-      input.fresh.map((entry) => [entry.position, entry.message]),
+      input.fresh
+        .filter((entry) => !entry.withBrain)
+        .map((entry) => [entry.position, entry.message]),
     );
     const cards = new Map(
       input.cards.map((card, index) => [`c${index + 1}`, card]),
@@ -226,18 +298,21 @@ export class ChannelActionItemExtractor {
         },
         channelActionItemExtractionSchema,
       );
-      const items = result.items.flatMap((item) => {
+      // A task is added once: not again when the batch repeats it, nor when
+      // the channel already has an open card for it.
+      const known = new Set(input.cards.map((card) => titleKey(card.title)));
+      const items = result.items.flatMap((item): FoundActionItem[] => {
         const source = fresh.get(item.message);
-        if (!source) return [];
-        const owner =
-          item.owner === NOBODY ? undefined : byRef.get(item.owner)?.actor;
+        const key = titleKey(item.title);
+        if (!source || known.has(key)) return [];
+        known.add(key);
         return [
           {
             title: item.title,
             text: item.text,
             sourcePosition: item.message,
             source,
-            owner,
+            owner: item.owner === NOBODY ? undefined : ownerOf(item.owner),
           },
         ];
       });
@@ -248,7 +323,7 @@ export class ChannelActionItemExtractor {
         const owner =
           update.owner === NOBODY
             ? NOBODY
-            : (byRef.get(update.owner)?.actor ?? UNCHANGED);
+            : (ownerOf(update.owner) ?? UNCHANGED);
         return [
           {
             cardId: card.id,
