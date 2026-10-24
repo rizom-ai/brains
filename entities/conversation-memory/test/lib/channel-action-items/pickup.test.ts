@@ -387,6 +387,9 @@ describe("picking up a channel's action items", () => {
 
     const [card] = await cards(context);
     expect(card?.metadata.dueDate).toBe("2026-10-28");
+    expect((await bookmark(deps))?.notices?.[0]?.cards[0]?.dueDate).toBe(
+      "2026-10-28",
+    );
   });
 
   it("assigns a card to the member the messages name", async () => {

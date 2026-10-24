@@ -24,7 +24,7 @@ import {
   actionItemSource,
   actionItemTitle,
 } from "@brains/action-items";
-import { formatAge } from "@brains/action-items";
+import { formatAge, formatShortDate } from "@brains/action-items";
 import {
   actionItemSchema,
   actionItemStatusSchema,
@@ -95,6 +95,10 @@ const cardSchema = z.object({
   title: z.string(),
   status: actionItemStatusSchema,
   assignees: z.array(z.string()),
+  /** When it is due, as YYYY-MM-DD; most cards have none. */
+  dueDate: z.string().optional(),
+  /** Still to do and past its due date. */
+  overdue: z.boolean(),
   age: z.string(),
   place: z.string(),
   /** The entity the card came from; a card added on the board has none. */
@@ -114,6 +118,7 @@ const openCardSchema = z.object({
   status: actionItemStatusSchema,
   assignees: z.array(z.string()),
   requesters: z.array(z.string()),
+  dueDate: z.string().optional(),
   channel: z.string(),
   notes: z.string().optional(),
 });
@@ -348,6 +353,9 @@ function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
         ...(card.requesters.length > 0
           ? [{ label: "Requested by", value: card.requesters.join(", ") }]
           : []),
+        ...(card.dueDate
+          ? [{ label: "Due", value: formatShortDate(card.dueDate) }]
+          : []),
         { label: "From", value: card.channel },
       ],
     },
@@ -556,9 +564,13 @@ function cardItem(card: BoardCard): {
   return {
     id: card.id,
     title: card.title,
-    metadata: [...card.assignees, card.age, card.place].filter(
-      (segment) => segment.length > 0,
-    ),
+    metadata: [
+      ...card.assignees,
+      card.dueDate ? `due ${formatShortDate(card.dueDate)}` : "",
+      card.age,
+      card.place,
+    ].filter((segment) => segment.length > 0),
+    ...(card.overdue ? { badges: [{ label: "Overdue", tone: "warn" }] } : {}),
     link: { detail: { itemId: card.id } },
     links: [
       ...(card.id.length <= LINKABLE_ID_LENGTH
@@ -605,6 +617,14 @@ function cardItem(card: BoardCard): {
   };
 }
 
+/** Still to do or under way, and its due date has passed (UTC days). */
+function isOverdue(entity: ActionItemEntity, now: Date): boolean {
+  const due = entity.metadata.dueDate;
+  const finished =
+    entity.metadata.status === "done" || entity.metadata.status === "dropped";
+  return !!due && !finished && due < now.toISOString().slice(0, 10);
+}
+
 function toCard(entity: ActionItemEntity, now: Date): BoardCard {
   const source = actionItemSource(entity);
   return {
@@ -614,6 +634,8 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
     assignees: (entity.metadata.assignedTo ?? []).map(
       (assignee) => assignee.name,
     ),
+    ...(entity.metadata.dueDate ? { dueDate: entity.metadata.dueDate } : {}),
+    overdue: isOverdue(entity, now),
     age: formatAge(actionItemCapturedAt(entity), now),
     place: source.place,
     ...(source.link
@@ -654,6 +676,7 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
     requesters: (entity.metadata.requestedBy ?? []).flatMap((requester) =>
       requester.name ? [requester.name] : [],
     ),
+    ...(entity.metadata.dueDate ? { dueDate: entity.metadata.dueDate } : {}),
     channel: actionItemSource(entity).place,
     ...(notes ? { notes } : {}),
   };

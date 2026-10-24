@@ -58,6 +58,34 @@ function deps(
 }
 
 describe("posting a channel's notices", () => {
+  it("says when a card is due", async () => {
+    const notices = deps(async () => "notice-message-1");
+    await notices.bookmarks.set(ROOM, {
+      processedThrough: 5,
+      notices: [
+        {
+          key: "1-5",
+          cards: [
+            {
+              id: "card-1",
+              title: "Send INC the proposal",
+              owner: "Jo",
+              dueDate: "2026-10-28",
+            },
+          ],
+        },
+      ],
+    });
+
+    await postPendingNotices(notices, ROOM);
+
+    expect(notices.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lines: ["Send INC the proposal · Jo · due Oct 28"],
+      }),
+    );
+  });
+
   it("leaves out a card no longer on the board", async () => {
     const notices = deps(async () => "notice-message-1", ["card-1"]);
     await notices.bookmarks.set(ROOM, {
