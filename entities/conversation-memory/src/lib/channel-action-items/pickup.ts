@@ -293,6 +293,7 @@ async function ownCards(
         title: actionItemTitle(entity),
         text: actionItemText(entity),
         owner: assignee?.name,
+        dueDate: entity.metadata.dueDate,
         assignee: assignee?.id
           ? { name: assignee.name, id: assignee.id }
           : undefined,
@@ -430,6 +431,7 @@ export async function pickUpChannelActionItems(
         title: update.title,
         text: update.text,
         assignee,
+        dueDate: card.dueDate,
       });
       if (revised.status !== "revised") return done;
       const sourceMessageId = sourceMessageIdOf(update);

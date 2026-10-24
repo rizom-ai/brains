@@ -265,6 +265,8 @@ export interface CreateActionItemRequest {
   text: string;
   /** The member who should do it. */
   assignee?: ActionItemAssigneeMember | undefined;
+  /** When it is due (YYYY-MM-DD), when someone named a date. */
+  dueDate?: string | undefined;
   actor: ActorRef;
   actorName?: string | undefined;
   origin: CreateActionItemOrigin;
@@ -337,6 +339,7 @@ export async function createActionItem(
     ...(assignee
       ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
       : {}),
+    ...(request.dueDate ? { dueDate: request.dueDate } : {}),
     requestedBy: [
       {
         ...(request.actorName ? { name: request.actorName } : {}),
@@ -380,6 +383,7 @@ function foundCard(
   const {
     projectedBodyHash: _body,
     projectedAssigneeHash: _owner,
+    projectedDueDate: _due,
     ...rest
   } = metadata;
   const stored: ActionItemMetadata = {
@@ -388,6 +392,7 @@ function foundCard(
       inboxItemAdapter.composeContent(heading, text, rest),
     ),
     projectedAssigneeHash: actionItemAssigneeHash(rest.assignedTo),
+    ...(rest.dueDate ? { projectedDueDate: rest.dueDate } : {}),
   };
   return {
     content: inboxItemAdapter.composeContent(heading, text, stored),
@@ -409,6 +414,8 @@ export interface ReviseActionItemRequest {
   text: string;
   /** The owner now; none takes the card's owner away. */
   assignee: ActionItemAssigneeMember | undefined;
+  /** The due date now; none takes the card's due date away. */
+  dueDate: string | undefined;
 }
 
 export interface ReviseActionItemResult {
@@ -435,10 +442,15 @@ export async function reviseActionItem(
   );
   if (!entity) return { status: "not-found" };
   if (isBoardOwned(entity)) return { status: "kept" };
-  const { assignedTo: _assignedTo, ...unassigned } = entity.metadata;
+  const {
+    assignedTo: _assignedTo,
+    dueDate: _dueDate,
+    ...unassigned
+  } = entity.metadata;
   const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
   const revised = foundCard(title, request.text.trim() || title, {
     ...unassigned,
+    ...(request.dueDate ? { dueDate: request.dueDate } : {}),
     ...(request.assignee
       ? {
           assignedTo: [
@@ -450,7 +462,8 @@ export async function reviseActionItem(
   if (
     revised.metadata.projectedBodyHash === actionItemBodyHash(entity.content) &&
     revised.metadata.projectedAssigneeHash ===
-      actionItemAssigneeHash(entity.metadata.assignedTo)
+      actionItemAssigneeHash(entity.metadata.assignedTo) &&
+    revised.metadata.dueDate === entity.metadata.dueDate
   ) {
     return { status: "unchanged" };
   }

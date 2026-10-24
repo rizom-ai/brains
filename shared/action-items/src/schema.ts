@@ -190,8 +190,10 @@ type ActionItemMetadataSchema = z.ZodObject<{
   status: ActionItemStatusSchema;
   assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
   requestedBy: z.ZodOptional<z.ZodArray<typeof actionItemRequesterSchema>>;
+  dueDate: z.ZodOptional<z.ZodISODate>;
   projectedBodyHash: z.ZodOptional<z.ZodString>;
   projectedAssigneeHash: z.ZodOptional<z.ZodString>;
+  projectedDueDate: z.ZodOptional<z.ZodISODate>;
 }>;
 
 const CONVERSATION_FIELDS = [
@@ -258,6 +260,8 @@ export const actionItemMetadataSchema: ActionItemMetadataSchema = z
       .array(actionItemRequesterSchema)
       .optional()
       .meta({ studioWidget: "people" }),
+    /** When the work is due, when someone named a date; most cards have none. */
+    dueDate: z.iso.date().optional(),
     /** Body hash when the projector wrote the item; a different body is the board's. */
     projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
     /** Owner hash when a finder wrote the item; a different owner is the board's. */
@@ -265,6 +269,8 @@ export const actionItemMetadataSchema: ActionItemMetadataSchema = z
       .string()
       .optional()
       .meta({ studioWidget: "hidden" }),
+    /** Due date when a finder wrote the item; a different one is the board's. */
+    projectedDueDate: z.iso.date().optional().meta({ studioWidget: "hidden" }),
   })
   .superRefine(requireOriginFields);
 
@@ -284,9 +290,14 @@ export const actionItemStoredMetadataSchema: z.ZodPreprocess<
       status: actionItemStatusSchema,
       assignedTo: z.array(storedAssigneeSchema).optional(),
       requestedBy: z.array(storedRequesterSchema).optional(),
+      dueDate: z.iso.date().optional(),
       projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
       projectedAssigneeHash: z
         .string()
+        .optional()
+        .meta({ studioWidget: "hidden" }),
+      projectedDueDate: z.iso
+        .date()
         .optional()
         .meta({ studioWidget: "hidden" }),
     })

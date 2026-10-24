@@ -539,6 +539,36 @@ describe("creating a card the channel pickup found", () => {
     });
   });
 
+  it("keeps the due date the messages named, as the finder's", async () => {
+    const service = await brain();
+    await createActionItem(
+      { entityService: service, now: at, visibility: "shared" },
+      { ...found, dueDate: "2026-10-30" },
+    );
+
+    const card = await foundCard(service);
+    expect(card.metadata.dueDate).toBe("2026-10-30");
+    expect(isBoardOwned(card)).toBe(false);
+  });
+
+  it("gives the card to the board once someone else changes its due date", async () => {
+    const service = await brain();
+    await createActionItem(
+      { entityService: service, now: at, visibility: "shared" },
+      { ...found, dueDate: "2026-10-30" },
+    );
+    const card = await foundCard(service);
+
+    await service.updateEntity({
+      entity: {
+        ...card,
+        metadata: { ...card.metadata, dueDate: "2026-11-06" },
+      },
+    });
+
+    expect(isBoardOwned(await foundCard(service))).toBe(true);
+  });
+
   it("gives the card to the board once someone else changes its owner", async () => {
     const service = await brain();
     await createActionItem(
@@ -611,6 +641,7 @@ describe("revising a found card", () => {
         title: "Send the INC proposal",
         text: "Sam will send the INC proposal on Monday.",
         assignee: { name: "Sam", id: "user:u-sam" },
+        dueDate: undefined,
       },
     );
 
@@ -628,6 +659,32 @@ describe("revising a found card", () => {
     expect(isBoardOwned(card)).toBe(false);
   });
 
+  it("sets, moves and clears a found card's due date", async () => {
+    const service = await withFoundCard();
+    const revise = (
+      dueDate: string | undefined,
+    ): ReturnType<typeof reviseActionItem> =>
+      reviseActionItem(
+        { entityService: service, visibilityScope: "restricted" },
+        {
+          id: found.id,
+          title: found.title,
+          text: found.text,
+          assignee: found.assignee,
+          dueDate,
+        },
+      );
+
+    expect(await revise("2026-10-30")).toEqual({ status: "revised" });
+    expect((await foundCard(service)).metadata.dueDate).toBe("2026-10-30");
+    expect(await revise("2026-11-02")).toEqual({ status: "revised" });
+    expect((await foundCard(service)).metadata.dueDate).toBe("2026-11-02");
+    expect(await revise(undefined)).toEqual({ status: "revised" });
+    const cleared = await foundCard(service);
+    expect(cleared.metadata.dueDate).toBeUndefined();
+    expect(isBoardOwned(cleared)).toBe(false);
+  });
+
   it("leaves a card unchanged when the revision says what it already says", async () => {
     const service = await withFoundCard();
 
@@ -638,6 +695,7 @@ describe("revising a found card", () => {
         title: found.title,
         text: found.text,
         assignee: found.assignee,
+        dueDate: undefined,
       },
     );
 
@@ -658,6 +716,7 @@ describe("revising a found card", () => {
         title: found.title,
         text: "Changed.",
         assignee: undefined,
+        dueDate: undefined,
       },
     );
 
@@ -693,6 +752,7 @@ describe("revising a found card", () => {
         title: found.title,
         text: "Changed.",
         assignee: undefined,
+        dueDate: undefined,
       },
     );
 
@@ -705,7 +765,13 @@ describe("revising a found card", () => {
 
     const result = await reviseActionItem(
       { entityService: service, visibilityScope: "restricted" },
-      { id: "missing", title: "x", text: "x", assignee: undefined },
+      {
+        id: "missing",
+        title: "x",
+        text: "x",
+        assignee: undefined,
+        dueDate: undefined,
+      },
     );
 
     expect(result).toEqual({ status: "not-found" });

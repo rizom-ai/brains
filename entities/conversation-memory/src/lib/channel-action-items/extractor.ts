@@ -51,6 +51,8 @@ export interface OwnCard {
   text: string;
   /** Its owner's name, when it has one. */
   owner?: string | undefined;
+  /** When it is due (YYYY-MM-DD), when it has a due date. */
+  dueDate?: string | undefined;
 }
 
 /** An action item the new messages commit to. */

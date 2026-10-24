@@ -110,7 +110,8 @@ export function isBoardOwned(entity: ActionItemEntity): boolean {
   const assignees = entity.metadata.projectedAssigneeHash;
   if (
     assignees !== undefined &&
-    actionItemAssigneeHash(entity.metadata.assignedTo) !== assignees
+    (actionItemAssigneeHash(entity.metadata.assignedTo) !== assignees ||
+      entity.metadata.dueDate !== entity.metadata.projectedDueDate)
   )
     return true;
   const projected = entity.metadata.projectedBodyHash;
