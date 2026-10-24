@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.603
+
+### Patch Changes
+
+- [#756](https://github.com/rizom-ai/brains/pull/756) [`574e51d`](https://github.com/rizom-ai/brains/commit/574e51d74ce4dd65889c6ffc9251d0d096e20b9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The channel pickup's note is posted as soon as the pickup finishes. A job enqueued while handling an event joined that event's operation, so its completion was withheld as a step of a batch, and the note waited for the next restart. Jobs can now be enqueued `detached`, as an operation of their own; the pickup is.
+
+- [#756](https://github.com/rizom-ai/brains/pull/756) [`381719d`](https://github.com/rizom-ai/brains/commit/381719d6a6a73d3955f45f58b3c948522ab3277f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A channel note no longer announces cards deleted before it was posted; a note whose cards are all gone is dropped instead of posted.
+
 ## 0.2.0-alpha.602
 
 ### Patch Changes
