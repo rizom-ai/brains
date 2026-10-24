@@ -840,11 +840,6 @@ werk17niet:
     by: reference
 
   - page: 187
-    from: "als den Gewahrsmann des Citats"
-    to: "als den Gewährsmann des Citats"
-    by: reference
-
-  - page: 187
     from: "totius operis suil mutuatum esse"
     to: "totius operis sui mutuatum esse"
     by: reference
@@ -855,18 +850,8 @@ werk17niet:
     by: reference
 
   - page: 188
-    from: "index librorum Demooeriti, qui ut"
-    to: "index librorum Democriti, qui ut"
-    by: reference
-
-  - page: 188
     from: "sunt, ea omnila ad Favorini"
     to: "sunt, ea omnia ad Favorini"
-    by: reference
-
-  - page: 188
-    from: "teneret, qulid tandem inde"
-    to: "teneret, quid tandem inde"
     by: reference
 
   - page: 188
@@ -897,11 +882,6 @@ werk17niet:
   - page: 191
     from: "Ordnung anzuerkennen. Kinen Versuch, nach"
     to: "Ordnung anzuerkennen. Einen Versuch, nach"
-    by: reference
-
-  - page: 193
-    from: "Vergehungen der Crotomaten"
-    to: "Vergehungen der Krotoniaten"
     by: reference
 
   - page: 194
@@ -935,11 +915,6 @@ werk17niet:
     by: reference
 
   - page: 196
-    from: "der Tod Demoerits,"
-    to: "der Tod Democrits."
-    by: reference
-
-  - page: 196
     from: "Timo über Demoecrit folgen; Timo"
     to: "Timo über Democrit folgen; Timo"
     by: reference
@@ -953,16 +928,6 @@ werk17niet:
     from: "Das Zeugmss Timons uber Democnt"
     to: "Das Zeugniss Timons über Democrit."
     by: scan
-
-  - page: 197
-    from: "durch:das Excerp1ren"
-    to: "durch:das Excerpiren"
-    by: reference
-
-  - page: 198
-    from: "worden? Mag mani"
-    to: "worden? Mag man"
-    by: reference
 
   - page: 199
     from: "?) [Das Verzeichniss La. IX, 45 sqq. nach Kollation Wachsmuth’s"
@@ -982,11 +947,6 @@ werk17niet:
   - page: 199
     from: "seine in zwe1 erhaltenen Sätzen"
     to: "seine in zwei erhaltenen Sätzen"
-    by: reference
-
-  - page: 199
-    from: "Steph Jex. ’s. V"
-    to: "Steph. lex. s. V"
     by: reference
 
   - page: 199
@@ -16914,7 +16874,6 @@ werk17niet:
     to: "quendam eiusdem argumenti, in quo septem versantur epistu-"
     by: scan
 
-
   - page: 130
     from: "lae.. Dein Croesus septem sapientibus epistulas mittit,"
     to: "lae. Dein Croesus septem sapientibus epistulas mittit,"
@@ -18163,4 +18122,1400 @@ werk17niet:
   - page: 138
     from: "Θεόδωρος — ὃς ἠκροάσατο"
     to: "Θεόδωρος — ὃς ἠκροάσατο | "
+    by: scan
+
+  - page: 186
+    from: "8 3."
+    to: ""
+    by: scan
+
+  - page: 186
+    from: "ΧῘΙΠ, 53: Σάτυρος δὲ 2y τοῖς βίοις φησιν ὅτι Ἐμπεδοκλῆς"
+    to: "VIII, 53: Σάτυρος δὲ ἐν τοῖς βίοις φησὶν ὅτι Ἐμπεδοκλῆς"
+    by: scan
+
+  - page: 186
+    from: "κατέλιπε 62 καὶ αὐτὸς υἱὸν"
+    to: "υἱὸς μὲν ἦν Ἐξαινέτου, κατέλιπε δὲ καὶ αὐτὸς υἱὸν Ἐξαίνετον."
+    by: scan
+
+  - page: 186
+    from: "υἱὸς μὲν ἦν Ἐξαινέτου, δὲ Ἐξαίνετον."
+    to: ""
+    by: scan
+
+  - page: 186
+    from: "δὲ τῆς αὐτῆς Ὀλυμπιάδος τὸν μὲν ἵππῳ κέλητι νενικηκέναι,"
+    to: "ἐπὶ δὲ τῆς αὐτῆς Ὀλυμπιάδος τὸν μὲν ἵππῳ κέλητι νενικηκέναι,"
+    by: scan
+
+  - page: 186
+    from: "x"
+    to: ""
+    by: scan
+
+  - page: 186
+    from: "τὸν δὲ υἱὸν αὐτοῦ πάλη ἢ, ως Hpuxkelöns, δρόμῳ. Ἐγὼ δὲ"
+    to: "τὸν δὲ υἱὸν αὐτοῦ πάλῃ ἢ, ὡς Ἡρακλείδης, δρόμῳ. Ἐγὼ δὲ"
+    by: scan
+
+  - page: 186
+    from: "εὖρον ἐν τοῖς ὑπομνήμασι Φαβωρίνου ὅτι καὶ βοῦν ἔθυσε τοῖς"
+    to: "εὗρον ἐν τοῖς ὑπομνήμασι Φαβωρίνου ὅτι καὶ βοῦν ἔθυσε τοῖς"
+    by: scan
+
+  - page: 186
+    from: "θεωροῖς 6 Ἐμπεδοκλῆς ἐκ μέλιτος καὶ ἀλφίτων καὶ ἀδελφὸν ἔσχε"
+    to: "θεωροῖς ὁ Ἐμπεδοκλῆς ἐκ μέλιτος καὶ ἀλφίτων καὶ ἀδελφὸν ἔσχε"
+    by: scan
+
+  - page: 186
+    from: "einandersetzung von VIIL, 51—54 um den Vater des Empe-"
+    to: "einandersetzung von VIII, 51—54 um den Vater des Empe-"
+    by: scan
+
+  - page: 186
+    from: "‚aber die gewohnte Manier des Laertius. Mit der Formel"
+    to: "aber die gewohnte Manier des Laertius. Mit der Formel"
+    by: scan
+
+  - page: 186
+    from: "zu haben, was auch Diocles bringt, z. B. VIII, 63. ΠΙ, 48."
+    to: "zu haben, was auch Diocles bringt, z. B. VIII, 63. III, 48."
+    by: scan
+
+  - page: 186
+    from: "ΧῙΙΠ, 47. Mitunter häuft er aus verschiedenen Büchern"
+    to: "VIII, 47. Mitunter häuft er aus verschiedenen Büchern"
+    by: scan
+
+  - page: 186
+    from: "sichtsvoll er seine Excerpte einschob, zeigt auch IIL, 37:"
+    to: "sichtsvoll er seine Excerpte einschob, zeigt auch III, 37:"
+    by: scan
+
+  - page: 186
+    from: "φησὶ δ’ Ἀριστοτέλης τὴν τῶν λόγων ἰδέαν αὐτοῦ μεταξὺ TOLN-"
+    to: "φησὶ δ’ Ἀριστοτέλης τὴν τῶν λόγων ἰδέαν αὐτοῦ μεταξὺ ποιή-"
+    by: scan
+
+  - page: 186
+    from: "ματος εἷναι καὶ πεζοῦ λόγου· τοῦτον μόνον παραμεῖναι Πλάτωνι"
+    to: "ματος εἶναι καὶ πεζοῦ λόγου· τοῦτον μόνον παραμεῖναι Πλάτωνι"
+    by: scan
+
+  - page: 186
+    from: "Φαβωρῖνός πού φησιν αναγιγνώσκοντι τὸν περὶ ψυχῆς. TOLS"
+    to: "Φαβωρῖνός πού φησιν ἀναγιγνώσκοντι τὸν περὶ ψυχῆς, τοὺς"
+    by: scan
+
+  - page: 186
+    from: "δ’ἄλλους ἀναστῆναι πάντας. Wenn man Überlegt, dass nur"
+    to: "δ’ ἄλλους ἀναστῆναι πάντας. Wenn man überlegt, dass nur"
+    by: scan
+
+  - page: 186
+    from: "'einmal Ρεινοῑίη citirt wird ohne genaue Titelangabe, da:-"
+    to: "einmal Favorin citirt wird ohne genaue Titelangabe, da-"
+    by: scan
+
+  - page: 186
+    from: "sich _das Citat :anmaasst, ohne Favorin zu nennen. Das hat"
+    to: "sich das Citat anmaasst, ohne Favorin zu nennen. Das hat"
+    by: scan
+
+  - page: 187
+    from: "(wenn diese nicht etwa° gar noch zu den von Diocles aus-"
+    to: "(wenn diese nicht etwa gar noch zu den von Diocles aus-"
+    by: scan
+
+  - page: 187
+    from: "glaubte ihm ja niiemand, dass er sie wirklich kenne: da"
+    to: "glaubte ihm ja niemand, dass er sie wirklich kenne: da"
+    by: scan
+
+  - page: 187
+    from: "nennt er Favorin als den Gewahrsmann des Citats m1t wie"
+    to: "nennt er Favorin als den Gewährsmann des Citats mit, wie"
+    by: scan
+
+  - page: 187
+    from: "I, 79 V, 41. ἪΙΠ, 47. |"
+    to: "I, 79. V, 41. VIII, 47."
+    by: scan
+
+  - page: 187
+    from: "Eine ganz andere Vorstellung uber das Verhaltmss."
+    to: "Eine ganz andere Vorstellung über das Verhältniss"
+    by: scan
+
+  - page: 187
+    from: "danken, dass er mit Andronicus im Zusammenhang Ssei,"
+    to: "danken, dass er mit Andronicus im Zusammenhang sei,"
+    by: scan
+
+  - page: 187
+    from: "ausschliessen muss. Rose ;glaubt nun eine grosse Stütze"
+    to: "ausschliessen muss. Rose glaubt nun eine grosse Stütze"
+    by: scan
+
+  - page: 187
+    from: "Andronicus die vöv φερόμενοι πίνακες. Diesen Nachweis"
+    to: "Andronicus die νῦν φερόμενοι πίνακες. Diesen Nachweis"
+    by: scan
+
+  - page: 187
+    from: "sucht Rose zu geben, und Heitz (»>Die verlorenen Schriften"
+    to: "sucht Rose zu geben, und Heitz (»Die verlorenen Schriften"
+    by: scan
+
+  - page: 187
+    from: "Stande, sich von der Unmöglichkeit zu uberzeugen dass ."
+    to: "Stande, sich von der Unmöglichkeit zu überzeugen, dass"
+    by: scan
+
+  - page: 187
+    from: "Favormus aus keiner andern Quelle als aus Andronicus,"
+    to: "Favorinus aus keiner andern Quelle als aus Andronicus,"
+    by: scan
+
+  - page: 187
+    from: "dessen Name nirgends bei Laertius genannt wird, geschopft"
+    to: "dessen Name nirgends bei Laertius genannt wird, geschöpft"
+    by: scan
+
+  - page: 187
+    from: "Rose’schen Satzes, dass. nämlich Laertius sein aristotelisches"
+    to: "Rose’schen Satzes, dass nämlich Laertius sein aristotelisches"
+    by: scan
+
+  - page: 187
+    from: "Schr1ftenver7e1chmss dem Favorinus verdanke. Vgl. Rhein."
+    to: "Schriftenverzeichniss dem Favorinus verdanke. Vgl. Rhein."
+    by: scan
+
+  - page: 187
+    from: ". Mus. XXIV, 185 [oben p. 100]. Zu: Gunsten dieser Be-"
+    to: "Mus. XXIV, 185 [oben p. 100]. Zu Gunsten dieser Be-"
+    by: scan
+
+  - page: 187
+    from: "‚ hauptung hat.Rose die Quellen des Laertius ‚untersucht."
+    to: "hauptung hat Rose die Quellen des Laertius untersucht."
+    by: scan
+
+  - page: 187
+    from: "Gegen ihn genügt, was Bahnsch p. 49 (vgl. p. 17) bemerkt ‘ ."
+    to: "Gegen ihn genügt, was Bahnsch p. 49 (vgl. p. 17) bemerkt"
+    by: scan
+
+  - page: 187
+    from: "Roseus (de Arist. libr. ord. p. 41—44) Laertium magnami"
+    to: "Roseus (de Arist. libr. ord. p. 41—44) Laertium magnam"
+    by: scan
+
+  - page: 187
+    from: "eniim solum multas illas varias adnotationes per totum opus"
+    to: "enim solum multas illas varias adnotationes per totum opus"
+    by: scan
+
+  - page: 188
+    from: "sumpta esse, ut res eX dropvrwovzuudteV libris excerptae"
+    to: "sumpta esse, ut res ex ἀπομνημονευμάτων libris excerptae"
+    by: scan
+
+  - page: 188
+    from: "ÖarT ἱστορίᾳ) supplerentur. Denique maximam partem episto-"
+    to: "δαπῇ ἱστορίᾳ) supplerentur. Denique maximam partem episto-"
+    by: scan
+
+  - page: 188
+    from: "'quod in libro IX index librorum Demooeriti, qui ut Platonis"
+    to: "quod in libro IX index librorum Democriti, qui ut Platonis"
+    by: scan
+
+  - page: 188
+    from: "Favorino excerptus‘ esse videatur; quippe IX, 34 Favorinum"
+    to: "Favorino excerptus esse videatur; quippe IX, 34 Favorinum"
+    by: scan
+
+  - page: 188
+    from: "teneret, qulid tandem inde sequeretur? lam autem quid de"
+    to: "teneret, quid tandem inde sequeretur? Iam autem quid de"
+    by: scan
+
+  - page: 188
+    from: "ljemque Demooecriti illustrandam paullulum facientes ex Fa-"
+    to: "lemque Democriti illustrandam paullulum facientes ex Fa-"
+    by: scan
+
+  - page: 188
+    from: "vorinum . rettulit, eodem iure ceteros quoque iindices omnes"
+    to: "vorinum rettulit, eodem iure ceteros quoque indices omnes"
+    by: scan
+
+  - page: 189
+    from: "D E E . A E n D n a . S"
+    to: ""
+    by: scan
+
+  - page: 189
+    from: "°"
+    to: ""
+    by: scan
+
+  - page: 189
+    from: "abest. Hoc enim in primis tenendum est, Favorinum neque -"
+    to: "abest. Hoc enim in primis tenendum est, Favorinum neque"
+    by: scan
+
+  - page: 189
+    from: "in ἀπομνημονεύμασι neque in παντοδαπῇ ἱστορία historiam philo-"
+    to: "in ἀπομνημονεύμασι neque in παντοδαπῇ ἱστορίᾳ historiam philo-"
+    by: scan
+
+  - page: 189
+    from: "sophorum Sscripsisse, sed ex omnibus scientiae locis quae-"
+    to: "sophorum scripsisse, sed ex omnibus scientiae locis quae-"
+    by: scan
+
+  - page: 189
+    from: "cumque memoratu digna et auditu suavia esse censulsset,"
+    to: "cumque memoratu digna et auditu suavia esse censuisset,"
+    by: scan
+
+  - page: 189
+    from: "collegisse. Quare ne ’epistolae quidem philosophorum Fa-"
+    to: "collegisse. Quare ne epistolae quidem philosophorum Fa-"
+    by: scan
+
+  - page: 189
+    from: "darin,. dass er leugnet, dass die Homonymenhsten aus Fa-"
+    to: "darin, dass er leugnet, dass die Homonymenlisten aus Fa-"
+    by: scan
+
+  - page: 189
+    from: "vorin entnommen sind, zu welcher Vermuthung die Stelle -"
+    to: "vorin entnommen sind, zu welcher Vermuthung die Stelle"
+    by: scan
+
+  - page: 189
+    from: "überhaupt ganz zusammen. | S"
+    to: "überhaupt ganz zusammen."
+    by: scan
+
+  - page: 189
+    from: "S 4."
+    to: ""
+    by: scan
+
+  - page: 189
+    from: "ΠΙ, 61: ’Ἔνιοι δὲ &v ἐστι xal Ἀριστοφάνης 6 γραμματικὸς"
+    to: "III, 61: Ἔνιοι δὲ ὧν ἐστι καὶ Ἀριστοφάνης ὁ γραμματικὸς"
+    by: scan
+
+  - page: 189
+    from: "elg τριλογίας ἕλκουσι τοὺς διαλόγους· Xal πρώτην Ev τιθέασιν, NS"
+    to: "εἰς τριλογίας ἕλκουσι τοὺς διαλόγους· καὶ πρώτην μὲν τιθέασιν, ἧς"
+    by: scan
+
+  - page: 189
+    from: "Κρατύλος· τρίτην Νόμοι, Μίνως, ’Eriyopic® τετάρτην Θεαίτητος."
+    to: "Κρατύλος· τρίτην Νόμοι, Μίνως, Ἐπινομίς· τετάρτην Θεαίτητος,"
+    by: scan
+
+  - page: 189
+    from: "Εὐθύφρων, Ἀπολογία· πέμπτην Κρίτων, Φαίδων, Ἐπιστολαί· τὰ"
+    to: "Εὐθύφρων, Ἀπολογία· πέμπτην Κρίτων, Φαίδων, Ἐπιστολαί· τὰ"
+    by: scan
+
+  - page: 189
+    from: "δ’ἄλλα καθ’ Ev xal ἀτάκτως. ἄρχονται δὲ ol uv &e προείρηται dxd"
+    to: "δ’ ἄλλα καθ’ ἓν καὶ ἀτάκτως. ἄρχονται δὲ οἱ μὲν ὡς προείρηται ἀπὸ"
+    by: scan
+
+  - page: 189
+    from: "τῆς Πολιτείας· οἱ δ’ἀπδ drd Ἀλκιβιάδου toD μείζονος· οἱ δ’άπδ drd Θεά-"
+    to: "τῆς Πολιτείας· οἱ δ’ ἀπὸ Ἀλκιβιάδου τοῦ μείζονος· οἱ δ’ ἀπὸ Θεά-"
+    by: scan
+
+  - page: 189
+    from: "γους· ἔνιοι δ’ Εὐθύφρονος· ἄλλοι Kisitopävtos® τινὲς Τιμαίου·"
+    to: "γους· ἔνιοι δ’ Εὐθύφρονος· ἄλλοι Κλειτοφῶντος· τινὲς Τιμαίου·"
+    by: scan
+
+  - page: 189
+    from: "οἱ δ’ dro Φαίδρου· ἕτεροι Θεαιτήτου· πολλοὶ δὲ Ἀπολογίαν τὴν ἀρχὴν"
+    to: "οἱ δ’ ἀπὸ Φαίδρου· ἕτεροι Θεαιτήτου· πολλοὶ δὲ Ἀπολογίαν τὴν ἀρχὴν"
+    by: scan
+
+  - page: 189
+    from: "ποιοῦνται. νοθεύονται δὲ τῶν διαλόγων ὁμολογουμένως Μίδων ἢἹππο-"
+    to: "ποιοῦνται. νοθεύονται δὲ τῶν διαλόγων ὁμολογουμένως Μίδων ἢ Ἱππο-"
+    by: scan
+
+  - page: 189
+    from: "τρύφος, Ἐρυξίας ἢ Ἐρασίστρατος, Ἀλκυὼν, Ἀκέφαλοι ἢ Σίσυφος."
+    to: "τρόφος, Ἐρυξίας ἢ Ἐρασίστρατος, Ἁλκυὼν, Ἀκέφαλοι ἢ Σίσυφος,"
+    by: scan
+
+  - page: 189
+    from: "Ἀξίοχος, Φαίακες, Δημόδοκος, Χελιδὼν, Εβδόμη, Ἰ·’,πιμενίδης."
+    to: "Ἀξίοχος, Φαίακες, Δημόδοκος, Χελιδὼν, Εβδόμη, Ἐπιμενίδης."
+    by: scan
+
+  - page: 189
+    from: "An beiden Stellen, an denen Diocles die -pinako-"
+    to: "An beiden Stellen, an denen Diocles die pinako-"
+    by: scan
+
+  - page: 189
+    from: "fügt er doch hinterdrein und -in der Kürze auch bei, welche"
+    to: "fügt er doch hinterdrein und in der Kürze auch bei, welche"
+    by: scan
+
+  - page: 189
+    from: "Belehrung iihm Demetrius bot."
+    to: "Belehrung ihm Demetrius bot."
+    by: scan
+
+  - page: 189
+    from: "Die verzeichnete Stelle: aus dem -dritten Buch ist ‚ein"
+    to: "Die verzeichnete Stelle aus dem dritten Buch ist ein"
+    by: scan
+
+  - page: 190
+    from: "zu machen, weiiss Demetrius von neun verschiedenen πί-"
+    to: "zu machen, weiss Demetrius von neun verschiedenen πί-"
+    by: scan
+
+  - page: 190
+    from: "‘ denen er überhaupt die πίνακες verdankt, d. h. Hermipp,"
+    to: "denen er überhaupt die πίνακες verdankt, d. h. Hermipp,"
+    by: scan
+
+  - page: 190
+    from: "die Principien Jener verschiedenartigen Anordnungen er-"
+    to: "die Principien jener verschiedenartigen Anordnungen er-"
+    by: scan
+
+  - page: 190
+    from: "rathen, insoweilt das Princip in der Nennung der an die"
+    to: "rathen, insoweit das Princip in der Nennung der an die"
+    by: scan
+
+  - page: 190
+    from: "Spitze gestellten Schrift überhaupt ausgesprochen ist. Aus’"
+    to: "Spitze gestellten Schrift überhaupt ausgesprochen ist. Aus"
+    by: scan
+
+  - page: 190
+    from: "' einander / n '"
+    to: "einander"
+    by: scan
+
+  - page: 190
+    from: "' διάλογοι ."
+    to: "διάλογοι"
+    by: scan
+
+  - page: 190
+    from: "ἐπιστολαί"
+    to: "ἐπιστολαί\nἔπη."
+    by: scan
+
+  - page: 190
+    from: "nach der Grösse der Zahl, so dass den Schluss die wovo-"
+    to: "nach der Grösse der Zahl, so dass den Schluss die μονο-"
+    by: scan
+
+  - page: 190
+    from: "ordnet, bald mit den ἠθικά, bald mit den φυσικοί, bald mit"
+    to: "ordnet, bald mit den ἠθικά, bald mit den φυσικά, bald mit"
+    by: scan
+
+  - page: 190
+    from: "den λογικοί an der Spitze. Noch andre ganz äusserlich nach"
+    to: "den λογικά an der Spitze. Noch andre ganz äusserlich nach"
+    by: scan
+
+  - page: 190
+    from: "dem Alphabet. Wieder andere zeigen iin der Reihenfolge"
+    to: "dem Alphabet. Wieder andere zeigen in der Reihenfolge"
+    by: scan
+
+  - page: 190
+    from: "gewissen ungewöhnlichen. Arrangements, etwa nach Tri-"
+    to: "gewissen ungewöhnlichen Arrangements, etwa nach Tri-"
+    by: scan
+
+  - page: 191
+    from: "Dass!nach den angegebenen. Schematen auch die plato- -"
+    to: "Dass nach den angegebenen Schematen auch die plato-"
+    by: scan
+
+  - page: 191
+    from: "vielleicht die vorangestellte ἀπολογία an. Sicher aber Ist,"
+    to: "vielleicht die vorangestellte ἀπολογία an. Sicher aber ist,"
+    by: scan
+
+  - page: 191
+    from: "p. 78 und Laert. IIL, 38 hinweisen. In gleicher Weise sind,"
+    to: "p. 78 und Laert. III, 38 hinweisen. In gleicher Weise sind,"
+    by: scan
+
+  - page: 191
+    from: "11‚ 61: οἱ δ’ οὖν τῶν Αἰσχίνου τὸ Σωκρατικὸν ἦθος ἀπομεμαγμένοι ."
+    to: "II, 61: οἱ δ’ οὖν τῶν Αἰσχίνου τὸ Σωκρατικὸν ἦθος ἀπομεμαγμένοι"
+    by: scan
+
+  - page: 191
+    from: "εἰσὶν ἑπτά· πρῶτος Miktidöns, διὸ καὶ ἀσθενέστερόν πως ἔχει."
+    to: "εἰσὶν ἑπτά· πρῶτος Μιλτιάδης, διὸ καὶ ἀσθενέστερόν πως ἔχει."
+    by: scan
+
+  - page: 191
+    from: "Eine Abfolge der Schriften nach Argumenten, voran"
+    to: "Eine Abfolge der Schriften nach Argumenten, voran τὸ"
+    by: scan
+
+  - page: 191
+    from: "φυσικόν (wie IMN, 50), giebt die Voranstellung des Timäus"
+    to: "φυσικόν (wie III, 50), giebt die Voranstellung des Timäus"
+    by: scan
+
+  - page: 191
+    from: "an die Hand. Noch iist zu erwähnen, dass die Ordnung,"
+    to: "an die Hand. Noch ist zu erwähnen, dass die Ordnung,"
+    by: scan
+
+  - page: 191
+    from: "die den Euthyphron an der Spitze trägt, nicht iidentisch ist"
+    to: "die den Euthyphron an der Spitze trägt, nicht identisch ist"
+    by: scan
+
+  - page: 191
+    from: "hier und da durch vorhandene Anordnungen‘ bestimmen"
+    to: "hier und da durch vorhandene Anordnungen bestimmen"
+    by: scan
+
+  - page: 191
+    from: "liche Sinn Jjenes ὁμολογουμένως. Ueber die Echtheit der in"
+    to: "liche Sinn jenes ὁμολογουμένως. Ueber die Echtheit der in"
+    by: scan
+
+  - page: 191
+    from: "tische Literatur angedeutet, ' doch nicht ausgeführt, II, 56:"
+    to: "tische Literatur angedeutet, doch nicht ausgeführt, II, 56:"
+    by: scan
+
+  - page: 192
+    from: "συνέγραψε δὲ βιβλία πρὸς τὰ τετταράκοντα ἄλλων ἄλλως διαι-"
+    to: "συνέγραψε δὲ βιβλία πρὸς τὰ τετταράκοντα ἄλλων ἄλλως διαι-"
+    by: scan
+
+  - page: 192
+    from: "ρ’)ύνῒων."
+    to: "ρούντων."
+    by: scan
+
+  - page: 192
+    from: "S 5."
+    to: ""
+    by: scan
+
+  - page: 192
+    from: "unglimpfen, Ja der muthig einmal, um mit David Strauss"
+    to: "unglimpfen, ja der muthig einmal, um mit David Strauss"
+    by: scan
+
+  - page: 192
+    from: "zu reden, .»in den Koth greift«e. Nach dem Zeugniss des"
+    to: "zu reden, »in den Koth greift«. Nach dem Zeugniss des"
+    by: scan
+
+  - page: 192
+    from: "Ersteren, des Hieronymus (Laert. VIIL, 21), der ungefähr"
+    to: "Ersteren, des Hieronymus (Laert. VIII, 21), der ungefähr"
+    by: scan
+
+  - page: 192
+    from: "unter der Regierung des zweiten Ptolemäus: den Rang eines"
+    to: "unter der Regierung des zweiten Ptolemäus den Rang eines"
+    by: scan
+
+  - page: 192
+    from: "merkt, wie sie, an eine eherne Säule gefesselt und vor'"
+    to: "merkt, wie sie, an eine eherne Säule gefesselt und vor"
+    by: scan
+
+  - page: 192
+    from: "Baume aufgehängt und von Schlangen umringt gewesen,"
+    to: "Baume aufgehängt und von Schlangen umringt gewesen."
+    by: scan
+
+  - page: 192
+    from: "οἳ ταῖς ἑαυτῶν γυναιξὶ συνεῖναι οὐκ ἤθελονῑ und deshalb sei er"
+    to: "οἳ ταῖς ἑαυτῶν γυναιξὶ συνεῖναι οὐκ ἤθελον: und deshalb sei er"
+    by: scan
+
+  - page: 192
+    from: "habe, über die er besser unterrichtet gewesen seil als ein"
+    to: "habe, über die er besser unterrichtet gewesen sei als ein"
+    by: scan
+
+  - page: 192
+    from: "und Stelle angeschaut habe. (Genaueres über diese angeb-"
+    to: "und Stelle angeschaut habe. Genaueres über diese angeb-"
+    by: scan
+
+  - page: 192
+    from: ". liche Höllenfahrt weiss Hermipp (Laert. VIIL, 41) zu er-"
+    to: "liche Höllenfahrt weiss Hermipp (Laert. VIII, 41) zu er-"
+    by: scan
+
+  - page: 192
+    from: "seiner Mutter. befohlen, während seiner Abwesenheit alle"
+    to: "seiner Mutter befohlen, während seiner Abwesenheit alle"
+    by: scan
+
+  - page: 192
+    from: "Ereignisse sorgfältig auf : einer Tafel zu verzeichnen. Nach"
+    to: "Ereignisse sorgfältig auf einer Tafel zu verzeichnen. Nach"
+    by: scan
+
+  - page: 192
+    from: "‚und sagt, er käme aus dem Hades. Die Vorlesung Jjener"
+    to: "und sagt, er käme aus dem Hades. Die Vorlesung jener"
+    by: scan
+
+  - page: 192
+    from: "Schrift i erregt natürlich die grösste Bestürzung; unter"
+    to: "Schrift erregt natürlich die grösste Bestürzung; unter"
+    by: scan
+
+  - page: 193
+    from: "A"
+    to: ""
+    by: scan
+
+  - page: 193
+    from: "OE e d M a E n D D E D e i l E e E k E E E n"
+    to: ""
+    by: scan
+
+  - page: 193
+    from: ". Da"
+    to: ""
+    by: scan
+
+  - page: 193
+    from: "M"
+    to: ""
+    by: scan
+
+  - page: 193
+    from: "i"
+    to: ""
+    by: scan
+
+  - page: 193
+    from: "— 198 —"
+    to: "— 193 —"
+    by: scan
+
+  - page: 193
+    from: ". Thränen und Schwüren ‚kommt man zu der Ueberzeugung;, : -"
+    to: "Thränen und Schwüren kommt man zu der Ueberzeugung,"
+    by: scan
+
+  - page: 193
+    from: "dass man einen Gott vor sich habe (de6v τινα, nicht θεῖόν"
+    to: "dass man einen Gott vor sich habe (θεόν τινα, nicht θεῖόν"
+    by: scan
+
+  - page: 193
+    from: "τινα). Wenn wir von dieser‘ heiteren Geschichte so viel"
+    to: "τινα). Wenn wir von dieser heiteren Geschichte so viel"
+    by: scan
+
+  - page: 193
+    from: "ubr1g, dass Hermipp eine pseudep1graph15che Schrift. vor-"
+    to: "übrig, dass Hermipp eine pseudepigraphische Schrift vor-"
+    by: scan
+
+  - page: 193
+    from: "sowie von den Sünden und Vergehungen der Crotomaten"
+    to: "sowie von den Sünden und Vergehungen der Crotoniaten"
+    by: scan
+
+  - page: 193
+    from: "dem Hades zuertheilt war, wie sie se1ner Zeit‘ Menedemus,"
+    to: "dem Hades zuertheilt war, wie sie seiner Zeit Menedemus,"
+    by: scan
+
+  - page: 193
+    from: "das Zerrbild des echten Cynismus und Pythagorensmus,"
+    to: "das Zerrbild des echten Cynismus und Pythagoreismus,"
+    by: scan
+
+  - page: 193
+    from: "‚persönlich zu spielen unternahm Laert. VI, 102: οὗτος"
+    to: "persönlich zu spielen unternahm, Laert. VI, 102: οὗτος"
+    by: scan
+
+  - page: 193
+    from: "xoadct φησιν Ἱππόβοτος, el τοσοῦτον τερατείας ἤλασεν ὥστε Ἐρι-"
+    to: "καθά φησιν Ἱππόβοτος, εἰς τοσοῦτον τερατείας ἤλασεν ὥστε Ἐρι-"
+    by: scan
+
+  - page: 193
+    from: "νύος ἀναλαβὼν σχῆμα περιῄει λέγων ἐπίσκοπος ἀφῖχθαι SE ᾅδου /"
+    to: "νύος ἀναλαβὼν σχῆμα περιῄει λέγων ἐπίσκοπος ἀφῖχθαι ἐξ ᾅδου"
+    by: scan
+
+  - page: 193
+    from: "TOV ἁμαρτανομένων, ὅπως πάλιν κατιὼν ταῦτα ἀπαγγέλλοι TOLS"
+    to: "τῶν ἁμαρτανομένων, ὅπως πάλιν κατιὼν ταῦτα ἀπαγγέλλοι τοῖς"
+    by: scan
+
+  - page: 193
+    from: "ἐκεῖ δαίμοσιν. (Einen stark ironischen Beigeschmack hat"
+    to: "ἐκεῖ δαίμοσιν. (Einen stark ironischen Beigeschmack hat"
+    by: scan
+
+  - page: 193
+    from: "erzählte. Joseph. c. Apion. I, 22. Es habe ihn nämlich."
+    to: "erzählte. Joseph. c. Apion. I, 22. Es habe ihn nämlich"
+    by: scan
+
+  - page: 193
+    from: "Acht nehmen, wo ein Esel gefallen sei. Uebrigens war. es"
+    to: "Acht nehmen, wo ein Esel gefallen sei. Uebrigens war es"
+    by: scan
+
+  - page: 193
+    from: "Thraker-gehen liess, wie überhaupt seine Absicht nicht zu"
+    to: "Thraker gehen liess, wie überhaupt seine Absicht nicht zu"
+    by: scan
+
+  - page: 193
+    from: "Barbaren herzuleiten und die gr1ech15chen Denker gegen"
+    to: "Barbaren herzuleiten und die griechischen Denker gegen"
+    by: scan
+
+  - page: 193
+    from: "Nach diesen Bemerkungen erled1gt sich eine zunächst"
+    to: "Nach diesen Bemerkungen erledigt sich eine zunächst"
+    by: scan
+
+  - page: 193
+    from: "rathselhafte Stelle des Laertius, von der Isaak Casaubonus"
+    to: "räthselhafte Stelle des Laertius, von der Isaak Casaubonus"
+    by: scan
+
+  - page: 193
+    from: "vol. I, p. 117, ed. Huebn. sagt: »folium 51byllae mihi qui-"
+    to: "vol. I, p. 117, ed. Huebn. sagt: »folium Sibyllae mihi qui-"
+    by: scan
+
+  - page: 193
+    from: "die sich bei Laert. VIII, 7 f. über die pythagormsche Schr1ft-"
+    to: "die sich bei Laert. VIII, 7 f. über die pythagoreische Schrift-"
+    by: scan
+
+  - page: 193
+    from: "stellere1 vorfinden, lesen wir auch folgendes αὐτοῦ λέγουσι Xal"
+    to: "stellerei vorfinden, lesen wir auch folgendes αὐτοῦ λέγουσι καὶ"
+    by: scan
+
+  - page: 193
+    from: "Ttüs (Σκοπιάδας 0Ö ἀρχὴ· N ἀνααίδευ μηδενί. Die mir von"
+    to: "τὰς σκοπιάδας οὗ ἀρχὴ μὴ ἀνααίδευ μηδενί. Die mir von"
+    by: scan
+
+  - page: 193
+    from: "Druckes, . Während der alte und werthvolle Burbon1cué"
+    to: ""
+    by: scan
+
+  - page: 193
+    from: "n. 253 an Stelle. der hervorgehobenen : Worte κατασκοπιαόας"
+    to: "n. 253 an Stelle der hervorgehobenen Worte κατασκοπιάδας"
+    by: scan
+
+
+  - page: 194
+    from: "_‘ 194 —"
+    to: "— 194 —"
+    by: scan
+
+  - page: 194
+    from: "'’zu eruiren αὐτοῦ λέγουσι καὶ ’,[ἈΣ ΣΚΟΠΙΑΣ AIAAO, 65 ἀρχή·"
+    to: "zu eruiren αὐτοῦ λέγουσι καὶ ΤΑΣ ΣΚΟΠΙΑΣ ΑΙΛΑΟ, οὗ ἀρχή·"
+    by: scan
+
+  - page: 194
+    from: "μή, ἄνα Aldew, und’ εἰ. »Die Wachen des Hades« konnte"
+    to: "μή, ἄνα Ἀΐδεω, μηδ’ εἰ. »Die Wachen des Hades« konnte"
+    by: scan
+
+  - page: 194
+    from: "μέγας γὰρ Ἅιδης ἐστὶν εὔθυνος βροτῶν"
+    to: "μέγας γὰρ Ἅιδης ἐστὶν εὔθυνος βροτῶν"
+    by: scan
+
+  - page: 194
+    from: "δελτογράφῳ δὲ πάντ’ ἐπωπᾷ φρενί."
+    to: "δελτογράφῳ δὲ πάντ’ ἐπωπᾷ φρενί."
+    by: scan
+
+  - page: 194
+    from: "Auch begreift sich die Corrupt1on le1cht wenn man neben"
+    to: "Auch begreift sich die Corruption leicht, wenn man neben"
+    by: scan
+
+  - page: 194
+    from: "XZKOIMAXAIAAO und"
+    to: "ΣΚΟΠΙΑΣΑΙΔΑΟ und"
+    by: scan
+
+  - page: 194
+    from: "ΣΚΟΠΙΑ· - AAZ."
+    to: "ΣΚΟΠΙΑ· ΔΑΣ."
+    by: scan
+
+  - page: 194
+    from: "„festgestellt werden kann. Doch neige ich zu dem Glauben,"
+    to: "festgestellt werden kann. Doch neige ich zu dem Glauben,"
+    by: scan
+
+  - page: 194
+    from: "scheint mir darauf h1nzuvve13en. So fängt der ἱερὸς λόγος"
+    to: "scheint mir darauf hinzuweisen. So fängt der ἱερὸς λόγος"
+    by: scan
+
+  - page: 194
+    from: "des Pythagoras an: ."
+    to: "des Pythagoras an:"
+    by: scan
+
+  - page: 194
+    from: "7Q νέοι ἀλλὰ σέβεσθε μεθ’ ἡσυχίας τάδε πάντα."
+    to: "Ὦ νέοι ἀλλὰ σέβεσθε μεθ’ ἡσυχίας τάδε πάντα."
+    by: scan
+
+  - page: 194
+    from: "8 79"
+    to: ""
+    by: scan
+
+  - page: 194
+    from: "Mitunter ist es‘noch möglich, die Entstehung einer"
+    to: "Mitunter ist es noch möglich, die Entstehung einer"
+    by: scan
+
+  - page: 194
+    from: "in Kürze am Leben Demoocrit’s IX, 34 ss. vollzogen werden."
+    to: "in Kürze am Leben Democrit’s IX, 34 ss. vollzogen werden."
+    by: scan
+
+  - page: 194
+    from: "polirt hat: das Epigramm IX, .43 und eine Stelle aus"
+    to: "polirt hat: das Epigramm IX, 43 und eine Stelle aus"
+    by: scan
+
+  - page: 194
+    from: "Favorinus’ παντοδαπὴ ἱστορία, angeknüpft an 34 ὕστερον δὲ"
+    to: "Favorinus’ παντοδαπὴ ἱστορία, angeknüpft an 34 ὕστερον δὲ"
+    by: scan
+
+  - page: 194
+    from: "Λευκίππῳ παρέβαλε καὶ Ἀναξαγόρᾳ κατα τινας. Dies κατά τινας"
+    to: "Λευκίππῳ παρέβαλε καὶ Ἀναξαγόρᾳ κατά τινας. Dies κατά τινας"
+    by: scan
+
+  - page: 195
+    from: "E A E E D e E e E E e"
+    to: ""
+    by: scan
+
+  - page: 195
+    from: "Favorinusstelle gebracht hat, πῶς οὖν κατά τινας ἀκήκοεν αὐτοῦ."
+    to: "Favorinusstelle gebracht hat, πῶς οὖν κατά τινας ἀκήκοεν αὐτοῦ."
+    by: scan
+
+  - page: 195
+    from: "Das Uebrige, also das Diocleische Eigenthum, zerfällt -"
+    to: "Das Uebrige, also das Diocleische Eigenthum, zerfällt"
+    by: scan
+
+  - page: 195
+    from: "Dogmen genommen sind, ist nicht bestimmt . zu sagen;."
+    to: "Dogmen genommen sind, ist nicht bestimmt zu sagen;"
+    by: scan
+
+  - page: 195
+    from: ". Hochschätzung , die Democrit bei Diocles genoss, . deuten"
+    to: "Hochschätzung, die Democrit bei Diocles genoss, deuten"
+    by: scan
+
+  - page: 195
+    from: "ποιότητας δὲ νόμῳ εἶναι. φύσει δὲ ἄτομα καὶ κενόν"
+    to: "ποιότητας δὲ νόμῳ εἶναι, φύσει δὲ ἄτομα καὶ κενόν"
+    by: scan
+
+  - page: 195
+    from: "καὶ κενὸν. τά δ’ ἄλλα πάντα νενομίσθαι. i"
+    to: "καὶ κενὸν, τά δ’ ἄλλα πάντα νενομίσθαι."
+    by: scan
+
+  - page: 195
+    from: "Der πίναξ ist verfasst mit Benutzung des Thrasyll und_"
+    to: "Der πίναξ ist verfasst mit Benutzung des Thrasyll und"
+    by: scan
+
+  - page: 195
+    from: "Plato es gemacht hat. KEs ist nämlich möglich nach-"
+    to: "Plato es gemacht hat. Es ist nämlich möglich nach-"
+    by: scan
+
+  - page: 195
+    from: "von τάττουσι δέ τινες bis ἢ προβλήματα von Thrasyll her-"
+    to: "von τάττουσι δέ τινες bis ἢ προβλήματα von Thrasyll her-"
+    by: scan
+
+  - page: 195
+    from: "In der vita selbst nennt Diocles seine: Quellen Demetrius"
+    to: "In der vita selbst nennt Diocles seine Quellen Demetrius"
+    by: scan
+
+  - page: 195
+    from: "entgegengestellt οἱ πλείους und Demetrius. Dann.. folgt"
+    to: "entgegengestellt οἱ πλείους und Demetrius. Dann folgt"
+    by: scan
+
+  - page: 195
+    from: "wieder ein Stück des Demetrius λέγει 36° bis Ἀθήνας 37."
+    to: "wieder ein Stück des Demetrius λέγει 36 bis Ἀθήνας 37."
+    by: scan
+
+  - page: 195
+    from: "Eingeschoben. ist ein Stück aus Thrasyll. Es folgt eine"
+    to: "Eingeschoben ist ein Stück aus Thrasyll. Es folgt eine"
+    by: scan
+
+  - page: 195
+    from: "bekundet, sodann überleitend δῆλον δὲ κάκ τῶν συγγραμμάτων"
+    to: "bekundet, sodann überleitend δῆλον δὲ κἀκ τῶν συγγραμμάτων"
+    by: scan
+
+  - page: 195
+    from: "oins ἧν. Dies wird ausgeführt durch eine Stelle des Thrasyll"
+    to: "οἷος ἦν. Dies wird ausgeführt durch eine Stelle des Thrasyll"
+    by: scan
+
+  - page: 195
+    from: "13*"
+    to: ""
+    by: scan
+
+  - page: 196
+    from: "Demetrius: man vergleiche VIIL, 8; ΨΙΙΙ, 82; ΠΙ, 33."
+    to: "Demetrius: man vergleiche VIII, 8; VIII, 82; III, 35."
+    by: scan
+
+  - page: 196
+    from: "mentar seines älteren Zeitgenossen Apollonides, Jetzt kommt"
+    to: "mentar seines älteren Zeitgenossen Apollonides. Jetzt kommt"
+    by: scan
+
+  - page: 196
+    from: ". der Abschnitt über die democritische Chronologie, nach"
+    to: "der Abschnitt über die democritische Chronologie, nach"
+    by: scan
+
+  - page: 196
+    from: "Thrasyll. Darauf eine Anekdote aus Athenodor 2y ὀγδόῃ"
+    to: "Thrasyll. Darauf eine Anekdote aus Athenodor ἐν ὀγδόῃ"
+    by: scan
+
+  - page: 196
+    from: "Περιπάτωνε also eine gelegentliche Reminiscenz aus dem"
+    to: "Περιπάτων: also eine gelegentliche Reminiscenz aus dem"
+    by: scan
+
+  - page: 196
+    from: "Buche eines Zeitgenossen. Endlich der Tod Demoerits,"
+    to: "Buche eines Zeitgenossen. Endlich der Tod Democrits,"
+    by: scan
+
+  - page: 196
+    from: ": nommen."
+    to: "nommen."
+    by: scan
+
+  - page: 196
+    from: "Diocles hat also bei der N1ederschr1ft der demoeriti-"
+    to: "Diocles hat also bei der Niederschrift der democriti-"
+    by: scan
+
+  - page: 196
+    from: "schen vita seine Gewährsmänner in folgender Reihe benützt :"
+    to: "schen vita seine Gewährsmänner in folgender Reihe benützt:"
+    by: scan
+
+  - page: 196
+    from: "Demetrius, Hippobotus,"
+    to: "Demetrius, | Hippobotus,"
+    by: scan
+
+  - page: 196
+    from: "| Ant15thenes, * Demetrius,"
+    to: "Antisthenes, | Demetrius,"
+    by: scan
+
+  - page: 196
+    from: "Antisthenes?. Timo,"
+    to: "Antisthenes? | Timo,"
+    by: scan
+
+  - page: 196
+    from: ". Hippobotus? ' . Demetrius,"
+    to: "Hippobotus? | Demetrius,"
+    by: scan
+
+  - page: 196
+    from: "‚ Demetrius, — Thrasyllus,"
+    to: "Demetrius, | Thrasyllus,"
+    by: scan
+
+  - page: 196
+    from: "Thrasyllus, Athenodorus,"
+    to: "Thrasyllus, | Athenodorus,"
+    by: scan
+
+  - page: 196
+    from: "Antisthenes, . Demetrius."
+    to: "Antisthenes, | Demetrius."
+    by: scan
+
+  - page: 196
+    from: "Demetrius, -"
+    to: "Demetrius, | "
+    by: scan
+
+  - page: 196
+    from: "Reisen verbraucht. Lob des Demoecrit: als φιλόπονος, als"
+    to: "Reisen verbraucht. Lob des Democrit: als φιλόπονος, als"
+    by: scan
+
+  - page: 196
+    from: "„ καταφρονῶν δόξης, als ποικίλως δοκιμάζων τὰς φαντασίας. Später"
+    to: "καταφρονῶν δόξης, als ποικίλως δοκιμάζων τὰς φαντασίας. Später"
+    by: scan
+
+  - page: 196
+    from: "Philosophen, Zwei Anekdoten. Sein Tod. — Wenn man"
+    to: "Philosophen. Zwei Anekdoten. Sein Tod. — Wenn man"
+    by: scan
+
+  - page: 196
+    from: "H A,"
+    to: ""
+    by: scan
+
+  - page: 197
+    from: "A b i l bl r E S n E d B E S A TU —_-"
+    to: ""
+    by: scan
+
+  - page: 197
+    from: "botus. Daher werden auch Demetrius, Antisthenes und, '"
+    to: "botus. Daher werden auch Demetrius, Antisthenes und,"
+    by: scan
+
+  - page: 197
+    from: "Thrasyll wörtlich. citirt. . Unsere Diocleshypothese reicht"
+    to: "Thrasyll wörtlich citirt. Unsere Diocleshypothese reicht"
+    by: scan
+
+  - page: 197
+    from: "dieser vita;‘ die Nebenquellen ergeben sich bequem; die"
+    to: "dieser vita; die Nebenquellen ergeben sich bequem; die"
+    by: scan
+
+  - page: 197
+    from: "das wir von ihm haben; dagegen würden :sie schlechter-"
+    to: "das wir von ihm haben; dagegen würden sie schlechter-"
+    by: scan
+
+  - page: 197
+    from: "dings nicht zu dem des Laertius stimmen. . Im Ganzen er-"
+    to: "dings nicht zu dem des Laertius stimmen. Im Ganzen er-"
+    by: scan
+
+  - page: 197
+    from: "scheint ein Plan der viita, wenngleich durch:das Excerp1ren"
+    to: "scheint ein Plan der vita, wenngleich durch das Excerpiren"
+    by: scan
+
+  - page: 197
+    from: "die Verbindungen und M1ttelgheder oftmals verloren ge-"
+    to: "die Verbindungen und Mittelglieder oftmals verloren ge-"
+    by: scan
+
+  - page: 197
+    from: "gangen . sind. Im Ganzen ’offenbart sich die. blinde un-"
+    to: "gangen sind. Im Ganzen offenbart sich die blinde un-"
+    by: scan
+
+  - page: 197
+    from: "Vorstellung, die wir uns von . ihm geb1ldet haben; Man"
+    to: "Vorstellung, die wir uns von ihm gebildet haben. Man"
+    by: scan
+
+  - page: 197
+    from: "kann das Resultat. in ‚diese Schlussfolgerungen drängen."
+    to: "kann das Resultat in diese Schlussfolgerungen drängen."
+    by: scan
+
+  - page: 197
+    from: "der ihn wortl1ch benutzte und wiedergab, fügte auch‘ Zu-"
+    to: "der ihn wörtlich benützte und wiedergab, fügte auch Zu-"
+    by: scan
+
+  - page: 197
+    from: "lag auch das: Werk des . Antisthenes vor, da er die An-"
+    to: "lag auch das Werk des Antisthenes vor, da er die An-"
+    by: scan
+
+  - page: 197
+    from: "‚Demetrius combinirt. Der aber, welcher \"Thrasyll benutzt, -"
+    to: "Demetrius combinirt. Der aber, welcher Thrasyll benutzt,"
+    by: scan
+
+  - page: 197
+    from: "ist derselbe, der den Abschn1tt über die platon1schen"
+    to: "ist derselbe, der den Abschnitt über die platonischen"
+    by: scan
+
+  - page: 197
+    from: "Dogmen verfasst hat und dabei :eine Platoverehrerin an-"
+    to: "Dogmen verfasst hat und dabei eine Platoverehrerin an-"
+    by: scan
+
+  - page: 197
+    from: "redet. Das heisst,; es ist derselbe, von dem die Dar-"
+    to: "redet. Das heisst, es ist derselbe, von dem die Dar-"
+    by: scan
+
+  - page: 197
+    from: "stellungen der epicurischen und st01schen Lehren her-"
+    to: "stellungen der epicurischen und stoischen Lehren her-"
+    by: scan
+
+  - page: 197
+    from: "rühren, es ist D10c:les aus Magnes1a ' ;"
+    to: "rühren, es ist Diocles aus Magnesia."
+    by: scan
+
+  - page: 197
+    from: "‚ 1X, 40 ὅνγε καὶ Τίμων τοῦτον ἐπαινέσας τὸν τρόπον ἔχει."
+    to: "IX, 40: ὅνγε καὶ Τίμων τοῦτον ἐπαινέσας τὸν τρόπον ἔχει."
+    by: scan
+
+  - page: 197
+    from: "Οἷον Δημόκριτόν τε περίφρονα ποιμένα μύθων UT"
+    to: "Οἷον Δημόκριτόν τε περίφρονα ποιμένα μύθων"
+    by: scan
+
+  - page: 197
+    from: ". ἀμφίνοον λέσχην Ü μετὰ πρώτοισιν ἀνέγνων."
+    to: "ἀμφίνοον λέσχην ᾶ μετὰ πρώτοισιν ἀνέγνων."
+    by: scan
+
+  - page: 197
+    from: ". Δημόκριτόν] Δημόκριτός Η. τε] ye G., om. B μύθων]"
+    to: "Δημόκριτόν] Δημόκριτός H. τε] γε G., om. B. μύθων]"
+    by: scan
+
+  - page: 197
+    from: ". μῦθον B. λέσχην] λέσχον H. ' A a"
+    to: "μῦθον B. λέσχην] λέσχον H."
+    by: scan
+
+  - page: 198
+    from: "P"
+    to: ""
+    by: scan
+
+  - page: 198
+    from: "Dass ννίτ es hier Jjedenfalls mit einer Verderbniss zu"
+    to: "Dass wir es hier jedenfalls mit einer Verderbniss zu"
+    by: scan
+
+  - page: 198
+    from: "lose λε’σχην, sowie das unconstruirbare &. Aber selbst mit"
+    to: "lose λέσχην, sowie das unconstruirbare ᾶ. Aber selbst mit"
+    by: scan
+
+  - page: 198
+    from: "Rede. Sein' Lob würde »dem verständigen Schriftsteller«"
+    to: "Rede. Sein Lob würde »dem verständigen Schriftsteller«"
+    by: scan
+
+  - page: 198
+    from: "μύθων ἀμφίνοον λεσχῆνα ausgedrückt. worden? Mag mani"
+    to: "μύθων ἀμφίνοον λεσχῆνα ausgedrückt worden? Mag man"
+    by: scan
+
+  - page: 198
+    from: "selbst das so orlentalisch anklingende Gleichniss vom"
+    to: "selbst das so orientalisch anklingende Gleichniss vom"
+    by: scan
+
+  - page: 198
+    from: "schmacklos ‚ dargestellt sein würde — falls eben jene Ver-"
+    to: "schmacklos dargestellt sein würde — falls eben jene Ver-"
+    by: scan
+
+  - page: 198
+    from: "lobt als allein die. Verständigkeit des »Schriftstellers«"
+    to: "lobt als allein die Verständigkeit des »Schriftstellers«"
+    by: scan
+
+  - page: 198
+    from: "hat und dessentwegen doch Pyrrho, (Laert. IX, 67) und"
+    to: "hat und dessentwegen doch Pyrrho (Laert. IX, 67) und"
+    by: scan
+
+  - page: 198
+    from: "Timon ihn lasen und schätzten. Nach IX, 45 war seim"
+    to: "Timon ihn lasen und schätzten. Nach IX, 45 war sein"
+    by: scan
+
+  - page: 198
+    from: "Princip τέλος δὲ εἶναι τὴν εὐθυμίαν, 00 τὴν αὐτὴν οὖσαν τῇ"
+    to: "Princip τέλος δὲ εἶναι τὴν εὐθυμίαν, οὐ τὴν αὐτὴν οὖσαν τῇ"
+    by: scan
+
+  - page: 198
+    from: "ἡδονῇ — ἀλλὰ καθ’ ἢν γαληνῶς καὶ εὐσταθῶς N ψυχὴ διάγει,"
+    to: "ἡδονῇ — ἀλλὰ καθ’ ἣν γαληνῶς καὶ εὐσταθῶς ἡ ψυχὴ διάγει,"
+    by: scan
+
+  - page: 198
+    from: "ὑπὸ μηδενὸς ταραττομένη φόβου ἢ δεισιδαιμονίας ἢ ἄλλοι) τινὸς"
+    to: "ὑπὸ μηδενὸς ταραττομένη φόβου ἢ δεισιδαιμονίας ἢ ἄλλου τινὸς"
+    by: scan
+
+  - page: 198
+    from: "πάθους. Diese ἀθαμβίη, ἀῦαυμαστίη, ἀταραὲίη, war aber auch"
+    to: "πάθους. Diese ἀθαμβίη, ἀθαυμαστίη, ἀταραξίη, war aber auch"
+    by: scan
+
+  - page: 198
+    from: "und grösste aller Philosophen°ist, den auch Timon auf"
+    to: "und grösste aller Philosophen ist, den auch Timon auf"
+    by: scan
+
+  - page: 198
+    from: "diese Weise lobt. Man erwartet, dass in. dem Lob des"
+    to: "diese Weise lobt. Man erwartet, dass in dem Lob des"
+    by: scan
+
+  - page: 198
+    from: "—"
+    to: ""
+    by: scan
+
+  - page: 199
+    from: "e E E e D D"
+    to: ""
+    by: scan
+
+  - page: 199
+    from: "Timon auch ein Motiv angedeutet ist, das d1e Abne1gung"
+    to: "Timon auch ein Motiv angedeutet ist, das die Abneigung"
+    by: scan
+
+  - page: 199
+    from: ". Plato’s gegen Democrit erklärt. ‘"
+    to: "Plato’s gegen Democrit erklärt."
+    by: scan
+
+  - page: 199
+    from: "Drei Anforderungen machen wir.also. -Die Verbesse-"
+    to: "Drei Anforderungen machen wir also. Die Verbesse-"
+    by: scan
+
+  - page: 199
+    from: "erstens die Tautologie beseitigen, zweitens einen Gedanken."
+    to: "erstens die Tautologie beseitigen, zweitens einen Gedanken"
+    by: scan
+
+  - page: 199
+    from: "Geistes hat; sie‘ muss endlich den Zusammenhang der"
+    to: "Geistes hat; sie muss endlich den Zusammenhang der"
+    by: scan
+
+  - page: 199
+    from: "οἷον Δημόκριτόν ts περίφρονα, πήμονα μύθων"
+    to: "οἷον Δημόκριτόν τε περίφρονα, πήμονα μύθων"
+    by: scan
+
+  - page: 199
+    from: "ἀμφιλόγων λεσχῶν TE, μετὰ πρώτοισιν ἀνέγνων."
+    to: "ἀμφιλόγων λεσχῶν τε, μετὰ πρώτοισιν ἀνέγνων."
+    by: scan
+
+  - page: 199
+    from: "θνητῆς φύσιος διάλυσιν 00x εἰδότες ἄνθρωποι Ξονειόήσι 8£ the Av"
+    to: "θνητῆς φύσιος διάλυσιν οὐκ εἰδότες ἄνθρωποι ξυνειδήσι δὲ τῆς ἐν"
+    by: scan
+
+  - page: 199
+    from: "z& Blw κακοπραγμοσύνης v tNs βιοτῆς χρόνον &v ταραχῇσι xal"
+    to: "τῖ βίῳ κακοπραγμοσύνης τὸν τῆς βιοτῆς χρόνον ἐν ταραχῇσι καὶ"
+    by: scan
+
+  - page: 199
+    from: "φόβοισι ταλαιπωρέοοσι, ψεύδεα περὶ tTOD μετὰ ThV τελευτὴν μυθο-"
+    to: "φόβοισι ταλαιπωρέουσι, ψεύδεα περὶ τοῦ μετὰ τὴν τελευτὴν μυθο-"
+    by: scan
+
+  - page: 199
+    from: "πλαστέοντες χρόνου. S. Sext. Emp. ad. Math. IX, 24; Mull."
+    to: "πλαστέοντες χρόνου. S. Sext. Emp. ad. Math. IX, 24; Mull."
+    by: scan
+
+  - page: 199
+    from: "p. 208. Ebenfalls ist die ‘ Abneigung Democrits gegen"
+    to: "p. 208. Ebenfalls ist die Abneigung Democrits gegen"
+    by: scan
+
+  - page: 199
+    from: "Plut. Symp. I, 5, p. 614 E ἐριδαντέων 0, κατὰ Δημό-"
+    to: "Plut. Symp. I, 5, p. 614 E ἐριδαντέων δὲ, κατὰ Δημό-"
+    by: scan
+
+  - page: 199
+    from: "κριτον, Xal ἱμαντελικτέων λόγους doert£ov.. Stob. Flor."
+    to: "κριτον, καὶ ἱμαντελικτέων λόγους ἀφετέον. Stob. Flor."
+    by: scan
+
+  - page: 199
+    from: "XL, 40: οἷκήίὀν ἐλευθερίης παρρησίη. — Paläographisch ist"
+    to: "XIII, 40: οἰκήϊον ἐλευθερίης παρρησίη. — Paläographisch ist"
+    by: scan
+
+  - page: 199
+    from: "Steph Jex. ’s. V. ποιμαίνω. Wie das μῦθον der Handschrift"
+    to: "Steph. lex. s. v. ποιμαίνω. Wie das μῦθον der Handschrift"
+    by: scan
+
+  - page: 199
+    from: "B in μύθων, SO ist auch λέσχον (in H überliefert) in λεσχῶν"
+    to: "B in μύθων, so ist auch λέσχον (in H überliefert) in λεσχῶν"
+    by: scan
+
+  - page: 199
+    from: "aufzulösen. -"
+    to: "aufzulösen."
+    by: scan
+
+  - page: 199
+    from: "Thrasyll's Verzeichniss der democritischen Schriften."
+    to: "Thrasyll’s Verzeichniss der democritischen Schriften.\n. . . . . . . . . . . . . . . . . . . ."
+    by: scan
+
+  - page: 200
+    from: "Verehrung jenes materialistischen Philosophen? 1IX, 37:"
+    to: "Verehrung jenes materialistischen Philosophen? IX, 37:"
+    by: scan
+
+  - page: 200
+    from: "εἴπερ οἱ Ἀντερασταὶ Πλάτωνός· εἷο-ι. φησὶ Θρασύλος, οὗτος ἂν εἴτ,"
+    to: "εἴπερ οἱ Ἀντερασταὶ Πλάτωνός εἰσι, φησὶ Θρασύλος, οὗτος ἂν εἴη"
+    by: scan
+
+  - page: 200
+    from: "O παραγενόμενος ἀνώνυμος. τῶν περὶ Οἰνοπίδην καὶ Ἀναξαγόραν"
+    to: "ὁ παραγενόμενος ἀνώνυμος, τῶν περὶ Οἰνοπίδην καὶ Ἀναξαγόραν"
+    by: scan
+
+  - page: 200
+    from: "ἕτερος (ἑταῖρος Ῥ) ἐν τῇ πρὸς Σωκράτην ὁμιλία διαλεγόμενος περὶ"
+    to: "ἕτερος (ἑταῖρος?) ἐν τῇ πρὸς Σωκράτην ὁμιλίᾳ διαλεγόμενος περὶ"
+    by: scan
+
+  - page: 200
+    from: "φιλοσοφίας T ως d / φιλόσοφος· ἦν"
+    to: "φιλοσοφίας ᾧ, φησὶν, ὡς πεντάθλῳ ἔοικεν ὁ φιλόσοφος· καὶ ἦν"
+    by: scan
+
+  - page: 200
+    from: "ᾧ. φησὶν, πεντάθλῳ ἔοικεν Ö καὶ"
+    to: "ὡς ἀληθῶς ἐν φιλοσοφίᾳ πένταθλος· ἤσκητο γὰρ τὰ φυσικὰ καὶ"
+    by: scan
+
+  - page: 200
+    from: "ως άληθῶς ἐν φιλοσοφία πένταθλος· ἤσκητο γὰρ τὸ. φυσικὰ καὶ"
+    to: "τὰ ἠθικὰ, ἀλλὰ καὶ τὰ μαθηματικὰ καὶ τοὺς ἐγκυκλίους λόγους"
+    by: scan
+
+  - page: 200
+    from: "τὰ ἠθικὰ. ἀλλὰ καὶ τὰ μαθηματικὰ καὶ τοὺς ἐγκυκλίους λόγους"
+    to: "καὶ περὶ τεχνῶν πᾶσαν εἶχεν ἐμπειρίαν. Sehen wir von dem"
+    by: scan
+
+  - page: 200
+    from: "pinakographische Arbeit in dem Wahne, damiit die originale"
+    to: "pinakographische Arbeit in dem Wahne, damit die originale"
+    by: scan
+
+  - page: 200
+    from: "sind, das erkennt jeder, der zum Bensp1el unter der Kategorie"
+    to: "sind, das erkennt jeder, der zum Beispiel unter der Kategorie"
+    by: scan
+
+  - page: 200
+    from: "τεχνικά medicinische, tak'asche, Jandwirtschaftliche Schriften"
+    to: "τεχνικά medicinische, taktische, landwirtschaftliche Schriften"
+    by: scan
+
+  - page: 200
+    from: "‚ iihrer Gelehrsamkeit in’s Auge fasst."
+    to: "ihrer Gelehrsamkeit in’s Auge fasst."
+    by: scan
+
+  - page: 200
+    from: "ist die zweite. IX, 38: δοκεῖ δὲ. φησὶν 6 Θρασύλος, ζηλωτὴς"
+    to: "ist die zweite. IX, 38: δοκεῖ δὲ, φησὶν ὁ Θρασύλος, ζηλωτὴς"
+    by: scan
+
+  - page: 200
+    from: "γεγονέναι (καὶ om. B, H) τῶν Πυθαγορικῶν· ἀλλὰ καὶ αὐτοῦ"
+    to: "γεγονέναι (καὶ om. B, H) τῶν Πυθαγορικῶν· ἀλλὰ καὶ αὐτοῦ"
+    by: scan
+
+  - page: 200
+    from: "(τοῦ om. B, H) Πυθαγόρου μέμνηται θαυμάζων αὐτὸν ἐν C"
+    to: "(τοῦ om. B, H) Πυθαγόρου μέμνηται θαυμάζων αὐτὸν ἐν τῖ"
+    by: scan
+
+  - page: 200
+    from: "ὁμωνύμῳ συγγράμματι· πάντα δὲ δοκεῖν (51c B, H) παρὰ (sic"
+    to: "ὁμωνύμῳ συγγράμματι· πάντα δὲ δοκεῖν (sic B, H) παρὰ (sic"
+    by: scan
+
+  - page: 200
+    from: "B; H περὶ) τούτου λαβεῖν καὶ αὐτοῦ δ’ἂν ἀκηκοέναι, εἰ μὴ τὸ."
+    to: "B, H περὶ) τούτου λαβεῖν καὶ αὐτοῦ δ’ ἂν ἀκηκοέναι, εἰ μὴ τὰ"
+    by: scan
+
+  - page: 200
+    from: "τῶν χρόνων ἐμάχετο. In welchem Sinne konnte Thrasyll"
+    to: "τῶν χρόνων ἐμάχετο. In welchem Sinne konnte Thrasyll"
     by: scan
