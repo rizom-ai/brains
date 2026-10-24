@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.605
+
+### Patch Changes
+
+- [#758](https://github.com/rizom-ai/brains/pull/758) [`02cfd7e`](https://github.com/rizom-ai/brains/commit/02cfd7e3aa80d91fef12d432468c64cc31771e81) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `action_item_create` takes a due date: the date a request names, as YYYY-MM-DD, or "none". A due date that is not a date is refused with today's date, so the agent can correct it.
+
+- [#758](https://github.com/rizom-ai/brains/pull/758) [`972bf64`](https://github.com/rizom-ai/brains/commit/972bf645e9a28ab64bce742e807bd458fab8325c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Action items can have a due date. Most cards have none; a card gets one when someone names a date. A due date someone changes on a card the channel pickup found makes the card the board's, so the pickup never overwrites it.
+
+- [#758](https://github.com/rizom-ai/brains/pull/758) [`ba58366`](https://github.com/rizom-ai/brains/commit/ba583664f34c74c28b4f6f168b0e53930b6b03b3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain's agent knows today's date (UTC), so it resolves "Friday" or "next week" from it instead of guessing from its training.
+
+- [#758](https://github.com/rizom-ai/brains/pull/758) [`b685764`](https://github.com/rizom-ai/brains/commit/b6857641f37ba66c9eab2770563d95b5957a2776) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The channel pickup gives a card the due date the messages name ("by Wednesday", "end of the month"), resolved from the day the message was written, and moves or clears it when later messages do; a card whose messages name no date gets none. A message that changes one of the channel's cards no longer also adds it as a new card, and a card changed twice in one batch ends as the latest message says.
+
+- [#758](https://github.com/rizom-ai/brains/pull/758) [`6ffc528`](https://github.com/rizom-ai/brains/commit/6ffc528dbf456597154c5fbb0de223306a19e448) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The board shows when a card is due, next to who is on it, and marks a card still to do past its due date Overdue; the open card lists it as Due. The channel note names a card's due date too.
+
+- [#758](https://github.com/rizom-ai/brains/pull/758) [`341189a`](https://github.com/rizom-ai/brains/commit/341189a5052a0b82bbdd39e3b32c37e24145629f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio edits a date field (an ISO date, such as an action item's due date) with a native date picker; clearing it removes the date.
+
 ## 0.2.0-alpha.604
 
 ### Patch Changes

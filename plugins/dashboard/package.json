@@ -1,7 +1,7 @@
 {
   "name": "@brains/dashboard",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.604",
+  "version": "0.2.0-alpha.605",
   "description": "Public brain card with declarative contributions and semantic maps",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
