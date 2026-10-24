@@ -240,7 +240,9 @@ export class JobQueueService implements IJobQueueService {
     const id = createId();
     const rootJobId =
       options?.rootJobId ??
-      this.operationContext.current()?.provenance.rootJobId ??
+      (options?.detached
+        ? id
+        : this.operationContext.current()?.provenance.rootJobId) ??
       id;
     const provenance = this.createJobProvenance(id, rootJobId, options);
     const metadataInput: JobContextInput = options?.metadata ?? {

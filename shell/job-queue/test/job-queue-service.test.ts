@@ -294,6 +294,33 @@ describe("JobQueueService", () => {
       });
     });
 
+    it("starts a detached job's own operation, though enqueued inside another", async () => {
+      const jobId = await operationContext.run(
+        {
+          rootJobId: "message-1",
+          causationId: "message-1",
+          projectionLineage: [],
+          derivationDepth: 0,
+        },
+        "message-1",
+        () =>
+          service.enqueue({
+            type: "shell:embedding",
+            data: testEntity,
+            options: enqueueOpts({ detached: true }),
+          }),
+      );
+
+      const job = await service.getStatus(jobId);
+      expect(job?.metadata.rootJobId).toBe(jobId);
+      expect(job?.metadata.provenance).toEqual({
+        rootJobId: jobId,
+        causationId: jobId,
+        projectionLineage: [],
+        derivationDepth: 0,
+      });
+    });
+
     it("starts a fresh projection lineage when the root changes", async () => {
       const parentProvenance = {
         rootJobId: "wave-1",
