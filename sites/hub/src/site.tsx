@@ -1,0 +1,42 @@
+import { defineSite, sectionGroup, type SiteDefinition } from "@rizom/site";
+import { fieldScript } from "./field/script";
+import { opening, openingContent } from "./home/opening";
+import { HubLayout } from "./layout";
+import { siteCSS } from "./styles";
+
+/**
+ * The hub's landing page, a story told over a field of lights. Each chapter
+ * is a section of the home group; its words live in the brain as
+ * site-content/home/<chapter>.md and fall back to the design's copy below,
+ * and its `data-hub-scene` tells the field what to draw (see ./field).
+ */
+const homeSections = sectionGroup("home", {
+  opening,
+});
+
+export const hubSite: SiteDefinition = defineSite({
+  layouts: { default: HubLayout },
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      title: "Rizom Hub Eindhoven",
+      description:
+        "Where organizations, researchers and independent people work on questions that matter to them, and the ecosystem keeps what it learns.",
+      layout: "default",
+      navigation: { show: false },
+      sections: [{ id: "opening", template: "home.opening" }],
+    },
+  ],
+  sections: [homeSections],
+  content: {
+    home: {
+      opening: openingContent,
+    },
+  },
+  entityDisplay: {},
+  themeOverride: siteCSS,
+  headScripts: [fieldScript],
+});
+
+export default hubSite;

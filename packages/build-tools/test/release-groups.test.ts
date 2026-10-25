@@ -115,6 +115,7 @@ test("deployable site and theme inventory declares brain compatibility", async (
     [
       "@rizom/site-books",
       "@rizom/site-docs",
+      "@rizom/site-hub",
       "@rizom/site-rizom-ai",
       "@rizom/site-thefourth",
       "@rizom/theme-books",
