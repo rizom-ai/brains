@@ -34,6 +34,7 @@ function OpeningSection({
       className="hub-ch hub-ch--open"
       id="open"
       data-hub-scene="opening"
+      data-hub-label="Open"
       data-hub-caption={`${coordinates} · ${place}`}
     >
       <div className="hub-card">

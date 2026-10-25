@@ -1,10 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import {
+  bendPoint,
   cloudPlace,
+  cohortPhase,
+  departure,
+  memoryLevel,
   nearestPairs,
+  onRecord,
   sceneAt,
   seedLights,
+  sparkPath,
   stageFor,
+  type Light,
 } from "../src/field/model";
 
 describe("the field's lights", () => {
@@ -130,5 +137,85 @@ describe("the cloud", () => {
     expect(Math.hypot(x2 - stage.cx, y2 - stage.cy)).toBeGreaterThan(
       Math.hypot(x1 - stage.cx, y1 - stage.cy),
     );
+  });
+});
+
+describe("the pipeline", () => {
+  const lights = seedLights(112, 11);
+  const gone = (t: number): Light[] =>
+    lights.filter((light) => departure(light.rank, lights.length, t) >= 1);
+
+  test("takes nobody before the chapter starts", () => {
+    expect(gone(0)).toHaveLength(0);
+  });
+
+  test("takes about half the region by the end, the warm ones first", () => {
+    const left = gone(1);
+    expect(left.length).toBeGreaterThan(lights.length * 0.4);
+    expect(left.length).toBeLessThan(lights.length * 0.55);
+    const warm = lights.filter((light) => light.warm);
+    expect(gone(0.5).length).toBeGreaterThan(0);
+    expect(gone(0.5).every((light) => light.warm)).toBe(true);
+    expect(warm.every((light) => left.includes(light))).toBe(true);
+  });
+
+  test("lets each light leave over a stretch, not at once", () => {
+    const halfway = lights.map((light) =>
+      departure(light.rank, lights.length, 0.5),
+    );
+    expect(halfway.some((k) => k > 0 && k < 1)).toBe(true);
+  });
+});
+
+describe("the cohorts", () => {
+  test("arrive, stay and leave, one after another", () => {
+    expect(cohortPhase(0, 3)).toMatchObject({
+      c: 0,
+      u: 0,
+      arrive: 0,
+      leave: 0,
+    });
+    expect(cohortPhase(0.5, 3)).toMatchObject({ c: 1, arrive: 1, leave: 0 });
+    expect(cohortPhase(0.5, 3).u).toBeCloseTo(0.5);
+    expect(cohortPhase(1, 3)).toMatchObject({ c: 2, u: 1, leave: 1 });
+  });
+});
+
+describe("what the hub has on record", () => {
+  const samples = Array.from({ length: 200 }, (_, i) => i / 199);
+
+  test("builds with a Brain: each cohort starts where the last stopped", () => {
+    const levels = samples.map((t) => memoryLevel(t, true));
+    levels.slice(1).forEach((level, i) => {
+      expect(level).toBeGreaterThanOrEqual((levels[i] ?? 0) - 1e-9);
+    });
+    expect(memoryLevel(1, true)).toBeCloseTo(4, 1);
+    expect(onRecord(2, true)).toBe(28);
+  });
+
+  test("starts from zero without one", () => {
+    expect(memoryLevel(0.249, false)).toBeLessThan(0.05);
+    expect(memoryLevel(0.5, false)).toBeLessThan(0.05);
+    expect(memoryLevel(0.15, false)).toBeGreaterThan(0.4);
+    expect(
+      Math.max(...samples.map((t) => memoryLevel(t, false))),
+    ).toBeLessThanOrEqual(1);
+    expect(onRecord(2, false)).toBe(0);
+  });
+
+  test("draws both lines for the sparkline", () => {
+    const line = sparkPath(true);
+    expect(line.startsWith("M8.0,62.0")).toBe(true);
+    expect(line.split("L")).toHaveLength(121);
+    expect(sparkPath(false)).not.toBe(line);
+  });
+});
+
+describe("a bent thread", () => {
+  test("runs from one end to the other", () => {
+    expect(bendPoint(0, 0, 100, 0, 0.3, 0)).toEqual([0, 0]);
+    expect(bendPoint(0, 0, 100, 0, 0.3, 1)).toEqual([100, 0]);
+    expect(bendPoint(0, 0, 100, 0, 0, 0.5)).toEqual([50, 0]);
+    expect(bendPoint(0, 0, 100, 0, 0.3, 0.5)[1]).toBeCloseTo(15);
   });
 });

@@ -129,6 +129,60 @@ describe("@rizom/site-hub", () => {
     expect(html).not.toContain("Powered by Rizom");
   });
 
+  test("tells the story in order, the why after the opening", () => {
+    expect(site.routes[0]?.sections?.map((section) => section.id)).toEqual([
+      "opening",
+      "pipeline",
+      "programs",
+      "memory",
+    ]);
+  });
+
+  test("tells the pipeline in the design's words, numbered 01", () => {
+    const html = renderSection("pipeline");
+    expect(html).toContain('data-hub-scene="pipeline"');
+    expect(html).toContain('data-hub-label="01"');
+    expect(html).toContain("Innovation runs <em>one way</em>.");
+    expect(html).toContain(
+      "The way we organize innovation was built for the center.",
+    );
+    expect(html).toContain("left the region, and took what they learned");
+    expect(html).toContain("&quot;center&quot;:&quot;The center&quot;");
+  });
+
+  test("tells how programs end, with the connector's button", () => {
+    const html = renderSection("programs");
+    expect(html).toContain('data-hub-scene="programs"');
+    expect(html).toContain('data-hub-label="02"');
+    expect(html).toContain("Every program starts <em>from zero</em>.");
+    expect(html).toMatch(
+      /<button[^>]*data-hub-connector[^>]*>Let the connector leave<\/button>/,
+    );
+    expect(html).toContain("&quot;connector&quot;:&quot;The connector&quot;");
+  });
+
+  test("tells the hub that remembers, with its Brain switch and sparkline", () => {
+    const html = renderSection("memory");
+    expect(html).toContain('data-hub-scene="memory"');
+    expect(html).toContain('data-hub-label="03"');
+    expect(html).toContain(
+      "Each cohort starts where the last <em>stopped</em>.",
+    );
+    expect(html).toMatch(
+      /<button[^>]*data-hub-memory="on"[^>]*aria-pressed="true"[^>]*>With a Brain<\/button>/,
+    );
+    expect(html).toMatch(
+      /<button[^>]*data-hub-memory="off"[^>]*aria-pressed="false"[^>]*>Without<\/button>/,
+    );
+    expect(html).toMatch(/<path class="hub-spark__with" d="M8.0,62.0/);
+  });
+
+  test("gives the reader a rail of chapters to jump between", () => {
+    expect(renderLayout(siteInfo)).toMatch(
+      /<ol class="hub-rail" aria-label="Chapters">/,
+    );
+  });
+
   test("ships the field's script and styles with the site", () => {
     expect((site.headScripts ?? []).join("\n")).toContain("data-hub-scene");
     expect(site.themeOverride).toContain(".hub-field");
