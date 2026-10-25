@@ -40,8 +40,8 @@ function ModeIcon(): JSX.Element {
 
 /**
  * The hub's frame: the field of lights fixed behind the story (see
- * ./field), the wordmark, the place and the theme toggle above it, and the
- * commons below. There is no menu of other pages; the hub has one.
+ * ./field), the wordmark, the place and the theme toggle above it, the rail
+ * of chapters (filled by the field script) beside it, and the commons below. There is no menu of other pages; the hub has one.
  */
 export function HubLayout({
   sections,
@@ -67,6 +67,7 @@ export function HubLayout({
           </button>
         </div>
       </header>
+      <ol className="hub-rail" aria-label="Chapters" />
       <main className="hub-main">{sections}</main>
       <footer className="hub-foot">
         <span>{COMMONS}</span>

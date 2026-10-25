@@ -1,6 +1,9 @@
 import { defineSite, sectionGroup, type SiteDefinition } from "@rizom/site";
 import { fieldScript } from "./field/script";
+import { memory, memoryContent } from "./home/memory";
 import { opening, openingContent } from "./home/opening";
+import { pipeline, pipelineContent } from "./home/pipeline";
+import { programs, programsContent } from "./home/programs";
 import { HubLayout } from "./layout";
 import { siteCSS } from "./styles";
 
@@ -12,6 +15,9 @@ import { siteCSS } from "./styles";
  */
 const homeSections = sectionGroup("home", {
   opening,
+  pipeline,
+  programs,
+  memory,
 });
 
 export const hubSite: SiteDefinition = defineSite({
@@ -25,13 +31,21 @@ export const hubSite: SiteDefinition = defineSite({
         "Where organizations, researchers and independent people work on questions that matter to them, and the ecosystem keeps what it learns.",
       layout: "default",
       navigation: { show: false },
-      sections: [{ id: "opening", template: "home.opening" }],
+      sections: [
+        { id: "opening", template: "home.opening" },
+        { id: "pipeline", template: "home.pipeline" },
+        { id: "programs", template: "home.programs" },
+        { id: "memory", template: "home.memory" },
+      ],
     },
   ],
   sections: [homeSections],
   content: {
     home: {
       opening: openingContent,
+      pipeline: pipelineContent,
+      programs: programsContent,
+      memory: memoryContent,
     },
   },
   entityDisplay: {},

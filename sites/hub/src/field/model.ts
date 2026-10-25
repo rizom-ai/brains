@@ -193,3 +193,89 @@ export function cloudPlace(
       drift * Math.cos(time * 0.00033 + light.ph) * 4,
   ];
 }
+
+/** Smoothstep: eases a 0–1 value in and out. */
+export function ease(k: number): number {
+  return k * k * (3 - 2 * k);
+}
+
+/** How far `t` is between `a` and `b`, clamped to 0–1. */
+export function segment(t: number, a: number, b: number): number {
+  return Math.min(1, Math.max(0, (t - a) / (b - a)));
+}
+
+/**
+ * How far a light has gone toward the center (0 home, 1 gone) at `t` through
+ * the pipeline: the lights leave in rank order, the warm ones first, each
+ * over a stretch, until about half the region has left.
+ */
+export function departure(rank: number, count: number, t: number): number {
+  const leaving = ease(segment(t, 0.08, 0.86)) * count * 0.52;
+  return Math.min(1, Math.max(0, (leaving - rank) / 9));
+}
+
+/** Which cohort is in the program at `t`, how far through it is, and how far it has arrived and left. */
+export function cohortPhase(
+  t: number,
+  cohorts: number,
+): { c: number; u: number; arrive: number; leave: number } {
+  const at = t * cohorts;
+  const c = Math.min(cohorts - 1, Math.floor(at));
+  const u = at - c;
+  return {
+    c: c,
+    u: u,
+    arrive: ease(segment(u, 0, 0.28)),
+    leave: ease(segment(u, 0.74, 1)),
+  };
+}
+
+/**
+ * What the hub has on record at `t` through four cohorts, in cohorts' worth:
+ * with a Brain each cohort adds to what the last left; without one, each
+ * cohort's learning is gone when it ends.
+ */
+export function memoryLevel(t: number, withBrain: boolean): number {
+  const at = Math.min(Math.max(t, 0), 0.9999) * 4;
+  const c = Math.floor(at);
+  const u = at - c;
+  const rise = ease(segment(u, 0.1, 0.8));
+  return withBrain ? c + rise : rise * (1 - segment(u, 0.88, 1));
+}
+
+/** People and introductions on record when a cohort (0-based) starts. */
+export function onRecord(cohort: number, withBrain: boolean): number {
+  return withBrain ? cohort * 14 : 0;
+}
+
+/** The sparkline's y for a level, in its 300×78 box. */
+export function sparkY(level: number): number {
+  return 62 - level * 13;
+}
+
+/** The sparkline for what the hub has on record, with or without a Brain, across its 300×78 box. */
+export function sparkPath(withBrain: boolean): string {
+  return Array.from({ length: 121 }, function point(_, k) {
+    const x = 8 + (k / 120) * 284;
+    const y = sparkY(memoryLevel(k / 120, withBrain));
+    return (k ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1);
+  }).join("");
+}
+
+/** A point `k` along a thread from one end to the other, bent sideways by `bend`. */
+export function bendPoint(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  bend: number,
+  k: number,
+): [number, number] {
+  const cx = (x1 + x2) / 2 - (y2 - y1) * bend;
+  const cy = (y1 + y2) / 2 + (x2 - x1) * bend;
+  const u = 1 - k;
+  return [
+    u * u * x1 + 2 * u * k * cx + k * k * x2,
+    u * u * y1 + 2 * u * k * cy + k * k * y2,
+  ];
+}
