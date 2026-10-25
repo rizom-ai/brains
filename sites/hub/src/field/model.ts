@@ -309,3 +309,27 @@ export function guestsPresent(week: number): number {
   const leave = Math.min(1, Math.max(0, (week - 17) / 2));
   return arrive * (1 - leave);
 }
+
+/**
+ * The holder lit in "How it fits into Rizom": the reader's choice when there
+ * is one; otherwise each in turn through the chapter's first half
+ * (organizations, the hub, members, Rizom B.V., the Foundation), then none,
+ * so all show together while the money flows.
+ */
+export function holderInFocus(t: number, chosen: string | null): string | null {
+  if (chosen) return chosen;
+  if (t >= 0.5) return null;
+  const holders = ["orgs", "hub", "members", "bv", "foundation"];
+  return holders[Math.min(4, Math.floor(t / 0.1))] ?? null;
+}
+
+/** How far the split of every lab has begun to flow (0–1). */
+export function splitFlow(t: number): number {
+  return Math.min(1, Math.max(0, (t - 0.5) / 0.12));
+}
+
+/** How far delivery has moved from Rizom B.V. to the hub's certified people (0–1). */
+export function certified(t: number): number {
+  const k = Math.min(1, Math.max(0, (t - 0.74) / 0.2));
+  return k * k * (3 - 2 * k);
+}

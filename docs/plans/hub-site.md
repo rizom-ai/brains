@@ -4,7 +4,7 @@ Last updated: 2026-10-25
 
 ## Status
 
-In progress. Slice 1 (#764) is on main and the `hub` brain runs on its own cohort; slices 2 and 3 are in review. The site pin follows the first publish of `@rizom/site-hub`.
+In progress. Slices 1 and 2 (#764, #765) are on main and the `hub` brain runs on its own cohort; slices 3 and 4 are in review. The site pin follows the first publish of `@rizom/site-hub`.
 
 ## Goal
 

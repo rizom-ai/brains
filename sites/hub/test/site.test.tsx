@@ -136,6 +136,7 @@ describe("@rizom/site-hub", () => {
       "programs",
       "memory",
       "labs",
+      "fit",
     ]);
   });
 
@@ -191,6 +192,23 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain("The Rizom Lab");
     expect(html).toContain("€49,600 excl. VAT, the same in every hub");
     expect(html).toContain("&quot;week&quot;:&quot;Week {week} / 26&quot;");
+  });
+
+  test("tells how the hub fits into Rizom: five holders and the split", () => {
+    const html = renderSection("fit");
+    expect(html).toContain('data-hub-scene="fit"');
+    expect(html).toContain('data-hub-label="05"');
+    expect(html).toContain("Each holds what it <em>should</em>.");
+    expect(html.match(/<button[^>]*data-hub-holder="/g)).toHaveLength(5);
+    expect(html).toContain("Rizom Foundation");
+    expect(html).toContain(
+      "Holds the method, the platform and the mark as a commons that cannot be sold.",
+    );
+    expect(html).toContain("60% delivery · Rizom B.V.");
+    expect(html).toContain("25% commons");
+    expect(html).toContain(
+      "&quot;bv&quot;:&quot;Rizom B.V. · setup, hosting, delivery&quot;",
+    );
   });
 
   test("gives the reader a rail of chapters to jump between", () => {

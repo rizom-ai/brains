@@ -88,7 +88,7 @@ describe("the story, without the canvas", () => {
     const labels = Array.from(
       window.document.querySelectorAll(".hub-rail button"),
     ).map((button) => button.textContent);
-    expect(labels).toEqual(["Open", "01", "02", "03", "04"]);
+    expect(labels).toEqual(["Open", "01", "02", "03", "04", "05"]);
     readAt("programs", 0.5);
     expect(text(".hub-rail button.is-current")).toBe("02");
   });
@@ -177,6 +177,44 @@ describe("the story, without the canvas", () => {
     expect(states()).toEqual(["done", "done", "on", "-"]);
     readAt("labs", 0.97);
     expect(states()).toEqual(["done", "done", "done", "on"]);
+  });
+
+  test("lights the holders one by one, then lets the reader pick", () => {
+    page(1440, 800);
+    const lit = (): string[] =>
+      Array.from(
+        window.document.querySelectorAll("[data-hub-holder].is-on"),
+      ).map((el) => el.getAttribute("data-hub-holder") ?? "");
+    readAt("fit", 0.05);
+    expect(lit()).toEqual(["orgs"]);
+    readAt("fit", 0.45);
+    expect(lit()).toEqual(["foundation"]);
+    readAt("fit", 0.6);
+    expect(lit()).toEqual([]);
+    expect(
+      window.document
+        .querySelector(".hub-holders")
+        ?.classList.contains("is-all"),
+    ).toBe(true);
+    click('[data-hub-holder="bv"]');
+    expect(lit()).toEqual(["bv"]);
+    click('[data-hub-holder="bv"]');
+    expect(lit()).toEqual([]);
+  });
+
+  test("moves delivery from Rizom B.V. to the hub's certified people", () => {
+    page(1440, 800);
+    readAt("fit", 0.6);
+    expect(text("[data-hub-split-delivery]")).toBe("60% delivery · Rizom B.V.");
+    readAt("fit", 0.97);
+    expect(text("[data-hub-split-delivery]")).toBe(
+      "60% delivery · the hub's certified people",
+    );
+    expect(
+      window.document
+        .querySelector(".hub-split")
+        ?.classList.contains("is-certified"),
+    ).toBe(true);
   });
 
   test("docks each chapter's card to the bottom of a phone", () => {

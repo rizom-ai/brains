@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   bendPoint,
+  certified,
   cloudPlace,
   cohortPhase,
   decisionsBy,
   departure,
   guestsPresent,
+  holderInFocus,
   labHome,
   labPhase,
   labWeek,
@@ -15,6 +17,7 @@ import {
   sceneAt,
   seedLights,
   sparkPath,
+  splitFlow,
   stageFor,
   type Light,
 } from "../src/field/model";
@@ -254,5 +257,28 @@ describe("a lab", () => {
     expect(guestsPresent(2)).toBe(0);
     expect(guestsPresent(10)).toBe(1);
     expect(guestsPresent(20)).toBe(0);
+  });
+});
+
+describe("the holders", () => {
+  test("light one by one as the chapter opens, then all together", () => {
+    expect(holderInFocus(0.05, null)).toBe("orgs");
+    expect(holderInFocus(0.15, null)).toBe("hub");
+    expect(holderInFocus(0.25, null)).toBe("members");
+    expect(holderInFocus(0.35, null)).toBe("bv");
+    expect(holderInFocus(0.45, null)).toBe("foundation");
+    expect(holderInFocus(0.6, null)).toBeNull();
+  });
+
+  test("follow the reader's choice over the scroll", () => {
+    expect(holderInFocus(0.05, "foundation")).toBe("foundation");
+    expect(holderInFocus(0.8, "bv")).toBe("bv");
+  });
+
+  test("let the money flow once each is known, delivery moving to the hub's people", () => {
+    expect(splitFlow(0.4)).toBe(0);
+    expect(splitFlow(0.7)).toBe(1);
+    expect(certified(0.6)).toBe(0);
+    expect(certified(1)).toBe(1);
   });
 });
