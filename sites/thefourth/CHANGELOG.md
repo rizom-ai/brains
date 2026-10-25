@@ -1,5 +1,11 @@
 # @rizom/site-thefourth
 
+## 0.2.0-alpha.3
+
+### Patch Changes
+
+- [#761](https://github.com/rizom-ai/brains/pull/761) [`4e4d31b`](https://github.com/rizom-ai/brains/commit/4e4d31bc1afa91cb6a2b3aac8111edc73454206e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Fourth's homepage tells Act III, enter the guide: the three spells, See, Tell and Reach, each a giant word on a mint disc with its mark (a magnifying glass, a lantern, a paper plane), alternating sides, and the worlds The Fourth works in as labels.
+
 ## 0.2.0-alpha.2
 
 ### Patch Changes
