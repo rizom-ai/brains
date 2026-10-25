@@ -1,7 +1,8 @@
 import { defineSite, sectionGroup, type SiteDefinition } from "@rizom/site";
 import { actOne, actOneContent } from "./home/act-one";
 import { actTwo, actTwoContent } from "./home/act-two";
-import { actsCSS } from "./home/acts-css";
+import { actsCSS, actThreeCSS } from "./home/acts-css";
+import { actThree, actThreeContent } from "./home/act-three";
 import { cover, coverContent } from "./home/cover";
 import { spellScript } from "./home/spell-script";
 import { TheFourthLayout } from "./layout";
@@ -16,6 +17,7 @@ const homeSections = sectionGroup("home", {
   cover,
   "act-one": actOne,
   "act-two": actTwo,
+  "act-three": actThree,
 });
 
 export const theFourthSite: SiteDefinition = defineSite({
@@ -33,6 +35,7 @@ export const theFourthSite: SiteDefinition = defineSite({
         { id: "cover", template: "home.cover" },
         { id: "act-one", template: "home.act-one" },
         { id: "act-two", template: "home.act-two" },
+        { id: "act-three", template: "home.act-three" },
       ],
     },
   ],
@@ -42,10 +45,11 @@ export const theFourthSite: SiteDefinition = defineSite({
       cover: coverContent,
       "act-one": actOneContent,
       "act-two": actTwoContent,
+      "act-three": actThreeContent,
     },
   },
   entityDisplay: {},
-  themeOverride: siteCSS + actsCSS,
+  themeOverride: siteCSS + actsCSS + actThreeCSS,
   headScripts: [spellScript],
 });
 
