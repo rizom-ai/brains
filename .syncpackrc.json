@@ -8,6 +8,7 @@
         "@rizom/site-books",
         "@rizom/site-docs",
         "@rizom/site-rizom-ai",
+        "@rizom/site-thefourth",
         "@rizom/theme-rizom-ai"
       ],
       "dependencies": ["@rizom/site", "@rizom/theme-default"],
@@ -56,6 +57,7 @@
         "@rizom/site-books",
         "@rizom/site-docs",
         "@rizom/site-rizom-ai",
+        "@rizom/site-thefourth",
         "@rizom/theme-rizom-ai"
       ],
       "dependencies": ["@rizom/site", "@rizom/theme-default"],
