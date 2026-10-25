@@ -120,3 +120,83 @@ export const actThreeCSS: string = `
   .tf-guide-spell__disc { width: 52vw; }
 }
 `;
+
+/** Act IV: the stories as tilted cards on a twelve-column board. */
+export const actFourCSS: string = `
+.tf-torn--ink { fill: var(--color-bg-dark); }
+.tf-act-four { padding-top: 60px; padding-bottom: 180px; display: flex; flex-direction: column; gap: 56px; }
+.tf-cards { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 28px; align-items: start; }
+.tf-card { position: relative; display: flex; flex-direction: column; background: var(--palette-card); box-shadow: var(--shadow-paper); transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.25, 1.2); }
+.tf-card:hover { transform: rotate(0deg) translateY(-6px); z-index: 6; }
+.tf-card .tf-eyebrow { margin-bottom: 18px; }
+.tf-card--feature { grid-column: 1 / 8; grid-row: 1; padding: 40px; transform: rotate(-1.2deg); z-index: 2; }
+.tf-card--figure { grid-column: 8 / 13; grid-row: 1; margin-top: 80px; padding: 32px; transform: rotate(2.4deg); z-index: 1; }
+.tf-card--ink { grid-column: 1 / 5; grid-row: 2; margin-top: -10px; background: var(--color-bg-dark); color: var(--color-text-on-dark); transform: rotate(2deg); z-index: 3; }
+.tf-card--story { grid-column: 4 / 11; grid-row: 2; margin-top: 70px; padding: 40px; background: var(--palette-red); transform: rotate(-0.8deg); z-index: 4; }
+.tf-card__figure { font-weight: 800; font-size: clamp(56px, 6vw, 96px); line-height: 0.85; letter-spacing: -0.05em; }
+.tf-card__figure--large { font-size: clamp(80px, 10vw, 160px); letter-spacing: -0.06em; }
+.tf-unit { color: var(--palette-red); }
+.tf-card__line { margin-top: 18px; font-size: clamp(22px, 2.2vw, 32px); line-height: 1.15; }
+.tf-card__text { margin-top: 12px; font-size: 17px; line-height: 1.45; max-width: 520px; }
+.tf-card__photo { margin: -40px -40px 28px; height: 220px; overflow: hidden; }
+.tf-card__photo img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); mix-blend-mode: multiply; }
+.tf-card__headline { font-weight: 800; font-size: clamp(42px, 5vw, 80px); line-height: 0.9; letter-spacing: -0.05em; }
+.tf-card__headline em { font-family: var(--font-story); font-style: italic; font-weight: 500; letter-spacing: var(--tracking-story); }
+.tf-card--story .tf-card__text { margin-top: 18px; line-height: 1.5; }
+@media (max-width: 860px) {
+  .tf-stack > * { grid-column: 1 / -1 !important; grid-row: auto !important; margin-top: 0 !important; }
+  .tf-card--feature, .tf-card--story { padding: 28px; }
+  .tf-card__photo { margin: -28px -28px 24px; }
+  .tf-card__figure--large { font-size: clamp(56px, 16vw, 120px); }
+  .tf-act-four { padding-bottom: 120px; }
+}
+`;
+
+/** The crossroads and the epilogue: the dark stage at the story's end. */
+export const finaleCSS: string = `
+.tf-act--crossroads, .tf-act--epilogue { background: var(--color-bg-dark); color: var(--color-text-on-dark); }
+.tf-act--crossroads { overflow: hidden; }
+.tf-site .tf-act--crossroads a:hover, .tf-site .tf-act--epilogue a:hover { color: inherit; }
+.tf-crossroads { padding-top: 120px; padding-bottom: 170px; display: flex; flex-direction: column; gap: 40px; }
+.tf-crossroads__row { display: flex; flex-wrap: wrap; align-items: center; gap: 48px; }
+.tf-crossroads__words { flex: 1 1 520px; min-width: 0; position: relative; z-index: 2; display: flex; flex-direction: column; gap: 24px; }
+.tf-crossroads__headline { margin: 0; font-weight: 800; font-size: clamp(80px, 12vw, 200px); line-height: 0.82; letter-spacing: -0.065em; }
+.tf-crossroads__headline em, .tf-epilogue__headline em { font-family: var(--font-story); font-style: italic; font-weight: 500; letter-spacing: var(--tracking-story); }
+.tf-crossroads .tf-lede { max-width: 460px; font-size: 20px; line-height: 1.5; }
+.tf-site .tf-pill--mustard { background: var(--palette-mustard); color: var(--palette-ink); }
+.tf-site .tf-pill--red { background: var(--palette-red); color: var(--palette-ink); }
+.tf-crossroads__scene { flex: 0 1 420px; min-width: 260px; position: relative; height: 460px; }
+.tf-spotlight { position: absolute; left: 50%; top: 50%; width: 140%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, var(--palette-mustard) 0 58%, rgb(214 201 29 / 0) 71%); }
+.tf-pole { position: absolute; left: 50%; top: -60px; bottom: -200px; width: 14px; transform: translateX(-50%); background: var(--color-bg-dark); box-shadow: var(--shadow-paper); }
+.tf-sign { position: absolute; color: var(--palette-ink); }
+.tf-sign svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tf-sign--1 { left: 0; top: 30px; width: 90%; }
+.tf-sign--2 { right: 0; top: 170px; width: 90%; }
+.tf-sign--3 { left: 6%; top: 300px; width: 70%; }
+.tf-sign--3 .tf-swing { animation-delay: -2s; }
+.tf-swing--back { animation-name: tf-swing-back; animation-duration: 5.5s; }
+@keyframes tf-swing-back { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(-10deg); } }
+
+.tf-act--epilogue { border-top: 1px solid rgb(255 255 255 / 0.12); }
+.tf-epilogue { padding-top: 110px; padding-bottom: 72px; display: flex; flex-direction: column; gap: 72px; }
+.tf-epilogue__row { display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-end; justify-content: space-between; }
+.tf-epilogue__headline { margin: 0; flex: 1 1 600px; min-width: 0; font-weight: 800; font-size: clamp(64px, 9.6vw, 160px); line-height: 0.84; letter-spacing: -0.06em; }
+.tf-epilogue__headline em { color: var(--palette-mint); }
+.tf-guides { flex: 0 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.tf-guides__sticks { display: flex; gap: 22px; align-items: flex-end; }
+.tf-guide { width: 120px; display: flex; flex-direction: column; align-items: center; transform-origin: 50% 100%; animation: tf-sway 6s ease-in-out infinite; }
+.tf-guide--late { animation-delay: -2.5s; }
+.tf-guide .tf-portrait { width: 100%; }
+.tf-guide .tf-portrait img { object-position: 50% 24%; }
+.tf-guide__stick { width: 6px; height: 60px; background: var(--palette-rule); }
+.tf-guide--late .tf-guide__stick { height: 40px; }
+.tf-guides__note { margin: 0; font-size: 17px; line-height: 1.55; }
+.tf-epilogue__ways { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 24px; }
+.tf-epilogue__contact { font-weight: 600; font-size: clamp(22px, 2.4vw, 34px); letter-spacing: -0.02em; }
+@keyframes tf-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@media (max-width: 860px) {
+  .tf-crossroads { padding-top: 88px; padding-bottom: 120px; }
+  .tf-crossroads__scene { height: 380px; }
+  .tf-epilogue { padding-top: 88px; gap: 48px; }
+}
+`;

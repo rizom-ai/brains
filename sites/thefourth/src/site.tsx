@@ -1,11 +1,15 @@
 import { defineSite, sectionGroup, type SiteDefinition } from "@rizom/site";
 import { actOne, actOneContent } from "./home/act-one";
 import { actTwo, actTwoContent } from "./home/act-two";
-import { actsCSS, actThreeCSS } from "./home/acts-css";
+import { actFourCSS, actsCSS, actThreeCSS, finaleCSS } from "./home/acts-css";
+import { crossroads, crossroadsContent } from "./home/crossroads";
+import { epilogue, epilogueContent } from "./home/epilogue";
+import { actFour, actFourContent } from "./home/act-four";
 import { actThree, actThreeContent } from "./home/act-three";
 import { cover, coverContent } from "./home/cover";
 import { spellScript } from "./home/spell-script";
 import { TheFourthLayout } from "./layout";
+import { motionCSS, sparkScript } from "./motion";
 import { siteCSS } from "./styles";
 
 /**
@@ -18,6 +22,9 @@ const homeSections = sectionGroup("home", {
   "act-one": actOne,
   "act-two": actTwo,
   "act-three": actThree,
+  "act-four": actFour,
+  crossroads,
+  epilogue,
 });
 
 export const theFourthSite: SiteDefinition = defineSite({
@@ -36,6 +43,9 @@ export const theFourthSite: SiteDefinition = defineSite({
         { id: "act-one", template: "home.act-one" },
         { id: "act-two", template: "home.act-two" },
         { id: "act-three", template: "home.act-three" },
+        { id: "act-four", template: "home.act-four" },
+        { id: "crossroads", template: "home.crossroads" },
+        { id: "epilogue", template: "home.epilogue" },
       ],
     },
   ],
@@ -46,11 +56,15 @@ export const theFourthSite: SiteDefinition = defineSite({
       "act-one": actOneContent,
       "act-two": actTwoContent,
       "act-three": actThreeContent,
+      "act-four": actFourContent,
+      crossroads: crossroadsContent,
+      epilogue: epilogueContent,
     },
   },
   entityDisplay: {},
-  themeOverride: siteCSS + actsCSS + actThreeCSS,
-  headScripts: [spellScript],
+  themeOverride:
+    siteCSS + actsCSS + actThreeCSS + actFourCSS + finaleCSS + motionCSS,
+  headScripts: [spellScript, sparkScript],
 });
 
 export default theFourthSite;
