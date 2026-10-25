@@ -66,6 +66,15 @@ export const siteCSS: string = `
 .hub-spark text { font-family: var(--font-label); font-weight: 500; font-size: 9px; letter-spacing: 0.08em; fill: var(--color-text-light); }
 .hub-spark circle { fill: var(--color-accent); }
 
+.hub-phases { display: grid; gap: 2px; margin: 18px 0 0; padding: 0; list-style: none; }
+.hub-phases li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 14px; padding: 10px 0; border-top: 1px solid var(--color-border); opacity: 0.38; transition: opacity 0.5s; }
+.hub-phases li.is-done { opacity: 0.62; }
+.hub-phases li.is-on { opacity: 1; }
+.hub-phases b { font-family: var(--font-label); font-weight: 500; font-size: 10.5px; line-height: 1.6; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.hub-phases span { font-size: 15px; line-height: 1.55; color: var(--color-text-muted); }
+.hub-price { margin: 16px 0 0; font-family: var(--font-label); font-weight: 500; font-size: 11px; line-height: 1.6; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-light); }
+.hub-price strong { font-weight: 500; color: var(--color-text); }
+
 .hub-foot { position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 32px clamp(16px, 6vw, 96px) 40px; font-family: var(--font-label); font-size: 11.5px; line-height: 1.6; letter-spacing: 0.03em; color: var(--color-text-light); }
 .hub-foot__links { display: flex; flex-wrap: wrap; gap: 16px; }
 .hub-foot__links a { color: var(--color-text-muted); }
@@ -81,6 +90,8 @@ export const siteCSS: string = `
   .hub-ch--open .hub-card { position: relative; top: auto; padding: 0 4px; border: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .hub-head { font-size: 30px; }
   .hub-text + .hub-text, .hub-spark { display: none; }
+  .hub-phases li { grid-template-columns: 1fr; gap: 2px; padding: 7px 0; }
+  .hub-phases li:not(.is-on) span { display: none; }
   .hub-title { font-size: 40px; margin: 16px 0 18px; }
   .hub-lede { font-size: 17px; }
   .hub-foot { padding: 28px 20px 36px; }

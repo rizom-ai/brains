@@ -135,6 +135,7 @@ describe("@rizom/site-hub", () => {
       "pipeline",
       "programs",
       "memory",
+      "labs",
     ]);
   });
 
@@ -175,6 +176,21 @@ describe("@rizom/site-hub", () => {
       /<button[^>]*data-hub-memory="off"[^>]*aria-pressed="false"[^>]*>Without<\/button>/,
     );
     expect(html).toMatch(/<path class="hub-spark__with" d="M8.0,62.0/);
+  });
+
+  test("tells a lab's six months, phase by phase, with its price", () => {
+    const html = renderSection("labs");
+    expect(html).toContain('data-hub-scene="labs"');
+    expect(html).toContain('data-hub-label="04"');
+    expect(html).toContain('id="labs"');
+    expect(html).toContain("A lab, not a <em>desk</em>.");
+    expect(html).toContain("Weeks 1–3");
+    expect(html).toContain("The audit");
+    expect(html).toContain("The organization takes its Brain home");
+    expect(html.match(/data-hub-phase="/g)).toHaveLength(4);
+    expect(html).toContain("The Rizom Lab");
+    expect(html).toContain("€49,600 excl. VAT, the same in every hub");
+    expect(html).toContain("&quot;week&quot;:&quot;Week {week} / 26&quot;");
   });
 
   test("gives the reader a rail of chapters to jump between", () => {

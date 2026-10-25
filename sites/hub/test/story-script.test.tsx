@@ -88,7 +88,7 @@ describe("the story, without the canvas", () => {
     const labels = Array.from(
       window.document.querySelectorAll(".hub-rail button"),
     ).map((button) => button.textContent);
-    expect(labels).toEqual(["Open", "01", "02", "03"]);
+    expect(labels).toEqual(["Open", "01", "02", "03", "04"]);
     readAt("programs", 0.5);
     expect(text(".hub-rail button.is-current")).toBe("02");
   });
@@ -156,6 +156,27 @@ describe("the story, without the canvas", () => {
       window.document.querySelector("[data-hub-spark-dot]")?.getAttribute("cx"),
     );
     expect(late).toBeGreaterThan(early);
+  });
+
+  test("lights each lab phase as its weeks pass, the earlier ones done", () => {
+    page(1440, 800);
+    const states = (): string[] =>
+      Array.from(window.document.querySelectorAll("[data-hub-phase]")).map(
+        (li) =>
+          li.classList.contains("is-on")
+            ? "on"
+            : li.classList.contains("is-done")
+              ? "done"
+              : "-",
+      );
+    readAt("labs", 0.06);
+    expect(states()).toEqual(["on", "-", "-", "-"]);
+    readAt("labs", 0.5);
+    expect(states()).toEqual(["done", "on", "-", "-"]);
+    readAt("labs", 0.8);
+    expect(states()).toEqual(["done", "done", "on", "-"]);
+    readAt("labs", 0.97);
+    expect(states()).toEqual(["done", "done", "done", "on"]);
   });
 
   test("docks each chapter's card to the bottom of a phone", () => {

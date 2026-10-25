@@ -3,7 +3,12 @@ import {
   bendPoint,
   cloudPlace,
   cohortPhase,
+  decisionsBy,
   departure,
+  guestsPresent,
+  labHome,
+  labPhase,
+  labWeek,
   memoryLevel,
   nearestPairs,
   onRecord,
@@ -217,5 +222,37 @@ describe("a bent thread", () => {
     expect(bendPoint(0, 0, 100, 0, 0.3, 1)).toEqual([100, 0]);
     expect(bendPoint(0, 0, 100, 0, 0, 0.5)).toEqual([50, 0]);
     expect(bendPoint(0, 0, 100, 0, 0.3, 0.5)[1]).toBeCloseTo(15);
+  });
+});
+
+describe("a lab", () => {
+  test("runs twenty-six weeks across the chapter, then goes home", () => {
+    expect(labWeek(0)).toBe(0);
+    expect(labWeek(0.47)).toBeCloseTo(13);
+    expect(labWeek(0.95)).toBe(26);
+    expect(labHome(0.8)).toBe(0);
+    expect(labHome(1)).toBeCloseTo(1);
+  });
+
+  test("moves from the audit to the pilot, the Brain in use and the end", () => {
+    expect(labPhase(1, 0)).toBe(0);
+    expect(labPhase(3, 0)).toBe(1);
+    expect(labPhase(17.9, 0)).toBe(1);
+    expect(labPhase(18, 0)).toBe(2);
+    expect(labPhase(24, 0)).toBe(3);
+    expect(labPhase(10, 0.2)).toBe(3);
+  });
+
+  test("keeps a decision as it is made, from the audit to the end of the pilot", () => {
+    expect(decisionsBy(2)).toBe(0);
+    expect(decisionsBy(10)).toBe(11);
+    expect(decisionsBy(18)).toBe(24);
+    expect(decisionsBy(26)).toBe(24);
+  });
+
+  test("brings the hub's people in for the pilot only", () => {
+    expect(guestsPresent(2)).toBe(0);
+    expect(guestsPresent(10)).toBe(1);
+    expect(guestsPresent(20)).toBe(0);
   });
 });

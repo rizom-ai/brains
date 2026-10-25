@@ -1,5 +1,6 @@
 import { defineSite, sectionGroup, type SiteDefinition } from "@rizom/site";
 import { fieldScript } from "./field/script";
+import { labs, labsContent } from "./home/labs";
 import { memory, memoryContent } from "./home/memory";
 import { opening, openingContent } from "./home/opening";
 import { pipeline, pipelineContent } from "./home/pipeline";
@@ -18,6 +19,7 @@ const homeSections = sectionGroup("home", {
   pipeline,
   programs,
   memory,
+  labs,
 });
 
 export const hubSite: SiteDefinition = defineSite({
@@ -36,6 +38,7 @@ export const hubSite: SiteDefinition = defineSite({
         { id: "pipeline", template: "home.pipeline" },
         { id: "programs", template: "home.programs" },
         { id: "memory", template: "home.memory" },
+        { id: "labs", template: "home.labs" },
       ],
     },
   ],
@@ -46,6 +49,7 @@ export const hubSite: SiteDefinition = defineSite({
       pipeline: pipelineContent,
       programs: programsContent,
       memory: memoryContent,
+      labs: labsContent,
     },
   },
   entityDisplay: {},

@@ -279,3 +279,33 @@ export function bendPoint(
     u * u * y1 + 2 * u * k * cy + k * k * y2,
   ];
 }
+
+/** The lab's week (0–26) at `t` through its chapter; the last tenth is the Brain going home. */
+export function labWeek(t: number): number {
+  return Math.min(1, Math.max(0, (t - 0.04) / 0.86)) * 26;
+}
+
+/** How far the lab's Brain has gone home with the organization (0–1). */
+export function labHome(t: number): number {
+  return Math.min(1, Math.max(0, (t - 0.9) / 0.1));
+}
+
+/** The lab's phase: 0 the audit (weeks 1–3), 1 the pilot, 2 the Brain in use (from week 19), 3 the end. */
+export function labPhase(week: number, home: number): number {
+  if (home > 0 || week >= 24) return 3;
+  if (week >= 18) return 2;
+  if (week >= 3) return 1;
+  return 0;
+}
+
+/** Decisions kept in the lab's Brain by a week: from the audit's end through the pilot. */
+export function decisionsBy(week: number): number {
+  return Math.floor(Math.min(15, Math.max(0, week - 3)) * 1.6);
+}
+
+/** How present the people the hub brings in are (0–1): they arrive with the pilot and leave as it ends. */
+export function guestsPresent(week: number): number {
+  const arrive = Math.min(1, Math.max(0, (week - 4) / 2));
+  const leave = Math.min(1, Math.max(0, (week - 17) / 2));
+  return arrive * (1 - leave);
+}

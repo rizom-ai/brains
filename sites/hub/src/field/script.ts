@@ -2,8 +2,13 @@ import {
   bendPoint,
   cloudPlace,
   cohortPhase,
+  decisionsBy,
   departure,
   ease,
+  guestsPresent,
+  labHome,
+  labPhase,
+  labWeek,
   memoryLevel,
   mulberry,
   nearestPairs,
@@ -44,6 +49,11 @@ export const fieldScriptSource: string = `(function () {
   ${onRecord.toString()}
   ${sparkY.toString()}
   ${bendPoint.toString()}
+  ${labWeek.toString()}
+  ${labHome.toString()}
+  ${labPhase.toString()}
+  ${decisionsBy.toString()}
+  ${guestsPresent.toString()}
   var TAU = Math.PI * 2;
   var COUNT = 112;
   function pad(value) { return (value < 10 ? "0" : "") + value; }
@@ -135,6 +145,16 @@ export const fieldScriptSource: string = `(function () {
           dot.setAttribute("cy", sparkY(memoryLevel(progress, memoryOn)).toFixed(1));
         }
       }
+      if (scene === "labs") labReadout();
+    }
+
+    function labReadout() {
+      var current = labPhase(labWeek(progress), labHome(progress));
+      Array.prototype.forEach.call(document.querySelectorAll("[data-hub-phase]"), function (item) {
+        var index = Number(item.getAttribute("data-hub-phase"));
+        item.classList.toggle("is-on", index === current);
+        item.classList.toggle("is-done", index < current);
+      });
     }
 
     function read() {
@@ -293,6 +313,11 @@ export const fieldScriptSource: string = `(function () {
       }
       ring(x, y, r, "brass", a, 1.4, 0, 0);
     }
+    function pulse(x1, y1, x2, y2, bend, col, a, now, period, offset, size) {
+      var k = still ? 0.5 : ((now / period) + offset) % 1;
+      var place = bendPoint(x1, y1, x2, y2, bend, k);
+      dot(place[0], place[1], size || 2.2, a * Math.sin(Math.PI * k), col);
+    }
     function caption(x, y, text, a, col, align) {
       if (a < 0.02 || !text) return;
       ctx.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
@@ -311,6 +336,9 @@ export const fieldScriptSource: string = `(function () {
         set(entry, place[0], place[1], entry.light.size * (scale > 1 ? 0.9 : 1), alpha === undefined ? baseAlpha(entry.light) : alpha, baseColor(entry.light));
       });
     }
+
+    var team = [80, 81, 82, 83].map(function (i) { return lights[order[i]]; });
+    var guests = [84, 85, 86, 87, 88].map(function (i) { return lights[order[i]]; });
 
     var scenes = {
       // The region: a field of lights, threaded to their neighbors.
@@ -448,6 +476,86 @@ export const fieldScriptSource: string = `(function () {
           });
           caption(hub.x, hub.y + hub.r + 18, captionOf(memoryOn ? "brain" : "hub"), 0.55 * fade, "brass");
           caption(stage.cx, stage.y0 + 20, fill(captionOf("cohort"), phase.c + 1), 0.5 * fade, "ink");
+        },
+      },
+
+      // 04: one lab on a 26-week dial: the audit, the pilot with the hub's
+      // people, the Brain in use, and the Brain going home.
+      labs: {
+        target: function (stage, t, now) {
+          var week = labWeek(t);
+          var present = guestsPresent(week);
+          this.week = week; this.home = labHome(t); this.present = present;
+          hubT = { x: stage.cx - stage.R * (stage.phone ? 0.78 : 0.9), y: stage.cy - stage.R * (stage.phone ? 0.86 : 0.78), r: stage.R * 0.05, a: 1, lit: 0.8 };
+          lights.forEach(function (entry) {
+            var light = entry.light;
+            var rr = stage.R * (0.82 + 0.3 * light.rad);
+            set(entry, stage.cx + Math.cos(light.ang) * rr * 1.1, stage.cy + Math.sin(light.ang) * rr * 0.86, light.size * 0.8, 0.22, baseColor(light));
+          });
+          team.forEach(function (entry, j) {
+            var angle = (still ? 0 : now * 0.00022) + (j * TAU) / 4;
+            set(entry, stage.cx + Math.cos(angle) * stage.R * 0.15, stage.cy + Math.sin(angle) * stage.R * 0.15, 3, 1, "brassSoft");
+          });
+          guests.forEach(function (entry, j) {
+            var light = entry.light;
+            var ox = stage.cx + Math.cos(light.ang) * stage.R * 0.95, oy = stage.cy + Math.sin(light.ang) * stage.R * 0.8;
+            var angle = -0.6 + j * 0.5;
+            var k = ease(present);
+            set(entry, ox + (stage.cx + Math.cos(angle) * stage.R * 0.33 - ox) * k, oy + (stage.cy + Math.sin(angle) * stage.R * 0.33 - oy) * k, light.size, 0.22 + 0.68 * present, "ink");
+          });
+        },
+        draw: function (stage, t, now, fade) {
+          var week = this.week, home = this.home, present = this.present;
+          var R = stage.R * 0.46, start = -Math.PI / 2;
+          function angleOf(w) { return start + (w / 26) * TAU; }
+          // Twenty-six weeks around the lab.
+          Array.from({ length: 26 }, function (_, w) {
+            var a = angleOf(w + 0.5), passed = w < week;
+            thread(stage.cx + Math.cos(a) * (R - 4), stage.cy + Math.sin(a) * (R - 4), stage.cx + Math.cos(a) * (R + 4), stage.cy + Math.sin(a) * (R + 4), passed ? "brass" : "ink", (passed ? 0.7 : 0.18) * fade, 1, 0);
+          });
+          [[0, 3, "audit", 2.6], [3, 18, "pilot", 1.6], [18, 24, "inUse", 2], [24, 26, "end", 2.6]].forEach(function (phase) {
+            var reach = Math.min(phase[1], Math.max(phase[0], week));
+            if (reach <= phase[0]) return;
+            ctx.strokeStyle = C.brass; ctx.globalAlpha = 0.85 * fade; ctx.lineWidth = phase[3];
+            ctx.beginPath(); ctx.arc(stage.cx, stage.cy, R + 12, angleOf(phase[0]) + 0.02, angleOf(reach) - 0.02); ctx.stroke();
+            ctx.globalAlpha = 1;
+            var mid = angleOf((phase[0] + phase[1]) / 2);
+            var align = Math.cos(mid) > 0.3 ? "start" : Math.cos(mid) < -0.3 ? "end" : "center";
+            caption(stage.cx + Math.cos(mid) * (R + 30), stage.cy + Math.sin(mid) * (R + 30), captionOf(phase[2]), 0.7 * fade * segment(week, phase[0], phase[0] + 0.8), "brass", align);
+          });
+          caption(stage.cx, stage.cy + R + 36, String(captionOf("week")).replace("{week}", pad(Math.min(26, Math.floor(week) + 1))), 0.6 * fade, "ink");
+          // The question, then the lab's Brain growing around it with every decision.
+          var brain = segment(week, 3, 4.2);
+          var decisions = decisionsBy(week);
+          var org = stage.phone ? [stage.cx + stage.R * 0.5, stage.cy + stage.R * 0.86] : [stage.cx + stage.R * 0.86, stage.cy + stage.R * 0.7];
+          var lx = stage.cx + (org[0] - stage.cx) * ease(home), ly = stage.cy + (org[1] - stage.cy) * ease(home);
+          Array.from({ length: decisions }, function (_, k) {
+            var a = k * 2.399, rr = stage.R * (0.22 + (k % 3) * 0.025);
+            var dx = stage.cx + Math.cos(a) * rr, dy = stage.cy + Math.sin(a) * rr;
+            thread(dx, dy, lx, ly, "brass", 0.12 * fade * (1 - home), 0.7, 0);
+            ctx.fillStyle = C.ink; ctx.globalAlpha = 0.55 * fade * (1 - home);
+            ctx.fillRect(dx - 2, dy - 2.5, 4, 5);
+            ctx.globalAlpha = 1;
+          });
+          ctx.save(); ctx.translate(stage.cx, stage.cy); ctx.rotate(Math.PI / 4);
+          ctx.strokeStyle = C.ink; ctx.globalAlpha = 0.7 * fade * (1 - home); ctx.lineWidth = 1.2; ctx.strokeRect(-5, -5, 10, 10);
+          ctx.restore(); ctx.globalAlpha = 1;
+          if (brain < 0.5) caption(stage.cx, stage.cy + 22, captionOf("question"), 0.6 * fade * (1 - brain * 2), "ink");
+          lantern(lx, ly, stage.R * (0.035 + 0.025 * brain + decisions * 0.0009), fade * brain, brain);
+          // The hub brings people to the question.
+          guests.forEach(function (entry) { thread(entry.x, entry.y, team[0].x, team[0].y, "ink", 0.25 * present * fade, 0.8, 0.15); });
+          thread(hub.x, hub.y, stage.cx, stage.cy, "brass", 0.25 * fade, 0.8, -0.1);
+          caption(hub.x, hub.y - hub.r - 14, captionOf("hub"), 0.55 * fade, "brass");
+          if (present > 0.3 && !stage.phone) caption(stage.cx + stage.R * 0.45, stage.cy - stage.R * 0.4, captionOf("guests"), 0.45 * fade * present, "ink", "start");
+          // In use, then home.
+          var use = segment(week, 18, 19);
+          if (use > 0) {
+            dot(org[0], org[1], 5, fade * use, "brassSoft");
+            caption(org[0], org[1] + 20, captionOf(home > 0.5 ? "home" : "organization"), 0.6 * fade * use, "brass");
+            thread(org[0], org[1], lx, ly, "brass", 0.35 * fade * use * (1 - home), 1, 0.1, [3, 4]);
+            if (home < 0.5) [0, 0.33, 0.66].forEach(function (offset) { pulse(org[0], org[1], lx, ly, 0.1, "brassSoft", fade * use, now, 2400, offset); });
+            if (home > 0) thread(hub.x, hub.y, lx, ly, "brass", 0.2 * fade * home, 0.7, 0.2);
+          }
         },
       },
     };
