@@ -1,5 +1,9 @@
 import { defineSite, sectionGroup, type SiteDefinition } from "@rizom/site";
+import { actOne, actOneContent } from "./home/act-one";
+import { actTwo, actTwoContent } from "./home/act-two";
+import { actsCSS } from "./home/acts-css";
 import { cover, coverContent } from "./home/cover";
+import { spellScript } from "./home/spell-script";
 import { TheFourthLayout } from "./layout";
 import { siteCSS } from "./styles";
 
@@ -8,7 +12,11 @@ import { siteCSS } from "./styles";
  * home group; its words live in the brain as site-content/home/<act>.md and
  * fall back to the design's copy below.
  */
-const homeSections = sectionGroup("home", { cover });
+const homeSections = sectionGroup("home", {
+  cover,
+  "act-one": actOne,
+  "act-two": actTwo,
+});
 
 export const theFourthSite: SiteDefinition = defineSite({
   layouts: { default: TheFourthLayout },
@@ -21,13 +29,24 @@ export const theFourthSite: SiteDefinition = defineSite({
         "A brand consultancy in Taipei, for products, research and impact that are hard to explain and worth understanding.",
       layout: "default",
       navigation: { show: false },
-      sections: [{ id: "cover", template: "home.cover" }],
+      sections: [
+        { id: "cover", template: "home.cover" },
+        { id: "act-one", template: "home.act-one" },
+        { id: "act-two", template: "home.act-two" },
+      ],
     },
   ],
   sections: [homeSections],
-  content: { home: { cover: coverContent } },
+  content: {
+    home: {
+      cover: coverContent,
+      "act-one": actOneContent,
+      "act-two": actTwoContent,
+    },
+  },
   entityDisplay: {},
-  themeOverride: siteCSS,
+  themeOverride: siteCSS + actsCSS,
+  headScripts: [spellScript],
 });
 
 export default theFourthSite;
