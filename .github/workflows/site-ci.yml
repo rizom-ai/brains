@@ -9,6 +9,7 @@ on:
     paths:
       - "sites/books/**"
       - "sites/docs/**"
+      - "sites/hub/**"
       - "sites/rizom/**"
       - "sites/rizom-ai/**"
       - "sites/rizom-foundation/**"
@@ -39,6 +40,7 @@ on:
     paths:
       - "sites/books/**"
       - "sites/docs/**"
+      - "sites/hub/**"
       - "sites/rizom/**"
       - "sites/rizom-ai/**"
       - "sites/rizom-foundation/**"

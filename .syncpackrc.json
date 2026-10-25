@@ -7,6 +7,7 @@
         "@rizom/site",
         "@rizom/site-books",
         "@rizom/site-docs",
+        "@rizom/site-hub",
         "@rizom/site-rizom-ai",
         "@rizom/site-thefourth",
         "@rizom/theme-rizom-ai"
@@ -56,6 +57,7 @@
       "packages": [
         "@rizom/site-books",
         "@rizom/site-docs",
+        "@rizom/site-hub",
         "@rizom/site-rizom-ai",
         "@rizom/site-thefourth",
         "@rizom/theme-rizom-ai"
