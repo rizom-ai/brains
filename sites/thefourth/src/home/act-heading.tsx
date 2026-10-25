@@ -30,11 +30,15 @@ export function ActHeading({
   );
 }
 
-/** The torn paper edge where one act's color gives way to the paper. */
-export function TornEdge(): JSX.Element {
+/** The torn paper edge where one act gives way to the next: paper or ink. */
+export function TornEdge({
+  tone = "paper",
+}: {
+  tone?: "paper" | "ink";
+}): JSX.Element {
   return (
     <svg
-      className="tf-torn"
+      className={`tf-torn tf-torn--${tone}`}
       aria-hidden="true"
       viewBox="0 0 1440 36"
       preserveAspectRatio="none"

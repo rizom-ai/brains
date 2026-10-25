@@ -26,6 +26,9 @@ describe("Act III, enter the guide", () => {
       "act-one",
       "act-two",
       "act-three",
+      "act-four",
+      "crossroads",
+      "epilogue",
     ]);
   });
 
