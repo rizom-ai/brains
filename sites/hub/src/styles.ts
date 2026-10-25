@@ -15,7 +15,6 @@ export const siteCSS: string = `
 .hub-mark { font-family: var(--font-display); font-weight: 500; font-variation-settings: "SOFT" 70; font-size: 22px; line-height: 1; letter-spacing: -0.01em; }
 .hub-mark b { font-weight: 500; color: var(--color-accent); }
 .hub-bar__end { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 28px); }
-.hub-place { font-family: var(--font-label); font-weight: 500; font-size: 11px; line-height: 1; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-light); }
 .hub-mode { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .hub-mode svg { width: 14px; height: 14px; }
 .hub-mode:hover { color: var(--color-accent); }

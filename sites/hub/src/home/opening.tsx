@@ -8,26 +8,21 @@ import {
 import { emphasize } from "../emphasis";
 
 /**
- * The opening: the hub's name and place, the promise and a cue to scroll,
- * beside the region drawn as a field of lights (the field's `opening`
- * scene, captioned with the hub's coordinates and place).
+ * The opening: the hub's name, the promise and a cue to scroll, beside the
+ * region drawn as a field of lights (the field's `opening` scene).
  */
 const openingSchema = z.object({
   eyebrow: z.string(),
-  place: z.string(),
   headline: z.string(),
   lede: z.string(),
   cue: z.string(),
-  coordinates: z.string(),
 });
 
 function OpeningSection({
   eyebrow,
-  place,
   headline,
   lede,
   cue,
-  coordinates,
 }: z.infer<typeof openingSchema>): JSX.Element {
   return (
     <section
@@ -35,12 +30,9 @@ function OpeningSection({
       id="open"
       data-hub-scene="opening"
       data-hub-label="Open"
-      data-hub-caption={`${coordinates} · ${place}`}
     >
       <div className="hub-card">
-        <p className="hub-cap">
-          {eyebrow} <span>· {place}</span>
-        </p>
+        <p className="hub-cap">{eyebrow}</p>
         <h1 className="hub-title">{emphasize(headline)}</h1>
         <p className="hub-lede">{lede}</p>
         <p className="hub-cue">
@@ -58,15 +50,13 @@ export const opening: SectionDefinition = defineSection(
   {
     title: "Opening",
     description:
-      "The hub's name and place, the headline (wrap a word in *asterisks* to set it in brass italics), the lede, the scroll cue and the hub's coordinates, shown under the field.",
+      "The hub's name, the headline (wrap a word in *asterisks* to set it in brass italics), the lede and the scroll cue.",
   },
 );
 
 export const openingContent: JsonObject = {
   eyebrow: "Rizom Hub",
-  place: "Eindhoven",
   headline: "A place that keeps what its ecosystem *learns*.",
   lede: "Organizations, researchers and independent people already meet here to work on questions that matter to them. The hub makes sure what they learn stays: with them, with the hub, and with whoever comes next.",
   cue: "Scroll to see why",
-  coordinates: "51.44° N · 5.47° E",
 } satisfies z.input<typeof openingSchema>;

@@ -30,7 +30,7 @@ export const hubSite: SiteDefinition = defineSite({
     {
       id: "home",
       path: "/",
-      title: "Rizom Hub Eindhoven",
+      title: "Rizom Hub",
       description:
         "Where organizations, researchers and independent people work on questions that matter to them, and the ecosystem keeps what it learns.",
       layout: "default",

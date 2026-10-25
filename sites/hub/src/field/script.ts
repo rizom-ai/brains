@@ -382,14 +382,13 @@ export const fieldScriptSource: string = `(function () {
       // The region: a field of lights, threaded to their neighbors.
       opening: {
         target: function (stage, t, now) { region(stage, now, 1); },
-        draw: function (stage, t, now, fade, section) {
+        draw: function (stage, t, now, fade) {
           pairs.forEach(function (pair) {
             var p = lights[pair[0]], q = lights[pair[1]];
             if (Math.hypot(p.x - q.x, p.y - q.y) < stage.R * 0.32) {
               thread(p.x, p.y, q.x, q.y, "brass", 0.13 * fade * Math.min(p.a, q.a), 0.8, 0.12);
             }
           });
-          if (!stage.phone) caption(stage.cx, stage.y1 - 16, section.getAttribute("data-hub-caption"), 0.4 * fade, "ink");
         },
       },
 
