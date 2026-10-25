@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.606
+
+### Patch Changes
+
+- [#763](https://github.com/rizom-ai/brains/pull/763) [`25fe0c1`](https://github.com/rizom-ai/brains/commit/25fe0c1f74ea07552df6d9540b49d410425ef989) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site sections read their saved content raw, so an image in a section's content reaches the site as its `entity://image/<id>` reference, and the site renders the image the build writes, instead of receiving it inlined as a data URL. The scoped read view a site build uses now also scopes raw lookups.
+
 ## 0.2.0-alpha.605
 
 ### Patch Changes
