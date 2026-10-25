@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-hub",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "The Rizom hub in Eindhoven — an interactive story on why an ecosystem needs a hub and how it fits into Rizom",
   "type": "module",
   "exports": {
