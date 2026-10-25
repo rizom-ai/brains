@@ -3,9 +3,11 @@ import { fieldScript } from "./field/script";
 import { fit, fitContent } from "./home/fit";
 import { labs, labsContent } from "./home/labs";
 import { memory, memoryContent } from "./home/memory";
+import { network, networkContent } from "./home/network";
 import { opening, openingContent } from "./home/opening";
 import { pipeline, pipelineContent } from "./home/pipeline";
 import { programs, programsContent } from "./home/programs";
+import { start, startContent } from "./home/start";
 import { HubLayout } from "./layout";
 import { siteCSS } from "./styles";
 
@@ -22,6 +24,8 @@ const homeSections = sectionGroup("home", {
   memory,
   labs,
   fit,
+  network,
+  start,
 });
 
 export const hubSite: SiteDefinition = defineSite({
@@ -42,6 +46,8 @@ export const hubSite: SiteDefinition = defineSite({
         { id: "memory", template: "home.memory" },
         { id: "labs", template: "home.labs" },
         { id: "fit", template: "home.fit" },
+        { id: "network", template: "home.network" },
+        { id: "start", template: "home.start" },
       ],
     },
   ],
@@ -54,6 +60,8 @@ export const hubSite: SiteDefinition = defineSite({
       memory: memoryContent,
       labs: labsContent,
       fit: fitContent,
+      network: networkContent,
+      start: startContent,
     },
   },
   entityDisplay: {},

@@ -8,12 +8,16 @@ import {
   departure,
   guestsPresent,
   holderInFocus,
+  hubSites,
+  hubsLit,
   labHome,
   labPhase,
   labWeek,
+  linkNearest,
   memoryLevel,
   nearestPairs,
   onRecord,
+  plantAt,
   sceneAt,
   seedLights,
   sparkPath,
@@ -280,5 +284,50 @@ describe("the holders", () => {
     expect(splitFlow(0.7)).toBe(1);
     expect(certified(0.6)).toBe(0);
     expect(certified(1)).toBe(1);
+  });
+});
+
+describe("the network", () => {
+  test("places fourteen hubs across the stage, the same way every visit", () => {
+    const sites = hubSites(14, 5);
+    expect(sites).toHaveLength(14);
+    expect(hubSites(14, 5)).toEqual(sites);
+    sites.forEach(([u, v]) => {
+      expect(u).toBeGreaterThan(0);
+      expect(u).toBeLessThan(1);
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThan(1);
+    });
+  });
+
+  test("lights hubs one after another until all fourteen are on", () => {
+    expect(hubsLit(0)).toBe(1);
+    expect(hubsLit(0.3)).toBeGreaterThan(1);
+    expect(hubsLit(0.3)).toBeLessThan(14);
+    expect(hubsLit(0.7)).toBe(14);
+  });
+
+  test("links each hub to its nearest neighbors, with no hub in the middle", () => {
+    const points: [number, number][] = [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [10, 10],
+      [11, 10],
+    ];
+    const links = linkNearest(points, 2);
+    links.forEach(([a, b]) => expect(a).toBeLessThan(b));
+    expect(new Set(links.map(([a, b]) => `${a}-${b}`)).size).toBe(links.length);
+    expect(new Set(links.flat()).size).toBe(5);
+    const degree = points.map(
+      (_, i) => links.filter((l) => l.includes(i)).length,
+    );
+    expect(Math.max(...degree)).toBeLessThanOrEqual(4);
+  });
+
+  test("plants a hub where the reader taps the stage, and nowhere else", () => {
+    const stage = stageFor(1440, 900, null);
+    expect(plantAt(stage.cx, stage.cy, stage)).toEqual([0.5, 0.5]);
+    expect(plantAt(100, 400, stage)).toBeNull();
   });
 });

@@ -88,7 +88,7 @@ describe("the story, without the canvas", () => {
     const labels = Array.from(
       window.document.querySelectorAll(".hub-rail button"),
     ).map((button) => button.textContent);
-    expect(labels).toEqual(["Open", "01", "02", "03", "04", "05"]);
+    expect(labels).toEqual(["Open", "01", "02", "03", "04", "05", "06", "07"]);
     readAt("programs", 0.5);
     expect(text(".hub-rail button.is-current")).toBe("02");
   });
@@ -215,6 +215,31 @@ describe("the story, without the canvas", () => {
         .querySelector(".hub-split")
         ?.classList.contains("is-certified"),
     ).toBe(true);
+  });
+
+  test("counts the hubs as they light, and adds the ones the reader plants", () => {
+    page(1440, 800);
+    readAt("network", 0.02);
+    expect(text("[data-hub-hubs]")).toBe("1");
+    readAt("network", 0.7);
+    expect(text("[data-hub-hubs]")).toBe("14");
+    const network = window.document.querySelector("#network");
+    network?.dispatchEvent(
+      new window.MouseEvent("click", {
+        bubbles: true,
+        clientX: 900,
+        clientY: 400,
+      }),
+    );
+    expect(text("[data-hub-hubs]")).toBe("15");
+    window.document.querySelector("#network .hub-card")?.dispatchEvent(
+      new window.MouseEvent("click", {
+        bubbles: true,
+        clientX: 200,
+        clientY: 400,
+      }),
+    );
+    expect(text("[data-hub-hubs]")).toBe("15");
   });
 
   test("docks each chapter's card to the bottom of a phone", () => {

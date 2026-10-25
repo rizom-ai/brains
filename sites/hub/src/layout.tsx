@@ -1,6 +1,13 @@
 import type { JSX } from "react";
 import type { SiteLayoutInfo, SiteLayoutProps } from "@rizom/site";
 
+/** The story's own chapters, reachable from the header. */
+const CHAPTER_LINKS = [
+  { label: "Labs", href: "#labs" },
+  { label: "Practice", href: "#start" },
+  { label: "Programs", href: "#start" },
+];
+
 const COMMONS =
   "The method, the platform and the Rizom mark are held by the Rizom Foundation as a commons.";
 
@@ -53,6 +60,13 @@ export function HubLayout({
           rizom<b>/hub</b>
         </a>
         <div className="hub-bar__end">
+          <nav className="hub-nav" aria-label="Story">
+            {CHAPTER_LINKS.map((link) => (
+              <a key={link.label} href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
           <button
             type="button"
             className="hub-mode"

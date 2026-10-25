@@ -8,13 +8,17 @@ import {
   ease,
   guestsPresent,
   holderInFocus,
+  hubSites,
+  hubsLit,
   labHome,
   labPhase,
   labWeek,
+  linkNearest,
   memoryLevel,
   mulberry,
   nearestPairs,
   onRecord,
+  plantAt,
   sceneAt,
   seedLights,
   segment,
@@ -40,6 +44,7 @@ import {
 export const fieldScriptSource: string = `(function () {
   ${mulberry.toString()}
   ${seedLights.toString()}
+  ${linkNearest.toString()}
   ${nearestPairs.toString()}
   ${stageFor.toString()}
   ${sceneAt.toString()}
@@ -60,6 +65,9 @@ export const fieldScriptSource: string = `(function () {
   ${holderInFocus.toString()}
   ${splitFlow.toString()}
   ${certified.toString()}
+  ${hubSites.toString()}
+  ${hubsLit.toString()}
+  ${plantAt.toString()}
   var TAU = Math.PI * 2;
   var COUNT = 112;
   function pad(value) { return (value < 10 ? "0" : "") + value; }
@@ -76,6 +84,9 @@ export const fieldScriptSource: string = `(function () {
     var connectorGone = false;
     var memoryOn = true;
     var chosenHolder = null;
+    var planted = [];
+    var sites = hubSites(14, 5);
+    var OURS = 7;
 
     var lights = seedLights(COUNT, 11).map(function (light) {
       return { light: light, x: 0, y: 0, r: 0, a: 0, col: "ink", tx: 0, ty: 0, tr: 0, ta: 0, snap: false };
@@ -112,7 +123,7 @@ export const fieldScriptSource: string = `(function () {
     // On a phone each chapter's card docks to the bottom of the screen and
     // the drawing ends above it.
     function placeCards() {
-      Array.prototype.forEach.call(document.querySelectorAll(".hub-ch:not(.hub-ch--open) .hub-card"), function (card) {
+      Array.prototype.forEach.call(document.querySelectorAll(".hub-ch:not(.hub-ch--open) .hub-card:not(.hub-card--wide)"), function (card) {
         if (innerWidth < 860) {
           var top = Math.max(64, innerHeight - card.offsetHeight - 14);
           card.setAttribute("data-top", String(top));
@@ -154,6 +165,7 @@ export const fieldScriptSource: string = `(function () {
       }
       if (scene === "labs") labReadout();
       if (scene === "fit") fitReadout();
+      if (scene === "network") setText(find("[data-hub-hubs]"), hubsLit(progress) + planted.length);
     }
 
     function labReadout() {
@@ -228,6 +240,16 @@ export const fieldScriptSource: string = `(function () {
         chosenHolder = chosenHolder === id ? null : id;
         readouts();
       });
+    });
+
+    // Tapping the network's stage plants another hub there.
+    var networkSection = find('[data-hub-scene="network"]');
+    if (networkSection) networkSection.addEventListener("click", function (event) {
+      if (event.target && event.target.closest && event.target.closest(".hub-card")) return;
+      var spot = plantAt(event.clientX, event.clientY, stageFor(innerWidth, innerHeight, cardTop()));
+      if (!spot || planted.length >= 24) return;
+      planted.push({ u: spot[0], v: spot[1], born: Date.now() });
+      readouts();
     });
 
     placeCards();
@@ -679,6 +701,79 @@ export const fieldScriptSource: string = `(function () {
           // What the commons earns goes back into the platform every hub runs on.
           holders.roots.filter(function (_, j) { return j % 4 === 1; }).forEach(function (entry, j) {
             pulse(entry.x, entry.y, hub.x, hub.y + hub.r, -0.08, "moss", 0.7 * fade * flow, now, 4200, j * 0.3, 1.8);
+          });
+        },
+      },
+
+      // 06: the view widens until this hub is one of many, none in the middle.
+      network: {
+        target: function (stage, t, now) {
+          var lit = hubsLit(t);
+          // Planted hubs land exactly where tapped; the seeded ones keep clear of the stage's edges.
+          function at(spot) { return [stage.x0 + spot[0] * stage.w, stage.y0 + spot[1] * stage.h]; }
+          function siteAt(site) { return at([0.06 + site[0] * 0.88, 0.06 + site[1] * 0.88]); }
+          function shown(index) { return index === OURS || ((index + 14 - OURS) % 14) < lit; }
+          this.state = { at: at, siteAt: siteAt, shown: shown };
+          var ours = siteAt(sites[OURS]);
+          hubT = { x: ours[0], y: ours[1], r: stage.R * 0.045, a: 1, lit: 1 };
+          lights.forEach(function (entry, i) {
+            var index = Math.floor(i / 8) % 14, j = i % 8;
+            var site = siteAt(sites[index]);
+            var angle = (j / 8) * TAU + entry.light.ph * 0.2 + (still ? 0 : now * 0.00012);
+            var rr = stage.R * (0.07 + 0.035 * (j % 3));
+            set(entry, site[0] + Math.cos(angle) * rr, site[1] + Math.sin(angle) * rr * 0.86, entry.light.size * 0.75, shown(index) ? 0.75 : 0, baseColor(entry.light));
+          });
+        },
+        draw: function (stage, t, now, fade) {
+          var state = this.state;
+          var points = sites.map(function (site, index) { return state.shown(index) ? state.siteAt(site) : null; })
+            .filter(function (point) { return point; })
+            .concat(planted.map(function (spot) { return state.at([spot.u, spot.v]); }));
+          // Each hub links to its nearest neighbors; nobody sits in the middle.
+          linkNearest(points, 2).forEach(function (pair, k) {
+            var a = points[pair[0]], b = points[pair[1]];
+            thread(a[0], a[1], b[0], b[1], "brass", 0.3 * fade, 1, 0.1);
+            pulse(a[0], a[1], b[0], b[1], 0.1, "brassSoft", fade, now, 2600 + (k % 5) * 500, (k * 0.17) % 1, 2);
+          });
+          points.forEach(function (point) {
+            if (Math.hypot(point[0] - hub.x, point[1] - hub.y) > 2) lantern(point[0], point[1], stage.R * 0.035, fade, 0.7);
+          });
+          planted.forEach(function (spot) {
+            var point = state.at([spot.u, spot.v]);
+            var grow = Math.min(1, Math.max(0, (Date.now() - spot.born) / 900));
+            Array.from({ length: 6 }, function (_, j) {
+              var angle = (j / 6) * TAU + (still ? 0 : now * 0.00012);
+              dot(point[0] + Math.cos(angle) * stage.R * 0.08 * grow, point[1] + Math.sin(angle) * stage.R * 0.07 * grow, 1.8, 0.7 * fade * grow, "ink");
+            });
+            ring(point[0], point[1], stage.R * 0.035 + (1 - grow) * 30, "brass", fade * (0.4 + 0.6 * grow), 1.2, 0, 0);
+          });
+          caption(hub.x, hub.y + stage.R * 0.15 + 12, captionOf("ours"), 0.75 * fade, "brass");
+        },
+      },
+
+      // 07: the field at rest around the lit hub, clear of the doors.
+      start: {
+        target: function (stage, t, now) {
+          var rest = stage.phone ? { cx: stage.cx, cy: stage.cy, s: 0.8 } : { cx: stage.x1 - stage.R * 0.42, cy: stage.y1 - stage.R * 0.46, s: 0.5 };
+          var resting = { x0: stage.x0, x1: stage.x1, y0: stage.y0, y1: stage.y1, w: stage.w, h: stage.h, cx: rest.cx, cy: rest.cy, R: stage.R, phone: stage.phone };
+          this.rest = rest;
+          hubT = { x: rest.cx, y: rest.cy, r: stage.R * 0.08 * rest.s * 1.4, a: 1, lit: 1 };
+          lights.forEach(function (entry) {
+            var place = cloudPlace(entry.light, resting, now, rest.s, still);
+            set(entry, place[0], place[1], entry.light.size, entry.light.warm ? 0.85 : 0.4, baseColor(entry.light));
+          });
+        },
+        draw: function (stage, t, now, fade) {
+          var rest = this.rest;
+          pairs.forEach(function (pair) {
+            var p = lights[pair[0]], q = lights[pair[1]];
+            thread(p.x, p.y, q.x, q.y, "brass", 0.12 * fade, 0.8, 0.12);
+          });
+          lights.forEach(function (entry) {
+            if (entry.light.warm) thread(entry.x, entry.y, hub.x, hub.y, "brass", 0.1 * fade, 0.7, 0.05);
+          });
+          Array.from({ length: 5 }, function (_, k) {
+            ring(hub.x, hub.y, stage.R * rest.s * (0.18 + k * 0.07), "brass", (0.2 - k * 0.03) * fade, 0.8, 0.06 + k * 0.01, k);
           });
         },
       },

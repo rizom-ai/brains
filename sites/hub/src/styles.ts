@@ -15,6 +15,9 @@ export const siteCSS: string = `
 .hub-mark { font-family: var(--font-display); font-weight: 500; font-variation-settings: "SOFT" 70; font-size: 22px; line-height: 1; letter-spacing: -0.01em; }
 .hub-mark b { font-weight: 500; color: var(--color-accent); }
 .hub-bar__end { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 28px); }
+.hub-nav { display: flex; gap: clamp(12px, 2.4vw, 28px); }
+.hub-nav a { font-family: var(--font-label); font-weight: 500; font-size: 11px; line-height: 1; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-muted); }
+.hub-nav a:hover { color: var(--color-accent); }
 .hub-mode { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .hub-mode svg { width: 14px; height: 14px; }
 .hub-mode:hover { color: var(--color-accent); }
@@ -40,6 +43,7 @@ export const siteCSS: string = `
 .hub-rail button.is-current::after { width: 26px; background: var(--color-accent); }
 .hub-rail button:focus-visible { outline: 1px solid var(--color-accent); outline-offset: 4px; }
 
+.hub-ch[data-len="1.2"] { height: 120vh; }
 .hub-ch[data-len="2.2"] { height: 220vh; }
 .hub-ch[data-len="2.6"] { height: 260vh; }
 .hub-ch[data-len="2.8"] { height: 280vh; }
@@ -94,6 +98,21 @@ export const siteCSS: string = `
 .hub-split div:nth-child(3) { flex: 25; background: var(--palette-moss); }
 .hub-split__legend { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-family: var(--font-label); font-weight: 500; font-size: 10.5px; line-height: 1.5; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-light); }
 
+.hub-hint { display: flex; align-items: center; gap: 10px; margin: 18px 0 0; font-family: var(--font-label); font-weight: 500; font-size: 11px; line-height: 1.4; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+.hub-hint::before { content: ""; width: 8px; height: 8px; border: 1px solid var(--color-accent); border-radius: 50%; animation: hub-ping 1.8s ease-out infinite; }
+@keyframes hub-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+.hub-note { margin: 14px 0 0; font-family: var(--font-label); font-size: 12px; line-height: 1.6; letter-spacing: 0.02em; color: var(--color-text-light); }
+.hub-card--wide { top: 12vh; width: min(64rem, 88vw); }
+.hub-doors { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 30px; border-top: 1px solid var(--color-border); }
+.hub-door { display: grid; align-content: start; gap: 10px; padding: 22px 22px 22px 0; border-right: 1px solid var(--color-border); }
+.hub-door + .hub-door { padding-left: 22px; }
+.hub-door:last-child { border-right: 0; }
+.hub-door small { font-family: var(--font-label); font-weight: 500; font-size: 10.5px; line-height: 1; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-light); }
+.hub-door strong { font-family: var(--font-display); font-weight: 500; font-variation-settings: "SOFT" 70; font-size: 26px; line-height: 1.15; }
+.hub-door span { font-size: 15px; line-height: 1.55; color: var(--color-text-muted); }
+.hub-door em { margin-top: 6px; font-family: var(--font-label); font-style: normal; font-weight: 500; font-size: 11px; line-height: 1; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+.hub-site .hub-door:hover strong { color: var(--color-accent); }
+
 .hub-foot { position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 32px clamp(16px, 6vw, 96px) 40px; font-family: var(--font-label); font-size: 11.5px; line-height: 1.6; letter-spacing: 0.03em; color: var(--color-text-light); }
 .hub-foot__links { display: flex; flex-wrap: wrap; gap: 16px; }
 .hub-foot__links a { color: var(--color-text-muted); }
@@ -102,7 +121,7 @@ export const siteCSS: string = `
 @media (max-width: 859px) {
   .hub-site { font-size: 16px; }
   .hub-bar { padding: 14px 16px; }
-  .hub-rail { display: none; }
+  .hub-rail, .hub-nav { display: none; }
   .hub-ch { padding-top: 72vh; }
   .hub-ch--open { padding-top: 46vh; }
   .hub-card { position: sticky; top: var(--card-top, 56vh); width: auto; margin: 0 16px; padding: 22px 20px; border: 1px solid var(--color-border); border-radius: 14px; background: color-mix(in srgb, var(--color-bg) 86%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
@@ -114,6 +133,10 @@ export const siteCSS: string = `
   .hub-holder { grid-template-columns: 10px 1fr; padding: 7px 6px; }
   .hub-holder span { grid-column: 2; }
   .hub-holder:not(.is-on) span { display: none; }
+  .hub-ch[data-len="1.2"] { padding-top: 40vh; height: auto; }
+  .hub-card--wide { position: relative; top: auto; }
+  .hub-doors { grid-template-columns: 1fr; }
+  .hub-door, .hub-door + .hub-door { padding: 18px 0; border-right: 0; border-bottom: 1px solid var(--color-border); }
   .hub-title { font-size: 40px; margin: 16px 0 18px; }
   .hub-lede { font-size: 17px; }
   .hub-foot { padding: 28px 20px 36px; }
