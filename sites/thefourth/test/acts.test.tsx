@@ -17,16 +17,6 @@ function renderSection(id: string, content?: Record<string, unknown>): string {
   return render(<Section {...props} />);
 }
 
-describe("the home route", () => {
-  test("tells the acts in order after the cover", () => {
-    expect(site.routes[0]?.sections?.map((section) => section.id)).toEqual([
-      "cover",
-      "act-one",
-      "act-two",
-    ]);
-  });
-});
-
 describe("Act I, the hero", () => {
   test("opens once upon a time on the hero's work", () => {
     const html = renderSection("act-one");

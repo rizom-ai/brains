@@ -90,3 +90,33 @@ button.tf-pill { border: 0; cursor: pointer; font-family: var(--font-sans); }
   .tf-spell { min-height: 560px; }
 }
 `;
+
+/** Act III: the guide's spells on mint discs, then the worlds. */
+export const actThreeCSS: string = `
+.tf-act-three { padding-top: 80px; padding-bottom: 170px; display: flex; flex-direction: column; gap: 80px; }
+.tf-act-three__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 32px; }
+.tf-act-three__intro { margin: 0; max-width: 400px; font-size: 19px; line-height: 1.55; }
+.tf-guide-spell { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: flex-start; gap: 16px 40px; }
+.tf-guide-spell--mirrored { flex-direction: row-reverse; justify-content: flex-end; }
+.tf-guide-spell__disc { position: absolute; left: -2%; bottom: 4%; width: clamp(200px, 26vw, 400px); aspect-ratio: 1; border-radius: 50%; background: var(--palette-mint); box-shadow: var(--shadow-paper); z-index: 0; }
+.tf-guide-spell--mirrored .tf-guide-spell__disc { left: auto; right: -2%; }
+.tf-guide-spell__word { position: relative; z-index: 1; font-weight: 800; font-size: clamp(110px, 20vw, 320px); line-height: 0.8; letter-spacing: -0.07em; }
+.tf-guide-spell__mark { position: relative; z-index: 2; width: clamp(80px, 9vw, 140px); margin-bottom: 30px; color: var(--palette-ink); filter: brightness(0) drop-shadow(0 10px 10px rgb(35 35 35 / 0.25)); }
+.tf-guide-spell__mark svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tf-guide-spell__text { position: relative; z-index: 3; flex: 0 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 24px; font-size: 18px; line-height: 1.5; }
+.tf-sectors { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.tf-sectors .tf-story { font-size: 22px; }
+.tf-sectors__list { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.tf-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px; background: var(--palette-card); border-radius: var(--radius-pill); font-weight: 600; font-size: var(--text-label-md); box-shadow: var(--shadow-paper); }
+.tf-chip__dot { width: 9px; height: 9px; border-radius: 50%; }
+.tf-chip__dot--red { background: var(--palette-red); }
+.tf-chip__dot--mint { background: var(--palette-mint); }
+.tf-chip__dot--mustard { background: var(--palette-mustard); }
+.tf-chip__dot--ink { background: var(--palette-ink); }
+.tf-flicker { animation: tf-flicker 2.6s ease-in-out infinite; }
+@keyframes tf-flicker { 0%, 100% { opacity: 0.95; } 40% { opacity: 0.6; } 55% { opacity: 1; } 70% { opacity: 0.75; } }
+@media (max-width: 860px) {
+  .tf-act-three { padding-bottom: 120px; gap: 56px; }
+  .tf-guide-spell__disc { width: 52vw; }
+}
+`;
