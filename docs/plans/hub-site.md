@@ -4,11 +4,11 @@ Last updated: 2026-10-25
 
 ## Status
 
-In progress. Slice 1 (#764) is on main and the `hub` brain runs on its own cohort; slice 2 is in review. The site pin follows the first publish of `@rizom/site-hub`.
+In progress. Slices 1 and 2 (#764, #765) are on main and the `hub` brain runs on its own cohort; slices 3 to 5 are in review. The site pin follows the first publish of `@rizom/site-hub`.
 
 ## Goal
 
-The Rizom hub in Eindhoven gets its own site on its own brain at `hub.rizom.ai`. The landing page is the approved story design, [`docs/design/hub-homepage/story.html`](../design/hub-homepage/story.html): a full-screen field of lights that the reader's scroll drives through seven chapters, explaining why an ecosystem needs a hub and how the hub fits into Rizom. Four chapters are interactive: the connector leaving, the hub's Brain switched on and off, the holders in the Rizom structure, and planting hubs in the network.
+The Rizom hub gets its own site on its own brain at `hub.rizom.ai`. The landing page is the approved story design, [`docs/design/hub-homepage/story.html`](../design/hub-homepage/story.html): a full-screen field of lights that the reader's scroll drives through seven chapters, explaining why an ecosystem needs a hub and how the hub fits into Rizom. Four chapters are interactive: the connector leaving, the hub's Brain switched on and off, the holders in the Rizom structure, and planting hubs in the network.
 
 ## Baseline
 
@@ -20,11 +20,11 @@ The Rizom hub in Eindhoven gets its own site on its own brain at `hub.rizom.ai`.
 ## Decisions
 
 1. **One package.** `@rizom/site-hub` in `sites/hub`, modeled on `@rizom/site-thefourth`. There is no hub theme: the brain pins `@rizom/theme-rizom-ai`, and the hub's own styles (the field, the chapter cards, the rail) ship in the site's `themeOverride`, written against the theme's tokens, never hex values. Brass is the hub; ruby is Rizom B.V.; moss is the Rizom Foundation.
-2. **The brain.** Handle `hub`, `hub.rizom.ai`, `profileKind: organization`, `anchorKind: organization`, anchor name "Rizom Hub Eindhoven", its own cohort `hub` with the `site` bundle, content repo `rizom-ai/hub-content`, setup email to yeehaa@rizom.ai.
+2. **The brain.** Handle `hub`, `hub.rizom.ai`, `profileKind: organization`, `anchorKind: organization`, anchor name "Rizom Hub", its own cohort `hub` with the `site` bundle, content repo `rizom-ai/hub-content`, setup email to yeehaa@rizom.ai.
 3. **Content.** The route is `home`; each chapter is a section of the `home` group with its own schema (`opening`, `pipeline`, `programs`, `memory`, `labs`, `fit`, `network`, `start`), so its words, button labels and readout phrases live in `site-content/home/<chapter>.md`. The design's copy is the fallback content and the seeded entities. Figures that the drawing counts (people who left, cohorts, weeks, hubs) are computed by the script, not content.
 4. **The field.** One browser script, attached as a head script, draws the field on a fixed canvas and runs the scene of the chapter under the middle of the screen. Each chapter section carries `data-hub-scene="<name>"`, so scenes are keyed by name, not order. The script reads the colors from the theme's tokens and redraws when `data-theme` changes. Without the script, the chapters read as text over the night ground. Reduced motion stops the drift and holds the pulses still.
 5. **Interaction state stays in the page.** The connector, the Brain toggle, the selected holder and the planted hubs live in the script's memory; nothing is stored.
-6. **Only what is real.** The header holds the wordmark, the place, links to the page's own chapters and the theme toggle. The doors in the last chapter point to the site-info call to action (`cta.buttonLink`); there are no forms. The footer carries the commons line and links to rizom.ai, its Work and Foundation rooms. The federation note stays on the network chapter.
+6. **Only what is real.** The header holds the wordmark, links to the page's own chapters and the theme toggle; the site names no city. Each door in the last chapter links where its content says, seeded with `https://rizom.ai/contact` until the hub has its own address; there are no forms. The footer carries the commons line and links to rizom.ai, its Work and Foundation rooms. The federation note stays on the network chapter.
 7. **Phone in every slice.** Below 860px the drawing holds the top of the screen and each chapter's card docks to the bottom; a lab phase or a holder shows its text only while it is active. Each slice ships its chapters at phone width.
 8. **Delivery.** Each slice is released through the site lane, pinned in `users/hub.yaml` and deployed.
 
@@ -34,11 +34,11 @@ Each slice writes its tests first; passes `bun run typecheck`, `bun test` and `b
 
 ### 1. Walking skeleton
 
-`hub.rizom.ai` opens on the opening chapter: the field of lights breathing beside "A place that keeps what its ecosystem learns.", under a header with the wordmark, "Eindhoven" and the theme toggle, and a footer with the commons line.
+`hub.rizom.ai` opens on the opening chapter: the field of lights breathing beside "A place that keeps what its ecosystem learns.", under a header with the wordmark and the theme toggle, and a footer with the commons line.
 
 - Tests first: the site renders the `home` route with the opening section from fallback content and from a `site-content` entity; the section carries its scene name; the layout renders the canvas, the header and the footer, with the theme toggle; the field script boots on the opening scene; the package boundary tests.
 - Build: the package; the release-lane lists (`.syncpackrc.json`, `packages/build-tools/test/release-groups.test.ts`, the root `test:packed:sites` script, the `site-ci.yml` path filters).
-- Fleet: the `hub` user and cohort in rover-pilot, `siteOverride` to `@rizom/site-hub` and `@rizom/theme-rizom-ai`, `images:lock`, deploy; the site-info call to action and copyright seeded in `hub-content`.
+- Fleet: the `hub` user and cohort in rover-pilot, `siteOverride` to `@rizom/site-hub` and `@rizom/theme-rizom-ai`, `images:lock`, deploy.
 
 ### 2. Why: chapters 01 to 03
 

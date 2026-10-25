@@ -5,9 +5,9 @@ import type { SiteLayoutInfo } from "@rizom/site";
 import site from "../src";
 
 const siteInfo: SiteLayoutInfo = {
-  title: "Rizom Hub Eindhoven",
+  title: "Rizom Hub",
   description: "Where an ecosystem keeps what it learns",
-  copyright: "Rizom Hub Eindhoven",
+  copyright: "Rizom Hub",
   navigation: {
     primary: [{ label: "Notes", href: "/notes", priority: 10 }],
     secondary: [],
@@ -25,7 +25,7 @@ function renderLayout(info: SiteLayoutInfo): string {
   return render(
     <Layout
       sections={[<p key="s">Chapter</p>]}
-      title="Rizom Hub Eindhoven"
+      title="Rizom Hub"
       description=""
       path="/"
       siteInfo={info}
@@ -59,15 +59,13 @@ describe("@rizom/site-hub", () => {
   test("opens with the design's words until the brain has its own", () => {
     expect(site.content?.["home"]?.["opening"]).toEqual({
       eyebrow: "Rizom Hub",
-      place: "Eindhoven",
       headline: "A place that keeps what its ecosystem *learns*.",
       lede: "Organizations, researchers and independent people already meet here to work on questions that matter to them. The hub makes sure what they learn stays: with them, with the hub, and with whoever comes next.",
       cue: "Scroll to see why",
-      coordinates: "51.44° N · 5.47° E",
     });
     const html = renderSection("opening");
     expect(html).toContain("Rizom Hub");
-    expect(html).toContain("Eindhoven");
+    expect(html).not.toContain("Eindhoven");
     expect(html).toContain(
       "A place that keeps what its ecosystem <em>learns</em>.",
     );
@@ -78,11 +76,9 @@ describe("@rizom/site-hub", () => {
   test("tells the opening in the brain's words when it has them", () => {
     const html = renderSection("opening", {
       eyebrow: "Rizom Hub",
-      place: "Eindhoven",
       headline: "Where the ecosystem *remembers*.",
       lede: "A new lede.",
       cue: "Read on",
-      coordinates: "51.44° N · 5.47° E",
     });
     expect(html).toContain("Where the ecosystem <em>remembers</em>.");
     expect(html).toContain("A new lede.");
@@ -93,17 +89,16 @@ describe("@rizom/site-hub", () => {
     const html = renderSection("opening");
     expect(html).toContain('data-hub-scene="opening"');
     expect(html).toContain('id="open"');
-    expect(html).toContain('data-hub-caption="51.44° N · 5.47° E · Eindhoven"');
   });
 
-  test("frames the page with the field, the wordmark and the place", () => {
+  test("frames the page with the field and the wordmark, naming no city", () => {
     const html = renderLayout(siteInfo);
     expect(html).toMatch(
       /<canvas[^>]*class="hub-field"[^>]*aria-hidden="true"/,
     );
-    expect(html).toContain('aria-label="Rizom Hub Eindhoven home"');
+    expect(html).toContain('aria-label="Rizom Hub home"');
     expect(html).toContain("rizom<b>/hub</b>");
-    expect(html).toContain("Eindhoven");
+    expect(html).not.toContain("Eindhoven");
     expect(html).toContain(">Chapter</p>");
   });
 
@@ -121,7 +116,7 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain('href="https://rizom.ai"');
     expect(html).toContain('href="https://rizom.ai/work"');
     expect(html).toContain('href="https://rizom.ai/foundation"');
-    expect(html).toContain("Rizom Hub Eindhoven");
+    expect(html).toContain("Rizom Hub");
   });
 
   test("leaves the framework's placeholder signature out", () => {
@@ -135,6 +130,10 @@ describe("@rizom/site-hub", () => {
       "pipeline",
       "programs",
       "memory",
+      "labs",
+      "fit",
+      "network",
+      "start",
     ]);
   });
 
@@ -175,6 +174,72 @@ describe("@rizom/site-hub", () => {
       /<button[^>]*data-hub-memory="off"[^>]*aria-pressed="false"[^>]*>Without<\/button>/,
     );
     expect(html).toMatch(/<path class="hub-spark__with" d="M8.0,62.0/);
+  });
+
+  test("tells a lab's six months, phase by phase, with its price", () => {
+    const html = renderSection("labs");
+    expect(html).toContain('data-hub-scene="labs"');
+    expect(html).toContain('data-hub-label="04"');
+    expect(html).toContain('id="labs"');
+    expect(html).toContain("A lab, not a <em>desk</em>.");
+    expect(html).toContain("Weeks 1–3");
+    expect(html).toContain("The audit");
+    expect(html).toContain("The organization takes its Brain home");
+    expect(html.match(/data-hub-phase="/g)).toHaveLength(4);
+    expect(html).toContain("The Rizom Lab");
+    expect(html).toContain("€49,600 excl. VAT, the same in every hub");
+    expect(html).toContain("&quot;week&quot;:&quot;Week {week} / 26&quot;");
+  });
+
+  test("tells how the hub fits into Rizom: five holders and the split", () => {
+    const html = renderSection("fit");
+    expect(html).toContain('data-hub-scene="fit"');
+    expect(html).toContain('data-hub-label="05"');
+    expect(html).toContain("Each holds what it <em>should</em>.");
+    expect(html.match(/<button[^>]*data-hub-holder="/g)).toHaveLength(5);
+    expect(html).toContain("Rizom Foundation");
+    expect(html).toContain(
+      "Holds the method, the platform and the mark as a commons that cannot be sold.",
+    );
+    expect(html).toContain("60% delivery · Rizom B.V.");
+    expect(html).toContain("25% commons");
+    expect(html).toContain(
+      "&quot;bv&quot;:&quot;Rizom B.V. · setup, hosting, delivery&quot;",
+    );
+  });
+
+  test("tells the network of hubs, with no center, and invites a tap", () => {
+    const html = renderSection("network");
+    expect(html).toContain('data-hub-scene="network"');
+    expect(html).toContain('data-hub-label="06"');
+    expect(html).toContain("Many hubs, <em>no center</em>.");
+    expect(html).toContain("Tap the field to add a hub");
+    expect(html).toContain("hubs connected · centers: none");
+    expect(html).toContain(
+      "The federation layer is in development; the first hubs run on its first version.",
+    );
+    expect(html).toContain("&quot;ours&quot;:&quot;This hub&quot;");
+  });
+
+  test("opens three doors: a lab, the practice and a program", () => {
+    const html = renderSection("start");
+    expect(html).toContain('data-hub-scene="start"');
+    expect(html).toContain('data-hub-label="07"');
+    expect(html).toContain('id="start"');
+    expect(html).toContain(
+      "Bring a question, a practice or a <em>program</em>.",
+    );
+    expect(html.match(/<a class="hub-door"/g)).toHaveLength(3);
+    expect(html).toContain("Book a lab");
+    expect(html).toContain("Join the practice");
+    expect(html).toContain("Run a program here");
+    expect(html).toContain('href="https://rizom.ai/contact"');
+  });
+
+  test("links the header to the story's own chapters", () => {
+    const html = renderLayout(siteInfo);
+    expect(html).toContain('href="#labs"');
+    expect(html).toContain('href="#start"');
   });
 
   test("gives the reader a rail of chapters to jump between", () => {

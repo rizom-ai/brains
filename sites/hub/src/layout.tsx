@@ -1,8 +1,12 @@
 import type { JSX } from "react";
 import type { SiteLayoutInfo, SiteLayoutProps } from "@rizom/site";
 
-/** The hub's place, beside the wordmark. */
-const PLACE = "Eindhoven";
+/** The story's own chapters, reachable from the header. */
+const CHAPTER_LINKS = [
+  { label: "Labs", href: "#labs" },
+  { label: "Practice", href: "#start" },
+  { label: "Programs", href: "#start" },
+];
 
 const COMMONS =
   "The method, the platform and the Rizom mark are held by the Rizom Foundation as a commons.";
@@ -40,7 +44,7 @@ function ModeIcon(): JSX.Element {
 
 /**
  * The hub's frame: the field of lights fixed behind the story (see
- * ./field), the wordmark, the place and the theme toggle above it, the rail
+ * ./field), the wordmark and the theme toggle above it, the rail
  * of chapters (filled by the field script) beside it, and the commons below. There is no menu of other pages; the hub has one.
  */
 export function HubLayout({
@@ -56,7 +60,13 @@ export function HubLayout({
           rizom<b>/hub</b>
         </a>
         <div className="hub-bar__end">
-          <span className="hub-place">{PLACE}</span>
+          <nav className="hub-nav" aria-label="Story">
+            {CHAPTER_LINKS.map((link) => (
+              <a key={link.label} href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
           <button
             type="button"
             className="hub-mode"

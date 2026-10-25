@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Rizom Hub Eindhoven</title>
+<title>Rizom Hub</title>
 <meta name="description" content="Mockup: the hub's landing page, an interactive story on why an ecosystem needs a hub and how the hub fits into Rizom." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -254,7 +254,6 @@
     <a href="#labs">Labs</a>
     <a href="#close">Practice</a>
     <a href="#close">Programs</a>
-    <span class="place">Eindhoven</span>
     <button class="mode" id="mode" aria-label="Switch light or dark">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor"/></svg>
     </button>
@@ -266,7 +265,7 @@
 <main>
   <section class="ch open" id="open" data-len="1.5" data-label="Open">
     <div class="card">
-      <div class="cap">Rizom Hub <span>· Eindhoven</span></div>
+      <div class="cap">Rizom Hub</div>
       <h1>A place that keeps what its ecosystem <em>learns</em>.</h1>
       <p class="lede">Organizations, researchers and independent people already meet here to work on questions that matter to them. The hub makes sure what they learn stays: with them, with the hub, and with whoever comes next.</p>
       <div class="cue"><i></i>Scroll to see why</div>
@@ -559,7 +558,6 @@
           const q = parts[j];
           if (Math.hypot(p.x - q.x, p.y - q.y) < g.R * 0.32) line(p.x, p.y, q.x, q.y, "brass", 0.13 * ov * Math.min(p.a, q.a), 0.8, 0.12);
         }));
-        if (!g.mobile) label(g.cx, g.y1 - 16, "51.44° N · 5.47° E · Eindhoven", 0.4 * ov, "ink");
       },
     },
 
@@ -912,7 +910,7 @@
           });
           ring(x, y, g.R * 0.035 + (1 - grow) * 30, "brass", ov * (0.4 + 0.6 * grow), 1.2);
         });
-        label(hub.x, hub.y + g.R * 0.15 + 12, "Eindhoven", 0.75 * ov, "brass");
+        label(hub.x, hub.y + g.R * 0.15 + 12, "This hub", 0.75 * ov, "brass");
       },
     },
 

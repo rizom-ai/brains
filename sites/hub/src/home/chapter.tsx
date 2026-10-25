@@ -15,6 +15,7 @@ export function Chapter({
   headline,
   length,
   captions,
+  wide = false,
   children,
 }: {
   id: string;
@@ -22,8 +23,10 @@ export function Chapter({
   number: string;
   label: string;
   headline: string;
-  length: "2.2" | "2.6" | "2.8" | "3";
+  length: "1.2" | "2.2" | "2.6" | "2.8" | "3";
   captions: Record<string, string>;
+  /** The card spans the page, for a chapter that is a row of doors. */
+  wide?: boolean;
   children: ReactNode;
 }): JSX.Element {
   return (
@@ -35,7 +38,7 @@ export function Chapter({
       data-hub-captions={JSON.stringify(captions)}
       data-len={length}
     >
-      <div className="hub-card">
+      <div className={wide ? "hub-card hub-card--wide" : "hub-card"}>
         <p className="hub-cap">
           {number} <span>· {label}</span>
         </p>

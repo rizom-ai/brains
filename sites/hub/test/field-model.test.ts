@@ -1,15 +1,27 @@
 import { describe, expect, test } from "bun:test";
 import {
   bendPoint,
+  certified,
   cloudPlace,
   cohortPhase,
+  decisionsBy,
   departure,
+  guestsPresent,
+  holderInFocus,
+  hubSites,
+  hubsLit,
+  labHome,
+  labPhase,
+  labWeek,
+  linkNearest,
   memoryLevel,
   nearestPairs,
   onRecord,
+  plantAt,
   sceneAt,
   seedLights,
   sparkPath,
+  splitFlow,
   stageFor,
   type Light,
 } from "../src/field/model";
@@ -217,5 +229,105 @@ describe("a bent thread", () => {
     expect(bendPoint(0, 0, 100, 0, 0.3, 1)).toEqual([100, 0]);
     expect(bendPoint(0, 0, 100, 0, 0, 0.5)).toEqual([50, 0]);
     expect(bendPoint(0, 0, 100, 0, 0.3, 0.5)[1]).toBeCloseTo(15);
+  });
+});
+
+describe("a lab", () => {
+  test("runs twenty-six weeks across the chapter, then goes home", () => {
+    expect(labWeek(0)).toBe(0);
+    expect(labWeek(0.47)).toBeCloseTo(13);
+    expect(labWeek(0.95)).toBe(26);
+    expect(labHome(0.8)).toBe(0);
+    expect(labHome(1)).toBeCloseTo(1);
+  });
+
+  test("moves from the audit to the pilot, the Brain in use and the end", () => {
+    expect(labPhase(1, 0)).toBe(0);
+    expect(labPhase(3, 0)).toBe(1);
+    expect(labPhase(17.9, 0)).toBe(1);
+    expect(labPhase(18, 0)).toBe(2);
+    expect(labPhase(24, 0)).toBe(3);
+    expect(labPhase(10, 0.2)).toBe(3);
+  });
+
+  test("keeps a decision as it is made, from the audit to the end of the pilot", () => {
+    expect(decisionsBy(2)).toBe(0);
+    expect(decisionsBy(10)).toBe(11);
+    expect(decisionsBy(18)).toBe(24);
+    expect(decisionsBy(26)).toBe(24);
+  });
+
+  test("brings the hub's people in for the pilot only", () => {
+    expect(guestsPresent(2)).toBe(0);
+    expect(guestsPresent(10)).toBe(1);
+    expect(guestsPresent(20)).toBe(0);
+  });
+});
+
+describe("the holders", () => {
+  test("light one by one as the chapter opens, then all together", () => {
+    expect(holderInFocus(0.05, null)).toBe("orgs");
+    expect(holderInFocus(0.15, null)).toBe("hub");
+    expect(holderInFocus(0.25, null)).toBe("members");
+    expect(holderInFocus(0.35, null)).toBe("bv");
+    expect(holderInFocus(0.45, null)).toBe("foundation");
+    expect(holderInFocus(0.6, null)).toBeNull();
+  });
+
+  test("follow the reader's choice over the scroll", () => {
+    expect(holderInFocus(0.05, "foundation")).toBe("foundation");
+    expect(holderInFocus(0.8, "bv")).toBe("bv");
+  });
+
+  test("let the money flow once each is known, delivery moving to the hub's people", () => {
+    expect(splitFlow(0.4)).toBe(0);
+    expect(splitFlow(0.7)).toBe(1);
+    expect(certified(0.6)).toBe(0);
+    expect(certified(1)).toBe(1);
+  });
+});
+
+describe("the network", () => {
+  test("places fourteen hubs across the stage, the same way every visit", () => {
+    const sites = hubSites(14, 5);
+    expect(sites).toHaveLength(14);
+    expect(hubSites(14, 5)).toEqual(sites);
+    sites.forEach(([u, v]) => {
+      expect(u).toBeGreaterThan(0);
+      expect(u).toBeLessThan(1);
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThan(1);
+    });
+  });
+
+  test("lights hubs one after another until all fourteen are on", () => {
+    expect(hubsLit(0)).toBe(1);
+    expect(hubsLit(0.3)).toBeGreaterThan(1);
+    expect(hubsLit(0.3)).toBeLessThan(14);
+    expect(hubsLit(0.7)).toBe(14);
+  });
+
+  test("links each hub to its nearest neighbors, with no hub in the middle", () => {
+    const points: [number, number][] = [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [10, 10],
+      [11, 10],
+    ];
+    const links = linkNearest(points, 2);
+    links.forEach(([a, b]) => expect(a).toBeLessThan(b));
+    expect(new Set(links.map(([a, b]) => `${a}-${b}`)).size).toBe(links.length);
+    expect(new Set(links.flat()).size).toBe(5);
+    const degree = points.map(
+      (_, i) => links.filter((l) => l.includes(i)).length,
+    );
+    expect(Math.max(...degree)).toBeLessThanOrEqual(4);
+  });
+
+  test("plants a hub where the reader taps the stage, and nowhere else", () => {
+    const stage = stageFor(1440, 900, null);
+    expect(plantAt(stage.cx, stage.cy, stage)).toEqual([0.5, 0.5]);
+    expect(plantAt(100, 400, stage)).toBeNull();
   });
 });

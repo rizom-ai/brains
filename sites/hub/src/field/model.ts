@@ -81,35 +81,12 @@ export function seedLights(count: number, seed: number): Light[] {
 
 /** Each light's k nearest neighbors in the region, as pairs listed once, lower index first. */
 export function nearestPairs(lights: Light[], k: number): [number, number][] {
-  const points = lights.map(function point(light) {
-    return [Math.cos(light.ang) * light.rad, Math.sin(light.ang) * light.rad];
-  });
-  const seen: Record<string, boolean> = {};
-  return points.flatMap(function near(p, i) {
-    return points
-      .map(function distance(q, j) {
-        return {
-          d: Math.hypot((q[0] ?? 0) - (p[0] ?? 0), (q[1] ?? 0) - (p[1] ?? 0)),
-          j: j,
-        };
-      })
-      .filter(function other(entry) {
-        return entry.j !== i;
-      })
-      .sort(function closest(a, b) {
-        return a.d - b.d;
-      })
-      .slice(0, k)
-      .map(function pair(entry): [number, number] {
-        return i < entry.j ? [i, entry.j] : [entry.j, i];
-      })
-      .filter(function fresh(pair) {
-        const key = pair[0] + "-" + pair[1];
-        if (seen[key]) return false;
-        seen[key] = true;
-        return true;
-      });
-  });
+  return linkNearest(
+    lights.map(function point(light): [number, number] {
+      return [Math.cos(light.ang) * light.rad, Math.sin(light.ang) * light.rad];
+    }),
+    k,
+  );
 }
 
 /**
@@ -278,4 +255,131 @@ export function bendPoint(
     u * u * x1 + 2 * u * k * cx + k * k * x2,
     u * u * y1 + 2 * u * k * cy + k * k * y2,
   ];
+}
+
+/** The lab's week (0–26) at `t` through its chapter; the last tenth is the Brain going home. */
+export function labWeek(t: number): number {
+  return Math.min(1, Math.max(0, (t - 0.04) / 0.86)) * 26;
+}
+
+/** How far the lab's Brain has gone home with the organization (0–1). */
+export function labHome(t: number): number {
+  return Math.min(1, Math.max(0, (t - 0.9) / 0.1));
+}
+
+/** The lab's phase: 0 the audit (weeks 1–3), 1 the pilot, 2 the Brain in use (from week 19), 3 the end. */
+export function labPhase(week: number, home: number): number {
+  if (home > 0 || week >= 24) return 3;
+  if (week >= 18) return 2;
+  if (week >= 3) return 1;
+  return 0;
+}
+
+/** Decisions kept in the lab's Brain by a week: from the audit's end through the pilot. */
+export function decisionsBy(week: number): number {
+  return Math.floor(Math.min(15, Math.max(0, week - 3)) * 1.6);
+}
+
+/** How present the people the hub brings in are (0–1): they arrive with the pilot and leave as it ends. */
+export function guestsPresent(week: number): number {
+  const arrive = Math.min(1, Math.max(0, (week - 4) / 2));
+  const leave = Math.min(1, Math.max(0, (week - 17) / 2));
+  return arrive * (1 - leave);
+}
+
+/**
+ * The holder lit in "How it fits into Rizom": the reader's choice when there
+ * is one; otherwise each in turn through the chapter's first half
+ * (organizations, the hub, members, Rizom B.V., the Foundation), then none,
+ * so all show together while the money flows.
+ */
+export function holderInFocus(t: number, chosen: string | null): string | null {
+  if (chosen) return chosen;
+  if (t >= 0.5) return null;
+  const holders = ["orgs", "hub", "members", "bv", "foundation"];
+  return holders[Math.min(4, Math.floor(t / 0.1))] ?? null;
+}
+
+/** How far the split of every lab has begun to flow (0–1). */
+export function splitFlow(t: number): number {
+  return Math.min(1, Math.max(0, (t - 0.5) / 0.12));
+}
+
+/** How far delivery has moved from Rizom B.V. to the hub's certified people (0–1). */
+export function certified(t: number): number {
+  const k = Math.min(1, Math.max(0, (t - 0.74) / 0.2));
+  return k * k * (3 - 2 * k);
+}
+
+/** Where the network's hubs sit on the stage (0–1 each way): a loose grid, jittered by seed, in the order they light. */
+export function hubSites(count: number, seed: number): [number, number][] {
+  const rand = mulberry(seed);
+  return Array.from({ length: count }, function site(_, k): [
+    number,
+    number,
+    number,
+  ] {
+    const col = k % 5;
+    const row = Math.floor(k / 5);
+    const u = 0.1 + col * 0.2 + (rand() - 0.5) * 0.12;
+    const v = 0.16 + row * 0.32 + (rand() - 0.5) * 0.16;
+    return [
+      Math.min(0.96, Math.max(0.04, u)),
+      Math.min(0.96, Math.max(0.04, v)),
+      rand(),
+    ];
+  })
+    .sort(function order(a, b) {
+      return a[2] - b[2];
+    })
+    .map(function place(entry): [number, number] {
+      return [entry[0], entry[1]];
+    });
+}
+
+/** How many of the fourteen hubs are lit at `t` through the network chapter: the reader's own first, then the rest. */
+export function hubsLit(t: number): number {
+  return 1 + Math.floor(ease(segment(t, 0.04, 0.6)) * 13);
+}
+
+/** Each point's k nearest neighbors, as pairs listed once, lower index first. */
+export function linkNearest(
+  points: [number, number][],
+  k: number,
+): [number, number][] {
+  const seen: Record<string, boolean> = {};
+  return points.flatMap(function near(p, i) {
+    return points
+      .map(function distance(q, j) {
+        return { d: Math.hypot(q[0] - p[0], q[1] - p[1]), j: j };
+      })
+      .filter(function other(entry) {
+        return entry.j !== i;
+      })
+      .sort(function closest(a, b) {
+        return a.d - b.d;
+      })
+      .slice(0, k)
+      .map(function pair(entry): [number, number] {
+        return i < entry.j ? [i, entry.j] : [entry.j, i];
+      })
+      .filter(function fresh(pair) {
+        const key = pair[0] + "-" + pair[1];
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+      });
+  });
+}
+
+/** Where on the stage (0–1 each way) a tap at the screen point lands, or null when it misses the stage. */
+export function plantAt(
+  x: number,
+  y: number,
+  stage: Stage,
+): [number, number] | null {
+  const u = (x - stage.x0) / stage.w;
+  const v = (y - stage.y0) / stage.h;
+  if (u < 0 || u > 1 || v < 0 || v > 1) return null;
+  return [u, v];
 }
