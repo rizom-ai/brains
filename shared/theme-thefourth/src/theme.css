@@ -1,0 +1,145 @@
+/*
+ * The Fourth theme — the brand of The Fourth, a brand consultancy in Taipei.
+ *
+ * A paper theatre: ink on a lightly grained paper, a red keyhole, mint and
+ * mustard as stage lights. Inter Tight sets the words, Playfair Display's
+ * italics tell the story. The design has one look, so dark mode keeps the
+ * paper. It keeps the default theme's semantic token names, so shared
+ * templates and components render unchanged.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,500;1,600&display=swap");
+
+@theme inline {
+  --font-display: var(--font-heading);
+  --font-body: var(--font-sans);
+  --font-label: var(--font-sans);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+  --color-accent-bright: var(--color-accent-bright);
+}
+
+@layer theme {
+  :root,
+  [data-theme="light"],
+  [data-theme="dark"] {
+    color-scheme: light;
+
+    /* Layout */
+    --layout-max-width: 85rem;
+    --layout-gutter: clamp(20px, 4vw, 56px);
+    --spacing-section: clamp(4rem, 9vw, 8rem);
+    --radius-lg: 0;
+    --radius-pill: 999px;
+
+    /* Palette — paper, ink and three stage lights. */
+    --palette-paper: #f4efe6;
+    --palette-card: #ffffff;
+    --palette-ink: #232323;
+    --palette-ink-muted: #555555;
+    --palette-ink-subtle: #6b6b6b;
+    --palette-rule: #b5b5b5;
+    --palette-red: #ef5959;
+    --palette-red-dark: #c93a3a;
+    --palette-mint: #61f2ad;
+    --palette-mustard: #d6c91d;
+    --palette-straw: #ebdd8f;
+
+    /* Semantic colours */
+    --color-brand: var(--palette-red);
+    --color-brand-dark: var(--palette-red-dark);
+    --color-brand-light: var(--palette-red);
+    --color-accent: var(--palette-red);
+    --color-accent-dark: var(--palette-red-dark);
+    --color-accent-soft: rgb(from var(--color-accent) r g b / 0.12);
+    --color-accent-bright: var(--palette-red);
+    --color-secondary: var(--palette-mint);
+    --color-secondary-dark: var(--palette-ink);
+    --color-highlight: var(--palette-mustard);
+    --color-on-accent: var(--palette-ink);
+    --color-text: var(--palette-ink);
+    --color-text-muted: var(--palette-ink-muted);
+    --color-text-light: var(--palette-ink-subtle);
+    --color-text-inverse: var(--palette-card);
+    --color-text-on-dark: var(--palette-card);
+    --color-heading: var(--palette-ink);
+    --color-bg: var(--palette-paper);
+    --color-bg-subtle: var(--palette-card);
+    --color-bg-muted: var(--palette-paper);
+    --color-bg-dark: var(--palette-ink);
+    --color-bg-deep: var(--palette-paper);
+    --color-border: var(--palette-rule);
+    --color-border-light: rgb(255 255 255 / 0.6);
+    --color-rule: rgb(from var(--color-text) r g b / 0.12);
+    --color-rule-strong: rgb(from var(--color-text) r g b / 0.24);
+    --color-footer: var(--palette-ink);
+    --color-footer-text: var(--palette-card);
+    --color-logo: var(--palette-ink);
+    --color-selection: var(--color-accent);
+    --color-selection-bg: rgb(239 89 89 / 0.24);
+    --color-selection-text: var(--palette-ink);
+    --color-gradient-start: var(--palette-paper);
+    --color-gradient-end: var(--palette-paper);
+    --color-bg-gradient: var(--palette-paper);
+    --color-pattern-dot: rgb(35 35 35 / 0.05);
+
+    /* The paper's grain, drawn under every paper surface. */
+    --paper-grain:
+      radial-gradient(rgb(35 35 35 / 0.05) 0.8px, transparent 1px),
+      radial-gradient(rgb(255 255 255 / 0.6) 0.8px, transparent 1px);
+    --paper-grain-size: 5px 5px, 9px 9px;
+    --paper-grain-position: 0 0, 2px 3px;
+
+    /* Cut paper casts a soft double shadow. */
+    --shadow-paper:
+      0 2px 2px rgb(35 35 35 / 0.12), 0 18px 28px -12px rgb(35 35 35 / 0.38);
+    --shadow-cutout:
+      drop-shadow(0 10px 12px rgb(35 35 35 / 0.28))
+      drop-shadow(0 2px 2px rgb(35 35 35 / 0.18));
+
+    /* Typography */
+    --font-sans: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+    --font-heading: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+    --font-story: "Playfair Display", Georgia, serif;
+    --font-mono: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+    --text-display-2xl: clamp(56px, 8vw, 132px);
+    --text-display-xl: clamp(48px, 6.6vw, 104px);
+    --text-display-lg: clamp(40px, 5vw, 76px);
+    --text-story-lg: clamp(30px, 3.4vw, 54px);
+    --text-story-md: clamp(22px, 2.4vw, 38px);
+    --text-body-lg: 20px;
+    --text-body-md: 17px;
+    --text-body-sm: 15px;
+    --text-label-md: 14px;
+    --text-label-sm: 12px;
+    --tracking-label: 0.16em;
+    --tracking-display: -0.065em;
+    --tracking-story: -0.025em;
+
+    /* Shared button token contract — ink pills. */
+    --rizom-btn-font-family: var(--font-sans);
+    --rizom-btn-font-style: normal;
+    --rizom-btn-gap: 8px;
+    --rizom-btn-letter-spacing: 0;
+    --rizom-btn-primary-bg: var(--color-text);
+    --rizom-btn-primary-border-color: transparent;
+    --rizom-btn-primary-border-width: 0px;
+    --rizom-btn-primary-color: var(--palette-card);
+    --rizom-btn-primary-hover-border-color: transparent;
+    --rizom-btn-primary-hover-border-width: 0px;
+    --rizom-btn-primary-hover-color: var(--palette-card);
+    --rizom-btn-primary-strong-bg: var(--color-accent);
+    --rizom-btn-primary-strong-border-color: transparent;
+    --rizom-btn-primary-strong-border-width: 0px;
+    --rizom-btn-primary-strong-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-hover-border-color: transparent;
+    --rizom-btn-primary-strong-hover-border-width: 0px;
+    --rizom-btn-primary-strong-hover-color: var(--color-on-accent);
+    --rizom-btn-secondary-hover-color: var(--color-accent);
+    --rizom-btn-secondary-hover-shadow: none;
+    --rizom-btn-secondary-hover-transform: none;
+    --rizom-btn-secondary-shadow: none;
+    --rizom-btn-text-transform: none;
+  }
+}
