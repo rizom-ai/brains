@@ -521,7 +521,7 @@
         "@brains/contracts": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/server": "^2.0.0"
+        "@modelcontextprotocol/server": "^2.3.1"
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -635,8 +635,8 @@
       },
       "dependencies": {
         "@clack/prompts": "^1.5.1",
-        "@modelcontextprotocol/client": "^2.0.0",
-        "@modelcontextprotocol/server": "^2.0.0",
+        "@modelcontextprotocol/client": "^2.3.1",
+        "@modelcontextprotocol/server": "^2.3.1",
         "@tailwindcss/postcss": "^4.3.1",
         "@tailwindcss/typography": "^0.5.20",
         "@types/react": "^19.2.17",
@@ -1371,7 +1371,7 @@
         "@brains/mcp-service": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
-        "@modelcontextprotocol/client": "^2.0.0",
+        "@modelcontextprotocol/client": "^2.3.1",
         "@types/bun": "^1.4.0",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.0.3",
@@ -1834,8 +1834,8 @@
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/client": "^2.0.0",
-        "@modelcontextprotocol/server": "^2.0.0",
+        "@modelcontextprotocol/client": "^2.3.1",
+        "@modelcontextprotocol/server": "^2.3.1",
         "chalk": "^5.4.1",
         "dotenv": "^17.4.2",
         "yaml": "^2.9.0"
@@ -2102,13 +2102,13 @@
         "@brains/messaging-service": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@modelcontextprotocol/server": "^2.0.0"
+        "@modelcontextprotocol/server": "^2.3.1"
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
-        "@modelcontextprotocol/client": "^2.0.0",
+        "@modelcontextprotocol/client": "^2.3.1",
         "@types/bun": "^1.4.0",
         "@types/node": "^24.13.3",
         "typescript": "^7.0.2"
@@ -5099,41 +5099,41 @@
       "sha512-oYPyv8A4As1yH5Bx+04iQEQxXuIQDe0GKCNSRgao6z8AM9jixXIfP0vsppRLvGf+nKIOb9/LdpWA4YuJiVvESA=="
     ],
     "@modelcontextprotocol/client": [
-      "@modelcontextprotocol/client@2.0.0",
+      "@modelcontextprotocol/client@2.3.1",
       "",
       {
         "dependencies": {
-          "@modelcontextprotocol/core": "2.0.0",
+          "@modelcontextprotocol/core": "2.3.1",
           "cross-spawn": "^7.0.5",
           "eventsource": "^3.0.2",
-          "eventsource-parser": "^3.0.0",
+          "eventsource-parser": "^3.0.8",
           "jose": "^6.1.3",
           "pkce-challenge": "^5.0.0",
           "zod": "^4.2.0"
         }
       },
-      "sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw=="
+      "sha512-mIGZXpHsjnZ6lD+gD/WCMpR5k8yVQQ8nNFH1N0Srf7AvnwTUMYD6pvTY8ng2+He5FfV7YMZLmrjL7cLa/cc3dQ=="
     ],
     "@modelcontextprotocol/core": [
-      "@modelcontextprotocol/core@2.0.0",
+      "@modelcontextprotocol/core@2.3.1",
       "",
       {
         "dependencies": {
           "zod": "^4.2.0"
         }
       },
-      "sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA=="
+      "sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g=="
     ],
     "@modelcontextprotocol/server": [
-      "@modelcontextprotocol/server@2.0.0",
+      "@modelcontextprotocol/server@2.3.1",
       "",
       {
         "dependencies": {
-          "@modelcontextprotocol/core": "2.0.0",
+          "@modelcontextprotocol/core": "2.3.1",
           "zod": "^4.2.0"
         }
       },
-      "sha512-YhHWdHfpFMQfd0prsEnxKeS3Qz3ytIGmsS0sth4KDjnacIT7hxk6hXHkJ9KysxlkvTM+WZAtQbbcUhdoP4Hvtw=="
+      "sha512-e59MfWuSssj6DoQ96JCTqdW1AXT5/XtnTl0WWd6MU1Ka434fFUGGosCLJbGNySDhHGvxQWoRWK137FXYFkYNWw=="
     ],
     "@napi-rs/canvas": [
       "@napi-rs/canvas@1.0.10",

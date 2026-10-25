@@ -6,7 +6,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@modelcontextprotocol/server": "^2.0.0"
+    "@modelcontextprotocol/server": "^2.3.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
