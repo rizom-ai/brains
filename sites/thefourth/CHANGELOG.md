@@ -1,5 +1,15 @@
 # @rizom/site-thefourth
 
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- [#762](https://github.com/rizom-ai/brains/pull/762) [`a127fb2`](https://github.com/rizom-ai/brains/commit/a127fb29720eda8a4055dfb58b1ee18cc8fb9248) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Fourth's homepage tells Act IV, the fourth act: the stories pinned as tilted cards, the New Taipei City Art Museum's feature figure, two more figures (the second in ink) and Rizom's story on red with the jargon struck out and its photo across the top when the content names one.
+
+- [#762](https://github.com/rizom-ai/brains/pull/762) [`a127fb2`](https://github.com/rizom-ai/brains/commit/a127fb29720eda8a4055dfb58b1ee18cc8fb9248) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Fourth's homepage ends at the crossroads, "Which way?" under a spotlight among swinging signposts (the brand test appears once it has a link), and the epilogue: every hero needs a guide, the two guides swaying on sticks as keyhole portraits when the brain has them, and the fourth act starting by email.
+
+- [#762](https://github.com/rizom-ai/brains/pull/762) [`a127fb2`](https://github.com/rizom-ai/brains/commit/a127fb29720eda8a4055dfb58b1ee18cc8fb9248) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Fourth's homepage moves as the design does: acts rise into view, the paper props drift as the page scrolls, the pointer is a wand trailing sparks; reduced motion and touch screens get the still page.
+
 ## 0.2.0-alpha.3
 
 ### Patch Changes
