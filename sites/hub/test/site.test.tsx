@@ -59,17 +59,16 @@ describe("@rizom/site-hub", () => {
   test("opens with the design's words until the brain has its own", () => {
     expect(site.content?.["home"]?.["opening"]).toEqual({
       eyebrow: "Rizom Hub",
-      headline: "A place that keeps what its ecosystem *learns*.",
-      lede: "Organizations, researchers and independent people already meet here to work on questions that matter to them. The hub makes sure what they learn stays: with them, with the hub, and with whoever comes next.",
+      headline: "Programs come and go. The hub *stays*.",
+      lede: "Every ecosystem has places where companies, researchers, public bodies and capital meet. Programs pass through them; the place remains. This hub is built to keep what passes through it.",
       cue: "Scroll to see why",
+      hubCaption: "The hub",
     });
     const html = renderSection("opening");
     expect(html).toContain("Rizom Hub");
     expect(html).not.toContain("Eindhoven");
-    expect(html).toContain(
-      "A place that keeps what its ecosystem <em>learns</em>.",
-    );
-    expect(html).toContain("Organizations, researchers and independent people");
+    expect(html).toContain("Programs come and go. The hub <em>stays</em>.");
+    expect(html).toContain("Programs pass through them; the place remains.");
     expect(html).toContain("Scroll to see why");
   });
 
@@ -79,6 +78,7 @@ describe("@rizom/site-hub", () => {
       headline: "Where the ecosystem *remembers*.",
       lede: "A new lede.",
       cue: "Read on",
+      hubCaption: "The hub",
     });
     expect(html).toContain("Where the ecosystem <em>remembers</em>.");
     expect(html).toContain("A new lede.");
@@ -89,6 +89,7 @@ describe("@rizom/site-hub", () => {
     const html = renderSection("opening");
     expect(html).toContain('data-hub-scene="opening"');
     expect(html).toContain('id="open"');
+    expect(html).toContain("&quot;hub&quot;:&quot;The hub&quot;");
   });
 
   test("frames the page with the field and the wordmark, naming no city", () => {
@@ -137,15 +138,16 @@ describe("@rizom/site-hub", () => {
     ]);
   });
 
-  test("tells the pipeline in the design's words, numbered 01", () => {
+  test("tells the hub as the center's intake, numbered 01", () => {
     const html = renderSection("pipeline");
     expect(html).toContain('data-hub-scene="pipeline"');
     expect(html).toContain('data-hub-label="01"');
-    expect(html).toContain("Innovation runs <em>one way</em>.");
+    expect(html).toContain("The hub trains. The center <em>harvests</em>.");
+    expect(html).toContain("The intake");
     expect(html).toContain(
-      "The way we organize innovation was built for the center.",
+      "Most hubs work as the intake of a pipeline built for the center.",
     );
-    expect(html).toContain("left the region, and took what they learned");
+    expect(html).toContain("trained here, then left for the center");
     expect(html).toContain("&quot;center&quot;:&quot;The center&quot;");
   });
 
@@ -181,30 +183,44 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain('data-hub-scene="labs"');
     expect(html).toContain('data-hub-label="04"');
     expect(html).toContain('id="labs"');
-    expect(html).toContain("A lab, not a <em>desk</em>.");
+    expect(html).toContain(
+      "Organizations come with a question. They leave with a <em>Brain</em>.",
+    );
+    expect(html).toContain("What passes through");
+    expect(html).toContain("Members who work for themselves certify here");
     expect(html).toContain("Weeks 1–3");
     expect(html).toContain("The audit");
-    expect(html).toContain("The organization takes its Brain home");
+    expect(html).toContain("The organization takes its Brain home.");
+    expect(html).toContain("The hub keeps what the lab taught about the work");
     expect(html.match(/data-hub-phase="/g)).toHaveLength(4);
     expect(html).toContain("The Rizom Lab");
     expect(html).toContain("€49,600 excl. VAT, the same in every hub");
-    expect(html).toContain("&quot;week&quot;:&quot;Week {week} / 26&quot;");
+    expect(html).toContain(
+      "&quot;week&quot;:&quot;A lab · week {week} / 26&quot;",
+    );
+    expect(html).toContain("&quot;members&quot;:&quot;Members deliver&quot;");
   });
 
-  test("tells how the hub fits into Rizom: five holders and the split", () => {
+  test("tells what the hub writes down: five holders, the hub first, and the split", () => {
     const html = renderSection("fit");
     expect(html).toContain('data-hub-scene="fit"');
     expect(html).toContain('data-hub-label="05"');
-    expect(html).toContain("Each holds what it <em>should</em>.");
+    expect(html).toContain("Institutions stand on <em>social contracts</em>.");
+    expect(html).toContain("What the hub writes down");
     expect(html.match(/<button[^>]*data-hub-holder="/g)).toHaveLength(5);
+    expect(html.indexOf('data-hub-holder="hub"')).toBeLessThan(
+      html.indexOf('data-hub-holder="orgs"'),
+    );
     expect(html).toContain("Rizom Foundation");
     expect(html).toContain(
       "Holds the method, the platform and the mark as a commons that cannot be sold.",
     );
-    expect(html).toContain("60% delivery · Rizom B.V.");
-    expect(html).toContain("25% commons");
+    expect(html).toContain("60% to whoever delivers");
+    expect(html).toContain("15% to the hub");
+    expect(html).toContain("25% back to the commons");
+    expect(html).not.toContain("hub-split");
     expect(html).toContain(
-      "&quot;bv&quot;:&quot;Rizom B.V. · setup, hosting, delivery&quot;",
+      "&quot;hub&quot;:&quot;The hub · its own Brain&quot;",
     );
   });
 
@@ -213,6 +229,10 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain('data-hub-scene="network"');
     expect(html).toContain('data-hub-label="06"');
     expect(html).toContain("Many hubs, <em>no center</em>.");
+    expect(html).toContain(
+      "Seen from here, this hub sits in the middle. Seen from any other, so does that one.",
+    );
+    expect(html).toContain("What the hub connects to");
     expect(html).toContain("Tap the field to add a hub");
     expect(html).toContain("hubs connected · centers: none");
     expect(html).toContain(

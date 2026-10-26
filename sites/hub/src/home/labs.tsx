@@ -8,10 +8,11 @@ import {
 import { Chapter } from "./chapter";
 
 /**
- * 04, labs: one lab inside the hub on a 26-week dial (the field's `labs`
- * scene): the audit, the pilot with the people the hub brings in, the
- * Brain in use, and the Brain going home with the organization. The phase
- * being read lights in the card; the price line closes it.
+ * 04, what passes through: a lab beside the hub on a 26-week dial (the
+ * field's `labs` scene). The organization's team arrives, the hub's members
+ * come over to deliver, other labs run beside it, and the lab's Brain goes
+ * home with the organization. The phase being read lights in the card; the
+ * price line closes it.
  */
 const phaseSchema = z.object({
   when: z.string(),
@@ -28,15 +29,10 @@ const labsSchema = z.object({
   priceTerms: z.string(),
   captions: z.object({
     hub: z.string(),
-    question: z.string(),
     week: z.string(),
-    guests: z.string(),
+    members: z.string(),
     organization: z.string(),
     home: z.string(),
-    audit: z.string(),
-    pilot: z.string(),
-    inUse: z.string(),
-    end: z.string(),
   }),
 });
 
@@ -86,16 +82,16 @@ function LabsSection({
 }
 
 export const labs: SectionDefinition = defineSection(labsSchema, LabsSection, {
-  title: "04 — Labs",
+  title: "04 — What passes through",
   description:
-    "What a lab is: the chapter's words, its four phases (when, and what happens), the price line, and the drawing's captions ({week} is the lab's week).",
+    "What passes through the hub: the chapter's words, a lab's four phases (when, and what happens), the price line, and the drawing's captions ({week} is the lab's week).",
 });
 
 export const labsContent: JsonObject = {
   number: "04",
-  label: "Labs",
-  headline: "A lab, not a *desk*.",
-  body: "Organizations come to the hub to work on one question of their own, away from the daily work and next to others doing the same.",
+  label: "What passes through",
+  headline: "Organizations come with a question. They leave with a *Brain*.",
+  body: "A lab is six months, a team of four and one question of the organization's own, worked on at the hub, next to other labs and the people the hub brings in. Members who work for themselves certify here and deliver the labs.",
   phases: [
     {
       when: "Weeks 1–3 · The audit",
@@ -103,7 +99,7 @@ export const labsContent: JsonObject = {
     },
     {
       when: "The pilot",
-      text: "Every decision goes into the lab's Brain with its reasons and sources. The hub brings in the people the question needs.",
+      text: "Every decision goes into the lab's Brain with its reasons and sources. The hub's members work alongside the team.",
     },
     {
       when: "The Brain in use",
@@ -111,7 +107,7 @@ export const labsContent: JsonObject = {
     },
     {
       when: "The end",
-      text: "The organization takes its Brain home: hosted, on its own servers, or as plain files.",
+      text: "The organization takes its Brain home. The hub keeps what the lab taught about the work, never its content.",
     },
   ],
   priceName: "The Rizom Lab",
@@ -119,14 +115,9 @@ export const labsContent: JsonObject = {
     "six months · a team of four · €49,600 excl. VAT, the same in every hub",
   captions: {
     hub: "The hub",
-    question: "One question",
-    week: "Week {week} / 26",
-    guests: "People the hub brings in",
+    week: "A lab · week {week} / 26",
+    members: "Members deliver",
     organization: "The organization",
     home: "Theirs, anywhere",
-    audit: "Audit",
-    pilot: "Pilot",
-    inUse: "Brain in use",
-    end: "End",
   },
 } satisfies z.input<typeof labsSchema>;

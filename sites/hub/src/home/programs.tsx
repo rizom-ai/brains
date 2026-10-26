@@ -99,7 +99,7 @@ export const programsContent: JsonObject = {
   headline: "Every program starts *from zero*.",
   body: "A hub lives on programs and calls. Funding comes in cycles, people move on between them, and what holds it all together is usually one person: the connector who knows everyone.",
   bodyWithoutConnector:
-    "The introductions, the history of each cohort, the reasons things were done the way they were: they left with one person. Heroics are not infrastructure.",
+    "When that person leaves, the hub finds out how little it knew: the introductions, the history of each cohort, the reasons things were done the way they were. Heroics are not infrastructure.",
   leaveLabel: "Let the connector leave",
   returnLabel: "Bring them back",
   readout: "cohort of 03 · carried over from the last one: nothing",

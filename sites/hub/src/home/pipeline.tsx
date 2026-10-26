@@ -8,8 +8,9 @@ import {
 import { Chapter, Paragraphs } from "./chapter";
 
 /**
- * 01, the pipeline: the region's brightest lights drain into the center
- * (the field's `pipeline` scene), and the readout counts who has left.
+ * 01, the intake: the region's brightest lights move into the hub and on
+ * to the center (the field's `pipeline` scene), and the readout counts who
+ * has left.
  */
 const pipelineSchema = z.object({
   number: z.string(),
@@ -17,7 +18,7 @@ const pipelineSchema = z.object({
   headline: z.string(),
   paragraphs: z.array(z.string()).min(1),
   readout: z.string(),
-  captions: z.object({ center: z.string() }),
+  captions: z.object({ center: z.string(), hub: z.string() }),
 });
 
 function PipelineSection({
@@ -50,20 +51,20 @@ export const pipeline: SectionDefinition = defineSection(
   pipelineSchema,
   PipelineSection,
   {
-    title: "01 — The pipeline",
+    title: "01 — The intake",
     description:
-      "Why innovation drains a region: the chapter's number, label, headline (*asterisks* for brass italics), paragraphs, the words after the count of who left, and the drawing's caption for the center.",
+      "How a hub feeds the center: the chapter's number, label, headline (*asterisks* for brass italics), paragraphs, the words after the count of who left, and the drawing's captions for the center and the hub.",
   },
 );
 
 export const pipelineContent: JsonObject = {
   number: "01",
-  label: "The pipeline",
-  headline: "Innovation runs *one way*.",
+  label: "The intake",
+  headline: "The hub trains. The center *harvests*.",
   paragraphs: [
-    "The way we organize innovation was built for the center. A region finds, trains and funds young companies, and the good outcomes are two: they become a platform, or they are bought by one.",
-    "The best companies move or are sold, the founders follow the capital, and what the ecosystem learned along the way leaves with them.",
+    "Most hubs work as the intake of a pipeline built for the center. A region finds its most promising companies, trains them, funds them, and sends them on.",
+    "The best ones move or are sold, the founders follow the capital, and what the hub learned along the way leaves with them.",
   ],
-  readout: "left the region, and took what they learned",
-  captions: { center: "The center" },
+  readout: "trained here, then left for the center",
+  captions: { center: "The center", hub: "The hub" },
 } satisfies z.input<typeof pipelineSchema>;

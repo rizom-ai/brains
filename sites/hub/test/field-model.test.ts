@@ -8,8 +8,9 @@ import {
   departure,
   guestsPresent,
   holderInFocus,
-  hubSites,
+  hubField,
   hubsLit,
+  intakeLegs,
   labHome,
   labPhase,
   labWeek,
@@ -17,6 +18,7 @@ import {
   memoryLevel,
   nearestPairs,
   onRecord,
+  passage,
   plantAt,
   sceneAt,
   seedLights,
@@ -266,8 +268,8 @@ describe("a lab", () => {
 
 describe("the holders", () => {
   test("light one by one as the chapter opens, then all together", () => {
-    expect(holderInFocus(0.05, null)).toBe("orgs");
-    expect(holderInFocus(0.15, null)).toBe("hub");
+    expect(holderInFocus(0.05, null)).toBe("hub");
+    expect(holderInFocus(0.15, null)).toBe("orgs");
     expect(holderInFocus(0.25, null)).toBe("members");
     expect(holderInFocus(0.35, null)).toBe("bv");
     expect(holderInFocus(0.45, null)).toBe("foundation");
@@ -288,23 +290,31 @@ describe("the holders", () => {
 });
 
 describe("the network", () => {
-  test("places fourteen hubs across the stage, the same way every visit", () => {
-    const sites = hubSites(14, 5);
-    expect(sites).toHaveLength(14);
-    expect(hubSites(14, 5)).toEqual(sites);
+  test("spreads other hubs around this one, past every edge of the stage", () => {
+    const sites = hubField(5);
+    expect(sites).toHaveLength(21);
+    expect(hubField(5)).toEqual(sites);
+    expect(sites.some(([u]) => u < 0)).toBe(true);
+    expect(sites.some(([u]) => u > 1)).toBe(true);
+    expect(sites.some(([, v]) => v < 0)).toBe(true);
+    expect(sites.some(([, v]) => v > 1)).toBe(true);
     sites.forEach(([u, v]) => {
-      expect(u).toBeGreaterThan(0);
-      expect(u).toBeLessThan(1);
-      expect(v).toBeGreaterThan(0);
-      expect(v).toBeLessThan(1);
+      expect(Math.hypot(u - 0.5, v - 0.5)).toBeGreaterThan(0.16);
     });
   });
 
-  test("lights hubs one after another until all fourteen are on", () => {
-    expect(hubsLit(0)).toBe(1);
-    expect(hubsLit(0.3)).toBeGreaterThan(1);
-    expect(hubsLit(0.3)).toBeLessThan(14);
-    expect(hubsLit(0.7)).toBe(14);
+  test("orders the other hubs from this one outward", () => {
+    const distances = hubField(5).map(([u, v]) => Math.hypot(u - 0.5, v - 0.5));
+    distances.slice(1).forEach((d, i) => {
+      expect(d).toBeGreaterThanOrEqual(distances[i] ?? 0);
+    });
+  });
+
+  test("lights hubs one after another until all are on, this one first", () => {
+    expect(hubsLit(0, 21)).toBe(1);
+    expect(hubsLit(0.3, 21)).toBeGreaterThan(1);
+    expect(hubsLit(0.3, 21)).toBeLessThan(22);
+    expect(hubsLit(0.7, 21)).toBe(22);
   });
 
   test("links each hub to its nearest neighbors, with no hub in the middle", () => {
@@ -329,5 +339,27 @@ describe("the network", () => {
     const stage = stageFor(1440, 900, null);
     expect(plantAt(stage.cx, stage.cy, stage)).toEqual([0.5, 0.5]);
     expect(plantAt(100, 400, stage)).toBeNull();
+  });
+});
+
+describe("a cohort passing through the hub", () => {
+  test("arrives, circles the hub and leaves, over one loop", () => {
+    expect(passage(0)).toEqual({ leg: "in", s: 0 });
+    expect(passage(0.14).leg).toBe("in");
+    expect(passage(0.14).s).toBeCloseTo(0.5);
+    expect(passage(0.5).leg).toBe("orbit");
+    expect(passage(0.5).s).toBeCloseTo(0.5);
+    expect(passage(0.86).leg).toBe("out");
+    expect(passage(0.86).s).toBeCloseTo(0.5);
+  });
+});
+
+describe("a light taken by the pipeline", () => {
+  test("goes into the hub first, then on to the center", () => {
+    expect(intakeLegs(0)).toEqual({ toHub: 0, toCenter: 0 });
+    expect(intakeLegs(0.45)).toEqual({ toHub: 1, toCenter: 0 });
+    expect(intakeLegs(1)).toEqual({ toHub: 1, toCenter: 1 });
+    expect(intakeLegs(0.7).toCenter).toBeGreaterThan(0);
+    expect(intakeLegs(0.7).toCenter).toBeLessThan(1);
   });
 });

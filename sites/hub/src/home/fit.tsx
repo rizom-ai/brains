@@ -8,13 +8,13 @@ import {
 import { Chapter } from "./chapter";
 
 /**
- * 05, how it fits into Rizom: the hub, the organizations and the members
- * above Rizom B.V. and the Foundation's roots (the field's `fit` scene).
- * The holders light one by one, or as the reader points at them; then the
- * split of every lab flows, delivery moving from Rizom B.V. to the hub's
- * certified people.
+ * 05, what the hub writes down: the hub at the center of its terms (the
+ * field's `fit` scene), with the organizations' Brains around it, its
+ * members, Rizom B.V., and the Foundation's commons as a ring around
+ * everything. The holders light one by one, or as the reader points at
+ * them; then the split of every lab flows, in one line in the card.
  */
-const holderIds = ["orgs", "hub", "members", "bv", "foundation"] as const;
+const holderIds = ["hub", "orgs", "members", "bv", "foundation"] as const;
 
 const fitSchema = z.object({
   number: z.string(),
@@ -30,9 +30,9 @@ const fitSchema = z.object({
       }),
     )
     .length(5),
-  split: z.object({
-    deliveryBefore: z.string(),
-    deliveryAfter: z.string(),
+  money: z.object({
+    lead: z.string(),
+    delivery: z.string(),
     hub: z.string(),
     commons: z.string(),
   }),
@@ -42,7 +42,6 @@ const fitSchema = z.object({
     members: z.string(),
     membersCertified: z.string(),
     bv: z.string(),
-    bvShort: z.string(),
     foundation: z.string(),
     foundationShort: z.string(),
   }),
@@ -54,7 +53,7 @@ function FitSection({
   headline,
   body,
   holders,
-  split,
+  money,
   captions,
 }: z.infer<typeof fitSchema>): JSX.Element {
   return (
@@ -85,49 +84,38 @@ function FitSection({
           </li>
         ))}
       </ul>
-      <div className="hub-split" aria-hidden="true">
-        <div />
-        <div />
-        <div />
-      </div>
-      <p className="hub-split__legend">
-        <span
-          data-hub-split-delivery=""
-          data-before={split.deliveryBefore}
-          data-after={split.deliveryAfter}
-        >
-          {split.deliveryBefore}
-        </span>
-        <span>{split.hub}</span>
-        <span>{split.commons}</span>
+      <p className="hub-money">
+        {money.lead} <b className="hub-money__delivery">{money.delivery}</b> ·{" "}
+        <b className="hub-money__hub">{money.hub}</b> ·{" "}
+        <b className="hub-money__commons">{money.commons}</b>
       </p>
     </Chapter>
   );
 }
 
 export const fit: SectionDefinition = defineSection(fitSchema, FitSection, {
-  title: "05 — How it fits into Rizom",
+  title: "05 — What the hub writes down",
   description:
-    "Who holds what: the chapter's words, the five holders (organizations, the hub, members, Rizom B.V., the Foundation) with what each holds, the split's labels (delivery before and after the hub's people certify) and the drawing's captions.",
+    "The hub's terms: the chapter's words, the five holders (the hub, organizations, members, Rizom B.V., the Foundation) with what each holds, the split of every lab in one line, and the drawing's captions.",
 });
 
 export const fitContent: JsonObject = {
   number: "05",
-  label: "How it fits into Rizom",
-  headline: "Each holds what it *should*.",
-  body: "There is no platform in the middle. The terms are written down, and the same in every hub.",
+  label: "What the hub writes down",
+  headline: "Institutions stand on *social contracts*.",
+  body: "At a hub, organizations first learn to rely on each other. So the hub writes down what is held in common, what cannot be sold and how the returns flow back, the same in every hub.",
   holders: [
+    {
+      id: "hub",
+      name: "The hub",
+      holds:
+        "Its space, its community, its focus, and its own Brain, held for its community.",
+    },
     {
       id: "orgs",
       name: "Organizations",
       holds:
         "Their Brains and everything in them. They take them anywhere; no one can sell them.",
-    },
-    {
-      id: "hub",
-      name: "The hub",
-      holds:
-        "The space, the community, the focus, and its own Brain, held for its community.",
     },
     {
       id: "members",
@@ -148,19 +136,18 @@ export const fitContent: JsonObject = {
         "Holds the method, the platform and the mark as a commons that cannot be sold.",
     },
   ],
-  split: {
-    deliveryBefore: "60% delivery · Rizom B.V.",
-    deliveryAfter: "60% delivery · the hub's certified people",
-    hub: "15% hub",
-    commons: "25% commons",
+  money: {
+    lead: "Every lab:",
+    delivery: "60% to whoever delivers",
+    hub: "15% to the hub",
+    commons: "25% back to the commons",
   },
   captions: {
-    hub: "The hub",
-    organizations: "Organizations",
+    hub: "The hub · its own Brain",
+    organizations: "Organizations · their Brains",
     members: "Members",
     membersCertified: "Members · certified",
-    bv: "Rizom B.V. · setup, hosting, delivery",
-    bvShort: "Rizom B.V.",
+    bv: "Rizom B.V.",
     foundation: "Rizom Foundation · the commons: method, platform, mark",
     foundationShort: "Rizom Foundation · the commons",
   },
