@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Rizom Hub</title>
-<meta name="description" content="Mockup: the hub's landing page, an interactive story on why an ecosystem needs a hub and how the hub fits into Rizom." />
+<meta name="description" content="Mockup: the hub's landing page, an interactive story with the hub at its center: what passes through it, what it loses, what it keeps, what it writes down and what it connects to." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
@@ -12,55 +12,33 @@
   /* Tokens: the rizom.ai rev-5 palette (shared/theme-rizom-ai/src/theme.css).
      Brass is the hub; ruby is the practice (Rizom B.V.); moss is the Foundation. */
   :root {
-    --bg: #14132b;
-    --bg-deep: #0e0d20;
-    --ink: #faf8f3;
-    --muted: rgb(250 248 243 / 0.72);
-    --faint: rgb(250 248 243 / 0.46);
-    --rule: rgb(250 248 243 / 0.14);
-    --brass: #d4af37;
-    --brass-soft: #e8cc6a;
-    --ruby: #d0453a;
-    --moss: #9caf88;
-    --wash-a: rgb(107 47 160 / 0.22);
-    --wash-b: rgb(212 175 55 / 0.07);
-    --card: rgb(20 19 43 / 0.84);
-    --mode: dark;
-    --display: "Fraunces", Georgia, serif;
-    --body: "IBM Plex Sans", system-ui, sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --bg: #14132b; --ink: #faf8f3;
+    --muted: rgb(250 248 243 / 0.72); --faint: rgb(250 248 243 / 0.46); --rule: rgb(250 248 243 / 0.14);
+    --brass: #d4af37; --brass-soft: #e8cc6a; --ruby: #d0453a; --moss: #9caf88;
+    --wash-a: rgb(107 47 160 / 0.22); --wash-b: rgb(212 175 55 / 0.07);
+    --card: rgb(20 19 43 / 0.86); --mode: dark;
+    --display: "Fraunces", Georgia, serif; --body: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
     color-scheme: dark;
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
-      --bg: #faf8f3; --bg-deep: #f1ede2; --ink: #23213a;
-      --muted: rgb(35 33 58 / 0.76); --faint: rgb(35 33 58 / 0.52); --rule: rgb(35 33 58 / 0.14);
+      --bg: #faf8f3; --ink: #23213a; --muted: rgb(35 33 58 / 0.76); --faint: rgb(35 33 58 / 0.52); --rule: rgb(35 33 58 / 0.14);
       --brass: #a8821c; --brass-soft: #8a6a12; --ruby: #b83a2e; --moss: #5e7a4e;
-      --wash-a: rgb(140 130 200 / 0.16); --wash-b: rgb(168 130 28 / 0.08);
-      --card: rgb(250 248 243 / 0.88); --mode: light; color-scheme: light;
+      --wash-a: rgb(140 130 200 / 0.16); --wash-b: rgb(168 130 28 / 0.08); --card: rgb(250 248 243 / 0.9); --mode: light; color-scheme: light;
     }
   }
   :root[data-theme="light"] {
-    --bg: #faf8f3; --bg-deep: #f1ede2; --ink: #23213a;
-    --muted: rgb(35 33 58 / 0.76); --faint: rgb(35 33 58 / 0.52); --rule: rgb(35 33 58 / 0.14);
+    --bg: #faf8f3; --ink: #23213a; --muted: rgb(35 33 58 / 0.76); --faint: rgb(35 33 58 / 0.52); --rule: rgb(35 33 58 / 0.14);
     --brass: #a8821c; --brass-soft: #8a6a12; --ruby: #b83a2e; --moss: #5e7a4e;
-    --wash-a: rgb(140 130 200 / 0.16); --wash-b: rgb(168 130 28 / 0.08);
-    --card: rgb(250 248 243 / 0.88); --mode: light; color-scheme: light;
+    --wash-a: rgb(140 130 200 / 0.16); --wash-b: rgb(168 130 28 / 0.08); --card: rgb(250 248 243 / 0.9); --mode: light; color-scheme: light;
   }
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    margin: 0;
-    background:
-      radial-gradient(60vw 60vh at 78% 30%, var(--wash-a), transparent 70%),
-      radial-gradient(50vw 50vh at 20% 85%, var(--wash-b), transparent 70%),
-      var(--bg);
+    margin: 0; color: var(--ink); font: 400 17px/1.7 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    background: radial-gradient(60vw 60vh at 70% 45%, var(--wash-a), transparent 70%), radial-gradient(50vw 50vh at 20% 85%, var(--wash-b), transparent 70%), var(--bg);
     background-attachment: fixed;
-    color: var(--ink);
-    font: 400 17px/1.7 var(--body);
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
   }
   body::before {
     content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -68,181 +46,100 @@
   }
   #field { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; }
 
-  /* ---------- header ---------- */
-  .bar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px clamp(16px, 4vw, 48px);
-    background: linear-gradient(var(--bg) 30%, transparent);
-  }
+  .bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 18px clamp(16px, 4vw, 48px); background: linear-gradient(var(--bg) 30%, transparent); }
   .mark { font: 500 22px/1 var(--display); font-variation-settings: "SOFT" 70; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
   .mark b { font-weight: 500; color: var(--brass); }
   .bar nav { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 28px); }
-  .bar nav a, .place { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+  .bar nav a { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
   .bar nav a:hover { color: var(--brass); }
-  .place { color: var(--faint); }
-  .mode {
-    width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--rule); background: transparent;
-    color: var(--muted); cursor: pointer; display: grid; place-items: center; padding: 0;
-  }
+  .mode { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; padding: 0; }
   .mode svg { width: 14px; height: 14px; }
 
-  /* ---------- rail ---------- */
-  .rail {
-    position: fixed; right: clamp(14px, 2vw, 28px); top: 50%; transform: translateY(-50%); z-index: 10;
-    list-style: none; margin: 0; padding: 0; display: grid; gap: 14px;
-  }
-  .rail button {
-    all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; justify-content: flex-end;
-    font: 500 10px/1 var(--mono); letter-spacing: 0.1em; color: var(--faint);
-  }
+  .rail { position: fixed; right: clamp(14px, 2vw, 28px); top: 50%; transform: translateY(-50%); z-index: 10; list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .rail button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; justify-content: flex-end; font: 500 10px/1 var(--mono); letter-spacing: 0.1em; color: var(--faint); }
   .rail button::after { content: ""; width: 10px; height: 1px; background: var(--rule); transition: width .4s, background .4s; }
   .rail button.on { color: var(--brass); }
   .rail button.on::after { width: 26px; background: var(--brass); }
 
-  /* ---------- chapters ---------- */
   main { position: relative; z-index: 5; }
   .ch { position: relative; min-height: 100vh; }
-  .ch[data-len="1.5"] { height: 150vh; }
-  .ch[data-len="2.2"] { height: 220vh; }
-  .ch[data-len="2.6"] { height: 260vh; }
-  .ch[data-len="2.8"] { height: 280vh; }
-  .ch[data-len="3"]   { height: 300vh; }
-  .ch[data-len="1.2"] { height: 120vh; }
-  .card {
-    position: sticky; top: 16vh;
-    width: min(32rem, 34vw); margin-left: clamp(16px, 6vw, 96px);
-    padding: 8px 0;
-  }
-  .cap {
-    display: flex; align-items: center; gap: 12px;
-    font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass);
-  }
+  .ch[data-len="1.5"] { height: 150vh; } .ch[data-len="2.2"] { height: 220vh; } .ch[data-len="2.6"] { height: 260vh; }
+  .ch[data-len="2.8"] { height: 280vh; } .ch[data-len="3"] { height: 300vh; } .ch[data-len="1.2"] { height: 120vh; }
+  .card { position: sticky; top: 16vh; width: min(32rem, 34vw); margin-left: clamp(16px, 6vw, 96px); padding: 8px 0; }
+  .cap { display: flex; align-items: center; gap: 12px; font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
   .cap::after { content: ""; flex: 1; height: 1px; background: var(--rule); max-width: 120px; }
   .cap span { color: var(--faint); }
   h1, h2 { font-family: var(--display); font-weight: 500; font-variation-settings: "SOFT" 70; letter-spacing: -0.015em; margin: 0; }
-  h1 { font-size: clamp(42px, 5.6vw, 84px); line-height: 1.04; margin: 22px 0 26px; }
+  h1 { font-size: clamp(42px, 5.4vw, 80px); line-height: 1.04; margin: 22px 0 26px; }
   h1 em, h2 em { font-style: italic; color: var(--brass); font-variation-settings: "SOFT" 100; }
-  h2 { font-size: clamp(32px, 3.4vw, 50px); line-height: 1.08; margin: 18px 0 20px; }
+  h2 { font-size: clamp(32px, 3.2vw, 48px); line-height: 1.08; margin: 18px 0 20px; }
   .card p { color: var(--muted); margin: 0 0 14px; }
   .lede { font-size: 19px; max-width: 30rem; }
   .cue { margin-top: 40px; font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); display: flex; gap: 10px; align-items: center; }
-  .cue i { width: 1px; height: 36px; background: linear-gradient(var(--brass), transparent); animation: drip 2.4s ease-in-out infinite; }
-  @keyframes drip { 0%,100% { transform: scaleY(.4); transform-origin: top; } 50% { transform: scaleY(1); } }
-
-  .readout {
-    margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--rule);
-    font: 500 12px/1.5 var(--mono); letter-spacing: 0.06em; color: var(--faint);
-  }
+  .cue i { width: 1px; height: 36px; background: linear-gradient(var(--brass), transparent); animation: drip 2.4s ease-in-out infinite; transform-origin: top; }
+  @keyframes drip { 0%,100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+  .readout { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--rule); font: 500 12px/1.5 var(--mono); letter-spacing: 0.06em; color: var(--faint); }
   .readout b { color: var(--ink); font-weight: 500; font-size: 22px; letter-spacing: 0; margin-right: 6px; font-family: var(--display); }
-
-  .act {
-    all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
-    font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass);
-    border: 1px solid color-mix(in srgb, var(--brass) 50%, transparent); border-radius: 999px; padding: 11px 16px;
-    transition: background .3s, color .3s;
-  }
+  .act { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; margin-top: 18px; font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); border: 1px solid color-mix(in srgb, var(--brass) 50%, transparent); border-radius: 999px; padding: 11px 16px; transition: background .3s, color .3s; }
+  .act::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .act:hover, .act:focus-visible { background: var(--brass); color: var(--bg); }
-  .act .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
   .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; margin-top: 18px; }
-  .seg button {
-    all: unset; cursor: pointer; padding: 8px 14px; border-radius: 999px;
-    font: 500 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint);
-  }
+  .seg button { all: unset; cursor: pointer; padding: 8px 14px; border-radius: 999px; font: 500 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
   .seg button[aria-pressed="true"] { background: var(--brass); color: var(--bg); }
   .spark { display: block; margin-top: 16px; width: 100%; max-width: 300px; height: auto; overflow: visible; }
-  .spark .axis { stroke: var(--rule); }
-  .spark .with { stroke: var(--brass); fill: none; stroke-width: 1.6; }
+  .spark .axis { stroke: var(--rule); } .spark .with { stroke: var(--brass); fill: none; stroke-width: 1.6; }
   .spark .without { stroke: var(--faint); fill: none; stroke-width: 1.2; stroke-dasharray: 3 3; }
   .spark.off .with { stroke: var(--faint); stroke-dasharray: 3 3; stroke-width: 1.2; }
   .spark.off .without { stroke: var(--ink); stroke-dasharray: none; stroke-width: 1.6; }
-  .spark text { font: 500 9px var(--mono); fill: var(--faint); letter-spacing: .08em; }
-  .spark circle { fill: var(--brass); }
-
+  .spark text { font: 500 9px var(--mono); fill: var(--faint); letter-spacing: .08em; } .spark circle { fill: var(--brass); }
   .phases { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 2px; }
-  .phases li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 14px; padding: 10px 0; border-top: 1px solid var(--rule); opacity: .38; transition: opacity .5s; }
-  .phases li.on { opacity: 1; }
-  .phases li.done { opacity: .62; }
+  .phases li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 14px; padding: 9px 0; border-top: 1px solid var(--rule); opacity: .38; transition: opacity .5s; }
+  .phases li.on { opacity: 1; } .phases li.done { opacity: .62; }
   .phases b { font: 500 10.5px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--brass); }
   .phases span { font-size: 15px; line-height: 1.55; color: var(--muted); }
   .price { margin-top: 16px; font: 500 11px/1.6 var(--mono); letter-spacing: .08em; color: var(--faint); text-transform: uppercase; }
   .price strong { color: var(--ink); font-weight: 500; }
-
   .holders { list-style: none; padding: 0; margin: 18px 0 0; }
-  .holders li {
-    display: grid; grid-template-columns: 10px 9.5rem 1fr; gap: 12px; align-items: baseline;
-    padding: 10px 6px; border-top: 1px solid var(--rule); cursor: pointer; opacity: .5; transition: opacity .4s, background .4s;
-    border-radius: 4px;
-  }
-  .holders li.on { opacity: 1; background: color-mix(in srgb, var(--ink) 4%, transparent); }
-  .holders.all li { opacity: 1; }
+  .holders button { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 10px 9.5rem 1fr; gap: 12px; align-items: baseline; padding: 9px 6px; border-top: 1px solid var(--rule); border-radius: 4px; opacity: .5; transition: opacity .4s, background .4s; }
+  .holders button.on { opacity: 1; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .holders.all button { opacity: 1; }
   .holders i { width: 8px; height: 8px; border-radius: 50%; display: block; transform: translateY(-1px); }
   .holders b { font: 500 11px/1.5 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
   .holders span { font-size: 14.5px; line-height: 1.5; color: var(--muted); }
-  .split { display: flex; height: 8px; border-radius: 99px; overflow: hidden; margin: 20px 0 8px; gap: 2px; }
-  .split div:nth-child(1) { flex: 60; background: var(--ruby); transition: background 1s; }
-  .split.certified div:nth-child(1) { background: var(--ink); }
-  .split div:nth-child(2) { flex: 15; background: var(--brass); }
-  .split div:nth-child(3) { flex: 25; background: var(--moss); }
-  .split-legend { display: flex; justify-content: space-between; font: 500 10.5px/1.5 var(--mono); letter-spacing: .06em; color: var(--faint); text-transform: uppercase; }
-  .note { font: 400 12px/1.6 var(--mono); color: var(--faint); margin-top: 14px; letter-spacing: .02em; }
-
+  .money { margin-top: 16px; font: 500 11px/1.6 var(--mono); letter-spacing: .06em; color: var(--faint); text-transform: uppercase; }
+  .money b { font-weight: 500; } .money .d { color: var(--ruby); } .money .h { color: var(--brass); } .money .c { color: var(--moss); }
   .hint { font: 500 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brass); margin-top: 18px; display: flex; gap: 10px; align-items: center; }
   .hint::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--brass); animation: ping 1.8s ease-out infinite; }
   @keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brass) 60%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+  .note { font: 400 12px/1.6 var(--mono); color: var(--faint); margin-top: 14px; letter-spacing: .02em; }
 
-  /* ---------- close ---------- */
-  .close .card { top: 12vh; width: min(64rem, 88vw); }
-  .doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 30px; border-top: 1px solid var(--rule); }
+  .wide { top: 12vh; width: min(64rem, 88vw); }
+  .doors { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 30px; border-top: 1px solid var(--rule); }
   .door { padding: 22px 22px 22px 0; border-right: 1px solid var(--rule); text-decoration: none; color: inherit; display: grid; gap: 10px; align-content: start; }
-  .door + .door { padding-left: 22px; }
-  .door:last-child { border-right: 0; }
+  .door + .door { padding-left: 22px; } .door:last-child { border-right: 0; }
   .door small { font: 500 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
   .door strong { font: 500 26px/1.15 var(--display); font-variation-settings: "SOFT" 70; }
   .door span { font-size: 15px; line-height: 1.55; color: var(--muted); }
   .door em { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brass); font-style: normal; margin-top: 6px; }
   .door:hover strong { color: var(--brass); }
-  .foot { margin-top: 48px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font: 400 11.5px/1.6 var(--mono); color: var(--faint); letter-spacing: .03em; }
-  .foot a { color: var(--muted); text-decoration: none; margin-left: 16px; }
-  .foot a:hover { color: var(--brass); }
+  .foot { position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 32px clamp(16px, 6vw, 96px) 40px; font: 400 11.5px/1.6 var(--mono); color: var(--faint); letter-spacing: .03em; }
+  .foot a { color: var(--muted); text-decoration: none; margin-left: 16px; } .foot a:hover { color: var(--brass); }
 
-  /* ---------- phone ---------- */
   @media (max-width: 859px) {
     body { font-size: 16px; }
-    .bar { padding: 14px 16px; }
-    .bar nav a { display: none; }
-    .rail { display: none; }
-    .ch { padding-top: 72vh; }
-    .ch.open { padding-top: 46vh; }
-    .card {
-      position: sticky; top: var(--card-top, 56vh); width: auto; margin: 0 16px;
-      padding: 22px 20px; border-radius: 14px;
-      background: var(--card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid var(--rule);
-    }
-    .open .card { background: transparent; border: 0; backdrop-filter: none; padding: 0 4px; }
-    h1 { font-size: 40px; margin: 16px 0 18px; }
-    h2 { font-size: 30px; }
-    .lede { font-size: 17px; }
-    .phases li { grid-template-columns: 1fr; gap: 2px; padding: 7px 0; }
-    .phases li:not(.on) span { display: none; }
-    .holders li { grid-template-columns: 10px 1fr; padding: 7px 6px; }
-    .holders span { grid-column: 2; }
-    .holders li:not(.on) span, .holders.all li span { display: none; }
-    .ch:not(.open) .card p + p, .spark { display: none; }
-    .open .card { position: relative; top: auto; }
-    .close .card { position: relative; top: auto; }
-    .close { padding-top: 40vh; }
-    .close .card { width: auto; }
-    .doors { grid-template-columns: 1fr; }
-    .door, .door + .door { padding: 18px 0; border-right: 0; border-bottom: 1px solid var(--rule); }
+    .bar { padding: 14px 16px; } .bar nav a, .rail { display: none; }
+    .ch { padding-top: 72vh; } .ch.open { padding-top: 46vh; }
+    .card { position: sticky; top: var(--card-top, 56vh); width: auto; margin: 0 16px; padding: 22px 20px; border-radius: 14px; background: var(--card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--rule); }
+    .open .card { position: relative; top: auto; background: transparent; border: 0; backdrop-filter: none; padding: 0 4px; }
+    h1 { font-size: 38px; margin: 16px 0 18px; } h2 { font-size: 28px; } .lede { font-size: 17px; }
+    .card p + p, .spark { display: none; }
+    .phases li { grid-template-columns: 1fr; gap: 2px; padding: 7px 0; } .phases li:not(.on) span { display: none; }
+    .holders button { grid-template-columns: 10px 1fr; padding: 7px 6px; } .holders span { grid-column: 2; } .holders button:not(.on) span { display: none; }
+    .ch[data-len="1.2"] { padding-top: 40vh; height: auto; } .wide { position: relative; top: auto; }
+    .doors { grid-template-columns: 1fr; } .door, .door + .door { padding: 18px 0; border-right: 0; border-bottom: 1px solid var(--rule); }
     .foot a { margin: 0 14px 0 0; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .cue i, .hint::before { animation: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .cue i, .hint::before { animation: none; } }
 </style>
 </head>
 <body>
@@ -251,12 +148,10 @@
 <header class="bar">
   <a class="mark" href="#open">rizom<b>/hub</b></a>
   <nav>
-    <a href="#labs">Labs</a>
-    <a href="#close">Practice</a>
-    <a href="#close">Programs</a>
-    <button class="mode" id="mode" aria-label="Switch light or dark">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor"/></svg>
-    </button>
+    <a href="#through">Labs</a>
+    <a href="#start">Practice</a>
+    <a href="#start">Programs</a>
+    <button class="mode" id="mode" aria-label="Switch light or dark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor"/></svg></button>
   </nav>
 </header>
 
@@ -266,33 +161,33 @@
   <section class="ch open" id="open" data-len="1.5" data-label="Open">
     <div class="card">
       <div class="cap">Rizom Hub</div>
-      <h1>A place that keeps what its ecosystem <em>learns</em>.</h1>
-      <p class="lede">Organizations, researchers and independent people already meet here to work on questions that matter to them. The hub makes sure what they learn stays: with them, with the hub, and with whoever comes next.</p>
+      <h1>Programs come and go. The hub <em>stays</em>.</h1>
+      <p class="lede">Every ecosystem has places where companies, researchers, public bodies and capital meet. Programs pass through them; the place remains. This hub is built to keep what passes through it.</p>
       <div class="cue"><i></i>Scroll to see why</div>
     </div>
   </section>
 
-  <section class="ch" id="pipeline" data-len="2.2" data-label="01">
+  <section class="ch" id="intake" data-len="2.2" data-label="01">
     <div class="card">
-      <div class="cap">01 <span>· The pipeline</span></div>
-      <h2>Innovation runs <em>one way</em>.</h2>
-      <p>The way we organize innovation was built for the center. A region finds, trains and funds young companies, and the good outcomes are two: they become a platform, or they are bought by one.</p>
-      <p>The best companies move or are sold, the founders follow the capital, and what the ecosystem learned along the way leaves with them.</p>
-      <div class="readout"><b id="left">0</b>left the region, and took what they learned</div>
+      <div class="cap">01 <span>· The intake</span></div>
+      <h2>The hub trains. The center <em>harvests</em>.</h2>
+      <p>Most hubs work as the intake of a pipeline built for the center. A region finds its most promising companies, trains them, funds them, and sends them on.</p>
+      <p>The best ones move or are sold, the founders follow the capital, and what the hub learned along the way leaves with them.</p>
+      <div class="readout"><b id="left">0</b>trained here, then left for the center</div>
     </div>
   </section>
 
-  <section class="ch" id="programs" data-len="2.6" data-label="02">
+  <section class="ch" id="forgets" data-len="2.6" data-label="02">
     <div class="card">
       <div class="cap">02 <span>· Programs end</span></div>
-      <h2>Every program starts <em>from zero</em>.</h2>
+      <h2>Every call starts <em>from zero</em>.</h2>
       <p id="conn-text">A hub lives on programs and calls. Funding comes in cycles, people move on between them, and what holds it all together is usually one person: the connector who knows everyone.</p>
-      <button class="act" id="conn-btn"><span class="dot"></span><span>Let the connector leave</span></button>
-      <div class="readout"><b id="cohort">01</b><span id="cohort-text">cohort · carried over from the last one: nothing</span></div>
+      <button class="act" id="conn-btn">Let the connector leave</button>
+      <div class="readout"><b id="cohort">01</b><span id="cohort-text">cohort of 03 · carried over from the last one: nothing</span></div>
     </div>
   </section>
 
-  <section class="ch" id="memory" data-len="2.8" data-label="03">
+  <section class="ch" id="remembers" data-len="2.8" data-label="03">
     <div class="card">
       <div class="cap">03 <span>· A hub that remembers</span></div>
       <h2>Each cohort starts where the last <em>stopped</em>.</h2>
@@ -304,8 +199,7 @@
       </div>
       <svg class="spark" id="spark" viewBox="0 0 300 78" aria-hidden="true">
         <line class="axis" x1="8" y1="62" x2="292" y2="62" />
-        <path class="without" d="" id="spark-without" />
-        <path class="with" d="" id="spark-with" />
+        <path class="without" id="spark-without" /><path class="with" id="spark-with" />
         <circle r="3.5" id="spark-dot" cx="8" cy="62" />
         <text x="8" y="76">COHORT 01</text><text x="292" y="76" text-anchor="end">04</text>
       </svg>
@@ -313,66 +207,65 @@
     </div>
   </section>
 
-  <section class="ch" id="labs" data-len="3" data-label="04">
+  <section class="ch" id="through" data-len="3" data-label="04">
     <div class="card">
-      <div class="cap">04 <span>· Labs</span></div>
-      <h2>A lab, not a <em>desk</em>.</h2>
-      <p>Organizations come to the hub to work on one question of their own, away from the daily work and next to others doing the same.</p>
+      <div class="cap">04 <span>· What passes through</span></div>
+      <h2>Organizations come with a question. They leave with a <em>Brain</em>.</h2>
+      <p>A lab is six months, a team of four and one question of the organization's own, worked on at the hub, next to other labs and the people the hub brings in. Members who work for themselves certify here and deliver the labs.</p>
       <ol class="phases" id="phases">
         <li><b>Weeks 1–3<br>The audit</b><span>Interviews and a workshop: who knows what, where knowledge leaks, and what an agent must never do.</span></li>
-        <li><b>The pilot</b><span>Every decision goes into the lab's Brain with its reasons and sources. The hub brings in the people the question needs.</span></li>
+        <li><b>The pilot</b><span>Every decision goes into the lab's Brain with its reasons and sources. The hub's members work alongside the team.</span></li>
         <li><b>The Brain in use</b><span>Colleagues outside the lab ask what the team knows, and get answers with the sources behind them.</span></li>
-        <li><b>The end</b><span>The organization takes its Brain home: hosted, on its own servers, or as plain files.</span></li>
+        <li><b>The end</b><span>The organization takes its Brain home. The hub keeps what the lab taught about the work, never its content.</span></li>
       </ol>
       <div class="price"><strong>The Rizom Lab</strong> · six months · a team of four · €49,600 excl. VAT, the same in every hub</div>
     </div>
   </section>
 
-  <section class="ch" id="fit" data-len="3" data-label="05">
+  <section class="ch" id="terms" data-len="3" data-label="05">
     <div class="card">
-      <div class="cap">05 <span>· How it fits into Rizom</span></div>
-      <h2>Each holds what it <em>should</em>.</h2>
-      <p>There is no platform in the middle. The terms are written down, and the same in every hub.</p>
+      <div class="cap">05 <span>· What the hub writes down</span></div>
+      <h2>Institutions stand on <em>social contracts</em>.</h2>
+      <p>At a hub, organizations first learn to rely on each other. So the hub writes down what is held in common, what cannot be sold and how the returns flow back, the same in every hub.</p>
       <ul class="holders" id="holders">
-        <li data-holder="orgs"><i style="background:var(--brass-soft)"></i><b>Organizations</b><span>Their Brains and everything in them. They take them anywhere; no one can sell them.</span></li>
-        <li data-holder="hub"><i style="background:var(--brass)"></i><b>The hub</b><span>The space, the community, the focus, and its own Brain, held for its community.</span></li>
-        <li data-holder="members"><i style="background:var(--ink)"></i><b>Members</b><span>A practice: they certify, deliver labs and build on their own Brain.</span></li>
-        <li data-holder="bv"><i style="background:var(--ruby)"></i><b>Rizom B.V.</b><span>Sets up the Brains, hosts them, and delivers labs until the hub's own people are certified.</span></li>
-        <li data-holder="foundation"><i style="background:var(--moss)"></i><b>Rizom Foundation</b><span>Holds the method, the platform and the mark as a commons that cannot be sold.</span></li>
+        <li><button data-holder="hub"><i style="background:var(--brass)"></i><b>The hub</b><span>Its space, its community, its focus, and its own Brain, held for its community.</span></button></li>
+        <li><button data-holder="orgs"><i style="background:var(--brass-soft)"></i><b>Organizations</b><span>Their Brains and everything in them. They take them anywhere; no one can sell them.</span></button></li>
+        <li><button data-holder="members"><i style="background:var(--ink)"></i><b>Members</b><span>A practice: they certify, deliver labs and build on their own Brain.</span></button></li>
+        <li><button data-holder="bv"><i style="background:var(--ruby)"></i><b>Rizom B.V.</b><span>Sets up the Brains, hosts them, and delivers labs until the hub's own people are certified.</span></button></li>
+        <li><button data-holder="foundation"><i style="background:var(--moss)"></i><b>Rizom Foundation</b><span>Holds the method, the platform and the mark as a commons that cannot be sold.</span></button></li>
       </ul>
-      <div class="split" id="split"><div></div><div></div><div></div></div>
-      <div class="split-legend"><span id="split-del">60% delivery · Rizom B.V.</span><span>15% hub</span><span>25% commons</span></div>
+      <div class="money">Every lab: <b class="d">60% to whoever delivers</b> · <b class="h">15% to the hub</b> · <b class="c">25% back to the commons</b></div>
     </div>
   </section>
 
-  <section class="ch" id="network" data-len="2.2" data-label="06">
+  <section class="ch" id="connects" data-len="2.2" data-label="06">
     <div class="card">
-      <div class="cap">06 <span>· The network</span></div>
+      <div class="cap">06 <span>· What the hub connects to</span></div>
       <h2>Many hubs, <em>no center</em>.</h2>
       <p>The hub's Brain connects to other hubs, at home and abroad. Organizations and members find each other's expertise across them, within what each allows.</p>
-      <p>Growth comes from connection rather than concentration. Every hub stays itself, and none of them is the center.</p>
+      <p>Seen from here, this hub sits in the middle. Seen from any other, so does that one.</p>
       <div class="hint">Tap the field to add a hub</div>
       <div class="readout"><b id="hubs-n">1</b><span>hubs connected · centers: none</span></div>
       <div class="note">The federation layer is in development; the first hubs run on its first version.</div>
     </div>
   </section>
 
-  <section class="ch close" id="close" data-len="1.2" data-label="07">
-    <div class="card">
+  <section class="ch" id="start" data-len="1.2" data-label="07">
+    <div class="card wide">
       <div class="cap">07 <span>· Start here</span></div>
       <h2>Bring a question, a practice or a <em>program</em>.</h2>
       <div class="doors">
-        <a class="door" href="#labs"><small>For organizations</small><strong>Book a lab</strong><span>Six months, a team of four and one question of your own. You keep the Brain.</span><em>Talk to the hub →</em></a>
-        <a class="door" href="#close"><small>For independents</small><strong>Join the practice</strong><span>Certify, deliver labs and build on your own Brain. €49 a month, free while you co-deliver your first lab.</span><em>Become a member →</em></a>
-        <a class="door" href="#close"><small>For programs and partners</small><strong>Run a program here</strong><span>Bring your cohort to the hub, and keep what it learns after it ends.</span><em>Plan a program →</em></a>
-      </div>
-      <div class="foot">
-        <span>The method, the platform and the Rizom mark are held by the Rizom Foundation as a commons.</span>
-        <span><a href="#">rizom.ai</a><a href="#">Work</a><a href="#">Foundation</a></span>
+        <a class="door" href="#start"><small>For organizations</small><strong>Book a lab</strong><span>Six months, a team of four and one question of your own. You keep the Brain.</span><em>Talk to the hub →</em></a>
+        <a class="door" href="#start"><small>For independents</small><strong>Join the practice</strong><span>Certify, deliver labs and build on your own Brain. €49 a month, free while you co-deliver your first lab.</span><em>Become a member →</em></a>
+        <a class="door" href="#start"><small>For programs and partners</small><strong>Run a program here</strong><span>Bring your cohort to the hub, and keep what it learns after it ends.</span><em>Plan a program →</em></a>
       </div>
     </div>
   </section>
 </main>
+<footer class="foot">
+  <span>The method, the platform and the Rizom mark are held by the Rizom Foundation as a commons.</span>
+  <span><a href="#">rizom.ai</a><a href="#">Work</a><a href="#">Foundation</a></span>
+</footer>
 
 <script>
 (() => {
@@ -381,591 +274,414 @@
   const lerp = (a, b, k) => a + (b - a) * k;
   const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
   const ease = (k) => k * k * (3 - 2 * k);
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  const mulberry = (s) => () => {
-    s |= 0; s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mulberry = (s) => () => { s |= 0; s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const rand = mulberry(11);
   const shuffle = (arr) => arr.map((v) => [rand(), v]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
 
-  // ---------- canvas + palette ----------
-  const canvas = document.getElementById("field");
-  const ctx = canvas.getContext("2d");
-  let W = 0, H = 0, DPR = 1;
-  let C = {};
+  // ---------- canvas, palette, stage ----------
+  const canvas = document.getElementById("field"), ctx = canvas.getContext("2d");
+  let W = 0, H = 0, C = {};
   const readPalette = () => {
-    const cs = getComputedStyle(document.documentElement);
-    const g = (n) => cs.getPropertyValue(n).trim();
-    C = { ink: g("--ink"), brass: g("--brass"), brassSoft: g("--brass-soft"), ruby: g("--ruby"), moss: g("--moss"), bg: g("--bg"), dark: g("--mode") === "dark" };
+    const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue(n).trim();
+    C = { ink: g("--ink"), brass: g("--brass"), brassSoft: g("--brass-soft"), ruby: g("--ruby"), moss: g("--moss"), dark: g("--mode") === "dark" };
   };
-  const rgba = (hex, a) => {
-    const h = hex.replace("#", "");
-    const n = parseInt(h, 16);
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${clamp(a, 0, 1)})`;
-  };
-  const resize = () => {
-    DPR = Math.min(2, devicePixelRatio || 1);
-    W = innerWidth; H = innerHeight;
-    canvas.width = W * DPR; canvas.height = H * DPR;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  };
-
-  let activeCard = null;
-  const cardTop = () => (activeCard && activeCard.dataset.top ? +activeCard.dataset.top : H * 0.56);
-  const placeCards = () => document.querySelectorAll(".ch:not(.open):not(.close) .card").forEach((c) => {
-    const top = Math.max(64, innerHeight - c.offsetHeight - 14);
-    c.dataset.top = top; c.style.setProperty("--card-top", top + "px");
-  });
+  const resize = () => { const d = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; canvas.width = W * d; canvas.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
+  let cardTop = null;
   const geo = () => {
-    const mobile = W < 860;
-    const s = mobile
-      ? { x0: 0, x1: W, y0: 60, y1: clamp(cardTop() - 14, H * 0.4, H * 0.62) }
-      : { x0: W * 0.4, x1: W - 130, y0: 70, y1: H - 24 };
-    s.w = s.x1 - s.x0; s.h = s.y1 - s.y0;
-    s.cx = s.x0 + s.w / 2; s.cy = s.y0 + s.h / 2;
-    s.R = Math.min(s.w, s.h) * (mobile ? 0.46 : 0.44);
-    s.mobile = mobile;
+    const phone = W < 860;
+    const bottom = clamp((cardTop ?? H * 0.56) - 14, H * 0.4, H * 0.62);
+    const s = phone ? { x0: 0, x1: W, y0: 60, y1: bottom } : { x0: W * 0.4, x1: W - 130, y0: 70, y1: H - 24 };
+    s.w = s.x1 - s.x0; s.h = s.y1 - s.y0; s.cx = s.x0 + s.w / 2; s.cy = s.y0 + s.h / 2;
+    s.R = Math.min(s.w, s.h) * (phone ? 0.46 : 0.44); s.phone = phone;
     return s;
   };
 
   // ---------- the lights ----------
-  const N = 112;
-  const parts = Array.from({ length: N }, (_, i) => ({
-    i, ang: rand() * TAU, rad: Math.sqrt(rand()), ph: rand() * TAU,
-    size: 1.2 + rand() * 2.1, warm: rand() < 0.24,
-    x: 0, y: 0, r: 0, a: 0, col: "ink", tx: 0, ty: 0, tr: 0, ta: 0,
-  }));
-  // Who leaves first: the warm, bright ones.
-  shuffle(parts.slice()).sort((a, b) => (b.warm - a.warm)).forEach((p, k) => { p.rank = k; });
+  const N = 110;
+  const parts = Array.from({ length: N }, (_, i) => ({ i, ang: rand() * TAU, rad: Math.sqrt(rand()), ph: rand() * TAU, size: 1.2 + rand() * 2.1, warm: rand() < 0.24, x: 0, y: 0, r: 0, a: 0, col: "ink", tx: 0, ty: 0, tr: 0, ta: 0, snap: false }));
+  shuffle(parts.slice()).sort((a, b) => b.warm - a.warm).forEach((p, k) => { p.rank = k; });
   const order = shuffle(Array.from({ length: N }, (_, i) => i));
-  const near = parts.map((p) => {
-    const px = Math.cos(p.ang) * p.rad, py = Math.sin(p.ang) * p.rad;
-    return parts
-      .filter((q) => q !== p)
-      .map((q) => [Math.hypot(Math.cos(q.ang) * q.rad - px, Math.sin(q.ang) * q.rad - py), q.i])
-      .sort((a, b) => a[0] - b[0]).slice(0, 2).map((d) => d[1]);
-  });
-
-  const cloud = (p, g, now, scale = 1) => {
+  const near = parts.map((p) => parts.filter((q) => q !== p)
+    .map((q) => [Math.hypot(Math.cos(q.ang) * q.rad - Math.cos(p.ang) * p.rad, Math.sin(q.ang) * q.rad - Math.sin(p.ang) * p.rad), q.i])
+    .sort((a, b) => a[0] - b[0]).slice(0, 2).map((d) => d[1]));
+  const cloud = (p, g, now, scale = 1, cx = g.cx, cy = g.cy) => {
     const wob = 1 + 0.13 * Math.sin(3 * p.ang + 0.7) + 0.07 * Math.sin(5 * p.ang + 2);
-    const rr = (0.16 + 0.84 * p.rad) * g.R * scale * wob;
-    const d = reduced ? 0 : 1;
-    return [
-      g.cx + Math.cos(p.ang) * rr * 1.12 + d * Math.sin(now * 0.00041 + p.ph) * 5,
-      g.cy + Math.sin(p.ang) * rr * 0.86 + d * Math.cos(now * 0.00033 + p.ph) * 4,
-    ];
+    const rr = (0.22 + 0.78 * p.rad) * g.R * scale * wob, d = still ? 0 : 1;
+    return [cx + Math.cos(p.ang) * rr * 1.12 + d * Math.sin(now * 0.00041 + p.ph) * 5, cy + Math.sin(p.ang) * rr * 0.86 + d * Math.cos(now * 0.00033 + p.ph) * 4];
   };
-  const set = (p, x, y, r, a, col = "ink") => { p.tx = x; p.ty = y; p.tr = r; p.ta = a; p.col = col; };
+  const set = (p, x, y, r, a, col) => { p.tx = x; p.ty = y; p.tr = r; p.ta = a; p.col = col; };
   const baseCol = (p) => (p.warm ? "brass" : "ink");
+  const member = (offset, k) => parts[order[offset + k]];
+  const around = (g, a, r) => [g.cx + Math.cos(a) * r * 1.1, g.cy + Math.sin(a) * r * 0.86];
 
-  // Persistent bodies that move between chapters.
-  const hub = { x: 0, y: 0, r: 0, a: 0, lit: 0 };
-  const center = { x: 0, y: 0, r: 0, a: 0 };
-  const conn = { a: 0 };
+  // The hub never moves; the center and the connector come and go.
+  const hub = { x: 0, y: 0, r: 0, a: 0, lit: 0 }, center = { x: 0, y: 0, r: 0, a: 0 }, conn = { a: 0 };
   let hubT, centerT, connT;
 
-  // ---------- drawing helpers ----------
+  // ---------- drawing ----------
+  const rgba = (hex, a) => { const n = parseInt(hex.replace("#", ""), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${clamp(a, 0, 1)})`; };
   const light = (x, y, r, a, col) => {
     if (a < 0.01 || r < 0.05) return;
-    const c = C[col] || C.ink;
     a = C.dark ? a : Math.min(1, a * 1.4);
-    ctx.fillStyle = rgba(c, a * (C.dark ? 0.16 : 0.1));
-    ctx.beginPath(); ctx.arc(x, y, r * 3.4, 0, TAU); ctx.fill();
-    ctx.fillStyle = rgba(c, a);
-    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    const c = C[col] || C.ink;
+    ctx.fillStyle = rgba(c, a * (C.dark ? 0.16 : 0.08)); ctx.beginPath(); ctx.arc(x, y, r * 3.4, 0, TAU); ctx.fill();
+    ctx.fillStyle = rgba(c, a); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
   };
-  const line = (x1, y1, x2, y2, col, a, w = 1, bend = 0) => {
+  const qpt = (x1, y1, x2, y2, bend, k) => { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, cx = mx - (y2 - y1) * bend, cy = my + (x2 - x1) * bend, u = 1 - k; return [u * u * x1 + 2 * u * k * cx + k * k * x2, u * u * y1 + 2 * u * k * cy + k * k * y2]; };
+  const line = (x1, y1, x2, y2, col, a, w = 1, bend = 0, dash = null) => {
     if (a < 0.01) return;
-    ctx.strokeStyle = rgba(C[col] || C.ink, a); ctx.lineWidth = w;
+    ctx.strokeStyle = rgba(C[col] || C.ink, a); ctx.lineWidth = w; if (dash) ctx.setLineDash(dash);
     ctx.beginPath(); ctx.moveTo(x1, y1);
-    if (bend) {
-      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1;
-      ctx.quadraticCurveTo(mx - dy * bend, my + dx * bend, x2, y2);
-    } else ctx.lineTo(x2, y2);
-    ctx.stroke();
+    if (bend) { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2; ctx.quadraticCurveTo(mx - (y2 - y1) * bend, my + (x2 - x1) * bend, x2, y2); } else ctx.lineTo(x2, y2);
+    ctx.stroke(); if (dash) ctx.setLineDash([]);
   };
-  const qpt = (x1, y1, x2, y2, bend, k) => {
-    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1;
-    const cx = mx - dy * bend, cy = my + dx * bend, u = 1 - k;
-    return [u * u * x1 + 2 * u * k * cx + k * k * x2, u * u * y1 + 2 * u * k * cy + k * k * y2];
-  };
-  const label = (x, y, text, a, col = "ink", align = "center", size = 10) => {
-    if (a < 0.02) return;
-    ctx.font = `500 ${size}px "IBM Plex Mono", monospace`;
-    ctx.letterSpacing = "1.4px";
-    ctx.textAlign = align; ctx.textBaseline = "middle";
-    ctx.fillStyle = rgba(C[col] || C.ink, a);
-    ctx.fillText(text.toUpperCase(), x, y);
-    ctx.letterSpacing = "0px";
+  const label = (x, y, text, a, col = "ink", align = "center") => {
+    if (a < 0.02 || !text) return;
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.letterSpacing = "1.4px"; ctx.textAlign = align; ctx.textBaseline = "middle";
+    ctx.fillStyle = rgba(C[col] || C.ink, a); ctx.fillText(text.toUpperCase(), x, y); ctx.letterSpacing = "0px";
   };
   const ring = (x, y, r, col, a, w = 1, wobble = 0, seed = 0, dash = null) => {
-    if (a < 0.01) return;
-    ctx.strokeStyle = rgba(C[col] || C.ink, a); ctx.lineWidth = w;
-    if (dash) ctx.setLineDash(dash);
+    if (a < 0.01 || r < 0.5) return;
+    ctx.strokeStyle = rgba(C[col] || C.ink, a); ctx.lineWidth = w; if (dash) ctx.setLineDash(dash);
     ctx.beginPath();
-    Array.from({ length: 73 }, (_, k) => (k / 72) * TAU).forEach((t, k) => {
-      const rr = r * (1 + wobble * Math.sin(3 * t + seed) + wobble * 0.6 * Math.sin(5 * t + seed * 1.7));
-      const px = x + Math.cos(t) * rr, py = y + Math.sin(t) * rr;
-      k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-    });
+    Array.from({ length: 73 }, (_, k) => (k / 72) * TAU).forEach((t, k) => { const rr = r * (1 + wobble * Math.sin(3 * t + seed) + wobble * 0.6 * Math.sin(5 * t + seed * 1.7)); k ? ctx.lineTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr) : ctx.moveTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr); });
     ctx.stroke(); ctx.setLineDash([]);
+  };
+  // A ring squashed like the field itself (wider than tall), for rings that pass through placed lights.
+  const oval = (x, y, r, col, a, w = 1, wobble = 0, seed = 0) => {
+    if (a < 0.01) return;
+    ctx.strokeStyle = rgba(C[col] || C.ink, a); ctx.lineWidth = w; ctx.beginPath();
+    Array.from({ length: 97 }, (_, k) => (k / 96) * TAU).forEach((t, k) => { const rr = r * (1 + wobble * Math.sin(3 * t + seed) + wobble * 0.6 * Math.sin(5 * t + seed * 1.7)); const px = x + Math.cos(t) * rr * 1.1, py = y + Math.sin(t) * rr * 0.86; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.stroke();
+  };
+  const glow = (x, y, r, a, col) => {
+    if (a < 0.01) return;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(C[col], 0.55 * a)); g.addColorStop(0.35, rgba(C[col], 0.14 * a)); g.addColorStop(1, rgba(C[col], 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
   };
   const lantern = (x, y, r, a, lit, col = "brass") => {
     if (a < 0.01 || r < 0.5) return;
-    const c = C[col];
-    if (lit > 0.01) {
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
-      g.addColorStop(0, rgba(c, 0.55 * lit * a)); g.addColorStop(1, rgba(c, 0));
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 3, 0, TAU); ctx.fill();
-      ctx.fillStyle = rgba(c, 0.9 * lit * a); ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, TAU); ctx.fill();
-    }
+    if (lit > 0.01) { glow(x, y, r * 3.2, lit * a, col); ctx.fillStyle = rgba(C[col], 0.9 * lit * a); ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, TAU); ctx.fill(); }
     ring(x, y, r, col, a, 1.4);
   };
   const pulse = (x1, y1, x2, y2, bend, col, a, now, period, offset = 0, size = 2.2) => {
-    const k = reduced ? 0.5 : (((now / period) + offset) % 1);
+    const k = still ? 0.5 : ((now / period) + offset) % 1;
     const [x, y] = qpt(x1, y1, x2, y2, bend, k);
     light(x, y, size, a * Math.sin(Math.PI * k), col);
   };
 
   // ---------- interaction state ----------
-  let connectorGone = false;
-  let memoryOn = true;
-  let holderSel = null;
-  const userHubs = [];
+  let connectorGone = false, memoryOn = true, holderSel = null;
+  const planted = [];
   const setText = (id, v) => { const el = document.getElementById(id); if (el && el.textContent !== String(v)) el.textContent = v; };
   const pad = (n) => String(n).padStart(2, "0");
+  const cohortOf = (t, K) => { const cf = t * K, c = Math.min(K - 1, Math.floor(cf)), u = cf - c; return { c, u, arrive: ease(seg(u, 0, 0.28)), leave: ease(seg(u, 0.74, 1)) }; };
+  const sparkY = (t, on) => { const cf = clamp(t, 0, 0.9999) * 4, c = Math.floor(cf), u = cf - c, rise = ease(seg(u, 0.1, 0.8)); return on ? 62 - (c + rise) * 13 : 62 - rise * 13 * (1 - seg(u, 0.88, 1)); };
 
-  // ---------- chapters ----------
-  // Each chapter sets targets for the lights and the persistent bodies, then draws its own layer.
-  const COHORT = 12;
-  const cohortMember = (c, j, size, offset = 0) => order[offset + c * size + j];
+  // Hub sites for the network: a wide field around this hub that runs past the
+  // edges of the stage, so the network has no edge and no middle.
+  const sites = (() => {
+    const r2 = mulberry(5);
+    return Array.from({ length: 30 }, (_, k) => {
+      const col = k % 6, row = Math.floor(k / 6);
+      return [-0.38 + col * 0.35 + (r2() - 0.5) * 0.16, -0.32 + row * 0.42 + (r2() - 0.5) * 0.18];
+    }).filter(([u, v]) => Math.hypot(u - 0.5, v - 0.5) > 0.16).slice(0, 21);
+  })();
+  const sitesByDistance = sites.map((s, i) => [Math.hypot(s[0] - 0.5, s[1] - 0.5), i]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
 
-  const scenes = [
-    // Open: the region, a field of lights.
-    {
+  // ---------- chapters: the hub at the center of every one ----------
+  const scenes = {
+    // Open: programs pass through the hub in waves; the hub stays.
+    open: {
       target(g, t, now) {
-        parts.forEach((p) => {
-          const [x, y] = cloud(p, g, now);
-          set(p, x, y, p.size, p.warm ? 0.9 : 0.35 + 0.5 * (1 - p.rad), baseCol(p));
+        hubT = { x: g.cx, y: g.cy, r: g.R * 0.085, a: 1, lit: 0.5 };
+        parts.forEach((p) => set(p, ...cloud(p, g, now, 1.55), p.size * 0.8, 0.18, baseCol(p)));
+        const clock = still ? 0.35 : now / 18000;
+        Array.from({ length: 64 }, (_, k) => {
+          const p = member(0, k), wave = k % 4;
+          const phase = (clock + wave / 4 + (p.ph / TAU) * 0.05) % 1;
+          const aIn = p.ang, aOut = p.ang + 2.1, orbitR = g.R * (0.32 + 0.08 * p.rad);
+          const edge = (a) => around(g, a, g.R * 1.45), orbit = (a) => around(g, a, orbitR);
+          let x, y, a;
+          if (phase < 0.28) { const s = ease(phase / 0.28); [x, y] = qpt(...edge(aIn), ...orbit(aIn), 0.12, s); a = s; }
+          else if (phase < 0.72) { [x, y] = orbit(aIn + ((phase - 0.28) / 0.44) * 2.1); a = 1; }
+          else { const s = ease((phase - 0.72) / 0.28); [x, y] = qpt(...orbit(aOut), ...edge(aOut), 0.12, s); a = 1 - s; }
+          p.orbiting = phase >= 0.28 && phase < 0.72 ? Math.min(1, (phase - 0.28) * 12, (0.72 - phase) * 12) : 0;
+          set(p, x, y, p.size, 0.9 * a, baseCol(p));
         });
       },
       draw(g, t, now, ov) {
-        parts.forEach((p) => near[p.i].forEach((j) => {
-          const q = parts[j];
-          if (Math.hypot(p.x - q.x, p.y - q.y) < g.R * 0.32) line(p.x, p.y, q.x, q.y, "brass", 0.13 * ov * Math.min(p.a, q.a), 0.8, 0.12);
-        }));
+        Array.from({ length: 64 }, (_, k) => member(0, k)).forEach((p) => { if (p.orbiting) line(hub.x, hub.y, p.x, p.y, "brass", 0.16 * p.orbiting * ov, 0.8, 0.06); });
+        label(hub.x, hub.y + hub.r + 20, "The hub", 0.6 * ov, "brass");
       },
     },
 
-    // 01: everything drains toward the center.
-    {
+    // 01: the hub trains, then hands its best to the center.
+    intake: {
       target(g, t, now) {
-        centerT = { x: g.x1 - g.R * (g.mobile ? 0.3 : 0.12), y: g.y0 + g.R * (g.mobile ? 0.3 : 0.16), r: g.R * (0.12 + 0.08 * seg(t, 0.05, 0.9)), a: seg(t, 0, 0.12) };
-        const f = ease(seg(t, 0.08, 0.86)) * N * 0.52;
+        hubT = { x: g.cx, y: g.cy, r: g.R * 0.085, a: 1, lit: 0.3 };
+        centerT = { x: g.x1 - g.R * (g.phone ? 0.25 : 0.1), y: g.y0 + g.R * (g.phone ? 0.25 : 0.14), r: g.R * (0.11 + 0.07 * seg(t, 0.05, 0.9)), a: seg(t, 0, 0.12) };
+        const f = ease(seg(t, 0.06, 0.9)) * N * 0.5;
         let gone = 0;
         parts.forEach((p) => {
-          const [bx, by] = cloud(p, g, now);
-          const k = clamp((f - p.rank) / 9, 0, 1);
-          p.k = k; p.bx = bx; p.by = by;
+          const [bx, by] = cloud(p, g, now, 1.15);
+          const k = clamp((f - p.rank) / 12, 0, 1);
+          const inHub = [g.cx + Math.cos(p.ang) * g.R * 0.13, g.cy + Math.sin(p.ang) * g.R * 0.11];
+          let x, y;
+          if (k < 0.45) [x, y] = qpt(bx, by, ...inHub, 0.1, ease(k / 0.45));
+          else [x, y] = qpt(...inHub, center.x, center.y, 0.2, ease((k - 0.45) / 0.55));
+          p.k = k; p.hx = inHub[0]; p.hy = inHub[1];
           if (k >= 1) gone += 1;
-          const [x, y] = qpt(bx, by, center.x, center.y, 0.22, ease(k));
-          const dim = 1 - 0.4 * seg(t, 0.2, 0.9);
           const a0 = p.warm ? 0.95 : 0.35 + 0.5 * (1 - p.rad);
-          set(p, x, y, p.size * (1 - 0.6 * k), a0 * (1 - k * k * k) * (k > 0 ? 1 : dim), baseCol(p));
-          if (k > 0) { p.x = x; p.y = y; }
+          set(p, x, y, p.size * (1 - 0.5 * seg(k, 0.6, 1)), k > 0 ? a0 * (1 - Math.pow(seg(k, 0.6, 1), 3)) : a0 * (1 - 0.4 * seg(t, 0.2, 0.9)), baseCol(p));
+          p.snap = k > 0;
         });
         setText("left", gone);
       },
       draw(g, t, now, ov) {
-        parts.forEach((p) => {
-          if (p.k > 0 && p.k < 1) {
-            ctx.setLineDash([2, 4]);
-            line(p.bx, p.by, center.x, center.y, p.warm ? "brass" : "ink", 0.22 * ov * Math.sin(Math.PI * p.k), 0.8, 0.22);
-            ctx.setLineDash([]);
-          }
-        });
+        parts.forEach((p) => { if (p.k > 0.45 && p.k < 1) line(p.hx, p.hy, center.x, center.y, p.warm ? "brass" : "ink", 0.22 * ov * Math.sin(Math.PI * (p.k - 0.45) / 0.55), 0.8, 0.2, [2, 4]); });
         label(center.x - center.r - 14, center.y + center.r + 14, "The center", 0.55 * ov * center.a, "ink", "end");
+        label(hub.x, hub.y + hub.r + 20, "The hub", 0.6 * ov, "brass");
       },
     },
 
-    // 02: cohorts gather around one person and disperse; the connector can leave.
-    {
+    // 02: cohorts gather around one connector at the hub; the connector can leave.
+    forgets: {
       target(g, t, now) {
-        hubT = { x: g.cx, y: g.cy, r: g.R * 0.1, a: connectorGone ? 0.4 : 1, lit: 0 };
+        hubT = { x: g.cx, y: g.cy, r: g.R * 0.085, a: connectorGone ? 0.4 : 1, lit: 0 };
         connT = { a: connectorGone ? 0 : 1 };
-        const cf = t * 3, c = Math.min(2, Math.floor(cf)), u = cf - c;
-        const arrive = ease(seg(u, 0, 0.28)), leave = ease(seg(u, 0.74, 1));
-        this.state = { c, u, arrive, leave };
-        parts.forEach((p) => set(p, ...cloud(p, g, now, 1.3), p.size * 0.9, 0.24, baseCol(p)));
-        Array.from({ length: COHORT }, (_, j) => {
-          const p = parts[cohortMember(c, j, COHORT)];
-          const [ox, oy] = cloud(p, g, now, 1.3);
-          const an = (j / COHORT) * TAU + c * 0.5;
-          const rr = g.R * (0.36 + 0.05 * Math.sin(j * 1.7));
-          const k = connectorGone ? 0 : arrive * (1 - leave);
-          set(p, lerp(ox, g.cx + Math.cos(an) * rr, k), lerp(oy, g.cy + Math.sin(an) * rr * 0.86, k), p.size, lerp(0.24, 0.95, connectorGone ? 0 : 1 - leave), baseCol(p));
+        const ph = this.ph = cohortOf(t, 3);
+        parts.forEach((p) => set(p, ...cloud(p, g, now, 1.3), p.size * 0.9, 0.22, baseCol(p)));
+        Array.from({ length: 12 }, (_, j) => {
+          const p = member(0, ph.c * 12 + j), [ox, oy] = cloud(p, g, now, 1.3);
+          const [rx, ry] = around(g, (j / 12) * TAU + ph.c * 0.5, g.R * (0.34 + 0.05 * Math.sin(j * 1.7)));
+          const k = connectorGone ? 0 : ph.arrive * (1 - ph.leave);
+          set(p, lerp(ox, rx, k), lerp(oy, ry, k), p.size, connectorGone ? 0.22 : lerp(0.22, 0.95, 1 - ph.leave), baseCol(p));
         });
-        setText("cohort", pad(c + 1));
+        setText("cohort", pad(ph.c + 1));
         setText("cohort-text", connectorGone ? "cohort · the connector has left; nobody knows whom to call" : "cohort of 03 · carried over from the last one: nothing");
       },
       draw(g, t, now, ov) {
-        const { c, u, leave } = this.state;
-        const cx = hub.x + g.R * 0.03, cy = hub.y - g.R * 0.02;
+        const { c, u, leave } = this.ph, cx = hub.x + g.R * 0.03, cy = hub.y - g.R * 0.02;
         if (conn.a > 0.02) {
-          Array.from({ length: COHORT }, (_, j) => {
-            const p = parts[cohortMember(c, j, COHORT)];
-            const a = seg(u, 0.28 + j * 0.022, 0.34 + j * 0.022) * (1 - leave) * conn.a;
-            line(cx, cy, p.x, p.y, "brass", 0.5 * a * ov, 1, 0.08);
-            if (j % 2 === 0) {
-              const q = parts[cohortMember(c, (j + 3) % COHORT, COHORT)];
-              const b = seg(u, 0.46 + j * 0.015, 0.52 + j * 0.015) * (1 - leave) * conn.a;
-              line(p.x, p.y, q.x, q.y, "ink", 0.22 * b * ov, 0.8, 0.3);
-            }
+          Array.from({ length: 12 }, (_, j) => {
+            const p = member(0, c * 12 + j);
+            line(cx, cy, p.x, p.y, "brass", 0.5 * seg(u, 0.28 + j * 0.022, 0.34 + j * 0.022) * (1 - leave) * conn.a * ov, 1, 0.08);
+            if (j % 2 === 0) { const q = member(0, c * 12 + (j + 3) % 12); line(p.x, p.y, q.x, q.y, "ink", 0.22 * seg(u, 0.46 + j * 0.015, 0.52 + j * 0.015) * (1 - leave) * conn.a * ov, 0.8, 0.3); }
           });
           light(cx, cy, 3.4, conn.a * ov, "ink");
-          label(cx + 14, cy - 16, "The connector", 0.6 * conn.a * ov, "ink", "start");
+          label(cx + 14, cy - 18, "The connector", 0.6 * conn.a * ov, "ink", "start");
         }
-        label(hub.x, hub.y + hub.r + 18, "The hub", 0.5 * ov * hub.a, "brass");
+        label(hub.x, hub.y + hub.r + 20, "The hub", 0.5 * ov * hub.a, "brass");
         label(g.cx, g.y0 + 20, `Cohort ${pad(c + 1)} · ${u < 0.74 ? "in the program" : "program ends"}`, 0.5 * ov, "ink");
       },
     },
 
-    // 03: the same cohorts, but the hub keeps what they leave.
-    {
+    // 03: the same cohorts, and the hub's Brain keeps what each leaves.
+    remembers: {
       target(g, t, now) {
-        const K = 4, S = 10;
-        const cf = t * K, c = Math.min(K - 1, Math.floor(cf)), u = cf - c;
-        const arrive = ease(seg(u, 0, 0.28)), leave = ease(seg(u, 0.74, 1));
-        const done = c + (u > 0.9 ? 1 : 0);
-        this.state = { c, u, arrive, leave, K, S, done };
-        hubT = { x: g.cx, y: g.cy, r: g.R * (0.08 + (memoryOn ? 0.012 * (c + u) : 0)), a: 1, lit: memoryOn ? 0.35 + 0.65 * ((c + u) / K) : 0 };
+        const ph = this.ph = cohortOf(t, 4), reach = ph.c + ph.u;
+        hubT = { x: g.cx, y: g.cy, r: g.R * (0.085 + (memoryOn ? 0.012 * reach : 0)), a: 1, lit: memoryOn ? 0.35 + 0.65 * (reach / 4) : 0 };
         parts.forEach((p) => set(p, ...cloud(p, g, now, 1.3), p.size * 0.9, 0.22, baseCol(p)));
-        Array.from({ length: K }, (_, cc) => Array.from({ length: S }, (_, j) => {
-          const p = parts[cohortMember(cc, j, S, 40)];
-          const [ox, oy] = cloud(p, g, now, 1.3);
-          if (cc < c && memoryOn) set(p, ox, oy, p.size, 0.7, "brass");
-          if (cc !== c) return;
-          const an = (j / S) * TAU + c * 0.6;
-          const rr = g.R * (0.34 + 0.05 * Math.sin(j * 2.1));
-          const k = arrive * (1 - leave);
-          set(p, lerp(ox, g.cx + Math.cos(an) * rr, k), lerp(oy, g.cy + Math.sin(an) * rr * 0.86, k), p.size, lerp(memoryOn ? 0.7 : 0.22, 0.95, 1 - leave), memoryOn && leave > 0.5 ? "brass" : baseCol(p));
+        Array.from({ length: 4 }, (_, cc) => Array.from({ length: 10 }, (_, j) => {
+          const p = member(40, cc * 10 + j), [ox, oy] = cloud(p, g, now, 1.3);
+          if (cc < ph.c && memoryOn) set(p, ox, oy, p.size, 0.7, "brass");
+          if (cc !== ph.c) return;
+          const [rx, ry] = around(g, (j / 10) * TAU + ph.c * 0.6, g.R * (0.34 + 0.05 * Math.sin(j * 2.1)));
+          const k = ph.arrive * (1 - ph.leave), rest = memoryOn ? 0.7 : 0.22;
+          set(p, lerp(ox, rx, k), lerp(oy, ry, k), p.size, rest + (0.95 - rest) * (1 - ph.leave), memoryOn && ph.leave > 0.5 ? "brass" : baseCol(p));
         }));
-        const n = memoryOn ? c * 14 : 0;
-        setText("mem-n", n);
-        setText("mem-text", memoryOn ? `people and introductions on record when cohort ${pad(c + 1)} starts` : `on record when cohort ${pad(c + 1)} starts: it begins again from zero`);
-        document.getElementById("spark-dot").setAttribute("cx", 8 + t * 284);
-        document.getElementById("spark-dot").setAttribute("cy", sparkY(t, memoryOn));
+        setText("mem-n", memoryOn ? ph.c * 14 : 0);
+        setText("mem-text", memoryOn ? `people and introductions on record when cohort ${pad(ph.c + 1)} starts` : `on record when cohort ${pad(ph.c + 1)} starts: it begins again from zero`);
+        const dot = document.getElementById("spark-dot"); dot.setAttribute("cx", 8 + t * 284); dot.setAttribute("cy", sparkY(t, memoryOn));
       },
       draw(g, t, now, ov) {
-        const { c, u, arrive, leave, K, S } = this.state;
+        const { c, u, arrive, leave } = this.ph;
         if (memoryOn) {
-          // The hub's memory, drawn as contour lines that thicken with every cohort.
-          const rings = 1 + Math.floor((c + u) * 2);
-          Array.from({ length: rings }, (_, k) => ring(hub.x, hub.y, g.R * (0.16 + k * 0.05), "brass", (0.26 - k * 0.022) * ov, 0.9, 0.06 + k * 0.012, k * 1.3));
-          Array.from({ length: c }, (_, cc) => Array.from({ length: S }, (_, j) => {
-            const p = parts[cohortMember(cc, j, S, 40)];
-            line(hub.x, hub.y, p.x, p.y, "brass", 0.16 * ov, 0.7, 0.06);
-          }));
+          Array.from({ length: 1 + Math.floor((c + u) * 2) }, (_, k) => ring(hub.x, hub.y, g.R * (0.16 + k * 0.05), "brass", (0.26 - k * 0.022) * ov, 0.9, 0.06 + k * 0.012, k * 1.3));
+          Array.from({ length: c }, (_, cc) => Array.from({ length: 10 }, (_, j) => { const p = member(40, cc * 10 + j); line(hub.x, hub.y, p.x, p.y, "brass", 0.16 * ov, 0.7, 0.06); }));
         }
-        Array.from({ length: S }, (_, j) => {
-          const p = parts[cohortMember(c, j, S, 40)];
-          const a = seg(u, 0.28 + j * 0.025, 0.34 + j * 0.025) * (1 - leave);
+        Array.from({ length: 10 }, (_, j) => {
+          const p = member(40, c * 10 + j), a = seg(u, 0.28 + j * 0.025, 0.34 + j * 0.025) * (1 - leave);
           line(hub.x, hub.y, p.x, p.y, "brass", 0.5 * a * ov, 1, 0.08);
-          if (memoryOn && c > 0) {
-            const q = parts[cohortMember(c - 1, j, S, 40)];
-            line(p.x, p.y, q.x, q.y, "brassSoft", 0.3 * a * arrive * ov, 0.8, 0.2);
-          }
+          if (memoryOn && c > 0) { const q = member(40, (c - 1) * 10 + j); line(p.x, p.y, q.x, q.y, "brassSoft", 0.3 * a * arrive * ov, 0.8, 0.2); }
         });
-        label(hub.x, hub.y + hub.r + 18, memoryOn ? "The hub's Brain" : "The hub", 0.55 * ov, "brass");
-        label(g.cx, g.y0 + 20, `Cohort ${pad(c + 1)} of ${pad(K)}`, 0.5 * ov, "ink");
+        label(hub.x, hub.y + hub.r + 20, memoryOn ? "The hub's Brain" : "The hub", 0.6 * ov, "brass");
+        label(g.cx, g.y0 + 20, `Cohort ${pad(c + 1)} of 04`, 0.5 * ov, "ink");
       },
     },
 
-    // 04: one lab, six months, inside the hub.
-    {
+    // 04: a lab passes through the hub: an organization arrives with a question
+    // and leaves with its Brain; other labs run beside it; members deliver.
+    through: {
       target(g, t, now) {
-        const wk = seg(t, 0.04, 0.9) * 26;
-        const home = seg(t, 0.9, 1);
-        this.state = { wk, home };
-        hubT = { x: g.cx - g.R * 0.9, y: g.cy - g.R * 0.78, r: g.R * 0.05, a: 1, lit: 0.8 };
-        const team = [0, 1, 2, 3].map((j) => order[80 + j]);
-        const guests = [0, 1, 2, 3, 4].map((j) => order[84 + j]);
-        const pilot = seg(wk, 4, 6) * (1 - seg(wk, 17, 19));
-        parts.forEach((p) => {
-          const rr = g.R * (0.82 + 0.3 * p.rad);
-          set(p, g.cx + Math.cos(p.ang) * rr * 1.1, g.cy + Math.sin(p.ang) * rr * 0.86, p.size * 0.8, 0.22, baseCol(p));
+        hubT = { x: g.cx, y: g.cy, r: g.R * 0.09, a: 1, lit: 0.85 };
+        const wk = this.wk = seg(t, 0.07, 0.88) * 26, arrive = this.arrive = seg(t, 0, 0.07), home = this.home = seg(t, 0.9, 1);
+        const L = this.L = [g.cx + g.R * 0.52, g.cy + g.R * 0.24];
+        const O = this.O = [g.x1 - g.R * 0.12, g.y0 + g.R * 0.22];
+        const pilot = this.pilot = seg(wk, 4, 6) * (1 - seg(wk, 17, 19));
+        parts.forEach((p) => set(p, ...cloud(p, g, now, 1.6), p.size * 0.8, 0.16, baseCol(p)));
+        // The team, from the organization to the lab beside the hub.
+        Array.from({ length: 4 }, (_, j) => {
+          const p = member(0, j), a = (still ? 0 : now * 0.00024) + (j * TAU) / 4;
+          const at = [L[0] + Math.cos(a) * g.R * 0.08, L[1] + Math.sin(a) * g.R * 0.08];
+          set(p, lerp(O[0], at[0], ease(arrive)), lerp(O[1], at[1], ease(arrive)), 3, 1, "brassSoft");
         });
-        team.forEach((i, j) => {
-          const an = (reduced ? 0 : now * 0.00022) + (j * TAU) / 4;
-          set(parts[i], g.cx + Math.cos(an) * g.R * 0.15, g.cy + Math.sin(an) * g.R * 0.15, 3, 1, "brassSoft");
+        // The hub's members, who certify here and deliver the labs.
+        Array.from({ length: 6 }, (_, j) => {
+          const p = member(4, j), rest = around(g, Math.PI * 0.62 + j * 0.42, g.R * 0.2);
+          const goes = j < 3 ? ease(pilot) : 0, a = -0.4 + j * 0.9, at = [L[0] + Math.cos(a) * g.R * 0.15, L[1] + Math.sin(a) * g.R * 0.15];
+          set(p, lerp(rest[0], at[0], goes), lerp(rest[1], at[1], goes), 2.4, 0.85, "ink");
         });
-        guests.forEach((i, j) => {
-          const p = parts[i];
-          const ox = g.cx + Math.cos(p.ang) * g.R * 0.95, oy = g.cy + Math.sin(p.ang) * g.R * 0.8;
-          const an = -0.6 + j * 0.5;
-          set(p, lerp(ox, g.cx + Math.cos(an) * g.R * 0.33, ease(pilot)), lerp(oy, g.cy + Math.sin(an) * g.R * 0.33, ease(pilot)), p.size, lerp(0.22, 0.9, pilot), "ink");
-        });
-        this.team = team; this.guests = guests; this.pilot = pilot;
+        // Other labs running at the hub, each on its own clock.
+        this.labs = [Math.PI * 0.95, Math.PI * 1.32, Math.PI * 0.6].map((ang, j) => ({ at: around(g, ang, g.R * 0.62), progress: still ? 0.5 : ((now / 11000) + j * 0.31) % 1 }));
+        this.labs.forEach((lab, j) => Array.from({ length: 4 }, (_, k) => {
+          const p = member(10 + j * 4, k), a = (still ? 0 : now * 0.0003) + (k * TAU) / 4;
+          set(p, lab.at[0] + Math.cos(a) * g.R * 0.05, lab.at[1] + Math.sin(a) * g.R * 0.05, 1.8, 0.75, "brassSoft");
+        }));
         document.querySelectorAll("#phases li").forEach((li, k) => {
-          const bounds = [[0, 3], [3, 18], [18, 24], [24, 27]][k];
-          li.classList.toggle("on", wk >= bounds[0] && wk < bounds[1] && !(k < 3 && home > 0) || (k === 3 && (wk >= 24 || home > 0)));
-          li.classList.toggle("done", wk >= bounds[1] && k < 3);
+          const now = home > 0 || wk >= 24 ? 3 : wk >= 18 ? 2 : wk >= 3 ? 1 : 0;
+          li.classList.toggle("on", k === now); li.classList.toggle("done", k < now);
         });
       },
       draw(g, t, now, ov) {
-        const { wk, home } = this.state;
-        const R = g.R * 0.46, start = -Math.PI / 2;
-        const ang = (w) => start + (w / 26) * TAU;
-        // Twenty-six weeks around the lab.
-        Array.from({ length: 26 }, (_, w) => {
-          const a = ang(w + 0.5), on = w < wk;
-          line(g.cx + Math.cos(a) * (R - 4), g.cy + Math.sin(a) * (R - 4), g.cx + Math.cos(a) * (R + 4), g.cy + Math.sin(a) * (R + 4), on ? "brass" : "ink", (on ? 0.7 : 0.18) * ov, 1);
+        const { wk, home, L, O, pilot, labs } = this, Rd = g.R * 0.24, start = -Math.PI / 2, ang = (w) => start + (w / 26) * TAU;
+        // The hub holds the labs; threads run from it to each.
+        labs.forEach((lab) => {
+          line(hub.x, hub.y, lab.at[0], lab.at[1], "brass", 0.22 * ov, 0.8, 0.08);
+          ring(lab.at[0], lab.at[1], g.R * 0.075, "brass", 0.3 * ov, 1);
+          ctx.strokeStyle = rgba(C.brass, 0.8 * ov); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(lab.at[0], lab.at[1], g.R * 0.075, start, start + lab.progress * TAU); ctx.stroke();
         });
-        const phases = [[0, 3, "Audit", 2.6], [3, 18, "Pilot", 1.6], [18, 24, "Brain in use", 2], [24, 26, "End", 2.6]];
-        phases.forEach(([a0, a1, name, w]) => {
-          const reach = clamp(wk, a0, a1);
-          if (reach > a0) {
-            ctx.strokeStyle = rgba(C.brass, 0.85 * ov); ctx.lineWidth = w;
-            ctx.beginPath(); ctx.arc(g.cx, g.cy, R + 12, ang(a0) + 0.02, ang(reach) - 0.02); ctx.stroke();
-            const mid = ang((a0 + a1) / 2);
-            label(g.cx + Math.cos(mid) * (R + 30), g.cy + Math.sin(mid) * (R + 30), name, 0.7 * ov * seg(wk, a0, a0 + 0.8), "brass", Math.cos(mid) > 0.3 ? "start" : Math.cos(mid) < -0.3 ? "end" : "center");
-          }
+        line(hub.x, hub.y, L[0], L[1], "brass", 0.35 * ov, 1, -0.08);
+        // The featured lab's twenty-six weeks.
+        Array.from({ length: 26 }, (_, w) => { const a = ang(w + 0.5), on = w < wk; line(L[0] + Math.cos(a) * (Rd - 3), L[1] + Math.sin(a) * (Rd - 3), L[0] + Math.cos(a) * (Rd + 3), L[1] + Math.sin(a) * (Rd + 3), on ? "brass" : "ink", (on ? 0.7 : 0.18) * ov, 1); });
+        [[0, 3, 2.4], [3, 18, 1.5], [18, 24, 1.9], [24, 26, 2.4]].forEach(([a0, a1, w]) => {
+          const reach = clamp(wk, a0, a1); if (reach <= a0) return;
+          ctx.strokeStyle = rgba(C.brass, 0.85 * ov); ctx.lineWidth = w; ctx.beginPath(); ctx.arc(L[0], L[1], Rd + 9, ang(a0) + 0.02, ang(reach) - 0.02); ctx.stroke();
         });
-        label(g.cx, g.cy + R + 36, `Week ${pad(Math.min(26, Math.floor(wk) + 1))} / 26`, 0.6 * ov, "ink");
-        // The question, then the lab's Brain growing around it with every decision.
-        const brain = seg(wk, 3, 4.2);
-        const decisions = Math.floor(clamp(wk - 3, 0, 15) * 1.6);
-        const org = g.mobile ? [g.cx + g.R * 0.5, g.cy + g.R * 0.86] : [g.cx + g.R * 0.86, g.cy + g.R * 0.7];
-        const [lx, ly] = [lerp(g.cx, org[0], ease(home)), lerp(g.cy, org[1], ease(home))];
-        Array.from({ length: decisions }, (_, k) => {
-          const a = k * 2.399, rr = g.R * (0.22 + (k % 3) * 0.025);
-          const dx = g.cx + Math.cos(a) * rr, dy = g.cy + Math.sin(a) * rr;
-          line(dx, dy, lx, ly, "brass", 0.12 * ov * (1 - home), 0.7);
-          ctx.fillStyle = rgba(C.ink, 0.55 * ov * (1 - home));
-          ctx.fillRect(dx - 2, dy - 2.5, 4, 5);
-        });
-        ctx.save(); ctx.translate(g.cx, g.cy); ctx.rotate(Math.PI / 4);
-        ctx.strokeStyle = rgba(C.ink, 0.7 * ov * (1 - home)); ctx.lineWidth = 1.2; ctx.strokeRect(-5, -5, 10, 10);
-        ctx.restore();
-        if (brain < 0.5) label(g.cx, g.cy + 22, "One question", 0.6 * ov * (1 - brain * 2), "ink");
-        lantern(lx, ly, g.R * (0.035 + 0.025 * brain + decisions * 0.0009), ov * brain, brain);
-        // The hub brings people to the question.
-        this.guests.forEach((i) => this.team.forEach((ti, k) => {
-          if (k === 0) line(parts[i].x, parts[i].y, parts[ti].x, parts[ti].y, "ink", 0.25 * this.pilot * ov, 0.8, 0.15);
-        }));
-        line(hub.x, hub.y, g.cx, g.cy, "brass", 0.25 * ov, 0.8, -0.1);
-        label(hub.x, hub.y - hub.r - 14, "The hub", 0.55 * ov, "brass");
-        if (this.pilot > 0.3) label(g.cx + g.R * 0.45, g.cy - g.R * 0.4, "People the hub brings in", 0.45 * ov * this.pilot, "ink", "start");
-        // Use, then home.
-        const use = seg(wk, 18, 19);
-        if (use > 0) {
-          light(org[0], org[1], 5, ov * use, "brassSoft");
-          label(org[0], org[1] + 20, home > 0.5 ? "Theirs, anywhere" : "The organization", 0.6 * ov * use, "brass");
-          ctx.setLineDash([3, 4]); line(org[0], org[1], lx, ly, "brass", 0.35 * ov * use * (1 - home), 1, 0.1); ctx.setLineDash([]);
-          if (home < 0.5) [0, 0.33, 0.66].forEach((o) => pulse(org[0], org[1], lx, ly, 0.1, "brassSoft", ov * use, now, 2400, o));
-          if (home > 0) line(hub.x, hub.y, lx, ly, "brass", 0.2 * ov * home, 0.7, 0.2);
-        }
+        label(L[0], L[1] + Rd + 26, `A lab · week ${pad(Math.min(26, Math.floor(wk) + 1))} / 26`, 0.6 * ov, "ink");
+        const brain = seg(wk, 3, 4.2), decisions = Math.floor(clamp(wk - 3, 0, 15) * 1.2);
+        const bx = lerp(L[0], O[0], ease(home)), by = lerp(L[1], O[1], ease(home));
+        Array.from({ length: decisions }, (_, k) => { const a = k * 2.399, rr = g.R * (0.11 + (k % 3) * 0.018); ctx.fillStyle = rgba(C.ink, 0.5 * ov * (1 - home)); ctx.fillRect(L[0] + Math.cos(a) * rr - 1.5, L[1] + Math.sin(a) * rr - 2, 3, 4); });
+        lantern(bx, by, g.R * (0.03 + 0.02 * brain), ov * brain, brain);
+        Array.from({ length: 3 }, (_, j) => { const p = member(4, j); line(p.x, p.y, L[0], L[1], "ink", 0.22 * pilot * ov, 0.8, 0.15); });
+        // The organization: where the team came from, and where its Brain goes.
+        light(O[0], O[1], 5, ov, "brassSoft");
+        label(O[0] - 12, O[1], home > 0.5 ? "Theirs, anywhere" : "The organization", 0.6 * ov, "brass", "end");
+        if (home > 0) line(hub.x, hub.y, bx, by, "brass", 0.25 * ov * home, 0.8, 0.2, [3, 4]);
+        if (wk >= 18 && home < 0.5) [0, 0.33, 0.66].forEach((o) => pulse(O[0], O[1], L[0], L[1], 0.1, "brassSoft", ov, now, 2400, o));
+        label(hub.x, hub.y + hub.r + 20, "The hub", 0.6 * ov, "brass");
+        if (pilot > 0.3 && !g.phone) label(hub.x - g.R * 0.05, hub.y - g.R * 0.3, "Members deliver", 0.45 * pilot * ov, "ink", "end");
       },
     },
 
-    // 05: who holds what — hub, organizations, members above; B.V. and the commons beneath.
-    {
+    // 05: the hub at the center of its written terms.
+    terms: {
       target(g, t, now) {
-        const holders = ["orgs", "hub", "members", "bv", "foundation"];
-        const auto = t < 0.5 ? holders[Math.min(4, Math.floor(t / 0.1))] : null;
-        const focus = holderSel || auto;
-        const dim = (h) => (focus && focus !== h ? 0.34 : 1);
-        const flow = seg(t, 0.5, 0.62);
-        const certified = ease(seg(t, 0.74, 0.94));
-        const L = this.L = {
-          hub: [g.cx, g.y0 + g.h * (g.mobile ? 0.3 : 0.28)],
-          bvY: g.y0 + g.h * 0.64, fY: g.y0 + g.h * 0.86,
-          x0: g.x0 + g.w * 0.08, x1: g.x1 - g.w * 0.08,
-        };
-        this.state = { focus, dim, flow, certified };
-        hubT = { x: L.hub[0], y: L.hub[1], r: g.R * 0.075, a: dim("hub"), lit: dim("hub") };
-        const orgs = order.slice(0, 6), members = order.slice(6, 12), bv = order.slice(12, 17), roots = order.slice(17, 29);
-        Object.assign(this, { orgs, members, bv, roots });
-        parts.forEach((p) => set(p, ...cloud(p, g, now, 1.4), 0, 0));
-        orgs.forEach((i, j) => {
-          const an = Math.PI + 0.35 + (j / 5) * (Math.PI - 0.7);
-          set(parts[i], L.hub[0] + Math.cos(an) * g.R * 0.62, L.hub[1] + Math.sin(an) * g.R * 0.36 + g.R * 0.08, 3.4, dim("orgs"), "brassSoft");
-        });
-        members.forEach((i, j) => {
-          const an = 0.5 + (j / 5) * (Math.PI - 1);
-          set(parts[i], L.hub[0] + Math.cos(an) * g.R * 0.42, L.hub[1] + Math.sin(an) * g.R * 0.2 + g.R * 0.06, 2.4, dim("members") * (0.75 + 0.25 * certified), "ink");
-        });
-        bv.forEach((i, j) => set(parts[i], lerp(L.x0 + g.w * 0.12, L.x1 - g.w * 0.12, j / 4), L.bvY, 2.6, dim("bv"), "ruby"));
-        roots.forEach((i, j) => set(parts[i], lerp(L.x0, L.x1, j / 11), L.fY + Math.sin(j * 1.3) * 6, 2, dim("foundation"), "moss"));
-        document.querySelectorAll("#holders li").forEach((li) => li.classList.toggle("on", li.dataset.holder === focus));
+        const focus = this.focus = holderSel || (t < 0.5 ? ["hub", "orgs", "members", "bv", "foundation"][Math.min(4, Math.floor(t / 0.1))] : null);
+        const dim = this.dim = (h) => (focus && focus !== h ? 0.3 : 1);
+        this.flow = seg(t, 0.5, 0.62); this.moved = ease(seg(t, 0.74, 0.94));
+        hubT = { x: g.cx, y: g.cy, r: g.R * 0.09, a: dim("hub"), lit: dim("hub") };
+        parts.forEach((p) => set(p, ...cloud(p, g, now, 1.7), 0, 0, baseCol(p)));
+        this.orgs = Array.from({ length: 6 }, (_, j) => around(g, (j / 6) * TAU + 0.3, g.R * 0.46));
+        this.orgs.forEach((o, j) => Array.from({ length: 2 }, (_, k) => { const p = member(j * 2, k), a = (still ? 0 : now * 0.0002) + k * Math.PI + j; set(p, o[0] + Math.cos(a) * 12, o[1] + Math.sin(a) * 10, 1.8, 0.8 * dim("orgs"), "brassSoft"); }));
+        this.members = Array.from({ length: 6 }, (_, j) => { const p = member(12, j), at = around(g, (j / 6) * TAU, g.R * 0.24); set(p, at[0], at[1], 2.4, dim("members") * (0.75 + 0.25 * this.moved), "ink"); return p; });
+        this.bv = Array.from({ length: 4 }, (_, j) => { const p = member(18, j), at = around(g, Math.PI / 4 + (j * Math.PI) / 2, g.R * 0.66); set(p, at[0], at[1], 2.6, dim("bv"), "ruby"); return p; });
+        this.roots = Array.from({ length: 14 }, (_, j) => { const p = member(22, j), at = around(g, (j / 14) * TAU + 0.1, g.R * 0.86); set(p, at[0], at[1], 2, dim("foundation"), "moss"); return p; });
+        document.querySelectorAll("#holders button").forEach((b) => b.classList.toggle("on", b.dataset.holder === focus));
         document.getElementById("holders").classList.toggle("all", !focus);
-        document.getElementById("split").classList.toggle("certified", certified > 0.5);
-        setText("split-del", certified > 0.5 ? "60% delivery · the hub's certified people" : "60% delivery · Rizom B.V.");
       },
       draw(g, t, now, ov) {
-        const { dim, flow, certified } = this.state;
-        const L = this.L;
-        // The commons: a root system under everything.
-        const fa = 0.55 * ov * dim("foundation");
-        ctx.strokeStyle = rgba(C.moss, fa); ctx.lineWidth = 1.4; ctx.beginPath();
-        Array.from({ length: 41 }, (_, k) => {
-          const x = lerp(L.x0 - 20, L.x1 + 20, k / 40), y = L.fY + Math.sin(k * 0.55) * 6 + Math.sin(k * 1.3) * 3;
-          k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-        });
-        ctx.stroke();
-        this.roots.forEach((i, j) => {
-          const p = parts[i];
-          line(p.x, p.y, p.x + (j % 2 ? 14 : -12), p.y + 18 + (j % 3) * 6, "moss", fa * 0.6, 0.8, 0.3);
-          if (j % 3 === 0) line(p.x, p.y, p.x + 6, L.bvY + 8, "moss", fa * 0.35, 0.7, -0.15);
-        });
-        label(L.x0 - 10, L.fY + 30, g.mobile ? "Rizom Foundation · the commons" : "Rizom Foundation · the commons: method, platform, mark", 0.75 * fa / 0.55, "moss", "start");
-        // The practice: setup, hosting, delivery.
-        const ba = 0.6 * ov * dim("bv");
-        line(L.x0 + g.w * 0.06, L.bvY, L.x1 - g.w * 0.06, L.bvY, "ruby", ba, 1.2);
-        label(L.x0 - 10, L.bvY - 18, g.mobile ? "Rizom B.V." : "Rizom B.V. · setup, hosting, delivery", 0.75 * ba / 0.6, "ruby", "start");
-        line(L.hub[0], L.bvY, hub.x, hub.y + hub.r, "ruby", ba * 0.6, 1, 0);
-        // The hub and the people around it; each organization with its own Brain.
-        this.orgs.forEach((i) => {
-          const p = parts[i];
-          ring(p.x, p.y, 9, "brassSoft", 0.6 * ov * dim("orgs"), 1);
-          line(p.x, p.y, hub.x, hub.y, "brass", 0.18 * ov * Math.min(dim("orgs"), dim("hub")), 0.8, 0.08);
-        });
-        this.members.forEach((i) => line(parts[i].x, parts[i].y, hub.x, hub.y, "ink", 0.16 * ov * dim("members"), 0.7));
-        const o0 = parts[this.orgs[0]];
-        label(o0.x, o0.y + 22, "Organizations", 0.6 * ov * dim("orgs"), "brass");
-        const m0 = parts[this.members[2]];
-        label(m0.x, m0.y + 18, certified > 0.5 ? "Members · certified" : "Members", 0.6 * ov * dim("members"), "ink");
-        label(hub.x, hub.y - hub.r - 16, "The hub", 0.7 * ov * dim("hub"), "brass");
-        // Every lab: 60 to whoever delivers, 15 to the hub, 25 back to the commons.
-        if (flow > 0) {
-          this.orgs.forEach((i, j) => {
-            const p = parts[i], off = j / 6;
-            pulse(p.x, p.y, hub.x, hub.y, 0.1, "brass", ov * flow, now, 3200, off, 2.4);
-            const b = parts[this.bv[j % 5]];
-            const m = parts[this.members[j]];
-            [0, 0.25, 0.5, 0.75].forEach((o) => {
-              pulse(p.x, p.y, b.x, b.y, 0.18, "ruby", ov * flow * (1 - certified), now, 3200, off + o * 0.25, 2.2);
-              pulse(p.x, p.y, m.x, m.y, -0.2, "ink", ov * flow * certified, now, 3200, off + o * 0.25, 2.2);
-            });
-            line(p.x, p.y, b.x, b.y, "ruby", 0.1 * ov * flow * (1 - certified), 0.7, 0.18);
-            line(p.x, p.y, m.x, m.y, "ink", 0.1 * ov * flow * certified, 0.7, -0.2);
-            const r = parts[this.roots[j * 2]];
-            line(p.x, p.y, r.x, r.y, "moss", 0.1 * ov * flow, 0.7, 0.12);
-            [0, 0.5].forEach((o) => pulse(p.x, p.y, r.x, r.y, 0.12, "moss", ov * flow, now, 3600, off + o * 0.4, 2.2));
+        const { dim, flow, moved, orgs, members, bv, roots } = this;
+        // The commons: a ring of roots around everything.
+        Array.from({ length: 2 }, (_, k) => oval(hub.x, hub.y, g.R * (0.86 + k * 0.035), "moss", 0.4 * ov * dim("foundation") * (1 - k * 0.5), 1.2, k ? 0.02 : 0, k * 2));
+        label(hub.x, hub.y + g.R * 0.86 * 0.86 + 22, g.phone ? "Rizom Foundation · the commons" : "Rizom Foundation · the commons: method, platform, mark", 0.7 * ov * dim("foundation"), "moss");
+        bv.forEach((p) => line(p.x, p.y, hub.x, hub.y, "ruby", 0.2 * ov * dim("bv"), 0.8, 0.05, [2, 4]));
+        label(bv[0].x + 12, bv[0].y, "Rizom B.V.", 0.7 * ov * dim("bv"), "ruby", "start");
+        orgs.forEach((o) => { lantern(o[0], o[1], g.R * 0.035, ov * dim("orgs"), 0.6, "brassSoft"); line(o[0], o[1], hub.x, hub.y, "brass", 0.16 * ov * Math.min(dim("orgs"), dim("hub")), 0.8, 0.06); });
+        label(orgs[4][0], orgs[4][1] - 22, "Organizations · their Brains", 0.65 * ov * dim("orgs"), "brass");
+        members.forEach((p) => line(p.x, p.y, hub.x, hub.y, "ink", 0.16 * ov * dim("members"), 0.7));
+        label(members[1].x + 12, members[1].y + 10, moved > 0.5 ? "Members · certified" : "Members", 0.6 * ov * dim("members"), "ink", "start");
+        label(hub.x, hub.y - hub.r - 16, "The hub · its own Brain", 0.75 * ov * dim("hub"), "brass");
+        if (flow <= 0) return;
+        orgs.forEach((o, j) => {
+          const off = j / 6, b = bv[j % 4], m = members[j], r = roots[(j * 2 + 1) % 14];
+          pulse(o[0], o[1], hub.x, hub.y, 0.1, "brass", ov * flow, now, 3200, off, 2.4);
+          [0, 0.25, 0.5, 0.75].forEach((x) => {
+            pulse(o[0], o[1], b.x, b.y, 0.15, "ruby", ov * flow * (1 - moved), now, 3200, off + x * 0.25, 2.1);
+            pulse(o[0], o[1], m.x, m.y, -0.15, "ink", ov * flow * moved, now, 3200, off + x * 0.25, 2.1);
           });
-          // What the commons earns goes back into the platform every hub runs on.
-          this.roots.filter((_, j) => j % 4 === 1).forEach((i, j) => pulse(parts[i].x, parts[i].y, hub.x, hub.y + hub.r, -0.08, "moss", 0.7 * ov * flow, now, 4200, j * 0.3, 1.8));
-        }
+          [0, 0.5].forEach((x) => pulse(o[0], o[1], r.x, r.y, 0.1, "moss", ov * flow, now, 3600, off + x * 0.4, 2.1));
+        });
+        // What the commons earns flows back into the platform every hub runs on.
+        roots.filter((_, j) => j % 3 === 0).forEach((r, j) => pulse(r.x, r.y, hub.x, hub.y, -0.06, "moss", 0.7 * ov * flow, now, 4200, j * 0.23, 1.8));
       },
     },
 
-    // 06: zoom out; hubs connect to hubs.
-    {
+    // 06: from this hub, the network runs past every edge, and nobody is in the middle.
+    connects: {
       target(g, t, now) {
-        const H0 = this.hubs = this.hubs || shuffle(Array.from({ length: 14 }, (_, k) => {
-          const col = k % 5, row = Math.floor(k / 5);
-          return [0.1 + col * 0.2 + (rand() - 0.5) * 0.12, 0.16 + row * 0.32 + (rand() - 0.5) * 0.16];
-        }));
-        const at = ([u, v]) => [g.x0 + u * g.w, g.y0 + v * g.h];
-        const ours = 7;
-        const lit = 1 + Math.floor(ease(seg(t, 0.04, 0.6)) * 13);
-        this.state = { at, ours, lit };
-        const [hx, hy] = at(H0[ours]);
-        hubT = { x: hx, y: hy, r: g.R * 0.045, a: 1, lit: 1 };
+        hubT = { x: g.cx, y: g.cy, r: g.R * 0.07, a: 1, lit: 1 };
+        const lit = this.lit = 1 + Math.floor(ease(seg(t, 0.04, 0.65)) * sites.length);
+        const at = this.at = ([u, v]) => [g.x0 + u * g.w, g.y0 + v * g.h];
         parts.forEach((p, i) => {
-          const h = Math.floor(i / 8) % 14, j = i % 8;
-          const [x, y] = at(H0[h]);
-          const shown = h === ours || ((h + 14 - ours) % 14) < lit;
-          const an = (j / 8) * TAU + p.ph * 0.2 + (reduced ? 0 : now * 0.00012);
-          const rr = g.R * (0.07 + 0.035 * (j % 3));
-          set(p, x + Math.cos(an) * rr, y + Math.sin(an) * rr * 0.86, p.size * 0.75, shown ? 0.75 : 0, baseCol(p));
+          const h = Math.floor(i / 5), j = i % 5;
+          const centre = h === 0 ? [g.cx, g.cy] : at(sites[sitesByDistance[(h - 1) % sites.length]]);
+          const shown = h === 0 || h <= lit - 1, behind = !g.phone && centre[0] < g.x0 - 20 ? 0.25 : 1;
+          const a = (j / 5) * TAU + p.ph * 0.2 + (still ? 0 : now * 0.00012), rr = g.R * (0.07 + 0.03 * (j % 3));
+          set(p, centre[0] + Math.cos(a) * rr, centre[1] + Math.sin(a) * rr * 0.86, p.size * 0.75, shown ? 0.75 * behind : 0, baseCol(p));
         });
-        setText("hubs-n", lit + userHubs.length);
+        setText("hubs-n", lit + planted.length);
       },
       draw(g, t, now, ov) {
-        const { at, ours, lit } = this.state;
-        const shown = this.hubs.filter((_, h) => h === ours || ((h + 14 - ours) % 14) < lit).map(at)
-          .concat(userHubs.map((u) => at([u.u, u.v])));
-        // Each hub links to its nearest neighbors; nobody sits in the middle.
-        shown.forEach((a, i) => {
-          shown.map((b, j) => [Math.hypot(a[0] - b[0], a[1] - b[1]), j]).filter(([, j]) => j !== i)
-            .sort((x, y) => x[0] - y[0]).slice(0, 2).forEach(([, j]) => {
-              if (j < i) return;
-              const b = shown[j];
-              line(a[0], a[1], b[0], b[1], "brass", 0.3 * ov, 1, 0.1);
-              pulse(a[0], a[1], b[0], b[1], 0.1, "brassSoft", ov, now, 2600 + ((i * 7 + j * 3) % 5) * 500, (i * 0.17) % 1, 2);
-            });
-        });
-        shown.forEach(([x, y], i) => { if (i) lantern(x, y, g.R * 0.035, ov, 0.7); });
-        userHubs.forEach((u) => {
-          const [x, y] = at([u.u, u.v]);
-          const grow = clamp((now - u.born) / 900, 0, 1);
-          Array.from({ length: 6 }, (_, j) => {
-            const an = (j / 6) * TAU + now * 0.00012;
-            light(x + Math.cos(an) * g.R * 0.08 * grow, y + Math.sin(an) * g.R * 0.07 * grow, 1.8, 0.7 * ov * grow, "ink");
-          });
-          ring(x, y, g.R * 0.035 + (1 - grow) * 30, "brass", ov * (0.4 + 0.6 * grow), 1.2);
-        });
-        label(hub.x, hub.y + g.R * 0.15 + 12, "This hub", 0.75 * ov, "brass");
+        const faint = ([x]) => (!g.phone && x < g.x0 - 20 ? 0.25 : 1);
+        const pts = [[g.cx, g.cy]].concat(sitesByDistance.slice(0, this.lit - 1).map((i) => this.at(sites[i]))).concat(planted.map((p) => this.at([p.u, p.v])));
+        pts.forEach((a, i) => pts.map((b, j) => [Math.hypot(a[0] - b[0], a[1] - b[1]), j]).filter(([, j]) => j !== i).sort((x, y) => x[0] - y[0]).slice(0, 2)
+          .forEach(([, j]) => { if (j < i) return; const b = pts[j], f = faint(a) * faint(b); line(a[0], a[1], b[0], b[1], "brass", 0.3 * ov * f, 1, 0.1); pulse(a[0], a[1], b[0], b[1], 0.1, "brassSoft", ov * f, now, 2600 + ((i * 7 + j * 3) % 5) * 500, (i * 0.17) % 1, 2); }));
+        pts.forEach((pt, i) => { if (i) lantern(pt[0], pt[1], g.R * 0.035, ov * faint(pt), 0.7); });
+        planted.forEach((p) => { const [x, y] = this.at([p.u, p.v]), grow = clamp((now - p.born) / 900, 0, 1); ring(x, y, g.R * 0.035 + (1 - grow) * 30, "brass", ov * (0.4 + 0.6 * grow), 1.2); });
+        label(hub.x, hub.y + g.R * 0.16 + 12, "This hub", 0.75 * ov, "brass");
       },
     },
 
-    // 07: the field at rest around a lit hub.
-    {
+    // 07: the hub at rest, clear of the doors.
+    start: {
       target(g, t, now) {
-        const k = g.mobile ? { cx: g.cx, cy: g.cy, s: 0.8 } : { cx: g.x1 - g.R * 0.42, cy: g.y1 - g.R * 0.46, s: 0.5 };
-        const gg = { ...g, cx: k.cx, cy: k.cy };
+        const k = g.phone ? { cx: g.cx, cy: g.cy, s: 0.8 } : { cx: g.x1 - g.R * 0.42, cy: g.y1 - g.R * 0.46, s: 0.5 };
         this.k = k;
         hubT = { x: k.cx, y: k.cy, r: g.R * 0.08 * k.s * 1.4, a: 1, lit: 1 };
-        parts.forEach((p) => {
-          const [x, y] = cloud(p, gg, now, k.s);
-          set(p, x, y, p.size, p.warm ? 0.85 : 0.4, baseCol(p));
-        });
+        parts.forEach((p) => set(p, ...cloud(p, g, now, k.s, k.cx, k.cy), p.size, p.warm ? 0.85 : 0.4, baseCol(p)));
       },
       draw(g, t, now, ov) {
-        parts.forEach((p) => near[p.i].forEach((j) => {
-          const q = parts[j];
-          line(p.x, p.y, q.x, q.y, "brass", 0.12 * ov, 0.8, 0.12);
-        }));
+        parts.forEach((p) => near[p.i].forEach((j) => { const q = parts[j]; line(p.x, p.y, q.x, q.y, "brass", 0.12 * ov, 0.8, 0.12); }));
         parts.filter((p) => p.warm).forEach((p) => line(p.x, p.y, hub.x, hub.y, "brass", 0.1 * ov, 0.7, 0.05));
         Array.from({ length: 5 }, (_, k) => ring(hub.x, hub.y, g.R * this.k.s * (0.18 + k * 0.07), "brass", (0.2 - k * 0.03) * ov, 0.8, 0.06 + k * 0.01, k));
       },
     },
-  ];
-
-  // ---------- the memory sparkline ----------
-  const sparkY = (t, on) => {
-    const K = 4, cf = clamp(t, 0, 0.9999) * K, c = Math.floor(cf), u = cf - c;
-    const rise = ease(seg(u, 0.1, 0.8));
-    return on ? 62 - (c + rise) * 13 : 62 - rise * 13 * (1 - seg(u, 0.88, 1));
   };
+
+  // ---------- the sparkline ----------
   const sparkPath = (on) => Array.from({ length: 121 }, (_, k) => `${k ? "L" : "M"}${(8 + (k / 120) * 284).toFixed(1)},${sparkY(k / 120, on).toFixed(1)}`).join("");
   document.getElementById("spark-with").setAttribute("d", sparkPath(true));
   document.getElementById("spark-without").setAttribute("d", sparkPath(false));
 
-  // ---------- scroll ----------
+  // ---------- scroll, rail, phone cards ----------
   const sections = [...document.querySelectorAll(".ch")];
   const rail = document.getElementById("rail");
-  sections.forEach((s, k) => {
-    const li = document.createElement("li");
-    const b = document.createElement("button");
-    b.textContent = s.dataset.label;
-    b.addEventListener("click", () => s.scrollIntoView({ behavior: reduced ? "auto" : "smooth" }));
-    li.appendChild(b); rail.appendChild(li);
+  const railButtons = sections.map((s) => { const li = document.createElement("li"), b = document.createElement("button"); b.textContent = s.dataset.label; b.addEventListener("click", () => s.scrollIntoView({ behavior: still ? "auto" : "smooth" })); li.appendChild(b); rail.appendChild(li); return b; });
+  const placeCards = () => document.querySelectorAll(".ch:not(.open) .card:not(.wide)").forEach((c) => {
+    if (innerWidth < 860) { const top = Math.max(64, innerHeight - c.offsetHeight - 14); c.dataset.top = top; c.style.setProperty("--card-top", top + "px"); }
+    else { delete c.dataset.top; c.style.removeProperty("--card-top"); }
   });
-  const railButtons = [...rail.querySelectorAll("button")];
-  let active = 0, t = 0, tS = 0;
+  let active = -1, t = 0, tS = 0;
   const readScroll = () => {
     const mid = scrollY + innerHeight * 0.5;
-    const idx = sections.reduce((acc, s, k) => (s.offsetTop <= mid ? k : acc), 0);
-    const s = sections[idx];
+    const idx = sections.reduce((acc, s, k) => (s.offsetTop <= mid ? k : acc), 0), s = sections[idx];
     const next = clamp((mid - s.offsetTop) / s.offsetHeight, 0, 1);
-    activeCard = s.matches(".open, .close") ? null : s.querySelector(".card");
     if (idx !== active) { active = idx; tS = next; railButtons.forEach((b, k) => b.classList.toggle("on", k === idx)); }
+    const card = s.querySelector(".card[data-top]"); cardTop = card ? Number(card.dataset.top) : null;
     t = next;
   };
   addEventListener("scroll", readScroll, { passive: true });
@@ -974,35 +690,28 @@
   const connBtn = document.getElementById("conn-btn");
   connBtn.addEventListener("click", () => {
     connectorGone = !connectorGone;
-    connBtn.lastElementChild.textContent = connectorGone ? "Bring them back" : "Let the connector leave";
+    connBtn.textContent = connectorGone ? "Bring them back" : "Let the connector leave";
     setText("conn-text", connectorGone
-      ? "The introductions, the history of each cohort, the reasons things were done the way they were: they left with one person. Heroics are not infrastructure."
+      ? "When that person leaves, the hub finds out how little it knew: the introductions, the history of each cohort, the reasons things were done the way they were. Heroics are not infrastructure."
       : "A hub lives on programs and calls. Funding comes in cycles, people move on between them, and what holds it all together is usually one person: the connector who knows everyone.");
   });
   const memOn = document.getElementById("mem-on"), memOff = document.getElementById("mem-off");
-  const setMemory = (on) => {
-    memoryOn = on;
-    memOn.setAttribute("aria-pressed", on); memOff.setAttribute("aria-pressed", !on);
-    document.getElementById("spark").classList.toggle("off", !on);
-  };
-  memOn.addEventListener("click", () => setMemory(true));
-  memOff.addEventListener("click", () => setMemory(false));
-  document.querySelectorAll("#holders li").forEach((li) => {
-    li.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") holderSel = li.dataset.holder; });
-    li.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") holderSel = null; });
-    li.addEventListener("click", () => { holderSel = holderSel === li.dataset.holder ? null : li.dataset.holder; });
+  const setMemory = (on) => { memoryOn = on; memOn.setAttribute("aria-pressed", on); memOff.setAttribute("aria-pressed", !on); document.getElementById("spark").classList.toggle("off", !on); };
+  memOn.addEventListener("click", () => setMemory(true)); memOff.addEventListener("click", () => setMemory(false));
+  document.querySelectorAll("#holders button").forEach((b) => {
+    b.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") holderSel = b.dataset.holder; });
+    b.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") holderSel = null; });
+    b.addEventListener("click", () => { holderSel = holderSel === b.dataset.holder ? null : b.dataset.holder; });
   });
-  document.getElementById("network").addEventListener("click", (e) => {
+  document.getElementById("connects").addEventListener("click", (e) => {
     if (e.target.closest(".card")) return;
-    const g = geo();
-    const u = (e.clientX - g.x0) / g.w, v = (e.clientY - g.y0) / g.h;
-    if (u < 0 || u > 1 || v < 0 || v > 1 || userHubs.length > 24) return;
-    userHubs.push({ u, v, born: performance.now() });
+    const g = geo(), u = (e.clientX - g.x0) / g.w, v = (e.clientY - g.y0) / g.h;
+    if (u < 0 || u > 1 || v < 0 || v > 1 || planted.length > 24) return;
+    planted.push({ u, v, born: performance.now() });
   });
   document.getElementById("mode").addEventListener("click", () => {
     const root = document.documentElement;
-    const dark = getComputedStyle(root).getPropertyValue("--mode").trim() === "dark";
-    root.dataset.theme = dark ? "light" : "dark";
+    root.dataset.theme = getComputedStyle(root).getPropertyValue("--mode").trim() === "dark" ? "light" : "dark";
     readPalette();
   });
   matchMedia("(prefers-color-scheme: light)").addEventListener("change", readPalette);
@@ -1013,28 +722,22 @@
     const dt = Math.min(64, now - last); last = now;
     tS = lerp(tS, t, 1 - Math.pow(0.86, dt / 16.7));
     const g = geo();
-    hubT = { x: g.cx, y: g.cy, r: 0, a: 0, lit: 0 };
+    hubT = { x: g.cx, y: g.cy, r: g.R * 0.085, a: 1, lit: 0.5 };
     centerT = { x: center.x || g.x1, y: center.y || g.y0, r: center.r, a: 0 };
     connT = { a: 0 };
-    const sc = scenes[active];
+    parts.forEach((p) => { p.snap = false; p.k = 0; p.orbiting = 0; });
+    const sc = scenes[sections[active].id] || scenes.open;
     sc.target(g, tS, now);
-    const k = first ? 1 : 1 - Math.pow(0.92, dt / 16.7);
+    const k = first ? 1 : 1 - Math.pow(0.9, dt / 16.7);
     parts.forEach((p) => {
-      if (!(active === 1 && p.k > 0)) { p.x = lerp(p.x, p.tx, k); p.y = lerp(p.y, p.ty, k); }
+      if (p.snap) { p.x = p.tx; p.y = p.ty; } else { p.x = lerp(p.x, p.tx, k); p.y = lerp(p.y, p.ty, k); }
       p.r = lerp(p.r, p.tr, k); p.a = lerp(p.a, p.ta, k);
     });
-    if (active !== 1) parts.forEach((p) => { p.k = undefined; });
     [[hub, hubT], [center, centerT], [conn, connT]].forEach(([o, tt]) => Object.keys(tt).forEach((key) => { o[key] = lerp(o[key], tt[key], first ? 1 : k); }));
     first = false;
-
     ctx.clearRect(0, 0, W, H);
-    const ov = active === sections.length - 1 ? Math.min(1, tS / 0.06) : Math.min(1, tS / 0.05, (1 - tS) / 0.05);
-    if (center.a > 0.01) {
-      const gr = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, center.r * 3);
-      gr.addColorStop(0, rgba(C.ink, 0.7 * center.a)); gr.addColorStop(0.3, rgba(C.ink, 0.16 * center.a)); gr.addColorStop(1, rgba(C.ink, 0));
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(center.x, center.y, center.r * 3, 0, TAU); ctx.fill();
-      Array.from({ length: 4 }, (_, j) => ring(center.x, center.y, center.r * (1 + j * 0.45), "ink", 0.22 * center.a * (1 - j * 0.2), 0.8));
-    }
+    const ov = active === 0 ? Math.min(1, (1 - tS) / 0.05) : active === sections.length - 1 ? Math.min(1, tS / 0.06) : Math.min(1, tS / 0.05, (1 - tS) / 0.05);
+    if (center.a > 0.01) { glow(center.x, center.y, center.r * 3, center.a, "ink"); Array.from({ length: 4 }, (_, j) => ring(center.x, center.y, center.r * (1 + j * 0.45), "ink", 0.22 * center.a * (1 - j * 0.2), 0.8)); }
     sc.draw(g, tS, now, ov);
     parts.forEach((p) => light(p.x, p.y, p.r, p.a, p.col));
     lantern(hub.x, hub.y, hub.r, hub.a, hub.lit);
@@ -1042,7 +745,6 @@
   };
 
   readPalette(); resize(); placeCards(); readScroll();
-  railButtons[0].classList.add("on");
   addEventListener("resize", () => { resize(); placeCards(); readScroll(); });
   new ResizeObserver(placeCards).observe(document.querySelector("main"));
   requestAnimationFrame(frame);
