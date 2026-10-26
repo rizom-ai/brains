@@ -1,5 +1,15 @@
 # @rizom/site-hub
 
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- [#768](https://github.com/rizom-ai/brains/pull/768) [`d3e751f`](https://github.com/rizom-ai/brains/commit/d3e751ff45fb4fc25a8375e399f7e9d6726b2757) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hub's story now keeps the hub at its center. It opens on "Programs come and go. The hub stays.", with cohorts flowing in, circling the hub and flowing out, and its first chapter shows the hub as the intake of a pipeline: the region's best lights move into the hub and on to the center.
+
+- [#768](https://github.com/rizom-ai/brains/pull/768) [`d3e751f`](https://github.com/rizom-ai/brains/commit/d3e751ff45fb4fc25a8375e399f7e9d6726b2757) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hub's story sets the hub at the center of what it writes down, with the organizations' Brains around it, its members, Rizom B.V. and the Foundation's commons as a ring around everything, and the split of every lab in one line. The network now spreads out from this hub past every edge of the screen: "Seen from here, this hub sits in the middle. Seen from any other, so does that one." Hovering a holder previews it; clicking pins it.
+
+- [#768](https://github.com/rizom-ai/brains/pull/768) [`d3e751f`](https://github.com/rizom-ai/brains/commit/d3e751ff45fb4fc25a8375e399f7e9d6726b2757) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hub's story shows what passes through the hub: an organization's team arrives at a lab beside the hub on its 26-week dial, the hub's members come over to deliver, other labs run beside it, and the lab's Brain goes home with the organization, still tied to the hub.
+
 ## 0.2.0-alpha.3
 
 ### Patch Changes
