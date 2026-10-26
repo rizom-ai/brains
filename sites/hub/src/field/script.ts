@@ -254,6 +254,15 @@ export const fieldScriptSource: string = `(function () {
       readouts();
     });
 
+    // A card grows or shrinks as its chapter reveals a phase or a holder;
+    // dock it again whenever it does.
+    if (typeof ResizeObserver !== "undefined") {
+      var cardWatcher = new ResizeObserver(function () { placeCards(); });
+      Array.prototype.forEach.call(document.querySelectorAll(".hub-ch:not(.hub-ch--open) .hub-card:not(.hub-card--wide)"), function (card) {
+        cardWatcher.observe(card);
+      });
+    }
+
     placeCards();
     read();
     window.addEventListener("scroll", read, { passive: true });

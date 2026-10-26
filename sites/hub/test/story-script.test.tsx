@@ -12,6 +12,18 @@ import site from "../src";
 // control.
 
 let window: Window;
+// Stands in for the browser's ResizeObserver: records what is observed and
+// lets a test report a size change.
+let resized: () => void = () => undefined;
+const observed: unknown[] = [];
+class FakeResizeObserver {
+  constructor(callback: () => void) {
+    resized = callback;
+  }
+  observe(target: unknown): void {
+    observed.push(target);
+  }
+}
 let restoreGlobals: RestoreGlobals;
 const HEIGHT = 1000;
 
@@ -38,7 +50,10 @@ function page(width: number, viewport: number): void {
     Object.defineProperty(el, "offsetHeight", { value: HEIGHT });
   });
   window.document.querySelectorAll(".hub-card").forEach((el) => {
-    Object.defineProperty(el, "offsetHeight", { value: 300 });
+    Object.defineProperty(el, "offsetHeight", {
+      value: 300,
+      configurable: true,
+    });
   });
   restoreGlobals = installGlobals({
     window,
@@ -52,6 +67,7 @@ function page(width: number, viewport: number): void {
     getComputedStyle: window.getComputedStyle.bind(window),
     requestAnimationFrame: () => 0,
     MutationObserver: window.MutationObserver,
+    ResizeObserver: FakeResizeObserver,
   });
   new Function(fieldScriptSource)();
 }
@@ -76,6 +92,7 @@ function click(selector: string): void {
 
 beforeEach(() => {
   window = new Window({ url: "https://hub.rizom.test/" });
+  observed.length = 0;
 });
 
 afterEach(() => {
@@ -251,6 +268,16 @@ describe("the story, without the canvas", () => {
       }),
     );
     expect(text("[data-hub-hubs]")).toBe("23");
+  });
+
+  test("docks a card again when it grows on a phone", () => {
+    page(390, 844);
+    const card = window.document.querySelector("#labs .hub-card");
+    if (!card) throw new Error("no labs card");
+    expect(observed.includes(card)).toBe(true);
+    Object.defineProperty(card, "offsetHeight", { value: 420 });
+    resized();
+    expect(card.getAttribute("style")).toContain("--card-top: 410px");
   });
 
   test("docks each chapter's card to the bottom of a phone", () => {

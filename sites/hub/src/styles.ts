@@ -125,14 +125,19 @@ export const siteCSS: string = `
   .hub-ch { padding-top: 72vh; }
   .hub-ch--open { padding-top: 46vh; }
   .hub-card { position: sticky; top: var(--card-top, 56vh); width: auto; margin: 0 16px; padding: 22px 20px; border: 1px solid var(--color-border); border-radius: 14px; background: color-mix(in srgb, var(--color-bg) 86%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .hub-ch:not(.hub-ch--open) .hub-card:not(.hub-card--wide) { max-height: 56svh; overflow-y: auto; }
   .hub-ch--open .hub-card { position: relative; top: auto; padding: 0 4px; border: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .hub-head { font-size: 30px; }
   .hub-text + .hub-text, .hub-spark { display: none; }
   .hub-phases li { grid-template-columns: 1fr; gap: 2px; padding: 7px 0; }
-  .hub-phases li:not(.is-on) span { display: none; }
+  .hub-phases li:not(.is-on) { display: none; }
+  .hub-phases li.is-on { border-top: 0; }
+  .hub-price { display: none; }
+  .hub-ch[data-hub-scene="labs"] .hub-text, .hub-ch[data-hub-scene="fit"] .hub-text { display: none; }
   .hub-holder { grid-template-columns: 10px 1fr; padding: 7px 6px; }
   .hub-holder span { grid-column: 2; }
   .hub-holder:not(.is-on) span { display: none; }
+  .hub-holders:not(.is-all) li:has(> .hub-holder:not(.is-on)) { display: none; }
   .hub-ch[data-len="1.2"] { padding-top: 40vh; height: auto; }
   .hub-card--wide { position: relative; top: auto; }
   .hub-doors { grid-template-columns: 1fr; }
