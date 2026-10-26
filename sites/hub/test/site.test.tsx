@@ -183,14 +183,22 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain('data-hub-scene="labs"');
     expect(html).toContain('data-hub-label="04"');
     expect(html).toContain('id="labs"');
-    expect(html).toContain("A lab, not a <em>desk</em>.");
+    expect(html).toContain(
+      "Organizations come with a question. They leave with a <em>Brain</em>.",
+    );
+    expect(html).toContain("What passes through");
+    expect(html).toContain("Members who work for themselves certify here");
     expect(html).toContain("Weeks 1–3");
     expect(html).toContain("The audit");
-    expect(html).toContain("The organization takes its Brain home");
+    expect(html).toContain("The organization takes its Brain home.");
+    expect(html).toContain("The hub keeps what the lab taught about the work");
     expect(html.match(/data-hub-phase="/g)).toHaveLength(4);
     expect(html).toContain("The Rizom Lab");
     expect(html).toContain("€49,600 excl. VAT, the same in every hub");
-    expect(html).toContain("&quot;week&quot;:&quot;Week {week} / 26&quot;");
+    expect(html).toContain(
+      "&quot;week&quot;:&quot;A lab · week {week} / 26&quot;",
+    );
+    expect(html).toContain("&quot;members&quot;:&quot;Members deliver&quot;");
   });
 
   test("tells how the hub fits into Rizom: five holders and the split", () => {

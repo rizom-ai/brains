@@ -403,8 +403,6 @@ export const fieldScriptSource: string = `(function () {
       });
     }
 
-    var team = [80, 81, 82, 83].map(function (i) { return lights[order[i]]; });
-    var guests = [84, 85, 86, 87, 88].map(function (i) { return lights[order[i]]; });
     function pick(from, to) { return order.slice(from, to).map(function (i) { return lights[i]; }); }
     var holders = { orgs: pick(0, 6), members: pick(6, 12), bv: pick(12, 17), roots: pick(17, 29) };
 
@@ -572,83 +570,88 @@ export const fieldScriptSource: string = `(function () {
         },
       },
 
-      // 04: one lab on a 26-week dial: the audit, the pilot with the hub's
-      // people, the Brain in use, and the Brain going home.
+      // 04: a lab passes through the hub: the organization's team arrives at a
+      // lab beside the hub, the hub's members deliver, other labs run beside
+      // it, and the lab's Brain goes home with the organization.
       labs: {
         target: function (stage, t, now) {
-          var week = labWeek(t);
-          var present = guestsPresent(week);
-          this.week = week; this.home = labHome(t); this.present = present;
-          hubT = { x: stage.cx - stage.R * (stage.phone ? 0.78 : 0.9), y: stage.cy - stage.R * (stage.phone ? 0.86 : 0.78), r: stage.R * 0.05, a: 1, lit: 0.8 };
-          lights.forEach(function (entry) {
-            var light = entry.light;
-            var rr = stage.R * (0.82 + 0.3 * light.rad);
-            set(entry, stage.cx + Math.cos(light.ang) * rr * 1.1, stage.cy + Math.sin(light.ang) * rr * 0.86, light.size * 0.8, 0.22, baseColor(light));
+          hubT = { x: stage.cx, y: stage.cy, r: stage.R * 0.09, a: 1, lit: 0.85 };
+          var week = labWeek(t), present = guestsPresent(week), arrive = segment(t, 0, 0.04);
+          var lab = [stage.cx + stage.R * 0.52, stage.cy + stage.R * 0.24];
+          var org = [stage.x1 - stage.R * 0.12, stage.y0 + stage.R * 0.22];
+          this.state = { week: week, home: labHome(t), present: present, lab: lab, org: org };
+          region(stage, now, 1.6, 0.16);
+          // The team, from the organization to the lab.
+          Array.from({ length: 4 }, function (_, j) {
+            var entry = member(0, j, 4, 80), angle = (still ? 0 : now * 0.00024) + (j * TAU) / 4;
+            var at = [lab[0] + Math.cos(angle) * stage.R * 0.08, lab[1] + Math.sin(angle) * stage.R * 0.08];
+            set(entry, org[0] + (at[0] - org[0]) * ease(arrive), org[1] + (at[1] - org[1]) * ease(arrive), 3, 1, "brassSoft");
           });
-          team.forEach(function (entry, j) {
-            var angle = (still ? 0 : now * 0.00022) + (j * TAU) / 4;
-            set(entry, stage.cx + Math.cos(angle) * stage.R * 0.15, stage.cy + Math.sin(angle) * stage.R * 0.15, 3, 1, "brassSoft");
+          // The hub's members; three go over to deliver during the pilot.
+          Array.from({ length: 6 }, function (_, j) {
+            var entry = member(0, j, 6, 84), rest = around(stage, Math.PI * 0.62 + j * 0.42, stage.R * 0.2);
+            var goes = j < 3 ? ease(present) : 0, angle = -0.4 + j * 0.9;
+            var at = [lab[0] + Math.cos(angle) * stage.R * 0.15, lab[1] + Math.sin(angle) * stage.R * 0.15];
+            set(entry, rest[0] + (at[0] - rest[0]) * goes, rest[1] + (at[1] - rest[1]) * goes, 2.4, 0.85, "ink");
           });
-          guests.forEach(function (entry, j) {
-            var light = entry.light;
-            var ox = stage.cx + Math.cos(light.ang) * stage.R * 0.95, oy = stage.cy + Math.sin(light.ang) * stage.R * 0.8;
-            var angle = -0.6 + j * 0.5;
-            var k = ease(present);
-            set(entry, ox + (stage.cx + Math.cos(angle) * stage.R * 0.33 - ox) * k, oy + (stage.cy + Math.sin(angle) * stage.R * 0.33 - oy) * k, light.size, 0.22 + 0.68 * present, "ink");
+          // Other labs at the hub, each on its own clock.
+          this.state.labs = [Math.PI * 0.95, Math.PI * 1.32, Math.PI * 0.6].map(function (angle, j) {
+            return { at: around(stage, angle, stage.R * 0.62), progress: still ? 0.5 : ((now / 11000) + j * 0.31) % 1 };
+          });
+          this.state.labs.forEach(function (other, j) {
+            Array.from({ length: 4 }, function (_, k) {
+              var entry = member(j, k, 4, 90), angle = (still ? 0 : now * 0.0003) + (k * TAU) / 4;
+              set(entry, other.at[0] + Math.cos(angle) * stage.R * 0.05, other.at[1] + Math.sin(angle) * stage.R * 0.05, 1.8, 0.75, "brassSoft");
+            });
           });
         },
         draw: function (stage, t, now, fade) {
-          var week = this.week, home = this.home, present = this.present;
-          var R = stage.R * 0.46, start = -Math.PI / 2;
+          var state = this.state, week = state.week, home = state.home, lab = state.lab, org = state.org;
+          var dial = stage.R * 0.24, start = -Math.PI / 2;
           function angleOf(w) { return start + (w / 26) * TAU; }
-          // Twenty-six weeks around the lab.
+          // The hub holds its labs.
+          state.labs.forEach(function (other) {
+            thread(hub.x, hub.y, other.at[0], other.at[1], "brass", 0.22 * fade, 0.8, 0.08);
+            ring(other.at[0], other.at[1], stage.R * 0.075, "brass", 0.3 * fade, 1, 0, 0);
+            ctx.strokeStyle = C.brass; ctx.globalAlpha = 0.8 * fade; ctx.lineWidth = 1.6;
+            ctx.beginPath(); ctx.arc(other.at[0], other.at[1], stage.R * 0.075, start, start + other.progress * TAU); ctx.stroke();
+            ctx.globalAlpha = 1;
+          });
+          thread(hub.x, hub.y, lab[0], lab[1], "brass", 0.35 * fade, 1, -0.08);
+          // The lab's twenty-six weeks.
           Array.from({ length: 26 }, function (_, w) {
             var a = angleOf(w + 0.5), passed = w < week;
-            thread(stage.cx + Math.cos(a) * (R - 4), stage.cy + Math.sin(a) * (R - 4), stage.cx + Math.cos(a) * (R + 4), stage.cy + Math.sin(a) * (R + 4), passed ? "brass" : "ink", (passed ? 0.7 : 0.18) * fade, 1, 0);
+            thread(lab[0] + Math.cos(a) * (dial - 3), lab[1] + Math.sin(a) * (dial - 3), lab[0] + Math.cos(a) * (dial + 3), lab[1] + Math.sin(a) * (dial + 3), passed ? "brass" : "ink", (passed ? 0.7 : 0.18) * fade, 1, 0);
           });
-          [[0, 3, "audit", 2.6], [3, 18, "pilot", 1.6], [18, 24, "inUse", 2], [24, 26, "end", 2.6]].forEach(function (phase) {
+          [[0, 3, 2.4], [3, 18, 1.5], [18, 24, 1.9], [24, 26, 2.4]].forEach(function (phase) {
             var reach = Math.min(phase[1], Math.max(phase[0], week));
             if (reach <= phase[0]) return;
-            ctx.strokeStyle = C.brass; ctx.globalAlpha = 0.85 * fade; ctx.lineWidth = phase[3];
-            ctx.beginPath(); ctx.arc(stage.cx, stage.cy, R + 12, angleOf(phase[0]) + 0.02, angleOf(reach) - 0.02); ctx.stroke();
+            ctx.strokeStyle = C.brass; ctx.globalAlpha = 0.85 * fade; ctx.lineWidth = phase[2];
+            ctx.beginPath(); ctx.arc(lab[0], lab[1], dial + 9, angleOf(phase[0]) + 0.02, angleOf(reach) - 0.02); ctx.stroke();
             ctx.globalAlpha = 1;
-            var mid = angleOf((phase[0] + phase[1]) / 2);
-            var align = Math.cos(mid) > 0.3 ? "start" : Math.cos(mid) < -0.3 ? "end" : "center";
-            caption(stage.cx + Math.cos(mid) * (R + 30), stage.cy + Math.sin(mid) * (R + 30), captionOf(phase[2]), 0.7 * fade * segment(week, phase[0], phase[0] + 0.8), "brass", align);
           });
-          caption(stage.cx, stage.cy + R + 36, String(captionOf("week")).replace("{week}", pad(Math.min(26, Math.floor(week) + 1))), 0.6 * fade, "ink");
-          // The question, then the lab's Brain growing around it with every decision.
-          var brain = segment(week, 3, 4.2);
-          var decisions = decisionsBy(week);
-          var org = stage.phone ? [stage.cx + stage.R * 0.5, stage.cy + stage.R * 0.86] : [stage.cx + stage.R * 0.86, stage.cy + stage.R * 0.7];
-          var lx = stage.cx + (org[0] - stage.cx) * ease(home), ly = stage.cy + (org[1] - stage.cy) * ease(home);
+          caption(lab[0], lab[1] + dial + 26, String(captionOf("week")).replace("{week}", pad(Math.min(26, Math.floor(week) + 1))), 0.6 * fade, "ink");
+          // Decisions gather in the lab's Brain, which goes home at the end.
+          var brain = segment(week, 3, 4.2), decisions = decisionsBy(week);
+          var bx = lab[0] + (org[0] - lab[0]) * ease(home), by = lab[1] + (org[1] - lab[1]) * ease(home);
+          ctx.fillStyle = C.ink; ctx.globalAlpha = 0.5 * fade * (1 - home);
           Array.from({ length: decisions }, function (_, k) {
-            var a = k * 2.399, rr = stage.R * (0.22 + (k % 3) * 0.025);
-            var dx = stage.cx + Math.cos(a) * rr, dy = stage.cy + Math.sin(a) * rr;
-            thread(dx, dy, lx, ly, "brass", 0.12 * fade * (1 - home), 0.7, 0);
-            ctx.fillStyle = C.ink; ctx.globalAlpha = 0.55 * fade * (1 - home);
-            ctx.fillRect(dx - 2, dy - 2.5, 4, 5);
-            ctx.globalAlpha = 1;
+            var a = k * 2.399, rr = stage.R * (0.11 + (k % 3) * 0.018);
+            ctx.fillRect(lab[0] + Math.cos(a) * rr - 1.5, lab[1] + Math.sin(a) * rr - 2, 3, 4);
           });
-          ctx.save(); ctx.translate(stage.cx, stage.cy); ctx.rotate(Math.PI / 4);
-          ctx.strokeStyle = C.ink; ctx.globalAlpha = 0.7 * fade * (1 - home); ctx.lineWidth = 1.2; ctx.strokeRect(-5, -5, 10, 10);
-          ctx.restore(); ctx.globalAlpha = 1;
-          if (brain < 0.5) caption(stage.cx, stage.cy + 22, captionOf("question"), 0.6 * fade * (1 - brain * 2), "ink");
-          lantern(lx, ly, stage.R * (0.035 + 0.025 * brain + decisions * 0.0009), fade * brain, brain);
-          // The hub brings people to the question.
-          guests.forEach(function (entry) { thread(entry.x, entry.y, team[0].x, team[0].y, "ink", 0.25 * present * fade, 0.8, 0.15); });
-          thread(hub.x, hub.y, stage.cx, stage.cy, "brass", 0.25 * fade, 0.8, -0.1);
-          caption(hub.x, hub.y - hub.r - 14, captionOf("hub"), 0.55 * fade, "brass");
-          if (present > 0.3 && !stage.phone) caption(stage.cx + stage.R * 0.45, stage.cy - stage.R * 0.4, captionOf("guests"), 0.45 * fade * present, "ink", "start");
-          // In use, then home.
-          var use = segment(week, 18, 19);
-          if (use > 0) {
-            dot(org[0], org[1], 5, fade * use, "brassSoft");
-            caption(org[0], org[1] + 20, captionOf(home > 0.5 ? "home" : "organization"), 0.6 * fade * use, "brass");
-            thread(org[0], org[1], lx, ly, "brass", 0.35 * fade * use * (1 - home), 1, 0.1, [3, 4]);
-            if (home < 0.5) [0, 0.33, 0.66].forEach(function (offset) { pulse(org[0], org[1], lx, ly, 0.1, "brassSoft", fade * use, now, 2400, offset); });
-            if (home > 0) thread(hub.x, hub.y, lx, ly, "brass", 0.2 * fade * home, 0.7, 0.2);
-          }
+          ctx.globalAlpha = 1;
+          lantern(bx, by, stage.R * (0.03 + 0.02 * brain), fade * brain, brain);
+          Array.from({ length: 3 }, function (_, j) {
+            var entry = member(0, j, 6, 84);
+            thread(entry.x, entry.y, lab[0], lab[1], "ink", 0.22 * state.present * fade, 0.8, 0.15);
+          });
+          // The organization: where the team came from, and where its Brain goes.
+          dot(org[0], org[1], 5, fade, "brassSoft");
+          caption(org[0] - 12, org[1], captionOf(home > 0.5 ? "home" : "organization"), 0.6 * fade, "brass", "end");
+          if (home > 0) thread(hub.x, hub.y, bx, by, "brass", 0.25 * fade * home, 0.8, 0.2, [3, 4]);
+          if (week >= 18 && home < 0.5) [0, 0.33, 0.66].forEach(function (offset) { pulse(org[0], org[1], lab[0], lab[1], 0.1, "brassSoft", fade, now, 2400, offset); });
+          caption(hub.x, hub.y + hub.r + 20, captionOf("hub"), 0.6 * fade, "brass");
+          if (state.present > 0.3 && !stage.phone) caption(hub.x - stage.R * 0.05, hub.y - stage.R * 0.3, captionOf("members"), 0.45 * state.present * fade, "ink", "end");
         },
       },
 
