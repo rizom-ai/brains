@@ -35,15 +35,25 @@ describe("the story's end", () => {
 });
 
 describe("the crossroads", () => {
-  test("asks which way under the spotlight, among the signposts", () => {
+  test("asks which way, beside a signpost full of advice", () => {
     const html = renderSection("crossroads");
     expect(html).toContain("Your turn");
     expect(html).toContain("The crossroads");
     expect(html).toContain("Now you’re standing at a crossroads.");
     expect(html).toContain("Which <em>way?</em>");
-    expect(html).toContain("THIS WAY");
-    expect(html).toContain("THAT WAY");
-    expect(html).toContain("YOUR WAY");
+    for (const sign of [
+      "THIS WAY",
+      "STOP",
+      "SELLING",
+      "START TELLING",
+      "THAT WAY",
+      "JARGON",
+      "AHEAD",
+      "YOUR WAY →",
+    ]) {
+      expect(html).toContain(`>${sign}</text>`);
+    }
+    expect(html).toContain("tf-sign-sway");
   });
 
   test("offers the brand test only once it has a link", () => {
@@ -70,33 +80,41 @@ describe("the epilogue", () => {
     expect(html).toContain("Epilogue");
     expect(html).toContain("To be continued");
     expect(html).toContain("And so, your fourth act begins.");
-    expect(html).toContain("Every hero<br/>needs a <em>guide.</em>");
+    expect(html).toContain("Every hero needs a <em>guide.</em>");
+    expect(html).toContain(
+      "We’re Sam and Becca. We took the wrong turns so you don’t have to.",
+    );
   });
 
-  test("introduces the guides, with their portraits when the brain has them", () => {
-    expect(renderSection("epilogue")).toContain(
-      "Your guides, Sam &amp; Becca. We took the wrong turns so you don’t have to.",
-    );
+  test("shows the guides by name, under an arch and in a circle, when the brain has their portraits", () => {
     expect(renderSection("epilogue")).not.toContain("<img");
+    expect(renderSection("epilogue")).not.toContain("<figcaption");
     const html = renderSection("epilogue", {
       ...fallback("epilogue"),
       guides: [
-        { photo: "![Samantha Shao](entity://image/samantha-shao)" },
-        { photo: "![Becca Chen](entity://image/becca-chen)" },
+        {
+          name: "Samantha Shao",
+          photo: "![Samantha Shao](entity://image/samantha-shao)",
+        },
+        {
+          name: "Becca Chen",
+          photo: "![Becca Chen](entity://image/becca-chen)",
+        },
       ],
     });
     expect(html).toContain('src="/images/samantha-shao.webp"');
     expect(html).toContain('alt="Becca Chen"');
+    expect(html).toMatch(
+      /tf-guide tf-guide--arch[^]*<figcaption[^>]*>Samantha Shao<\/figcaption>[^]*tf-guide tf-guide--disc[^]*<figcaption[^>]*>Becca Chen<\/figcaption>/,
+    );
     expect(html).not.toContain("Meet us");
   });
 
-  test("starts the fourth act by email", () => {
+  test("starts the fourth act by email, and leaves the address to the footer", () => {
     const html = renderSection("epilogue");
     expect(html).toContain(
       'href="mailto:nihao.fourth@gmail.com">Start your fourth act →</a>',
     );
-    expect(html).toContain(
-      'href="mailto:nihao.fourth@gmail.com">nihao.fourth@gmail.com</a>',
-    );
+    expect(html).not.toContain(">nihao.fourth@gmail.com</a>");
   });
 });

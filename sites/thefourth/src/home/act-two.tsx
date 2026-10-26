@@ -6,12 +6,14 @@ import {
   type SectionDefinition,
 } from "@rizom/site";
 import { ActHeading } from "./act-heading";
+import { KEY_SHAPES, KeyDrawing } from "./keys";
+import { ButtonLink, linkSchema } from "./links";
 
 /**
- * Act II, the curse of jargon: a true sentence nobody listened to. "Break
- * the spell" scatters its words, strikes out the jargon and opens a keyhole
- * onto the translation, lit in the spell's color; "Try another spell" moves
- * to the next. The page renders the first spell; the spell script (see
+ * Act II, the curse of jargon: a true sentence nobody listened to. "Unlock
+ * it" scatters its words, strikes out the jargon and opens a keyhole onto
+ * the translation, lit in the spell's color; from there the visitor can
+ * unlock their own by email or try another. The page renders the first spell; the spell script (see
  * ./spell-script) does the breaking.
  */
 const spellSchema = z.object({
@@ -27,9 +29,10 @@ const actTwoSchema = z.object({
   act: z.string(),
   label: z.string(),
   opening: z.string(),
-  breakLabel: z.string(),
+  unlockLabel: z.string(),
   aside: z.string(),
   translationLead: z.string(),
+  action: linkSchema,
   againLabel: z.string(),
   spells: z.array(spellSchema).min(1),
 });
@@ -61,38 +64,6 @@ function Words({ spell }: { spell: Spell }): JSX.Element {
   );
 }
 
-function Scissors(): JSX.Element {
-  return (
-    <svg viewBox="0 0 160 120" aria-hidden="true">
-      <g className="tf-snip tf-snip--a">
-        <path d="M70 60 L156 30 L158 38Z" fill="currentColor" />
-        <circle
-          cx="34"
-          cy="86"
-          r="18"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="8"
-        />
-        <path d="M48 76 L70 60" stroke="currentColor" strokeWidth="8" />
-      </g>
-      <g className="tf-snip tf-snip--b">
-        <path d="M70 60 L156 90 L158 82Z" fill="currentColor" />
-        <circle
-          cx="34"
-          cy="34"
-          r="18"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="8"
-        />
-        <path d="M48 44 L70 60" stroke="currentColor" strokeWidth="8" />
-      </g>
-      <circle cx="70" cy="60" r="4" fill="var(--palette-card)" />
-    </svg>
-  );
-}
-
 /** JSON for an inline script element, with no way to close it early. */
 function scriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
@@ -102,9 +73,10 @@ function ActTwoSection({
   act,
   label,
   opening,
-  breakLabel,
+  unlockLabel,
   aside,
   translationLead,
+  action,
   againLabel,
   spells,
 }: z.infer<typeof actTwoSchema>): JSX.Element {
@@ -127,17 +99,15 @@ function ActTwoSection({
           <div className="tf-spell__actions">
             <button
               type="button"
-              className="tf-pill tf-pill--ink tf-pill--large tf-pulse"
+              className="tf-btn tf-btn--ink tf-btn--large"
               data-tf-break=""
             >
-              {breakLabel}
+              <span className="tf-btn__key" aria-hidden="true">
+                <KeyDrawing shape={KEY_SHAPES.ring} />
+              </span>
+              {unlockLabel}
             </button>
             <span className="tf-story tf-aside">{aside}</span>
-          </div>
-        </div>
-        <div className="tf-prop tf-prop--scissors" aria-hidden="true">
-          <div className="tf-swing">
-            <Scissors />
           </div>
         </div>
         <div className="tf-spell__after" data-light={first.light}>
@@ -151,9 +121,10 @@ function ActTwoSection({
               {first.sub}
             </p>
             <div className="tf-spell__again tf-land">
+              <ButtonLink link={action} tone="ink" />
               <button
                 type="button"
-                className="tf-pill tf-pill--card tf-pill--large"
+                className="tf-btn tf-btn--card"
                 data-tf-next=""
               >
                 {againLabel}
@@ -175,7 +146,7 @@ export const actTwo: SectionDefinition = defineSection(
   {
     title: "Act II — The curse of jargon",
     description:
-      "The jargon translator: the act's words, the button labels and the spells, each a jargon sentence, the words to strike, the translation, its sector and its light (red, mint or mustard).",
+      "The jargon translator: the act's words, the button labels, the action after the translation and the spells, each a jargon sentence, the words to strike, the translation, its sector and its light (red, mint or mustard).",
   },
 );
 
@@ -183,10 +154,11 @@ export const actTwoContent: JsonObject = {
   act: "Act II",
   label: "The curse of jargon",
   opening: "But when you told the world, it sounded like this:",
-  breakLabel: "Break the spell ✦",
+  unlockLabel: "Unlock it",
   aside: "Smart. True. And nobody listened.",
   translationLead: "So we translated it into what they needed to hear:",
-  againLabel: "Try another spell ↻",
+  action: { label: "Unlock yours →", href: "mailto:nihao.fourth@gmail.com" },
+  againLabel: "Try another ↻",
   spells: [
     {
       before:

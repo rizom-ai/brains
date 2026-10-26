@@ -9,7 +9,7 @@ import { actThree, actThreeContent } from "./home/act-three";
 import { cover, coverContent } from "./home/cover";
 import { spellScript } from "./home/spell-script";
 import { TheFourthLayout } from "./layout";
-import { motionCSS, sparkScript } from "./motion";
+import { keyholeScript, motionCSS, sparkScript } from "./motion";
 import { siteCSS } from "./styles";
 
 /**
@@ -64,7 +64,7 @@ export const theFourthSite: SiteDefinition = defineSite({
   entityDisplay: {},
   themeOverride:
     siteCSS + actsCSS + actThreeCSS + actFourCSS + finaleCSS + motionCSS,
-  headScripts: [spellScript, sparkScript],
+  headScripts: [spellScript, sparkScript, keyholeScript],
 });
 
 export default theFourthSite;

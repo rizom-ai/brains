@@ -7,7 +7,7 @@ import site from "../src";
 const siteInfo: SiteLayoutInfo = {
   title: "The Fourth",
   description: "Brand consultancy, Taipei",
-  copyright: "The Fourth · Taipei",
+  copyright: "©2026 The Fourth",
   navigation: {
     primary: [{ label: "Agents", href: "/agents", priority: 10 }],
     secondary: [],
@@ -57,27 +57,40 @@ describe("@rizom/site-thefourth", () => {
   test("tells the cover from the design's words until the brain has its own", () => {
     const fallback = site.content?.["home"]?.["cover"];
     expect(fallback).toEqual({
-      eyebrow: "A story in four acts",
-      title: "The Fourth",
-      subtitle: "or, How Hard-to-Explain Things Finally Got Understood",
-      cue: "Step through",
+      lines: ["Unlocking", "Market[key]ng", "Secrets"],
+      lead: "for the",
+      audience: "Innovators, Creatives & Pioneers",
     });
     const html = renderCover(fallback ?? {});
-    expect(html).toContain("A story in four acts");
-    expect(html).toContain("The<br/>Fourth");
     expect(html).toContain(
-      "or, How Hard-to-Explain Things Finally Got Understood",
+      'aria-label="Unlocking Marketing Secrets for the Innovators, Creatives &amp; Pioneers"',
     );
-    expect(html).toContain("Step through");
+    expect(html).toContain('<span class="tf-initial">U</span>nlocking');
+    expect(html).toContain('<span class="tf-initial">S</span>ecrets');
+    expect(html).toContain("Innovators, Creatives &amp; Pioneers");
   });
 
-  test("draws the stage: the keyhole, the curtains and the props", () => {
+  test("sets the keyhole in the headline where the content marks it", () => {
     const html = renderCover(site.content?.["home"]?.["cover"] ?? {});
-    expect(html).toContain('class="tf-keyhole');
+    expect(html).toMatch(
+      /<span class="tf-initial">M<\/span>arket<\/span><span class="tf-keyhole-slot"[^>]*>[\s\S]*<span class="tf-fadeout">ng<\/span>/,
+    );
+    expect(html).toContain("tf-keyhole tf-zoom");
+  });
+
+  test("scatters seven keys around the keyhole, two of them only on wide screens", () => {
+    const html = renderCover(site.content?.["home"]?.["cover"] ?? {});
+    expect(html.match(/class="tf-key"/g)?.length).toBe(7);
+    expect(html.match(/tf-key-slot tf-hide-sm/g)?.length).toBe(2);
+    expect(html).toContain("--x:-24vw");
+  });
+
+  test("hangs the scalloped valance between the curtains", () => {
+    const html = renderCover(site.content?.["home"]?.["cover"] ?? {});
     expect(html).toContain("tf-curtain tf-curtain--left");
     expect(html).toContain("tf-curtain tf-curtain--right");
-    expect(html).toContain("tf-prop tf-prop--watch");
-    expect(html).toContain("tf-prop tf-prop--key");
+    expect(html).toContain("tf-valance");
+    expect(html.match(/Q /g)?.length).toBe(8);
   });
 
   test("frames every page with the logo and no menu", () => {
@@ -90,19 +103,24 @@ describe("@rizom/site-thefourth", () => {
 
   test("offers the site's call to action as the one way to talk", () => {
     const html = renderLayout(siteInfo);
-    expect(html).toContain('href="mailto:nihao.fourth@gmail.com"');
-    expect(html).toContain("Let’s talk");
+    expect(html).toContain(
+      'class="tf-btn tf-btn--ink" href="mailto:nihao.fourth@gmail.com">Let’s talk</a>',
+    );
     const { cta: _cta, ...withoutCta } = siteInfo;
     expect(renderLayout(withoutCta)).not.toContain("Let’s talk");
   });
 
-  test("signs off with the copyright and the email the brain gives", () => {
+  test("signs off on red: the name, the email the brain gives, the city and the copyright", () => {
     const html = renderLayout(siteInfo);
-    expect(html).toContain("The Fourth · Taipei");
-    expect(html).toContain(">nihao.fourth@gmail.com</a>");
-    const { socialLinks: _links, ...withoutLinks } = siteInfo;
-    expect(renderLayout(withoutLinks)).not.toContain(
-      ">nihao.fourth@gmail.com</a>",
+    expect(html).toContain('<footer class="tf-foot">');
+    expect(html).toContain("The<br/>Fourth");
+    expect(html).toContain("(Brand consultancy)");
+    expect(html).toContain(
+      'href="mailto:nihao.fourth@gmail.com">↳ nihao.fourth@gmail.com</a>',
     );
+    expect(html).toContain("Made in Taipei");
+    expect(html).toContain("©2026 The Fourth");
+    const { socialLinks: _links, ...withoutLinks } = siteInfo;
+    expect(renderLayout(withoutLinks)).not.toContain("↳");
   });
 });

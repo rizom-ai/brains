@@ -30,4 +30,21 @@ describe("motion", () => {
       /@media \(prefers-reduced-motion: reduce\)[^]*animation: none !important/,
     );
   });
+
+  test("lifts buttons and thickens links under the wand, and rings the focus in mustard", () => {
+    expect(css).toMatch(/\.tf-btn:hover \{[^}]*translateY\(-3px\)/);
+    expect(css).toMatch(
+      /\.tf-link:hover \{[^}]*text-decoration-thickness: 3px/,
+    );
+    expect(css).toMatch(
+      /:focus-visible \{[^}]*outline: 3px solid var\(--palette-mustard\)/,
+    );
+  });
+
+  test("sparks in mustard", () => {
+    expect(css).toMatch(
+      /\.tf-spark \{[^}]*background: var\(--palette-mustard\)/,
+    );
+    expect(scripts).not.toContain("tf-spark--");
+  });
 });

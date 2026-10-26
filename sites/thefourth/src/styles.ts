@@ -1,9 +1,4 @@
-import {
-  CURTAIN_LEFT_CLIP,
-  CURTAIN_RIGHT_CLIP,
-  KEYHOLE_CLIP,
-  VALANCE_CLIP,
-} from "./shapes";
+import { CURTAIN_LEFT_CLIP, CURTAIN_RIGHT_CLIP, KEYHOLE_CLIP } from "./shapes";
 
 /**
  * The paper frame and the cover's stage, drawn from the theme's tokens.
@@ -17,69 +12,92 @@ export const siteCSS: string = `
 .tf-site a:hover { color: var(--color-brand-dark); }
 .tf-main { flex: 1; }
 
-.tf-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; box-sizing: border-box; max-width: var(--layout-max-width); margin: 0 auto; padding: 22px var(--layout-gutter); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.tf-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 10; box-sizing: content-box; max-width: var(--layout-max-width); margin: 0 auto; padding: 18px var(--layout-gutter); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .tf-mark { display: block; width: 52px; color: var(--color-logo); }
 .tf-mark svg { display: block; width: 100%; height: auto; }
-.tf-mark--small { width: 46px; color: var(--color-text-on-dark); }
-.tf-pill { display: inline-flex; align-items: center; min-height: 46px; padding: 0 22px; border-radius: var(--radius-pill); font-weight: 700; font-size: var(--text-body-sm); text-decoration: none; }
-.tf-site .tf-pill--ink { background: var(--color-text); color: var(--color-text-inverse); }
-.tf-site .tf-pill--ink:hover { background: var(--color-brand); color: var(--color-text); }
+.tf-btn { display: inline-flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 26px; border: 0; border-radius: var(--radius-pill); font-family: var(--font-sans); font-weight: 700; font-size: 16px; text-decoration: none; box-shadow: var(--shadow-paper); transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.25, 1.3), box-shadow 0.2s ease, filter 0.2s ease; }
+.tf-btn:hover { transform: translateY(-3px); filter: brightness(1.12); }
+.tf-btn:active { transform: translateY(0); }
+.tf-site .tf-btn--ink, .tf-site .tf-btn--ink:hover { background: var(--palette-ink); color: var(--palette-card); }
+.tf-site .tf-btn--card, .tf-site .tf-btn--card:hover { background: var(--palette-card); color: var(--palette-ink); }
+.tf-site .tf-btn--red, .tf-site .tf-btn--red:hover { background: var(--palette-red); color: var(--palette-ink); }
+.tf-site .tf-btn--mustard, .tf-site .tf-btn--mustard:hover { background: var(--palette-mustard); color: var(--palette-ink); }
+.tf-btn--large { min-height: 56px; padding: 0 28px; font-size: 17px; }
+.tf-btn__key { display: block; width: 34px; }
+.tf-btn__key svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tf-bar .tf-btn { min-height: 44px; padding: 0 20px; font-size: 14px; box-shadow: none; }
+.tf-link { font-weight: 700; font-size: 16px; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 4px; transition: text-decoration-thickness 0.15s ease; }
+.tf-link:hover { text-decoration-thickness: 3px; }
+.tf-site a:focus-visible, .tf-site button:focus-visible { outline: 3px solid var(--palette-mustard); outline-offset: 3px; }
 
-.tf-foot { box-sizing: border-box; width: 100%; background: var(--color-footer); color: var(--color-footer-text); padding: 28px var(--layout-gutter) 48px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; font-size: var(--text-label-md); }
-.tf-site .tf-foot a:hover { color: var(--color-brand); }
+.tf-foot { background: var(--palette-red); color: var(--palette-ink); }
+.tf-foot__inner { padding-top: clamp(40px, 4vw, 56px); padding-bottom: 28px; display: flex; flex-direction: column; gap: clamp(36px, 5vw, 72px); }
+.tf-foot__top, .tf-foot__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px 40px; }
+.tf-foot__top { align-items: flex-end; }
+.tf-foot__brand { max-width: 26rem; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.tf-foot__name { font-weight: 800; font-size: clamp(40px, 4.4vw, 68px); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase; }
+.tf-foot__trade { padding-bottom: 4px; font-weight: 600; font-size: clamp(13px, 1.1vw, 16px); text-transform: uppercase; }
+.tf-foot__email { font-weight: 700; font-size: clamp(15px, 1.2vw, 18px); text-underline-offset: 4px; }
+.tf-foot__bottom { font-weight: 700; font-size: 13px; text-transform: uppercase; }
+.tf-flink { transition: color 0.15s ease; }
+.tf-site .tf-flink:hover { color: var(--palette-card); }
 
 .tf-eyebrow { margin: 0; font-weight: 700; font-size: var(--text-label-sm); letter-spacing: var(--tracking-label); text-transform: uppercase; }
 
-/* The cover: a 200vh scroll track holding one sticky stage. */
-.tf-cover { position: relative; height: 200vh; view-timeline: --cover block; }
-.tf-stage { position: sticky; top: 0; height: 100vh; min-height: 640px; overflow: hidden; background-color: var(--color-bg); background-image: var(--paper-grain); background-size: var(--paper-grain-size); background-position: var(--paper-grain-position); }
-.tf-room { position: absolute; inset: 90px 0 0 0; }
-.tf-hole { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); z-index: 2; }
-.tf-keyhole { aspect-ratio: 2 / 3; width: clamp(140px, 14vw, 210px); background: var(--palette-red); clip-path: ${KEYHOLE_CLIP}; transform-origin: 50% 60%; }
-.tf-cover__eyebrow { position: absolute; left: 0; right: 0; top: 6%; text-align: center; z-index: 3; }
-.tf-cover__title { position: absolute; left: calc(14vw + clamp(16px, 3vw, 48px)); bottom: 12%; z-index: 6; max-width: 30vw; margin: 0; font-weight: 800; font-size: var(--text-display-2xl); line-height: 0.82; letter-spacing: var(--tracking-display); }
-.tf-cover__subtitle { position: absolute; right: calc(14vw + clamp(16px, 3vw, 48px)); bottom: 13%; z-index: 6; max-width: 24vw; margin: 0; text-align: right; font-family: var(--font-story); font-style: italic; font-weight: 500; letter-spacing: var(--tracking-story); font-size: var(--text-story-md); line-height: 1.12; }
-.tf-cover__cue { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 3; font-size: 20px; }
+/* The cover: a 220vh scroll track holding one sticky stage. */
+.tf-cover { position: relative; height: 220vh; view-timeline: --cover block; }
+.tf-stage { position: sticky; top: 0; height: 100vh; min-height: 600px; overflow: hidden; background-color: var(--color-bg); background-image: var(--paper-grain); background-size: var(--paper-grain-size); background-position: var(--paper-grain-position); }
+.tf-room { position: absolute; inset: 80px 0 0 0; }
+.tf-cover__words { position: absolute; left: 15vw; right: 15vw; top: 50%; transform: translateY(-46%); z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.tf-headline { margin: 0; font-weight: 800; font-size: clamp(38px, 9vw, 146px); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase; display: flex; flex-direction: column; align-items: center; }
+.tf-headline__line { display: block; position: relative; }
+.tf-initial { font-family: var(--font-story); font-style: italic; font-weight: 500; color: var(--palette-red); font-size: 1.08em; letter-spacing: -0.02em; margin-right: 0.02em; }
+.tf-keyhole-slot { position: relative; display: inline-block; width: 0.42em; margin: 0 0.04em; vertical-align: -0.02em; z-index: 5; }
+.tf-keyhole-slot .tf-glow, .tf-keyhole-slot .tf-zoom { display: block; }
+.tf-keyhole { aspect-ratio: 2 / 3; width: 100%; background: var(--palette-red); clip-path: ${KEYHOLE_CLIP}; transform-origin: 50% 32%; }
+.tf-keys { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 3; --dx: 1.36em; }
+.tf-key-slot { position: absolute; left: 0; top: 0; width: clamp(40px, 6.4vw, 104px); transform: translate(-50%, -50%); }
+.tf-key { display: block; color: var(--palette-ink); filter: var(--shadow-cutout); transform: translate(calc(var(--x) - var(--dx)), var(--y)) rotate(var(--r)); }
+.tf-key svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tf-cover__audience { margin: clamp(16px, 2.4vw, 32px) 0 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.1em 0.4em; font-size: clamp(16px, 1.8vw, 28px); }
+.tf-cover__lead { font-weight: 600; white-space: nowrap; }
+.tf-cover__audience em { font-family: var(--font-story); font-style: italic; font-weight: 500; letter-spacing: var(--tracking-story); }
+.tf-paren { font-family: var(--font-story); font-weight: 400; font-size: 2.2em; line-height: 0.6; color: var(--palette-red); }
+.tf-cover__cue { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); margin: 0; z-index: 6; font-size: 22px; }
 .tf-curtain { position: absolute; top: 0; bottom: 0; width: 14vw; z-index: 4; filter: var(--shadow-cutout); }
 .tf-curtain::before { content: ""; position: absolute; inset: 0; background: var(--color-bg-dark); }
 .tf-curtain--left { left: 0; }
 .tf-curtain--left::before { clip-path: ${CURTAIN_LEFT_CLIP}; }
 .tf-curtain--right { right: 0; }
 .tf-curtain--right::before { clip-path: ${CURTAIN_RIGHT_CLIP}; }
-.tf-valance { position: absolute; left: 0; right: 0; top: 0; height: 48px; z-index: 5; filter: var(--shadow-cutout); }
-.tf-valance::before { content: ""; position: absolute; inset: 0; background: var(--color-bg-dark); clip-path: ${VALANCE_CLIP}; }
-.tf-prop { position: absolute; z-index: 3; color: var(--palette-ink); }
-.tf-prop svg { display: block; width: 100%; height: auto; overflow: visible; }
-.tf-prop .tf-float { filter: brightness(0) drop-shadow(0 10px 10px rgb(35 35 35 / 0.25)); }
-.tf-prop--watch { left: 22%; top: 22%; width: 70px; }
-.tf-prop--key { right: 22%; top: 30%; width: 110px; }
-.tf-hand { transform-origin: 60px 84px; transform-box: view-box; animation: tf-spin 8s linear infinite; }
-.tf-hand--slow { animation-duration: 48s; }
+.tf-valance { position: absolute; left: 0; right: 0; top: 0; height: clamp(56px, 9vh, 96px); z-index: 5; filter: var(--shadow-cutout); }
+.tf-valance svg { display: block; width: 100%; height: 100%; fill: var(--color-bg-dark); }
 
 @keyframes tf-glow { 0%, 100% { filter: drop-shadow(0 0 18px rgb(239 89 89 / 0.35)); } 50% { filter: drop-shadow(0 0 46px rgb(239 89 89 / 0.7)); } }
-@keyframes tf-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-12px) rotate(2deg); } }
+@keyframes tf-float { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-12px) rotate(-2deg); } }
 @keyframes tf-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
-@keyframes tf-spin { to { transform: rotate(360deg); } }
-@keyframes tf-zoom { from { transform: scale(1); } to { transform: scale(30); } }
+@keyframes tf-zoom { 0% { transform: scale(1); } 40% { transform: scale(3.5); } 70% { transform: scale(14); } 90% { transform: scale(44); } 100% { transform: scale(80); } }
+@keyframes tf-suck { from { transform: translate(calc(var(--x) - var(--dx)), var(--y)) rotate(var(--r)) scale(1); opacity: 1; } to { transform: translate(0px, 0px) rotate(calc(var(--r) + 240deg)) scale(0.06); opacity: 0; } }
 @keyframes tf-fadeout { from { opacity: 1; } to { opacity: 0; } }
 @keyframes tf-cur-l { from { transform: translateX(0); } to { transform: translateX(-105%); } }
 @keyframes tf-cur-r { from { transform: translateX(0); } to { transform: translateX(105%); } }
+@keyframes tf-valance { from { transform: translateY(0); } to { transform: translateY(-110%); } }
 .tf-glow { animation: tf-glow 3.2s ease-in-out infinite; }
 .tf-float { animation: tf-float 7s ease-in-out infinite; }
-.tf-float--late { animation-delay: -3s; }
 .tf-bob { animation: tf-bob 1.8s ease-in-out infinite; }
 @supports (animation-timeline: view()) {
-  .tf-zoom { animation: tf-zoom cubic-bezier(0.6, 0, 0.9, 0.6) both; animation-timeline: --cover; animation-range: contain 25% contain 100%; }
-  .tf-fadeout { animation: tf-fadeout linear both; animation-timeline: --cover; animation-range: contain 10% contain 40%; }
-  .tf-cur-l { animation: tf-cur-l cubic-bezier(0.5, 0, 0.3, 1) both; animation-timeline: --cover; animation-range: contain 0% contain 35%; }
-  .tf-cur-r { animation: tf-cur-r cubic-bezier(0.5, 0, 0.3, 1) both; animation-timeline: --cover; animation-range: contain 0% contain 35%; }
+  .tf-zoom { animation: tf-zoom linear both; animation-timeline: --cover; animation-range: contain 25% contain 77%; }
+  .tf-key { animation: tf-suck cubic-bezier(0.5, 0, 0.85, 0.45) both; animation-timeline: --cover; animation-range: contain 2% contain 25%; }
+  .tf-fadeout { animation: tf-fadeout linear both; animation-timeline: --cover; animation-range: contain 6% contain 28%; }
+  .tf-cur-l { animation: tf-cur-l cubic-bezier(0.5, 0, 0.3, 1) both; animation-timeline: --cover; animation-range: contain 0% contain 28%; }
+  .tf-cur-r { animation: tf-cur-r cubic-bezier(0.5, 0, 0.3, 1) both; animation-timeline: --cover; animation-range: contain 0% contain 28%; }
+  .tf-valance { animation: tf-valance cubic-bezier(0.5, 0, 0.3, 1) both; animation-timeline: --cover; animation-range: contain 8% contain 32%; }
 }
 
 @media (max-width: 860px) {
-  .tf-cover__title { left: calc(14vw + 14px); right: calc(14vw + 14px); bottom: 27%; max-width: none; font-size: clamp(48px, 15vw, 96px); }
-  .tf-cover__subtitle { left: calc(14vw + 14px); right: calc(14vw + 14px); bottom: 12%; max-width: none; text-align: left; font-size: clamp(20px, 5.6vw, 28px); }
-  .tf-prop--watch { left: 18%; top: 14%; width: 52px; }
-  .tf-prop--key { right: 18%; top: 18%; width: 80px; }
+  .tf-hide-sm { display: none !important; }
+  .tf-cover__words { left: calc(14vw + 8px); right: calc(14vw + 8px); }
+  .tf-headline { font-size: clamp(30px, 10.4vw, 96px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

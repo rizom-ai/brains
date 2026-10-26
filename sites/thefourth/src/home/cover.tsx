@@ -1,136 +1,200 @@
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import {
   defineSection,
   z,
   type JsonObject,
   type SectionDefinition,
 } from "@rizom/site";
+import { KEY_SHAPES, KeyDrawing, type KeyShape } from "./keys";
 
 /**
- * The cover: a paper stage between two curtains, a red keyhole glowing in
- * the wall, a pocket watch and a key afloat. Scrolling parts the curtains
- * and steps through the keyhole into Act I (see ../styles).
+ * The cover: a paper stage between two curtains under a scalloped valance.
+ * The headline sets each line's first letter as a red italic initial and a
+ * glowing keyhole where the content marks `[key]`; seven keys lie scattered
+ * around it. Scrolling lifts the valance, parts the curtains, pulls the keys
+ * into the keyhole and steps through it into Act I (see ../styles). The
+ * cover script measures how far the keyhole sits from the stage's center,
+ * so the keys fly to it wherever the headline wraps.
  */
 const coverSchema = z.object({
-  eyebrow: z.string(),
-  title: z.string(),
-  subtitle: z.string(),
-  cue: z.string(),
+  lines: z.array(z.string()).min(1),
+  lead: z.string(),
+  audience: z.string(),
 });
 
-/** Each word of the title on its own line, as the design sets it. */
-function stacked(title: string): (string | JSX.Element)[] {
-  return title
-    .split(/\s+/)
-    .filter(Boolean)
-    .flatMap((word, index) =>
-      index === 0 ? [word] : [<br key={`br-${index}`} />, word],
-    );
+const KEY_MARK = "[key]";
+
+/** The keyhole stands in for a letter; this is the letter it reads as. */
+const KEYHOLE_LETTER = "i";
+
+interface Key {
+  x: string;
+  y: string;
+  r: string;
+  wideOnly: boolean;
+  shape: KeyShape;
 }
 
-function Watch(): JSX.Element {
-  // Twelve ticks from radius 30 to 25; the quarters are drawn heavier.
-  const ticks = Array.from({ length: 12 }, (_, hour) => {
-    const angle = (hour * Math.PI) / 6;
-    const major = hour % 3 === 0;
-    return (
-      <line
-        key={hour}
-        x1={(60 + 30 * Math.sin(angle)).toFixed(1)}
-        y1={(84 - 30 * Math.cos(angle)).toFixed(1)}
-        x2={(60 + 25 * Math.sin(angle)).toFixed(1)}
-        y2={(84 - 25 * Math.cos(angle)).toFixed(1)}
-        stroke="currentColor"
-        strokeWidth={major ? 3 : 1.4}
-      />
-    );
-  });
+/** The seven keys, placed around the keyhole as the design scatters them. */
+const KEYS: Key[] = [
+  {
+    x: "-24vw",
+    y: "-27vh",
+    r: "-20deg",
+    wideOnly: false,
+    shape: KEY_SHAPES.trefoil,
+  },
+  {
+    x: "-5vw",
+    y: "-31vh",
+    r: "68deg",
+    wideOnly: false,
+    shape: KEY_SHAPES.ring,
+  },
+  {
+    x: "22vw",
+    y: "-25vh",
+    r: "14deg",
+    wideOnly: false,
+    shape: KEY_SHAPES.paddle,
+  },
+  {
+    x: "-27vw",
+    y: "13vh",
+    r: "58deg",
+    wideOnly: true,
+    shape: KEY_SHAPES.crown,
+  },
+  {
+    x: "27vw",
+    y: "12vh",
+    r: "-34deg",
+    wideOnly: true,
+    shape: KEY_SHAPES.heart,
+  },
+  {
+    x: "-15vw",
+    y: "32vh",
+    r: "-40deg",
+    wideOnly: false,
+    shape: KEY_SHAPES.oval,
+  },
+  {
+    x: "13vw",
+    y: "33vh",
+    r: "25deg",
+    wideOnly: false,
+    shape: KEY_SHAPES.disc,
+  },
+];
+
+/** Where a key lies, as the custom properties the suck animation reads. */
+type KeyPlacement = CSSProperties & {
+  "--x": string;
+  "--y": string;
+  "--r": string;
+};
+
+function keyPlacement(key: Key): KeyPlacement {
+  return { "--x": key.x, "--y": key.y, "--r": key.r };
+}
+
+/** A line's first letter as the red italic initial, then the rest. */
+function Initialed({ text }: { text: string }): JSX.Element {
   return (
-    <svg viewBox="0 0 120 130" aria-hidden="true">
-      <circle
-        cx="60"
-        cy="12"
-        r="9"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="5"
-      />
-      <rect x="53" y="20" width="14" height="12" fill="currentColor" />
-      <circle cx="60" cy="84" r="44" fill="currentColor" />
-      <circle cx="60" cy="84" r="35" fill="var(--palette-card)" />
-      {ticks}
-      <g className="tf-hand">
-        <line
-          x1="60"
-          y1="84"
-          x2="60"
-          y2="58"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-      </g>
-      <g className="tf-hand tf-hand--slow">
-        <line
-          x1="60"
-          y1="84"
-          x2="76"
-          y2="92"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-      </g>
-      <circle cx="60" cy="84" r="4" fill="currentColor" />
-    </svg>
+    <>
+      <span className="tf-initial">{text.slice(0, 1)}</span>
+      {text.slice(1)}
+    </>
   );
 }
 
-function Key(): JSX.Element {
+function Keyhole(): JSX.Element {
   return (
-    <svg viewBox="0 0 170 64" aria-hidden="true">
-      <circle
-        cx="32"
-        cy="32"
-        r="21"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="9"
-      />
-      <path
-        d="M53 32 H162 M142 32 V54 M124 32 V48"
-        stroke="currentColor"
-        strokeWidth="9"
-        fill="none"
-        strokeLinecap="square"
-      />
-    </svg>
+    <span className="tf-keyhole-slot" data-tf-keyhole="">
+      <span className="tf-glow">
+        <span className="tf-keyhole tf-zoom" />
+      </span>
+      <span className="tf-keys" aria-hidden="true">
+        {KEYS.map((key) => (
+          <span
+            key={`${key.x}${key.y}`}
+            className={key.wideOnly ? "tf-key-slot tf-hide-sm" : "tf-key-slot"}
+          >
+            <span className="tf-key" style={keyPlacement(key)}>
+              <KeyDrawing shape={key.shape} />
+            </span>
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+/** A headline line, with the keyhole where the content marks it. */
+function HeadlineLine({ line }: { line: string }): JSX.Element {
+  const at = line.indexOf(KEY_MARK);
+  if (at === -1) {
+    return (
+      <span className="tf-headline__line tf-fadeout">
+        <Initialed text={line} />
+      </span>
+    );
+  }
+  const before = line.slice(0, at);
+  const after = line.slice(at + KEY_MARK.length);
+  return (
+    <span className="tf-headline__line">
+      {before && (
+        <span className="tf-fadeout">
+          <Initialed text={before} />
+        </span>
+      )}
+      <Keyhole />
+      {after && <span className="tf-fadeout">{after}</span>}
+    </span>
+  );
+}
+
+function Valance(): JSX.Element {
+  const scallops = Array.from({ length: 8 }, (_, index) => index * 180);
+  return (
+    <div className="tf-valance" aria-hidden="true">
+      <svg viewBox="0 0 1440 140" preserveAspectRatio="none">
+        <rect x="0" y="0" width="1440" height="40" />
+        {scallops.map((x) => (
+          <path key={x} d={`M${x} 36 Q ${x + 90} 132 ${x + 180} 36 Z`} />
+        ))}
+      </svg>
+    </div>
   );
 }
 
 function CoverSection({
-  eyebrow,
-  title,
-  subtitle,
-  cue,
+  lines,
+  lead,
+  audience,
 }: z.infer<typeof coverSchema>): JSX.Element {
+  const spoken = lines.map((line) => line.replace(KEY_MARK, KEYHOLE_LETTER));
+  const label = `${spoken.join(" ")} ${lead} ${audience}`;
   return (
-    <section className="tf-cover" aria-label={title}>
+    <section className="tf-cover" aria-label={label}>
       <div className="tf-stage">
-        <div className="tf-room">
-          <div className="tf-hole" aria-hidden="true">
-            <div className="tf-glow">
-              <div className="tf-keyhole tf-zoom" />
-            </div>
+        <div className="tf-room" data-tf-stage="">
+          <div className="tf-cover__words">
+            <h1 className="tf-headline" aria-label={label}>
+              {lines.map((line) => (
+                <HeadlineLine key={line} line={line} />
+              ))}
+            </h1>
+            <p className="tf-cover__audience tf-fadeout" aria-hidden="true">
+              <span className="tf-paren">(</span>
+              <span className="tf-cover__lead">{lead}</span> <em>{audience}</em>
+              <span className="tf-paren">)</span>
+            </p>
           </div>
-          <p className="tf-eyebrow tf-cover__eyebrow tf-fadeout">{eyebrow}</p>
-          <h1 className="tf-cover__title tf-fadeout">{stacked(title)}</h1>
-          <p className="tf-cover__subtitle tf-fadeout">{subtitle}</p>
-          <p className="tf-cover__cue tf-fadeout">
-            <span className="tf-eyebrow">{cue}</span>
-            <span className="tf-bob" aria-hidden="true">
-              ↓
-            </span>
+          <p className="tf-cover__cue tf-fadeout" aria-hidden="true">
+            <span className="tf-bob">↓</span>
           </p>
           <div
             className="tf-curtain tf-curtain--left tf-cur-l"
@@ -140,17 +204,7 @@ function CoverSection({
             className="tf-curtain tf-curtain--right tf-cur-r"
             aria-hidden="true"
           />
-          <div className="tf-valance tf-fadeout" aria-hidden="true" />
-          <div className="tf-prop tf-prop--watch tf-fadeout" aria-hidden="true">
-            <div className="tf-float">
-              <Watch />
-            </div>
-          </div>
-          <div className="tf-prop tf-prop--key tf-fadeout" aria-hidden="true">
-            <div className="tf-float tf-float--late">
-              <Key />
-            </div>
-          </div>
+          <Valance />
         </div>
       </div>
     </section>
@@ -163,13 +217,12 @@ export const cover: SectionDefinition = defineSection(
   {
     title: "Cover",
     description:
-      "The title scene: the stage, its eyebrow, the title, the subtitle and the cue to scroll.",
+      "The title scene: the headline's lines (each line's first letter becomes the red initial; [key] marks where the keyhole stands in for a letter), and the audience line, its lead and the audience in italics.",
   },
 );
 
 export const coverContent: JsonObject = {
-  eyebrow: "A story in four acts",
-  title: "The Fourth",
-  subtitle: "or, How Hard-to-Explain Things Finally Got Understood",
-  cue: "Step through",
-} satisfies z.infer<typeof coverSchema>;
+  lines: ["Unlocking", "Market[key]ng", "Secrets"],
+  lead: "for the",
+  audience: "Innovators, Creatives & Pioneers",
+} satisfies z.input<typeof coverSchema>;

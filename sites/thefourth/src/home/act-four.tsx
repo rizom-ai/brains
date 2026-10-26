@@ -7,12 +7,14 @@ import {
 } from "@rizom/site";
 import { parsePhoto } from "../portrait";
 import { ActHeading, TornEdge } from "./act-heading";
+import { linkSchema, TextLink } from "./links";
 
 /**
  * Act IV, the fourth act: the stories, pinned as tilted cards. The museum's
  * feature card, two figures (the second in ink) and Rizom's story on red,
- * its photo across the top when the content names one. Story pages and the
- * testimonial come when The Fourth has them.
+ * its photo across the top when the content names one, and a way to unlock
+ * the visitor's own. Story pages and the testimonial come when The Fourth
+ * has them.
  */
 const figureSchema = z.object({
   figure: z.string(),
@@ -34,6 +36,7 @@ const actFourSchema = z.object({
     rest: z.string(),
     photo: z.string().default(""),
   }),
+  action: linkSchema,
 });
 
 function Figure({
@@ -60,6 +63,7 @@ function ActFourSection({
   feature,
   figures,
   story,
+  action,
 }: z.infer<typeof actFourSchema>): JSX.Element {
   const photo = parsePhoto(story.photo);
   return (
@@ -108,6 +112,9 @@ function ActFourSection({
             </span>
           </div>
         </div>
+        <div className="tf-actions">
+          <TextLink link={action} />
+        </div>
       </div>
       <TornEdge tone="ink" />
     </section>
@@ -120,7 +127,7 @@ export const actFour: SectionDefinition = defineSection(
   {
     title: "Act IV — The fourth act",
     description:
-      "The stories: a feature figure with its eyebrow, two more figures, and a story card with its headline, emphasis, the struck jargon, the rest and an optional photo as ![alt](entity://image/<id>).",
+      "The stories: a feature figure with its eyebrow, two more figures, and a story card with its headline, emphasis, the struck jargon, the rest and an optional photo as ![alt](entity://image/<id>), then the action.",
   },
 );
 
@@ -154,4 +161,5 @@ export const actFourContent: JsonObject = {
     rest: "became “what would your team forget?”",
     photo: "",
   },
+  action: { label: "Unlock yours →", href: "mailto:nihao.fourth@gmail.com" },
 } satisfies z.input<typeof actFourSchema>;

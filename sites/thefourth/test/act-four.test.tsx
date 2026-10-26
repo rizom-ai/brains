@@ -73,6 +73,12 @@ describe("Act IV, the fourth act", () => {
     expect(html).not.toContain("TESTIMONIAL");
     expect(html).not.toContain("Read the story");
     expect(html).not.toContain("Read the full stories");
-    expect(html).not.toContain("<a ");
+    expect(html.match(/<a /g)?.length).toBe(1);
+  });
+
+  test("offers to unlock the visitor's own, by email", () => {
+    expect(renderActFour()).toContain(
+      '<a class="tf-link" href="mailto:nihao.fourth@gmail.com">Unlock yours →</a>',
+    );
   });
 });
