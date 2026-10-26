@@ -19,6 +19,8 @@
   color: var(--ask-text);
   font-family: var(--ask-body);
   line-height: 1.6;
+  /* Inherited by every scroller in the box: a quiet thumb on a clear track. */
+  scrollbar-color: var(--ask-rule) transparent;
 }
 :where([data-ask-styled] button, [data-ask-styled] textarea) {
   font: inherit;
@@ -241,6 +243,7 @@
   padding: 8px;
   background: transparent;
   font-size: 16px;
+  scrollbar-width: thin;
 }
 :where([data-ask-styled] .prompt-row textarea::placeholder) {
   color: var(--ask-muted);
