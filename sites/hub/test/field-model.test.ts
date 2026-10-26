@@ -10,6 +10,7 @@ import {
   holderInFocus,
   hubSites,
   hubsLit,
+  intakeLegs,
   labHome,
   labPhase,
   labWeek,
@@ -17,6 +18,7 @@ import {
   memoryLevel,
   nearestPairs,
   onRecord,
+  passage,
   plantAt,
   sceneAt,
   seedLights,
@@ -329,5 +331,27 @@ describe("the network", () => {
     const stage = stageFor(1440, 900, null);
     expect(plantAt(stage.cx, stage.cy, stage)).toEqual([0.5, 0.5]);
     expect(plantAt(100, 400, stage)).toBeNull();
+  });
+});
+
+describe("a cohort passing through the hub", () => {
+  test("arrives, circles the hub and leaves, over one loop", () => {
+    expect(passage(0)).toEqual({ leg: "in", s: 0 });
+    expect(passage(0.14).leg).toBe("in");
+    expect(passage(0.14).s).toBeCloseTo(0.5);
+    expect(passage(0.5).leg).toBe("orbit");
+    expect(passage(0.5).s).toBeCloseTo(0.5);
+    expect(passage(0.86).leg).toBe("out");
+    expect(passage(0.86).s).toBeCloseTo(0.5);
+  });
+});
+
+describe("a light taken by the pipeline", () => {
+  test("goes into the hub first, then on to the center", () => {
+    expect(intakeLegs(0)).toEqual({ toHub: 0, toCenter: 0 });
+    expect(intakeLegs(0.45)).toEqual({ toHub: 1, toCenter: 0 });
+    expect(intakeLegs(1)).toEqual({ toHub: 1, toCenter: 1 });
+    expect(intakeLegs(0.7).toCenter).toBeGreaterThan(0);
+    expect(intakeLegs(0.7).toCenter).toBeLessThan(1);
   });
 });

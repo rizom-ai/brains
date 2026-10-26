@@ -188,7 +188,7 @@ export function segment(t: number, a: number, b: number): number {
  */
 export function departure(rank: number, count: number, t: number): number {
   const leaving = ease(segment(t, 0.08, 0.86)) * count * 0.52;
-  return Math.min(1, Math.max(0, (leaving - rank) / 9));
+  return Math.min(1, Math.max(0, (leaving - rank) / 12));
 }
 
 /** Which cohort is in the program at `t`, how far through it is, and how far it has arrived and left. */
@@ -382,4 +382,22 @@ export function plantAt(
   const v = (y - stage.y0) / stage.h;
   if (u < 0 || u > 1 || v < 0 || v > 1) return null;
   return [u, v];
+}
+
+/** Where a light is on its loop through the hub at `phase` (0–1): arriving, circling the hub, or leaving, and how far along that leg. */
+export function passage(phase: number): {
+  leg: "in" | "orbit" | "out";
+  s: number;
+} {
+  if (phase < 0.28) return { leg: "in", s: ease(phase / 0.28) };
+  if (phase < 0.72) return { leg: "orbit", s: (phase - 0.28) / 0.44 };
+  return { leg: "out", s: ease((phase - 0.72) / 0.28) };
+}
+
+/** A departing light's two legs: first into the hub, then from the hub to the center. */
+export function intakeLegs(k: number): { toHub: number; toCenter: number } {
+  return {
+    toHub: ease(Math.min(1, k / 0.45)),
+    toCenter: ease(Math.max(0, (k - 0.45) / 0.55)),
+  };
 }

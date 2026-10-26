@@ -10,6 +10,7 @@ import {
   holderInFocus,
   hubSites,
   hubsLit,
+  intakeLegs,
   labHome,
   labPhase,
   labWeek,
@@ -18,6 +19,7 @@ import {
   mulberry,
   nearestPairs,
   onRecord,
+  passage,
   plantAt,
   sceneAt,
   seedLights,
@@ -68,6 +70,8 @@ export const fieldScriptSource: string = `(function () {
   ${hubSites.toString()}
   ${hubsLit.toString()}
   ${plantAt.toString()}
+  ${passage.toString()}
+  ${intakeLegs.toString()}
   var TAU = Math.PI * 2;
   var COUNT = 112;
   function pad(value) { return (value < 10 ? "0" : "") + value; }
@@ -388,6 +392,10 @@ export const fieldScriptSource: string = `(function () {
       ctx.globalAlpha = 1;
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     }
+    // A point on the field's oval (wider than tall) around the stage's center.
+    function around(stage, angle, radius) {
+      return [stage.cx + Math.cos(angle) * radius * 1.1, stage.cy + Math.sin(angle) * radius * 0.86];
+    }
     function region(stage, now, scale, alpha) {
       lights.forEach(function (entry) {
         var place = cloudPlace(entry.light, stage, now, scale, still);
@@ -401,46 +409,72 @@ export const fieldScriptSource: string = `(function () {
     var holders = { orgs: pick(0, 6), members: pick(6, 12), bv: pick(12, 17), roots: pick(17, 29) };
 
     var scenes = {
-      // The region: a field of lights, threaded to their neighbors.
+      // Programs come and go: cohorts flow in, circle the hub and flow out
+      // on a loop, while the hub stays where it is.
       opening: {
-        target: function (stage, t, now) { region(stage, now, 1); },
-        draw: function (stage, t, now, fade) {
-          pairs.forEach(function (pair) {
-            var p = lights[pair[0]], q = lights[pair[1]];
-            if (Math.hypot(p.x - q.x, p.y - q.y) < stage.R * 0.32) {
-              thread(p.x, p.y, q.x, q.y, "brass", 0.13 * fade * Math.min(p.a, q.a), 0.8, 0.12);
+        target: function (stage, t, now) {
+          hubT = { x: stage.cx, y: stage.cy, r: stage.R * 0.085, a: 1, lit: 0.5 };
+          region(stage, now, 1.55, 0.18);
+          var clock = still ? 0.35 : now / 18000;
+          Array.from({ length: 64 }, function (_, k) {
+            var entry = member(0, k, 64, 0), light = entry.light;
+            var loop = (clock + (k % 4) / 4 + (light.ph / TAU) * 0.05) % 1;
+            var leg = passage(loop);
+            var into = light.ang, out = light.ang + 2.1, orbit = stage.R * (0.32 + 0.08 * light.rad);
+            var place;
+            if (leg.leg === "in") {
+              var a = around(stage, into, stage.R * 1.45), b = around(stage, into, orbit);
+              place = bendPoint(a[0], a[1], b[0], b[1], 0.12, leg.s);
+            } else if (leg.leg === "orbit") place = around(stage, into + leg.s * 2.1, orbit);
+            else {
+              var c = around(stage, out, orbit), d = around(stage, out, stage.R * 1.45);
+              place = bendPoint(c[0], c[1], d[0], d[1], 0.12, leg.s);
             }
+            entry.orbiting = leg.leg === "orbit" ? Math.min(1, leg.s * 5, (1 - leg.s) * 5) : 0;
+            set(entry, place[0], place[1], light.size, 0.9 * (leg.leg === "in" ? leg.s : leg.leg === "out" ? 1 - leg.s : 1), baseColor(light));
           });
+        },
+        draw: function (stage, t, now, fade) {
+          lights.forEach(function (entry) {
+            if (entry.orbiting) thread(hub.x, hub.y, entry.x, entry.y, "brass", 0.16 * entry.orbiting * fade, 0.8, 0.06);
+          });
+          caption(hub.x, hub.y + hub.r + 20, captionOf("hub"), 0.6 * fade, "brass");
         },
       },
 
-      // 01: the brightest lights drain into the center, half the region gone.
+      // 01: the hub trains its region's best and hands them to the center.
       pipeline: {
         target: function (stage, t, now) {
+          hubT = { x: stage.cx, y: stage.cy, r: stage.R * 0.085, a: 1, lit: 0.3 };
           centerT = {
-            x: stage.x1 - stage.R * (stage.phone ? 0.3 : 0.12),
-            y: stage.y0 + stage.R * (stage.phone ? 0.3 : 0.16),
-            r: stage.R * (0.12 + 0.08 * segment(t, 0.05, 0.9)),
+            x: stage.x1 - stage.R * (stage.phone ? 0.25 : 0.1),
+            y: stage.y0 + stage.R * (stage.phone ? 0.25 : 0.14),
+            r: stage.R * (0.11 + 0.07 * segment(t, 0.05, 0.9)),
             a: segment(t, 0, 0.12),
           };
           var dim = 1 - 0.4 * segment(t, 0.2, 0.9);
           lights.forEach(function (entry) {
             var light = entry.light;
-            var base = cloudPlace(light, stage, now, 1, still);
-            var k = departure(light.rank, COUNT, t);
-            var place = bendPoint(base[0], base[1], center.x, center.y, 0.22, ease(k));
-            entry.k = k; entry.bx = base[0]; entry.by = base[1];
+            var base = cloudPlace(light, stage, now, 1.15, still);
+            var k = departure(light.rank, COUNT, t), legs = intakeLegs(k);
+            var inHub = [stage.cx + Math.cos(light.ang) * stage.R * 0.13, stage.cy + Math.sin(light.ang) * stage.R * 0.11];
+            var place = legs.toCenter > 0
+              ? bendPoint(inHub[0], inHub[1], center.x, center.y, 0.2, legs.toCenter)
+              : bendPoint(base[0], base[1], inHub[0], inHub[1], 0.1, legs.toHub);
+            entry.k = k; entry.hx = inHub[0]; entry.hy = inHub[1]; entry.out = legs.toCenter;
             entry.snap = k > 0;
-            set(entry, place[0], place[1], light.size * (1 - 0.6 * k), baseAlpha(light) * (1 - k * k * k) * (k > 0 ? 1 : dim), baseColor(light));
+            var leaving = segment(k, 0.6, 1);
+            set(entry, place[0], place[1], light.size * (1 - 0.5 * leaving), baseAlpha(light) * (k > 0 ? 1 - leaving * leaving * leaving : dim), baseColor(light));
           });
         },
         draw: function (stage, t, now, fade) {
           lights.forEach(function (entry) {
-            if (entry.k > 0 && entry.k < 1) {
-              thread(entry.bx, entry.by, center.x, center.y, baseColor(entry.light), 0.22 * fade * Math.sin(Math.PI * entry.k), 0.8, 0.22, [2, 4]);
+            if (entry.out > 0 && entry.out < 1) {
+              thread(entry.hx, entry.hy, center.x, center.y, baseColor(entry.light), 0.22 * fade * Math.sin(Math.PI * entry.out), 0.8, 0.2, [2, 4]);
             }
           });
           caption(center.x - center.r - 14, center.y + center.r + 14, captionOf("center"), 0.55 * fade * center.a, "ink", "end");
+          caption(hub.x, hub.y + hub.r + 20, captionOf("hub"), 0.6 * fade, "brass");
         },
       },
 
@@ -790,7 +824,7 @@ export const fieldScriptSource: string = `(function () {
       hubT = { x: stage.cx, y: stage.cy, r: 0, a: 0, lit: 0 };
       centerT = { x: center.x || stage.x1, y: center.y || stage.y0, r: center.r, a: 0 };
       connT = { a: 0 };
-      lights.forEach(function (entry) { entry.snap = false; });
+      lights.forEach(function (entry) { entry.snap = false; entry.orbiting = 0; entry.out = 0; entry.k = 0; });
       scene.target(stage, smooth, now);
       var k = first ? 1 : 1 - Math.pow(0.92, dt / 16.7);
       lights.forEach(function (entry) {

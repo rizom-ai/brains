@@ -59,17 +59,16 @@ describe("@rizom/site-hub", () => {
   test("opens with the design's words until the brain has its own", () => {
     expect(site.content?.["home"]?.["opening"]).toEqual({
       eyebrow: "Rizom Hub",
-      headline: "A place that keeps what its ecosystem *learns*.",
-      lede: "Organizations, researchers and independent people already meet here to work on questions that matter to them. The hub makes sure what they learn stays: with them, with the hub, and with whoever comes next.",
+      headline: "Programs come and go. The hub *stays*.",
+      lede: "Every ecosystem has places where companies, researchers, public bodies and capital meet. Programs pass through them; the place remains. This hub is built to keep what passes through it.",
       cue: "Scroll to see why",
+      hubCaption: "The hub",
     });
     const html = renderSection("opening");
     expect(html).toContain("Rizom Hub");
     expect(html).not.toContain("Eindhoven");
-    expect(html).toContain(
-      "A place that keeps what its ecosystem <em>learns</em>.",
-    );
-    expect(html).toContain("Organizations, researchers and independent people");
+    expect(html).toContain("Programs come and go. The hub <em>stays</em>.");
+    expect(html).toContain("Programs pass through them; the place remains.");
     expect(html).toContain("Scroll to see why");
   });
 
@@ -79,6 +78,7 @@ describe("@rizom/site-hub", () => {
       headline: "Where the ecosystem *remembers*.",
       lede: "A new lede.",
       cue: "Read on",
+      hubCaption: "The hub",
     });
     expect(html).toContain("Where the ecosystem <em>remembers</em>.");
     expect(html).toContain("A new lede.");
@@ -89,6 +89,7 @@ describe("@rizom/site-hub", () => {
     const html = renderSection("opening");
     expect(html).toContain('data-hub-scene="opening"');
     expect(html).toContain('id="open"');
+    expect(html).toContain("&quot;hub&quot;:&quot;The hub&quot;");
   });
 
   test("frames the page with the field and the wordmark, naming no city", () => {
@@ -137,15 +138,16 @@ describe("@rizom/site-hub", () => {
     ]);
   });
 
-  test("tells the pipeline in the design's words, numbered 01", () => {
+  test("tells the hub as the center's intake, numbered 01", () => {
     const html = renderSection("pipeline");
     expect(html).toContain('data-hub-scene="pipeline"');
     expect(html).toContain('data-hub-label="01"');
-    expect(html).toContain("Innovation runs <em>one way</em>.");
+    expect(html).toContain("The hub trains. The center <em>harvests</em>.");
+    expect(html).toContain("The intake");
     expect(html).toContain(
-      "The way we organize innovation was built for the center.",
+      "Most hubs work as the intake of a pipeline built for the center.",
     );
-    expect(html).toContain("left the region, and took what they learned");
+    expect(html).toContain("trained here, then left for the center");
     expect(html).toContain("&quot;center&quot;:&quot;The center&quot;");
   });
 

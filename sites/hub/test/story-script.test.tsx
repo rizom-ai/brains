@@ -115,6 +115,9 @@ describe("the story, without the canvas", () => {
     click("[data-hub-connector]");
     expect(text("[data-hub-connector]")).toBe("Bring them back");
     expect(text("[data-hub-connector-body]")).toContain(
+      "When that person leaves, the hub finds out how little it knew",
+    );
+    expect(text("[data-hub-connector-body]")).toContain(
       "Heroics are not infrastructure.",
     );
     expect(text("[data-hub-cohort-text]")).toContain(
