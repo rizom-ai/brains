@@ -1,14 +1,14 @@
 # Plan: The hub's site
 
-Last updated: 2026-10-25
+Last updated: 2026-10-26
 
 ## Status
 
-In progress. Slices 1 and 2 (#764, #765) are on main and the `hub` brain runs on its own cohort; slices 3 to 5 are in review. The site pin follows the first publish of `@rizom/site-hub`.
+In progress. Slices 1 to 5 are live on `hub.rizom.ai` (`@rizom/site-hub` 0.2.0-alpha.3). The approved rework puts the hub at the center of every chapter; slices 6 to 8 build it.
 
 ## Goal
 
-The Rizom hub gets its own site on its own brain at `hub.rizom.ai`. The landing page is the approved story design, [`docs/design/hub-homepage/story.html`](../design/hub-homepage/story.html): a full-screen field of lights that the reader's scroll drives through seven chapters, explaining why an ecosystem needs a hub and how the hub fits into Rizom. Four chapters are interactive: the connector leaving, the hub's Brain switched on and off, the holders in the Rizom structure, and planting hubs in the network.
+The Rizom hub gets its own site on its own brain at `hub.rizom.ai`. The landing page is the approved story design, [`docs/design/hub-homepage/story.html`](../design/hub-homepage/story.html): a full-screen field of lights that the reader's scroll drives through seven chapters, explaining why an ecosystem needs a hub and how the hub fits into Rizom. The hub is the subject of every chapter: its lantern stays at the center while programs, the center's pull, cohorts, labs, the written terms and other hubs move around it. Four chapters are interactive: the connector leaving, the hub's Brain switched on and off, the holders in the Rizom structure, and planting hubs in the network.
 
 ## Baseline
 
@@ -26,7 +26,8 @@ The Rizom hub gets its own site on its own brain at `hub.rizom.ai`. The landing 
 5. **Interaction state stays in the page.** The connector, the Brain toggle, the selected holder and the planted hubs live in the script's memory; nothing is stored.
 6. **Only what is real.** The header holds the wordmark, links to the page's own chapters and the theme toggle; the site names no city. Each door in the last chapter links where its content says, seeded with `https://rizom.ai/contact` until the hub has its own address; there are no forms. The footer carries the commons line and links to rizom.ai, its Work and Foundation rooms. The federation note stays on the network chapter.
 7. **Phone in every slice.** Below 860px the drawing holds the top of the screen and each chapter's card docks to the bottom; a lab phase or a holder shows its text only while it is active. Each slice ships its chapters at phone width.
-8. **Delivery.** Each slice is released through the site lane, pinned in `users/hub.yaml` and deployed.
+8. **The hub at the center.** Every chapter but the doors keeps the hub's lantern at the stage's center; what changes is what passes through it. Section ids, and so the brain's `site-content/home/<section>.md` keys, stay as they are; the chapters' words and scenes change.
+9. **Delivery.** Each slice is released through the site lane, pinned in `users/hub.yaml` and deployed.
 
 ## Slices
 
@@ -55,3 +56,15 @@ The hub, organizations and members above Rizom B.V. and the Foundation's roots; 
 ### 5. The network and the doors: chapters 06 and 07
 
 Hubs lighting up and linking to their nearest neighbors with no center, planting a hub by tapping the field, the federation note; the three doors and the field at rest.
+
+### 6. The hub stays, and feeds the center
+
+The opening becomes "Programs come and go. The hub stays.", with cohorts flowing in, circling the hub and flowing out on a loop. Chapter 01 becomes the intake: the region's best lights move into the hub and on to the center, counted as they leave. Chapter 02's words when the connector leaves change with it.
+
+### 7. What passes through
+
+Chapter 04 shows a lab beside the hub rather than instead of it: the organization's team arrives at a lab on the 26-week dial, the hub's members come over to deliver, other labs run beside it on their own clocks, and the lab's Brain goes home with the organization, still tied to the hub.
+
+### 8. What the hub writes down, and what it connects to
+
+Chapter 05 sets the hub at the center of its written terms: the hub first among the holders, organizations' Brains around it, members, Rizom B.V., and the Foundation's commons as a ring around everything; the split becomes one line. Chapter 06 spreads the network out from this hub past every edge of the stage, with hubs under the chapter's words kept faint, and adds "Seen from here, this hub sits in the middle. Seen from any other, so does that one."
