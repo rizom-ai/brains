@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-thefourth",
-  "version": "0.2.0-alpha.4",
+  "version": "0.2.0-alpha.5",
   "description": "The Fourth — a story in four acts on a paper stage, for the brand consultancy in Taipei",
   "type": "module",
   "exports": {
