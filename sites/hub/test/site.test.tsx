@@ -201,20 +201,26 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain("&quot;members&quot;:&quot;Members deliver&quot;");
   });
 
-  test("tells how the hub fits into Rizom: five holders and the split", () => {
+  test("tells what the hub writes down: five holders, the hub first, and the split", () => {
     const html = renderSection("fit");
     expect(html).toContain('data-hub-scene="fit"');
     expect(html).toContain('data-hub-label="05"');
-    expect(html).toContain("Each holds what it <em>should</em>.");
+    expect(html).toContain("Institutions stand on <em>social contracts</em>.");
+    expect(html).toContain("What the hub writes down");
     expect(html.match(/<button[^>]*data-hub-holder="/g)).toHaveLength(5);
+    expect(html.indexOf('data-hub-holder="hub"')).toBeLessThan(
+      html.indexOf('data-hub-holder="orgs"'),
+    );
     expect(html).toContain("Rizom Foundation");
     expect(html).toContain(
       "Holds the method, the platform and the mark as a commons that cannot be sold.",
     );
-    expect(html).toContain("60% delivery · Rizom B.V.");
-    expect(html).toContain("25% commons");
+    expect(html).toContain("60% to whoever delivers");
+    expect(html).toContain("15% to the hub");
+    expect(html).toContain("25% back to the commons");
+    expect(html).not.toContain("hub-split");
     expect(html).toContain(
-      "&quot;bv&quot;:&quot;Rizom B.V. · setup, hosting, delivery&quot;",
+      "&quot;hub&quot;:&quot;The hub · its own Brain&quot;",
     );
   });
 
@@ -223,6 +229,10 @@ describe("@rizom/site-hub", () => {
     expect(html).toContain('data-hub-scene="network"');
     expect(html).toContain('data-hub-label="06"');
     expect(html).toContain("Many hubs, <em>no center</em>.");
+    expect(html).toContain(
+      "Seen from here, this hub sits in the middle. Seen from any other, so does that one.",
+    );
+    expect(html).toContain("What the hub connects to");
     expect(html).toContain("Tap the field to add a hub");
     expect(html).toContain("hubs connected · centers: none");
     expect(html).toContain(

@@ -288,15 +288,15 @@ export function guestsPresent(week: number): number {
 }
 
 /**
- * The holder lit in "How it fits into Rizom": the reader's choice when there
- * is one; otherwise each in turn through the chapter's first half
- * (organizations, the hub, members, Rizom B.V., the Foundation), then none,
+ * The holder lit in "What the hub writes down": the reader's choice when
+ * there is one; otherwise each in turn through the chapter's first half
+ * (the hub, organizations, members, Rizom B.V., the Foundation), then none,
  * so all show together while the money flows.
  */
 export function holderInFocus(t: number, chosen: string | null): string | null {
   if (chosen) return chosen;
   if (t >= 0.5) return null;
-  const holders = ["orgs", "hub", "members", "bv", "foundation"];
+  const holders = ["hub", "orgs", "members", "bv", "foundation"];
   return holders[Math.min(4, Math.floor(t / 0.1))] ?? null;
 }
 
@@ -311,35 +311,36 @@ export function certified(t: number): number {
   return k * k * (3 - 2 * k);
 }
 
-/** Where the network's hubs sit on the stage (0–1 each way): a loose grid, jittered by seed, in the order they light. */
-export function hubSites(count: number, seed: number): [number, number][] {
+/**
+ * The other hubs around this one, in stage units (0–1 is the stage; the
+ * field runs past every edge so the network has no rim): a jittered grid,
+ * kept clear of this hub at the middle, nearest first, so they light from
+ * here outward.
+ */
+export function hubField(seed: number): [number, number][] {
   const rand = mulberry(seed);
-  return Array.from({ length: count }, function site(_, k): [
-    number,
-    number,
-    number,
-  ] {
-    const col = k % 5;
-    const row = Math.floor(k / 5);
-    const u = 0.1 + col * 0.2 + (rand() - 0.5) * 0.12;
-    const v = 0.16 + row * 0.32 + (rand() - 0.5) * 0.16;
+  return Array.from({ length: 30 }, function site(_, k): [number, number] {
+    const col = k % 6;
+    const row = Math.floor(k / 6);
     return [
-      Math.min(0.96, Math.max(0.04, u)),
-      Math.min(0.96, Math.max(0.04, v)),
-      rand(),
+      -0.38 + col * 0.35 + (rand() - 0.5) * 0.16,
+      -0.32 + row * 0.42 + (rand() - 0.5) * 0.18,
     ];
   })
-    .sort(function order(a, b) {
-      return a[2] - b[2];
+    .filter(function clear(site) {
+      return Math.hypot(site[0] - 0.5, site[1] - 0.5) > 0.16;
     })
-    .map(function place(entry): [number, number] {
-      return [entry[0], entry[1]];
+    .slice(0, 21)
+    .sort(function nearest(p, q) {
+      return (
+        Math.hypot(p[0] - 0.5, p[1] - 0.5) - Math.hypot(q[0] - 0.5, q[1] - 0.5)
+      );
     });
 }
 
-/** How many of the fourteen hubs are lit at `t` through the network chapter: the reader's own first, then the rest. */
-export function hubsLit(t: number): number {
-  return 1 + Math.floor(ease(segment(t, 0.04, 0.6)) * 13);
+/** How many hubs are lit at `t` through the network chapter: this one first, then the others, out to all of them. */
+export function hubsLit(t: number, others: number): number {
+  return 1 + Math.floor(ease(segment(t, 0.04, 0.65)) * others);
 }
 
 /** Each point's k nearest neighbors, as pairs listed once, lower index first. */

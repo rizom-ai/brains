@@ -8,7 +8,7 @@ import {
   ease,
   guestsPresent,
   holderInFocus,
-  hubSites,
+  hubField,
   hubsLit,
   intakeLegs,
   labHome,
@@ -67,7 +67,7 @@ export const fieldScriptSource: string = `(function () {
   ${holderInFocus.toString()}
   ${splitFlow.toString()}
   ${certified.toString()}
-  ${hubSites.toString()}
+  ${hubField.toString()}
   ${hubsLit.toString()}
   ${plantAt.toString()}
   ${passage.toString()}
@@ -87,10 +87,12 @@ export const fieldScriptSource: string = `(function () {
     var smooth = 0;
     var connectorGone = false;
     var memoryOn = true;
-    var chosenHolder = null;
+    // A holder the mouse is over previews it; a click pins it until clicked again.
+    var hoveredHolder = null;
+    var pinnedHolder = null;
+    function chosenHolder() { return hoveredHolder || pinnedHolder; }
     var planted = [];
-    var sites = hubSites(14, 5);
-    var OURS = 7;
+    var sites = hubField(5);
 
     var lights = seedLights(COUNT, 11).map(function (light) {
       return { light: light, x: 0, y: 0, r: 0, a: 0, col: "ink", tx: 0, ty: 0, tr: 0, ta: 0, snap: false };
@@ -169,7 +171,7 @@ export const fieldScriptSource: string = `(function () {
       }
       if (scene === "labs") labReadout();
       if (scene === "fit") fitReadout();
-      if (scene === "network") setText(find("[data-hub-hubs]"), hubsLit(progress) + planted.length);
+      if (scene === "network") setText(find("[data-hub-hubs]"), hubsLit(progress, sites.length) + planted.length);
     }
 
     function labReadout() {
@@ -182,17 +184,12 @@ export const fieldScriptSource: string = `(function () {
     }
 
     function fitReadout() {
-      var focus = holderInFocus(progress, chosenHolder);
+      var focus = holderInFocus(progress, chosenHolder());
       Array.prototype.forEach.call(document.querySelectorAll("[data-hub-holder]"), function (button) {
         button.classList.toggle("is-on", button.getAttribute("data-hub-holder") === focus);
       });
       var list = find(".hub-holders");
       if (list) list.classList.toggle("is-all", !focus);
-      var moved = certified(progress) > 0.5;
-      var split = find(".hub-split");
-      if (split) split.classList.toggle("is-certified", moved);
-      var delivery = find("[data-hub-split-delivery]");
-      if (delivery) setText(delivery, delivery.getAttribute(moved ? "data-after" : "data-before"));
     }
 
     function read() {
@@ -235,13 +232,14 @@ export const fieldScriptSource: string = `(function () {
     Array.prototype.forEach.call(document.querySelectorAll("[data-hub-holder]"), function (button) {
       var id = button.getAttribute("data-hub-holder");
       button.addEventListener("pointerenter", function (event) {
-        if (event.pointerType === "mouse") { chosenHolder = id; readouts(); }
+        if (event.pointerType === "mouse") { hoveredHolder = id; readouts(); }
       });
       button.addEventListener("pointerleave", function (event) {
-        if (event.pointerType === "mouse") { chosenHolder = null; readouts(); }
+        if (event.pointerType === "mouse") { hoveredHolder = null; readouts(); }
       });
       button.addEventListener("click", function () {
-        chosenHolder = chosenHolder === id ? null : id;
+        pinnedHolder = pinnedHolder === id ? null : id;
+        if (!pinnedHolder) hoveredHolder = null;
         readouts();
       });
     });
@@ -325,6 +323,21 @@ export const fieldScriptSource: string = `(function () {
       ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
       ctx.globalAlpha = 1;
     }
+    // A ring squashed like the field itself, for rings that pass through placed lights.
+    function oval(x, y, r, col, a, width, wobble, seed) {
+      if (a < 0.01) return;
+      ctx.strokeStyle = C[col] || C.ink;
+      ctx.globalAlpha = a;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      Array.from({ length: 97 }, function (_, k) { return (k / 96) * TAU; }).forEach(function (t, k) {
+        var rr = r * (1 + wobble * Math.sin(3 * t + seed) + wobble * 0.6 * Math.sin(5 * t + seed * 1.7));
+        var px = x + Math.cos(t) * rr * 1.1, py = y + Math.sin(t) * rr * 0.86;
+        if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      });
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
     function glow(x, y, r, a, col) {
       if (a < 0.01 || r < 0.5) return;
       ctx.fillStyle = C[col] || C.ink;
@@ -403,8 +416,6 @@ export const fieldScriptSource: string = `(function () {
       });
     }
 
-    function pick(from, to) { return order.slice(from, to).map(function (i) { return lights[i]; }); }
-    var holders = { orgs: pick(0, 6), members: pick(6, 12), bv: pick(12, 17), roots: pick(17, 29) };
 
     var scenes = {
       // Programs come and go: cohorts flow in, circle the hub and flow out
@@ -655,136 +666,111 @@ export const fieldScriptSource: string = `(function () {
         },
       },
 
-      // 05: who holds what, and how the split of every lab flows.
+      // 05: the hub at the center of its written terms: organizations' Brains
+      // around it, its members, Rizom B.V., and the commons as a ring around
+      // everything; then the split of every lab flows.
       fit: {
         target: function (stage, t, now) {
-          var focus = holderInFocus(t, chosenHolder);
-          function dim(id) { return focus && focus !== id ? 0.34 : 1; }
+          var focus = holderInFocus(t, chosenHolder());
+          function dim(id) { return focus && focus !== id ? 0.3 : 1; }
           var moved = certified(t);
-          var layout = {
-            hub: [stage.cx, stage.y0 + stage.h * (stage.phone ? 0.3 : 0.28)],
-            bvY: stage.y0 + stage.h * 0.64,
-            fY: stage.y0 + stage.h * 0.86,
-            x0: stage.x0 + stage.w * 0.08,
-            x1: stage.x1 - stage.w * 0.08,
-          };
-          this.state = { dim: dim, flow: splitFlow(t), moved: moved, layout: layout };
-          hubT = { x: layout.hub[0], y: layout.hub[1], r: stage.R * 0.075, a: dim("hub"), lit: dim("hub") };
-          lights.forEach(function (entry) {
-            var place = cloudPlace(entry.light, stage, now, 1.4, still);
-            set(entry, place[0], place[1], 0, 0, baseColor(entry.light));
+          this.state = { dim: dim, flow: splitFlow(t), moved: moved };
+          hubT = { x: stage.cx, y: stage.cy, r: stage.R * 0.09, a: dim("hub"), lit: dim("hub") };
+          region(stage, now, 1.7, 0);
+          lights.forEach(function (entry) { entry.tr = 0; });
+          var orgs = this.state.orgs = Array.from({ length: 6 }, function (_, j) { return around(stage, (j / 6) * TAU + 0.3, stage.R * 0.46); });
+          orgs.forEach(function (at, j) {
+            Array.from({ length: 2 }, function (_, k) {
+              var entry = member(j, k, 2, 0), angle = (still ? 0 : now * 0.0002) + k * Math.PI + j;
+              set(entry, at[0] + Math.cos(angle) * 12, at[1] + Math.sin(angle) * 10, 1.8, 0.8 * dim("orgs"), "brassSoft");
+            });
           });
-          holders.orgs.forEach(function (entry, j) {
-            var angle = Math.PI + 0.35 + (j / 5) * (Math.PI - 0.7);
-            set(entry, layout.hub[0] + Math.cos(angle) * stage.R * 0.62, layout.hub[1] + Math.sin(angle) * stage.R * 0.36 + stage.R * 0.08, 3.4, dim("orgs"), "brassSoft");
+          this.state.members = Array.from({ length: 6 }, function (_, j) {
+            var entry = member(0, j, 6, 12), at = around(stage, (j / 6) * TAU, stage.R * 0.24);
+            set(entry, at[0], at[1], 2.4, dim("members") * (0.75 + 0.25 * moved), "ink");
+            return entry;
           });
-          holders.members.forEach(function (entry, j) {
-            var angle = 0.5 + (j / 5) * (Math.PI - 1);
-            set(entry, layout.hub[0] + Math.cos(angle) * stage.R * 0.42, layout.hub[1] + Math.sin(angle) * stage.R * 0.2 + stage.R * 0.06, 2.4, dim("members") * (0.75 + 0.25 * moved), "ink");
+          this.state.bv = Array.from({ length: 4 }, function (_, j) {
+            var entry = member(0, j, 4, 18), at = around(stage, Math.PI / 4 + (j * Math.PI) / 2, stage.R * 0.66);
+            set(entry, at[0], at[1], 2.6, dim("bv"), "ruby");
+            return entry;
           });
-          holders.bv.forEach(function (entry, j) {
-            set(entry, layout.x0 + stage.w * 0.12 + (layout.x1 - layout.x0 - stage.w * 0.24) * (j / 4), layout.bvY, 2.6, dim("bv"), "ruby");
-          });
-          holders.roots.forEach(function (entry, j) {
-            set(entry, layout.x0 + (layout.x1 - layout.x0) * (j / 11), layout.fY + Math.sin(j * 1.3) * 6, 2, dim("foundation"), "moss");
+          this.state.roots = Array.from({ length: 14 }, function (_, j) {
+            var entry = member(0, j, 14, 22), at = around(stage, (j / 14) * TAU + 0.1, stage.R * 0.86);
+            set(entry, at[0], at[1], 2, dim("foundation"), "moss");
+            return entry;
           });
         },
         draw: function (stage, t, now, fade) {
-          var state = this.state, dim = state.dim, flow = state.flow, moved = state.moved, layout = state.layout;
-          // The commons: a root system under everything.
-          var rootAlpha = 0.55 * fade * dim("foundation");
-          ctx.strokeStyle = C.moss; ctx.globalAlpha = rootAlpha; ctx.lineWidth = 1.4; ctx.beginPath();
-          Array.from({ length: 41 }, function (_, k) {
-            var x = layout.x0 - 20 + (layout.x1 - layout.x0 + 40) * (k / 40);
-            var y = layout.fY + Math.sin(k * 0.55) * 6 + Math.sin(k * 1.3) * 3;
-            if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+          var state = this.state, dim = state.dim, flow = state.flow, moved = state.moved;
+          // The commons: a ring of roots around everything.
+          [0, 1].forEach(function (k) {
+            oval(hub.x, hub.y, stage.R * (0.86 + k * 0.035), "moss", 0.4 * fade * dim("foundation") * (1 - k * 0.5), 1.2, k ? 0.02 : 0, k * 2);
           });
-          ctx.stroke(); ctx.globalAlpha = 1;
-          holders.roots.forEach(function (entry, j) {
-            thread(entry.x, entry.y, entry.x + (j % 2 ? 14 : -12), entry.y + 18 + (j % 3) * 6, "moss", rootAlpha * 0.6, 0.8, 0.3);
-            if (j % 3 === 0) thread(entry.x, entry.y, entry.x + 6, layout.bvY + 8, "moss", rootAlpha * 0.35, 0.7, -0.15);
+          caption(hub.x, hub.y + stage.R * 0.86 * 0.86 + 22, captionOf(stage.phone ? "foundationShort" : "foundation"), 0.7 * fade * dim("foundation"), "moss");
+          state.bv.forEach(function (entry) { thread(entry.x, entry.y, hub.x, hub.y, "ruby", 0.2 * fade * dim("bv"), 0.8, 0.05, [2, 4]); });
+          caption(state.bv[0].x + 12, state.bv[0].y, captionOf("bv"), 0.7 * fade * dim("bv"), "ruby", "start");
+          state.orgs.forEach(function (at) {
+            lantern(at[0], at[1], stage.R * 0.035, fade * dim("orgs"), 0.6, "brassSoft");
+            thread(at[0], at[1], hub.x, hub.y, "brass", 0.16 * fade * Math.min(dim("orgs"), dim("hub")), 0.8, 0.06);
           });
-          caption(layout.x0 - 10, layout.fY + 30, captionOf(stage.phone ? "foundationShort" : "foundation"), 0.75 * fade * dim("foundation"), "moss", "start");
-          // The practice: setup, hosting, delivery.
-          var bvAlpha = 0.6 * fade * dim("bv");
-          thread(layout.x0 + stage.w * 0.06, layout.bvY, layout.x1 - stage.w * 0.06, layout.bvY, "ruby", bvAlpha, 1.2, 0);
-          caption(layout.x0 - 10, layout.bvY - 18, captionOf(stage.phone ? "bvShort" : "bv"), 0.75 * fade * dim("bv"), "ruby", "start");
-          thread(layout.hub[0], layout.bvY, hub.x, hub.y + hub.r, "ruby", bvAlpha * 0.6, 1, 0);
-          // The hub and the people around it; each organization with its own Brain.
-          holders.orgs.forEach(function (entry) {
-            ring(entry.x, entry.y, 9, "brassSoft", 0.6 * fade * dim("orgs"), 1, 0, 0);
-            thread(entry.x, entry.y, hub.x, hub.y, "brass", 0.18 * fade * Math.min(dim("orgs"), dim("hub")), 0.8, 0.08);
-          });
-          holders.members.forEach(function (entry) { thread(entry.x, entry.y, hub.x, hub.y, "ink", 0.16 * fade * dim("members"), 0.7, 0); });
-          caption(holders.orgs[0].x, holders.orgs[0].y + 22, captionOf("organizations"), 0.6 * fade * dim("orgs"), "brass");
-          caption(holders.members[2].x, holders.members[2].y + 18, captionOf(moved > 0.5 ? "membersCertified" : "members"), 0.6 * fade * dim("members"), "ink");
-          if (stage.phone) caption(hub.x + hub.r + 10, hub.y, captionOf("hub"), 0.7 * fade * dim("hub"), "brass", "start");
-          else caption(hub.x, hub.y - hub.r - 16, captionOf("hub"), 0.7 * fade * dim("hub"), "brass");
-          // Every lab: 60 to whoever delivers, 15 to the hub, 25 back to the commons.
+          caption(state.orgs[4][0], state.orgs[4][1] - 22, captionOf("organizations"), 0.65 * fade * dim("orgs"), "brass");
+          state.members.forEach(function (entry) { thread(entry.x, entry.y, hub.x, hub.y, "ink", 0.16 * fade * dim("members"), 0.7, 0); });
+          caption(state.members[1].x + 12, state.members[1].y + 10, captionOf(moved > 0.5 ? "membersCertified" : "members"), 0.6 * fade * dim("members"), "ink", "start");
+          caption(hub.x, hub.y - hub.r - 16, captionOf("hub"), 0.75 * fade * dim("hub"), "brass");
           if (flow <= 0) return;
-          holders.orgs.forEach(function (entry, j) {
-            var offset = j / 6;
-            var bv = holders.bv[j % 5], member = holders.members[j], root = holders.roots[j * 2];
-            pulse(entry.x, entry.y, hub.x, hub.y, 0.1, "brass", fade * flow, now, 3200, offset, 2.4);
-            thread(entry.x, entry.y, bv.x, bv.y, "ruby", 0.1 * fade * flow * (1 - moved), 0.7, 0.18);
-            thread(entry.x, entry.y, member.x, member.y, "ink", 0.1 * fade * flow * moved, 0.7, -0.2);
-            thread(entry.x, entry.y, root.x, root.y, "moss", 0.1 * fade * flow, 0.7, 0.12);
+          // Every lab: 60 to whoever delivers, 15 to the hub, 25 back to the commons.
+          state.orgs.forEach(function (at, j) {
+            var offset = j / 6, bv = state.bv[j % 4], m = state.members[j], root = state.roots[(j * 2 + 1) % 14];
+            pulse(at[0], at[1], hub.x, hub.y, 0.1, "brass", fade * flow, now, 3200, offset, 2.4);
             [0, 0.25, 0.5, 0.75].forEach(function (o) {
-              pulse(entry.x, entry.y, bv.x, bv.y, 0.18, "ruby", fade * flow * (1 - moved), now, 3200, offset + o * 0.25, 2.2);
-              pulse(entry.x, entry.y, member.x, member.y, -0.2, "ink", fade * flow * moved, now, 3200, offset + o * 0.25, 2.2);
+              pulse(at[0], at[1], bv.x, bv.y, 0.15, "ruby", fade * flow * (1 - moved), now, 3200, offset + o * 0.25, 2.1);
+              pulse(at[0], at[1], m.x, m.y, -0.15, "ink", fade * flow * moved, now, 3200, offset + o * 0.25, 2.1);
             });
-            [0, 0.5].forEach(function (o) { pulse(entry.x, entry.y, root.x, root.y, 0.12, "moss", fade * flow, now, 3600, offset + o * 0.4, 2.2); });
+            [0, 0.5].forEach(function (o) { pulse(at[0], at[1], root.x, root.y, 0.1, "moss", fade * flow, now, 3600, offset + o * 0.4, 2.1); });
           });
-          // What the commons earns goes back into the platform every hub runs on.
-          holders.roots.filter(function (_, j) { return j % 4 === 1; }).forEach(function (entry, j) {
-            pulse(entry.x, entry.y, hub.x, hub.y + hub.r, -0.08, "moss", 0.7 * fade * flow, now, 4200, j * 0.3, 1.8);
+          // What the commons earns flows back into the platform every hub runs on.
+          state.roots.filter(function (_, j) { return j % 3 === 0; }).forEach(function (entry, j) {
+            pulse(entry.x, entry.y, hub.x, hub.y, -0.06, "moss", 0.7 * fade * flow, now, 4200, j * 0.23, 1.8);
           });
         },
       },
 
-      // 06: the view widens until this hub is one of many, none in the middle.
+      // 06: from this hub the network runs past every edge, and nobody is in
+      // the middle. Hubs under the chapter's words stay faint on a wide screen.
       network: {
         target: function (stage, t, now) {
-          var lit = hubsLit(t);
-          // Planted hubs land exactly where tapped; the seeded ones keep clear of the stage's edges.
+          hubT = { x: stage.cx, y: stage.cy, r: stage.R * 0.07, a: 1, lit: 1 };
+          var lit = hubsLit(t, sites.length);
           function at(spot) { return [stage.x0 + spot[0] * stage.w, stage.y0 + spot[1] * stage.h]; }
-          function siteAt(site) { return at([0.06 + site[0] * 0.88, 0.06 + site[1] * 0.88]); }
-          function shown(index) { return index === OURS || ((index + 14 - OURS) % 14) < lit; }
-          this.state = { at: at, siteAt: siteAt, shown: shown };
-          var ours = siteAt(sites[OURS]);
-          hubT = { x: ours[0], y: ours[1], r: stage.R * 0.045, a: 1, lit: 1 };
+          function faint(point) { return !stage.phone && point[0] < stage.x0 - 20 ? 0.25 : 1; }
+          this.state = { at: at, faint: faint, lit: lit };
           lights.forEach(function (entry, i) {
-            var index = Math.floor(i / 8) % 14, j = i % 8;
-            var site = siteAt(sites[index]);
-            var angle = (j / 8) * TAU + entry.light.ph * 0.2 + (still ? 0 : now * 0.00012);
-            var rr = stage.R * (0.07 + 0.035 * (j % 3));
-            set(entry, site[0] + Math.cos(angle) * rr, site[1] + Math.sin(angle) * rr * 0.86, entry.light.size * 0.75, shown(index) ? 0.75 : 0, baseColor(entry.light));
+            var h = Math.floor(i / 5), j = i % 5;
+            var centre = h === 0 ? [stage.cx, stage.cy] : at(sites[(h - 1) % sites.length]);
+            var shown = h === 0 || h <= lit - 1;
+            var angle = (j / 5) * TAU + entry.light.ph * 0.2 + (still ? 0 : now * 0.00012), rr = stage.R * (0.07 + 0.03 * (j % 3));
+            set(entry, centre[0] + Math.cos(angle) * rr, centre[1] + Math.sin(angle) * rr * 0.86, entry.light.size * 0.75, shown ? 0.75 * faint(centre) : 0, baseColor(entry.light));
           });
         },
         draw: function (stage, t, now, fade) {
           var state = this.state;
-          var points = sites.map(function (site, index) { return state.shown(index) ? state.siteAt(site) : null; })
-            .filter(function (point) { return point; })
+          var points = [[stage.cx, stage.cy]]
+            .concat(sites.slice(0, state.lit - 1).map(state.at))
             .concat(planted.map(function (spot) { return state.at([spot.u, spot.v]); }));
           // Each hub links to its nearest neighbors; nobody sits in the middle.
           linkNearest(points, 2).forEach(function (pair, k) {
-            var a = points[pair[0]], b = points[pair[1]];
-            thread(a[0], a[1], b[0], b[1], "brass", 0.3 * fade, 1, 0.1);
-            pulse(a[0], a[1], b[0], b[1], 0.1, "brassSoft", fade, now, 2600 + (k % 5) * 500, (k * 0.17) % 1, 2);
+            var a = points[pair[0]], b = points[pair[1]], f = state.faint(a) * state.faint(b);
+            thread(a[0], a[1], b[0], b[1], "brass", 0.3 * fade * f, 1, 0.1);
+            pulse(a[0], a[1], b[0], b[1], 0.1, "brassSoft", fade * f, now, 2600 + (k % 5) * 500, (k * 0.17) % 1, 2);
           });
-          points.forEach(function (point) {
-            if (Math.hypot(point[0] - hub.x, point[1] - hub.y) > 2) lantern(point[0], point[1], stage.R * 0.035, fade, 0.7);
-          });
+          points.forEach(function (point, i) { if (i) lantern(point[0], point[1], stage.R * 0.035, fade * state.faint(point), 0.7); });
           planted.forEach(function (spot) {
             var point = state.at([spot.u, spot.v]);
             var grow = Math.min(1, Math.max(0, (Date.now() - spot.born) / 900));
-            Array.from({ length: 6 }, function (_, j) {
-              var angle = (j / 6) * TAU + (still ? 0 : now * 0.00012);
-              dot(point[0] + Math.cos(angle) * stage.R * 0.08 * grow, point[1] + Math.sin(angle) * stage.R * 0.07 * grow, 1.8, 0.7 * fade * grow, "ink");
-            });
             ring(point[0], point[1], stage.R * 0.035 + (1 - grow) * 30, "brass", fade * (0.4 + 0.6 * grow), 1.2, 0, 0);
           });
-          caption(hub.x, hub.y + stage.R * 0.15 + 12, captionOf("ours"), 0.75 * fade, "brass");
+          caption(hub.x, hub.y + stage.R * 0.16 + 12, captionOf("ours"), 0.75 * fade, "brass");
         },
       },
 

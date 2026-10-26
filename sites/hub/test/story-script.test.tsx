@@ -189,7 +189,7 @@ describe("the story, without the canvas", () => {
         window.document.querySelectorAll("[data-hub-holder].is-on"),
       ).map((el) => el.getAttribute("data-hub-holder") ?? "");
     readAt("fit", 0.05);
-    expect(lit()).toEqual(["orgs"]);
+    expect(lit()).toEqual(["hub"]);
     readAt("fit", 0.45);
     expect(lit()).toEqual(["foundation"]);
     readAt("fit", 0.6);
@@ -205,19 +205,27 @@ describe("the story, without the canvas", () => {
     expect(lit()).toEqual([]);
   });
 
-  test("moves delivery from Rizom B.V. to the hub's certified people", () => {
+  test("pins the holder the reader clicks, after hovering it with a mouse", () => {
     page(1440, 800);
     readAt("fit", 0.6);
-    expect(text("[data-hub-split-delivery]")).toBe("60% delivery · Rizom B.V.");
-    readAt("fit", 0.97);
-    expect(text("[data-hub-split-delivery]")).toBe(
-      "60% delivery · the hub's certified people",
-    );
-    expect(
-      window.document
-        .querySelector(".hub-split")
-        ?.classList.contains("is-certified"),
-    ).toBe(true);
+    const lit = (): string[] =>
+      Array.from(
+        window.document.querySelectorAll("[data-hub-holder].is-on"),
+      ).map((el) => el.getAttribute("data-hub-holder") ?? "");
+    const bv = window.document.querySelector('[data-hub-holder="bv"]');
+    if (!bv) throw new Error("no Rizom B.V. holder");
+    const pointer = (type: string): void => {
+      bv.dispatchEvent(new window.PointerEvent(type, { pointerType: "mouse" }));
+    };
+    pointer("pointerenter");
+    expect(lit()).toEqual(["bv"]);
+    click('[data-hub-holder="bv"]');
+    pointer("pointerleave");
+    expect(lit()).toEqual(["bv"]);
+    pointer("pointerenter");
+    click('[data-hub-holder="bv"]');
+    pointer("pointerleave");
+    expect(lit()).toEqual([]);
   });
 
   test("counts the hubs as they light, and adds the ones the reader plants", () => {
@@ -225,7 +233,7 @@ describe("the story, without the canvas", () => {
     readAt("network", 0.02);
     expect(text("[data-hub-hubs]")).toBe("1");
     readAt("network", 0.7);
-    expect(text("[data-hub-hubs]")).toBe("14");
+    expect(text("[data-hub-hubs]")).toBe("22");
     const network = window.document.querySelector("#network");
     network?.dispatchEvent(
       new window.MouseEvent("click", {
@@ -234,7 +242,7 @@ describe("the story, without the canvas", () => {
         clientY: 400,
       }),
     );
-    expect(text("[data-hub-hubs]")).toBe("15");
+    expect(text("[data-hub-hubs]")).toBe("23");
     window.document.querySelector("#network .hub-card")?.dispatchEvent(
       new window.MouseEvent("click", {
         bubbles: true,
@@ -242,7 +250,7 @@ describe("the story, without the canvas", () => {
         clientY: 400,
       }),
     );
-    expect(text("[data-hub-hubs]")).toBe("15");
+    expect(text("[data-hub-hubs]")).toBe("23");
   });
 
   test("docks each chapter's card to the bottom of a phone", () => {

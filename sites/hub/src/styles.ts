@@ -91,12 +91,6 @@ export const siteCSS: string = `
 .hub-holder__mark--members { background: var(--color-text); }
 .hub-holder__mark--bv { background: var(--palette-ruby); }
 .hub-holder__mark--foundation { background: var(--palette-moss); }
-.hub-split { display: flex; gap: 2px; height: 8px; margin: 20px 0 8px; border-radius: 99px; overflow: hidden; }
-.hub-split div:nth-child(1) { flex: 60; background: var(--palette-ruby); transition: background 1s; }
-.hub-split.is-certified div:nth-child(1) { background: var(--color-text); }
-.hub-split div:nth-child(2) { flex: 15; background: var(--color-accent); }
-.hub-split div:nth-child(3) { flex: 25; background: var(--palette-moss); }
-.hub-split__legend { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-family: var(--font-label); font-weight: 500; font-size: 10.5px; line-height: 1.5; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-light); }
 
 .hub-hint { display: flex; align-items: center; gap: 10px; margin: 18px 0 0; font-family: var(--font-label); font-weight: 500; font-size: 11px; line-height: 1.4; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
 .hub-hint::before { content: ""; width: 8px; height: 8px; border: 1px solid var(--color-accent); border-radius: 50%; animation: hub-ping 1.8s ease-out infinite; }
@@ -112,6 +106,12 @@ export const siteCSS: string = `
 .hub-door span { font-size: 15px; line-height: 1.55; color: var(--color-text-muted); }
 .hub-door em { margin-top: 6px; font-family: var(--font-label); font-style: normal; font-weight: 500; font-size: 11px; line-height: 1; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
 .hub-site .hub-door:hover strong { color: var(--color-accent); }
+
+.hub-money { margin: 16px 0 0; font-family: var(--font-label); font-weight: 500; font-size: 11px; line-height: 1.6; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-light); }
+.hub-money b { font-weight: 500; }
+.hub-money__delivery { color: var(--palette-ruby); }
+.hub-money__hub { color: var(--color-accent); }
+.hub-money__commons { color: var(--palette-moss); }
 
 .hub-foot { position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 32px clamp(16px, 6vw, 96px) 40px; font-family: var(--font-label); font-size: 11.5px; line-height: 1.6; letter-spacing: 0.03em; color: var(--color-text-light); }
 .hub-foot__links { display: flex; flex-wrap: wrap; gap: 16px; }

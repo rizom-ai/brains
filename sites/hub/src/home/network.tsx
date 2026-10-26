@@ -8,10 +8,10 @@ import {
 import { Chapter, Paragraphs } from "./chapter";
 
 /**
- * 06, the network: the view widens until this hub is one of many, each
- * linked to its nearest neighbors and none in the middle (the field's
- * `network` scene). Tapping the field plants another hub; the readout
- * counts them.
+ * 06, what the hub connects to: from this hub at the middle of the stage,
+ * other hubs light outward past every edge, each linked to its nearest
+ * neighbors (the field's `network` scene). Tapping the field plants another
+ * hub; the readout counts them.
  */
 const networkSchema = z.object({
   number: z.string(),
@@ -58,7 +58,7 @@ export const network: SectionDefinition = defineSection(
   networkSchema,
   NetworkSection,
   {
-    title: "06 — The network",
+    title: "06 — What the hub connects to",
     description:
       "How hubs connect: paragraphs, the invitation to tap the field, the words after the count of hubs, the note on the federation layer, and the caption for this hub in the drawing.",
   },
@@ -66,11 +66,11 @@ export const network: SectionDefinition = defineSection(
 
 export const networkContent: JsonObject = {
   number: "06",
-  label: "The network",
+  label: "What the hub connects to",
   headline: "Many hubs, *no center*.",
   paragraphs: [
     "The hub's Brain connects to other hubs, at home and abroad. Organizations and members find each other's expertise across them, within what each allows.",
-    "Growth comes from connection rather than concentration. Every hub stays itself, and none of them is the center.",
+    "Seen from here, this hub sits in the middle. Seen from any other, so does that one.",
   ],
   hint: "Tap the field to add a hub",
   readout: "hubs connected · centers: none",
