@@ -57,27 +57,40 @@ describe("@rizom/site-thefourth", () => {
   test("tells the cover from the design's words until the brain has its own", () => {
     const fallback = site.content?.["home"]?.["cover"];
     expect(fallback).toEqual({
-      eyebrow: "A story in four acts",
-      title: "The Fourth",
-      subtitle: "or, How Hard-to-Explain Things Finally Got Understood",
-      cue: "Step through",
+      lines: ["Unlocking", "Market[key]ng", "Secrets"],
+      lead: "for the",
+      audience: "Innovators, Creatives & Pioneers",
     });
     const html = renderCover(fallback ?? {});
-    expect(html).toContain("A story in four acts");
-    expect(html).toContain("The<br/>Fourth");
     expect(html).toContain(
-      "or, How Hard-to-Explain Things Finally Got Understood",
+      'aria-label="Unlocking Marketing Secrets for the Innovators, Creatives &amp; Pioneers"',
     );
-    expect(html).toContain("Step through");
+    expect(html).toContain('<span class="tf-initial">U</span>nlocking');
+    expect(html).toContain('<span class="tf-initial">S</span>ecrets');
+    expect(html).toContain("Innovators, Creatives &amp; Pioneers");
   });
 
-  test("draws the stage: the keyhole, the curtains and the props", () => {
+  test("sets the keyhole in the headline where the content marks it", () => {
     const html = renderCover(site.content?.["home"]?.["cover"] ?? {});
-    expect(html).toContain('class="tf-keyhole');
+    expect(html).toMatch(
+      /<span class="tf-initial">M<\/span>arket<\/span><span class="tf-keyhole-slot"[^>]*>[\s\S]*<span class="tf-fadeout">ng<\/span>/,
+    );
+    expect(html).toContain("tf-keyhole tf-zoom");
+  });
+
+  test("scatters seven keys around the keyhole, two of them only on wide screens", () => {
+    const html = renderCover(site.content?.["home"]?.["cover"] ?? {});
+    expect(html.match(/class="tf-key"/g)?.length).toBe(7);
+    expect(html.match(/tf-key-slot tf-hide-sm/g)?.length).toBe(2);
+    expect(html).toContain("--x:-24vw");
+  });
+
+  test("hangs the scalloped valance between the curtains", () => {
+    const html = renderCover(site.content?.["home"]?.["cover"] ?? {});
     expect(html).toContain("tf-curtain tf-curtain--left");
     expect(html).toContain("tf-curtain tf-curtain--right");
-    expect(html).toContain("tf-prop tf-prop--watch");
-    expect(html).toContain("tf-prop tf-prop--key");
+    expect(html).toContain("tf-valance");
+    expect(html.match(/Q /g)?.length).toBe(8);
   });
 
   test("frames every page with the logo and no menu", () => {

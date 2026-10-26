@@ -61,3 +61,26 @@ export const sparkScript: string = `<script>
   else boot();
 })();
 </script>`;
+
+/**
+ * The keys fly to the keyhole, which sits wherever the headline wraps it, so
+ * this measures its offset from the stage's center into --dx on load and on
+ * every resize. Without it the keys use the design's default offset.
+ */
+export const keyholeScript: string = `<script>
+(function () {
+  function measure() {
+    var keyhole = document.querySelector("[data-tf-keyhole]");
+    var stage = document.querySelector("[data-tf-stage]");
+    var keys = document.querySelector(".tf-keys");
+    if (!keyhole || !stage || !keys) return;
+    var a = keyhole.getBoundingClientRect();
+    var b = stage.getBoundingClientRect();
+    if (!b.width) return;
+    keys.style.setProperty("--dx", Math.round(a.left + a.width / 2 - (b.left + b.width / 2)) + "px");
+  }
+  function boot() { measure(); window.addEventListener("resize", measure); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+</script>`;
