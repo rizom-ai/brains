@@ -1,5 +1,11 @@
 # @rizom/site-hub
 
+## 0.2.0-alpha.5
+
+### Patch Changes
+
+- [#772](https://github.com/rizom-ai/brains/pull/772) [`e8446b7`](https://github.com/rizom-ai/brains/commit/e8446b7a3c9f6840cd28d6333f2dfe4d6c32d3d1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a phone, the hub's story keeps its drawing in view: a chapter's card takes at most a little over half the screen and scrolls inside itself if it must, the labs chapter shows only the phase being read, the terms chapter shows only the lit holder, and both let their phases and holders stand for their opening paragraph. A card that grows as its chapter reveals a phase or a holder docks again.
+
 ## 0.2.0-alpha.4
 
 ### Patch Changes
