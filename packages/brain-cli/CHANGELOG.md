@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.607
+
+### Patch Changes
+
+- [#771](https://github.com/rizom-ai/brains/pull/771) [`2430974`](https://github.com/rizom-ai/brains/commit/243097482901068f7c866456199478728d014cfa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The shared Ask box draws its scrollbars thin, in the site's rule color on a clear track, instead of the browser's default gray bars: the conversation, the question field, code blocks and the phone sheet alike.
+
 ## 0.2.0-alpha.606
 
 ### Patch Changes
