@@ -62,6 +62,16 @@ describe("Act I, the hero", () => {
   });
 });
 
+describe("Act I, rising over the cover", () => {
+  test("turns red just before the cover ends, so no seam of paper shows between them", () => {
+    const css = site.themeOverride ?? "";
+    expect(css).toMatch(/\.tf-act--one \{[^}]*margin-top: -24vh/);
+    expect(css).toMatch(
+      /\.tf-act--one \{[^}]*var\(--palette-red\) calc\(24vh - 2px\)/,
+    );
+  });
+});
+
 describe("Act II, the curse of jargon", () => {
   test("says the first spell in jargon, marking the words to break", () => {
     const html = renderSection("act-two");
