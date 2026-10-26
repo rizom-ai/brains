@@ -29,8 +29,10 @@ export const actsCSS: string = `
 @keyframes tf-blink { 0%, 44%, 52%, 100% { transform: scaleY(1); } 48% { transform: scaleY(0.08); } }
 @keyframes tf-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
 
-/* Act I: the hero, rising over the cover's last stretch onto the red the keyhole opened into. */
-.tf-act--one { z-index: 2; margin-top: -24vh; background: linear-gradient(rgb(239 89 89 / 0) 0, rgb(239 89 89 / 0) 24vh, var(--palette-red) 24vh); }
+/* Act I: the hero, rising over the cover's last stretch onto the red the keyhole opened into.
+   Its red starts 2px before the cover ends: where 24vh is a fraction of a pixel the two edges
+   would otherwise leave a hairline of paper between them. */
+.tf-act--one { z-index: 2; margin-top: -24vh; background: linear-gradient(rgb(239 89 89 / 0) 0, rgb(239 89 89 / 0) calc(24vh - 2px), var(--palette-red) calc(24vh - 2px)); }
 .tf-act-one { padding-top: clamp(48px, 6vw, 80px); padding-bottom: clamp(110px, 12vw, 170px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: clamp(40px, 5vw, 72px); align-items: center; }
 .tf-act-one__words { min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .tf-act--one .tf-display { font-size: clamp(44px, 7.4vw, 124px); line-height: 0.88; }
