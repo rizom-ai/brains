@@ -1,5 +1,11 @@
 # @rizom/site-thefourth
 
+## 0.2.0-alpha.6
+
+### Patch Changes
+
+- [#774](https://github.com/rizom-ai/brains/pull/774) [`50eb8df`](https://github.com/rizom-ai/brains/commit/50eb8df73a1efb55b3b077bca03a1afe1306bd31) Thanks [@yeehaa123](https://github.com/yeehaa123)! - No hairline of paper shows between the cover and Act I on screens where 24vh is a fraction of a pixel: Act I's red now starts 2px before the cover ends.
+
 ## 0.2.0-alpha.5
 
 ### Minor Changes
