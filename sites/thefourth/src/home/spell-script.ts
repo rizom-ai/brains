@@ -1,9 +1,10 @@
 /**
- * The spell, in the browser: on "Break the spell" every word of the jargon
+ * The spell, in the browser: on "Unlock it" every word of the jargon
  * sentence flies apart on the paper, the jargon struck out, and after a
- * beat the keyhole opens onto the translation; "Try another spell" draws the
- * next sentence. The scatter is seeded by word and spell, as in the design,
- * so it lands the same way every time. Reduced motion skips the flight.
+ * beat the keyhole opens onto the translation; "Try another" draws the next
+ * sentence. The scatter is seeded by word and spell, as in the design, so it
+ * lands the same way every time, and narrows with the viewport so the words
+ * stay on a phone's screen. Reduced motion skips the flight.
  * Without the script the jargon sentence stands alone, buttons hidden.
  */
 export const spellScript: string = `<script>
@@ -43,13 +44,14 @@ export const spellScript: string = `<script>
       root.classList.remove("tf-spell--broken", "tf-spell--after");
     }
     function scatter() {
+      var k = Math.max(0.35, Math.min(1, window.innerWidth / 1300));
       Array.prototype.forEach.call(words.children, function (span, i) {
         var h = Math.sin((i + 1) * 12.9898 + index * 3.1) * 43758.5453;
         var r1 = h - Math.floor(h);
         var r2 = (r1 * 7.3) % 1;
         var jargon = span.getAttribute("data-jargon") === "true";
-        span.style.transform = "translate(" + Math.round((r1 - 0.5) * 520) + "px, " +
-          Math.round((r2 - 0.35) * 320) + "px) rotate(" + Math.round((r1 - 0.5) * 60) + "deg) scale(" +
+        span.style.transform = "translate(" + Math.round((r1 - 0.5) * 520 * k) + "px, " +
+          Math.round((r2 - 0.35) * 320 * k) + "px) rotate(" + Math.round((r1 - 0.5) * 60) + "deg) scale(" +
           (jargon ? 1.05 : 0.8) + ")";
       });
     }

@@ -5,38 +5,28 @@ import {
   type JsonObject,
   type SectionDefinition,
 } from "@rizom/site";
-import { parsePhoto, Portrait } from "../portrait";
+import { parsePhoto } from "../portrait";
 import { ActHeading } from "./act-heading";
+import { ButtonLink, linkSchema } from "./links";
 
 /**
- * The epilogue: every hero needs a guide. The two guides sway on sticks as
- * keyhole cut-outs when the brain has their portraits, and the fourth act
- * starts by email.
+ * The epilogue: every hero needs a guide. The guides stand beside it by
+ * name, the first under an arch, the second in a circle, on red and mint
+ * discs, when the brain has their portraits; the fourth act starts by
+ * email.
  */
-const linkSchema = z.object({ label: z.string(), href: z.string() });
-
 const epilogueSchema = z.object({
   act: z.string(),
   label: z.string(),
   opening: z.string(),
   headline: z.string(),
   emphasis: z.string(),
-  guides: z.array(z.object({ photo: z.string().default("") })),
-  guidesNote: z.string(),
+  note: z.string(),
+  guides: z.array(
+    z.object({ name: z.string(), photo: z.string().default("") }),
+  ),
   action: linkSchema,
-  contact: linkSchema,
 });
-
-/** "Every hero needs a" breaks after its second word, as the design sets it. */
-function brokenAfterTwo(text: string): (string | JSX.Element)[] {
-  const words = text.split(" ");
-  if (words.length <= 2) return [text];
-  return [
-    words.slice(0, 2).join(" "),
-    <br key="break" />,
-    words.slice(2).join(" "),
-  ];
-}
 
 function EpilogueSection({
   act,
@@ -44,47 +34,55 @@ function EpilogueSection({
   opening,
   headline,
   emphasis,
+  note,
   guides,
-  guidesNote,
   action,
-  contact,
 }: z.infer<typeof epilogueSchema>): JSX.Element {
-  // A guide without a portrait would be a bare stick.
-  const pictured = guides.filter((guide) => parsePhoto(guide.photo));
+  const pictured = guides.flatMap((guide) => {
+    const photo = parsePhoto(guide.photo);
+    return photo ? [{ name: guide.name, photo }] : [];
+  });
   return (
     <section className="tf-act tf-act--epilogue">
       <div className="tf-wrap tf-epilogue">
-        <ActHeading act={act} label={label} opening={opening} light="mint" />
-        <div className="tf-epilogue__row">
+        <div className="tf-epilogue__words">
+          <ActHeading act={act} label={label} opening={opening} light="mint" />
           <p className="tf-epilogue__headline tf-reveal">
-            {brokenAfterTwo(headline)} <em>{emphasis}</em>
+            {headline} <em>{emphasis}</em>
           </p>
-          <div className="tf-guides">
-            {pictured.length > 0 && (
-              <div className="tf-guides__sticks" aria-hidden="true">
-                {pictured.map((guide, index) => (
-                  <div
-                    key={`${index}-${guide.photo}`}
-                    className={
-                      index % 2 === 1 ? "tf-guide tf-guide--late" : "tf-guide"
-                    }
-                  >
-                    <Portrait photo={guide.photo} />
-                    <div className="tf-guide__stick" />
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="tf-guides__note">{guidesNote}</p>
+          <p className="tf-epilogue__note">{note}</p>
+          <div className="tf-actions">
+            <ButtonLink link={action} tone="red" />
           </div>
         </div>
-        <div className="tf-epilogue__ways">
-          <a className="tf-pill tf-pill--red tf-pill--large" href={action.href}>
-            {action.label}
-          </a>
-          <a className="tf-epilogue__contact" href={contact.href}>
-            {contact.label}
-          </a>
+        <div className="tf-epilogue__scene">
+          <div
+            className="tf-epilogue__disc tf-epilogue__disc--red tf-l1"
+            aria-hidden="true"
+          />
+          <div
+            className="tf-epilogue__disc tf-epilogue__disc--mint tf-l1"
+            aria-hidden="true"
+          />
+          {pictured.map((guide, index) => (
+            <figure
+              key={guide.photo.src}
+              className={
+                index % 2 === 1
+                  ? "tf-guide tf-guide--disc"
+                  : "tf-guide tf-guide--arch"
+              }
+            >
+              <div className="tf-guide__frame">
+                <img
+                  src={guide.photo.src}
+                  alt={guide.photo.alt}
+                  loading="lazy"
+                />
+              </div>
+              <figcaption className="tf-eyebrow">{guide.name}</figcaption>
+            </figure>
+          ))}
         </div>
       </div>
     </section>
@@ -97,7 +95,7 @@ export const epilogue: SectionDefinition = defineSection(
   {
     title: "Epilogue — To be continued",
     description:
-      "The epilogue: the act's words, the headline and its emphasis, the guides' portraits as ![alt](entity://image/<id>), the note, the action and the contact link.",
+      "The epilogue: the act's words, the headline and its emphasis, the note, the guides (each a name and a portrait as ![alt](entity://image/<id>)) and the action.",
   },
 );
 
@@ -107,15 +105,13 @@ export const epilogueContent: JsonObject = {
   opening: "And so, your fourth act begins.",
   headline: "Every hero needs a",
   emphasis: "guide.",
-  guides: [{ photo: "" }, { photo: "" }],
-  guidesNote:
-    "Your guides, Sam & Becca. We took the wrong turns so you don’t have to.",
+  note: "We’re Sam and Becca. We took the wrong turns so you don’t have to.",
+  guides: [
+    { name: "Samantha Shao", photo: "" },
+    { name: "Becca Chen", photo: "" },
+  ],
   action: {
     label: "Start your fourth act →",
-    href: "mailto:nihao.fourth@gmail.com",
-  },
-  contact: {
-    label: "nihao.fourth@gmail.com",
     href: "mailto:nihao.fourth@gmail.com",
   },
 } satisfies z.input<typeof epilogueSchema>;

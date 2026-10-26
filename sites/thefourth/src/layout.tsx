@@ -12,10 +12,23 @@ function emailOf(info: SiteLayoutInfo): { href: string; label: string } | null {
   };
 }
 
+/** The site's title as the footer's wordmark, a word to a line. */
+function Wordmark({ title }: { title: string }): JSX.Element {
+  const words = title.split(" ");
+  return (
+    <span className="tf-foot__name">
+      {words.flatMap((word, index) =>
+        index === 0 ? [word] : [<br key={index} />, word],
+      )}
+    </span>
+  );
+}
+
 /**
- * The paper frame: the logo and the one way to talk above the story, the
- * logo, the sign-off and the email below it. There is no menu until The
- * Fourth's other pages exist.
+ * The paper frame: the logo and the one way to talk above the story; below
+ * it, on red, the name as a wordmark, the email, the city and the
+ * copyright. There is no menu, no social or legal links and no language
+ * switch until The Fourth's other pages exist.
  */
 export function TheFourthLayout({
   sections,
@@ -29,22 +42,30 @@ export function TheFourthLayout({
           <Logo />
         </a>
         {siteInfo.cta && (
-          <a className="tf-pill tf-pill--ink" href={siteInfo.cta.buttonLink}>
+          <a className="tf-btn tf-btn--ink" href={siteInfo.cta.buttonLink}>
             {siteInfo.cta.buttonText}
           </a>
         )}
       </header>
       <main className="tf-main">{sections}</main>
       <footer className="tf-foot">
-        <a
-          className="tf-mark tf-mark--small"
-          href="/"
-          aria-label={`${siteInfo.title} home`}
-        >
-          <Logo />
-        </a>
-        <span>{siteInfo.copyright}</span>
-        {email && <a href={email.href}>{email.label}</a>}
+        <div className="tf-wrap tf-foot__inner">
+          <div className="tf-foot__top">
+            <div className="tf-foot__brand">
+              <Wordmark title={siteInfo.title} />
+              <span className="tf-foot__trade">(Brand consultancy)</span>
+            </div>
+            {email && (
+              <a className="tf-flink tf-foot__email" href={email.href}>
+                {`↳ ${email.label}`}
+              </a>
+            )}
+          </div>
+          <div className="tf-foot__bottom">
+            <span>Made in Taipei</span>
+            <span>{siteInfo.copyright}</span>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -25,11 +25,28 @@ describe("Act I, the hero", () => {
     expect(html).toContain("Once upon a time,");
     expect(html).toContain("you made something that matters.");
     expect(html).toContain(
-      "The product works. The research holds. The impact is real.",
+      "The product works. The research holds. The impact is real. Now it needs the right people to understand it.",
     );
   });
 
-  test("frames the brain's photo in a keyhole, and stands without one", () => {
+  test("hangs a tag on a key: the key is already in what you know", () => {
+    const html = renderSection("act-one");
+    expect(html).toContain("tf-key-tag");
+    expect(html).toContain("The key is already in what you know.");
+    expect(html).toContain(
+      "We find it, shape it into a story, and hand it to the people your audience trusts.",
+    );
+  });
+
+  test("starts with a diagnosis by email, and points down to how it works", () => {
+    const html = renderSection("act-one");
+    expect(html).toContain(
+      'href="mailto:nihao.fourth@gmail.com">Start with a diagnosis →</a>',
+    );
+    expect(html).toContain('href="#guide">How it works ↓</a>');
+  });
+
+  test("frames the brain's photo in a keyhole, an eye watching, and stands without one", () => {
     const fallback = site.content?.["home"]?.["act-one"] ?? {};
     const withPhoto = renderSection("act-one", {
       ...fallback,
@@ -38,7 +55,10 @@ describe("Act I, the hero", () => {
     expect(withPhoto).toContain('src="/images/twtn-athlete.webp"');
     expect(withPhoto).toContain('alt="A TWTN athlete mid-jump"');
     expect(withPhoto).toContain("tf-portrait");
-    expect(renderSection("act-one")).not.toContain("<img");
+    const html = renderSection("act-one");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("tf-act-one__sun");
+    expect(html).toContain("tf-blink");
   });
 });
 
@@ -51,8 +71,15 @@ describe("Act II, the curse of jargon", () => {
     );
     expect(html).toContain('data-jargon="true">Transactive </span>');
     expect(html).toContain('data-jargon="false">We </span>');
-    expect(html).toContain("Break the spell ✦");
     expect(html).toContain("Smart. True. And nobody listened.");
+  });
+
+  test("unlocks it with a key", () => {
+    const html = renderSection("act-two");
+    expect(html).toMatch(
+      /<button type="button" class="tf-btn tf-btn--ink tf-btn--large" data-tf-break=""><span class="tf-btn__key" aria-hidden="true"><svg[^]*<\/svg><\/span>Unlock it<\/button>/,
+    );
+    expect(html).not.toContain("tf-snip");
   });
 
   test("holds the translation behind the keyhole, lit in the spell's color", () => {
@@ -66,7 +93,13 @@ describe("Act II, the curse of jargon", () => {
     expect(html).toContain("We find out before it happens.");
     expect(html).toContain('data-light="red"');
     expect(html).toContain("Tech &amp; AI · 01/03");
-    expect(html).toContain("Try another spell ↻");
+    expect(html).toContain("Try another ↻");
+  });
+
+  test("offers to unlock the visitor's own, by email", () => {
+    expect(renderSection("act-two")).toContain(
+      'href="mailto:nihao.fourth@gmail.com">Unlock yours →</a>',
+    );
   });
 
   test("hands every spell to the browser script", () => {
@@ -85,7 +118,9 @@ describe("Act II, the curse of jargon", () => {
     ]);
   });
 
-  test("ships the spell script with the site", () => {
-    expect(site.headScripts?.join("\n")).toContain("data-tf-spell");
+  test("ships the spell script, scattering the words by the viewport's width", () => {
+    const scripts = site.headScripts?.join("\n") ?? "";
+    expect(scripts).toContain("data-tf-spell");
+    expect(scripts).toContain("window.innerWidth / 1300");
   });
 });

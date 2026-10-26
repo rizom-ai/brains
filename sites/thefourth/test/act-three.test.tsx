@@ -32,13 +32,16 @@ describe("Act III, enter the guide", () => {
     ]);
   });
 
-  test("brings in the guide and the order of the spells", () => {
+  test("brings in the guide and its three ways in", () => {
     const html = renderActThree();
+    expect(html).toContain('<section id="guide"');
     expect(html).toContain("Act III");
     expect(html).toContain("Enter the guide");
-    expect(html).toContain("Then, a slightly strange guide appeared.");
     expect(html).toContain(
-      "Every hero gets one. Ours knows three spells, and casts them in this order:",
+      "Then, a slightly strange guide appeared, with three ways in.",
+    );
+    expect(html).toContain(
+      "See it clearly, tell it well, reach the people who matter. In that order.",
     );
   });
 
@@ -55,15 +58,36 @@ describe("Act III, enter the guide", () => {
     expect(html).toContain(">See.</span>");
     expect(html).toContain(">Tell.</span>");
     expect(html).toContain(">Reach.</span>");
-    expect(html).toContain("tf-mark--glass");
-    expect(html).toContain("tf-mark--lantern");
-    expect(html).toContain("tf-mark--plane");
+    expect(html).toContain("tf-mark--eye");
+    expect(html).toContain("tf-mark--screen");
+    expect(html).toContain("tf-mark--handset");
+    expect(html).toContain("tf-blink");
+    expect(html).toContain("tf-talk");
     expect(html).toContain("The fourth dimension");
     expect(html).toContain(
       "A new angle on what you already have. Our Communication Diagnosis, built on ContentDNA™.",
     );
   });
 
+  test("links each way in to its program once the program has a page", () => {
+    expect(renderActThree()).not.toContain("Communication Diagnosis →");
+    const fallback = JSON.parse(
+      JSON.stringify(site.content?.["home"]?.["act-three"] ?? {}),
+    );
+    const html = renderActThree({
+      ...fallback,
+      spells: [
+        {
+          ...fallback.spells[0],
+          link: { label: "Communication Diagnosis →", href: "/diagnosis" },
+        },
+        ...fallback.spells.slice(1),
+      ],
+    });
+    expect(html).toContain(
+      '<a class="tf-link" href="/diagnosis">Communication Diagnosis →</a>',
+    );
+  });
   test("names the worlds it works in, without links to pages that do not exist", () => {
     const html = renderActThree();
     expect(html).toContain("Which world are you from?");

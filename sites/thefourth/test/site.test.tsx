@@ -7,7 +7,7 @@ import site from "../src";
 const siteInfo: SiteLayoutInfo = {
   title: "The Fourth",
   description: "Brand consultancy, Taipei",
-  copyright: "The Fourth · Taipei",
+  copyright: "©2026 The Fourth",
   navigation: {
     primary: [{ label: "Agents", href: "/agents", priority: 10 }],
     secondary: [],
@@ -103,19 +103,24 @@ describe("@rizom/site-thefourth", () => {
 
   test("offers the site's call to action as the one way to talk", () => {
     const html = renderLayout(siteInfo);
-    expect(html).toContain('href="mailto:nihao.fourth@gmail.com"');
-    expect(html).toContain("Let’s talk");
+    expect(html).toContain(
+      'class="tf-btn tf-btn--ink" href="mailto:nihao.fourth@gmail.com">Let’s talk</a>',
+    );
     const { cta: _cta, ...withoutCta } = siteInfo;
     expect(renderLayout(withoutCta)).not.toContain("Let’s talk");
   });
 
-  test("signs off with the copyright and the email the brain gives", () => {
+  test("signs off on red: the name, the email the brain gives, the city and the copyright", () => {
     const html = renderLayout(siteInfo);
-    expect(html).toContain("The Fourth · Taipei");
-    expect(html).toContain(">nihao.fourth@gmail.com</a>");
-    const { socialLinks: _links, ...withoutLinks } = siteInfo;
-    expect(renderLayout(withoutLinks)).not.toContain(
-      ">nihao.fourth@gmail.com</a>",
+    expect(html).toContain('<footer class="tf-foot">');
+    expect(html).toContain("The<br/>Fourth");
+    expect(html).toContain("(Brand consultancy)");
+    expect(html).toContain(
+      'href="mailto:nihao.fourth@gmail.com">↳ nihao.fourth@gmail.com</a>',
     );
+    expect(html).toContain("Made in Taipei");
+    expect(html).toContain("©2026 The Fourth");
+    const { socialLinks: _links, ...withoutLinks } = siteInfo;
+    expect(renderLayout(withoutLinks)).not.toContain("↳");
   });
 });
