@@ -40,13 +40,13 @@ A new package `@brains/guide` (`entities/guide`) with a `guides` plugin and enti
 | `recipe`   | `personal \| professional \| team`, optional | Recipe the guide starts from; the self-hosting guide has none |
 | `material` | `{ from, where, becomes, how }[]`            | What the reader has and the entity type each part becomes     |
 
-The body is markdown. Each `##` heading is a stage; the stage's text runs to the next heading. The last stage is what the brain does after a week. `becomes` is an entity type name (`note`, `post`, `link`, `series`, `deck`, …) so the material map can label it the way Studio does.
+The body is markdown. Each `##` heading is a stage; the stage's text runs to the next heading. A stage ends with an `Exact steps:` line listing the docs it relies on; the template shows those links as "Exact steps" links and drops the line from the prose. The last stage is what the brain does after a week. `becomes` is an entity type name (`note`, `post`, `link`, `series`, `deck`, …) so the material map can label it the way Studio does.
 
 Metadata carries every frontmatter field, since the index card shows all of them; types are `z.output` of the schemas. The plugin mirrors `DocsPlugin`: adapter, data source `guides:entities` (list, and detail with the other guides for the closing links), templates `guide-list` and `guide-detail`.
 
 ### Rendering
 
-Guide templates reuse the docs chrome, which `@brains/doc` exports (`DocsPageShell`, `DocsDesignStyles`, `docsClasses`). Only the page body is new:
+Guide templates reuse the docs chrome (`DocsPageShell`, header, footer, `docsClasses`, the `--docs-*` styles) from `@brains/docs-chrome` (`shared/docs-chrome`), which `@brains/doc` uses too; entity packages do not import each other. Only the page body is new:
 
 - **Opening:** persona label, title, the `for` sentence, and the material as scattered fragments that settle into one light as the reader scrolls.
 - **Material map:** the reader's places on the left, entity types on the right, joined by curves; the `how` line under each source.
@@ -65,7 +65,7 @@ Visuals are drawn from guide data by the templates. No image files, so the sync 
 
 ### Registration
 
-`guides` joins the canonical brain next to `docs` and ships in `@rizom/brain`. `@rizom/site-docs` adds the `/guides` route, `entityDisplay.guide` (`/guides/<slug>`), the Guides header link and the docs-home band. The doc-brain adds `guides` to its plugins with the next fleet pin.
+`guides` joins the canonical brain next to `docs`, outside every bundle, and ships in `@rizom/brain`; a brain enables it with `add: [guides]`, as it does `docs`. `@rizom/site-docs` adds the `/guides` route, `entityDisplay.guide` (`/guides/<slug>`), the Guides header link and the docs-home band. The doc-brain adds `guides` to its plugins with the next fleet pin.
 
 ## Phases
 
