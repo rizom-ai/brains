@@ -8,7 +8,7 @@ Canonical brain runtime and CLI.
 bun add -g @rizom/brain
 brain init my-brain --recipe personal
 cd my-brain
-# set AI_API_KEY in .env
+# set OPENAI_API_KEY in .env
 brain start
 ```
 

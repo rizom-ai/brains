@@ -12,9 +12,9 @@ export interface AIModelConfig {
   model?: string;
   /** Image model — determines provider automatically. e.g. "gpt-image-1.5", "gemini-3-pro-image-preview" */
   imageModel?: string;
-  /** Single API key — used for whichever provider is configured */
+  /** Key for the chat model's provider */
   apiKey?: string;
-  /** Optional separate key for image generation (defaults to apiKey) */
+  /** Key for the image model's provider (defaults to apiKey) */
   imageApiKey?: string;
   temperature?: number;
   maxTokens?: number;

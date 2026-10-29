@@ -120,7 +120,7 @@ describe("built binary boot smoke", () => {
         env: {
           ...process.env,
           NODE_ENV: "production",
-          AI_API_KEY: "placeholder-boot-smoke",
+          AI_API_KEY: "sk-proj-placeholder-boot-smoke",
         },
         stdout: "pipe",
         stderr: "pipe",
@@ -180,7 +180,7 @@ describe("built binary boot smoke", () => {
           ...process.env,
           INIT_CWD: instanceDir,
           NODE_ENV: "production",
-          AI_API_KEY: "placeholder-boot-smoke",
+          AI_API_KEY: "sk-proj-placeholder-boot-smoke",
         },
         stdout: "pipe",
         stderr: "pipe",
@@ -231,7 +231,7 @@ describe("built binary boot smoke", () => {
           cwd: instanceDir,
           env: {
             ...process.env,
-            AI_API_KEY: "placeholder-boot-smoke",
+            AI_API_KEY: "sk-proj-placeholder-boot-smoke",
             XDG_DATA_HOME: join(instanceDir, "xdg-data"),
           },
         },

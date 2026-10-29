@@ -65,7 +65,7 @@ describe("canonical durable job execution boundary", () => {
       (
         resolve(
           canonicalBrain,
-          { AI_API_KEY: "test-key" },
+          { AI_API_KEY: "sk-proj-test" },
           parseInstanceOverrides(fullPresetYaml),
         ).plugins ?? []
       )

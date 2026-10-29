@@ -30,6 +30,7 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
   return {
     apiKey: config.ai.apiKey,
     model: config.ai.model,
+    ...(config.ai.imageModel ? { imageModel: config.ai.imageModel } : {}),
     temperature: config.ai.temperature,
     maxTokens: config.ai.maxTokens,
     webSearch: config.ai.webSearch,

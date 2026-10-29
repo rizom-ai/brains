@@ -113,7 +113,10 @@ type AppConfigSchema = z.ZodObject<{
   database: z.ZodOptional<z.ZodString>;
   aiApiKey: z.ZodOptional<z.ZodString>;
   aiImageKey: z.ZodOptional<z.ZodString>;
+  aiEmbeddingKey: z.ZodOptional<z.ZodString>;
   aiModel: z.ZodOptional<z.ZodString>;
+  aiImageModel: z.ZodOptional<z.ZodString>;
+  aiEmbeddingModel: z.ZodOptional<z.ZodString>;
   aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
@@ -131,9 +134,12 @@ export const appConfigSchema: AppConfigSchema = z.object({
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
-  aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
-  aiImageKey: z.string().optional(), // Optional override for image generation
+  aiApiKey: z.string().optional(), // Chat provider key; maps to ai.apiKey in Shell
+  aiImageKey: z.string().optional(), // Image provider key
+  aiEmbeddingKey: z.string().optional(), // Embedding provider key
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
+  aiImageModel: z.string().optional(), // Image model — determines provider
+  aiEmbeddingModel: z.string().optional(), // Embedding model (OpenAI only)
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file

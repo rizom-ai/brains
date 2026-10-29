@@ -21,6 +21,10 @@ export {
 } from "./config";
 export type { ShellConfig, StandardConfig, StandardPaths } from "./config";
 export { shellEnvVars } from "./env-schema";
+export {
+  resolveCapabilityKeys,
+  resolveEmbeddingModel,
+} from "@brains/ai-service/provider-keys";
 
 export type { IEmbeddingService } from "@brains/entity-service";
 

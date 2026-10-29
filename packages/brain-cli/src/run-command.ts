@@ -34,6 +34,13 @@ import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
 import { reinitializeAuthAccess } from "./commands/auth-reinitialize-access";
 import { BRAIN_RECIPE_NAMES, isBrainRecipeName } from "./lib/brain-recipes";
 import type { CommandResult } from "./lib/command-result";
+import {
+  EMBEDDING_PROVIDER,
+  KEY_PROVIDER_IDS,
+  KEY_PROVIDERS,
+  providerKeyError,
+  type KeyProviderId,
+} from "@brains/ai-service/provider-keys";
 
 export type { CommandResult } from "./lib/command-result";
 
@@ -94,8 +101,10 @@ const initCommand: BrainCommand = defineCommand({
     "ai-api-key": {
       type: "string",
       placeholder: "<key>",
-      description: "AI API key written to .env (skips the prompt)",
+      description:
+        "Legacy single AI key written to .env as AI_API_KEY (skips the prompt)",
     },
+    ...providerKeyFlagDefinitions(),
     deploy: {
       type: "boolean",
       description: "Include Kamal deploy files (config/deploy.yml, CI, hooks)",
@@ -120,6 +129,32 @@ const initCommand: BrainCommand = defineCommand({
       };
     }
 
+    const apiKeys: Record<string, string> = {};
+    for (const provider of KEY_PROVIDER_IDS) {
+      const key = getStringFlag(flags, providerKeyFlag(provider));
+      if (!key) continue;
+      const keyError = providerKeyError(provider, key);
+      if (keyError) {
+        return {
+          success: false,
+          message: `--${providerKeyFlag(provider)}: ${keyError}`,
+        };
+      }
+      apiKeys[KEY_PROVIDERS[provider].envVar] = key;
+    }
+    // Without the embedding provider's own key, embeddings use the legacy key.
+    const legacyKey = getStringFlag(flags, "ai-api-key");
+    const legacyKeyError =
+      legacyKey && !apiKeys[KEY_PROVIDERS[EMBEDDING_PROVIDER].envVar]
+        ? providerKeyError(EMBEDDING_PROVIDER, legacyKey)
+        : undefined;
+    if (legacyKeyError) {
+      return {
+        success: false,
+        message: `--ai-api-key: ${legacyKeyError} Embeddings need one; pass --${providerKeyFlag(EMBEDDING_PROVIDER)}.`,
+      };
+    }
+
     const dir = join(cwd, target);
     mkdirSync(dir, { recursive: true });
 
@@ -141,7 +176,8 @@ const initCommand: BrainCommand = defineCommand({
       backend: getStringFlag(flags, "backend"),
       deploy: getBooleanFlag(flags, "deploy"),
       regen: getBooleanFlag(flags, "regen"),
-      apiKey: getStringFlag(flags, "ai-api-key"),
+      apiKey: legacyKey,
+      apiKeys: Object.keys(apiKeys).length > 0 ? apiKeys : undefined,
     };
 
     // Prompt for missing values when running interactively. Tests and CI
@@ -476,6 +512,27 @@ export async function runCommand(
 
   // Local mode — boot brain, invoke tool
   return operate(dir, parsed.command, parsed.args, parsed.flags);
+}
+
+function providerKeyFlag(provider: KeyProviderId): string {
+  return `${provider}-api-key`;
+}
+
+/** One `--<provider>-api-key` init flag per key provider. */
+function providerKeyFlagDefinitions(): FlagDefinitions {
+  return Object.fromEntries(
+    KEY_PROVIDER_IDS.map((provider) => {
+      const { label, envVar } = KEY_PROVIDERS[provider];
+      return [
+        providerKeyFlag(provider),
+        {
+          type: "string",
+          placeholder: "<key>",
+          description: `${label} key written to .env as ${envVar} (skips the prompt)`,
+        },
+      ];
+    }),
+  );
 }
 
 async function runHelp(cwd?: string): Promise<CommandResult> {

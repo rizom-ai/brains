@@ -15,7 +15,7 @@ A brain is a private AI runtime whose durable knowledge is markdown. One canonic
 bun add -g @rizom/brain
 brain init my-brain --recipe personal
 cd my-brain
-# edit .env and set AI_API_KEY
+# edit .env and set OPENAI_API_KEY
 brain start
 ```
 
@@ -56,7 +56,11 @@ Each recipe also copies instance-owned starter content into `seed-content/`.
 --domain <domain>      defaults to {directory}.rizom.ai
 --content-repo <repo>  owner/name or github:owner/name
 --backend <name>       secret backend; default none
---ai-api-key <key>     writes the initial local .env
+--openai-api-key <key> writes OPENAI_API_KEY to the initial local .env
+--anthropic-api-key <key>
+                       writes ANTHROPIC_API_KEY (for an Anthropic chat model)
+--google-api-key <key> writes GOOGLE_GENERATIVE_AI_API_KEY (for a Gemini model)
+--ai-api-key <key>     legacy: writes AI_API_KEY, used by any provider without its own key
 --deploy               include deployment scaffolding
 --regen                regenerate derived deployment files
 --no-interactive       disable prompts

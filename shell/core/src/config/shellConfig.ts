@@ -1,4 +1,5 @@
 import { dbConfigSchema } from "@brains/contracts";
+import { DEFAULT_EMBEDDING_MODEL } from "@brains/ai-service/provider-keys";
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
 import type {
@@ -87,7 +88,10 @@ export const shellConfigSchema: z.ZodObject<{
   ai: z.ZodObject<{
     apiKey: z.ZodDefault<z.ZodString>;
     imageApiKey: z.ZodOptional<z.ZodString>;
+    embeddingApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
+    imageModel: z.ZodOptional<z.ZodString>;
+    embeddingModel: z.ZodDefault<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
@@ -135,7 +139,11 @@ export const shellConfigSchema: z.ZodObject<{
     /** Absent when the AI provider is configured later or not at all. */
     apiKey: z.string().default(""),
     imageApiKey: z.string().optional(),
+    /** Falls back to apiKey when unset. */
+    embeddingApiKey: z.string().optional(),
     model: z.string(),
+    imageModel: z.string().optional(),
+    embeddingModel: z.string().default(DEFAULT_EMBEDDING_MODEL),
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),

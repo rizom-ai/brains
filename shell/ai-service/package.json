@@ -31,7 +31,8 @@
       "default": "./src/index.ts"
     },
     "./test": "./src/test/index.ts",
-    "./env-schema": "./src/env-schema.ts"
+    "./env-schema": "./src/env-schema.ts",
+    "./provider-keys": "./src/provider-keys.ts"
   },
   "files": [
     "src"

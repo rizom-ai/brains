@@ -33,7 +33,7 @@ const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 const remoteToken = "packed-phase4-static-operator-token-0001";
 const runtimeEnv = {
   ...process.env,
-  AI_API_KEY: "packed-hermetic-runtime",
+  AI_API_KEY: "sk-proj-packed-hermetic-runtime",
   MCP_AUTH_TOKEN: remoteToken,
   BRAIN_SKIP_LOCAL_REEXEC: "1",
 };

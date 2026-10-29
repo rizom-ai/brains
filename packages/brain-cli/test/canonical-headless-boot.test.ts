@@ -96,7 +96,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        AI_API_KEY: "sk-proj-placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
         CANONICAL_HEADLESS_AI_SCENARIO: "read",
       },
@@ -182,7 +182,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        AI_API_KEY: "sk-proj-placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
         CANONICAL_HEADLESS_AI_SCENARIO: "write-confirm-read",
       },
@@ -312,7 +312,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        AI_API_KEY: "sk-proj-placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
       },
       stderr: "pipe",
