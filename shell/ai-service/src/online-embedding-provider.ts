@@ -7,6 +7,7 @@ import type {
   BatchEmbeddingResult,
 } from "@brains/entity-service";
 import type { EmbeddingUsageRecorder } from "./embedding-usage-meter";
+import { KEY_PROVIDERS, providerKeyError } from "./provider-keys";
 
 export interface OnlineEmbeddingConfig {
   apiKey: string;
@@ -124,6 +125,7 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
   private readonly openai: ReturnType<typeof createOpenAI>;
   private readonly logger: Logger;
   private readonly usage: EmbeddingUsageRecorder | undefined;
+  private readonly keyError: string | undefined;
 
   public static createFresh(
     config: OnlineEmbeddingConfig,
@@ -140,6 +142,12 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     this.dimensions = config.dimensions ?? DEFAULT_DIMENSIONS;
     this.logger = config.logger.child("OnlineEmbeddingProvider");
     this.usage = config.usage;
+    // Fail each call rather than construction, so a brain with embeddings
+    // disabled still boots.
+    const keyError = providerKeyError("openai", config.apiKey);
+    this.keyError =
+      keyError && `Embeddings: ${keyError} Set ${KEY_PROVIDERS.openai.envVar}.`;
+    if (this.keyError) this.logger.error(this.keyError);
 
     this.openai = createOpenAI({
       apiKey: config.apiKey,
@@ -171,6 +179,7 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     if (scopedSignal)
       signal = signal ? AbortSignal.any([signal, scopedSignal]) : scopedSignal;
     signal?.throwIfAborted();
+    if (this.keyError) throw new Error(this.keyError);
     if (texts.length === 0) {
       return { embeddings: [], usage: { tokens: 0 } };
     }

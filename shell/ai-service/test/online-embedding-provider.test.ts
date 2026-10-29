@@ -29,15 +29,37 @@ describe("OnlineEmbeddingProvider", () => {
       // Counterpart to the missing-key case above: a valid key is accepted.
       expect(() =>
         OnlineEmbeddingProvider.createFresh({
-          apiKey: "test-key",
+          apiKey: "sk-proj-test",
           logger: createSilentLogger(),
         }),
       ).not.toThrow();
     });
 
+    test("constructs with another provider's key but refuses to embed", async () => {
+      let called = false;
+      const respond = async (): Promise<Response> => {
+        called = true;
+        return new Response("{}");
+      };
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "sk-ant-test",
+        logger: createSilentLogger(),
+        fetch: Object.assign(respond, {
+          preconnect: globalThis.fetch.preconnect,
+        }),
+      });
+      const error = await provider
+        .generateEmbedding("hello")
+        .catch((thrown: unknown) => thrown);
+      expect(caughtError(error).message).toBe(
+        "Embeddings: Expected an API key for OpenAI, but this one is for Anthropic. Set OPENAI_API_KEY.",
+      );
+      expect(called).toBe(false);
+    });
+
     test("uses text-embedding-3-small as default model", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         logger: createSilentLogger(),
       });
       expect(provider.model).toBe("text-embedding-3-small");
@@ -45,7 +67,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("accepts custom model", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         model: "text-embedding-3-large",
         logger: createSilentLogger(),
       });
@@ -54,7 +76,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("accepts custom dimensions", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         dimensions: 768,
         logger: createSilentLogger(),
       });
@@ -63,7 +85,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("defaults to 1536 dimensions", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         logger: createSilentLogger(),
       });
       expect(provider.dimensions).toBe(1536);
@@ -73,7 +95,7 @@ describe("OnlineEmbeddingProvider", () => {
   describe("generateEmbeddings edge cases", () => {
     test("returns empty result for empty input", async () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         logger: createSilentLogger(),
       });
       const result = await provider.generateEmbeddings([]);
@@ -83,7 +105,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("preserves cancellation before a provider request", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         logger: createSilentLogger(),
       });
       const controller = new AbortController();
@@ -127,7 +149,7 @@ describe("OnlineEmbeddingProvider", () => {
     test("reports each call's tokens to the meter of the work that made it", async () => {
       const usage = EmbeddingUsageMeter.createFresh();
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         logger: createSilentLogger(),
         usage,
         fetch: openAi,
@@ -208,7 +230,7 @@ describe("OnlineEmbeddingProvider", () => {
       fetch: typeof fetch;
     }): OnlineEmbeddingProvider {
       return OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         dimensions: 2,
         logger: createSilentLogger(),
         fetch: api.fetch,
@@ -340,7 +362,7 @@ describe("OnlineEmbeddingProvider", () => {
             );
       };
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         dimensions: 2,
         logger: createSilentLogger(),
         usage,
@@ -378,7 +400,7 @@ describe("OnlineEmbeddingProvider", () => {
       const usage = EmbeddingUsageMeter.createFresh();
       const api = fakeOpenAi();
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        apiKey: "sk-proj-test",
         dimensions: 2,
         logger: createSilentLogger(),
         usage,

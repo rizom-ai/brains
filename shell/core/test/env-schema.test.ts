@@ -5,22 +5,22 @@ import { shellEnvVars } from "../src/env-schema";
 describe("shellEnvVars", () => {
   it("includes the ai-service declarations", () => {
     const vars = shellEnvVars();
-    const names = vars.map((decl) => decl.name);
-    expect(names).toContain("AI_API_KEY");
-    expect(names).toContain("AI_IMAGE_KEY");
-
-    const apiKey = expectDefined(
-      vars.find((decl) => decl.name === "AI_API_KEY"),
-      "AI_API_KEY declaration",
-    );
-    expect(apiKey.required).toBe(true);
-    expect(apiKey.sensitive).toBe(true);
-    const imageKey = expectDefined(
-      vars.find((decl) => decl.name === "AI_IMAGE_KEY"),
-      "AI_IMAGE_KEY declaration",
-    );
-    expect(imageKey.required).toBeUndefined();
-    expect(imageKey.sensitive).toBe(true);
+    // Which provider keys a brain needs depends on its models, so none is
+    // required by the schema; `brain start` preflight checks the actual set.
+    for (const name of [
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "GOOGLE_GENERATIVE_AI_API_KEY",
+      "AI_API_KEY",
+      "AI_IMAGE_KEY",
+    ]) {
+      const decl = expectDefined(
+        vars.find((entry) => entry.name === name),
+        `${name} declaration`,
+      );
+      expect(decl.required).toBeUndefined();
+      expect(decl.sensitive).toBe(true);
+    }
   });
 
   it("declares each variable at most once", () => {

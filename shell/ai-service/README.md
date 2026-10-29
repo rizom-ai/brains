@@ -19,7 +19,7 @@ import { AIService } from "@brains/ai-service";
 
 const aiService = AIService.getInstance(
   {
-    apiKey: process.env.AI_API_KEY,
+    apiKey: process.env.ANTHROPIC_API_KEY,
     model: "claude-haiku-4-5",
   },
   logger,
@@ -86,6 +86,28 @@ Image provider selection works similarly via `imageModel`:
 - `gpt-image-1.5` → OpenAI
 - `gemini-3-pro-image-preview` → Google
 - `google:gemini-3-pro-image-preview` → Google with prefix stripped
+
+## Provider keys
+
+Imported from `@brains/ai-service/provider-keys`, which loads no AI SDK.
+
+`KEY_PROVIDERS` lists each provider that takes a key: its label, its key env var
+(`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`) and the
+key formats it issues. Adding a provider means one id in `KeyProviderId` and one
+entry there; the CLI's init prompts and flags follow from it.
+
+`resolveCapabilityKeys(env, { model, imageModel })` maps each capability to its
+provider's key. An unset provider key falls back to the legacy `AI_API_KEY`
+(and, for images, `AI_IMAGE_KEY` first).
+
+Embeddings use `EMBEDDING_PROVIDER` (OpenAI). `resolveEmbeddingModel` accepts
+only `text-embedding-3-small`, because the index does not yet record which model
+built it.
+
+`providerKeyError(provider, key)` checks a key against an allowlist of the
+provider's formats, and names the provider a key belongs to when its format
+gives it away. `OnlineEmbeddingProvider` refuses to embed with a key that is
+not OpenAI's, and `brain start` fails before boot.
 
 ## Agent service
 
