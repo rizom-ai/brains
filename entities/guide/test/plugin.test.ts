@@ -33,7 +33,11 @@ describe("GuidesPlugin", () => {
   it("registers the guide templates and their data source", () => {
     const templates = Array.from(harness.getTemplates().keys());
     expect(templates).toEqual(
-      expect.arrayContaining(["guides:guide-list", "guides:guide-detail"]),
+      expect.arrayContaining([
+        "guides:guide-list",
+        "guides:guide-detail",
+        "guides:guide-band",
+      ]),
     );
     expect(Array.from(harness.getDataSources().keys())).toContain(
       "guides:entities",

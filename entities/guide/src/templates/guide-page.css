@@ -1,58 +1,4 @@
-/* The designed guide page. Colors and fonts come from the docs tokens, so
-   the page follows the theme and its light and dark modes. */
-
-.guide-page {
-  --guide-light: var(--docs-accent);
-  --guide-glow: color-mix(in srgb, var(--docs-accent) 35%, transparent);
-  --guide-surface: var(--docs-bg-card);
-  --guide-surface-2: color-mix(
-    in srgb,
-    var(--docs-bg-card),
-    var(--docs-text) 5%
-  );
-  --guide-line: var(--docs-border);
-  --guide-line-soft: var(--docs-border-light);
-  --guide-muted: var(--docs-text-muted);
-  --guide-faint: var(--docs-text-light);
-  --guide-frag: color-mix(in srgb, var(--docs-text) 6%, transparent);
-  overflow-x: clip;
-  font-size: 17px;
-  line-height: 1.65;
-}
-
-/* The docs column, so bands line up with the footer. */
-.guide-wrap {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-@media (min-width: 768px) {
-  .guide-wrap {
-    padding: 0 48px;
-  }
-}
-
-.guide-label {
-  margin: 0;
-  font: 500 12px/1.4 var(--docs-font-label);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--guide-light);
-}
-
-.guide-display {
-  font-family: var(--docs-font-display);
-  font-optical-sizing: auto;
-  font-weight: 380;
-  letter-spacing: -0.02em;
-  color: var(--docs-heading);
-}
-
-.guide-accent {
-  font-style: italic;
-  color: var(--guide-light);
-}
+/* The designed guide page, over guide-base.css. */
 
 /* Opening: the material scattered around the title. With the page script and
    motion allowed, the section grows a scroll track and the fragments settle
@@ -204,32 +150,6 @@
   .guide-fragment:nth-child(3n + 1) {
     display: block;
   }
-}
-
-/* Bands */
-
-.guide-band {
-  padding: clamp(80px, 12vw, 160px) 0;
-  border-top: 1px solid var(--guide-line-soft);
-}
-
-.guide-band__head {
-  max-width: 720px;
-  margin-bottom: clamp(40px, 6vw, 72px);
-}
-
-.guide-band__head h2,
-.guide-start__copy h2 {
-  margin: 18px 0 14px;
-  font-size: clamp(34px, 5vw, 60px);
-  line-height: 1.02;
-}
-
-.guide-band__head p:not(.guide-label),
-.guide-start__copy > p:not(.guide-label) {
-  margin: 0;
-  max-width: 56ch;
-  color: var(--guide-muted);
 }
 
 /* Material map: sources on the left, the types they become on the right,
@@ -742,47 +662,6 @@
   .guide-rail {
     display: none;
   }
-}
-
-/* Closing: the other guides. */
-
-.guide-others {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
-  gap: 18px;
-}
-
-.guide-other {
-  display: block;
-  padding: 26px 24px 24px;
-  border: 1px solid var(--guide-line);
-  border-radius: 16px;
-  background: var(--guide-surface);
-  transition:
-    border-color 0.3s,
-    transform 0.3s;
-}
-
-.guide-other:hover {
-  border-color: var(--guide-light);
-  transform: translateY(-4px);
-}
-
-.guide-other h3 {
-  margin: 14px 0 10px;
-  font: 400 28px/1.1 var(--docs-font-display);
-  color: var(--docs-heading);
-}
-
-.guide-other__for {
-  margin: 0 0 20px;
-  color: var(--guide-muted);
-  font-size: 15.5px;
-}
-
-.guide-other__recipe {
-  color: var(--guide-faint);
-  font: 12px/1 var(--docs-font-label);
 }
 
 /* Lights come on: with the page script, blocks reveal as they are reached. */

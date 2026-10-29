@@ -16,6 +16,7 @@ import {
   GuideListTemplate,
   type GuideListProps,
 } from "../templates/guide-list";
+import { GuideBandTemplate } from "../templates/guide-band";
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
@@ -53,6 +54,18 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "guides:entities",
       requiredPermission: "public",
       layout: { component: GuideListTemplate },
+    }),
+    "guide-band": createTemplate<
+      z.output<typeof guideListSchema>,
+      GuideListProps
+    >({
+      name: "guide-band",
+      description:
+        "The guides as a band on a composed docs page, such as the docs home",
+      schema: guideListSchema,
+      dataSourceId: "guides:entities",
+      requiredPermission: "public",
+      layout: { component: GuideBandTemplate },
     }),
     "guide-detail": createTemplate<
       z.output<typeof guideDetailSchema>,

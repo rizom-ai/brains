@@ -1,1 +1,6 @@
-export { DocsPageShell, docsClasses } from "./docs-chrome";
+export {
+  DocsPageSection,
+  DocsPageShell,
+  docsClasses,
+  type DocsArea,
+} from "./docs-chrome";

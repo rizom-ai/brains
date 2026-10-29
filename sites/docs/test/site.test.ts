@@ -18,16 +18,23 @@ describe("@rizom/site-docs", () => {
     });
   });
 
-  test("routes render the docs entity list template", () => {
+  test("the docs home sets the guides band between its hero and its sections", () => {
     for (const route of site.routes) {
       expect(route.sections).toEqual([
         {
+          id: "docs-hero",
+          template: "docs:doc-home-hero",
+          dataQuery: { entityType: "doc", query: { limit: 100 } },
+        },
+        {
+          id: "guides",
+          template: "guides:guide-band",
+          dataQuery: { entityType: "guide", query: { limit: 100 } },
+        },
+        {
           id: "docs",
-          template: "docs:doc-list",
-          dataQuery: {
-            entityType: "doc",
-            query: { limit: 100 },
-          },
+          template: "docs:doc-home-sections",
+          dataQuery: { entityType: "doc", query: { limit: 100 } },
         },
       ]);
     }

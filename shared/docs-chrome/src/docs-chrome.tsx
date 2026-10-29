@@ -9,8 +9,11 @@ const labelText =
 const displayText = "docs-font-display text-[var(--docs-heading)]";
 const buttonBase =
   "inline-flex items-center justify-center rounded-lg border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-150";
-const headerLink =
-  "relative hidden py-1 text-[15px] text-[var(--docs-text-muted)] transition-colors duration-150 after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-[var(--docs-accent)] after:transition-[width] after:duration-300 hover:text-[var(--docs-text)] hover:after:w-full min-[861px]:inline-block";
+const headerLinkBase =
+  "relative py-1 text-[15px] text-[var(--docs-text-muted)] transition-colors duration-150 after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-[var(--docs-accent)] after:transition-[width] after:duration-300 hover:text-[var(--docs-text)] hover:after:w-full aria-[current=page]:text-[var(--docs-text)] aria-[current=page]:after:w-full";
+/** Header links that fold away on narrow screens; Guides stays, as the way in. */
+const headerLink = `${headerLinkBase} hidden min-[861px]:inline-block`;
+const primaryHeaderLink = `${headerLinkBase} inline-block`;
 const footerLink =
   "docs-font-label text-[13px] text-[var(--docs-text-light)] transition-colors duration-150 hover:text-[var(--docs-text)]";
 
@@ -30,7 +33,10 @@ export const docsClasses: DocsClasses = {
   primaryButton: `${buttonBase} border-[var(--docs-accent)] bg-[var(--docs-accent)] text-white hover:bg-transparent hover:text-[var(--docs-accent)]`,
 };
 
-const DocsHeader = (): JSX.Element => (
+/** The part of the docs a page belongs to, marked current in the header. */
+export type DocsArea = "guides";
+
+const DocsHeader = ({ current }: { current?: DocsArea }): JSX.Element => (
   <nav className="docs-header fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 md:py-5 xl:px-20">
     <a
       href="/docs"
@@ -42,6 +48,13 @@ const DocsHeader = (): JSX.Element => (
       <span className={wordmarkSuffix}>docs</span>
     </a>
     <div className="docs-header__nav flex items-center gap-4 md:gap-8">
+      <a
+        className={primaryHeaderLink}
+        href="/guides"
+        {...(current === "guides" && { "aria-current": "page" as const })}
+      >
+        Guides
+      </a>
       <a className={headerLink} href="/docs/roadmap">
         Roadmap
       </a>
@@ -66,6 +79,9 @@ const DocsFooter = (): JSX.Element => (
       <span className={wordmarkSuffix}>ai</span>
     </a>
     <div className="flex flex-wrap items-center justify-center gap-6 md:justify-end">
+      <a className={footerLink} href="/guides">
+        Guides
+      </a>
       <a className={footerLink} href="/docs/roadmap">
         Roadmap
       </a>
@@ -114,6 +130,11 @@ const docsDesignCss = `
   color: var(--docs-text);
   background: transparent;
   font-family: var(--docs-font-body);
+}
+
+/* A page composed of several sections: each keeps the tokens, none fills the screen. */
+.docs-handbook--continued {
+  min-height: 0;
 }
 
 .docs-handbook a {
@@ -259,6 +280,10 @@ interface DocsPageShellProps {
   contentClassName?: string;
   /** The page lays out its own full-width bands; only the footer keeps the column. */
   bleed?: boolean;
+  /** The page goes on in later sections (DocsPageSection), so it does not fill the screen. */
+  continues?: boolean;
+  /** The part of the docs the page belongs to. */
+  current?: DocsArea;
 }
 
 export const DocsPageShell = ({
@@ -269,12 +294,16 @@ export const DocsPageShell = ({
   footer = false,
   contentClassName = "",
   bleed = false,
+  continues = false,
+  current,
 }: DocsPageShellProps): JSX.Element => (
   <>
     <Head title={title} description={description} />
     <DocsDesignStyles />
-    <div className={`docs-handbook${detail ? " docs-handbook--detail" : ""}`}>
-      <DocsHeader />
+    <div
+      className={`docs-handbook${detail ? " docs-handbook--detail" : ""}${continues ? " docs-handbook--continued" : ""}`}
+    >
+      <DocsHeader {...(current && { current })} />
       {bleed ? (
         <>
           {children}
@@ -292,4 +321,19 @@ export const DocsPageShell = ({
       )}
     </div>
   </>
+);
+
+/**
+ * A later section of a page whose DocsPageShell `continues`: the docs tokens
+ * and column, without a second header. Lets a site put sections from other
+ * plugins between the parts of a docs page.
+ */
+export const DocsPageSection = ({
+  children,
+}: {
+  children: ReactNode;
+}): JSX.Element => (
+  <div className="docs-handbook docs-handbook--continued">
+    <div className="mx-auto max-w-6xl px-6 md:px-12">{children}</div>
+  </div>
 );

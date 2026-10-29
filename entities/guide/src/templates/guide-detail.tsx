@@ -13,6 +13,8 @@ import {
   splitTitle,
   stagesHeading,
 } from "../lib/guide-page-content";
+import { GuideCard } from "./guide-card";
+import guideBaseCss from "./guide-base.css" with { type: "text" };
 import guidePageCss from "./guide-page.css" with { type: "text" };
 
 export interface GuideDetailProps {
@@ -25,10 +27,6 @@ const SELF_HOSTING_TITLE = "Running your own brain";
 
 /** Custom properties the stylesheet reads, set per element. */
 const vars = (values: Record<string, string | number>): CSSProperties => values;
-
-function guideHref(guide: GuideWithData): string {
-  return `/guides/${guide.metadata.slug}`;
-}
 
 /** Where a guide sits among all of them, counting from 1 by order. */
 function guidePosition(
@@ -341,24 +339,14 @@ const Closing = ({
           {closingHeading(guide.metadata.persona)}
         </h2>
       </div>
-      <div className="guide-others">
+      <div className="guide-cards">
         {otherGuides.map((other) => (
-          <a
-            className="guide-other guide-reveal"
-            href={guideHref(other)}
+          <GuideCard
+            guide={other}
             key={other.id}
-          >
-            <p className="guide-label">
-              Guide {romanNumeral(guidePosition(other, all).position)}
-            </p>
-            <h3>{other.metadata.persona}</h3>
-            <p className="guide-other__for">{other.metadata.for}</p>
-            <span className="guide-other__recipe">
-              {other.metadata.recipe
-                ? `recipe · ${other.metadata.recipe}`
-                : "any recipe"}
-            </span>
-          </a>
+            position={guidePosition(other, all).position}
+            reveal
+          />
         ))}
       </div>
     </div>
@@ -378,10 +366,12 @@ export const GuideDetailTemplate = ({
     <DocsPageShell
       title={guide.metadata.title}
       description={guide.metadata.for}
+      current="guides"
       detail
       footer
       bleed
     >
+      <style>{guideBaseCss}</style>
       <style>{guidePageCss}</style>
       <div className="guide-page" data-guide-page>
         <Opening guide={guide} place={guidePosition(guide, all)} />

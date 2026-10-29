@@ -1,7 +1,11 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { GuideDetailTemplate, GuideListTemplate } from "../src";
+import {
+  GuideBandTemplate,
+  GuideDetailTemplate,
+  GuideListTemplate,
+} from "../src";
 import { getTemplates } from "../src/lib/register-templates";
 import { guidePageScript } from "../src/templates/guide-page-script";
 import { guideWithData, writerGuide } from "./fixtures";
@@ -20,9 +24,10 @@ describe("GuideDetailTemplate", () => {
     />,
   );
 
-  test("renders inside the docs chrome", () => {
+  test("renders inside the docs chrome, under the current Guides link", () => {
     expect(html).toContain("docs-handbook");
     expect(html).toContain("docs-header");
+    expect(html).toMatch(/<a[^>]*href="\/guides"[^>]*aria-current="page"/);
   });
 
   test("opens with the guide's place, title and who it is for", () => {
@@ -103,6 +108,7 @@ describe("GuideDetailTemplate", () => {
     expect(html).toContain("Guide II");
     expect(html).toContain("recipe · personal");
     expect(html).toContain("any recipe");
+    expect(count(html, 'class="guide-card guide-reveal"')).toBe(2);
   });
 });
 
@@ -125,16 +131,82 @@ describe("guide-detail template", () => {
   });
 });
 
-describe("GuideListTemplate", () => {
-  test("links each guide at its slug", () => {
-    const html = render(
-      <GuideListTemplate
-        guides={[guideWithData("writer", 10), guideWithData("team", 40)]}
-      />,
-    );
+/** The card titles in the order they appear. */
+function cardTitles(html: string): string[] {
+  return [
+    ...html.matchAll(/<a class="guide-card[^"]*"[^>]*>.*?<h3>(.*?)<\/h3>/g),
+  ].map((match) => match[1] ?? "");
+}
 
+const unordered = [
+  guideWithData("self-hosting", 50),
+  guideWithData("writer", 10, "professional"),
+  guideWithData("researcher", 20, "personal"),
+];
+
+describe("GuideListTemplate", () => {
+  const html = render(<GuideListTemplate guides={unordered} />);
+
+  test("renders inside the docs chrome, under the current Guides link", () => {
+    expect(html).toContain("docs-header");
+    expect(html).toMatch(/<a[^>]*href="\/guides"[^>]*aria-current="page"/);
+    expect(html).toContain("themeToggle");
+  });
+
+  test("opens with what the guides are", () => {
+    expect(html).toMatch(/<p class="guide-label">Moving in<\/p>/);
+    expect(html).toMatch(/<h1 class="guide-display">/);
+    expect(html).toContain(
+      "One guide for each kind of user, and one for running your own brain.",
+    );
+  });
+
+  test("shows one card per guide, by order, numbered from I", () => {
+    expect(cardTitles(html)).toEqual([
+      "The writer",
+      "The researcher",
+      "The self-hosting",
+    ]);
+    expect(html).toMatch(/Guide I<\/p><h3>The writer/);
+    expect(html).toMatch(/Guide III<\/p><h3>The self-hosting/);
+  });
+
+  test("each card links its guide and says who it is for and its recipe", () => {
     expect(html).toContain('href="/guides/writer"');
-    expect(html).toContain('href="/guides/team"');
-    expect(html).toContain("You are a team.");
+    expect(html).toContain('href="/guides/self-hosting"');
+    expect(html).toContain("You are a researcher.");
+    expect(html).toContain("recipe · professional");
+    expect(html).toContain("recipe · personal");
+    expect(html).toContain("any recipe");
+  });
+});
+
+describe("GuideBandTemplate", () => {
+  test("renders nothing without guides", () => {
+    expect(render(<GuideBandTemplate guides={[]} />)).toBe("");
+  });
+
+  test("lists the guides by order as a band in the docs column", () => {
+    const html = render(<GuideBandTemplate guides={unordered} />);
+
+    expect(html).toContain("docs-handbook--continued");
+    expect(html).not.toContain("docs-header");
+    expect(html).toMatch(/<p class="guide-label">Moving in<\/p>/);
+    expect(cardTitles(html)).toEqual([
+      "The writer",
+      "The researcher",
+      "The self-hosting",
+    ]);
+    expect(html).toContain("recipe · professional");
+    expect(html).toContain("any recipe");
+  });
+});
+
+describe("guide-band template", () => {
+  test("reads the guides list from the guides data source", () => {
+    const template = getTemplates()["guide-band"];
+
+    expect(template?.dataSourceId).toBe("guides:entities");
+    expect(template?.requiredPermission).toBe("public");
   });
 });

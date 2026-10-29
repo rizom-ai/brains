@@ -65,7 +65,7 @@ Visuals are drawn from guide data by the templates. No image files, so the sync 
 
 ### Registration
 
-`guides` joins the canonical brain next to `docs`, outside every bundle, and ships in `@rizom/brain`; a brain enables it with `add: [guides]`, as it does `docs`. `@rizom/site-docs` adds the `/guides` route, `entityDisplay.guide` (`/guides/<slug>`), the Guides header link and the docs-home band. The doc-brain adds `guides` to its plugins with the next fleet pin.
+`guides` joins the canonical brain next to `docs`, outside every bundle, and ships in `@rizom/brain`; a brain enables it with `add: [guides]`, as it does `docs`. `@rizom/site-docs` adds the `/guides` route, `entityDisplay.guide` (`/guides/<slug>`), the Guides header link and the docs-home band. The band is the `guides:guide-band` template, which the docs home routes set between `docs:doc-home-hero` and `docs:doc-home-sections`, the two parts of the docs home; `docs:doc-list` stays the whole page for sites that show docs without composing them. The doc-brain adds `guides` to its plugins with the next fleet pin.
 
 ## Phases
 

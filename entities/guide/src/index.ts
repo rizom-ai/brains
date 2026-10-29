@@ -5,6 +5,8 @@ export {
   parseGuideData,
 } from "./datasources/guide-datasource";
 export { GuideListTemplate, type GuideListProps } from "./templates/guide-list";
+export { GuideBandTemplate } from "./templates/guide-band";
+export { GuideCard, GuideCards } from "./templates/guide-card";
 export {
   GuideDetailTemplate,
   type GuideDetailProps,
@@ -32,6 +34,7 @@ export {
   type GuideStage,
   type GuideStepLink,
 } from "./lib/guide-stages";
+export { guideHref, guideRecipeLabel, sortGuides } from "./lib/guide-order";
 export {
   closingHeading,
   guideRecipeHighlights,

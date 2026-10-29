@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { DocsPageShell } from "../src";
+import { DocsPageSection, DocsPageShell } from "../src";
 
 describe("DocsPageShell", () => {
   test("wraps the page in the docs header, styles and handbook frame", () => {
@@ -53,5 +53,55 @@ describe("DocsPageShell", () => {
       /docs-header.*?<\/nav><p>Body<\/p><div class="mx-auto/,
     );
     expect(html).toMatch(/<div class="mx-auto[^"]*"><footer/);
+  });
+});
+
+describe("docs header", () => {
+  test("links the guides index next to the roadmap", () => {
+    const html = render(
+      <DocsPageShell title="Docs" description="Docs">
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toMatch(/<a[^>]*href="\/guides"[^>]*>Guides<\/a>.*?Roadmap/);
+    expect(html).not.toMatch(/<a[^>]*aria-current="page"/);
+  });
+
+  test("marks the guides link current on guide pages", () => {
+    const html = render(
+      <DocsPageShell title="Guide" description="One guide" current="guides">
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toMatch(
+      /<a[^>]*href="\/guides"[^>]*aria-current="page"[^>]*>Guides<\/a>/,
+    );
+  });
+});
+
+describe("composed docs pages", () => {
+  test("a shell that continues in later sections drops its full height", () => {
+    const html = render(
+      <DocsPageShell title="Docs" description="Docs" continues>
+        <p>Hero</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toContain('class="docs-handbook docs-handbook--continued"');
+    expect(html).toContain("docs-header");
+  });
+
+  test("a later section keeps the docs tokens and column, without the header", () => {
+    const html = render(
+      <DocsPageSection>
+        <p>Band</p>
+      </DocsPageSection>,
+    );
+
+    expect(html).toMatch(
+      /^<div class="docs-handbook docs-handbook--continued"><div class="mx-auto max-w-6xl px-6 md:px-12"><p>Band<\/p><\/div><\/div>$/,
+    );
   });
 });

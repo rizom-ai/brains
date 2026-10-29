@@ -15,6 +15,7 @@ import {
   type GuideWithData,
 } from "../schemas/guide";
 import { guideFrontmatterSchema } from "../schemas/guide-frontmatter";
+import { sortGuides } from "../lib/guide-order";
 
 interface GuideDetailData {
   guide: GuideWithData;
@@ -23,14 +24,6 @@ interface GuideDetailData {
 
 interface GuideListData {
   guides: GuideWithData[];
-}
-
-function sortGuides(guides: GuideWithData[]): GuideWithData[] {
-  return [...guides].sort(
-    (a, b) =>
-      a.metadata.order - b.metadata.order ||
-      a.metadata.title.localeCompare(b.metadata.title),
-  );
 }
 
 export function parseGuideData(entity: Guide): GuideWithData {
