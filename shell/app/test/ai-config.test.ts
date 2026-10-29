@@ -54,15 +54,86 @@ describe("resolveAIConfig", () => {
       expect(config.aiImageKey).toBe("sk-openai");
     });
 
-    it("should not set aiImageKey when AI_IMAGE_KEY absent", () => {
+    it("should fall back to AI_API_KEY when AI_IMAGE_KEY absent", () => {
       const config = resolveAIConfig({ AI_API_KEY: "sk-test" });
-      expect(config.aiImageKey).toBeUndefined();
+      expect(config.aiImageKey).toBe("sk-test");
     });
 
     it("should allow AI_IMAGE_KEY without AI_API_KEY", () => {
       const config = resolveAIConfig({ AI_IMAGE_KEY: "sk-openai" });
       expect(config.aiApiKey).toBeUndefined();
       expect(config.aiImageKey).toBe("sk-openai");
+    });
+  });
+
+  describe("provider keys", () => {
+    it("uses one OpenAI key for chat, embeddings and images", () => {
+      const config = resolveAIConfig(
+        { OPENAI_API_KEY: "sk-openai" },
+        { model: "gpt-6-luna" },
+      );
+      expect(config.aiApiKey).toBe("sk-openai");
+      expect(config.aiEmbeddingKey).toBe("sk-openai");
+      expect(config.aiImageKey).toBe("sk-openai");
+    });
+
+    it("picks each capability's key from its model's provider", () => {
+      const config = resolveAIConfig(
+        {
+          OPENAI_API_KEY: "sk-openai",
+          ANTHROPIC_API_KEY: "sk-ant",
+          GOOGLE_GENERATIVE_AI_API_KEY: "g-key",
+        },
+        {
+          model: "claude-sonnet-5-5",
+          imageModel: "gemini-3-pro-image-preview",
+        },
+      );
+      expect(config.aiApiKey).toBe("sk-ant");
+      expect(config.aiEmbeddingKey).toBe("sk-openai");
+      expect(config.aiImageKey).toBe("g-key");
+      expect(config.aiImageModel).toBe("gemini-3-pro-image-preview");
+    });
+
+    it("prefers provider keys over legacy keys", () => {
+      const config = resolveAIConfig(
+        {
+          AI_API_KEY: "legacy",
+          AI_IMAGE_KEY: "legacy-image",
+          OPENAI_API_KEY: "sk-openai",
+        },
+        { model: "gpt-6-luna" },
+      );
+      expect(config.aiApiKey).toBe("sk-openai");
+      expect(config.aiImageKey).toBe("sk-openai");
+    });
+
+    it("fills unset provider keys from AI_API_KEY", () => {
+      const config = resolveAIConfig(
+        { AI_API_KEY: "legacy", ANTHROPIC_API_KEY: "sk-ant" },
+        { model: "claude-sonnet-5-5" },
+      );
+      expect(config.aiApiKey).toBe("sk-ant");
+      expect(config.aiEmbeddingKey).toBe("legacy");
+    });
+  });
+
+  describe("embeddingModel", () => {
+    it("normalizes the openai: prefix", () => {
+      const config = resolveAIConfig(
+        {},
+        { embeddingModel: "openai:text-embedding-3-small" },
+      );
+      expect(config.aiEmbeddingModel).toBe("text-embedding-3-small");
+    });
+
+    it("rejects unsupported embedding models", () => {
+      expect(() =>
+        resolveAIConfig({}, { embeddingModel: "text-embedding-3-large" }),
+      ).toThrow(/Unsupported embeddingModel/);
+      expect(() =>
+        resolveAIConfig({}, { embeddingModel: "google:gemini-embedding-001" }),
+      ).toThrow(/Unsupported embeddingModel/);
     });
   });
 });

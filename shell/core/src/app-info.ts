@@ -42,7 +42,7 @@ export async function getRuntimeAppInfo(options: {
     ),
     ai: {
       model: config.ai.model,
-      embeddingModel: "text-embedding-3-small",
+      embeddingModel: config.ai.embeddingModel,
     },
     daemons,
     endpoints: endpoints(),

@@ -101,7 +101,8 @@ export function createShellServices(options: {
   const embeddingService =
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
-      apiKey: config.ai.apiKey,
+      apiKey: config.ai.embeddingApiKey ?? config.ai.apiKey,
+      model: config.ai.embeddingModel,
       logger,
       usage: embeddingUsage,
     });
