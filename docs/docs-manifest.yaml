@@ -71,6 +71,12 @@ docs:
     order: 85
     source: docs/atproto-lexicons.md
 
+  - id: agent-discovery
+    title: Agent Discovery
+    section: Interfaces
+    order: 88
+    source: docs/agent-discovery.md
+
   - id: mcp-inspector-guide
     title: MCP Inspector Guide
     section: Interfaces
