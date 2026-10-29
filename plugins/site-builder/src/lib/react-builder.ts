@@ -6,9 +6,10 @@ import type {
 } from "./static-site-builder";
 import { sha256Hex } from "@brains/utils/hash";
 import { escapeHtml } from "@brains/utils/string-utils";
-import type {
-  SiteLayoutInfo,
-  SiteMetadataTranslation,
+import {
+  PageLanguageContext,
+  type SiteLayoutInfo,
+  type SiteMetadataTranslation,
 } from "@brains/site-composition";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
@@ -189,7 +190,9 @@ export class ReactBuilder implements StaticSiteBuilder {
           children: h("div", null, ...sectionComponents),
         }),
       });
-      layoutHtml = renderToStaticMarkup(wrapper);
+      layoutHtml = renderToStaticMarkup(
+        h(PageLanguageContext.Provider, { value: route.language }, wrapper),
+      );
     } else {
       // Normal: wrap sections in the site layout
       const layoutName = route.layout;
@@ -222,7 +225,13 @@ export class ReactBuilder implements StaticSiteBuilder {
           children: h(LayoutComponent, layoutProps),
         }),
       });
-      layoutHtml = renderToStaticMarkup(layoutWithProvider);
+      layoutHtml = renderToStaticMarkup(
+        h(
+          PageLanguageContext.Provider,
+          { value: route.language },
+          layoutWithProvider,
+        ),
+      );
     }
     signal.throwIfAborted();
 

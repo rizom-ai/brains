@@ -4,7 +4,7 @@ Last updated: 2026-10-29
 
 ## Status
 
-Proposed, not started. The first site is The Fourth (`thefourth.rizom.ai`), adding Traditional Chinese (zh-TW) to English. Nothing in the repository supports a second language today: every page is written with `<html lang="en">` (`shared/site-engine/src/html-generator.ts`), no page links its translations, and site-info, routes and sections carry one language.
+Phases 1–4 are built (PR #778): a site declares its languages, every page is built per language from its own copy, untranslated pages and languages without site-info chrome are skipped, pages link their translations, and sections can be drawn per language. Phase 5 remains: The Fourth (`thefourth.rizom.ai`) in Traditional Chinese (zh-TW), whose Chinese drawings wait on Sam's mockup.
 
 ## Decisions
 

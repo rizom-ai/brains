@@ -233,6 +233,12 @@ export interface SiteSectionDefinition<
 > extends SectionMeta {
   schema: S;
   component: ComponentType<z.output<S>>;
+  /**
+   * The section drawn another way in other languages, keyed by language tag:
+   * a page in that language renders this component, any other page the
+   * default one. Both read the same copy fields.
+   */
+  components?: Record<string, ComponentType<z.output<S>>> | undefined;
 }
 
 /** Concise alias used when declaring heterogeneous section maps. */
@@ -250,8 +256,17 @@ export type SectionGroup = SiteSectionGroup;
 export function defineSection<S extends z.ZodType>(
   schema: S & JsonObjectOutputGuard<z.output<S>>,
   component: ComponentType<z.output<S>>,
-  meta: SectionMeta,
+  meta: SectionMeta & {
+    components?: Record<string, ComponentType<z.output<S>>> | undefined;
+  },
 ): SiteSectionDefinition<S> {
+  for (const language of Object.keys(meta.components ?? {})) {
+    if (!languageTagSchema.safeParse(language).success) {
+      throw new Error(
+        `Section "${meta.title}" draws "${language}", which must be a language tag such as en or zh-TW`,
+      );
+    }
+  }
   return Object.freeze({ schema, component, ...meta });
 }
 

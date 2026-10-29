@@ -2,13 +2,17 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createReactBuilder as createActualReactBuilder } from "../../src/lib/react-builder";
 import type { RendererTestSourceContext as BuildContext } from "../test-helpers";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
-import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
+import {
+  PageLanguageContext,
+  type RouteDefinition,
+  type SiteLayoutInfo,
+} from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createElement as h, type ReactElement } from "react";
+import { createElement as h, useContext, type ReactElement } from "react";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { prepareRendererTestContext, TestLayout } from "../test-helpers";
 import {
@@ -414,6 +418,57 @@ describe("ReactBuilder", () => {
     expect(chinese).toContain("<footer>©2026 第四</footer>");
     // The site's own title stands where the translation gives none.
     expect(chinese).toContain("<title>The Fourth</title>");
+  });
+
+  it("tells the page's sections the language they are drawn in", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const LanguageAware = (): ReactElement =>
+      h("p", null, `drawn in ${useContext(PageLanguageContext) ?? "?"}`);
+
+    await builder.build(
+      {
+        routes: ["en", "zh-TW"].map((language) => ({
+          id: language,
+          path: language === "en" ? "/" : "/zh-tw",
+          language,
+          title: "Page",
+          description: "Page",
+          layout: "default",
+          sections: [{ id: "s", template: "aware", content: {} }],
+        })),
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "aware"
+            ? {
+                name: "aware",
+                schema: z.object({}),
+                pluginId: "test-plugin",
+                renderers: { web: LanguageAware },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf-8")).toContain(
+      "<p>drawn in en</p>",
+    );
+    expect(
+      await fs.readFile(join(outputDir, "zh-tw/index.html"), "utf-8"),
+    ).toContain("<p>drawn in zh-TW</p>");
   });
 
   it("writes no language links for a page built in one language", async () => {
