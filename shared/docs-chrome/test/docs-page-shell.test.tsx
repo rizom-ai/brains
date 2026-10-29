@@ -28,4 +28,30 @@ describe("DocsPageShell", () => {
     expect(html).toContain("docs-handbook docs-handbook--detail");
     expect(html).toContain("themeToggle");
   });
+
+  test("the footer's theme toggle is bound by the page and names the other theme", () => {
+    const html = render(
+      <DocsPageShell title="Guide" description="One guide" footer>
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toMatch(/<button[^>]*data-theme-toggle/);
+    expect(html).toContain("☀ Light");
+    expect(html).toContain("☾ Dark");
+    expect(html).toContain('[data-theme="light"] .docs-theme-toggle__light');
+  });
+
+  test("leaves a full-bleed page unwrapped and keeps the footer in the column", () => {
+    const html = render(
+      <DocsPageShell title="Guide" description="One guide" bleed footer>
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toMatch(
+      /docs-header.*?<\/nav><p>Body<\/p><div class="mx-auto/,
+    );
+    expect(html).toMatch(/<div class="mx-auto[^"]*"><footer/);
+  });
 });

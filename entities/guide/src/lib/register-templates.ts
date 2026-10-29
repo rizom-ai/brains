@@ -9,6 +9,10 @@ import {
   type GuideDetailProps,
 } from "../templates/guide-detail";
 import {
+  GUIDE_PAGE_SCRIPT_SRC,
+  guidePageScript,
+} from "../templates/guide-page-script";
+import {
   GuideListTemplate,
   type GuideListProps,
 } from "../templates/guide-list";
@@ -59,6 +63,8 @@ export function getTemplates(): Record<string, Template> {
       schema: guideDetailSchema,
       dataSourceId: "guides:entities",
       requiredPermission: "public",
+      runtimeScripts: [{ src: GUIDE_PAGE_SCRIPT_SRC, defer: true }],
+      staticAssets: { [GUIDE_PAGE_SCRIPT_SRC]: guidePageScript },
       layout: { component: GuideDetailTemplate },
     }),
   };

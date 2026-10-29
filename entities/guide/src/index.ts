@@ -25,3 +25,16 @@ export {
   type GuideMetadata,
   type GuideWithData,
 } from "./schemas/guide";
+export {
+  parseGuideStages,
+  guideStageSchema,
+  guideStepLinkSchema,
+  type GuideStage,
+  type GuideStepLink,
+} from "./lib/guide-stages";
+export {
+  closingHeading,
+  guideRecipeHighlights,
+  materialFragments,
+  type MaterialFragment,
+} from "./lib/guide-page-content";

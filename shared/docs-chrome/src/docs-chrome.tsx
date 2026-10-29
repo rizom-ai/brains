@@ -79,8 +79,10 @@ const DocsFooter = (): JSX.Element => (
         id="themeToggle"
         className="docs-font-label cursor-pointer rounded-md border border-[var(--docs-text-light)] bg-transparent px-2.5 py-1.5 text-[13px] text-[var(--docs-text-light)] transition-colors duration-150 hover:border-[var(--docs-text)] hover:text-[var(--docs-text)]"
         type="button"
+        data-theme-toggle
       >
-        ☀ Light
+        <span className="docs-theme-toggle__light">☀ Light</span>
+        <span className="docs-theme-toggle__dark">☾ Dark</span>
       </button>
     </div>
   </footer>
@@ -130,6 +132,12 @@ const docsDesignCss = `
 
 .docs-font-label {
   font-family: var(--docs-font-label);
+}
+
+/* The toggle names the theme it switches to. */
+[data-theme="light"] .docs-theme-toggle__light,
+:root:not([data-theme="light"]) .docs-theme-toggle__dark {
+  display: none;
 }
 
 .docs-header {
@@ -249,6 +257,8 @@ interface DocsPageShellProps {
   detail?: boolean;
   footer?: boolean;
   contentClassName?: string;
+  /** The page lays out its own full-width bands; only the footer keeps the column. */
+  bleed?: boolean;
 }
 
 export const DocsPageShell = ({
@@ -258,16 +268,28 @@ export const DocsPageShell = ({
   detail = false,
   footer = false,
   contentClassName = "",
+  bleed = false,
 }: DocsPageShellProps): JSX.Element => (
   <>
     <Head title={title} description={description} />
     <DocsDesignStyles />
     <div className={`docs-handbook${detail ? " docs-handbook--detail" : ""}`}>
       <DocsHeader />
-      <div className={`${docsClasses.wrap} ${contentClassName}`.trim()}>
-        {children}
-        {footer && <DocsFooter />}
-      </div>
+      {bleed ? (
+        <>
+          {children}
+          {footer && (
+            <div className="mx-auto max-w-6xl px-6 md:px-12">
+              <DocsFooter />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className={`${docsClasses.wrap} ${contentClassName}`.trim()}>
+          {children}
+          {footer && <DocsFooter />}
+        </div>
+      )}
     </div>
   </>
 );
