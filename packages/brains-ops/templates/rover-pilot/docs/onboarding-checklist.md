@@ -5,6 +5,7 @@
 3. Fill in `pilot.yaml`.
    - keep your pinned `brainVersion`
    - confirm shared selectors for `aiApiKey`, `gitSyncToken`, and `contentRepoAdminToken`
+   - `aiApiKey` must select an OpenAI key: it reaches each brain as `AI_API_KEY`, embeddings accept only an OpenAI key, and per-provider keys are not routed through the fleet yet
    - use different tokens for `contentRepoAdminToken` and `gitSyncToken`: admin creates/checks content repos; sync is used by runtime directory-sync
    - confirm `agePublicKey`
 4. Run `bunx brains-ops user:add <repo> <handle> --cohort <cohort>`.

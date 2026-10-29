@@ -21,40 +21,43 @@ brain init mybrain --domain mybrain.example.com
 brain init mybrain --content-repo github:user/brain-data
 brain init mybrain --backend none         # default: env vars only, no secret store
 brain init mybrain --deploy
-brain init mybrain --ai-api-key sk-...
+brain init mybrain --openai-api-key sk-proj-...
 brain init mybrain --no-interactive
 ```
 
 **Options**
 
-| Flag                    | Default                | Description                                                                                                                                                                                                                                                                                              |
-| ----------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--recipe <name>`       | `personal`             | Scaffold recipe: `headless`, `personal`, `professional`, or `team`                                                                                                                                                                                                                                       |
-| `--domain <domain>`     | `{directory}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                        |
-| `--content-repo <repo>` | —                      | Git repo for content sync                                                                                                                                                                                                                                                                                |
-| `--backend <name>`      | `none`                 | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
-| `--deploy`              | `false`                | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
-| `--regen`               | `false`                | Regenerate generated scaffold artifacts for an existing instance instead of scaffolding from scratch                                                                                                                                                                                                     |
-| `--ai-api-key <key>`    | —                      | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                  |
-| `--no-interactive`      | `false`                | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                     |
+| Flag                        | Default                | Description                                                                                                                                                                                                                                                                                              |
+| --------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--recipe <name>`           | `personal`             | Scaffold recipe: `headless`, `personal`, `professional`, or `team`                                                                                                                                                                                                                                       |
+| `--domain <domain>`         | `{directory}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                        |
+| `--content-repo <repo>`     | —                      | Git repo for content sync                                                                                                                                                                                                                                                                                |
+| `--backend <name>`          | `none`                 | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
+| `--deploy`                  | `false`                | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
+| `--regen`                   | `false`                | Regenerate generated scaffold artifacts for an existing instance instead of scaffolding from scratch                                                                                                                                                                                                     |
+| `--openai-api-key <key>`    | —                      | Pre-fill `.env` with `OPENAI_API_KEY=<key>`. Embeddings accept only an OpenAI-format key.                                                                                                                                                                                                                |
+| `--anthropic-api-key <key>` | —                      | Pre-fill `.env` with `ANTHROPIC_API_KEY=<key>`                                                                                                                                                                                                                                                           |
+| `--google-api-key <key>`    | —                      | Pre-fill `.env` with `GOOGLE_GENERATIVE_AI_API_KEY=<key>`                                                                                                                                                                                                                                                |
+| `--ai-api-key <key>`        | —                      | Legacy. Pre-fill `.env` with `AI_API_KEY=<key>`, used by any provider whose own key is unset                                                                                                                                                                                                             |
+| `--no-interactive`          | `false`                | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                     |
 
 **Generated files**
 
-| File                                  | Always                               | With `--deploy`                      |
-| ------------------------------------- | ------------------------------------ | ------------------------------------ |
-| `brain.yaml`                          | Yes                                  | Yes                                  |
-| `package.json`                        | Yes                                  | Yes                                  |
-| `README.md`                           | Yes                                  | Yes                                  |
-| `.env.example`                        | Yes                                  | Yes                                  |
-| `.env.schema`                         | Yes                                  | Yes                                  |
-| `.gitignore`                          | Yes                                  | Yes                                  |
-| `tsconfig.json`                       | Yes                                  | Yes                                  |
-| `.env`                                | Only when `--ai-api-key` is provided | Only when `--ai-api-key` is provided |
-| `config/deploy.yml`                   | —                                    | Yes                                  |
-| `.kamal/hooks/pre-deploy`             | —                                    | Yes                                  |
-| `deploy/Dockerfile`                   | —                                    | Yes                                  |
-| `.github/workflows/publish-image.yml` | —                                    | Yes                                  |
-| `.github/workflows/deploy.yml`        | —                                    | Yes                                  |
+| File                                  | Always                                | With `--deploy`                       |
+| ------------------------------------- | ------------------------------------- | ------------------------------------- |
+| `brain.yaml`                          | Yes                                   | Yes                                   |
+| `package.json`                        | Yes                                   | Yes                                   |
+| `README.md`                           | Yes                                   | Yes                                   |
+| `.env.example`                        | Yes                                   | Yes                                   |
+| `.env.schema`                         | Yes                                   | Yes                                   |
+| `.gitignore`                          | Yes                                   | Yes                                   |
+| `tsconfig.json`                       | Yes                                   | Yes                                   |
+| `.env`                                | Only when an API key flag is provided | Only when an API key flag is provided |
+| `config/deploy.yml`                   | —                                     | Yes                                   |
+| `.kamal/hooks/pre-deploy`             | —                                     | Yes                                   |
+| `deploy/Dockerfile`                   | —                                     | Yes                                   |
+| `.github/workflows/publish-image.yml` | —                                     | Yes                                   |
+| `.github/workflows/deploy.yml`        | —                                     | Yes                                   |
 
 ### `brain cert:bootstrap`
 
@@ -176,10 +179,10 @@ This boots the configured interfaces and services for the local instance.
 
 **Options**
 
-| Flag              | Description                                                                                                                                                                               |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--cli`           | Attach the local chat REPL after boot                                                                                                                                                     |
-| `--startup-check` | Load configured plugins, run `onRegister` and `onReady`, then exit. Does not start daemons or job workers and does not require `AI_API_KEY`. Intended for external plugin CI smoke tests. |
+| Flag              | Description                                                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--cli`           | Attach the local chat REPL after boot                                                                                                                                                      |
+| `--startup-check` | Load configured plugins, run `onRegister` and `onReady`, then exit. Does not start daemons or job workers and does not require an AI API key. Intended for external plugin CI smoke tests. |
 
 ### `brain chat`
 

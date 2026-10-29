@@ -70,6 +70,12 @@ Each run creates a rollback branch, gates on health failures during the monitore
 
 The scaffolded manual `Health Watchdog Smoke` workflow uses the same pilot desired state, Hetzner lookup, Bitwarden/Varlock deploy key, and `deploy-<handle>` concurrency boundary as fleet deployment. It refuses non-smoke handles/domains and requires `watchdog-smoke:<handle>` confirmation. The runner requires the installed watchdog to match the packaged canonical payload, exercises that installed script, and verifies the deployed image label, active timer, exact selector, liveness healthcheck, diagnostics, negative container isolation, and three-per-hour restart budget without restarting the deployed rover. Evidence is uploaded from `RUNNER_TEMP`; an independent `always()` cleanup job removes deterministic temporary containers and remote files.
 
+## AI provider keys
+
+Not done for the fleet: brains now read one key per provider (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`), but fleet deploys still route a single key. `pilot.yaml` `aiApiKey`, cohort and user `aiApiKeyOverride`, and the per-user `aiApiKey` secret all reach the container only as the legacy `AI_API_KEY`, which every capability falls back to.
+
+Embeddings accept only an OpenAI key, so that one key must be an OpenAI key. A fleet brain whose `AI_API_KEY` is an Anthropic or other non-OpenAI key fails `brain start` unless its `brain.yaml` sets `embedding.enabled: false`. Routing separate provider keys through the fleet needs schema, secrets and deploy-script changes that have not been made.
+
 ## Scope
 
 `brains-ops` lives in the `brains` monorepo and is consumed as a separate package.

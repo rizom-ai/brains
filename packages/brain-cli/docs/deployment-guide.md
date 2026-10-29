@@ -48,7 +48,7 @@ brain init mybrain --deploy --domain mybrain.example.com
 cd mybrain
 
 # Put local secrets in .env.local, including:
-# AI_API_KEY=...
+# OPENAI_API_KEY=...
 # GIT_SYNC_TOKEN=...
 # HCLOUD_TOKEN=...
 # HCLOUD_SSH_KEY_NAME=...
@@ -134,6 +134,9 @@ env:
   clear:
     NODE_ENV: production
   secret:
+    - OPENAI_API_KEY
+    - ANTHROPIC_API_KEY
+    - GOOGLE_GENERATIVE_AI_API_KEY
     - AI_API_KEY
     - GIT_SYNC_TOKEN
     - MCP_AUTH_TOKEN
@@ -158,21 +161,24 @@ The deploy CLI reads from `.env`, `.env.local`, and `process.env`.
 
 Recommended local values:
 
-| Variable                     | Purpose                                       |
-| ---------------------------- | --------------------------------------------- |
-| `AI_API_KEY`                 | runtime                                       |
-| `AI_IMAGE_KEY`               | optional runtime                              |
-| `GIT_SYNC_TOKEN`             | git-backed content sync                       |
-| `MCP_AUTH_TOKEN`             | deprecated static fallback for MCP HTTP auth  |
-| `DISCORD_BOT_TOKEN`          | optional Discord bot                          |
-| `KAMAL_REGISTRY_PASSWORD`    | GHCR pull token for the server                |
-| `HCLOUD_TOKEN`               | Hetzner provisioning                          |
-| `HCLOUD_SSH_KEY_NAME`        | Hetzner SSH key registration name             |
-| `HCLOUD_SERVER_TYPE`         | Hetzner server type                           |
-| `HCLOUD_LOCATION`            | Hetzner location                              |
-| `KAMAL_SSH_PRIVATE_KEY_FILE` | preferred local source for the deploy SSH key |
-| `CF_API_TOKEN`               | Cloudflare DNS + cert bootstrap               |
-| `CF_ZONE_ID`                 | Cloudflare zone ID                            |
+| Variable                       | Purpose                                       |
+| ------------------------------ | --------------------------------------------- |
+| `OPENAI_API_KEY`               | runtime; embeddings need an OpenAI key        |
+| `ANTHROPIC_API_KEY`            | optional runtime, for an Anthropic model      |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | optional runtime, for a Gemini model          |
+| `AI_API_KEY`                   | legacy runtime fallback for any provider key  |
+| `AI_IMAGE_KEY`                 | legacy optional runtime image key             |
+| `GIT_SYNC_TOKEN`               | git-backed content sync                       |
+| `MCP_AUTH_TOKEN`               | deprecated static fallback for MCP HTTP auth  |
+| `DISCORD_BOT_TOKEN`            | optional Discord bot                          |
+| `KAMAL_REGISTRY_PASSWORD`      | GHCR pull token for the server                |
+| `HCLOUD_TOKEN`                 | Hetzner provisioning                          |
+| `HCLOUD_SSH_KEY_NAME`          | Hetzner SSH key registration name             |
+| `HCLOUD_SERVER_TYPE`           | Hetzner server type                           |
+| `HCLOUD_LOCATION`              | Hetzner location                              |
+| `KAMAL_SSH_PRIVATE_KEY_FILE`   | preferred local source for the deploy SSH key |
+| `CF_API_TOKEN`                 | Cloudflare DNS + cert bootstrap               |
+| `CF_ZONE_ID`                   | Cloudflare zone ID                            |
 
 GitHub stores the pushed runtime/deploy values as normal secrets in the default GitHub Secrets mode, including `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`. In Bitwarden mode, GitHub should keep only `BWS_ACCESS_TOKEN`; Bitwarden stores the app/runtime/deploy secret values.
 
@@ -187,7 +193,7 @@ Apps choose their secret backend through `.env.schema`.
 This is the default scaffolded mode. `.env.schema` contains plain variables:
 
 ```env
-AI_API_KEY=
+OPENAI_API_KEY=
 GIT_SYNC_TOKEN=
 ```
 
@@ -217,7 +223,7 @@ The command creates or updates a Bitwarden Secrets Manager project named after t
 # @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)
 
 BWS_ACCESS_TOKEN=
-AI_API_KEY=bitwarden("...")
+OPENAI_API_KEY=bitwarden("...")
 GIT_SYNC_TOKEN=bitwarden("...")
 ```
 
@@ -233,7 +239,7 @@ Add this GitHub Actions secret:
 BWS_ACCESS_TOKEN
 ```
 
-Use a read-only Bitwarden machine account token for CI. After one successful deploy, delete old app/runtime GitHub secrets such as `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`.
+Use a read-only Bitwarden machine account token for CI. After one successful deploy, delete old app/runtime GitHub secrets such as `OPENAI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`.
 
 The generated workflow uses `bunx varlock@1.1.0`, not `npx -y varlock`, because older `npx` resolution can pick an obsolete Varlock package. It retries compact Varlock resolution, masks every resolved non-bootstrap value before exporting it to the job environment, and writes multiline values with GitHub Actions' `$GITHUB_ENV` heredoc form.
 

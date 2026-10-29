@@ -26,7 +26,7 @@ bun install
 # `brain init` scaffolds a `.env.example` into the brain directory; copy it to
 # `.env` and fill in your keys.
 cd ~/Documents/yeehaa-io
-cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
+cp .env.example .env   # then edit .env and add OPENAI_API_KEY at minimum
 bunx brain start
 
 # During framework development you can still run the in-tree CLI from another instance dir.
@@ -129,11 +129,19 @@ Do not bypass hooks. Fix the failing checks instead.
 ### Required Environment Variables
 
 ```bash
-# AI Service — single key for all providers (auto-detected from model name)
-AI_API_KEY=your-api-key-here
+# AI provider keys — one per provider your brain.yaml models use.
+# `model` (chat), `embeddingModel` and `imageModel` each pick a provider;
+# embeddings are OpenAI-only, so OPENAI_API_KEY is always needed.
+OPENAI_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-...        # chat with a Claude model
+# GOOGLE_GENERATIVE_AI_API_KEY=...    # chat or images with a Gemini model
 
-# Optional: separate key for image generation (defaults to AI_API_KEY)
-# AI_IMAGE_KEY=your-image-key-here
+# Legacy: AI_API_KEY fills in for any provider key above that is unset,
+# and AI_IMAGE_KEY for an unset image provider key.
+# Embeddings call the OpenAI API and accept only an OpenAI key
+# (sk-proj-, sk-svcacct-, sk-admin- or a legacy sk- key). If AI_API_KEY holds
+# any other key, set OPENAI_API_KEY.
+# AI_API_KEY=your-api-key-here
 
 # Optional: git-backed sync of brain content
 GIT_SYNC_TOKEN=ghp_...

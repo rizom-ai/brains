@@ -7,8 +7,9 @@ Proposed. Nothing implemented. Each brain picks its embedding, text and image mo
 ## Today
 
 - Text: `brain.yaml` `model` resolves through `resolveTextProvider` (`provider-selection.ts`) to Anthropic, OpenAI or Google.
-- Images: `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
-- Embeddings: hard-wired to OpenAI `text-embedding-3-small`/1536 in `service-factory.ts`, built from `AI_API_KEY`.
+- Images: `brain.yaml` `imageModel` resolves through `selectImageProvider` to OpenAI or Google; the default is `gpt-image-1.5`.
+- Embeddings: `brain.yaml` `embeddingModel` exists but `resolveEmbeddingModel` (`provider-keys.ts`) accepts only OpenAI `text-embedding-3-small`/1536.
+- Keys: each capability uses its model provider's key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`) via `resolveCapabilityKeys`; legacy `AI_API_KEY` / `AI_IMAGE_KEY` fill in for unset ones. Rover pilot fleet deploys still pass only `AI_API_KEY`.
 - `resolveAIConfig` (`shell/app/src/ai-config.ts`) strips an explicit `provider:` prefix from `model`, so the provider is re-guessed from the bare name.
 - `MODEL_PATTERNS` maps `llama`, `mistral`, `phi-` and `qwen` to provider `ollama`, but `provider-clients.ts` has no ollama client and `getLanguageModel` sends those models to Anthropic.
 

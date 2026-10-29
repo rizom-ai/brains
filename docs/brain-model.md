@@ -158,7 +158,7 @@ Team posture grants trusted create/update for selected collaborative entity type
 `.env.schema` is generated from the canonical environment declaration. Secrets remain environment-backed and may be referenced as `${NAME}` in YAML.
 
 ```dotenv
-AI_API_KEY=
+OPENAI_API_KEY=
 GIT_SYNC_TOKEN=
 DISCORD_BOT_TOKEN=
 ```
