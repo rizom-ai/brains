@@ -66,6 +66,7 @@
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/faq": "workspace:*",
+    "@brains/guide": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",

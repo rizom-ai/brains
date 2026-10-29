@@ -209,3 +209,11 @@ describe("site release workflow", () => {
     );
   });
 });
+
+describe("docs content sync", () => {
+  test("stages the doc and guide folders it writes", () => {
+    const step = workflowStep("release.yml", "Sync docs content repo");
+    expect(step).toContain("bun scripts/sync-docs-content.ts");
+    expect(step).toContain('git -C "$workdir/content" add -A doc guide');
+  });
+});

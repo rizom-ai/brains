@@ -53,6 +53,13 @@ export const docsSite: SiteDefinition = {
       paginate: false,
       navigation: { show: false },
     },
+    guide: {
+      label: "Guide",
+      pluralName: "guides",
+      layout: "default",
+      paginate: false,
+      navigation: { show: false },
+    },
   },
 };
 

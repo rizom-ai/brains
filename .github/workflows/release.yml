@@ -256,7 +256,7 @@ jobs:
           git -C "$workdir/content" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           bun scripts/sync-docs-content.ts --out "$workdir/content"
-          git -C "$workdir/content" add -A doc
+          git -C "$workdir/content" add -A doc guide
 
           if git -C "$workdir/content" diff --cached --quiet; then
             echo "Docs content is already up to date."

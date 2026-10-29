@@ -8,6 +8,16 @@ describe("@rizom/site-docs", () => {
     expect(site.entityDisplay["doc"]?.pluralName).toBe("docs");
   });
 
+  test("displays each guide at /guides/<slug>, out of navigation for now", () => {
+    expect(site.entityDisplay["guide"]).toEqual({
+      label: "Guide",
+      pluralName: "guides",
+      layout: "default",
+      paginate: false,
+      navigation: { show: false },
+    });
+  });
+
   test("routes render the docs entity list template", () => {
     for (const route of site.routes) {
       expect(route.sections).toEqual([

@@ -1,13 +1,9 @@
 import type { JSX } from "react";
+import { DocsPageShell } from "@brains/docs-chrome";
 import type { PaginationInfo } from "@brains/plugins";
 import type { DocWithData } from "../schemas/doc";
 import { groupDocs, sortDocs } from "./docs-design";
-import {
-  DocsChapter,
-  DocsListHero,
-  DocsPageShell,
-  DocsSectionIndex,
-} from "./docs-components";
+import { DocsChapter, DocsListHero, DocsSectionIndex } from "./docs-components";
 
 export interface DocListProps {
   docs: DocWithData[];
