@@ -1,6 +1,12 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { defineSection, defineSite, sectionGroup, z } from "../src";
+import {
+  defineSection,
+  defineSite,
+  languagePath,
+  sectionGroup,
+  z,
+} from "../src";
 
 const hero = defineSection(
   z.object({ heading: z.string(), introduction: z.string() }),
@@ -99,5 +105,97 @@ describe("defineSite", () => {
     });
 
     expect(() => defineSite(legacySite)).toThrow("Unrecognized key");
+  });
+});
+
+describe("defineSite languages", () => {
+  test("a site declares its languages once, the first one its default", () => {
+    const site = defineSite({ ...readingSite(), languages: ["en", "zh-TW"] });
+    expect(site.languages).toEqual(["en", "zh-TW"]);
+    expect(readingSite().languages).toBeUndefined();
+  });
+
+  test("rejects a language that is not a language tag", () => {
+    expect(() =>
+      defineSite({
+        ...readingSite(),
+        languages: ["en", "traditional chinese"],
+      }),
+    ).toThrow("language tag");
+  });
+
+  test("rejects a language declared twice, whatever its case", () => {
+    expect(() =>
+      defineSite({ ...readingSite(), languages: ["en", "zh-TW", "zh-tw"] }),
+    ).toThrow("declared twice");
+  });
+
+  test("rejects a route under another language's path", () => {
+    expect(() =>
+      defineSite({
+        ...readingSite(),
+        languages: ["en", "zh-TW"],
+        routes: [
+          ...readingSite().routes,
+          { id: "about", path: "/zh-tw/about", sections: [] },
+        ],
+      }),
+    ).toThrow("/zh-tw");
+  });
+});
+
+describe("languagePath", () => {
+  test("keeps the default language at the route's own path", () => {
+    expect(languagePath("en", "en", "/about")).toBe("/about");
+    expect(languagePath("EN", "en", "/")).toBe("/");
+  });
+
+  test("puts every other language under its lowercased tag", () => {
+    expect(languagePath("zh-TW", "en", "/")).toBe("/zh-tw");
+    expect(languagePath("zh-TW", "en", "/about/team")).toBe(
+      "/zh-tw/about/team",
+    );
+  });
+});
+
+describe("route translations", () => {
+  test("a route carries its title, description and navigation label in another language", () => {
+    const site = defineSite({
+      ...readingSite(),
+      languages: ["en", "zh-TW"],
+      routes: [
+        {
+          ...readingSite().routes[0],
+          id: "home",
+          path: "/",
+          translations: {
+            "zh-TW": {
+              title: "閱讀圖書館",
+              description: "一個長久的收藏",
+              navigationLabel: "首頁",
+            },
+          },
+        },
+      ],
+    });
+
+    expect(site.routes[0]?.translations?.["zh-TW"]?.navigationLabel).toBe(
+      "首頁",
+    );
+  });
+
+  test("rejects a translation keyed by something that is not a language tag", () => {
+    expect(() =>
+      defineSite({
+        ...readingSite(),
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            translations: { "traditional chinese": { title: "首頁" } },
+          },
+        ],
+      }),
+    ).toThrow("language tag");
   });
 });

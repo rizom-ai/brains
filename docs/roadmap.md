@@ -128,6 +128,7 @@ Plans:
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.
+- [bilingual-sites.md](./plans/bilingual-sites.md) — sites in more than one language: languages declared once, every page built per language under its tag, copy stored per language, untranslated pages skipped; The Fourth in Traditional Chinese first.
 
 ### 6. Ecosystem
 

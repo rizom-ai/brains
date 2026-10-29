@@ -65,3 +65,19 @@ describe("extendSite entityDisplay", () => {
     });
   });
 });
+
+describe("extendSite languages", () => {
+  test("an override sets the site's languages", () => {
+    const site = extendSite(makeBase(), { languages: ["en", "zh-TW"] });
+    expect(site.languages).toEqual(["en", "zh-TW"]);
+  });
+
+  test("the base's languages survive when the override omits them", () => {
+    const base: SitePackage<unknown> = {
+      ...makeBase(),
+      languages: ["en", "zh-TW"],
+    };
+    const site = extendSite(base, { routes: [{ id: "home", path: "/" }] });
+    expect(site.languages).toEqual(["en", "zh-TW"]);
+  });
+});

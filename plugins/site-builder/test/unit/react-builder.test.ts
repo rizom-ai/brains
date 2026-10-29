@@ -2,13 +2,17 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createReactBuilder as createActualReactBuilder } from "../../src/lib/react-builder";
 import type { RendererTestSourceContext as BuildContext } from "../test-helpers";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
-import type { RouteDefinition } from "@brains/site-composition";
+import {
+  PageLanguageContext,
+  type RouteDefinition,
+  type SiteLayoutInfo,
+} from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createElement as h, type ReactElement } from "react";
+import { createElement as h, useContext, type ReactElement } from "react";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { prepareRendererTestContext, TestLayout } from "../test-helpers";
 import {
@@ -154,6 +158,368 @@ describe("ReactBuilder", () => {
     const html = await fs.readFile(indexPath, "utf-8");
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("Hello World");
+  });
+
+  it("writes each page's language into <html lang>", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+    const page = (
+      id: string,
+      path: string,
+      language: string | undefined,
+    ): BuildContext["routes"][number] => ({
+      id,
+      path,
+      ...(language !== undefined && { language }),
+      title: "Page",
+      description: "Page",
+      layout: "default",
+      sections: [{ id: "s", template: "test", content: { title: id } }],
+    });
+
+    await builder.build(
+      {
+        routes: [page("home", "/", undefined), page("zh", "/zh-tw", "zh-TW")],
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    const english = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    const chinese = await fs.readFile(
+      join(outputDir, "zh-tw/index.html"),
+      "utf-8",
+    );
+    expect(english).toContain('<html lang="en"');
+    expect(chinese).toContain('<html lang="zh-TW"');
+  });
+
+  it("links each page to its other languages and hands the layout its language, versions and navigation", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+    const LanguageLayout: LayoutComponent = ({
+      sections,
+      language,
+      alternates,
+      siteInfo,
+    }) =>
+      h(
+        "main",
+        { "data-language": language },
+        h(
+          "nav",
+          null,
+          ...(alternates ?? []).map((alternate) =>
+            h(
+              "a",
+              { key: alternate.language, href: alternate.path },
+              alternate.language,
+            ),
+          ),
+          ...siteInfo.navigation.primary.map((item) =>
+            h("a", { key: item.href, href: item.href }, item.label),
+          ),
+        ),
+        sections,
+      );
+    const versions = [
+      { language: "en", path: "/" },
+      { language: "zh-TW", path: "/zh-tw" },
+    ];
+    const page = (
+      id: string,
+      path: string,
+      language: string,
+      siteNavigation?: SiteLayoutInfo["navigation"],
+    ): BuildContext["routes"][number] => ({
+      id,
+      path,
+      language,
+      alternates: versions,
+      ...(siteNavigation && { siteNavigation }),
+      title: "Page",
+      description: "Page",
+      layout: "default",
+      sections: [{ id: "s", template: "test", content: { title: id } }],
+    });
+
+    await builder.build(
+      {
+        routes: [
+          page("home", "/", "en"),
+          page("zh", "/zh-tw", "zh-TW", {
+            primary: [{ label: "首頁", href: "/zh-tw", priority: 10 }],
+            secondary: [],
+          }),
+        ],
+        siteUrl: "https://site.example",
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: LanguageLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: {
+            primary: [{ label: "Home", href: "/", priority: 10 }],
+            secondary: [],
+          },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    const english = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    const chinese = await fs.readFile(
+      join(outputDir, "zh-tw/index.html"),
+      "utf-8",
+    );
+    for (const html of [english, chinese]) {
+      expect(html).toContain(
+        '<link rel="alternate" hreflang="en" href="https://site.example/">',
+      );
+      expect(html).toContain(
+        '<link rel="alternate" hreflang="zh-TW" href="https://site.example/zh-tw">',
+      );
+      expect(html).toContain(
+        '<link rel="alternate" hreflang="x-default" href="https://site.example/">',
+      );
+      expect(html).toContain('<a href="/zh-tw">zh-TW</a>');
+    }
+    expect(english).toContain('data-language="en"');
+    expect(english).toContain('<a href="/">Home</a>');
+    expect(chinese).toContain('data-language="zh-TW"');
+    expect(chinese).toContain('<a href="/zh-tw">首頁</a>');
+    expect(chinese).not.toContain(">Home</a>");
+  });
+
+  it("dresses a translated page in the site's chrome for its language", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+    const ChromeLayout: LayoutComponent = ({ sections, siteInfo }) =>
+      h(
+        "main",
+        null,
+        h("a", { href: siteInfo.cta?.buttonLink }, siteInfo.cta?.buttonText),
+        sections,
+        h("footer", null, siteInfo.copyright),
+      );
+    const page = (
+      id: string,
+      path: string,
+      language: string,
+      siteTranslation?: {
+        copyright: string;
+        cta: { heading: string; buttonText: string; buttonLink: string };
+      },
+    ): BuildContext["routes"][number] => ({
+      id,
+      path,
+      language,
+      ...(siteTranslation && { siteTranslation }),
+      title: "",
+      description: "",
+      layout: "default",
+      sections: [{ id: "s", template: "test", content: { title: id } }],
+    });
+
+    await builder.build(
+      {
+        routes: [
+          page("home", "/", "en"),
+          page("zh", "/zh-tw", "zh-TW", {
+            copyright: "©2026 第四",
+            cta: {
+              heading: "開始",
+              buttonText: "聊聊吧",
+              buttonLink: "mailto:nihao.fourth@gmail.com",
+            },
+          }),
+        ],
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "The Fourth", description: "Brand consultancy" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: ChromeLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "The Fourth",
+          description: "Brand consultancy",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©2026 The Fourth",
+          cta: {
+            heading: "Start",
+            buttonText: "Let’s talk",
+            buttonLink: "mailto:nihao.fourth@gmail.com",
+          },
+        }),
+      },
+      () => {},
+    );
+
+    const english = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    const chinese = await fs.readFile(
+      join(outputDir, "zh-tw/index.html"),
+      "utf-8",
+    );
+    expect(english).toContain("Let’s talk</a>");
+    expect(english).toContain("<footer>©2026 The Fourth</footer>");
+    expect(chinese).toContain("聊聊吧</a>");
+    expect(chinese).toContain("<footer>©2026 第四</footer>");
+    // The site's own title stands where the translation gives none.
+    expect(chinese).toContain("<title>The Fourth</title>");
+  });
+
+  it("tells the page's sections the language they are drawn in", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const LanguageAware = (): ReactElement =>
+      h("p", null, `drawn in ${useContext(PageLanguageContext) ?? "?"}`);
+
+    await builder.build(
+      {
+        routes: ["en", "zh-TW"].map((language) => ({
+          id: language,
+          path: language === "en" ? "/" : "/zh-tw",
+          language,
+          title: "Page",
+          description: "Page",
+          layout: "default",
+          sections: [{ id: "s", template: "aware", content: {} }],
+        })),
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "aware"
+            ? {
+                name: "aware",
+                schema: z.object({}),
+                pluginId: "test-plugin",
+                renderers: { web: LanguageAware },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    expect(await fs.readFile(join(outputDir, "index.html"), "utf-8")).toContain(
+      "<p>drawn in en</p>",
+    );
+    expect(
+      await fs.readFile(join(outputDir, "zh-tw/index.html"), "utf-8"),
+    ).toContain("<p>drawn in zh-TW</p>");
+  });
+
+  it("writes no language links for a page built in one language", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+
+    await builder.build(
+      {
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            language: "en",
+            alternates: [{ language: "en", path: "/" }],
+            title: "Page",
+            description: "Page",
+            layout: "default",
+            sections: [{ id: "s", template: "test", content: { title: "x" } }],
+          },
+        ],
+        siteUrl: "https://site.example",
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    expect(html).not.toContain("hreflang");
   });
 
   it("should fall back to site layout metadata when route metadata is omitted", async () => {

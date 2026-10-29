@@ -1,7 +1,13 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { createTypedComponent, type Template } from "@brains/templates";
+import { useContext } from "react";
+import { PageLanguageContext } from "./page-language";
 import { z } from "@brains/utils/zod";
-import type { SiteSectionDefinition, SiteSectionGroup } from "@rizom/site";
+import type {
+  ComponentType,
+  SiteSectionDefinition,
+  SiteSectionGroup,
+} from "@rizom/site";
 
 /**
  * Schema-first section → `Template`. The markdown formatter's field structure is
@@ -95,6 +101,24 @@ function shapeMappings(schema: z.ZodObject): FieldMapping[] {
 }
 
 /**
+ * A section's component that draws the page language's own way when the
+ * section brings one, else the default way.
+ */
+function drawnPerLanguage<P>(
+  component: ComponentType<P>,
+  components: Record<string, ComponentType<P>> | undefined,
+): ComponentType<P> {
+  if (!components || Object.keys(components).length === 0) return component;
+  return function DrawnInPageLanguage(props: P) {
+    const language = useContext(PageLanguageContext)?.toLowerCase();
+    const drawing = Object.entries(components).find(
+      ([tag]) => tag.toLowerCase() === language,
+    )?.[1];
+    return (drawing ?? component)(props);
+  };
+}
+
+/**
  * Build a `Template` from a schema-first section. The schema must be a zod
  * object (its fields become the markdown headings). Throws at definition time
  * for unsupported schema shapes rather than failing silently at render.
@@ -126,7 +150,10 @@ export function sectionToTemplate(
     requiredPermission: section.requiredPermission ?? "public",
     layout: {
       // Parsed against the section schema, so the erased component is safe.
-      component: createTypedComponent(section.schema, section.component),
+      component: createTypedComponent(
+        section.schema,
+        drawnPerLanguage(section.component, section.components),
+      ),
       ...(section.fullscreen !== undefined
         ? { fullscreen: section.fullscreen }
         : {}),
