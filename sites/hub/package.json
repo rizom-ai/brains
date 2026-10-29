@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-hub",
-  "version": "0.2.0-alpha.5",
+  "version": "0.2.0-alpha.6",
   "description": "The Rizom hub — an interactive story on why an ecosystem needs a hub and how it fits into Rizom",
   "type": "module",
   "exports": {
@@ -17,7 +17,7 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.239"
+    "@rizom/site": "0.2.0-alpha.240"
   },
   "publishPeerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0",
