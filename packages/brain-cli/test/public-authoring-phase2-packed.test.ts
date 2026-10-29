@@ -33,7 +33,7 @@ const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 
 const runtimeEnv = {
   ...process.env,
-  AI_API_KEY: "packed-hermetic-runtime",
+  AI_API_KEY: "sk-proj-packed-hermetic-runtime",
   BRAIN_SKIP_LOCAL_REEXEC: "1",
 };
 

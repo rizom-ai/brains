@@ -45,7 +45,7 @@ describe("canonical packed consumer", () => {
         {
           env: {
             ...process.env,
-            AI_API_KEY: "packed-startup-check",
+            AI_API_KEY: "sk-proj-packed-startup-check",
             GIT_SYNC_TOKEN: "packed-startup-check",
           },
           timeoutMs: 90_000,
