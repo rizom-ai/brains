@@ -80,11 +80,13 @@ until the repository owns a corresponding format.
 
 ### AI Models
 
-- **Configurable** — single `AI_API_KEY` env var, provider auto-detected from model name
+- **Configurable** — `brain.yaml` picks `model` (chat), `embeddingModel` and `imageModel`; each model's provider is auto-detected from its name and uses that provider's key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`)
   - Default text model: **`gpt-6-luna`** with `low` reasoning (OpenAI)
-  - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini)
-  - Default embedding model: **`text-embedding-3-small`** (OpenAI)
-  - Optional separate `AI_IMAGE_KEY` for image generation
+  - Supported chat providers: OpenAI, Anthropic (Claude), Google (Gemini)
+  - Embedding model: **`text-embedding-3-small`** (OpenAI) — the only supported value today
+  - Embeddings are OpenAI-only: `brain init`, `brain start` and the embedding provider accept only a key in an OpenAI format for them
+  - Default image model: **`gpt-image-1.5`** (OpenAI); Gemini image models supported
+  - Legacy `AI_API_KEY` / `AI_IMAGE_KEY` fill in for any unset provider key
 
 ### AI Integration
 
@@ -98,7 +100,7 @@ until the repository owns a corresponding format.
 
 - **Embedding Generation** — OpenAI `text-embedding-3-small`
   - 1536-dimensional vectors
-  - Called via Vercel AI SDK (same `AI_API_KEY` as text gen)
+  - Called via Vercel AI SDK with `OPENAI_API_KEY` (falls back to `AI_API_KEY`)
   - ~$0.02/M tokens (negligible for personal brains)
 - **Vector Storage** — separate `embeddings.db`
   - Decoupled from entity DB for model-swap flexibility
@@ -333,7 +335,7 @@ until the repository owns a corresponding format.
 - **Local-first content** — Markdown files as source of truth, git-backed sync via `directory-sync`
 - **Hybrid search** — vector embeddings (OpenAI) + FTS5 keyword matching, threshold-tuned
 - **Multi-interface support** — CLI, Chat REPL, Discord, MCP, A2A, Webserver
-- **AI-powered** — single `AI_API_KEY`, provider auto-detected from model name (OpenAI / Anthropic / Google)
+- **AI-powered** — per-capability models, one key per provider (OpenAI / Anthropic / Google)
 - **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories
 - **Type-safe** — end-to-end TypeScript with Zod validation
 - **Observable** — structured JSON logs, operational diagnostics at `/health/operate`, `ai:usage` tracking

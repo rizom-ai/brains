@@ -24,7 +24,7 @@ bun add -g @rizom/brain
 brain init mybrain
 cd mybrain
 cp .env.example .env
-# set AI_API_KEY in .env
+# set OPENAI_API_KEY in .env
 brain start
 ```
 

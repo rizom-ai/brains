@@ -133,14 +133,20 @@ Select an optional semantic profile kind from the composed catalog. The standard
 
 Override deployment domain, production port, or database URL.
 
-### `model`
+### `model`, `imageModel`, `embeddingModel`
 
-Select the AI text model. This field is unrelated to the retired built-in brain models.
+Select the AI model for chat (`model`), image generation (`imageModel`) and embeddings (`embeddingModel`). These fields are unrelated to the retired built-in brain models.
 
 ```yaml
 model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
+imageModel: gpt-image-1.5
+embeddingModel: text-embedding-3-small
 ```
+
+Each model's provider is detected from its name and reads that provider's key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`. The legacy `AI_API_KEY` fills in for any unset provider key, and `AI_IMAGE_KEY` for an unset image key.
+
+Embeddings are OpenAI-only: `embeddingModel` accepts only `text-embedding-3-small`, and the embedding key must be an OpenAI-format key. With embeddings enabled, `brain start` refuses any other key.
 
 ### `embedding`
 
@@ -244,7 +250,7 @@ plugins:
     botToken: ${DISCORD_BOT_TOKEN}
 ```
 
-Common variables include `AI_API_KEY`, `AI_IMAGE_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
+Common variables include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, the legacy `AI_API_KEY` and `AI_IMAGE_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
 
 ## Recipes
 
