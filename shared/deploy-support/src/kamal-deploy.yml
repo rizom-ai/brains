@@ -33,6 +33,9 @@ env:
   clear:
     NODE_ENV: production
   secret:
+    - OPENAI_API_KEY
+    - ANTHROPIC_API_KEY
+    - GOOGLE_GENERATIVE_AI_API_KEY
     - AI_API_KEY
     - GIT_SYNC_TOKEN
     - DISCORD_BOT_TOKEN
