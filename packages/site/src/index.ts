@@ -338,6 +338,13 @@ export interface SiteDefinition {
   entityDisplay: Record<string, EntityDisplayEntry>;
   /** Static assets to write into the site output directory at build time. */
   staticAssets?: Record<string, string> | undefined;
+  /**
+   * The languages the site is built in, as language tags (`en`, `zh-TW`).
+   * The first is the default and keeps the routes' own paths; every other
+   * language is built under its lowercased tag (`/zh-tw/about`) from copy
+   * saved for it. Without it the site is built once, in English.
+   */
+  languages?: string[] | undefined;
 }
 
 export type SiteDefinitionOverrides = {
@@ -525,6 +532,28 @@ const siteContentSchema: z.ZodRecord<
  * The fields a site definition may carry. Extracted so overrides can be
  * validated as a partial of the same shape rather than asserted into it.
  */
+/** A language tag such as `en` or `zh-TW`. */
+export const languageTagSchema: z.ZodString = z
+  .string()
+  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, {
+    message: "must be a language tag such as en or zh-TW",
+  });
+
+/**
+ * Where a page of a site in more than one language lives: the default
+ * language keeps the route's own path, every other language puts its
+ * lowercased tag in front (`/` → `/zh-tw`, `/about` → `/zh-tw/about`).
+ */
+export function languagePath(
+  language: string,
+  defaultLanguage: string,
+  path: string,
+): string {
+  if (language.toLowerCase() === defaultLanguage.toLowerCase()) return path;
+  const prefix = `/${language.toLowerCase()}`;
+  return path === "/" ? prefix : `${prefix}${path}`;
+}
+
 const siteDefinitionShape: {
   layouts: z.ZodRecord<z.ZodString, typeof componentSchema>;
   routes: z.ZodArray<typeof routeInputSchema>;
@@ -541,6 +570,7 @@ const siteDefinitionShape: {
   headScripts: z.ZodOptional<z.ZodArray<z.ZodString>>;
   entityDisplay: z.ZodRecord<z.ZodString, typeof entityDisplaySchema>;
   staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+  languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
 } = {
   layouts: z
     .record(z.string(), componentSchema)
@@ -556,6 +586,7 @@ const siteDefinitionShape: {
   headScripts: z.array(z.string()).optional(),
   entityDisplay: z.record(z.string(), entityDisplaySchema),
   staticAssets: z.record(z.string(), z.string()).optional(),
+  languages: z.array(languageTagSchema).min(1).optional(),
 };
 
 type SiteDefinitionShape = typeof siteDefinitionShape;
@@ -581,6 +612,23 @@ void expectSiteDefinitionOverrides;
 export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
   .strictObject(siteDefinitionShape)
   .superRefine((site, context) => {
+    const languages = site.languages ?? [];
+    const seenLanguages = new Set<string>();
+    for (const [index, language] of languages.entries()) {
+      const key = language.toLowerCase();
+      if (seenLanguages.has(key)) {
+        context.addIssue({
+          code: "custom",
+          path: ["languages", index],
+          message: `Language "${language}" is declared twice`,
+        });
+      }
+      seenLanguages.add(key);
+    }
+    const translatedPrefixes = languages
+      .slice(1)
+      .map((language) => `/${language.toLowerCase()}`);
+
     const routeIds = new Set<string>();
     for (const [index, route] of site.routes.entries()) {
       if (routeIds.has(route.id)) {
@@ -591,6 +639,19 @@ export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
         });
       }
       routeIds.add(route.id);
+
+      const lowerPath = route.path.toLowerCase();
+      const prefix = translatedPrefixes.find(
+        (candidate) =>
+          lowerPath === candidate || lowerPath.startsWith(`${candidate}/`),
+      );
+      if (prefix) {
+        context.addIssue({
+          code: "custom",
+          path: ["routes", index, "path"],
+          message: `Route path "${route.path}" is under ${prefix}, where another language's pages are built`,
+        });
+      }
 
       const layout = route.layout ?? "default";
       if (!site.layouts[layout]) {

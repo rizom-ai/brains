@@ -156,6 +156,63 @@ describe("ReactBuilder", () => {
     expect(html).toContain("Hello World");
   });
 
+  it("writes each page's language into <html lang>", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+    const page = (
+      id: string,
+      path: string,
+      language: string | undefined,
+    ): BuildContext["routes"][number] => ({
+      id,
+      path,
+      ...(language !== undefined && { language }),
+      title: "Page",
+      description: "Page",
+      layout: "default",
+      sections: [{ id: "s", template: "test", content: { title: id } }],
+    });
+
+    await builder.build(
+      {
+        routes: [page("home", "/", undefined), page("zh", "/zh-tw", "zh-TW")],
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    const english = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    const chinese = await fs.readFile(
+      join(outputDir, "zh-tw/index.html"),
+      "utf-8",
+    );
+    expect(english).toContain('<html lang="en"');
+    expect(chinese).toContain('<html lang="zh-TW"');
+  });
+
   it("should fall back to site layout metadata when route metadata is omitted", async () => {
     const builder = createReactBuilder({
       logger,

@@ -241,6 +241,7 @@ export class ReactBuilder implements StaticSiteBuilder {
       preparedBuild.site.analyticsScript,
       allHeadScripts,
       headPaths,
+      route.language,
     );
 
     // Determine output path

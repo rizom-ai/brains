@@ -133,6 +133,11 @@ export class SiteBuilderPlugin extends ServicePlugin<
       getViewTemplate: (name) => context.views.get(name),
       listViewTemplateNames: (): string[] =>
         context.views.list().map((template) => template.name),
+      hasSavedContent: async (id): Promise<boolean> =>
+        (await context.entityService.getEntity({
+          entityType: "site-content",
+          id,
+        })) !== null,
     };
 
     // Initialize site builder
@@ -167,6 +172,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
+          ...(this.config.languages && { languages: this.config.languages }),
           statusService: this.buildStatusService,
         },
       ),

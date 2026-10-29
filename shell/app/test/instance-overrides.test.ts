@@ -1694,6 +1694,27 @@ describe("resolve with site package", () => {
     ]);
   });
 
+  test("should inject the site package's languages into site-builder", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("bilingual-site", {
+      languages: ["en", "zh-TW"],
+    });
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find(
+      (plugin) => plugin.id === "site-builder",
+    );
+
+    expect(getConfig(siteBuilder)["languages"]).toEqual(["en", "zh-TW"]);
+  });
+
   test("should inject staticAssets from site package into site-builder", () => {
     // Site packages can ship static files (canvas scripts, fonts, etc.)
     // via a `staticAssets` map of output-path → file-contents-string.

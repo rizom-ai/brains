@@ -1,5 +1,9 @@
 import { z } from "@brains/utils/zod";
-export { entityDisplaySchema } from "@rizom/site";
+export {
+  entityDisplaySchema,
+  languagePath,
+  languageTagSchema,
+} from "@rizom/site";
 import type {
   NavigationItem,
   NavigationMetadata,

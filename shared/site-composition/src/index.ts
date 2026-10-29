@@ -2,6 +2,8 @@ export type { SiteCompositionPlugin } from "./plugin";
 export {
   entityDisplaySchema,
   GetRoutePayloadSchema,
+  languagePath,
+  languageTagSchema,
   ListRoutesPayloadSchema,
   NavigationItemSchema,
   NavigationMetadataSchema,

@@ -1,4 +1,7 @@
-import { siteMetadataSchema } from "@brains/site-composition";
+import {
+  languageTagSchema,
+  siteMetadataSchema,
+} from "@brains/site-composition";
 import { type ProgressCallback } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
@@ -19,6 +22,7 @@ export const SiteBuilderOptionsSchema: z.ZodObject<{
     z.ZodCustom<LayoutComponent, LayoutComponent>
   >;
   themeCSS: z.ZodOptional<z.ZodString>;
+  languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
 }> = z.object({
   environment: z.enum(["preview", "production"]),
   outputDir: z.string(),
@@ -29,6 +33,8 @@ export const SiteBuilderOptionsSchema: z.ZodObject<{
   siteConfig: siteMetadataSchema,
   layouts: z.record(z.string(), z.custom<LayoutComponent>()),
   themeCSS: z.string().optional(),
+  /** The site's languages, the first its default (see collectBuildRoutes). */
+  languages: z.array(languageTagSchema).min(1).optional(),
 });
 
 export type SiteBuilderOptionsSchemaOutput = z.output<

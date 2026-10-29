@@ -29,6 +29,7 @@ export type PreparedSection = z.output<typeof preparedSectionSchema>;
 export const preparedRouteSchema: z.ZodObject<{
   id: z.ZodString;
   path: z.ZodString;
+  language: z.ZodString;
   title: z.ZodString;
   pageLabel: z.ZodOptional<z.ZodString>;
   description: z.ZodString;
@@ -39,6 +40,8 @@ export const preparedRouteSchema: z.ZodObject<{
 }> = z.object({
   id: z.string(),
   path: z.string(),
+  /** The page's language tag, written into `<html lang>`. */
+  language: z.string(),
   title: z.string(),
   pageLabel: z.string().optional(),
   description: z.string(),

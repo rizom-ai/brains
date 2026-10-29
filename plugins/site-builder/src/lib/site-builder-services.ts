@@ -11,5 +11,7 @@ export interface SiteBuilderServices {
     options?: SiteContentResolutionOptions,
   ) => Promise<unknown>;
   getViewTemplate: (name: string) => SiteViewTemplate | undefined;
+  /** Whether site-content is saved under an id (`zh-tw:home:cover`). */
+  hasSavedContent: (id: string) => Promise<boolean>;
   listViewTemplateNames: () => string[];
 }

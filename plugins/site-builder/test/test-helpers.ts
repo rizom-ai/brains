@@ -4,6 +4,7 @@ import type { SiteBuilderConfig } from "../src/config";
 import type { SiteBuilderServices } from "../src/lib/site-builder";
 import type { BuildContext } from "../src/lib/static-site-builder";
 import type { SiteViewTemplate } from "../src/lib/site-view-template";
+import { DEFAULT_SITE_LANGUAGE } from "../src/lib/collect-build-routes";
 import type {
   SiteBuildOutputCommitResult,
   SiteBuildOutputLifecycle,
@@ -34,8 +35,11 @@ export const TestLayout: LayoutComponent = ({ sections }) => {
   return h("main", {}, sections);
 };
 
+/** A fixture route, in English unless it says otherwise. */
+export type TestRoute = RouteDefinition & { language?: string };
+
 interface CreateRendererTestContextOptions {
-  routes: RouteDefinition[];
+  routes: TestRoute[];
   siteConfig: SiteMetadata;
   siteLayoutInfo: SiteLayoutInfo;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
@@ -50,7 +54,7 @@ interface CreateRendererTestContextOptions {
 
 /** Prepare inline fixture content for renderer-only unit tests. */
 export interface RendererTestSourceContext {
-  routes: RouteDefinition[];
+  routes: TestRoute[];
   siteConfig: SiteMetadata;
   getContent(
     route: RouteDefinition,
@@ -116,6 +120,7 @@ export function createRendererTestContext(
   const preparedRoutes = options.routes.map((route) => ({
     id: route.id,
     path: route.path,
+    language: route.language ?? DEFAULT_SITE_LANGUAGE,
     title: route.title,
     ...(route.pageLabel !== undefined && { pageLabel: route.pageLabel }),
     description: route.description,
@@ -234,6 +239,11 @@ export function createSiteBuilderServices(
     getViewTemplate: (name) => context.views.get(name),
     listViewTemplateNames: (): string[] =>
       context.views.list().map((template) => template.name),
+    hasSavedContent: async (id): Promise<boolean> =>
+      (await context.entityService.getEntity({
+        entityType: "site-content",
+        id,
+      })) !== null,
   };
 }
 

@@ -1,0 +1,5 @@
+---
+"@rizom/site": patch
+---
+
+A site can declare the languages it is built in: `defineSite({ languages: ["en", "zh-TW"] })`, the first the default. Language tags are validated, a language declared twice is refused, and so is a route under another language's path. `languagePath(language, defaultLanguage, path)` gives where a page lives in a language: the default keeps the route's own path, every other language puts its lowercased tag in front (`/zh-tw/about`).
