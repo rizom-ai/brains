@@ -81,6 +81,7 @@ Plans:
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
+- [moving-in-guides.md](./plans/moving-in-guides.md) — a `guide` entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from `docs/guides/` with the docs.
 
 ### 2. The collective posture
 

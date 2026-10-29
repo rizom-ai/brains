@@ -1,0 +1,1791 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Moving in as a writer — guide mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root,
+      [data-theme="dark"] {
+        --bg: #0a0819;
+        --surface: #18132a;
+        --surface-2: #211a38;
+        --text: #f4ede0;
+        --muted: rgb(244 237 224 / 0.62);
+        --faint: rgb(244 237 224 / 0.38);
+        --line: rgb(244 237 224 / 0.1);
+        --line-soft: rgb(244 237 224 / 0.06);
+        --light: #ff8b3d;
+        --light-deep: #b8410c;
+        --glow: rgb(255 139 61 / 0.35);
+        --under: #8c82c8;
+        --under-deep: #4b2a63;
+        --frag: rgb(244 237 224 / 0.07);
+      }
+      [data-theme="light"] {
+        --bg: #f4ede0;
+        --surface: #faf4e6;
+        --surface-2: #efe5d2;
+        --text: #1c1626;
+        --muted: rgb(28 22 38 / 0.66);
+        --faint: rgb(28 22 38 / 0.42);
+        --line: rgb(28 22 38 / 0.12);
+        --line-soft: rgb(28 22 38 / 0.07);
+        --light: #b8410c;
+        --light-deep: #8f3009;
+        --glow: rgb(184 65 12 / 0.22);
+        --under: #4b2a63;
+        --under-deep: #4b2a63;
+        --frag: rgb(28 22 38 / 0.05);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          17px/1.65 "IBM Plex Sans",
+          system-ui,
+          sans-serif;
+        overflow-x: hidden;
+        transition:
+          background 0.5s,
+          color 0.5s;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .mono {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      .display {
+        font-family: Fraunces, Georgia, serif;
+        font-optical-sizing: auto;
+        font-weight: 380;
+        letter-spacing: -0.02em;
+      }
+      .label {
+        font:
+          500 12px/1 "IBM Plex Mono",
+          monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--light);
+      }
+      em.accent {
+        font-style: italic;
+        color: var(--light);
+      }
+
+      .aside-guide {
+        display: block;
+        margin-top: 28px;
+        padding: 14px 16px;
+        border-left: 2px solid var(--under);
+        border-radius: 0 10px 10px 0;
+        background: color-mix(in srgb, var(--surface) 70%, transparent);
+        color: var(--muted);
+        font-size: 15px;
+        transition: border-color 0.2s;
+      }
+      .aside-guide b {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .aside-guide:hover {
+        border-color: var(--light);
+      }
+      .invite {
+        padding: 26px 28px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: 0 40px 120px rgb(0 0 0 / 0.35);
+      }
+      .invite__meta {
+        display: flex;
+        justify-content: space-between;
+        margin: 0 0 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--faint);
+        font:
+          12px/1 "IBM Plex Mono",
+          monospace;
+      }
+      .invite h4 {
+        margin: 0 0 10px;
+        font:
+          400 28px/1.15 Fraunces,
+          Georgia,
+          serif;
+      }
+      .invite > p {
+        margin: 0 0 22px;
+        color: var(--muted);
+      }
+      .invite__doors {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+      }
+      .invite__doors span {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: var(--faint);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .invite__doors b {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--light);
+        font:
+          500 15px/1.4 "IBM Plex Sans",
+          sans-serif;
+      }
+
+      /* mockup note */
+      .mock-note {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 200;
+        max-width: 250px;
+        cursor: pointer;
+        padding: 10px 14px;
+        border: 1px dashed var(--faint);
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        color: var(--muted);
+        font:
+          12px/1.5 "IBM Plex Mono",
+          monospace;
+        backdrop-filter: blur(6px);
+      }
+
+      /* chrome */
+      .header {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px clamp(16px, 4vw, 64px);
+        background: linear-gradient(180deg, var(--bg) 10%, transparent);
+      }
+      .wordmark {
+        font-weight: 600;
+        font-size: 20px;
+      }
+      .wordmark .dot {
+        color: var(--light);
+      }
+      .wordmark .suffix {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: clamp(14px, 3vw, 32px);
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .nav a[aria-current] {
+        color: var(--text);
+        border-bottom: 1px solid var(--light);
+      }
+      .nav .hide-sm {
+        display: none;
+      }
+      @media (min-width: 760px) {
+        .nav .hide-sm {
+          display: inline;
+        }
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px;
+        border: 1px solid var(--text);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text);
+        font:
+          600 14px/1 "IBM Plex Sans",
+          sans-serif;
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
+      }
+      .btn:hover {
+        border-color: var(--light);
+        color: var(--light);
+      }
+      .theme-toggle {
+        font:
+          12px/1 "IBM Plex Mono",
+          monospace;
+        padding: 7px 10px;
+        border-color: var(--faint);
+        color: var(--muted);
+      }
+
+      /* opening */
+      .opening {
+        position: relative;
+        height: 190vh;
+      }
+      .opening__stage {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+      }
+      #fragments {
+        position: absolute;
+        inset: 0;
+      }
+      .fragment {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--frag);
+        color: var(--muted);
+        font:
+          13px/1.35 "IBM Plex Mono",
+          monospace;
+        white-space: nowrap;
+        will-change: transform, opacity;
+      }
+      @media (max-width: 640px) {
+        .fragment {
+          display: none;
+          font-size: 11.5px;
+        }
+        .fragment:nth-child(3n + 1) {
+          display: block;
+        }
+        .mock-note {
+          max-width: 190px;
+          font-size: 11px;
+        }
+      }
+      .fragment b {
+        display: block;
+        font:
+          500 11px/1.4 "IBM Plex Mono",
+          monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      .seed {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        margin: -7px 0 0 -7px;
+        border-radius: 50%;
+        background: var(--light);
+        box-shadow:
+          0 0 30px 8px var(--glow),
+          0 0 120px 40px var(--glow);
+        opacity: 0;
+        transform: scale(0.2);
+      }
+      .opening__copy {
+        position: relative;
+        z-index: 2;
+        max-width: 860px;
+        padding: 0 16px;
+        text-align: center;
+        will-change: opacity, transform;
+      }
+      .opening__copy h1 {
+        margin: 22px 0 26px;
+        font-size: clamp(48px, 9vw, 120px);
+        line-height: 0.95;
+      }
+      .opening__copy p.for {
+        margin: 0 auto;
+        max-width: 34ch;
+        font:
+          300 clamp(20px, 2.4vw, 27px) / 1.45 Fraunces,
+          Georgia,
+          serif;
+        color: var(--muted);
+      }
+      .scroll-cue {
+        position: absolute;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: var(--faint);
+        font:
+          12px/1 "IBM Plex Mono",
+          monospace;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .settled {
+        position: absolute;
+        left: 50%;
+        top: calc(50% + 46px);
+        transform: translateX(-50%);
+        width: min(560px, calc(100% - 32px));
+        text-align: center;
+        font:
+          300 clamp(20px, 2.6vw, 28px) / 1.4 Fraunces,
+          Georgia,
+          serif;
+        opacity: 0;
+      }
+
+      /* sections */
+      .wrap {
+        width: min(1180px, 100% - 32px);
+        margin: 0 auto;
+      }
+      .band {
+        padding: clamp(80px, 12vw, 160px) 0;
+        border-top: 1px solid var(--line-soft);
+      }
+      .band__head {
+        max-width: 720px;
+        margin-bottom: clamp(40px, 6vw, 72px);
+      }
+      .band__head h2 {
+        margin: 18px 0 14px;
+        font-size: clamp(34px, 5vw, 60px);
+        line-height: 1.02;
+      }
+      .band__head p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 56ch;
+      }
+
+      /* material map */
+      .map {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.7fr) minmax(
+            0,
+            0.6fr
+          );
+        align-items: center;
+      }
+      .map svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: visible;
+      }
+      .map {
+        row-gap: 18px;
+      }
+      .map svg path {
+        animation: flow 2.6s linear infinite;
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -16;
+        }
+      }
+      .map__sources,
+      .map__types {
+        display: contents;
+      }
+      .source,
+      .type {
+        position: relative;
+        z-index: 1;
+      }
+      .source {
+        grid-column: 1;
+      }
+      .type {
+        grid-column: 3;
+      }
+      .map__sources > :nth-child(1),
+      .map__types > :nth-child(1) {
+        grid-row: 1;
+      }
+      .map__sources > :nth-child(2),
+      .map__types > :nth-child(2) {
+        grid-row: 2;
+      }
+      .map__sources > :nth-child(3),
+      .map__types > :nth-child(3) {
+        grid-row: 3;
+      }
+      .map__sources > :nth-child(4),
+      .map__types > :nth-child(4) {
+        grid-row: 4;
+      }
+      .source {
+        padding: 20px 22px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        transition:
+          border-color 0.3s,
+          transform 0.3s;
+      }
+      .source.is-hot {
+        border-color: var(--light);
+        transform: translateX(6px);
+      }
+      .source h3 {
+        margin: 0 0 4px;
+        font:
+          500 21px/1.25 Fraunces,
+          Georgia,
+          serif;
+      }
+      .source .where {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .source .how {
+        margin: 0;
+        padding-top: 12px;
+        border-top: 1px solid var(--line-soft);
+        color: var(--faint);
+        font:
+          13px/1.5 "IBM Plex Mono",
+          monospace;
+      }
+      .type {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        justify-self: start;
+        padding: 12px 18px 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-2);
+        font:
+          500 15px/1 "IBM Plex Mono",
+          monospace;
+        transition:
+          border-color 0.3s,
+          box-shadow 0.3s;
+      }
+      .type .bulb {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--light);
+        box-shadow: 0 0 12px 3px var(--glow);
+      }
+      .type small {
+        color: var(--faint);
+        font-size: 12px;
+      }
+      .type.is-hot {
+        border-color: var(--light);
+        box-shadow: 0 0 40px var(--glow);
+      }
+      .becomes-inline {
+        display: none;
+      }
+      @media (max-width: 860px) {
+        .map {
+          grid-template-columns: 1fr;
+        }
+        .map svg,
+        .type {
+          display: none;
+        }
+        .becomes-inline {
+          display: inline-flex;
+          margin: 0 0 12px;
+          gap: 8px;
+          align-items: center;
+          color: var(--light);
+          font:
+            500 13px/1 "IBM Plex Mono",
+            monospace;
+        }
+      }
+
+      /* recipe */
+      .recipe {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+        gap: clamp(32px, 6vw, 88px);
+        align-items: center;
+      }
+      @media (max-width: 860px) {
+        .recipe {
+          grid-template-columns: 1fr;
+        }
+      }
+      .recipe ul {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 12px;
+      }
+      .recipe li {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        color: var(--muted);
+      }
+      .recipe li::before {
+        content: "●";
+        color: var(--light);
+        font-size: 11px;
+        line-height: 2.4;
+      }
+      .terminal {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--surface) 70%, #000 30%);
+        box-shadow: 0 40px 120px rgb(0 0 0 / 0.35);
+        overflow: hidden;
+      }
+      [data-theme="light"] .terminal {
+        background: #1c1626;
+        color: #f4ede0;
+      }
+      .terminal__bar {
+        display: flex;
+        gap: 7px;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgb(244 237 224 / 0.08);
+      }
+      .terminal__bar i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgb(244 237 224 / 0.16);
+      }
+      .terminal pre {
+        margin: 0;
+        padding: 22px 24px 26px;
+        font:
+          14px/1.9 "IBM Plex Mono",
+          monospace;
+        white-space: pre-wrap;
+        color: rgb(244 237 224 / 0.9);
+      }
+      .terminal .prompt {
+        color: #ff8b3d;
+      }
+      .terminal .out {
+        color: rgb(244 237 224 / 0.45);
+      }
+      .terminal .hl {
+        color: #ff8b3d;
+        background: rgb(255 139 61 / 0.12);
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+
+      /* stages */
+      .stages {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: clamp(32px, 6vw, 96px);
+      }
+      .rail {
+        position: sticky;
+        top: 110px;
+        align-self: start;
+      }
+      .rail ol {
+        position: relative;
+        list-style: none;
+        margin: 0;
+        padding: 0 0 0 22px;
+      }
+      .rail ol::before,
+      .rail__fill {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 8px;
+        bottom: 8px;
+        width: 1px;
+        background: var(--line);
+      }
+      .rail__fill {
+        bottom: auto;
+        height: 0;
+        background: var(--light);
+        box-shadow: 0 0 10px var(--glow);
+        transition: height 0.25s ease-out;
+      }
+      .rail li {
+        position: relative;
+        padding: 7px 0;
+        font-size: 15px;
+        color: var(--faint);
+        transition: color 0.3s;
+      }
+      .rail li::before {
+        content: "";
+        position: absolute;
+        left: -22px;
+        top: 15px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 1px solid var(--faint);
+        transition: all 0.4s;
+      }
+      .rail li.is-lit {
+        color: var(--text);
+      }
+      .rail li.is-lit::before {
+        background: var(--light);
+        border-color: var(--light);
+        box-shadow: 0 0 12px 3px var(--glow);
+      }
+      .rail li span {
+        font:
+          12px/1 "IBM Plex Mono",
+          monospace;
+        margin-right: 8px;
+        color: var(--faint);
+      }
+      @media (max-width: 860px) {
+        .stages {
+          grid-template-columns: 1fr;
+        }
+        .rail {
+          display: none;
+        }
+      }
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: clamp(28px, 4vw, 56px);
+        align-items: start;
+        padding: 0 0 clamp(96px, 14vw, 180px);
+      }
+      @media (max-width: 1060px) {
+        .stage {
+          grid-template-columns: 1fr;
+        }
+      }
+      .stage__num {
+        font:
+          italic 300 clamp(64px, 8vw, 104px) / 0.9 Fraunces,
+          Georgia,
+          serif;
+        color: var(--light);
+        opacity: 0.85;
+      }
+      .stage h3 {
+        margin: 14px 0 16px;
+        font:
+          400 clamp(28px, 3.4vw, 40px) / 1.1 Fraunces,
+          Georgia,
+          serif;
+        letter-spacing: -0.015em;
+      }
+      .stage p {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+      .stage p strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .steps-link {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+      .steps-link a {
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font:
+          13px/1 "IBM Plex Mono",
+          monospace;
+        color: var(--muted);
+        transition: all 0.2s;
+      }
+      .steps-link a::before {
+        content: "Exact steps";
+        color: var(--light);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .steps-link a:hover {
+        border-color: var(--light);
+        color: var(--text);
+      }
+      .platform {
+        display: inline-block;
+        padding: 1px 7px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        font:
+          12.5px/1.6 "IBM Plex Mono",
+          monospace;
+        color: var(--text);
+      }
+
+      /* proofs */
+      .proof {
+        position: sticky;
+        top: 120px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        padding: 22px;
+        font-size: 14.5px;
+      }
+      @media (max-width: 1060px) {
+        .proof {
+          position: static;
+        }
+      }
+      .proof__cap {
+        margin: 0 0 16px;
+        color: var(--faint);
+        font:
+          11px/1 "IBM Plex Mono",
+          monospace;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .tree {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font:
+          14px/2.05 "IBM Plex Mono",
+          monospace;
+        color: var(--muted);
+      }
+      .tree li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .tree .indent {
+        padding-left: 22px;
+      }
+      .tree .new {
+        color: var(--text);
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--light) 50%, transparent);
+        color: var(--light);
+        font:
+          11.5px/1.7 "IBM Plex Mono",
+          monospace;
+        white-space: nowrap;
+      }
+      .tag.under {
+        border-color: color-mix(in srgb, var(--under) 55%, transparent);
+        color: var(--under);
+      }
+      .chat {
+        display: grid;
+        gap: 12px;
+      }
+      .bubble {
+        max-width: 88%;
+        padding: 12px 15px;
+        border-radius: 14px;
+        line-height: 1.5;
+      }
+      .bubble.me {
+        justify-self: end;
+        background: var(--surface-2);
+        border-bottom-right-radius: 4px;
+      }
+      .bubble.brain {
+        justify-self: start;
+        border: 1px solid var(--line);
+        border-bottom-left-radius: 4px;
+        color: var(--muted);
+      }
+      .bubble .file {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font:
+          12.5px/1.2 "IBM Plex Mono",
+          monospace;
+      }
+      .bubble .who {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--light);
+        font:
+          11px/1 "IBM Plex Mono",
+          monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .styleguide {
+        margin: 0;
+        padding: 18px 20px;
+        border-left: 2px solid var(--light);
+        background: var(--surface-2);
+        border-radius: 0 10px 10px 0;
+        font:
+          300 19px/1.55 Fraunces,
+          Georgia,
+          serif;
+        color: var(--text);
+      }
+      .entity-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px;
+        background: var(--surface-2);
+      }
+      .entity-card + .entity-card {
+        margin-top: 12px;
+      }
+      .entity-card h4 {
+        margin: 8px 0 6px;
+        font:
+          500 19px/1.25 Fraunces,
+          Georgia,
+          serif;
+      }
+      .entity-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .status-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .status {
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--faint);
+        font:
+          11.5px/1.5 "IBM Plex Mono",
+          monospace;
+      }
+      .status.on {
+        border-color: var(--light);
+        color: var(--bg);
+        background: var(--light);
+      }
+      .arrow-down {
+        display: block;
+        text-align: center;
+        color: var(--faint);
+        font:
+          14px/2 "IBM Plex Mono",
+          monospace;
+      }
+      .site {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      .site__bar {
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--line);
+        font:
+          12px/1 "IBM Plex Mono",
+          monospace;
+        color: var(--faint);
+      }
+      .site__body {
+        padding: 22px 22px 8px;
+      }
+      .site__body h5 {
+        margin: 0 0 18px;
+        font:
+          400 30px/1 Fraunces,
+          Georgia,
+          serif;
+      }
+      .site__post {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 0;
+        border-top: 1px solid var(--line-soft);
+        font:
+          400 17px/1.3 Fraunces,
+          Georgia,
+          serif;
+      }
+      .site__post small {
+        color: var(--faint);
+        font:
+          12px/1.9 "IBM Plex Mono",
+          monospace;
+        white-space: nowrap;
+      }
+      .week {
+        display: grid;
+        gap: 12px;
+      }
+      .week__item {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 8px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--muted);
+      }
+      .week__item b {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .week__item::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        margin-top: 8px;
+        border-radius: 50%;
+        background: var(--light);
+        box-shadow: 0 0 14px 4px var(--glow);
+      }
+
+      /* closing */
+      .others {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+      }
+      .other {
+        position: relative;
+        display: block;
+        padding: 26px 24px 24px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        transition:
+          border-color 0.3s,
+          transform 0.3s;
+      }
+      .other:hover {
+        border-color: var(--light);
+        transform: translateY(-4px);
+      }
+      .other h3 {
+        margin: 14px 0 10px;
+        font:
+          400 28px/1.1 Fraunces,
+          Georgia,
+          serif;
+      }
+      .other p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 15.5px;
+      }
+      .other p.label {
+        margin: 0;
+        color: var(--light);
+        font-size: 12px;
+      }
+      .other .recipe-chip {
+        color: var(--faint);
+        font:
+          12px/1 "IBM Plex Mono",
+          monospace;
+      }
+      .ask {
+        margin-top: 56px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 10px 10px 22px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--faint);
+      }
+      .ask span {
+        flex: 1;
+        font:
+          300 18px/1.4 Fraunces,
+          Georgia,
+          serif;
+      }
+      .ask .btn {
+        border-color: var(--light);
+        color: var(--light);
+        border-radius: 999px;
+      }
+      .footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 28px 0 36px;
+        border-top: 1px solid var(--line-soft);
+        color: var(--faint);
+        font:
+          13px/1 "IBM Plex Mono",
+          monospace;
+      }
+
+      /* lights come on */
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.9s ease,
+          transform 0.9s ease;
+      }
+      .reveal.is-on {
+        opacity: 1;
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .map svg path {
+          animation: none;
+        }
+        .reveal {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="mock-note">
+      Mockup · <b>/guides/writer</b> on the doc-brain, rendered from
+      <b>docs/guides/writer.md</b>. Copy is draft. Click to hide.
+    </aside>
+
+    <header class="header">
+      <a class="wordmark" href="#"
+        >brains<span class="dot">.</span><span class="suffix">docs</span></a
+      >
+      <nav class="nav">
+        <a href="#" aria-current="page">Guides</a>
+        <a href="#">Docs</a>
+        <a class="hide-sm" href="#">Roadmap</a>
+        <button class="btn theme-toggle" id="theme" type="button">
+          ☀ Light
+        </button>
+        <a class="btn hide-sm" href="#">Get Brains</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Opening: material scattered, settling into one light -->
+      <section class="opening" id="opening">
+        <div class="opening__stage">
+          <div id="fragments" aria-hidden="true"></div>
+          <div class="seed" id="seed"></div>
+          <div class="opening__copy" id="opening-copy">
+            <p class="label">Moving in · Guide I of V · The writer</p>
+            <h1 class="display">
+              Moving in as a <em class="accent">writer</em>
+            </h1>
+            <p class="for">
+              You have years of essays and a folder of drafts. Some of it is
+              published on platforms you don't own. Most of it never left Google
+              Docs.
+            </p>
+          </div>
+          <p class="settled" id="settled">
+            By the end of this guide it lives in one brain that is yours, and it
+            answers in your voice.
+          </p>
+          <div class="scroll-cue" id="cue">Scroll</div>
+        </div>
+      </section>
+
+      <!-- Material map -->
+      <section class="band">
+        <div class="wrap">
+          <div class="band__head reveal">
+            <p class="label">What you're bringing</p>
+            <h2 class="display">Everything you have already has a place.</h2>
+            <p>
+              Nothing needs to be rewritten before it comes in. Each kind of
+              material lands as its own kind of content, and the brain can read
+              across all of it.
+            </p>
+          </div>
+
+          <div class="map" id="map">
+            <svg id="map-lines" aria-hidden="true"></svg>
+            <div class="map__sources">
+              <article class="source reveal" data-to="note">
+                <h3>Drafts and fragments</h3>
+                <p class="where">
+                  <span class="platform">Google Docs</span> ·
+                  <span class="platform">Word</span> ·
+                  <span class="platform">a notes app</span>
+                </p>
+                <p class="becomes-inline">→ note</p>
+                <p class="how">Download as Markdown, bring the files in</p>
+              </article>
+              <article class="source reveal" data-to="post">
+                <h3>Published essays</h3>
+                <p class="where">
+                  <span class="platform">Substack</span> ·
+                  <span class="platform">Medium</span> ·
+                  <span class="platform">your old blog</span>
+                </p>
+                <p class="becomes-inline">→ post</p>
+                <p class="how">
+                  Upload in chat; the original address stays canonical
+                </p>
+              </article>
+              <article class="source reveal" data-to="series">
+                <h3>Essays that belong together</h3>
+                <p class="where">A run you wrote over months</p>
+                <p class="becomes-inline">→ series</p>
+                <p class="how">Ask the brain to group posts into a series</p>
+              </article>
+              <article class="source reveal" data-to="link">
+                <h3>What you read</h3>
+                <p class="where">
+                  <span class="platform">bookmarks</span> ·
+                  <span class="platform">open tabs</span> · sources you cite
+                </p>
+                <p class="becomes-inline">→ link</p>
+                <p class="how">Share the URL in chat; it keeps a summary</p>
+              </article>
+            </div>
+            <div class="map__types">
+              <div class="type" id="t-note">
+                <i class="bulb"></i>note <small>raw material</small>
+              </div>
+              <div class="type" id="t-post">
+                <i class="bulb"></i>post <small>on your site</small>
+              </div>
+              <div class="type" id="t-series">
+                <i class="bulb"></i>series <small>ordered posts</small>
+              </div>
+              <div class="type" id="t-link">
+                <i class="bulb"></i>link <small>with summary</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Start: the recipe and the three ways into a running brain -->
+      <section class="band">
+        <div class="wrap recipe">
+          <div class="reveal">
+            <p class="label">Start from</p>
+            <h2
+              class="display"
+              style="
+                margin: 18px 0 14px;
+                font-size: clamp(34px, 5vw, 60px);
+                line-height: 1.02;
+              "
+            >
+              The <em class="accent">professional</em> recipe
+            </h2>
+            <p style="color: var(--muted); margin: 0">
+              It gives a writer what the guide below uses. Whoever runs your
+              brain sets it up from this recipe; after that, everything in this
+              guide happens in chat, Studio or your AI tools.
+            </p>
+            <ul>
+              <li>Your own site, with posts and series</li>
+              <li>A publishing queue with drafts and schedules</li>
+              <li>Newsletter issues from published posts</li>
+              <li>LinkedIn drafts when you ask for them</li>
+            </ul>
+            <a class="aside-guide" href="#"
+              >Running the brain yourself? Start with
+              <b>Running your own brain</b>, then come back here.</a
+            >
+          </div>
+          <div class="invite reveal">
+            <p class="invite__meta">
+              <span>From your brain</span><span>you.rizom.ai</span>
+            </p>
+            <h4>Your brain is ready</h4>
+            <p>
+              Hi, this brain publishes your writing and answers from it. Sign in
+              with a passkey, then pick where you want to work.
+            </p>
+            <div class="invite__doors">
+              <span><b>Chat</b>talk to it, upload files</span>
+              <span><b>Studio</b>see and edit everything</span>
+              <span><b>AI tools</b>use it from Claude or ChatGPT</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stages -->
+      <section class="band" id="stages-band">
+        <div class="wrap">
+          <div class="band__head reveal">
+            <p class="label">Moving in</p>
+            <h2 class="display">Five stages, and then a week.</h2>
+          </div>
+
+          <div class="stages">
+            <aside class="rail" aria-label="Stages">
+              <ol>
+                <i class="rail__fill" id="rail-fill"></i>
+                <li data-for="s1"><span>01</span>Bring your drafts in</li>
+                <li data-for="s2"><span>02</span>Bring what you published</li>
+                <li data-for="s3"><span>03</span>Say how you sound</li>
+                <li data-for="s4"><span>04</span>Turn a draft into a post</li>
+                <li data-for="s5"><span>05</span>Publish</li>
+                <li data-for="s6"><span>06</span>A week later</li>
+              </ol>
+            </aside>
+
+            <div id="stage-list">
+              <article class="stage" id="s1">
+                <div class="reveal">
+                  <div class="stage__num">01</div>
+                  <h3>Bring your drafts in</h3>
+                  <p>
+                    In <span class="platform">Google Docs</span>, choose
+                    <strong>File → Download → Markdown</strong> for each draft
+                    you want to keep.
+                  </p>
+                  <p>
+                    Upload the files in chat and ask the brain to keep them as
+                    notes. With your brain connected under
+                    <strong>AI tools</strong>, you can do the same from Claude
+                    or ChatGPT.
+                  </p>
+                  <p>
+                    They arrive as <strong>notes</strong>, titled from their
+                    first heading. Unfinished, half-titled, contradictory: bring
+                    it anyway. Notes are what the brain reads from when it
+                    writes and answers.
+                  </p>
+                  <div class="steps-link">
+                    <a href="#">Interface setup</a>
+                    <a href="#">Content management</a>
+                  </div>
+                </div>
+                <div class="proof reveal">
+                  <p class="proof__cap">Chat</p>
+                  <div class="chat">
+                    <div class="bubble me">
+                      <div class="file">⎙ on-slowness.md</div>
+                      <div class="file">⎙ notes-from-lisbon.md</div>
+                      Keep these as notes.
+                    </div>
+                    <div class="bubble brain">
+                      <span class="who">your brain</span>
+                      Saved two notes: <b>On slowness</b> and
+                      <b>Notes from Lisbon</b>.
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="stage" id="s2">
+                <div class="reveal">
+                  <div class="stage__num">02</div>
+                  <h3>Bring what you published</h3>
+                  <p>
+                    Save each published essay as a markdown file and upload it
+                    in the chat. Tell the brain when and where it first
+                    appeared.
+                  </p>
+                  <p>
+                    It becomes a <strong>published post</strong> with its
+                    original date. The original address stays the canonical one,
+                    so search engines keep crediting the first publication.
+                  </p>
+                  <div class="steps-link">
+                    <a href="#">Entity types: post</a>
+                  </div>
+                </div>
+                <div class="proof reveal">
+                  <p class="proof__cap">Chat</p>
+                  <div class="chat">
+                    <div class="bubble me">
+                      <div class="file">⎙ the-long-middle.md</div>
+                      Published on Substack on 12 March 2025. Make it a post and
+                      keep that address as the original.
+                    </div>
+                    <div class="bubble brain">
+                      <span class="who">your brain</span>
+                      Saved <b>The long middle</b> as a published post, dated 12
+                      March 2025, canonical to
+                      <span class="mono"
+                        >you.substack.com/p/the-long-middle</span
+                      >.
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="stage" id="s3">
+                <div class="reveal">
+                  <div class="stage__num">03</div>
+                  <h3>Say how you sound</h3>
+                  <p>
+                    The <strong>style guide</strong> is a short note in your own
+                    words about how you write. It governs everything the brain
+                    drafts for you: posts, excerpts, newsletter introductions,
+                    LinkedIn drafts.
+                  </p>
+                  <p>
+                    Write it the way you would brief an editor. Point it at two
+                    or three essays you are proud of, so it has examples as well
+                    as rules.
+                  </p>
+                  <div class="steps-link">
+                    <a href="#">Customization guide</a>
+                  </div>
+                </div>
+                <div class="proof reveal">
+                  <p class="proof__cap">style-guide</p>
+                  <blockquote class="styleguide">
+                    First person, plainly. Short paragraphs. An example before
+                    an abstraction. No exclamation marks, no lists where a
+                    sentence will do. "The long middle" is the essay that sounds
+                    most like me.
+                  </blockquote>
+                </div>
+              </article>
+
+              <article class="stage" id="s4">
+                <div class="reveal">
+                  <div class="stage__num">04</div>
+                  <h3>Turn a draft into a post</h3>
+                  <p>
+                    Ask for it by name:
+                    <em>"Turn my note On slowness into a draft post."</em> The
+                    brain keeps your text, adds the title, excerpt and slug a
+                    post needs, and leaves it as a <strong>draft</strong>.
+                  </p>
+                  <p>
+                    Open it in Studio, edit until it is yours, and move it to
+                    the queue when it is ready.
+                  </p>
+                  <div class="steps-link">
+                    <a href="#">Content management</a>
+                  </div>
+                </div>
+                <div class="proof reveal">
+                  <p class="proof__cap">Studio</p>
+                  <div class="entity-card">
+                    <span class="tag under">note</span>
+                    <h4>On slowness</h4>
+                    <p>
+                      Everything I learned about writing I learned by doing it
+                      slower than I wanted to…
+                    </p>
+                  </div>
+                  <span class="arrow-down">↓</span>
+                  <div class="entity-card">
+                    <span class="tag">post</span>
+                    <h4>On slowness</h4>
+                    <p>Why the essays worth reading take longer than a week.</p>
+                    <div class="status-row">
+                      <span class="status on">draft</span>
+                      <span class="status">queued</span>
+                      <span class="status">published</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="stage" id="s5">
+                <div class="reveal">
+                  <div class="stage__num">05</div>
+                  <h3>Publish</h3>
+                  <p>
+                    A queued post goes out on the schedule you set, or right
+                    away when you say so. It appears on your site with its
+                    series, an RSS feed and a generated share image.
+                  </p>
+                  <p>
+                    Your old essays are already there, with their original
+                    dates. The site starts with your whole body of work, not an
+                    empty first post.
+                  </p>
+                  <p>
+                    It is live at your brain's address from the start. A custom
+                    domain is set by whoever runs the brain.
+                  </p>
+                  <div class="steps-link">
+                    <a href="#">Content management</a>
+                  </div>
+                </div>
+                <div class="proof reveal">
+                  <p class="proof__cap">Your site</p>
+                  <div class="site">
+                    <div class="site__bar">you.rizom.ai/posts</div>
+                    <div class="site__body">
+                      <h5>Writing</h5>
+                      <div class="site__post">
+                        On slowness <small>this week</small>
+                      </div>
+                      <div class="site__post">
+                        The long middle <small>Mar 2025</small>
+                      </div>
+                      <div class="site__post">
+                        Notes from Lisbon <small>Nov 2024</small>
+                      </div>
+                      <div class="site__post">
+                        What editors know <small>Jun 2024</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="stage" id="s6">
+                <div class="reveal">
+                  <div class="stage__num">06</div>
+                  <h3>A week later</h3>
+                  <p>
+                    The brain has read everything you brought. That changes what
+                    it can do for you, and for the people who read you.
+                  </p>
+                  <p>
+                    New drafts start from your notes instead of a blank page.
+                    Ask it what you have written about a subject, and it answers
+                    from your essays, with links to the posts.
+                  </p>
+                  <div class="steps-link">
+                    <a href="#">Feature overview</a>
+                  </div>
+                </div>
+                <div class="proof reveal">
+                  <p class="proof__cap">What the brain does now</p>
+                  <div class="week">
+                    <div class="week__item">
+                      <span
+                        ><b>Answers from your work</b>: what you wrote on a
+                        subject, citing the posts it draws on.</span
+                      >
+                    </div>
+                    <div class="week__item">
+                      <span
+                        ><b>Drafts from your notes</b> when you ask for a post
+                        on something you've written around.</span
+                      >
+                    </div>
+                    <div class="week__item">
+                      <span
+                        ><b>Assembles a newsletter issue</b> from what you
+                        published this month.</span
+                      >
+                    </div>
+                    <div class="week__item">
+                      <span
+                        ><b>Drafts a LinkedIn post</b> for a new essay, for you
+                        to edit and send.</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Closing -->
+      <section class="band">
+        <div class="wrap">
+          <div class="band__head reveal">
+            <p class="label">Other ways in</p>
+            <h2 class="display">Not quite a writer?</h2>
+          </div>
+          <div class="others">
+            <a class="other reveal" href="#">
+              <p class="label">Guide II</p>
+              <h3>The researcher</h3>
+              <p>
+                Years of notes, highlights and half-formed ideas you want to
+                connect and question.
+              </p>
+              <span class="recipe-chip">recipe · personal</span>
+            </a>
+            <a class="other reveal" href="#">
+              <p class="label">Guide III</p>
+              <h3>The consultant</h3>
+              <p>
+                Expertise locked in client work that you want to be findable and
+                askable.
+              </p>
+              <span class="recipe-chip">recipe · professional</span>
+            </a>
+            <a class="other reveal" href="#">
+              <p class="label">Guide IV</p>
+              <h3>The team</h3>
+              <p>
+                Knowledge spread across people, channels and documents that
+                should outlast any one of them.
+              </p>
+              <span class="recipe-chip">recipe · team</span>
+            </a>
+            <a class="other reveal" href="#">
+              <p class="label">Guide V</p>
+              <h3>Running your own brain</h3>
+              <p>
+                On your own machine or server: install it, pick a recipe, sync a
+                folder of markdown and put it online.
+              </p>
+              <span class="recipe-chip">any recipe</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <div class="wrap">
+        <footer class="footer">
+          <span>rizom.ai</span>
+          <span>Guides · Docs · Roadmap · GitHub</span>
+        </footer>
+      </div>
+    </main>
+
+    <script>
+      const root = document.documentElement;
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // Theme toggle: night sky / paper day.
+      document
+        .querySelector(".mock-note")
+        .addEventListener("click", (event) => event.currentTarget.remove());
+
+      const toggle = document.getElementById("theme");
+      toggle.addEventListener("click", () => {
+        const light = root.dataset.theme === "dark";
+        root.dataset.theme = light ? "light" : "dark";
+        toggle.textContent = light ? "☾ Dark" : "☀ Light";
+        drawLines();
+      });
+
+      // Opening: scattered material settles into one light.
+      const fragments = [
+        ["Google Docs", "untitled essay (3)"],
+        ["Google Docs", "On slowness — draft 4"],
+        ["Substack", "The long middle"],
+        ["Medium", "What editors know"],
+        ["Google Docs", "notes from lisbon"],
+        ["Bookmarks", "212 saved links"],
+        ["Word", "essay_FINAL_v2.docx"],
+        ["Notes app", "idea: the long middle, part 2?"],
+        ["Substack", "Notes from Lisbon"],
+        ["Google Docs", "talk outline — Utrecht"],
+        ["Old blog", "2019 archive"],
+        ["Google Docs", "pitch for the anthology"],
+      ];
+      const field = document.getElementById("fragments");
+      const placed = fragments.map(([src, title], i) => {
+        const el = document.createElement("div");
+        el.className = "fragment";
+        el.innerHTML = `<b>${src}</b>${title}`;
+        field.appendChild(el);
+        // A ring around the title, kept clear of the opening copy.
+        const angle = (i / fragments.length) * Math.PI * 2 + 0.4;
+        const rx = Math.min(innerWidth * 0.44, 640);
+        const ry = Math.min(innerHeight * 0.4, 360);
+        const x = Math.cos(angle) * rx * (0.82 + ((i * 37) % 18) / 100);
+        const y0 = Math.sin(angle) * ry * (0.82 + ((i * 53) % 18) / 100);
+        const clear = Math.abs(x) < Math.min(innerWidth / 2, 470);
+        const y = clear
+          ? Math.sign(y0 || 1) * Math.max(Math.abs(y0), ry * 0.8)
+          : y0;
+        return {
+          el,
+          x,
+          y,
+          r: ((i * 29) % 14) - 7,
+        };
+      });
+      const opening = document.getElementById("opening");
+      const copy = document.getElementById("opening-copy");
+      const seed = document.getElementById("seed");
+      const settled = document.getElementById("settled");
+      const cue = document.getElementById("cue");
+      const ease = (t) => 1 - Math.pow(1 - t, 3);
+
+      function renderOpening() {
+        const span = opening.offsetHeight - innerHeight;
+        const raw = reduced
+          ? 0
+          : Math.min(
+              Math.max(-opening.getBoundingClientRect().top / span, 0),
+              1,
+            );
+        const t = ease(raw);
+        for (const f of placed) {
+          const k = 1 - t;
+          f.el.style.transform = `translate(-50%, -50%) translate(${f.x * k}px, ${f.y * k}px) rotate(${f.r * k}deg) scale(${1 - t * 0.7})`;
+          f.el.style.opacity = String(Math.max(0, 1 - t * 1.25));
+        }
+        copy.style.opacity = String(Math.max(0, 1 - raw * 2.2));
+        copy.style.transform = `translateY(${-raw * 60}px)`;
+        seed.style.opacity = String(Math.min(1, Math.max(0, (raw - 0.45) * 3)));
+        seed.style.transform = `scale(${0.2 + Math.min(1, raw * 1.2) * 0.8})`;
+        settled.style.opacity = String(
+          Math.min(1, Math.max(0, (raw - 0.6) * 3)),
+        );
+        cue.style.opacity = String(1 - raw * 4);
+      }
+
+      // Material map: curves from each source to the type it becomes.
+      const map = document.getElementById("map");
+      const svg = document.getElementById("map-lines");
+      function drawLines() {
+        if (getComputedStyle(svg).display === "none") return;
+        const box = map.getBoundingClientRect();
+        const stroke = getComputedStyle(root).getPropertyValue("--light");
+        svg.innerHTML = "";
+        for (const source of map.querySelectorAll(".source")) {
+          const type = document.getElementById(`t-${source.dataset.to}`);
+          const a = source.getBoundingClientRect();
+          const b = type.getBoundingClientRect();
+          const x1 = a.right - box.left;
+          const y1 = a.top + a.height / 2 - box.top;
+          const x2 = b.left - box.left;
+          const y2 = b.top + b.height / 2 - box.top;
+          const mid = (x1 + x2) / 2;
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          path.setAttribute(
+            "d",
+            `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
+          );
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", stroke);
+          path.setAttribute("stroke-width", "1.25");
+          path.setAttribute("stroke-opacity", "0.45");
+          path.setAttribute("stroke-dasharray", "3 5");
+          path.dataset.to = source.dataset.to;
+          svg.appendChild(path);
+        }
+      }
+      for (const source of map.querySelectorAll(".source")) {
+        const type = () => document.getElementById(`t-${source.dataset.to}`);
+        source.addEventListener("mouseenter", () => {
+          source.classList.add("is-hot");
+          type().classList.add("is-hot");
+          svg
+            .querySelector(`[data-to="${source.dataset.to}"]`)
+            ?.setAttribute("stroke-opacity", "1");
+        });
+        source.addEventListener("mouseleave", () => {
+          source.classList.remove("is-hot");
+          type().classList.remove("is-hot");
+          svg
+            .querySelector(`[data-to="${source.dataset.to}"]`)
+            ?.setAttribute("stroke-opacity", "0.45");
+        });
+      }
+
+      // Stage rail: lights come on as each stage is reached.
+      const railItems = [...document.querySelectorAll(".rail li")];
+      const railFill = document.getElementById("rail-fill");
+      function renderRail() {
+        const line = innerHeight * 0.45;
+        const lit = railItems.filter(
+          (li) =>
+            document.getElementById(li.dataset.for).getBoundingClientRect()
+              .top < line,
+        );
+        railItems.forEach((li) =>
+          li.classList.toggle("is-lit", lit.includes(li)),
+        );
+        const last = lit.at(-1);
+        railFill.style.height = last ? `${last.offsetTop + 14}px` : "0px";
+      }
+
+      // Reveals.
+      const io = new IntersectionObserver(
+        (entries) =>
+          entries
+            .filter((entry) => entry.isIntersecting)
+            .forEach((entry) => {
+              entry.target.classList.add("is-on");
+              io.unobserve(entry.target);
+            }),
+        { rootMargin: "0px 0px -12% 0px" },
+      );
+      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+      map.addEventListener("transitionend", (event) => {
+        if (event.target.classList.contains("source")) drawLines();
+      });
+
+      const onScroll = () => {
+        renderOpening();
+        renderRail();
+      };
+      addEventListener("scroll", () => requestAnimationFrame(onScroll), {
+        passive: true,
+      });
+      addEventListener("resize", () => {
+        drawLines();
+        onScroll();
+      });
+      onScroll();
+      drawLines();
+      document.fonts?.ready.then(drawLines);
+    </script>
+  </body>
+</html>
