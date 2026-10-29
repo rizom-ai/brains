@@ -2,6 +2,25 @@
   "version": 1,
   "entries": [
     {
+      "id": "single-ai-api-key-fallback",
+      "paths": [
+        "shell/ai-service/src/provider-keys.ts",
+        "shell/ai-service/src/env-schema.ts",
+        "shell/app/src/ai-config.ts",
+        "packages/brain-cli/src/commands/init.ts",
+        "packages/brain-cli/src/run-command.ts",
+        "packages/brain-cli/src/lib/generated/canonical-env-schema.ts"
+      ],
+      "symbol": "AI_API_KEY / AI_IMAGE_KEY fallback and --ai-api-key",
+      "owner": "@brains/ai-service",
+      "class": "runtime-compatibility",
+      "behavior": "Uses the single AI_API_KEY (and AI_IMAGE_KEY for images) for any capability whose provider key (OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY) is unset; brain init --ai-api-key still writes AI_API_KEY.",
+      "currentConsumers": "Fleet (brains-ops) deploys, which route only AI_API_KEY, and existing standalone instances whose .env predates per-provider keys.",
+      "removalPrerequisite": "brains-ops routes per-provider keys to every fleet brain and standalone instances have migrated their .env files.",
+      "rollbackDependency": "Removing the fallback stops any brain that has only AI_API_KEY from booting.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "conversation-memory-actor-fallback",
       "paths": [
         "entities/conversation-memory/src/lib/eval-handlers.ts",
