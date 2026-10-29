@@ -177,6 +177,11 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
       kind: z.ZodLiteral<"prior-response">;
       messageId: z.ZodOptional<z.ZodString>;
     }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"entity">;
+      entityType: z.ZodString;
+      entityId: z.ZodString;
+    }>,
   ],
   "kind"
 > = z.discriminatedUnion("kind", [
@@ -238,6 +243,25 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         .min(1)
         .optional()
         .describe("Stored assistant message ID; omit for latest savable"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("entity")
+        .describe(
+          "Use the text of an existing entity verbatim, without its frontmatter, to make a new entity of another type: 'turn my note X into a post', 'make a post of my note', 'keep my text'. The source stays as it is. For new text written from a source, use system_generate prompt-from-source instead.",
+        ),
+      entityType: z
+        .string()
+        .min(1)
+        .describe("Source entity type, such as note"),
+      entityId: z
+        .string()
+        .min(1)
+        .describe(
+          "Source entity ID, slug, or exact title copied from the user's request or a prior tool result",
+        ),
     })
     .strict(),
 ]);
@@ -444,6 +468,7 @@ export const createInputSchema: StrictObjectSchema<{
   title: z.ZodOptional<z.ZodString>;
   visibility: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
   source: typeof createPreferredSourceInputSchema;
+  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   replace: z.ZodOptional<z.ZodBoolean>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
@@ -463,6 +488,12 @@ export const createInputSchema: StrictObjectSchema<{
     source: createPreferredSourceInputSchema.describe(
       "Concrete source selector. Use exactly one source branch. For AI generation or source-derived artifacts, use system_generate instead.",
     ),
+    fields: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        "Frontmatter fields for facts the user states that are not in the source text, such as when and where an essay was first published: { status: 'published', publishedAt: '2025-03-12', canonicalUrl: 'https://…' } for a post. Never restate or alter the source text here; omit when the user states nothing extra. Visibility has its own input.",
+      ),
     replace: z.boolean().optional().describe("Create a new copy intentionally"),
     confirmed: z.literal(true).optional().describe("Confirm the creation"),
     confirmationToken: z
