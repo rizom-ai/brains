@@ -1,4 +1,7 @@
 import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
@@ -21,6 +24,7 @@ import {
 } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
+import { createPostFromText } from "./lib/create-from-text";
 import { createBlogAtprotoProjection } from "./atproto-projection";
 import { createBlogPrintableProvider } from "./attachments/printable-provider";
 import { BLOG_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
@@ -54,6 +58,23 @@ export class BlogPlugin extends EntityPlugin<
       // Read by nothing: not the head, the site, nor ATProto.
       retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
     };
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    return createPostFromText(input, executionContext, context, this.id);
+  }
+
+  protected override async getInstructions(): Promise<string> {
+    return [
+      "Posts from the writer's own text keep that text as written.",
+      'To save an essay or draft the user supplies (pasted or uploaded) as a post, call system_create with entityType post and the text as its source (user-message for pasted text); do not use system_generate. Pass the title when the user gives one; otherwise a leading "# Title" heading becomes the title. The brain adds the excerpt, author and status; posts start as drafts.',
+      'When the user says the essay was already published elsewhere, also pass fields: { status: "published", publishedAt: "<the date they give, as YYYY-MM-DD>", canonicalUrl: "<the original address>" }. Include only what they state.',
+      'To turn an existing note (or other entity) into a post, such as "turn my note X into a draft post" or "make a post of my note", call system_create with entityType post and source { kind: "entity", entityType: "note", entityId }: the post keeps the note\'s text. Use system_generate prompt-from-source only when the user asks for new text written from it, such as "write a post based on my note" or "expand my note into an essay".',
+    ].join(" ");
   }
 
   protected override createGenerationHandler(
