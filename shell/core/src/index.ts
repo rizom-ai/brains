@@ -23,6 +23,10 @@ export type { ShellConfig, StandardConfig, StandardPaths } from "./config";
 // The AI configuration a shell gives its AI service, for a host that supplies its own.
 export { createAIModelConfig } from "./initialization/service-config";
 export { shellEnvVars } from "./env-schema";
+export {
+  resolveCapabilityKeys,
+  resolveEmbeddingModel,
+} from "@brains/ai-service/provider-keys";
 
 export type { IEmbeddingService } from "@brains/entity-service";
 

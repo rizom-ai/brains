@@ -80,6 +80,8 @@ type InstanceOverridesSchema = z.ZodObject<
       z.ZodObject<{ enabled: z.ZodOptional<z.ZodBoolean> }, z.core.$strict>
     >;
     model: z.ZodOptional<z.ZodString>;
+    embeddingModel: z.ZodOptional<z.ZodString>;
+    imageModel: z.ZodOptional<z.ZodString>;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
     bundles: z.ZodOptional<z.ZodArray<z.ZodString>>;
     mode: z.ZodOptional<typeof overrideModeSchema>;
@@ -177,8 +179,14 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
     })
     .optional(),
 
-  /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
+  /** Chat model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
   model: z.string().optional(),
+
+  /** Embedding model. Only "text-embedding-3-small" (OpenAI) is supported today. */
+  embeddingModel: z.string().optional(),
+
+  /** Image model — determines provider. e.g. "gpt-image-1.5", "gemini-3-pro-image-preview" */
+  imageModel: z.string().optional(),
 
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */
   reasoningEffort: reasoningEffortSchema.optional(),

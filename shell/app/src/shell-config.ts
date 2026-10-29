@@ -113,7 +113,10 @@ function applyAIConfig(
   if (
     !config.aiApiKey &&
     !config.aiImageKey &&
+    !config.aiEmbeddingKey &&
     !config.aiModel &&
+    !config.aiImageModel &&
+    !config.aiEmbeddingModel &&
     !config.aiReasoningEffort &&
     !isStartupCheck
   ) {
@@ -128,7 +131,14 @@ function applyAIConfig(
     ...(config.aiImageKey && {
       imageApiKey: config.aiImageKey,
     }),
+    ...(config.aiEmbeddingKey && {
+      embeddingApiKey: config.aiEmbeddingKey,
+    }),
     ...(config.aiModel && { model: config.aiModel }),
+    ...(config.aiImageModel && { imageModel: config.aiImageModel }),
+    ...(config.aiEmbeddingModel && {
+      embeddingModel: config.aiEmbeddingModel,
+    }),
     ...(config.aiReasoningEffort && {
       reasoningEffort: config.aiReasoningEffort,
     }),

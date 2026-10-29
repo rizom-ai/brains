@@ -77,6 +77,7 @@ describe("shell config", () => {
     expect(config.ai).toEqual({
       apiKey: "test-key",
       model: "gpt-4o-mini",
+      embeddingModel: "text-embedding-3-small",
       temperature: 0.7,
       webSearch: true,
     });
