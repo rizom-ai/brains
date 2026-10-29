@@ -250,6 +250,9 @@ async function prepareRoute(
       ...(options.route.siteNavigation !== undefined && {
         siteNavigation: options.route.siteNavigation,
       }),
+      ...(options.route.siteTranslation !== undefined && {
+        siteTranslation: options.route.siteTranslation,
+      }),
       title: options.route.title,
       ...(options.route.pageLabel !== undefined && {
         pageLabel: options.route.pageLabel,

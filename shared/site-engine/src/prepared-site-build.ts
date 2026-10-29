@@ -1,4 +1,7 @@
-import { siteLayoutInfoSchema } from "@brains/site-composition";
+import {
+  siteLayoutInfoSchema,
+  siteMetadataTranslationSchema,
+} from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import {
   jsonObjectSchema,
@@ -48,6 +51,7 @@ export const preparedRouteSchema: z.ZodObject<{
   headScripts: z.ZodArray<z.ZodString>;
   alternates: z.ZodOptional<z.ZodArray<typeof preparedAlternateSchema>>;
   siteNavigation: z.ZodOptional<typeof preparedNavigationSchema>;
+  siteTranslation: z.ZodOptional<typeof siteMetadataTranslationSchema>;
 }> = z.object({
   id: z.string(),
   path: z.string(),
@@ -64,6 +68,8 @@ export const preparedRouteSchema: z.ZodObject<{
   alternates: z.array(preparedAlternateSchema).optional(),
   /** A translated page's navigation, in place of the site's. */
   siteNavigation: preparedNavigationSchema.optional(),
+  /** A translated page's site title, description, copyright and CTA. */
+  siteTranslation: siteMetadataTranslationSchema.optional(),
 });
 
 export type PreparedRoute = z.output<typeof preparedRouteSchema>;

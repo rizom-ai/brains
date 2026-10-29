@@ -4,6 +4,7 @@ export {
   GetRoutePayloadSchema,
   languagePath,
   languageTagSchema,
+  routeTranslationSchema,
   ListRoutesPayloadSchema,
   NavigationItemSchema,
   NavigationMetadataSchema,
@@ -27,6 +28,7 @@ export type {
   RouteDefinitionInput,
   RouteOperationResponse,
   SectionDefinition,
+  RouteTranslation,
   SiteAlternate,
   UnregisterRoutesPayload,
 } from "./routes";
@@ -37,12 +39,14 @@ export {
   siteMetadataCTASchema,
   siteMetadataSchema,
   siteMetadataSectionSchema,
+  siteMetadataTranslationSchema,
 } from "./metadata";
 export type {
   SiteLayoutInfo,
   SiteMetadata,
   SiteMetadataCTA,
   SiteMetadataInput,
+  SiteMetadataTranslation,
 } from "./metadata";
 export {
   createSiteContentTemplate,

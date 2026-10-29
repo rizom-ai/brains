@@ -6,6 +6,10 @@ import type {
 } from "./static-site-builder";
 import { sha256Hex } from "@brains/utils/hash";
 import { escapeHtml } from "@brains/utils/string-utils";
+import type {
+  SiteLayoutInfo,
+  SiteMetadataTranslation,
+} from "@brains/site-composition";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -147,10 +151,12 @@ export class ReactBuilder implements StaticSiteBuilder {
       route.sections,
       context,
     );
-    // A translated page lists the pages of its own language.
-    const siteLayoutInfo = route.siteNavigation
-      ? { ...preparedBuild.site, navigation: route.siteNavigation }
-      : preparedBuild.site;
+    // A translated page wears the site's chrome in its language and lists
+    // the pages of its language.
+    const siteLayoutInfo = {
+      ...translatedSite(preparedBuild.site, route.siteTranslation),
+      ...(route.siteNavigation && { navigation: route.siteNavigation }),
+    };
     const alternates = route.alternates ?? [];
 
     // Create head collector for SSR, linking only the icons the build has.
@@ -495,4 +501,23 @@ function languageLinks(
         `\n    <link rel="alternate" hreflang="${escapeHtml(language)}" href="${escapeHtml(base + path)}">`,
     )
     .join("");
+}
+
+/** The site in a page's language: what the translation gives, else its own. */
+function translatedSite(
+  site: SiteLayoutInfo,
+  translation: SiteMetadataTranslation | undefined,
+): SiteLayoutInfo {
+  if (!translation) return site;
+  return {
+    ...site,
+    ...(translation.title !== undefined && { title: translation.title }),
+    ...(translation.description !== undefined && {
+      description: translation.description,
+    }),
+    ...(translation.copyright !== undefined && {
+      copyright: translation.copyright,
+    }),
+    ...(translation.cta !== undefined && { cta: translation.cta }),
+  };
 }

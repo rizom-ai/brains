@@ -1,34 +1,11 @@
 import type { MessageSender } from "@brains/plugins";
 import {
   SITE_METADATA_GET_CHANNEL,
+  siteMetadataSchema,
   type SiteMetadata,
 } from "@brains/site-composition";
-import { z } from "@brains/utils/zod";
 
 type SendMessage = MessageSender;
-
-const siteMetadataCTASchema = z.object({
-  heading: z.string(),
-  buttonText: z.string(),
-  buttonLink: z.string(),
-});
-
-const siteMetadataSectionSchema = z.object({
-  blurb: z.string().optional(),
-});
-
-const siteMetadataResponseSchema = z.object({
-  represents: z.enum(["brain", "anchor"]).default("anchor"),
-  title: z.string(),
-  description: z.string(),
-  url: z.string().optional(),
-  copyright: z.string().optional(),
-  logo: z.boolean().optional(),
-  themeMode: z.enum(["light", "dark"]).optional(),
-  analyticsScript: z.string().optional(),
-  cta: siteMetadataCTASchema.optional(),
-  sections: z.record(z.string(), siteMetadataSectionSchema).optional(),
-});
 
 /**
  * Resolve site metadata through the plugin message bus.
@@ -48,9 +25,9 @@ export async function resolveSiteMetadata(
     });
 
     if ("success" in response && response.success && response.data) {
-      const parsed = siteMetadataResponseSchema.safeParse(response.data);
+      const parsed = siteMetadataSchema.safeParse(response.data);
       if (parsed.success) {
-        return siteMetadataResponseSchema.parse({
+        return siteMetadataSchema.parse({
           ...fallback,
           ...parsed.data,
         });

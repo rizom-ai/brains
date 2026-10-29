@@ -114,6 +114,13 @@ export interface NavigationMetadata {
   priority: number;
 }
 
+/** A route's page head and navigation label in another language. */
+export interface RouteTranslation {
+  title?: string | undefined;
+  description?: string | undefined;
+  navigationLabel?: string | undefined;
+}
+
 export interface RouteDefinitionInput {
   id: string;
   path: string;
@@ -128,6 +135,8 @@ export interface RouteDefinitionInput {
   sourceEntityType?: string | undefined;
   external?: boolean | undefined;
   navigation?: NavigationMetadataInput | undefined;
+  /** The page's head and navigation label in the site's other languages. */
+  translations?: Record<string, RouteTranslation> | undefined;
 }
 
 export interface RouteDefinition {
@@ -143,6 +152,7 @@ export interface RouteDefinition {
   sourceEntityType?: string | undefined;
   external?: boolean | undefined;
   navigation?: NavigationMetadata | undefined;
+  translations?: Record<string, RouteTranslation> | undefined;
 }
 
 export interface SiteContentStringFieldDefinition {
@@ -283,6 +293,16 @@ export interface SiteMetadata {
   analyticsScript?: string | undefined;
   cta?: SiteMetadataCTA | undefined;
   sections?: Record<string, SiteMetadataSection> | undefined;
+  /** The site's chrome in its other languages, keyed by language tag. */
+  translations?: Record<string, SiteMetadataTranslation> | undefined;
+}
+
+/** The site's title, description, copyright and call to action in another language. */
+export interface SiteMetadataTranslation {
+  title?: string | undefined;
+  description?: string | undefined;
+  copyright?: string | undefined;
+  cta?: SiteMetadataCTA | undefined;
 }
 
 export interface NavigationItem {
@@ -421,6 +441,24 @@ const routeSectionSchema: Strict<{
   order: z.number().optional(),
 });
 
+/** A language tag such as `en` or `zh-TW`. */
+export const languageTagSchema: z.ZodString = z
+  .string()
+  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, {
+    message: "must be a language tag such as en or zh-TW",
+  });
+
+/** A route's page head and navigation label in another language. */
+export const routeTranslationSchema: Strict<{
+  title: z.ZodOptional<z.ZodString>;
+  description: z.ZodOptional<z.ZodString>;
+  navigationLabel: z.ZodOptional<z.ZodString>;
+}> = z.strictObject({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  navigationLabel: z.string().optional(),
+});
+
 const routeInputSchema: Strict<{
   id: z.ZodString;
   path: z.ZodString;
@@ -434,6 +472,9 @@ const routeInputSchema: Strict<{
   sourceEntityType: z.ZodOptional<z.ZodString>;
   external: z.ZodOptional<z.ZodBoolean>;
   navigation: z.ZodOptional<typeof navigationInputSchema>;
+  translations: z.ZodOptional<
+    z.ZodRecord<typeof languageTagSchema, typeof routeTranslationSchema>
+  >;
 }> = z.strictObject({
   id: z.string().min(1),
   path: z.string().startsWith("/"),
@@ -447,6 +488,7 @@ const routeInputSchema: Strict<{
   sourceEntityType: z.string().optional(),
   external: z.boolean().optional(),
   navigation: navigationInputSchema.optional(),
+  translations: z.record(languageTagSchema, routeTranslationSchema).optional(),
 });
 
 /**
@@ -549,13 +591,6 @@ const siteContentSchema: z.ZodRecord<
  * The fields a site definition may carry. Extracted so overrides can be
  * validated as a partial of the same shape rather than asserted into it.
  */
-/** A language tag such as `en` or `zh-TW`. */
-export const languageTagSchema: z.ZodString = z
-  .string()
-  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, {
-    message: "must be a language tag such as en or zh-TW",
-  });
-
 /**
  * Where a page of a site in more than one language lives: the default
  * language keeps the route's own path, every other language puts its

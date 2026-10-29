@@ -15,6 +15,9 @@ const HOME: RouteDefinitionInput = {
   ],
 };
 
+/** The site-info's Chinese chrome, without which nothing is built in Chinese. */
+const CHINESE_SITE = { "zh-TW": { title: "第四" } };
+
 const ABOUT: RouteDefinitionInput = {
   id: "about",
   path: "/about/team",
@@ -65,6 +68,7 @@ describe("collectBuildRoutes", () => {
     ]);
     const { routes } = await collectBuildRoutes(registry([HOME, ABOUT]), {
       languages: ["en", "zh-TW"],
+      siteTranslations: CHINESE_SITE,
       hasSavedCopy: copy.hasSavedCopy,
     });
 
@@ -89,6 +93,7 @@ describe("collectBuildRoutes", () => {
     const copy = savedCopy(["zh-tw:home:cover", "zh-tw:about:people"]);
     const { routes } = await collectBuildRoutes(registry([HOME, ABOUT]), {
       languages: ["en", "zh-TW"],
+      siteTranslations: CHINESE_SITE,
       hasSavedCopy: copy.hasSavedCopy,
     });
 
@@ -115,6 +120,7 @@ describe("collectBuildRoutes", () => {
     const copy = savedCopy(["zh-tw:posts:list"]);
     const { routes } = await collectBuildRoutes(registry([feed, empty]), {
       languages: ["en", "zh-TW"],
+      siteTranslations: CHINESE_SITE,
       hasSavedCopy: copy.hasSavedCopy,
     });
 
@@ -143,6 +149,7 @@ describe("collectBuildRoutes alternates and navigation", () => {
     const copy = savedCopy(["zh-tw:home:cover", "zh-tw:home:story"]);
     const { routes } = await collectBuildRoutes(registry([navHome, navAbout]), {
       languages: ["en", "zh-TW"],
+      siteTranslations: CHINESE_SITE,
       hasSavedCopy: copy.hasSavedCopy,
     });
     const byId = Object.fromEntries(routes.map((route) => [route.id, route]));
@@ -166,7 +173,11 @@ describe("collectBuildRoutes alternates and navigation", () => {
     ]);
     const { routes } = await collectBuildRoutes(
       registry([navHome, navAbout, contact]),
-      { languages: ["en", "zh-TW"], hasSavedCopy: copy.hasSavedCopy },
+      {
+        languages: ["en", "zh-TW"],
+        siteTranslations: CHINESE_SITE,
+        hasSavedCopy: copy.hasSavedCopy,
+      },
     );
     const zhHome = expectDefined(routes.find(({ id }) => id === "zh-tw:home"));
     const home = expectDefined(routes.find(({ id }) => id === "home"));
@@ -177,5 +188,58 @@ describe("collectBuildRoutes alternates and navigation", () => {
     });
     // The default language keeps the site's own navigation.
     expect(home.siteNavigation).toBeUndefined();
+  });
+});
+
+describe("collectBuildRoutes translated chrome", () => {
+  it("builds nothing in a language the site-info is not translated into", async () => {
+    const copy = savedCopy(["zh-tw:home:cover", "zh-tw:home:story"]);
+    const { routes } = await collectBuildRoutes(registry([HOME]), {
+      languages: ["en", "zh-TW"],
+      hasSavedCopy: copy.hasSavedCopy,
+    });
+
+    expect(routes.map(({ id }) => id)).toEqual(["home"]);
+    expect(routes[0]?.alternates).toEqual([{ language: "en", path: "/" }]);
+  });
+
+  it("heads a translated page with its route's translation and the site's chrome in its language", async () => {
+    const home: RouteDefinitionInput = {
+      ...HOME,
+      navigation: { show: true, label: "Home", priority: 10 },
+      translations: {
+        "zh-TW": { title: "首頁", description: "歡迎", navigationLabel: "家" },
+      },
+    };
+    const about: RouteDefinitionInput = {
+      ...ABOUT,
+      navigation: { show: true, label: "Team", priority: 20 },
+    };
+    const copy = savedCopy([
+      "zh-tw:home:cover",
+      "zh-tw:home:story",
+      "zh-tw:about:people",
+    ]);
+    const { routes } = await collectBuildRoutes(registry([home, about]), {
+      languages: ["en", "zh-TW"],
+      siteTranslations: { "zh-tw": { title: "第四", copyright: "©第四" } },
+      hasSavedCopy: copy.hasSavedCopy,
+    });
+    const byId = Object.fromEntries(routes.map((route) => [route.id, route]));
+    const zhHome = expectDefined(byId["zh-tw:home"]);
+    const zhAbout = expectDefined(byId["zh-tw:about"]);
+
+    expect([zhHome.title, zhHome.description]).toEqual(["首頁", "歡迎"]);
+    // Untranslated, the page takes the site's title in its language.
+    expect([zhAbout.title, zhAbout.description]).toEqual(["", ""]);
+    expect(zhHome.siteTranslation).toEqual({
+      title: "第四",
+      copyright: "©第四",
+    });
+    expect(expectDefined(byId["home"]).siteTranslation).toBeUndefined();
+    expect(zhHome.siteNavigation?.primary).toEqual([
+      { label: "家", href: "/zh-tw", priority: 10 },
+      { label: "Team", href: "/zh-tw/about/team", priority: 20 },
+    ]);
   });
 });

@@ -40,7 +40,12 @@ export const TestLayout: LayoutComponent = ({ sections }) => {
 
 /** A fixture route, in English unless it says otherwise. */
 export type TestRoute = RouteDefinition &
-  Partial<Pick<BuildRoute, "language" | "alternates" | "siteNavigation">>;
+  Partial<
+    Pick<
+      BuildRoute,
+      "language" | "alternates" | "siteNavigation" | "siteTranslation"
+    >
+  >;
 
 interface CreateRendererTestContextOptions {
   routes: TestRoute[];
@@ -131,6 +136,9 @@ export function createRendererTestContext(
     ...(route.alternates !== undefined && { alternates: route.alternates }),
     ...(route.siteNavigation !== undefined && {
       siteNavigation: route.siteNavigation,
+    }),
+    ...(route.siteTranslation !== undefined && {
+      siteTranslation: route.siteTranslation,
     }),
     title: route.title,
     ...(route.pageLabel !== undefined && { pageLabel: route.pageLabel }),

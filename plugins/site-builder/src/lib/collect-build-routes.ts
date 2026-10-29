@@ -4,6 +4,7 @@ import {
   type RouteDefinition,
   type SiteAlternate,
   type SiteLayoutInfo,
+  type SiteMetadataTranslation,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 
@@ -19,6 +20,8 @@ export interface BuildRoute extends RouteDefinition {
   alternates: SiteAlternate[];
   /** A translated page's navigation: the pages built in its language. */
   siteNavigation?: SiteNavigation | undefined;
+  /** A translated page's site title, description, copyright and CTA. */
+  siteTranslation?: SiteMetadataTranslation | undefined;
 }
 
 export interface BuildRoutes {
@@ -29,11 +32,30 @@ export interface BuildRoutes {
 export interface CollectBuildRoutesOptions {
   /** The site's languages, the first its default. */
   languages?: string[] | undefined;
+  /**
+   * The site-info's chrome per language. A language without one is not
+   * built: its pages would carry the default language's title and footer.
+   */
+  siteTranslations?: Record<string, SiteMetadataTranslation> | undefined;
   /** Whether site-content is saved under an id (`zh-tw:home:cover`). */
   hasSavedCopy: (id: string) => Promise<boolean>;
 }
 
-type TranslatedRoute = Omit<BuildRoute, "alternates" | "siteNavigation">;
+type TranslatedRoute = Omit<
+  BuildRoute,
+  "alternates" | "siteNavigation" | "siteTranslation"
+>;
+
+/** A language's entry in a record keyed by language tag, whatever its case. */
+function translationFor<T>(
+  translations: Record<string, T> | undefined,
+  language: string,
+): T | undefined {
+  const tag = language.toLowerCase();
+  return Object.entries(translations ?? {}).find(
+    ([key]) => key.toLowerCase() === tag,
+  )?.[1];
+}
 
 /** The routes one language is built in, by the id of the route translated. */
 interface LanguageBuild {
@@ -58,8 +80,12 @@ export async function collectBuildRoutes(
   const registered = routeRegistry.list();
   const warnings =
     registered.length === 0 ? ["No routes registered for site build"] : [];
-  const [defaultLanguage = DEFAULT_SITE_LANGUAGE, ...otherLanguages] =
+  const [defaultLanguage = DEFAULT_SITE_LANGUAGE, ...declared] =
     options.languages ?? [];
+  const otherLanguages = declared.filter(
+    (language) =>
+      translationFor(options.siteTranslations, language) !== undefined,
+  );
 
   const translatable = registered.filter(isTranslatable);
   const builds = await Promise.all(
@@ -91,17 +117,40 @@ export async function collectBuildRoutes(
     }),
   ];
 
-  const navigationOf = ({ byRouteId }: LanguageBuild): SiteNavigation => {
-    const pathByDefaultPath = new Map(
+  const navigationOf = ({
+    language,
+    byRouteId,
+  }: LanguageBuild): SiteNavigation => {
+    const versionByDefaultPath = new Map(
       registered.flatMap((route) => {
         const translated = byRouteId.get(route.id);
-        return translated ? [[route.path, translated.path] as const] : [];
+        const translation = translationFor(route.translations, language);
+        return translated
+          ? [
+              [
+                route.path,
+                {
+                  href: translated.path,
+                  label: translation?.navigationLabel ?? translation?.title,
+                },
+              ] as const,
+            ]
+          : [];
       }),
     );
+    // A page without a translated label keeps its own rather than vanish.
     const localize = (items: NavigationItem[]): NavigationItem[] =>
       items.flatMap((item) => {
-        const href = pathByDefaultPath.get(item.href);
-        return href ? [{ ...item, href }] : [];
+        const version = versionByDefaultPath.get(item.href);
+        return version
+          ? [
+              {
+                ...item,
+                href: version.href,
+                label: version.label ?? item.label,
+              },
+            ]
+          : [];
       });
     return {
       primary: localize(routeRegistry.getNavigationItems("primary")),
@@ -118,6 +167,10 @@ export async function collectBuildRoutes(
       })),
       ...builds.flatMap((build) => {
         const siteNavigation = navigationOf(build);
+        const siteTranslation = translationFor(
+          options.siteTranslations,
+          build.language,
+        );
         return registered.flatMap((route): BuildRoute[] => {
           const translated = build.byRouteId.get(route.id);
           return translated
@@ -126,6 +179,7 @@ export async function collectBuildRoutes(
                   ...translated,
                   alternates: alternatesOf(route),
                   siteNavigation,
+                  siteTranslation,
                 },
               ]
             : [];
@@ -156,10 +210,14 @@ async function translateRoute(
     route.sections.map((section) => hasSavedCopy(`${id}:${section.id}`)),
   );
   if (!saved.every(Boolean)) return undefined;
+  const translation = translationFor(route.translations, language);
 
+  // Without its own title the page takes the site's, in its language.
   return {
     ...route,
     id,
+    title: translation?.title ?? "",
+    description: translation?.description ?? "",
     path: languagePath(language, defaultLanguage, route.path),
     language,
     sections: route.sections.map(

@@ -109,7 +109,11 @@ describe("runSiteBuild languages", () => {
         sharedImagesDir: join(testDir, "images"),
         enableContentGeneration: false,
         cleanBeforeBuild: true,
-        siteConfig: { title: "Bilingual", description: "Two languages" },
+        siteConfig: {
+          title: "Bilingual",
+          description: "Two languages",
+          translations: { "zh-TW": { title: "雙語" } },
+        },
         siteUrl: "https://bilingual.example",
         layouts: { default: TestLayout },
         languages: ["en", "zh-TW"],

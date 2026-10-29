@@ -1,8 +1,10 @@
 import { z } from "@brains/utils/zod";
+import { languageTagSchema, routeTranslationSchema } from "@rizom/site";
 export {
   entityDisplaySchema,
   languagePath,
   languageTagSchema,
+  routeTranslationSchema,
 } from "@rizom/site";
 import type {
   NavigationItem,
@@ -24,6 +26,7 @@ export type {
   RouteDefinitionInput,
   RouteSectionDefinition as SectionDefinition,
   SectionDefinitionInput,
+  RouteTranslation,
   SiteAlternate,
 } from "@rizom/site";
 
@@ -108,6 +111,9 @@ export const RouteDefinitionSchema: z.ZodObject<{
   sourceEntityType: z.ZodOptional<z.ZodString>;
   external: z.ZodOptional<z.ZodBoolean>;
   navigation: typeof NavigationMetadataSchema;
+  translations: z.ZodOptional<
+    z.ZodRecord<typeof languageTagSchema, typeof routeTranslationSchema>
+  >;
 }> = z.object({
   id: z.string(),
   path: z.string(),
@@ -122,6 +128,7 @@ export const RouteDefinitionSchema: z.ZodObject<{
   sourceEntityType: z.string().optional(),
   external: z.boolean().optional(),
   navigation: NavigationMetadataSchema,
+  translations: z.record(languageTagSchema, routeTranslationSchema).optional(),
 });
 
 /** Message payload schemas for route operations. */

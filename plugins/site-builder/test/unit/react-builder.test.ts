@@ -327,6 +327,95 @@ describe("ReactBuilder", () => {
     expect(chinese).not.toContain(">Home</a>");
   });
 
+  it("dresses a translated page in the site's chrome for its language", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+    const ChromeLayout: LayoutComponent = ({ sections, siteInfo }) =>
+      h(
+        "main",
+        null,
+        h("a", { href: siteInfo.cta?.buttonLink }, siteInfo.cta?.buttonText),
+        sections,
+        h("footer", null, siteInfo.copyright),
+      );
+    const page = (
+      id: string,
+      path: string,
+      language: string,
+      siteTranslation?: {
+        copyright: string;
+        cta: { heading: string; buttonText: string; buttonLink: string };
+      },
+    ): BuildContext["routes"][number] => ({
+      id,
+      path,
+      language,
+      ...(siteTranslation && { siteTranslation }),
+      title: "",
+      description: "",
+      layout: "default",
+      sections: [{ id: "s", template: "test", content: { title: id } }],
+    });
+
+    await builder.build(
+      {
+        routes: [
+          page("home", "/", "en"),
+          page("zh", "/zh-tw", "zh-TW", {
+            copyright: "©2026 第四",
+            cta: {
+              heading: "開始",
+              buttonText: "聊聊吧",
+              buttonLink: "mailto:nihao.fourth@gmail.com",
+            },
+          }),
+        ],
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "The Fourth", description: "Brand consultancy" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: ChromeLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "The Fourth",
+          description: "Brand consultancy",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©2026 The Fourth",
+          cta: {
+            heading: "Start",
+            buttonText: "Let’s talk",
+            buttonLink: "mailto:nihao.fourth@gmail.com",
+          },
+        }),
+      },
+      () => {},
+    );
+
+    const english = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    const chinese = await fs.readFile(
+      join(outputDir, "zh-tw/index.html"),
+      "utf-8",
+    );
+    expect(english).toContain("Let’s talk</a>");
+    expect(english).toContain("<footer>©2026 The Fourth</footer>");
+    expect(chinese).toContain("聊聊吧</a>");
+    expect(chinese).toContain("<footer>©2026 第四</footer>");
+    // The site's own title stands where the translation gives none.
+    expect(chinese).toContain("<title>The Fourth</title>");
+  });
+
   it("writes no language links for a page built in one language", async () => {
     const builder = createReactBuilder({
       logger,

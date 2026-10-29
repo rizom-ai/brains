@@ -157,3 +157,45 @@ describe("languagePath", () => {
     );
   });
 });
+
+describe("route translations", () => {
+  test("a route carries its title, description and navigation label in another language", () => {
+    const site = defineSite({
+      ...readingSite(),
+      languages: ["en", "zh-TW"],
+      routes: [
+        {
+          ...readingSite().routes[0],
+          id: "home",
+          path: "/",
+          translations: {
+            "zh-TW": {
+              title: "閱讀圖書館",
+              description: "一個長久的收藏",
+              navigationLabel: "首頁",
+            },
+          },
+        },
+      ],
+    });
+
+    expect(site.routes[0]?.translations?.["zh-TW"]?.navigationLabel).toBe(
+      "首頁",
+    );
+  });
+
+  test("rejects a translation keyed by something that is not a language tag", () => {
+    expect(() =>
+      defineSite({
+        ...readingSite(),
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            translations: { "traditional chinese": { title: "首頁" } },
+          },
+        ],
+      }),
+    ).toThrow("language tag");
+  });
+});

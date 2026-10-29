@@ -95,6 +95,7 @@ export async function runSiteBuild(
       options.pipelineContext.routeRegistry,
       {
         languages: parsedOptions.languages,
+        siteTranslations: parsedOptions.siteConfig.translations,
         hasSavedCopy: options.pipelineContext.services.hasSavedContent,
       },
     );
