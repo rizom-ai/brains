@@ -467,7 +467,7 @@ describe("brain init (end-to-end)", () => {
         command: "init",
         flags: {
           recipe: "personal",
-          "ai-api-key": "sk-test-12345",
+          "ai-api-key": "sk-proj-test-12345",
           "no-interactive": true,
         },
         args: ["mybrain"],
@@ -477,7 +477,66 @@ describe("brain init (end-to-end)", () => {
 
     expect(result.success).toBe(true);
     const env = readFileSync(join(outDir, ".env"), "utf-8");
-    expect(env).toContain("AI_API_KEY=sk-test-12345");
+    expect(env).toContain("AI_API_KEY=sk-proj-test-12345");
+  });
+
+  it("should write each provider key flag to .env under its env var", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          recipe: "personal",
+          "openai-api-key": "sk-proj-test-12345",
+          "anthropic-api-key": "sk-ant-test-12345",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    const env = readFileSync(join(outDir, ".env"), "utf-8");
+    expect(env).toContain("OPENAI_API_KEY=sk-proj-test-12345");
+    expect(env).toContain("ANTHROPIC_API_KEY=sk-ant-test-12345");
+  });
+
+  it("should refuse a provider key flag in another provider's format", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          "anthropic-api-key": "sk-proj-test-12345",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(
+      "--anthropic-api-key: Expected an API key for Anthropic, but this one is for OpenAI.",
+    );
+    expect(existsSync(join(testDir, "mybrain"))).toBe(false);
+  });
+
+  it("should refuse a non-OpenAI --ai-api-key that embeddings would use", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: { "ai-api-key": "sk-ant-test-12345", "no-interactive": true },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("pass --openai-api-key");
   });
 
   it("should not write .env when --ai-api-key is missing in non-interactive mode", async () => {
@@ -505,7 +564,7 @@ describe("brain init (end-to-end)", () => {
         flags: {
           recipe: "personal",
           "content-repo": "user/brain-data",
-          "ai-api-key": "sk-test-12345",
+          "ai-api-key": "sk-proj-test-12345",
           "no-interactive": true,
         },
         args: ["mybrain"],
@@ -530,7 +589,7 @@ describe("brain init (end-to-end)", () => {
         flags: {
           recipe: "personal",
           backend: "env",
-          "ai-api-key": "sk-test-12345",
+          "ai-api-key": "sk-proj-test-12345",
           "no-interactive": true,
         },
         args: ["mybrain"],
@@ -569,7 +628,7 @@ describe("secrets push (end-to-end)", () => {
         "",
       ].join("\n"),
     );
-    writeFileSync(join(testDir, ".env"), "AI_API_KEY=sk-test-12345\n");
+    writeFileSync(join(testDir, ".env"), "AI_API_KEY=sk-proj-test-12345\n");
 
     const { runCommand } = await import("../src/run-command");
     const result = await runCommand(

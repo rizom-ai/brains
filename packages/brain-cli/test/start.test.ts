@@ -153,7 +153,7 @@ describe("builtin process supervision", () => {
       "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
     previousApiKey = process.env["AI_API_KEY"];
-    process.env["AI_API_KEY"] = "test-key";
+    process.env["AI_API_KEY"] = "sk-proj-test";
     setCanonicalDefinition(definition);
   });
 

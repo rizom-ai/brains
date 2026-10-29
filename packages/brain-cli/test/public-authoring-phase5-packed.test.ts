@@ -44,7 +44,7 @@ let transportUrls:
 function runtimeEnv(): Record<string, string | undefined> {
   return {
     ...process.env,
-    AI_API_KEY: "packed-hermetic-runtime",
+    AI_API_KEY: "sk-proj-packed-hermetic-runtime",
     BRAIN_SKIP_LOCAL_REEXEC: "1",
     ...(transportUrls
       ? {

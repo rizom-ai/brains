@@ -18,7 +18,7 @@ export function formatBootError(error: unknown): string {
 
   // Missing API key (shouldn't reach here due to preflight, but just in case)
   if (msg.includes("API_KEY") || msg.includes("api key")) {
-    return `API key error: ${msg}\n\nSet AI_API_KEY in your .env file.`;
+    return `API key error: ${msg}\n\nSet the provider key for each model in your .env file (OPENAI_API_KEY, ANTHROPIC_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY).`;
   }
 
   // Plugin config errors

@@ -135,18 +135,22 @@ export async function start(
   }
 
   if (hasCanonicalDefinition()) {
-    const keyCheck = checkApiKey(process.env);
-    if (flags.mode !== "startup-check" && !keyCheck.ok) {
-      return {
-        success: false,
-        message: keyCheck.message ?? "AI_API_KEY is not set.",
-      };
-    }
-
     // In-process boot — the package bundles the canonical definition. Explicitly
     // scoped external definitions remain dynamically authorable.
     try {
       const definition = await loadDefinition(config.brain);
+      const keyCheck = checkApiKey(process.env, {
+        model: config.model ?? definition.model,
+        imageModel: config.imageModel,
+        embeddingsEnabled: config.embedding?.enabled !== false,
+      });
+      if (flags.mode !== "startup-check" && !keyCheck.ok) {
+        return {
+          success: false,
+          message: keyCheck.message ?? "AI provider API key is not set.",
+        };
+      }
+
       const { bootBrain } = await import("../lib/boot");
 
       if (flags.mode === undefined && !flags.chat && childRole === undefined) {

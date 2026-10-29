@@ -33,7 +33,7 @@ export function createFullPresetApp(
 ): App {
   const config = resolve(
     canonicalBrain,
-    { AI_API_KEY: "test-key" },
+    { AI_API_KEY: "sk-proj-test" },
     parseInstanceOverrides(presetYaml),
   );
   return App.create({

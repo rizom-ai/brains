@@ -1,3 +1,5 @@
+import { isKeyProvider, KEY_PROVIDERS } from "@brains/ai-service/provider-keys";
+
 /**
  * Resolve AI provider and model ID from a model string.
  *
@@ -25,13 +27,6 @@ const MODEL_PATTERNS: Array<[RegExp, string]> = [
   [/^qwen/, "ollama"],
 ];
 
-/** Known provider → required env var (all use AI_API_KEY now) */
-const PROVIDER_ENV_VARS: Record<string, string> = {
-  openai: "AI_API_KEY",
-  anthropic: "AI_API_KEY",
-  google: "AI_API_KEY",
-};
-
 export function resolveProvider(model: string): ResolvedProvider {
   // Explicit prefix: "provider:modelId"
   const colonIdx = model.indexOf(":");
@@ -58,5 +53,5 @@ export function resolveProvider(model: string): ResolvedProvider {
  * Returns undefined for providers that don't need an API key (ollama, local).
  */
 export function getRequiredEnvVar(provider: string): string | undefined {
-  return PROVIDER_ENV_VARS[provider];
+  return isKeyProvider(provider) ? KEY_PROVIDERS[provider].envVar : undefined;
 }

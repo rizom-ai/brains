@@ -7,7 +7,7 @@
         "shell/ai-service/src/provider-keys.ts",
         "shell/ai-service/src/env-schema.ts",
         "shell/app/src/ai-config.ts",
-        "packages/brain-cli/src/commands/init.ts",
+        "packages/brain-cli/src/lib/preflight.ts",
         "packages/brain-cli/src/run-command.ts",
         "packages/brain-cli/src/lib/generated/canonical-env-schema.ts"
       ],

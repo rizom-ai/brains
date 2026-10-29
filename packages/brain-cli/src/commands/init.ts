@@ -59,11 +59,20 @@ export interface ScaffoldOptions {
    */
   regen?: boolean | undefined;
   /**
-   * If provided, scaffold writes a real `.env` file with `AI_API_KEY=<value>`
-   * so the brain can boot immediately after init. `.env.example` is still
-   * written as a template for collaborators.
+   * Legacy single key. If provided, `.env` gets `AI_API_KEY=<value>`, which
+   * the runtime uses for any provider without its own key.
    */
   apiKey?: string | undefined;
+  /**
+   * Provider keys by env var (e.g. `OPENAI_API_KEY`). If provided, scaffold
+   * writes them to a real `.env` file so the brain can boot immediately after
+   * init. `.env.example` is still written as a template for collaborators.
+   */
+  apiKeys?: Record<string, string> | undefined;
+  /** Chat model written to brain.yaml; the definition default when unset. */
+  model?: string | undefined;
+  /** Image model written to brain.yaml; the runtime default when unset. */
+  imageModel?: string | undefined;
 }
 
 /**
@@ -99,7 +108,7 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
     options.domain ??
     `${basename(pathResolve(dir))}.rizom.ai`;
 
-  writeBrainYaml(dir, recipe, domain, options.contentRepo);
+  writeBrainYaml(dir, recipe, domain, options);
   writeRecipeSeedContent(dir, recipe);
   writePackageJson(dir);
   writeReadme(dir, recipe);
@@ -112,9 +121,13 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   }
   writeEnvSchema(dir, options.backend);
 
-  // Real .env only when apiKey was supplied (interactive prompt or --api-key)
-  if (options.apiKey) {
-    writeEnv(dir, options.apiKey, options.contentRepo);
+  // Real .env only when keys were supplied (interactive prompt or key flags)
+  const envKeys = {
+    ...(options.apiKey ? { AI_API_KEY: options.apiKey } : {}),
+    ...options.apiKeys,
+  };
+  if (Object.keys(envKeys).length > 0) {
+    writeEnv(dir, envKeys, options.contentRepo);
   }
 
   // Deploy files only with --deploy
@@ -217,8 +230,9 @@ function writeBrainYaml(
   dir: string,
   recipe: BrainRecipeName,
   domain: string,
-  contentRepo?: string,
+  options: Pick<ScaffoldOptions, "contentRepo" | "model" | "imageModel">,
 ): void {
+  const { contentRepo, model, imageModel } = options;
   const expansion = expandBrainRecipe(recipe);
   const plugins: Record<string, Record<string, unknown>> = {
     ...(expansion.plugins ?? {}),
@@ -256,6 +270,8 @@ function writeBrainYaml(
       ...(expansion.anchor ? { anchor: expansion.anchor } : {}),
       ...(expansion.kind ? { kind: expansion.kind } : {}),
       domain,
+      ...(model ? { model } : {}),
+      ...(imageModel ? { imageModel } : {}),
       bundles: expansion.bundles,
       ...(expansion.add ? { add: expansion.add } : {}),
       ...(expansion.remove ? { remove: expansion.remove } : {}),
@@ -311,11 +327,14 @@ function writeDeployYml(dir: string, regen = false): void {
 }
 
 function writeEnvExample(dir: string): void {
-  const content = `# Required
-AI_API_KEY=
+  const content = `# AI provider keys: set the ones your brain.yaml models use.
+# Embeddings always use OpenAI.
+OPENAI_API_KEY=
+# ANTHROPIC_API_KEY=
+# GOOGLE_GENERATIVE_AI_API_KEY=
 
-# Optional: separate key for image generation (defaults to AI_API_KEY)
-# AI_IMAGE_KEY=
+# Legacy: used for any provider whose own key above is unset
+# AI_API_KEY=
 
 GIT_SYNC_TOKEN=
 
@@ -352,7 +371,7 @@ function writeEnvSchema(dir: string, backend?: string): void {
 }
 
 /**
- * Write a real .env file with the user-provided AI API key.
+ * Write a real .env file with the user-provided AI provider keys.
  *
  * Only the values the user supplied are written. Optional secrets
  * (MCP_AUTH_TOKEN, DISCORD_BOT_TOKEN, etc.) stay in .env.example for
@@ -360,8 +379,12 @@ function writeEnvSchema(dir: string, backend?: string): void {
  * empty placeholder when contentRepo is set so the user knows which
  * env var the brain.yaml git block expects.
  */
-function writeEnv(dir: string, apiKey: string, contentRepo?: string): void {
-  const lines = [`AI_API_KEY=${apiKey}`];
+function writeEnv(
+  dir: string,
+  keys: Record<string, string>,
+  contentRepo?: string,
+): void {
+  const lines = Object.entries(keys).map(([name, value]) => `${name}=${value}`);
   if (contentRepo) {
     lines.push("");
     lines.push("# Fill in with a personal access token that has repo write");
