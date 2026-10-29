@@ -4,7 +4,10 @@ import type { SiteBuilderConfig } from "../src/config";
 import type { SiteBuilderServices } from "../src/lib/site-builder";
 import type { BuildContext } from "../src/lib/static-site-builder";
 import type { SiteViewTemplate } from "../src/lib/site-view-template";
-import { DEFAULT_SITE_LANGUAGE } from "../src/lib/collect-build-routes";
+import {
+  DEFAULT_SITE_LANGUAGE,
+  type BuildRoute,
+} from "../src/lib/collect-build-routes";
 import type {
   SiteBuildOutputCommitResult,
   SiteBuildOutputLifecycle,
@@ -36,10 +39,12 @@ export const TestLayout: LayoutComponent = ({ sections }) => {
 };
 
 /** A fixture route, in English unless it says otherwise. */
-export type TestRoute = RouteDefinition & { language?: string };
+export type TestRoute = RouteDefinition &
+  Partial<Pick<BuildRoute, "language" | "alternates" | "siteNavigation">>;
 
 interface CreateRendererTestContextOptions {
   routes: TestRoute[];
+  siteUrl?: string;
   siteConfig: SiteMetadata;
   siteLayoutInfo: SiteLayoutInfo;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
@@ -55,6 +60,7 @@ interface CreateRendererTestContextOptions {
 /** Prepare inline fixture content for renderer-only unit tests. */
 export interface RendererTestSourceContext {
   routes: TestRoute[];
+  siteUrl?: string;
   siteConfig: SiteMetadata;
   getContent(
     route: RouteDefinition,
@@ -89,6 +95,7 @@ export async function prepareRendererTestContext(
 
   return createRendererTestContext({
     routes,
+    ...(source.siteUrl !== undefined && { siteUrl: source.siteUrl }),
     siteConfig: source.siteConfig,
     siteLayoutInfo: await source.getSiteLayoutInfo(),
     getViewTemplate: source.getViewTemplate,
@@ -121,6 +128,10 @@ export function createRendererTestContext(
     id: route.id,
     path: route.path,
     language: route.language ?? DEFAULT_SITE_LANGUAGE,
+    ...(route.alternates !== undefined && { alternates: route.alternates }),
+    ...(route.siteNavigation !== undefined && {
+      siteNavigation: route.siteNavigation,
+    }),
     title: route.title,
     ...(route.pageLabel !== undefined && { pageLabel: route.pageLabel }),
     description: route.description,
@@ -176,6 +187,7 @@ export function createRendererTestContext(
       staticAssets,
       publicAssets: options.publicAssets ?? {},
       globalHeadScripts: options.headScripts ?? [],
+      ...(options.siteUrl !== undefined && { siteUrl: options.siteUrl }),
     },
     routes: routeSourceOf(preparedRoutes),
     viewTemplates,

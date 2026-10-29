@@ -153,6 +153,7 @@ export async function runSiteBuild(
       pipelineContext: options.pipelineContext,
       imageBuildService,
       siteMetadata: parsedOptions.siteConfig,
+      siteUrl: baseUrl,
       publicDir: join(process.cwd(), "public"),
       signal: options.signal,
     });

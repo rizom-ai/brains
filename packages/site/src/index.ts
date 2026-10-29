@@ -306,6 +306,13 @@ export interface SiteLayoutInfo extends SiteMetadata {
     | undefined;
 }
 
+/** A page in one of the languages it is built in. */
+export interface SiteAlternate {
+  /** Language tag, such as `en` or `zh-TW`. */
+  language: string;
+  path: string;
+}
+
 /** Props supplied by the site builder to every authored layout. */
 export interface SiteLayoutProps {
   sections: ReactNode[];
@@ -313,6 +320,16 @@ export interface SiteLayoutProps {
   description: string;
   path: string;
   siteInfo: SiteLayoutInfo;
+  /**
+   * The page's language. Always set by the site builder; optional so a
+   * layout can be rendered on its own.
+   */
+  language?: string | undefined;
+  /**
+   * Every language this page is built in, the page's own among them, for a
+   * language switch that offers only what exists.
+   */
+  alternates?: SiteAlternate[] | undefined;
 }
 
 /** Initial section content keyed by section-group namespace and section id. */

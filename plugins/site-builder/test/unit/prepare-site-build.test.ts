@@ -98,6 +98,7 @@ function createRoute(content: unknown): BuildRoute {
     id: "home",
     path: "/",
     language: "en",
+    alternates: [{ language: "en", path: "/" }],
     title: "Home Route",
     pageLabel: "Home Label",
     description: "Home description",

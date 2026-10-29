@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createReactBuilder as createActualReactBuilder } from "../../src/lib/react-builder";
 import type { RendererTestSourceContext as BuildContext } from "../test-helpers";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
-import type { RouteDefinition } from "@brains/site-composition";
+import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { promises as fs, mkdtempSync } from "fs";
@@ -211,6 +211,171 @@ describe("ReactBuilder", () => {
     );
     expect(english).toContain('<html lang="en"');
     expect(chinese).toContain('<html lang="zh-TW"');
+  });
+
+  it("links each page to its other languages and hands the layout its language, versions and navigation", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+    const LanguageLayout: LayoutComponent = ({
+      sections,
+      language,
+      alternates,
+      siteInfo,
+    }) =>
+      h(
+        "main",
+        { "data-language": language },
+        h(
+          "nav",
+          null,
+          ...(alternates ?? []).map((alternate) =>
+            h(
+              "a",
+              { key: alternate.language, href: alternate.path },
+              alternate.language,
+            ),
+          ),
+          ...siteInfo.navigation.primary.map((item) =>
+            h("a", { key: item.href, href: item.href }, item.label),
+          ),
+        ),
+        sections,
+      );
+    const versions = [
+      { language: "en", path: "/" },
+      { language: "zh-TW", path: "/zh-tw" },
+    ];
+    const page = (
+      id: string,
+      path: string,
+      language: string,
+      siteNavigation?: SiteLayoutInfo["navigation"],
+    ): BuildContext["routes"][number] => ({
+      id,
+      path,
+      language,
+      alternates: versions,
+      ...(siteNavigation && { siteNavigation }),
+      title: "Page",
+      description: "Page",
+      layout: "default",
+      sections: [{ id: "s", template: "test", content: { title: id } }],
+    });
+
+    await builder.build(
+      {
+        routes: [
+          page("home", "/", "en"),
+          page("zh", "/zh-tw", "zh-TW", {
+            primary: [{ label: "首頁", href: "/zh-tw", priority: 10 }],
+            secondary: [],
+          }),
+        ],
+        siteUrl: "https://site.example",
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: LanguageLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: {
+            primary: [{ label: "Home", href: "/", priority: 10 }],
+            secondary: [],
+          },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    const english = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    const chinese = await fs.readFile(
+      join(outputDir, "zh-tw/index.html"),
+      "utf-8",
+    );
+    for (const html of [english, chinese]) {
+      expect(html).toContain(
+        '<link rel="alternate" hreflang="en" href="https://site.example/">',
+      );
+      expect(html).toContain(
+        '<link rel="alternate" hreflang="zh-TW" href="https://site.example/zh-tw">',
+      );
+      expect(html).toContain(
+        '<link rel="alternate" hreflang="x-default" href="https://site.example/">',
+      );
+      expect(html).toContain('<a href="/zh-tw">zh-TW</a>');
+    }
+    expect(english).toContain('data-language="en"');
+    expect(english).toContain('<a href="/">Home</a>');
+    expect(chinese).toContain('data-language="zh-TW"');
+    expect(chinese).toContain('<a href="/zh-tw">首頁</a>');
+    expect(chinese).not.toContain(">Home</a>");
+  });
+
+  it("writes no language links for a page built in one language", async () => {
+    const builder = createReactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const TestComponent = (props: Record<string, unknown>): ReactElement =>
+      h("div", {}, titlePropsSchema.parse(props).title);
+
+    await builder.build(
+      {
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            language: "en",
+            alternates: [{ language: "en", path: "/" }],
+            title: "Page",
+            description: "Page",
+            layout: "default",
+            sections: [{ id: "s", template: "test", content: { title: "x" } }],
+          },
+        ],
+        siteUrl: "https://site.example",
+        getViewTemplate: (name: string): SiteViewTemplate | undefined =>
+          name === "test"
+            ? {
+                name: "test",
+                schema: titlePropsSchema,
+                pluginId: "test-plugin",
+                renderers: { web: TestComponent },
+              }
+            : undefined,
+        siteConfig: { title: "Test Site", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: TestLayout },
+        getSiteLayoutInfo: async () => ({
+          title: "Test Site",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "©",
+        }),
+      },
+      () => {},
+    );
+
+    const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    expect(html).not.toContain("hreflang");
   });
 
   it("should fall back to site layout metadata when route metadata is omitted", async () => {

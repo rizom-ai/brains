@@ -25,6 +25,15 @@ export const preparedSectionSchema: z.ZodObject<{
 
 export type PreparedSection = z.output<typeof preparedSectionSchema>;
 
+/** A page in one of the languages it is built in. */
+export const preparedAlternateSchema: z.ZodObject<{
+  language: z.ZodString;
+  path: z.ZodString;
+}> = z.object({ language: z.string(), path: z.string() });
+
+const preparedNavigationSchema: (typeof siteLayoutInfoSchema)["shape"]["navigation"] =
+  siteLayoutInfoSchema.shape.navigation;
+
 /** Immutable route inventory consumed by a static renderer. */
 export const preparedRouteSchema: z.ZodObject<{
   id: z.ZodString;
@@ -37,6 +46,8 @@ export const preparedRouteSchema: z.ZodObject<{
   fullscreen: z.ZodBoolean;
   sections: z.ZodArray<typeof preparedSectionSchema>;
   headScripts: z.ZodArray<z.ZodString>;
+  alternates: z.ZodOptional<z.ZodArray<typeof preparedAlternateSchema>>;
+  siteNavigation: z.ZodOptional<typeof preparedNavigationSchema>;
 }> = z.object({
   id: z.string(),
   path: z.string(),
@@ -49,6 +60,10 @@ export const preparedRouteSchema: z.ZodObject<{
   fullscreen: z.boolean(),
   sections: z.array(preparedSectionSchema),
   headScripts: z.array(z.string()),
+  /** Every language the page is built in, with its path there. */
+  alternates: z.array(preparedAlternateSchema).optional(),
+  /** A translated page's navigation, in place of the site's. */
+  siteNavigation: preparedNavigationSchema.optional(),
 });
 
 export type PreparedRoute = z.output<typeof preparedRouteSchema>;
@@ -68,6 +83,7 @@ export const preparedSiteEnvelopeSchema: z.ZodObject<{
   staticAssets: z.ZodRecord<z.ZodString, z.ZodString>;
   publicAssets: z.ZodRecord<z.ZodString, z.ZodString>;
   globalHeadScripts: z.ZodArray<z.ZodString>;
+  siteUrl: z.ZodOptional<z.ZodString>;
 }> = z.object({
   buildId: z.string().min(1),
   preparedAt: z.string().datetime(),
@@ -79,6 +95,8 @@ export const preparedSiteEnvelopeSchema: z.ZodObject<{
   /** App public files keyed by output path with base64-encoded contents. */
   publicAssets: z.record(z.string(), z.string()),
   globalHeadScripts: z.array(z.string()),
+  /** The environment's public URL, for absolute links between languages. */
+  siteUrl: z.string().optional(),
 });
 
 export type PreparedSiteEnvelope = z.output<typeof preparedSiteEnvelopeSchema>;

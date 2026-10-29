@@ -132,6 +132,17 @@ describe("runSiteBuild languages", () => {
     ]);
   });
 
+  it("lists both versions of the page in the sitemap", async () => {
+    await build({ "zh-tw:home:cover": "你好" });
+    const sitemap = await fs.readFile(
+      join(testDir, "site-preview", "sitemap.xml"),
+      "utf8",
+    );
+
+    expect(sitemap).toContain("<loc>https://bilingual.example/</loc>");
+    expect(sitemap).toContain("<loc>https://bilingual.example/zh-tw</loc>");
+  });
+
   it("builds no Chinese page while its copy is missing", async () => {
     const pages = await build({});
 

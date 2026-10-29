@@ -5,6 +5,7 @@ import type {
   BuildContext,
 } from "./static-site-builder";
 import { sha256Hex } from "@brains/utils/hash";
+import { escapeHtml } from "@brains/utils/string-utils";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -146,7 +147,11 @@ export class ReactBuilder implements StaticSiteBuilder {
       route.sections,
       context,
     );
-    const siteLayoutInfo = preparedBuild.site;
+    // A translated page lists the pages of its own language.
+    const siteLayoutInfo = route.siteNavigation
+      ? { ...preparedBuild.site, navigation: route.siteNavigation }
+      : preparedBuild.site;
+    const alternates = route.alternates ?? [];
 
     // Create head collector for SSR, linking only the icons the build has.
     const icon =
@@ -199,6 +204,8 @@ export class ReactBuilder implements StaticSiteBuilder {
         description: resolvedDescription,
         path: route.path,
         siteInfo: siteLayoutInfo,
+        language: route.language,
+        alternates,
         ...(context.slots && { slots: context.slots }),
       };
 
@@ -235,7 +242,8 @@ export class ReactBuilder implements StaticSiteBuilder {
     // Create full HTML page with head data
     const html = createHTMLShell(
       layoutHtml,
-      headCollector.generateHeadHTML(),
+      headCollector.generateHeadHTML() +
+        languageLinks(alternates, preparedBuild.siteUrl),
       preparedBuild.site.title,
       preparedBuild.site.themeMode,
       preparedBuild.site.analyticsScript,
@@ -467,4 +475,24 @@ async function collectOtherPages(
       candidates.add(await fs.readFile(path, { encoding: "utf-8", signal }));
     }
   }, Promise.resolve());
+}
+
+/**
+ * hreflang links from a page to every language it is built in, and
+ * x-default to the default language's, as absolute URLs. A page built in
+ * one language, or a build without a public URL, links none.
+ */
+function languageLinks(
+  alternates: Array<{ language: string; path: string }>,
+  siteUrl: string | undefined,
+): string {
+  const [defaultVersion] = alternates;
+  if (!siteUrl || !defaultVersion || alternates.length < 2) return "";
+  const base = siteUrl.replace(/\/+$/, "");
+  return [...alternates, { ...defaultVersion, language: "x-default" }]
+    .map(
+      ({ language, path }) =>
+        `\n    <link rel="alternate" hreflang="${escapeHtml(language)}" href="${escapeHtml(base + path)}">`,
+    )
+    .join("");
 }

@@ -1,12 +1,24 @@
-import { languagePath, type RouteDefinition } from "@brains/site-composition";
+import {
+  languagePath,
+  type NavigationItem,
+  type RouteDefinition,
+  type SiteAlternate,
+  type SiteLayoutInfo,
+} from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 
 /** The language a site without declared languages is built in. */
 export const DEFAULT_SITE_LANGUAGE = "en";
 
+export type SiteNavigation = SiteLayoutInfo["navigation"];
+
 /** A route as one build renders it: one page in one language. */
 export interface BuildRoute extends RouteDefinition {
   language: string;
+  /** Every language this page is built in, with its path there. */
+  alternates: SiteAlternate[];
+  /** A translated page's navigation: the pages built in its language. */
+  siteNavigation?: SiteNavigation | undefined;
 }
 
 export interface BuildRoutes {
@@ -21,6 +33,14 @@ export interface CollectBuildRoutesOptions {
   hasSavedCopy: (id: string) => Promise<boolean>;
 }
 
+type TranslatedRoute = Omit<BuildRoute, "alternates" | "siteNavigation">;
+
+/** The routes one language is built in, by the id of the route translated. */
+interface LanguageBuild {
+  language: string;
+  byRouteId: Map<string, TranslatedRoute>;
+}
+
 /**
  * Every page the build renders. Each registered route is built in the
  * default language at its own path. In each other language it is built again
@@ -28,10 +48,11 @@ export interface CollectBuildRoutesOptions {
  * once every section has copy in that language; the site package's default
  * copy is the default language's and is never used for another. A route
  * fed by a datasource, or with a section without a template, is built in the
- * default language only.
+ * default language only. Every version of a page lists the languages it is
+ * built in, and a translated page carries its language's navigation.
  */
 export async function collectBuildRoutes(
-  routeRegistry: RouteRegistry,
+  routeRegistry: Pick<RouteRegistry, "list" | "getNavigationItems">,
   options: CollectBuildRoutesOptions,
 ): Promise<BuildRoutes> {
   const registered = routeRegistry.list();
@@ -40,25 +61,76 @@ export async function collectBuildRoutes(
   const [defaultLanguage = DEFAULT_SITE_LANGUAGE, ...otherLanguages] =
     options.languages ?? [];
 
-  const defaultRoutes = registered.map((route): BuildRoute => ({
-    ...route,
-    language: defaultLanguage,
-  }));
   const translatable = registered.filter(isTranslatable);
-  const translatedRoutes = await Promise.all(
-    otherLanguages.flatMap((language) =>
-      translatable.map((route) =>
-        translateRoute(route, language, defaultLanguage, options.hasSavedCopy),
+  const builds = await Promise.all(
+    otherLanguages.map(async (language): Promise<LanguageBuild> => ({
+      language,
+      byRouteId: new Map(
+        (
+          await Promise.all(
+            translatable.map(async (route) => {
+              const translated = await translateRoute(
+                route,
+                language,
+                defaultLanguage,
+                options.hasSavedCopy,
+              );
+              return translated ? ([route.id, translated] as const) : null;
+            }),
+          )
+        ).filter((entry) => entry !== null),
       ),
-    ),
+    })),
   );
+
+  const alternatesOf = (route: RouteDefinition): SiteAlternate[] => [
+    { language: defaultLanguage, path: route.path },
+    ...builds.flatMap(({ language, byRouteId }) => {
+      const translated = byRouteId.get(route.id);
+      return translated ? [{ language, path: translated.path }] : [];
+    }),
+  ];
+
+  const navigationOf = ({ byRouteId }: LanguageBuild): SiteNavigation => {
+    const pathByDefaultPath = new Map(
+      registered.flatMap((route) => {
+        const translated = byRouteId.get(route.id);
+        return translated ? [[route.path, translated.path] as const] : [];
+      }),
+    );
+    const localize = (items: NavigationItem[]): NavigationItem[] =>
+      items.flatMap((item) => {
+        const href = pathByDefaultPath.get(item.href);
+        return href ? [{ ...item, href }] : [];
+      });
+    return {
+      primary: localize(routeRegistry.getNavigationItems("primary")),
+      secondary: localize(routeRegistry.getNavigationItems("secondary")),
+    };
+  };
 
   return {
     routes: [
-      ...defaultRoutes,
-      ...translatedRoutes.filter(
-        (route): route is BuildRoute => route !== undefined,
-      ),
+      ...registered.map((route): BuildRoute => ({
+        ...route,
+        language: defaultLanguage,
+        alternates: alternatesOf(route),
+      })),
+      ...builds.flatMap((build) => {
+        const siteNavigation = navigationOf(build);
+        return registered.flatMap((route): BuildRoute[] => {
+          const translated = build.byRouteId.get(route.id);
+          return translated
+            ? [
+                {
+                  ...translated,
+                  alternates: alternatesOf(route),
+                  siteNavigation,
+                },
+              ]
+            : [];
+        });
+      }),
     ],
     warnings,
   };
@@ -78,9 +150,8 @@ async function translateRoute(
   language: string,
   defaultLanguage: string,
   hasSavedCopy: (id: string) => Promise<boolean>,
-): Promise<BuildRoute | undefined> {
-  const tag = language.toLowerCase();
-  const id = `${tag}:${route.id}`;
+): Promise<TranslatedRoute | undefined> {
+  const id = `${language.toLowerCase()}:${route.id}`;
   const saved = await Promise.all(
     route.sections.map((section) => hasSavedCopy(`${id}:${section.id}`)),
   );

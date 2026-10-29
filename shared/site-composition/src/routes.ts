@@ -24,6 +24,7 @@ export type {
   RouteDefinitionInput,
   RouteSectionDefinition as SectionDefinition,
   SectionDefinitionInput,
+  SiteAlternate,
 } from "@rizom/site";
 
 /** Section definition schema for site routes. */

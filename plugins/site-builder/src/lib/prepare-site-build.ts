@@ -44,6 +44,8 @@ export interface PrepareSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
   siteMetadata: SiteMetadata;
+  /** The environment's public URL, for absolute links between languages. */
+  siteUrl?: string | undefined;
   publicDir: string;
   signal: AbortSignal;
 }
@@ -150,6 +152,7 @@ export async function prepareSiteBuild(
     staticAssets,
     publicAssets,
     globalHeadScripts: options.buildOptions.headScripts ?? [],
+    ...(options.siteUrl !== undefined && { siteUrl: options.siteUrl }),
   });
 
   // Each page leaves only its summary, digest and diagnostics, kept in its
@@ -243,6 +246,10 @@ async function prepareRoute(
       id: options.route.id,
       path: options.route.path,
       language: options.route.language,
+      alternates: options.route.alternates,
+      ...(options.route.siteNavigation !== undefined && {
+        siteNavigation: options.route.siteNavigation,
+      }),
       title: options.route.title,
       ...(options.route.pageLabel !== undefined && {
         pageLabel: options.route.pageLabel,

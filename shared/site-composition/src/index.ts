@@ -27,6 +27,7 @@ export type {
   RouteDefinitionInput,
   RouteOperationResponse,
   SectionDefinition,
+  SiteAlternate,
   UnregisterRoutesPayload,
 } from "./routes";
 export {
