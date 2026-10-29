@@ -137,9 +137,13 @@ const docsDesignCss = `
   min-height: 0;
 }
 
-.docs-handbook a {
-  color: inherit;
-  text-decoration: none;
+/* Layered so a link's own color utilities (muted header links, the current
+   page) win over the reset; unlayered CSS would beat every Tailwind layer. */
+@layer base {
+  .docs-handbook a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 .docs-font-display {

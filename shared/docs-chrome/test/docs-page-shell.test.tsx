@@ -105,3 +105,23 @@ describe("composed docs pages", () => {
     );
   });
 });
+
+describe("docs link colors", () => {
+  test("the link reset yields to the links' own color utilities", () => {
+    const html = render(
+      <DocsPageShell title="Guide" description="One guide" current="guides">
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    // Unlayered CSS beats every Tailwind layer, so a bare reset would paint
+    // the muted header links and the current one alike in full text color.
+    expect(html).toMatch(
+      /@layer base \{\s*\.docs-handbook a \{\s*color: inherit;/,
+    );
+    expect(html).not.toMatch(/(^|\n)\.docs-handbook a \{/);
+    expect(html).toMatch(
+      /<a class="[^"]*text-\[var\(--docs-text-muted\)\][^"]*aria-\[current=page\]:text-\[var\(--docs-text\)\][^"]*" href="\/guides" aria-current="page"/,
+    );
+  });
+});
