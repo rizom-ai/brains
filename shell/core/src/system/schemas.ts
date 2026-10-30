@@ -107,7 +107,11 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
   kind: z.ZodLiteral<"user-message">;
   messageId: z.ZodOptional<z.ZodString>;
   boundaryMode: z.ZodOptional<
-    z.ZodEnum<{ literal: "literal"; lines: "lines" }>
+    z.ZodEnum<{
+      literal: "literal";
+      lines: "lines";
+      frontmatter: "frontmatter";
+    }>
   >;
   startAfter: z.ZodOptional<z.ZodString>;
   endBefore: z.ZodOptional<z.ZodString>;
@@ -126,22 +130,22 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
         "Stored user message ID in this conversation; omit for the latest user message.",
       ),
     boundaryMode: z
-      .enum(["literal", "lines"])
+      .enum(["literal", "lines", "frontmatter"])
       .optional()
       .describe(
-        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries.",
+        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries. Use frontmatter when the pasted text opens with a --- frontmatter block: the saved text starts at its opening fence, so no startAfter is needed.",
       ),
     startAfter: z
       .string()
       .optional()
       .describe(
-        "Exact unique opening boundary, excluded from saved text; never a --- frontmatter fence. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
+        "Exact unique opening boundary, excluded from saved text; never a --- fence (use boundaryMode frontmatter). In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
       ),
     endBefore: z
       .string()
       .optional()
       .describe(
-        "Omit when the content runs to the end of the message. Otherwise the exact unique closing boundary, excluded from saved text; never a --- frontmatter fence. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude.",
+        "Omit when the content runs to the end of the message. Otherwise the exact unique closing boundary, excluded from saved text; never a --- fence (use boundaryMode frontmatter). In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude.",
       ),
     contentHash: z
       .string()

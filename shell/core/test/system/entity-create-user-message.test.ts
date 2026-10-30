@@ -535,8 +535,132 @@ describe("system_create user-message source from model-shaped requests", () => {
     expect(services.getEntities().size).toBe(0);
   });
 
-  test("answers frontmatter fence boundaries with the exact retry that saves the document", async () => {
+  test.each([
+    { label: "alone", source: {} },
+    { label: "after the instruction", source: { startAfter: instruction } },
+    {
+      label: "with an empty endBefore",
+      source: { startAfter: `${instruction} `, endBefore: "" },
+    },
+  ])(
+    "selects a pasted document from its frontmatter fence: $label",
+    async ({ source }) => {
+      expect(
+        await saved({
+          kind: "user-message",
+          boundaryMode: "frontmatter",
+          ...source,
+        }),
+      ).toBe(document);
+    },
+  );
+
+  test("pins a frontmatter selection to the document it saves", async () => {
     const { tool } = fixture([message(pasted)]);
+    const args = confirmationSchema.parse(
+      expectConfirmationArgs(
+        await tool.handler(
+          {
+            ...input(),
+            source: { kind: "user-message", boundaryMode: "frontmatter" },
+          },
+          context,
+        ),
+      ),
+    );
+    expect(args["source"]).toEqual({
+      kind: "user-message",
+      boundaryMode: "frontmatter",
+      messageId: "user-source",
+      contentHash: computeContentHash(document),
+    });
+  });
+
+  test("keeps rules and closing fences in the body of a frontmatter selection", async () => {
+    const ruled = `---\ntitle: Ruled\n---\nNote: kept.\n\n---\n\nAfter a rule.\n`;
+    expect(
+      await saved(
+        { kind: "user-message", boundaryMode: "frontmatter" },
+        `${instruction}\n\n${ruled}`,
+      ),
+    ).toBe(ruled);
+  });
+
+  test.each([
+    {
+      label: "no frontmatter",
+      text: `${instruction}\n\n# Shared Memory\n\n---\n\nAfter a rule.\n`,
+      problem: "boundaryMode frontmatter finds no --- frontmatter block",
+    },
+    {
+      label: "two frontmatter blocks",
+      text: `${instruction}\n\n${document}\n${document}`,
+      problem: "boundaryMode frontmatter finds 2 --- frontmatter blocks",
+    },
+  ])(
+    "requires exactly one frontmatter block: $label",
+    async ({ text, problem }) => {
+      const { services, tool } = fixture([message(text)]);
+      expect(
+        await tool.handler(
+          {
+            ...input(),
+            source: { kind: "user-message", boundaryMode: "frontmatter" },
+          },
+          context,
+        ),
+      ).toMatchObject({
+        success: false,
+        error: expect.stringContaining(problem),
+      });
+      expect(services.getEntities().size).toBe(0);
+    },
+  );
+
+  test("directs a pasted frontmatter document to frontmatter mode instead of its fences", () => {
+    const { tool } = fixture([]);
+    expect(tool.description).toContain(
+      "To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore",
+    );
+    expect(tool.description).not.toContain(
+      "use literal startAfter set to the save instruction",
+    );
+  });
+
+  test.each([
+    {
+      label: "both fences",
+      boundaries: { startAfter: "---", endBefore: "---" },
+    },
+    {
+      label: "a closing fence",
+      boundaries: { startAfter: instruction, endBefore: "---" },
+    },
+    { label: "an opening fence", boundaries: { startAfter: "---" } },
+  ])(
+    "selects the document when its frontmatter fences are its only --- lines: $label",
+    async ({ boundaries }) => {
+      expect(
+        await saved({
+          kind: "user-message",
+          boundaryMode: "lines",
+          ...boundaries,
+        }),
+      ).toBe(document);
+      expect(
+        await saved({
+          kind: "user-message",
+          ...boundaries,
+          ...(boundaries.startAfter === "---" ? { startAfter: "---\n" } : {}),
+        }),
+      ).toBe(document);
+    },
+  );
+
+  test("answers fence boundaries with the retry that saves the document when other --- lines exist", async () => {
+    const ruled = `${document}\n---\n\nAfter a rule.\n`;
+    const text = `${instruction}\n\n${ruled}`;
+    const { tool } = fixture([message(text)]);
     const result = await tool.handler(
       {
         ...input(),
@@ -549,13 +673,14 @@ describe("system_create user-message source from model-shaped requests", () => {
       },
       context,
     );
-    const retry = { boundaryMode: "literal", startAfter: `${instruction}\n\n` };
     expect(result).toMatchObject({
       success: false,
       error: expect.stringContaining(
-        `--- fences frontmatter, which is part of the content: retry with boundaryMode "literal", startAfter ${JSON.stringify(retry.startAfter)} and no endBefore`,
+        '--- fences frontmatter, which is part of the content: retry with boundaryMode "frontmatter" and no startAfter or endBefore.',
       ),
     });
-    expect(await saved({ kind: "user-message", ...retry })).toBe(document);
+    expect(
+      await saved({ kind: "user-message", boundaryMode: "frontmatter" }, text),
+    ).toBe(ruled);
   });
 });

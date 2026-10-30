@@ -322,7 +322,7 @@ describe("system_create tool", () => {
     );
 
     expect(tool?.description).toContain(
-      "Frontmatter --- fences are part of the content, never boundaries",
+      "the fences are content, never boundaries",
     );
   });
 

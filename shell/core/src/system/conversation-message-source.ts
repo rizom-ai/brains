@@ -82,6 +82,7 @@ export async function resolveConversationMessageContent(
     return { success: true, messageId: message.id, content: message.content };
   }
 
+  const source = fenceBoundariesAsFrontmatter(input, message.content);
   // Name the failing boundary and the way out: a generic refusal led models
   // to ask the user to resend content that a literal prefix selects uniquely.
   const boundary = (
@@ -92,7 +93,7 @@ export async function resolveConversationMessageContent(
   ): { offset: number } | { problem: string } => {
     if (!value) return { offset: fallback };
     const quoted = `${name} ${JSON.stringify(value)}`;
-    if (input.boundaryMode === "lines" && /[\r\n]/.test(value)) {
+    if (source.boundaryMode === "lines" && /[\r\n]/.test(value)) {
       return {
         problem: `${quoted} contains a newline; in lines mode give the marker line's text only`,
       };
@@ -100,7 +101,7 @@ export async function resolveConversationMessageContent(
     const offsets = boundaryOffsets(
       message.content,
       value,
-      input.boundaryMode ?? "literal",
+      source.boundaryMode === "lines" ? "lines" : "literal",
       after,
     );
     const [offset] = offsets;
@@ -112,10 +113,14 @@ export async function resolveConversationMessageContent(
           : `${quoted} occurs ${offsets.length} times in the message`,
     };
   };
-  const start = boundary("startAfter", input.startAfter, 0, true);
+  const afterStart = boundary("startAfter", source.startAfter, 0, true);
+  const start =
+    source.boundaryMode === "frontmatter" && "offset" in afterStart
+      ? frontmatterStart(message.content, afterStart.offset)
+      : afterStart;
   const end = boundary(
     "endBefore",
-    input.endBefore,
+    source.endBefore,
     message.content.length,
     false,
   );
@@ -198,17 +203,77 @@ function collapseWhitespace(text: string): string {
 }
 
 /**
- * A pasted document that opens with frontmatter is selected by the text
- * before its opening fence. Naming that exact prefix makes the retry certain:
- * models otherwise pick the --- fences themselves as boundaries.
+ * Agents pick the --- fences of a pasted document as its boundaries, which
+ * a frontmatter block always repeats. When the message's only --- lines are
+ * the fences of its one frontmatter block, a fence boundary can only mean
+ * that document: it is selected in frontmatter mode, as the retry advice
+ * would select it, and other boundaries still apply.
+ */
+function fenceBoundariesAsFrontmatter(
+  source: UserMessageSource,
+  content: string,
+): UserMessageSource {
+  const isFence = (value: string | undefined): boolean =>
+    value?.trim() === "---";
+  if (!isFence(source.startAfter) && !isFence(source.endBefore)) return source;
+  const fences = content.match(/^---\r?$/gm)?.length ?? 0;
+  if (fences !== 2 || frontmatterOpenings(content, 0).length !== 1) {
+    return source;
+  }
+  const { startAfter, endBefore, ...rest } = source;
+  return {
+    ...rest,
+    boundaryMode: "frontmatter",
+    ...(isFence(startAfter) ? {} : { startAfter }),
+    ...(isFence(endBefore) ? {} : { endBefore }),
+  };
+}
+
+/**
+ * Models pick the --- fences of a pasted document as its boundaries, which
+ * would leave its frontmatter out; frontmatter mode selects the document
+ * from its opening fence instead.
  */
 function retryAdvice(content: string): string {
-  const fence = /^---\r?$/m.exec(content);
-  const prefix = fence ? content.slice(0, fence.index) : "";
-  return prefix.trim() &&
-    literalBoundaryOffsets(content, prefix, true).length === 1
-    ? `--- fences frontmatter, which is part of the content: retry with boundaryMode "literal", startAfter ${JSON.stringify(prefix)} and no endBefore.`
+  return frontmatterOpenings(content, 0).length === 1
+    ? '--- fences frontmatter, which is part of the content: retry with boundaryMode "frontmatter" and no startAfter or endBefore.'
     : "To select everything after an instruction, use boundaryMode literal with startAfter set to the instruction's exact text and omit endBefore.";
+}
+
+/**
+ * The offset of the one frontmatter block after `from`: the selected text
+ * starts at its opening fence, so the frontmatter stays part of it.
+ */
+function frontmatterStart(
+  content: string,
+  from: number,
+): { offset: number } | { problem: string } {
+  const openings = frontmatterOpenings(content, from);
+  const [offset] = openings;
+  if (openings.length === 1 && offset !== undefined) return { offset };
+  return {
+    problem:
+      openings.length === 0
+        ? "boundaryMode frontmatter finds no --- frontmatter block"
+        : `boundaryMode frontmatter finds ${openings.length} --- frontmatter blocks`,
+  };
+}
+
+/**
+ * Offsets of the --- lines that open a frontmatter block: a key line follows
+ * the fence and a closing --- line ends the block. Each match consumes its
+ * closing fence, so a closing fence or a later rule never counts as an
+ * opening.
+ */
+function frontmatterOpenings(content: string, from: number): number[] {
+  return Array.from(
+    content
+      .slice(from)
+      .matchAll(
+        /^---\r?\n["']?[A-Za-z_][\w-]*["']?[ \t]*:.*\r?\n(?:.*\r?\n)*?---\r?$/gm,
+      ),
+    (match) => from + match.index,
+  );
 }
 
 /** Offsets after (or before) each whole line equal to the marker. */
