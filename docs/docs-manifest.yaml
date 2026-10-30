@@ -136,3 +136,5 @@ guides:
     source: docs/guides/writer.md
   - id: researcher
     source: docs/guides/researcher.md
+  - id: consultant
+    source: docs/guides/consultant.md
