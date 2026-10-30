@@ -138,3 +138,5 @@ guides:
     source: docs/guides/researcher.md
   - id: consultant
     source: docs/guides/consultant.md
+  - id: team
+    source: docs/guides/team.md
