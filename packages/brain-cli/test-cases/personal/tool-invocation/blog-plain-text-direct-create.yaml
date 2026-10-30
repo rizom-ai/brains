@@ -1,0 +1,43 @@
+id: tool-invocation-blog-plain-text-direct-create
+name: Plain Essay Text Becomes a Post via Direct Create
+description: Verifies an essay pasted as plain markdown (no post frontmatter) is saved as a post from the user's message, not regenerated.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - blog
+  - finalized-content
+  - regression
+  - recipe-professional
+
+turns:
+  - userMessage: |
+      Save this essay as a draft post. Keep my text.
+
+      # The Long Way Round
+
+      Every shortcut I took cost me a week.
+
+      The slow route was the only one that arrived.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+        source.kind: user-message
+      argsAbsent:
+        - prompt
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 31000

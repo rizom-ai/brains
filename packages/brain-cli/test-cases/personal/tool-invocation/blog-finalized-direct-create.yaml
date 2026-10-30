@@ -45,4 +45,6 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 17000
+  # One self-corrected retry after a rejected first call (an empty internal
+  # contentHash, a boundary that does not occur) is a second model step.
+  maxTokens: 31000
