@@ -38,6 +38,7 @@ A new package `@brains/guide` (`entities/guide`) with a `guides` plugin and enti
 | `persona`  | string                                       | Short name on cards ("The writer")                            |
 | `for`      | string                                       | One sentence describing the reader                            |
 | `recipe`   | `personal \| professional \| team`, optional | Recipe the guide starts from; the self-hosting guide has none |
+| `brings`   | `string[]`, optional                         | What the start section lists; absent, the recipe's own lines  |
 | `material` | `{ from, where, becomes, how }[]`            | What the reader has and the entity type each part becomes     |
 
 The body is markdown. Each `##` heading is a stage; the stage's text runs to the next heading. A stage ends with an `Exact steps:` line listing the docs it relies on; the template shows those links as "Exact steps" links and drops the line from the prose. The last stage is what the brain does after a week. `becomes` is an entity type name (`note`, `post`, `link`, `series`, `deck`, …) so the material map can label it the way Studio does.
@@ -50,7 +51,7 @@ Guide templates reuse the docs chrome (`DocsPageShell`, header, footer, `docsCla
 
 - **Opening:** persona label, title, the `for` sentence, and the material as scattered fragments that settle into one light as the reader scrolls.
 - **Material map:** the reader's places on the left, entity types on the right, joined by curves; the `how` line under each source.
-- **Start:** when the guide names a recipe, what the recipe brings, the welcome email with its three doors (chat, Studio, AI tools), and a link to the self-hosting guide. The self-hosting guide has no start section; installing is its first stage.
+- **Start:** when the guide names a recipe, what it brings (the guide's `brings`, or the recipe's own lines), the welcome email with its three doors (chat, Studio, AI tools), and a link to the self-hosting guide. The self-hosting guide has no start section; installing is its first stage.
 - **Stages:** numbered chapters with a sticky rail; each stage shows its markdown and the docs it links to as "Exact steps" links.
 - **Closing:** the other four guides.
 

@@ -14,6 +14,7 @@ describe("GuideAdapter", () => {
       persona: "The writer",
       for: "You have years of essays and a folder of drafts.",
       recipe: "professional",
+      brings: null,
       material: [
         {
           from: "Drafts and fragments",

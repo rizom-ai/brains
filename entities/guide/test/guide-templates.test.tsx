@@ -62,6 +62,26 @@ describe("GuideDetailTemplate", () => {
     expect(html).toContain('href="/guides/self-hosting"');
   });
 
+  test("shows the guide's own highlights instead of the recipe's", () => {
+    const guide = writerGuide();
+    const fields = {
+      ...guide.metadata,
+      brings: ["Your profile, as the site and its answers start from it"],
+    };
+    const own = render(
+      <GuideDetailTemplate
+        guide={{ ...guide, metadata: fields, frontmatter: fields }}
+        otherGuides={[]}
+      />,
+    );
+
+    expect(own).toMatch(/The <em[^>]*>professional<\/em> recipe/);
+    expect(own).toContain(
+      "<li>Your profile, as the site and its answers start from it</li>",
+    );
+    expect(own).not.toContain("A publishing queue with drafts and schedules");
+  });
+
   test("leaves out the start section for a guide without a recipe", () => {
     const plain = render(
       <GuideDetailTemplate

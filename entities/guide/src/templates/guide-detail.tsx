@@ -204,9 +204,11 @@ const doors = [
 
 const Start = ({
   recipe,
+  brings,
   selfHostingTitle,
 }: {
   recipe: GuideRecipe;
+  brings: string[];
   selfHostingTitle: string;
 }): JSX.Element => (
   <section className="guide-band" data-guide-start>
@@ -222,7 +224,7 @@ const Start = ({
           or your AI tools.
         </p>
         <ul>
-          {guideRecipeHighlights(recipe).map((line) => (
+          {brings.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
@@ -381,6 +383,10 @@ export const GuideDetailTemplate = ({
         {guide.metadata.recipe && (
           <Start
             recipe={guide.metadata.recipe}
+            brings={
+              guide.metadata.brings ??
+              guideRecipeHighlights(guide.metadata.recipe)
+            }
             selfHostingTitle={selfHosting?.metadata.title ?? SELF_HOSTING_TITLE}
           />
         )}

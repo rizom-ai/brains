@@ -5,6 +5,12 @@ order: 30
 persona: The consultant
 for: Your expertise is locked in client work, slide decks and a LinkedIn summary. You want it findable and askable without writing it all again.
 recipe: professional
+brings:
+  - A profile your site and answers start from
+  - Portfolio projects for your past engagements
+  - Decks for your talks and workshops
+  - Your own site with your posts, projects and decks
+  - An agent card, so other brains can find you
 material:
   - from: What you do
     where: Your bio, a LinkedIn summary, a pitch

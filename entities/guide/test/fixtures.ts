@@ -50,6 +50,7 @@ export function guideWithData(
     persona: `The ${slug}`,
     for: `You are a ${slug}.`,
     recipe,
+    brings: null,
     material: [],
   };
   return {
@@ -90,6 +91,7 @@ export function writerGuide(): GuideWithData {
     persona: "The writer",
     for: "You have years of essays and a folder of drafts.",
     recipe: "professional" as const,
+    brings: null,
     material: [
       {
         from: "Drafts and fragments",

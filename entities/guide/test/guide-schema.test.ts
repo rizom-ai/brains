@@ -20,7 +20,10 @@ const frontmatter = {
 
 describe("guideFrontmatterSchema", () => {
   it("accepts a guide for a kind of user", () => {
-    expect(guideFrontmatterSchema.parse(frontmatter)).toEqual(frontmatter);
+    expect(guideFrontmatterSchema.parse(frontmatter)).toEqual({
+      ...frontmatter,
+      brings: null,
+    });
   });
 
   it("accepts a guide that names no recipe, as the self-hosting guide does", () => {
@@ -29,6 +32,24 @@ describe("guideFrontmatterSchema", () => {
     const parsed = guideFrontmatterSchema.parse(withoutRecipe);
 
     expect(parsed.recipe).toBeNull();
+  });
+
+  it("reads absent highlights as null, so the start section falls back to the recipe", () => {
+    expect(guideFrontmatterSchema.parse(frontmatter).brings).toBeNull();
+  });
+
+  it("accepts the highlights a guide uses from its recipe", () => {
+    const brings = ["Your profile", "Portfolio projects"];
+
+    expect(
+      guideFrontmatterSchema.parse({ ...frontmatter, brings }).brings,
+    ).toEqual(brings);
+  });
+
+  it("rejects an empty list of highlights", () => {
+    expect(
+      guideFrontmatterSchema.safeParse({ ...frontmatter, brings: [] }).success,
+    ).toBe(false);
   });
 
   it.each(["personal", "professional", "team"])(
