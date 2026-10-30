@@ -98,6 +98,37 @@ suites:
         maxNetworkAttempts: 1
       site-builder:
         autoRebuild: false
+  # The doc-brain at docs.rizom.ai: reference docs and moving-in guides on
+  # the docs site, so answers cite each at its page.
+  docs:
+    extends: headless
+    inheritTags: false
+    bundles:
+      - core
+      - web
+      - chat
+      - site
+      - publishing
+    add:
+      - docs
+      - guides
+    remove:
+      - series
+      - portfolio
+      - content-pipeline
+      - social-media
+      - newsletter
+      - stock-photo
+    site:
+      package: "@rizom/site-docs"
+    domain: docs.rizom.ai
+    tags:
+      - recipe-docs
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/recipes/docs
+      site-builder:
+        autoRebuild: false
 models:
   - gpt-6-luna
 judge: gpt-5.4-mini

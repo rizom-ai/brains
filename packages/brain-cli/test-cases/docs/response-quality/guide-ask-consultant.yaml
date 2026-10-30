@@ -1,0 +1,30 @@
+id: docs-guide-ask-consultant
+name: A consultant is pointed to the consultant guide
+description: >-
+  A visitor runs a small consultancy and wants to bring their case studies in.
+  The answer comes from the consultant guide (paste a case write-up in chat and
+  ask for a portfolio project) and cites the guide at its page.
+type: response_quality
+setup:
+  permissionLevel: public
+tags:
+  - recipe-docs
+  - docs
+  - guides
+  - search
+
+turns:
+  - userMessage: "I run a small consultancy. How do I bring my case studies in?"
+
+successCriteria:
+  expectedSources:
+    - id: guide:consultant
+      url: https://docs.rizom.ai/guides/consultant
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  responseCriteria:
+    - "Says each case study becomes a portfolio project, drafted from a write-up pasted in chat."
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 60000

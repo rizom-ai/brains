@@ -76,6 +76,6 @@ One PR; each phase is a commit with its tests.
 2. **Writer guide, designed.** Opening, material map, start, staged chapters and rail, as in the mockup. The writer guide's steps are run on a hosted `professional` brain and corrected before commit. Template tests over a fixture guide.
 3. **Index and entry points.** `guide-list` at `/guides`, the Guides header link, the docs-home band.
 4. **Researcher, consultant, team, self-hosting.** One commit per guide. Each user guide is run on a hosted brain from its recipe (`personal`, `professional`, `team`); the self-hosting guide on a fresh install from the published `@rizom/brain`.
-5. **Ask.** A doc-brain eval: persona-shaped questions are answered from the matching guide with its link.
+5. **Ask.** A doc-brain eval, the `docs` suite in `packages/brain-cli/brain.eval.yaml` on the docs site: persona-shaped questions are answered from the matching guide and cite it at `/guides/<slug>`; a reference question cites a doc and no guide.
 
 Changesets: `@brains/guide` and `@rizom/brain` in the core lane, `@rizom/site-docs` in the site lane. The doc-brain pin moves after both releases.

@@ -1,0 +1,39 @@
+id: docs-doc-ask-mcp-tool-modes
+name: A reference question is answered from the docs, not a guide
+description: >-
+  A visitor asks a reference question about MCP tool modes. The answer comes
+  from the interface setup doc and cites it at its page; no moving-in guide is
+  cited.
+type: response_quality
+setup:
+  permissionLevel: public
+tags:
+  - recipe-docs
+  - docs
+  - search
+
+turns:
+  - userMessage: "What MCP tool modes does a brain support?"
+
+successCriteria:
+  expectedSources:
+    - id: doc:interface-setup
+      url: https://docs.rizom.ai/docs/interface-setup
+    - id: guide:writer
+      cited: false
+    - id: guide:researcher
+      cited: false
+    - id: guide:consultant
+      cited: false
+    - id: guide:team
+      cited: false
+    - id: guide:self-hosting
+      cited: false
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  responseCriteria:
+    - "Names the basic mode as the default and debug mode for operator inspection with raw tools."
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 60000

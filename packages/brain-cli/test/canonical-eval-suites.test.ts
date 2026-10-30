@@ -1,5 +1,9 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { App, resolveBundleSelection } from "@brains/app";
+import { afterEach, beforeAll, describe, expect, test } from "bun:test";
+import {
+  App,
+  registerOverridePackages,
+  resolveBundleSelection,
+} from "@brains/app";
 import { caughtError, waitUntil } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
@@ -73,6 +77,7 @@ const suiteNames = [
   "professional",
   "providers",
   "team",
+  "docs",
 ] as const;
 type SuiteName = (typeof suiteNames)[number];
 
@@ -89,6 +94,7 @@ const expectedMembers: Record<SuiteName, string> = {
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   providers:
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  docs: "a2a admin agents analytics ask-content auth-service blog chat conversation-memory dashboard decks directory-sync docs email faq guides link mcp note notifications profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
   team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
@@ -97,6 +103,7 @@ const expectedCaseCounts: Record<SuiteName, number> = {
   professional: 97,
   providers: 2,
   team: 37,
+  docs: 5,
 };
 const tempDirectories: string[] = [];
 
@@ -164,6 +171,8 @@ function createSuiteApp(
     bundles: selection.bundles,
     ...(selection.add ? { add: selection.add } : {}),
     ...(selection.remove ? { remove: selection.remove } : {}),
+    ...(selection.site ? { site: selection.site } : {}),
+    ...(selection.domain ? { domain: selection.domain } : {}),
     plugins,
   };
   const resolved = resolveEvalConfig(
@@ -215,6 +224,15 @@ function allCriteria(testCase: TestCase): SuccessCriteria[] {
   ];
 }
 
+// A suite's site package resolves by name, as the eval runner registers it.
+beforeAll(async () => {
+  await Promise.all(
+    suiteNames
+      .flatMap((name) => suiteSelection(name).site ?? [])
+      .map((site) => registerOverridePackages({ site })),
+  );
+});
+
 afterEach(() => {
   for (const directory of tempDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
@@ -260,6 +278,13 @@ describe("canonical eval recipe ladder", () => {
       add: ["docs", "action-board"],
       tags: ["recipe-team"],
     });
+    expect(suiteSelection("docs")).toMatchObject({
+      bundles: ["core", "web", "chat", "site", "publishing"],
+      add: ["docs", "guides"],
+      site: { package: "@rizom/site-docs" },
+      domain: "docs.rizom.ai",
+      tags: ["recipe-docs"],
+    });
   });
 
   test("keeps Git disabled for in-process eval boot", () => {
@@ -287,7 +312,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(216);
+    expect(testCases.length).toBe(221);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(

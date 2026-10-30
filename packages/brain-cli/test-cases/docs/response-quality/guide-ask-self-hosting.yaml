@@ -1,0 +1,30 @@
+id: docs-guide-ask-self-hosting
+name: A self-hoster is pointed to the self-hosting guide
+description: >-
+  A visitor wants to run the brain on their own server. The answer comes from
+  the self-hosting guide (install @rizom/brain, create a brain from a recipe,
+  start it) and cites the guide at its page.
+type: response_quality
+setup:
+  permissionLevel: public
+tags:
+  - recipe-docs
+  - docs
+  - guides
+  - search
+
+turns:
+  - userMessage: "I want to run the brain on my own server. How do I go about that?"
+
+successCriteria:
+  expectedSources:
+    - id: guide:self-hosting
+      url: https://docs.rizom.ai/guides/self-hosting
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  responseCriteria:
+    - "Explains installing the brain and creating one from a recipe, such as with brain init, before starting it."
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 60000
