@@ -153,6 +153,38 @@ describe("resolveEvalSelection", () => {
     });
   });
 
+  it("resolves a suite's site and domain, inherited by its children", () => {
+    const suites = {
+      docs: {
+        bundles: ["core", "site"],
+        site: { package: "@rizom/site-docs" },
+        domain: "docs.example.com",
+        tags: ["recipe-docs"],
+      },
+      child: { extends: "docs", inheritTags: false, tags: ["child"] },
+    };
+
+    expect(resolveEvalSelection({ suites }, { suite: "child" })).toEqual({
+      bundles: ["core", "site"],
+      site: { package: "@rizom/site-docs" },
+      domain: "docs.example.com",
+      tags: ["child"],
+    });
+  });
+
+  it.each([
+    [{ site: "@rizom/site-docs" }, "site; expected an object with a package"],
+    [
+      { site: { theme: "@rizom/theme" } },
+      "site; expected an object with a package",
+    ],
+    [{ domain: "" }, "domain; expected a non-empty string"],
+  ])("rejects an invalid suite site or domain %#", (suite, message) => {
+    expect(() =>
+      resolveEvalSelection({ suites: { bad: suite } }, { suite: "bad" }),
+    ).toThrow(`Eval suite "bad" has invalid ${message}.`);
+  });
+
   it("rejects invalid suite profile selections", () => {
     expect(() =>
       resolveEvalSelection(

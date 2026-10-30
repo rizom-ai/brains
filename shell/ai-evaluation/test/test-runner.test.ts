@@ -895,6 +895,53 @@ describe("TestRunner", () => {
       expect(result.failures[0]?.criterion).toBe("responseContains");
     });
 
+    it("checks expected sources against the sources the last reply shows", async () => {
+      mockAgentService.chat.mockImplementation(() =>
+        Promise.resolve(
+          createMockResponse({
+            cards: [
+              {
+                kind: "sources",
+                id: "sources:tool-results",
+                title: "Retrieved sources",
+                sources: [
+                  {
+                    id: "guide:writer",
+                    source: "guide",
+                    url: "https://docs.rizom.ai/guides/writer",
+                  },
+                ],
+              },
+            ],
+          }),
+        ),
+      );
+      const testCase = (id: string): AgentTestCase => ({
+        id: `sources-${id}`,
+        name: "Sources",
+        type: "response_quality",
+        turns: [
+          {
+            userMessage: "Where do I start?",
+            successCriteria: {
+              expectedSources: [{ id, cited: true }],
+            },
+          },
+        ],
+        successCriteria: { expectedSources: [{ id, cited: true }] },
+      });
+
+      const cited = await testRunner.runTest(testCase("guide:writer"));
+      const missing = await testRunner.runTest(testCase("guide:team"));
+
+      expect(cited.passed).toBe(true);
+      expect(missing.passed).toBe(false);
+      expect(missing.failures.map(({ criterion }) => criterion)).toEqual([
+        "expectedSources",
+        "expectedSources",
+      ]);
+    });
+
     it("should fail when responseNotContains criteria violated", async () => {
       const testCase: TestCase = {
         id: "test-3",
