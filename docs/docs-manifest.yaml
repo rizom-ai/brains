@@ -140,3 +140,5 @@ guides:
     source: docs/guides/consultant.md
   - id: team
     source: docs/guides/team.md
+  - id: self-hosting
+    source: docs/guides/self-hosting.md
