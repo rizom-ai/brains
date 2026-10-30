@@ -18,6 +18,11 @@ import { ButtonLink, linkSchema } from "./links";
  */
 const spellSchema = z.object({
   before: z.string(),
+  /**
+   * The sentence's words, for a language that writes without spaces
+   * (Chinese); left empty, the sentence is split at its spaces.
+   */
+  words: z.array(z.string()).default([]),
   jargon: z.array(z.string()),
   main: z.string(),
   sub: z.string(),
@@ -45,19 +50,30 @@ export function spellCounter(index: number, total: number): string {
   return `${pad(index + 1)}/${pad(total)}`;
 }
 
+/** The words a spell scatters: as listed, else split at the spaces. */
+function wordsOf(spell: Spell): Array<{ word: string; text: string }> {
+  if (spell.words.length > 0) {
+    return spell.words.map((word) => ({ word, text: word }));
+  }
+  const parts = spell.before.split(" ");
+  return parts.map((word, index) => ({
+    word,
+    text: index < parts.length - 1 ? `${word} ` : word,
+  }));
+}
+
 function Words({ spell }: { spell: Spell }): JSX.Element {
-  const words = spell.before.split(" ");
   const jargon = new Set(spell.jargon.map((word) => word.toLowerCase()));
   return (
     <p className="tf-spell__words" aria-label={spell.before}>
-      {words.map((word, index) => (
+      {wordsOf(spell).map(({ word, text }, index) => (
         <span
           key={`${index}-${word}`}
           aria-hidden="true"
           className="tf-word"
           data-jargon={jargon.has(word.toLowerCase()) ? "true" : "false"}
         >
-          {index < words.length - 1 ? `${word} ` : word}
+          {text}
         </span>
       ))}
     </p>
@@ -146,7 +162,7 @@ export const actTwo: SectionDefinition = defineSection(
   {
     title: "Act II — The curse of jargon",
     description:
-      "The jargon translator: the act's words, the button labels, the action after the translation and the spells, each a jargon sentence, the words to strike, the translation, its sector and its light (red, mint or mustard).",
+      "The jargon translator: the act's words, the button labels, the action after the translation and the spells, each a jargon sentence (with its words listed for a language written without spaces), the words to strike, the translation, its sector and its light (red, mint or mustard).",
   },
 );
 
