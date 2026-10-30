@@ -622,125 +622,151 @@ describe("canonical eval recipe ladder", () => {
     }
   }, 120_000);
 
-  test("replaces a note body from a user-message source under its stored frontmatter", async () => {
-    const selection = suiteSelection("personal");
-    const { app } = createSuiteApp(
-      "personal",
-      selection,
-      seedContentPath(selection),
-    );
-    const testCase = await YAMLLoader.createFresh({
-      directory: testCasesDirectory,
-    }).loadTestCase(
-      join(testCasesDirectory, "personal/multi-turn/mcp-verbatim-update.yaml"),
-    );
-    if (testCase.type !== "multi_turn")
-      throw new Error("Expected multi-turn eval");
-    const request = testCase.turns[0]?.userMessage;
-    if (!request) throw new Error("Missing source request");
-    const startAfter = "BEGIN EXACT CONTENT";
-    const endBefore = "END EXACT CONTENT";
-    const content = request.slice(
-      request.indexOf(`${startAfter}\n`) + startAfter.length + 1,
-      request.lastIndexOf(endBefore),
-    );
-    // Seeding stores canonical Markdown, without the fixture's blank line
-    // after frontmatter.
-    const original = readFileSync(
-      join(
-        packageDirectory,
-        "eval-content/recipes/personal/mcp-verbatim-update.md",
-      ),
-      "utf8",
-    ).replace("---\n\n", "---\n");
-    try {
-      await initializeImported(app);
-      const shell = app.getShell();
-      const conversations = shell.getConversationService();
-      const conversationId = await conversations.startConversation({
-        sessionId: "verbatim-update-regression",
-        channelId: "verbatim-update-regression",
-        interfaceType: "mcp",
-        metadata: {
-          channelName: "Verbatim update regression",
-          interfaceType: "mcp",
-          channelId: "verbatim-update-regression",
-        },
-      });
-      await conversations.addMessage({
-        conversationId,
-        role: "user",
-        content: request,
-        metadata: { userPermissionLevel: "admin" },
-      });
-      const tool = shell
-        .getMCPService()
-        .listAgentToolsForPermissionLevel("admin")
-        .find((entry) => entry.tool.name === "system_update")?.tool;
-      if (!tool) throw new Error("Missing update tool");
-      const context = {
-        interfaceType: "mcp",
-        userPermissionLevel: "admin",
-        actor: { kind: "user", userId: "verbatim-update-regression" },
-        conversationId,
-      } as const;
-      const entityRef = {
-        entityType: "note",
-        id: "mcp-verbatim-update",
-        visibilityScope: internalFullScope(
-          "verbatim update persistence verification",
+  // Agents select the block either by its marker lines or by the literal
+  // markers with their line breaks. The literal pair leaves out the block's
+  // final line break, which the stored Markdown restores, so both store the
+  // same document.
+  test.each([
+    [
+      "line",
+      {
+        boundaryMode: "lines",
+        startAfter: "BEGIN EXACT CONTENT",
+        endBefore: "END EXACT CONTENT",
+      },
+    ],
+    [
+      "literal",
+      { startAfter: "BEGIN EXACT CONTENT\n", endBefore: "\nEND EXACT CONTENT" },
+    ],
+  ] as const)(
+    "replaces a note body from a user-message source under its stored frontmatter with %s boundaries",
+    async (mode, boundaries) => {
+      const selection = suiteSelection("personal");
+      const { app } = createSuiteApp(
+        "personal",
+        selection,
+        seedContentPath(selection),
+      );
+      const testCase = await YAMLLoader.createFresh({
+        directory: testCasesDirectory,
+      }).loadTestCase(
+        join(
+          testCasesDirectory,
+          "personal/multi-turn/mcp-verbatim-update.yaml",
         ),
-      };
-      expect(
-        (await shell.getEntityService().getEntity(entityRef))?.content,
-      ).toBe(original);
-      const proposal = await tool.handler(
-        {
+      );
+      if (testCase.type !== "multi_turn")
+        throw new Error("Expected multi-turn eval");
+      const request = testCase.turns[0]?.userMessage;
+      if (!request) throw new Error("Missing source request");
+      const startAfter = "BEGIN EXACT CONTENT";
+      const endBefore = "END EXACT CONTENT";
+      const content = request.slice(
+        request.indexOf(`${startAfter}\n`) + startAfter.length + 1,
+        request.lastIndexOf(endBefore),
+      );
+      // Seeding stores canonical Markdown, without the fixture's blank line
+      // after frontmatter.
+      const original = readFileSync(
+        join(
+          packageDirectory,
+          "eval-content/recipes/personal/mcp-verbatim-update.md",
+        ),
+        "utf8",
+      ).replace("---\n\n", "---\n");
+      try {
+        await initializeImported(app);
+        const shell = app.getShell();
+        const conversations = shell.getConversationService();
+        const conversationId = await conversations.startConversation({
+          sessionId: "verbatim-update-regression",
+          channelId: "verbatim-update-regression",
+          interfaceType: "mcp",
+          metadata: {
+            channelName: "Verbatim update regression",
+            interfaceType: "mcp",
+            channelId: "verbatim-update-regression",
+          },
+        });
+        await conversations.addMessage({
+          conversationId,
+          role: "user",
+          content: request,
+          metadata: { userPermissionLevel: "admin" },
+        });
+        const tool = shell
+          .getMCPService()
+          .listAgentToolsForPermissionLevel("admin")
+          .find((entry) => entry.tool.name === "system_update")?.tool;
+        if (!tool) throw new Error("Missing update tool");
+        const context = {
+          interfaceType: "mcp",
+          userPermissionLevel: "admin",
+          actor: { kind: "user", userId: "verbatim-update-regression" },
+          conversationId,
+        } as const;
+        const entityRef = {
           entityType: "note",
           id: "mcp-verbatim-update",
+          visibilityScope: internalFullScope(
+            "verbatim update persistence verification",
+          ),
+        };
+        expect(
+          (await shell.getEntityService().getEntity(entityRef))?.content,
+        ).toBe(original);
+        const proposal = await tool.handler(
+          {
+            entityType: "note",
+            id: "mcp-verbatim-update",
+            operation: {
+              kind: "source",
+              source: {
+                kind: "user-message",
+                ...boundaries,
+              },
+            },
+          },
+          context,
+        );
+        const approval = z
+          .object({
+            needsConfirmation: z.literal(true),
+            args: z.record(z.string(), z.unknown()),
+          })
+          .parse(proposal);
+        expect(approval.args).toMatchObject({
           operation: {
             kind: "source",
             source: {
-              kind: "user-message",
-              boundaryMode: "lines",
-              startAfter,
-              endBefore,
+              contentHash: computeContentHash(
+                mode === "line" ? content : content.replace(/\n$/, ""),
+              ),
             },
           },
-        },
-        context,
-      );
-      const approval = z
-        .object({
-          needsConfirmation: z.literal(true),
-          args: z.record(z.string(), z.unknown()),
-        })
-        .parse(proposal);
-      expect(approval.args).toMatchObject({
-        operation: {
-          kind: "source",
-          source: { contentHash: computeContentHash(content) },
-        },
-      });
-      expect(approval.args).not.toHaveProperty(["operation", "content"]);
-      await conversations.addMessage({
-        conversationId,
-        role: "user",
-        content: "Yes, apply it.",
-        metadata: { userPermissionLevel: "admin" },
-      });
-      expect(await tool.handler(approval.args, context)).toMatchObject({
-        success: true,
-      });
-      const saved = await shell.getEntityService().getEntity(entityRef);
-      expect(saved?.content).toBe(
-        `---\nvisibility: restricted\n---\n${content}`,
-      );
-      expect(saved?.visibility).toBe("restricted");
-    } finally {
-      await app.stop();
-    }
-  }, 120_000);
+        });
+        expect(approval.args).not.toHaveProperty(["operation", "content"]);
+        await conversations.addMessage({
+          conversationId,
+          role: "user",
+          content: "Yes, apply it.",
+          metadata: { userPermissionLevel: "admin" },
+        });
+        expect(await tool.handler(approval.args, context)).toMatchObject({
+          success: true,
+        });
+        const saved = await shell.getEntityService().getEntity(entityRef);
+        expect(saved?.content).toBe(
+          `---\nvisibility: restricted\n---\n${content}`,
+        );
+        expect(saved?.visibility).toBe("restricted");
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
 
   test.each(["headless", "personal"] as const)(
     "exposes chat-only basic MCP at every canonical permission level in %s",
