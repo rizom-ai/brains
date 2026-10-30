@@ -170,6 +170,11 @@ describe("system instructions", () => {
     expect(instructions).toContain(
       "including after an optional search returns no source",
     );
+    // A search that resolves the note must not pull "turn my note X into a
+    // post" into source-based generation.
+    expect(instructions).toContain(
+      "Turning an existing entity into another type ('turn my note X into a post') keeps its text and is not generation: call system_create with source.kind entity, also after a search resolves it.",
+    );
     expect(instructions).not.toContain(
       "`from` for source-derived artifact saves",
     );
