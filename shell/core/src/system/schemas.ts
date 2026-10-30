@@ -250,7 +250,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
       kind: z
         .literal("entity")
         .describe(
-          "Use the text of an existing entity verbatim, without its frontmatter, to make a new entity of another type: 'turn my note X into a post', 'make a post of my note', 'keep my text'. The source stays as it is. For new text written from a source, use system_generate prompt-from-source instead.",
+          "Reuse an existing entity's text verbatim, without its frontmatter, as a new entity of another type ('turn my note X into a post'). For new text written from a source, use system_generate prompt-from-source.",
         ),
       entityType: z
         .string()
@@ -492,7 +492,7 @@ export const createInputSchema: StrictObjectSchema<{
       .record(z.string(), z.unknown())
       .optional()
       .describe(
-        "Frontmatter fields for facts the user states that are not in the source text, such as when and where an essay was first published: { status: 'published', publishedAt: '2025-03-12', canonicalUrl: 'https://…' } for a post. Never restate or alter the source text here; omit when the user states nothing extra. Visibility has its own input.",
+        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
       ),
     replace: z.boolean().optional().describe("Create a new copy intentionally"),
     confirmed: z.literal(true).optional().describe("Confirm the creation"),
