@@ -170,6 +170,13 @@ describe("network_ask", () => {
     expect(tool.sideEffects).toBe("none");
   });
 
+  it("asks the network only after this brain's own search found little", async () => {
+    const tool = networkAsk(await setup());
+    expect(tool.description).toContain(
+      "Search this brain first; use it when that search holds little on the question",
+    );
+  });
+
   it("asks the matching approved peers in parallel and attributes what they say", async () => {
     const harness = await setup();
     const asked: Array<{ agent: string; question: string }> = [];

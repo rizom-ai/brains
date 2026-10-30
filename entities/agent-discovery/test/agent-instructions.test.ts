@@ -33,5 +33,8 @@ describe("getAgentDiscoveryInstructions", () => {
     expect(instructions).toContain("returned entity id/domain");
     expect(instructions).toContain("never recommend archived contacts");
     expect(instructions).toContain("using only the requested topic verbatim");
+    expect(instructions).toContain(
+      "after a system_search of this brain found little on the question",
+    );
   });
 });
