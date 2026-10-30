@@ -30,12 +30,12 @@ brain init professional-brain --recipe professional
 brain init team-brain --recipe team
 ```
 
-| Recipe         | Canonical selection                                                              |
-| -------------- | -------------------------------------------------------------------------------- |
-| `headless`     | `core`                                                                           |
-| `personal`     | `core`, `media`, `web`, `chat`                                                   |
-| `professional` | `core`, `media`, `automation`, `web`, `chat`, `site`, `publishing`, `federation` |
-| `team`         | `core`, `media`, `automation`, `web`, `chat`, `site`, `team`, plus `docs`        |
+| Recipe         | Canonical selection                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| `headless`     | `core`                                                                                       |
+| `personal`     | `core`, `media`, `web`, `chat`                                                               |
+| `professional` | `core`, `media`, `automation`, `web`, `chat`, `site`, `publishing`, `federation`             |
+| `team`         | `core`, `media`, `automation`, `web`, `chat`, `site`, `team`, plus `docs` and `action-board` |
 
 Each recipe also copies instance-owned starter content into `seed-content/`.
 
