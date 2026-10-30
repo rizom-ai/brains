@@ -28,9 +28,9 @@ material:
 
 In Google Docs, choose **File → Download → Markdown** for each draft you want to keep.
 
-Upload the files in chat and ask the brain to keep them as notes. With your brain connected under **AI tools**, you can do the same from Claude or ChatGPT.
+Upload a file in chat and ask the brain to keep it as a note. It asks you to confirm before it saves anything, and it saves one file per request: when you attach several, ask for the next one after each save. With your brain connected under **AI tools**, you can do the same from Claude or ChatGPT.
 
-They arrive as **notes**, titled from their first heading. Unfinished, half-titled, contradictory: bring it anyway. Notes are what the brain reads from when it writes and answers.
+They arrive as **notes**. Unfinished, half-titled, contradictory: bring it anyway. Notes are what the brain reads from when it writes and answers.
 
 Exact steps: [Interface setup](../interface-setup.md), [Content management](../content-management.md).
 
