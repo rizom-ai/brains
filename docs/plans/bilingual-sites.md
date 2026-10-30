@@ -1,10 +1,10 @@
 # Plan: Bilingual sites
 
-Last updated: 2026-10-29
+Last updated: 2026-10-30
 
 ## Status
 
-Phases 1–4 are built (PR #778): a site declares its languages, every page is built per language from its own copy, untranslated pages and languages without site-info chrome are skipped, pages link their translations, and sections can be drawn per language. Phase 5 remains: The Fourth (`thefourth.rizom.ai`) in Traditional Chinese (zh-TW), whose Chinese drawings wait on Sam's mockup.
+Phases 1–4 are built (PR #778): a site declares its languages, every page is built per language from its own copy, untranslated pages and languages without site-info chrome are skipped, pages link their translations, and sections can be drawn per language. Phase 5, The Fourth (`thefourth.rizom.ai`) in Traditional Chinese (zh-TW), is under way: the site is ready for Chinese copy, and its Chinese drawings wait on Sam's mockup.
 
 ## Decisions
 
@@ -25,7 +25,7 @@ Phases 1–4 are built (PR #778): a site declares its languages, every page is b
 2. **Linked pages.** hreflang alternates and `x-default`, sitemap entries per language, `language` and `alternates` on layout props, per-language navigation.
 3. **Translated site chrome.** The site-info `translations` block and route `translations`; head titles and descriptions, CTA and copyright per language; the site-info gate.
 4. **Per-language drawings.** `components` on section meta; the builder picks the page language's component and falls back to the default component.
-5. **The Fourth in zh-TW.** EN / 中文 switch in the layout; Noto Serif TC and Noto Sans TC on Chinese pages; the footer's and signposts' fixed strings into content; Act II's spell split by `Intl.Segmenter` or listed words; Chinese drawings from Sam's mockup; Chinese copy drafted and corrected by Sam and Becca in Studio; release, fleet pin and a live check of both languages.
+5. **The Fourth in zh-TW.** Built: the site declares `["en", "zh-TW"]`; the layout's EN / 中文 switch shows on pages that exist in both; Chinese pages set CJK in Noto Sans TC and Noto Serif TC, loaded only on them; the signposts' words are crossroads copy; the footer's two fixed lines are kept per language in the layout, since site-info has no field for them; a Chinese spell in Act II lists its words (`words`), since its sentence has no spaces. Remaining: Chinese drawings from Sam's mockup; the Chinese copy and site-info `translations.zh-TW`, drafted and corrected by Sam and Becca in Studio; a live check of both languages.
 
 Phases 1–4 release through `@rizom/site` and the brain; phase 5 through `@rizom/site-thefourth`.
 

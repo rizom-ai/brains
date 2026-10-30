@@ -26,6 +26,11 @@ export const siteCSS: string = `
 .tf-btn__key { display: block; width: 34px; }
 .tf-btn__key svg { display: block; width: 100%; height: auto; overflow: visible; }
 .tf-bar .tf-btn { min-height: 44px; padding: 0 20px; font-size: 14px; box-shadow: none; }
+.tf-bar__end { display: flex; align-items: center; gap: 8px; }
+.tf-lang { padding: 0 12px; font-weight: 600; font-size: 14px; }
+.tf-site .tf-lang a { text-decoration: none; color: var(--palette-ink); }
+.tf-site .tf-lang a:not([aria-current]), .tf-lang__sep { color: var(--palette-ink-subtle); }
+.tf-site .tf-lang a:not([aria-current]):hover { color: var(--palette-ink); }
 .tf-link { font-weight: 700; font-size: 16px; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 4px; transition: text-decoration-thickness 0.15s ease; }
 .tf-link:hover { text-decoration-thickness: 3px; }
 .tf-site a:focus-visible, .tf-site button:focus-visible { outline: 3px solid var(--palette-mustard); outline-offset: 3px; }

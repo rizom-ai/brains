@@ -24,7 +24,19 @@ const crossroadsSchema = z.object({
     label: z.string(),
     href: z.string().default(""),
   }),
+  signs: z.object({
+    thisWay: z.string(),
+    stop: z.string(),
+    selling: z.string(),
+    startTelling: z.string(),
+    thatWay: z.string(),
+    warning: z.string(),
+    ahead: z.string(),
+    yourWay: z.string(),
+  }),
 });
+
+type Signs = z.infer<typeof crossroadsSchema>["signs"];
 
 const PAPER = "var(--palette-paper)";
 const INK = "var(--palette-ink)";
@@ -85,7 +97,7 @@ function SignText({
  * The signpost: one pole hung with advice — this way, stop selling and
  * start telling, that way, an eye on the lookout, jargon ahead, your way.
  */
-function Signpost(): JSX.Element {
+function Signpost({ signs }: { signs: Signs }): JSX.Element {
   return (
     <svg className="tf-signpost" viewBox="0 0 360 650" aria-hidden="true">
       <rect
@@ -117,7 +129,7 @@ function Signpost(): JSX.Element {
         <rect x="184" y="78" width="166" height="54" rx="6" fill={INK} />
         <path d="M196 92 H306 V84 L338 105 L306 126 V118 H196 Z" fill={PAPER} />
         <SignText x={251} y={111} size={17} fill={INK} spacing={0.5}>
-          THIS WAY
+          {signs.thisWay}
         </SignText>
       </Sign>
       <Sign origin="175px 190px" delay="-3s">
@@ -134,10 +146,10 @@ function Signpost(): JSX.Element {
           strokeWidth="3"
         />
         <SignText x={110} y={186} size={34} fill={PAPER}>
-          STOP
+          {signs.stop}
         </SignText>
         <SignText x={110} y={208} size={15} fill={PAPER} spacing={1}>
-          SELLING
+          {signs.selling}
         </SignText>
         <g transform="rotate(-8 112 232)">
           <rect x="56" y="218" width="114" height="28" fill={INK} />
@@ -148,7 +160,7 @@ function Signpost(): JSX.Element {
             fill="var(--palette-mustard)"
             spacing={0.5}
           >
-            START TELLING
+            {signs.startTelling}
           </SignText>
         </g>
       </Sign>
@@ -175,7 +187,7 @@ function Signpost(): JSX.Element {
             fill="var(--palette-mint)"
             spacing={0.5}
           >
-            THAT WAY
+            {signs.thatWay}
           </SignText>
         </g>
       </Sign>
@@ -214,10 +226,10 @@ function Signpost(): JSX.Element {
           !
         </SignText>
         <SignText x={104} y={530} size={13} fill={INK} spacing={0.5}>
-          JARGON
+          {signs.warning}
         </SignText>
         <SignText x={104} y={547} size={13} fill={INK} spacing={0.5}>
-          AHEAD
+          {signs.ahead}
         </SignText>
       </Sign>
       <Sign origin="180px 600px" delay="-6s">
@@ -242,7 +254,7 @@ function Signpost(): JSX.Element {
           strokeWidth="1.5"
         />
         <SignText x={180} y={613} size={16} fill={INK} spacing={1}>
-          YOUR WAY →
+          {signs.yourWay}
         </SignText>
       </Sign>
     </svg>
@@ -256,6 +268,7 @@ function CrossroadsSection({
   headline,
   emphasis,
   test,
+  signs,
 }: z.infer<typeof crossroadsSchema>): JSX.Element {
   return (
     <section className="tf-act tf-act--crossroads">
@@ -284,7 +297,7 @@ function CrossroadsSection({
         </div>
         <div className="tf-crossroads__scene" aria-hidden="true">
           <div className="tf-glow-disc" />
-          <Signpost />
+          <Signpost signs={signs} />
         </div>
       </div>
     </section>
@@ -297,7 +310,7 @@ export const crossroads: SectionDefinition = defineSection(
   {
     title: "Your turn — The crossroads",
     description:
-      "The crossroads: the act's words, the headline and its emphasis, and the brand test, shown once it has a link.",
+      "The crossroads: the act's words, the headline and its emphasis, the brand test, shown once it has a link, and the words on the signpost's signs.",
   },
 );
 
@@ -311,5 +324,15 @@ export const crossroadsContent: JsonObject = {
     text: "Find out what kind of brand you are in three minutes. Results may be uncomfortably accurate.",
     label: "Take the test →",
     href: "",
+  },
+  signs: {
+    thisWay: "THIS WAY",
+    stop: "STOP",
+    selling: "SELLING",
+    startTelling: "START TELLING",
+    thatWay: "THAT WAY",
+    warning: "JARGON",
+    ahead: "AHEAD",
+    yourWay: "YOUR WAY →",
   },
 } satisfies z.input<typeof crossroadsSchema>;

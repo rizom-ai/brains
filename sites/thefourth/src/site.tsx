@@ -8,6 +8,7 @@ import { actFour, actFourContent } from "./home/act-four";
 import { actThree, actThreeContent } from "./home/act-three";
 import { cover, coverContent } from "./home/cover";
 import { spellScript } from "./home/spell-script";
+import { chineseCSS, chineseFontScript } from "./languages";
 import { TheFourthLayout } from "./layout";
 import { keyholeScript, motionCSS, sparkScript } from "./motion";
 import { siteCSS } from "./styles";
@@ -28,6 +29,9 @@ const homeSections = sectionGroup("home", {
 });
 
 export const theFourthSite: SiteDefinition = defineSite({
+  // Chinese pages are built from copy saved under site-content/zh-tw/, once
+  // every section and site-info have it.
+  languages: ["en", "zh-TW"],
   layouts: { default: TheFourthLayout },
   routes: [
     {
@@ -63,8 +67,14 @@ export const theFourthSite: SiteDefinition = defineSite({
   },
   entityDisplay: {},
   themeOverride:
-    siteCSS + actsCSS + actThreeCSS + actFourCSS + finaleCSS + motionCSS,
-  headScripts: [spellScript, sparkScript, keyholeScript],
+    siteCSS +
+    actsCSS +
+    actThreeCSS +
+    actFourCSS +
+    finaleCSS +
+    motionCSS +
+    chineseCSS,
+  headScripts: [chineseFontScript, spellScript, sparkScript, keyholeScript],
 });
 
 export default theFourthSite;

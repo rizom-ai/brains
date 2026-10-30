@@ -4,7 +4,8 @@
  * beat the keyhole opens onto the translation; "Try another" draws the next
  * sentence. The scatter is seeded by word and spell, as in the design, so it
  * lands the same way every time, and narrows with the viewport so the words
- * stay on a phone's screen. Reduced motion skips the flight.
+ * stay on a phone's screen. A spell in a language written without spaces
+ * scatters the words it lists. Reduced motion skips the flight.
  * Without the script the jargon sentence stands alone, buttons hidden.
  */
 export const spellScript: string = `<script>
@@ -25,7 +26,8 @@ export const spellScript: string = `<script>
     function pad(value) { return (value < 10 ? "0" : "") + value; }
     function draw() {
       var spell = spells[index];
-      var parts = spell.before.split(" ");
+      var listed = spell.words && spell.words.length > 0;
+      var parts = listed ? spell.words : spell.before.split(" ");
       var jargon = spell.jargon.map(function (word) { return word.toLowerCase(); });
       words.setAttribute("aria-label", spell.before);
       words.textContent = "";
@@ -34,7 +36,7 @@ export const spellScript: string = `<script>
         span.className = "tf-word";
         span.setAttribute("aria-hidden", "true");
         span.setAttribute("data-jargon", jargon.indexOf(word.toLowerCase()) === -1 ? "false" : "true");
-        span.textContent = i < parts.length - 1 ? word + " " : word;
+        span.textContent = !listed && i < parts.length - 1 ? word + " " : word;
         words.appendChild(span);
       });
       after.setAttribute("data-light", spell.light);
