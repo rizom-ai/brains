@@ -5,6 +5,7 @@ import {
   guideRecipeSchema,
   materialFragments,
 } from "../src";
+import { entityTypeNote } from "../src/lib/guide-page-content";
 
 describe("guideRecipeHighlights", () => {
   it("lists what the professional recipe brings a writer", () => {
@@ -93,6 +94,27 @@ describe("closingHeading", () => {
   it("falls back for a persona that names no kind of user", () => {
     expect(closingHeading("Running your own brain")).toBe(
       "Looking for another way in?",
+    );
+  });
+});
+
+describe("entityTypeNote", () => {
+  it("glosses every type the moving-in guides map material to", () => {
+    const mapped = [
+      "note",
+      "post",
+      "series",
+      "link",
+      "deck",
+      "doc",
+      "anchor-profile",
+      "project",
+      "action-item",
+      "image",
+    ];
+
+    expect(mapped.filter((type) => entityTypeNote(type) === undefined)).toEqual(
+      [],
     );
   });
 });

@@ -40,6 +40,10 @@ const entityTypeNotes: Record<string, string> = {
   link: "with summary",
   deck: "slides",
   doc: "reference",
+  "anchor-profile": "your profile",
+  project: "portfolio",
+  "action-item": "on the board",
+  image: "as uploaded",
 };
 
 export function entityTypeNote(entityType: string): string | undefined {
