@@ -121,6 +121,17 @@ describe("system_update tool", () => {
     );
   });
 
+  // A read before a fields change costs a full agent step and adds nothing:
+  // the tool resolves the entity and refuses what the caller may not change.
+  it("sends a fields change for a named entity without reading it first", () => {
+    const tool = createSystemTools(createMockSystemServices()).find(
+      (candidate) => candidate.name === "system_update",
+    );
+    expect(tool?.description).toContain(
+      "For a fields change to an entity the user names, call this tool directly without reading the entity first.",
+    );
+  });
+
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
