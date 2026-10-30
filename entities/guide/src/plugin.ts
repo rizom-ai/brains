@@ -28,6 +28,15 @@ export class GuidesPlugin extends EntityPlugin<
     return { projectionSourceRole: "primary" };
   }
 
+  protected override async getInstructions(): Promise<string> {
+    return [
+      'Guides (entityType "guide") walk one kind of user through moving into a brain: a writer, researcher, consultant, team, or someone running their own brain.',
+      "A question from someone who describes themselves, their material or how they work, and asks where to start, how to bring their material in, or what a brain would do for them, is a guide question, even when it names no guide.",
+      'For a guide question, always run system_search with scope { kind: "type", entityType: "guide" } first, before asking the network or answering from general knowledge, and answer from the matching guide\'s stages.',
+      'Name the guide you answer from by its title, such as "Moving in as a writer", so the reply links to it.',
+    ].join("\n");
+  }
+
   protected override getTemplates(): Record<string, Template> {
     return getTemplates();
   }
