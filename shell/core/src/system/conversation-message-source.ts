@@ -90,18 +90,19 @@ export async function resolveConversationMessageContent(
     fallback: number,
     after: boolean,
   ): { offset: number } | { problem: string } => {
-    if (value === undefined) return { offset: fallback };
+    if (!value) return { offset: fallback };
     const quoted = `${name} ${JSON.stringify(value)}`;
-    if (value === "") return { problem: `${quoted} is empty` };
     if (input.boundaryMode === "lines" && /[\r\n]/.test(value)) {
       return {
         problem: `${quoted} contains a newline; in lines mode give the marker line's text only`,
       };
     }
-    const offsets =
-      input.boundaryMode === "lines"
-        ? lineBoundaryOffsets(message.content, value, after)
-        : literalBoundaryOffsets(message.content, value, after);
+    const offsets = boundaryOffsets(
+      message.content,
+      value,
+      input.boundaryMode ?? "literal",
+      after,
+    );
     const [offset] = offsets;
     if (offsets.length === 1 && offset !== undefined) return { offset };
     return {
@@ -134,10 +135,14 @@ export async function resolveConversationMessageContent(
   if (!("offset" in start) || !("offset" in end) || problems.length > 0) {
     return {
       success: false,
-      error: `User-message boundary ${problems.join("; ")}; each boundary must occur exactly once. To select everything after an instruction, use boundaryMode literal with startAfter set to the instruction's exact text and omit endBefore.`,
+      error: `User-message boundary ${problems.join("; ")}; each boundary must occur exactly once. ${retryAdvice(message.content)}`,
     };
   }
-  const content = message.content.slice(start.offset, end.offset);
+  // Frontmatter only counts at the first byte, so blank lines between an
+  // instruction and a pasted document are not part of the document.
+  const content = message.content
+    .slice(start.offset, end.offset)
+    .replace(/^(?:[ \t]*\r?\n)+(?=---\r?\n)/, "");
   const approvedHash = confirmed ? input.contentHash : undefined;
   if (approvedHash && approvedHash !== computeContentHash(content)) {
     return {
@@ -154,11 +159,56 @@ export function freezeUserMessageSource(
   source: UserMessageSource,
   resolved: { messageId: string; content: string },
 ): UserMessageSource {
+  const { startAfter, endBefore, ...rest } = source;
   return {
-    ...source,
+    ...rest,
+    ...(startAfter ? { startAfter } : {}),
+    ...(endBefore ? { endBefore } : {}),
     messageId: resolved.messageId,
     contentHash: computeContentHash(resolved.content),
   };
+}
+
+/**
+ * Offsets of a boundary's exact occurrences or, when it has none, of its
+ * occurrences ignoring whitespace differences: models restate a line break
+ * as a space or pad a marker line. Only the excluded boundary is matched
+ * loosely; the selected text between boundaries stays byte-exact.
+ */
+function boundaryOffsets(
+  content: string,
+  marker: string,
+  mode: "literal" | "lines",
+  after: boolean,
+): number[] {
+  if (mode === "lines") {
+    const exact = lineBoundaryOffsets(content, marker, after);
+    return exact.length > 0 || !marker.trim()
+      ? exact
+      : lineBoundaryOffsets(content, marker, after, collapseWhitespace);
+  }
+  const exact = literalBoundaryOffsets(content, marker, after);
+  return exact.length > 0
+    ? exact
+    : looseLiteralBoundaryOffsets(content, marker, after);
+}
+
+function collapseWhitespace(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * A pasted document that opens with frontmatter is selected by the text
+ * before its opening fence. Naming that exact prefix makes the retry certain:
+ * models otherwise pick the --- fences themselves as boundaries.
+ */
+function retryAdvice(content: string): string {
+  const fence = /^---\r?$/m.exec(content);
+  const prefix = fence ? content.slice(0, fence.index) : "";
+  return prefix.trim() &&
+    literalBoundaryOffsets(content, prefix, true).length === 1
+    ? `--- fences frontmatter, which is part of the content: retry with boundaryMode "literal", startAfter ${JSON.stringify(prefix)} and no endBefore.`
+    : "To select everything after an instruction, use boundaryMode literal with startAfter set to the instruction's exact text and omit endBefore.";
 }
 
 /** Offsets after (or before) each whole line equal to the marker. */
@@ -166,18 +216,49 @@ function lineBoundaryOffsets(
   content: string,
   marker: string,
   after: boolean,
+  normalize: (text: string) => string = (text) => text,
 ): number[] {
+  const target = normalize(marker);
   // Retain line endings in the slices, so offsets preserve LF and CRLF bytes.
   return content.split(/(?<=\n)/).reduce<{ offset: number; matches: number[] }>(
     (state, line) => ({
       offset: state.offset + line.length,
       matches:
-        line.replace(/\r?\n$/, "") === marker
+        normalize(line.replace(/\r?\n$/, "")) === target
           ? [...state.matches, state.offset + (after ? line.length : 0)]
           : state.matches,
     }),
     { offset: 0, matches: [] },
   ).matches;
+}
+
+/**
+ * Offsets after (or before) each occurrence of the marker's words with any
+ * whitespace between them; whitespace at the marker's edges extends the
+ * match over whatever whitespace the message has there.
+ */
+function looseLiteralBoundaryOffsets(
+  content: string,
+  marker: string,
+  after: boolean,
+): number[] {
+  const words = marker.trim().split(/\s+/);
+  if (words.join("") === "" || !/\s/.test(marker)) return [];
+  const edge = (present: boolean): string => (present ? "\\s*" : "");
+  const pattern = new RegExp(
+    edge(/^\s/.test(marker)) +
+      words.map(escapeRegExp).join("\\s+") +
+      edge(/\s$/.test(marker)),
+    "g",
+  );
+  return Array.from(
+    content.matchAll(pattern),
+    (match) => match.index + (after ? match[0].length : 0),
+  );
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Offsets after (or before) each literal occurrence of a non-empty marker. */

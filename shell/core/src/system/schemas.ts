@@ -101,6 +101,8 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
+// Models fill unused optional fields with empty strings, so an empty string
+// here means omitted rather than an invalid call.
 export const userMessageSourceInputSchema: StrictObjectSchema<{
   kind: z.ZodLiteral<"user-message">;
   messageId: z.ZodOptional<z.ZodString>;
@@ -119,7 +121,6 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
       ),
     messageId: z
       .string()
-      .min(1)
       .optional()
       .describe(
         "Stored user message ID in this conversation; omit for the latest user message.",
@@ -132,21 +133,18 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
       ),
     startAfter: z
       .string()
-      .min(1)
       .optional()
       .describe(
-        "Exact unique opening boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
+        "Exact unique opening boundary, excluded from saved text; never a --- frontmatter fence. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
       ),
     endBefore: z
       .string()
-      .min(1)
       .optional()
       .describe(
-        "Exact unique closing boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude. Omit to end at the end of the message.",
+        "Omit when the content runs to the end of the message. Otherwise the exact unique closing boundary, excluded from saved text; never a --- frontmatter fence. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude.",
       ),
     contentHash: z
       .string()
-      .min(1)
       .optional()
       .describe(
         "Internal source hash returned with the confirmation; omit on the initial request.",

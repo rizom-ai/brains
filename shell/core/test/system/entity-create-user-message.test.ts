@@ -396,3 +396,166 @@ describe("system_create user-message source", () => {
     expect(services.getEntities().size).toBe(0);
   });
 });
+
+// Requests as models actually send them: optional fields filled with empty
+// strings, whitespace that differs from the stored message, and frontmatter
+// fences chosen as boundaries.
+describe("system_create user-message source from model-shaped requests", () => {
+  const instruction = "Save this post exactly. Do not rewrite it:";
+  const document =
+    "---\ntitle: Shared Memory\nstatus: draft\n---\n\n# Shared Memory\n\nKnowledge should move.\n";
+  const pasted = `${instruction}\n\n${document}`;
+
+  async function saved(
+    source: Record<string, unknown>,
+    text = pasted,
+  ): Promise<string | undefined> {
+    const { services, tool } = fixture([message(text)]);
+    const args = confirmationSchema.parse(
+      expectConfirmationArgs(
+        await tool.handler({ ...input(), source }, context),
+      ),
+    );
+    expect(await tool.handler(args, context)).toMatchObject({ success: true });
+    return services.getEntities().get("verbatim-source")?.content;
+  }
+
+  test.each([
+    { field: "contentHash", value: "" },
+    { field: "endBefore", value: "" },
+    { field: "messageId", value: "" },
+  ])("treats an empty $field as omitted", async ({ field, value }) => {
+    const source = {
+      kind: "user-message",
+      boundaryMode: "lines",
+      startAfter: instruction,
+      [field]: value,
+    };
+    expect(await saved(source)).toBe(document);
+  });
+
+  test("pins an approval without the empty fields a request carried", async () => {
+    const { tool } = fixture([message(pasted)]);
+    const args = confirmationSchema.parse(
+      expectConfirmationArgs(
+        await tool.handler(
+          {
+            ...input(),
+            source: {
+              kind: "user-message",
+              startAfter: `${instruction}\n\n`,
+              endBefore: "",
+              contentHash: "",
+            },
+          },
+          context,
+        ),
+      ),
+    );
+    expect(args["source"]).toEqual({
+      kind: "user-message",
+      messageId: "user-source",
+      startAfter: `${instruction}\n\n`,
+      contentHash: computeContentHash(document),
+    });
+  });
+
+  test.each([
+    { label: "trailing space for a line break", startAfter: `${instruction} ` },
+    {
+      label: "spaces for a blank line",
+      startAfter: `${instruction}  `,
+    },
+  ])(
+    "matches a literal boundary whose whitespace differs: $label",
+    async ({ startAfter: boundary }) => {
+      expect(
+        await saved({
+          kind: "user-message",
+          boundaryMode: "literal",
+          startAfter: boundary,
+        }),
+      ).toBe(document);
+    },
+  );
+
+  test("matches a marker line whose surrounding whitespace differs", async () => {
+    expect(
+      await saved({
+        kind: "user-message",
+        boundaryMode: "lines",
+        startAfter: `  ${instruction} `,
+      }),
+    ).toBe(document);
+  });
+
+  test.each(["\n", "\r\n"])(
+    "starts a pasted document at its frontmatter fence, not the blank lines before it (%j)",
+    async (newline) => {
+      const crlfDocument = document.replaceAll("\n", newline);
+      expect(
+        await saved(
+          {
+            kind: "user-message",
+            boundaryMode: "lines",
+            startAfter: instruction,
+          },
+          `${instruction}${newline} ${newline}${crlfDocument}`,
+        ),
+      ).toBe(crlfDocument);
+    },
+  );
+
+  test("keeps leading blank lines before text that is not frontmatter", async () => {
+    expect(
+      await saved(
+        {
+          kind: "user-message",
+          boundaryMode: "lines",
+          startAfter: instruction,
+        },
+        `${instruction}\n\n# Heading\n\n---\n\nAfter a rule.\n`,
+      ),
+    ).toBe("\n# Heading\n\n---\n\nAfter a rule.\n");
+  });
+
+  test("still requires a whitespace-insensitive boundary to occur once", async () => {
+    const { services, tool } = fixture([
+      message(`Intro:\nfirst\nIntro:\tsecond`),
+    ]);
+    expect(
+      await tool.handler(
+        { ...input(), source: { kind: "user-message", startAfter: "Intro: " } },
+        context,
+      ),
+    ).toMatchObject({
+      success: false,
+      error: expect.stringContaining('startAfter "Intro: " occurs 2 times'),
+    });
+    expect(services.getEntities().size).toBe(0);
+  });
+
+  test("answers frontmatter fence boundaries with the exact retry that saves the document", async () => {
+    const { tool } = fixture([message(pasted)]);
+    const result = await tool.handler(
+      {
+        ...input(),
+        source: {
+          kind: "user-message",
+          boundaryMode: "lines",
+          startAfter: "---",
+          endBefore: "---",
+        },
+      },
+      context,
+    );
+    const retry = { boundaryMode: "literal", startAfter: `${instruction}\n\n` };
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        `--- fences frontmatter, which is part of the content: retry with boundaryMode "literal", startAfter ${JSON.stringify(retry.startAfter)} and no endBefore`,
+      ),
+    });
+    expect(await saved({ kind: "user-message", ...retry })).toBe(document);
+  });
+});

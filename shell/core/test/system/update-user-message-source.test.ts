@@ -187,6 +187,35 @@ describe("system_update user-message source", () => {
     );
   });
 
+  test("accepts the empty fields and whitespace a model sends", async () => {
+    const instruction = "Replace note 'working-plan' with this exactly:";
+    const { services, tool } = fixture([
+      message(`${instruction}\n\nNew body.\n`),
+    ]);
+    const args = expectConfirmationArgs(
+      await tool.handler(
+        {
+          ...input(),
+          operation: {
+            kind: "source",
+            source: {
+              kind: "user-message",
+              boundaryMode: "literal",
+              startAfter: `${instruction} `,
+              endBefore: "",
+              contentHash: "",
+            },
+          },
+        },
+        context,
+      ),
+    );
+    expect(await tool.handler(args, context)).toMatchObject({ success: true });
+    expect(services.getLastUpdateRequest()?.entity.content).toBe(
+      `${frontmatter}New body.\n`,
+    );
+  });
+
   test("rejects ambiguous boundaries without proposing an update", async () => {
     const { services, tool } = fixture([
       message(`${pasted("Body.\n")}\nEND EXACT CONTENT`),
