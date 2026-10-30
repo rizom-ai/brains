@@ -15,7 +15,7 @@ A brain is a private AI runtime whose durable knowledge is markdown. One canonic
 bun add -g @rizom/brain
 brain init my-brain --recipe personal
 cd my-brain
-# edit .env and set AI_API_KEY
+# edit .env: set AI_API_KEY, and SETUP_EMAIL_TO for the personal and professional recipes
 brain start
 ```
 
