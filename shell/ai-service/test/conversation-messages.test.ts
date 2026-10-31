@@ -547,6 +547,46 @@ describe("buildMessageWithAttachments", () => {
     );
   });
 
+  it("offers every file attached to the message as one keep candidate", () => {
+    const content = buildMessageWithAttachments("Keep these files.", [
+      {
+        kind: "text",
+        filename: "draft.md",
+        mediaType: "text/markdown",
+        content: "# Draft",
+        source: { kind: "upload", id: "upload-text" },
+      },
+      {
+        kind: "file",
+        filename: "harbor.png",
+        mediaType: "image/png",
+        data: new Uint8Array([1]),
+        sizeBytes: 1,
+        source: { kind: "upload", id: "upload-image" },
+      },
+    ]);
+    const textPart = Array.isArray(content) ? content[0] : undefined;
+    const text = textPart?.type === "text" ? textPart.text : "";
+
+    expect(text).toContain(
+      'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+    );
+  });
+
+  it("offers no keep candidate for a single attached file", () => {
+    const content = buildMessageWithAttachments("Keep this file.", [
+      {
+        kind: "text",
+        filename: "draft.md",
+        mediaType: "text/markdown",
+        content: "# Draft",
+        source: { kind: "upload", id: "upload-text" },
+      },
+    ]);
+
+    expect(content).not.toContain('kind: "uploads"');
+  });
+
   it("includes model-visible upload refs for file attachments", () => {
     const content = buildMessageWithAttachments("save it as a document", [
       {

@@ -16,7 +16,7 @@ tags:
   - multi-turn
 
 turns:
-  - userMessage: "Keep all three files."
+  - userMessage: "Keep these files."
     attachments:
       - kind: text
         filename: draft-one.md
@@ -62,7 +62,7 @@ turns:
     confirmPendingAction: true
     successCriteria:
       responseContains:
-        - 'Completed: Saved 3 uploaded files'
+        - "Completed: Saved 3 uploaded files"
         - 'note "Field Notes"'
         - 'note "Launch Plan"'
         - 'image "harbor"'

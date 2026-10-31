@@ -342,6 +342,23 @@ function formatTextAttachment(
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
 }
 
+/**
+ * Several files attached to one message are kept together: the candidate
+ * names every one of them, each with the transform that keeps it as itself
+ * (a text file as a note), so none is left out of a request to keep them.
+ */
+function formatKeepAllCandidate(attachments: ChatAttachment[]): string {
+  const items = attachments.flatMap((attachment) =>
+    attachment.source
+      ? [
+          `{ upload: { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }, transform: "${attachment.kind === "text" ? "extract-markdown" : "preserve"}" }`,
+        ]
+      : [],
+  );
+  if (items.length < 2) return "";
+  return `Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [${items.join(", ")}] } }`;
+}
+
 function formatUploadRefs(
   attachments: ChatAttachment[],
   uploadRefs: ConversationUploadRef[],
@@ -364,7 +381,12 @@ function formatUploadRefs(
   const guidance =
     'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. To keep several uploads at once, call system_create once with source.kind uploads listing every attached file: text files as notes with extract-markdown, images and PDFs with preserve. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
 
-  return [guidance, priorResponseCandidate, ...lines]
+  return [
+    guidance,
+    priorResponseCandidate,
+    formatKeepAllCandidate(attachments),
+    ...lines,
+  ]
     .filter((line) => line.length > 0)
     .join("\n");
 }
