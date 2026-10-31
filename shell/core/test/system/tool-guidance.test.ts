@@ -83,6 +83,13 @@ describe("system tool descriptions carry their own guidance", () => {
     );
   });
 
+  // The tool resolves the id itself; a search first only adds a step.
+  it("system_delete: a named entity is deleted without a lookup first", () => {
+    expect(description("system_delete")).toContain(
+      "For an entity the user names, call this tool directly without searching for or reading it first.",
+    );
+  });
+
   it("system_list: whole-type browsing and summaries", () => {
     const list = description("system_list");
 
@@ -117,6 +124,20 @@ describe("system_generate schema leaves the flow to the description", () => {
     );
     expect(description("system_generate")).not.toContain(
       "engagement directions",
+    );
+  });
+});
+
+describe("system tool descriptions name the cases models miss", () => {
+  it("system_create: a team note is shared content", () => {
+    expect(description("system_create")).toContain(
+      "Use visibility shared for team/collaborator content such as a team note",
+    );
+  });
+
+  it("system_generate: a quoted cover target is used as given", () => {
+    expect(description("system_generate")).toContain(
+      "When a cover-image request names the target's exact id in quotes or a search/get resolves a clear target, call cover-image in the same turn",
     );
   });
 });

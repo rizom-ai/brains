@@ -23,7 +23,7 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "delete",
-    "Request entity deletion by id. Unauthorized callers get a permission error; authorized callers get confirmation first. Do not pass confirmed on the initial request. Protected identity/profile records such as brain-character and anchor-profile cannot be deleted; update them instead.",
+    "Request entity deletion by id. Unauthorized callers get a permission error; authorized callers get confirmation first. Do not pass confirmed on the initial request. For an entity the user names, call this tool directly without searching for or reading it first. Protected identity/profile records such as brain-character and anchor-profile cannot be deleted; update them instead.",
     deleteInputSchema,
     async (input, context) => {
       if ((context.userPermissionLevel ?? "public") === "public") {
