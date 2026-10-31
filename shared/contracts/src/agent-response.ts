@@ -343,6 +343,20 @@ export const AgentResponseSchema: AgentResponseSchema = z.object({
 export type AgentResponse = z.output<typeof AgentResponseSchema>;
 export type AgentResponseUsage = z.output<AgentResponseUsageSchema>;
 
+const responseWithCardsSchema = z.looseObject({ cards: z.array(z.unknown()) });
+
+/** Cards accompany an answer: a malformed card is left out, never the answer. */
+function withValidCards(value: unknown): unknown {
+  const parsed = responseWithCardsSchema.safeParse(value);
+  if (!parsed.success) return value;
+  return {
+    ...parsed.data,
+    cards: parsed.data.cards.filter(
+      (card) => StructuredChatCardSchema.safeParse(card).success,
+    ),
+  };
+}
+
 export function parseAgentResponse(value: unknown): AgentResponse {
-  return AgentResponseSchema.parse(stripUndefinedDeep(value));
+  return AgentResponseSchema.parse(withValidCards(stripUndefinedDeep(value)));
 }
