@@ -146,11 +146,14 @@ describe("system tool descriptions name the cases models miss", () => {
 // Each source branch and boundary field describes itself in the schema; the
 // description keeps only the choices between them.
 describe("system_create description leaves the source fields to the schema", () => {
-  it("does not restate each source branch or the lines boundary mode", () => {
+  it("does not restate each source branch, but keeps the lines boundary rule", () => {
     const create = description("system_create");
 
     expect(create).not.toContain("url for URL-first flows");
-    expect(create).not.toContain("For standalone delimiter lines");
+    // Without this the model sends marker lines with newlines in literal mode.
+    expect(create).toContain(
+      "For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters",
+    );
     expect(create).toContain(
       "To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore",
     );
