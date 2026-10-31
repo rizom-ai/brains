@@ -16,14 +16,14 @@ turns:
   - userMessage: |-
       Save this as a doc now. Keep my text.
 
-      # Rotating API keys
+      # Revoking a lost key
 
-      Keys rotate every 90 days — "no exceptions".
+      Revoke a lost key within the hour — "no exceptions".
 
       ## Steps
 
-      1. Revoke the old key in the dashboard.
-      2. Issue a new key and store it in the vault.
+      1. Revoke the key in the dashboard.
+      2. Tell the team in the operations channel.
     successCriteria:
       expectedTools:
         - toolName: system_create
@@ -49,8 +49,8 @@ turns:
         - toolName: system_create
           resultContains:
             success: true
-            data.entityId: rotating-api-keys
-  - userMessage: Read doc 'rotating-api-keys' from storage with part body. Do not change anything.
+            data.entityId: revoking-a-lost-key
+  - userMessage: Read doc 'revoking-a-lost-key' from storage with part body. Do not change anything.
     successCriteria:
       expectedTools:
         - toolName: system_get
@@ -58,6 +58,6 @@ turns:
             entityType: doc
             part: body
           resultContains:
-            entity.content: "Keys rotate every 90 days — \"no exceptions\".\n\n## Steps\n\n1. Revoke the old key in the dashboard.\n2. Issue a new key and store it in the vault.\n"
+            entity.content: "Revoke a lost key within the hour — \"no exceptions\".\n\n## Steps\n\n1. Revoke the key in the dashboard.\n2. Tell the team in the operations channel.\n"
 efficiency:
   maxToolCalls: 8
