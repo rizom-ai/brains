@@ -39,8 +39,9 @@ turns:
       responseContains:
         - "Completed"
   - userMessage: >-
-      Search Team Brain memory for related context and give me a triage note that
-      includes the customer name, user pain, likely product area, and next action.
+      Search Team Brain memory for related context and give me a triage note in
+      your reply that includes the customer name, user pain, likely product area,
+      and next action.
     successCriteria:
       expectedTools:
         - toolName: system_search
