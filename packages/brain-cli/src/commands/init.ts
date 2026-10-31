@@ -229,7 +229,10 @@ function writeBrainYaml(
     ...(expansion.plugins ?? {}),
   };
 
-  if (recipe === "personal" || recipe === "professional") {
+  // First-passkey setup and invitation email. Every SETUP_EMAIL_* reference
+  // may stay unset: the brain then logs the setup link and offers manual
+  // invitation links instead.
+  if (recipe !== "headless") {
     plugins["auth-service"] = { setupEmail: "${SETUP_EMAIL_TO}" };
     plugins["notifications"] = {
       defaultRecipient: { type: "email", address: "${SETUP_EMAIL_TO}" },

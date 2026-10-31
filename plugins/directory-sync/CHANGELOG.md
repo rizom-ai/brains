@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- [#782](https://github.com/rizom-ai/brains/pull/782) [`f0bce99`](https://github.com/rizom-ai/brains/commit/f0bce99259bf97144fd6f8ffa99d4997b6d47a4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A running brain picks up files added, edited and deleted in `brain-data/` again when the brain lives under a dot-directory such as `~/.local/share` or `~/.config`. The directory watcher ignores dotfiles and dot-directories only inside the sync path (`.git`, `.obsidian`); a dot-directory above it no longer hides the whole tree, which left those changes unseen until the next start.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.609
+  - @brains/contracts@0.2.0-alpha.609
+  - @brains/image@0.2.0-alpha.609
+  - @brains/utils@0.2.0-alpha.609
+  - @brains/entity-service@0.2.0-alpha.609
+  - @brains/plugins@0.2.0-alpha.609
+
 ## 0.2.0-alpha.608
 
 ### Patch Changes

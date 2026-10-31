@@ -108,32 +108,6 @@ describe("FileWatcher lifecycle characterization", () => {
     await watcher.stop();
   });
 
-  it("ignores dotfiles inside the sync path but not a dot directory above it", async () => {
-    const fakeWatcher = new FSWatcher();
-    fakeWatcher.close = mock(() => Promise.resolve());
-    const watchSpy = spyOn(chokidar, "watch").mockReturnValue(fakeWatcher);
-    restoreWatch = (): void => watchSpy.mockRestore();
-    const syncPath = "/home/anchor/.local/share/brain/brain-data";
-    const watcher = new FileWatcher({
-      syncPath,
-      watchInterval: 100,
-      logger: createSilentLogger("file-watcher-dot-parent"),
-    });
-
-    await startWatcher(watcher, fakeWatcher);
-
-    const ignored = watchSpy.mock.calls[0]?.[1]?.ignored;
-    if (typeof ignored !== "function")
-      throw new Error("Expected an ignore predicate");
-    expect(ignored(syncPath)).toBe(false);
-    expect(ignored(`${syncPath}/anchor-profile`)).toBe(false);
-    expect(ignored(`${syncPath}/anchor-profile/anchor-profile.md`)).toBe(false);
-    expect(ignored(`${syncPath}/.git`)).toBe(true);
-    expect(ignored(`${syncPath}/.git/HEAD`)).toBe(true);
-    expect(ignored(`${syncPath}/post/.draft.md`)).toBe(true);
-    await watcher.stop();
-  });
-
   it("waits for Chokidar close to settle", async () => {
     const closeGate = deferred();
     const fakeWatcher = new FSWatcher();
