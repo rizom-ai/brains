@@ -43,6 +43,17 @@ export function shouldProcessPath(path: string, syncPath: string): boolean {
   return isImageInImageDir(path, syncPath);
 }
 
+/**
+ * Dotfiles and dot directories inside the sync path, such as `.git`. Only the
+ * sync-relative segments count: a sync path under a dot directory (for example
+ * `~/.local/share/brain`) is still watched.
+ */
+function isHiddenInSyncPath(path: string, syncPath: string): boolean {
+  return toSyncRelativePath(syncPath, path)
+    .split("/")
+    .some((segment) => segment.startsWith("."));
+}
+
 export interface FileWatcherOptions {
   syncPath: string;
   watchInterval: number;
@@ -105,7 +116,8 @@ export class FileWatcher {
     });
 
     const watcher = chokidar.watch(this.syncPath, {
-      ignored: /(^|[/\\])\../, // ignore dotfiles
+      ignored: (path: string): boolean =>
+        isHiddenInSyncPath(path, this.syncPath),
       ignoreInitial: true,
       persistent: true,
       interval: this.watchInterval,
