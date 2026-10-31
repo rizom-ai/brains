@@ -2,11 +2,7 @@
 
 ## Status
 
-Proposed. Nothing implemented. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain.
-
-**Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API, and the largest parameter count of any core model; its call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the milestone below must be working, deployed and measured before then. Everything after the milestone keeps its original order.
-
-## Today
+Proposed. Nothing implemented. Every brain still calls Anthropic, OpenAI or Google:
 
 - Text: `brain.yaml` `model` resolves through `resolveTextProvider` (`provider-selection.ts`) to Anthropic, OpenAI or Google.
 - Images: `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
@@ -14,16 +10,27 @@ Proposed. Nothing implemented. Each brain picks its embedding, text and image mo
 - `resolveAIConfig` (`shell/app/src/ai-config.ts`) strips an explicit `provider:` prefix from `model`, so the provider is re-guessed from the bare name.
 - `MODEL_PATTERNS` maps `llama`, `mistral`, `phi-` and `qwen` to provider `ollama`, but `provider-clients.ts` has no ollama client and `getLanguageModel` sends those models to Anthropic.
 
-## Milestone: local-first core by 2026-11-20
+**Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept below must work and be measured before then.
 
-Done means one real brain runs with no cloud AI key at all: chat, tool calling, generation and search are served by open models from the runtime, and image generation is unavailable rather than cloud-backed (`canGenerateImages` already returns false without an image client). The milestone is Phases 0–4 below, with Phase 3 narrowed to that one brain. Phase 5 and the fleet-wide rollout come after the deadline.
+| Target date | Done                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------- |
+| 2026-11-06  | Phase 0 numbers recorded; text and embedding models chosen                             |
+| 2026-11-11  | Phases 1, 2 and 4 merged; `local:` text and embeddings work in a test app              |
+| 2026-11-14  | Proof-of-concept brain runs fully local on the Z13; evals recorded in this Status      |
+| 2026-11-18  | Demo video recorded from it; parameter counts and eval numbers go into the application |
 
-| Target date | Done                                                                                      |
-| ----------- | ----------------------------------------------------------------------------------------- |
-| 2026-11-06  | Phase 0 numbers recorded; text and embedding models chosen                                |
-| 2026-11-11  | Phases 1, 2 and 4 merged; `local:` text and embeddings work in a test app                 |
-| 2026-11-14  | Pilot brain deployed fully local (Phase 3, one brain); evals recorded in this Status      |
-| 2026-11-18  | Demo video recorded against the pilot; parameter counts and eval numbers go into the form |
+## Goal
+
+Each brain picks its embedding, text and image model in `brain.yaml`. Cloud providers stay available, and a new `local` provider serves open models from a runtime next to the brain.
+
+By the deadline: a proof of concept. A separate brain, not the team brain or any other production brain, runs with no cloud AI key on hardware the operator already owns: chat, tool calling, generation and search on open models, with image generation unavailable rather than cloud-backed (`canGenerateImages` already returns false without an image client). It does not need to be always on or serve users; it needs to work, be measured, and be shown. It holds a copy of the yeehaa rover's public entities only, so nothing shared or restricted reaches the demo video.
+
+## Non-goals
+
+- No production brain switches to local models before the deadline; the fleet keeps its cloud defaults.
+- No rented GPU hardware for the proof of concept.
+- No multimodal embeddings (images, audio, video) from EmbeddingGemma 2's shared space; that is image search, its own plan.
+- No automatic failover between providers.
 
 ## Decisions
 
@@ -35,34 +42,35 @@ Done means one real brain runs with no cloud AI key at all: chat, tool calling, 
 - **The first runtime is Ollama**, which serves embeddings and chat over that contract. Image generation adds a backend behind the same URL in Phase 5; the brain side does not change.
 - **Model identity is stored with the index.** The embedding DB records model, dimensions and prompt revision; any change drops and rebuilds. The boot backfill (`shellBootloader.ts:278`, `backfillMissing`) re-queues every entity without a current embedding, and the readiness gate holds chat until the index is ready.
 - **Local models come from outside the frontier families.** The Mozilla form names GPT, Claude, Gemini/DeepMind and Llama as frontier families, and the call rejects slimmed-down frontier models. Candidates are open-weight models from other labs (Qwen, Mistral, OLMo); Gemma and Llama variants are measured only as baselines. This applies to the embedding model too, so EmbeddingGemma 2 competes with a non-Gemma embedder in Phase 0 instead of being assumed.
-- **Small means 7–32B.** The text model is the smallest one that passes the agent evals, capped at 32B. The chosen parameter count is what the form reports.
+- **Small means 7–32B.** The text model is the smallest one that passes the agent evals, capped at 32B. The chosen parameter count is what the application reports.
+- **The proof of concept runs on owned hardware.** The host is the ASUS ROG Flow Z13 with 128 GB of unified memory (AMD Ryzen AI Max+ 395, Radeon 8060S), which fits every candidate up to 32B; Ollama runs natively on it. The i7-1355U laptop (16 GB, no discrete GPU) is the minimum-hardware check for the smallest candidate. The fleet's server type is measured only for the fleet switch after the deadline.
 - **Cloud models stay in the eval harness.** The eval judge (`multi-model-runner.ts:189`, `claude-haiku-4-5`) runs at development time and is not part of a brain's core loop.
 
 ## Phase 0 — Measurement
 
-Throwaway spike in a worktree; nothing merges. Numbers are recorded in this Status section. They pick the models for the milestone and gate the fleet switch in Phase 3.
+Throwaway spike in a worktree; nothing merges. Numbers are recorded in Status. They pick the models for the proof of concept and gate the fleet switch in Phase 3.
 
 Embeddings:
 
-1. Run EmbeddingGemma 2 and at least one non-Gemma embedder (Qwen3-Embedding or nomic-embed-text) in Ollama locally, using the model tags that will ship.
-2. Export one real brain's corpus (the yeehaa rover content repo).
+1. Run EmbeddingGemma 2 and at least one non-Gemma embedder (Qwen3-Embedding or nomic-embed-text) in Ollama on the Z13, using the model tags that will ship.
+2. Export the yeehaa rover's public entities, the corpus the proof-of-concept brain will hold.
 3. Generate one question per note with an LLM, once, cached, so all models face the same queries. Target = the source note.
 4. Embed corpus and questions with each model, using the query/document prompts from each model card.
-5. Measure recall@5 and MRR per model, embedding throughput on the fleet's Hetzner server type, and runtime RSS.
+5. Measure recall@5 and MRR per model, embedding throughput and runtime RSS.
 
 Text:
 
 1. Pull two or three tool-calling candidates between 7B and 32B into the same Ollama.
 2. Run `brain-eval --suite personal` against each through a local OpenAI-compatible client in the spike, next to the current default model.
-3. Record tool-calling pass rate, median turn latency and runtime RSS per model, on the host the pilot will run on.
+3. Record tool-calling pass rate, median turn latency and runtime RSS per model on the Z13, and the smallest candidate's latency on the i7 laptop.
 
-Choosing for the milestone: the embedding model with the best MRR among non-frontier candidates, and the smallest text model whose personal-suite pass rate the team accepts for the pilot. Both choices and their numbers go in Status.
+Choosing for the proof of concept: the embedding model with the best MRR among non-frontier candidates, and the smallest text model whose personal-suite pass rate the team accepts. Both choices and their numbers go in Status.
 
-Fleet switch (Phase 3, after the deadline) requires all three:
+Fleet switch (Phase 3, after the deadline) requires all three, measured on the fleet server type:
 
 - Local embedding MRR ≥ OpenAI MRR − 0.02.
-- Full re-embed of the largest production brain ≤ 10 minutes on the fleet server type.
-- Runtime RSS fits the fleet server type alongside the brain without a server upgrade.
+- Full re-embed of the largest production brain ≤ 10 minutes.
+- Runtime RSS fits alongside the brain without a server upgrade.
 
 ## Phase 1 — Configurable embedding model (cloud only)
 
@@ -93,9 +101,7 @@ boot → migrate: stored identity ≠ configured identity
                                  → provider returns → retried jobs succeed
 ```
 
-Acceptance: `bun start:personal` switched to `openai:text-embedding-3-large` rebuilds the index, and search returns the expected notes for known queries; an integration test covers both branches.
-
-## Phase 2 — `local` provider: embeddings in a test app
+## Phase 2 — `local` provider: embeddings
 
 Tests first:
 
@@ -108,12 +114,11 @@ Build:
 1. Add `@ai-sdk/openai-compatible`; `provider-clients.ts` creates a `local` client from `modelRuntime.url`.
 2. `IEmbeddingService` splits `generateEmbedding` into `embedQuery(text)` and `embedDocuments(inputs)`, where a document input carries `title` and `content`. Call sites: `entity-search.ts:155` and `:525` → `embedQuery`; `embeddingJobHandler.ts:111` → `embedDocuments` with the entity's frontmatter title.
 3. The `MODEL_PATTERNS` `ollama` entries become `local`.
-4. Switch one test app to the Phase 0 embedding model against a local Ollama; the docs give the `ollama pull` command.
-5. Re-run the Phase 0 benchmark through the real provider and record the result here.
+4. The docs give the `ollama pull` command for the chosen embedding model.
 
-## Phase 3 — Runtime sidecar
+## Phase 3 — Runtime sidecar for the fleet
 
-Milestone scope is one pilot brain. The fleet template and rollout follow after the deadline.
+After the deadline.
 
 Tests first: deploy-support template tests assert the runtime accessory, its network address and the `modelRuntime.url` the brain receives; the pull step lists exactly the `local:` models named in `brain.yaml`; a brain with only `local:` models deploys without `AI_API_KEY`.
 
@@ -122,8 +127,7 @@ Build:
 1. `shared/deploy-support/src/kamal-deploy.yml` gains a `models` accessory: a pinned `ollama/ollama` image, a persistent `/opt/brain-models` volume and a healthcheck.
 2. The deploy pulls every `local:` model in `brain.yaml` into the volume before the brain starts. Brains with no `local:` model deploy without the accessory.
 3. `openai-guest-pricing.ts` prices `local:` models at 0.
-4. Pilot (milestone): one brain with `model`, `embeddingModel` both `local:` and no AI key, on the host chosen in Phase 0. Verified by readiness reaching ready, search smoke queries and a chat with tool calls.
-5. Fleet (after the deadline): the rover-pilot template in `packages/brains-ops` gets the accessory; rollout smoke rover → rizom.ai once the Phase 0 fleet thresholds hold. A fleet-wide switch is a separate, named decision.
+4. The rover-pilot template in `packages/brains-ops` gets the accessory; rollout smoke rover → rizom.ai once the Phase 0 fleet thresholds hold. A fleet-wide switch is a separate, named decision.
 
 ## Phase 4 — Local text generation
 
@@ -132,8 +136,7 @@ Tests first: `model: local:<name>` resolves to the `local` client; the ai-evalua
 Build:
 
 1. `getLanguageModel` returns the `local` client for `local:` models over `/v1/chat/completions`.
-2. Run the existing agent evals (`brain-eval --suite personal`, then `team`) with the Phase 0 text model next to the current default, and record tool-calling pass rates in this plan before the pilot switches.
-3. The runtime accessory pulls the configured text model like an embedding model.
+2. Run the existing agent evals (`brain-eval --suite personal`, then `team`) with the Phase 0 text model next to the current default, and record tool-calling pass rates in Status.
 
 ## Phase 5 — Configurable and local image generation
 
@@ -147,12 +150,10 @@ Build:
 2. `getImageModel` returns the `local` client for `local:` models over `/v1/images/generations`.
 3. The runtime adds an image backend behind the same base URL. A runtime router image that dispatches per endpoint to Ollama and the image backend replaces the bare Ollama accessory; `modelRuntime.url` stays the same.
 
-## Open questions
+## Validation
 
-- **Pilot brain.** Which brain runs fully local for the application, and with which real users.
-- **Pilot host.** A 7–32B text model on the fleet's CPU server type may be too slow for chat. Options are a GPU server for the pilot, or a CPU-sized model if Phase 0 shows acceptable latency.
-
-## Out of scope
-
-- Multimodal embeddings (images, audio, video) from EmbeddingGemma 2's shared space; that is image search, its own plan.
-- Automatic failover between providers.
+- Phase 1: `bun start:personal` switched to `openai:text-embedding-3-large` rebuilds the index, and search returns the expected notes for known queries; an integration test covers both branches of the flow above.
+- Phase 2: a test app on the chosen local embedding model against Ollama re-runs the Phase 0 benchmark through the real provider, with the result recorded in Status.
+- Phase 4: the personal and team eval pass rates for the local text model are recorded next to the cloud default.
+- Proof of concept: the separate brain on the Z13, holding only the rover's public entities, boots with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`; readiness reaches ready, search answers known queries, and a chat turn completes with tool calls. The demo video is recorded from this run.
+- Phase 3: readiness reaches ready and search smoke queries pass on the smoke rover, then rizom.ai.
