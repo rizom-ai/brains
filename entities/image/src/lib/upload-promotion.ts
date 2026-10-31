@@ -1,3 +1,4 @@
+import { uploadTitle } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 
 export const webChatUploadsScope = {
@@ -16,7 +17,7 @@ export function getUploadImageIdentity(input: {
   filename: string;
   title?: string;
 }): { id: string; title: string } {
-  const title = getUploadTitle(input.title, input.filename);
+  const title = uploadTitle(input);
   const id = slugify(title);
   if (!id) {
     throw new Error(
@@ -28,11 +29,4 @@ export function getUploadImageIdentity(input: {
 
 export function toDataUrl(mediaType: string, content: Buffer): string {
   return `data:${mediaType};base64,${content.toString("base64")}`;
-}
-
-function getUploadTitle(title: string | undefined, filename: string): string {
-  const trimmed = title?.trim();
-  if (trimmed) return trimmed;
-  const withoutExt = filename.replace(/\.[^.]+$/, "").trim();
-  return withoutExt || filename;
 }

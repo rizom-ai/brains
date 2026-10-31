@@ -86,6 +86,38 @@ function createSeededSystemServices(
   return services;
 }
 
+/** Every upload ref reads as the PDF `brief.pdf`. */
+const briefPdfUploads: MockServices["runtimeUploads"] = {
+  scoped: () => ({
+    readRecord: async (id: string) => ({
+      id,
+      ref: { kind: "upload", id },
+      filename: "brief.pdf",
+      mediaType: "application/pdf",
+      sizeBytes: 8,
+      createdAt: new Date(0).toISOString(),
+    }),
+    read: async (): Promise<never> => {
+      throw new Error("A PDF's bytes are not read for its title");
+    },
+    save: async (): Promise<never> => {
+      throw new Error("save is not reachable here");
+    },
+    remove: async (): Promise<never> => {
+      throw new Error("remove is not reachable here");
+    },
+    toResponseBody: (): never => {
+      throw new Error("toResponseBody is not reachable here");
+    },
+    prune: async (): Promise<never> => {
+      throw new Error("prune is not reachable here");
+    },
+    getUploadDir: (): never => {
+      throw new Error("getUploadDir is not reachable here");
+    },
+  }),
+};
+
 function extractFirstUrl(
   ...values: Array<string | undefined>
 ): string | undefined {
@@ -1065,6 +1097,7 @@ status: draft
   it("should pass accessible upload transform refs to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services = createSeededSystemServices({
+      runtimeUploads: briefPdfUploads,
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -1121,6 +1154,7 @@ status: draft
     });
     expect(capturedInput).toEqual({
       entityType: "note",
+      title: "brief",
       from: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000301",
@@ -1134,6 +1168,7 @@ status: draft
     async (entityType) => {
       let capturedInput: CreateInput | undefined;
       services = createSeededSystemServices({
+        runtimeUploads: briefPdfUploads,
         conversationService: {
           ...services.conversationService,
           getMessages: async () => [
@@ -1197,6 +1232,7 @@ status: draft
       });
       expect(capturedInput).toEqual({
         entityType,
+        title: "brief",
         from: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000304",
@@ -1312,6 +1348,7 @@ status: draft
   it("should use conversationId for upload-transform access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
     services = createSeededSystemServices({
+      runtimeUploads: briefPdfUploads,
       conversationService: {
         ...services.conversationService,
         getMessages: async (conversationId: string) =>

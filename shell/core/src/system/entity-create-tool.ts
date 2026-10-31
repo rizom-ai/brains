@@ -31,6 +31,7 @@ import {
   runCreateInterceptor,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
+import { isTextUploadMediaType, uploadTitle } from "@brains/plugins";
 
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
@@ -422,14 +423,31 @@ async function resolveCreateSource(
   };
 }
 
-interface UploadPreserveResolution {
+interface UploadSourceResolution {
   /** The entity type that will own the upload: the registered saver's for preserve, else the request's. */
   entityType: string;
+  /** What the upload is saved as when the user gives no title. */
+  title: string;
   uploadPreserve: PreparedCreate["uploadPreserve"];
 }
 
-/** Check the upload is reachable and, for transform "preserve", find the plugin that saves it. */
-async function resolveUploadPreserve(
+/** The text of an upload whose bytes are text, to find its title in. */
+async function readUploadMarkdown(
+  services: SystemServices,
+  upload: { id: string; mediaType: string },
+): Promise<string | undefined> {
+  if (!isTextUploadMediaType(upload.mediaType)) return undefined;
+  const { content } = await services.runtimeUploads
+    .scoped(uploadScope)
+    .read(upload.id);
+  return content.toString("utf8");
+}
+
+/**
+ * Check the upload is reachable, name what it is saved as, and, for transform
+ * "preserve", find the plugin that saves it.
+ */
+async function resolveUploadSource(
   services: SystemServices,
   input: {
     entityType: string;
@@ -437,7 +455,7 @@ async function resolveUploadPreserve(
     transform: NormalizedCreateSource["transform"];
   },
   toolContext: CreateToolContext,
-): Promise<Guarded<UploadPreserveResolution>> {
+): Promise<Guarded<UploadSourceResolution>> {
   const hasAccess = await isUploadRefInConversation(
     services,
     input.uploadRef,
@@ -448,20 +466,29 @@ async function resolveUploadPreserve(
       "Upload ref is not accessible in this conversation or no longer exists.",
     );
   }
-  if (input.transform !== "preserve") {
-    return {
-      kind: "ok",
-      value: { entityType: input.entityType, uploadPreserve: undefined },
-    };
-  }
-
   let uploadRecord: { filename: string; mediaType: string };
+  let markdown: string | undefined;
   try {
     uploadRecord = await services.runtimeUploads
       .scoped(uploadScope)
       .readRecord(input.uploadRef.id);
+    markdown =
+      input.transform === "extract-markdown"
+        ? await readUploadMarkdown(services, {
+            id: input.uploadRef.id,
+            mediaType: uploadRecord.mediaType,
+          })
+        : undefined;
   } catch {
+    // A record or bytes the store cannot read is a ref that no longer resolves.
     return guardError("Upload ref not found");
+  }
+  const title = uploadTitle({ filename: uploadRecord.filename, markdown });
+  if (input.transform !== "preserve") {
+    return {
+      kind: "ok",
+      value: { entityType: input.entityType, title, uploadPreserve: undefined },
+    };
   }
 
   const registration = services.entityRegistry.getUploadSaveHandler(
@@ -477,6 +504,7 @@ async function resolveUploadPreserve(
     kind: "ok",
     value: {
       entityType: registration.entityType,
+      title,
       uploadPreserve: {
         upload: input.uploadRef,
         filename: uploadRecord.filename,
@@ -586,7 +614,7 @@ async function prepareCreate(
   } = source.value;
 
   const upload = uploadRef
-    ? await resolveUploadPreserve(
+    ? await resolveUploadSource(
         services,
         { entityType: input.entityType, uploadRef, transform },
         toolContext,
@@ -628,7 +656,9 @@ async function prepareCreate(
       : undefined;
 
   const title =
-    normalizeOptionalString(input.title) ?? entitySource?.title ?? undefined;
+    normalizeOptionalString(input.title) ??
+    entitySource?.title ??
+    upload?.value.title;
   const replace = input.replace === true;
   const createInput: CreateInput = {
     entityType,
