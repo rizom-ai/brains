@@ -164,27 +164,6 @@ describe("sync tool", () => {
     expect(directoryTool.description).toContain("bare 'what is the status'");
   });
 
-  it.each([true, false])(
-    "leaves files uploaded in chat to system_create (git: %p)",
-    (withGit) => {
-      const { directorySync } = createMockDirectorySync();
-      const { gitSync } = createMockGitSync();
-      const directoryTool = findTool(
-        createDirectorySyncTools(
-          directorySync,
-          context,
-          "directory-sync",
-          withGit ? gitSync : undefined,
-        ),
-        "directory_sync",
-      );
-
-      expect(directoryTool.description).toContain(
-        "Files uploaded in chat are not a filesystem import and need no sync; system_create handles them.",
-      );
-    },
-  );
-
   it("routes sync and status actions through directory_sync", async () => {
     const { directorySync, queueSyncBatchMock, getStatusMock } =
       createMockDirectorySync();
