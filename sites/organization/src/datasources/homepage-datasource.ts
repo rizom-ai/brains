@@ -6,6 +6,7 @@ import type {
 import { fetchAnchorProfileData } from "@brains/profile";
 import {
   homepageOpeningSchema,
+  type HomepageFaq,
   type HomepageOpeningContent,
   type HomepageOpeningData,
 } from "@brains/site-atlas";
@@ -41,34 +42,40 @@ export function openingFromProfile(
 /**
  * The homepage's data: the authored opening when the team has written one,
  * else the one its anchor profile gives, beside the radar and, when Web Chat
- * serves it, the Ask box.
+ * serves it, the Ask box; under them, its published FAQs.
  */
 export function organizationHomepageData({
   profile,
   authored,
   map,
   askBox,
+  faqs = [],
 }: {
   profile: OrganizationProfile;
   authored: HomepageOpeningContent | null;
   map: AgentRadar | null;
   askBox: boolean;
+  faqs?: HomepageFaq[];
 }): OrganizationHomepageData {
   return {
     profile,
     opening: authored ?? openingFromProfile(profile),
     map,
     askBox,
+    faqs,
   };
 }
 
-/** The authored opening and the Ask box's availability, read with the plugin's runtime. */
+/** The authored opening, the Ask box's availability and the published FAQs, read with the plugin's runtime. */
 export interface OrganizationHomepageLoaders {
   loadOpening?:
     | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
     | undefined;
   chatAvailable?:
     ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
+  /** The organization's published FAQs, ranked first, then most asked. */
+  loadFaqs?:
+    ((context: BaseDataSourceContext) => Promise<HomepageFaq[]>) | undefined;
 }
 
 /**
@@ -93,7 +100,7 @@ export class OrganizationHomepageDataSource implements DataSource {
     context: BaseDataSourceContext,
   ): Promise<T> {
     const entityService = context.entityService;
-    const [profile, map, authored, askBox] = await Promise.all([
+    const [profile, map, authored, askBox, faqs] = await Promise.all([
       fetchAnchorProfileData(entityService, organizationProfileSchema),
       loadAgentRadar({
         entityService,
@@ -103,6 +110,7 @@ export class OrganizationHomepageDataSource implements DataSource {
       }),
       this.loaders.loadOpening?.(context) ?? null,
       this.loaders.chatAvailable?.(context) ?? false,
+      this.loaders.loadFaqs?.(context) ?? [],
     ]);
     return outputSchema.parse(
       organizationHomepageData({
@@ -110,6 +118,7 @@ export class OrganizationHomepageDataSource implements DataSource {
         authored: homepageOpeningSchema.parse(authored),
         map,
         askBox,
+        faqs,
       }),
     );
   }
