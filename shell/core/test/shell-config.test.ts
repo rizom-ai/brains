@@ -76,11 +76,44 @@ describe("shell config", () => {
     expect(config.ai).toEqual({
       apiKey: "test-key",
       model: "gpt-4o-mini",
+      embeddingModel: "openai:text-embedding-3-small",
       temperature: 0.7,
       maxTokens: 1000,
       webSearch: true,
     });
     expect(config.embedding).toEqual({ enabled: true });
+  });
+
+  it("keeps a configured embedding model", () => {
+    const config = createShellConfig({
+      ai: {
+        apiKey: "test-key",
+        model: "gpt-4o-mini",
+        embeddingModel: "openai:text-embedding-3-large",
+      },
+    });
+
+    expect(config.ai.embeddingModel).toBe("openai:text-embedding-3-large");
+  });
+
+  it("rejects an embedding model without a profile", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-4o-mini",
+          embeddingModel: "openai:text-embedding-ada-002",
+        },
+      }),
+    ).toThrow(/Unsupported embedding model .*openai:text-embedding-ada-002/);
+  });
+
+  it("rejects a text model of an unknown provider", () => {
+    expect(() =>
+      createShellConfig({
+        ai: { apiKey: "test-key", model: "groq:llama-3.1-70b" },
+      }),
+    ).toThrow(/Unsupported model .*groq:llama-3\.1-70b/);
   });
 
   it("uses the standard database paths unless a database is overridden", () => {

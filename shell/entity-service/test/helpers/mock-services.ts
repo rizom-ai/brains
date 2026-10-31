@@ -7,7 +7,11 @@ export const MOCK_DIMENSIONS = 1536;
  * Matches OpenAI text-embedding-3-small dimensions.
  */
 export const mockEmbeddingService: IEmbeddingService = {
-  dimensions: MOCK_DIMENSIONS,
+  identity: {
+    model: "test:mock",
+    dimensions: MOCK_DIMENSIONS,
+    promptRevision: 0,
+  },
   generateEmbedding: async () => ({
     embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
     usage: { tokens: 10 },

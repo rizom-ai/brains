@@ -1,6 +1,10 @@
 import { createMockEntityService, createTestEntity } from "../src/test/index";
-import { describe, expect, test, beforeEach } from "bun:test";
-import { createMockProgressReporter } from "@brains/test-utils";
+import { describe, expect, test, beforeEach, spyOn } from "bun:test";
+import {
+  createMockLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { EmbeddingJobHandler } from "../src/handlers/embeddingJobHandler";
 import type {
   EntityService as IEntityService,
@@ -148,6 +152,50 @@ describe("EmbeddingJobHandler", () => {
       await handler.process(jobData, "job-123", mockProgressReporter);
 
       expect(service.storeEmbedding).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("EmbeddingJobHandler usage", () => {
+  test("logs usage under the embedding service's provider and model", async () => {
+    const logger = createMockLogger();
+    const child = spyOn(ConsoleLogger.getInstance(), "child").mockReturnValue(
+      logger,
+    );
+    const currentEntity = createTestEntity<BaseEntity>("note", {
+      id: "large",
+      content: "content",
+    });
+    const handler = EmbeddingJobHandler.createFresh(
+      createEntityServiceStub(async () => currentEntity),
+      {
+        ...mockEmbeddingService,
+        identity: {
+          model: "openai:text-embedding-3-large",
+          dimensions: 3072,
+          promptRevision: 0,
+        },
+      },
+    );
+    child.mockRestore();
+
+    await handler.process(
+      {
+        id: "large",
+        entityType: "note",
+        contentHash: currentEntity.contentHash,
+        operation: "create",
+      },
+      "job-usage",
+      mockProgressReporter,
+    );
+
+    expect(logger.info).toHaveBeenCalledWith("ai:usage", {
+      operation: "embedding",
+      provider: "openai",
+      model: "text-embedding-3-large",
+      inputTokens: 10,
+      outputTokens: 0,
     });
   });
 });

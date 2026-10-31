@@ -2,6 +2,10 @@ import { describe, test, expect, afterEach } from "bun:test";
 import { OnlineEmbeddingProvider } from "../src/online-embedding-provider";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
 import {
+  DEFAULT_EMBEDDING_MODEL,
+  resolveEmbeddingProfile,
+} from "../src/embedding-profiles";
+import {
   guestTurnSettlement,
   openAiGuestPricing,
   withEmbeddingUsage,
@@ -10,7 +14,11 @@ import { createSilentLogger, caughtError } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 /** The part of an OpenAI embeddings request the fake answers from. */
-const requestSchema = z.object({ input: z.array(z.string()) });
+const requestSchema = z.object({
+  input: z.array(z.string()),
+  model: z.string().optional(),
+  dimensions: z.number().optional(),
+});
 
 describe("OnlineEmbeddingProvider", () => {
   afterEach(() => {});
@@ -35,38 +43,29 @@ describe("OnlineEmbeddingProvider", () => {
       ).not.toThrow();
     });
 
-    test("uses text-embedding-3-small as default model", () => {
+    test("defaults to text-embedding-3-small at 1536 dimensions", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
         logger: createSilentLogger(),
       });
-      expect(provider.model).toBe("text-embedding-3-small");
+      expect(provider.identity).toEqual({
+        model: "openai:text-embedding-3-small",
+        dimensions: 1536,
+        promptRevision: 0,
+      });
     });
 
-    test("accepts custom model", () => {
+    test("takes its identity from the configured profile", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
-        model: "text-embedding-3-large",
+        profile: resolveEmbeddingProfile("openai:text-embedding-3-large"),
         logger: createSilentLogger(),
       });
-      expect(provider.model).toBe("text-embedding-3-large");
-    });
-
-    test("accepts custom dimensions", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        dimensions: 768,
-        logger: createSilentLogger(),
+      expect(provider.identity).toEqual({
+        model: "openai:text-embedding-3-large",
+        dimensions: 3072,
+        promptRevision: 0,
       });
-      expect(provider.dimensions).toBe(768);
-    });
-
-    test("defaults to 1536 dimensions", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(provider.dimensions).toBe(1536);
     });
   });
 
@@ -137,8 +136,52 @@ describe("OnlineEmbeddingProvider", () => {
         await provider.generateEmbeddings(["one", "two"]);
       });
       expect(measured).toEqual([
-        { model: "text-embedding-3-small", tokens: 7 },
-        { model: "text-embedding-3-small", tokens: 14 },
+        { model: "openai:text-embedding-3-small", tokens: 7 },
+        { model: "openai:text-embedding-3-small", tokens: 14 },
+      ]);
+    });
+
+    test("records usage under the configured model", async () => {
+      const usage = EmbeddingUsageMeter.createFresh();
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        profile: resolveEmbeddingProfile("openai:text-embedding-3-large"),
+        logger: createSilentLogger(),
+        usage,
+        fetch: openAi,
+      });
+      const { usage: measured } = await usage.measure(() =>
+        provider.generateEmbedding("a query"),
+      );
+      expect(measured).toEqual([
+        { model: "openai:text-embedding-3-large", tokens: 7 },
+      ]);
+    });
+
+    test("requests the profile's model at the profile's dimensions", async () => {
+      const bodies: Array<z.output<typeof requestSchema>> = [];
+      const capture = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        bodies.push(requestSchema.parse(JSON.parse(String(init?.body))));
+        return respond(input, init);
+      };
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        profile: resolveEmbeddingProfile("openai:text-embedding-3-large"),
+        logger: createSilentLogger(),
+        fetch: Object.assign(capture, {
+          preconnect: globalThis.fetch.preconnect,
+        }),
+      });
+      await provider.generateEmbedding("a query");
+      expect(bodies).toEqual([
+        {
+          input: ["a query"],
+          model: "text-embedding-3-large",
+          dimensions: 3072,
+        },
       ]);
     });
   });
@@ -204,12 +247,17 @@ describe("OnlineEmbeddingProvider", () => {
       };
     }
 
+    const twoDimensions = {
+      ...resolveEmbeddingProfile(DEFAULT_EMBEDDING_MODEL),
+      dimensions: 2,
+    };
+
     function providerFor(api: {
       fetch: typeof fetch;
     }): OnlineEmbeddingProvider {
       return OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
-        dimensions: 2,
+        profile: twoDimensions,
         logger: createSilentLogger(),
         fetch: api.fetch,
       });
@@ -341,7 +389,7 @@ describe("OnlineEmbeddingProvider", () => {
       };
       const provider = OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
-        dimensions: 2,
+        profile: twoDimensions,
         logger: createSilentLogger(),
         usage,
         fetch: Object.assign(respond, {
@@ -360,8 +408,8 @@ describe("OnlineEmbeddingProvider", () => {
       const completed = bytes(api.requests.flat().join(""));
       expect(completed).toBeGreaterThan(0);
       expect(measured.usage).toEqual([
-        { model: "text-embedding-3-small", tokens: completed },
-        { model: "text-embedding-3-small", tokens: 0, incomplete: true },
+        { model: "openai:text-embedding-3-small", tokens: completed },
+        { model: "openai:text-embedding-3-small", tokens: 0, incomplete: true },
       ]);
       const settled = withEmbeddingUsage(
         guestTurnSettlement([], openAiGuestPricing("gpt-5.6-luna")),
@@ -379,7 +427,7 @@ describe("OnlineEmbeddingProvider", () => {
       const api = fakeOpenAi();
       const provider = OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
-        dimensions: 2,
+        profile: twoDimensions,
         logger: createSilentLogger(),
         usage,
         fetch: api.fetch,
@@ -391,7 +439,7 @@ describe("OnlineEmbeddingProvider", () => {
 
       expect(measured).toEqual([
         {
-          model: "text-embedding-3-small",
+          model: "openai:text-embedding-3-small",
           tokens: bytes(api.requests.flat().join("")),
         },
       ]);

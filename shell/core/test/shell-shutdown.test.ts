@@ -18,7 +18,7 @@ async function runMigrations(dir: string): Promise<void> {
 }
 
 const mockEmbeddingService = {
-  dimensions: 1536,
+  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
   generateEmbedding: async (): Promise<{
     embedding: Float32Array;
     usage: { tokens: number };

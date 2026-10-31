@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
+  isSupportedTextModel,
   resolveTextProvider,
   selectTextProvider,
   selectImageProvider,
@@ -45,6 +46,18 @@ describe("selectTextProvider", () => {
 
   it("should fall back to anthropic for unknown model", () => {
     expect(selectTextProvider("some-unknown-model")).toBe("anthropic");
+  });
+});
+
+describe("isSupportedTextModel", () => {
+  it("accepts models of providers the brain has a client for", () => {
+    expect(isSupportedTextModel("claude-haiku-4-5")).toBe(true);
+    expect(isSupportedTextModel("openai:gpt-6-luna")).toBe(true);
+    expect(isSupportedTextModel("google:gemini-2.0-flash")).toBe(true);
+  });
+
+  it("rejects an unknown provider instead of falling back to anthropic", () => {
+    expect(isSupportedTextModel("groq:llama-3.1-70b")).toBe(false);
   });
 });
 

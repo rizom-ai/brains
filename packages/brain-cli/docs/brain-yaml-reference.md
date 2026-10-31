@@ -142,6 +142,18 @@ model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
 ```
 
+An explicit `provider:` prefix selects the provider; a bare name is matched to one. Supported providers are `anthropic`, `openai` and `google`; any other prefix fails config validation.
+
+### `embeddingModel`
+
+Select the model that builds the semantic index. Defaults to `openai:text-embedding-3-small`; `openai:text-embedding-3-large` is also supported, and any other model fails config validation.
+
+```yaml
+embeddingModel: openai:text-embedding-3-large
+```
+
+Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.
+
 ### `embedding`
 
 Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.

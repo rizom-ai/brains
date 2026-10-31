@@ -289,6 +289,21 @@ describe("resolve", () => {
     expect(config.aiModel).toBe("gpt-4o-mini");
   });
 
+  test("should resolve the embedding model from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(resolve(def, {}).aiEmbeddingModel).toBeUndefined();
+    expect(
+      resolve(def, {}, { embeddingModel: "openai:text-embedding-3-large" })
+        .aiEmbeddingModel,
+    ).toBe("openai:text-embedding-3-large");
+  });
+
   test("should resolve and override reasoning effort", () => {
     const def = defineBrain({
       name: "test",

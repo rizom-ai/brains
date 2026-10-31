@@ -21,6 +21,11 @@ const embeddingJobDataSchema = z.object({
   operation: z.enum(["create", "update"]),
 });
 
+function splitModel(qualified: string): [string, string] {
+  const colon = qualified.indexOf(":");
+  return [qualified.slice(0, colon), qualified.slice(colon + 1)];
+}
+
 /**
  * Job handler for embedding generation
  * Processes entities to generate embeddings using the EmbeddingService
@@ -110,11 +115,14 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
       const { embedding, usage } =
         await this.embeddingService.generateEmbedding(currentEntity.content);
 
-      // Log usage event for monitoring
+      // Log usage event for monitoring; identity names `provider:model`
+      const [provider, model] = splitModel(
+        this.embeddingService.identity.model,
+      );
       this.logger.info("ai:usage", {
         operation: "embedding",
-        provider: "openai",
-        model: "text-embedding-3-small",
+        provider,
+        model,
         inputTokens: usage.tokens,
         outputTokens: 0,
       });

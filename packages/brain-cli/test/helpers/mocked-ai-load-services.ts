@@ -11,6 +11,7 @@ import type {
 import type {
   BatchEmbeddingResult,
   EmbeddingResult,
+  EmbeddingIdentity,
   IEmbeddingService,
 } from "@brains/entity-service";
 import { MockLanguageModelV3 } from "ai/test";
@@ -158,14 +159,18 @@ async function delay(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 export class MockLoadEmbeddingService implements IEmbeddingService {
-  readonly dimensions: number;
+  readonly identity: EmbeddingIdentity;
   private readonly tracker: MockLoadTracker;
   private readonly delayMs: number;
 
   constructor(tracker: MockLoadTracker, options: MockLoadEmbeddingOptions) {
     this.tracker = tracker;
     this.delayMs = options.delayMs;
-    this.dimensions = options.dimensions;
+    this.identity = {
+      model: "test:mock-load",
+      dimensions: options.dimensions,
+      promptRevision: 0,
+    };
   }
 
   async generateEmbedding(
@@ -180,7 +185,7 @@ export class MockLoadEmbeddingService implements IEmbeddingService {
     try {
       await delay(this.delayMs, signal);
       return {
-        embedding: new Float32Array(this.dimensions).fill(0.01),
+        embedding: new Float32Array(this.identity.dimensions).fill(0.01),
         usage: { tokens: 1 },
       };
     } finally {

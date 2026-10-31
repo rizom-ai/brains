@@ -3,15 +3,21 @@ import { embedMany } from "ai";
 import type { Logger } from "@brains/utils/logger";
 import type {
   IEmbeddingService,
+  EmbeddingIdentity,
   EmbeddingResult,
   BatchEmbeddingResult,
 } from "@brains/entity-service";
 import type { EmbeddingUsageRecorder } from "./embedding-usage-meter";
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  resolveEmbeddingProfile,
+  type EmbeddingProfile,
+} from "./embedding-profiles";
 
 export interface OnlineEmbeddingConfig {
   apiKey: string;
-  model?: string;
-  dimensions?: number;
+  /** The embedding model to index with; text-embedding-3-small by default. */
+  profile?: EmbeddingProfile;
   logger: Logger;
   /** Told what each call used, so a guest turn is charged for its embeddings. */
   usage?: EmbeddingUsageRecorder;
@@ -19,14 +25,9 @@ export interface OnlineEmbeddingConfig {
   fetch?: typeof fetch;
 }
 
-const DEFAULT_MODEL = "text-embedding-3-small";
-const DEFAULT_DIMENSIONS = 1536;
-
-// OpenAI's embedding limits. A byte-level tokenizer never produces more tokens
-// than a text has UTF-8 bytes, so input measured in bytes always fits.
-const MAX_INPUT_TOKENS = 8_191;
-const MAX_REQUEST_TOKENS = 300_000;
-const MAX_REQUEST_INPUTS = 2_048;
+// A profile's limits are in tokens. A byte-level tokenizer never produces
+// more tokens than a text has UTF-8 bytes, so input measured in bytes always
+// fits.
 // Coarsest first, so chunks keep paragraphs, then lines, then words whole.
 const SEPARATORS = ["\n\n", "\n", " "];
 
@@ -62,7 +63,7 @@ function pack(pieces: string[], separator: string, max: number): string[] {
  */
 function splitForEmbedding(
   text: string,
-  max: number = MAX_INPUT_TOKENS,
+  max: number,
   separators: string[] = SEPARATORS,
 ): string[] {
   if (byteLength(text) <= max) return [text];
@@ -77,16 +78,19 @@ function splitForEmbedding(
   );
 }
 
-/** Group chunks into requests within OpenAI's per-request limits. */
-function groupRequests(chunks: string[]): string[][] {
+/** Group chunks into requests within the model's per-request limits. */
+function groupRequests(
+  chunks: string[],
+  profile: EmbeddingProfile,
+): string[][] {
   return chunks.reduce<{ groups: string[][]; bytes: number }>(
     (state, chunk) => {
       const group = state.groups.at(-1);
       const bytes = byteLength(chunk);
       if (
         group !== undefined &&
-        group.length < MAX_REQUEST_INPUTS &&
-        state.bytes + bytes <= MAX_REQUEST_TOKENS
+        group.length < profile.maxRequestInputs &&
+        state.bytes + bytes <= profile.maxRequestTokens
       ) {
         group.push(chunk);
         return { groups: state.groups, bytes: state.bytes + bytes };
@@ -119,8 +123,8 @@ function combine(chunks: string[], vectors: number[][]): Float32Array {
  * Uses the OpenAI embeddings API for vector generation.
  */
 export class OnlineEmbeddingProvider implements IEmbeddingService {
-  public readonly model: string;
-  public readonly dimensions: number;
+  public readonly identity: EmbeddingIdentity;
+  private readonly profile: EmbeddingProfile;
   private readonly openai: ReturnType<typeof createOpenAI>;
   private readonly logger: Logger;
   private readonly usage: EmbeddingUsageRecorder | undefined;
@@ -136,8 +140,13 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       throw new Error("API key is required for online embedding provider");
     }
 
-    this.model = config.model ?? DEFAULT_MODEL;
-    this.dimensions = config.dimensions ?? DEFAULT_DIMENSIONS;
+    this.profile =
+      config.profile ?? resolveEmbeddingProfile(DEFAULT_EMBEDDING_MODEL);
+    this.identity = {
+      model: this.profile.model,
+      dimensions: this.profile.dimensions,
+      promptRevision: this.profile.promptRevision,
+    };
     this.logger = config.logger.child("OnlineEmbeddingProvider");
     this.usage = config.usage;
 
@@ -175,7 +184,9 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       return { embeddings: [], usage: { tokens: 0 } };
     }
 
-    const chunked = texts.map((text) => splitForEmbedding(text));
+    const chunked = texts.map((text) =>
+      splitForEmbedding(text, this.profile.maxInputTokens),
+    );
     const chunks = chunked.flat();
     if (chunks.length > texts.length) {
       this.logger.debug(
@@ -185,19 +196,19 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       this.logger.debug(`Generating embeddings for ${texts.length} texts`);
     }
 
-    const results = await groupRequests(chunks).reduce<
+    const results = await groupRequests(chunks, this.profile).reduce<
       Promise<{ vectors: number[][]; tokens: number }>
     >(
       async (previous, values) => {
         const done = await previous;
-        const measurement = this.usage?.begin(this.model);
+        const measurement = this.usage?.begin(this.profile.model);
         const { embeddings, usage } = await embedMany({
-          model: this.openai.embedding(this.model),
+          model: this.openai.embedding(this.profile.modelId),
           values,
           ...(measurement ? { maxRetries: 0 } : {}),
           ...(signal ? { abortSignal: signal } : {}),
           providerOptions: {
-            openai: { dimensions: this.dimensions },
+            openai: { dimensions: this.profile.dimensions },
           },
         });
         // Preserve this request's usage even if a later group fails.

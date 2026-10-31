@@ -21,12 +21,26 @@ describe("resolveAIConfig", () => {
     expect(config.aiApiKey).toBe("sk-test");
   });
 
-  it("should strip explicit provider prefix from model", () => {
+  it("keeps an explicit provider prefix on the model", () => {
     const config = resolveAIConfig(
       { AI_API_KEY: "sk-test" },
       { model: "openai:gpt-4o-mini" },
     );
-    expect(config.aiModel).toBe("gpt-4o-mini");
+    expect(config.aiModel).toBe("openai:gpt-4o-mini");
+  });
+
+  it("passes the embedding model through with its provider prefix", () => {
+    const config = resolveAIConfig(
+      { AI_API_KEY: "sk-test" },
+      { embeddingModel: "openai:text-embedding-3-large" },
+    );
+    expect(config.aiEmbeddingModel).toBe("openai:text-embedding-3-large");
+  });
+
+  it("does not set an embedding model when none is configured", () => {
+    expect(
+      resolveAIConfig({ AI_API_KEY: "sk-test" }).aiEmbeddingModel,
+    ).toBeUndefined();
   });
 
   it("should not set model when no model specified", () => {

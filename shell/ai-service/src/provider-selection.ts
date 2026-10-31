@@ -56,6 +56,21 @@ export function resolveTextProvider(model: string): ResolvedModelProvider {
   return { provider: "anthropic", modelId: model };
 }
 
+/** Text providers the brain has a client for. */
+const TEXT_PROVIDERS: ReadonlySet<string> = new Set([
+  "anthropic",
+  "openai",
+  "google",
+]);
+
+/**
+ * Whether a text model resolves to a provider the brain can call. An unknown
+ * provider is a config error, never a silent fallback to Anthropic.
+ */
+export function isSupportedTextModel(model: string): boolean {
+  return TEXT_PROVIDERS.has(resolveTextProvider(model).provider);
+}
+
 /**
  * Select the text generation provider from a model string.
  *
@@ -97,6 +112,30 @@ export function selectImageProvider(model?: string): ResolvedModelProvider {
   }
 
   return { provider: "openai", modelId: model };
+}
+
+/**
+ * Embedding model patterns → provider auto-detection.
+ */
+const EMBEDDING_MODEL_PATTERNS: Array<[RegExp, string]> = [
+  [/^text-embedding-/, "openai"],
+];
+
+/**
+ * Resolve the provider and SDK model ID of an embedding model; null when a
+ * bare name matches no known provider.
+ */
+export function resolveEmbeddingProvider(
+  model: string,
+): ResolvedModelProvider | null {
+  const explicit = parseProviderPrefix(model);
+  if (explicit) return explicit;
+
+  for (const [pattern, provider] of EMBEDDING_MODEL_PATTERNS) {
+    if (pattern.test(model)) return { provider, modelId: model };
+  }
+
+  return null;
 }
 
 const NO_TEMPERATURE_PATTERN = /^(gpt-(?:5|6)|o[1-9])(?:[.-]|$)/;

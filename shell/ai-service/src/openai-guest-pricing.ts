@@ -4,6 +4,7 @@ import type {
 } from "@brains/contracts/chat";
 import type { LanguageModelUsage } from "ai";
 import type { EmbeddingUsage } from "./embedding-usage-meter";
+import { resolveTextProvider } from "./provider-selection";
 
 /** What the provider reported for each model call of a guest turn. */
 export interface GuestProviderUsage {
@@ -98,10 +99,12 @@ function priceCall(
  * for a model whose rates are not published here.
  */
 export function openAiGuestPricing(
-  modelId: string | undefined,
+  model: string | undefined,
 ): GuestPricing | undefined {
-  if (modelId === undefined) return undefined;
-  const rates = openAiModelRates[modelId];
+  if (model === undefined) return undefined;
+  const resolved = resolveTextProvider(model);
+  if (resolved.provider !== "openai") return undefined;
+  const rates = openAiModelRates[resolved.modelId];
   if (!rates) return undefined;
   return (usage) => {
     const parts = usage.calls.map((call) => priceCall(rates, call));
@@ -199,17 +202,32 @@ export function sumGuestSettlements(
   };
 }
 
+interface EmbeddingRate {
+  revision: string;
+  /** Nano-dollars per token. */
+  rate: number;
+}
+
 /**
- * Published text-embedding-3-small rate, read on 2026-09-30 from
+ * Published OpenAI embedding rates, by `provider:model`.
+ *
+ * text-embedding-3-small, read 2026-09-30 from
  * https://developers.openai.com/api/docs/models/text-embedding-3-small:
  * $0.02 per 1M tokens.
+ *
+ * text-embedding-3-large, read 2026-10-31 from
+ * https://developers.openai.com/api/docs/models/text-embedding-3-large:
+ * $0.13 per 1M tokens.
  */
-export const openAiEmbeddingPricingRevision =
-  "openai-text-embedding-3-small-2026-09-30";
-
-/** Nano-dollars per token, by embedding model. */
-const embeddingRates: Readonly<Record<string, number>> = {
-  "text-embedding-3-small": 20,
+const embeddingRates: Readonly<Record<string, EmbeddingRate>> = {
+  "openai:text-embedding-3-small": {
+    revision: "openai-text-embedding-3-small-2026-09-30",
+    rate: 20,
+  },
+  "openai:text-embedding-3-large": {
+    revision: "openai-text-embedding-3-large-2026-10-31",
+    rate: 130,
+  },
 };
 
 /**
@@ -231,19 +249,20 @@ export function withEmbeddingUsage(
     return { usage, cost: { state: "unknown", reason: "missing-usage" } };
   if (settlement.cost.state === "unknown")
     return { usage, cost: settlement.cost };
-  const nanos = embeddings.map((call) => {
+  const priced = embeddings.flatMap((call) => {
     const rate = embeddingRates[call.model];
-    return rate === undefined ? undefined : call.tokens * rate;
+    return rate ? [{ tokens: call.tokens, ...rate }] : [];
   });
-  if (nanos.includes(undefined))
+  if (priced.length < embeddings.length)
     return { usage, cost: { state: "unknown", reason: "unsupported-pricing" } };
-  const nano = nanos.reduce<number>((sum, part) => sum + (part ?? 0), 0);
+  const nano = priced.reduce((sum, call) => sum + call.tokens * call.rate, 0);
+  const revisions = [...new Set(priced.map((call) => call.revision))].sort();
   return {
     usage,
     cost: {
       state: "known",
       microUsd: settlement.cost.microUsd + Math.ceil(nano / 1_000),
-      pricing: `${settlement.cost.pricing}+${openAiEmbeddingPricingRevision}`,
+      pricing: [settlement.cost.pricing, ...revisions].join("+"),
     },
   };
 }

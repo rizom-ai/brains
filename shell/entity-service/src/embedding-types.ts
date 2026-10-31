@@ -22,11 +22,21 @@ export interface BatchEmbeddingResult {
 }
 
 /**
+ * What makes vectors comparable: the model, its output size and the text it
+ * was given. The index stores it; vectors of another identity are dropped.
+ */
+export interface EmbeddingIdentity {
+  /** Canonical `provider:model` */
+  model: string;
+  dimensions: number;
+  promptRevision: number;
+}
+
+/**
  * Interface for embedding service
  */
 export interface IEmbeddingService {
-  /** Vector dimensions produced by this provider */
-  readonly dimensions: number;
+  readonly identity: EmbeddingIdentity;
   generateEmbedding(
     text: string,
     signal?: AbortSignal,

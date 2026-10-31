@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Nothing implemented. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
+Phase 1 implemented: `embeddingModel` selects `openai:text-embedding-3-small` or `-large`, and the index records its identity and rebuilds on change. Phases 0 and 2–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
 
 ## Today
 

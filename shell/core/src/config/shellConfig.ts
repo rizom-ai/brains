@@ -1,3 +1,9 @@
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  findEmbeddingProfile,
+  isSupportedTextModel,
+  unsupportedEmbeddingModelMessage,
+} from "@brains/ai-service";
 import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -88,6 +94,7 @@ export const shellConfigSchema: z.ZodObject<{
     apiKey: z.ZodDefault<z.ZodString>;
     imageApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
+    embeddingModel: z.ZodDefault<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
@@ -135,7 +142,16 @@ export const shellConfigSchema: z.ZodObject<{
     /** Absent when the AI provider is configured later or not at all. */
     apiKey: z.string().default(""),
     imageApiKey: z.string().optional(),
-    model: z.string(),
+    model: z.string().refine(isSupportedTextModel, {
+      error: (issue) => `Unsupported model "${String(issue.input)}"`,
+    }),
+    /** `provider:model`; changing it rebuilds the semantic index. */
+    embeddingModel: z
+      .string()
+      .refine((model) => findEmbeddingProfile(model) !== undefined, {
+        error: (issue) => unsupportedEmbeddingModelMessage(String(issue.input)),
+      })
+      .default(DEFAULT_EMBEDDING_MODEL),
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),

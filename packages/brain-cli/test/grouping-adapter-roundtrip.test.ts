@@ -67,7 +67,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       jobQueueService: createMockShell().getJobQueueService(),
       embeddingsEnabled: false,
       embeddingService: {
-        dimensions: 1536,
+        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
         generateEmbedding: async () => {
           throw new Error("Unexpected embedding request");
         },

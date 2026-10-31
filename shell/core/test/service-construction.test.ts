@@ -223,7 +223,7 @@ describe("Shell service construction", () => {
     const dependencies: ShellDependencies = {
       logger: createSilentLogger("test"),
       embeddingService: {
-        dimensions: 1536,
+        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
         generateEmbedding: async () => ({
           embedding: new Float32Array(1536).fill(0.1),
           usage: { tokens: 1 },
