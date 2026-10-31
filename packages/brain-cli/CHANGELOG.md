@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- [#790](https://github.com/rizom-ai/brains/pull/790) [`ffda957`](https://github.com/rizom-ai/brains/commit/ffda95781512c659f3d53c056b262af4f9560f9f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking a brain about an entity whose content is all frontmatter, such as its style guide, now returns the answer. Before, the citation for that entity carried an empty excerpt, which broke the response contract and turned the whole chat reply over MCP or web chat into a validation error. A citation with nothing to quote now has no excerpt, and a malformed card is left out of a reply instead of failing it.
+
+- [#788](https://github.com/rizom-ai/brains/pull/788) [`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Text pasted to be saved as a portfolio project, a deck or a doc is kept as written, the way posts are. A leading `# Title` heading becomes the title, and the brain fills in what the type needs: a project gets a card description and the year the text names, saved as a draft; a deck is split into slides on its headings when the text has no `---` separators, keeps its first heading as the title slide, and gets a description; a doc goes after the last page, in the docs' only section or the one the user names. When the year, the section, the title or the slide breaks cannot be derived, the brain asks once, and the save after the answer stores the originally pasted text unchanged, whatever the agent resends; a deck can take a slide per paragraph. A project page shows a body written outside the case-study sections, and listing projects shows each one's description. Generating a deck from a prompt works again: its placeholder kept no slide and failed every generation. A new deck without slide separators gets a validation message in Studio instead of a server error.
+
 ## 0.2.0-alpha.613
 
 ### Patch Changes
