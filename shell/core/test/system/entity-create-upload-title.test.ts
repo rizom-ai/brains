@@ -46,6 +46,9 @@ describe("system_create upload note titles", () => {
     const confirmation = expectToolConfirmation(pending);
     const args = expectConfirmationArgs(pending);
     expect(confirmation.summary).toBe('Create "Quarterly Planning Sync"?');
+    expect(confirmation.completionSummary).toBe(
+      'Saved note "Quarterly Planning Sync".',
+    );
     expect(confirmation.preview).toContain("Title: Quarterly Planning Sync");
     expect(args).toMatchObject({ title: "Quarterly Planning Sync" });
 
@@ -111,5 +114,34 @@ describe("system_create upload note titles", () => {
 
     expect(result).toMatchObject({ success: false });
     expect(noteImports).toEqual([]);
+  });
+});
+
+describe("system_create save confirmations", () => {
+  it("says what a confirmed save saved", async () => {
+    const photo = {
+      id: "upload-00000000-0000-4000-8000-000000000a03",
+      filename: "harbor.png",
+      mediaType: "image/png",
+      content: "png",
+    };
+    const { tool } = uploadFixture([photo]);
+
+    const pending = await tool.handler(
+      {
+        entityType: "image",
+        source: {
+          kind: "upload",
+          upload: { kind: "upload", id: photo.id },
+          transform: "preserve",
+        },
+      },
+      uploadContext(),
+    );
+
+    expect(expectToolConfirmation(pending)).toMatchObject({
+      summary: 'Save uploaded file as "harbor"?',
+      completionSummary: 'Saved image "harbor".',
+    });
   });
 });

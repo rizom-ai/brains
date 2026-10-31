@@ -105,6 +105,12 @@ function buildCreateConfirmation(createInput: CreateInput): {
 
 type CreateToolInput = z.infer<typeof createInputSchema>;
 
+/** What a confirmed create reports it did: it saved, it did not generate. */
+function buildCreateCompletionSummary(createInput: CreateInput): string {
+  const label = createInput.title ? ` "${createInput.title}"` : "";
+  return `Saved ${createInput.entityType}${label}.`;
+}
+
 type PreferredCreateSource = CreateToolInput["source"];
 
 interface EntitySourceRef {
@@ -892,6 +898,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           needsConfirmation: true,
           toolName: "system_create",
           summary: confirmation.summary,
+          completionSummary: buildCreateCompletionSummary(createInput),
           preview: confirmation.preview,
           args: confirmationArgs,
         };

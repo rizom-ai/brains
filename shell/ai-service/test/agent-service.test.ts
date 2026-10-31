@@ -3278,24 +3278,30 @@ describe("AgentService", () => {
             toolCalls: [
               {
                 toolCallId: "call-generate-post",
-                toolName: "system_create",
+                toolName: "system_generate",
                 input: {
-                  entityType: "post",
-                  prompt: "Generate a post outline",
+                  operation: {
+                    kind: "prompt",
+                    entityType: "post",
+                    prompt: "Generate a post outline",
+                  },
                 },
               },
             ],
             toolResults: [
               {
                 toolCallId: "call-generate-post",
-                toolName: "system_create",
+                toolName: "system_generate",
                 output: {
                   needsConfirmation: true,
-                  toolName: "system_create",
+                  toolName: "system_generate",
                   summary: "Generate post outline?",
                   args: {
-                    entityType: "post",
-                    prompt: "Generate a post outline",
+                    operation: {
+                      kind: "prompt",
+                      entityType: "post",
+                      prompt: "Generate a post outline",
+                    },
                     confirmed: true,
                     confirmationToken: "token-1",
                   },
@@ -3316,8 +3322,8 @@ describe("AgentService", () => {
         },
       }));
       const createTool: Tool = {
-        name: "system_create",
-        description: "Create entity",
+        name: "system_generate",
+        description: "Generate entity",
         inputSchema: { entityType: z.string() },
         visibility: "trusted",
         handler: createHandler,
@@ -3343,8 +3349,86 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toContain("Completed: Generate post outline");
-      expect(response.text).toContain("generating");
+      expect(response.text).toContain("The draft is generating now.");
       expect(response.text).toContain("ready");
+    });
+
+    it("says a confirmed save is saved, not that a draft is generating", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm the note.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "system_create",
+                input: {
+                  entityType: "link",
+                  source: { kind: "url", url: "https://example.com" },
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "system_create",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_create",
+                  summary: "Create link?",
+                  completionSummary: "Saved link.",
+                  args: {
+                    entityType: "link",
+                    source: { kind: "url", url: "https://example.com" },
+                    confirmed: true,
+                    confirmationToken: "token-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const createHandler = mock(async () => ({
+        success: true as const,
+        data: {
+          entityId: "example-com",
+          status: "generating",
+          jobId: "job-1",
+        },
+      }));
+      const createTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: { entityType: z.string() },
+        visibility: "trusted",
+        handler: createHandler,
+      };
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: createTool },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("save https://example.com", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-save-note",
+        { userPermissionLevel: "admin", interfaceType: "evaluation" },
+      );
+
+      expect(response.text).toBe(
+        "Completed: Saved link.\n\nIt is saved; its content is still being processed and will be ready shortly.",
+      );
     });
 
     it("removes confirmation punctuation from completed action text", async () => {
