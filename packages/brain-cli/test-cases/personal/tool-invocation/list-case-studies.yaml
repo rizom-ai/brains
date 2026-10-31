@@ -30,4 +30,6 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 33000
+  # Reading the one project in full to describe it is fine; the case tests
+  # the case-study -> project mapping, and that read costs ~46k tokens.
+  maxTokens: 50000
