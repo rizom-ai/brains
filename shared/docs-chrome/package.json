@@ -1,7 +1,7 @@
 {
   "name": "@brains/docs-chrome",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.613",
+  "version": "0.2.0-alpha.615",
   "description": "The docs site's page chrome, shared by the doc and guide templates",
   "dependencies": {
     "@brains/ui-library": "workspace:*",

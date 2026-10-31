@@ -1,5 +1,34 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.615
+  - @brains/media-page-composer@0.2.0-alpha.615
+  - @brains/ui-library@0.2.0-alpha.615
+  - @brains/atproto-contracts@0.2.0-alpha.615
+  - @brains/content-formatters@0.2.0-alpha.615
+  - @brains/contracts@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+  - @brains/templates@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- [#788](https://github.com/rizom-ai/brains/pull/788) [`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Text pasted to be saved as a portfolio project, a deck or a doc is kept as written, the way posts are. A leading `# Title` heading becomes the title, and the brain fills in what the type needs: a project gets a card description and the year the text names, saved as a draft; a deck is split into slides on its headings when the text has no `---` separators, keeps its first heading as the title slide, and gets a description; a doc goes after the last page, in the docs' only section or the one the user names. When the year, the section, the title or the slide breaks cannot be derived, the brain asks once, and the save after the answer stores the originally pasted text unchanged, whatever the agent resends; a deck can take a slide per paragraph. A project page shows a body written outside the case-study sections, and listing projects shows each one's description. Generating a deck from a prompt works again: its placeholder kept no slide and failed every generation. A new deck without slide separators gets a validation message in Studio instead of a server error.
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/media-page-composer@0.2.0-alpha.614
+  - @brains/ui-library@0.2.0-alpha.614
+  - @brains/atproto-contracts@0.2.0-alpha.614
+  - @brains/content-formatters@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
 ## 0.2.0-alpha.613
 
 ### Patch Changes

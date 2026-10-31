@@ -27,6 +27,17 @@ export function buildAgentInstructions(
   );
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A UTC day as "Saturday 2026-10-31". */
+function datedWeekday(day: Date): string {
+  const weekday = day.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+  return `${weekday} ${day.toISOString().slice(0, 10)}`;
+}
+
 export function buildInstructions(
   identity: BrainCharacter,
   userPermissionLevel: UserPermissionLevel,
@@ -46,12 +57,13 @@ export function buildInstructions(
   const anchorContext = isAnchor
     ? "The current caller is the brain's configured Anchor identity. This identity fact does not grant Admin permission; authorization comes only from the permission level above."
     : "The current caller is not the brain's configured Anchor identity. This is a definitive account-relationship fact for the current request, not an unknown or unverified state. Their permission level must not be treated as proof that they are the Anchor, owner, or profile person.";
-  const weekday = now.toLocaleDateString("en-US", {
-    weekday: "long",
-    timeZone: "UTC",
-  });
   // Without it the model dates "Friday" or "next week" from its training.
-  const today = `Today is ${weekday} ${now.toISOString().slice(0, 10)} (UTC). Resolve relative dates ("Friday", "next week") from it.`;
+  // Told only to look forward, it still read "by Friday" on a Saturday as the
+  // day before, so each weekday gets its date rather than the arithmetic.
+  const week = Array.from({ length: 7 }, (_, offset) =>
+    datedWeekday(new Date(now.getTime() + offset * DAY_MS)),
+  );
+  const today = `Today is ${week[0]} (UTC). Resolve relative dates ("Friday", "next week") from it. A bare weekday ("Friday", "by Friday") is its next date on or after today, never a past one: ${week.join(", ")}.`;
   const userContext = `
 ## Current User
 ${permissionContext}

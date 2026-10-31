@@ -40,9 +40,10 @@ export function evaluateCriteria(
   criteria: SuccessCriteria,
   response: ResponseForCriteria,
   toolCalls: ToolCallRecord[],
+  now: Date = new Date(),
 ): CriteriaEvaluationResult[] {
   return [
-    ...evaluateExpectedTools(criteria, toolCalls),
+    ...evaluateExpectedTools(criteria, toolCalls, now),
     ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
     ...evaluateExpectedSources(criteria, response.sources ?? []),
@@ -155,6 +156,7 @@ export function evaluateQualityThresholds(
 function evaluateExpectedTools(
   criteria: SuccessCriteria,
   toolCalls: ToolCallRecord[],
+  now: Date,
 ): CriteriaEvaluationResult[] {
   const results: CriteriaEvaluationResult[] = [];
 
@@ -199,6 +201,17 @@ function evaluateExpectedTools(
           expected.toolName,
           expected.argsAbsent,
           matchingCalls,
+        ),
+      );
+    }
+
+    if (expected.argsNotBeforeToday) {
+      results.push(
+        ...evaluateArgsNotBeforeToday(
+          expected.toolName,
+          expected.argsNotBeforeToday,
+          matchingCalls,
+          now.toISOString().slice(0, 10),
         ),
       );
     }
@@ -500,6 +513,37 @@ function evaluateArgsAbsent(
   }
 
   return results;
+}
+
+function evaluateArgsNotBeforeToday(
+  toolName: string,
+  paths: string[],
+  matchingCalls: ToolCallRecord[],
+  today: string,
+): CriteriaEvaluationResult[] {
+  return paths.flatMap((key) => {
+    const values = matchingCalls.map(
+      (toolCall) => toolCall.args && resolveDottedPath(toolCall.args, key),
+    );
+    // ISO dates compare as strings; anything else is not a date at all.
+    const passed = values.every(
+      (value) =>
+        typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+        value >= today,
+    );
+    return passed
+      ? []
+      : [
+          {
+            criterion: "toolArgsNotBeforeToday",
+            expected: `${toolName}.${key} on or after ${today}`,
+            actual: `${JSON.stringify(values)} (across ${matchingCalls.length} calls)`,
+            message: `${toolName}.${key} is not a date on or after today (${today})`,
+            passed: false,
+          },
+        ];
+  });
 }
 
 function evaluateToolCountRange(
