@@ -81,6 +81,7 @@ import {
 import { buildAssistantActor } from "./assistant-actor";
 import { buildBrainCallOptions } from "./call-options";
 import { buildConfirmedActionResult } from "./confirmed-action";
+import { composeConfirmationReply } from "./confirmation-reply";
 import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
 
@@ -578,7 +579,7 @@ export class TurnProcessor {
 
     const responseText =
       pendingConfirmations.length > 0
-        ? "Confirmation required."
+        ? composeConfirmationReply(result.text)
         : result.text.trim().length > 0
           ? result.text
           : (buildToolResultPromptFallback(toolResults) ??
@@ -885,7 +886,7 @@ export class TurnProcessor {
     return {
       text:
         pendingConfirmations.length > 0
-          ? "Confirmation required."
+          ? composeConfirmationReply(result.text)
           : result.text,
       toolResults,
       ...(cards.length > 0 ? { cards } : {}),
