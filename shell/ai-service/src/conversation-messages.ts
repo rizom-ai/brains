@@ -12,6 +12,7 @@ import {
   type EntityMemoryRef,
 } from "./agent-results";
 import { isRecord } from "@brains/utils/is-record";
+import { z } from "@brains/utils/zod";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -122,6 +123,74 @@ export interface ConversationUploadRef {
     kind: string;
     id: string;
   };
+  /** The entity a confirmed save in this conversation made of the upload. */
+  savedAs?: { entityType: string; entityId: string };
+}
+
+const uploadSourceRefSchema = z.object({ kind: z.string(), id: z.string() });
+
+/** A confirmed system_create whose source was one or several uploads. */
+const savedUploadCardSchema = z.looseObject({
+  kind: z.literal("tool-approval"),
+  toolName: z.literal("system_create"),
+  state: z.literal("output-available"),
+  input: z.looseObject({
+    entityType: z.string(),
+    source: z.union([
+      z.looseObject({
+        kind: z.literal("upload"),
+        upload: uploadSourceRefSchema,
+      }),
+      z.looseObject({
+        kind: z.literal("uploads"),
+        items: z.array(z.looseObject({ upload: uploadSourceRefSchema })),
+      }),
+    ]),
+  }),
+  output: z.looseObject({
+    success: z.literal(true),
+    data: z.looseObject({
+      entityId: z.string().optional(),
+      items: z
+        .array(z.looseObject({ entityType: z.string(), entityId: z.string() }))
+        .optional(),
+    }),
+  }),
+});
+
+type SavedUploads = Map<string, NonNullable<ConversationUploadRef["savedAs"]>>;
+
+/** Every upload a confirmed save in these messages made an entity of. */
+function collectSavedUploads(messages: Message[]): SavedUploads {
+  const saved: SavedUploads = new Map();
+  for (const message of messages) {
+    const cards = parseMessageMetadata(message.metadata)?.["cards"];
+    if (!Array.isArray(cards)) continue;
+    for (const card of cards) {
+      const parsed = savedUploadCardSchema.safeParse(card);
+      if (!parsed.success) continue;
+      const { input, output } = parsed.data;
+      if (input.source.kind === "upload") {
+        const { entityId } = output.data;
+        if (entityId === undefined) continue;
+        saved.set(`${input.source.upload.kind}:${input.source.upload.id}`, {
+          entityType: input.entityType,
+          entityId,
+        });
+        continue;
+      }
+      // A save of several uploads lists its entities in the order of its files.
+      input.source.items.forEach((item, index) => {
+        const entity = output.data.items?.[index];
+        if (!entity) return;
+        saved.set(`${item.upload.kind}:${item.upload.id}`, {
+          entityType: entity.entityType,
+          entityId: entity.entityId,
+        });
+      });
+    }
+  }
+  return saved;
 }
 
 function uploadRefKey(ref: ConversationUploadRef): string {
@@ -199,10 +268,14 @@ export function resolveConversationUploadContinuity(params: {
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
+  const savedUploads = collectSavedUploads(params.historyMessages);
   const refs = selectConversationUploadRefs({
     message: params.message,
     currentAttachments: params.currentAttachments,
     historyMessages: params.historyMessages,
+  }).map((ref) => {
+    const savedAs = savedUploads.get(uploadRefKey(ref));
+    return savedAs ? { ...ref, savedAs } : ref;
   });
 
   const priorResponseRef =
@@ -396,6 +469,11 @@ function formatUploadRefLine(ref: ConversationUploadRef): string {
     `- ${ref.filename}`,
     `upload: { kind: "${ref.source.kind}", id: "${ref.source.id}" }`,
     `mediaType: ${ref.mediaType}`,
+    ...(ref.savedAs
+      ? [
+          `saved as ${ref.savedAs.entityType} "${ref.savedAs.entityId}" holding this upload text verbatim: change it there with system_update edits quoting that text, without system_get first, never as a new ${ref.savedAs.entityType}`,
+        ]
+      : []),
   ].join("; ");
 }
 

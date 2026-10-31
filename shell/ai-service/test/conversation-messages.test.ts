@@ -624,3 +624,128 @@ describe("buildMessageWithAttachments", () => {
     expect(text).not.toContain("Prior assistant response path:");
   });
 });
+
+describe("uploads already saved in the conversation", () => {
+  const upload = {
+    filename: "community-launch-plan.md",
+    mediaType: "text/markdown",
+    source: { kind: "upload", id: "upload-plan" },
+  };
+  const photo = {
+    filename: "harbor.png",
+    mediaType: "image/png",
+    source: { kind: "upload", id: "upload-photo" },
+  };
+  const userMessage: Message = {
+    id: "message-user",
+    conversationId: "conversation-1",
+    role: "user",
+    content: "",
+    metadata: JSON.stringify({
+      attachments: [
+        { kind: "text", ...upload },
+        { kind: "file", ...photo },
+      ],
+    }),
+    timestamp: new Date(0).toISOString(),
+  };
+  function confirmedSave(input: unknown, data: unknown): Message {
+    return {
+      id: "message-saved",
+      conversationId: "conversation-1",
+      role: "assistant",
+      content: "Completed: Saved note.",
+      metadata: JSON.stringify({
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolName: "system_create",
+            summary: "Save?",
+            state: "output-available",
+            input,
+            output: { success: true, data },
+          },
+        ],
+      }),
+      timestamp: new Date(1).toISOString(),
+    };
+  }
+
+  it("names the entity an upload was saved as", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "change the launch day to Friday",
+      currentAttachments: [],
+      historyMessages: [
+        userMessage,
+        confirmedSave(
+          {
+            entityType: "note",
+            title: "Community Launch Plan",
+            source: {
+              kind: "upload",
+              upload: upload.source,
+              transform: "extract-markdown",
+            },
+          },
+          { entityId: "community-launch-plan", status: "generating" },
+        ),
+      ],
+    });
+
+    expect(result.refs).toContainEqual({
+      ...upload,
+      savedAs: { entityType: "note", entityId: "community-launch-plan" },
+    });
+    expect(result.refs).toContainEqual(photo);
+  });
+
+  it("names each entity a save of several uploads created", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "rename the photo",
+      currentAttachments: [],
+      historyMessages: [
+        userMessage,
+        confirmedSave(
+          {
+            entityType: "note",
+            source: {
+              kind: "uploads",
+              items: [
+                { upload: upload.source, transform: "extract-markdown" },
+                { upload: photo.source, transform: "preserve" },
+              ],
+            },
+          },
+          {
+            status: "generating",
+            items: [
+              { entityType: "note", entityId: "community-launch-plan" },
+              { entityType: "image", entityId: "harbor" },
+            ],
+          },
+        ),
+      ],
+    });
+
+    expect(result.refs).toContainEqual({
+      ...photo,
+      savedAs: { entityType: "image", entityId: "harbor" },
+    });
+  });
+
+  it("tells the agent to change a saved upload where it was saved", () => {
+    const content = buildMessageWithAttachments("make it Friday", [], {
+      uploadRefs: [
+        {
+          ...upload,
+          savedAs: { entityType: "note", entityId: "community-launch-plan" },
+        },
+      ],
+    });
+
+    expect(content).toContain(
+      '- community-launch-plan.md; upload: { kind: "upload", id: "upload-plan" }; mediaType: text/markdown; saved as note "community-launch-plan" holding this upload text verbatim: change it there with system_update edits quoting that text, without system_get first, never as a new note',
+    );
+  });
+});

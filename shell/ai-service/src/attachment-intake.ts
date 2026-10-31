@@ -204,6 +204,7 @@ export async function filterLiveUploadRefs(params: {
         filename: attachment.filename,
         mediaType: attachment.mediaType,
         source: ref.source,
+        ...(ref.savedAs ? { savedAs: ref.savedAs } : {}),
       });
     } catch (error) {
       logger.debug("Skipped unavailable prior upload ref", {

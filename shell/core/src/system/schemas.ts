@@ -652,7 +652,7 @@ export const updateOperationInputSchema: UpdateOperationInputSchema =
           .min(1)
           .max(50)
           .describe(
-            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
+            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first; an upload ref marked saved already holds its text, so edit that note without fetching it. Unchanged text is preserved without regeneration.",
           ),
       })
       .strict(),
