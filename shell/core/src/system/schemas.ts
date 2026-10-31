@@ -363,7 +363,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("prompt")
           .describe(
-            "Generate a new non-image durable entity from a broad prompt with no durable source entity. Use this for general topical social/newsletter/blog/deck generation. This branch has no source field; use prompt-from-source only after resolving a specific existing content entity.",
+            "A new non-image entity from a broad prompt; this branch has no source field.",
           ),
         entityType: z
           .string()
@@ -376,7 +376,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
           .string()
           .min(1)
           .describe(
-            "Prompt for creating new generated content, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Do not use for saving/importing existing uploads or prior responses.",
+            "Prompt for creating new generated content, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice.",
           ),
       })
       .strict(),
@@ -385,7 +385,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("prompt-from-source")
           .describe(
-            "Generate a new non-image durable entity from a specific resolved existing content entity. Use when the user asks to generate from/based on a source, including requests like 'create a newsletter based on my latest blog post'. After resolving the source with a tool result, call this operation in the same turn; do not merely say you can generate it.",
+            "A new non-image entity grounded in a resolved existing entity, such as a newsletter from a blog post.",
           ),
         entityType: z
           .string()
@@ -406,18 +406,18 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Resolved source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder.",
+                "Resolved source entity ID from a prior tool result or typed entity ref.",
               ),
           })
           .strict()
           .describe(
-            "Existing durable source entity to ground this generation. Use only resolved entity refs, not uploads, filenames, profile/brain-character context, conversation-only context, unknown sources, or guessed sources.",
+            "The resolved existing entity that grounds this generation.",
           ),
         prompt: z
           .string()
           .min(1)
           .describe(
-            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Do not use for saving/importing existing uploads or prior responses.",
+            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice.",
           ),
       })
       .strict(),
@@ -426,7 +426,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("standalone-image")
           .describe(
-            "Generate a standalone image that is not attached to another entity. Do not use this as a cover image substitute; requested covers require cover-image after the target entity exists.",
+            "An unattached image; never a substitute for a requested cover.",
           ),
         title: z.string().optional().describe("Title for the generated image"),
         prompt: z
@@ -442,7 +442,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("cover-image")
           .describe(
-            "Generate an image and attach it to an existing entity as coverImageId. Use only after the target entity already exists and its real entityId is known; do not use in the same initial turn as generating that target entity.",
+            "An image attached as coverImageId to an existing entity whose real id is known.",
           ),
         target: z
           .object({
@@ -456,7 +456,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Existing target entity ID copied from a prior tool result or typed entity ref; never a placeholder or guessed future id",
+                "Existing target entity ID from a prior tool result or typed entity ref",
               ),
           })
           .strict()
@@ -484,12 +484,12 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Canonical source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder",
+                "Canonical source entity ID from a prior tool result or typed entity ref",
               ),
           })
           .strict()
           .describe(
-            "Existing durable entity whose attachment provider should render the artifact. Use only resolved entity refs, not uploads or conversation-only context.",
+            "The resolved existing entity whose attachment provider renders the artifact.",
           ),
         attachmentType: z
           .string()
@@ -545,7 +545,7 @@ export const createInputSchema: StrictObjectSchema<{
       .record(z.string(), z.unknown())
       .optional()
       .describe(
-        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
+        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }; the section a doc goes in, named exactly as the user names it: { section }; the year a project began: { year }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
       ),
     replace: z.boolean().optional().describe("Create a new copy intentionally"),
     confirmed: z.literal(true).optional().describe("Confirm the creation"),
@@ -565,7 +565,7 @@ export const generateInputSchema: StrictObjectSchema<{
 }> = z
   .object({
     operation: generateOperationInputSchema.describe(
-      "Generation operation selector. Use prompt for broad non-image AI-generated entities with no source, prompt-from-source for generation from a resolved existing entity, standalone-image for unattached images, cover-image for generated covers on existing entities, and attachment for deterministic source-derived artifacts; for regenerate/replace/refresh artifact requests use attachment with replace:true.",
+      "Exactly one generation operation.",
     ),
     confirmed: z.literal(true).optional().describe("Confirm generation"),
     confirmationToken: z

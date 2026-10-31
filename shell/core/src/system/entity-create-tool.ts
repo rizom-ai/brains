@@ -11,7 +11,7 @@ import {
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
@@ -20,6 +20,11 @@ import {
   type ConversationMessageRef,
 } from "./conversation-message-source";
 import type { SystemServices } from "./types";
+import {
+  PendingCreateTexts,
+  pendingCreateKey,
+  retrySourceHint,
+} from "./pending-create-text";
 import {
   assertEntityTypeRegistered,
   buildEntityMutationEventContext,
@@ -114,6 +119,13 @@ function buildCreateCompletionSummary(createInput: CreateInput): string {
   const label = createInput.title ? ` "${createInput.title}"` : "";
   return `Saved ${createInput.entityType}${label}.`;
 }
+
+/** A type's refusal that asks the user something; see `CreateResult`. */
+const questionRefusalSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  question: z.enum(["fields", "slide-breaks"]),
+});
 
 type PreferredCreateSource = CreateToolInput["source"];
 
@@ -336,6 +348,8 @@ async function executeDirectCreate(
 interface PreparedCreate {
   createInput: CreateInput;
   resolvedMessageId: string | undefined;
+  /** The source to confirm when a retry saves text pinned by an earlier question. */
+  pinnedSource?: PreferredCreateSource;
   resolvedEntity?: EntitySourceRef;
   interceptor: ReturnType<
     SystemServices["entityRegistry"]["getCreateInterceptor"]
@@ -617,6 +631,7 @@ async function prepareCreate(
   services: SystemServices,
   input: CreateToolInput,
   toolContext: CreateToolContext,
+  pending: PendingCreateTexts,
 ): Promise<
   | { kind: "error"; result: ToolResponse }
   | { kind: "ok"; prepared: PreparedCreate }
@@ -631,17 +646,47 @@ async function prepareCreate(
     if (unregisteredError) return { kind: "error", result: unregisteredError };
   }
 
-  const source = await resolveCreateSource(services, input, toolContext);
+  const pendingKey = pendingCreateKey(
+    toolContext.conversationId ?? toolContext.channelId,
+    input.entityType,
+  );
+  const resolvedSource = await resolveCreateSource(
+    services,
+    input,
+    toolContext,
+  );
+  const unresolvedRetry =
+    resolvedSource.kind === "error" && pendingKey
+      ? pending.resolveUnresolvable(pendingKey, input.source)
+      : undefined;
+  const source: Guarded<ResolvedCreateSource> = unresolvedRetry
+    ? {
+        kind: "ok",
+        value: {
+          content: unresolvedRetry.content,
+          url: undefined,
+          from: undefined,
+          uploadRef: undefined,
+          transform: undefined,
+          resolvedMessageId: undefined,
+          entitySource: undefined,
+        },
+      }
+    : resolvedSource;
   if (source.kind === "error") return source;
-  const {
-    content,
-    url,
-    from,
-    uploadRef,
-    transform,
-    resolvedMessageId,
-    entitySource,
-  } = source.value;
+  const { url, from, uploadRef, transform, resolvedMessageId, entitySource } =
+    source.value;
+  const retry =
+    unresolvedRetry ??
+    (pendingKey
+      ? pending.resolve(pendingKey, {
+          source: input.source,
+          content: source.value.content,
+          resolvedMessageId,
+        })
+      : { kind: "as-given" as const });
+  const content =
+    retry.kind === "pinned" ? retry.content : source.value.content;
 
   const upload = uploadRef
     ? await resolveUploadSource(
@@ -736,6 +781,7 @@ async function prepareCreate(
     prepared: {
       createInput,
       resolvedMessageId,
+      ...(retry.kind === "pinned" && { pinnedSource: retry.source }),
       ...(entitySource && { resolvedEntity: entitySource.ref }),
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
@@ -751,10 +797,15 @@ async function executePreparedCreate(
   services: SystemServices,
   prepared: PreparedCreate,
   toolContext: CreateToolContext,
+  retry: { pending: PendingCreateTexts; source: PreferredCreateSource },
 ): Promise<ToolResponse> {
   const { interceptor, eventContext, uploadPreserve, replacesFailed } =
     prepared;
   let { createInput } = prepared;
+  const pendingKey = pendingCreateKey(
+    toolContext.conversationId ?? toolContext.channelId,
+    createInput.entityType,
+  );
   const replaceError = await removeFailedTarget(services, replacesFailed);
   if (replaceError) return replaceError;
   if (uploadPreserve) {
@@ -777,8 +828,29 @@ async function executePreparedCreate(
       createInput,
       toolContext,
     );
-    if (outcome.kind === "handled" || outcome.kind === "error") {
-      return outcome.result;
+    if (outcome.kind === "error") return outcome.result;
+    if (outcome.kind === "handled") {
+      const { result } = outcome;
+      if (!pendingKey) return result;
+      if ("success" in result && result.success) {
+        retry.pending.clear(pendingKey);
+        return result;
+      }
+      const question = questionRefusalSchema.safeParse(result);
+      if (!question.success) return result;
+      // Pin the confirmed text, so the retry after the answer saves it
+      // unchanged whatever the model resends.
+      if (createInput.content !== undefined) {
+        retry.pending.pin(pendingKey, {
+          source: retry.source,
+          content: createInput.content,
+          question: question.data.question,
+        });
+      }
+      return {
+        success: false,
+        error: `${question.data.error} After the user answers, call system_create again with source ${JSON.stringify(retrySourceHint(retry.source))}.`,
+      };
     }
     createInput = outcome.createInput;
   }
@@ -791,7 +863,15 @@ async function executePreparedCreate(
     };
   }
 
-  return executeDirectCreate(services, createInput, eventContext);
+  const created = await executeDirectCreate(
+    services,
+    createInput,
+    eventContext,
+  );
+  if (pendingKey && "success" in created && created.success) {
+    retry.pending.clear(pendingKey);
+  }
+  return created;
 }
 
 /** Prepare one file of a several-upload save exactly as a single upload. */
@@ -800,6 +880,7 @@ async function prepareUploadItem(
   input: CreateToolInput,
   item: UploadItemRequest,
   toolContext: CreateToolContext,
+  pending: PendingCreateTexts,
 ): Promise<PreparedUploadResult> {
   const prep = await prepareCreate(
     services,
@@ -817,6 +898,7 @@ async function prepareUploadItem(
       ...(input.replace !== undefined ? { replace: input.replace } : {}),
     },
     toolContext,
+    pending,
   );
   if (prep.kind === "error") return prep;
   const { prepared } = prep;
@@ -829,7 +911,15 @@ async function prepareUploadItem(
       ...(prepared.replacesFailed && {
         replacesFailed: `${prepared.replacesFailed.entityType} "${prepared.replacesFailed.id}"`,
       }),
-      save: () => executePreparedCreate(services, prepared, toolContext),
+      save: () =>
+        executePreparedCreate(services, prepared, toolContext, {
+          pending,
+          source: {
+            kind: "upload",
+            upload: item.upload,
+            transform: item.transform,
+          },
+        }),
     },
   };
 }
@@ -839,10 +929,11 @@ export function createEntityCreateTool(services: SystemServices): Tool {
     label: "create",
     requestNoun: "creation",
   });
+  const pending = new PendingCreateTexts();
 
   return createSystemTool(
     "create",
-    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: user-message for verbatim content already pasted in this conversation (the server extracts the stored text without model copying), text for literal content without a stored message source, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity; uploads keeps several uploaded files in one call. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore: the server selects it from its opening fence, and the fences are content, never boundaries. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment, and then use it even though the file's text also appears in the message; only a pasted uploaded-file transcript with no listed upload ref is saved with source.kind user-message boundaries. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content such as a team note, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Public callers may write only public content, Trusted callers public or shared, and Admin callers all three. If the user only says 'not public' without saying team/shared or private/admin-only, ask which scope they mean. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message; that content is sufficient even when it is a short sentence or fragment after a colon or embedded in the request phrase (for example, 'Save this memo about the launch timeline'), so never ask the user to paste it again. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore: the server selects it from its opening fence, and the fences are content, never boundaries. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment, and then use it even though the file text also appears in the message; only a pasted uploaded-file transcript (for example, User uploaded a file \"name.md\": ...) with no listed upload ref is saved with source.kind user-message boundaries.",
     createInputSchema,
     async (input, toolContext) => {
       if (input.source.kind === "uploads") {
@@ -850,14 +941,18 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           input: { ...input, source: input.source },
           gate: confirmationGate,
           prepare: (item) =>
-            prepareUploadItem(services, input, item, toolContext),
+            prepareUploadItem(services, input, item, toolContext, pending),
         });
       }
-      const prep = await prepareCreate(services, input, toolContext);
+      const prep = await prepareCreate(services, input, toolContext, pending);
       if (prep.kind === "error") return prep.result;
       const { createInput } = prep.prepared;
-      const { resolvedMessageId, resolvedEntity, uploadPreserve } =
-        prep.prepared;
+      const {
+        resolvedMessageId,
+        pinnedSource,
+        resolvedEntity,
+        uploadPreserve,
+      } = prep.prepared;
 
       if (input.confirmed) {
         const gateError = confirmationGate.validateConfirmed(
@@ -881,14 +976,16 @@ export function createEntityCreateTool(services: SystemServices): Tool {
               preview: `${built.preview}\n${replacesFailedLine(prep.prepared.replacesFailed)}`,
             }
           : built;
-        const confirmationSource = freezeConfirmationSource({
-          source: input.source,
-          ...(resolvedMessageId && { resolvedMessageId }),
-          ...(resolvedEntity && { resolvedEntity }),
-          ...(createInput.content !== undefined
-            ? { content: createInput.content }
-            : {}),
-        });
+        const confirmationSource =
+          pinnedSource ??
+          freezeConfirmationSource({
+            source: input.source,
+            ...(resolvedMessageId && { resolvedMessageId }),
+            ...(resolvedEntity && { resolvedEntity }),
+            ...(createInput.content !== undefined
+              ? { content: createInput.content }
+              : {}),
+          });
         const confirmationArgs = confirmationGate.buildArgs(
           (confirmationToken) => ({
             entityType: createInput.entityType,
@@ -912,7 +1009,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           args: confirmationArgs,
         };
       }
-      return executePreparedCreate(services, prep.prepared, toolContext);
+      return executePreparedCreate(services, prep.prepared, toolContext, {
+        pending,
+        source: input.source,
+      });
     },
     { visibility: "trusted", sideEffects: "writes" },
   );

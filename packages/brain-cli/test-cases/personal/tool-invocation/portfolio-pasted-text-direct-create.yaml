@@ -1,0 +1,46 @@
+id: tool-invocation-portfolio-pasted-text-direct-create
+name: Pasted Case Study Becomes a Portfolio Project via Direct Create
+description: Verifies a project write-up pasted as plain markdown is saved as a portfolio project from the user's message, not regenerated, with the year the text states left to the brain.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - portfolio
+  - finalized-content
+  - regression
+  - recipe-professional
+
+turns:
+  - userMessage: |
+      Save this as a portfolio project. Keep my text.
+
+      # River Atlas
+
+      In 2019 we mapped the river by canoe with the town's primary school, one bend a week.
+
+      ## What we learned
+
+      Slow fieldwork made the map the town actually uses.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: project
+        source.kind: user-message
+      argsAbsent:
+        - prompt
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I generated"
+    - "which year"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 31000
