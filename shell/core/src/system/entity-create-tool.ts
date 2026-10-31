@@ -35,7 +35,11 @@ import {
   type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
-import { isTextUploadMediaType, uploadTitle } from "@brains/plugins";
+import {
+  isTextUploadMediaType,
+  repeatsUploadFileName,
+  uploadTitle,
+} from "@brains/plugins";
 import {
   createFromUploads,
   type PreparedUploadResult,
@@ -681,8 +685,13 @@ async function prepareCreate(
       ? input.fields
       : undefined;
 
+  // A title that only repeats an upload's file name is the agent's echo of
+  // the file, not one the user stated: the upload is named by its heading.
+  const statedTitle = normalizeOptionalString(input.title);
   const title =
-    normalizeOptionalString(input.title) ??
+    (upload && repeatsUploadFileName(statedTitle, upload.value.filename)
+      ? undefined
+      : statedTitle) ??
     entitySource?.title ??
     upload?.value.title;
   const replace = input.replace === true;

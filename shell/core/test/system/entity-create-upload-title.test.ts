@@ -80,6 +80,21 @@ describe("system_create upload note titles", () => {
     expect(noteImports[0]?.title).toBe("Planning Notes");
   });
 
+  it.each(["2026-10-meeting.md", "2026-10-meeting", " 2026-10-meeting.md "])(
+    "reads a title that only repeats the file name (%p) as no title",
+    async (fileNameTitle) => {
+      const { tool, noteImports } = uploadFixture([meetingUpload]);
+
+      const pending = await tool.handler(
+        importRequest(meetingUpload, fileNameTitle),
+        uploadContext(),
+      );
+      await tool.handler(expectConfirmationArgs(pending), uploadContext());
+
+      expect(noteImports[0]?.title).toBe("Quarterly Planning Sync");
+    },
+  );
+
   it("falls back to the file name for an upload without a # heading", async () => {
     const { tool, noteImports } = uploadFixture([pdfUpload]);
 

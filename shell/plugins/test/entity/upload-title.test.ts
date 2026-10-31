@@ -12,6 +12,22 @@ describe("uploadTitle", () => {
     ).toBe("My Own Title");
   });
 
+  it("reads a given title that only repeats the file name as no title", () => {
+    expect(
+      uploadTitle({
+        title: "notes.md",
+        filename: "notes.md",
+        markdown: "# Heading Title",
+      }),
+    ).toBe("Heading Title");
+    expect(uploadTitle({ title: "photo", filename: "photo.png" })).toBe(
+      "photo",
+    );
+    expect(uploadTitle({ title: "Photo", filename: "photo.png" })).toBe(
+      "Photo",
+    );
+  });
+
   it("names an upload by its first # heading, past any frontmatter", () => {
     expect(
       uploadTitle({
