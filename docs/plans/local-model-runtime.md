@@ -73,9 +73,11 @@ boot → migrate: stored identity ≠ configured identity
      → backfillMissing: every entity missing → enqueue embedding jobs
      → readiness gate holds chat until jobs drain
          ├─ provider reachable   → jobs succeed → index ready → chat opens
-         └─ provider unreachable → jobs fail via existing failure path
-                                 → readiness reports degraded
-                                 → provider returns → retried jobs succeed
+         └─ provider unreachable → job retries (1 s, 2 s, 4 s) hold chat
+                                 ├─ provider returns in time → retried jobs succeed
+                                 └─ retries spent → jobs fail for good
+                                                  → readiness reports degraded, chat opens
+                                                  → next start retries failed embeddings
 ```
 
 Acceptance: `bun start:personal` switched to `openai:text-embedding-3-large` rebuilds the index, and search returns the expected notes for known queries; an integration test covers both branches.

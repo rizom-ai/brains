@@ -201,6 +201,37 @@ describe("EntityTypeConfig embeddable flag", () => {
     );
   });
 
+  test("backfillMissingEmbeddings retries an embedding that failed for good", async () => {
+    const created = await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Outage Note",
+          content: "Embedding failed while the provider was down",
+          tags: [],
+        },
+        "outage-note",
+      ),
+      options: { maxRetries: 0 },
+    });
+    await ctx.jobQueueService.fail(
+      created.jobId,
+      new Error("embedding provider unreachable"),
+    );
+
+    const result = await ctx.entityService.backfillMissingEmbeddings();
+
+    expect(result.queued).toBe(1);
+    expect(ctx.jobQueueService.enqueue).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        data: expect.objectContaining({
+          id: "outage-note",
+          operation: "update",
+        }),
+      }),
+    );
+  });
+
   test("backfillMissingEmbeddings queues stale embeddings and skips current ones", async () => {
     await ctx.entityService.createEntity({
       entity: createNoteInput(

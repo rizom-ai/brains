@@ -156,4 +156,34 @@ describe("switching the embedding model", () => {
       .awaitIndexReady({ timeoutMs: 1_000 });
     expect(status).toMatchObject({ ready: true, degraded: false });
   }, 20_000);
+
+  it("opens degraded after an outage outlasts the retries, and retries on the next start", async () => {
+    const indexed = await indexWithOriginalModel();
+    const next = embeddingModel("test:next", 8);
+    next.down = true;
+
+    const outage = await boot(next);
+    await waitUntil(
+      () => outage.getEntityService().isIndexReady(),
+      "chat to open once the retries are spent",
+      { timeoutMs: 20_000, intervalMs: 100 },
+    );
+    expect(
+      await outage.getEntityService().awaitIndexReady({ timeoutMs: 1_000 }),
+    ).toMatchObject({ ready: true, degraded: true, failedEmbeddings: indexed });
+    await outage.shutdown();
+    shell = undefined;
+
+    next.down = false;
+    const restarted = await boot(next);
+    await waitUntil(
+      async () =>
+        (await restarted.getEntityService().countEmbeddings()) === indexed,
+      "the restart to re-embed what failed",
+      { timeoutMs: 10_000 },
+    );
+    expect(
+      await restarted.getEntityService().awaitIndexReady({ timeoutMs: 5_000 }),
+    ).toMatchObject({ ready: true, degraded: false });
+  }, 45_000);
 });
