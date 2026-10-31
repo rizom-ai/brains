@@ -32,6 +32,11 @@ import {
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 import { isTextUploadMediaType, uploadTitle } from "@brains/plugins";
+import {
+  createFromUploads,
+  type PreparedUploadResult,
+  type UploadItemRequest,
+} from "./entity-create-uploads";
 
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
@@ -134,6 +139,8 @@ function normalizeCreateSource(
       return {
         entityRef: { entityType: source.entityType, entityId: source.entityId },
       };
+    case "uploads":
+      throw new Error("Several uploads are prepared one upload at a time");
   }
 }
 
@@ -320,6 +327,8 @@ interface PreparedCreate {
     SystemServices["entityRegistry"]["getCreateInterceptor"]
   >;
   eventContext: CreateEventContext;
+  /** The uploaded file's name, when the source is an upload. */
+  uploadFilename?: string;
   uploadPreserve?: {
     upload: { kind: "upload"; id: string };
     filename: string;
@@ -428,6 +437,7 @@ interface UploadSourceResolution {
   entityType: string;
   /** What the upload is saved as when the user gives no title. */
   title: string;
+  filename: string;
   uploadPreserve: PreparedCreate["uploadPreserve"];
 }
 
@@ -487,7 +497,12 @@ async function resolveUploadSource(
   if (input.transform !== "preserve") {
     return {
       kind: "ok",
-      value: { entityType: input.entityType, title, uploadPreserve: undefined },
+      value: {
+        entityType: input.entityType,
+        title,
+        filename: uploadRecord.filename,
+        uploadPreserve: undefined,
+      },
     };
   }
 
@@ -505,6 +520,7 @@ async function resolveUploadSource(
     value: {
       entityType: registration.entityType,
       title,
+      filename: uploadRecord.filename,
       uploadPreserve: {
         upload: input.uploadRef,
         filename: uploadRecord.filename,
@@ -700,7 +716,90 @@ async function prepareCreate(
       ...(entitySource && { resolvedEntity: entitySource.ref }),
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
+      ...(upload && { uploadFilename: upload.value.filename }),
       ...(uploadPreserve && { uploadPreserve }),
+    },
+  };
+}
+
+/** Run a prepared create once it is confirmed. */
+async function executePreparedCreate(
+  services: SystemServices,
+  prepared: PreparedCreate,
+  toolContext: CreateToolContext,
+): Promise<ToolResponse> {
+  const { interceptor, eventContext, uploadPreserve } = prepared;
+  let { createInput } = prepared;
+  if (uploadPreserve) {
+    return executeUploadPreserve(
+      {
+        upload: uploadPreserve.upload,
+        ...(createInput.title && { title: createInput.title }),
+        ...(createInput.visibility !== undefined
+          ? { visibility: createInput.visibility }
+          : {}),
+        handler: uploadPreserve.handler,
+      },
+      toolContext,
+    );
+  }
+  if (interceptor) {
+    const outcome = await runCreateInterceptor(
+      services,
+      interceptor,
+      createInput,
+      toolContext,
+    );
+    if (outcome.kind === "handled" || outcome.kind === "error") {
+      return outcome.result;
+    }
+    createInput = outcome.createInput;
+  }
+
+  if (!createInput.content) {
+    return {
+      success: false,
+      error:
+        'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
+    };
+  }
+
+  return executeDirectCreate(services, createInput, eventContext);
+}
+
+/** Prepare one file of a several-upload save exactly as a single upload. */
+async function prepareUploadItem(
+  services: SystemServices,
+  input: CreateToolInput,
+  item: UploadItemRequest,
+  toolContext: CreateToolContext,
+): Promise<PreparedUploadResult> {
+  const prep = await prepareCreate(
+    services,
+    {
+      entityType: input.entityType,
+      ...(item.title !== undefined ? { title: item.title } : {}),
+      ...(input.visibility !== undefined
+        ? { visibility: input.visibility }
+        : {}),
+      source: {
+        kind: "upload",
+        upload: item.upload,
+        transform: item.transform,
+      },
+      ...(input.replace !== undefined ? { replace: input.replace } : {}),
+    },
+    toolContext,
+  );
+  if (prep.kind === "error") return prep;
+  const { prepared } = prep;
+  return {
+    kind: "ok",
+    value: {
+      filename: prepared.uploadFilename ?? item.upload.id,
+      entityType: prepared.createInput.entityType,
+      title: prepared.createInput.title ?? prepared.uploadFilename ?? "",
+      save: () => executePreparedCreate(services, prepared, toolContext),
     },
   };
 }
@@ -713,19 +812,22 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: user-message for verbatim content already pasted in this conversation (the server extracts the stored text without model copying), text for literal content without a stored message source, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore: the server selects it from its opening fence, and the fences are content, never boundaries. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind user-message with boundaries selecting that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: user-message for verbatim content already pasted in this conversation (the server extracts the stored text without model copying), text for literal content without a stored message source, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity; uploads keeps several uploaded files in one call. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore: the server selects it from its opening fence, and the fences are content, never boundaries. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind user-message with boundaries selecting that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
+      if (input.source.kind === "uploads") {
+        return createFromUploads({
+          input: { ...input, source: input.source },
+          gate: confirmationGate,
+          prepare: (item) =>
+            prepareUploadItem(services, input, item, toolContext),
+        });
+      }
       const prep = await prepareCreate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
-      let { createInput } = prep.prepared;
-      const {
-        resolvedMessageId,
-        resolvedEntity,
-        interceptor,
-        eventContext,
-        uploadPreserve,
-      } = prep.prepared;
+      const { createInput } = prep.prepared;
+      const { resolvedMessageId, resolvedEntity, uploadPreserve } =
+        prep.prepared;
 
       if (input.confirmed) {
         const gateError = confirmationGate.validateConfirmed(
@@ -773,41 +875,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           args: confirmationArgs,
         };
       }
-      if (uploadPreserve) {
-        return executeUploadPreserve(
-          {
-            upload: uploadPreserve.upload,
-            ...(createInput.title && { title: createInput.title }),
-            ...(createInput.visibility !== undefined
-              ? { visibility: createInput.visibility }
-              : {}),
-            handler: uploadPreserve.handler,
-          },
-          toolContext,
-        );
-      }
-      if (interceptor) {
-        const outcome = await runCreateInterceptor(
-          services,
-          interceptor,
-          createInput,
-          toolContext,
-        );
-        if (outcome.kind === "handled" || outcome.kind === "error") {
-          return outcome.result;
-        }
-        createInput = outcome.createInput;
-      }
-
-      if (!createInput.content) {
-        return {
-          success: false,
-          error:
-            'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
-        };
-      }
-
-      return executeDirectCreate(services, createInput, eventContext);
+      return executePreparedCreate(services, prep.prepared, toolContext);
     },
     { visibility: "trusted", sideEffects: "writes" },
   );

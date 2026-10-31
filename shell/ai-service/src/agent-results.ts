@@ -622,6 +622,24 @@ export function extractToolResults(
   };
 }
 
+/** A save of several files, one entry per saved entity. */
+const savedItemsDataSchema = z.object({
+  items: z.array(
+    z.looseObject({
+      entityId: z.string().min(1),
+      entityType: z.string().min(1),
+      title: z.string().optional(),
+      status: z.string().optional(),
+    }),
+  ),
+});
+
+/** The entities a save of several files created, each as its own tool data. */
+export function savedItems(data: unknown): Array<Record<string, unknown>> {
+  const parsed = savedItemsDataSchema.safeParse(data);
+  return parsed.success ? parsed.data.items : [];
+}
+
 const entityRefDataSchema = z.object({
   entityId: z.string().min(1).optional(),
   updated: z.string().min(1).optional(),
@@ -733,6 +751,23 @@ export function buildEntityMemoryRefs(
   const seen = new Set<string>();
   const refs: EntityMemoryRef[] = [];
   for (const tr of toolResults) {
+    const items = savedItemsDataSchema.safeParse(tr.data);
+    if (items.success) {
+      for (const item of items.data.items) {
+        if (seen.has(item.entityId)) continue;
+        seen.add(item.entityId);
+        refs.push({
+          entityType: item.entityType,
+          entityId: item.entityId,
+          operation: "created",
+          ...definedFields({
+            title: nonEmpty(item.title),
+            status: nonEmpty(item.status),
+          }),
+        });
+      }
+      continue;
+    }
     const data = entityRefDataSchema.safeParse(tr.data);
     const entityId = data.success
       ? (data.data.entityId ?? data.data.updated ?? data.data.deleted)
