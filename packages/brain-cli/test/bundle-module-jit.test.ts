@@ -37,4 +37,6 @@ it("loads brain.js without JIT-compiling its module body", async () => {
       (line) => line.includes("LLIntModule") && line.includes("brain.js"),
     );
   expect(moduleCompiles).toEqual([]);
-});
+  // A fresh process loads the whole bundle with concurrent JIT off: under a
+  // full parallel test run it can take longer than the default 5 s.
+}, 30_000);
