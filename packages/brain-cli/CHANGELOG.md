@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- [#784](https://github.com/rizom-ai/brains/pull/784) [`ab6a42e`](https://github.com/rizom-ai/brains/commit/ab6a42e6f19b29ec65f7094f290748c4516b623b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A changed anchor profile name, email or website is stored as written. Before, saving the profile wrote the previous name back over the new one in the stored profile, so the agent card, the Studio header and the site kept the old name while the brain-data file showed the new one.
+
 ## 0.2.0-alpha.610
 
 ### Patch Changes
