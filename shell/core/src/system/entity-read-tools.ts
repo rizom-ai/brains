@@ -1,4 +1,4 @@
-import type { Tool } from "@brains/mcp-service";
+import type { Tool, ToolResult } from "@brains/mcp-service";
 import type { SearchResult } from "@brains/entity-service";
 import { createTool } from "@brains/mcp-service";
 import {
@@ -20,7 +20,8 @@ const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
  * excerpt, so it cannot be taken for the whole text.
  */
 function searchHit(
-  hit: SearchResult,
+  hit: Pick<SearchResult, "entity"> &
+    Partial<Pick<SearchResult, "score" | "excerpt">>,
   query: string,
   registry: SystemServices["entityRegistry"],
 ): Record<string, unknown> {
@@ -50,6 +51,13 @@ interface BelowThreshold {
   weakerMatches: number;
   bestScore: number;
   hint: string;
+}
+
+/** What system_search answers with. */
+interface SearchData {
+  results: Record<string, unknown>[];
+  belowThreshold?: BelowThreshold;
+  notSearchable?: { entityType: string; hint: string };
 }
 
 /**
@@ -82,11 +90,41 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "search",
       "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content; a long entity's result instead has excerpted true and an excerpt of the sections that best match the query, and system_get reads it whole when those sections do not answer. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
-      async (input, context) => {
+      async (input, context): Promise<ToolResult<SearchData>> => {
         assertGuestReader(context);
         const visibilityScope = permissionToVisibilityScope(
           context.userPermissionLevel,
         );
+        // A type without embeddings never matches a query: its entries,
+        // unranked, answer in this call instead of an empty result the
+        // agent would search again, then list and read.
+        if (
+          input.scope.kind === "type" &&
+          services.entityRegistry.getEntityTypeConfig(input.scope.entityType)
+            .embeddable === false
+        ) {
+          const { entityType } = input.scope;
+          const entries = await entityService.listEntities({
+            entityType,
+            options: {
+              limit: input.limit ?? services.searchLimit,
+              filter: { visibilityScope },
+              ...publishedOnlyFor(visibilityScope),
+            },
+          });
+          return {
+            success: true,
+            data: {
+              results: entries.map((entity) =>
+                searchHit({ entity }, input.query, services.entityRegistry),
+              ),
+              notSearchable: {
+                entityType,
+                hint: `${entityType} is not in the search index, so the results are its entries, unranked.`,
+              },
+            },
+          };
+        }
         const minScore = input.minScore ?? DEFAULT_SYSTEM_SEARCH_MIN_SCORE;
         // Ranked by score before the limit applies, so filtering the top
         // candidates by minScore equals a thresholded search, and the
