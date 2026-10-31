@@ -51,6 +51,8 @@ import {
   projectViewSchema,
 } from "./templates/project-view";
 import { projectGenerationTemplate } from "./templates/generation-template";
+import { projectFromTextTemplate } from "./templates/from-text-template";
+import { createProjectFromText } from "./lib/create-from-text";
 import {
   buildProjectGenerationPrompt,
   generatedProjectContentSchema,
@@ -137,7 +139,7 @@ export class PortfolioPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     if (!input.prompt || input.content) {
-      return { kind: "continue", input };
+      return createProjectFromText(input, context);
     }
 
     const year = extractProjectYear(input.title, input.prompt);
@@ -213,6 +215,7 @@ export class PortfolioPlugin extends EntityPlugin<
         },
       }),
       generation: projectGenerationTemplate,
+      "from-text": projectFromTextTemplate,
       "og-image": projectOgImageTemplate,
       "project-printable": projectPrintableTemplate,
     };

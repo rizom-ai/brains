@@ -9,9 +9,9 @@ import {
 } from "@brains/test-utils";
 import {
   DeckGenerationJobHandler,
-  generatedDeckDescriptionSchema,
   generatedDeckSchema,
 } from "../src/handlers/deckGenerationJobHandler";
+import { generatedDeckDescriptionSchema } from "../src/lib/describe-deck";
 
 describe("DeckGenerationJobHandler", () => {
   let handler: DeckGenerationJobHandler;

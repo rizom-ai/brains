@@ -55,6 +55,7 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "confirmed",
   "confirmationToken",
   "contentHash",
+  "expiresAt",
 ]);
 
 const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
@@ -136,10 +137,13 @@ function toSDKInputSchema(
     () => {
       // Zod's declared keyword types span drafts. The selected renderer
       // produces the SDK's draft-7 contract; preserve the generated object.
-      const draft7: Record<string, unknown> = z.toJSONSchema(schema, {
-        target: "draft-7",
-        io: "input",
-      });
+      // The `$schema` URI is dropped: it is resent on every agent step and
+      // tells the model nothing.
+      const { $schema: _draftUri, ...draft7 }: Record<string, unknown> =
+        z.toJSONSchema(schema, {
+          target: "draft-7",
+          io: "input",
+        });
       return draft7;
     },
     {

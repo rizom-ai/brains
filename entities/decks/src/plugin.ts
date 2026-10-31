@@ -1,4 +1,7 @@
 import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
   Plugin,
   EntityPluginContext,
   EntityTypeConfig,
@@ -39,6 +42,7 @@ import {
 } from "./attachments/og-image-template";
 import { createDeckOgImageProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
+import { createDeckFromText } from "./lib/create-from-text";
 import packageJson from "../package.json";
 
 const generateDeckEvalInputSchema: z.ZodObject<{
@@ -108,6 +112,14 @@ export class DecksPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { weight: 1.5, projectionSourceRole: "primary" };
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    return createDeckFromText(input, context);
   }
 
   protected override async onRegister(

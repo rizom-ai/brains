@@ -20,92 +20,75 @@ import { z } from "@brains/utils/zod";
 import * as ai from "ai";
 import type { LanguageModelUsage } from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";
+import * as openaiSdk from "@ai-sdk/openai";
 
 // Valid 1x1 PNG image as base64
 const VALID_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const DEFAULT_TEXT_MODEL = "claude-haiku-4-5";
 
-// Mock the ai SDK modules
-void mock.module("ai", () => ({
-  generateText: mock(() =>
-    Promise.resolve({
-      text: "Generated text response",
-      usage: {
-        inputTokens: 10,
-        outputTokens: 20,
-        totalTokens: 30,
-      },
-    }),
-  ),
-  generateObject: mock(() =>
-    Promise.resolve({
-      object: { result: "structured data" },
-      usage: {
-        inputTokens: 15,
-        outputTokens: 25,
-        totalTokens: 40,
-      },
-    }),
-  ),
-  generateImage: mock(() =>
-    Promise.resolve({
-      image: { base64: VALID_PNG_BASE64 },
-    }),
-  ),
-}));
-
-void mock.module("@ai-sdk/anthropic", () => ({
-  anthropic: mock(() => "mock-model"),
-  createAnthropic: mock(() => mock(() => "mock-model-with-key")),
-}));
-
-const mockOpenAIModel = mock(() => "mock-openai-model");
-const mockOpenAIImage = mock(() => "mock-openai-image-model");
-const mockCreateOpenAI = mock((_options?: { apiKey?: string }) =>
-  Object.assign(mockOpenAIModel, { image: mockOpenAIImage }),
-);
-void mock.module("@ai-sdk/openai", () => ({
-  createOpenAI: mockCreateOpenAI,
-}));
-
-const mockGoogleModel = mock(() => "mock-google-model");
-const mockGoogleImage = mock(() => "mock-google-image-model");
-void mock.module("@ai-sdk/google", () => ({
-  createGoogleGenerativeAI: mock(() =>
-    Object.assign(mockGoogleModel, { image: mockGoogleImage }),
-  ),
-}));
+function usage(inputTokens: number, outputTokens: number): LanguageModelUsage {
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens: inputTokens + outputTokens,
+    inputTokenDetails: {
+      noCacheTokens: inputTokens,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+    },
+    outputTokenDetails: { textTokens: outputTokens, reasoningTokens: 0 },
+  };
+}
 
 /**
- * A generateObject result carrying the two fields these tests assert on.
+ * An SDK call result carrying only the fields these tests assert on.
  *
- * GenerateObjectResult also declares reasoning, finishReason, warnings,
- * request, response, providerMetadata and toJsonResponse. None of that is
- * what the service under test reads, and writing it out at both call sites
- * would bury the fields that matter.
+ * The AI SDK results also declare reasoning, finishReason, warnings, request,
+ * response, providerMetadata and more. None of that is what the service under
+ * test reads, and writing it out at every call site would bury the fields
+ * that matter.
  *
- * The widening lives here so it is named once, and the parameters stay
- * typed: a drift in the object or the usage shape still fails to compile,
+ * The widening lives here so it is named once, and the fields stay typed: a
+ * drift in the text, object, image or usage shape still fails to compile,
  * which is how the missing per-modality token details were found.
  */
+function sdkResult<F extends (...args: never[]) => PromiseLike<unknown>>(
+  fields: Partial<Awaited<ReturnType<F>>>,
+): Awaited<ReturnType<F>> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
+  return fields as Awaited<ReturnType<F>>;
+}
+
 function objectResult<T>(
   object: T,
-  usage: LanguageModelUsage,
+  objectUsage: LanguageModelUsage,
 ): Awaited<ReturnType<typeof ai.generateObject>> {
-  // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
-  return { object, usage } as unknown as Awaited<
-    ReturnType<typeof ai.generateObject>
-  >;
+  return sdkResult<typeof ai.generateObject>({ object, usage: objectUsage });
+}
+
+/** The real provider model the service hands to the SDK call. */
+function providerModel(provider: string, modelId: string): unknown {
+  return expect.objectContaining({
+    provider: expect.stringContaining(provider),
+    modelId,
+  });
 }
 
 describe("AIService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
-  // Derived from spyOn rather than declared loose and asserted into: the SDK
-  // members are generic, and spyOn's own return type already accounts for that.
+  // The SDK calls are spied on the real module namespace and restored after
+  // each test. mock.module would replace the "ai" module for every later test
+  // file in the same process, and bun cannot undo it.
   let generateTextSpy: ReturnType<typeof spyOn<typeof ai, "generateText">>;
   let generateObjectSpy: ReturnType<typeof spyOn<typeof ai, "generateObject">>;
   let generateImageSpy: ReturnType<typeof spyOn<typeof ai, "generateImage">>;
+  let createAnthropicSpy: ReturnType<
+    typeof spyOn<typeof anthropicSdk, "createAnthropic">
+  >;
+  let createOpenAISpy: ReturnType<
+    typeof spyOn<typeof openaiSdk, "createOpenAI">
+  >;
 
   it("reports auxiliary generation through the host meter and scopes provider retries and cancellation", async () => {
     const meter = GenerationUsageMeter.createFresh();
@@ -188,23 +171,32 @@ describe("AIService", () => {
   beforeEach(() => {
     logger = createSilentLogger();
 
-    // Set up spies
-    generateTextSpy = spyOn(ai, "generateText");
-    generateObjectSpy = spyOn(ai, "generateObject");
-    generateImageSpy = spyOn(ai, "generateImage");
-
-    // Reset mocks
-    generateTextSpy.mockClear();
-    generateObjectSpy.mockClear();
-    generateImageSpy.mockClear();
-    mockOpenAIModel.mockClear();
-    mockOpenAIImage.mockClear();
-    mockCreateOpenAI.mockClear();
-    mockGoogleModel.mockClear();
-    mockGoogleImage.mockClear();
+    generateTextSpy = spyOn(ai, "generateText").mockResolvedValue(
+      sdkResult<typeof ai.generateText>({
+        text: "Generated text response",
+        usage: usage(10, 20),
+      }),
+    );
+    generateObjectSpy = spyOn(ai, "generateObject").mockResolvedValue(
+      objectResult({ result: "structured data" }, usage(15, 25)),
+    );
+    generateImageSpy = spyOn(ai, "generateImage").mockResolvedValue(
+      sdkResult<typeof ai.generateImage>({
+        image: new ai.DefaultGeneratedFile({
+          data: VALID_PNG_BASE64,
+          mediaType: "image/png",
+        }),
+      }),
+    );
+    // Provider factories run for real: they only build model handles, and the
+    // spies record which key each one was built with.
+    createAnthropicSpy = spyOn(anthropicSdk, "createAnthropic");
+    createOpenAISpy = spyOn(openaiSdk, "createOpenAI");
   });
 
-  afterEach(() => {});
+  afterEach(() => {
+    mock.restore();
+  });
 
   describe("Configuration", () => {
     it("should not invent a default text model", () => {
@@ -262,9 +254,10 @@ describe("AIService", () => {
 
       await service.generateText("System", "User");
 
-      expect(mockOpenAIModel).toHaveBeenCalledWith("gpt-4o-mini");
       expect(generateTextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ model: "mock-openai-model" }),
+        expect.objectContaining({
+          model: providerModel("openai", "gpt-4o-mini"),
+        }),
       );
     });
   });
@@ -288,8 +281,8 @@ describe("AIService", () => {
       });
 
       // Verify the mock was called with correct parameters
-      expect(ai.generateText).toHaveBeenCalledWith({
-        model: "mock-model",
+      expect(generateTextSpy).toHaveBeenCalledWith({
+        model: providerModel("anthropic", DEFAULT_TEXT_MODEL),
         system: systemPrompt,
         prompt: userPrompt,
         temperature: 0.7,
@@ -364,7 +357,7 @@ describe("AIService", () => {
 
       await service.generateText("System", "User");
 
-      expect(anthropicSdk.createAnthropic).toHaveBeenCalledWith({
+      expect(createAnthropicSpy).toHaveBeenCalledWith({
         apiKey: "test-key",
       });
     });
@@ -395,7 +388,7 @@ describe("AIService", () => {
 
       await service.generateText("System", "User");
 
-      expect(ai.generateText).toHaveBeenCalledWith(
+      expect(generateTextSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           temperature: 0.3,
           maxTokens: 500,
@@ -427,9 +420,10 @@ describe("AIService", () => {
 
       await service.generateText("System", "User");
 
-      expect(mockOpenAIModel).toHaveBeenCalledWith("gpt-4o-mini");
       expect(generateTextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ model: "mock-openai-model" }),
+        expect.objectContaining({
+          model: providerModel("openai", "gpt-4o-mini"),
+        }),
       );
     });
 
@@ -576,8 +570,8 @@ describe("AIService", () => {
       });
 
       // Verify the mock was called with correct parameters
-      expect(ai.generateObject).toHaveBeenCalledWith({
-        model: "mock-model",
+      expect(generateObjectSpy).toHaveBeenCalledWith({
+        model: providerModel("anthropic", DEFAULT_TEXT_MODEL),
         system: systemPrompt,
         prompt: userPrompt,
         schema: testSchema,
@@ -673,7 +667,7 @@ describe("AIService", () => {
 
       await service.generateObject("System", "User", testSchema);
 
-      expect(ai.generateObject).toHaveBeenCalledWith(
+      expect(generateObjectSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           temperature: 0.2,
           maxTokens: 1500,
@@ -729,7 +723,7 @@ describe("AIService", () => {
       const result = await service.generateText("", "");
 
       expect(result.text).toBe("Generated text response");
-      expect(ai.generateText).toHaveBeenCalledWith(
+      expect(generateTextSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           system: "",
           prompt: "",
@@ -867,8 +861,10 @@ describe("AIService", () => {
         const result = await service.generateImage("A sunset");
 
         expect(result.base64).toBe(VALID_PNG_BASE64);
-        expect(mockGoogleImage).toHaveBeenCalledWith(
-          "gemini-3-pro-image-preview",
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: providerModel("google", "gemini-3-pro-image-preview"),
+          }),
         );
       });
 
@@ -913,7 +909,11 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockGoogleImage).toHaveBeenCalled();
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: providerModel("google", "gemini-3-pro-image-preview"),
+          }),
+        );
       });
 
       it("should auto-detect OpenAI when only apiKey is set", async () => {
@@ -921,7 +921,11 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: providerModel("openai", "gpt-image-1.5"),
+          }),
+        );
       });
 
       it("should use Google when imageModel is gemini", async () => {
@@ -932,7 +936,11 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockGoogleImage).toHaveBeenCalled();
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: providerModel("google", "gemini-3-pro-image-preview"),
+          }),
+        );
       });
 
       it("uses the image key over the text key when both are set", async () => {
@@ -946,8 +954,12 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({ apiKey: "sk-image" });
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: providerModel("openai", "gpt-image-1.5"),
+          }),
+        );
+        expect(createOpenAISpy).toHaveBeenCalledWith({ apiKey: "sk-image" });
       });
 
       it("should pass imageModel to Google provider", async () => {
@@ -961,8 +973,10 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockGoogleImage).toHaveBeenCalledWith(
-          "gemini-3-pro-image-preview",
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: providerModel("google", "gemini-3-pro-image-preview"),
+          }),
         );
       });
     });

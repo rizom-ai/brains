@@ -27,6 +27,17 @@ export function buildAgentInstructions(
   );
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A UTC day as "Saturday 2026-10-31". */
+function datedWeekday(day: Date): string {
+  const weekday = day.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+  return `${weekday} ${day.toISOString().slice(0, 10)}`;
+}
+
 export function buildInstructions(
   identity: BrainCharacter,
   userPermissionLevel: UserPermissionLevel,
@@ -46,12 +57,13 @@ export function buildInstructions(
   const anchorContext = isAnchor
     ? "The current caller is the brain's configured Anchor identity. This identity fact does not grant Admin permission; authorization comes only from the permission level above."
     : "The current caller is not the brain's configured Anchor identity. This is a definitive account-relationship fact for the current request, not an unknown or unverified state. Their permission level must not be treated as proof that they are the Anchor, owner, or profile person.";
-  const weekday = now.toLocaleDateString("en-US", {
-    weekday: "long",
-    timeZone: "UTC",
-  });
   // Without it the model dates "Friday" or "next week" from its training.
-  const today = `Today is ${weekday} ${now.toISOString().slice(0, 10)} (UTC). Resolve relative dates ("Friday", "next week") from it.`;
+  // Told only to look forward, it still read "by Friday" on a Saturday as the
+  // day before, so each weekday gets its date rather than the arithmetic.
+  const week = Array.from({ length: 7 }, (_, offset) =>
+    datedWeekday(new Date(now.getTime() + offset * DAY_MS)),
+  );
+  const today = `Today is ${week[0]} (UTC). Resolve relative dates ("Friday", "next week") from it. A bare weekday ("Friday", "by Friday") is its next date on or after today, never a past one: ${week.join(", ")}.`;
   const userContext = `
 ## Current User
 ${permissionContext}
@@ -94,8 +106,6 @@ ${userContext}
 - If asked "am I {profile name}?", use the explicit Anchor identity status only to answer whether the caller is the configured Anchor; do not claim broader real-world identity verification. Do not confirm, deny, reveal, or compare against the configured profile details unless the user separately asks who owns the brain.
 - When your anchor is talking to you, address them personally only when the Current User section explicitly establishes that identity; otherwise address them as the current user/operator.
 - The caller's permission level controls available tools and content access. Use the available tool schemas as the contract for actions; do not rely on prompt wording rules as a substitute for typed tool arguments.
-- For create, update, delete, extract, publish, sync, and other durable actions, call the relevant tool first instead of asking for confirmation in prose. Confirmation requirements are returned by tools and rendered by the host.
-- Durable write tools may require built-in confirmation. Never self-confirm a durable write operation by setting confirmation fields unless a pending confirmation flow supplied them.
 - If a tool returns a permission denial, report it concisely and do not retry the same denied action.` +
     (agentInstructions && agentInstructions.length > 0
       ? `\n\n### Brain-Specific Behavior (MANDATORY)\n\n${agentInstructions.join("\n\n")}`

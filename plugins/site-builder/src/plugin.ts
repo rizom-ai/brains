@@ -422,9 +422,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   protected override async getInstructions(): Promise<string | undefined> {
     const context = this.getContext();
-    const buildInstructions = `## Site Builder Actions
-- When the user asks to build, rebuild, publish, or build the website/site again, call \`site-builder_build-site\` immediately.
-- Every repeated build request requires a fresh \`site-builder_build-site\` call. Do not say a build was started, queued, or requested unless this turn invoked the tool.`;
 
     const siteMetadata = await resolveSiteMetadata(
       context.messaging.send,
@@ -436,7 +433,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
       context.domain && `**Domain:** ${context.domain}`,
       context.siteUrl && `**URL:** ${context.siteUrl}`,
     ].filter(Boolean);
-    return `## Your Site\n${parts.join("\n")}\n\n${buildInstructions}`;
+    return `## Your Site\n${parts.join("\n")}`;
   }
 
   protected override async onShutdown(): Promise<void> {

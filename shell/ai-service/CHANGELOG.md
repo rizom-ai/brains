@@ -1,5 +1,49 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- [#791](https://github.com/rizom-ai/brains/pull/791) [`d7cd6c7`](https://github.com/rizom-ai/brains/commit/d7cd6c723f52dc915f5e2a1d2af27ba413c3b163) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bare weekday now resolves forward from today. The agent's instructions list the date of each of the next seven days, starting today, and say that "Friday" or "by Friday" means the next one on or after today and never a past date. On a Saturday the agent sometimes turned "by Friday" into the day before; with the dates in front of it, it no longer does.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+  - @brains/conversation-service@0.2.0-alpha.615
+  - @brains/entity-service@0.2.0-alpha.615
+  - @brains/identity-service@0.2.0-alpha.615
+  - @brains/mcp-service@0.2.0-alpha.615
+  - @brains/messaging-service@0.2.0-alpha.615
+  - @brains/templates@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/entity-service@0.2.0-alpha.614
+  - @brains/identity-service@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/conversation-service@0.2.0-alpha.614
+  - @brains/mcp-service@0.2.0-alpha.614
+  - @brains/messaging-service@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- [#787](https://github.com/rizom-ai/brains/pull/787) [`3eb382a`](https://github.com/rizom-ai/brains/commit/3eb382a06f8b849b5dee6a10467b71037edd162e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Each agent step sends a smaller prompt: about 3,300 fewer input tokens per step on both a team brain (from about 14,200 to 10,900) and a personal brain (from about 11,900 to 8,600). The agent resends its whole prompt on every step of a turn, and much of it said the same thing twice. Each system tool's guidance now lives only in that tool's description, which the agent receives with the tool and only when the caller may use it. The Entity CRUD instructions keep the rules that span the tools and the entity type list. The agent-to-agent guidance moved into the `agent_call` description, the site build guidance into `site-builder_build-site`, and the publishing guidance into `publishing_manage`; the identity section no longer repeats the write confirmation rules. The image and document instructions name the current `system_generate` operations. Tool schemas no longer carry the `$schema` draft URI or a confirmation's `expiresAt`.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/conversation-service@0.2.0-alpha.613
+  - @brains/entity-service@0.2.0-alpha.613
+  - @brains/identity-service@0.2.0-alpha.613
+  - @brains/mcp-service@0.2.0-alpha.613
+  - @brains/messaging-service@0.2.0-alpha.613
+  - @brains/templates@0.2.0-alpha.613
+
 ## 0.2.0-alpha.612
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import {
   buildEntityMemoryContext,
   buildEntityMemoryRefs,
   buildRetrievedEntityRefs,
+  buildSourcesCardFromContextItems,
   confirmationFrom,
   extractToolResults,
   stepFailures,
@@ -1433,5 +1434,44 @@ describe("a source's excerpt", () => {
     ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
 
     expect(source?.excerpt).toBe("Der Text des Abschnitts.");
+  });
+
+  it("is absent for a source whose content is all frontmatter", () => {
+    const [source] = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+        toolResults: [
+          {
+            toolCallId: "g",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: {
+                  id: "style-guide",
+                  entityType: "style-guide",
+                  content:
+                    "---\nname: Rizom\nvoice:\n  summary: Direct\n---\n\n",
+                  metadata: {},
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
+
+    expect(source?.id).toBe("style-guide:style-guide");
+    expect(source?.excerpt).toBeUndefined();
+  });
+
+  it("is absent for a retrieved context item with only whitespace", () => {
+    const card = buildSourcesCardFromContextItems([
+      { id: "blank", source: "agent-context", content: "  \n" },
+    ]);
+    const [source] = card?.kind === "sources" ? card.sources : [];
+
+    expect(source?.id).toBe("blank");
+    expect(source?.excerpt).toBeUndefined();
   });
 });

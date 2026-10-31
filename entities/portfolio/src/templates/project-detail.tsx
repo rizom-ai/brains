@@ -137,6 +137,11 @@ export const ProjectDetailTemplate = ({
               {frontmatter.description}
             </p>
 
+            {/* A project in the writer's own words, not case-study sections */}
+            {!structuredContent && project.body.trim() && (
+              <MarkdownContent markdown={project.body} />
+            )}
+
             {/* Case Study Sections */}
             {structuredContent && (
               <div className="case-study">

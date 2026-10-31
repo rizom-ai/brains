@@ -1,4 +1,4 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import { BaseEntityAdapter, EntityValidationError } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import {
   assertPublishedDeckHasPublishedAt,
@@ -8,6 +8,14 @@ import {
   type DeckFrontmatter,
   type DeckMetadata,
 } from "../schemas/deck";
+
+const MISSING_SLIDES_MESSAGE =
+  "Invalid deck: markdown must contain slide separators (---) to be a valid presentation";
+
+/** True when the body has a standalone --- line between slides. */
+export function hasSlideSeparators(body: string): boolean {
+  return /^---$/m.test(body);
+}
 
 /**
  * Deck formatter for managing presentation deck entities
@@ -32,12 +40,15 @@ export class DeckAdapter extends BaseEntityAdapter<
    * Validate that content has proper slide structure
    */
   private validateSlideStructure(content: string): void {
-    const hasSlides = /^---$/gm.test(content);
-    if (!hasSlides) {
-      throw new Error(
-        "Invalid deck: markdown must contain slide separators (---) to be a valid presentation",
-      );
-    }
+    if (hasSlideSeparators(content)) return;
+    // A validation error on the body, so editors show it beside the text
+    // being drafted instead of failing the request.
+    throw new EntityValidationError(
+      "deck",
+      Object.assign(new Error(MISSING_SLIDES_MESSAGE), {
+        issues: [{ path: ["body"], message: MISSING_SLIDES_MESSAGE }],
+      }),
+    );
   }
 
   /**
@@ -127,9 +138,10 @@ export class DeckAdapter extends BaseEntityAdapter<
       status: "generating",
     };
     return {
-      // Body needs at least one slide separator to satisfy validateSlideStructure
-      // when the stub is later re-serialized by toMarkdown.
-      content: this.buildMarkdown("---\n", frontmatter),
+      // A title slide before the separator: a body that is only "---" reads
+      // as an opening frontmatter fence and is dropped, and the stub then
+      // fails slide validation every time it is stored.
+      content: this.buildMarkdown(`# ${input.title}\n\n---\n`, frontmatter),
       metadata: {
         title: input.title,
         slug: input.id,

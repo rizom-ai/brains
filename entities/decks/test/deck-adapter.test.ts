@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { isEntityValidationError } from "@brains/plugins";
 import { DeckAdapter } from "../src/adapters/deck-adapter";
 import { publishedAtRequiredMessage } from "../src/schemas/deck";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
@@ -318,6 +319,64 @@ status: draft
 # Slide 2`;
 
       expect(() => adapter.fromMarkdown(markdown)).not.toThrow();
+    });
+  });
+
+  describe("generation stub", () => {
+    function stubEntity(): ReturnType<typeof createMockDeckEntity> {
+      const stub = adapter.buildStub({
+        id: "on-slowness",
+        title: "On slowness",
+      });
+      return {
+        ...createMockDeckEntity({ content: "---\n" }),
+        id: "on-slowness",
+        content: stub.content,
+        metadata: stub.metadata,
+      };
+    }
+
+    it("keeps a slide separator in the stored stub", () => {
+      expect(adapter.toMarkdown(stubEntity())).toMatch(/\n---\n[\s\S]*^---$/m);
+    });
+
+    it("round-trips the stub through markdown, as a queued generation stores and fails it", () => {
+      const markdown = adapter.toMarkdown(stubEntity());
+      expect(adapter.fromMarkdown(markdown).metadata).toMatchObject({
+        title: "On slowness",
+        slug: "on-slowness",
+        status: "generating",
+      });
+    });
+  });
+
+  describe("slide separator validation", () => {
+    function caught(run: () => unknown): unknown {
+      try {
+        run();
+      } catch (error) {
+        return error;
+      }
+      throw new Error("Expected a validation error");
+    }
+
+    it("reports missing separators as a validation error on the body", () => {
+      const error = caught(() =>
+        adapter.fromMarkdown(
+          "---\ntitle: Draft\nstatus: draft\n---\n\n# One slide",
+        ),
+      );
+      expect(isEntityValidationError(error)).toBe(true);
+      expect(error).toMatchObject({
+        originalError: {
+          issues: [
+            {
+              path: ["body"],
+              message: expect.stringContaining("---"),
+            },
+          ],
+        },
+      });
     });
   });
 

@@ -180,10 +180,18 @@ export function buildAttachmentCardFromToolData(
 const MAX_SOURCE_EXCERPT_LENGTH = 500;
 const MAX_SEARCH_SOURCES = 3;
 
-function truncateSourceExcerpt(content: string): string {
+/** None when there is no text to quote, such as an all-frontmatter entity. */
+function truncateSourceExcerpt(content: string): string | undefined {
   const trimmed = content.trim();
+  if (trimmed.length === 0) return undefined;
   if (trimmed.length <= MAX_SOURCE_EXCERPT_LENGTH) return trimmed;
   return `${trimmed.slice(0, MAX_SOURCE_EXCERPT_LENGTH - 1).trimEnd()}…`;
+}
+
+/** A citation that breaks the contract is left out, not sent to fail the answer. */
+function validCitation(citation: unknown): SourceCitation[] {
+  const parsed = SourceCitationSchema.safeParse(citation);
+  return parsed.success ? [parsed.data] : [];
 }
 
 function getStringProvenanceValue(
@@ -197,24 +205,27 @@ function getStringProvenanceValue(
 export function buildSourcesCardFromContextItems(
   contextItems: AgentContextItem[] | undefined,
 ): StructuredChatCard | undefined {
-  if (!contextItems || contextItems.length === 0) return undefined;
-
-  return {
-    kind: "sources",
-    id: "sources:agent-context",
-    title: "Retrieved context",
-    sources: contextItems.map((item) => ({
+  const sources = (contextItems ?? []).flatMap((item) =>
+    validCitation({
       id: item.id,
       source: item.source,
-      excerpt: truncateSourceExcerpt(item.content),
       ...definedFields({
+        excerpt: truncateSourceExcerpt(item.content),
         title: item.title,
         url: getStringProvenanceValue(item.provenance, "url"),
         entityType: getStringProvenanceValue(item.provenance, "entityType"),
         entityId: getStringProvenanceValue(item.provenance, "entityId"),
         provenance: item.provenance,
       }),
-    })),
+    }),
+  );
+  if (sources.length === 0) return undefined;
+
+  return {
+    kind: "sources",
+    id: "sources:agent-context",
+    title: "Retrieved context",
+    sources,
   };
 }
 
@@ -224,7 +235,7 @@ function buildSourceCitationFromEntity(params: {
   excerpt?: string | undefined;
   score?: number | undefined;
   links: EntityLinks | undefined;
-}): SourceCitation {
+}): SourceCitation[] {
   const { entity, toolName, score } = params;
   const excerpt =
     params.excerpt !== undefined
@@ -232,14 +243,14 @@ function buildSourceCitationFromEntity(params: {
       : entity.content !== undefined
         ? truncateSourceExcerpt(markdownBody(entity.content))
         : undefined;
-  return {
+  return validCitation({
     ...entitySourceCitation(entity, params.links),
     ...definedFields({ excerpt }),
     provenance: {
       toolName,
       ...definedFields({ score }),
     },
-  };
+  });
 }
 
 /** A source the turn saw; a search result keeps its rank within its search. */
@@ -262,39 +273,33 @@ function buildToolSourceCitations(params: {
           (b.score ?? Number.NEGATIVE_INFINITY) -
           (a.score ?? Number.NEGATIVE_INFINITY),
       )
-      .map((result, rank) => ({
-        rank,
-        citation: buildSourceCitationFromEntity({
+      .flatMap((result, rank) =>
+        buildSourceCitationFromEntity({
           toolName: params.toolName,
           entity: result.entity,
           excerpt: result.excerpt,
           score: result.score,
           links: params.links,
-        }),
-      }));
+        }).map((citation) => ({ rank, citation })),
+      );
   }
 
   if (params.toolName === "system_get") {
     const parsed = getToolDataSchema.safeParse(params.data);
     if (!parsed.success) return [];
-    return [
-      {
-        citation: buildSourceCitationFromEntity({
-          toolName: params.toolName,
-          entity: parsed.data.entity,
-          links: params.links,
-        }),
-      },
-    ];
+    return buildSourceCitationFromEntity({
+      toolName: params.toolName,
+      entity: parsed.data.entity,
+      links: params.links,
+    }).map((citation) => ({ citation }));
   }
 
   // A tool's own citations count like a direct read: kept whatever the answer names.
   const own = toolSourcesDataSchema.safeParse(params.data);
   if (own.success) {
-    return own.data.sources.flatMap((source) => {
-      const citation = SourceCitationSchema.safeParse(source);
-      return citation.success ? [{ citation: citation.data }] : [];
-    });
+    return own.data.sources.flatMap((source) =>
+      validCitation(source).map((citation) => ({ citation })),
+    );
   }
 
   return [];
