@@ -41,7 +41,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test --isolate",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "types": "src/index.ts"
