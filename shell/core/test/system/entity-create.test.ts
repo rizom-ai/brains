@@ -1674,6 +1674,33 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
+  it("refuses to generate over an existing entity of an interceptor-backed type", async () => {
+    services.entityRegistry.registerCreateInterceptor(
+      "note",
+      async (input) => ({ kind: "continue", input }),
+    );
+    services.addEntities([
+      {
+        id: "community-launch-plan",
+        entityType: "note",
+        content: "# Community Launch Plan\n\nLaunch day: Monday.",
+        metadata: { title: "Community Launch Plan" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-plan",
+      },
+    ]);
+
+    const result = await execGenerateRaw({
+      entityType: "note",
+      title: "Community Launch Plan",
+      prompt: "Make the launch day Friday.",
+    });
+
+    expect(expectToolError(result).error).toContain("use system_update");
+    expect(services.getEntities().has("community-launch-plan-2")).toBe(false);
+  });
+
   it("generates again over a placeholder whose generation failed", async () => {
     services.addEntities([
       {

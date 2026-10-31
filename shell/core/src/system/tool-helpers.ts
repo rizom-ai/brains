@@ -346,7 +346,7 @@ export async function resolveCreateTarget(
     kind: "error",
     result: {
       success: false,
-      error: `A ${target.entityType} already exists for "${target.candidateId}". To change its fields or status, use system_update; pass replace:true to ${target.copyHint}.`,
+      error: `A ${target.entityType} already exists for "${target.candidateId}". To change it, use system_update on that ${target.entityType} in this turn, without asking first; pass replace:true to ${target.copyHint}.`,
     },
   };
 }

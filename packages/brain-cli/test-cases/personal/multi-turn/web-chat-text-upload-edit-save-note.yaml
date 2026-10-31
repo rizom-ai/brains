@@ -68,9 +68,10 @@ turns:
     successCriteria:
       responseContains:
         - "Confirmation required"
-      # The edit must land on the imported note. A misrouted system_create is
-      # refused by the runtime before any confirmation, so it cannot mint a
-      # duplicate; the outcome checked here is the update's target.
+      # The edit must land on the imported note. A misrouted system_create or
+      # system_generate is refused by the runtime before any confirmation, so
+      # it cannot mint a duplicate; the outcome checked here is the update's
+      # target, and the budget allows that one refused call.
       expectedTools:
         - toolName: system_update
           shouldBeCalled: true
@@ -121,5 +122,5 @@ successCriteria:
     - "re-upload"
 
 efficiency:
-  maxToolCalls: 5
-  maxTokens: 74000
+  maxToolCalls: 7
+  maxTokens: 90000

@@ -497,25 +497,30 @@ async function prepareGenerate(
     };
   }
 
-  const target = interceptor
-    ? undefined
-    : await resolveCreateTarget(
-        services,
-        {
-          entityType: createInput.entityType,
-          candidateId: createInput.prompt
-            ? truncateSlug(
-                slugify(createInput.title ?? createInput.prompt),
-                100,
-              )
-            : createInput.title
-              ? slugify(createInput.title)
-              : undefined,
-          replace: replace === true,
-          copyHint: "generate a new copy intentionally",
-        },
-        toolContext,
-      );
+  // An entity generation takes its id from its title or prompt whether or not
+  // a plugin intercepts it; attachments and images derive theirs elsewhere.
+  const namesEntity =
+    operation.kind === "prompt" || operation.kind === "prompt-from-source";
+  const target =
+    interceptor && !namesEntity
+      ? undefined
+      : await resolveCreateTarget(
+          services,
+          {
+            entityType: createInput.entityType,
+            candidateId: createInput.prompt
+              ? truncateSlug(
+                  slugify(createInput.title ?? createInput.prompt),
+                  100,
+                )
+              : createInput.title
+                ? slugify(createInput.title)
+                : undefined,
+            replace: replace === true,
+            copyHint: "generate a new copy intentionally",
+          },
+          toolContext,
+        );
   if (target?.kind === "error") return target;
 
   return {
