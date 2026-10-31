@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phase 3 built, opt-in per brain: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; rollout to the smoke rover and rizom.ai remains. Phases 4–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
+Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phase 3 built, opt-in per brain: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; rollout to the smoke rover and rizom.ai remains. Phase 4 built: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema; no brain switches until a local model matches the default on the agent evals. Phase 5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
 
 Phase 0 and Phase 2 benchmark, 2026-10-31, through the real provider: the yeehaa rover corpus (`rizom-ai/professional-brain-content`, 237 entities, 0.9 MB; Obsidian templates, trash and traffic snapshots excluded), one cached `gpt-5.4-mini` question per entity, ranked by cosine over the whole corpus.
 
@@ -14,6 +14,18 @@ Phase 0 and Phase 2 benchmark, 2026-10-31, through the real provider: the yeehaa
 - Quality gate holds: Gemma MRR 0.815 ≥ 0.777 − 0.02, with 2,048-token chunks.
 - Runtime RSS: 560 MB with the model loaded (Ollama 0.40.11 runner 506 MB, server 53 MB).
 - Throughput gate fails for the largest production brain: Karl's corpus is 28.5 MB (5,733 entities), about 47 minutes at the measured 10 KB/s on a 16-thread development CPU, before the fleet's smaller servers. The fleet server type (`HCLOUD_SERVER_TYPE`) is not yet measured.
+
+Phase 4 agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:8b` on Ollama 0.40.11 with Vulkan on a Radeon 8060S iGPU:
+
+| Model                                | Pass  | Rate | Avg duration |
+| ------------------------------------ | ----- | ---- | ------------ |
+| `gpt-6-luna` (default)               | 26/27 | 96%  | 3.7 s        |
+| `local:qwen3:8b`                     | 23/27 | 85%  | 34.2 s       |
+| `local:qwen3:8b`, schema-constrained | 21/27 | 78%  | 25.3 s       |
+
+- `qwen3:8b` fails in both runs: the write–confirm–read-back case, the exact-note direct create, and the private note at admin and trusted (wrong `system_create` `source.kind`). Agent recommendation without a match and skill derivation fail in one run each.
+- Before the schema fix, every object generation on the local model (topic votes) failed validation on invented keys; with `supportsStructuredOutputs` the runtime constrains the output and those failures are gone.
+- No brain switches its text model on these numbers.
 
 ## Today
 
