@@ -46,14 +46,15 @@ function parseProviderPrefix(model: string): ResolvedModelProvider | null {
  * - Explicit prefix: "openai:gpt-4o-mini" → { provider: "openai", modelId: "gpt-4o-mini" }
  */
 export function resolveTextProvider(model: string): ResolvedModelProvider {
-  const explicit = parseProviderPrefix(model);
-  if (explicit) return explicit;
-
+  // Known names match first: a runtime's model tags carry colons
+  // ("qwen3:4b") that are not provider prefixes.
   for (const [pattern, provider] of MODEL_PATTERNS) {
     if (pattern.test(model)) return { provider, modelId: model };
   }
 
-  return { provider: "anthropic", modelId: model };
+  return (
+    parseProviderPrefix(model) ?? { provider: "anthropic", modelId: model }
+  );
 }
 
 /** Text providers the brain has a client for. */
@@ -61,6 +62,7 @@ const TEXT_PROVIDERS: ReadonlySet<string> = new Set([
   "anthropic",
   "openai",
   "google",
+  "local",
 ]);
 
 /**

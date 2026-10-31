@@ -133,6 +133,23 @@ describe("shell config", () => {
     ).toThrow(/local:embeddinggemma-2:270m needs modelRuntime\.url/);
   });
 
+  it("rejects a local text model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: { apiKey: "test-key", model: "local:qwen3:4b" },
+      }),
+    ).toThrow(/local:qwen3:4b needs modelRuntime\.url/);
+    expect(
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "local:qwen3:4b",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.model,
+    ).toBe("local:qwen3:4b");
+  });
+
   it("rejects a text model of an unknown provider", () => {
     expect(() =>
       createShellConfig({

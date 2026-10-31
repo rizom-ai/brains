@@ -56,12 +56,28 @@ describe("isSupportedTextModel", () => {
     expect(isSupportedTextModel("google:gemini-2.0-flash")).toBe(true);
   });
 
+  it("accepts models of the local runtime", () => {
+    expect(isSupportedTextModel("local:qwen3:4b")).toBe(true);
+    expect(isSupportedTextModel("qwen3:4b")).toBe(true);
+  });
+
   it("rejects an unknown provider instead of falling back to anthropic", () => {
     expect(isSupportedTextModel("groq:llama-3.1-70b")).toBe(false);
   });
 });
 
 describe("resolveTextProvider", () => {
+  it("keeps a runtime tag's colon in the model id", () => {
+    expect(resolveTextProvider("local:qwen3:4b")).toEqual({
+      provider: "local",
+      modelId: "qwen3:4b",
+    });
+    expect(resolveTextProvider("qwen3:4b")).toEqual({
+      provider: "local",
+      modelId: "qwen3:4b",
+    });
+  });
+
   it("should return provider and SDK model ID for explicit prefixes", () => {
     expect(resolveTextProvider("openai:gpt-4o-mini")).toEqual({
       provider: "openai",

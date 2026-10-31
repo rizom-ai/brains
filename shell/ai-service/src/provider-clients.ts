@@ -10,6 +10,7 @@ export interface ProviderClients {
   anthropicProvider: typeof anthropic;
   openaiProvider: ReturnType<typeof createOpenAI> | null;
   googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null;
+  localProvider: ReturnType<typeof createOpenAICompatible> | null;
 }
 
 export function createProviderClients(config: AIModelConfig): ProviderClients {
@@ -35,6 +36,9 @@ export function createProviderClients(config: AIModelConfig): ProviderClients {
         : imageApiKey
           ? createGoogleGenerativeAI({ apiKey: imageApiKey })
           : null,
+    localProvider: config.modelRuntimeUrl
+      ? createLocalRuntimeClient(config.modelRuntimeUrl)
+      : null,
   };
 }
 
@@ -65,6 +69,13 @@ export function getLanguageModel(
 
   if (resolvedModel.provider === "google" && clients.googleProvider) {
     return clients.googleProvider(resolvedModel.modelId);
+  }
+
+  if (resolvedModel.provider === "local") {
+    if (!clients.localProvider) {
+      throw new Error(`${model} needs modelRuntime.url`);
+    }
+    return clients.localProvider.chatModel(resolvedModel.modelId);
   }
 
   return clients.anthropicProvider(resolvedModel.modelId);

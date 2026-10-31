@@ -132,8 +132,9 @@ describe("resolveProviderKey", () => {
     expect(resolveProviderKey("gpt-4o-mini", {})).toBeUndefined();
   });
 
-  it("should return undefined for ollama (no key needed)", () => {
+  it("needs no key for a model of the local runtime", () => {
     const env = { OPENAI_API_KEY: "sk-openai" };
     expect(resolveProviderKey("llama-3.1", env)).toBeUndefined();
+    expect(resolveProviderKey("local:qwen3:4b", env)).toBeUndefined();
   });
 });

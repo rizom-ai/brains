@@ -2,6 +2,7 @@ import {
   DEFAULT_EMBEDDING_MODEL,
   findEmbeddingProfile,
   isSupportedTextModel,
+  selectTextProvider,
   unsupportedEmbeddingModelMessage,
 } from "@brains/ai-service";
 import { dbConfigSchema } from "@brains/contracts";
@@ -163,13 +164,18 @@ export const shellConfigSchema: z.ZodObject<{
       reasoningEffort: reasoningEffortSchema.optional(),
     })
     .superRefine((ai, context) => {
-      const local =
-        findEmbeddingProfile(ai.embeddingModel)?.provider === "local";
-      if (local && !ai.modelRuntimeUrl) {
+      if (ai.modelRuntimeUrl) return;
+      const localModels = [
+        ...(selectTextProvider(ai.model) === "local" ? [ai.model] : []),
+        ...(findEmbeddingProfile(ai.embeddingModel)?.provider === "local"
+          ? [ai.embeddingModel]
+          : []),
+      ];
+      for (const model of localModels) {
         context.addIssue({
           code: "custom",
           path: ["modelRuntimeUrl"],
-          message: `${ai.embeddingModel} needs modelRuntime.url`,
+          message: `${model} needs modelRuntime.url`,
         });
       }
     }),
