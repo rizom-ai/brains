@@ -3,65 +3,9 @@ import { createSystemInstructions } from "../../src/system/instructions";
 import { createMockSystemServices } from "./mock-services";
 
 describe("system instructions", () => {
-  it("should include entity CRUD guidance", () => {
-    const services = createMockSystemServices();
-    services.addEntities([
-      {
-        id: "p1",
-        entityType: "post",
-        content: "",
-        contentHash: "",
-        metadata: {},
-        created: "",
-        updated: "",
-      },
-    ]);
-    const instructions = createSystemInstructions(services);
+  it("keeps the cross-tool entity rules", () => {
+    const instructions = createSystemInstructions(createMockSystemServices());
 
-    expect(instructions).toContain("system_create");
-    expect(instructions).toContain("system_update");
-    expect(instructions).toContain("system_delete");
-    expect(instructions).toContain("Admin-only entity removal");
-    expect(instructions).toContain("deletion requires Admin access");
-    expect(instructions).toContain("system_get");
-    expect(instructions).toContain("system_list");
-    expect(instructions).toContain("system_search");
-    expect(instructions).toContain("run a fresh search for that turn");
-    expect(instructions).toContain(
-      "answer from them instead of redundantly calling system_list or system_get",
-    );
-    expect(instructions).toContain("How do I discuss X in my writing?");
-    expect(instructions).toContain("essays/articles/blog posts => post");
-    expect(instructions).toContain(
-      "use system_list metadata dates such as publishedAt",
-    );
-    expect(instructions).toContain("summarize my blog posts");
-    expect(instructions).toContain("short sentence or fragment after a colon");
-    expect(instructions).toContain("memo about the launch timeline");
-    expect(instructions).toContain(
-      "use `shared` for team/collaborator content",
-    );
-    expect(instructions).toContain(
-      "use `restricted` for private/admin-only content",
-    );
-    expect(instructions).toContain("ask which scope they mean");
-    expect(instructions).toContain("pasted uploaded-file transcript");
-    expect(instructions).toContain(
-      "even when the prior answer says there was limited readable content",
-    );
-    expect(instructions).toContain(
-      "Do not ask whether they meant the summary or the file",
-    );
-    expect(instructions).toContain("never say saved/created/done");
-    expect(instructions).toContain(
-      "do not call system_status or system_search to check permission",
-    );
-    expect(instructions).toContain(
-      "projection-owned or system-maintained types read-only",
-    );
-    expect(instructions).toContain("without calling read or write tools");
-    expect(instructions).toContain("bare upload receipt");
-    expect(instructions).toContain("image uploads as entityType image");
     expect(instructions).toContain("approve/archive an agent");
     expect(instructions).toContain(
       "proactively recording the user's request itself",
@@ -75,109 +19,46 @@ describe("system instructions", () => {
     expect(instructions).toContain(
       "Never pass `confirmed: true` on the initial user request",
     );
-  });
-
-  it("should tell agents to use system_update for field changes", () => {
-    const services = createMockSystemServices();
-    const instructions = createSystemInstructions(services);
-
-    expect(instructions).toContain(
-      'Use `operation.kind: "fields"` for title, status',
-    );
-    expect(instructions).toContain("system_update");
-    expect(instructions).toContain(
-      "For explicit publish requests, use the publishing tool",
-    );
-  });
-
-  it("directs small content edits through exact patches instead of full regeneration", () => {
-    const instructions = createSystemInstructions(createMockSystemServices());
-    expect(instructions).toContain(
-      'Use `operation.kind: "edits"` for small content changes',
-    );
-    expect(instructions).toContain("oldText");
-    expect(instructions).toContain(
-      "Never replace unchanged content with placeholders",
-    );
-  });
-
-  it("routes large user-supplied rewrites through a verbatim source", () => {
-    const instructions = createSystemInstructions(createMockSystemServices());
-    expect(instructions).toContain(
-      'when the user supplies the replacement text, use `operation: { kind: "source", source: { kind: "user-message", startAfter, endBefore } }`',
-    );
-    expect(instructions).toContain(
-      "Text without frontmatter replaces the body and keeps the stored frontmatter",
-    );
-  });
-
-  it("describes system_update as exactly one typed operation", () => {
-    const instructions = createSystemInstructions(createMockSystemServices());
-    expect(instructions).toContain(
-      'Required `operation` union: `{ kind: "fields", fields }`, `{ kind: "content", content }`, `{ kind: "edits", edits }`, or `{ kind: "source", source }`.',
-    );
-    expect(instructions).not.toContain("Use only one of `fields`");
-  });
-
-  it("tells agents to create pending confirmations by calling mutating tools", () => {
-    const services = createMockSystemServices();
-    const instructions = createSystemInstructions(services);
-
-    expect(instructions).toContain(
-      "call system_create without `confirmed` to request that confirmation",
-    );
-    expect(instructions).toContain(
-      "call system_update without `confirmed` to request that confirmation",
-    );
     expect(instructions).toContain(
       "Do not ask for prose confirmation instead of calling the applicable mutating tool",
     );
+    expect(instructions).toContain("deletion requires Admin access");
+    expect(instructions).toContain("never say saved/created/done");
+    expect(instructions).toContain(
+      "do not call system_status or system_search to check permission",
+    );
+    expect(instructions).toContain(
+      "projection-owned or system-maintained types read-only",
+    );
+    expect(instructions).toContain("without calling read or write tools");
   });
 
-  it("describes source-derived artifacts with the canonical source attachment branch", () => {
-    const services = createMockSystemServices();
-    const instructions = createSystemInstructions(services);
+  // Every agent step resends the whole prompt, and each tool's description
+  // already reaches the model with the tool — and only when the caller can
+  // use it. Restating a tool's contract here doubled it on every step.
+  it("leaves each tool's contract to its description", () => {
+    const instructions = createSystemInstructions(createMockSystemServices());
 
-    expect(instructions).toContain(
-      'Required `source` union: `{ kind: "text", content }`',
-    );
-    expect(instructions).toContain('`{ kind: "prior-response", messageId? }`');
-    expect(instructions).toContain('`{ kind: "prompt", entityType, prompt }`');
-    expect(instructions).toContain(
-      '`{ kind: "prompt-from-source", entityType, source: { entityType, entityId }, prompt }`',
-    );
-    expect(instructions).toContain(
-      '`{ kind: "attachment", source: { entityType, entityId }, attachmentType }`',
-    );
-    expect(instructions).toContain(
-      "do not ask whether they mean an existing artifact when the source entity is explicit",
-    );
-    expect(instructions).toContain(
-      "call system_generate with operation.kind cover-image in the same turn",
-    );
-    expect(instructions).toContain(
-      "quoted id such as deck `distributed-systems-primer`",
-    );
-    expect(instructions).toContain(
-      "unless the user gives an exact entity id in quotes",
-    );
-    expect(instructions).toContain(
-      "An underspecified generation request still supplies a usable prompt",
-    );
-    expect(instructions).toContain(
-      "do not add voice, tone or engagement directions the user did not ask for",
-    );
-    expect(instructions).toContain(
-      "including after an optional search returns no source",
-    );
-    // A search that resolves the note must not pull "turn my note X into a
-    // post" into source-based generation.
-    expect(instructions).toContain(
-      "Turning an existing entity into another type ('turn my note X into a post') keeps its text and is not generation: call system_create with source.kind entity, also after a search resolves it.",
-    );
-    expect(instructions).not.toContain(
-      "`from` for source-derived artifact saves",
-    );
+    for (const tool of [
+      "system_create",
+      "system_generate",
+      "system_update",
+      "system_delete",
+      "system_get",
+      "system_list",
+      "system_search",
+    ]) {
+      expect(instructions).not.toContain(`- **${tool}**`);
+    }
+    expect(instructions).not.toContain("Required `source` union");
+    expect(instructions).not.toContain("Required `operation` union");
+    expect(instructions).not.toContain("Available entity types:");
+  });
+
+  it("stays a short preamble to the entity type list", () => {
+    const instructions = createSystemInstructions(createMockSystemServices());
+
+    expect(instructions.length).toBeLessThan(3_000);
   });
 
   it("should list available entity types", () => {

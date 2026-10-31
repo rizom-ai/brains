@@ -88,7 +88,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "search",
-      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. When the user names entity types, search each with scope.kind type in the same step, without a broad search first. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content; a long one's is excerpted to its best-matching sections, which system_get reads whole. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
+      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. When the user names entity types, search each with scope.kind type in the same step, without a broad search first. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content; a long one's is excerpted to its best-matching sections, which system_get reads whole. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches. For each new user question about what they have written, mentioned, discussed, or saved, run a fresh search for that turn instead of answering from prior-turn results or memory, including analysis phrasing such as 'How do I discuss X in my writing?'.",
       searchInputSchema,
       async (input, context): Promise<ToolResult<SearchData>> => {
         assertGuestReader(context);
@@ -220,7 +220,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "list",
-      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
+      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. For list/show-all requests that name or browse a known type or synonym (essays/articles/blog posts => post), list that type instead of searching; for a whole-type summary such as 'summarize my blog posts', list it first, then summarize the returned entities. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
       listInputSchema,
       async (input, context) => {
         assertGuestReader(context);
