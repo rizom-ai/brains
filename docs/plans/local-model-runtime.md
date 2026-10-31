@@ -2,7 +2,18 @@
 
 ## Status
 
-Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phase 0 numbers and Phases 3–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
+Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phases 3–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
+
+Phase 0 and Phase 2 benchmark, 2026-10-31, through the real provider: the yeehaa rover corpus (`rizom-ai/professional-brain-content`, 237 entities, 0.9 MB; Obsidian templates, trash and traffic snapshots excluded), one cached `gpt-5.4-mini` question per entity, ranked by cosine over the whole corpus.
+
+| Model                           | recall@5 | MRR   | Full embed                      |
+| ------------------------------- | -------- | ----- | ------------------------------- |
+| `openai:text-embedding-3-small` | 0.941    | 0.777 | 7.4 s                           |
+| `local:embeddinggemma-2:270m`   | 0.945    | 0.815 | 89.8 s (CPU, 16 threads, Zen 5) |
+
+- Quality gate holds: Gemma MRR 0.815 ≥ 0.777 − 0.02, with 2,048-token chunks.
+- Runtime RSS: 560 MB with the model loaded (Ollama 0.40.11 runner 506 MB, server 53 MB).
+- Throughput gate fails for the largest production brain: Karl's corpus is 28.5 MB (5,733 entities), about 47 minutes at the measured 10 KB/s on a 16-thread development CPU, before the fleet's smaller servers. The fleet server type (`HCLOUD_SERVER_TYPE`) is not yet measured.
 
 ## Today
 
