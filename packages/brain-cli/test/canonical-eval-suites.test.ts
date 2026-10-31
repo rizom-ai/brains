@@ -102,7 +102,7 @@ const expectedCaseCounts: Record<SuiteName, number> = {
   personal: 27,
   professional: 97,
   providers: 2,
-  team: 37,
+  team: 38,
   docs: 5,
 };
 const tempDirectories: string[] = [];
@@ -312,7 +312,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(221);
+    expect(testCases.length).toBe(222);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
