@@ -55,6 +55,7 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "confirmed",
   "confirmationToken",
   "contentHash",
+  "expiresAt",
 ]);
 
 const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([

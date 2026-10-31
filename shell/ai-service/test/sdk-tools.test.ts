@@ -623,6 +623,8 @@ describe("toModelVisibleInputSchema", () => {
       confirmed: z.literal(true).optional(),
       confirmationToken: z.string().optional(),
       contentHash: z.string().optional(),
+      // A confirmation's expiry is returned with its args, never chosen.
+      expiresAt: z.string().optional(),
     });
 
     expect(Object.keys(inputSchema)).toEqual(["entityType", "id"]);
