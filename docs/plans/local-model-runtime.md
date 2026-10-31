@@ -34,12 +34,12 @@ Agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
 
-| Target date | Done                                                                                         |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| 2026-11-06  | Phase 0 complete: non-Gemma embedding row, larger text candidates, laptop latency            |
-| 2026-11-11  | This branch merged; the chosen text model's evals recorded                                   |
-| 2026-11-14  | Proof-of-concept brain runs fully local on the Z13; its validation recorded in this Status   |
-| 2026-11-18  | Demo video recorded from it; parameter counts and eval numbers go into the application draft |
+| Target date | Done                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| 2026-11-06  | Phase 0 complete: non-Gemma embedding row, larger text candidates, no-key boot, laptop latency |
+| 2026-11-11  | This branch merged; the chosen text model's evals recorded                                     |
+| 2026-11-14  | Proof-of-concept brain runs fully local on the Z13; its validation recorded in this Status     |
+| 2026-11-18  | Demo video recorded from it; parameter counts and eval numbers go into the application draft   |
 
 ## Goal
 
@@ -64,7 +64,7 @@ By the deadline: a proof of concept. A separate brain, not the team brain or any
 - **The first runtime is Ollama**, which serves embeddings and chat over that contract. Image generation adds a backend behind the same URL in Phase 5; the brain side does not change.
 - **Model identity is stored with the index.** The embedding DB records model, dimensions and prompt revision; any change drops and rebuilds, and the readiness gate holds chat until the index is ready.
 - **Text models come from outside the frontier families.** The Mozilla form names GPT, Claude, Gemini/DeepMind and Llama as frontier families, and the call rejects slimmed-down frontier models. Text candidates are open-weight models from other labs (Qwen, Mistral, OLMo).
-- **EmbeddingGemma stays, and swapping is shown.** EmbeddingGemma 2 is a 270M open-weight model from the Gemma family; it scored best and runs locally with no API. One non-Gemma embedder (`nomic-embed-text` first) runs the same benchmark, so the application can show the embedding model is replaceable by config rather than claim it.
+- **The proof of concept embeds outside the frontier families when it can.** The call rejects slimmed-down frontier models, and EmbeddingGemma 2 is a 270M model from Google DeepMind's Gemma family. `nomic-embed-text` runs the same benchmark; if its MRR is within 0.02 of EmbeddingGemma 2's, it is the proof-of-concept embedder, so no core model comes from a frontier family. Otherwise EmbeddingGemma 2 stays and the application shows the embedder is replaceable by config.
 - **Small means 7–32B.** The text model is the smallest one whose evals the team accepts for the proof of concept, capped at 32B. Its parameter count is what the application reports.
 - **The proof of concept runs on owned hardware.** The host is the ASUS ROG Flow Z13 with 128 GB of unified memory (AMD Ryzen AI Max+ 395, Radeon 8060S), which fits every candidate up to 32B. The i7-1355U laptop (16 GB, no discrete GPU) is the minimum-hardware check for the smallest candidate. The fleet's server type is measured only for the fleet rollout after the deadline.
 - **Cloud models stay in the eval harness.** The eval judge runs at development time and is not part of a brain's core loop.
@@ -75,7 +75,9 @@ By 2026-11-06, on the Z13 unless stated; numbers go in Status.
 
 1. Add a `nomic-embed-text` profile with its tests, run the embedding benchmark through the real provider, and add its row to the table.
 2. Run the headless suite on `qwen3:14b` and `qwen3:32b`, schema-constrained, next to the default; record pass rate and average duration.
-3. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
+3. Find why `qwen3:8b` passes the wrong `system_create` `source.kind` in the private-note cases; if the tool schema or instructions mislead it, fix them and rerun the headless suite before choosing a larger model.
+4. Boot a brain with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`: a test proves it boots, indexes and answers a chat turn with no cloud provider configured; fix whatever still requires a key.
+5. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
 
 ## Phase 3 — Fleet rollout
 
@@ -95,6 +97,6 @@ Build:
 
 ## Validation
 
-- Phase 0: the embedding table carries the non-Gemma row, and the eval table carries the 14B and 32B rows and the laptop duration.
+- Phase 0: the embedding table carries the non-Gemma row, the eval table carries the 14B and 32B rows and the laptop duration, and the no-key boot test passes.
 - Proof of concept: the separate brain on the Z13, holding only the rover's public entities, boots with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`; readiness reaches ready, search answers known queries, and a chat turn completes with tool calls. The demo video is recorded from this run.
 - Phase 3: readiness reaches ready and search smoke queries pass on the smoke rover, then rizom.ai.
