@@ -53,6 +53,9 @@ export function createLocalRuntimeClient(
   return createOpenAICompatible({
     name: "local",
     baseURL: `${url.replace(/\/+$/, "")}/v1`,
+    // Send the JSON schema of object generation, so the runtime constrains
+    // the output to it rather than trusting the model to follow the prompt.
+    supportsStructuredOutputs: true,
     ...(fetchImpl ? { fetch: fetchImpl } : {}),
   });
 }
