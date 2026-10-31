@@ -54,6 +54,20 @@ const profiles: ReadonlyMap<string, EmbeddingProfile> = new Map(
       document: ({ title, content }: EmbeddingDocument): string =>
         `title: ${title ?? "none"} | text: ${content}`,
     },
+    {
+      // Nomic's 137M text encoder, outside the frontier model families. Its
+      // GGUF context is 2,048 tokens; its retrieval prompts are task prefixes.
+      provider: "local",
+      modelId: "nomic-embed-text:v1.5",
+      dimensions: 768,
+      maxInputTokens: 2_048,
+      maxRequestTokens: 32_768,
+      maxRequestInputs: 64,
+      promptRevision: 1,
+      query: (text: string): string => `search_query: ${text}`,
+      document: ({ content }: EmbeddingDocument): string =>
+        `search_document: ${content}`,
+    },
   ].map((profile) => {
     const model = `${profile.provider}:${profile.modelId}`;
     return [model, { model, ...profile }];

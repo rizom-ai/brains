@@ -92,3 +92,29 @@ describe("OpenAI embedding prompts", () => {
     );
   });
 });
+
+describe("nomic-embed-text", () => {
+  const nomic = resolveEmbeddingProfile("local:nomic-embed-text:v1.5");
+
+  it("is served by the local runtime at 768 dimensions within its 2,048-token context", () => {
+    expect(nomic).toMatchObject({
+      model: "local:nomic-embed-text:v1.5",
+      provider: "local",
+      modelId: "nomic-embed-text:v1.5",
+      dimensions: 768,
+      maxInputTokens: 2_048,
+      promptRevision: 1,
+    });
+  });
+
+  it("resolves its bare name to the local runtime", () => {
+    expect(findEmbeddingProfile("nomic-embed-text:v1.5")).toBe(nomic);
+  });
+
+  it("prefixes queries and documents with its retrieval tasks", () => {
+    expect(nomic.query("green software")).toBe("search_query: green software");
+    expect(nomic.document({ title: "Principles", content: "Body" })).toBe(
+      "search_document: Body",
+    );
+  });
+});

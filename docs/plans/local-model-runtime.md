@@ -11,14 +11,16 @@ In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 ha
 
 Embedding benchmark, 2026-10-31, through the real provider: the yeehaa rover corpus (`rizom-ai/professional-brain-content`, 237 entities, 0.9 MB; Obsidian templates, trash and traffic snapshots excluded), one cached `gpt-5.4-mini` question per entity, ranked by cosine over the whole corpus.
 
-| Model                           | recall@5 | MRR   | Full embed                      |
-| ------------------------------- | -------- | ----- | ------------------------------- |
-| `openai:text-embedding-3-small` | 0.941    | 0.777 | 7.4 s                           |
-| `local:embeddinggemma-2:270m`   | 0.945    | 0.815 | 89.8 s (CPU, 16 threads, Zen 5) |
+| Model                           | recall@5 | MRR   | Full embed: CPU, 16 threads | Full embed: Radeon 8060S (Vulkan) |
+| ------------------------------- | -------- | ----- | --------------------------- | --------------------------------- |
+| `openai:text-embedding-3-small` | 0.941    | 0.777 | 7.4 s (API)                 | 34.4 s (API)                      |
+| `local:embeddinggemma-2:270m`   | 0.945    | 0.815 | 89.8 s                      | 18.2 s                            |
+| `local:nomic-embed-text:v1.5`   | 0.907    | 0.752 | —                           | 11.4 s                            |
 
 - Quality gate holds: Gemma MRR 0.815 ≥ 0.777 − 0.02, with 2,048-token chunks.
+- `nomic-embed-text` (137M, Nomic) is 0.06 MRR below EmbeddingGemma 2, outside the 0.02 margin, so EmbeddingGemma 2 is the proof-of-concept embedder; the nomic row shows the embedder is replaceable by config. The Vulkan run scored Gemma at recall@5 0.949, MRR 0.814.
 - Runtime RSS: 560 MB with the model loaded (Ollama 0.40.11 runner 506 MB, server 53 MB).
-- Throughput gate fails for the largest production brain: Karl's corpus is 28.5 MB (5,733 entities), about 47 minutes at the measured 10 KB/s on a 16-thread development CPU, before the fleet's smaller servers. The fleet server type (`HCLOUD_SERVER_TYPE`) is not yet measured.
+- Throughput gate fails for the largest production brain on CPU: Karl's corpus is 28.5 MB (5,733 entities), about 47 minutes at the measured 10 KB/s on 16 CPU threads, before the fleet's smaller servers; about 10 minutes on the Z13's iGPU. The fleet server type (`HCLOUD_SERVER_TYPE`) is not yet measured.
 
 Agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:8b` on Ollama 0.40.11 with Vulkan on the Z13's Radeon 8060S:
 
@@ -73,11 +75,10 @@ By the deadline: a proof of concept. A separate brain, not the team brain or any
 
 By 2026-11-06, on the Z13 unless stated; numbers go in Status.
 
-1. Add a `nomic-embed-text` profile with its tests, run the embedding benchmark through the real provider, and add its row to the table.
-2. Run the headless suite on `qwen3:14b` and `qwen3:32b`, schema-constrained, next to the default; record pass rate and average duration.
-3. Find why `qwen3:8b` passes the wrong `system_create` `source.kind` in the private-note cases; if the tool schema or instructions mislead it, fix them and rerun the headless suite before choosing a larger model.
-4. Boot a brain with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`: a test proves it boots, indexes and answers a chat turn with no cloud provider configured; fix whatever still requires a key.
-5. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
+1. Run the headless suite on `qwen3:14b` and `qwen3:32b`, schema-constrained, next to the default; record pass rate and average duration.
+2. Find why `qwen3:8b` passes the wrong `system_create` `source.kind` in the private-note cases; if the tool schema or instructions mislead it, fix them and rerun the headless suite before choosing a larger model.
+3. Boot a brain with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`: a test proves it boots, indexes and answers a chat turn with no cloud provider configured; fix whatever still requires a key.
+4. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
 
 ## Phase 3 — Fleet rollout
 

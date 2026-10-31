@@ -122,6 +122,7 @@ export function selectImageProvider(model?: string): ResolvedModelProvider {
 const EMBEDDING_MODEL_PATTERNS: Array<[RegExp, string]> = [
   [/^text-embedding-/, "openai"],
   [/^embeddinggemma/, "local"],
+  [/^nomic-embed/, "local"],
 ];
 
 /**
