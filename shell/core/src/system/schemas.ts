@@ -360,12 +360,12 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Resolved source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder.",
+                "Resolved source entity ID from a prior tool result or typed entity ref.",
               ),
           })
           .strict()
           .describe(
-            "Existing durable source entity to ground this generation. Use only resolved entity refs, not uploads, filenames, profile/brain-character context, conversation-only context, unknown sources, or guessed sources.",
+            "The resolved existing entity that grounds this generation.",
           ),
         prompt: z
           .string()
@@ -410,7 +410,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Existing target entity ID copied from a prior tool result or typed entity ref; never a placeholder or guessed future id",
+                "Existing target entity ID from a prior tool result or typed entity ref",
               ),
           })
           .strict()
@@ -438,12 +438,12 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Canonical source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder",
+                "Canonical source entity ID from a prior tool result or typed entity ref",
               ),
           })
           .strict()
           .describe(
-            "Existing durable entity whose attachment provider should render the artifact. Use only resolved entity refs, not uploads or conversation-only context.",
+            "The resolved existing entity whose attachment provider renders the artifact.",
           ),
         attachmentType: z
           .string()

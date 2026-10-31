@@ -111,7 +111,8 @@ describe("system_generate schema leaves the flow to the description", () => {
   it("keeps its field descriptions short", () => {
     const schema = JSON.stringify(z.toJSONSchema(generateInputSchema));
 
-    expect(schema.length).toBeLessThan(5_500);
+    expect(schema.length).toBeLessThan(4_900);
+    expect(schema).not.toContain("conversation-only context");
     expect(schema).not.toContain("replace:true");
     expect(schema).not.toContain("do not merely say you can generate it");
   });
@@ -138,6 +139,20 @@ describe("system tool descriptions name the cases models miss", () => {
   it("system_generate: a quoted cover target is used as given", () => {
     expect(description("system_generate")).toContain(
       "When a cover-image request names the target's exact id in quotes or a search/get resolves a clear target, call cover-image in the same turn",
+    );
+  });
+});
+
+// Each source branch and boundary field describes itself in the schema; the
+// description keeps only the choices between them.
+describe("system_create description leaves the source fields to the schema", () => {
+  it("does not restate each source branch or the lines boundary mode", () => {
+    const create = description("system_create");
+
+    expect(create).not.toContain("url for URL-first flows");
+    expect(create).not.toContain("For standalone delimiter lines");
+    expect(create).toContain(
+      "To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore",
     );
   });
 });
