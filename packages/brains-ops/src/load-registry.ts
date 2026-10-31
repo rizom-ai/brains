@@ -115,6 +115,7 @@ export interface ResolvedUserIdentity {
   profileKind?: string | undefined;
   anchorKind?: AnchorKind | undefined;
   embeddingEnabled?: boolean | undefined;
+  embeddingModel?: string | undefined;
   plugins?: UserConfig["plugins"];
   spaces?: string[] | undefined;
   topicExtractionEnabled?: boolean | undefined;
@@ -262,6 +263,7 @@ export function resolveUserIdentity(
       profileKind: user.profileKind,
       anchorKind: user.anchorKind,
       embeddingEnabled: user.embeddingEnabled,
+      embeddingModel: user.embeddingModel,
       spaces: user.spaces,
       plugins: user.plugins,
       topicExtractionEnabled: user.topicExtractionEnabled,

@@ -15,10 +15,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
 import { GenerationUsageMeter } from "../src/generation-usage-meter";
-import {
-  openAiEmbeddingPricingRevision,
-  noModelCallPricing,
-} from "../src/openai-guest-pricing";
+import { noModelCallPricing } from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
 import type { AgentConversationStore } from "../src/turn-processor";
@@ -563,7 +560,7 @@ describe("guest runtime boundary", () => {
           generationUsage,
           embeddingUsage,
           guestAskedBefore: async () => {
-            embeddingUsage.record("text-embedding-3-small", 1200);
+            embeddingUsage.record("openai:text-embedding-3-small", 1200);
             const call = generationUsage.begin("gpt-5.6-luna");
             if (!call) throw new Error("Missing generation measurement");
             if (outcome === "error")
@@ -640,7 +637,7 @@ describe("guest runtime boundary", () => {
       const embeddingUsage = EmbeddingUsageMeter.createFresh();
       const guestAskedBefore = mock(async () => {
         // Finding the FAQ embeds the question.
-        embeddingUsage.record("text-embedding-3-small", 12);
+        embeddingUsage.record("openai:text-embedding-3-small", 12);
         return askedBefore;
       });
       const h = harness(conversation, [], { guestAskedBefore, embeddingUsage });
@@ -652,7 +649,7 @@ describe("guest runtime boundary", () => {
       expect(response.guestSettlement?.usage.embeddingTokens).toBe(12);
       expect(response.guestSettlement?.cost).toMatchObject({
         state: "known",
-        pricing: `${noModelCallPricing}+${openAiEmbeddingPricingRevision}`,
+        pricing: `${noModelCallPricing}+openai-text-embedding-3-small-2026-09-30`,
       });
     });
 
@@ -723,13 +720,13 @@ describe("guest runtime boundary", () => {
     const embeddingUsage = EmbeddingUsageMeter.createFresh();
     const guestAnswerSources = mock(async () => {
       // Finding the answer's sources embeds the answer.
-      embeddingUsage.record("text-embedding-3-small", 40);
+      embeddingUsage.record("openai:text-embedding-3-small", 40);
       return [];
     });
     const h = harness(conversation, [], { guestAnswerSources, embeddingUsage });
     h.generate.mockImplementation(async () => {
       // The model's own search embeds its query.
-      embeddingUsage.record("text-embedding-3-small", 10);
+      embeddingUsage.record("openai:text-embedding-3-small", 10);
       return {
         text: "Public answer",
         steps: [],
@@ -748,7 +745,7 @@ describe("guest runtime boundary", () => {
       };
     });
     // Embeddings outside the turn are not its cost.
-    embeddingUsage.record("text-embedding-3-small", 1_000);
+    embeddingUsage.record("openai:text-embedding-3-small", 1_000);
     const response = await h.service.chat(
       "What is public?",
       conversation.id,
@@ -758,7 +755,7 @@ describe("guest runtime boundary", () => {
     expect(response.guestSettlement?.cost).toEqual({
       state: "known",
       microUsd: 10,
-      pricing: `test-revision+${openAiEmbeddingPricingRevision}`,
+      pricing: `test-revision+openai-text-embedding-3-small-2026-09-30`,
     });
   });
 

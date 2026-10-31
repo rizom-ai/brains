@@ -100,6 +100,7 @@ export const deployScriptNames = [
   "create-predeploy-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
+  "pull-local-models.ts",
   "update-dns.ts",
   "validate-secrets.ts",
   "write-kamal-secrets.ts",
@@ -133,6 +134,7 @@ const deployScriptFingerprints: Record<DeployScriptName, string> = {
   "create-predeploy-backup.ts": "brains-predeploy-backup-v1",
   "install-health-watchdog.ts": "/usr/local/sbin/brains-health-watchdog",
   "provision-server.ts": 'requireEnv("HCLOUD_TOKEN")',
+  "pull-local-models.ts": "export async function pullLocalModels",
   "update-dns.ts": 'requireEnv("CF_API_TOKEN")',
   "validate-secrets.ts": "const requiredKeys = schema",
   "write-kamal-secrets.ts": ".kamal/secrets",
@@ -202,7 +204,10 @@ RUN test -n "$BRAIN_VERSION" \\
 }
 
 export function renderKamalDeploy(options: KamalDeployTemplateOptions): string {
-  return kamalDeployTemplate.replace("__SERVICE_NAME__", options.serviceName);
+  return kamalDeployTemplate.replaceAll(
+    "__SERVICE_NAME__",
+    options.serviceName,
+  );
 }
 
 export const legacyStandaloneDeployYmlContents: readonly string[] = [
@@ -273,15 +278,32 @@ function normalizeOptionalWwwDeployHost(content: string): string {
   );
 }
 
+// Drops the LOCAL_MODELS ERB conditional blocks: the model runtime's URL and
+// its accessory. Copies generated before them otherwise match the template.
+export function withoutDeployModelRuntime(content: string): string {
+  return content.replace(
+    /^ *# <% if ENV\['LOCAL_MODELS'\] && !ENV\['LOCAL_MODELS'\]\.empty\? %>\n[\s\S]*?^ *# <% end %>\n\n?/gm,
+    "",
+  );
+}
+
 export function isStaleDeployMounts(
   current: string,
   serviceName: string,
   normalize: (content: string) => string = (content) => content,
 ): boolean {
-  const normalizedCurrent = normalizeOptionalWwwDeployHost(normalize(current));
-  const normalizedTemplate = normalizeOptionalWwwDeployHost(
-    normalize(renderKamalDeploy({ serviceName })),
+  const template = renderKamalDeploy({ serviceName });
+  const isTemplate =
+    normalizeOptionalWwwDeployHost(normalize(current)) ===
+    normalizeOptionalWwwDeployHost(normalize(template));
+  // Earlier vintages predate the model runtime blocks; compare without them.
+  const normalizedCurrent = normalizeOptionalWwwDeployHost(
+    normalize(withoutDeployModelRuntime(current)),
   );
+  const normalizedTemplate = normalizeOptionalWwwDeployHost(
+    normalize(withoutDeployModelRuntime(template)),
+  );
+  if (!isTemplate && normalizedCurrent === normalizedTemplate) return true;
 
   const hasAllRequiredMounts = REQUIRED_DEPLOY_MOUNTS.every((mount) =>
     normalizedCurrent.includes(mount),

@@ -1,6 +1,7 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { ImageModel, LanguageModel } from "ai";
 import type { AIModelConfig } from "./types";
 import { resolveTextProvider, selectTextProvider } from "./provider-selection";
@@ -9,6 +10,7 @@ export interface ProviderClients {
   anthropicProvider: typeof anthropic;
   openaiProvider: ReturnType<typeof createOpenAI> | null;
   googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null;
+  localProvider: ReturnType<typeof createOpenAICompatible> | null;
 }
 
 export function createProviderClients(config: AIModelConfig): ProviderClients {
@@ -34,7 +36,28 @@ export function createProviderClients(config: AIModelConfig): ProviderClients {
         : imageApiKey
           ? createGoogleGenerativeAI({ apiKey: imageApiKey })
           : null,
+    localProvider: config.modelRuntimeUrl
+      ? createLocalRuntimeClient(config.modelRuntimeUrl)
+      : null,
   };
+}
+
+/**
+ * The model runtime's client: its OpenAI-compatible API at `modelRuntime.url`,
+ * whatever server sits behind it.
+ */
+export function createLocalRuntimeClient(
+  url: string,
+  fetchImpl?: typeof fetch,
+): ReturnType<typeof createOpenAICompatible> {
+  return createOpenAICompatible({
+    name: "local",
+    baseURL: `${url.replace(/\/+$/, "")}/v1`,
+    // Send the JSON schema of object generation, so the runtime constrains
+    // the output to it rather than trusting the model to follow the prompt.
+    supportsStructuredOutputs: true,
+    ...(fetchImpl ? { fetch: fetchImpl } : {}),
+  });
 }
 
 export function getLanguageModel(
@@ -49,6 +72,13 @@ export function getLanguageModel(
 
   if (resolvedModel.provider === "google" && clients.googleProvider) {
     return clients.googleProvider(resolvedModel.modelId);
+  }
+
+  if (resolvedModel.provider === "local") {
+    if (!clients.localProvider) {
+      throw new Error(`${model} needs modelRuntime.url`);
+    }
+    return clients.localProvider.chatModel(resolvedModel.modelId);
   }
 
   return clients.anthropicProvider(resolvedModel.modelId);

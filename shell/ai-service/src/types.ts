@@ -21,6 +21,8 @@ export interface AIModelConfig {
   webSearch?: boolean;
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */
   reasoningEffort?: ReasoningEffort;
+  /** The model runtime serving `local:` models. */
+  modelRuntimeUrl?: string;
 }
 
 export type AIModelConfigUpdate = Partial<AIModelConfig>;

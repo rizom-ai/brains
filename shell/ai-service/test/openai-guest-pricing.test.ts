@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 import type { LanguageModelUsage } from "ai";
 import {
   guestTurnSettlement,
-  openAiEmbeddingPricingRevision,
   openAiGuestPricing,
   withEmbeddingUsage,
   type GuestPricing,
@@ -16,7 +15,19 @@ function pricingFor(model: string): GuestPricing {
 
 const priceGpt56LunaTurn = pricingFor("gpt-5.6-luna");
 const priceGpt6LunaTurn = pricingFor("gpt-6-luna");
+
+describe("guest pricing by model", () => {
+  it("prices an OpenAI model named with its provider prefix", () => {
+    expect(openAiGuestPricing("openai:gpt-6-luna")).toBeDefined();
+  });
+
+  it("does not price another provider's model of the same name", () => {
+    expect(openAiGuestPricing("google:gpt-6-luna")).toBeUndefined();
+  });
+});
 const gpt56LunaRevision = "openai-gpt-5.6-luna-2026-09-26";
+const smallEmbeddingRevision = "openai-text-embedding-3-small-2026-09-30";
+const largeEmbeddingRevision = "openai-text-embedding-3-large-2026-10-31";
 
 function stepUsage(
   input: number,
@@ -237,8 +248,8 @@ describe("a guest turn's embeddings in its settlement", () => {
 
   it("counts the tokens and adds them at text-embedding-3-small's rate", () => {
     const withEmbeddings = withEmbeddingUsage(settled, [
-      { model: "text-embedding-3-small", tokens: 30_000 },
-      { model: "text-embedding-3-small", tokens: 20_000 },
+      { model: "openai:text-embedding-3-small", tokens: 30_000 },
+      { model: "openai:text-embedding-3-small", tokens: 20_000 },
     ]);
     expect(withEmbeddings.usage.embeddingTokens).toBe(50_000);
     // $0.02 per 1M tokens: 50,000 tokens are 1,000 micro-dollars.
@@ -246,22 +257,48 @@ describe("a guest turn's embeddings in its settlement", () => {
       state: "known",
       microUsd:
         settled.cost.state === "known" ? settled.cost.microUsd + 1_000 : -1,
-      pricing: `${gpt56LunaRevision}+${openAiEmbeddingPricingRevision}`,
+      pricing: `${gpt56LunaRevision}+${smallEmbeddingRevision}`,
     });
   });
 
   it("rounds a fraction of a micro-dollar up, never down", () => {
     const withEmbeddings = withEmbeddingUsage(settled, [
-      { model: "text-embedding-3-small", tokens: 3 },
+      { model: "openai:text-embedding-3-small", tokens: 3 },
     ]);
     expect(withEmbeddings.cost).toMatchObject({
       microUsd: settled.cost.state === "known" ? settled.cost.microUsd + 1 : -1,
     });
   });
 
+  it("adds text-embedding-3-large at its own rate and revision", () => {
+    const withEmbeddings = withEmbeddingUsage(settled, [
+      { model: "openai:text-embedding-3-large", tokens: 10_000 },
+      { model: "openai:text-embedding-3-small", tokens: 50_000 },
+    ]);
+    // $0.13 per 1M: 1,300 micro-dollars; $0.02 per 1M: 1,000 micro-dollars.
+    expect(withEmbeddings.cost).toEqual({
+      state: "known",
+      microUsd:
+        settled.cost.state === "known" ? settled.cost.microUsd + 2_300 : -1,
+      pricing: `${gpt56LunaRevision}+${largeEmbeddingRevision}+${smallEmbeddingRevision}`,
+    });
+  });
+
+  it("adds nothing for embeddings from the local model runtime", () => {
+    const withEmbeddings = withEmbeddingUsage(settled, [
+      { model: "local:embeddinggemma-2:270m", tokens: 40_000 },
+    ]);
+    expect(withEmbeddings.usage.embeddingTokens).toBe(40_000);
+    expect(withEmbeddings.cost).toEqual({
+      state: "known",
+      microUsd: settled.cost.state === "known" ? settled.cost.microUsd : -1,
+      pricing: `${gpt56LunaRevision}+local-runtime`,
+    });
+  });
+
   it("leaves cost unknown for an embedding model without pricing, still counting its tokens", () => {
     const withEmbeddings = withEmbeddingUsage(settled, [
-      { model: "text-embedding-3-large", tokens: 100 },
+      { model: "acme:embedder", tokens: 100 },
     ]);
     expect(withEmbeddings.usage.embeddingTokens).toBe(100);
     expect(withEmbeddings.cost).toEqual({
@@ -274,7 +311,7 @@ describe("a guest turn's embeddings in its settlement", () => {
     const unknown = guestTurnSettlement([{}], priceGpt56LunaTurn);
     expect(
       withEmbeddingUsage(unknown, [
-        { model: "text-embedding-3-small", tokens: 10 },
+        { model: "openai:text-embedding-3-small", tokens: 10 },
       ]).cost,
     ).toEqual(unknown.cost);
   });

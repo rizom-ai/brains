@@ -1,6 +1,10 @@
 import { createMockEntityService, createTestEntity } from "../src/test/index";
-import { describe, expect, test, beforeEach } from "bun:test";
-import { createMockProgressReporter } from "@brains/test-utils";
+import { describe, expect, test, beforeEach, spyOn } from "bun:test";
+import {
+  createMockLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { EmbeddingJobHandler } from "../src/handlers/embeddingJobHandler";
 import type {
   EntityService as IEntityService,
@@ -149,5 +153,96 @@ describe("EmbeddingJobHandler", () => {
 
       expect(service.storeEmbedding).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("EmbeddingJobHandler usage", () => {
+  test("logs usage under the embedding service's provider and model", async () => {
+    const logger = createMockLogger();
+    const child = spyOn(ConsoleLogger.getInstance(), "child").mockReturnValue(
+      logger,
+    );
+    const currentEntity = createTestEntity<BaseEntity>("note", {
+      id: "large",
+      content: "content",
+    });
+    const handler = EmbeddingJobHandler.createFresh(
+      createEntityServiceStub(async () => currentEntity),
+      {
+        ...mockEmbeddingService,
+        identity: {
+          model: "openai:text-embedding-3-large",
+          dimensions: 3072,
+          promptRevision: 0,
+        },
+      },
+    );
+    child.mockRestore();
+
+    await handler.process(
+      {
+        id: "large",
+        entityType: "note",
+        contentHash: currentEntity.contentHash,
+        operation: "create",
+      },
+      "job-usage",
+      mockProgressReporter,
+    );
+
+    expect(logger.info).toHaveBeenCalledWith("ai:usage", {
+      operation: "embedding",
+      provider: "openai",
+      model: "text-embedding-3-large",
+      inputTokens: 10,
+      outputTokens: 0,
+    });
+  });
+});
+
+describe("EmbeddingJobHandler documents", () => {
+  async function embeddedDocuments(entity: BaseEntity): Promise<unknown[]> {
+    const embedDocuments = spyOn(mockEmbeddingService, "embedDocuments");
+    try {
+      const handler = EmbeddingJobHandler.createFresh(
+        createEntityServiceStub(async () => entity),
+        mockEmbeddingService,
+      );
+      await handler.process(
+        {
+          id: entity.id,
+          entityType: entity.entityType,
+          contentHash: entity.contentHash,
+          operation: "update",
+        },
+        "job-documents",
+        mockProgressReporter,
+      );
+      return embedDocuments.mock.calls.map(([documents]) => documents);
+    } finally {
+      embedDocuments.mockRestore();
+    }
+  }
+
+  test("embeds the entity as a document titled with its title", async () => {
+    const entity = createTestEntity<BaseEntity>("note", {
+      id: "titled",
+      content: "Body of the note",
+      metadata: { title: "Principles" },
+    });
+    expect(await embeddedDocuments(entity)).toEqual([
+      [{ title: "Principles", content: "Body of the note" }],
+    ]);
+  });
+
+  test("embeds an untitled entity without a title", async () => {
+    const entity = createTestEntity<BaseEntity>("note", {
+      id: "untitled",
+      content: "Body of the note",
+      metadata: {},
+    });
+    expect(await embeddedDocuments(entity)).toEqual([
+      [{ content: "Body of the note" }],
+    ]);
   });
 });

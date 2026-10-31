@@ -550,6 +550,18 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}",
     );
+    expect(deployWorkflow).toContain(
+      "LOCAL_MODELS: ${{ steps.user_config.outputs.local_models }}",
+    );
+    const pullIndex = deployWorkflow.indexOf(
+      "bun deploy/scripts/pull-local-models.ts",
+    );
+    expect(pullIndex).toBeGreaterThan(-1);
+    expect(pullIndex).toBeLessThan(
+      deployWorkflow.indexOf(
+        "kamal setup --skip-push -c deploy/kamal/deploy.yml",
+      ),
+    );
     const backupIndex = deployWorkflow.indexOf(
       "bun deploy/scripts/create-predeploy-backup.ts",
     );

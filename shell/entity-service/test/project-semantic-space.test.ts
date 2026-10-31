@@ -96,7 +96,7 @@ describe("projectSemanticSpace", () => {
     vector[0] = 1;
     const provider = spyOn(
       mockEmbeddingService,
-      "generateEmbedding",
+      "embedQuery",
     ).mockResolvedValue({ embedding: vector, usage: { tokens: 1 } });
     try {
       const results = await ctx.entityService.search({

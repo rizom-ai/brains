@@ -128,6 +128,8 @@ function applyAIConfig(
     !config.aiApiKey &&
     !config.aiImageKey &&
     !config.aiModel &&
+    !config.aiEmbeddingModel &&
+    !config.aiModelRuntimeUrl &&
     !config.aiReasoningEffort &&
     !isStartupCheck
   ) {
@@ -143,6 +145,12 @@ function applyAIConfig(
       imageApiKey: config.aiImageKey,
     }),
     ...(config.aiModel && { model: config.aiModel }),
+    ...(config.aiEmbeddingModel && {
+      embeddingModel: config.aiEmbeddingModel,
+    }),
+    ...(config.aiModelRuntimeUrl && {
+      modelRuntimeUrl: config.aiModelRuntimeUrl,
+    }),
     ...(config.aiReasoningEffort && {
       reasoningEffort: config.aiReasoningEffort,
     }),

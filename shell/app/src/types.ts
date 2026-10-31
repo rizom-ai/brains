@@ -114,6 +114,8 @@ type AppConfigSchema = z.ZodObject<{
   aiApiKey: z.ZodOptional<z.ZodString>;
   aiImageKey: z.ZodOptional<z.ZodString>;
   aiModel: z.ZodOptional<z.ZodString>;
+  aiEmbeddingModel: z.ZodOptional<z.ZodString>;
+  aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
   aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
@@ -134,6 +136,8 @@ export const appConfigSchema: AppConfigSchema = z.object({
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   aiImageKey: z.string().optional(), // Optional override for image generation
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
+  aiEmbeddingModel: z.string().optional(), // Embedding model, "provider:model"
+  aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file

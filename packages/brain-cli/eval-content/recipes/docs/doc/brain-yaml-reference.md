@@ -150,6 +150,35 @@ model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
 ```
 
+An explicit `provider:` prefix selects the provider; a bare name is matched to one. Supported providers are `anthropic`, `openai` and `google`; any other prefix fails config validation.
+
+### `embeddingModel`
+
+Select the model that builds the semantic index. Defaults to `openai:text-embedding-3-small`; `openai:text-embedding-3-large` and `local:embeddinggemma-2:270m` are also supported, and any other model fails config validation.
+
+```yaml
+embeddingModel: openai:text-embedding-3-large
+```
+
+A `local:` model is served by the model runtime at `modelRuntime.url`: any server that implements the OpenAI-compatible `/v1/embeddings` API, such as Ollama. A `local:` model without `modelRuntime.url` fails config validation.
+
+```yaml
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+A deployed brain needs no `modelRuntime.url`: when `brain.yaml` names a `local:` model, the generated Kamal deploy pulls it into `/opt/brain-models` on the server, runs a `models` accessory beside the brain and gives the brain its address. A brain without a `local:` model deploys without the accessory.
+
+To run EmbeddingGemma 2 on a development machine:
+
+```sh
+ollama pull embeddinggemma-2:270m
+ollama serve
+```
+
+Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.
+
 ### `embedding`
 
 Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.

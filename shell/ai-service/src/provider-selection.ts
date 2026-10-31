@@ -16,10 +16,10 @@ const MODEL_PATTERNS: Array<[RegExp, string]> = [
   [/^gpt-/, "openai"],
   [/^o[13]-/, "openai"],
   [/^gemini/, "google"],
-  [/^llama/, "ollama"],
-  [/^mistral/, "ollama"],
-  [/^phi-/, "ollama"],
-  [/^qwen/, "ollama"],
+  [/^llama/, "local"],
+  [/^mistral/, "local"],
+  [/^phi-/, "local"],
+  [/^qwen/, "local"],
 ];
 
 /**
@@ -46,14 +46,31 @@ function parseProviderPrefix(model: string): ResolvedModelProvider | null {
  * - Explicit prefix: "openai:gpt-4o-mini" → { provider: "openai", modelId: "gpt-4o-mini" }
  */
 export function resolveTextProvider(model: string): ResolvedModelProvider {
-  const explicit = parseProviderPrefix(model);
-  if (explicit) return explicit;
-
+  // Known names match first: a runtime's model tags carry colons
+  // ("qwen3:4b") that are not provider prefixes.
   for (const [pattern, provider] of MODEL_PATTERNS) {
     if (pattern.test(model)) return { provider, modelId: model };
   }
 
-  return { provider: "anthropic", modelId: model };
+  return (
+    parseProviderPrefix(model) ?? { provider: "anthropic", modelId: model }
+  );
+}
+
+/** Text providers the brain has a client for. */
+const TEXT_PROVIDERS: ReadonlySet<string> = new Set([
+  "anthropic",
+  "openai",
+  "google",
+  "local",
+]);
+
+/**
+ * Whether a text model resolves to a provider the brain can call. An unknown
+ * provider is a config error, never a silent fallback to Anthropic.
+ */
+export function isSupportedTextModel(model: string): boolean {
+  return TEXT_PROVIDERS.has(resolveTextProvider(model).provider);
 }
 
 /**
@@ -97,6 +114,29 @@ export function selectImageProvider(model?: string): ResolvedModelProvider {
   }
 
   return { provider: "openai", modelId: model };
+}
+
+/**
+ * Embedding model patterns → provider auto-detection.
+ */
+const EMBEDDING_MODEL_PATTERNS: Array<[RegExp, string]> = [
+  [/^text-embedding-/, "openai"],
+  [/^embeddinggemma/, "local"],
+];
+
+/**
+ * Resolve the provider and SDK model ID of an embedding model; null when a
+ * bare name matches no known provider. Known names match first: a runtime's
+ * model tags carry colons ("embeddinggemma-2:270m") that are not prefixes.
+ */
+export function resolveEmbeddingProvider(
+  model: string,
+): ResolvedModelProvider | null {
+  for (const [pattern, provider] of EMBEDDING_MODEL_PATTERNS) {
+    if (pattern.test(model)) return { provider, modelId: model };
+  }
+
+  return parseProviderPrefix(model);
 }
 
 const NO_TEMPERATURE_PATTERN = /^(gpt-(?:5|6)|o[1-9])(?:[.-]|$)/;

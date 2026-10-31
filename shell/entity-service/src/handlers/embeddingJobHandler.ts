@@ -8,6 +8,7 @@ import type {
   EntityEventBus,
 } from "../types";
 import type { IEmbeddingService } from "../embedding-types";
+import { entityTitle } from "../frontmatter";
 import type { JobHandler } from "@brains/job-queue";
 import { internalFullScope } from "../internal-scope";
 /**
@@ -20,6 +21,11 @@ const embeddingJobDataSchema = z.object({
   contentHash: z.string().min(1, "Content hash is required"),
   operation: z.enum(["create", "update"]),
 });
+
+function splitModel(qualified: string): [string, string] {
+  const colon = qualified.indexOf(":");
+  return [qualified.slice(0, colon), qualified.slice(colon + 1)];
+}
 
 /**
  * Job handler for embedding generation
@@ -106,15 +112,27 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         return;
       }
 
-      // Generate embedding using fresh content from entity
-      const { embedding, usage } =
-        await this.embeddingService.generateEmbedding(currentEntity.content);
+      // Embed the fresh content as a document, titled when the entity is
+      const title = entityTitle(currentEntity);
+      const {
+        embeddings: [embedding],
+        usage,
+      } = await this.embeddingService.embedDocuments([
+        {
+          ...(title !== null ? { title } : {}),
+          content: currentEntity.content,
+        },
+      ]);
+      if (!embedding) throw new Error("Embedding provider returned no vector");
 
-      // Log usage event for monitoring
+      // Log usage event for monitoring; identity names `provider:model`
+      const [provider, model] = splitModel(
+        this.embeddingService.identity.model,
+      );
       this.logger.info("ai:usage", {
         operation: "embedding",
-        provider: "openai",
-        model: "text-embedding-3-small",
+        provider,
+        model,
         inputTokens: usage.tokens,
         outputTokens: 0,
       });

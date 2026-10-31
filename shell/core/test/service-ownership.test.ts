@@ -77,12 +77,12 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
 const logger = createSilentLogger("service-ownership");
 
 const embeddingService: IEmbeddingService = {
-  dimensions: 1536,
-  generateEmbedding: async () => ({
+  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+  embedQuery: async () => ({
     embedding: new Float32Array(1536).fill(0.1),
     usage: { tokens: 1 },
   }),
-  generateEmbeddings: async (texts) => ({
+  embedDocuments: async (texts) => ({
     embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
     usage: { tokens: texts.length },
   }),

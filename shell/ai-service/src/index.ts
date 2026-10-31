@@ -8,11 +8,19 @@
 export { AIService } from "./aiService";
 export { AIOutputValidationError } from "./errors";
 export {
+  isSupportedTextModel,
   resolveTextProvider,
   selectTextProvider,
   selectImageProvider,
 } from "./provider-selection";
 export type { ResolvedModelProvider } from "./provider-selection";
+export {
+  DEFAULT_EMBEDDING_MODEL,
+  findEmbeddingProfile,
+  resolveEmbeddingProfile,
+  unsupportedEmbeddingModelMessage,
+} from "./embedding-profiles";
+export type { EmbeddingProfile } from "./embedding-profiles";
 
 // Re-export from ai SDK
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";

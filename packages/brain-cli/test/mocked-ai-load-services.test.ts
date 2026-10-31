@@ -19,11 +19,11 @@ describe("mocked feature-load services", () => {
 
     const [embedding, updateEmbedding, secondUpdateEmbedding, generated] =
       await Promise.all([
-        embeddings.generateEmbedding(MOCK_LOAD_PROBE_MARKER),
-        embeddings.generateEmbedding(
+        embeddings.embedQuery(MOCK_LOAD_PROBE_MARKER),
+        embeddings.embedQuery(
           `${MOCK_LOAD_PROBE_MARKER} ${MOCK_LOAD_UPDATE_MARKER}`,
         ),
-        embeddings.generateEmbedding(
+        embeddings.embedQuery(
           `${MOCK_LOAD_PROBE_MARKER} ${MOCK_LOAD_UPDATE_MARKER} second`,
         ),
         ai.generateObject(

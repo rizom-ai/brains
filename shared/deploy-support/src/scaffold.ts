@@ -38,6 +38,13 @@ raise "Missing brain in brain.yaml" if brain_model.nil? || brain_model.to_s.stri
 raise "Missing domain in brain.yaml" if brain_domain.nil? || brain_domain.to_s.strip.empty?
 
 brain_domain = brain_domain.to_s.strip
+# The models a local runtime serves: brain.yaml's local: models, unprefixed.
+local_models = [config["embeddingModel"], config["model"]]
+  .map(&:to_s)
+  .select { |model| model.start_with?("local:") }
+  .map { |model| model.delete_prefix("local:") }
+  .uniq
+  .join(",")
 labels = brain_domain.split(".")
 preview_domain = "preview.#{brain_domain}"
 www_domain = if labels.length == 2
@@ -70,6 +77,7 @@ File.open(github_env, "a") do |file|
   file.puts("WWW_DOMAIN=#{www_domain}")
   file.puts("IMAGE_REPOSITORY=ghcr.io/#{registry_username}/#{repository_name}")
   file.puts("REGISTRY_USERNAME=#{registry_username}")
+  file.puts("LOCAL_MODELS=#{local_models}")
 end
 `;
 }
@@ -374,6 +382,13 @@ ${workflowSecretsEnv}
           TARGET_VERSION: \${{ github.event.workflow_run.head_sha || github.sha }}
           SERVICE_NAME: brain
         run: bun deploy/scripts/create-predeploy-backup.ts
+
+      - name: Pull local models
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')" \\
+            bun deploy/scripts/pull-local-models.ts
 
       - name: Release stale Kamal deploy lock
         env:

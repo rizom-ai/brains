@@ -3,6 +3,7 @@ import {
   EmbeddingUsageMeter,
   GenerationUsageMeter,
   OnlineEmbeddingProvider,
+  resolveEmbeddingProfile,
 } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { createGenerationAuthorizer } from "./generation-authorization";
@@ -102,6 +103,8 @@ export function createShellServices(options: {
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
       apiKey: config.ai.apiKey,
+      profile: resolveEmbeddingProfile(config.ai.embeddingModel),
+      runtimeUrl: config.ai.modelRuntimeUrl,
       logger,
       usage: embeddingUsage,
     });

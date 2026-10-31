@@ -74,7 +74,7 @@ import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { RetryScope } from "@brains/utils/retry-backoff";
-import type { IEmbeddingService } from "./embedding-types";
+import type { EmbeddingIdentity, IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
@@ -352,7 +352,7 @@ export class EntityService implements IEntityService {
       // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
       this.dbInitPromise = this.initializeDatabase(
         options.embeddingDbConfig,
-        options.embeddingService.dimensions,
+        options.embeddingService.identity,
       );
       // Failures surface in initialize(); this no-op handler only prevents an
       // unhandled rejection in the window before initialize() awaits.
@@ -400,7 +400,7 @@ export class EntityService implements IEntityService {
 
   private async initializeDatabase(
     embeddingDbConfig: EntityDbConfig,
-    embeddingDimensions: number,
+    embeddingIdentity: EmbeddingIdentity,
   ): Promise<void> {
     // WAL pragmas are a performance setting — failure is non-fatal
     try {
@@ -431,7 +431,16 @@ export class EntityService implements IEntityService {
     // Everything below is required for search/embedding correctness —
     // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
-    await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
+    const migration = await migrateEmbeddingDatabase(
+      this.embeddingDbClient,
+      embeddingIdentity,
+    );
+    if (migration.rebuilt) {
+      this.logger.info("Embedding model changed; rebuilding the index", {
+        from: migration.previous,
+        to: embeddingIdentity,
+      });
+    }
     await attachEmbeddingDatabase(
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),

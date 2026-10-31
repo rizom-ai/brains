@@ -11,6 +11,7 @@ import type {
 import type {
   BatchEmbeddingResult,
   EmbeddingResult,
+  EmbeddingIdentity,
   IEmbeddingService,
 } from "@brains/entity-service";
 import { MockLanguageModelV3 } from "ai/test";
@@ -158,17 +159,21 @@ async function delay(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 export class MockLoadEmbeddingService implements IEmbeddingService {
-  readonly dimensions: number;
+  readonly identity: EmbeddingIdentity;
   private readonly tracker: MockLoadTracker;
   private readonly delayMs: number;
 
   constructor(tracker: MockLoadTracker, options: MockLoadEmbeddingOptions) {
     this.tracker = tracker;
     this.delayMs = options.delayMs;
-    this.dimensions = options.dimensions;
+    this.identity = {
+      model: "test:mock-load",
+      dimensions: options.dimensions,
+      promptRevision: 0,
+    };
   }
 
-  async generateEmbedding(
+  async embedQuery(
     text: string,
     signal?: AbortSignal,
   ): Promise<EmbeddingResult> {
@@ -180,7 +185,7 @@ export class MockLoadEmbeddingService implements IEmbeddingService {
     try {
       await delay(this.delayMs, signal);
       return {
-        embedding: new Float32Array(this.dimensions).fill(0.01),
+        embedding: new Float32Array(this.identity.dimensions).fill(0.01),
         usage: { tokens: 1 },
       };
     } finally {
@@ -188,8 +193,8 @@ export class MockLoadEmbeddingService implements IEmbeddingService {
     }
   }
 
-  async generateEmbeddings(
-    texts: string[],
+  async embedDocuments(
+    texts: { content: string }[],
     signal?: AbortSignal,
   ): Promise<BatchEmbeddingResult> {
     if (texts.length === 0) {
@@ -197,7 +202,7 @@ export class MockLoadEmbeddingService implements IEmbeddingService {
     }
     const embeddings: Float32Array[] = [];
     for (const text of texts) {
-      const result = await this.generateEmbedding(text, signal);
+      const result = await this.embedQuery(text.content, signal);
       embeddings.push(result.embedding);
     }
     return { embeddings, usage: { tokens: texts.length } };

@@ -94,9 +94,9 @@ describe("EntitySearch weight behavior", () => {
       new TestAdapter("deck"),
     );
 
-    // generateEmbedding is the whole surface search uses.
+    // embedQuery is the whole surface search uses.
     const mockEmbeddingService = {
-      generateEmbedding: mock(() =>
+      embedQuery: mock(() =>
         Promise.resolve({
           embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
           usage: { tokens: 10 },

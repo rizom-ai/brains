@@ -25,6 +25,20 @@ if (!brainDomain) {
   throw new Error(`Missing domain in ${brainYamlPath}`);
 }
 
+// The models the runtime beside the brain serves: brain.yaml's local:
+// models, unprefixed. None means the deploy runs no runtime.
+const localModels = [
+  ...new Set(
+    [
+      ...brainYaml.matchAll(
+        /^(?:embeddingModel|model):\s*['"]?local:([^'"\s]+)/gm,
+      ),
+    ]
+      .map((match) => match[1] ?? "")
+      .filter(Boolean),
+  ),
+].join(",");
+
 const registry = await loadPilotRegistry(process.cwd());
 const user = registry.users.find((entry) => entry.handle === handle);
 if (!user) {
@@ -69,6 +83,7 @@ const outputs: Record<string, string> = {
   image_repository: `ghcr.io/${repository}`,
   image_tag: imageTag,
   registry_username: repositoryOwner,
+  local_models: localModels,
 };
 
 const required = ["brain_version", "registry_username"];

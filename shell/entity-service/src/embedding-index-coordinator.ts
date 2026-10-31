@@ -59,6 +59,8 @@ interface EmbeddingBackfillCandidates extends EmbeddingIndexStats {
   tableMissing: boolean;
   skipped: number;
   rowsToBackfill: EmbeddingBackfillCandidate[];
+  /** Entities whose embedding failed for good at their current content. */
+  failedRows: EmbeddingBackfillCandidate[];
 }
 
 export interface EnqueueEmbeddingInput
@@ -147,9 +149,14 @@ export class EmbeddingIndexCoordinator {
       return { queued: 0, skipped: 0 };
     }
 
+    // The backfill runs at start: an embedding that failed for good, as in a
+    // provider outage, is retried once per start.
     let queued = 0;
-    let skipped = candidates.skipped;
-    for (const row of candidates.rowsToBackfill) {
+    let skipped = candidates.skipped - candidates.failedRows.length;
+    for (const row of [
+      ...candidates.rowsToBackfill,
+      ...candidates.failedRows,
+    ]) {
       const result = await this.enqueue({
         entityId: row.id,
         entityType: row.entityType,
@@ -273,6 +280,7 @@ export class EmbeddingIndexCoordinator {
         tableMissing: true,
         skipped: 0,
         rowsToBackfill: [],
+        failedRows: [],
         missingEmbeddings: 0,
         staleEmbeddings: 0,
         failedEmbeddings: 0,
@@ -303,6 +311,7 @@ export class EmbeddingIndexCoordinator {
     }
 
     const rowsToBackfill: EmbeddingBackfillCandidate[] = [];
+    const failedRows: EmbeddingBackfillCandidate[] = [];
     let skipped = 0;
     let missingEmbeddings = 0;
     let staleEmbeddings = 0;
@@ -331,6 +340,7 @@ export class EmbeddingIndexCoordinator {
         if (hasTerminalFailure) {
           failedEmbeddings++;
           skipped++;
+          failedRows.push(row);
         } else {
           missingEmbeddings++;
           rowsToBackfill.push(row);
@@ -342,6 +352,7 @@ export class EmbeddingIndexCoordinator {
         if (hasTerminalFailure) {
           failedEmbeddings++;
           skipped++;
+          failedRows.push(row);
         } else {
           staleEmbeddings++;
           rowsToBackfill.push(row);
@@ -357,6 +368,7 @@ export class EmbeddingIndexCoordinator {
       tableMissing: false,
       skipped,
       rowsToBackfill,
+      failedRows,
       missingEmbeddings,
       staleEmbeddings,
       failedEmbeddings,
