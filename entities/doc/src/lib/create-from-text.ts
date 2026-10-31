@@ -66,8 +66,8 @@ export async function createDocFromText(
   if (!section) {
     return entityTextError(
       sections.length === 0
-        ? "There are no docs yet, so the page has no section to join. Ask the user which section it belongs in, then call system_create again with the same source (the user-message with its messageId) and fields { section }."
-        : `Ask the user which section the page belongs in (${sections.map((name) => `"${name}"`).join(", ")}, or a new one), then call system_create again with the same source (the user-message with its messageId) and fields { section }.`,
+        ? "Which section does this page belong in? There are no docs yet to file it with. (Save it again from the same user message, with fields { section }.)"
+        : `Which section does this page belong in: ${sections.map((name) => `"${name}"`).join(", ")}, or a new one? (Save it again from the same user message, with fields { section }.)`,
     );
   }
 

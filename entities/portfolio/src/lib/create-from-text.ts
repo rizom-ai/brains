@@ -93,12 +93,12 @@ export async function createProjectFromText(
   }
   if (year === undefined) {
     return entityTextError(
-      "The text does not say which year the project began. Ask the user, then call system_create again with the same source (the user-message with its messageId) and fields { year }.",
+      "Which year did this project begin? The text does not say. (Save it again from the same user message, with fields { year }.)",
     );
   }
   if (description === undefined) {
     return entityTextError(
-      "Could not write a description for the project. Ask the user for a one-sentence summary, then call system_create again with the same source (the user-message with its messageId) and fields { description }.",
+      "How would you sum up this project in a sentence? A description could not be written from the text. (Save it again from the same user message, with fields { description }.)",
     );
   }
 

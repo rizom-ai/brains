@@ -148,7 +148,7 @@ export function readEntityText<TSchema extends z.ZodObject>(
   if (!title) {
     return {
       kind: "error",
-      error: `A ${noun} needs a title: ask the user for one, then call system_create again with the same source and the \`title\` they give.`,
+      error: `What should this ${noun} be called? The text has no "# Title" heading. (Save it again from the same user message, with that \`title\`.)`,
     };
   }
   const withoutTitle = options.keepTitleHeading
