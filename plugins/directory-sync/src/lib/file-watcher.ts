@@ -43,6 +43,18 @@ export function shouldProcessPath(path: string, syncPath: string): boolean {
   return isImageInImageDir(path, syncPath);
 }
 
+/**
+ * Whether chokidar should skip a path: dotfiles and dot-directories inside the
+ * sync path (`.git`, `.obsidian`). Chokidar matches the absolute path, so only
+ * the segments below the sync root count; a dot-directory above it (a brain
+ * under `~/.local/share`) must not hide the whole tree.
+ */
+export function isIgnoredWatchPath(path: string, syncPath: string): boolean {
+  return toSyncRelativePath(syncPath, path)
+    .split("/")
+    .some((segment) => segment.startsWith("."));
+}
+
 export interface FileWatcherOptions {
   syncPath: string;
   watchInterval: number;
@@ -105,7 +117,8 @@ export class FileWatcher {
     });
 
     const watcher = chokidar.watch(this.syncPath, {
-      ignored: /(^|[/\\])\../, // ignore dotfiles
+      ignored: (path: string): boolean =>
+        isIgnoredWatchPath(path, this.syncPath),
       ignoreInitial: true,
       persistent: true,
       interval: this.watchInterval,
