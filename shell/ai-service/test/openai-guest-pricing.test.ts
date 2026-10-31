@@ -284,6 +284,18 @@ describe("a guest turn's embeddings in its settlement", () => {
     });
   });
 
+  it("adds nothing for embeddings from the local model runtime", () => {
+    const withEmbeddings = withEmbeddingUsage(settled, [
+      { model: "local:embeddinggemma-2:270m", tokens: 40_000 },
+    ]);
+    expect(withEmbeddings.usage.embeddingTokens).toBe(40_000);
+    expect(withEmbeddings.cost).toEqual({
+      state: "known",
+      microUsd: settled.cost.state === "known" ? settled.cost.microUsd : -1,
+      pricing: `${gpt56LunaRevision}+local-runtime`,
+    });
+  });
+
   it("leaves cost unknown for an embedding model without pricing, still counting its tokens", () => {
     const withEmbeddings = withEmbeddingUsage(settled, [
       { model: "acme:embedder", tokens: 100 },

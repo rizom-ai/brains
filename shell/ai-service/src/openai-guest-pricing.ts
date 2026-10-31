@@ -208,6 +208,9 @@ interface EmbeddingRate {
   rate: number;
 }
 
+/** The model runtime runs on the brain's own server: no per-token charge. */
+const localRuntimeRate: EmbeddingRate = { revision: "local-runtime", rate: 0 };
+
 /**
  * Published OpenAI embedding rates, by `provider:model`.
  *
@@ -250,7 +253,9 @@ export function withEmbeddingUsage(
   if (settlement.cost.state === "unknown")
     return { usage, cost: settlement.cost };
   const priced = embeddings.flatMap((call) => {
-    const rate = embeddingRates[call.model];
+    const rate = call.model.startsWith("local:")
+      ? localRuntimeRate
+      : embeddingRates[call.model];
     return rate ? [{ tokens: call.tokens, ...rate }] : [];
   });
   if (priced.length < embeddings.length)
