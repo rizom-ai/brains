@@ -27,18 +27,24 @@ import {
 interface Args {
   outDir?: string;
   check: boolean;
+  /** Write or check only the docs and guides the folder already holds. */
+  subset: boolean;
 }
 
 const root = process.cwd();
 const manifestPath = path.join(root, "docs", "docs-manifest.yaml");
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { check: false };
+  const args: Args = { check: false, subset: false };
 
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === "--check") {
       args.check = true;
+      continue;
+    }
+    if (arg === "--subset") {
+      args.subset = true;
       continue;
     }
     if (arg === "--out") {
@@ -280,31 +286,52 @@ function syncFolder(
   return [];
 }
 
+/** The files a folder expects: all of them, or with `subset` those it holds. */
+function expectedIn(
+  dir: string,
+  built: Map<string, string>,
+  subset: boolean,
+): Map<string, string> {
+  if (!subset) return built;
+  const held = new Set(listMarkdownFiles(dir));
+  return new Map(Array.from(built).filter(([fileName]) => held.has(fileName)));
+}
+
 function syncContent(
   manifest: DocsManifest,
   outDir: string,
-  check: boolean,
+  { check, subset }: Pick<Args, "check" | "subset">,
 ): void {
   const contentRoot = path.resolve(root, outDir);
   const sourceToHref = sourceHrefs(manifest);
+  const docDir = path.join(contentRoot, "doc");
+  const guideDir = path.join(contentRoot, "guide");
   // Every file is built before any is written, so an invalid source
   // leaves the content repository untouched.
-  const docs = new Map(
-    manifest.docs.map((entry) => [
-      `${entry.id}.md`,
-      buildDoc(entry, sourceToHref),
-    ]),
+  const docs = expectedIn(
+    docDir,
+    new Map(
+      manifest.docs.map((entry) => [
+        `${entry.id}.md`,
+        buildDoc(entry, sourceToHref),
+      ]),
+    ),
+    subset,
   );
-  const guides = new Map(
-    manifest.guides.map((entry) => [
-      `${entry.id}.md`,
-      buildGuide(entry, sourceToHref),
-    ]),
+  const guides = expectedIn(
+    guideDir,
+    new Map(
+      manifest.guides.map((entry) => [
+        `${entry.id}.md`,
+        buildGuide(entry, sourceToHref),
+      ]),
+    ),
+    subset,
   );
 
   const issues = [
-    ...syncFolder(path.join(contentRoot, "doc"), docs, check),
-    ...syncFolder(path.join(contentRoot, "guide"), guides, check),
+    ...syncFolder(docDir, docs, check),
+    ...syncFolder(guideDir, guides, check),
   ];
 
   if (issues.length > 0) {
@@ -329,7 +356,7 @@ try {
   }
 
   const manifest = parseDocsManifest(readFileSync(manifestPath, "utf8"));
-  syncContent(manifest, args.outDir, args.check);
+  syncContent(manifest, args.outDir, args);
 } catch (error) {
   console.error(getErrorMessage(error));
   process.exit(1);

@@ -100,6 +100,9 @@ suites:
         autoRebuild: false
   # The doc-brain at docs.rizom.ai: reference docs and moving-in guides on
   # the docs site, so answers cite each at its page.
+  # Its seeded docs and guides are what the docs sync writes for them:
+  # `bun run docs:seed` rewrites them, and `bun run docs:seed:check` (part of
+  # docs:check) fails when they drift from their sources.
   docs:
     extends: headless
     inheritTags: false

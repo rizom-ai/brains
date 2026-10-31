@@ -170,6 +170,49 @@ describe("sync-docs-content guides", () => {
     expect(existsSync(join(root, "content/guide/team.md"))).toBe(false);
   });
 
+  describe("--subset", () => {
+    beforeEach(() => {
+      expect(run().exitCode).toBe(0);
+      rmSync(join(root, "content/doc/content-management.md"));
+    });
+
+    it("rewrites only the docs and guides the folder holds", () => {
+      write("content/guide/writer.md", "# Edited\n");
+
+      expect(run("--subset").exitCode).toBe(0);
+
+      expect(read("content/guide/writer.md")).toBe(expectedWriter);
+      expect(existsSync(join(root, "content/doc/content-management.md"))).toBe(
+        false,
+      );
+    });
+
+    it("checks the held files without asking for the rest", () => {
+      const result = run("--subset", "--check");
+
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain("0 docs, 2 guides");
+    });
+
+    it("reports a held file that is out of date", () => {
+      write("content/guide/writer.md", "# Edited\n");
+
+      const result = run("--subset", "--check");
+
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain("out of date content/guide/writer.md");
+    });
+
+    it("reports a held file the manifest does not name", () => {
+      write("content/guide/retired.md", "# Retired\n");
+
+      const result = run("--subset", "--check");
+
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain("stale content/guide/retired.md");
+    });
+  });
+
   describe("--check", () => {
     beforeEach(() => {
       expect(run().exitCode).toBe(0);
