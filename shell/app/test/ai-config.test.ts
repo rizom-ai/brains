@@ -37,6 +37,22 @@ describe("resolveAIConfig", () => {
     expect(config.aiEmbeddingModel).toBe("openai:text-embedding-3-large");
   });
 
+  it("takes the model runtime the deploy runs alongside the brain", () => {
+    expect(
+      resolveAIConfig({ MODEL_RUNTIME_URL: "http://rover-models:11434" })
+        .aiModelRuntimeUrl,
+    ).toBe("http://rover-models:11434");
+  });
+
+  it("prefers the model runtime brain.yaml names", () => {
+    expect(
+      resolveAIConfig(
+        { MODEL_RUNTIME_URL: "http://rover-models:11434" },
+        { modelRuntimeUrl: "http://localhost:11434" },
+      ).aiModelRuntimeUrl,
+    ).toBe("http://localhost:11434");
+  });
+
   it("does not set an embedding model when none is configured", () => {
     expect(
       resolveAIConfig({ AI_API_KEY: "sk-test" }).aiEmbeddingModel,

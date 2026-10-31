@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phases 3–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
+Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phase 3 built, opt-in per brain: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; rollout to the smoke rover and rizom.ai remains. Phases 4–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
 
 Phase 0 and Phase 2 benchmark, 2026-10-31, through the real provider: the yeehaa rover corpus (`rizom-ai/professional-brain-content`, 237 entities, 0.9 MB; Obsidian templates, trash and traffic snapshots excluded), one cached `gpt-5.4-mini` question per entity, ranked by cosine over the whole corpus.
 
@@ -105,7 +105,7 @@ Build:
 1. `shared/deploy-support/src/kamal-deploy.yml` gains a `models` accessory: a pinned `ollama/ollama` image, a persistent `/opt/brain-models` volume and a healthcheck. The rover-pilot template in `packages/brains-ops` gets the same accessory.
 2. The deploy pulls every `local:` model in `brain.yaml` into the volume before the brain starts. Brains with no `local:` model deploy without the accessory.
 3. `openai-guest-pricing.ts` prices `local:` embedding models at 0.
-4. Rollout, after the Phase 0 thresholds hold: smoke rover → rizom.ai, each verified by readiness reaching ready and search smoke queries. A fleet-wide switch is a separate, named decision.
+4. Rollout is opt-in per brain: a brain switches by naming a `local:` model in `brain.yaml`, and every other brain deploys as before. The re-embed threshold fails for the largest brains, so large brains stay on OpenAI; the first opt-ins are the smoke rover, then rizom.ai, each verified by readiness reaching ready and search smoke queries. A fleet-wide switch is a separate, named decision.
 
 ## Phase 4 — Local text generation
 

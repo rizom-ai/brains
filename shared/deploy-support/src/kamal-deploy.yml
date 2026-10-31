@@ -32,6 +32,9 @@ builder:
 env:
   clear:
     NODE_ENV: production
+    # <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
+    MODEL_RUNTIME_URL: http://__SERVICE_NAME__-models:11434
+    # <% end %>
   secret:
     - AI_API_KEY
     - GIT_SYNC_TOKEN
@@ -42,6 +45,18 @@ env:
     - SETUP_EMAIL_TO
     - SETUP_EMAIL_API_KEY
     - SETUP_EMAIL_FROM
+
+# <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
+accessories:
+  models:
+    image: ollama/ollama:0.40.11
+    host: <%= ENV['SERVER_IP'] %>
+    volumes:
+      - /opt/brain-models:/root/.ollama
+    options:
+      health-cmd: ollama list
+      health-interval: 30s
+# <% end %>
 
 volumes:
   - /opt/brain-data:/app/brain-data

@@ -1,9 +1,10 @@
 /**
  * Resolve AI configuration from environment and brain.yaml overrides.
  *
- * Two env vars:
+ * Env vars:
  *   AI_API_KEY   — primary key for text generation (and images if no override)
  *   AI_IMAGE_KEY — optional override for image generation (different provider)
+ *   MODEL_RUNTIME_URL — the model runtime a deploy runs beside the brain
  *
  * The model fields determine the provider (resolved by AI service at runtime).
  */
@@ -49,8 +50,12 @@ export function resolveAIConfig(
   if (overrides?.embeddingModel) {
     result.aiEmbeddingModel = overrides.embeddingModel;
   }
-  if (overrides?.modelRuntimeUrl) {
-    result.aiModelRuntimeUrl = overrides.modelRuntimeUrl;
+  // brain.yaml names the model runtime, or the deploy that runs one beside
+  // the brain does.
+  const modelRuntimeUrl =
+    overrides?.modelRuntimeUrl ?? env["MODEL_RUNTIME_URL"];
+  if (modelRuntimeUrl) {
+    result.aiModelRuntimeUrl = modelRuntimeUrl;
   }
   if (overrides?.reasoningEffort) {
     result.aiReasoningEffort = overrides.reasoningEffort;

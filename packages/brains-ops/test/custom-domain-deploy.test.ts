@@ -192,6 +192,61 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     }
   });
 
+  it("names the local models brain.yaml opts into, and none otherwise", async () => {
+    const root = await createTempDir("brains-ops-local-models-");
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkPilotDependencies(repo);
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(
+      join(repo, "users", "alice", ".env"),
+      "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=example/content\n",
+    );
+    await writeFile(
+      join(repo, "users", "alice.yaml"),
+      "handle: alice\ndiscord:\n  enabled: false\n",
+    );
+
+    const localModelsFor = async (brainYaml: string): Promise<string> => {
+      await writeFile(join(repo, "users", "alice", "brain.yaml"), brainYaml);
+      await writeFile(outputPath, "");
+      await runProcessOrThrow(
+        [process.execPath, "deploy/scripts/resolve-user-config.ts"],
+        {
+          cwd: repo,
+          env: {
+            ...process.env,
+            HANDLE: "alice",
+            GITHUB_REPOSITORY: "rizom-ai/rover-pilot",
+            GITHUB_OUTPUT: outputPath,
+            CF_ZONE_ID: "shared-zone",
+          },
+        },
+      );
+      return (
+        parseGitHubOutput(await readFile(outputPath, "utf8"))["local_models"] ??
+        "missing"
+      );
+    };
+
+    expect(await localModelsFor("brain: brain\ndomain: alice.rizom.ai\n")).toBe(
+      "",
+    );
+    expect(
+      await localModelsFor(
+        [
+          "brain: brain",
+          "domain: alice.rizom.ai",
+          "model: gpt-6-luna",
+          "embeddingModel: local:embeddinggemma-2:270m",
+          "",
+        ].join("\n"),
+      ),
+    ).toBe("embeddinggemma-2:270m");
+  });
+
   it("loads the generated predeploy backup without private workspace dependencies", async () => {
     const root = await createTempDir("brains-ops-predeploy-import-");
     const repo = join(root, "rover-pilot");

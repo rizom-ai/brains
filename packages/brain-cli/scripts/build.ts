@@ -40,6 +40,7 @@ copyDeployScripts(join(packageDir, "templates", "deploy", "scripts"), [
   "create-predeploy-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
+  "pull-local-models.ts",
   "update-dns.ts",
   "write-ssh-key.ts",
 ]);

@@ -168,6 +168,8 @@ modelRuntime:
   url: http://localhost:11434
 ```
 
+A deployed brain needs no `modelRuntime.url`: when `brain.yaml` names a `local:` model, the generated Kamal deploy pulls it into `/opt/brain-models` on the server, runs a `models` accessory beside the brain and gives the brain its address. A brain without a `local:` model deploys without the accessory.
+
 To run EmbeddingGemma 2 on a development machine:
 
 ```sh

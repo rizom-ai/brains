@@ -337,6 +337,7 @@ export const userSchema: z.ZodObject<{
   plugins: z.ZodOptional<typeof userPluginsSchema>;
   spaces: z.ZodOptional<z.ZodArray<z.ZodString>>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
+  embeddingModel: z.ZodOptional<z.ZodString>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
   skillDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
   swotDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -364,6 +365,8 @@ export const userSchema: z.ZodObject<{
   /** Shared conversation spaces, e.g. "discord:<channel id>": their members are trusted. */
   spaces: z.array(z.string().min(1)).optional(),
   embeddingEnabled: z.boolean().optional(),
+  /** Opts the brain into an embedding model, e.g. a `local:` one served beside it. */
+  embeddingModel: z.string().optional(),
   topicExtractionEnabled: z.boolean().optional(),
   skillDerivationEnabled: z.boolean().optional(),
   swotDerivationEnabled: z.boolean().optional(),

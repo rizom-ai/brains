@@ -63,6 +63,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     ...(user.embeddingEnabled !== undefined
       ? { embedding: { enabled: user.embeddingEnabled } }
       : {}),
+    ...(user.embeddingModel ? { embeddingModel: user.embeddingModel } : {}),
     ...(user.add.length > 0 ? { add: user.add } : {}),
     ...(user.remove.length > 0 ? { remove: user.remove } : {}),
     ...(user.siteOverride
