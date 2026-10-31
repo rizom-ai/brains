@@ -1,7 +1,7 @@
 {
   "name": "@brains/guide",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.614",
+  "version": "0.2.0-alpha.615",
   "description": "Guide entity type — moving-in walkthroughs for kinds of brain users",
   "dependencies": {
     "@brains/docs-chrome": "workspace:*",

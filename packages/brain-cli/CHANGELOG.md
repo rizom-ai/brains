@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- [#791](https://github.com/rizom-ai/brains/pull/791) [`d7cd6c7`](https://github.com/rizom-ai/brains/commit/d7cd6c723f52dc915f5e2a1d2af27ba413c3b163) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bare weekday now resolves forward from today. The agent's instructions list the date of each of the next seven days, starting today, and say that "Friday" or "by Friday" means the next one on or after today and never a past date. On a Saturday the agent sometimes turned "by Friday" into the day before; with the dates in front of it, it no longer does.
+
 ## 0.2.0-alpha.614
 
 ### Patch Changes
