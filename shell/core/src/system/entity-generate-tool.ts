@@ -16,7 +16,11 @@ import {
   createConfirmationGate,
   createSystemTool,
   normalizeOptionalString,
+  removeFailedTarget,
+  replacesFailedLine,
+  resolveCreateTarget,
   runCreateInterceptor,
+  type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -291,6 +295,8 @@ interface PreparedGenerate {
     SystemServices["entityRegistry"]["getCreateInterceptor"]
   >;
   eventContext: GenerateEventContext;
+  /** The failed placeholder this generation replaces once confirmed. */
+  replacesFailed?: FailedCreateTarget;
 }
 
 /**
@@ -491,28 +497,26 @@ async function prepareGenerate(
     };
   }
 
-  if (!interceptor && !replace) {
-    const candidateId = createInput.prompt
-      ? truncateSlug(slugify(createInput.title ?? createInput.prompt), 100)
-      : createInput.title
-        ? slugify(createInput.title)
-        : undefined;
-    if (candidateId) {
-      const existing = await services.entityService.getEntity({
-        entityType: createInput.entityType,
-        id: candidateId,
-      });
-      if (existing) {
-        return {
-          kind: "error",
-          result: {
-            success: false,
-            error: `A ${createInput.entityType} already exists for "${candidateId}". To change its fields or status, use system_update; pass replace:true to generate a new copy intentionally.`,
-          },
-        };
-      }
-    }
-  }
+  const target = interceptor
+    ? undefined
+    : await resolveCreateTarget(
+        services,
+        {
+          entityType: createInput.entityType,
+          candidateId: createInput.prompt
+            ? truncateSlug(
+                slugify(createInput.title ?? createInput.prompt),
+                100,
+              )
+            : createInput.title
+              ? slugify(createInput.title)
+              : undefined,
+          replace: replace === true,
+          copyHint: "generate a new copy intentionally",
+        },
+        toolContext,
+      );
+  if (target?.kind === "error") return target;
 
   return {
     kind: "ok",
@@ -526,6 +530,7 @@ async function prepareGenerate(
       sourceAttachment,
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
+      ...(target?.value && { replacesFailed: target.value }),
     },
   };
 }
@@ -604,7 +609,8 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
       const prep = await prepareGenerate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
       let { createInput } = prep.prepared;
-      const { operation, interceptor, eventContext } = prep.prepared;
+      const { operation, interceptor, eventContext, replacesFailed } =
+        prep.prepared;
 
       if (input.confirmed) {
         const gateError = confirmationGate.validateConfirmed(
@@ -613,7 +619,13 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         );
         if (gateError) return gateError;
       } else {
-        const confirmation = buildGenerateConfirmation(createInput);
+        const built = buildGenerateConfirmation(createInput);
+        const confirmation = replacesFailed
+          ? {
+              ...built,
+              preview: `${built.preview}\n${replacesFailedLine(replacesFailed)}`,
+            }
+          : built;
         const confirmationArgs = confirmationGate.buildArgs(
           (confirmationToken) => ({
             operation,
@@ -630,6 +642,8 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         };
       }
 
+      const replaceError = await removeFailedTarget(services, replacesFailed);
+      if (replaceError) return replaceError;
       if (interceptor) {
         const outcome = await runCreateInterceptor(
           services,

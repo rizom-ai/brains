@@ -1674,6 +1674,43 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
+  it("generates again over a placeholder whose generation failed", async () => {
+    services.addEntities([
+      {
+        id: "write-about-typescript",
+        entityType: "note",
+        content: "---\ntitle: write-about-typescript\nstatus: failed\n---\n",
+        metadata: { title: "write-about-typescript", status: "failed" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-failed",
+      },
+    ]);
+
+    const pending = await execGenerateRaw(
+      { entityType: "note", prompt: "Write about TypeScript." },
+      { userPermissionLevel: "admin" },
+    );
+    expect(pending).toMatchObject({
+      needsConfirmation: true,
+      preview: expect.stringContaining(
+        'Replaces: failed note "write-about-typescript"',
+      ),
+    });
+    const result = await execGenerate(
+      { entityType: "note", prompt: "Write about TypeScript." },
+      { userPermissionLevel: "admin" },
+    );
+
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
+    expect(data.entityId).toBe("write-about-typescript");
+    const stub = await services.entityService.getEntity({
+      entityType: "note",
+      id: "write-about-typescript",
+    });
+    expect(stub?.metadata["status"]).toBe("generating");
+  });
+
   it("should require a create source", async () => {
     const result = await exec({
       entityType: "note",

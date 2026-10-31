@@ -28,7 +28,11 @@ import {
   hasStructuredFrontmatter,
   isUploadRefInConversation,
   normalizeOptionalString,
+  removeFailedTarget,
+  replacesFailedLine,
+  resolveCreateTarget,
   runCreateInterceptor,
+  type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 import { isTextUploadMediaType, uploadTitle } from "@brains/plugins";
@@ -329,6 +333,8 @@ interface PreparedCreate {
   eventContext: CreateEventContext;
   /** The uploaded file's name, when the source is an upload. */
   uploadFilename?: string;
+  /** The failed placeholder this create replaces once confirmed. */
+  replacesFailed?: FailedCreateTarget;
   uploadPreserve?: {
     upload: { kind: "upload"; id: string };
     filename: string;
@@ -571,26 +577,24 @@ function resolveCreateVisibility(
  * than silently minting a deduplicated copy. `replace: true` is the
  * explicit opt-in for intentionally creating a new copy. This holds for
  * interceptor-backed types too: a note import or a portfolio project takes
- * its id from the title just like a direct create.
+ * its id from the title just like a direct create. A failed placeholder is
+ * replaced instead (see resolveCreateTarget).
  */
-async function assertCreateTargetIsNew(
+function resolveCreateToolTarget(
   services: SystemServices,
   createInput: CreateInput,
-): Promise<ToolResponse | undefined> {
-  if (createInput.replace) return undefined;
-  const candidateId = createInput.title
-    ? slugify(createInput.title)
-    : undefined;
-  if (!candidateId) return undefined;
-  const existing = await services.entityService.getEntity({
-    entityType: createInput.entityType,
-    id: candidateId,
-  });
-  if (!existing) return undefined;
-  return {
-    success: false,
-    error: `A ${createInput.entityType} already exists for "${candidateId}". To change its fields or status, use system_update; pass replace:true to create a new copy intentionally.`,
-  };
+  toolContext: CreateToolContext,
+): Promise<Guarded<FailedCreateTarget | undefined>> {
+  return resolveCreateTarget(
+    services,
+    {
+      entityType: createInput.entityType,
+      candidateId: createInput.title ? slugify(createInput.title) : undefined,
+      replace: createInput.replace === true,
+      copyHint: "create a new copy intentionally",
+    },
+    toolContext,
+  );
 }
 
 /**
@@ -705,8 +709,12 @@ async function prepareCreate(
     );
   }
 
-  const existingError = await assertCreateTargetIsNew(services, createInput);
-  if (existingError) return { kind: "error", result: existingError };
+  const target = await resolveCreateToolTarget(
+    services,
+    createInput,
+    toolContext,
+  );
+  if (target.kind === "error") return target;
 
   return {
     kind: "ok",
@@ -717,6 +725,7 @@ async function prepareCreate(
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(upload && { uploadFilename: upload.value.filename }),
+      ...(target.value && { replacesFailed: target.value }),
       ...(uploadPreserve && { uploadPreserve }),
     },
   };
@@ -728,8 +737,11 @@ async function executePreparedCreate(
   prepared: PreparedCreate,
   toolContext: CreateToolContext,
 ): Promise<ToolResponse> {
-  const { interceptor, eventContext, uploadPreserve } = prepared;
+  const { interceptor, eventContext, uploadPreserve, replacesFailed } =
+    prepared;
   let { createInput } = prepared;
+  const replaceError = await removeFailedTarget(services, replacesFailed);
+  if (replaceError) return replaceError;
   if (uploadPreserve) {
     return executeUploadPreserve(
       {
@@ -799,6 +811,9 @@ async function prepareUploadItem(
       filename: prepared.uploadFilename ?? item.upload.id,
       entityType: prepared.createInput.entityType,
       title: prepared.createInput.title ?? prepared.uploadFilename ?? "",
+      ...(prepared.replacesFailed && {
+        replacesFailed: `${prepared.replacesFailed.entityType} "${prepared.replacesFailed.id}"`,
+      }),
       save: () => executePreparedCreate(services, prepared, toolContext),
     },
   };
@@ -836,7 +851,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         );
         if (gateError) return gateError;
       } else {
-        const confirmation = uploadPreserve
+        const built = uploadPreserve
           ? buildUploadPreserveConfirmation({
               ...(createInput.title && { title: createInput.title }),
               filename: uploadPreserve.filename,
@@ -845,6 +860,12 @@ export function createEntityCreateTool(services: SystemServices): Tool {
               visibility: createInput.visibility,
             })
           : buildCreateConfirmation(createInput);
+        const confirmation = prep.prepared.replacesFailed
+          ? {
+              ...built,
+              preview: `${built.preview}\n${replacesFailedLine(prep.prepared.replacesFailed)}`,
+            }
+          : built;
         const confirmationSource = freezeConfirmationSource({
           source: input.source,
           ...(resolvedMessageId && { resolvedMessageId }),

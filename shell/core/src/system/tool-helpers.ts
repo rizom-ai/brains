@@ -16,6 +16,7 @@ import type { z } from "@brains/utils/zod";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import { isRecord } from "@brains/utils/is-record";
+import { permissionToVisibilityScope } from "@brains/entity-service";
 
 const PLUGIN_ID = "system";
 
@@ -284,4 +285,90 @@ export async function isUploadRefInConversation(
     }
   }
   return false;
+}
+
+/** An entity a create replaces: the placeholder an earlier attempt left failed. */
+export interface FailedCreateTarget {
+  entityType: string;
+  id: string;
+}
+
+/**
+ * Check the id a create or generation will take. An existing entity there is
+ * refused: the caller wants system_update, or `replace` for a new copy. A
+ * placeholder whose processing failed (`status: failed`) is not content to
+ * update but an attempt to retry: for a caller who may delete it (an Admin
+ * the delete policy allows), it is returned to be replaced, so the retry is
+ * saved under the same id.
+ */
+export async function resolveCreateTarget(
+  services: SystemServices,
+  target: {
+    entityType: string;
+    candidateId: string | undefined;
+    replace: boolean;
+    /** How the refusal names the `replace` opt-in. */
+    copyHint: string;
+  },
+  toolContext: ToolContext,
+): Promise<
+  | { kind: "error"; result: ToolResponse }
+  | { kind: "ok"; value: FailedCreateTarget | undefined }
+> {
+  if (target.replace || !target.candidateId) {
+    return { kind: "ok", value: undefined };
+  }
+  const existing = await services.entityService.getEntity({
+    entityType: target.entityType,
+    id: target.candidateId,
+    visibilityScope: permissionToVisibilityScope(
+      toolContext.userPermissionLevel,
+    ),
+  });
+  if (!existing) return { kind: "ok", value: undefined };
+  // Replacing deletes, so it takes the authority system_delete takes.
+  if (
+    existing.metadata["status"] === "failed" &&
+    toolContext.userPermissionLevel === "admin" &&
+    !assertEntityActionAllowed(
+      services,
+      target.entityType,
+      "delete",
+      toolContext,
+    )
+  ) {
+    return {
+      kind: "ok",
+      value: { entityType: existing.entityType, id: existing.id },
+    };
+  }
+  return {
+    kind: "error",
+    result: {
+      success: false,
+      error: `A ${target.entityType} already exists for "${target.candidateId}". To change its fields or status, use system_update; pass replace:true to ${target.copyHint}.`,
+    },
+  };
+}
+
+/** The confirmation line naming the failed placeholder a create replaces. */
+export function replacesFailedLine(target: FailedCreateTarget): string {
+  return `Replaces: failed ${target.entityType} "${target.id}"`;
+}
+
+/** Remove the failed placeholder a confirmed create replaces. */
+export async function removeFailedTarget(
+  services: SystemServices,
+  target: FailedCreateTarget | undefined,
+): Promise<ToolResponse | undefined> {
+  if (!target) return undefined;
+  try {
+    await services.entityService.deleteEntity(target);
+    return undefined;
+  } catch (error) {
+    return {
+      success: false,
+      error: getErrorMessage(error, "Failed to replace the failed entity"),
+    };
+  }
 }
