@@ -1,0 +1,33 @@
+{
+  "name": "@brains/guide",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.612",
+  "description": "Guide entity type — moving-in walkthroughs for kinds of brain users",
+  "dependencies": {
+    "@brains/docs-chrome": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "react": "^19.2.7"
+  },
+  "devDependencies": {
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/react": "^19.2.17",
+    "bun-types": "^1.4.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./frontmatter": "./src/schemas/guide-frontmatter.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

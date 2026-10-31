@@ -1,5 +1,47 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies [[`6fe5a04`](https://github.com/rizom-ai/brains/commit/6fe5a044ac5315e0c29075e9d810d0989217822f)]:
+  - @brains/agent-discovery@0.2.0-alpha.612
+  - @brains/plugins@0.2.0-alpha.612
+  - @brains/profile@0.2.0-alpha.612
+  - @brains/site-atlas@0.2.0-alpha.612
+  - @brains/ui-library@0.2.0-alpha.612
+  - @brains/site-composition@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/templates@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.611
+  - @brains/profile@0.2.0-alpha.611
+  - @brains/site-atlas@0.2.0-alpha.611
+  - @brains/site-composition@0.2.0-alpha.611
+  - @brains/ui-library@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/plugins@0.2.0-alpha.611
+  - @brains/templates@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.610
+  - @brains/profile@0.2.0-alpha.610
+  - @brains/site-atlas@0.2.0-alpha.610
+  - @brains/site-composition@0.2.0-alpha.610
+  - @brains/ui-library@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/plugins@0.2.0-alpha.610
+  - @brains/templates@0.2.0-alpha.610
+
 ## 0.2.0-alpha.609
 
 ### Patch Changes

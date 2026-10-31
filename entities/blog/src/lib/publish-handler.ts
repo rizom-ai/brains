@@ -88,7 +88,9 @@ export function subscribeToPublishExecute(
         blogPostFrontmatterSchema,
       );
 
-      const publishedAt = new Date().toISOString();
+      // An essay first published elsewhere keeps its original date.
+      const publishedAt =
+        parsed.metadata.publishedAt ?? new Date().toISOString();
       const updatedFrontmatter = {
         ...parsed.metadata,
         status: "published" as const,

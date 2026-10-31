@@ -1,5 +1,50 @@
 # @brains/series
 
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.612
+  - @brains/job-queue@0.2.0-alpha.612
+  - @brains/ui-library@0.2.0-alpha.612
+  - @brains/entity-service@0.2.0-alpha.612
+  - @brains/atproto-contracts@0.2.0-alpha.612
+  - @brains/content-formatters@0.2.0-alpha.612
+  - @brains/contracts@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/templates@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.611
+  - @brains/content-formatters@0.2.0-alpha.611
+  - @brains/contracts@0.2.0-alpha.611
+  - @brains/ui-library@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/entity-service@0.2.0-alpha.611
+  - @brains/job-queue@0.2.0-alpha.611
+  - @brains/plugins@0.2.0-alpha.611
+  - @brains/templates@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.610
+  - @brains/content-formatters@0.2.0-alpha.610
+  - @brains/contracts@0.2.0-alpha.610
+  - @brains/ui-library@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/entity-service@0.2.0-alpha.610
+  - @brains/job-queue@0.2.0-alpha.610
+  - @brains/plugins@0.2.0-alpha.610
+  - @brains/templates@0.2.0-alpha.610
+
 ## 0.2.0-alpha.609
 
 ### Patch Changes

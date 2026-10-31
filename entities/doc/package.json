@@ -1,9 +1,10 @@
 {
   "name": "@brains/doc",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.609",
+  "version": "0.2.0-alpha.612",
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
+    "@brains/docs-chrome": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

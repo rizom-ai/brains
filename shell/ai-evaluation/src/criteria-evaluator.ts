@@ -12,8 +12,15 @@ const recordSchema = z.record(z.string(), z.unknown());
 
 export type CriteriaEvaluationResult = FailureDetail & { passed: boolean };
 
+/** A source the reply shows beside its answer. */
+export interface ResponseSource {
+  id: string;
+  url?: string | undefined;
+}
+
 interface ResponseForCriteria {
   text: string;
+  sources?: ResponseSource[];
 }
 
 type EfficiencyMetrics = Pick<
@@ -38,6 +45,7 @@ export function evaluateCriteria(
     ...evaluateExpectedTools(criteria, toolCalls),
     ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
+    ...evaluateExpectedSources(criteria, response.sources ?? []),
     ...evaluateResponseEquals(criteria, response.text),
     ...evaluateResponseContains(criteria, response.text),
     ...evaluateResponseContainsAny(criteria, response.text),
@@ -636,6 +644,55 @@ function evaluateResponseNotContains(
   }
 
   return results;
+}
+
+function evaluateExpectedSources(
+  criteria: SuccessCriteria,
+  sources: ResponseSource[],
+): CriteriaEvaluationResult[] {
+  return (criteria.expectedSources ?? []).map(
+    (expected): CriteriaEvaluationResult => {
+      const cited = sources.find((source) => source.id === expected.id);
+      const base = { criterion: "expectedSources", expected };
+      if (!expected.cited) {
+        return cited
+          ? {
+              ...base,
+              actual: cited,
+              message: `Source ${expected.id} should not be cited`,
+              passed: false,
+            }
+          : {
+              ...base,
+              actual: sources.map((source) => source.id),
+              message: `Source ${expected.id} not cited`,
+              passed: true,
+            };
+      }
+      if (!cited) {
+        return {
+          ...base,
+          actual: sources.map((source) => source.id),
+          message: `Expected source ${expected.id} was not cited`,
+          passed: false,
+        };
+      }
+      if (expected.url !== undefined && cited.url !== expected.url) {
+        return {
+          ...base,
+          actual: cited.url,
+          message: `Source ${expected.id} was cited without ${expected.url}`,
+          passed: false,
+        };
+      }
+      return {
+        ...base,
+        actual: cited,
+        message: `Source ${expected.id} cited`,
+        passed: true,
+      };
+    },
+  );
 }
 
 function collectActualValues(

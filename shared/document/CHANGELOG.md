@@ -1,5 +1,30 @@
 # @brains/document
 
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- [#777](https://github.com/rizom-ai/brains/pull/777) [`3a3c1cc`](https://github.com/rizom-ai/brains/commit/3a3c1cc59afbc65e3ee2848546082a5dd0b311a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A PDF uploaded in chat and kept as a note gets its text again. The released brain ships as one bundled file, and pdf.js looked for its worker in a file next to it, so every PDF import failed with "Setting up fake worker failed". The worker now loads in the same process.
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/entity-service@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/entity-service@0.2.0-alpha.610
+
 ## 0.2.0-alpha.609
 
 ### Patch Changes

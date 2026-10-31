@@ -1,46 +1,12 @@
-import type { ReactNode, JSX } from "react";
-import { Head } from "@brains/ui-library";
+import type { JSX } from "react";
+import { docsClasses } from "@brains/docs-chrome";
 import type { DocWithData } from "../schemas/doc";
 import {
-  DocsDesignStyles,
-  DocsFooter,
-  DocsHeader,
-  docsClasses,
   type GroupedDocs,
   hrefFor,
   romanNumeral,
   sectionId,
 } from "./docs-design";
-
-interface DocsPageShellProps {
-  title: string;
-  description: string;
-  children: ReactNode;
-  detail?: boolean;
-  footer?: boolean;
-  contentClassName?: string;
-}
-
-export const DocsPageShell = ({
-  title,
-  description,
-  children,
-  detail = false,
-  footer = false,
-  contentClassName = "",
-}: DocsPageShellProps): JSX.Element => (
-  <>
-    <Head title={title} description={description} />
-    <DocsDesignStyles />
-    <div className={`docs-handbook${detail ? " docs-handbook--detail" : ""}`}>
-      <DocsHeader />
-      <div className={`${docsClasses.wrap} ${contentClassName}`.trim()}>
-        {children}
-        {footer && <DocsFooter />}
-      </div>
-    </div>
-  </>
-);
 
 interface DocsListHeroProps {
   docsCount: number;

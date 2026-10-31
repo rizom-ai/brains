@@ -354,6 +354,11 @@ export interface CreateInput {
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;
+  /**
+   * Frontmatter fields the caller states for the new entity that are not part
+   * of its source text, such as the original publication date of an essay.
+   */
+  fields?: Record<string, unknown>;
 }
 
 /**

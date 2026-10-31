@@ -123,6 +123,26 @@ describe("LLMJudge", () => {
       );
     });
 
+    // A judge read "Does not claim X" as asking the reply to say it does
+    // not do X, and failed replies that never claimed it.
+    it("reads a requirement as written, a prohibition as met by its absence", async () => {
+      const aiService = createAIServiceWithJudge({
+        results: [
+          { index: 0, met: true, reason: "Lists decks and documents." },
+          { index: 1, met: true, reason: "Labels the owner." },
+        ],
+      });
+      await new LLMJudge(aiService).judgeRequirements(input);
+
+      const instruction = aiService.judgeCalls[0]?.instruction;
+      expect(instruction).toContain(
+        "A requirement that the reply does not do something is met when the reply does not do it; it needs no sentence saying so.",
+      );
+      expect(instruction).toContain(
+        "Do not demand more than a requirement asks.",
+      );
+    });
+
     it("treats an incomplete verdict as unjudged, not as met", async () => {
       const aiService = createAIServiceWithJudge({
         results: [{ index: 0, met: true, reason: "Lists both." }],

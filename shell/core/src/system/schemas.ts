@@ -101,11 +101,17 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
+// Models fill unused optional fields with empty strings, so an empty string
+// here means omitted rather than an invalid call.
 export const userMessageSourceInputSchema: StrictObjectSchema<{
   kind: z.ZodLiteral<"user-message">;
   messageId: z.ZodOptional<z.ZodString>;
   boundaryMode: z.ZodOptional<
-    z.ZodEnum<{ literal: "literal"; lines: "lines" }>
+    z.ZodEnum<{
+      literal: "literal";
+      lines: "lines";
+      frontmatter: "frontmatter";
+    }>
   >;
   startAfter: z.ZodOptional<z.ZodString>;
   endBefore: z.ZodOptional<z.ZodString>;
@@ -119,34 +125,30 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
       ),
     messageId: z
       .string()
-      .min(1)
       .optional()
       .describe(
         "Stored user message ID in this conversation; omit for the latest user message.",
       ),
     boundaryMode: z
-      .enum(["literal", "lines"])
+      .enum(["literal", "lines", "frontmatter"])
       .optional()
       .describe(
-        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries.",
+        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries. Use frontmatter when the pasted text opens with a --- frontmatter block: the saved text starts at its opening fence, so no startAfter is needed.",
       ),
     startAfter: z
       .string()
-      .min(1)
       .optional()
       .describe(
-        "Exact unique opening boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
+        "Exact unique opening boundary, excluded from saved text; never a --- fence (use boundaryMode frontmatter). In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
       ),
     endBefore: z
       .string()
-      .min(1)
       .optional()
       .describe(
-        "Exact unique closing boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude. Omit to end at the end of the message.",
+        "Omit when the content runs to the end of the message. Otherwise the exact unique closing boundary, excluded from saved text; never a --- fence (use boundaryMode frontmatter). In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude.",
       ),
     contentHash: z
       .string()
-      .min(1)
       .optional()
       .describe(
         "Internal source hash returned with the confirmation; omit on the initial request.",
@@ -176,6 +178,11 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
     StrictObjectSchema<{
       kind: z.ZodLiteral<"prior-response">;
       messageId: z.ZodOptional<z.ZodString>;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"entity">;
+      entityType: z.ZodString;
+      entityId: z.ZodString;
     }>,
   ],
   "kind"
@@ -238,6 +245,25 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         .min(1)
         .optional()
         .describe("Stored assistant message ID; omit for latest savable"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("entity")
+        .describe(
+          "Reuse an existing entity's text verbatim, without its frontmatter, as a new entity of another type ('turn my note X into a post'). For new text written from a source, use system_generate prompt-from-source.",
+        ),
+      entityType: z
+        .string()
+        .min(1)
+        .describe("Source entity type, such as note"),
+      entityId: z
+        .string()
+        .min(1)
+        .describe(
+          "Source entity ID, slug, or exact title copied from the user's request or a prior tool result",
+        ),
     })
     .strict(),
 ]);
@@ -444,6 +470,7 @@ export const createInputSchema: StrictObjectSchema<{
   title: z.ZodOptional<z.ZodString>;
   visibility: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
   source: typeof createPreferredSourceInputSchema;
+  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   replace: z.ZodOptional<z.ZodBoolean>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
@@ -463,6 +490,12 @@ export const createInputSchema: StrictObjectSchema<{
     source: createPreferredSourceInputSchema.describe(
       "Concrete source selector. Use exactly one source branch. For AI generation or source-derived artifacts, use system_generate instead.",
     ),
+    fields: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
+      ),
     replace: z.boolean().optional().describe("Create a new copy intentionally"),
     confirmed: z.literal(true).optional().describe("Confirm the creation"),
     confirmationToken: z

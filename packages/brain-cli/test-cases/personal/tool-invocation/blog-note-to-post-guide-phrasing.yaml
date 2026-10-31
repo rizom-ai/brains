@@ -1,0 +1,31 @@
+id: tool-invocation-blog-note-to-post-guide-phrasing
+name: Note to Post From the Writer Guide's Phrasing
+description: Verifies the writer guide's own request, "Turn my note X into a draft post.", keeps the note's text instead of generating a new post from it.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - blog
+  - finalized-content
+  - regression
+  - recipe-professional
+
+turns:
+  - userMessage: "Turn my note Green Software Engineering Principles into a draft post."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+        source.kind: entity
+        source.entityType: note
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 46000

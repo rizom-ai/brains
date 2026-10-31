@@ -1,11 +1,11 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { DocWithData } from "../schemas/doc";
-import { docsClasses, groupDocs, romanNumeral, sortDocs } from "./docs-design";
+import { DocsPageShell, docsClasses } from "@brains/docs-chrome";
+import { groupDocs, romanNumeral, sortDocs } from "./docs-design";
 import {
   DocsBreadcrumb,
   DocsDetailSidebar,
-  DocsPageShell,
   DocsPager,
 } from "./docs-components";
 

@@ -2,7 +2,12 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import type { DocWithData } from "../src/schemas/doc";
-import { DocListTemplate } from "../src/templates/doc-list";
+import { getTemplates } from "../src/lib/register-templates";
+import {
+  DocHomeHeroTemplate,
+  DocHomeSectionsTemplate,
+  DocListTemplate,
+} from "../src/templates/doc-list";
 
 const createDoc = (
   id: string,
@@ -56,5 +61,51 @@ describe("DocListTemplate", () => {
     );
 
     expect(html).not.toContain("Updated");
+  });
+});
+
+const docs = [
+  createDoc("older", "2026-04-18T10:00:00.000Z", 1),
+  createDoc("latest", "2026-08-30T17:20:03.000Z", 2),
+];
+
+describe("docs home in parts", () => {
+  test("the whole list is the hero and the sections on one page", () => {
+    const html = render(
+      <DocListTemplate baseUrl={null} docs={docs} pagination={null} />,
+    );
+
+    expect(html).toContain("Build, run, and publish");
+    expect(html).toContain('id="sections"');
+    expect(html).toContain('class="docs-handbook"');
+  });
+
+  test("the hero opens the page and leaves the sections to a later part", () => {
+    const html = render(
+      <DocHomeHeroTemplate baseUrl={null} docs={docs} pagination={null} />,
+    );
+
+    expect(html).toContain("docs-header");
+    expect(html).toContain("Build, run, and publish");
+    expect(html).toContain("docs-handbook--continued");
+    expect(html).not.toContain('id="sections"');
+  });
+
+  test("the sections continue the page without a second header", () => {
+    const html = render(
+      <DocHomeSectionsTemplate baseUrl={null} docs={docs} pagination={null} />,
+    );
+
+    expect(html).toContain('id="sections"');
+    expect(html).toContain('href="/docs/latest"');
+    expect(html).not.toContain("docs-header");
+    expect(html).not.toContain("Build, run, and publish");
+  });
+
+  test("registers both parts as templates over the docs data source", () => {
+    const templates = getTemplates();
+
+    expect(templates["doc-home-hero"]?.dataSourceId).toBe("docs:entities");
+    expect(templates["doc-home-sections"]?.dataSourceId).toBe("docs:entities");
   });
 });

@@ -23,6 +23,10 @@ export async function extractPdfMarkdown(
   }
 
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // Load the worker in this process. The brain ships as one bundled file, so
+  // pdf.js cannot load it from a file next to its own.
+  // @ts-expect-error -- pdf.js ships no declarations for its worker module.
+  await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(content),
     disableFontFace: false,

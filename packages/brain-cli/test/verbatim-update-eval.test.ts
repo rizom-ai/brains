@@ -11,7 +11,7 @@ const id = "mcp-verbatim-update";
 const frontmatter = "---\nvisibility: restricted\n---\n";
 
 describe("verbatim update MCP eval contract", () => {
-  test("checks the pinned source, cancelled state, and body replaced under stored frontmatter", async () => {
+  test("checks the source reference, cancelled state, and body replaced under stored frontmatter", async () => {
     const testCase = await loader.loadTestCase(join(cases, `${id}.yaml`));
     if (testCase.type !== "multi_turn")
       throw new Error("Expected multi-turn eval");
@@ -44,15 +44,14 @@ describe("verbatim update MCP eval contract", () => {
       const proposal =
         testCase.turns[index]?.successCriteria?.expectedTools?.[0];
       expect(proposal?.toolName).toBe("system_update");
+      // Line boundaries and the literal "BEGIN EXACT CONTENT\n" pair save the
+      // same document, so the proposal checks the source reference and the
+      // read-backs check the stored bytes.
       expect(proposal?.argsContain).toEqual({
         entityType: "note",
         id,
         "operation.kind": "source",
         "operation.source.kind": "user-message",
-        "operation.source.boundaryMode": "lines",
-        "operation.source.startAfter": startAfter,
-        "operation.source.endBefore": endBefore,
-        "operation.source.contentHash": computeContentHash(content),
       });
       for (const absent of [
         "operation.content",

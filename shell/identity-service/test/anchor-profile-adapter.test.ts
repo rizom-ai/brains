@@ -119,6 +119,29 @@ describe("AnchorProfileAdapter", () => {
       expect(markdown).toContain("Story");
     });
 
+    it("serializes the content's name, email, and website over stale metadata", () => {
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
+        content:
+          "---\nname: Mira Okonkwo\nemail: mira@example.com\nwebsite: https://mira.example\ntagline: Calm software\n---\n\nStory\n",
+        metadata: {
+          name: "Your Name Here",
+          email: "hello@example.com",
+          website: "https://example.com",
+        },
+      });
+
+      const markdown = adapter.toMarkdown(entity);
+
+      expect(markdown).toContain("name: Mira Okonkwo");
+      expect(markdown).toContain("email: mira@example.com");
+      expect(markdown).toContain("mira.example");
+      expect(markdown).not.toContain("Your Name Here");
+      expect(markdown).not.toContain("hello@example.com");
+      expect(markdown).toContain("tagline: Calm software");
+      expect(markdown).toContain("Story");
+    });
+
     it("should handle optional fields correctly", () => {
       const content = adapter.createProfileContent({ name: "John Doe" });
 

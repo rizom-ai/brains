@@ -1,5 +1,45 @@
 # @brains/blog
 
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- [#777](https://github.com/rizom-ai/brains/pull/777) [`f56e414`](https://github.com/rizom-ai/brains/commit/f56e414707fb949357b90164a89a3b1e2ae3bb2e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A writer's own text becomes a post as written. Saving an essay as a post completes what a post needs around the text: a leading `# Title` heading becomes the title, and the brain adds the excerpt, author and draft status. An essay already published elsewhere comes in published, with its original date, and its original address as the page's canonical link. Turning a note into a post keeps the note's text; asking for a post written from a note now writes it from that note's content. Publishing a post keeps a publication date it already has. Saving or replacing with text pasted in the conversation tolerates how agents point at it: empty optional source fields count as omitted, a boundary whose spacing differs from the message still matches when it is unique, and a pasted document with frontmatter starts at its opening fence rather than at the blank lines before it. `boundaryMode: "frontmatter"` selects a pasted document from its opening fence without naming any boundary, and an agent that names the document's own `---` fences as boundaries gets the same selection when those fences are the message's only `---` lines.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.612
+  - @brains/media-page-composer@0.2.0-alpha.612
+  - @brains/ui-library@0.2.0-alpha.612
+  - @brains/atproto-contracts@0.2.0-alpha.612
+  - @brains/contracts@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/templates@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.611
+  - @brains/contracts@0.2.0-alpha.611
+  - @brains/media-page-composer@0.2.0-alpha.611
+  - @brains/ui-library@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/plugins@0.2.0-alpha.611
+  - @brains/templates@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.610
+  - @brains/contracts@0.2.0-alpha.610
+  - @brains/media-page-composer@0.2.0-alpha.610
+  - @brains/ui-library@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/plugins@0.2.0-alpha.610
+  - @brains/templates@0.2.0-alpha.610
+
 ## 0.2.0-alpha.609
 
 ### Patch Changes

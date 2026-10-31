@@ -18,11 +18,15 @@ const fixture = `docs:
     section: 'Start here'
     order: 20
     source: packages/brain-cli/docs/brain-yaml-reference.md
+
+guides:
+  - id: writer
+    source: docs/guides/writer.md
 `;
 
 describe("parseDocsManifest", () => {
   it("parses entries with comments and quoted values", () => {
-    expect(parseDocsManifest(fixture)).toEqual([
+    expect(parseDocsManifest(fixture).docs).toEqual([
       {
         id: "index",
         title: "Documentation",
@@ -40,6 +44,12 @@ describe("parseDocsManifest", () => {
     ]);
   });
 
+  it("parses guides by id and source; their frontmatter carries the rest", () => {
+    expect(parseDocsManifest(fixture).guides).toEqual([
+      { id: "writer", source: "docs/guides/writer.md" },
+    ]);
+  });
+
   it("parses every entry of the real manifest in order", () => {
     const content = readFileSync(
       join(repositoryRoot, "docs", "docs-manifest.yaml"),
@@ -50,14 +60,17 @@ describe("parseDocsManifest", () => {
       (match) => match[1] ?? "",
     );
 
-    const entries = parseDocsManifest(content);
+    const { docs, guides } = parseDocsManifest(content);
 
     expect(declaredIds.length).toBeGreaterThan(0);
-    expect(entries.map((entry) => entry.id)).toEqual(declaredIds);
-    for (const entry of entries) {
+    expect([...docs, ...guides].map((entry) => entry.id)).toEqual(declaredIds);
+    expect(guides.map((entry) => entry.id)).toContain("writer");
+    for (const entry of docs) {
       expect(entry.title).not.toBe("");
       expect(entry.section).not.toBe("");
       expect(Number.isInteger(entry.order)).toBe(true);
+    }
+    for (const entry of [...docs, ...guides]) {
       expect(existsSync(join(repositoryRoot, entry.source))).toBe(true);
     }
   });
@@ -78,5 +91,24 @@ describe("parseDocsManifest", () => {
     expect(() =>
       parseDocsManifest(fixture.replace("    section: 'Start here'\n", "")),
     ).toThrow("docs.1.section");
+  });
+
+  it("rejects a guide that restates frontmatter in the manifest", () => {
+    expect(() =>
+      parseDocsManifest(
+        fixture.replace(
+          "    source: docs/guides/writer.md",
+          "    source: docs/guides/writer.md\n    order: 10",
+        ),
+      ),
+    ).toThrow("guides.0");
+  });
+
+  it("rejects a guide without a source", () => {
+    expect(() =>
+      parseDocsManifest(
+        fixture.replace("    source: docs/guides/writer.md\n", ""),
+      ),
+    ).toThrow("guides.0.source");
   });
 });
