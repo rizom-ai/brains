@@ -1,4 +1,5 @@
 import type { Tool } from "@brains/mcp-service";
+import type { SearchResult } from "@brains/entity-service";
 import { createTool } from "@brains/mcp-service";
 import {
   permissionToVisibilityScope,
@@ -9,8 +10,34 @@ import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
 import { markdownBody } from "./markdown-body";
 import { assertGuestReader } from "./guest-read-context";
+import { MAX_SEARCH_CONTENT_CHARS, matchingSections } from "./search-excerpt";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
+
+/**
+ * One search hit as the agent reads it: whole when short; a long entity's
+ * hit carries no content and the sections that match the query as its
+ * excerpt, so it cannot be taken for the whole text.
+ */
+function searchHit(
+  hit: SearchResult,
+  query: string,
+  registry: SystemServices["entityRegistry"],
+): Record<string, unknown> {
+  const entity = sanitizeEntity(hit.entity, registry);
+  if (entity !== hit.entity) {
+    return { ...hit, entity, excerpt: entity.content };
+  }
+  const body = markdownBody(entity.content);
+  if (body.length <= MAX_SEARCH_CONTENT_CHARS) return { ...hit, entity };
+  const { content: _content, ...withoutContent } = entity;
+  return {
+    ...hit,
+    entity: withoutContent,
+    excerpt: matchingSections(body, query),
+    excerpted: true,
+  };
+}
 
 /** A public reader is a site's visitor, and a draft is not theirs to read. */
 const publishedOnlyFor = (
@@ -53,7 +80,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "search",
-      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
+      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content; a long entity's result instead has excerpted true and an excerpt of the sections that best match the query, and system_get reads it whole when those sections do not answer. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
       async (input, context) => {
         assertGuestReader(context);
@@ -88,14 +115,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         return {
           success: true,
           data: {
-            results: results.map((r) => {
-              const entity = sanitizeEntity(r.entity, services.entityRegistry);
-              return {
-                ...r,
-                entity,
-                ...(entity !== r.entity ? { excerpt: entity.content } : {}),
-              };
-            }),
+            results: results.map((r) =>
+              searchHit(r, input.query, services.entityRegistry),
+            ),
             ...(belowThreshold && { belowThreshold }),
           },
         };
