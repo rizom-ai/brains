@@ -23,7 +23,7 @@ successCriteria:
   minHelpfulnessScore: 3
   minAccuracyScore: 3
   responseCriteria:
-    - "Starts the writer from moving their drafts in: download each Google Doc as Markdown and upload it in chat to keep as a note."
+    - "Tells the writer to start by moving their drafts in: download each Google Doc as Markdown and upload it in chat to keep as a note."
     - "Does not claim the brain imports directly from Google Docs."
 
 efficiency:
