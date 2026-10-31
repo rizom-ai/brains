@@ -91,8 +91,13 @@ export async function runSiteBuild(
     });
     options.signal.throwIfAborted();
 
-    const buildRoutes = collectBuildRoutes(
+    const buildRoutes = await collectBuildRoutes(
       options.pipelineContext.routeRegistry,
+      {
+        languages: parsedOptions.languages,
+        siteTranslations: parsedOptions.siteConfig.translations,
+        hasSavedCopy: options.pipelineContext.services.hasSavedContent,
+      },
     );
     warnings.push(...buildRoutes.warnings);
     const { routes } = buildRoutes;
@@ -149,6 +154,7 @@ export async function runSiteBuild(
       pipelineContext: options.pipelineContext,
       imageBuildService,
       siteMetadata: parsedOptions.siteConfig,
+      siteUrl: baseUrl,
       publicDir: join(process.cwd(), "public"),
       signal: options.signal,
     });

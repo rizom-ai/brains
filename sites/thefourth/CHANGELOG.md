@@ -1,5 +1,18 @@
 # @rizom/site-thefourth
 
+## 0.2.0-alpha.8
+
+### Minor Changes
+
+- [#780](https://github.com/rizom-ai/brains/pull/780) [`afb1d14`](https://github.com/rizom-ai/brains/commit/afb1d14416a96fcc5db928f2436a6eed2c4ab67b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Fourth's site is built in English and Traditional Chinese (`languages: ["en", "zh-TW"]`); a page appears in Chinese once its Chinese copy and site-info's Chinese chrome are in the brain. The header shows an EN / 中文 switch on pages that exist in both languages, the footer signs off in the page's language, and Chinese pages set their characters in Noto Sans TC and Noto Serif TC, loaded only on them. The signposts' words are now crossroads copy (`signs`), and an Act II spell in a language written without spaces lists its words (`words`). Needs `@rizom/brain` 0.2.0-alpha.608 or later.
+
+## 0.2.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [[`66de6ee`](https://github.com/rizom-ai/brains/commit/66de6ee6c8c1a29d5b4d9220dcc7375dd5e679b0)]:
+  - @rizom/site@0.2.0-alpha.240
+
 ## 0.2.0-alpha.6
 
 ### Patch Changes

@@ -13,6 +13,7 @@ export function createHTMLShell(
   analyticsScript?: string,
   headScripts?: string[],
   headPaths?: EssentialHeadPaths,
+  language = "en",
 ): string {
   // Default head content if none provided
   const defaultHead = `
@@ -151,7 +152,7 @@ export function createHTMLShell(
       : "";
 
   return `<!DOCTYPE html>
-<html lang="en" class="h-full"${themeAttr}>
+<html lang="${escapeHtml(language)}" class="h-full"${themeAttr}>
 <head>
     ${headContent ?? defaultHead}
     ${uiScript}${analyticsTag}${headScriptTags}

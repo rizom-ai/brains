@@ -27,6 +27,7 @@ const envelope = {
 const docsPage: PreparedRoute = {
   id: "docs",
   path: "/",
+  language: "en",
   title: "Docs",
   description: "Docs",
   layout: "default",
@@ -89,6 +90,7 @@ describe("fingerprintPreparedRoute", () => {
 
   function page(text: string): PreparedRoute {
     return {
+      language: "en",
       headScripts: [],
       title: text,
       description: text,
@@ -123,6 +125,7 @@ describe("fingerprintPreparedRoute", () => {
       title: "eins",
       path: original.path,
       id: original.id,
+      language: "en",
     };
     expect(fingerprintPreparedRoute(reordered)).toBe(
       fingerprintPreparedRoute(page("eins")),

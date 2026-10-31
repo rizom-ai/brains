@@ -174,6 +174,48 @@ describe("SiteBuildJobHandler", () => {
     });
   });
 
+  it("builds in the site's languages", async () => {
+    let capturedLanguages: string[] | undefined;
+    const siteBuilder: ISiteBuilder = {
+      build: async (options) => {
+        capturedLanguages = options.languages;
+        return {
+          success: true,
+          outputDir: "/tmp/output",
+          filesGenerated: 2,
+          routesBuilt: 2,
+        };
+      },
+    };
+    const { sendMessage } = createMockMessageSender();
+    const bilingualHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+        languages: ["en", "zh-TW"],
+      },
+    );
+    const progressReporter = expectDefined(
+      CallbackProgressReporter.from(async () => {}),
+    );
+
+    await bilingualHandler.process(
+      { outputDir: "/tmp/output" },
+      "job-languages",
+      progressReporter,
+    );
+
+    expect(capturedLanguages).toEqual(["en", "zh-TW"]);
+  });
+
   it("records a cancelled build without emitting completion", async () => {
     const markCancelled = mock(async () => undefined);
     // All four transitions, because the handler optional-chains the service

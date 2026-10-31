@@ -170,6 +170,7 @@ export function extendSite<
   const headScripts = overrideHeadScripts ?? baseSite.headScripts ?? [];
   const content = mergeContent(baseSite.content, overrides.content);
   const sections = mergeSections(baseSite.sections, overrides.sections);
+  const languages = overrides.languages ?? baseSite.languages;
 
   return {
     layouts,
@@ -180,6 +181,7 @@ export function extendSite<
     ...(sections ? { sections } : {}),
     ...(themeOverride ? { themeOverride } : {}),
     ...(headScripts.length > 0 ? { headScripts } : {}),
+    ...(languages ? { languages } : {}),
     ...(staticAssets && Object.keys(staticAssets).length > 0
       ? { staticAssets }
       : {}),

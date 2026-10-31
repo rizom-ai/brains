@@ -23,7 +23,7 @@ material:
 
 You need Bun 1.4 or later, an AI API key and an email address.
 
-Install the brain and create one from a recipe: `bun add -g @rizom/brain`, then `brain init my-brain --recipe personal`. In the new folder, put your key in `.env` as `AI_API_KEY` and your email address as `SETUP_EMAIL_TO`, then run `brain start`. The log prints a one-time setup link; open it and register a passkey to sign in.
+Install the brain and create one from a recipe: `bun add -g @rizom/brain`, then `brain init my-brain --recipe personal`. In the new folder, put your key in `.env` as `AI_API_KEY` and run `brain start`. The log prints a one-time setup link; open it and register a passkey to sign in. Set `SETUP_EMAIL_TO` as well if you want setup links and invitations sent by email.
 
 Exact steps: [Getting started](../../packages/brain-cli/docs/getting-started.md), [CLI reference](../../packages/brain-cli/docs/cli-reference.md).
 
@@ -37,7 +37,7 @@ Exact steps: [brain.yaml reference](../../packages/brain-cli/docs/brain-yaml-ref
 
 Your content lives in `brain-data/`. A Markdown file at the top becomes a note; a folder named after a type, such as `brain-data/link/`, holds files of that type, each with the fields the type needs at the top; images go in `brain-data/image/`. A file that does not match its type is renamed with `.invalid` and left for you to fix.
 
-The brain reads the folder when it starts, and writes what you change in chat or Studio back to the files. Files you add or edit while it runs are read at the next start.
+The brain keeps the folder and itself in step while it runs: add or edit a file and the brain updates; change something in chat or Studio and the file changes.
 
 To use the folder as an Obsidian vault, add the `obsidian-vault` plugin under `add:` in `brain.yaml`. It writes templates, field definitions and table views for every type into `brain-data/_obsidian/`.
 

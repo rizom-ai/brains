@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { createElement as h } from "react";
+import { createElement as h, type ReactElement } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   sectionToTemplate,
   sectionGroupToTemplates,
 } from "../src/section-templates";
+import { PageLanguageContext } from "../src/page-language";
 
 /** A component that ignores props — assignable to any section ComponentType. */
 const noop = (): ReturnType<typeof h> => h("span", null);
@@ -152,5 +154,38 @@ describe("sectionGroupToTemplates", () => {
 
     expect(Object.keys(templates)).toEqual(["hero", "note"]);
     expect(templates["hero"]?.name).toBe("hero");
+  });
+});
+
+describe("sectionToTemplate drawings per language", () => {
+  const lineSchema = z.object({ line: z.string() });
+  const template = sectionToTemplate(
+    "cover",
+    defineSection(lineSchema, ({ line }) => h("h1", null, line), {
+      title: "Cover",
+      description: "d",
+      components: {
+        "zh-TW": ({ line }) => h("h1", { className: "vertical" }, line),
+      },
+    }),
+  );
+  const Component = template.layout?.component;
+
+  function render(language: string | undefined): string {
+    if (!Component) throw new Error("the template has no component");
+    const Draw = (): ReactElement<unknown> => Component({ line: "你好" });
+    return renderToStaticMarkup(
+      h(PageLanguageContext.Provider, { value: language }, h(Draw)),
+    );
+  }
+
+  test("draws the section the language's own way on its pages", () => {
+    expect(render("zh-TW")).toBe('<h1 class="vertical">你好</h1>');
+    expect(render("zh-tw")).toBe('<h1 class="vertical">你好</h1>');
+  });
+
+  test("draws it the default way in any other language", () => {
+    expect(render("en")).toBe("<h1>你好</h1>");
+    expect(render(undefined)).toBe("<h1>你好</h1>");
   });
 });

@@ -49,6 +49,38 @@ describe("site-builder metadata provider contract", () => {
     expect(data.cta?.buttonText).toBe("Start");
   });
 
+  it("keeps the site's chrome in its other languages", async () => {
+    const harness = createPluginHarness();
+    harness.subscribe(SITE_METADATA_GET_CHANNEL, () => ({
+      success: true,
+      data: {
+        title: "The Fourth",
+        description: "Brand consultancy",
+        translations: { "zh-TW": { title: "第四", copyright: "©2026 第四" } },
+      },
+    }));
+
+    const capabilities = await harness.installPlugin(new SiteBuilderPlugin({}));
+    const resource = capabilities.resources.find(
+      (r) => r.uri === "brain://site",
+    );
+    if (!resource) throw new Error("brain://site not found");
+    const result = await resource.handler();
+    const data = z
+      .looseObject({
+        translations: z.record(
+          z.string(),
+          z.object({ title: z.string(), copyright: z.string() }),
+        ),
+      })
+      .parse(JSON.parse(result.contents[0]?.text ?? "{}"));
+
+    expect(data.translations["zh-TW"]).toEqual({
+      title: "第四",
+      copyright: "©2026 第四",
+    });
+  });
+
   it("falls back to configured metadata when no provider is registered", async () => {
     const harness = createPluginHarness();
     const capabilities = await harness.installPlugin(

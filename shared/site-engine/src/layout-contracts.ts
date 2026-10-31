@@ -1,5 +1,5 @@
 import type { ReactNode, JSX } from "react";
-import type { SiteLayoutInfo } from "@brains/site-composition";
+import type { SiteAlternate, SiteLayoutInfo } from "@brains/site-composition";
 
 /** Registration for a component contributed to a named layout slot. */
 export interface SiteSlotRegistration {
@@ -24,6 +24,10 @@ export type LayoutComponent = (props: {
   description: string;
   path: string;
   siteInfo: SiteLayoutInfo;
+  /** The page's language tag. */
+  language?: string | undefined;
+  /** Every language the page is built in, its own among them. */
+  alternates?: SiteAlternate[] | undefined;
   /** Optional slots for plugin-registered UI components */
   slots?: LayoutSlots;
 }) => JSX.Element;

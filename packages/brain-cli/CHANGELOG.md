@@ -1,5 +1,29 @@
 # @rizom/brain
 
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- [#784](https://github.com/rizom-ai/brains/pull/784) [`ab6a42e`](https://github.com/rizom-ai/brains/commit/ab6a42e6f19b29ec65f7094f290748c4516b623b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A changed anchor profile name, email or website is stored as written. Before, saving the profile wrote the previous name back over the new one in the stored profile, so the agent card, the Studio header and the site kept the old name while the brain-data file showed the new one.
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- [#783](https://github.com/rizom-ai/brains/pull/783) [`7e43d69`](https://github.com/rizom-ai/brains/commit/7e43d692258d643c81af09d5467509f3a609cee1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A personal or professional brain starts with only `AI_API_KEY` set. With `SETUP_EMAIL_TO` unset, the notifications plugin boots without a default recipient instead of failing with "Invalid plugin config for notifications", and the brain prints the passkey `/setup` link in the terminal; the setup email is sent once `SETUP_EMAIL_TO`, `SETUP_EMAIL_API_KEY`, and `SETUP_EMAIL_FROM` are set. `brain init --recipe team` now scaffolds the same `auth-service`, `notifications`, and Resend `email` config, so invitations are emailed once those variables are filled in; while they are unset, a team brain starts and Admin → Add a person offers a manual invite link.
+
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- [#782](https://github.com/rizom-ai/brains/pull/782) [`f0bce99`](https://github.com/rizom-ai/brains/commit/f0bce99259bf97144fd6f8ffa99d4997b6d47a4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A running brain picks up files added, edited and deleted in `brain-data/` again when the brain lives under a dot-directory such as `~/.local/share` or `~/.config`. The directory watcher ignores dotfiles and dot-directories only inside the sync path (`.git`, `.obsidian`); a dot-directory above it no longer hides the whole tree, which left those changes unseen until the next start.
+
+## 0.2.0-alpha.608
+
+### Patch Changes
+
+- [#778](https://github.com/rizom-ai/brains/pull/778) [`66de6ee`](https://github.com/rizom-ai/brains/commit/66de6ee6c8c1a29d5b4d9220dcc7375dd5e679b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site that declares more than one language is built in each of them. Every route is built in the default language at its own path, and again under each other language's path (`/zh-tw/about`) from copy saved for that language as `site-content/<tag>/<route>/<section>.md`. A page is built in a language only once every section on it has copy in that language, never from the default language's copy; routes fed by a datasource stay in the default language. Each page's `<html lang>` is its language. A page built in more than one language links every version of itself with `hreflang` and `x-default` as absolute URLs from the build's public URL, the sitemap lists every version, and a translated page's navigation lists the pages built in its language at their paths. site-info takes a `translations` block with the site's title, description, copyright and call to action per language; a language is built only once site-info has its block, and its pages wear that chrome. A translated page's head and navigation label come from its route's translation, else the site's title in that language. A page in a language a section has its own drawing for renders that drawing; every other page renders the section's default component.
+
 ## 0.2.0-alpha.607
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/action-items",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.607",
+  "version": "0.2.0-alpha.611",
   "description": "Action-item schema, board ownership, and the one write path for moves, notes and tracking",
   "dependencies": {
     "@brains/contracts": "workspace:*",

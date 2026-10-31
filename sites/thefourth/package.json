@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-thefourth",
-  "version": "0.2.0-alpha.6",
+  "version": "0.2.0-alpha.8",
   "description": "The Fourth — a story in four acts on a paper stage, for the brand consultancy in Taipei",
   "type": "module",
   "exports": {
@@ -17,10 +17,10 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.239"
+    "@rizom/site": "0.2.0-alpha.240"
   },
   "publishPeerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0",
+    "@rizom/brain": ">=0.2.0-alpha.608 <0.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
