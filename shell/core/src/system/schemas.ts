@@ -494,7 +494,7 @@ export const createInputSchema: StrictObjectSchema<{
       .record(z.string(), z.unknown())
       .optional()
       .describe(
-        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }; the section a doc goes in: { section }; the year a project began: { year }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
+        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }; the section a doc goes in, named exactly as the user names it: { section }; the year a project began: { year }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
       ),
     replace: z.boolean().optional().describe("Create a new copy intentionally"),
     confirmed: z.literal(true).optional().describe("Confirm the creation"),
