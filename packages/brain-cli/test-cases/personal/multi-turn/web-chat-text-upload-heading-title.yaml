@@ -1,0 +1,65 @@
+id: multi-turn-web-chat-text-upload-heading-title
+name: Web chat upload saved as a note takes its first heading as title
+description: Verifies that saving an uploaded Markdown file as a note leaves the title to the server, which titles the note by the file's first heading rather than its file name, and that the confirmed save says it saved.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-web-chat-text-upload-heading-title
+  channelName: Web Chat Eval
+tags:
+  - recipe-personal
+  - web-chat
+  - upload
+  - note
+  - multi-turn
+
+turns:
+  - userMessage: "Save this as a note."
+    attachments:
+      - kind: text
+        filename: 2026-10-sync.md
+        mediaType: text/markdown
+        content: |
+          Notes taken during the call.
+
+          # Quarterly Planning Sync
+
+          - Ship the import before the review.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001311
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+            source.kind: upload
+            source.transform: extract-markdown
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - 'Completed: Saved note "Quarterly Planning Sync"'
+        - "It is saved"
+      responseNotContains:
+        - "draft is generating"
+        - "2026-10-sync"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+        source.kind: upload
+    - toolName: system_generate
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 20000
