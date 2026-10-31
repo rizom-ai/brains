@@ -821,6 +821,15 @@ export {
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export {
+  continueWithEntityText,
+  entityTextError,
+  readEntityText,
+  statedDateSchema,
+  type EntityText,
+  type EntityTextResult,
+  type ReadEntityTextOptions,
+} from "./entity/create-from-text";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
