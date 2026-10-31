@@ -33,6 +33,11 @@ describe("getAgentDiscoveryInstructions", () => {
     expect(instructions).toContain("returned entity id/domain");
     expect(instructions).toContain("never recommend archived contacts");
     expect(instructions).toContain("using only the requested topic verbatim");
+    // A recommendation is one search; listing the directory first only adds a
+    // model step.
+    expect(instructions).toContain(
+      "scoped to entityType agent, and no system_list, using only the requested topic verbatim",
+    );
     expect(instructions).toContain(
       "after a system_search of this brain found little on the question",
     );
