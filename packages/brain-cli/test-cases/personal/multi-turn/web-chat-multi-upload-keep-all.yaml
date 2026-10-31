@@ -22,7 +22,7 @@ turns:
         filename: draft-one.md
         mediaType: text/markdown
         content: |
-          # Field Notes
+          # Harbor Survey
 
           The harbor survey starts at dawn.
         source:
@@ -63,7 +63,7 @@ turns:
     successCriteria:
       responseContains:
         - "Completed: Saved 3 uploaded files"
-        - 'note "Field Notes"'
+        - 'note "Harbor Survey"'
         - 'note "Launch Plan"'
         - 'image "harbor"'
       responseNotContains:
