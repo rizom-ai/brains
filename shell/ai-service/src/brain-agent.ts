@@ -54,6 +54,16 @@ export function filterToolsForCallOptions(
     : tools;
 }
 
+/** The tools that can serve a call now; a tool whose check fails cannot. */
+async function availableTools(tools: Tool[]): Promise<Tool[]> {
+  const available = await Promise.all(
+    tools.map(async (tool) =>
+      tool.isAvailable ? tool.isAvailable().catch(() => false) : true,
+    ),
+  );
+  return tools.filter((_, index) => available[index]);
+}
+
 function isPlaybookStartInput(input: unknown): boolean {
   return (
     typeof input === "object" &&
@@ -146,7 +156,7 @@ export function createBrainAgentFactory(
       callOptionsSchema: brainCallOptionsSchema,
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-      prepareCall: ({ options: callOptions, ...settings }) => {
+      prepareCall: async ({ options: callOptions, ...settings }) => {
         assertGuestPermission(callOptions);
         assertGuestCallOptions(callOptions);
         const guest = callOptions.interfaceType === guestInterfaceType;
@@ -155,9 +165,11 @@ export function createBrainAgentFactory(
         // an already-confirmed action).
         const allowedTools = callOptions.disableTools
           ? []
-          : filterToolsForCallOptions(
-              config.getToolsForPermission(callOptions.userPermissionLevel),
-              callOptions,
+          : await availableTools(
+              filterToolsForCallOptions(
+                config.getToolsForPermission(callOptions.userPermissionLevel),
+                callOptions,
+              ),
             );
         const allowedToolNames = allowedTools.map((t) => t.name);
 

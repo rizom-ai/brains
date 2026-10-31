@@ -82,6 +82,16 @@ async function listPeers(context: NetworkAskContext): Promise<PeerCandidate[]> {
   });
 }
 
+/** Whether the directory holds a peer the network may ask: an approved one. */
+async function hasApprovedPeer(context: NetworkAskContext): Promise<boolean> {
+  if (!context.entityService.hasEntityType(AGENT_ENTITY_TYPE)) return false;
+  const approved = await context.entityService.countEntities({
+    entityType: AGENT_ENTITY_TYPE,
+    options: { filter: { metadata: { status: "approved" } } },
+  });
+  return approved > 0;
+}
+
 /** One peer's reply over the A2A ask channel, however the bus answered. */
 async function askPeer(
   context: NetworkAskContext,
@@ -108,7 +118,8 @@ async function askPeer(
 /**
  * Ask the network: the approved peers whose skills fit the question (three
  * at most, or the two nearest), in parallel, each within the A2A ask budget.
- * Public and side-effect free, so a visitor's turn may use it.
+ * Public and side-effect free, so a visitor's turn may use it. Offered only
+ * while an approved peer exists: with none, it could only report silence.
  */
 export function createNetworkAskTool(context: NetworkAskContext): Tool {
   return {
@@ -118,6 +129,7 @@ export function createNetworkAskTool(context: NetworkAskContext): Tool {
     inputSchema: networkAskInputSchema.shape,
     visibility: "public",
     sideEffects: "none",
+    isAvailable: () => hasApprovedPeer(context),
     handler: async (rawInput): Promise<ToolResponse> => {
       const parsed = networkAskInputSchema.safeParse(rawInput);
       if (!parsed.success) {
