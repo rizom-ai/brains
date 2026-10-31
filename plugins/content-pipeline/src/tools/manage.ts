@@ -146,7 +146,7 @@ export function createPublishingManageTool(
   return {
     name: "publishing_manage",
     description:
-      "Manage publishing with an action discriminator. Use action=queue-list to inspect the publish queue; action=queue-add to queue an entity for publication; action=queue-remove to remove a queued entity; action=queue-reorder to change queue order; action=publish to publish one entity directly. Direct publish requests confirmation inside this tool; call action=publish without confirmed first, then retry with the returned confirmation args.",
+      "Manage publishing with an action discriminator. Use action=queue-list to inspect the publish queue; action=queue-add to queue an entity for publication; action=queue-remove to remove a queued entity; action=queue-reorder to change queue order; action=publish to publish one entity directly to its platform (e.g. LinkedIn, Buttondown). Direct publish requests confirmation inside this tool: when the user asks to publish, call action=publish without confirmed instead of asking for plain-text confirmation. Follow-ups like 'publish it now' target the entity just read, generated, or updated in the conversation, including a post just changed to draft. Missing publish assets such as generated OG images are reconciled during publishing; there is no separate reconciliation tool to call.",
     inputSchema: publishingManageInputSchema.shape,
     outputSchema: publishingManageOutputSchema,
     visibility: "admin",

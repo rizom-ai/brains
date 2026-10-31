@@ -413,7 +413,7 @@ export class DocumentPlugin extends ServicePlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks. Source-derived document artifacts are durable documents backed by registered attachment providers such as carousel or printable. Generate saved PDF artifacts through system_generate with source.kind attachment; preserve raw uploaded PDFs with system_create source.kind upload and transform preserve.";
+    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks: preserve them with system_create upload transform preserve. Render PDF artifacts such as carousel or printable with system_generate operation.kind attachment.";
   }
 
   protected override async getTools(): Promise<Tool[]> {

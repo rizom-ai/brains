@@ -19,7 +19,7 @@ export function createSiteBuilderTools(
     createTool(
       pluginId,
       "build-site",
-      "Build a static site from registered routes. Call this for every user build/rebuild request, including repeated requests like 'build it again' or 'one more build'.",
+      "Build a static site from registered routes. Call this immediately whenever the user asks to build, rebuild, publish, or build the website/site again; every repeated request such as 'build it again' or 'one more build' needs a fresh call. Never say a build was started, queued, or requested unless this turn called this tool.",
       buildSiteInputSchema,
       async (input) => {
         requestBuild(input.environment);

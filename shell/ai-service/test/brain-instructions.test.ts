@@ -23,4 +23,16 @@ describe("brain instructions", () => {
 
     expect(instructions).toContain("Today is Saturday 2026-10-24 (UTC).");
   });
+
+  // The system tools' Entity CRUD rules say how a write is confirmed; a second
+  // copy here was resent on every step.
+  it("leave write confirmation to the system tool rules", () => {
+    const instructions = buildInstructions(identity, "admin");
+
+    expect(instructions).not.toContain("confirmation in prose");
+    expect(instructions).not.toContain("self-confirm");
+    expect(instructions).toContain(
+      "If a tool returns a permission denial, report it concisely",
+    );
+  });
 });
