@@ -425,3 +425,54 @@ describe("evaluateCriteria", () => {
     });
   });
 });
+
+// A run cannot pin its date, so "by Friday" is checked against the run's own
+// today: the due date may be today or later, never the past.
+describe("argsNotBeforeToday", () => {
+  const saturday = new Date("2026-10-31T12:00:00.000Z");
+  const criteria = {
+    expectedTools: [
+      {
+        toolName: "action_item_create",
+        shouldBeCalled: true,
+        argsNotBeforeToday: ["due"],
+      },
+    ],
+  };
+  const created = (due: string): ReturnType<typeof evaluateCriteria> =>
+    evaluateCriteria(
+      criteria,
+      { text: "" },
+      [{ toolName: "action_item_create", args: { due }, result: {} }],
+      saturday,
+    );
+
+  it("passes a date on or after today", () => {
+    expect(created("2026-10-31")).toEqual([
+      expect.objectContaining({ criterion: "expectedTool", passed: true }),
+    ]);
+    expect(created("2026-11-06")).toEqual([
+      expect.objectContaining({ criterion: "expectedTool", passed: true }),
+    ]);
+  });
+
+  it("fails a date before today", () => {
+    expect(created("2026-10-30")).toContainEqual(
+      expect.objectContaining({
+        criterion: "toolArgsNotBeforeToday",
+        passed: false,
+        message:
+          "action_item_create.due is not a date on or after today (2026-10-31)",
+      }),
+    );
+  });
+
+  it("fails a value that is not a date", () => {
+    expect(created("none")).toContainEqual(
+      expect.objectContaining({
+        criterion: "toolArgsNotBeforeToday",
+        passed: false,
+      }),
+    );
+  });
+});

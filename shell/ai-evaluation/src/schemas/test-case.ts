@@ -41,6 +41,7 @@ type ExpectedToolCallSchema = z.ZodObject<{
   toolName: z.ZodString;
   argsContain: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   argsAbsent: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  argsNotBeforeToday: z.ZodOptional<z.ZodArray<z.ZodString>>;
   resultContains: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   resultErrorContains: z.ZodOptional<z.ZodString>;
   resultRefused: z.ZodOptional<z.ZodBoolean>;
@@ -58,6 +59,12 @@ export const expectedToolCallSchema: ExpectedToolCallSchema = z.object({
     .optional()
     .describe(
       "Tool argument paths that must be absent from all matching calls",
+    ),
+  argsNotBeforeToday: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Tool argument paths holding a YYYY-MM-DD date that must be the run\'s date (UTC) or later in every matching call. A run cannot pin its date, so this checks that a relative date such as "by Friday" never resolved to the past.',
     ),
   resultContains: z
     .record(z.string(), z.unknown())
