@@ -1,6 +1,7 @@
 import type {
   CreateInput,
   CreateInterceptionResult,
+  CreateQuestion,
 } from "@brains/entity-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
@@ -18,7 +19,8 @@ export interface EntityText<TFields> {
 export type EntityTextResult<TFields> =
   /** Not a save of the writer's own text, or a document the type stores as given. */
   | { kind: "not-text" }
-  | { kind: "error"; error: string }
+  /** Cannot go ahead; a `question` is put to the user, and the text is kept for the retry. */
+  | { kind: "error"; error: string; question?: CreateQuestion }
   | { kind: "text"; text: EntityText<TFields> };
 
 export interface ReadEntityTextOptions<TSchema extends z.ZodObject> {
@@ -148,7 +150,8 @@ export function readEntityText<TSchema extends z.ZodObject>(
   if (!title) {
     return {
       kind: "error",
-      error: `What should this ${noun} be called? The text has no "# Title" heading. (Save it again from the same user message, with that \`title\`.)`,
+      error: `What should this ${noun} be called? The text has no "# Title" heading; pass the answer as \`title\`.`,
+      question: "fields",
     };
   }
   const withoutTitle = options.keepTitleHeading
@@ -201,7 +204,17 @@ export function continueWithEntityText(
   };
 }
 
-/** A create of the writer's text that cannot go ahead, with what to do instead. */
-export function entityTextError(error: string): CreateInterceptionResult {
-  return { kind: "handled", result: { success: false, error } };
+/**
+ * A create of the writer's text that cannot go ahead, with what to do
+ * instead. With a `question`, the refusal asks the user something and
+ * system_create keeps the text for the retry that carries the answer.
+ */
+export function entityTextError(
+  error: string,
+  question?: CreateQuestion,
+): CreateInterceptionResult {
+  return {
+    kind: "handled",
+    result: { success: false, error, ...(question && { question }) },
+  };
 }

@@ -75,7 +75,9 @@ export async function createProjectFromText(
       projectFrontmatterSchema.safeParse(frontmatter).success,
   });
   if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") return entityTextError(read.error);
+  if (read.kind === "error") {
+    return entityTextError(read.error, read.question);
+  }
   const { title, body, fields } = read.text;
 
   let description = fields.description;
@@ -93,12 +95,14 @@ export async function createProjectFromText(
   }
   if (year === undefined) {
     return entityTextError(
-      "Which year did this project begin? The text does not say. (Save it again from the same user message, with fields { year }.)",
+      "Which year did this project begin? The text does not say; pass the answer as fields { year }.",
+      "fields",
     );
   }
   if (description === undefined) {
     return entityTextError(
-      "How would you sum up this project in a sentence? A description could not be written from the text. (Save it again from the same user message, with fields { description }.)",
+      "How would you sum up this project in a sentence? A description could not be written from the text; pass the answer as fields { description }.",
+      "fields",
     );
   }
 

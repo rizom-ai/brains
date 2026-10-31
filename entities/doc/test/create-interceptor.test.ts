@@ -104,9 +104,9 @@ describe("DocsPlugin create interceptor", () => {
         existingDoc("api", "Reference", 2),
       ]);
 
-    const error = refusal(
-      await intercept({ entityType: "doc", content: guide }),
-    );
+    const result = await intercept({ entityType: "doc", content: guide });
+    expect(result).toMatchObject({ result: { question: "fields" } });
+    const error = refusal(result);
     expect(error).toContain("section");
     expect(error).toContain("Start here");
     expect(error).toContain("Reference");

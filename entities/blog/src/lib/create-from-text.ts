@@ -50,7 +50,9 @@ export async function createPostFromText(
       blogPostFrontmatterSchema.safeParse(frontmatter).success,
   });
   if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") return entityTextError(read.error);
+  if (read.kind === "error") {
+    return entityTextError(read.error, read.question);
+  }
   const { title, body, fields } = read.text;
 
   let entityId: string;

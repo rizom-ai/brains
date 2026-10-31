@@ -57,7 +57,9 @@ export async function createDocFromText(
       docFrontmatterSchema.safeParse(frontmatter).success,
   });
   if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") return entityTextError(read.error);
+  if (read.kind === "error") {
+    return entityTextError(read.error, read.question);
+  }
   const { title, body, fields } = read.text;
 
   const { sections, lastOrder } = await existingPlaces(context);
@@ -66,8 +68,9 @@ export async function createDocFromText(
   if (!section) {
     return entityTextError(
       sections.length === 0
-        ? "Which section does this page belong in? There are no docs yet to file it with. (Save it again from the same user message, with fields { section }.)"
-        : `Which section does this page belong in: ${sections.map((name) => `"${name}"`).join(", ")}, or a new one? (Save it again from the same user message, with fields { section }.)`,
+        ? "Which section does this page belong in? There are no docs yet to file it with; pass the answer as fields { section }."
+        : `Which section does this page belong in: ${sections.map((name) => `"${name}"`).join(", ")}, or a new one? Pass the answer as fields { section }.`,
+      "fields",
     );
   }
 

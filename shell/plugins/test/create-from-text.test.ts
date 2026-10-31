@@ -70,7 +70,7 @@ describe("readEntityText", () => {
 
   it("asks for a title when the text has none", () => {
     const result = read({ content: "Just a paragraph." });
-    expect(result.kind).toBe("error");
+    expect(result).toMatchObject({ kind: "error", question: "fields" });
     expect(JSON.stringify(result)).toContain("title");
   });
 

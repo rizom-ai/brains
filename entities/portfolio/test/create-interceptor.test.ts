@@ -103,13 +103,13 @@ describe("PortfolioPlugin create interceptor", () => {
 
   it("asks for the year when the text does not say when the project began", async () => {
     derived = { description: "A river mapped by canoe.", year: null };
-    const error = refusal(
-      await intercept({
-        entityType: "project",
-        content: "# River Atlas\n\nWe mapped the river by canoe.",
-      }),
-    );
-    expect(error).toContain("year");
+    const result = await intercept({
+      entityType: "project",
+      content: "# River Atlas\n\nWe mapped the river by canoe.",
+    });
+    expect(refusal(result)).toContain("year");
+    // A question: system_create keeps the text for the retry.
+    expect(result).toMatchObject({ result: { question: "fields" } });
   });
 
   it("does not take a year the text never mentions", async () => {
