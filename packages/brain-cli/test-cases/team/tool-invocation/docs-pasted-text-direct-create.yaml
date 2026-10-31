@@ -1,0 +1,48 @@
+id: team-tool-docs-pasted-text-direct-create
+name: Pasted Page Becomes a Doc via Direct Create
+description: Verifies a how-to page pasted as plain markdown is saved as a doc from the user's message, in the section the user names, without the model rewriting it.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-team
+  - team
+  - docs
+  - finalized-content
+  - regression
+
+turns:
+  - userMessage: |
+      Save this as a doc in the Team Brain handbook section. Keep my text.
+
+      # Rotating API keys
+
+      Keys rotate every 90 days.
+
+      ## Steps
+
+      1. Revoke the old key in the dashboard.
+      2. Issue a new key and store it in the vault.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: doc
+        source.kind: user-message
+        fields.section: Team Brain handbook
+      argsAbsent:
+        - prompt
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 31000
