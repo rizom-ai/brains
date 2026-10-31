@@ -68,10 +68,10 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       embeddingsEnabled: false,
       embeddingService: {
         identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-        generateEmbedding: async () => {
+        embedQuery: async () => {
           throw new Error("Unexpected embedding request");
         },
-        generateEmbeddings: async () => {
+        embedDocuments: async () => {
           throw new Error("Unexpected embedding request");
         },
       },

@@ -108,6 +108,31 @@ describe("shell config", () => {
     ).toThrow(/Unsupported embedding model .*openai:text-embedding-ada-002/);
   });
 
+  it("serves a local embedding model from the model runtime", () => {
+    const config = createShellConfig({
+      ai: {
+        apiKey: "test-key",
+        model: "gpt-4o-mini",
+        embeddingModel: "local:embeddinggemma-2:270m",
+        modelRuntimeUrl: "http://models:11434",
+      },
+    });
+
+    expect(config.ai.modelRuntimeUrl).toBe("http://models:11434");
+  });
+
+  it("rejects a local embedding model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-4o-mini",
+          embeddingModel: "local:embeddinggemma-2:270m",
+        },
+      }),
+    ).toThrow(/local:embeddinggemma-2:270m needs modelRuntime\.url/);
+  });
+
   it("rejects a text model of an unknown provider", () => {
     expect(() =>
       createShellConfig({

@@ -95,6 +95,7 @@ export const shellConfigSchema: z.ZodObject<{
     imageApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
     embeddingModel: z.ZodDefault<z.ZodString>;
+    modelRuntimeUrl: z.ZodOptional<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
@@ -138,25 +139,40 @@ export const shellConfigSchema: z.ZodObject<{
   runtimeStateDatabase: dbConfigSchema,
   embeddingDatabase: dbConfigSchema,
 
-  ai: z.object({
-    /** Absent when the AI provider is configured later or not at all. */
-    apiKey: z.string().default(""),
-    imageApiKey: z.string().optional(),
-    model: z.string().refine(isSupportedTextModel, {
-      error: (issue) => `Unsupported model "${String(issue.input)}"`,
+  ai: z
+    .object({
+      /** Absent when the AI provider is configured later or not at all. */
+      apiKey: z.string().default(""),
+      imageApiKey: z.string().optional(),
+      model: z.string().refine(isSupportedTextModel, {
+        error: (issue) => `Unsupported model "${String(issue.input)}"`,
+      }),
+      /** `provider:model`; changing it rebuilds the semantic index. */
+      embeddingModel: z
+        .string()
+        .refine((model) => findEmbeddingProfile(model) !== undefined, {
+          error: (issue) =>
+            unsupportedEmbeddingModelMessage(String(issue.input)),
+        })
+        .default(DEFAULT_EMBEDDING_MODEL),
+      /** The model runtime serving `local:` models (brain.yaml `modelRuntime.url`). */
+      modelRuntimeUrl: z.string().url().optional(),
+      temperature: z.number().min(0).max(2).default(0.7),
+      maxTokens: z.number().positive().default(1000),
+      webSearch: z.boolean().default(true),
+      reasoningEffort: reasoningEffortSchema.optional(),
+    })
+    .superRefine((ai, context) => {
+      const local =
+        findEmbeddingProfile(ai.embeddingModel)?.provider === "local";
+      if (local && !ai.modelRuntimeUrl) {
+        context.addIssue({
+          code: "custom",
+          path: ["modelRuntimeUrl"],
+          message: `${ai.embeddingModel} needs modelRuntime.url`,
+        });
+      }
     }),
-    /** `provider:model`; changing it rebuilds the semantic index. */
-    embeddingModel: z
-      .string()
-      .refine((model) => findEmbeddingProfile(model) !== undefined, {
-        error: (issue) => unsupportedEmbeddingModelMessage(String(issue.input)),
-      })
-      .default(DEFAULT_EMBEDDING_MODEL),
-    temperature: z.number().min(0).max(2).default(0.7),
-    maxTokens: z.number().positive().default(1000),
-    webSearch: z.boolean().default(true),
-    reasoningEffort: reasoningEffortSchema.optional(),
-  }),
 
   embedding: z.object({
     enabled: z.boolean().default(true),

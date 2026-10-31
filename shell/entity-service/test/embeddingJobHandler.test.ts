@@ -199,3 +199,50 @@ describe("EmbeddingJobHandler usage", () => {
     });
   });
 });
+
+describe("EmbeddingJobHandler documents", () => {
+  async function embeddedDocuments(entity: BaseEntity): Promise<unknown[]> {
+    const embedDocuments = spyOn(mockEmbeddingService, "embedDocuments");
+    try {
+      const handler = EmbeddingJobHandler.createFresh(
+        createEntityServiceStub(async () => entity),
+        mockEmbeddingService,
+      );
+      await handler.process(
+        {
+          id: entity.id,
+          entityType: entity.entityType,
+          contentHash: entity.contentHash,
+          operation: "update",
+        },
+        "job-documents",
+        mockProgressReporter,
+      );
+      return embedDocuments.mock.calls.map(([documents]) => documents);
+    } finally {
+      embedDocuments.mockRestore();
+    }
+  }
+
+  test("embeds the entity as a document titled with its title", async () => {
+    const entity = createTestEntity<BaseEntity>("note", {
+      id: "titled",
+      content: "Body of the note",
+      metadata: { title: "Principles" },
+    });
+    expect(await embeddedDocuments(entity)).toEqual([
+      [{ title: "Principles", content: "Body of the note" }],
+    ]);
+  });
+
+  test("embeds an untitled entity without a title", async () => {
+    const entity = createTestEntity<BaseEntity>("note", {
+      id: "untitled",
+      content: "Body of the note",
+      metadata: {},
+    });
+    expect(await embeddedDocuments(entity)).toEqual([
+      [{ content: "Body of the note" }],
+    ]);
+  });
+});

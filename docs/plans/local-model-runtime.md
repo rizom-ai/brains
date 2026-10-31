@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 implemented: `embeddingModel` selects `openai:text-embedding-3-small` or `-large`, and the index records its identity and rebuilds on change. Phases 0 and 2–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
+Phases 1 and 2 implemented: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Phase 0 numbers and Phases 3–5 open. Each brain picks its embedding, text and image model in `brain.yaml`; cloud providers stay available, and a new `local` provider serves open models from a sidecar next to the brain. Embeddings ship first, with Google's EmbeddingGemma 2; text and image generation follow on the same runtime.
 
 ## Today
 

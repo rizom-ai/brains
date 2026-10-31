@@ -7,7 +7,9 @@ import {
 
 describe("embedding profiles", () => {
   it("resolves an explicit provider:model to its profile", () => {
-    expect(resolveEmbeddingProfile("openai:text-embedding-3-large")).toEqual({
+    expect(
+      resolveEmbeddingProfile("openai:text-embedding-3-large"),
+    ).toMatchObject({
       model: "openai:text-embedding-3-large",
       provider: "openai",
       modelId: "text-embedding-3-large",
@@ -42,5 +44,51 @@ describe("embedding profiles", () => {
     expect(
       findEmbeddingProfile("openai:text-embedding-ada-002"),
     ).toBeUndefined();
+  });
+});
+
+describe("EmbeddingGemma 2", () => {
+  const gemma = resolveEmbeddingProfile("local:embeddinggemma-2:270m");
+
+  it("is served by the local runtime at 768 dimensions", () => {
+    expect(gemma).toMatchObject({
+      model: "local:embeddinggemma-2:270m",
+      provider: "local",
+      modelId: "embeddinggemma-2:270m",
+      dimensions: 768,
+      // Ollama's default context; longer input is truncated silently.
+      maxInputTokens: 2_048,
+      promptRevision: 1,
+    });
+  });
+
+  it("resolves its bare name to the local runtime", () => {
+    expect(findEmbeddingProfile("embeddinggemma-2:270m")).toBe(gemma);
+  });
+
+  it("frames queries as search queries", () => {
+    expect(gemma.query("green software")).toBe(
+      "task: search result | query: green software",
+    );
+  });
+
+  it("frames documents with their title, or none", () => {
+    expect(gemma.document({ title: "Principles", content: "Body" })).toBe(
+      "title: Principles | text: Body",
+    );
+    expect(gemma.document({ content: "Body" })).toBe(
+      "title: none | text: Body",
+    );
+  });
+});
+
+describe("OpenAI embedding prompts", () => {
+  const small = resolveEmbeddingProfile(DEFAULT_EMBEDDING_MODEL);
+
+  it("sends queries and documents unchanged", () => {
+    expect(small.query("green software")).toBe("green software");
+    expect(small.document({ title: "Principles", content: "Body" })).toBe(
+      "Body",
+    );
   });
 });

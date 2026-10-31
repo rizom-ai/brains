@@ -8,6 +8,7 @@ import type {
   EntityEventBus,
 } from "../types";
 import type { IEmbeddingService } from "../embedding-types";
+import { entityTitle } from "../frontmatter";
 import type { JobHandler } from "@brains/job-queue";
 import { internalFullScope } from "../internal-scope";
 /**
@@ -111,9 +112,18 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         return;
       }
 
-      // Generate embedding using fresh content from entity
-      const { embedding, usage } =
-        await this.embeddingService.generateEmbedding(currentEntity.content);
+      // Embed the fresh content as a document, titled when the entity is
+      const title = entityTitle(currentEntity);
+      const {
+        embeddings: [embedding],
+        usage,
+      } = await this.embeddingService.embedDocuments([
+        {
+          ...(title !== null ? { title } : {}),
+          content: currentEntity.content,
+        },
+      ]);
+      if (!embedding) throw new Error("Embedding provider returned no vector");
 
       // Log usage event for monitoring; identity names `provider:model`
       const [provider, model] = splitModel(

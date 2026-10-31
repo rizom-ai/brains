@@ -104,6 +104,7 @@ export function createShellServices(options: {
     OnlineEmbeddingProvider.createFresh({
       apiKey: config.ai.apiKey,
       profile: resolveEmbeddingProfile(config.ai.embeddingModel),
+      runtimeUrl: config.ai.modelRuntimeUrl,
       logger,
       usage: embeddingUsage,
     });

@@ -16,6 +16,7 @@ export interface AIConfigFields {
   aiImageKey?: string;
   aiModel?: string;
   aiEmbeddingModel?: string;
+  aiModelRuntimeUrl?: string;
   aiReasoningEffort?: ReasoningEffort;
 }
 
@@ -24,6 +25,7 @@ export function resolveAIConfig(
   overrides?: {
     model?: string;
     embeddingModel?: string;
+    modelRuntimeUrl?: string;
     reasoningEffort?: ReasoningEffort;
   },
 ): AIConfigFields {
@@ -46,6 +48,9 @@ export function resolveAIConfig(
   }
   if (overrides?.embeddingModel) {
     result.aiEmbeddingModel = overrides.embeddingModel;
+  }
+  if (overrides?.modelRuntimeUrl) {
+    result.aiModelRuntimeUrl = overrides.modelRuntimeUrl;
   }
   if (overrides?.reasoningEffort) {
     result.aiReasoningEffort = overrides.reasoningEffort;

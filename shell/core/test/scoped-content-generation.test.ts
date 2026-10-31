@@ -84,10 +84,10 @@ describe("scoped durable content generation", () => {
       embeddingsEnabled: false,
       embeddingService: {
         identity: { model: "test:mock", dimensions: 3, promptRevision: 0 },
-        generateEmbedding: async () => {
+        embedQuery: async () => {
           throw new Error("Embeddings disabled");
         },
-        generateEmbeddings: async () => {
+        embedDocuments: async () => {
           throw new Error("Embeddings disabled");
         },
       },

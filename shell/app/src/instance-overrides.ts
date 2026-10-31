@@ -81,6 +81,9 @@ type InstanceOverridesSchema = z.ZodObject<
     >;
     model: z.ZodOptional<z.ZodString>;
     embeddingModel: z.ZodOptional<z.ZodString>;
+    modelRuntime: z.ZodOptional<
+      z.ZodObject<{ url: z.ZodString }, z.core.$strict>
+    >;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
     bundles: z.ZodOptional<z.ZodArray<z.ZodString>>;
     mode: z.ZodOptional<typeof overrideModeSchema>;
@@ -183,6 +186,9 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
 
   /** Embedding model, e.g. "openai:text-embedding-3-large". Changing it rebuilds the semantic index. */
   embeddingModel: z.string().optional(),
+
+  /** The model runtime serving `local:` models: an OpenAI-compatible API. */
+  modelRuntime: z.strictObject({ url: z.string() }).optional(),
 
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */
   reasoningEffort: reasoningEffortSchema.optional(),

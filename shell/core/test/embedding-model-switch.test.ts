@@ -22,7 +22,7 @@ function embeddingModel(
     embedded,
     failures: 0,
     down: false,
-    generateEmbedding: async (
+    embedQuery: async (
       text: string,
     ): Promise<{ embedding: Float32Array; usage: { tokens: number } }> => {
       if (service.down) {
@@ -35,15 +35,15 @@ function embeddingModel(
         usage: { tokens: 1 },
       };
     },
-    generateEmbeddings: async (
-      texts: string[],
+    embedDocuments: async (
+      documents: { content: string }[],
     ): Promise<{ embeddings: Float32Array[]; usage: { tokens: number } }> => {
       const results = await Promise.all(
-        texts.map((text) => service.generateEmbedding(text)),
+        documents.map((document) => service.embedQuery(document.content)),
       );
       return {
         embeddings: results.map((result) => result.embedding),
-        usage: { tokens: texts.length },
+        usage: { tokens: documents.length },
       };
     },
   };

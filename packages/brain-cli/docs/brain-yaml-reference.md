@@ -146,10 +146,25 @@ An explicit `provider:` prefix selects the provider; a bare name is matched to o
 
 ### `embeddingModel`
 
-Select the model that builds the semantic index. Defaults to `openai:text-embedding-3-small`; `openai:text-embedding-3-large` is also supported, and any other model fails config validation.
+Select the model that builds the semantic index. Defaults to `openai:text-embedding-3-small`; `openai:text-embedding-3-large` and `local:embeddinggemma-2:270m` are also supported, and any other model fails config validation.
 
 ```yaml
 embeddingModel: openai:text-embedding-3-large
+```
+
+A `local:` model is served by the model runtime at `modelRuntime.url`: any server that implements the OpenAI-compatible `/v1/embeddings` API, such as Ollama. A `local:` model without `modelRuntime.url` fails config validation.
+
+```yaml
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+To run EmbeddingGemma 2 on a development machine:
+
+```sh
+ollama pull embeddinggemma-2:270m
+ollama serve
 ```
 
 Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.

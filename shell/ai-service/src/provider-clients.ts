@@ -1,6 +1,7 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { ImageModel, LanguageModel } from "ai";
 import type { AIModelConfig } from "./types";
 import { resolveTextProvider, selectTextProvider } from "./provider-selection";
@@ -35,6 +36,21 @@ export function createProviderClients(config: AIModelConfig): ProviderClients {
           ? createGoogleGenerativeAI({ apiKey: imageApiKey })
           : null,
   };
+}
+
+/**
+ * The model runtime's client: its OpenAI-compatible API at `modelRuntime.url`,
+ * whatever server sits behind it.
+ */
+export function createLocalRuntimeClient(
+  url: string,
+  fetchImpl?: typeof fetch,
+): ReturnType<typeof createOpenAICompatible> {
+  return createOpenAICompatible({
+    name: "local",
+    baseURL: `${url.replace(/\/+$/, "")}/v1`,
+    ...(fetchImpl ? { fetch: fetchImpl } : {}),
+  });
 }
 
 export function getLanguageModel(

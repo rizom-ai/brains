@@ -1,8 +1,9 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { embedMany } from "ai";
+import { embedMany, type EmbeddingModel } from "ai";
 import type { Logger } from "@brains/utils/logger";
 import type {
   IEmbeddingService,
+  EmbeddingDocument,
   EmbeddingIdentity,
   EmbeddingResult,
   BatchEmbeddingResult,
@@ -13,15 +14,18 @@ import {
   resolveEmbeddingProfile,
   type EmbeddingProfile,
 } from "./embedding-profiles";
+import { createLocalRuntimeClient } from "./provider-clients";
 
 export interface OnlineEmbeddingConfig {
   apiKey: string;
   /** The embedding model to index with; text-embedding-3-small by default. */
   profile?: EmbeddingProfile;
+  /** The model runtime's base URL, for `local` models. */
+  runtimeUrl?: string | undefined;
   logger: Logger;
   /** Told what each call used, so a guest turn is charged for its embeddings. */
   usage?: EmbeddingUsageRecorder;
-  /** The HTTP client to reach OpenAI with; the platform's by default. */
+  /** The HTTP client to reach the provider with; the platform's by default. */
   fetch?: typeof fetch;
 }
 
@@ -118,14 +122,20 @@ function combine(chunks: string[], vectors: number[][]): Float32Array {
   return new Float32Array(sum.map((value) => value / norm));
 }
 
+/** A text to embed, and how each of its chunks is framed for the model. */
+interface EmbeddingInput {
+  content: string;
+  frame: (chunk: string) => string;
+}
+
 /**
- * Embedding provider that uses the OpenAI embeddings API.
- * Uses the OpenAI embeddings API for vector generation.
+ * Embedding provider for the configured profile: OpenAI's embeddings API, or
+ * the model runtime's OpenAI-compatible one for `local` models.
  */
 export class OnlineEmbeddingProvider implements IEmbeddingService {
   public readonly identity: EmbeddingIdentity;
   private readonly profile: EmbeddingProfile;
-  private readonly openai: ReturnType<typeof createOpenAI>;
+  private readonly model: EmbeddingModel;
   private readonly logger: Logger;
   private readonly usage: EmbeddingUsageRecorder | undefined;
 
@@ -136,12 +146,9 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
   }
 
   private constructor(config: OnlineEmbeddingConfig) {
-    if (!config.apiKey) {
-      throw new Error("API key is required for online embedding provider");
-    }
-
     this.profile =
       config.profile ?? resolveEmbeddingProfile(DEFAULT_EMBEDDING_MODEL);
+    this.model = embeddingModelFor(this.profile, config);
     this.identity = {
       model: this.profile.model,
       dimensions: this.profile.dimensions,
@@ -149,51 +156,66 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     };
     this.logger = config.logger.child("OnlineEmbeddingProvider");
     this.usage = config.usage;
-
-    this.openai = createOpenAI({
-      apiKey: config.apiKey,
-      ...(config.fetch ? { fetch: config.fetch } : {}),
-    });
   }
 
-  async generateEmbedding(
+  async embedQuery(
     text: string,
     signal?: AbortSignal,
   ): Promise<EmbeddingResult> {
     const {
       embeddings: [embedding],
       usage,
-    } = await this.generateEmbeddings([text], signal);
+    } = await this.embed(
+      [{ content: text, frame: (chunk): string => this.profile.query(chunk) }],
+      signal,
+    );
     if (!embedding) throw new Error("Embedding provider returned no vector");
     return { embedding, usage };
   }
 
+  async embedDocuments(
+    documents: EmbeddingDocument[],
+    signal?: AbortSignal,
+  ): Promise<BatchEmbeddingResult> {
+    return this.embed(
+      documents.map((document) => ({
+        content: document.content,
+        frame: (chunk): string =>
+          this.profile.document({ ...document, content: chunk }),
+      })),
+      signal,
+    );
+  }
+
   /**
-   * One vector per text. A text over the model's input limit is embedded in
-   * chunks whose vectors are combined, so no part of it is left out.
+   * One vector per text. A text over the model's input limit, its framing
+   * included, is embedded in framed chunks whose vectors are combined, so no
+   * part of it is left out.
    */
-  async generateEmbeddings(
-    texts: string[],
+  private async embed(
+    inputs: EmbeddingInput[],
     signal?: AbortSignal,
   ): Promise<BatchEmbeddingResult> {
     const scopedSignal = this.usage?.currentSignal();
     if (scopedSignal)
       signal = signal ? AbortSignal.any([signal, scopedSignal]) : scopedSignal;
     signal?.throwIfAborted();
-    if (texts.length === 0) {
+    if (inputs.length === 0) {
       return { embeddings: [], usage: { tokens: 0 } };
     }
 
-    const chunked = texts.map((text) =>
-      splitForEmbedding(text, this.profile.maxInputTokens),
+    const chunked = inputs.map((input) =>
+      splitForEmbedding(input.content, this.inputBudget(input)),
     );
-    const chunks = chunked.flat();
-    if (chunks.length > texts.length) {
+    const chunks = inputs.flatMap((input, index) =>
+      (chunked[index] ?? []).map((chunk) => input.frame(chunk)),
+    );
+    if (chunks.length > inputs.length) {
       this.logger.debug(
-        `Embedding ${texts.length} texts in ${chunks.length} chunks`,
+        `Embedding ${inputs.length} texts in ${chunks.length} chunks`,
       );
     } else {
-      this.logger.debug(`Generating embeddings for ${texts.length} texts`);
+      this.logger.debug(`Generating embeddings for ${inputs.length} texts`);
     }
 
     const results = await groupRequests(chunks, this.profile).reduce<
@@ -203,13 +225,17 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
         const done = await previous;
         const measurement = this.usage?.begin(this.profile.model);
         const { embeddings, usage } = await embedMany({
-          model: this.openai.embedding(this.profile.modelId),
+          model: this.model,
           values,
           ...(measurement ? { maxRetries: 0 } : {}),
           ...(signal ? { abortSignal: signal } : {}),
-          providerOptions: {
-            openai: { dimensions: this.profile.dimensions },
-          },
+          ...(this.profile.provider === "openai"
+            ? {
+                providerOptions: {
+                  openai: { dimensions: this.profile.dimensions },
+                },
+              }
+            : {}),
         });
         // Preserve this request's usage even if a later group fails.
         measurement?.finish(usage.tokens);
@@ -239,4 +265,37 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     ).vectors;
     return { embeddings, usage: { tokens: results.tokens } };
   }
+
+  /** The bytes of content a chunk may hold once framed for the model. */
+  private inputBudget(input: EmbeddingInput): number {
+    const budget = this.profile.maxInputTokens - byteLength(input.frame(""));
+    if (budget <= 0) {
+      throw new Error(
+        `Embedding framing leaves no room within ${this.profile.model}'s input limit`,
+      );
+    }
+    return budget;
+  }
+}
+
+function embeddingModelFor(
+  profile: EmbeddingProfile,
+  config: OnlineEmbeddingConfig,
+): EmbeddingModel {
+  if (profile.provider === "local") {
+    if (!config.runtimeUrl) {
+      throw new Error(`${profile.model} needs modelRuntime.url`);
+    }
+    return createLocalRuntimeClient(
+      config.runtimeUrl,
+      config.fetch,
+    ).embeddingModel(profile.modelId);
+  }
+  if (!config.apiKey) {
+    throw new Error(`API key is required for ${profile.model}`);
+  }
+  return createOpenAI({
+    apiKey: config.apiKey,
+    ...(config.fetch ? { fetch: config.fetch } : {}),
+  }).embedding(profile.modelId);
 }

@@ -31,11 +31,11 @@ describe("selectTextProvider", () => {
     expect(selectTextProvider("gemini-2.0-flash")).toBe("google");
   });
 
-  it("should detect ollama from local model names", () => {
-    expect(selectTextProvider("llama-3.1-8b")).toBe("ollama");
-    expect(selectTextProvider("mistral-7b")).toBe("ollama");
-    expect(selectTextProvider("phi-3")).toBe("ollama");
-    expect(selectTextProvider("qwen-2.5")).toBe("ollama");
+  it("should detect the local runtime from open model names", () => {
+    expect(selectTextProvider("llama-3.1-8b")).toBe("local");
+    expect(selectTextProvider("mistral-7b")).toBe("local");
+    expect(selectTextProvider("phi-3")).toBe("local");
+    expect(selectTextProvider("qwen-2.5")).toBe("local");
   });
 
   it("should handle explicit provider prefix", () => {

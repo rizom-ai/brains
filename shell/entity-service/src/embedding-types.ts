@@ -32,17 +32,21 @@ export interface EmbeddingIdentity {
   promptRevision: number;
 }
 
+/** A document to index: its content and, when it has one, its title. */
+export interface EmbeddingDocument {
+  title?: string | undefined;
+  content: string;
+}
+
 /**
- * Interface for embedding service
+ * Interface for embedding service. Queries and documents are embedded apart,
+ * since a model may frame each differently.
  */
 export interface IEmbeddingService {
   readonly identity: EmbeddingIdentity;
-  generateEmbedding(
-    text: string,
-    signal?: AbortSignal,
-  ): Promise<EmbeddingResult>;
-  generateEmbeddings(
-    texts: string[],
+  embedQuery(text: string, signal?: AbortSignal): Promise<EmbeddingResult>;
+  embedDocuments(
+    documents: EmbeddingDocument[],
     signal?: AbortSignal,
   ): Promise<BatchEmbeddingResult>;
 }

@@ -71,10 +71,10 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
       embeddingsEnabled: false,
       embeddingService: {
         identity: { model: "test:mock", dimensions: 3, promptRevision: 0 },
-        generateEmbedding: async () => {
+        embedQuery: async () => {
           throw new Error("Indexing disabled in test");
         },
-        generateEmbeddings: async () => {
+        embedDocuments: async () => {
           throw new Error("Indexing disabled in test");
         },
       },

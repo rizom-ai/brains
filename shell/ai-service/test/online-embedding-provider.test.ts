@@ -69,13 +69,13 @@ describe("OnlineEmbeddingProvider", () => {
     });
   });
 
-  describe("generateEmbeddings edge cases", () => {
+  describe("embedDocuments edge cases", () => {
     test("returns empty result for empty input", async () => {
       const provider = OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
         logger: createSilentLogger(),
       });
-      const result = await provider.generateEmbeddings([]);
+      const result = await provider.embedDocuments([]);
       expect(result.embeddings).toEqual([]);
       expect(result.usage.tokens).toBe(0);
     });
@@ -90,7 +90,7 @@ describe("OnlineEmbeddingProvider", () => {
       controller.abort(reason);
 
       void expect(
-        provider.generateEmbeddings(["text"], controller.signal),
+        provider.embedDocuments([{ content: "text" }], controller.signal),
       ).rejects.toBe(reason);
     });
   });
@@ -132,8 +132,8 @@ describe("OnlineEmbeddingProvider", () => {
         fetch: openAi,
       });
       const { usage: measured } = await usage.measure(async () => {
-        await provider.generateEmbedding("a query");
-        await provider.generateEmbeddings(["one", "two"]);
+        await provider.embedQuery("a query");
+        await provider.embedDocuments([{ content: "one" }, { content: "two" }]);
       });
       expect(measured).toEqual([
         { model: "openai:text-embedding-3-small", tokens: 7 },
@@ -151,7 +151,7 @@ describe("OnlineEmbeddingProvider", () => {
         fetch: openAi,
       });
       const { usage: measured } = await usage.measure(() =>
-        provider.generateEmbedding("a query"),
+        provider.embedQuery("a query"),
       );
       expect(measured).toEqual([
         { model: "openai:text-embedding-3-large", tokens: 7 },
@@ -175,7 +175,7 @@ describe("OnlineEmbeddingProvider", () => {
           preconnect: globalThis.fetch.preconnect,
         }),
       });
-      await provider.generateEmbedding("a query");
+      await provider.embedQuery("a query");
       expect(bodies).toEqual([
         {
           input: ["a query"],
@@ -278,7 +278,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("sends input within the limit unchanged, in one request", async () => {
       const api = fakeOpenAi();
-      await providerFor(api).generateEmbedding("a short query");
+      await providerFor(api).embedQuery("a short query");
       expect(api.requests).toEqual([["a short query"]]);
     });
 
@@ -286,7 +286,7 @@ describe("OnlineEmbeddingProvider", () => {
       expect(bytes(longNote)).toBeGreaterThan(4 * MAX_INPUT_TOKENS);
       const api = fakeOpenAi();
 
-      const { embedding } = await providerFor(api).generateEmbedding(longNote);
+      const { embedding } = await providerFor(api).embedQuery(longNote);
 
       const chunks = api.requests.flat();
       expect(chunks.length).toBeGreaterThan(1);
@@ -316,7 +316,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("splits at paragraph boundaries when the paragraphs fit", async () => {
       const api = fakeOpenAi();
-      await providerFor(api).generateEmbedding(longNote);
+      await providerFor(api).embedQuery(longNote);
 
       for (const chunk of api.requests.flat()) {
         expect(chunk).toMatch(/^Paragraph \d+ /u);
@@ -328,7 +328,7 @@ describe("OnlineEmbeddingProvider", () => {
       const run = "é🌍".repeat(5_000);
       const api = fakeOpenAi();
 
-      await providerFor(api).generateEmbedding(run);
+      await providerFor(api).embedQuery(run);
 
       const chunks = api.requests.flat();
       for (const chunk of chunks) {
@@ -346,7 +346,7 @@ describe("OnlineEmbeddingProvider", () => {
       expect(bytes(huge)).toBeGreaterThan(MAX_REQUEST_TOKENS);
       const api = fakeOpenAi();
 
-      const { usage } = await providerFor(api).generateEmbedding(huge);
+      const { usage } = await providerFor(api).embedQuery(huge);
 
       expect(api.requests.length).toBeGreaterThan(1);
       const sent = api.requests.flat();
@@ -358,10 +358,10 @@ describe("OnlineEmbeddingProvider", () => {
     test("returns one embedding per text, in order, those within the limit as given", async () => {
       const api = fakeOpenAi();
 
-      const { embeddings } = await providerFor(api).generateEmbeddings([
-        "first",
-        longNote,
-        "third",
+      const { embeddings } = await providerFor(api).embedDocuments([
+        { content: "first" },
+        { content: longNote },
+        { content: "third" },
       ]);
 
       expect(embeddings).toHaveLength(3);
@@ -401,7 +401,7 @@ describe("OnlineEmbeddingProvider", () => {
       ).join("\n\n");
       const measured = await usage.measure(async () => {
         expect(
-          await provider.generateEmbedding(huge).catch(caughtError),
+          await provider.embedQuery(huge).catch(caughtError),
         ).toBeInstanceOf(Error);
       });
       expect(calls).toBe(2);
@@ -434,7 +434,7 @@ describe("OnlineEmbeddingProvider", () => {
       });
 
       const { usage: measured } = await usage.measure(() =>
-        provider.generateEmbedding(longNote),
+        provider.embedQuery(longNote),
       );
 
       expect(measured).toEqual([
@@ -444,5 +444,128 @@ describe("OnlineEmbeddingProvider", () => {
         },
       ]);
     });
+  });
+});
+
+describe("embedding through the local runtime", () => {
+  const gemma = resolveEmbeddingProfile("local:embeddinggemma-2:270m");
+  const runtimeUrl = "http://models:11434";
+  const bytes = (text: string): number => Buffer.byteLength(text, "utf8");
+
+  function fakeRuntime(): {
+    fetch: typeof fetch;
+    requests: Array<{
+      url: string;
+      model: string | undefined;
+      input: string[];
+    }>;
+  } {
+    const requests: Array<{
+      url: string;
+      model: string | undefined;
+      input: string[];
+    }> = [];
+    const respond = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      const body = requestSchema.parse(JSON.parse(String(init?.body)));
+      requests.push({
+        url: String(input),
+        model: body.model,
+        input: body.input,
+      });
+      const tokens = body.input.reduce((sum, text) => sum + bytes(text), 0);
+      return new Response(
+        JSON.stringify({
+          object: "list",
+          data: body.input.map((_, index) => ({
+            object: "embedding",
+            index,
+            embedding: [0.6, 0.8],
+          })),
+          model: body.model,
+          usage: { prompt_tokens: tokens, total_tokens: tokens },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    };
+    return {
+      fetch: Object.assign(respond, {
+        preconnect: globalThis.fetch.preconnect,
+      }),
+      requests,
+    };
+  }
+
+  function localProvider(runtime: {
+    fetch: typeof fetch;
+  }): OnlineEmbeddingProvider {
+    return OnlineEmbeddingProvider.createFresh({
+      apiKey: "",
+      profile: gemma,
+      runtimeUrl,
+      logger: createSilentLogger(),
+      fetch: runtime.fetch,
+    });
+  }
+
+  test("asks the runtime's OpenAI-compatible endpoint for the model, without an API key", async () => {
+    const runtime = fakeRuntime();
+    await localProvider(runtime).embedQuery("green software");
+    expect(runtime.requests).toEqual([
+      {
+        url: "http://models:11434/v1/embeddings",
+        model: "embeddinggemma-2:270m",
+        input: ["task: search result | query: green software"],
+      },
+    ]);
+  });
+
+  test("frames each document with its title, or none", async () => {
+    const runtime = fakeRuntime();
+    await localProvider(runtime).embedDocuments([
+      { title: "Principles", content: "Body" },
+      { content: "Other" },
+    ]);
+    expect(runtime.requests.map((request) => request.input)).toEqual([
+      ["title: Principles | text: Body", "title: none | text: Other"],
+    ]);
+  });
+
+  test("keeps every framed chunk of a long document within the input limit", async () => {
+    const runtime = fakeRuntime();
+    const content = Array.from(
+      { length: 30 },
+      (_, index) =>
+        `Paragraph ${index} ${"on runtimes and models ".repeat(12)}`,
+    ).join("\n\n");
+    expect(bytes(content)).toBeGreaterThan(4 * gemma.maxInputTokens);
+
+    const { embeddings } = await localProvider(runtime).embedDocuments([
+      { title: "Principles", content },
+    ]);
+
+    const inputs = runtime.requests.flatMap((request) => request.input);
+    expect(inputs.length).toBeGreaterThan(4);
+    expect(embeddings).toHaveLength(1);
+    const prefix = "title: Principles | text: ";
+    for (const input of inputs) {
+      expect(bytes(input)).toBeLessThanOrEqual(gemma.maxInputTokens);
+      expect(input.startsWith(prefix)).toBe(true);
+    }
+    expect(inputs.map((input) => input.slice(prefix.length)).join("\n\n")).toBe(
+      content,
+    );
+  });
+
+  test("needs the runtime's URL", () => {
+    expect(() =>
+      OnlineEmbeddingProvider.createFresh({
+        apiKey: "",
+        profile: gemma,
+        logger: createSilentLogger(),
+      }),
+    ).toThrow("modelRuntime.url");
   });
 });

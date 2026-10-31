@@ -127,6 +127,7 @@ export {
 export type {
   IEmbeddingService,
   EmbeddingIdentity,
+  EmbeddingDocument,
   EmbeddingUsage,
   EmbeddingResult,
   BatchEmbeddingResult,

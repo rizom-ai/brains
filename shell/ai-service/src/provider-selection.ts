@@ -16,10 +16,10 @@ const MODEL_PATTERNS: Array<[RegExp, string]> = [
   [/^gpt-/, "openai"],
   [/^o[13]-/, "openai"],
   [/^gemini/, "google"],
-  [/^llama/, "ollama"],
-  [/^mistral/, "ollama"],
-  [/^phi-/, "ollama"],
-  [/^qwen/, "ollama"],
+  [/^llama/, "local"],
+  [/^mistral/, "local"],
+  [/^phi-/, "local"],
+  [/^qwen/, "local"],
 ];
 
 /**
@@ -119,23 +119,22 @@ export function selectImageProvider(model?: string): ResolvedModelProvider {
  */
 const EMBEDDING_MODEL_PATTERNS: Array<[RegExp, string]> = [
   [/^text-embedding-/, "openai"],
+  [/^embeddinggemma/, "local"],
 ];
 
 /**
  * Resolve the provider and SDK model ID of an embedding model; null when a
- * bare name matches no known provider.
+ * bare name matches no known provider. Known names match first: a runtime's
+ * model tags carry colons ("embeddinggemma-2:270m") that are not prefixes.
  */
 export function resolveEmbeddingProvider(
   model: string,
 ): ResolvedModelProvider | null {
-  const explicit = parseProviderPrefix(model);
-  if (explicit) return explicit;
-
   for (const [pattern, provider] of EMBEDDING_MODEL_PATTERNS) {
     if (pattern.test(model)) return { provider, modelId: model };
   }
 
-  return null;
+  return parseProviderPrefix(model);
 }
 
 const NO_TEMPERATURE_PATTERN = /^(gpt-(?:5|6)|o[1-9])(?:[.-]|$)/;

@@ -304,6 +304,20 @@ describe("resolve", () => {
     ).toBe("openai:text-embedding-3-large");
   });
 
+  test("should resolve the model runtime URL from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(
+      resolve(def, {}, { modelRuntime: { url: "http://models:11434" } })
+        .aiModelRuntimeUrl,
+    ).toBe("http://models:11434");
+  });
+
   test("should resolve and override reasoning effort", () => {
     const def = defineBrain({
       name: "test",

@@ -446,6 +446,9 @@ function resolveRuntimeDefinition(
       ...(overrides?.embeddingModel && {
         embeddingModel: overrides.embeddingModel,
       }),
+      ...(overrides?.modelRuntime && {
+        modelRuntimeUrl: overrides.modelRuntime.url,
+      }),
       ...(effectiveReasoningEffort && {
         reasoningEffort: effectiveReasoningEffort,
       }),

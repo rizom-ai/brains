@@ -59,10 +59,10 @@ function createEntitySearch(options?: {
   const entityRegistry = EntityRegistry.createFresh(logger);
   const serializer = new EntitySerializer(entityRegistry, logger);
 
-  // generateEmbedding is the whole surface search uses; dimensions and
-  // generateEmbeddings were on the old fake and nothing called them.
+  // embedQuery is the whole surface search uses; dimensions and
+  // embedDocuments were on the old fake and nothing called them.
   const embeddingService = {
-    generateEmbedding: mock(() =>
+    embedQuery: mock(() =>
       Promise.resolve({
         embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
         usage: { tokens: 10 },
@@ -96,10 +96,10 @@ describe("EntitySearch query preparation", () => {
     const entered = deferred<void>();
     const release = deferred<void>();
     let captured: AbortSignal | undefined;
-    embeddingService.generateEmbedding = async (
+    embeddingService.embedQuery = async (
       _text,
       signal,
-    ): ReturnType<QueryEmbedder["generateEmbedding"]> => {
+    ): ReturnType<QueryEmbedder["embedQuery"]> => {
       captured = signal;
       entered.resolve();
       await release.promise;
@@ -131,7 +131,7 @@ describe("EntitySearch query preparation", () => {
     expect(
       entitySearch.search("query", { signal: AbortSignal.abort(reason) }),
     ).rejects.toBe(reason);
-    expect(embeddingService.generateEmbedding).not.toHaveBeenCalled();
+    expect(embeddingService.embedQuery).not.toHaveBeenCalled();
   });
 
   test("normalizes whitespace before generating a search embedding", async () => {
@@ -139,9 +139,7 @@ describe("EntitySearch query preparation", () => {
 
     await entitySearch.search("  hello\n\n   world  ");
 
-    expect(embeddingService.generateEmbedding).toHaveBeenCalledWith(
-      "hello world",
-    );
+    expect(embeddingService.embedQuery).toHaveBeenCalledWith("hello world");
   });
 
   test("truncates oversized search queries and emits a warning", async () => {
@@ -151,7 +149,7 @@ describe("EntitySearch query preparation", () => {
 
     await entitySearch.search(longQuery);
 
-    expect(embeddingService.generateEmbedding).toHaveBeenCalledWith(
+    expect(embeddingService.embedQuery).toHaveBeenCalledWith(
       "a".repeat(MAX_SEARCH_QUERY_CHARS),
     );
     expect(logger.warn).toHaveBeenCalledWith(
@@ -170,9 +168,7 @@ describe("EntitySearch query preparation", () => {
 
     await entitySearch.searchWithDistances("  distance\n   query  ");
 
-    expect(embeddingService.generateEmbedding).toHaveBeenCalledWith(
-      "distance query",
-    );
+    expect(embeddingService.embedQuery).toHaveBeenCalledWith("distance query");
   });
 
   test("excludes queued and failed generation stubs by default", async () => {

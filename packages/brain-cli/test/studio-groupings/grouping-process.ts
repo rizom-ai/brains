@@ -32,10 +32,10 @@ const service = EntityService.createFresh({
   embeddingsEnabled: false,
   embeddingService: {
     identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-    generateEmbedding: async () => {
+    embedQuery: async () => {
       throw new Error("Unexpected embedding");
     },
-    generateEmbeddings: async () => {
+    embedDocuments: async () => {
       throw new Error("Unexpected embedding");
     },
   },

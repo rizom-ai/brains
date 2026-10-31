@@ -154,6 +154,13 @@ describe("parseInstanceOverrides", () => {
     expect(result.embeddingModel).toBe("openai:text-embedding-3-large");
   });
 
+  test("should parse the model runtime URL", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nmodelRuntime:\n  url: http://models:11434',
+    );
+    expect(result.modelRuntime?.url).toBe("http://models:11434");
+  });
+
   test("should parse port as number", () => {
     const result = parseInstanceOverrides('brain: "brain"\nport: 9090');
     expect(result.port).toBe(9090);
