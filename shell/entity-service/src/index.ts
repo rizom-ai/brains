@@ -160,6 +160,7 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateQuestion,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,

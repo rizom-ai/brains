@@ -10,7 +10,10 @@ import {
 import { decodeEntityIdPath } from "@brains/entity-service";
 import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { EntityWriteConflictError } from "@brains/plugins";
+import {
+  EntityValidationError,
+  EntityWriteConflictError,
+} from "@brains/plugins";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 
@@ -458,6 +461,32 @@ describe("Studio hierarchy editor API", () => {
     const payload = z.object({ content: z.string() }).parse(payloads[0]);
     expect(payload.content).toContain("title: Raw title");
     expect(payload.content).toContain("Source");
+  });
+
+  test("reports a body the type rejects as a validation response, as a deck without slides", async () => {
+    const { shell, routes } = fixture();
+    const adapter = shell.getEntityRegistry().getAdapter("section");
+    const message =
+      "Invalid deck: markdown must contain slide separators (---)";
+    spyOn(adapter, "fromMarkdown").mockImplementation(() => {
+      throw new EntityValidationError(
+        "section",
+        Object.assign(new Error(message), {
+          issues: [{ path: ["body"], message }],
+        }),
+      );
+    });
+    const response = await request(routes, "destination", {
+      entityType: "section",
+      idPath: ["intro"],
+      frontmatter: { title: "Draft" },
+      body: "One slide so far",
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Invalid entity data",
+      issues: [{ path: ["body"], message }],
+    });
   });
 
   test("does not guess a file path when directory-sync is absent", async () => {

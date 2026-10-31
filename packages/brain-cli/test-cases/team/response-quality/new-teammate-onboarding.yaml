@@ -56,7 +56,7 @@ successCriteria:
     - "Begins by saying it searched saved Team Brain memory."
     - "Explains that Team Brain coordinates shared team memory, synthesis, and peer-brain coordination."
     - "Recommends reading saved Team Brain material first, such as Capture and synthesis and the Team Brain POC team notes."
-    - "Lists the supported workflows from saved memory: notes and links capture, conversation summaries, topics, and the saved peer-brain agents."
+    - "Lists the supported workflows from saved memory: notes and links capture, conversation summaries, topics, and coordination with peer brains (the saved, approved agents; wording such as routing knowledge across humans and peer brains counts)."
 
 efficiency:
   maxToolCalls: 8

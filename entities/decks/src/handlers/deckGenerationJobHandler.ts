@@ -11,6 +11,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
+import { describeDeck } from "../lib/describe-deck";
 
 /**
  * Input schema for deck generation job
@@ -57,11 +58,6 @@ export const generatedDeckSchema: z.ZodObject<{
   content: z.string(),
   description: z.string(),
 });
-
-/** Shape the deck description template returns. */
-export const generatedDeckDescriptionSchema: z.ZodObject<{
-  description: z.ZodString;
-}> = z.object({ description: z.string() });
 
 /**
  * Job handler for deck generation
@@ -162,20 +158,7 @@ Add your conclusion here`;
         message: "Generating description with AI",
       });
 
-      const voiceGuidance = formatVoiceGuidance(
-        await fetchStyleGuide(this.context.entityService),
-      );
-      const descGenerated = await this.context.ai.generate(
-        {
-          prompt: `Title: ${title}\n\nContent:\n${content}`,
-          templateName: "decks:description",
-          representedIdentity: "none",
-          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-        },
-        generatedDeckDescriptionSchema,
-      );
-
-      description = descGenerated.description;
+      description = await describeDeck(this.context, { title, content });
 
       await this.reportProgress(progressReporter, {
         progress: 50,

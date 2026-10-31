@@ -220,7 +220,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "list",
-      "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. For list/show-all requests that name or browse a known type or synonym (essays/articles/blog posts => post), list that type instead of searching; for a whole-type summary such as 'summarize my blog posts', list it first, then summarize the returned entities. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
+      "List entities by a known entity type. Returns metadata only; it answers a request to show or list items of a type, such as titles, dates and descriptions, so answer from it and use system_get only when the user asks about an item's full content. Use system_search, not system_list, for broad or vague lookup requests. For list/show-all requests that name or browse a known type or synonym (essays/articles/blog posts => post), list that type instead of searching; for a whole-type summary such as 'summarize my blog posts', list it first, then summarize the returned entities. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
       listInputSchema,
       async (input, context) => {
         assertGuestReader(context);
