@@ -20,7 +20,7 @@
     "@rizom/site": "0.2.0-alpha.240"
   },
   "publishPeerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0",
+    "@rizom/brain": ">=0.2.0-alpha.612 <0.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
