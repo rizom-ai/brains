@@ -3,22 +3,30 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { type DocsManifestEntry, parseDocsManifest } from "./docs-manifest";
+import { parseDocsManifest } from "./docs-manifest";
 
 const root = process.cwd();
 const manifestPath = path.join(root, "docs", "docs-manifest.yaml");
 
-function validateEntries(entries: DocsManifestEntry[]): string[] {
+interface SourceEntry {
+  id: string;
+  source: string;
+}
+
+function validateEntries(
+  kind: "doc" | "guide",
+  entries: SourceEntry[],
+): string[] {
   const issues: string[] = [];
   const ids = new Set<string>();
   const sources = new Set<string>();
 
   if (entries.length === 0) {
-    issues.push("manifest has no docs entries");
+    issues.push(`manifest has no ${kind} entries`);
   }
 
   for (const entry of entries) {
-    const label = `doc '${entry.id}'`;
+    const label = `${kind} '${entry.id}'`;
 
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.id)) {
       issues.push(`${label}: id must be kebab-case`);
@@ -53,11 +61,22 @@ if (!existsSync(manifestPath)) {
   process.exit(1);
 }
 
-const entries = parseDocsManifest(readFileSync(manifestPath, "utf8"));
-const issues = validateEntries(entries);
+const { docs, guides } = parseDocsManifest(readFileSync(manifestPath, "utf8"));
+const docSources = new Set(docs.map((entry) => entry.source));
+const issues = [
+  ...validateEntries("doc", docs),
+  ...validateEntries("guide", guides),
+  ...guides
+    .filter((entry) => docSources.has(entry.source))
+    .map(
+      (entry) => `guide '${entry.id}': source is also a doc: ${entry.source}`,
+    ),
+];
 
 if (issues.length === 0) {
-  console.log(`Docs manifest OK (${entries.length} docs checked)`);
+  console.log(
+    `Docs manifest OK (${docs.length} docs, ${guides.length} guides checked)`,
+  );
   process.exit(0);
 }
 

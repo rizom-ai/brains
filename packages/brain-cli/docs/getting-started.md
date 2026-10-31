@@ -15,7 +15,7 @@ A brain is a private AI runtime whose durable knowledge is markdown. One canonic
 bun add -g @rizom/brain
 brain init my-brain --recipe personal
 cd my-brain
-# edit .env and set AI_API_KEY
+# edit .env: set AI_API_KEY
 brain start
 ```
 
@@ -34,12 +34,12 @@ brain init professional-brain --recipe professional
 brain init team-brain --recipe team
 ```
 
-| Recipe         | Canonical selection                                                              |
-| -------------- | -------------------------------------------------------------------------------- |
-| `headless`     | `core`                                                                           |
-| `personal`     | `core`, `media`, `web`, `chat`                                                   |
-| `professional` | `core`, `media`, `automation`, `web`, `chat`, `site`, `publishing`, `federation` |
-| `team`         | `core`, `media`, `automation`, `web`, `chat`, `site`, `team`, plus `docs`        |
+| Recipe         | Canonical selection                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| `headless`     | `core`                                                                                       |
+| `personal`     | `core`, `media`, `web`, `chat`                                                               |
+| `professional` | `core`, `media`, `automation`, `web`, `chat`, `site`, `publishing`, `federation`             |
+| `team`         | `core`, `media`, `automation`, `web`, `chat`, `site`, `team`, plus `docs` and `action-board` |
 
 Each recipe also copies instance-owned starter content into `seed-content/`.
 

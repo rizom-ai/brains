@@ -291,6 +291,9 @@ export const BlogPostTemplate = ({
         title={post.frontmatter.title}
         description={post.frontmatter.excerpt}
         {...(ogImage ? { ogImage } : {})}
+        {...(post.frontmatter.canonicalUrl
+          ? { canonicalUrl: post.frontmatter.canonicalUrl }
+          : {})}
         ogType="article"
       />
       <article className="blog-post-section bg-theme">

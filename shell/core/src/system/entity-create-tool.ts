@@ -1,9 +1,14 @@
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
+  markdownBody,
+  permissionToVisibilityScope,
+  resolveEntityOrError,
+  type BaseEntity,
   type CreateExecutionContext,
   type CreateInput,
 } from "@brains/entity-service";
+import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
@@ -60,7 +65,7 @@ function buildCreateConfirmation(createInput: CreateInput): {
   summary: string;
   preview: string;
 } {
-  const { entityType, title, visibility, prompt, content, url, from } =
+  const { entityType, title, visibility, prompt, content, url, from, fields } =
     createInput;
   const label = title ? ` "${title}"` : ` ${entityType}`;
   const summary = `${prompt ? "Generate" : "Create"}${label}?`;
@@ -78,6 +83,10 @@ function buildCreateConfirmation(createInput: CreateInput): {
         ]
       : []),
     ...(prompt ? [`Prompt: ${prompt}`] : []),
+    ...Object.entries(fields ?? {}).map(
+      ([field, value]) =>
+        `${field}: ${typeof value === "string" ? value : JSON.stringify(value)}`,
+    ),
     ...(content ? [`Content preview: ${content.slice(0, 500)}`] : []),
   ];
 
@@ -88,12 +97,18 @@ type CreateToolInput = z.infer<typeof createInputSchema>;
 
 type PreferredCreateSource = CreateToolInput["source"];
 
+interface EntitySourceRef {
+  entityType: string;
+  entityId: string;
+}
+
 interface NormalizedCreateSource {
   content?: string;
   url?: string;
   from?: Exclude<CreateInput["from"], { kind: "conversation-message" }>;
   uploadRef?: { kind: "upload"; id: string };
   conversationMessageRef?: ConversationMessageRef;
+  entityRef?: EntitySourceRef;
   transform?: CreateInput["transform"];
 }
 
@@ -114,12 +129,59 @@ function normalizeCreateSource(
     case "prior-response":
     case "user-message":
       return { conversationMessageRef: source };
+    case "entity":
+      return {
+        entityRef: { entityType: source.entityType, entityId: source.entityId },
+      };
   }
+}
+
+interface ResolvedEntitySource {
+  ref: EntitySourceRef;
+  /** The source's Markdown body, without frontmatter. */
+  content: string;
+  title: string | undefined;
+  visibility: BaseEntity["visibility"];
+}
+
+/** Read an existing entity's text, at the caller's visibility. */
+async function resolveEntitySource(
+  services: SystemServices,
+  ref: EntitySourceRef,
+  toolContext: CreateToolContext,
+): Promise<Guarded<ResolvedEntitySource>> {
+  const result = await resolveEntityOrError(
+    services.entityService,
+    ref.entityType,
+    ref.entityId,
+    services.logger,
+    "Source entity",
+    permissionToVisibilityScope(toolContext.userPermissionLevel),
+  );
+  if (!result.ok) return guardError(result.error);
+  const { entity } = result;
+  const content = markdownBody(entity.content);
+  if (!content) {
+    return guardError(
+      `Source entity ${entity.entityType}/${entity.id} has no text to use.`,
+    );
+  }
+  const title = entity.metadata["title"];
+  return {
+    kind: "ok",
+    value: {
+      ref: { entityType: entity.entityType, entityId: entity.id },
+      content,
+      title: typeof title === "string" && title.trim() ? title : undefined,
+      visibility: entity.visibility,
+    },
+  };
 }
 
 function freezeConfirmationSource(input: {
   source: PreferredCreateSource;
   resolvedMessageId?: string;
+  resolvedEntity?: EntitySourceRef;
   content?: string;
 }): PreferredCreateSource {
   if (input.source.kind === "user-message") {
@@ -139,6 +201,9 @@ function freezeConfirmationSource(input: {
       kind: "prior-response",
       ...(messageId ? { messageId } : {}),
     };
+  }
+  if (input.source.kind === "entity" && input.resolvedEntity) {
+    return { kind: "entity", ...input.resolvedEntity };
   }
   return input.source;
 }
@@ -191,18 +256,29 @@ async function executeDirectCreate(
   const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
     createInput.entityType,
   );
+  const structured =
+    createInput.content !== undefined &&
+    hasStructuredFrontmatter(frontmatterSchema);
+  if (createInput.fields && !structured) {
+    return {
+      success: false,
+      error: `${createInput.entityType} has no frontmatter to set fields on; save the text without fields.`,
+    };
+  }
   try {
     const createOptions = {
       deduplicateId: true,
       ...(eventContext ? { eventContext } : {}),
     };
     const result =
-      createInput.content && hasStructuredFrontmatter(frontmatterSchema)
+      createInput.content && structured
         ? await entityService.createEntityFromMarkdown({
             input: {
               entityType: createInput.entityType,
               id,
-              markdown: createInput.content,
+              markdown: createInput.fields
+                ? generateMarkdown(createInput.fields, createInput.content)
+                : createInput.content,
               ...(createInput.visibility !== undefined
                 ? { visibility: createInput.visibility }
                 : {}),
@@ -238,6 +314,7 @@ async function executeDirectCreate(
 interface PreparedCreate {
   createInput: CreateInput;
   resolvedMessageId: string | undefined;
+  resolvedEntity?: EntitySourceRef;
   interceptor: ReturnType<
     SystemServices["entityRegistry"]["getCreateInterceptor"]
   >;
@@ -267,6 +344,8 @@ interface ResolvedCreateSource {
   uploadRef: NormalizedCreateSource["uploadRef"];
   transform: NormalizedCreateSource["transform"];
   resolvedMessageId: string | undefined;
+  /** The existing entity whose text is the source, when it is one. */
+  entitySource: ResolvedEntitySource | undefined;
 }
 
 /** Normalise the requested source and resolve a prior-response ref to its content. */
@@ -275,8 +354,19 @@ async function resolveCreateSource(
   input: CreateToolInput,
   toolContext: CreateToolContext,
 ): Promise<Guarded<ResolvedCreateSource>> {
-  const { content, url, from, uploadRef, conversationMessageRef, transform } =
-    normalizeCreateSource(input.source);
+  const {
+    content,
+    url,
+    from,
+    uploadRef,
+    conversationMessageRef,
+    entityRef,
+    transform,
+  } = normalizeCreateSource(input.source);
+  const entitySource = entityRef
+    ? await resolveEntitySource(services, entityRef, toolContext)
+    : undefined;
+  if (entitySource?.kind === "error") return entitySource;
   const resolvedMessage = conversationMessageRef
     ? await resolveConversationMessageContent(
         services,
@@ -289,7 +379,9 @@ async function resolveCreateSource(
     return { kind: "error", result: resolvedMessage };
   }
   const resolvedContent =
-    resolvedMessage?.success === true ? resolvedMessage.content : content;
+    resolvedMessage?.success === true
+      ? resolvedMessage.content
+      : (entitySource?.value.content ?? content);
 
   if (
     transform === "extract-markdown" &&
@@ -309,7 +401,7 @@ async function resolveCreateSource(
   }
   if (!resolvedContent && !url && !from) {
     return guardError(
-      'Provide `source` with kind "user-message", "text", "url", "prior-response", or "upload". Use system_generate for generated content or artifacts.',
+      'Provide `source` with kind "user-message", "text", "url", "prior-response", "upload", or "entity". Use system_generate for generated content or artifacts.',
     );
   }
 
@@ -325,6 +417,7 @@ async function resolveCreateSource(
         resolvedMessage?.success === true
           ? resolvedMessage.messageId
           : undefined,
+      entitySource: entitySource?.value,
     },
   };
 }
@@ -482,8 +575,15 @@ async function prepareCreate(
 
   const source = await resolveCreateSource(services, input, toolContext);
   if (source.kind === "error") return source;
-  const { content, url, from, uploadRef, transform, resolvedMessageId } =
-    source.value;
+  const {
+    content,
+    url,
+    from,
+    uploadRef,
+    transform,
+    resolvedMessageId,
+    entitySource,
+  } = source.value;
 
   const upload = uploadRef
     ? await resolveUploadPreserve(
@@ -504,14 +604,31 @@ async function prepareCreate(
     return { kind: "error", result: unregisteredDerivedError };
   }
 
+  // Text taken from a non-public entity stays as private as its source
+  // unless the caller asks for another level.
+  const inheritedVisibility =
+    entitySource && entitySource.visibility !== "public"
+      ? entitySource.visibility
+      : undefined;
   const visibility = resolveCreateVisibility(
-    input.visibility,
+    input.visibility ?? inheritedVisibility,
     content,
     toolContext,
   );
   if (visibility.kind === "error") return visibility;
 
-  const title = normalizeOptionalString(input.title);
+  if (input.fields && "visibility" in input.fields) {
+    return guardError(
+      "Set visibility with the typed `visibility` input, not in `fields`.",
+    );
+  }
+  const fields =
+    input.fields && Object.keys(input.fields).length > 0
+      ? input.fields
+      : undefined;
+
+  const title =
+    normalizeOptionalString(input.title) ?? entitySource?.title ?? undefined;
   const replace = input.replace === true;
   const createInput: CreateInput = {
     entityType,
@@ -521,6 +638,7 @@ async function prepareCreate(
     ...(url && { url }),
     ...(from && { from }),
     ...(transform && { transform }),
+    ...(fields && { fields }),
     ...(replace && { replace }),
   };
 
@@ -549,6 +667,7 @@ async function prepareCreate(
     prepared: {
       createInput,
       resolvedMessageId,
+      ...(entitySource && { resolvedEntity: entitySource.ref }),
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(uploadPreserve && { uploadPreserve }),
@@ -564,14 +683,19 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: user-message for verbatim content already pasted in this conversation (the server extracts the stored text without model copying), text for literal content without a stored message source, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. Frontmatter --- fences are part of the content, never boundaries: to save a pasted document that starts with frontmatter, use literal startAfter set to the save instruction and omit endBefore. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind user-message with boundaries selecting that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: user-message for verbatim content already pasted in this conversation (the server extracts the stored text without model copying), text for literal content without a stored message source, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore: the server selects it from its opening fence, and the fences are content, never boundaries. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind user-message with boundaries selecting that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prep = await prepareCreate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
       let { createInput } = prep.prepared;
-      const { resolvedMessageId, interceptor, eventContext, uploadPreserve } =
-        prep.prepared;
+      const {
+        resolvedMessageId,
+        resolvedEntity,
+        interceptor,
+        eventContext,
+        uploadPreserve,
+      } = prep.prepared;
 
       if (input.confirmed) {
         const gateError = confirmationGate.validateConfirmed(
@@ -592,6 +716,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         const confirmationSource = freezeConfirmationSource({
           source: input.source,
           ...(resolvedMessageId && { resolvedMessageId }),
+          ...(resolvedEntity && { resolvedEntity }),
           ...(createInput.content !== undefined
             ? { content: createInput.content }
             : {}),
@@ -604,6 +729,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
               ? { visibility: createInput.visibility }
               : {}),
             source: confirmationSource,
+            ...(createInput.fields && { fields: createInput.fields }),
             ...(createInput.replace && { replace: createInput.replace }),
             confirmed: true,
             confirmationToken,

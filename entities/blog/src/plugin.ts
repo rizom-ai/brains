@@ -1,4 +1,7 @@
 import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
@@ -21,6 +24,7 @@ import {
 } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
+import { createPostFromText } from "./lib/create-from-text";
 import { createBlogAtprotoProjection } from "./atproto-projection";
 import { createBlogPrintableProvider } from "./attachments/printable-provider";
 import { BLOG_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
@@ -54,6 +58,18 @@ export class BlogPlugin extends EntityPlugin<
       // Read by nothing: not the head, the site, nor ATProto.
       retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
     };
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    return createPostFromText(input, executionContext, context, this.id);
+  }
+
+  protected override async getInstructions(): Promise<string> {
+    return 'Saving an essay the user supplies as a post, or turning a note into a post ("turn my note X into a post": source.kind entity), is system_create: the text is kept, a leading # heading becomes the title, and the brain adds the excerpt and author. If the user says the essay was already published, pass fields { status: "published", publishedAt: "YYYY-MM-DD", canonicalUrl } with what they state.';
   }
 
   protected override createGenerationHandler(

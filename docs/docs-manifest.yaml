@@ -136,3 +136,15 @@ docs:
     section: Architecture
     order: 160
     source: docs/brain-model.md
+
+guides:
+  - id: writer
+    source: docs/guides/writer.md
+  - id: researcher
+    source: docs/guides/researcher.md
+  - id: consultant
+    source: docs/guides/consultant.md
+  - id: team
+    source: docs/guides/team.md
+  - id: self-hosting
+    source: docs/guides/self-hosting.md

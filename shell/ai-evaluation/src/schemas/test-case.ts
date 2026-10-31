@@ -96,6 +96,30 @@ export const expectedAnyToolCallSchema: ExpectedAnyToolCallSchema = z.object({
 
 export type ExpectedAnyToolCall = z.output<typeof expectedAnyToolCallSchema>;
 
+type ExpectedSourceSchema = z.ZodObject<{
+  id: z.ZodString;
+  url: z.ZodOptional<z.ZodString>;
+  cited: z.ZodDefault<z.ZodBoolean>;
+}>;
+
+/**
+ * A source the reply shows, or must not show, beside its answer.
+ */
+export const expectedSourceSchema: ExpectedSourceSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .describe("The citation id, as `<entityType>:<entityId>` for an entity"),
+  url: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The address the citation must carry, compared exactly"),
+  cited: z.boolean().default(true),
+});
+
+export type ExpectedSource = z.output<typeof expectedSourceSchema>;
+
 type ToolCountRangeSchema = z.ZodObject<{
   min: z.ZodOptional<z.ZodNumber>;
   max: z.ZodOptional<z.ZodNumber>;
@@ -115,6 +139,7 @@ type SuccessCriteriaSchema = z.ZodObject<{
   expectedTools: z.ZodOptional<z.ZodArray<ExpectedToolCallSchema>>;
   expectedAnyTool: z.ZodOptional<z.ZodArray<ExpectedAnyToolCallSchema>>;
   toolCountRange: z.ZodOptional<ToolCountRangeSchema>;
+  expectedSources: z.ZodOptional<z.ZodArray<ExpectedSourceSchema>>;
   responseEquals: z.ZodOptional<z.ZodString>;
   responseContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
   responseContainsAny: z.ZodOptional<z.ZodArray<z.ZodArray<z.ZodString>>>;
@@ -133,6 +158,9 @@ export const successCriteriaSchema: SuccessCriteriaSchema = z.object({
   expectedTools: z.array(expectedToolCallSchema).optional(),
   expectedAnyTool: z.array(expectedAnyToolCallSchema).optional(),
   toolCountRange: toolCountRangeSchema.optional(),
+
+  // Source-based criteria: the sources the reply shows beside its answer
+  expectedSources: z.array(expectedSourceSchema).optional(),
 
   // Response-based criteria
   responseEquals: z.string().optional(),

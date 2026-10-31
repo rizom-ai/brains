@@ -307,10 +307,21 @@ function comparable(text: string): string {
     .trim()} `;
 }
 
+/** Whether the answer links the page at this address, by path or in full. */
+function linksTo(answer: string, url: string | undefined): boolean {
+  if (url === undefined) return false;
+  const { pathname } = new URL(url);
+  if (pathname.length < 2) return false;
+  const path = pathname
+    .replace(/\/+$/, "")
+    .replace(/[.*+?^${}()|[\]\\]/g, (char) => `\\${char}`);
+  return new RegExp(`${path}(?![\\w-])`).test(answer);
+}
+
 /**
- * What an answer drew on: the search results it names, however they scored,
- * and what it read directly. An answer that names none keeps each search's
- * best results.
+ * What an answer drew on: the search results it names by title or links,
+ * however they scored, and what it read directly. An answer that names none
+ * keeps each search's best results.
  */
 function selectAnswerSources(
   candidates: SourceCandidate[],
@@ -321,6 +332,7 @@ function selectAnswerSources(
     (candidate) => candidate.rank !== undefined,
   );
   const named = searched.filter((candidate) => {
+    if (linksTo(answer ?? "", candidate.citation.url)) return true;
     // Optional where the citation type is read through its public contract.
     const cited: string | undefined = candidate.citation.title;
     if (cited === undefined) return false;

@@ -1,4 +1,5 @@
-import type { Tool } from "@brains/mcp-service";
+import type { Tool, ToolResult } from "@brains/mcp-service";
+import type { SearchResult } from "@brains/entity-service";
 import { createTool } from "@brains/mcp-service";
 import {
   permissionToVisibilityScope,
@@ -9,8 +10,35 @@ import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
 import { markdownBody } from "./markdown-body";
 import { assertGuestReader } from "./guest-read-context";
+import { MAX_SEARCH_CONTENT_CHARS, matchingSections } from "./search-excerpt";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
+
+/**
+ * One search hit as the agent reads it: whole when short; a long entity's
+ * hit carries no content and the sections that match the query as its
+ * excerpt, so it cannot be taken for the whole text.
+ */
+function searchHit(
+  hit: Pick<SearchResult, "entity"> &
+    Partial<Pick<SearchResult, "score" | "excerpt">>,
+  query: string,
+  registry: SystemServices["entityRegistry"],
+): Record<string, unknown> {
+  const entity = sanitizeEntity(hit.entity, registry);
+  if (entity !== hit.entity) {
+    return { ...hit, entity, excerpt: entity.content };
+  }
+  const body = markdownBody(entity.content);
+  if (body.length <= MAX_SEARCH_CONTENT_CHARS) return { ...hit, entity };
+  const { content: _content, ...withoutContent } = entity;
+  return {
+    ...hit,
+    entity: withoutContent,
+    excerpt: matchingSections(body, query),
+    excerpted: true,
+  };
+}
 
 /** A public reader is a site's visitor, and a draft is not theirs to read. */
 const publishedOnlyFor = (
@@ -23,6 +51,13 @@ interface BelowThreshold {
   weakerMatches: number;
   bestScore: number;
   hint: string;
+}
+
+/** What system_search answers with. */
+interface SearchData {
+  results: Record<string, unknown>[];
+  belowThreshold?: BelowThreshold;
+  notSearchable?: { entityType: string; hint: string };
 }
 
 /**
@@ -53,13 +88,43 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "search",
-      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
+      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. When the user names entity types, search each with scope.kind type in the same step, without a broad search first. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content; a long one's is excerpted to its best-matching sections, which system_get reads whole. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
-      async (input, context) => {
+      async (input, context): Promise<ToolResult<SearchData>> => {
         assertGuestReader(context);
         const visibilityScope = permissionToVisibilityScope(
           context.userPermissionLevel,
         );
+        // A type without embeddings never matches a query: its entries,
+        // unranked, answer in this call instead of an empty result the
+        // agent would search again, then list and read.
+        if (
+          input.scope.kind === "type" &&
+          services.entityRegistry.getEntityTypeConfig(input.scope.entityType)
+            .embeddable === false
+        ) {
+          const { entityType } = input.scope;
+          const entries = await entityService.listEntities({
+            entityType,
+            options: {
+              limit: input.limit ?? services.searchLimit,
+              filter: { visibilityScope },
+              ...publishedOnlyFor(visibilityScope),
+            },
+          });
+          return {
+            success: true,
+            data: {
+              results: entries.map((entity) =>
+                searchHit({ entity }, input.query, services.entityRegistry),
+              ),
+              notSearchable: {
+                entityType,
+                hint: `${entityType} is not in the search index, so the results are its entries, unranked.`,
+              },
+            },
+          };
+        }
         const minScore = input.minScore ?? DEFAULT_SYSTEM_SEARCH_MIN_SCORE;
         // Ranked by score before the limit applies, so filtering the top
         // candidates by minScore equals a thresholded search, and the
@@ -88,14 +153,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         return {
           success: true,
           data: {
-            results: results.map((r) => {
-              const entity = sanitizeEntity(r.entity, services.entityRegistry);
-              return {
-                ...r,
-                entity,
-                ...(entity !== r.entity ? { excerpt: entity.content } : {}),
-              };
-            }),
+            results: results.map((r) =>
+              searchHit(r, input.query, services.entityRegistry),
+            ),
             ...(belowThreshold && { belowThreshold }),
           },
         };

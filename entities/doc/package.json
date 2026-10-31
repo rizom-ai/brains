@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.611",
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
+    "@brains/docs-chrome": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

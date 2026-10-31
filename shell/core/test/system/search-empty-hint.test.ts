@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
-import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityTypeConfig,
+} from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
@@ -107,5 +111,71 @@ describe("system_search below the score threshold", () => {
 
     expect(data.results.map((result) => result.entity.id)).toEqual(["strong"]);
     expect(data.belowThreshold).toBeUndefined();
+  });
+});
+
+describe("system_search on a type the index leaves out", () => {
+  function siteInfo(id: string, visibility: ContentVisibility): BaseEntity {
+    return {
+      ...entity(id, visibility, 0),
+      entityType: "site-info",
+      content: `---\ntitle: Team Brain\n---\nCapture what the team knows (${id}).`,
+      metadata: { title: "Team Brain" },
+    };
+  }
+
+  async function searchSiteInfo(
+    level: NonNullable<ToolContext["userPermissionLevel"]>,
+  ): Promise<unknown> {
+    const services = createMockSystemServices();
+    services.addEntities([
+      siteInfo("site-info", "public"),
+      siteInfo("private-site-info", "restricted"),
+    ]);
+    services.entityRegistry.getEntityTypeConfig = (
+      type: string,
+    ): EntityTypeConfig => (type === "site-info" ? { embeddable: false } : {});
+    const tool = createSystemTools(services).find(
+      (candidate) => candidate.name === "system_search",
+    );
+    if (!tool) throw new Error("system_search not found");
+    return tool.handler(
+      {
+        query: "homepage promise",
+        scope: { kind: "type", entityType: "site-info" },
+      },
+      context(level),
+    );
+  }
+
+  // Search cannot rank a type without embeddings; its entries, read in the
+  // same call, save the agent a listing and a read.
+  it("returns the type's entries, unranked, instead of a silent empty result", async () => {
+    expect(await searchSiteInfo("public")).toEqual({
+      success: true,
+      data: {
+        results: [
+          {
+            entity: expect.objectContaining({
+              id: "site-info",
+              entityType: "site-info",
+              content:
+                "---\ntitle: Team Brain\n---\nCapture what the team knows (site-info).",
+            }),
+          },
+        ],
+        notSearchable: {
+          entityType: "site-info",
+          hint: "site-info is not in the search index, so the results are its entries, unranked.",
+        },
+      },
+    });
+  });
+
+  it("returns only the entries the caller may see", async () => {
+    const reply = searchReplySchema.parse(await searchSiteInfo("admin"));
+    expect(reply.data.results.map((result) => result.entity.id).sort()).toEqual(
+      ["private-site-info", "site-info"],
+    );
   });
 });

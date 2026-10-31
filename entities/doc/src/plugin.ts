@@ -29,6 +29,14 @@ export class DocsPlugin extends EntityPlugin<
     return { projectionSourceRole: "primary", retiredFields: ["sourcePath"] };
   }
 
+  protected override async getInstructions(): Promise<string> {
+    return [
+      'Docs (entityType "doc") are this brain\'s reference documentation.',
+      "For a question about how something works, how to set it up or how to use it, run system_search before answering from general knowledge or asking the network, and answer from the docs it finds.",
+      "When you answer from the docs, name each doc you answer from by its title, so the reply links to it.",
+    ].join("\n");
+  }
+
   protected override getTemplates(): Record<string, Template> {
     return getTemplates();
   }

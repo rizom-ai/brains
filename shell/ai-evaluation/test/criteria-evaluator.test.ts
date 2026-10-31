@@ -320,4 +320,108 @@ describe("evaluateCriteria", () => {
       }),
     ]);
   });
+
+  describe("expectedSources", () => {
+    const writerGuide = {
+      id: "guide:writer",
+      url: "https://docs.rizom.ai/guides/writer",
+    };
+
+    it("passes when the reply cites the source at its address", () => {
+      const results = evaluateCriteria(
+        {
+          expectedSources: [
+            {
+              id: "guide:writer",
+              url: "https://docs.rizom.ai/guides/writer",
+              cited: true,
+            },
+          ],
+        },
+        { text: "Start with the writer guide.", sources: [writerGuide] },
+        [],
+      );
+
+      expect(results).toEqual([
+        expect.objectContaining({ criterion: "expectedSources", passed: true }),
+      ]);
+    });
+
+    it("fails when the reply does not cite the source", () => {
+      const results = evaluateCriteria(
+        { expectedSources: [{ id: "guide:team", cited: true }] },
+        { text: "Start with the writer guide.", sources: [writerGuide] },
+        [],
+      );
+
+      expect(results).toEqual([
+        expect.objectContaining({
+          criterion: "expectedSources",
+          passed: false,
+          actual: ["guide:writer"],
+          message: "Expected source guide:team was not cited",
+        }),
+      ]);
+    });
+
+    it("fails when the source is cited without its address", () => {
+      const results = evaluateCriteria(
+        {
+          expectedSources: [
+            {
+              id: "guide:writer",
+              url: "https://docs.rizom.ai/guides/writer",
+              cited: true,
+            },
+          ],
+        },
+        {
+          text: "Start with the writer guide.",
+          sources: [{ id: "guide:writer" }],
+        },
+        [],
+      );
+
+      expect(results).toEqual([
+        expect.objectContaining({
+          criterion: "expectedSources",
+          passed: false,
+          actual: undefined,
+          message:
+            "Source guide:writer was cited without https://docs.rizom.ai/guides/writer",
+        }),
+      ]);
+    });
+
+    it("fails when a source that should not be cited is", () => {
+      const results = evaluateCriteria(
+        { expectedSources: [{ id: "guide:writer", cited: false }] },
+        { text: "See the setup doc.", sources: [writerGuide] },
+        [],
+      );
+
+      expect(results).toEqual([
+        expect.objectContaining({
+          criterion: "expectedSources",
+          passed: false,
+          message: "Source guide:writer should not be cited",
+        }),
+      ]);
+    });
+
+    it("reads a reply without sources as citing nothing", () => {
+      const results = evaluateCriteria(
+        {
+          expectedSources: [
+            { id: "guide:writer", cited: true },
+            { id: "guide:team", cited: false },
+          ],
+        },
+        { text: "No sources." },
+        [],
+      );
+
+      expect(results.map(({ passed }) => passed)).toEqual([false, true]);
+    });
+  });
 });

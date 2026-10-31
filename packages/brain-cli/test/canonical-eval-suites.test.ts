@@ -1,5 +1,9 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { App, resolveBundleSelection } from "@brains/app";
+import { afterEach, beforeAll, describe, expect, test } from "bun:test";
+import {
+  App,
+  registerOverridePackages,
+  resolveBundleSelection,
+} from "@brains/app";
 import { caughtError, waitUntil } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
@@ -73,6 +77,7 @@ const suiteNames = [
   "professional",
   "providers",
   "team",
+  "docs",
 ] as const;
 type SuiteName = (typeof suiteNames)[number];
 
@@ -89,14 +94,16 @@ const expectedMembers: Record<SuiteName, string> = {
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   providers:
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  docs: "a2a admin agents analytics ask-content auth-service blog chat conversation-memory dashboard decks directory-sync docs email faq guides link mcp note notifications profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
   team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
   personal: 27,
-  professional: 92,
+  professional: 97,
   providers: 2,
   team: 37,
+  docs: 5,
 };
 const tempDirectories: string[] = [];
 
@@ -164,6 +171,8 @@ function createSuiteApp(
     bundles: selection.bundles,
     ...(selection.add ? { add: selection.add } : {}),
     ...(selection.remove ? { remove: selection.remove } : {}),
+    ...(selection.site ? { site: selection.site } : {}),
+    ...(selection.domain ? { domain: selection.domain } : {}),
     plugins,
   };
   const resolved = resolveEvalConfig(
@@ -215,6 +224,15 @@ function allCriteria(testCase: TestCase): SuccessCriteria[] {
   ];
 }
 
+// A suite's site package resolves by name, as the eval runner registers it.
+beforeAll(async () => {
+  await Promise.all(
+    suiteNames
+      .flatMap((name) => suiteSelection(name).site ?? [])
+      .map((site) => registerOverridePackages({ site })),
+  );
+});
+
 afterEach(() => {
   for (const directory of tempDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
@@ -260,6 +278,13 @@ describe("canonical eval recipe ladder", () => {
       add: ["docs", "action-board"],
       tags: ["recipe-team"],
     });
+    expect(suiteSelection("docs")).toMatchObject({
+      bundles: ["core", "web", "chat", "site", "publishing"],
+      add: ["docs", "guides"],
+      site: { package: "@rizom/site-docs" },
+      domain: "docs.rizom.ai",
+      tags: ["recipe-docs"],
+    });
   });
 
   test("keeps Git disabled for in-process eval boot", () => {
@@ -287,7 +312,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(211);
+    expect(testCases.length).toBe(221);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -622,125 +647,151 @@ describe("canonical eval recipe ladder", () => {
     }
   }, 120_000);
 
-  test("replaces a note body from a user-message source under its stored frontmatter", async () => {
-    const selection = suiteSelection("personal");
-    const { app } = createSuiteApp(
-      "personal",
-      selection,
-      seedContentPath(selection),
-    );
-    const testCase = await YAMLLoader.createFresh({
-      directory: testCasesDirectory,
-    }).loadTestCase(
-      join(testCasesDirectory, "personal/multi-turn/mcp-verbatim-update.yaml"),
-    );
-    if (testCase.type !== "multi_turn")
-      throw new Error("Expected multi-turn eval");
-    const request = testCase.turns[0]?.userMessage;
-    if (!request) throw new Error("Missing source request");
-    const startAfter = "BEGIN EXACT CONTENT";
-    const endBefore = "END EXACT CONTENT";
-    const content = request.slice(
-      request.indexOf(`${startAfter}\n`) + startAfter.length + 1,
-      request.lastIndexOf(endBefore),
-    );
-    // Seeding stores canonical Markdown, without the fixture's blank line
-    // after frontmatter.
-    const original = readFileSync(
-      join(
-        packageDirectory,
-        "eval-content/recipes/personal/mcp-verbatim-update.md",
-      ),
-      "utf8",
-    ).replace("---\n\n", "---\n");
-    try {
-      await initializeImported(app);
-      const shell = app.getShell();
-      const conversations = shell.getConversationService();
-      const conversationId = await conversations.startConversation({
-        sessionId: "verbatim-update-regression",
-        channelId: "verbatim-update-regression",
-        interfaceType: "mcp",
-        metadata: {
-          channelName: "Verbatim update regression",
-          interfaceType: "mcp",
-          channelId: "verbatim-update-regression",
-        },
-      });
-      await conversations.addMessage({
-        conversationId,
-        role: "user",
-        content: request,
-        metadata: { userPermissionLevel: "admin" },
-      });
-      const tool = shell
-        .getMCPService()
-        .listAgentToolsForPermissionLevel("admin")
-        .find((entry) => entry.tool.name === "system_update")?.tool;
-      if (!tool) throw new Error("Missing update tool");
-      const context = {
-        interfaceType: "mcp",
-        userPermissionLevel: "admin",
-        actor: { kind: "user", userId: "verbatim-update-regression" },
-        conversationId,
-      } as const;
-      const entityRef = {
-        entityType: "note",
-        id: "mcp-verbatim-update",
-        visibilityScope: internalFullScope(
-          "verbatim update persistence verification",
+  // Agents select the block either by its marker lines or by the literal
+  // markers with their line breaks. The literal pair leaves out the block's
+  // final line break, which the stored Markdown restores, so both store the
+  // same document.
+  test.each([
+    [
+      "line",
+      {
+        boundaryMode: "lines",
+        startAfter: "BEGIN EXACT CONTENT",
+        endBefore: "END EXACT CONTENT",
+      },
+    ],
+    [
+      "literal",
+      { startAfter: "BEGIN EXACT CONTENT\n", endBefore: "\nEND EXACT CONTENT" },
+    ],
+  ] as const)(
+    "replaces a note body from a user-message source under its stored frontmatter with %s boundaries",
+    async (mode, boundaries) => {
+      const selection = suiteSelection("personal");
+      const { app } = createSuiteApp(
+        "personal",
+        selection,
+        seedContentPath(selection),
+      );
+      const testCase = await YAMLLoader.createFresh({
+        directory: testCasesDirectory,
+      }).loadTestCase(
+        join(
+          testCasesDirectory,
+          "personal/multi-turn/mcp-verbatim-update.yaml",
         ),
-      };
-      expect(
-        (await shell.getEntityService().getEntity(entityRef))?.content,
-      ).toBe(original);
-      const proposal = await tool.handler(
-        {
+      );
+      if (testCase.type !== "multi_turn")
+        throw new Error("Expected multi-turn eval");
+      const request = testCase.turns[0]?.userMessage;
+      if (!request) throw new Error("Missing source request");
+      const startAfter = "BEGIN EXACT CONTENT";
+      const endBefore = "END EXACT CONTENT";
+      const content = request.slice(
+        request.indexOf(`${startAfter}\n`) + startAfter.length + 1,
+        request.lastIndexOf(endBefore),
+      );
+      // Seeding stores canonical Markdown, without the fixture's blank line
+      // after frontmatter.
+      const original = readFileSync(
+        join(
+          packageDirectory,
+          "eval-content/recipes/personal/mcp-verbatim-update.md",
+        ),
+        "utf8",
+      ).replace("---\n\n", "---\n");
+      try {
+        await initializeImported(app);
+        const shell = app.getShell();
+        const conversations = shell.getConversationService();
+        const conversationId = await conversations.startConversation({
+          sessionId: "verbatim-update-regression",
+          channelId: "verbatim-update-regression",
+          interfaceType: "mcp",
+          metadata: {
+            channelName: "Verbatim update regression",
+            interfaceType: "mcp",
+            channelId: "verbatim-update-regression",
+          },
+        });
+        await conversations.addMessage({
+          conversationId,
+          role: "user",
+          content: request,
+          metadata: { userPermissionLevel: "admin" },
+        });
+        const tool = shell
+          .getMCPService()
+          .listAgentToolsForPermissionLevel("admin")
+          .find((entry) => entry.tool.name === "system_update")?.tool;
+        if (!tool) throw new Error("Missing update tool");
+        const context = {
+          interfaceType: "mcp",
+          userPermissionLevel: "admin",
+          actor: { kind: "user", userId: "verbatim-update-regression" },
+          conversationId,
+        } as const;
+        const entityRef = {
           entityType: "note",
           id: "mcp-verbatim-update",
+          visibilityScope: internalFullScope(
+            "verbatim update persistence verification",
+          ),
+        };
+        expect(
+          (await shell.getEntityService().getEntity(entityRef))?.content,
+        ).toBe(original);
+        const proposal = await tool.handler(
+          {
+            entityType: "note",
+            id: "mcp-verbatim-update",
+            operation: {
+              kind: "source",
+              source: {
+                kind: "user-message",
+                ...boundaries,
+              },
+            },
+          },
+          context,
+        );
+        const approval = z
+          .object({
+            needsConfirmation: z.literal(true),
+            args: z.record(z.string(), z.unknown()),
+          })
+          .parse(proposal);
+        expect(approval.args).toMatchObject({
           operation: {
             kind: "source",
             source: {
-              kind: "user-message",
-              boundaryMode: "lines",
-              startAfter,
-              endBefore,
+              contentHash: computeContentHash(
+                mode === "line" ? content : content.replace(/\n$/, ""),
+              ),
             },
           },
-        },
-        context,
-      );
-      const approval = z
-        .object({
-          needsConfirmation: z.literal(true),
-          args: z.record(z.string(), z.unknown()),
-        })
-        .parse(proposal);
-      expect(approval.args).toMatchObject({
-        operation: {
-          kind: "source",
-          source: { contentHash: computeContentHash(content) },
-        },
-      });
-      expect(approval.args).not.toHaveProperty(["operation", "content"]);
-      await conversations.addMessage({
-        conversationId,
-        role: "user",
-        content: "Yes, apply it.",
-        metadata: { userPermissionLevel: "admin" },
-      });
-      expect(await tool.handler(approval.args, context)).toMatchObject({
-        success: true,
-      });
-      const saved = await shell.getEntityService().getEntity(entityRef);
-      expect(saved?.content).toBe(
-        `---\nvisibility: restricted\n---\n${content}`,
-      );
-      expect(saved?.visibility).toBe("restricted");
-    } finally {
-      await app.stop();
-    }
-  }, 120_000);
+        });
+        expect(approval.args).not.toHaveProperty(["operation", "content"]);
+        await conversations.addMessage({
+          conversationId,
+          role: "user",
+          content: "Yes, apply it.",
+          metadata: { userPermissionLevel: "admin" },
+        });
+        expect(await tool.handler(approval.args, context)).toMatchObject({
+          success: true,
+        });
+        const saved = await shell.getEntityService().getEntity(entityRef);
+        expect(saved?.content).toBe(
+          `---\nvisibility: restricted\n---\n${content}`,
+        );
+        expect(saved?.visibility).toBe("restricted");
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
 
   test.each(["headless", "personal"] as const)(
     "exposes chat-only basic MCP at every canonical permission level in %s",

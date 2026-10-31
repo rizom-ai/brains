@@ -1,0 +1,396 @@
+---
+title: "Customization Guide"
+section: "Customization"
+order: 100
+slug: "customization-guide"
+description: "brains is customized in layers. Prefer the smallest layer that solves the problem:"
+---
+
+# Customization Guide
+
+`brains` is customized in layers. Prefer the smallest layer that solves the problem:
+
+1. configure the instance in `brain.yaml`
+2. edit content in `brain-data/`
+3. layer CSS in `src/theme.css`
+4. customize site structure in `src/site.tsx`
+5. write or enable plugins only when behavior or data models need to change
+
+## Instance configuration
+
+Use `brain.yaml` for bundle selection, AI model, plugin, interface, permission, domain, and deployment settings.
+
+```yaml
+brain: brain
+bundleContract: capability-bundles-v1
+domain: mybrain.example.com
+bundles:
+  - core
+  - media
+  - automation
+  - web
+  - chat
+  - site
+  - publishing
+  - federation
+
+add:
+  - stock-photo
+remove:
+  - newsletter
+
+site:
+  package: "@acme/brain-site"
+  theme: "@acme/brain-theme"
+
+plugins:
+  # Optional deprecated fallback for MCP clients that cannot use OAuth:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
+```
+
+Use `add` and `remove` before writing code. Many changes are just capability selection.
+
+See [brain.yaml Reference](/docs/brain-yaml-reference).
+
+## Content customization
+
+Use `brain-data/` for site copy, posts, decks, profile data, prompt overrides, and other durable content.
+
+Common singleton content:
+
+- `brain-character/brain-character.md`
+- `anchor-profile/anchor-profile.md`
+- `site-info/site-info.md`
+
+Prompt customization uses `prompt` entities:
+
+```markdown
+---
+title: Blog generation prompt
+target: blog:generation
+---
+
+Write with short sections and concrete examples.
+```
+
+See [Content Management Guide](/docs/content-management) and [Entity Types Reference](/docs/entity-types-reference).
+
+## Theme customization
+
+Theme CSS controls visual design. Generated standalone instances can include:
+
+```text
+src/theme.css
+```
+
+Local `src/theme.css` is treated as an additive theme override. It layers after the selected base theme.
+
+Example:
+
+```css
+@theme inline {
+  --color-brand: #2f5cff;
+  --color-accent: #ff7a30;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+.hero-title {
+  letter-spacing: -0.04em;
+}
+```
+
+Use semantic tokens instead of hard-coded colors in components whenever possible:
+
+```css
+.card {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+```
+
+For a reusable theme package, export CSS text:
+
+```ts
+import themeCSS from "./theme.css" with { type: "text" };
+
+export default themeCSS;
+export { themeCSS };
+```
+
+Point a brain at it from `brain.yaml`, by package reference or inline CSS:
+
+```yaml
+site:
+  theme: "@rizom/theme-rizom-ai"
+  themeOverride: ".hero-title { letter-spacing: -0.04em; }"
+```
+
+A theme is only ever a CSS string of brand overrides. The shared base —
+utility classes, token defaults, and the Tailwind layer wiring — is prepended
+for you when the brain resolves, so nothing in a theme package needs to
+import or compose it.
+
+Read next: [Theming Guide](/docs/theming-guide).
+
+## Site and layout customization
+
+A site package is structural. It provides layouts, hand-written routes, schema-first sections, initial content, entity display metadata, and optional static assets. Themes stay separate. Backend behavior belongs in a separate explicitly composed plugin.
+
+Generated standalone instances can include:
+
+```text
+src/site.tsx
+```
+
+When local `src/site.tsx` exists, the runtime uses it by convention. If `brain.yaml` also selects `site.package`, that package is the structural base and the local file layers layouts, routes, sections, content, and display metadata over it. Local `src/theme.css` still layers as a theme override.
+
+### Start from a shipped site
+
+Example local `src/site.tsx` using the public site API:
+
+```tsx
+import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
+
+const hero = defineSection(
+  z.object({ heading: z.string() }),
+  ({ heading }) => <h1>{heading}</h1>,
+  { title: "Hero", description: "Page introduction" },
+);
+
+export default defineSite({
+  layouts: {
+    default: ({ title, sections }) => (
+      <html>
+        <head>
+          <title>{title}</title>
+        </head>
+        <body>{sections}</body>
+      </html>
+    ),
+  },
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      title: "Home",
+      sections: [{ id: "hero", template: "home.hero" }],
+    },
+  ],
+  sections: [sectionGroup("home", { hero })],
+  content: { home: { hero: { heading: "Welcome" } } },
+  entityDisplay: {
+    post: { label: "Essay", pluralName: "essays" },
+  },
+});
+```
+
+This example is a complete site package, so `site.package` may be omitted. Keep an explicit `site.package` when the local file contains only structural overrides.
+
+### Entity display metadata
+
+`entityDisplay` controls generated list/detail routes for active entity plugins.
+
+```ts
+entityDisplay: {
+  post: {
+    label: "Essay",
+    pluralName: "essays",
+    paginate: true,
+    pageSize: 12,
+    navigation: {
+      show: true,
+      slot: "primary",
+      priority: 20,
+    },
+  },
+}
+```
+
+Supported fields:
+
+- `label`: singular display label
+- `pluralName`: URL/list label override
+- `layout`: layout key for generated routes
+- `paginate`
+- `pageSize`
+- `navigation.show`
+- `navigation.slot`: `primary` or `secondary`
+- `navigation.priority`
+
+### Routes
+
+Routes are consumed by the site builder. Prefer reusing shipped route exports unless you need app-specific pages.
+
+A route usually includes:
+
+- `id`
+- `path`
+- `title`
+- `description`
+- `layout`
+- `navigation`
+- `sections`
+
+Each section references a registered template and optional data query/content.
+
+### Layouts
+
+Layouts are React components rendered to static markup. They receive rendered sections and site metadata.
+
+Conceptual shape:
+
+```tsx
+import type { JSX, ReactNode } from "react";
+
+type LayoutProps = {
+  sections: ReactNode[];
+  title: string;
+  description: string;
+  path: string;
+  siteInfo: unknown;
+  slots?: unknown;
+};
+
+export function MyLayout({ sections }: LayoutProps): JSX.Element {
+  return (
+    <div className="min-h-screen bg-theme text-theme">
+      <main>{sections}</main>
+    </div>
+  );
+}
+```
+
+Use existing layouts as references:
+
+- `sites/professional/src/layouts/ProfessionalLayout.tsx`
+- `sites/rizom-ai/src/rizom/runtime/default-layout.tsx`
+
+### Static assets
+
+A site package can include static assets that the site builder writes during builds:
+
+```ts
+export default defineSite({
+  layouts,
+  routes,
+  entityDisplay,
+  staticAssets: {
+    "/canvases/tree.js": treeScript,
+  },
+});
+```
+
+Use this for package-owned scripts, fonts, or small static files that should ship with the site structure.
+
+## Plugin customization
+
+Write a plugin when you need new behavior, new durable content types, or a new interface.
+
+### Entity plugins
+
+Use an entity plugin when you need a new markdown-backed content type.
+
+Entity packages usually provide:
+
+- Zod schemas
+- a markdown adapter
+- optional generation handlers
+- optional derivation logic
+- optional templates and data sources
+
+Rules of thumb:
+
+- entity plugins define schemas and adapters
+- entity plugins do not expose CRUD tools
+- all CRUD flows through shared system tools
+- metadata should stay small and query-friendly
+
+Start with:
+
+- [Entity Types Reference](/docs/entity-types-reference)
+- [Entity Model](/docs/entity-model)
+- [`entities/AGENTS.md`](https://github.com/rizom-ai/brains/blob/main/entities/AGENTS.md)
+- examples in `entities/*/src/`
+
+### Service plugins
+
+Use a service plugin for tools, integrations, jobs, background behavior, API routes, syncing, publishing, analytics, or orchestration.
+
+Rules of thumb:
+
+- keep tool definitions explicit and narrow
+- validate config and tool inputs with Zod
+- avoid defining entity schemas or markdown adapters here
+- isolate external APIs behind small boundaries
+
+Start with:
+
+- [Plugin System](/docs/plugin-system)
+- [`plugins/AGENTS.md`](https://github.com/rizom-ai/brains/blob/main/plugins/AGENTS.md)
+- examples in `plugins/*/src/`
+
+### Interface plugins
+
+Use an interface plugin for transports: MCP, Discord, A2A, webserver, or future chat platforms.
+
+Rules of thumb:
+
+- use `InterfacePlugin` for HTTP/API-style transports
+- use `MessageInterfacePlugin` for conversational transports
+- track conversations for message-based interfaces
+- check permissions before sensitive actions
+
+Start with:
+
+- [Interface Setup Guide](/docs/interface-setup)
+- [`interfaces/AGENTS.md`](https://github.com/rizom-ai/brains/blob/main/interfaces/AGENTS.md)
+- examples in `interfaces/*/src/`
+
+## Public API caution
+
+The project is still pre-stable in the `0.x` series. Build against documented surfaces when possible:
+
+- `brain.yaml`
+- CLI commands
+- system tool names
+- entity markdown contracts
+- public exports such as `@rizom/site`
+
+Avoid deep imports into shell internals or package-private implementation files. See [STABILITY.md](https://github.com/rizom-ai/brains/blob/main/STABILITY.md).
+
+## Verification checklist
+
+For docs/content-only customization:
+
+```bash
+bun run docs:links
+```
+
+For local site/theme changes in a standalone app:
+
+1. install dependencies
+2. typecheck if TypeScript changed
+3. start the app
+4. trigger a preview rebuild on the running app, usually through MCP HTTP / `--remote`
+5. inspect `dist/site-preview`
+
+For plugin code changes:
+
+```bash
+bun run typecheck
+bun run lint
+bun test
+```
+
+Prefer targeted workspace checks first when the change is isolated.
+
+## Related docs
+
+- [Theming Guide](/docs/theming-guide)
+- [Content Management Guide](/docs/content-management)
+- [Entity Types Reference](/docs/entity-types-reference)
+- [Plugin System](/docs/plugin-system)
+- [Plugin Quick Reference](/docs/plugin-quick-reference)
+- [Architecture Overview](/docs/architecture-overview)

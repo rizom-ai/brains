@@ -1,6 +1,11 @@
 #!/usr/bin/env bun
 
+import { guideFrontmatterSchema } from "@brains/guide/frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
 import {
   existsSync,
   mkdirSync,
@@ -12,23 +17,34 @@ import {
 } from "node:fs";
 import path from "node:path";
 
-import { type DocsManifestEntry, parseDocsManifest } from "./docs-manifest";
+import {
+  type DocsManifest,
+  type DocsManifestEntry,
+  type GuideManifestEntry,
+  parseDocsManifest,
+} from "./docs-manifest";
 
 interface Args {
   outDir?: string;
   check: boolean;
+  /** Write or check only the docs and guides the folder already holds. */
+  subset: boolean;
 }
 
 const root = process.cwd();
 const manifestPath = path.join(root, "docs", "docs-manifest.yaml");
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { check: false };
+  const args: Args = { check: false, subset: false };
 
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === "--check") {
       args.check = true;
+      continue;
+    }
+    if (arg === "--subset") {
+      args.subset = true;
       continue;
     }
     if (arg === "--out") {
@@ -122,10 +138,24 @@ function isExternalTarget(target: string): boolean {
   );
 }
 
+/** Each synced source's page: docs at /docs/<id>, guides at /guides/<id>. */
+function sourceHrefs(manifest: DocsManifest): Map<string, string> {
+  return new Map([
+    ...manifest.docs.map((entry): [string, string] => [
+      normalizeRepoPath(entry.source),
+      entry.id === "index" ? "/docs" : `/docs/${entry.id}`,
+    ]),
+    ...manifest.guides.map((entry): [string, string] => [
+      normalizeRepoPath(entry.source),
+      `/guides/${entry.id}`,
+    ]),
+  ]);
+}
+
 function rewriteMarkdownLinks(
   markdown: string,
   sourcePath: string,
-  sourceToId: Map<string, string>,
+  sourceToHref: Map<string, string>,
 ): string {
   const sourceDir = path.posix.dirname(sourcePath);
 
@@ -141,11 +171,8 @@ function rewriteMarkdownLinks(
       const normalized = normalizeRepoPath(withoutLeadingSlash);
 
       if (pathPart.endsWith(".md")) {
-        const docId = sourceToId.get(normalized);
-        if (docId) {
-          const href = docId === "index" ? "/docs" : `/docs/${docId}`;
-          return `[${label}](${href}${suffix}${title})`;
-        }
+        const href = sourceToHref.get(normalized);
+        if (href) return `[${label}](${href}${suffix}${title})`;
       }
 
       const repoTarget = path.join(root, normalized);
@@ -163,20 +190,23 @@ function quoteYaml(value: string): string {
   return JSON.stringify(value);
 }
 
-function buildDoc(
-  entry: DocsManifestEntry,
-  sourceToId: Map<string, string>,
-): string {
+function readSource(entry: { id: string; source: string }): string {
   const sourceFile = path.join(root, entry.source);
   if (!existsSync(sourceFile)) {
     throw new Error(`Source not found for ${entry.id}: ${entry.source}`);
   }
+  return readFileSync(sourceFile, "utf8");
+}
 
-  const sourceMarkdown = readFileSync(sourceFile, "utf8");
+function buildDoc(
+  entry: DocsManifestEntry,
+  sourceToHref: Map<string, string>,
+): string {
+  const sourceMarkdown = readSource(entry);
   const body = rewriteMarkdownLinks(
     stripFrontmatter(sourceMarkdown).trimEnd(),
     entry.source,
-    sourceToId,
+    sourceToHref,
   );
   const description = extractDescription(sourceMarkdown);
 
@@ -193,6 +223,29 @@ function buildDoc(
   return `${frontmatter.join("\n")}\n\n${body}\n`;
 }
 
+function buildGuide(
+  entry: GuideManifestEntry,
+  sourceToHref: Map<string, string>,
+): string {
+  const { data, content } = readMarkdownFrontmatter(readSource(entry));
+  const parsed = guideFrontmatterSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid guide frontmatter in ${entry.source}: ${parsed.error.message}`,
+    );
+  }
+  // The manifest id is the guide's URL segment; a guide without a recipe
+  // keeps the field absent rather than writing it as null.
+  const frontmatter = Object.fromEntries(
+    Object.entries({ ...parsed.data, slug: entry.id }).filter(
+      ([, value]) => value !== null,
+    ),
+  );
+  const body = rewriteMarkdownLinks(content.trim(), entry.source, sourceToHref);
+
+  return generateMarkdown(frontmatter, `\n${body}\n`);
+}
+
 function listMarkdownFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
@@ -200,60 +253,97 @@ function listMarkdownFiles(dir: string): string[] {
     .sort();
 }
 
-function syncDocs(
-  entries: DocsManifestEntry[],
-  outDir: string,
+/** Write one content folder, or with `check` report how it differs. */
+function syncFolder(
+  dir: string,
+  expected: Map<string, string>,
   check: boolean,
+): string[] {
+  const relative = (fileName: string): string =>
+    path.relative(root, path.join(dir, fileName));
+  const stale = listMarkdownFiles(dir).filter(
+    (fileName) => !expected.has(fileName),
+  );
+
+  if (check) {
+    return [
+      ...Array.from(expected).flatMap(([fileName, content]) => {
+        const targetPath = path.join(dir, fileName);
+        if (!existsSync(targetPath)) return [`missing ${relative(fileName)}`];
+        return readFileSync(targetPath, "utf8") === content
+          ? []
+          : [`out of date ${relative(fileName)}`];
+      }),
+      ...stale.map((fileName) => `stale ${relative(fileName)}`),
+    ];
+  }
+
+  mkdirSync(dir, { recursive: true });
+  expected.forEach((content, fileName) =>
+    writeFileSync(path.join(dir, fileName), content, "utf8"),
+  );
+  stale.forEach((fileName) => rmSync(path.join(dir, fileName)));
+  return [];
+}
+
+/** The files a folder expects: all of them, or with `subset` those it holds. */
+function expectedIn(
+  dir: string,
+  built: Map<string, string>,
+  subset: boolean,
+): Map<string, string> {
+  if (!subset) return built;
+  const held = new Set(listMarkdownFiles(dir));
+  return new Map(Array.from(built).filter(([fileName]) => held.has(fileName)));
+}
+
+function syncContent(
+  manifest: DocsManifest,
+  outDir: string,
+  { check, subset }: Pick<Args, "check" | "subset">,
 ): void {
   const contentRoot = path.resolve(root, outDir);
+  const sourceToHref = sourceHrefs(manifest);
   const docDir = path.join(contentRoot, "doc");
-  const sourceToId = new Map(
-    entries.map((entry) => [normalizeRepoPath(entry.source), entry.id]),
+  const guideDir = path.join(contentRoot, "guide");
+  // Every file is built before any is written, so an invalid source
+  // leaves the content repository untouched.
+  const docs = expectedIn(
+    docDir,
+    new Map(
+      manifest.docs.map((entry) => [
+        `${entry.id}.md`,
+        buildDoc(entry, sourceToHref),
+      ]),
+    ),
+    subset,
   );
-  const expected = new Map(
-    entries.map((entry) => [`${entry.id}.md`, buildDoc(entry, sourceToId)]),
+  const guides = expectedIn(
+    guideDir,
+    new Map(
+      manifest.guides.map((entry) => [
+        `${entry.id}.md`,
+        buildGuide(entry, sourceToHref),
+      ]),
+    ),
+    subset,
   );
 
-  const issues: string[] = [];
-  const existingFiles = listMarkdownFiles(docDir);
-  const expectedNames = new Set(expected.keys());
-
-  for (const [fileName, content] of expected.entries()) {
-    const targetPath = path.join(docDir, fileName);
-    if (check) {
-      if (!existsSync(targetPath)) {
-        issues.push(`missing ${path.relative(root, targetPath)}`);
-        continue;
-      }
-      const current = readFileSync(targetPath, "utf8");
-      if (current !== content) {
-        issues.push(`out of date ${path.relative(root, targetPath)}`);
-      }
-      continue;
-    }
-
-    mkdirSync(docDir, { recursive: true });
-    writeFileSync(targetPath, content, "utf8");
-  }
-
-  for (const fileName of existingFiles) {
-    if (expectedNames.has(fileName)) continue;
-    const targetPath = path.join(docDir, fileName);
-    if (check) {
-      issues.push(`stale ${path.relative(root, targetPath)}`);
-    } else {
-      rmSync(targetPath);
-    }
-  }
+  const issues = [
+    ...syncFolder(docDir, docs, check),
+    ...syncFolder(guideDir, guides, check),
+  ];
 
   if (issues.length > 0) {
     console.error("Docs content sync check failed:\n");
-    for (const issue of issues) console.error(`- ${issue}`);
+    issues.forEach((issue) => console.error(`- ${issue}`));
     process.exit(1);
   }
 
   const action = check ? "checked" : "synced";
-  console.log(`Docs content ${action} (${expected.size} docs)`);
+  console.log(
+    `Docs content ${action} (${docs.size} docs, ${guides.size} guides)`,
+  );
 }
 
 try {
@@ -265,8 +355,8 @@ try {
     throw new Error("Missing docs/docs-manifest.yaml");
   }
 
-  const entries = parseDocsManifest(readFileSync(manifestPath, "utf8"));
-  syncDocs(entries, args.outDir, args.check);
+  const manifest = parseDocsManifest(readFileSync(manifestPath, "utf8"));
+  syncContent(manifest, args.outDir, args);
 } catch (error) {
   console.error(getErrorMessage(error));
   process.exit(1);

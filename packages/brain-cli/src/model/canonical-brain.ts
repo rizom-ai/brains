@@ -22,6 +22,7 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import { docsPlugin } from "@brains/doc";
+import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
 import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
@@ -165,6 +166,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["action-board", actionBoardPlugin, undefined],
     ["faq", faqPlugin, undefined],
     ["docs", docsPlugin, undefined],
+    ["guides", guidesPlugin, undefined],
     ["book", bookPlugin, undefined],
 
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],

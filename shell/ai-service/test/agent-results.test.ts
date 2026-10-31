@@ -996,6 +996,28 @@ describe("an answer's sources", () => {
     ]);
   });
 
+  it("include a result whose page the answer links, though it names another title", () => {
+    const links = {
+      isCitable: (): boolean => true,
+      urlFor: (entityType: string, slug: string): string =>
+        `/${entityType}s/${slug}`,
+      siteBaseUrl: "example.com",
+    };
+    const linked = (text: string): string[] =>
+      extractToolResults(steps, text, links).cards.flatMap((card) =>
+        card.kind === "sources" ? card.sources.map((source) => source.id) : [],
+      );
+
+    expect(
+      linked(
+        "Read [the piece on heroics](/posts/heroics) or https://example.com/notes/note-c.",
+      ),
+    ).toEqual(["note:note-c", "post:heroics", "post:read-directly"]);
+    expect(linked("See /posts/heroics-revisited and /posts.")).toEqual(
+      linked("A general answer."),
+    );
+  });
+
   it("fall back to the best-scored results when the answer names none", () => {
     expect(sourceIds("A general answer.")).toEqual([
       "note:note-a",
