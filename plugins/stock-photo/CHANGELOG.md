@@ -1,5 +1,23 @@
 # @brains/stock-photo
 
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/image@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.613
+  - @brains/image@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+
 ## 0.2.0-alpha.612
 
 ### Patch Changes

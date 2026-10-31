@@ -67,6 +67,7 @@ export class ProjectAdapter extends BaseEntityAdapter<
         status: frontmatter.status,
         publishedAt: frontmatter.publishedAt,
         year: frontmatter.year,
+        description: frontmatter.description,
       },
     };
   }

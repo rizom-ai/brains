@@ -418,7 +418,20 @@ export type CreateResult =
         attachment?: CreateResultAttachment;
       };
     }
-  | { success: false; error: string };
+  | {
+      success: false;
+      error: string;
+      /**
+       * The create needs an answer from the user before it can go ahead: a
+       * title or field (`fields`), or where a deck's slides break
+       * (`slide-breaks`).
+       * The source text is pinned for the retry, so the answer cannot change it.
+       */
+      question?: CreateQuestion;
+    };
+
+/** What a refused create asks the user for; see `CreateResult`. */
+export type CreateQuestion = "fields" | "slide-breaks";
 
 /**
  * Plugin create interceptors can either fully handle creation,

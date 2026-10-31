@@ -49,6 +49,7 @@ type ProjectMetadataSchema = z.ZodObject<{
   publishedAt: z.ZodOptional<z.ZodString>;
   year: z.ZodNumber;
   slug: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
 }>;
 
@@ -68,6 +69,9 @@ export const projectMetadataSchema: ProjectMetadataSchema =
     .extend({
       // slug is required in metadata (auto-generated from title if not in frontmatter)
       slug: z.string(),
+      // The card description, so a listing shows what each project is
+      // without reading it in full. Optional: stored before it was kept.
+      description: z.string().optional(),
       error: z.string().optional(),
     });
 

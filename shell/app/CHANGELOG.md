@@ -1,5 +1,43 @@
 # @brains/app
 
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/core@0.2.0-alpha.614
+  - @brains/entity-service@0.2.0-alpha.614
+  - @brains/chat-repl@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/site-composition@0.2.0-alpha.614
+  - @brains/theme-base@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/conversation-service@0.2.0-alpha.614
+  - @brains/job-queue@0.2.0-alpha.614
+  - @brains/mcp-service@0.2.0-alpha.614
+  - @brains/runtime-state@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies [[`3eb382a`](https://github.com/rizom-ai/brains/commit/3eb382a06f8b849b5dee6a10467b71037edd162e)]:
+  - @brains/core@0.2.0-alpha.613
+  - @brains/plugins@0.2.0-alpha.613
+  - @brains/chat-repl@0.2.0-alpha.613
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/site-composition@0.2.0-alpha.613
+  - @brains/theme-base@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/conversation-service@0.2.0-alpha.613
+  - @brains/entity-service@0.2.0-alpha.613
+  - @brains/job-queue@0.2.0-alpha.613
+  - @brains/mcp-service@0.2.0-alpha.613
+  - @brains/runtime-state@0.2.0-alpha.613
+  - @brains/templates@0.2.0-alpha.613
+
 ## 0.2.0-alpha.612
 
 ### Patch Changes

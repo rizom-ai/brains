@@ -1,5 +1,37 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/dashboard@0.2.0-alpha.614
+  - @brains/action-items@0.2.0-alpha.614
+  - @brains/ui-library@0.2.0-alpha.614
+  - @brains/auth-service@0.2.0-alpha.614
+  - @brains/content-formatters@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/conversation-service@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.613
+  - @brains/dashboard@0.2.0-alpha.613
+  - @brains/action-items@0.2.0-alpha.613
+  - @brains/ui-library@0.2.0-alpha.613
+  - @brains/auth-service@0.2.0-alpha.613
+  - @brains/content-formatters@0.2.0-alpha.613
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/conversation-service@0.2.0-alpha.613
+  - @brains/templates@0.2.0-alpha.613
+
 ## 0.2.0-alpha.612
 
 ### Patch Changes
