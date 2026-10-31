@@ -158,7 +158,7 @@ Active cleanup and infrastructure plans:
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
-- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
+- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; local-first core (text + embeddings, one fully local pilot brain) by 2026-11-20 for the Mozilla Human-Scale AI application.
 
 Research probes (parked):
 
