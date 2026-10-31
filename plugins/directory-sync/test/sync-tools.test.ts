@@ -180,7 +180,7 @@ describe("sync tool", () => {
       );
 
       expect(directoryTool.description).toContain(
-        "A file uploaded in chat is not a filesystem import: save it with system_create, without syncing.",
+        "Files uploaded in chat are not a filesystem import and need no sync; system_create handles them.",
       );
     },
   );
