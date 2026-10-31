@@ -80,6 +80,13 @@ Some context here.`;
       expect(result.metadata?.year).toBe(2023);
     });
 
+    it("keeps the card description in metadata, so a listing can show each project", () => {
+      const result = adapter.fromMarkdown(
+        "---\ntitle: P\nstatus: draft\ndescription: A cool project I built\nyear: 2023\n---\n\nBody",
+      );
+      expect(result.metadata?.description).toBe("A cool project I built");
+    });
+
     it("should auto-generate slug from title", () => {
       const markdown = `---
 title: My Amazing Project
