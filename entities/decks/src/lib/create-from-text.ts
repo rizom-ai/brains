@@ -14,7 +14,7 @@ import { z } from "@brains/utils/zod";
 import { hasSlideSeparators } from "../adapters/deck-adapter";
 import { deckFrontmatterSchema } from "../schemas/deck";
 import { describeDeck } from "./describe-deck";
-import { splitSlidesOnHeadings } from "./slides";
+import { splitSlides } from "./slides";
 
 /** Deck fields a writer can state for their own slides, in frontmatter or as `fields`. */
 const deckTextFieldsSchema = z.object({
@@ -24,6 +24,8 @@ const deckTextFieldsSchema = z.object({
   author: z.string().trim().min(1).optional(),
   event: z.string().trim().min(1).optional(),
   coverImageId: z.string().min(1).optional(),
+  /** Where the slides break in text without --- separators; not stored. */
+  slides: z.enum(["headings", "paragraphs"]).optional(),
 });
 
 /**
@@ -45,13 +47,18 @@ export async function createDeckFromText(
       hasSlideSeparators(body),
   });
   if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") return entityTextError(read.error);
+  if (read.kind === "error") {
+    return entityTextError(read.error, read.question);
+  }
   const { title, body, fields } = read.text;
 
-  const slides = hasSlideSeparators(body) ? body : splitSlidesOnHeadings(body);
+  const slides = hasSlideSeparators(body)
+    ? body
+    : splitSlides(body, fields.slides ?? "headings");
   if (!slides) {
     return entityTextError(
-      "A deck needs slides, and this text has no --- separator lines or headings to split it on. Ask the user where the slides break; they can mark each break with a line containing only ---.",
+      'Where should the slides break? The text has no --- separator lines or headings to split it on. For a slide per paragraph, pass fields { slides: "paragraphs" }; for other breaks, insert a line containing only --- at each break the user names, changing nothing else in the text.',
+      "slide-breaks",
     );
   }
 

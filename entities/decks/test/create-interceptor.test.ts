@@ -120,9 +120,35 @@ describe("DecksPlugin create interceptor", () => {
     });
     expect(result).toMatchObject({
       kind: "handled",
-      result: { success: false },
+      result: { success: false, question: "slide-breaks" },
     });
     expect(JSON.stringify(result)).toContain("---");
+  });
+
+  it("makes each paragraph a slide when the user says so", async () => {
+    const notes =
+      "# Notes\n\nOne paragraph.\n\nAnother paragraph,\nover two lines.\n\n```\ncode\n\nstays\n```";
+    const { body } = saved(
+      await intercept({
+        entityType: "deck",
+        content: notes,
+        fields: { slides: "paragraphs" },
+      }),
+    );
+    expect(body).toBe(
+      "# Notes\n\n---\n\nOne paragraph.\n\n---\n\nAnother paragraph,\nover two lines.\n\n---\n\n```\ncode\n\nstays\n```",
+    );
+  });
+
+  it("does not write the slide choice into the deck", async () => {
+    const { frontmatter } = saved(
+      await intercept({
+        entityType: "deck",
+        content: talk,
+        fields: { slides: "paragraphs" },
+      }),
+    );
+    expect(frontmatter["slides"]).toBeUndefined();
   });
 
   it("asks for a title when the text has none", async () => {
