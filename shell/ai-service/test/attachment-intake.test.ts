@@ -38,19 +38,50 @@ function uploadRef(id: string): ConversationUploadRef {
 }
 
 describe("buildAsyncGenerationFallback", () => {
-  it("returns guidance for a generating tool result", () => {
-    const text = buildAsyncGenerationFallback({
+  it("says a queued generation's draft is generating", () => {
+    const text = buildAsyncGenerationFallback("system_generate", {
       success: true,
       data: { status: "generating", entityId: "e-1" },
     });
-    expect(text).toContain("generating");
+    expect(text).toContain("The draft is generating now.");
+  });
+
+  it("says a save is saved while its content is still processed, never that a draft generates", () => {
+    const text = buildAsyncGenerationFallback("system_create", {
+      success: true,
+      data: { status: "generating", entityId: "field-notes" },
+    });
+    expect(text).toBe(
+      "It is saved; its content is still being processed and will be ready shortly.",
+    );
+  });
+
+  it("speaks of every file a save of several uploads saved", () => {
+    const text = buildAsyncGenerationFallback("system_create", {
+      success: true,
+      data: { status: "generating", items: [] },
+    });
+    expect(text).toBe(
+      "They are saved; their content is still being processed and will be ready shortly.",
+    );
   });
 
   it("returns undefined for anything else", () => {
-    expect(buildAsyncGenerationFallback({ success: true, data: {} })).toBe(
+    expect(
+      buildAsyncGenerationFallback("system_create", {
+        success: true,
+        data: { status: "created", entityId: "note" },
+      }),
+    ).toBe(undefined);
+    expect(
+      buildAsyncGenerationFallback("system_generate", {
+        success: true,
+        data: {},
+      }),
+    ).toBe(undefined);
+    expect(buildAsyncGenerationFallback("system_generate", "nope")).toBe(
       undefined,
     );
-    expect(buildAsyncGenerationFallback("nope")).toBe(undefined);
   });
 });
 

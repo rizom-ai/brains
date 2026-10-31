@@ -30,11 +30,22 @@ const asyncGeneratingToolResultSchema = z
   })
   .passthrough();
 
+/**
+ * What to add to a confirmed action whose result is still being worked on.
+ * A save (system_create) is already saved, only its content is still being
+ * processed; only a generation has a draft that is generating.
+ */
 export function buildAsyncGenerationFallback(
+  toolName: string,
   data: unknown,
 ): string | undefined {
   const parsed = asyncGeneratingToolResultSchema.safeParse(data);
   if (!parsed.success) return undefined;
+  if (toolName === "system_create") {
+    return "items" in parsed.data.data
+      ? "They are saved; their content is still being processed and will be ready shortly."
+      : "It is saved; its content is still being processed and will be ready shortly.";
+  }
   return "The draft is generating now. Once it is ready, I can review it with you, refine it, or turn it into another format.";
 }
 
@@ -193,6 +204,7 @@ export async function filterLiveUploadRefs(params: {
         filename: attachment.filename,
         mediaType: attachment.mediaType,
         source: ref.source,
+        ...(ref.savedAs ? { savedAs: ref.savedAs } : {}),
       });
     } catch (error) {
       logger.debug("Skipped unavailable prior upload ref", {

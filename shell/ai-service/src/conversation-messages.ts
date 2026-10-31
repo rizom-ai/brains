@@ -12,6 +12,7 @@ import {
   type EntityMemoryRef,
 } from "./agent-results";
 import { isRecord } from "@brains/utils/is-record";
+import { z } from "@brains/utils/zod";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -122,6 +123,74 @@ export interface ConversationUploadRef {
     kind: string;
     id: string;
   };
+  /** The entity a confirmed save in this conversation made of the upload. */
+  savedAs?: { entityType: string; entityId: string };
+}
+
+const uploadSourceRefSchema = z.object({ kind: z.string(), id: z.string() });
+
+/** A confirmed system_create whose source was one or several uploads. */
+const savedUploadCardSchema = z.looseObject({
+  kind: z.literal("tool-approval"),
+  toolName: z.literal("system_create"),
+  state: z.literal("output-available"),
+  input: z.looseObject({
+    entityType: z.string(),
+    source: z.union([
+      z.looseObject({
+        kind: z.literal("upload"),
+        upload: uploadSourceRefSchema,
+      }),
+      z.looseObject({
+        kind: z.literal("uploads"),
+        items: z.array(z.looseObject({ upload: uploadSourceRefSchema })),
+      }),
+    ]),
+  }),
+  output: z.looseObject({
+    success: z.literal(true),
+    data: z.looseObject({
+      entityId: z.string().optional(),
+      items: z
+        .array(z.looseObject({ entityType: z.string(), entityId: z.string() }))
+        .optional(),
+    }),
+  }),
+});
+
+type SavedUploads = Map<string, NonNullable<ConversationUploadRef["savedAs"]>>;
+
+/** Every upload a confirmed save in these messages made an entity of. */
+function collectSavedUploads(messages: Message[]): SavedUploads {
+  const saved: SavedUploads = new Map();
+  for (const message of messages) {
+    const cards = parseMessageMetadata(message.metadata)?.["cards"];
+    if (!Array.isArray(cards)) continue;
+    for (const card of cards) {
+      const parsed = savedUploadCardSchema.safeParse(card);
+      if (!parsed.success) continue;
+      const { input, output } = parsed.data;
+      if (input.source.kind === "upload") {
+        const { entityId } = output.data;
+        if (entityId === undefined) continue;
+        saved.set(`${input.source.upload.kind}:${input.source.upload.id}`, {
+          entityType: input.entityType,
+          entityId,
+        });
+        continue;
+      }
+      // A save of several uploads lists its entities in the order of its files.
+      input.source.items.forEach((item, index) => {
+        const entity = output.data.items?.[index];
+        if (!entity) return;
+        saved.set(`${item.upload.kind}:${item.upload.id}`, {
+          entityType: entity.entityType,
+          entityId: entity.entityId,
+        });
+      });
+    }
+  }
+  return saved;
 }
 
 function uploadRefKey(ref: ConversationUploadRef): string {
@@ -199,10 +268,14 @@ export function resolveConversationUploadContinuity(params: {
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
+  const savedUploads = collectSavedUploads(params.historyMessages);
   const refs = selectConversationUploadRefs({
     message: params.message,
     currentAttachments: params.currentAttachments,
     historyMessages: params.historyMessages,
+  }).map((ref) => {
+    const savedAs = savedUploads.get(uploadRefKey(ref));
+    return savedAs ? { ...ref, savedAs } : ref;
   });
 
   const priorResponseRef =
@@ -342,6 +415,23 @@ function formatTextAttachment(
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
 }
 
+/**
+ * Several files attached to one message are kept together: the candidate
+ * names every one of them, each with the transform that keeps it as itself
+ * (a text file as a note), so none is left out of a request to keep them.
+ */
+function formatKeepAllCandidate(attachments: ChatAttachment[]): string {
+  const items = attachments.flatMap((attachment) =>
+    attachment.source
+      ? [
+          `{ upload: { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }, transform: "${attachment.kind === "text" ? "extract-markdown" : "preserve"}" }`,
+        ]
+      : [],
+  );
+  if (items.length < 2) return "";
+  return `Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [${items.join(", ")}] } }`;
+}
+
 function formatUploadRefs(
   attachments: ChatAttachment[],
   uploadRefs: ConversationUploadRef[],
@@ -355,16 +445,21 @@ function formatUploadRefs(
   );
   const priorResponseCandidate = priorResponseRef
     ? [
-        "Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation):",
+        'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation); a bare "save it" right after that response means this candidate, not an upload:',
         `{ entityType: "note", source: { kind: "prior-response", messageId: "${priorResponseRef.messageId}" } }`,
       ].join(" ")
     : "";
   if (lines.length === 0) return priorResponseCandidate;
 
   const guidance =
-    'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
+    'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. To keep several uploads at once, call system_create once with source.kind uploads listing every attached file. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
 
-  return [guidance, priorResponseCandidate, ...lines]
+  return [
+    guidance,
+    priorResponseCandidate,
+    formatKeepAllCandidate(attachments),
+    ...lines,
+  ]
     .filter((line) => line.length > 0)
     .join("\n");
 }
@@ -374,6 +469,11 @@ function formatUploadRefLine(ref: ConversationUploadRef): string {
     `- ${ref.filename}`,
     `upload: { kind: "${ref.source.kind}", id: "${ref.source.id}" }`,
     `mediaType: ${ref.mediaType}`,
+    ...(ref.savedAs
+      ? [
+          `saved as ${ref.savedAs.entityType} "${ref.savedAs.entityId}" holding this upload text verbatim: change it there with system_update edits quoting that text, without system_get first, never as a new ${ref.savedAs.entityType}`,
+        ]
+      : []),
   ].join("; ");
 }
 

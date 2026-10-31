@@ -98,3 +98,69 @@ describe("buildConfirmedActionResult", () => {
     expect(result.cards[0]).not.toHaveProperty("input");
   });
 });
+
+describe("buildConfirmedActionResult for several uploads", () => {
+  const savedUploads: PendingConfirmation = {
+    id: "approval-uploads",
+    toolName: "system_create",
+    summary: "Save 2 uploaded files?",
+    args: {
+      entityType: "note",
+      source: { kind: "uploads", items: [] },
+      confirmed: true,
+      confirmationToken: "token-2",
+    },
+  };
+
+  test("remembers every saved file and shows each saved image", () => {
+    const result = buildConfirmedActionResult(savedUploads, {
+      success: true,
+      data: {
+        status: "generating",
+        items: [
+          {
+            filename: "notes.md",
+            entityType: "note",
+            title: "Field Notes",
+            entityId: "field-notes",
+            status: "generating",
+          },
+          {
+            filename: "harbor.png",
+            entityType: "image",
+            title: "harbor",
+            entityId: "harbor",
+            status: "generating",
+            jobId: "job-harbor",
+            attachment: {
+              mediaType: "image/png",
+              url: "/api/chat/attachments/image?id=harbor",
+              filename: "harbor.png",
+            },
+          },
+        ],
+      },
+    });
+
+    expect(result.entityMemoryRefs).toEqual([
+      {
+        entityType: "note",
+        entityId: "field-notes",
+        operation: "created",
+        title: "Field Notes",
+        status: "generating",
+      },
+      {
+        entityType: "image",
+        entityId: "harbor",
+        operation: "created",
+        title: "harbor",
+        status: "generating",
+      },
+    ]);
+    expect(result.cards.map((card) => card.kind)).toEqual([
+      "tool-approval",
+      "attachment",
+    ]);
+  });
+});

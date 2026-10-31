@@ -42,6 +42,7 @@ turns:
       responseNotContains:
         - "Confirmation required"
         - "Completed: Create"
+        - "Completed: Saved"
         - "draft is generating"
         - "saved as"
         - "I've saved"
@@ -56,6 +57,7 @@ successCriteria:
   responseNotContains:
     - "Confirmation required"
     - "Completed: Create"
+    - "Completed: Saved"
     - "draft is generating"
 
 efficiency:

@@ -543,8 +543,48 @@ describe("buildMessageWithAttachments", () => {
     });
 
     expect(content).toContain(
-      'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
+      'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation); a bare "save it" right after that response means this candidate, not an upload: { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
     );
+  });
+
+  it("offers every file attached to the message as one keep candidate", () => {
+    const content = buildMessageWithAttachments("Keep these files.", [
+      {
+        kind: "text",
+        filename: "draft.md",
+        mediaType: "text/markdown",
+        content: "# Draft",
+        source: { kind: "upload", id: "upload-text" },
+      },
+      {
+        kind: "file",
+        filename: "harbor.png",
+        mediaType: "image/png",
+        data: new Uint8Array([1]),
+        sizeBytes: 1,
+        source: { kind: "upload", id: "upload-image" },
+      },
+    ]);
+    const textPart = Array.isArray(content) ? content[0] : undefined;
+    const text = textPart?.type === "text" ? textPart.text : "";
+
+    expect(text).toContain(
+      'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+    );
+  });
+
+  it("offers no keep candidate for a single attached file", () => {
+    const content = buildMessageWithAttachments("Keep this file.", [
+      {
+        kind: "text",
+        filename: "draft.md",
+        mediaType: "text/markdown",
+        content: "# Draft",
+        source: { kind: "upload", id: "upload-text" },
+      },
+    ]);
+
+    expect(content).not.toContain('kind: "uploads"');
   });
 
   it("includes model-visible upload refs for file attachments", () => {
@@ -582,5 +622,130 @@ describe("buildMessageWithAttachments", () => {
     expect(text).not.toContain("use the most recent matching upload ref");
     expect(text).not.toContain("Raw uploaded file path:");
     expect(text).not.toContain("Prior assistant response path:");
+  });
+});
+
+describe("uploads already saved in the conversation", () => {
+  const upload = {
+    filename: "community-launch-plan.md",
+    mediaType: "text/markdown",
+    source: { kind: "upload", id: "upload-plan" },
+  };
+  const photo = {
+    filename: "harbor.png",
+    mediaType: "image/png",
+    source: { kind: "upload", id: "upload-photo" },
+  };
+  const userMessage: Message = {
+    id: "message-user",
+    conversationId: "conversation-1",
+    role: "user",
+    content: "",
+    metadata: JSON.stringify({
+      attachments: [
+        { kind: "text", ...upload },
+        { kind: "file", ...photo },
+      ],
+    }),
+    timestamp: new Date(0).toISOString(),
+  };
+  function confirmedSave(input: unknown, data: unknown): Message {
+    return {
+      id: "message-saved",
+      conversationId: "conversation-1",
+      role: "assistant",
+      content: "Completed: Saved note.",
+      metadata: JSON.stringify({
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolName: "system_create",
+            summary: "Save?",
+            state: "output-available",
+            input,
+            output: { success: true, data },
+          },
+        ],
+      }),
+      timestamp: new Date(1).toISOString(),
+    };
+  }
+
+  it("names the entity an upload was saved as", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "change the launch day to Friday",
+      currentAttachments: [],
+      historyMessages: [
+        userMessage,
+        confirmedSave(
+          {
+            entityType: "note",
+            title: "Community Launch Plan",
+            source: {
+              kind: "upload",
+              upload: upload.source,
+              transform: "extract-markdown",
+            },
+          },
+          { entityId: "community-launch-plan", status: "generating" },
+        ),
+      ],
+    });
+
+    expect(result.refs).toContainEqual({
+      ...upload,
+      savedAs: { entityType: "note", entityId: "community-launch-plan" },
+    });
+    expect(result.refs).toContainEqual(photo);
+  });
+
+  it("names each entity a save of several uploads created", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "rename the photo",
+      currentAttachments: [],
+      historyMessages: [
+        userMessage,
+        confirmedSave(
+          {
+            entityType: "note",
+            source: {
+              kind: "uploads",
+              items: [
+                { upload: upload.source, transform: "extract-markdown" },
+                { upload: photo.source, transform: "preserve" },
+              ],
+            },
+          },
+          {
+            status: "generating",
+            items: [
+              { entityType: "note", entityId: "community-launch-plan" },
+              { entityType: "image", entityId: "harbor" },
+            ],
+          },
+        ),
+      ],
+    });
+
+    expect(result.refs).toContainEqual({
+      ...photo,
+      savedAs: { entityType: "image", entityId: "harbor" },
+    });
+  });
+
+  it("tells the agent to change a saved upload where it was saved", () => {
+    const content = buildMessageWithAttachments("make it Friday", [], {
+      uploadRefs: [
+        {
+          ...upload,
+          savedAs: { entityType: "note", entityId: "community-launch-plan" },
+        },
+      ],
+    });
+
+    expect(content).toContain(
+      '- community-launch-plan.md; upload: { kind: "upload", id: "upload-plan" }; mediaType: text/markdown; saved as note "community-launch-plan" holding this upload text verbatim: change it there with system_update edits quoting that text, without system_get first, never as a new note',
+    );
   });
 });
