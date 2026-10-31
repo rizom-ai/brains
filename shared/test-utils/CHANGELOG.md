@@ -1,5 +1,12 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.612
+
 ## 0.2.0-alpha.611
 
 ### Patch Changes
