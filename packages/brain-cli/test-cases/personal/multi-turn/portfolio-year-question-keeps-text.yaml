@@ -1,0 +1,61 @@
+id: multi-turn-portfolio-year-question-keeps-text
+name: Project Saved After the Year Question Keeps the Pasted Text
+description: Verifies that when a pasted project names no year, the brain asks once, and the save after the user's answer stores the originally pasted text byte for byte, whatever source the model resends.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - portfolio
+  - finalized-content
+  - regression
+  - verbatim-create
+  - recipe-professional
+successCriteria: {}
+turns:
+  - userMessage: |-
+      Save this as a portfolio project now. Keep my text.
+
+      # Night Bus Stories
+
+      We recorded the drivers of the last night buses and turned their stories into a podcast — "the long way home".
+
+      ## Outcome
+
+      The transit company now plays the episodes at stops.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          argsContain:
+            entityType: project
+  - userMessage: Approve.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          resultErrorContains: After the user answers, call system_create again with source
+  - userMessage: It began in 2022.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          argsContain:
+            entityType: project
+            fields.year: 2022
+  - userMessage: Approve.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          resultContains:
+            success: true
+            data.entityId: night-bus-stories
+  - userMessage: Read project 'night-bus-stories' from storage with part body. Do not change anything.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: project
+            part: body
+          resultContains:
+            entity.content: "We recorded the drivers of the last night buses and turned their stories into a podcast — \"the long way home\".\n\n## Outcome\n\nThe transit company now plays the episodes at stops.\n"
+efficiency:
+  maxToolCalls: 8

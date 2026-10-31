@@ -1,0 +1,63 @@
+id: team-multi-turn-docs-section-question-keeps-text
+name: Doc Saved After the Section Question Keeps the Pasted Text
+description: Verifies that a pasted page saved without a section, while the docs have several sections, gets one question, and the save after the user's answer stores the originally pasted text byte for byte.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-team
+  - team
+  - docs
+  - finalized-content
+  - regression
+  - verbatim-create
+successCriteria: {}
+turns:
+  - userMessage: |-
+      Save this as a doc now. Keep my text.
+
+      # Rotating API keys
+
+      Keys rotate every 90 days — "no exceptions".
+
+      ## Steps
+
+      1. Revoke the old key in the dashboard.
+      2. Issue a new key and store it in the vault.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          argsContain:
+            entityType: doc
+  - userMessage: Approve.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          resultErrorContains: After the user answers, call system_create again with source
+  - userMessage: Team Brain operations.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          argsContain:
+            entityType: doc
+            fields.section: Team Brain operations
+  - userMessage: Approve.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          resultContains:
+            success: true
+            data.entityId: rotating-api-keys
+  - userMessage: Read doc 'rotating-api-keys' from storage with part body. Do not change anything.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: doc
+            part: body
+          resultContains:
+            entity.content: "Keys rotate every 90 days — \"no exceptions\".\n\n## Steps\n\n1. Revoke the old key in the dashboard.\n2. Issue a new key and store it in the vault.\n"
+efficiency:
+  maxToolCalls: 8
