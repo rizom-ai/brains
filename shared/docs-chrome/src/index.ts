@@ -1,6 +1,9 @@
+export { DocsPageSection, DocsPageShell, docsClasses } from "./docs-chrome";
 export {
-  DocsPageSection,
-  DocsPageShell,
-  docsClasses,
-  type DocsArea,
-} from "./docs-chrome";
+  docsChromeBrandSchema,
+  docsChromeLinkSchema,
+  docsChromeSchema,
+  type DocsChrome,
+  type DocsChromeBrand,
+  type DocsChromeLink,
+} from "./chrome";

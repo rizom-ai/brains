@@ -1,3 +1,5 @@
+import type { DocsChrome } from "@brains/docs-chrome";
+import type { DocsConfig, DocsHero } from "../config";
 import {
   BaseEntityDataSource,
   parseMarkdownWithFrontmatter,
@@ -25,12 +27,15 @@ interface DocDetailData {
   docs: DocWithData[];
   prevDoc: DocWithData | null;
   nextDoc: DocWithData | null;
+  chrome: DocsChrome | null;
 }
 
 interface DocListData {
   docs: DocWithData[];
   pagination: PaginationInfo | null;
   baseUrl: string | null;
+  hero: DocsHero | null;
+  chrome: DocsChrome | null;
 }
 
 function sortDocsForDisplay(docs: DocWithData[]): DocWithData[] {
@@ -75,8 +80,14 @@ export class DocDataSource extends BaseEntityDataSource<
     enableNavigation: true,
   };
 
-  constructor(logger: Logger) {
+  /** The configured hero and chrome, handed to every docs page. */
+  private readonly hero: DocsHero | null;
+  private readonly chrome: DocsChrome | null;
+
+  constructor(logger: Logger, presentation: DocsConfig = {}) {
     super(logger);
+    this.hero = presentation.hero ?? null;
+    this.chrome = presentation.chrome ?? null;
   }
 
   protected transformEntity(entity: Doc): DocWithData {
@@ -107,18 +118,20 @@ export class DocDataSource extends BaseEntityDataSource<
 
     const docs = sortDocsForDisplay(list.items);
     const currentIndex = docs.findIndex((item) => item.id === detail.item.id);
-    const prevDoc = currentIndex > 0 ? docs[currentIndex - 1] : null;
+    const prevDoc = currentIndex > 0 ? (docs[currentIndex - 1] ?? null) : null;
     const nextDoc =
       currentIndex >= 0 && currentIndex < docs.length - 1
-        ? docs[currentIndex + 1]
+        ? (docs[currentIndex + 1] ?? null)
         : null;
 
-    return outputSchema.parse({
+    const data: DocDetailData = {
       doc: detail.item,
       docs,
       prevDoc,
       nextDoc,
-    });
+      chrome: this.chrome,
+    };
+    return outputSchema.parse(data);
   }
 
   protected override buildDetailResult(
@@ -130,6 +143,7 @@ export class DocDataSource extends BaseEntityDataSource<
       docs: [item],
       prevDoc: navigation?.prev ?? null,
       nextDoc: navigation?.next ?? null,
+      chrome: this.chrome,
     };
   }
 
@@ -142,6 +156,8 @@ export class DocDataSource extends BaseEntityDataSource<
       docs: sortDocsForDisplay(items),
       pagination,
       baseUrl: query.baseUrl ?? null,
+      hero: this.hero,
+      chrome: this.chrome,
     };
   }
 }

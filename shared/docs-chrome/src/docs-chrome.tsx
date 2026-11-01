@@ -1,5 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import { Head } from "@brains/ui-library";
+import type { DocsChrome, DocsChromeBrand } from "./chrome";
 
 const wordmarkInk = "text-[var(--docs-text)] font-bold";
 const wordmarkDot = "text-[var(--docs-accent)] font-bold";
@@ -33,64 +34,84 @@ export const docsClasses: DocsClasses = {
   primaryButton: `${buttonBase} border-[var(--docs-accent)] bg-[var(--docs-accent)] text-white hover:bg-transparent hover:text-[var(--docs-accent)]`,
 };
 
-/** The part of the docs a page belongs to, marked current in the header. */
-export type DocsArea = "guides";
+/** The brand's name, as its wordmark (ink.suffix) when it has one. */
+const BrandMark = ({ brand }: { brand: DocsChromeBrand }): JSX.Element =>
+  brand.wordmark ? (
+    <>
+      <span className={wordmarkInk}>{brand.wordmark.ink}</span>
+      {brand.wordmark.suffix && (
+        <>
+          <span className={wordmarkDot}>.</span>
+          <span className={wordmarkSuffix}>{brand.wordmark.suffix}</span>
+        </>
+      )}
+    </>
+  ) : (
+    <>{brand.label}</>
+  );
 
-const DocsHeader = ({ current }: { current?: DocsArea }): JSX.Element => (
+const DocsHeader = ({
+  chrome,
+  current,
+}: {
+  chrome: DocsChrome;
+  current?: string | undefined;
+}): JSX.Element => (
   <nav className="docs-header fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 md:py-5 xl:px-20">
     <a
-      href="/docs"
+      href={chrome.brand.href}
       className="docs-font-body text-xl font-bold"
-      aria-label="Brains docs"
+      {...(chrome.brand.wordmark && { "aria-label": chrome.brand.label })}
     >
-      <span className={wordmarkInk}>brains</span>
-      <span className={wordmarkDot}>.</span>
-      <span className={wordmarkSuffix}>docs</span>
+      <BrandMark brand={chrome.brand} />
     </a>
     <div className="docs-header__nav flex items-center gap-4 md:gap-8">
-      <a
-        className={primaryHeaderLink}
-        href="/guides"
-        {...(current === "guides" && { "aria-current": "page" as const })}
-      >
-        Guides
-      </a>
-      <a className={headerLink} href="/docs/roadmap">
-        Roadmap
-      </a>
-      <a className={headerLink} href="https://github.com/rizom-ai/brains">
-        GitHub
-      </a>
-      <a
-        href="https://rizom.ai"
-        className="inline-flex items-center justify-center rounded-lg border border-[var(--docs-text)] px-4 py-2 text-[13px] font-semibold text-[var(--docs-text)] transition-colors duration-150 hover:border-[var(--docs-accent)] hover:text-[var(--docs-accent)] md:px-6 md:py-2.5 md:text-[15px]"
-      >
-        Get Brains
-      </a>
+      {chrome.links.map((link, index) => (
+        <a
+          key={link.href}
+          className={index === 0 ? primaryHeaderLink : headerLink}
+          href={link.href}
+          {...(current !== undefined &&
+            link.area === current && { "aria-current": "page" as const })}
+        >
+          {link.label}
+        </a>
+      ))}
+      {chrome.cta && (
+        <a
+          href={chrome.cta.href}
+          className="inline-flex items-center justify-center rounded-lg border border-[var(--docs-text)] px-4 py-2 text-[13px] font-semibold text-[var(--docs-text)] transition-colors duration-150 hover:border-[var(--docs-accent)] hover:text-[var(--docs-accent)] md:px-6 md:py-2.5 md:text-[15px]"
+        >
+          {chrome.cta.label}
+        </a>
+      )}
     </div>
   </nav>
 );
 
-const DocsFooter = (): JSX.Element => (
+const DocsFooter = ({
+  footer,
+}: {
+  footer?: DocsChrome["footer"] | undefined;
+}): JSX.Element => (
   <footer className="flex flex-col items-center justify-between gap-4 border-t border-[var(--docs-border-light)] py-8 text-center md:flex-row md:gap-6 md:py-6 md:text-left">
-    <a href="https://rizom.ai" className="docs-font-body text-[15px] font-bold">
-      <span className={wordmarkInk}>rizom</span>
-      <span className={wordmarkDot}>.</span>
-      <span className={wordmarkSuffix}>ai</span>
-    </a>
+    {footer?.brand ? (
+      <a
+        href={footer.brand.href}
+        className="docs-font-body text-[15px] font-bold"
+        {...(footer.brand.wordmark && { "aria-label": footer.brand.label })}
+      >
+        <BrandMark brand={footer.brand} />
+      </a>
+    ) : (
+      <span />
+    )}
     <div className="flex flex-wrap items-center justify-center gap-6 md:justify-end">
-      <a className={footerLink} href="/guides">
-        Guides
-      </a>
-      <a className={footerLink} href="/docs/roadmap">
-        Roadmap
-      </a>
-      <a className={footerLink} href="https://github.com/rizom-ai/brains">
-        GitHub
-      </a>
-      <a className={footerLink} href="https://rizom.ai">
-        Rizom
-      </a>
+      {footer?.links.map((link) => (
+        <a key={link.href} className={footerLink} href={link.href}>
+          {link.label}
+        </a>
+      ))}
       <button
         id="themeToggle"
         className="docs-font-label cursor-pointer rounded-md border border-[var(--docs-text-light)] bg-transparent px-2.5 py-1.5 text-[13px] text-[var(--docs-text-light)] transition-colors duration-150 hover:border-[var(--docs-text)] hover:text-[var(--docs-text)]"
@@ -286,8 +307,13 @@ interface DocsPageShellProps {
   bleed?: boolean;
   /** The page goes on in later sections (DocsPageSection), so it does not fill the screen. */
   continues?: boolean;
-  /** The part of the docs the page belongs to. */
-  current?: DocsArea;
+  /**
+   * The docs' own header and footer brand and links. Without it the page
+   * draws none, for a site whose layout brings its own.
+   */
+  chrome?: DocsChrome | null | undefined;
+  /** The area the page belongs to; the chrome link with that area is current. */
+  current?: string | undefined;
 }
 
 export const DocsPageShell = ({
@@ -299,6 +325,7 @@ export const DocsPageShell = ({
   contentClassName = "",
   bleed = false,
   continues = false,
+  chrome,
   current,
 }: DocsPageShellProps): JSX.Element => (
   <>
@@ -307,20 +334,20 @@ export const DocsPageShell = ({
     <div
       className={`docs-handbook${detail ? " docs-handbook--detail" : ""}${continues ? " docs-handbook--continued" : ""}`}
     >
-      <DocsHeader {...(current && { current })} />
+      {chrome && <DocsHeader chrome={chrome} current={current} />}
       {bleed ? (
         <>
           {children}
           {footer && (
             <div className="mx-auto max-w-6xl px-6 md:px-12">
-              <DocsFooter />
+              <DocsFooter footer={chrome?.footer} />
             </div>
           )}
         </>
       ) : (
         <div className={`${docsClasses.wrap} ${contentClassName}`.trim()}>
           {children}
-          {footer && <DocsFooter />}
+          {footer && <DocsFooter footer={chrome?.footer} />}
         </div>
       )}
     </div>
