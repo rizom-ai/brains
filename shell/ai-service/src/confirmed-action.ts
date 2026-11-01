@@ -8,6 +8,7 @@ import type {
 import {
   buildAttachmentCardFromToolData,
   buildEntityMemoryRefs,
+  savedItems,
   type EntityMemoryRef,
 } from "./agent-results";
 
@@ -110,13 +111,13 @@ export function buildConfirmedActionResult(
       : {}),
   };
   const successResult = toolSuccessSchema.safeParse(result);
-  const attachmentCard = successResult.success
-    ? buildAttachmentCardFromToolData(successResult.data.data)
-    : undefined;
-  const cards: StructuredChatCard[] = [
-    approvalCard,
-    ...(attachmentCard ? [attachmentCard] : []),
-  ];
+  // A save of several files shows each saved file's attachment.
+  const attachmentCards = successResult.success
+    ? [successResult.data.data, ...savedItems(successResult.data.data)].flatMap(
+        (data) => buildAttachmentCardFromToolData(data) ?? [],
+      )
+    : [];
+  const cards: StructuredChatCard[] = [approvalCard, ...attachmentCards];
   const entityMemoryRefs = successResult.success
     ? buildEntityMemoryRefs([
         {

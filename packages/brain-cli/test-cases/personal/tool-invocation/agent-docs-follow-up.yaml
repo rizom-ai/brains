@@ -43,6 +43,7 @@ turns:
         - "uploaded PDF"
         - "saved agent itself"
         - "Completed: Create"
+        - "Completed: Saved"
         - "From the onboarding doc"
 
 successCriteria:
@@ -58,6 +59,7 @@ successCriteria:
     - "PDF/image"
     - "uploaded PDF"
     - "Completed: Create"
+    - "Completed: Saved"
     - "From the onboarding doc"
 
 efficiency:

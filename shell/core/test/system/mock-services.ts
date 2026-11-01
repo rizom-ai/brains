@@ -243,7 +243,16 @@ export function createMockSystemServices(
       mediaTypes: string[];
       handler: (...args: unknown[]) => Promise<unknown>;
     }) => {
-      uploadSaveHandlers.push(registration);
+      // Like the registry, a type's new registration replaces its earlier one.
+      const kept = uploadSaveHandlers.filter(
+        (existing) => existing.entityType !== registration.entityType,
+      );
+      uploadSaveHandlers.splice(
+        0,
+        uploadSaveHandlers.length,
+        ...kept,
+        registration,
+      );
     },
     getUploadSaveHandler: (mediaType: string) =>
       uploadSaveHandlers.find((registration) =>

@@ -30,7 +30,7 @@ material:
 
 Export your notes as Markdown. Obsidian notes already are; most notes apps have a Markdown export.
 
-Upload a file in chat and ask the brain to keep it as a note. It asks you to confirm before it saves anything, and it saves one file per request: when you attach several, ask for the next one after each save.
+Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get, from its first heading or else its file name, and asks you once to confirm before it saves them.
 
 Exact steps: [Interface setup](/docs/interface-setup), [Content management](/docs/content-management).
 

@@ -21,6 +21,7 @@ import { UploadMarkdownImportJobHandler } from "./handlers/uploadMarkdownImportJ
 import {
   getMarkdownImportIdentity,
   isSupportedMarkdownUploadMediaType,
+  readTextUploadMarkdown,
 } from "./lib/upload-markdown-import";
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
@@ -108,9 +109,17 @@ export class NotePlugin extends EntityPlugin<
         };
       }
 
+      // Without a given title, a text upload is named by its first heading.
+      const markdown =
+        input.title === undefined
+          ? readTextUploadMarkdown(
+              await context.uploads.scoped(webChatUploadsScope).read(uploadId),
+            )
+          : undefined;
       const identity = getMarkdownImportIdentity({
         filename: uploadRecord.filename,
-        ...(input.title !== undefined ? { title: input.title } : {}),
+        title: input.title,
+        markdown,
       });
       // Create the stub before enqueueing so the returned entityId is the
       // real (possibly deduplicated) id and exists while "generating".

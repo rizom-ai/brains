@@ -747,7 +747,10 @@ export class TurnProcessor {
           isAnchor,
           signal,
         });
-    const fallbackText = buildAsyncGenerationFallback(outcome.toolResult.data);
+    const fallbackText = buildAsyncGenerationFallback(
+      pendingConfirmation.toolName,
+      outcome.toolResult.data,
+    );
     const responseText = response?.text.trim()
       ? `${outcome.resultText}\n\n${response.text}`
       : fallbackText
