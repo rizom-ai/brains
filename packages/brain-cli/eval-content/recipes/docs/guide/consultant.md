@@ -21,11 +21,11 @@ material:
   - from: Past engagements
     where: Case write-ups, proposals, reports
     becomes: project
-    how: Paste a write-up and ask for a portfolio project
+    how: Paste a write-up in chat; your text is kept as written
   - from: Talks and workshops
     where: Slide outlines, workshop scripts
     becomes: deck
-    how: Write the slides in Studio
+    how: Paste an outline in chat, or write the slides in Studio
   - from: What you know
     where: Articles, newsletters, long posts
     becomes: post
@@ -42,7 +42,7 @@ Exact steps: [Customization guide](/docs/customization-guide).
 
 ## Bring your past work
 
-Each engagement becomes a **portfolio project** with a context, a problem, a solution and an outcome. Paste a case write-up in chat and ask the brain to write a portfolio project from it, with the year it happened. It drafts the four parts from your text and keeps the project as a draft.
+Each engagement becomes a **portfolio project**. Paste a case write-up in chat and ask the brain to save it as a portfolio project. It keeps your text as written, adds a short description for the project card and saves the project as a draft. If the write-up does not say which year the work began, it asks you.
 
 Leave out what a client would not want public. A project appears on your site only once you publish it.
 
@@ -50,7 +50,9 @@ Exact steps: [Entity types](/docs/entity-types-reference).
 
 ## Bring your talks
 
-A **deck** is Markdown slides with a line of three dashes between them. In Studio, open **Library → Decks**, create a deck and paste your outline as slides. You edit it there like any other text, and it publishes to your site.
+A **deck** is Markdown slides with a line of three dashes between them. Paste a talk outline in chat and ask the brain to keep it as a deck. It keeps your text, starts a new slide at each heading and saves the deck as a draft with a short description. When the outline has no headings or dashes, it asks where the slides break.
+
+You can also create a deck in Studio under **Library → Decks** and edit it there like any other text. A deck publishes to your site.
 
 Exact steps: [Entity types](/docs/entity-types-reference).
 
