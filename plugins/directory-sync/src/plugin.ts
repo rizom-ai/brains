@@ -333,6 +333,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
           context,
           connected,
           this.requireDirectorySync(),
+          { registering: true },
         );
       }
       // `initialize` can clone, checkout, and configure the repository. It is
@@ -379,6 +380,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
         directorySync: this.requireDirectorySync(),
         context,
         source: "startup-replay",
+        // Runs from onRegister: plugins after this one have no types yet.
+        entityTypesIncomplete: true,
       });
       await recovery.succeeded("startup");
     });
@@ -526,6 +529,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
           context,
           candidateGitSync,
           candidateDirectorySync,
+          { registering: false },
         );
         await candidateGitSync.initialize();
       }
@@ -708,6 +712,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
     context: ServicePluginContext,
     gitSync: BrokerGitSync,
     directorySync: DirectorySync,
+    /** From onRegister, plugins after this one have no entity types yet. */
+    options: { registering: boolean },
   ): Promise<void> {
     if (await gitSync.admitsMutations()) return;
 
@@ -719,6 +725,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       directorySync,
       context,
       source: "inherited-work-replay",
+      entityTypesIncomplete: options.registering,
     });
     await gitSync.openAdmission();
   }
@@ -807,6 +814,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.logger,
       () => this.requireDirectorySync(),
       this.requireOperationStatus(),
+      this.requireGitReconciliation(),
     );
   }
 }

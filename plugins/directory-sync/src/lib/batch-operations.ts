@@ -110,24 +110,33 @@ export class BatchOperationsManager {
     );
     const rootJobId = createId();
     const expectedChildren = batchData.operations.length;
-    const operations = batchData.operations.map((operation, index) => ({
-      ...operation,
-      data: {
-        ...operation.data,
-        ...(operation.type === "directory-import" && {
-          plan: plan.slice(
-            index * IMPORT_BATCH_SIZE,
-            (index + 1) * IMPORT_BATCH_SIZE,
-          ),
-        }),
-        projectionBatch: {
-          operationId: rootJobId,
-          rootJobId,
-          childKey: `${index}:${operation.type}`,
-          expectedChildren,
+    const entityService = pluginContext.entityService;
+    const operations = batchData.operations.map((operation, index) => {
+      const slice = plan.slice(
+        index * IMPORT_BATCH_SIZE,
+        (index + 1) * IMPORT_BATCH_SIZE,
+      );
+      return {
+        ...operation,
+        data: {
+          ...operation.data,
+          ...(operation.type === "directory-import" && {
+            plan: slice,
+            // What this process admitted, so a worker of another build
+            // sharing the queue refuses the job instead of skipping files.
+            entityTypes: [
+              ...new Set(slice.map((entry) => entry.entityType)),
+            ].filter((entityType) => entityService.hasEntityType(entityType)),
+          }),
+          projectionBatch: {
+            operationId: rootJobId,
+            rootJobId,
+            childKey: `${index}:${operation.type}`,
+            expectedChildren,
+          },
         },
-      },
-    }));
+      };
+    });
     const coordinator = pluginContext.bulkMutations;
     await coordinator.prepareDurableBulkMutation({
       source: "directory-sync",

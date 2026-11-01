@@ -81,6 +81,11 @@ export const directoryImportPlanSchema: z.ZodType<
 export interface DirectoryImportJobData {
   /** Queued batches retain their original preconditions across retries. */
   plan?: DirectoryImportPlan | undefined;
+  /**
+   * The registered entity types the scheduling process admitted into this
+   * job. A worker that does not register one of them cannot import it.
+   */
+  entityTypes?: string[] | undefined;
   paths?: string[] | undefined;
   batchSize?: number | undefined;
   batchIndex?: number | undefined;
@@ -96,6 +101,7 @@ export const directoryImportJobSchema: z.ZodType<
   batchIndex: z.number().optional(),
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
   plan: directoryImportPlanSchema.optional(),
+  entityTypes: z.array(z.string().min(1)).optional(),
 });
 
 /**

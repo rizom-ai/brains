@@ -1,4 +1,5 @@
 import {
+  createId,
   SerializedStatusStore,
   type IRuntimeStateNamespace,
   type ServicePluginContext,
@@ -17,6 +18,14 @@ import type { MatchesHead } from "./file-watcher";
 
 const storedCheckpointSchema = z.object({
   checkpoint: gitReconciliationCheckpointSchema.optional(),
+  /**
+   * The registered entity types the last scan covered. Files of a type
+   * registered since were skipped while the checkpoint moved past them, so
+   * a different set (or none recorded) makes the next sync a full scan.
+   */
+  entityTypes: z.array(z.string()).optional(),
+  /** Set when a sync's files may not have been imported; cleared by a full scan. */
+  fullScanRequest: z.string().optional(),
 });
 
 type StoredCheckpoint = z.infer<typeof storedCheckpointSchema>;
@@ -36,6 +45,12 @@ interface QueueReconciliationOptions {
   source: string;
   /** Queue every file rather than the delta since the durable checkpoint. */
   full?: boolean | undefined;
+  /**
+   * Plugins are still registering, so the entity-type registry is partial.
+   * A rescan now would skip every type registered later; it waits for the
+   * next sync, which the partial types recorded here then trigger.
+   */
+  entityTypesIncomplete?: boolean | undefined;
   metadata?: BatchMetadata | undefined;
   signal?: AbortSignal | undefined;
   onGitProgress?: (() => void) | undefined;
@@ -75,9 +90,29 @@ export class GitReconciliationService {
     return (await this.store.snapshot()).checkpoint;
   }
 
-  saveCheckpoint(checkpoint: GitReconciliationCheckpoint): Promise<void> {
+  /**
+   * Advance the checkpoint. Without entity types, as for the brain's own
+   * pushes, the types the last scan covered stay as they were.
+   */
+  saveCheckpoint(
+    checkpoint: GitReconciliationCheckpoint,
+    entityTypes?: readonly string[],
+  ): Promise<void> {
     return this.store.mutate((state) => {
       state.checkpoint = checkpoint;
+      if (entityTypes) state.entityTypes = sortedTypes(entityTypes);
+    });
+  }
+
+  /**
+   * Make the next sync rescan every file. For work that was queued past the
+   * checkpoint but may not have been imported: a failed startup batch, or an
+   * import a worker could not perform. Shared runtime state, so any process
+   * of this brain can ask.
+   */
+  requireFullScan(): Promise<void> {
+    return this.store.mutate((state) => {
+      state.fullScanRequest = createId();
     });
   }
 
@@ -107,8 +142,32 @@ export class GitReconciliationService {
     // gone, so refusing is this method's job: nothing below is worth starting
     // once the caller has given up on it.
     options.signal?.throwIfAborted();
-    const previous = options.full ? undefined : await this.getCheckpoint();
-    const delta = await options.gitSync.getReconciliationDelta(previous);
+    const entityTypes = sortedTypes(
+      options.context.entityService.getEntityTypes(),
+    );
+    const stored = await this.store.snapshot();
+    const complete = options.entityTypesIncomplete !== true;
+    const rescan =
+      options.full === true ||
+      (complete &&
+        (stored.fullScanRequest !== undefined ||
+          !sameTypes(stored.entityTypes, entityTypes)));
+    const delta = await options.gitSync.getReconciliationDelta(
+      rescan ? undefined : stored.checkpoint,
+    );
+    const advance = (checkpoint: GitReconciliationCheckpoint): Promise<void> =>
+      this.store.mutate((state) => {
+        state.checkpoint = checkpoint;
+        state.entityTypes = entityTypes;
+        // A request made while this scan was queued still needs its own.
+        if (
+          complete &&
+          delta.mode === "full" &&
+          state.fullScanRequest === stored.fullScanRequest
+        ) {
+          delete state.fullScanRequest;
+        }
+      });
 
     if (delta.mode === "full") {
       const batch = await options.directorySync.queueSyncBatch(
@@ -117,7 +176,7 @@ export class GitReconciliationService {
         options.metadata,
       );
       const checkpointAdvanced = batch !== null;
-      if (checkpointAdvanced) await this.saveCheckpoint(delta.checkpoint);
+      if (checkpointAdvanced) await advance(delta.checkpoint);
       return {
         mode: delta.mode,
         files: [],
@@ -140,7 +199,7 @@ export class GitReconciliationService {
           matchingHead(options.gitSync),
         );
       }
-      await this.saveCheckpoint(delta.checkpoint);
+      await advance(delta.checkpoint);
       return {
         mode: delta.mode,
         files: [],
@@ -165,7 +224,7 @@ export class GitReconciliationService {
         delta.files,
         matchingHead(options.gitSync),
       );
-      await this.saveCheckpoint(delta.checkpoint);
+      await advance(delta.checkpoint);
     }
 
     return {
@@ -176,4 +235,18 @@ export class GitReconciliationService {
       checkpointAdvanced: batch !== null,
     };
   }
+}
+
+function sortedTypes(types: readonly string[]): string[] {
+  return [...new Set(types)].sort();
+}
+
+function sameTypes(
+  recorded: readonly string[] | undefined,
+  current: readonly string[],
+): boolean {
+  return (
+    recorded?.length === current.length &&
+    recorded.every((type, index) => type === current[index])
+  );
 }
