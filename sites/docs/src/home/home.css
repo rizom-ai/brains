@@ -1,0 +1,500 @@
+/* The docs home: what a brain is, then the doors. Draws in the theme's
+   tokens, so light and dark follow the site; the column matches the docs
+   sections below (72rem, 24px and 48px gutters). */
+
+.dh {
+  --dh-bg: var(--color-bg, #14132b);
+  --dh-text: var(--color-text, #faf8f3);
+  --dh-muted: var(--color-text-muted, rgb(250 248 243 / 0.72));
+  --dh-quiet: var(--color-text-light, rgb(250 248 243 / 0.46));
+  --dh-rule: var(--color-border, rgb(250 248 243 / 0.14));
+  --dh-accent: var(--color-accent, #d4af37);
+  --dh-node: var(--color-text, #faf8f3);
+  --dh-root: color-mix(in srgb, var(--dh-accent) 38%, transparent);
+  --dh-twig: color-mix(in srgb, var(--dh-text) 14%, transparent);
+  --dh-glow: color-mix(in srgb, var(--dh-accent) 28%, transparent);
+  --dh-wash-a: var(--color-wash-a, rgb(107 47 160 / 0.22));
+  --dh-wash-b: var(--color-wash-b, rgb(212 175 55 / 0.07));
+  --dh-display: var(--font-display, Fraunces, Georgia, serif);
+  --dh-body: var(--font-body, "IBM Plex Sans", system-ui, sans-serif);
+  --dh-code: var(--font-label, "IBM Plex Mono", ui-monospace, monospace);
+  color: var(--dh-text);
+  font-family: var(--dh-body);
+}
+
+.dh *,
+.dh *::before,
+.dh *::after {
+  box-sizing: border-box;
+}
+
+.dh a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dh-wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+@media (min-width: 768px) {
+  .dh-wrap {
+    padding-inline: 48px;
+  }
+}
+
+/* ---------- Hero ---------- */
+
+.dh-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 60% 48% at 52% 62%,
+      var(--dh-wash-a),
+      transparent 70%
+    ),
+    radial-gradient(ellipse 30% 28% at 50% 62%, var(--dh-wash-b), transparent 70%);
+}
+
+.dh-hero__body {
+  padding-block: 128px 72px;
+}
+
+@media (min-width: 1000px) {
+  .dh-hero__body {
+    padding-block: 176px 112px;
+  }
+}
+
+.dh-hero h1 {
+  margin: 0;
+  max-width: 14ch;
+  font-family: var(--dh-display);
+  font-size: clamp(38px, 4.6vw, 60px);
+  font-weight: 380;
+  font-variation-settings: "SOFT" 50;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: var(--dh-text);
+}
+
+.dh-lede {
+  margin: 20px 0 0;
+  max-width: 60ch;
+  font-family: var(--dh-display);
+  font-size: 21px;
+  font-weight: 340;
+  line-height: 1.6;
+  color: var(--dh-muted);
+}
+
+/* ---------- The brain: what you bring, what it keeps, where it shows up ---------- */
+
+.dh-brain {
+  position: relative;
+  margin: 56px 0 0;
+  display: grid;
+  gap: 40px;
+}
+
+@media (min-width: 1000px) {
+  .dh-brain {
+    margin-top: 72px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.35fr) minmax(0, 0.9fr);
+    column-gap: 56px;
+    align-items: center;
+  }
+}
+
+.dh-brain svg {
+  display: none;
+}
+
+@media (min-width: 1000px) {
+  .dh-brain svg {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+}
+
+.dh-brain svg path {
+  fill: none;
+  stroke: var(--dh-twig);
+  stroke-width: 1;
+  stroke-linecap: round;
+  transition:
+    stroke 0.3s,
+    stroke-width 0.3s;
+}
+
+.dh-brain svg path.root {
+  stroke: var(--dh-root);
+  stroke-width: 1.3;
+}
+
+.dh-brain svg path.lit {
+  stroke: var(--dh-accent);
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 5px var(--dh-glow));
+}
+
+.dh-brain h2 {
+  margin: 0 0 18px;
+  font-family: var(--dh-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dh-quiet);
+}
+
+.dh-ends {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 22px;
+}
+
+.dh-ends li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  line-height: 1.35;
+}
+
+.dh-ends li.lit {
+  color: var(--dh-accent);
+}
+
+@media (min-width: 1000px) {
+  .dh-from h2,
+  .dh-from li {
+    text-align: right;
+  }
+
+  .dh-from li {
+    justify-content: flex-end;
+  }
+
+  .dh-from .dh-dot {
+    order: 2;
+  }
+}
+
+.dh-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--dh-node);
+}
+
+.lit > .dh-dot {
+  background: var(--dh-accent);
+  box-shadow: 0 0 0 4px var(--dh-glow);
+}
+
+[data-story] {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+[data-story]:focus-visible {
+  outline: 2px solid var(--dh-accent);
+  outline-offset: 6px;
+}
+
+.dh-ends li:not(.lit):hover {
+  color: var(--dh-text);
+}
+
+.dh-cluster {
+  position: relative;
+}
+
+.dh-core {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dh-core__dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6d6 0%, var(--dh-accent) 60%);
+  box-shadow:
+    0 0 0 6px var(--dh-glow),
+    0 0 48px 14px var(--dh-glow);
+}
+
+.dh-core__label {
+  font-family: var(--dh-display);
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.dh-files {
+  margin: 20px 0 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.dh-files li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--dh-code);
+  font-size: 13px;
+  color: var(--dh-muted);
+}
+
+.dh-files li.lit {
+  color: var(--dh-text);
+}
+
+.dh-files .dh-type {
+  font-family: var(--dh-body);
+  font-size: 12.5px;
+  color: var(--dh-quiet);
+}
+
+.dh-files li.lit .dh-type {
+  color: var(--dh-accent);
+}
+
+@media (min-width: 1000px) {
+  .dh-cluster {
+    height: 380px;
+  }
+
+  .dh-core {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+    transform: translate(-50%, -11px);
+  }
+
+  .dh-core__label {
+    padding: 2px 10px 4px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--dh-bg) 82%, transparent);
+  }
+
+  .dh-files {
+    margin: 0;
+    padding: 0;
+    display: block;
+  }
+
+  .dh-files li {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    transform: translate(-4.5px, -4.5px);
+    white-space: nowrap;
+  }
+
+  .dh-files li.above {
+    flex-direction: column-reverse;
+    transform: translate(-4.5px, calc(-100% + 4.5px));
+  }
+}
+
+.dh-caption {
+  margin: 8px 0 0;
+  max-width: 70ch;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (min-width: 1000px) {
+  .dh-caption {
+    grid-column: 1 / -1;
+    margin-top: 24px;
+  }
+}
+
+.dh-caption__hint {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: var(--dh-quiet);
+}
+
+.dh-caption__story {
+  color: var(--dh-text);
+}
+
+.dh-caption__story::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 2px;
+  margin-right: 10px;
+  vertical-align: middle;
+  background: var(--dh-accent);
+  box-shadow: 0 0 6px var(--dh-glow);
+}
+
+/* ---------- Doors: a brass root through a node on each ---------- */
+
+.dh-doors__grid {
+  position: relative;
+  display: grid;
+  padding-block: 24px 0;
+}
+
+@media (min-width: 1000px) {
+  .dh-doors__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-block: 40px 0;
+  }
+
+  /* Centred on the door nodes: the grid's padding plus half a node. */
+  .dh-doors__grid::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 46px;
+    height: 1.4px;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--dh-root) 0 6px,
+      transparent 6px 16px
+    );
+  }
+}
+
+.dh-door {
+  padding-block: 24px 0;
+  border-top: 1px solid var(--dh-rule);
+}
+
+.dh-door:first-child {
+  border-top: 0;
+}
+
+@media (min-width: 1000px) {
+  .dh-door {
+    padding: 0 32px;
+    border-top: 0;
+    border-left: 1px solid var(--dh-rule);
+  }
+
+  .dh-door:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .dh-door:last-child {
+    padding-right: 0;
+  }
+}
+
+.dh-door h3 {
+  margin: 0;
+  font-family: var(--dh-display);
+  font-size: 26px;
+  font-weight: 420;
+  line-height: 1.15;
+  color: var(--dh-text);
+}
+
+.dh-door h3::before {
+  content: "";
+  position: relative;
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  background: var(--dh-bg);
+  border: 1.6px solid var(--dh-accent);
+  box-shadow: 0 0 0 5px var(--dh-glow);
+}
+
+.dh-door__who {
+  margin: 8px 0 0;
+  color: var(--dh-muted);
+}
+
+.dh-door__label {
+  margin: 28px 0 10px;
+  font-family: var(--dh-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dh-quiet);
+}
+
+.dh-door p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.dh-door code {
+  font-family: var(--dh-code);
+  font-size: 0.9em;
+}
+
+.dh-door pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--dh-rule);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--dh-bg) 70%, black);
+  font-family: var(--dh-code);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.dh-door pre .dh-prompt {
+  color: var(--dh-quiet);
+  user-select: none;
+}
+
+.dh-door ol {
+  margin: 0;
+  padding-left: 1.4em;
+  line-height: 1.5;
+}
+
+.dh-door ol li {
+  padding-block: 3px;
+}
+
+.dh-door ol li::marker {
+  font-family: var(--dh-display);
+  font-style: italic;
+  color: var(--dh-accent);
+}
+
+.dh-door .dh-door__note {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--dh-quiet);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dh-brain svg path {
+    transition: none;
+  }
+}
