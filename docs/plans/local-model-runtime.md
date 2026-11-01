@@ -24,14 +24,17 @@ Embedding benchmark, 2026-10-31, through the real provider: the yeehaa rover cor
 
 Agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:8b` on Ollama 0.40.11 with Vulkan on the Z13's Radeon 8060S:
 
-| Model                                | Pass  | Rate | Avg duration |
-| ------------------------------------ | ----- | ---- | ------------ |
-| `gpt-6-luna` (default)               | 26/27 | 96%  | 3.7 s        |
-| `local:qwen3:8b`                     | 23/27 | 85%  | 34.2 s       |
-| `local:qwen3:8b`, schema-constrained | 21/27 | 78%  | 25.3 s       |
+| Model                                 | Pass  | Rate | Avg duration |
+| ------------------------------------- | ----- | ---- | ------------ |
+| `gpt-6-luna` (default)                | 26/27 | 96%  | 3.7 s        |
+| `local:qwen3:8b`                      | 23/27 | 85%  | 34.2 s       |
+| `local:qwen3:8b`, schema-constrained  | 21/27 | 78%  | 25.3 s       |
+| `local:qwen3:14b`, schema-constrained | 25/27 | 93%  | 53.2 s       |
 
 - The schema-constrained run is what is built. Before the fix, every object generation on the local model (topic votes) failed validation on invented keys; with constrained output those failures are gone.
 - `qwen3:8b` fails in both runs: the write–confirm–read-back case, the exact-note direct create, and the private note at admin and trusted (wrong `system_create` `source.kind`). Agent recommendation without a match and skill derivation fail in one run each.
+- `qwen3:8b` copies pasted text into `system_create` arguments instead of using `source.kind: user-message`, although the tool's descriptions ask for it; the tool contract stays strict.
+- `qwen3:14b` (14.8B, Q4_K_M) uses `user-message` and passes those cases. It fails the write–confirm–read-back case (no pending confirmation was created) and the private note at trusted (the reply claims a save the server refused).
 - No brain switches its text model on these numbers.
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
@@ -75,10 +78,9 @@ By the deadline: a proof of concept. A separate brain, not the team brain or any
 
 By 2026-11-06, on the Z13 unless stated; numbers go in Status.
 
-1. Run the headless suite on `qwen3:14b` and `qwen3:32b`, schema-constrained, next to the default; record pass rate and average duration.
-2. Find why `qwen3:8b` passes the wrong `system_create` `source.kind` in the private-note cases; if the tool schema or instructions mislead it, fix them and rerun the headless suite before choosing a larger model.
-3. Boot a brain with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`: a test proves it boots, indexes and answers a chat turn with no cloud provider configured; fix whatever still requires a key.
-4. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
+1. Run the headless suite on `qwen3:32b`, schema-constrained; record pass rate and average duration.
+2. Boot a brain with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`: a test proves it boots, indexes and answers a chat turn with no cloud provider configured; fix whatever still requires a key.
+3. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
 
 ## Phase 3 — Fleet rollout
 
