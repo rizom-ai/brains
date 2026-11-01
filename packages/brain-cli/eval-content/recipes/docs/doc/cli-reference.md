@@ -1,9 +1,9 @@
 ---
 title: "CLI Reference"
-section: "Start here"
-order: 30
+section: "Run a brain"
+order: 120
 slug: "cli-reference"
-description: "The brain CLI scaffolds brain instances, boots them, runs diagnostics and evals, and can proxy commands to local or remote brains."
+description: "Commands such as brain init, brain start, brain chat and brain tool"
 ---
 
 # CLI Reference

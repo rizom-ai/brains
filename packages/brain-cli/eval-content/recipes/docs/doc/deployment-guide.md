@@ -1,9 +1,9 @@
 ---
 title: "Deployment Guide"
-section: "Start here"
-order: 40
+section: "Run a brain"
+order: 130
 slug: "deployment-guide"
-description: "Deploy a brain to a server using the scaffolded GitHub Actions + Kamal flow."
+description: "Deploy to a server with the generated Docker and Kamal workflow"
 ---
 
 # Deployment Guide
