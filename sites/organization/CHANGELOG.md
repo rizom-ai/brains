@@ -1,5 +1,21 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- [#794](https://github.com/rizom-ai/brains/pull/794) [`29d4a29`](https://github.com/rizom-ai/brains/commit/29d4a290aac28afedd9fbd2c003fa5b0d6828bdd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The organization homepage shows the brain's published public FAQs under the atlas, as the professional homepage does: ranked FAQs first, then the most asked, six at most, each question closed until tapped. The heading is the authored opening's `faqHeading`, or there is none. Organization brains seeded with FAQs had no page that showed them; the band appears once one is published and stays away until then.
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.619
+  - @brains/faq@0.2.0-alpha.619
+  - @brains/profile@0.2.0-alpha.619
+  - @brains/site-atlas@0.2.0-alpha.619
+  - @brains/site-composition@0.2.0-alpha.619
+  - @brains/ui-library@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
 ## 0.2.0-alpha.618
 
 ### Patch Changes

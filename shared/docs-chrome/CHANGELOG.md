@@ -1,5 +1,12 @@
 # @brains/docs-chrome
 
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.619
+
 ## 0.2.0-alpha.618
 
 ### Patch Changes
