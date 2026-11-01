@@ -30,6 +30,8 @@ export interface RequestDirectorySyncOptions {
   toolContext?: ToolContext | undefined;
   gitSync?: IGitSync | undefined;
   operationStatus?: DirectorySyncOperationStatusService | undefined;
+  /** Git only: rescan every file, not the changes since the checkpoint. */
+  full?: boolean | undefined;
 }
 
 /** Shared manual sync request path used by tools and the Studio workspace. */
@@ -50,6 +52,7 @@ export async function requestDirectorySync(
           runId,
           interfaceType: options.interfaceType,
           channelId: options.channelId,
+          ...(options.full ? { full: true } : {}),
         },
         ...(options.toolContext ? { toolContext: options.toolContext } : {}),
       });

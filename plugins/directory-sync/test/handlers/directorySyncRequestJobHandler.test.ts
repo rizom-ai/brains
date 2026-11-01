@@ -129,6 +129,33 @@ describe("DirectorySyncRequestJobHandler", () => {
     });
   });
 
+  it("asks reconciliation for a full rescan when the request says full", async () => {
+    const pullAndQueue = mock(async (): Promise<GitReconciliationResult> => ({
+      mode: "full",
+      files: [],
+      deletedFiles: [],
+      batch: null,
+      checkpointAdvanced: false,
+    }));
+    const handler = new DirectorySyncRequestJobHandler(
+      createSilentLogger("test"),
+      createMockServicePluginContext(),
+      () => createMockDirectorySync(),
+      () => createMockGitSync(),
+      { pullAndQueue },
+    );
+
+    await handler.process(
+      { source: "plugin:directory-sync", full: true },
+      "root-job-1",
+      createMockProgressReporter(),
+    );
+
+    expect(pullAndQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ full: true }),
+    );
+  });
+
   it("reports no queued batch when pulled content has no sync changes", async () => {
     const handler = new DirectorySyncRequestJobHandler(
       createSilentLogger("test"),

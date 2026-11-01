@@ -28,6 +28,8 @@ export interface DirectorySyncRequestJobData {
   runId?: string | undefined;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
+  /** Rescan every file instead of the changes since the durable checkpoint. */
+  full?: boolean | undefined;
 }
 
 export const directorySyncRequestJobSchema: z.ZodType<
@@ -38,6 +40,7 @@ export const directorySyncRequestJobSchema: z.ZodType<
   runId: z.string().min(1).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
+  full: z.boolean().optional(),
 });
 
 export interface DirectoryProjectionBatchRef {
