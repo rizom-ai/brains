@@ -13,3 +13,10 @@ export {
   type DocMetadata,
   type DocWithData,
 } from "./schemas/doc";
+export {
+  docsConfigSchema,
+  docsHeroSchema,
+  type DocsConfig,
+  type DocsConfigInput,
+  type DocsHero,
+} from "./config";

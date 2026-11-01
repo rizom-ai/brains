@@ -41,3 +41,8 @@ export {
   materialFragments,
   type MaterialFragment,
 } from "./lib/guide-page-content";
+export {
+  guidesConfigSchema,
+  type GuidesConfig,
+  type GuidesConfigInput,
+} from "./config";

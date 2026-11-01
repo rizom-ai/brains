@@ -21,15 +21,15 @@ material:
 
 ## Install and start
 
-You need Bun 1.4 or later, an AI API key and an email address.
+You need Bun 1.4 or later and an AI API key.
 
-Install the brain and create one from a recipe: `bun add -g @rizom/brain`, then `brain init my-brain --recipe personal`. In the new folder, put your key in `.env` as `AI_API_KEY` and run `brain start`. The log prints a one-time setup link; open it and register a passkey to sign in. Set `SETUP_EMAIL_TO` as well if you want setup links and invitations sent by email.
+Install the brain and create one from a recipe: `bun add -g @rizom/brain`, then `brain init my-brain --recipe personal`. In the new folder, put your key in `.env` as `AI_API_KEY` and run `brain start`. The log prints a one-time setup link; open it and register a passkey to sign in. To have setup links and invitations sent by email, also set `SETUP_EMAIL_TO`, `SETUP_EMAIL_FROM` and `SETUP_EMAIL_API_KEY`, a Resend API key.
 
 Exact steps: [Getting started](../../packages/brain-cli/docs/getting-started.md), [CLI reference](../../packages/brain-cli/docs/cli-reference.md).
 
 ## Choose a recipe
 
-The recipe decides what the brain does. **personal** is a private brain you talk to; **professional** adds a site and publishing; **team** adds shared memory, roles and a board; **headless** runs without the web interface. Everything the recipe sets is written into `brain.yaml`, where you can add or remove pieces later.
+The recipe decides what the brain does. **personal** is a private brain you talk to; **professional** adds a site and publishing; **team** adds shared memory, roles and a board; **headless** runs without the web interface. Everything the recipe sets is written into `brain.yaml`, where you can add or remove pieces later. When you add one, the files already in `brain-data/` for its type are imported the next time the brain starts.
 
 Exact steps: [brain.yaml reference](../../packages/brain-cli/docs/brain-yaml-reference.md).
 
