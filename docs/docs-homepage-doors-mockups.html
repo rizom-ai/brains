@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docs Homepage — Three Doors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Tokens sampled from the live docs.rizom.ai stylesheet (rizom theme:
+         night / cream / brass). Dark is the live default. */
+      :root {
+        --display: "Fraunces", Georgia, serif;
+        --body: "IBM Plex Sans", system-ui, sans-serif;
+        --label: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+      }
+
+      [data-theme="dark"] {
+        --bg: #14132b;
+        --bg-deep: #0e0d20;
+        --card: #1b1a35;
+        --text: #faf8f3;
+        --muted: rgb(250 248 243 / 0.72);
+        --light: rgb(250 248 243 / 0.46);
+        --accent: #d4af37;
+        --accent-bright: #e8cc6a;
+        --on-accent: #0e0d20;
+        --border: rgb(250 248 243 / 0.14);
+        --border-light: rgb(250 248 243 / 0.07);
+        --panel: linear-gradient(
+          135deg,
+          rgb(212 175 55 / 0.05) 0%,
+          rgb(250 248 243 / 0.02) 100%
+        );
+        --note: #e07a6a;
+      }
+
+      [data-theme="light"] {
+        --bg: #faf8f3;
+        --bg-deep: #f1ede2;
+        --card: #f4f0e5;
+        --text: #23213a;
+        --muted: rgb(35 33 58 / 0.76);
+        --light: rgb(35 33 58 / 0.52);
+        --accent: #a8821c;
+        --accent-bright: #8a6a12;
+        --on-accent: #faf8f3;
+        --border: rgb(35 33 58 / 0.18);
+        --border-light: rgb(35 33 58 / 0.09);
+        --panel: linear-gradient(var(--card), var(--card));
+        --note: #b83a2e;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+
+      @media (min-width: 720px) {
+        .wrap {
+          padding: 0 48px;
+        }
+      }
+
+      .label {
+        font-family: var(--label);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .display {
+        font-family: var(--display);
+        font-weight: 420;
+        letter-spacing: -0.015em;
+        color: var(--text);
+      }
+
+      .numeral {
+        font-family: var(--display);
+        font-style: italic;
+        color: var(--accent);
+      }
+
+      /* ---------- Header (as live, Roadmap now points at the repo) ---------- */
+
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--bg) 96%, transparent) 0%,
+          color-mix(in srgb, var(--bg) 70%, transparent) 100%
+        );
+        backdrop-filter: blur(8px);
+      }
+
+      @media (min-width: 720px) {
+        .header {
+          padding: 20px 48px;
+        }
+      }
+
+      .wordmark {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .wordmark .dot {
+        color: var(--accent);
+      }
+
+      .wordmark .suffix {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .header nav {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .header nav .hide-sm {
+        display: none;
+      }
+
+      @media (min-width: 860px) {
+        .header nav .hide-sm {
+          display: inline;
+        }
+      }
+
+      .header nav a:hover {
+        color: var(--text);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--text);
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+
+      .btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ---------- Hero ---------- */
+
+      .hero {
+        padding: 48px 0 40px;
+        border-bottom: 1px solid var(--text);
+      }
+
+      @media (min-width: 720px) {
+        .hero {
+          padding: 88px 0 64px;
+        }
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 28px;
+      }
+
+      .status {
+        font-family: var(--label);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 3px 10px;
+      }
+
+      .status a {
+        color: var(--accent);
+      }
+
+      .hero h1 {
+        margin: 0;
+        max-width: 15ch;
+        font-size: clamp(44px, 7vw, 76px);
+        line-height: 1.04;
+      }
+
+      .hero h1 em {
+        color: var(--accent);
+      }
+
+      .hero p.lede {
+        margin: 28px 0 0;
+        max-width: 54ch;
+        font-size: 18px;
+        line-height: 1.65;
+        color: var(--muted);
+      }
+
+      .door-jump {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 28px;
+        margin: 36px 0 0;
+        padding: 0;
+        list-style: none;
+        font-family: var(--label);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+
+      .door-jump a {
+        color: var(--muted);
+        border-bottom: 1px solid transparent;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+
+      .door-jump a:hover {
+        color: var(--text);
+        border-bottom-color: var(--accent);
+      }
+
+      .door-jump .numeral {
+        margin-right: 6px;
+      }
+
+      /* ---------- Doors ---------- */
+
+      .doors {
+        display: grid;
+        gap: 20px;
+        padding: 40px 0 56px;
+      }
+
+      @media (min-width: 1020px) {
+        .doors {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 24px;
+          padding: 64px 0 88px;
+        }
+      }
+
+      .door {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 24px 20px;
+        scroll-margin-top: 88px;
+      }
+
+      @media (min-width: 720px) {
+        .door {
+          padding: 32px 28px;
+        }
+      }
+
+      .door-head {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: baseline;
+        gap: 4px 14px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .door-head .numeral {
+        font-size: 34px;
+        line-height: 1;
+      }
+
+      .door-head h2 {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.1;
+      }
+
+      .door-head p {
+        grid-column: 2;
+        margin: 6px 0 0;
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+
+      .opens {
+        margin: 22px 0 10px;
+        font-family: var(--label);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--light);
+      }
+
+      .guide {
+        display: block;
+        margin: 0 0 12px;
+        padding: 16px 16px 14px;
+        border: 1px solid var(--border-light);
+        border-left: 2px solid var(--accent);
+        border-radius: 4px 10px 10px 4px;
+        background: color-mix(in srgb, var(--card) 70%, transparent);
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+
+      .guide:hover {
+        border-color: var(--border);
+        border-left-color: var(--accent-bright);
+        background: var(--card);
+      }
+
+      .guide .kicker {
+        font-family: var(--label);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .guide h3 {
+        margin: 4px 0 6px;
+        font-family: var(--display);
+        font-weight: 420;
+        font-size: 23px;
+        line-height: 1.2;
+      }
+
+      .guide p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+
+      .guide .meta {
+        margin-top: 10px;
+        font-family: var(--label);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: var(--light);
+      }
+
+      .guide.planned {
+        border-style: dashed;
+        border-left-style: solid;
+        border-left-color: var(--note);
+        background: transparent;
+      }
+
+      .guide.planned .kicker {
+        color: var(--note);
+      }
+
+      .guide.doc-opener {
+        border-left-color: var(--light);
+      }
+
+      .guide.doc-opener .kicker {
+        color: var(--light);
+      }
+
+      .reference {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .reference li {
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .reference li:last-child {
+        border-bottom: 0;
+      }
+
+      .reference a {
+        display: block;
+        padding: 11px 0;
+      }
+
+      .reference .t {
+        display: block;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.3;
+        transition: color 0.15s;
+      }
+
+      .reference .d {
+        display: block;
+        margin-top: 2px;
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .reference a:hover .t {
+        color: var(--accent);
+      }
+
+      .door-foot {
+        margin-top: auto;
+        padding-top: 16px;
+      }
+
+      .door-foot a {
+        font-family: var(--label);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .door-foot a:hover {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      /* ---------- Full index ---------- */
+
+      .index {
+        padding: 48px 0 64px;
+        border-top: 1px solid var(--text);
+        scroll-margin-top: 40px;
+      }
+
+      .index-col {
+        scroll-margin-top: 88px;
+      }
+
+      @media (min-width: 720px) {
+        .index {
+          padding: 72px 0 96px;
+        }
+      }
+
+      .index-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px 24px;
+        margin-bottom: 32px;
+      }
+
+      .index-head h2 {
+        margin: 0;
+        font-size: clamp(30px, 4vw, 40px);
+        line-height: 1.1;
+      }
+
+      .index-head p {
+        margin: 0;
+        font-family: var(--label);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: var(--light);
+      }
+
+      .index-grid {
+        display: grid;
+        gap: 36px;
+      }
+
+      @media (min-width: 860px) {
+        .index-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 40px;
+        }
+      }
+
+      .index-col h3 {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 0 0 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--display);
+        font-weight: 420;
+        font-size: 22px;
+      }
+
+      .index-col ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .index-col li a {
+        display: block;
+        padding: 6px 0;
+        font-size: 15px;
+        color: var(--muted);
+        transition: color 0.15s;
+      }
+
+      .index-col li a:hover {
+        color: var(--accent);
+      }
+
+      .index-col li.g a {
+        color: var(--text);
+      }
+
+      .index-col li.g a::before {
+        content: "Guide · ";
+        font-family: var(--label);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .index-col li.g.planned a::before {
+        content: "Guide · planned · ";
+        color: var(--note);
+      }
+
+      /* ---------- Project strip + footer ---------- */
+
+      .project {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 10px 24px;
+        padding: 24px 0;
+        border-top: 1px solid var(--border-light);
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .project .label {
+        color: var(--light);
+        font-size: 11px;
+      }
+
+      .project a:hover {
+        color: var(--text);
+      }
+
+      footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 24px 0 40px;
+        border-top: 1px solid var(--border-light);
+        font-family: var(--label);
+        font-size: 13px;
+        color: var(--light);
+      }
+
+      footer .wordmark {
+        font-family: var(--body);
+        font-size: 15px;
+        color: var(--text);
+      }
+
+      /* ---------- Mockup chrome: source annotations ---------- */
+
+      .controls {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 30;
+        display: flex;
+        gap: 8px;
+      }
+
+      .controls button {
+        font-family: var(--label);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-deep);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .controls button[aria-pressed="true"] {
+        border-color: var(--note);
+        color: var(--note);
+      }
+
+      [data-src] {
+        position: relative;
+      }
+
+      .show-sources [data-src] {
+        outline: 1px dashed var(--note);
+        outline-offset: 3px;
+      }
+
+      .show-sources [data-src]::after {
+        content: attr(data-src);
+        position: absolute;
+        top: -11px;
+        right: 6px;
+        z-index: 5;
+        max-width: calc(100% - 12px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--note);
+        color: var(--bg-deep);
+        font-family: var(--label);
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        font-style: normal;
+        line-height: 1.6;
+      }
+
+      /* ---------- Design notes (below the mock) ---------- */
+
+      .notes {
+        margin-top: 48px;
+        padding: 48px 0 80px;
+        background: var(--bg-deep);
+        border-top: 1px dashed var(--note);
+      }
+
+      .notes h2 {
+        margin: 8px 0 20px;
+        font-size: clamp(26px, 3.4vw, 34px);
+        line-height: 1.15;
+      }
+
+      .notes p,
+      .notes li {
+        max-width: 72ch;
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .notes strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .notes code {
+        font-family: var(--label);
+        font-size: 13px;
+        color: var(--text);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin: 20px 0 28px;
+      }
+
+      .notes table {
+        width: 100%;
+        min-width: 620px;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      .notes th,
+      .notes td {
+        text-align: left;
+        vertical-align: top;
+        padding: 10px 12px 10px 0;
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .notes th {
+        font-family: var(--label);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--light);
+      }
+
+      .notes td {
+        color: var(--muted);
+      }
+
+      .notes td:first-child {
+        color: var(--text);
+      }
+
+      .notes pre {
+        overflow-x: auto;
+        margin: 16px 0 24px;
+        padding: 16px;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg);
+        font-family: var(--label);
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <a class="wordmark" href="#top" aria-label="Brains docs"
+        >brains<span class="dot">.</span><span class="suffix">docs</span></a
+      >
+      <nav aria-label="Primary">
+        <a class="hide-sm" href="#door-use">Guides</a>
+        <a
+          class="hide-sm"
+          href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+          >Roadmap</a
+        >
+        <a class="hide-sm" href="https://github.com/rizom-ai/brains">GitHub</a>
+        <a class="btn" href="https://rizom.ai">Get Brains</a>
+      </nav>
+    </header>
+
+    <main class="wrap" id="top">
+      <!-- Hero: the only handwritten copy on the page. -->
+      <section class="hero">
+        <div class="hero-meta">
+          <span class="label">Handbook · Brains docs</span>
+          <span class="status" data-src="package version + roadmap link"
+            >0.2.0 alpha ·
+            <a
+              href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+              >what stable needs</a
+            ></span
+          >
+        </div>
+        <h1 class="display" data-src="site.ts · hero copy">
+          Use, run, or extend a <em>brain.</em>
+        </h1>
+        <p class="lede" data-src="site.ts · hero copy">
+          Pick the door that matches what you came to do. Each one opens with a
+          guide written for that reader and leads into the reference behind it.
+        </p>
+        <ol class="door-jump" data-src="site.ts · doors">
+          <li>
+            <a href="#door-use"><span class="numeral">I.</span>Use a brain</a>
+          </li>
+          <li>
+            <a href="#door-run"><span class="numeral">II.</span>Run a brain</a>
+          </li>
+          <li>
+            <a href="#door-extend"
+              ><span class="numeral">III.</span>Extend a brain</a
+            >
+          </li>
+        </ol>
+      </section>
+
+      <!-- The three doors -->
+      <section class="doors" aria-label="Three ways in">
+        <!-- I. Use -->
+        <article class="door" id="door-use">
+          <header class="door-head" data-src="site.ts · doors">
+            <span class="numeral">I.</span>
+            <h2 class="display">Use a brain</h2>
+            <p>
+              You write, research or collect, and you want it all in one place
+              that is yours. Someone has set the brain up, maybe you.
+            </p>
+          </header>
+
+          <p class="opens">Opens with</p>
+          <a
+            class="guide"
+            href="https://docs.rizom.ai/guides/writer"
+            data-src="guide frontmatter"
+          >
+            <span class="kicker">Guide I · Moving in</span>
+            <h3>The writer</h3>
+            <p>
+              You have years of essays and a folder of drafts. Some of it is
+              published on platforms you don't own. Most of it never left Google
+              Docs.
+            </p>
+            <div class="meta">recipe · professional</div>
+          </a>
+          <a
+            class="guide"
+            href="https://docs.rizom.ai/guides/researcher"
+            data-src="guide frontmatter"
+          >
+            <span class="kicker">Guide II · Moving in</span>
+            <h3>The researcher</h3>
+            <p>
+              Years of notes, papers and saved links you want to connect and
+              question. Most of it sits in apps that never talk to each other.
+            </p>
+            <div class="meta">recipe · personal</div>
+          </a>
+
+          <p class="opens">Behind this door</p>
+          <ul class="reference" data-src="manifest · door: use">
+            <li>
+              <a href="https://docs.rizom.ai/docs/feature-overview"
+                ><span class="t">Feature Overview</span
+                ><span class="d"
+                  >What a brain does today: knowledge, publishing, interfaces
+                  and integrations</span
+                ></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/content-management"
+                ><span class="t">Content Management</span
+                ><span class="d"
+                  >Create, edit, sync, and publish markdown content</span
+                ></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/entity-types-reference"
+                ><span class="t">Entity Types Reference</span
+                ><span class="d"
+                  >Built-in content types and their fields</span
+                ></a
+              >
+            </li>
+          </ul>
+          <div class="door-foot">
+            <a href="#index-use" data-src="count from manifest"
+              >All 3 docs for using a brain →</a
+            >
+          </div>
+        </article>
+
+        <!-- II. Run -->
+        <article class="door" id="door-run">
+          <header class="door-head" data-src="site.ts · doors">
+            <span class="numeral">II.</span>
+            <h2 class="display">Run a brain</h2>
+            <p>
+              You install it, configure it and keep it online, for yourself or
+              for the people moving in.
+            </p>
+          </header>
+
+          <p class="opens">Opens with</p>
+          <a
+            class="guide planned"
+            href="https://docs.rizom.ai/guides/self-hosting"
+            data-src="guide frontmatter · not written yet"
+          >
+            <span class="kicker">Guide III · Planned</span>
+            <h3>Running your own brain</h3>
+            <p>
+              Install the CLI, create a brain from a recipe, put it on a server,
+              then hand it to the people who will move in.
+            </p>
+            <div class="meta">
+              /guides/self-hosting is linked from the writer guide and 404s
+              today
+            </div>
+          </a>
+
+          <p class="opens">Behind this door</p>
+          <ul class="reference" data-src="manifest · door: run">
+            <li>
+              <a href="https://docs.rizom.ai/docs/getting-started"
+                ><span class="t">Getting Started</span
+                ><span class="d"
+                  >Install the CLI, create a brain, and start it locally</span
+                ></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/brain-yaml-reference"
+                ><span class="t">brain.yaml Reference</span
+                ><span class="d">The main configuration file</span></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/cli-reference"
+                ><span class="t">CLI Reference</span
+                ><span class="d"
+                  >brain init, brain start, brain chat, brain tool and the
+                  rest</span
+                ></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/deployment-guide"
+                ><span class="t">Deployment Guide</span
+                ><span class="d"
+                  >Deploy to a server with the generated Docker/Kamal
+                  workflow</span
+                ></a
+              >
+            </li>
+          </ul>
+          <div class="door-foot">
+            <a href="#index-run" data-src="count from manifest"
+              >All 7 docs for running a brain →</a
+            >
+          </div>
+        </article>
+
+        <!-- III. Extend -->
+        <article class="door" id="door-extend">
+          <header class="door-head" data-src="site.ts · doors">
+            <span class="numeral">III.</span>
+            <h2 class="display">Extend a brain</h2>
+            <p>
+              You build sites, themes and plugins on top of it, or work on the
+              framework itself.
+            </p>
+          </header>
+
+          <p class="opens">Opens with</p>
+          <a
+            class="guide doc-opener"
+            href="https://docs.rizom.ai/docs/customization-guide"
+            data-src="manifest · first doc in door (no guide yet)"
+          >
+            <span class="kicker">Doc · no guide yet</span>
+            <h3>Customization Guide</h3>
+            <p>
+              brains is customized in layers. Prefer the smallest layer that
+              solves the problem: bundles, content, themes, sites, then plugins.
+            </p>
+          </a>
+
+          <p class="opens">Behind this door</p>
+          <ul class="reference" data-src="manifest · door: extend">
+            <li>
+              <a href="https://docs.rizom.ai/docs/theming-guide"
+                ><span class="t">Theming Guide</span
+                ><span class="d"
+                  >Theme tokens, CSS layers, and custom themes</span
+                ></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/plugin-system"
+                ><span class="t">Plugin System</span
+                ><span class="d"
+                  >How built-in and custom plugins are organized</span
+                ></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
+                ><span class="t">External Plugin Authoring</span
+                ><span class="d">Package and load external plugins</span></a
+              >
+            </li>
+            <li>
+              <a href="https://docs.rizom.ai/docs/architecture-overview"
+                ><span class="t">Architecture Overview</span
+                ><span class="d"
+                  >How shell, plugins, entities and interfaces fit
+                  together</span
+                ></a
+              >
+            </li>
+          </ul>
+          <div class="door-foot">
+            <a href="#index-extend" data-src="count from manifest"
+              >All 12 docs for extending a brain →</a
+            >
+          </div>
+        </article>
+      </section>
+
+      <!-- Full index: replaces the five manifest sections and /docs/index. -->
+      <section class="index" id="index" aria-label="Everything, by door">
+        <div class="index-head">
+          <h2 class="display">Everything, by door</h2>
+          <p data-src="counts from manifest + guides">
+            3 guides · 22 docs · updated October 2026
+          </p>
+        </div>
+        <div class="index-grid" data-src="manifest · door, order">
+          <div class="index-col" id="index-use">
+            <h3><span class="numeral">I.</span> Use</h3>
+            <ol>
+              <li class="g">
+                <a href="https://docs.rizom.ai/guides/writer">The writer</a>
+              </li>
+              <li class="g">
+                <a href="https://docs.rizom.ai/guides/researcher"
+                  >The researcher</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/feature-overview"
+                  >Feature Overview</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/content-management"
+                  >Content Management</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/entity-types-reference"
+                  >Entity Types Reference</a
+                >
+              </li>
+            </ol>
+          </div>
+          <div class="index-col" id="index-run">
+            <h3><span class="numeral">II.</span> Run</h3>
+            <ol>
+              <li class="g planned">
+                <a href="https://docs.rizom.ai/guides/self-hosting"
+                  >Running your own brain</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/getting-started"
+                  >Getting Started</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/brain-yaml-reference"
+                  >brain.yaml Reference</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/cli-reference"
+                  >CLI Reference</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/deployment-guide"
+                  >Deployment Guide</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/interface-setup"
+                  >Interface Setup</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/directory-sync-git"
+                  >Directory Sync Git Overview</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/mcp-inspector-guide"
+                  >MCP Inspector Guide</a
+                >
+              </li>
+            </ol>
+          </div>
+          <div class="index-col" id="index-extend">
+            <h3><span class="numeral">III.</span> Extend</h3>
+            <ol>
+              <li>
+                <a href="https://docs.rizom.ai/docs/customization-guide"
+                  >Customization Guide</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/site-mockup-migration"
+                  >Site Mockup Migration</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/theming-guide"
+                  >Theming Guide</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/plugin-system"
+                  >Plugin System</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/plugin-quick-reference"
+                  >Plugin Quick Reference</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
+                  >External Plugin Authoring</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/external-site-authoring"
+                  >External Site and Theme Authoring</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/entity-model"
+                  >Entity Model</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/architecture-overview"
+                  >Architecture Overview</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/brain-model"
+                  >Brain Models</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/agent-discovery"
+                  >Agent Discovery</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/atproto-lexicons"
+                  >ATProto Lexicons</a
+                >
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Project links: replaces the 404 /docs/roadmap and README's status list. -->
+      <div class="project" data-src="site.ts · repo links">
+        <span class="label">Project</span>
+        <a href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+          >Roadmap</a
+        >
+        <a href="https://github.com/rizom-ai/brains/blob/main/STABILITY.md"
+          >Stability</a
+        >
+        <a href="https://github.com/rizom-ai/brains/blob/main/CHANGELOG.md"
+          >Changelog</a
+        >
+        <a href="https://github.com/rizom-ai/brains/blob/main/KNOWN-ISSUES.md"
+          >Known issues</a
+        >
+        <a href="https://github.com/rizom-ai/brains/blob/main/CONTRIBUTING.md"
+          >Contributing</a
+        >
+        <a href="https://github.com/rizom-ai/brains/blob/main/SECURITY.md"
+          >Security</a
+        >
+      </div>
+
+      <footer>
+        <a class="wordmark" href="https://rizom.ai"
+          >rizom<span class="dot" style="color: var(--accent)">.</span
+          ><span class="suffix" style="color: var(--muted)">ai</span></a
+        >
+        <span>docs.rizom.ai</span>
+      </footer>
+    </main>
+
+    <!-- Everything below is design commentary, not part of the page. -->
+    <section class="notes" aria-label="Design notes">
+      <div class="wrap">
+        <span class="label" style="color: var(--note)">Design notes</span>
+        <h2 class="display">How the three doors stay in sync</h2>
+        <p>
+          Every block on the page is generated from exactly one source. Use
+          <strong>Show sources</strong> (bottom right) to see which. The only
+          prose written for the homepage itself is the hero and the three door
+          definitions in <code>site.ts</code>.
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Block</th>
+                <th>Source</th>
+                <th>Changes when</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hero, door titles and for-lines</td>
+                <td><code>sites/docs/src/site.ts</code></td>
+                <td>Rarely; the doors are the site's structure</td>
+              </tr>
+              <tr>
+                <td>Release status</td>
+                <td>Package version at build time</td>
+                <td>Every release, with no edit</td>
+              </tr>
+              <tr>
+                <td>Guide cards</td>
+                <td>
+                  Guide frontmatter: <code>door</code>, <code>persona</code>,
+                  <code>summary</code>, <code>recipe</code>
+                </td>
+                <td>A guide is added or rewritten</td>
+              </tr>
+              <tr>
+                <td>Reference rows, index, counts</td>
+                <td>
+                  <code>docs-manifest.yaml</code>: <code>door</code>,
+                  <code>order</code>, <code>description</code>
+                </td>
+                <td>A doc is added, moved or retitled</td>
+              </tr>
+              <tr>
+                <td>Door opener when no guide exists</td>
+                <td>First doc in that door by <code>order</code></td>
+                <td>Disappears once a guide names the door</td>
+              </tr>
+              <tr>
+                <td>Project links</td>
+                <td><code>site.ts</code>, pointing at the repo files</td>
+                <td>Never; the files move with the repo</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>The manifest entry gains two fields and loses one:</p>
+        <pre>
+- id: getting-started
+  title: Getting Started
+  door: run                # replaces section
+  order: 10
+  description: Install the CLI, create a brain, and start it locally
+  source: packages/brain-cli/docs/getting-started.md</pre>
+
+        <ul>
+          <li>
+            <strong>Descriptions are explicit.</strong> The README's one-line
+            descriptions move into the manifest, which replaces the
+            first-paragraph extraction that cuts mid-word today.
+            <code>docs:check</code> can require one per entry.
+          </li>
+          <li>
+            <strong>The <code>index</code> doc leaves the site.</strong>
+            <code>/docs/index</code> repeats the homepage by hand. The README
+            can stay as the GitHub entry point, generated from the same
+            manifest, or shrink to a pointer to docs.rizom.ai.
+          </li>
+          <li>
+            <strong
+              >Doors show a short list; the index shows everything.</strong
+            >
+            Each door lists its first few docs by <code>order</code>. The index
+            below lists every guide and doc once, so nothing is curated twice.
+          </li>
+          <li>
+            <strong>Two dead links get fixed.</strong> Roadmap now points at the
+            repo file, as <code>/docs/index</code> already does. The
+            self-hosting guide shows as planned until it exists.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button type="button" id="sources" aria-pressed="false">
+        Show sources
+      </button>
+      <button type="button" id="theme">☀ Light</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const sources = document.getElementById("sources");
+      const theme = document.getElementById("theme");
+
+      sources.addEventListener("click", () => {
+        const on = document.body.classList.toggle("show-sources");
+        sources.setAttribute("aria-pressed", String(on));
+        sources.textContent = on ? "Hide sources" : "Show sources";
+      });
+
+      theme.addEventListener("click", () => {
+        const next = root.dataset.theme === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        theme.textContent = next === "dark" ? "☀ Light" : "☾ Dark";
+      });
+    </script>
+  </body>
+</html>
