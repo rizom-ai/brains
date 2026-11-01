@@ -171,17 +171,25 @@
       /* ---------------- Hero: what a brain is ---------------- */
 
       .hero {
-        display: grid;
-        gap: 48px;
         padding-block: 48px 64px;
       }
 
       @media (min-width: 1000px) {
         .hero {
-          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+          padding-block: 88px 104px;
+        }
+      }
+
+      .intro {
+        display: grid;
+        gap: 24px;
+      }
+
+      @media (min-width: 1000px) {
+        .intro {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 80px;
-          align-items: start;
-          padding-block: 96px 112px;
+          align-items: end;
         }
       }
 
@@ -204,7 +212,7 @@
       }
 
       .hero .lede {
-        margin: 28px 0 0;
+        margin: 0;
         max-width: 46ch;
         font-family: var(--display);
         font-size: var(--s1);
@@ -214,7 +222,7 @@
       }
 
       .release {
-        margin: 28px 0 0;
+        margin: 20px 0 0;
         font-size: var(--s-1);
         color: var(--quiet);
       }
@@ -231,106 +239,187 @@
         text-decoration-color: var(--accent);
       }
 
-      /* The figure: one note's path from draft to post, drawn as the
-         real files it passes through. */
-      .path {
-        margin: 0;
+      /* The loop: what goes in, the files the brain keeps, where it shows
+         up. Connectors are drawn by script on wide screens; one item is
+         traced in brass from end to end. */
+      .loop {
         position: relative;
-        padding-left: 28px;
+        margin: 56px 0 0;
+        display: grid;
+        gap: 40px;
       }
 
-      .path::before {
-        content: "";
+      @media (min-width: 1000px) {
+        .loop {
+          margin-top: 80px;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(
+              0,
+              1fr
+            );
+          column-gap: 88px;
+          align-items: center;
+        }
+      }
+
+      .loop svg {
         position: absolute;
-        left: 5px;
-        top: 10px;
-        bottom: 10px;
-        width: 1px;
-        background: var(--accent);
-        opacity: 0.6;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
       }
 
-      .path ol {
+      .loop svg path {
+        fill: none;
+        stroke: var(--rule);
+        stroke-width: 1.25;
+      }
+
+      .loop svg path.traced {
+        stroke: var(--accent);
+        stroke-width: 1.75;
+      }
+
+      .loop h2 {
+        margin: 0 0 14px;
+        font-size: var(--s-1);
+        font-weight: 600;
+        color: var(--quiet);
+      }
+
+      .items {
         margin: 0;
         padding: 0;
         list-style: none;
         display: grid;
-        gap: 22px;
+        gap: 14px;
       }
 
-      .path li {
+      .items li {
         position: relative;
-      }
-
-      .path li::before {
-        content: "";
-        position: absolute;
-        left: -27px;
-        top: 8px;
-        width: 11px;
-        height: 11px;
-        border-radius: 50%;
+        padding: 10px 14px 11px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
         background: var(--bg);
-        border: 1px solid var(--accent);
       }
 
-      .path li.file::before {
-        background: var(--accent);
+      .items .t {
+        display: block;
+        line-height: 1.35;
       }
 
-      .step {
-        margin: 0 0 8px;
+      .items .d {
+        display: block;
+        margin-top: 2px;
         font-size: var(--s-1);
-        line-height: 1.5;
+        line-height: 1.45;
+        color: var(--quiet);
+      }
+
+      .items .d code {
+        font-size: 13px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .items li.traced {
+        border-color: var(--accent);
+      }
+
+      .items li.traced .d {
         color: var(--muted);
       }
 
-      .say {
-        margin: 0;
-        font-family: var(--display);
-        font-style: italic;
-        font-size: var(--s1);
-        line-height: 1.4;
-        color: var(--text);
-      }
-
-      .file-card {
+      .tree {
         margin: 0;
         border: 1px solid var(--rule);
         border-radius: 6px;
         background: var(--bg-deep);
-        overflow: hidden;
       }
 
-      .file-card figcaption {
-        padding: 7px 12px;
+      .tree figcaption {
+        padding: 9px 14px;
         border-bottom: 1px solid var(--rule);
-        font-family: var(--code);
-        font-size: 12.5px;
-        color: var(--quiet);
-      }
-
-      .file-card pre {
-        margin: 0;
-        padding: 12px 14px 14px;
-        overflow-x: auto;
-        font-size: 13.5px;
-        line-height: 1.65;
+        font-size: var(--s-1);
         color: var(--muted);
       }
 
-      .file-card .k {
+      .tree ul {
+        margin: 0;
+        padding: 10px 0 12px;
+        list-style: none;
+        font-family: var(--code);
+        font-size: 13.5px;
+        line-height: 1.5;
+      }
+
+      .tree li {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 3px 14px;
+        color: var(--muted);
+      }
+
+      .tree li.dir {
+        color: var(--quiet);
+      }
+
+      .tree li .type {
+        font-family: var(--body);
+        font-size: 13px;
+        color: var(--quiet);
+      }
+
+      .tree li.traced {
+        color: var(--text);
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+
+      .tree li.traced .type {
         color: var(--accent);
       }
 
-      .file-card .h {
-        color: var(--text);
+      .tree .i1 {
+        padding-left: 30px;
       }
 
-      .path .caption {
-        margin: 18px 0 0;
+      .tree .i2 {
+        padding-left: 46px;
+      }
+
+      .tree p {
+        margin: 0;
+        padding: 10px 14px 12px;
+        border-top: 1px solid var(--rule);
         font-size: var(--s-1);
+        line-height: 1.5;
         color: var(--quiet);
+      }
+
+      .loop .caption {
+        margin: 32px 0 0;
+        max-width: 70ch;
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .loop .caption::before {
+        content: "";
+        display: inline-block;
+        width: 22px;
+        height: 2px;
+        margin-right: 10px;
+        vertical-align: middle;
+        background: var(--accent);
+      }
+
+      @media (min-width: 1000px) {
+        .loop .caption {
+          grid-column: 1 / -1;
+          margin-top: 8px;
+        }
       }
 
       /* ---------------- Doors ---------------- */
@@ -634,57 +723,110 @@
 
     <main id="top">
       <section class="hero wrap" aria-labelledby="hero-title">
-        <div>
-          <p class="kicker">Brains documentation</p>
-          <h1 id="hero-title">A brain is one place for what you know.</h1>
-          <p class="lede">
-            It captures from where the work already happens, keeps it as plain
-            markdown files you own, and answers from them in chat, in Studio, or
-            from Claude and ChatGPT. It runs on a server you control, and the
-            code is open source.
-          </p>
-          <p class="release">
-            Version 0.2.0 is an alpha.
-            <a
-              href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
-              >See what stable still needs</a
-            >.
-          </p>
+        <div class="intro">
+          <div>
+            <p class="kicker">Brains documentation</p>
+            <h1 id="hero-title">A brain is one place for what you know.</h1>
+          </div>
+          <div>
+            <p class="lede">
+              It captures from where the work already happens, keeps it as plain
+              markdown files you own, and answers from them wherever you work.
+              It runs on a server you control, and the code is open source.
+            </p>
+            <p class="release">
+              Version 0.2.0 is an alpha.
+              <a
+                href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+                >See what stable still needs</a
+              >.
+            </p>
+          </div>
         </div>
 
-        <figure class="path" aria-label="How a draft becomes a post">
-          <ol>
-            <li class="file">
-              <p class="step">A draft from Google Docs, uploaded in chat</p>
-              <figure class="file-card">
-                <figcaption>brain-data/on-slowness.md</figcaption>
-                <pre><span class="h"># On slowness</span>
+        <figure class="loop" id="loop" aria-label="How a brain works">
+          <svg aria-hidden="true"></svg>
 
-I used to think slowness was a failure
-of discipline. …</pre>
-              </figure>
-            </li>
-            <li>
-              <p class="step">You ask, in chat</p>
-              <p class="say">“Turn my note On slowness into a draft post.”</p>
-            </li>
-            <li class="file">
-              <p class="step">
-                The brain keeps your text and adds what a post needs
-              </p>
-              <figure class="file-card">
-                <figcaption>brain-data/post/on-slowness.md</figcaption>
-                <pre><span class="k">---</span>
-<span class="k">title:</span> On slowness
-<span class="k">slug:</span> on-slowness
-<span class="k">status:</span> draft
-<span class="k">excerpt:</span> I used to think slowness…
-<span class="k">---</span></pre>
-              </figure>
-            </li>
-          </ol>
+          <div>
+            <h2>What you bring</h2>
+            <ul class="items">
+              <li class="traced" data-to="note">
+                <span class="t">A draft in Google Docs</span>
+                <span class="d">Download as markdown, upload in chat</span>
+              </li>
+              <li data-to="paper">
+                <span class="t">A paper as a PDF</span>
+                <span class="d">Upload it; its text becomes a note</span>
+              </li>
+              <li data-to="link">
+                <span class="t">A link from your open tabs</span>
+                <span class="d">Paste it in chat; it keeps a summary</span>
+              </li>
+              <li data-to="image">
+                <span class="t">A photo of a whiteboard</span>
+                <span class="d">Upload it and ask the brain to save it</span>
+              </li>
+            </ul>
+          </div>
+
+          <figure class="tree">
+            <figcaption>What the brain keeps</figcaption>
+            <ul>
+              <li class="dir">brain-data/</li>
+              <li class="i1 traced" data-file="note">
+                on-slowness.md <span class="type">note</span>
+              </li>
+              <li class="i1" data-file="paper">
+                attention-and-memory.md <span class="type">note</span>
+              </li>
+              <li class="i1 dir">link/</li>
+              <li class="i2" data-file="link">
+                calm-technology.md <span class="type">link</span>
+              </li>
+              <li class="i1 dir">image/</li>
+              <li class="i2" data-file="image">
+                whiteboard.png <span class="type">image</span>
+              </li>
+              <li class="i1 dir">post/</li>
+              <li class="i2 traced" data-file="post">
+                on-slowness.md <span class="type">post</span>
+              </li>
+            </ul>
+            <p>
+              Plain files in a folder you own, versioned in git. Edit them in
+              Studio, in any editor, or by asking in chat.
+            </p>
+          </figure>
+
+          <div>
+            <h2>Where it shows up</h2>
+            <ul class="items">
+              <li class="traced" data-from="note">
+                <span class="t">Answers in chat</span>
+                <span class="d"
+                  >“What have I written about slowness?” cites
+                  <code>on-slowness.md</code></span
+                >
+              </li>
+              <li data-from="all">
+                <span class="t">Claude, ChatGPT and other AI tools</span>
+                <span class="d">The same knowledge, over MCP</span>
+              </li>
+              <li class="traced" data-from="post">
+                <span class="t">Your site and newsletter</span>
+                <span class="d">The note, turned into a post when you ask</span>
+              </li>
+              <li data-from="all">
+                <span class="t">Other brains you approve</span>
+                <span class="d">They can ask; you decide what is public</span>
+              </li>
+            </ul>
+          </div>
+
           <p class="caption">
-            Edit it in Studio, queue it, and it goes out on your site.
+            Follow what is marked in brass: one draft comes in once, becomes a
+            file you own, and answers questions and turns into a post from
+            there.
           </p>
         </figure>
       </section>
@@ -951,8 +1093,9 @@ of discipline. …</pre>
       <div>
         <p>
           The hero says what a brain is, in wording from the team brain's
-          capability menu and one-pagers. The figure is the writer guide's own
-          example: a note becomes a draft post, shown as the real files.
+          capability menu and one-pagers. The figure shows the whole loop: what
+          you bring, the files the brain keeps, and where they show up. Each
+          intake step is taken from the writer and researcher guides.
         </p>
         <p>
           Each door gives one concrete first step, then its guides, then its
@@ -984,6 +1127,75 @@ of discipline. …</pre>
         root.dataset.theme = next;
         toggle.textContent = next === "dark" ? "Light theme" : "Dark theme";
       });
+
+      // Connectors for the hero loop, drawn only when the three columns
+      // sit side by side.
+      const loop = document.getElementById("loop");
+      const svg = loop.querySelector("svg");
+      const tree = loop.querySelector(".tree");
+      const wide = window.matchMedia("(min-width: 1000px)");
+
+      function curve(x1, y1, x2, y2, traced) {
+        const mid = (x1 + x2) / 2;
+        const path = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
+        path.setAttribute(
+          "d",
+          `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
+        );
+        if (traced) path.classList.add("traced");
+        return path;
+      }
+
+      function drawLoop() {
+        svg.replaceChildren();
+        if (!wide.matches) return;
+        const box = loop.getBoundingClientRect();
+        const card = tree.getBoundingClientRect();
+        const mid = (r) => r.top + r.height / 2 - box.top;
+        const fileY = (name) =>
+          mid(
+            tree.querySelector(`[data-file="${name}"]`).getBoundingClientRect(),
+          );
+        const paths = [];
+
+        loop.querySelectorAll("[data-to]").forEach((item) => {
+          const r = item.getBoundingClientRect();
+          paths.push(
+            curve(
+              r.right - box.left,
+              mid(r),
+              card.left - box.left,
+              fileY(item.dataset.to),
+              item.classList.contains("traced"),
+            ),
+          );
+        });
+
+        loop.querySelectorAll("[data-from]").forEach((item) => {
+          const r = item.getBoundingClientRect();
+          const from = item.dataset.from;
+          paths.push(
+            curve(
+              card.right - box.left,
+              from === "all" ? mid(card) : fileY(from),
+              r.left - box.left,
+              mid(r),
+              item.classList.contains("traced"),
+            ),
+          );
+        });
+
+        // Traced paths last, so they sit on top.
+        paths
+          .sort((a, b) => a.classList.length - b.classList.length)
+          .forEach((p) => svg.append(p));
+      }
+
+      new ResizeObserver(drawLoop).observe(loop);
+      document.fonts.ready.then(drawLoop);
     </script>
   </body>
 </html>
