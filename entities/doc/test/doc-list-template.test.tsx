@@ -1,7 +1,9 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
+import { docsChromeSchema, type DocsChrome } from "@brains/docs-chrome";
 import type { DocWithData } from "../src/schemas/doc";
+import type { DocsHero } from "../src/config";
 import { getTemplates } from "../src/lib/register-templates";
 import {
   DocHomeHeroTemplate,
@@ -69,10 +71,60 @@ const docs = [
   createDoc("latest", "2026-08-30T17:20:03.000Z", 2),
 ];
 
+const hero: DocsHero = {
+  label: "Handbook · Example docs",
+  title: "Build, run, and publish",
+  accent: "things.",
+  lead: "Documentation for the example.",
+};
+
+const chrome: DocsChrome = docsChromeSchema.parse({
+  brand: { label: "Example docs", href: "/docs" },
+  links: [{ label: "Guides", href: "/guides", area: "guides" }],
+});
+
+describe("docs list copy", () => {
+  test("opens on plain documentation copy, with no header of its own, by default", () => {
+    const html = render(
+      <DocListTemplate baseUrl={null} docs={docs} pagination={null} />,
+    );
+
+    expect(html).toMatch(/<h1[^>]*>Documentation<\/h1>/);
+    expect(html).not.toContain('class="docs-header');
+    expect(html).not.toMatch(/Brains docs|Get Brains|Build, run, and publish/);
+    expect(html).not.toContain("brains.</em>");
+    expect(html).not.toContain("rizom");
+  });
+
+  test("opens on the configured hero, under the configured header", () => {
+    const html = render(
+      <DocHomeHeroTemplate
+        baseUrl={null}
+        docs={docs}
+        pagination={null}
+        hero={hero}
+        chrome={chrome}
+      />,
+    );
+
+    expect(html).toContain("Handbook · Example docs");
+    expect(html).toMatch(
+      /Build, run, and publish(<!-- -->)? ?<em[^>]*>things\.<\/em>/,
+    );
+    expect(html).toContain("Documentation for the example.");
+    expect(html).toMatch(/docs-header.*?Example docs/);
+  });
+});
+
 describe("docs home in parts", () => {
   test("the whole list is the hero and the sections on one page", () => {
     const html = render(
-      <DocListTemplate baseUrl={null} docs={docs} pagination={null} />,
+      <DocListTemplate
+        baseUrl={null}
+        docs={docs}
+        pagination={null}
+        hero={hero}
+      />,
     );
 
     expect(html).toContain("Build, run, and publish");
@@ -82,7 +134,13 @@ describe("docs home in parts", () => {
 
   test("the hero opens the page and leaves the sections to a later part", () => {
     const html = render(
-      <DocHomeHeroTemplate baseUrl={null} docs={docs} pagination={null} />,
+      <DocHomeHeroTemplate
+        baseUrl={null}
+        docs={docs}
+        pagination={null}
+        hero={hero}
+        chrome={chrome}
+      />,
     );
 
     expect(html).toContain("docs-header");
@@ -93,7 +151,13 @@ describe("docs home in parts", () => {
 
   test("the sections continue the page without a second header", () => {
     const html = render(
-      <DocHomeSectionsTemplate baseUrl={null} docs={docs} pagination={null} />,
+      <DocHomeSectionsTemplate
+        baseUrl={null}
+        docs={docs}
+        pagination={null}
+        hero={hero}
+        chrome={chrome}
+      />,
     );
 
     expect(html).toContain('id="sections"');

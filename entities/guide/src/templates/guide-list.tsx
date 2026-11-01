@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { DocsPageShell } from "@brains/docs-chrome";
+import { DocsPageShell, type DocsChrome } from "@brains/docs-chrome";
 import type { GuideWithData } from "../schemas/guide";
 import { sortGuides } from "../lib/guide-order";
 import { GuideCards } from "./guide-card";
@@ -7,6 +7,7 @@ import guideBaseCss from "./guide-base.css" with { type: "text" };
 
 export interface GuideListProps {
   guides: GuideWithData[];
+  chrome?: DocsChrome | null | undefined;
 }
 
 /** What the guides are, shared by the index and the docs-home band. */
@@ -18,10 +19,14 @@ export const guidesIntro = {
     "One guide for each kind of user, and one for running your own brain.",
 };
 
-export const GuideListTemplate = ({ guides }: GuideListProps): JSX.Element => (
+export const GuideListTemplate = ({
+  guides,
+  chrome,
+}: GuideListProps): JSX.Element => (
   <DocsPageShell
     title="Guides"
     description={guidesIntro.sentence}
+    chrome={chrome}
     current="guides"
     footer
     bleed

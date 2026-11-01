@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { docsClasses } from "@brains/docs-chrome";
 import type { DocWithData } from "../schemas/doc";
+import type { DocsHero } from "../config";
 import {
   type GroupedDocs,
   hrefFor,
@@ -13,60 +14,81 @@ interface DocsListHeroProps {
   sectionsCount: number;
   startDoc?: DocWithData | undefined;
   updatedLabel?: string | undefined;
+  /** The configured opening copy; plain "Documentation" without it. */
+  hero?: DocsHero | null | undefined;
 }
+
+const defaultHero: DocsHero = {
+  label: null,
+  title: "Documentation",
+  accent: null,
+  lead: null,
+};
 
 export const DocsListHero = ({
   docsCount,
   sectionsCount,
   startDoc,
   updatedLabel,
-}: DocsListHeroProps): JSX.Element => (
-  <section className="border-b border-[var(--docs-text)] py-14 md:py-24 md:pb-[72px]">
-    <p className={`${docsClasses.label} mb-8`}>Handbook · Brains docs</p>
-    <h1
-      className={`${docsClasses.display} m-0 max-w-[16ch] text-5xl leading-[1.05] tracking-[-0.02em] md:text-7xl`}
-    >
-      Build, run, and publish{" "}
-      <em className="text-[var(--docs-accent)]">brains.</em>
-    </h1>
-    <p className="mt-8 max-w-[52ch] text-lg leading-[1.65] text-[var(--docs-text-muted)]">
-      Documentation for composing brain models, managing markdown entities,
-      wiring interfaces, and shipping generated sites.
-    </p>
-    <dl className="mt-10 flex flex-wrap gap-7 docs-font-label text-xs tracking-[0.06em] text-[var(--docs-text-light)] md:mt-14 md:gap-12">
-      <div>
-        <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
-          {docsCount}
-        </strong>
-        Documents
-      </div>
-      <div>
-        <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
-          {sectionsCount}
-        </strong>
-        Sections
-      </div>
-      {updatedLabel && (
+  hero: configured,
+}: DocsListHeroProps): JSX.Element => {
+  const hero = configured ?? defaultHero;
+  return (
+    <section className="border-b border-[var(--docs-text)] py-14 md:py-24 md:pb-[72px]">
+      {hero.label && (
+        <p className={`${docsClasses.label} mb-8`}>{hero.label}</p>
+      )}
+      <h1
+        className={`${docsClasses.display} m-0 max-w-[16ch] text-5xl leading-[1.05] tracking-[-0.02em] md:text-7xl`}
+      >
+        {hero.title}
+        {hero.accent && (
+          <>
+            {" "}
+            <em className="text-[var(--docs-accent)]">{hero.accent}</em>
+          </>
+        )}
+      </h1>
+      {hero.lead && (
+        <p className="mt-8 max-w-[52ch] text-lg leading-[1.65] text-[var(--docs-text-muted)]">
+          {hero.lead}
+        </p>
+      )}
+      <dl className="mt-10 flex flex-wrap gap-7 docs-font-label text-xs tracking-[0.06em] text-[var(--docs-text-light)] md:mt-14 md:gap-12">
         <div>
           <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
-            {updatedLabel}
+            {docsCount}
           </strong>
-          Updated
+          Documents
         </div>
-      )}
-    </dl>
-    <div className="mt-9 flex flex-wrap gap-3.5">
-      {startDoc && (
-        <a className={docsClasses.primaryButton} href={hrefFor(startDoc)}>
-          Start reading
+        <div>
+          <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
+            {sectionsCount}
+          </strong>
+          Sections
+        </div>
+        {updatedLabel && (
+          <div>
+            <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
+              {updatedLabel}
+            </strong>
+            Updated
+          </div>
+        )}
+      </dl>
+      <div className="mt-9 flex flex-wrap gap-3.5">
+        {startDoc && (
+          <a className={docsClasses.primaryButton} href={hrefFor(startDoc)}>
+            Start reading
+          </a>
+        )}
+        <a className={docsClasses.button} href="#sections">
+          Browse sections
         </a>
-      )}
-      <a className={docsClasses.button} href="#sections">
-        Browse sections
-      </a>
-    </div>
-  </section>
-);
+      </div>
+    </section>
+  );
+};
 
 export const DocsSectionIndex = ({
   groups,

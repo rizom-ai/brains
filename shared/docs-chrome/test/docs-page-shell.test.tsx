@@ -1,10 +1,32 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { DocsPageSection, DocsPageShell } from "../src";
+import {
+  DocsPageSection,
+  DocsPageShell,
+  docsChromeSchema,
+  type DocsChrome,
+} from "../src";
+
+const chrome: DocsChrome = docsChromeSchema.parse({
+  brand: {
+    label: "Handbook docs",
+    href: "/docs",
+    wordmark: { ink: "handbook", suffix: "docs" },
+  },
+  links: [
+    { label: "Guides", href: "/guides", area: "guides" },
+    { label: "Roadmap", href: "/docs/roadmap" },
+  ],
+  cta: { label: "Get started", href: "https://example.com" },
+  footer: {
+    brand: { label: "Example", href: "https://example.com" },
+    links: [{ label: "Guides", href: "/guides" }],
+  },
+});
 
 describe("DocsPageShell", () => {
-  test("wraps the page in the docs header, styles and handbook frame", () => {
+  test("wraps the page in the docs styles and handbook frame", () => {
     const html = render(
       <DocsPageShell title="Guides" description="Moving in">
         <p>Body</p>
@@ -12,7 +34,6 @@ describe("DocsPageShell", () => {
     );
 
     expect(html).toContain('class="docs-handbook"');
-    expect(html).toContain("docs-header");
     expect(html).toContain("--docs-accent");
     expect(html).toContain("<p>Body</p>");
     expect(html).not.toContain("themeToggle");
@@ -44,7 +65,13 @@ describe("DocsPageShell", () => {
 
   test("leaves a full-bleed page unwrapped and keeps the footer in the column", () => {
     const html = render(
-      <DocsPageShell title="Guide" description="One guide" bleed footer>
+      <DocsPageShell
+        title="Guide"
+        description="One guide"
+        chrome={chrome}
+        bleed
+        footer
+      >
         <p>Body</p>
       </DocsPageShell>,
     );
@@ -56,21 +83,64 @@ describe("DocsPageShell", () => {
   });
 });
 
-describe("docs header", () => {
-  test("links the guides index next to the roadmap", () => {
+describe("docs chrome", () => {
+  test("draws no header and no links of its own without a chrome", () => {
     const html = render(
-      <DocsPageShell title="Docs" description="Docs">
+      <DocsPageShell title="Docs" description="Docs" footer>
         <p>Body</p>
       </DocsPageShell>,
     );
 
+    expect(html).not.toContain('class="docs-header');
+    expect(html).not.toContain("<nav");
+    expect(html).not.toMatch(/<a /);
+    expect(html).not.toMatch(/Brains docs|Get Brains/);
+    expect(html).not.toContain("rizom");
+    expect(html).toContain("themeToggle");
+  });
+
+  test("draws the configured brand, links and call to action in the header", () => {
+    const html = render(
+      <DocsPageShell title="Docs" description="Docs" chrome={chrome}>
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toContain("docs-header");
+    expect(html).toMatch(
+      /<a[^>]*href="\/docs"[^>]*aria-label="Handbook docs"[^>]*><span[^>]*>handbook<\/span><span[^>]*>\.<\/span><span[^>]*>docs<\/span><\/a>/,
+    );
     expect(html).toMatch(/<a[^>]*href="\/guides"[^>]*>Guides<\/a>.*?Roadmap/);
+    expect(html).toMatch(
+      /<a[^>]*href="https:\/\/example.com"[^>]*>Get started<\/a>/,
+    );
     expect(html).not.toMatch(/<a[^>]*aria-current="page"/);
   });
 
-  test("marks the guides link current on guide pages", () => {
+  test("names the brand in plain text when it has no wordmark", () => {
     const html = render(
-      <DocsPageShell title="Guide" description="One guide" current="guides">
+      <DocsPageShell
+        title="Docs"
+        description="Docs"
+        chrome={docsChromeSchema.parse({
+          brand: { label: "42workspace", href: "/" },
+        })}
+      >
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    expect(html).toMatch(/<a[^>]*href="\/"[^>]*>42workspace<\/a>/);
+  });
+
+  test("marks the link of the page's area current", () => {
+    const html = render(
+      <DocsPageShell
+        title="Guide"
+        description="One guide"
+        chrome={chrome}
+        current="guides"
+      >
         <p>Body</p>
       </DocsPageShell>,
     );
@@ -79,12 +149,32 @@ describe("docs header", () => {
       /<a[^>]*href="\/guides"[^>]*aria-current="page"[^>]*>Guides<\/a>/,
     );
   });
+
+  test("draws the configured footer brand and links beside the theme toggle", () => {
+    const html = render(
+      <DocsPageShell
+        title="Guide"
+        description="One guide"
+        chrome={chrome}
+        footer
+      >
+        <p>Body</p>
+      </DocsPageShell>,
+    );
+
+    const footer = html.split("<footer")[1] ?? "";
+    expect(footer).toMatch(
+      /<a[^>]*href="https:\/\/example.com"[^>]*>Example<\/a>/,
+    );
+    expect(footer).toMatch(/<a[^>]*href="\/guides"[^>]*>Guides<\/a>/);
+    expect(footer).toContain("themeToggle");
+  });
 });
 
 describe("composed docs pages", () => {
   test("a shell that continues in later sections drops its full height", () => {
     const html = render(
-      <DocsPageShell title="Docs" description="Docs" continues>
+      <DocsPageShell title="Docs" description="Docs" chrome={chrome} continues>
         <p>Hero</p>
       </DocsPageShell>,
     );
@@ -109,7 +199,12 @@ describe("composed docs pages", () => {
 describe("docs link colors", () => {
   test("the link reset yields to the links' own color utilities", () => {
     const html = render(
-      <DocsPageShell title="Guide" description="One guide" current="guides">
+      <DocsPageShell
+        title="Guide"
+        description="One guide"
+        chrome={chrome}
+        current="guides"
+      >
         <p>Body</p>
       </DocsPageShell>,
     );

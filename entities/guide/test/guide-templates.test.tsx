@@ -8,7 +8,13 @@ import {
 } from "../src";
 import { getTemplates } from "../src/lib/register-templates";
 import { guidePageScript } from "../src/templates/guide-page-script";
+import { docsChromeSchema } from "@brains/docs-chrome";
 import { guideWithData, writerGuide } from "./fixtures";
+
+const chrome = docsChromeSchema.parse({
+  brand: { label: "Example docs", href: "/docs" },
+  links: [{ label: "Guides", href: "/guides", area: "guides" }],
+});
 
 function count(html: string, needle: string): number {
   return html.split(needle).length - 1;
@@ -21,6 +27,7 @@ describe("GuideDetailTemplate", () => {
     <GuideDetailTemplate
       guide={writerGuide()}
       otherGuides={[researcher, guideWithData("self-hosting", 50)]}
+      chrome={chrome}
     />,
   );
 
@@ -165,12 +172,19 @@ const unordered = [
 ];
 
 describe("GuideListTemplate", () => {
-  const html = render(<GuideListTemplate guides={unordered} />);
+  const html = render(<GuideListTemplate guides={unordered} chrome={chrome} />);
 
   test("renders inside the docs chrome, under the current Guides link", () => {
     expect(html).toContain("docs-header");
     expect(html).toMatch(/<a[^>]*href="\/guides"[^>]*aria-current="page"/);
     expect(html).toContain("themeToggle");
+  });
+
+  test("draws no header of its own without a configured chrome", () => {
+    const bare = render(<GuideListTemplate guides={unordered} />);
+
+    expect(bare).not.toContain('class="docs-header');
+    expect(bare).not.toContain("Get Brains");
   });
 
   test("opens with what the guides are", () => {
