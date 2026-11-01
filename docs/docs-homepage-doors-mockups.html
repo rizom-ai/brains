@@ -145,6 +145,26 @@
         color: var(--muted);
       }
 
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .version {
+        padding: 2px 9px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        font-size: 12.5px;
+        color: var(--quiet);
+        white-space: nowrap;
+      }
+
+      .version:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
       .site-header nav {
         display: flex;
         align-items: center;
@@ -216,9 +236,7 @@
 
       @media (min-width: 1000px) {
         .intro {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 80px;
-          align-items: end;
+          gap: 20px;
         }
       }
 
@@ -242,7 +260,7 @@
 
       .hero .lede {
         margin: 0;
-        max-width: 46ch;
+        max-width: 60ch;
         font-family: var(--display);
         font-size: var(--s1);
         font-weight: 340;
@@ -488,7 +506,7 @@
 
       @media (min-width: 1000px) {
         .cluster {
-          height: 420px;
+          height: 380px;
         }
 
         .core {
@@ -959,9 +977,17 @@
   <body>
     <header class="site-header">
       <div class="wrap">
-        <a class="wordmark" href="#top" aria-label="Brains docs"
-          ><span>brains</span><span>.</span><span>docs</span></a
-        >
+        <div class="brand">
+          <a class="wordmark" href="#top" aria-label="Brains docs"
+            ><span>brains</span><span>.</span><span>docs</span></a
+          >
+          <a
+            class="version"
+            href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+            title="Version 0.2.0 is an alpha. See what stable still needs."
+            >0.2.0 alpha</a
+          >
+        </div>
         <nav aria-label="Primary">
           <a class="wide" href="#start">Where to start</a>
           <a class="wide" href="https://github.com/rizom-ai/brains">GitHub</a>
@@ -975,22 +1001,11 @@
         <section class="hero wrap" aria-labelledby="hero-title">
           <div class="intro">
             <div>
-              <p class="kicker">Brains documentation</p>
               <h1 id="hero-title">A brain is one place for what you know.</h1>
             </div>
             <div>
               <p class="lede">
-                It captures from where the work already happens, keeps it as
-                plain markdown files you own, and answers from them wherever you
-                work. It runs on a server you control, and the code is open
-                source.
-              </p>
-              <p class="release">
-                Version 0.2.0 is an alpha.
-                <a
-                  href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
-                  >See what stable still needs</a
-                >.
+                It runs on a server you control, and the code is open source.
               </p>
             </div>
           </div>
@@ -1008,12 +1023,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="in-draft"></span>
-                  <span
-                    ><span class="t">A draft in Google Docs</span
-                    ><span class="d"
-                      >Download as markdown, upload in chat</span
-                    ></span
-                  >
+                  <span><span class="t">A draft in Google Docs</span></span>
                 </li>
                 <li
                   data-story="pdf"
@@ -1022,12 +1032,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="in-pdf"></span>
-                  <span
-                    ><span class="t">A paper as a PDF</span
-                    ><span class="d"
-                      >Upload it; its text becomes a note</span
-                    ></span
-                  >
+                  <span><span class="t">A paper as a PDF</span></span>
                 </li>
                 <li
                   data-story="link"
@@ -1036,12 +1041,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="in-link"></span>
-                  <span
-                    ><span class="t">A link from your open tabs</span
-                    ><span class="d"
-                      >Paste it in chat; it keeps a summary</span
-                    ></span
-                  >
+                  <span><span class="t">A link from your open tabs</span></span>
                 </li>
                 <li
                   data-story="photo"
@@ -1050,12 +1050,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="in-photo"></span>
-                  <span
-                    ><span class="t">A photo of a whiteboard</span
-                    ><span class="d"
-                      >Upload it and ask the brain to save it</span
-                    ></span
-                  >
+                  <span><span class="t">A photo of a whiteboard</span></span>
                 </li>
               </ul>
             </div>
@@ -1063,9 +1058,7 @@
             <div class="cluster">
               <div class="core" style="--x: 46%; --y: 40%">
                 <span class="core-dot" data-node="core"></span>
-                <span class="core-label"
-                  >Your brain<small>brain-data/, versioned in git</small></span
-                >
+                <span class="core-label">Your brain</span>
               </div>
               <ul class="files" aria-label="Files the brain keeps">
                 <li
@@ -1140,12 +1133,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="out-site"></span>
-                  <span
-                    ><span class="t">Your site and newsletter</span
-                    ><span class="d"
-                      >The note, turned into a post when you ask</span
-                    ></span
-                  >
+                  <span><span class="t">Your site and newsletter</span></span>
                 </li>
                 <li
                   data-story="chat"
@@ -1154,13 +1142,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="out-chat"></span>
-                  <span
-                    ><span class="t">Answers in chat</span
-                    ><span class="d"
-                      >“What have I written about slowness?” cites
-                      <code>on-slowness.md</code></span
-                    ></span
-                  >
+                  <span><span class="t">Answers in chat</span></span>
                 </li>
                 <li
                   data-story="ai"
@@ -1169,10 +1151,7 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="out-ai"></span>
-                  <span
-                    ><span class="t">Claude, ChatGPT and other AI tools</span
-                    ><span class="d">The same knowledge, over MCP</span></span
-                  >
+                  <span><span class="t">Claude and ChatGPT</span></span>
                 </li>
                 <li
                   data-story="brains"
@@ -1181,19 +1160,14 @@
                   aria-pressed="false"
                 >
                   <span class="dot" data-node="out-brains"></span>
-                  <span
-                    ><span class="t">Other brains you approve</span
-                    ><span class="d"
-                      >They can ask; you decide what is public</span
-                    ></span
-                  >
+                  <span><span class="t">Other brains you approve</span></span>
                 </li>
               </ul>
             </div>
 
             <p class="caption">
               <span class="hint"
-                >Point at anything to follow it through the brain.</span
+                >Pick anything to follow it through the brain.</span
               >
               <span class="story" aria-live="polite"
                 >A draft comes in once and becomes on-slowness.md. Ask about it
