@@ -7,15 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
       rel="stylesheet"
     />
     <style>
       /* Palette and faces are the live docs.rizom.ai rizom theme
-         (night / cream / brass). Dark is the live default. */
+         (night / cream / brass). Dark is the live default. Mono is used
+         only for real files and commands, never for labels. */
       :root {
         --display: "Fraunces", Georgia, serif;
         --body: "IBM Plex Sans", system-ui, sans-serif;
+        --code: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 
         /* Type scale, ratio 1.25 from a 17px body. */
         --s-1: 14px;
@@ -23,11 +25,10 @@
         --s1: 21px;
         --s2: 26px;
         --s3: 33px;
-        --s4: 41px;
-        --hero: clamp(30px, 4.4vw, 58px);
+        --s5: clamp(38px, 4.6vw, 60px);
 
         --gutter: 16px;
-        --measure: 1180px;
+        --measure: 1200px;
       }
 
       @media (min-width: 760px) {
@@ -40,11 +41,10 @@
         --bg: #14132b;
         --bg-deep: #0e0d20;
         --text: #faf8f3;
-        --muted: rgb(250 248 243 / 0.7);
-        --quiet: rgb(250 248 243 / 0.48);
+        --muted: rgb(250 248 243 / 0.72);
+        --quiet: rgb(250 248 243 / 0.5);
         --rule: rgb(250 248 243 / 0.14);
         --accent: #d4af37;
-        --accent-soft: #e8cc6a;
       }
 
       [data-theme="light"] {
@@ -52,10 +52,9 @@
         --bg-deep: #f1ede2;
         --text: #23213a;
         --muted: rgb(35 33 58 / 0.76);
-        --quiet: rgb(35 33 58 / 0.55);
+        --quiet: rgb(35 33 58 / 0.56);
         --rule: rgb(35 33 58 / 0.16);
         --accent: #a8821c;
-        --accent-soft: #8a6a12;
       }
 
       *,
@@ -94,7 +93,12 @@
       .wrap {
         max-width: var(--measure);
         margin: 0 auto;
-        padding: 0 var(--gutter);
+        padding-inline: var(--gutter);
+      }
+
+      code,
+      pre {
+        font-family: var(--code);
       }
 
       /* ---------------- Header (as live) ---------------- */
@@ -112,8 +116,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding-top: 18px;
-        padding-bottom: 18px;
+        padding-block: 18px;
       }
 
       .wordmark {
@@ -152,7 +155,7 @@
         }
       }
 
-      .get {
+      .site-header nav .get {
         border: 1px solid var(--text);
         border-radius: 8px;
         padding: 8px 16px;
@@ -165,28 +168,53 @@
         color: var(--accent);
       }
 
-      /* ---------------- Hero: the three doors ---------------- */
+      /* ---------------- Hero: what a brain is ---------------- */
 
       .hero {
-        padding-block: 56px 72px;
+        display: grid;
+        gap: 48px;
+        padding-block: 48px 64px;
       }
 
-      @media (min-width: 760px) {
+      @media (min-width: 1000px) {
         .hero {
-          padding-block: 96px 120px;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+          gap: 80px;
+          align-items: start;
+          padding-block: 96px 112px;
         }
       }
 
-      .hero h1 {
-        margin: 0 0 8px;
+      .kicker {
+        margin: 0 0 20px;
         font-family: var(--display);
-        font-weight: 400;
         font-size: var(--s1);
         color: var(--muted);
       }
 
+      .hero h1 {
+        margin: 0;
+        max-width: 14ch;
+        font-family: var(--display);
+        font-size: var(--s5);
+        font-weight: 380;
+        font-variation-settings: "SOFT" 50;
+        line-height: 1.06;
+        letter-spacing: -0.02em;
+      }
+
+      .hero .lede {
+        margin: 28px 0 0;
+        max-width: 46ch;
+        font-family: var(--display);
+        font-size: var(--s1);
+        font-weight: 340;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
       .release {
-        margin: 0 0 48px;
+        margin: 28px 0 0;
         font-size: var(--s-1);
         color: var(--quiet);
       }
@@ -203,207 +231,277 @@
         text-decoration-color: var(--accent);
       }
 
-      .doors {
+      /* The figure: one note's path from draft to post, drawn as the
+         real files it passes through. */
+      .path {
+        margin: 0;
+        position: relative;
+        padding-left: 28px;
+      }
+
+      .path::before {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 10px;
+        bottom: 10px;
+        width: 1px;
+        background: var(--accent);
+        opacity: 0.6;
+      }
+
+      .path ol {
         margin: 0;
         padding: 0;
         list-style: none;
-        border-top: 1px solid var(--rule);
-      }
-
-      .doors li {
-        border-bottom: 1px solid var(--rule);
-      }
-
-      .doors a {
         display: grid;
-        gap: 10px;
-        padding: 24px 0 26px;
+        gap: 22px;
       }
 
-      @media (min-width: 900px) {
-        .doors a {
-          grid-template-columns: minmax(0, 1fr) 220px;
-          align-items: baseline;
-          gap: 48px;
-          padding: 34px 0 38px;
-        }
+      .path li {
+        position: relative;
       }
 
-      .doors .want {
+      .path li::before {
+        content: "";
+        position: absolute;
+        left: -27px;
+        top: 8px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 1px solid var(--accent);
+      }
+
+      .path li.file::before {
+        background: var(--accent);
+      }
+
+      .step {
+        margin: 0 0 8px;
+        font-size: var(--s-1);
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .say {
+        margin: 0;
         font-family: var(--display);
-        font-size: var(--hero);
-        font-weight: 360;
-        font-variation-settings: "SOFT" 60;
-        line-height: 1.12;
-        letter-spacing: -0.018em;
-        max-width: 22ch;
-        /* The one motion on the page: a brass rule drawn under the
-           sentence you point at. */
-        background-image: linear-gradient(var(--accent), var(--accent));
-        background-repeat: no-repeat;
-        background-position: 0 100%;
-        background-size: 0% 2px;
-        padding-bottom: 6px;
-        transition: background-size 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+        font-style: italic;
+        font-size: var(--s1);
+        line-height: 1.4;
+        color: var(--text);
       }
 
-      .doors span.want {
-        display: inline;
-        -webkit-box-decoration-break: clone;
-        box-decoration-break: clone;
+      .file-card {
+        margin: 0;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--bg-deep);
+        overflow: hidden;
       }
 
-      .doors a:hover .want,
-      .doors a:focus-visible .want {
-        background-size: 100% 2px;
+      .file-card figcaption {
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--code);
+        font-size: 12.5px;
+        color: var(--quiet);
       }
 
-      .doors .door-name {
-        display: block;
-        font-size: var(--s0);
-        font-weight: 600;
+      .file-card pre {
+        margin: 0;
+        padding: 12px 14px 14px;
+        overflow-x: auto;
+        font-size: 13.5px;
+        line-height: 1.65;
+        color: var(--muted);
+      }
+
+      .file-card .k {
         color: var(--accent);
       }
 
-      .doors .door-count {
-        display: block;
+      .file-card .h {
+        color: var(--text);
+      }
+
+      .path .caption {
+        margin: 18px 0 0;
         font-size: var(--s-1);
         color: var(--quiet);
       }
 
-      /* ---------------- Door sections ---------------- */
+      /* ---------------- Doors ---------------- */
 
-      .door {
-        display: grid;
-        gap: 28px;
-        padding-block: 56px;
+      .doors-head {
+        padding-top: 48px;
         border-top: 1px solid var(--text);
-        scroll-margin-top: 72px;
       }
 
-      @media (min-width: 900px) {
-        .door {
-          grid-template-columns: 300px minmax(0, 1fr);
-          gap: 72px;
-          padding-block: 88px 96px;
-        }
-      }
-
-      .door-intro h2 {
+      .doors-head h2 {
         margin: 0;
         font-family: var(--display);
-        font-weight: 400;
-        font-size: var(--s4);
-        line-height: 1.08;
-        letter-spacing: -0.015em;
-      }
-
-      .door-intro p {
-        margin: 14px 0 0;
-        max-width: 32ch;
-        color: var(--muted);
-      }
-
-      @media (min-width: 900px) {
-        .door-intro {
-          position: sticky;
-          top: 96px;
-          align-self: start;
-        }
-      }
-
-      /* A guide is shown as its own opening lines, like the first
-         paragraph of a chapter. */
-      .guides {
-        display: grid;
-        gap: 40px;
-        margin-bottom: 56px;
-      }
-
-      @media (min-width: 1080px) {
-        .guides.two {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 48px;
-        }
-      }
-
-      .guide {
-        display: block;
-        max-width: 62ch;
-      }
-
-      .guide h3 {
-        margin: 0 0 12px;
-        font-family: var(--display);
-        font-weight: 450;
         font-size: var(--s3);
-        line-height: 1.1;
+        font-weight: 400;
         letter-spacing: -0.012em;
       }
 
-      .guide blockquote {
+      .doors {
+        display: grid;
+        padding-block: 32px 96px;
+      }
+
+      @media (min-width: 1000px) {
+        .doors {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+          padding-block: 40px 120px;
+        }
+      }
+
+      .door {
+        padding-block: 32px;
+        border-top: 1px solid var(--rule);
+        scroll-margin-top: 72px;
+      }
+
+      .door:first-child {
+        border-top: 0;
+        padding-top: 8px;
+      }
+
+      @media (min-width: 1000px) {
+        .door,
+        .door:first-child {
+          padding: 8px 36px 0;
+          border-top: 0;
+          border-left: 1px solid var(--rule);
+        }
+
+        .door:first-child {
+          padding-left: 0;
+          border-left: 0;
+        }
+
+        .door:last-child {
+          padding-right: 0;
+        }
+      }
+
+      .door h3 {
         margin: 0;
-        padding-left: 20px;
-        border-left: 2px solid var(--accent);
+        font-family: var(--display);
+        font-size: var(--s2);
+        font-weight: 420;
+        line-height: 1.15;
+      }
+
+      .door .who {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .door h4 {
+        margin: 28px 0 10px;
+        font-size: var(--s-1);
+        font-weight: 600;
+        color: var(--quiet);
+      }
+
+      .first p {
+        margin: 0;
+        line-height: 1.55;
+      }
+
+      .first p + p,
+      .first pre + p,
+      .first ol + p {
+        margin-top: 8px;
+        font-size: var(--s-1);
+        color: var(--quiet);
+      }
+
+      .first code {
+        font-size: 0.9em;
+        color: var(--text);
+      }
+
+      .first pre {
+        margin: 0;
+        padding: 12px 14px;
+        overflow-x: auto;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--bg-deep);
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--text);
+      }
+
+      .first pre .p {
+        color: var(--quiet);
+        user-select: none;
+      }
+
+      .layers {
+        margin: 0;
+        padding-left: 1.4em;
+        line-height: 1.5;
+      }
+
+      .layers li {
+        padding-block: 3px;
+      }
+
+      .layers li::marker {
         font-family: var(--display);
         font-style: italic;
-        font-weight: 360;
-        font-size: var(--s1);
-        line-height: 1.55;
-        color: var(--muted);
-      }
-
-      .guide .read {
-        display: inline-block;
-        margin-top: 16px;
-        font-weight: 600;
         color: var(--accent);
-        text-decoration: underline;
-        text-decoration-color: transparent;
-        text-underline-offset: 4px;
-        transition: text-decoration-color 0.2s;
       }
 
-      .guide:hover .read,
-      .guide:focus-visible .read {
-        text-decoration-color: var(--accent);
-      }
-
-      .guide .recipe {
-        display: block;
-        margin-top: 4px;
-        font-size: var(--s-1);
-        color: var(--quiet);
-      }
-
-      .lead {
-        max-width: 56ch;
-        margin: 0 0 40px;
-        font-family: var(--display);
-        font-size: var(--s1);
-        font-weight: 360;
-        line-height: 1.55;
-        color: var(--muted);
-      }
-
-      .lead a {
-        color: var(--text);
-        text-decoration: underline;
-        text-decoration-color: var(--accent);
-        text-underline-offset: 4px;
-      }
-
-      .reference h3 {
-        margin: 0 0 6px;
-        font-size: var(--s-1);
-        font-weight: 600;
-        color: var(--quiet);
-      }
-
-      .reference ul {
+      .guides {
         margin: 0;
         padding: 0;
         list-style: none;
+      }
+
+      .guides li + li {
+        margin-top: 14px;
+      }
+
+      .guides a {
+        display: block;
+      }
+
+      .guides .t {
+        display: block;
+        font-family: var(--display);
+        font-style: italic;
+        font-size: var(--s1);
+        line-height: 1.3;
+        color: var(--accent);
+      }
+
+      .guides .d {
+        display: block;
+        margin-top: 2px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .guides a:hover .t,
+      .guides a:focus-visible .t {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .reference {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 15px;
       }
 
       .reference li {
@@ -411,39 +509,21 @@
       }
 
       .reference a {
-        display: grid;
-        gap: 2px;
-        padding: 13px 0 14px;
-      }
-
-      @media (min-width: 760px) {
-        .reference a {
-          grid-template-columns: 240px minmax(0, 1fr);
-          gap: 24px;
-          align-items: baseline;
-        }
-      }
-
-      .reference .t {
-        font-weight: 500;
-      }
-
-      .reference .d {
-        font-size: 15px;
-        line-height: 1.5;
+        display: block;
+        padding-block: 8px;
         color: var(--muted);
       }
 
-      .reference a:hover .t,
-      .reference a:focus-visible .t {
-        color: var(--accent);
+      .reference a:hover,
+      .reference a:focus-visible {
+        color: var(--text);
       }
 
       /* ---------------- Footer ---------------- */
 
       .site-footer {
         border-top: 1px solid var(--text);
-        padding: 40px 0 56px;
+        padding-block: 40px 56px;
         font-size: 15px;
         color: var(--muted);
       }
@@ -496,7 +576,7 @@
 
       .mock-notes {
         position: fixed;
-        left: 16px;
+        right: 16px;
         bottom: 16px;
         z-index: 20;
         max-width: min(420px, calc(100vw - 32px));
@@ -511,7 +591,7 @@
 
       .mock-notes summary {
         cursor: pointer;
-        padding: 10px 14px;
+        padding: 9px 14px;
         font-weight: 600;
         color: var(--text);
       }
@@ -535,11 +615,6 @@
         html {
           scroll-behavior: auto;
         }
-
-        .doors .want,
-        .guide .read {
-          transition: none;
-        }
       }
     </style>
   </head>
@@ -550,11 +625,7 @@
           ><span>brains</span><span>.</span><span>docs</span></a
         >
         <nav aria-label="Primary">
-          <a
-            class="wide"
-            href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
-            >Roadmap</a
-          >
+          <a class="wide" href="#start">Where to start</a>
           <a class="wide" href="https://github.com/rizom-ai/brains">GitHub</a>
           <a class="get" href="https://rizom.ai">Get Brains</a>
         </nav>
@@ -563,323 +634,284 @@
 
     <main id="top">
       <section class="hero wrap" aria-labelledby="hero-title">
-        <h1 id="hero-title">Brains documentation</h1>
-        <p class="release">
-          Version 0.2.0 is an alpha.
-          <a href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
-            >See what stable still needs</a
-          >.
-        </p>
-
-        <ul class="doors">
-          <li>
-            <a href="#use">
-              <span class="want"
-                >I want one place for my writing, notes and research.</span
-              >
-              <span>
-                <span class="door-name">Use a brain</span>
-                <span class="door-count">2 guides, 3 reference docs</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a href="#run">
-              <span class="want"
-                >I want to run a brain, for myself or for others.</span
-              >
-              <span>
-                <span class="door-name">Run a brain</span>
-                <span class="door-count">1 guide, 7 reference docs</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a href="#extend">
-              <span class="want"
-                >I want to build sites, themes or plugins on it.</span
-              >
-              <span>
-                <span class="door-name">Extend a brain</span>
-                <span class="door-count">12 reference docs</span>
-              </span>
-            </a>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Use -->
-      <section class="door wrap" id="use" aria-labelledby="use-title">
-        <div class="door-intro">
-          <h2 id="use-title">Use a brain</h2>
-          <p>
-            Bring what you already have. Start with the guide that sounds like
-            you; the reference is there when you need the exact steps.
+        <div>
+          <p class="kicker">Brains documentation</p>
+          <h1 id="hero-title">A brain is one place for what you know.</h1>
+          <p class="lede">
+            It captures from where the work already happens, keeps it as plain
+            markdown files you own, and answers from them in chat, in Studio, or
+            from Claude and ChatGPT. It runs on a server you control, and the
+            code is open source.
+          </p>
+          <p class="release">
+            Version 0.2.0 is an alpha.
+            <a
+              href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+              >See what stable still needs</a
+            >.
           </p>
         </div>
-        <div>
-          <div class="guides two">
-            <a class="guide" href="https://docs.rizom.ai/guides/writer">
-              <h3>The writer</h3>
-              <blockquote>
-                You have years of essays and a folder of drafts. Some of it is
-                published on platforms you don't own. Most of it never left
-                Google Docs.
-              </blockquote>
-              <span class="read">Read the writer's guide</span>
-              <span class="recipe">Uses the professional recipe</span>
-            </a>
-            <a class="guide" href="https://docs.rizom.ai/guides/researcher">
-              <h3>The researcher</h3>
-              <blockquote>
-                Years of notes, papers and saved links you want to connect and
-                question. Most of it sits in apps that never talk to each other.
-              </blockquote>
-              <span class="read">Read the researcher's guide</span>
-              <span class="recipe">Uses the personal recipe</span>
-            </a>
-          </div>
 
-          <div class="reference">
-            <h3>Reference</h3>
-            <ul>
+        <figure class="path" aria-label="How a draft becomes a post">
+          <ol>
+            <li class="file">
+              <p class="step">A draft from Google Docs, uploaded in chat</p>
+              <figure class="file-card">
+                <figcaption>brain-data/on-slowness.md</figcaption>
+                <pre><span class="h"># On slowness</span>
+
+I used to think slowness was a failure
+of discipline. …</pre>
+              </figure>
+            </li>
+            <li>
+              <p class="step">You ask, in chat</p>
+              <p class="say">“Turn my note On slowness into a draft post.”</p>
+            </li>
+            <li class="file">
+              <p class="step">
+                The brain keeps your text and adds what a post needs
+              </p>
+              <figure class="file-card">
+                <figcaption>brain-data/post/on-slowness.md</figcaption>
+                <pre><span class="k">---</span>
+<span class="k">title:</span> On slowness
+<span class="k">slug:</span> on-slowness
+<span class="k">status:</span> draft
+<span class="k">excerpt:</span> I used to think slowness…
+<span class="k">---</span></pre>
+              </figure>
+            </li>
+          </ol>
+          <p class="caption">
+            Edit it in Studio, queue it, and it goes out on your site.
+          </p>
+        </figure>
+      </section>
+
+      <div class="wrap">
+        <div class="doors-head" id="start">
+          <h2>Where to start</h2>
+        </div>
+
+        <div class="doors">
+          <!-- Use -->
+          <section class="door" id="use" aria-labelledby="use-title">
+            <h3 id="use-title">Use a brain</h3>
+            <p class="who">Someone has set one up for you, or you will.</p>
+
+            <h4>First step</h4>
+            <div class="first">
+              <p>
+                Open the welcome email from your brain and set up a passkey.
+                Then work wherever suits you: chat, Studio, or your AI tools.
+              </p>
+            </div>
+
+            <h4>Guides</h4>
+            <ul class="guides">
+              <li>
+                <a href="https://docs.rizom.ai/guides/writer"
+                  ><span class="t">The writer</span
+                  ><span class="d"
+                    >Years of essays and a folder of drafts, most of it still in
+                    Google Docs.</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/guides/researcher"
+                  ><span class="t">The researcher</span
+                  ><span class="d"
+                    >Notes, papers and saved links in apps that never talk to
+                    each other.</span
+                  ></a
+                >
+              </li>
+            </ul>
+
+            <h4>Reference</h4>
+            <ul class="reference">
               <li>
                 <a href="https://docs.rizom.ai/docs/feature-overview"
-                  ><span class="t">Feature Overview</span
-                  ><span class="d"
-                    >What a brain does today: knowledge, publishing, interfaces
-                    and integrations</span
-                  ></a
+                  >Feature Overview</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/content-management"
-                  ><span class="t">Content Management</span
-                  ><span class="d"
-                    >Create, edit, sync and publish markdown content</span
-                  ></a
+                  >Content Management</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/entity-types-reference"
-                  ><span class="t">Entity Types Reference</span
+                  >Entity Types Reference</a
+                >
+              </li>
+            </ul>
+          </section>
+
+          <!-- Run -->
+          <section class="door" id="run" aria-labelledby="run-title">
+            <h3 id="run-title">Run a brain</h3>
+            <p class="who">For yourself, or for the people moving in.</p>
+
+            <h4>First step</h4>
+            <div class="first">
+              <pre><span class="p">$ </span>bun add -g @rizom/brain
+<span class="p">$ </span>brain init my-brain --recipe personal
+<span class="p">$ </span>cd my-brain
+<span class="p">$ </span>brain start</pre>
+              <p>
+                Set <code>AI_API_KEY</code> in <code>.env</code> first. The
+                brain prints a setup link for your passkey.
+              </p>
+            </div>
+
+            <h4>Guides</h4>
+            <ul class="guides">
+              <li>
+                <a href="https://docs.rizom.ai/guides/self-hosting"
+                  ><span class="t">Running your own brain</span
                   ><span class="d"
-                    >Built-in content types and their fields</span
+                    >From a recipe to a server, then handing it to the people
+                    who will move in.</span
                   ></a
                 >
               </li>
             </ul>
-          </div>
-        </div>
-      </section>
 
-      <!-- Run -->
-      <section class="door wrap" id="run" aria-labelledby="run-title">
-        <div class="door-intro">
-          <h2 id="run-title">Run a brain</h2>
-          <p>
-            Install it, configure it and keep it online, for yourself or for the
-            people moving in.
-          </p>
-        </div>
-        <div>
-          <div class="guides">
-            <a class="guide" href="https://docs.rizom.ai/guides/self-hosting">
-              <h3>Running your own brain</h3>
-              <blockquote>
-                Install the CLI, create a brain from a recipe and put it on a
-                server. Then hand it to the people who will move in.
-              </blockquote>
-              <span class="read">Read the guide</span>
-            </a>
-          </div>
-
-          <div class="reference">
-            <h3>Reference</h3>
-            <ul>
+            <h4>Reference</h4>
+            <ul class="reference">
               <li>
                 <a href="https://docs.rizom.ai/docs/getting-started"
-                  ><span class="t">Getting Started</span
-                  ><span class="d"
-                    >Install the CLI, create a brain and start it locally</span
-                  ></a
+                  >Getting Started</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/brain-yaml-reference"
-                  ><span class="t">brain.yaml Reference</span
-                  ><span class="d">The main configuration file</span></a
+                  >brain.yaml Reference</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/cli-reference"
-                  ><span class="t">CLI Reference</span
-                  ><span class="d"
-                    >brain init, start, chat, tool and the other commands</span
-                  ></a
+                  >CLI Reference</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/deployment-guide"
-                  ><span class="t">Deployment Guide</span
-                  ><span class="d"
-                    >Deploy to a server with the generated Docker and Kamal
-                    workflow</span
-                  ></a
+                  >Deployment Guide</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/interface-setup"
-                  ><span class="t">Interface Setup</span
-                  ><span class="d"
-                    >Connect MCP, web chat, Discord, Slack and other
-                    brains</span
-                  ></a
+                  >Interface Setup</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/directory-sync-git"
-                  ><span class="t">Directory Sync and Git</span
-                  ><span class="d"
-                    >How synced content directories behave, in git terms</span
-                  ></a
+                  >Directory Sync and Git</a
                 >
               </li>
               <li>
                 <a href="https://docs.rizom.ai/docs/mcp-inspector-guide"
-                  ><span class="t">MCP Inspector Guide</span
-                  ><span class="d"
-                    >Debug MCP connections and tool calls</span
-                  ></a
+                  >MCP Inspector Guide</a
                 >
               </li>
             </ul>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <!-- Extend -->
-      <section class="door wrap" id="extend" aria-labelledby="extend-title">
-        <div class="door-intro">
-          <h2 id="extend-title">Extend a brain</h2>
-          <p>
-            Build sites, themes and plugins on top of it, or work on the
-            framework itself.
-          </p>
-        </div>
-        <div>
-          <p class="lead">
-            A brain is customized in layers. Start with the
-            <a href="https://docs.rizom.ai/docs/customization-guide"
-              >Customization Guide</a
-            >
-            to find the smallest one that solves your problem.
-          </p>
+          <!-- Extend -->
+          <section class="door" id="extend" aria-labelledby="extend-title">
+            <h3 id="extend-title">Extend a brain</h3>
+            <p class="who">
+              Sites, themes and plugins, or the framework itself.
+            </p>
 
-          <div class="reference">
-            <h3>Reference</h3>
-            <ul>
+            <h4>First step</h4>
+            <div class="first">
+              <ol class="layers">
+                <li>Configure the instance in <code>brain.yaml</code></li>
+                <li>Edit content in <code>brain-data/</code></li>
+                <li>Layer CSS in <code>src/theme.css</code></li>
+                <li>Change site structure in <code>src/site.tsx</code></li>
+                <li>Write a plugin when behavior or data must change</li>
+              </ol>
+              <p>Use the smallest layer that solves the problem.</p>
+            </div>
+
+            <h4>Guides</h4>
+            <ul class="guides">
               <li>
                 <a href="https://docs.rizom.ai/docs/customization-guide"
                   ><span class="t">Customization Guide</span
                   ><span class="d"
-                    >Change bundles, content, themes, sites and plugins</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/site-mockup-migration"
-                  ><span class="t">Site Mockup Migration</span
-                  ><span class="d"
-                    >Prototype a site in an AI coding tool, then move it into a
-                    brain</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/theming-guide"
-                  ><span class="t">Theming Guide</span
-                  ><span class="d"
-                    >Theme tokens, CSS layers and custom themes</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/plugin-system"
-                  ><span class="t">Plugin System</span
-                  ><span class="d"
-                    >How built-in and custom plugins are organized</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/plugin-quick-reference"
-                  ><span class="t">Plugin Quick Reference</span
-                  ><span class="d">A concise plugin API checklist</span></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
-                  ><span class="t">External Plugin Authoring</span
-                  ><span class="d">Package and load your own plugins</span></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/external-site-authoring"
-                  ><span class="t">External Site and Theme Authoring</span
-                  ><span class="d"
-                    >Publish site and theme packages through npm</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/entity-model"
-                  ><span class="t">Entity Model</span
-                  ><span class="d"
-                    >How markdown files, frontmatter and schemas fit
-                    together</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/architecture-overview"
-                  ><span class="t">Architecture Overview</span
-                  ><span class="d"
-                    >How the shell, plugins, entities and interfaces fit
-                    together</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/brain-model"
-                  ><span class="t">Brain Models</span
-                  ><span class="d"
-                    >The canonical brain definition, its capabilities and
-                    bundles</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/agent-discovery"
-                  ><span class="t">Agent Discovery</span
-                  ><span class="d"
-                    >How a brain finds capabilities in itself and in other
-                    brains</span
-                  ></a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/atproto-lexicons"
-                  ><span class="t">ATProto Lexicons</span
-                  ><span class="d"
-                    >The AT Protocol lexicons Rizom publishes for brains</span
+                    >Each layer in turn, with the files it touches.</span
                   ></a
                 >
               </li>
             </ul>
-          </div>
+
+            <h4>Reference</h4>
+            <ul class="reference">
+              <li>
+                <a href="https://docs.rizom.ai/docs/site-mockup-migration"
+                  >Site Mockup Migration</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/theming-guide"
+                  >Theming Guide</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/plugin-system"
+                  >Plugin System</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/plugin-quick-reference"
+                  >Plugin Quick Reference</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
+                  >External Plugin Authoring</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/external-site-authoring"
+                  >External Site and Theme Authoring</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/entity-model"
+                  >Entity Model</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/architecture-overview"
+                  >Architecture Overview</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/brain-model"
+                  >Brain Models</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/agent-discovery"
+                  >Agent Discovery</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/atproto-lexicons"
+                  >ATProto Lexicons</a
+                >
+              </li>
+            </ul>
+          </section>
         </div>
-      </section>
+      </div>
     </main>
 
     <footer class="site-footer">
@@ -918,29 +950,28 @@
       <summary>About this mockup</summary>
       <div>
         <p>
-          Each door opens with a guide and lists every reference doc that
-          belongs to it, so the page needs no separate index and nothing is
-          listed twice.
+          The hero says what a brain is, in wording from the team brain's
+          capability menu and one-pagers. The figure is the writer guide's own
+          example: a note becomes a draft post, shown as the real files.
         </p>
         <p>
-          Kept in sync from three places: the hero sentences and door names in
-          <code>site.ts</code>; guide cards from guide frontmatter
-          (<code>door</code>, opening lines, recipe); reference rows and counts
-          from <code>docs-manifest.yaml</code>, which gains
-          <code>door</code> and an explicit <code>description</code> and loses
-          <code>section</code>.
+          Each door gives one concrete first step, then its guides, then its
+          reference docs. Every doc appears once, so there is no separate index.
+        </p>
+        <p>
+          Kept in sync from three places: hero, door names and first steps in
+          <code>site.ts</code>; guides from guide frontmatter
+          (<code>door</code>, summary); reference lists from
+          <code>docs-manifest.yaml</code>, which gains <code>door</code> and
+          loses <code>section</code>.
         </p>
         <p>
           Not live yet: the Running your own brain guide (<code
             >/guides/self-hosting</code
           >
-          is a 404). Extend has no guide, so it opens with a pointer to the
-          Customization Guide instead.
-        </p>
-        <p>
-          Roadmap links now go to the repo file, replacing the 404 at
-          <code>/docs/roadmap</code>. The hand-written
-          <code>/docs/index</code> page is dropped.
+          is a 404). Extend uses the Customization Guide as its walkthrough.
+          Roadmap moves to the footer and points at the repo, replacing the 404
+          at <code>/docs/roadmap</code>.
         </p>
       </div>
     </details>
