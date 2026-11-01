@@ -9,6 +9,12 @@ export const guideRecipeSchema: z.ZodEnum<{
   team: "team";
 }> = z.enum(["personal", "professional", "team"]);
 
+export const guideDoorSchema: z.ZodEnum<{
+  use: "use";
+  run: "run";
+  extend: "extend";
+}> = z.enum(["use", "run", "extend"]);
+
 export const guideMaterialSchema: z.ZodObject<{
   from: z.ZodString;
   where: z.ZodString;
@@ -30,6 +36,7 @@ export const guideFrontmatterSchema: z.ZodObject<{
   for: z.ZodString;
   recipe: z.ZodDefault<z.ZodNullable<typeof guideRecipeSchema>>;
   brings: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
+  door: z.ZodDefault<z.ZodNullable<typeof guideDoorSchema>>;
   material: z.ZodArray<typeof guideMaterialSchema>;
 }> = z.object({
   title: z.string(),
@@ -43,9 +50,14 @@ export const guideFrontmatterSchema: z.ZodObject<{
   /** What the guide uses from its recipe, shown in the start section in
    *  place of the recipe's own lines; absent, the recipe's lines show. */
   brings: z.array(z.string().min(1)).min(1).nullable().default(null),
+  /** Which door of a docs homepage lists the guide: using, running or
+   *  extending a brain. Absent reads as null; sites that list guides on
+   *  their own ignore it. */
+  door: guideDoorSchema.nullable().default(null),
   material: z.array(guideMaterialSchema),
 });
 
+export type GuideDoor = z.output<typeof guideDoorSchema>;
 export type GuideRecipe = z.output<typeof guideRecipeSchema>;
 export type GuideMaterial = z.output<typeof guideMaterialSchema>;
 export type GuideFrontmatter = z.output<typeof guideFrontmatterSchema>;

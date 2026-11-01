@@ -2,6 +2,7 @@
 title: Moving in as a team
 slug: team
 order: 40
+door: use
 persona: The team
 for: What your team knows is spread across people, channels and shared drives. It leaves when someone does.
 recipe: team

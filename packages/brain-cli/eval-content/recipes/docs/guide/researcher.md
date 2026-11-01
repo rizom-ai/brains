@@ -7,6 +7,7 @@ for: >-
   Years of notes, papers and saved links you want to connect and question. Most
   of it sits in apps that never talk to each other.
 recipe: personal
+door: use
 material:
   - from: Notes and fragments
     where: Obsidian, Apple Notes, a notes app

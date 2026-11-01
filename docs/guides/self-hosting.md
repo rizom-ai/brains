@@ -2,6 +2,7 @@
 title: Running your own brain
 slug: self-hosting
 order: 50
+door: run
 persona: Running your own brain
 for: You want the brain on your own machine or server, your content in a folder and a git repository you control, and the site on your own domain.
 material:

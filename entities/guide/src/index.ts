@@ -12,9 +12,11 @@ export {
   type GuideDetailProps,
 } from "./templates/guide-detail";
 export {
+  guideDoorSchema,
   guideFrontmatterSchema,
   guideMaterialSchema,
   guideRecipeSchema,
+  type GuideDoor,
   type GuideFrontmatter,
   type GuideMaterial,
   type GuideRecipe,

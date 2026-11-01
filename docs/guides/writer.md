@@ -2,6 +2,7 @@
 title: Moving in as a writer
 slug: writer
 order: 10
+door: use
 persona: The writer
 for: You have years of essays and a folder of drafts. Some of it is published on platforms you don't own. Most of it never left Google Docs.
 recipe: professional

@@ -23,7 +23,28 @@ describe("guideFrontmatterSchema", () => {
     expect(guideFrontmatterSchema.parse(frontmatter)).toEqual({
       ...frontmatter,
       brings: null,
+      door: null,
     });
+  });
+
+  it.each(["use", "run", "extend"])(
+    "accepts the %s door a docs homepage lists the guide under",
+    (door) => {
+      expect(guideFrontmatterSchema.parse({ ...frontmatter, door }).door).toBe(
+        door,
+      );
+    },
+  );
+
+  it("reads an absent door as null, for sites that list guides on their own", () => {
+    expect(guideFrontmatterSchema.parse(frontmatter).door).toBeNull();
+  });
+
+  it("rejects a door a docs homepage does not have", () => {
+    expect(
+      guideFrontmatterSchema.safeParse({ ...frontmatter, door: "browse" })
+        .success,
+    ).toBe(false);
   });
 
   it("accepts a guide that names no recipe, as the self-hosting guide does", () => {

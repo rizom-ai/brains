@@ -2,6 +2,7 @@
 title: Moving in as a consultant
 slug: consultant
 order: 30
+door: use
 persona: The consultant
 for: Your expertise is locked in client work, slide decks and a LinkedIn summary. You want it findable and askable without writing it all again.
 recipe: professional

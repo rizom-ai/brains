@@ -7,6 +7,7 @@ for: >-
   You have years of essays and a folder of drafts. Some of it is published on
   platforms you don't own. Most of it never left Google Docs.
 recipe: professional
+door: use
 material:
   - from: Drafts and fragments
     where: Google Docs, Word, a notes app
