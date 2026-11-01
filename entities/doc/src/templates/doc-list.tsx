@@ -122,6 +122,19 @@ export const DocHomeHeroTemplate = ({
   </DocsPageShell>
 );
 
+/**
+ * Only the header, for a docs home whose site draws its own opening below it:
+ * the page's head and the configured header, and later parts continue it.
+ */
+export const DocHomeHeaderTemplate = ({
+  hero,
+  chrome,
+}: DocListProps): JSX.Element => (
+  <DocsPageShell {...shellProps(hero)} chrome={chrome} continues bleed>
+    {null}
+  </DocsPageShell>
+);
+
 export const DocHomeSectionsTemplate = ({
   docs,
 }: DocListProps): JSX.Element => (
