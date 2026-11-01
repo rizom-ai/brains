@@ -18,6 +18,11 @@ import {
   type GuideListProps,
 } from "../templates/guide-list";
 import { GuideBandTemplate } from "../templates/guide-band";
+import {
+  GuideSectionsTemplate,
+  type GuideSectionsProps,
+} from "../templates/guide-sections";
+import { docWithDataSchema } from "@brains/doc";
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
@@ -37,6 +42,16 @@ const guideDisplaySchema = z.object({
 const guideListSchema = z.object({
   guides: z.array(guideDisplaySchema),
   chrome: docsChromeSchema.nullable().default(null),
+});
+
+const guideSectionsDisplaySchema = z.object({
+  sections: z.array(
+    z.object({
+      name: z.string(),
+      guides: z.array(guideDisplaySchema),
+      docs: z.array(docWithDataSchema),
+    }),
+  ),
 });
 
 const guideDetailSchema = z.object({
@@ -69,6 +84,18 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "guides:entities",
       requiredPermission: "public",
       layout: { component: GuideBandTemplate },
+    }),
+    "guide-sections": createTemplate<
+      z.output<typeof guideSectionsDisplaySchema>,
+      GuideSectionsProps
+    >({
+      name: "guide-sections",
+      description:
+        "Each docs section's guides and reference docs as columns, under a site's own section introductions",
+      schema: guideSectionsDisplaySchema,
+      dataSourceId: "guides:sections",
+      requiredPermission: "public",
+      layout: { component: GuideSectionsTemplate },
     }),
     "guide-detail": createTemplate<
       z.output<typeof guideDetailSchema>,

@@ -1,0 +1,158 @@
+/* Each docs section as a column: its guides, then its reference docs.
+   Draws in the docs tokens a DocsPageSection sets, so it follows the
+   site's theme; columns line up with a site introduction above them. */
+
+.guide-sections {
+  display: grid;
+  padding-block: 8px 96px;
+}
+
+@media (min-width: 1000px) {
+  .guide-sections {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-block-end: 120px;
+  }
+}
+
+.guide-sections__column {
+  padding-block: 24px;
+  border-top: 1px solid var(--docs-border);
+}
+
+.guide-sections__column:first-child {
+  border-top: 0;
+}
+
+@media (min-width: 1000px) {
+  .guide-sections__column {
+    padding: 0 32px;
+    border-top: 0;
+    border-left: 1px solid var(--docs-border);
+  }
+
+  .guide-sections__column:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .guide-sections__column:last-child {
+    padding-right: 0;
+  }
+}
+
+/* The site's introduction shows the section name; outline readers get it
+   here. */
+.guide-sections__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.guide-sections__label {
+  margin: 28px 0 10px;
+  font-family: var(--docs-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--docs-text-light);
+}
+
+.guide-sections__column > .guide-sections__label:first-of-type {
+  margin-top: 0;
+}
+
+.guide-sections__guides,
+.guide-sections__docs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-sections__guides li + li {
+  margin-top: 14px;
+}
+
+.guide-sections__guides a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.guide-sections__persona {
+  display: block;
+  font-family: var(--docs-font-display);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.3;
+  color: var(--docs-accent);
+}
+
+.guide-sections__for {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--docs-text-muted);
+}
+
+.guide-sections__guides a:hover .guide-sections__persona,
+.guide-sections__guides a:focus-visible .guide-sections__persona {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.guide-sections__docs li {
+  border-top: 1px solid var(--docs-border);
+}
+
+.guide-sections__docs a {
+  display: block;
+  padding-block: 8px;
+  font-size: 15px;
+  color: var(--docs-text-muted);
+  text-decoration: none;
+}
+
+.guide-sections__docs a:hover,
+.guide-sections__docs a:focus-visible {
+  color: var(--docs-text);
+}
+
+.guide-sections__more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-block: 4px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--docs-text-muted);
+}
+
+.guide-sections__more summary::-webkit-details-marker {
+  display: none;
+}
+
+.guide-sections__more summary::before {
+  content: "+";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--docs-border);
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--docs-accent);
+}
+
+.guide-sections__more[open] summary::before {
+  content: "−";
+}
+
+.guide-sections__more summary:hover {
+  color: var(--docs-text);
+}
