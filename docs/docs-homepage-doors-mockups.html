@@ -810,6 +810,47 @@
         color: var(--text);
       }
 
+      .more summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding-block: 4px;
+        list-style: none;
+        cursor: pointer;
+        font-size: var(--s-1);
+        color: var(--muted);
+      }
+
+      .more summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .more summary::before {
+        content: "+";
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--root);
+        border-radius: 50%;
+        font-size: 13px;
+        line-height: 1;
+        color: var(--accent);
+      }
+
+      .more[open] summary::before {
+        content: "−";
+      }
+
+      .more summary:hover {
+        color: var(--text);
+      }
+
+      .more[open] summary {
+        margin-bottom: 4px;
+      }
+
       /* ---------------- Footer ---------------- */
 
       .site-footer {
@@ -1280,22 +1321,27 @@
                   >Deployment Guide</a
                 >
               </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/interface-setup"
-                  >Interface Setup</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/directory-sync-git"
-                  >Directory Sync and Git</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/mcp-inspector-guide"
-                  >MCP Inspector Guide</a
-                >
-              </li>
             </ul>
+            <details class="more">
+              <summary>3 more reference docs</summary>
+              <ul class="reference">
+                <li>
+                  <a href="https://docs.rizom.ai/docs/interface-setup"
+                    >Interface Setup</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/directory-sync-git"
+                    >Directory Sync and Git</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/mcp-inspector-guide"
+                    >MCP Inspector Guide</a
+                  >
+                </li>
+              </ul>
+            </details>
           </section>
 
           <!-- Extend -->
@@ -1351,42 +1397,47 @@
                   >Plugin Quick Reference</a
                 >
               </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
-                  >External Plugin Authoring</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/external-site-authoring"
-                  >External Site and Theme Authoring</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/entity-model"
-                  >Entity Model</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/architecture-overview"
-                  >Architecture Overview</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/brain-model"
-                  >Brain Models</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/agent-discovery"
-                  >Agent Discovery</a
-                >
-              </li>
-              <li>
-                <a href="https://docs.rizom.ai/docs/atproto-lexicons"
-                  >ATProto Lexicons</a
-                >
-              </li>
             </ul>
+            <details class="more">
+              <summary>7 more reference docs</summary>
+              <ul class="reference">
+                <li>
+                  <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
+                    >External Plugin Authoring</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/external-site-authoring"
+                    >External Site and Theme Authoring</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/entity-model"
+                    >Entity Model</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/architecture-overview"
+                    >Architecture Overview</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/brain-model"
+                    >Brain Models</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/agent-discovery"
+                    >Agent Discovery</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/atproto-lexicons"
+                    >ATProto Lexicons</a
+                  >
+                </li>
+              </ul>
+            </details>
           </section>
         </div>
       </div>
