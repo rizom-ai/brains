@@ -5,6 +5,7 @@ import type {
   Tool,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { loadPublicFaqs } from "@brains/faq";
 import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
@@ -31,6 +32,9 @@ import {
 } from "./schemas/homepage";
 import { OrganizationHomepage } from "./templates/homepage";
 import packageJson from "../package.json";
+
+/** How many published FAQs the homepage shows, as on the professional homepage. */
+const HOMEPAGE_FAQ_LIMIT = 6;
 
 /**
  * Organization Site Plugin
@@ -60,6 +64,8 @@ export class OrganizationSitePlugin extends ServicePlugin<
           loadHomepageOpening(buildContext, context),
         chatAvailable: (buildContext): Promise<boolean> =>
           homepageChatAvailable(buildContext, context),
+        loadFaqs: (buildContext): ReturnType<typeof loadPublicFaqs> =>
+          loadPublicFaqs(buildContext, HOMEPAGE_FAQ_LIMIT, context.logger),
       }),
     );
 

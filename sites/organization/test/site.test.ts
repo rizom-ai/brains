@@ -99,4 +99,27 @@ describe("organization site", () => {
     });
     expect(result?.success).toBe(true);
   });
+
+  it("accepts the homepage with its published FAQs, and with none", async () => {
+    const harness = await installed();
+    const template = harness.getTemplates().get("organization-site:homepage");
+    const homepage = {
+      profile: { name: "Team Brain POC Team" },
+      opening: {
+        title: null,
+        introduction: "A small team.",
+        topics: [],
+        contactUrl: null,
+      },
+    };
+    const faq = {
+      id: "guests",
+      question: "Can I bring a guest?",
+      answer: "Yes.",
+    };
+    expect(template?.schema.parse({ ...homepage, faqs: [faq] })).toMatchObject({
+      faqs: [faq],
+    });
+    expect(template?.schema.parse(homepage)).toMatchObject({ faqs: [] });
+  });
 });
