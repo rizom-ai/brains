@@ -23,27 +23,24 @@ describe("guideFrontmatterSchema", () => {
     expect(guideFrontmatterSchema.parse(frontmatter)).toEqual({
       ...frontmatter,
       brings: null,
-      door: null,
+      section: null,
     });
   });
 
-  it.each(["use", "run", "extend"])(
-    "accepts the %s door a docs homepage lists the guide under",
-    (door) => {
-      expect(guideFrontmatterSchema.parse({ ...frontmatter, door }).door).toBe(
-        door,
-      );
-    },
-  );
-
-  it("reads an absent door as null, for sites that list guides on their own", () => {
-    expect(guideFrontmatterSchema.parse(frontmatter).door).toBeNull();
+  it("accepts the docs section a guide is listed with", () => {
+    expect(
+      guideFrontmatterSchema.parse({ ...frontmatter, section: "Use a brain" })
+        .section,
+    ).toBe("Use a brain");
   });
 
-  it("rejects a door a docs homepage does not have", () => {
+  it("reads an absent section as null, for guides listed on their own", () => {
+    expect(guideFrontmatterSchema.parse(frontmatter).section).toBeNull();
+  });
+
+  it("rejects an empty section", () => {
     expect(
-      guideFrontmatterSchema.safeParse({ ...frontmatter, door: "browse" })
-        .success,
+      guideFrontmatterSchema.safeParse({ ...frontmatter, section: "" }).success,
     ).toBe(false);
   });
 

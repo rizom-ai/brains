@@ -51,7 +51,7 @@ export function guideWithData(
     for: `You are a ${slug}.`,
     recipe,
     brings: null,
-    door: null,
+    section: null,
     material: [],
   };
   return {
@@ -93,7 +93,7 @@ export function writerGuide(): GuideWithData {
     for: "You have years of essays and a folder of drafts.",
     recipe: "professional" as const,
     brings: null,
-    door: null,
+    section: null,
     material: [
       {
         from: "Drafts and fragments",

@@ -7,7 +7,7 @@ for: >-
   What your team knows is spread across people, channels and shared drives. It
   leaves when someone does.
 recipe: team
-door: use
+section: Use a brain
 material:
   - from: Shared documents
     where: Google Drive, wiki pages, handbooks

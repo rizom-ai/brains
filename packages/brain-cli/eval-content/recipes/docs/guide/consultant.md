@@ -13,7 +13,7 @@ brings:
   - Decks for your talks and workshops
   - Your own site with your posts, projects and decks
   - An agent card, so other brains can find you
-door: use
+section: Use a brain
 material:
   - from: What you do
     where: Your bio, a LinkedIn summary, a pitch
