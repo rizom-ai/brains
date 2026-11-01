@@ -250,7 +250,9 @@ export class DirectorySyncPlugin extends ServicePlugin<
     );
     const recovery = createInterruptedPullRecovery({
       operationStatus: this.operationStatus,
-      interruptedPull: await this.operationStatus.initialize(),
+      interruptedPull: await this.operationStatus.initialize({
+        executionOnly: context.executionOnly,
+      }),
       executionOnly: context.executionOnly,
     });
     this.registerOperationalHealth(context);
