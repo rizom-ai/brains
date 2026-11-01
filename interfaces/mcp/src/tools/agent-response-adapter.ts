@@ -66,6 +66,8 @@ export function agentResponseToToolResponse(
         ? { completionSummary: confirmation.completionSummary }
         : {}),
       ...(confirmation.preview ? { preview: confirmation.preview } : {}),
+      // The reply keeps what the agent wrote above the confirmation request.
+      ...(response.text ? { text: response.text } : {}),
       args: {
         approvalId: confirmation.id,
         ...(options.conversationId

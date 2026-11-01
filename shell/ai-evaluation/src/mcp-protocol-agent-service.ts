@@ -23,6 +23,8 @@ interface ConfirmationPayload {
   summary: string;
   completionSummary?: string;
   preview?: string;
+  /** The reply the agent wrote, with the request below it. */
+  text?: string;
   args: Record<string, unknown>;
 }
 
@@ -211,7 +213,7 @@ function protocolPayloadToAgentResponse(payload: unknown): AgentResponse {
     const args = confirmation.args;
     const approvalId = requireString(args["approvalId"], "approvalId");
     return parseAgentResponse({
-      text: confirmation.summary,
+      text: confirmation.text ?? confirmation.summary,
       pendingConfirmations: [
         {
           id: approvalId,
@@ -268,6 +270,9 @@ function parseConfirmationPayload(
       : {}),
     ...(typeof payload["preview"] === "string"
       ? { preview: payload["preview"] }
+      : {}),
+    ...(typeof payload["text"] === "string" && payload["text"].length > 0
+      ? { text: payload["text"] }
       : {}),
     args,
   };

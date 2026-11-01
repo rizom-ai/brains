@@ -2426,7 +2426,9 @@ describe("AgentService", () => {
         "test-conversation",
         adminConfirmationContext,
       );
-      expect(pending.text).toBe("Confirmation required.");
+      expect(pending.text).toBe(
+        "Please confirm deleting the note.\n\nConfirmation required.",
+      );
 
       mockAgentGenerateResult = {
         text: "fresh answer",
@@ -2931,8 +2933,10 @@ describe("AgentService", () => {
       expect(deleteHandler).toHaveBeenCalledTimes(1);
     });
 
-    it("does not return or persist misleading model completion text before confirmation", async () => {
-      setupConfirmationResponse("Deleted.");
+    // The agent's text stays in the reply, with the request below it, so an
+    // answer written alongside a proposed save is not lost.
+    it("keeps the agent's text and asks for confirmation below it", async () => {
+      setupConfirmationResponse("Here is the cleanup plan.");
 
       const service = AgentService.createFresh(
         mockMCPService,
@@ -2968,20 +2972,15 @@ describe("AgentService", () => {
           state: "approval-requested",
         },
       ]);
-      expect(response.text).toBe("Confirmation required.");
+      expect(response.text).toBe(
+        "Here is the cleanup plan.\n\nConfirmation required.",
+      );
       expect(response.toolResults).toEqual([]);
-      expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
           role: "assistant",
-          content: "Confirmation required.",
-        }),
-      );
-      expect(mockConversationService.addMessage).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          role: "assistant",
-          content: "Deleted.",
+          content: "Here is the cleanup plan.\n\nConfirmation required.",
         }),
       );
     });
