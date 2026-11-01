@@ -188,12 +188,12 @@
         overflow: hidden;
         background:
           radial-gradient(
-            ellipse 60% 55% at 52% 72%,
+            ellipse 60% 48% at 52% 58%,
             var(--wash-a),
             transparent 70%
           ),
           radial-gradient(
-            ellipse 30% 30% at 50% 70%,
+            ellipse 30% 28% at 50% 58%,
             var(--wash-b),
             transparent 70%
           );
@@ -592,8 +592,13 @@
       /* ---------------- Doors ---------------- */
 
       .doors-head {
-        padding-top: 48px;
-        border-top: 1px solid var(--text);
+        padding-top: 24px;
+      }
+
+      .doors-head p {
+        margin: 10px 0 0;
+        max-width: 52ch;
+        color: var(--muted);
       }
 
       .doors-head h2 {
@@ -611,8 +616,25 @@
 
       @media (min-width: 1000px) {
         .doors {
+          position: relative;
           grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
           padding-block: 40px 120px;
+        }
+
+        /* Centred on the door nodes: doors padding (40) + door padding (8)
+           + half a node (6). */
+        .doors::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 53px;
+          height: 1.4px;
+          background-image: repeating-linear-gradient(
+            90deg,
+            var(--root) 0 6px,
+            transparent 6px 16px
+          );
         }
       }
 
@@ -643,6 +665,19 @@
         .door:last-child {
           padding-right: 0;
         }
+      }
+
+      .door h3::before {
+        content: "";
+        position: relative;
+        display: block;
+        width: 12px;
+        height: 12px;
+        margin-bottom: 20px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 1.6px solid var(--accent);
+        box-shadow: 0 0 0 5px var(--glow);
       }
 
       .door h3 {
@@ -1131,6 +1166,10 @@
       <div class="wrap">
         <div class="doors-head" id="start">
           <h2>Where to start</h2>
+          <p>
+            Three ways in. Each begins with one concrete step, then the guides
+            and reference behind it.
+          </p>
         </div>
 
         <div class="doors">
