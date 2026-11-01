@@ -6,6 +6,7 @@ In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 ha
 
 - Embeddings: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Failed embeddings retry on the next start.
 - Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`).
+- No key: a brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
 - Sidecar: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; `local:` embeddings are priced at zero. No fleet brain has opted in.
 - Images: open. `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
 
@@ -79,8 +80,7 @@ By the deadline: a proof of concept. A separate brain, not the team brain or any
 By 2026-11-06, on the Z13 unless stated; numbers go in Status.
 
 1. Run the headless suite on `qwen3:32b`, schema-constrained; record pass rate and average duration.
-2. Boot a brain with `model` and `embeddingModel` both `local:` and no `AI_API_KEY`: a test proves it boots, indexes and answers a chat turn with no cloud provider configured; fix whatever still requires a key.
-3. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
+2. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
 
 ## Phase 3 — Fleet rollout
 

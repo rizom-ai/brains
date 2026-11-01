@@ -1,3 +1,5 @@
+import { findEmbeddingProfile, selectTextProvider } from "@brains/ai-service";
+
 interface PreflightResult {
   ok: boolean;
   message?: string;
@@ -5,12 +7,34 @@ interface PreflightResult {
 
 const MIN_BUN_VERSION = "1.3.3";
 
+/** The models brain.yaml names; absent ones fall back to cloud defaults. */
+export interface ConfiguredModels {
+  model?: string | undefined;
+  embeddingModel?: string | undefined;
+}
+
 /**
- * Check that AI_API_KEY is set and non-empty.
+ * A brain whose text and embedding models both run on the model runtime
+ * calls no cloud provider, so it needs no key.
+ */
+function runsOnlyLocalModels(models: ConfiguredModels): boolean {
+  return (
+    models.model !== undefined &&
+    models.embeddingModel !== undefined &&
+    selectTextProvider(models.model) === "local" &&
+    findEmbeddingProfile(models.embeddingModel)?.provider === "local"
+  );
+}
+
+/**
+ * Check that AI_API_KEY is set and non-empty, unless every model the brain
+ * uses is local.
  */
 export function checkApiKey(
   env: Record<string, string | undefined>,
+  models: ConfiguredModels = {},
 ): PreflightResult {
+  if (runsOnlyLocalModels(models)) return { ok: true };
   const key = env["AI_API_KEY"]?.trim();
   if (!key) {
     return {
