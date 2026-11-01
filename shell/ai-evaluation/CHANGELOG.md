@@ -1,5 +1,20 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- [#793](https://github.com/rizom-ai/brains/pull/793) [`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A reply that proposes an action needing confirmation now keeps what the agent wrote and asks for confirmation below it. Before, the whole reply became "Confirmation required.", so an answer written in the same turn, such as a requested triage note, was lost. When the agent wrote nothing, or wrote only the request, the reply is still just "Confirmation required." The MCP chat tool's confirmation response carries the reply as `text`, and basic-MCP evals read it from there.
+- Updated dependencies [[`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4)]:
+  - @brains/ai-service@0.2.0-alpha.616
+  - @brains/mcp-service@0.2.0-alpha.616
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/app@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes
