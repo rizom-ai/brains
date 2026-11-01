@@ -38,7 +38,7 @@ Exact steps: [Interface setup](/docs/interface-setup), [Content management](/doc
 
 ## Bring what you published
 
-Save each published essay as a markdown file and upload it in chat. Tell the brain when and where it first appeared.
+Save each published essay as a Markdown file and upload it in chat, one essay per message. Tell the brain when and where it first appeared.
 
 It becomes a **published post** with its original date. The original address stays the canonical one, so search engines keep crediting the first publication.
 
