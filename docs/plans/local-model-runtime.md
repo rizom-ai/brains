@@ -36,7 +36,7 @@ Agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:
 - `qwen3:8b` fails in both runs: the write–confirm–read-back case, the exact-note direct create, and the private note at admin and trusted (wrong `system_create` `source.kind`). Agent recommendation without a match and skill derivation fail in one run each.
 - `qwen3:8b` copies pasted text into `system_create` arguments instead of using `source.kind: user-message`, although the tool's descriptions ask for it; the tool contract stays strict.
 - `qwen3:14b` (14.8B, Q4_K_M) uses `user-message` and passes those cases. It fails the write–confirm–read-back case (no pending confirmation was created) and the private note at trusted (the reply claims a save the server refused).
-- No brain switches its text model on these numbers.
+- The proof of concept runs on `qwen3:14b`. The `qwen3:32b` row waits for a network that can download its 20 GB; it can only replace 14B if it closes the remaining gap. No production brain switches its text model on these numbers.
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
 

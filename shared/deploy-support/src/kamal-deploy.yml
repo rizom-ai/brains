@@ -51,6 +51,10 @@ accessories:
   models:
     image: ollama/ollama:0.40.11
     host: <%= ENV['SERVER_IP'] %>
+    env:
+      clear:
+        # Agent prompts run to ~28k tokens; the default context cuts them.
+        OLLAMA_CONTEXT_LENGTH: "32768"
     volumes:
       - /opt/brain-models:/root/.ollama
     options:

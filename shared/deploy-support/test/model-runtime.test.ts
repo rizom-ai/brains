@@ -38,6 +38,13 @@ describe("the model runtime accessory", () => {
     expect(accessory).toContain("health-cmd: ollama list");
   });
 
+  it("serves the context an agent prompt needs, not the runtime default", () => {
+    const [accessory] = conditionalBlocks(deploy).filter((block) =>
+      block.includes("accessories:"),
+    );
+    expect(accessory).toContain(`OLLAMA_CONTEXT_LENGTH: "32768"`);
+  });
+
   it("gives the brain the accessory's address on the deploy network", () => {
     const [env] = conditionalBlocks(deploy).filter((block) =>
       block.includes("MODEL_RUNTIME_URL"),

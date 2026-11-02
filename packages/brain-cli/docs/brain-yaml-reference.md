@@ -142,7 +142,7 @@ model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
 ```
 
-An explicit `provider:` prefix selects the provider; a bare name is matched to one. Supported providers are `anthropic`, `openai` and `google`; any other prefix fails config validation.
+An explicit `provider:` prefix selects the provider; a bare name is matched to one. Supported providers are `anthropic`, `openai`, `google` and `local` (the model runtime, below); any other prefix fails config validation.
 
 ### `embeddingModel`
 
@@ -167,6 +167,13 @@ To run EmbeddingGemma 2 on a development machine:
 ```sh
 ollama pull embeddinggemma-2:270m
 ollama serve
+```
+
+A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`.
+
+```sh
+ollama pull qwen3:14b
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve
 ```
 
 Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.
