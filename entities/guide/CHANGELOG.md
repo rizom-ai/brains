@@ -1,5 +1,17 @@
 # @brains/guide
 
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- [#807](https://github.com/rizom-ai/brains/pull/807) [`77e79ed`](https://github.com/rizom-ai/brains/commit/77e79ed3715cf86e7a861368faa5a7c0bd30a2d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A docs page lists each guide with the section its content names, also when the guide was imported before guides had a `section` field. Such a guide's stored metadata lacks the field, and an unchanged file is not imported again, so the guide was left out of its section.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/ui-library@0.2.0-alpha.627
+  - @brains/docs-chrome@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
 ## 0.2.0-alpha.626
 
 ### Patch Changes

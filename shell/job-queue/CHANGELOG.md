@@ -1,5 +1,17 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- [#805](https://github.com/rizom-ai/brains/pull/805) [`bfbef10`](https://github.com/rizom-ai/brains/commit/bfbef100edddb555772581f62f748cca16c309a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redeploying the same brain version no longer cuts off the old container's in-flight jobs. Both containers' workers shared one worker slot, so the new worker superseded the old one's session: its running jobs became reclaimable and it exited unhealthy. Every worker session now holds its own slot; of the live workers of one version, only the newest takes new work, while the older one keeps its session and finishes what it holds. A crashed worker's session is removed once it has been expired for longer than its timeout and none of its jobs holds a live lease, so it no longer stays behind as a stale session.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/db@0.2.0-alpha.627
+  - @brains/operation-context@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/mcp-service@0.2.0-alpha.627
+
 ## 0.2.0-alpha.626
 
 ### Patch Changes

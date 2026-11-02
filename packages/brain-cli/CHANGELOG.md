@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- [#807](https://github.com/rizom-ai/brains/pull/807) [`77e79ed`](https://github.com/rizom-ai/brains/commit/77e79ed3715cf86e7a861368faa5a7c0bd30a2d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A docs page lists each guide with the section its content names, also when the guide was imported before guides had a `section` field. Such a guide's stored metadata lacks the field, and an unchanged file is not imported again, so the guide was left out of its section.
+
+- [#805](https://github.com/rizom-ai/brains/pull/805) [`bfbef10`](https://github.com/rizom-ai/brains/commit/bfbef100edddb555772581f62f748cca16c309a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redeploying the same brain version no longer cuts off the old container's in-flight jobs. Both containers' workers shared one worker slot, so the new worker superseded the old one's session: its running jobs became reclaimable and it exited unhealthy. Every worker session now holds its own slot; of the live workers of one version, only the newest takes new work, while the older one keeps its session and finishes what it holds. A crashed worker's session is removed once it has been expired for longer than its timeout and none of its jobs holds a live lease, so it no longer stays behind as a stale session.
+
 ## 0.2.0-alpha.626
 
 ### Patch Changes
