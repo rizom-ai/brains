@@ -569,7 +569,7 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
 
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message, each as itself: text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+      'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
     );
   });
 
@@ -603,10 +603,33 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
 
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message, each as itself: text files as notes, PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "preserve" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+      'Available system_create candidate for keeping every file attached to this message, each as itself, text files as notes and PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "preserve" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
     );
     expect(text).toContain(
       'Available system_create candidate for keeping every file attached to this message as notes, each PDF\'s text extracted into its note, when the user asks for notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+    );
+  });
+
+  it("says how several attached files are kept as another type, with each file's own fields", () => {
+    const content = buildMessageWithAttachments("Make these posts.", [
+      {
+        kind: "text",
+        filename: "one.md",
+        mediaType: "text/markdown",
+        content: "# One",
+        source: { kind: "upload", id: "upload-one" },
+      },
+      {
+        kind: "text",
+        filename: "two.md",
+        mediaType: "text/markdown",
+        content: "# Two",
+        source: { kind: "upload", id: "upload-two" },
+      },
+    ]);
+
+    expect(content).toContain(
+      "To keep them as another type, such as posts, use this call with that entityType; what the user states about one file, such as its publication date, goes in that file's item fields.",
     );
   });
 
