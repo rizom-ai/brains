@@ -1,5 +1,15 @@
 # @rizom/site-docs
 
+## 0.2.0-alpha.246
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`859814d`](https://github.com/rizom-ai/brains/commit/859814d76f26af3d841a2347b500e4b32638aaec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The docs home opens on what a brain is: what you bring, the files the brain keeps and where they show up, drawn as one brain whose routes light up as you point at them. Below it, three doors — using, running and extending a brain — each with a first step, over that docs section's guides and reference. The copy is the site's own content (`docs-home:hero` and `docs-home:doors`), seeded once and edited in Studio; `/docs` keeps the full index.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: a route places a schema-first section by its runtime name, `namespace:name` (`home:hero`), the same form every template has. The dotted `home.hero` was rewritten by `defineSite()` only, so a site exported without it rendered nothing for those sections; it is now rejected with the colon spelling to use. `defineSite()` still makes `content.home.hero` the fallback of the section placed as `home:hero`, and validation messages name sections the same way. The bundled sites use the colon form.
+- Updated dependencies [[`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70)]:
+  - @rizom/site@0.2.0-alpha.241
+
 ## 0.2.0-alpha.245
 
 ### Patch Changes
