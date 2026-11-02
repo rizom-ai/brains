@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conversation's messages come back in the order they were added, also when several share a timestamp. Messages added within one millisecond tied on their timestamp, so recent messages and message ranges could return them in either order.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`c62a570`](https://github.com/rizom-ai/brains/commit/c62a5703abee44f3878ff80cbc2b01799d426214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The docs plugin adds a `docs:doc-home-header` template: the docs home's first part with the page's head and the configured header but no hero, for a site that draws its own opening below the header and continues the page with later parts.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`37ecfde`](https://github.com/rizom-ai/brains/commit/37ecfde35b89a5f13e522774d93a9ae27ec399cf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guide can name the docs section it is listed with: `section: Use a brain` in its frontmatter, matching a doc section by name, so a docs page can show each section's guides beside its docs. Absent, it reads as null and the guide is listed on its own. The Brains documentation guides set it: the writer, researcher, consultant and team guides with "Use a brain", the self-hosting guide with "Run a brain".
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`ea1cac9`](https://github.com/rizom-ai/brains/commit/ea1cac9c54c55d5448a4b329528d78d131de6261) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guides plugin adds a `guides:guide-sections` template and its `guides:sections` data source: each docs section as a column of the guides listed with it and its reference docs, the first four shown and the rest behind a disclosure. A docs site composes it under its own section introductions, such as a homepage that opens on using, running and extending a brain. The docs landing page is left out, since the sections introduce it.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`3f7a731`](https://github.com/rizom-ai/brains/commit/3f7a731f651914eea190ef048e08ec09a0c95ca9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain init` scaffolds a site that places its hero section as `home:hero`, the `namespace:name` form `@rizom/site` now requires for schema-first sections.
+
 ## 0.2.0-alpha.625
 
 ### Patch Changes
