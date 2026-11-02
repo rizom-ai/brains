@@ -114,6 +114,30 @@ describe("GuideSectionsDataSource", () => {
     ).toEqual([["writer", "researcher"], ["self-hosting"], []]);
   });
 
+  it("reads a guide's section from its content when its stored metadata predates the field", async () => {
+    // Imported by a brain whose guide schema had no section: the file names
+    // it, the stored metadata does not.
+    const { section: _section, ...olderMetadata } = guide(
+      "consultant",
+      15,
+      "Use a brain",
+    ).metadata;
+    shell.addEntities([
+      {
+        ...guide("consultant", 15, "Use a brain"),
+        metadata: olderMetadata,
+      },
+    ]);
+
+    const { sections } = await fetchSections();
+
+    expect(sections[0]?.guides.map((item) => item.metadata.slug)).toEqual([
+      "writer",
+      "consultant",
+      "researcher",
+    ]);
+  });
+
   it("leaves out guides that name no docs section or one without docs", async () => {
     const { sections } = await fetchSections();
 

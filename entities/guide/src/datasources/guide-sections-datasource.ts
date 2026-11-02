@@ -105,7 +105,9 @@ export class GuideSectionsDataSource implements DataSource {
       sections.set(item.section, section);
     }
     for (const item of guides) {
-      const name = item.metadata.section;
+      // The section comes from the guide's content, not its stored metadata,
+      // which a brain imported before the field existed and kept unchanged.
+      const name = item.frontmatter.section;
       if (name) sections.get(name)?.guides.push(item);
     }
 
