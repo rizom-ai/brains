@@ -1,9 +1,12 @@
 import type {
+  CreateCheckResult,
   CreateInput,
   CreateInterceptionResult,
   EntityPluginContext,
+  EntityTextResult,
 } from "@brains/plugins";
 import {
+  checkEntityText,
   continueWithEntityText,
   entityTextError,
   readEntityText,
@@ -58,26 +61,26 @@ function statedInText(
     : undefined;
 }
 
+type ProjectTextFields = z.output<typeof projectTextFieldsSchema>;
+
 /**
- * system_create for a portfolio project from the writer's own text: the text
- * stays as written, titled from its first heading, saved as a draft with a
- * card description written from it and the year it names. When the text does
- * not say when the project began, the user is asked once.
+ * The writer's project text with its card description and year: the ones
+ * they state, else written from the text and the year it names. A year or
+ * description that cannot be found is asked for.
  */
-export async function createProjectFromText(
+async function readProjectText(
   input: CreateInput,
   context: Pick<EntityPluginContext, "ai" | "entityService">,
-): Promise<CreateInterceptionResult> {
+): Promise<
+  EntityTextResult<ProjectTextFields & { year: number; description: string }>
+> {
   const read = readEntityText(input, {
     noun: "project",
     fieldsSchema: projectTextFieldsSchema,
     isComplete: (frontmatter) =>
       projectFrontmatterSchema.safeParse(frontmatter).success,
   });
-  if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") {
-    return entityTextError(read.error, read.question);
-  }
+  if (read.kind !== "text") return read;
   const { title, body, fields } = read.text;
 
   let description = fields.description;
@@ -88,23 +91,66 @@ export async function createProjectFromText(
       description ??= derived.description.trim() || undefined;
       year ??= statedInText(derived.year, { title, body });
     } catch (error) {
-      return entityTextError(
-        getErrorMessage(error, "Could not describe the project"),
-      );
+      return {
+        kind: "error",
+        error: getErrorMessage(error, "Could not describe the project"),
+      };
     }
   }
   if (year === undefined) {
-    return entityTextError(
-      "Which year did this project begin? The text does not say; pass the answer as fields { year }.",
-      "fields",
-    );
+    return {
+      kind: "question",
+      asks: "fields",
+      question: "Which year did this project begin?",
+      answerWith: "Pass the answer as fields { year }.",
+    };
   }
   if (description === undefined) {
-    return entityTextError(
-      "How would you sum up this project in a sentence? A description could not be written from the text; pass the answer as fields { description }.",
-      "fields",
-    );
+    return {
+      kind: "question",
+      asks: "fields",
+      question: "How would you sum up this project in a sentence?",
+      answerWith: "Pass the answer as fields { description }.",
+    };
   }
+  return {
+    kind: "text",
+    text: { title, body, fields: { ...fields, year, description } },
+  };
+}
+
+/**
+ * Before a project from the writer's text is confirmed: ask for the year
+ * the text does not name, and fill in the title, year and card description
+ * the confirmation shows and the confirmed save receives.
+ */
+export async function checkProjectText(
+  input: CreateInput,
+  context: Pick<EntityPluginContext, "ai" | "entityService">,
+): Promise<CreateCheckResult> {
+  return checkEntityText(
+    await readProjectText(input, context),
+    ({ title, fields }) => ({
+      title,
+      fields: { year: fields.year, description: fields.description },
+    }),
+  );
+}
+
+/**
+ * system_create for a portfolio project from the writer's own text: the text
+ * stays as written, titled from its first heading, saved as a draft with a
+ * card description written from it and the year it names.
+ */
+export async function createProjectFromText(
+  input: CreateInput,
+  context: Pick<EntityPluginContext, "ai" | "entityService">,
+): Promise<CreateInterceptionResult> {
+  const read = await readProjectText(input, context);
+  if (read.kind === "not-text") return { kind: "continue", input };
+  if (read.kind !== "text") return entityTextError(read);
+  const { title, body, fields } = read.text;
+  const { year, description } = fields;
 
   const status = fields.status ?? "draft";
   return continueWithEntityText(input, {

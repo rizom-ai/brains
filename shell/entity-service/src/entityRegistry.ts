@@ -30,6 +30,7 @@ import {
 } from "./entity-grouping";
 import type {
   BaseEntity,
+  CreateCheck,
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
@@ -47,6 +48,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
+  private createChecks = new Map<string, CreateCheck>();
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
@@ -140,6 +142,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.entityAdapters.delete(type);
     this.entityConfigs.delete(type);
     this.createInterceptors.delete(type);
+    this.createChecks.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
     this.groupingExtensions.delete(type);
@@ -324,6 +327,14 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined {
     return this.createInterceptors.get(type);
+  }
+
+  registerCreateCheck(type: string, check: CreateCheck): void {
+    this.createChecks.set(type, check);
+  }
+
+  getCreateCheck(type: string): CreateCheck | undefined {
+    return this.createChecks.get(type);
   }
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void {

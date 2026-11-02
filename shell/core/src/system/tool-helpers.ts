@@ -104,6 +104,18 @@ export {
   type ConfirmationGate,
 } from "@brains/mcp-service";
 
+/** The caller context a plugin's create check, interceptor or upload saver sees. */
+export function createExecutionContextFrom(
+  toolContext: ToolContext,
+): CreateExecutionContext {
+  return {
+    interfaceType: toolContext.interfaceType,
+    actor: toolContext.actor,
+    ...(toolContext.channelId && { channelId: toolContext.channelId }),
+    ...(toolContext.channelName && { channelName: toolContext.channelName }),
+  };
+}
+
 export type CreateInterceptorOutcome =
   | { kind: "handled"; result: ToolResponse }
   | { kind: "error"; result: ToolResponse }
@@ -123,13 +135,10 @@ export async function runCreateInterceptor(
   createInput: CreateInput,
   toolContext: ToolContext,
 ): Promise<CreateInterceptorOutcome> {
-  const executionContext: CreateExecutionContext = {
-    interfaceType: toolContext.interfaceType,
-    actor: toolContext.actor,
-    ...(toolContext.channelId && { channelId: toolContext.channelId }),
-    ...(toolContext.channelName && { channelName: toolContext.channelName }),
-  };
-  const interception = await interceptor(createInput, executionContext);
+  const interception = await interceptor(
+    createInput,
+    createExecutionContextFrom(toolContext),
+  );
   if (interception.kind === "handled") {
     return { kind: "handled", result: interception.result };
   }

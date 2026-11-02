@@ -5,13 +5,13 @@ import {
   permissionToVisibilityScope,
   resolveEntityOrError,
   type BaseEntity,
-  type CreateExecutionContext,
+  type CreateCheckResult,
   type CreateInput,
 } from "@brains/entity-service";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
@@ -29,6 +29,7 @@ import {
   assertEntityTypeRegistered,
   buildEntityMutationEventContext,
   createConfirmationGate,
+  createExecutionContextFrom,
   createSystemTool,
   hasStructuredFrontmatter,
   isUploadRefInConversation,
@@ -119,13 +120,6 @@ function buildCreateCompletionSummary(createInput: CreateInput): string {
   const label = createInput.title ? ` "${createInput.title}"` : "";
   return `Saved ${createInput.entityType}${label}.`;
 }
-
-/** A type's refusal that asks the user something; see `CreateResult`. */
-const questionRefusalSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-  question: z.enum(["fields", "slide-breaks"]),
-});
 
 type PreferredCreateSource = CreateToolInput["source"];
 
@@ -258,14 +252,7 @@ async function executeUploadPreserve(
   },
   toolContext: CreateToolContext,
 ): Promise<ToolResponse> {
-  const executionContext: CreateExecutionContext = {
-    interfaceType: toolContext.interfaceType,
-    actor: toolContext.actor,
-    ...(toolContext.channelId && { channelId: toolContext.channelId }),
-    ...(toolContext.channelName && {
-      channelName: toolContext.channelName,
-    }),
-  };
+  const executionContext = createExecutionContextFrom(toolContext);
   return input.handler(
     {
       upload: input.upload,
@@ -622,6 +609,71 @@ function resolveCreateToolTarget(
 }
 
 /**
+ * Run the type's check of a create before the user is asked to confirm it.
+ * A check that fails is a refusal like any other guard's.
+ */
+async function runCreateCheck(
+  services: SystemServices,
+  createInput: CreateInput,
+  toolContext: CreateToolContext,
+): Promise<CreateCheckResult> {
+  const check = services.entityRegistry.getCreateCheck(createInput.entityType);
+  if (!check) return { kind: "ready" };
+  try {
+    return await check(createInput, createExecutionContextFrom(toolContext));
+  } catch (error) {
+    return {
+      kind: "error",
+      error: getErrorMessage(
+        error,
+        `Could not check the ${createInput.entityType}`,
+      ),
+    };
+  }
+}
+
+/**
+ * What the agent is told when the type needs an answer before the save can
+ * be confirmed: the question to put to the user, as written, and how to
+ * save the same text once they answer. The guidance is for the agent only.
+ */
+function askUserFirst(
+  question: Extract<CreateCheckResult, { kind: "question" }>,
+  source: PreferredCreateSource,
+): string {
+  return [
+    "Nothing was saved and no approval was requested.",
+    `Ask the user this question in your reply, as written, without mentioning tools or fields: "${question.question}"`,
+    `When they answer, call system_create again; to save the same text, pass source ${JSON.stringify(retrySourceHint(source))}.`,
+    question.answerWith,
+  ].join(" ");
+}
+
+/**
+ * The create with what the type's check filled in: the title and fields
+ * the confirmation shows. What the caller stated wins.
+ */
+function withCheckCompletions(
+  createInput: CreateInput,
+  ready: Extract<CreateCheckResult, { kind: "ready" }>,
+): CreateInput {
+  const fields = {
+    ...Object.fromEntries(
+      Object.entries(ready.fields ?? {}).filter(
+        ([, value]) => value !== undefined,
+      ),
+    ),
+    ...createInput.fields,
+  };
+  const title = createInput.title ?? ready.title;
+  return {
+    ...createInput,
+    ...(title && { title }),
+    ...(Object.keys(fields).length > 0 && { fields }),
+  };
+}
+
+/**
  * Resolve the source, run every input/policy guard, and build the canonical
  * `createInput`. Returns a structured error response on any guard failure, or
  * the prepared create plus the small resolution metadata (source attachment,
@@ -740,7 +792,7 @@ async function prepareCreate(
     entitySource?.title ??
     upload?.value.title;
   const replace = input.replace === true;
-  const createInput: CreateInput = {
+  const statedInput: CreateInput = {
     entityType,
     ...(title && { title }),
     ...(visibility.value !== undefined ? { visibility: visibility.value } : {}),
@@ -754,20 +806,53 @@ async function prepareCreate(
 
   const policyError = assertEntityActionAllowed(
     services,
-    createInput.entityType,
+    statedInput.entityType,
     "create",
     toolContext,
   );
   if (policyError) return { kind: "error", result: policyError };
 
   const interceptor = services.entityRegistry.getCreateInterceptor(
-    createInput.entityType,
+    statedInput.entityType,
   );
-  if (!createInput.content && !interceptor && !uploadPreserve) {
+  if (!statedInput.content && !interceptor && !uploadPreserve) {
     return guardError(
       'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
     );
   }
+
+  // Ask for what the type still needs before the confirmation, so the user
+  // approves once, the complete save. The approved call was checked already.
+  const checked =
+    input.confirmed || uploadPreserve
+      ? undefined
+      : await runCreateCheck(services, statedInput, toolContext);
+  if (checked?.kind === "error") return guardError(checked.error);
+  if (checked?.kind === "question") {
+    const askedSource =
+      retry.kind === "pinned"
+        ? retry.source
+        : freezeConfirmationSource({
+            source: input.source,
+            ...(resolvedMessageId && { resolvedMessageId }),
+            ...(entitySource && { resolvedEntity: entitySource.ref }),
+            ...(content !== undefined ? { content } : {}),
+          });
+    // Pin the text, so the save after the answer keeps it unchanged
+    // whatever the model resends.
+    if (pendingKey && content !== undefined) {
+      pending.pin(pendingKey, {
+        source: askedSource,
+        content,
+        question: checked.asks,
+      });
+    }
+    return guardError(askUserFirst(checked, askedSource));
+  }
+  const createInput =
+    checked?.kind === "ready"
+      ? withCheckCompletions(statedInput, checked)
+      : statedInput;
 
   const target = await resolveCreateToolTarget(
     services,
@@ -797,7 +882,7 @@ async function executePreparedCreate(
   services: SystemServices,
   prepared: PreparedCreate,
   toolContext: CreateToolContext,
-  retry: { pending: PendingCreateTexts; source: PreferredCreateSource },
+  pending: PendingCreateTexts,
 ): Promise<ToolResponse> {
   const { interceptor, eventContext, uploadPreserve, replacesFailed } =
     prepared;
@@ -831,26 +916,10 @@ async function executePreparedCreate(
     if (outcome.kind === "error") return outcome.result;
     if (outcome.kind === "handled") {
       const { result } = outcome;
-      if (!pendingKey) return result;
-      if ("success" in result && result.success) {
-        retry.pending.clear(pendingKey);
-        return result;
+      if (pendingKey && "success" in result && result.success) {
+        pending.clear(pendingKey);
       }
-      const question = questionRefusalSchema.safeParse(result);
-      if (!question.success) return result;
-      // Pin the confirmed text, so the retry after the answer saves it
-      // unchanged whatever the model resends.
-      if (createInput.content !== undefined) {
-        retry.pending.pin(pendingKey, {
-          source: retry.source,
-          content: createInput.content,
-          question: question.data.question,
-        });
-      }
-      return {
-        success: false,
-        error: `${question.data.error} After the user answers, call system_create again with source ${JSON.stringify(retrySourceHint(retry.source))}.`,
-      };
+      return result;
     }
     createInput = outcome.createInput;
   }
@@ -869,7 +938,7 @@ async function executePreparedCreate(
     eventContext,
   );
   if (pendingKey && "success" in created && created.success) {
-    retry.pending.clear(pendingKey);
+    pending.clear(pendingKey);
   }
   return created;
 }
@@ -912,14 +981,7 @@ async function prepareUploadItem(
         replacesFailed: `${prepared.replacesFailed.entityType} "${prepared.replacesFailed.id}"`,
       }),
       save: () =>
-        executePreparedCreate(services, prepared, toolContext, {
-          pending,
-          source: {
-            kind: "upload",
-            upload: item.upload,
-            transform: item.transform,
-          },
-        }),
+        executePreparedCreate(services, prepared, toolContext, pending),
     },
   };
 }
@@ -1009,10 +1071,12 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           args: confirmationArgs,
         };
       }
-      return executePreparedCreate(services, prep.prepared, toolContext, {
+      return executePreparedCreate(
+        services,
+        prep.prepared,
+        toolContext,
         pending,
-        source: input.source,
-      });
+      );
     },
     { visibility: "trusted", sideEffects: "writes" },
   );

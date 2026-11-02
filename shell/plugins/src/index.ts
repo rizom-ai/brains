@@ -425,6 +425,8 @@ export type {
   CreateExecutionContext,
   CreateResult,
   CreateQuestion,
+  CreateCheck,
+  CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,
@@ -828,11 +830,13 @@ export {
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 export {
+  checkEntityText,
   continueWithEntityText,
   entityTextError,
   readEntityText,
   statedDateSchema,
   type EntityText,
+  type EntityTextQuestion,
   type EntityTextResult,
   type ReadEntityTextOptions,
 } from "./entity/create-from-text";

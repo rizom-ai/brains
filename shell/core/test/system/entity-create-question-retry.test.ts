@@ -6,8 +6,11 @@ import {
 import type { ToolContext } from "@brains/mcp-service";
 import type { Message } from "@brains/conversation-service";
 import type {
+  CreateCheck,
+  CreateCheckResult,
   CreateInput,
   CreateInterceptionResult,
+  CreateQuestion,
 } from "@brains/entity-service";
 import { createEntityCreateTool } from "../../src/system/entity-create-tool";
 import { createMockSystemServices } from "./mock-services";
@@ -35,17 +38,25 @@ function message(content: string, id: string): Message {
   };
 }
 
-/**
- * A project type that asks for its year once, the way the portfolio plugin
- * does, and records the text it is finally given.
- */
-function fixture(question: "fields" | "slide-breaks" = "fields"): {
+interface Fixture {
   messages: Message[];
-  saved: string[];
+  saved: CreateInput[];
+  checked: CreateInput[];
   tool: ReturnType<typeof createEntityCreateTool>;
-} {
+}
+
+/**
+ * A project type that, before its save is confirmed, asks for the year the
+ * way the portfolio plugin does and fills in the title and a description;
+ * its interceptor records what it is finally given to save.
+ */
+function fixture(
+  asks: CreateQuestion = "fields",
+  check?: CreateCheck,
+): Fixture {
   const messages = [message(`${prefix}${pasted}`, "pasted")];
-  const saved: string[] = [];
+  const saved: CreateInput[] = [];
+  const checked: CreateInput[] = [];
   const services = createMockSystemServices({
     conversationService: {
       getMessages: async (id) =>
@@ -53,20 +64,30 @@ function fixture(question: "fields" | "slide-breaks" = "fields"): {
     },
   });
   services.registerEntityTypes(["project", "note"]);
+  services.entityRegistry.registerCreateCheck(
+    "project",
+    check ??
+      (async (input: CreateInput): Promise<CreateCheckResult> => {
+        checked.push(input);
+        if (input.fields?.["year"] === undefined) {
+          return {
+            kind: "question",
+            asks,
+            question: "Which year did this project begin?",
+            answerWith: "Pass the answer as fields { year }.",
+          };
+        }
+        return {
+          kind: "ready",
+          title: input.title ?? "River Atlas",
+          fields: { description: "A town map made by canoe." },
+        };
+      }),
+  );
   services.entityRegistry.registerCreateInterceptor(
     "project",
     async (input: CreateInput): Promise<CreateInterceptionResult> => {
-      if (input.fields?.["year"] === undefined) {
-        return {
-          kind: "handled",
-          result: {
-            success: false,
-            error: "Which year did this project begin?",
-            question,
-          },
-        };
-      }
-      saved.push(input.content ?? "");
+      saved.push(input);
       return {
         kind: "handled",
         result: {
@@ -76,7 +97,12 @@ function fixture(question: "fields" | "slide-breaks" = "fields"): {
       };
     },
   );
-  return { messages, saved, tool: createEntityCreateTool(services) };
+  return {
+    messages,
+    saved,
+    checked,
+    tool: createEntityCreateTool(services),
+  };
 }
 
 async function confirm(
@@ -87,22 +113,126 @@ async function confirm(
   return tool.handler(args, context);
 }
 
-/** The first save: confirmed, then refused with the question. */
-async function askedOnce(setup: ReturnType<typeof fixture>): Promise<string> {
-  const result = await confirm(setup.tool, {
-    entityType: "project",
-    source: { kind: "user-message", startAfter: prefix },
-  });
+/** The first save: asked about before any approval is requested. */
+async function askedOnce(setup: Fixture): Promise<string> {
+  const result = await setup.tool.handler(
+    {
+      entityType: "project",
+      source: { kind: "user-message", startAfter: prefix },
+    },
+    context,
+  );
   setup.messages.push(message("It began in 2019.", "answer"));
   return expectToolError(result).error;
 }
 
-describe("system_create after the type asked a question", () => {
+function savedContent(setup: Fixture): Array<string | undefined> {
+  return setup.saved.map((input) => input.content);
+}
+
+describe("system_create when the type needs an answer first", () => {
+  test("asks before requesting approval, and saves nothing", async () => {
+    const setup = fixture();
+    const result = await setup.tool.handler(
+      {
+        entityType: "project",
+        source: { kind: "user-message", startAfter: prefix },
+      },
+      context,
+    );
+
+    expect(result).not.toHaveProperty("needsConfirmation");
+    const { error } = expectToolError(result);
+    expect(error).toContain('"Which year did this project begin?"');
+    expect(error).toContain("no approval was requested");
+    expect(error).toContain("Pass the answer as fields { year }.");
+    expect(savedContent(setup)).toEqual([]);
+  });
+
   test("tells the model the source to save again with", async () => {
     const setup = fixture();
     const error = await askedOnce(setup);
-    expect(error).toContain("Which year did this project begin?");
     expect(error).toContain('"messageId":"pasted"');
+  });
+
+  test("requests one approval after the answer, previewing what the type filled in", async () => {
+    const setup = fixture();
+    await askedOnce(setup);
+
+    const pending = await setup.tool.handler(
+      {
+        entityType: "project",
+        source: { kind: "user-message" },
+        fields: { year: 2019 },
+      },
+      context,
+    );
+    expect(pending).toMatchObject({
+      needsConfirmation: true,
+      summary: 'Create "River Atlas"?',
+    });
+    expect(pending).toHaveProperty(
+      "preview",
+      expect.stringContaining("year: 2019"),
+    );
+    expect(pending).toHaveProperty(
+      "preview",
+      expect.stringContaining("description: A town map made by canoe."),
+    );
+
+    const saved = await setup.tool.handler(
+      expectConfirmationArgs(pending),
+      context,
+    );
+    expect(saved).toMatchObject({ success: true });
+    expect(setup.saved).toHaveLength(1);
+    expect(setup.saved[0]).toMatchObject({
+      title: "River Atlas",
+      content: pasted,
+      fields: { year: 2019, description: "A town map made by canoe." },
+    });
+  });
+
+  test("does not check the approved save again", async () => {
+    const setup = fixture();
+    await askedOnce(setup);
+    await confirm(setup.tool, {
+      entityType: "project",
+      source: { kind: "user-message" },
+      fields: { year: 2019 },
+    });
+    expect(setup.checked).toHaveLength(2);
+  });
+
+  test("keeps the fields the user stated over the ones the type fills in", async () => {
+    const setup = fixture();
+    await askedOnce(setup);
+    await confirm(setup.tool, {
+      entityType: "project",
+      source: { kind: "user-message" },
+      fields: { year: 2019, description: "Mine." },
+    });
+    expect(setup.saved[0]?.fields).toEqual({
+      year: 2019,
+      description: "Mine.",
+    });
+  });
+
+  test("refuses before approval when the type finds the text unusable", async () => {
+    const setup = fixture("fields", async () => ({
+      kind: "error",
+      error: "Invalid project fields (year: Expected a number).",
+    }));
+    const result = await setup.tool.handler(
+      {
+        entityType: "project",
+        source: { kind: "user-message", startAfter: prefix },
+      },
+      context,
+    );
+    expect(expectToolError(result).error).toBe(
+      "Invalid project fields (year: Expected a number).",
+    );
   });
 
   test("saves the original bytes when the model resends the text itself", async () => {
@@ -124,7 +254,7 @@ describe("system_create after the type asked a question", () => {
       fields: { year: 2019 },
     });
     await setup.tool.handler(expectConfirmationArgs(pending), context);
-    expect(setup.saved).toEqual([pasted]);
+    expect(savedContent(setup)).toEqual([pasted]);
   });
 
   test("saves the original text when the model points at the latest message, the user's answer", async () => {
@@ -137,7 +267,7 @@ describe("system_create after the type asked a question", () => {
       source: { kind: "user-message" },
       fields: { year: 2019 },
     });
-    expect(setup.saved).toEqual([pasted]);
+    expect(savedContent(setup)).toEqual([pasted]);
   });
 
   test("saves the original text when the model's boundaries only fit the original message", async () => {
@@ -150,7 +280,7 @@ describe("system_create after the type asked a question", () => {
       source: { kind: "user-message", startAfter: prefix },
       fields: { year: 2019 },
     });
-    expect(setup.saved).toEqual([pasted]);
+    expect(savedContent(setup)).toEqual([pasted]);
   });
 
   test("keeps a resend that only adds slide separators after a slide-break question", async () => {
@@ -166,7 +296,7 @@ describe("system_create after the type asked a question", () => {
       source: { kind: "text", content: withSlides },
       fields: { year: 2019 },
     });
-    expect(setup.saved).toEqual([withSlides]);
+    expect(savedContent(setup)).toEqual([withSlides]);
   });
 
   test("saves new text the user pastes in reply as pasted", async () => {
@@ -181,7 +311,7 @@ describe("system_create after the type asked a question", () => {
       source: { kind: "user-message" },
       fields: { year: 2021 },
     });
-    expect(setup.saved).toEqual([replacement]);
+    expect(savedContent(setup)).toEqual([replacement]);
   });
 
   test("leaves creates of other types alone", async () => {

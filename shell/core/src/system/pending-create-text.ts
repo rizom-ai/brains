@@ -6,7 +6,7 @@ type CreateSource = z.infer<typeof createInputSchema>["source"];
 
 /** The text a create was given when its type asked the user a question. */
 interface PendingText {
-  /** The confirmed source, frozen to its message and content hash. */
+  /** The source asked about, frozen to its message and content hash. */
   source: CreateSource;
   content: string;
   question: CreateQuestion;
@@ -40,10 +40,10 @@ function pinnedMessageId(source: CreateSource): string | undefined {
 }
 
 /**
- * Verbatim text survives a clarifying question. When a type refuses a
- * create to ask the user something (a project's year, a doc's section,
- * where a deck's slides break), the text it was given is pinned per
- * conversation and type. The retry after the answer saves those bytes,
+ * Verbatim text survives a clarifying question. When a type asks the user
+ * something before a create is confirmed (a project's year, a doc's
+ * section, where a deck's slides break), the text it was given is pinned
+ * per conversation and type. The retry after the answer saves those bytes,
  * whatever the model resends: its own copy of the text, or the latest
  * message, which holds the answer. Only new text the user pastes, or
  * separators added after a slide-break question, replace the original.
