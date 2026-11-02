@@ -171,7 +171,9 @@ export async function createFromUploads(params: {
         upload: request.upload,
         transform: request.transform,
         title: items[index]?.title ?? request.title,
-        ...(request.fields && { fields: request.fields }),
+        ...((items[index]?.fields ?? request.fields) && {
+          fields: items[index]?.fields ?? request.fields,
+        }),
       })),
     },
     ...(input.fields && { fields: input.fields }),

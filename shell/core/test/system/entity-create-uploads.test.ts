@@ -489,3 +489,89 @@ describe("system_create uploads as another type's text", () => {
     );
   });
 });
+
+describe("system_create several uploads checked by their type", () => {
+  it("checks each file before the one confirmation, showing what the check filled in", async () => {
+    const fixture = uploadFixture([slownessUpload, quietUpload]);
+    const posts = withPostType(fixture);
+    const checked: CreateInput[] = [];
+    fixture.services.entityRegistry.registerCreateCheck(
+      "post",
+      async (input) => {
+        checked.push(input);
+        return { kind: "ready", fields: { author: "Alex Chen" } };
+      },
+    );
+
+    const pending = await fixture.tool.handler(
+      {
+        entityType: "post",
+        source: {
+          kind: "uploads",
+          items: [
+            item(slownessUpload, "extract-markdown"),
+            item(quietUpload, "extract-markdown"),
+          ],
+        },
+      },
+      uploadContext(),
+    );
+
+    expect(checked.map((input) => input.content)).toEqual([
+      slownessUpload.content,
+      quietUpload.content,
+    ]);
+    expect(expectToolConfirmation(pending).preview).toContain(
+      '1. on-slowness.md → post "On Slowness"\n   author: Alex Chen',
+    );
+    await fixture.tool.handler(
+      expectConfirmationArgs(pending),
+      uploadContext(),
+    );
+
+    expect(checked).toHaveLength(2);
+    expect(posts.map((input) => input.fields)).toEqual([
+      { author: "Alex Chen" },
+      { author: "Alex Chen" },
+    ]);
+  });
+
+  it("asks the type's question about one file and keeps the others in the retry", async () => {
+    const fixture = uploadFixture([slownessUpload, quietUpload]);
+    withPostType(fixture);
+    fixture.services.entityRegistry.registerCreateCheck(
+      "post",
+      async (input) =>
+        input.title === "Quiet Tools" && !input.fields?.["publishedAt"]
+          ? {
+              kind: "question",
+              asks: "fields",
+              question: "When was Quiet Tools first published?",
+              answerWith: "Pass the answer as fields { publishedAt }.",
+            }
+          : { kind: "ready" },
+    );
+    const source = {
+      kind: "uploads",
+      items: [
+        item(slownessUpload, "extract-markdown"),
+        item(quietUpload, "extract-markdown"),
+      ],
+    };
+
+    const result = await fixture.tool.handler(
+      { entityType: "post", source },
+      uploadContext(),
+    );
+
+    const { error } = expectToolError(result);
+    expect(error).toContain(
+      `Upload 2 of 2 (${quietUpload.id}): Nothing was saved and no approval was requested.`,
+    );
+    expect(error).toContain('"When was Quiet Tools first published?"');
+    expect(error).toContain(
+      `pass source ${JSON.stringify(source)}, with the answer about this file in its item.`,
+    );
+    expect(error).not.toContain('"kind":"upload","upload"');
+  });
+});

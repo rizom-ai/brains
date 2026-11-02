@@ -676,13 +676,21 @@ async function runCreateCheck(
 function askUserFirst(
   question: Extract<CreateCheckResult, { kind: "question" }>,
   source: PreferredCreateSource,
+  several: SeveralUploads | undefined,
 ): string {
   return [
     "Nothing was saved and no approval was requested.",
     `Ask the user this question in your reply, as written, without mentioning tools or fields: "${question.question}"`,
-    `When they answer, call system_create again; to save the same text, pass source ${JSON.stringify(retrySourceHint(source))}.`,
+    several
+      ? `When they answer, call system_create again; to save the same files, pass source ${JSON.stringify(several.source)}, with the answer about this file in its item.`
+      : `When they answer, call system_create again; to save the same text, pass source ${JSON.stringify(retrySourceHint(source))}.`,
     question.answerWith,
   ].join(" ");
+}
+
+/** The several-upload save a create is one file of. */
+interface SeveralUploads {
+  source: PreferredCreateSource;
 }
 
 /**
@@ -720,6 +728,7 @@ async function prepareCreate(
   input: CreateToolInput,
   toolContext: CreateToolContext,
   pending: PendingCreateTexts,
+  several?: SeveralUploads,
 ): Promise<
   | { kind: "error"; result: ToolResponse }
   | { kind: "ok"; prepared: PreparedCreate }
@@ -885,15 +894,15 @@ async function prepareCreate(
             ...(content !== undefined ? { content } : {}),
           });
     // Pin the text, so the save after the answer keeps it unchanged
-    // whatever the model resends.
-    if (pendingKey && content !== undefined) {
+    // whatever the model resends. An upload is read again from its ref.
+    if (pendingKey && content !== undefined && !uploadRef) {
       pending.pin(pendingKey, {
         source: askedSource,
         content,
         question: checked.asks,
       });
     }
-    return guardError(askUserFirst(checked, askedSource));
+    return guardError(askUserFirst(checked, askedSource, several));
   }
   const createInput =
     checked?.kind === "ready"
@@ -1013,9 +1022,11 @@ async function prepareUploadItem(
       },
       ...(Object.keys(fields).length > 0 && { fields }),
       ...(input.replace !== undefined ? { replace: input.replace } : {}),
+      ...(input.confirmed && { confirmed: input.confirmed }),
     },
     toolContext,
     pending,
+    { source: input.source },
   );
   if (prep.kind === "error") return prep;
   const { prepared } = prep;
