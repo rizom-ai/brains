@@ -2,7 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import type { CreateInput } from "@brains/entity-service";
 import {
+  checkEntityText,
   continueWithEntityText,
+  entityTextError,
   readEntityText,
 } from "../src/entity/create-from-text";
 
@@ -68,10 +70,13 @@ describe("readEntityText", () => {
     });
   });
 
-  it("asks for a title when the text has none", () => {
-    const result = read({ content: "Just a paragraph." });
-    expect(result).toMatchObject({ kind: "error", question: "fields" });
-    expect(JSON.stringify(result)).toContain("title");
+  it("asks the user for a title when the text has none", () => {
+    expect(read({ content: "Just a paragraph." })).toEqual({
+      kind: "question",
+      asks: "fields",
+      question: "What should this project be called?",
+      answerWith: "Pass the answer as `title`.",
+    });
   });
 
   it("refuses text that is only a title", () => {
@@ -154,6 +159,54 @@ describe("continueWithEntityText", () => {
         title: "Field notes",
         visibility: "shared",
         content: `---\ntitle: Field notes\nstatus: draft\nyear: 2021\n---\n${body}\n`,
+      },
+    });
+  });
+});
+
+describe("checkEntityText", () => {
+  it("is ready, with nothing to fill in, for what is not the writer's text", () => {
+    expect(checkEntityText({ kind: "not-text" }, () => ({}))).toEqual({
+      kind: "ready",
+    });
+  });
+
+  it("is ready with what the type fills in for the text", () => {
+    expect(
+      checkEntityText(read({ content: text }), (entityText) => ({
+        title: entityText.title,
+        fields: { year: 2019 },
+      })),
+    ).toEqual({ kind: "ready", title: "Field notes", fields: { year: 2019 } });
+  });
+
+  it("passes a question or a refusal through", () => {
+    expect(
+      checkEntityText(read({ content: "Just a paragraph." }), () => ({})),
+    ).toMatchObject({
+      kind: "question",
+      question: "What should this project be called?",
+    });
+    expect(
+      checkEntityText({ kind: "error", error: "Bad fields." }, () => ({})),
+    ).toEqual({ kind: "error", error: "Bad fields." });
+  });
+});
+
+describe("entityTextError", () => {
+  it("refuses a question the save could not ask first with the question and how to answer it", () => {
+    expect(
+      entityTextError({
+        kind: "question",
+        asks: "fields",
+        question: "Which year?",
+        answerWith: "Pass the answer as fields { year }.",
+      }),
+    ).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error: "Which year? Pass the answer as fields { year }.",
       },
     });
   });

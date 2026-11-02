@@ -1,5 +1,25 @@
 # @brains/chat
 
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/auth-service@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/auth-service@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+
 ## 0.2.0-alpha.620
 
 ### Patch Changes

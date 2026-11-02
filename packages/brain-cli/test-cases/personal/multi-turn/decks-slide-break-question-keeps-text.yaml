@@ -1,6 +1,6 @@
 id: multi-turn-decks-slide-break-question-keeps-text
 name: Deck Saved After the Slide-Break Question Keeps the Pasted Text
-description: Verifies that when pasted deck text has no separators or headings, the brain asks where the slides break, and the save after the user's answer stores the pasted paragraphs unchanged, one per slide.
+description: Verifies that when pasted deck text has no separators or headings, the brain asks where the slides break before requesting any approval, in plain words, and the one approval after the user's answer stores the pasted paragraphs unchanged, one per slide.
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -25,12 +25,14 @@ turns:
         - toolName: system_create
           argsContain:
             entityType: deck
-  - userMessage: Approve.
-    confirmPendingAction: true
-    successCriteria:
-      expectedTools:
-        - toolName: system_create
-          resultErrorContains: After the user answers, call system_create again with source
+          resultErrorContains: no approval was requested
+      responseNotContains:
+        - "failed"
+        - "system_create"
+        - "fields {"
+        - "---"
+      responseContains:
+        - "slide"
   - userMessage: One slide per paragraph.
     successCriteria:
       expectedTools:
@@ -45,6 +47,8 @@ turns:
           resultContains:
             success: true
             data.entityId: three-rules
+      responseNotContains:
+        - "failed"
   - userMessage: Read deck 'three-rules' from storage with part body. Do not change anything.
     successCriteria:
       expectedTools:

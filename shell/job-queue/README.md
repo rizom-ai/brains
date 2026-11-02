@@ -83,6 +83,30 @@ exhausted lock budgets propagate normally; persistent contention is not silently
 ignored or repaired through automatic job replay. No synchronous SQLite busy
 wait, lease relaxation, schema change, or execution-deadline change is introduced.
 
+## Brain versions
+
+A rolling deploy runs the old and new brain side by side on one queue database.
+`JobQueueServiceConfig.brainVersion` (the shell passes its own version) makes
+that overlap safe:
+
+- every job records the semver version of the brain that queued it;
+- a worker never claims, or reclaims after a lease expires, a job a newer brain
+  queued;
+- while a newer brain's worker session is live, an older worker claims nothing
+  new; its in-flight attempts still renew and finish;
+- a newer brain asking again for an older brain's pending job (`skip` or
+  `coalesce`) raises that job to its own version;
+- a worker slot is stable per version (`<slot>@<version>`), so the newer
+  worker's session never supersedes the older one.
+
+Jobs and sessions recorded before versions existed carry none: any worker runs
+those jobs, and those sessions stop nobody. Comparison follows semver
+precedence, prereleases included (`0.2.0-alpha.612` < `0.2.0-alpha.613`). A
+rollback leaves jobs the newer brain queued pending until a brain at least that
+new runs again.
+
+## Lifecycle
+
 `JobQueueWorkerConfig` controls the lifecycle:
 
 - `workerSlotId` (or `BRAIN_JOB_WORKER_SLOT_ID`) identifies the stable worker;

@@ -57,11 +57,13 @@ describe("createMockEntityRegistry", () => {
       kind: "continue",
       input,
     }));
+    registry.registerCreateCheck("note", async () => ({ kind: "ready" }));
 
     registry.unregisterEntityType("note");
 
     expect(registry.hasEntityType("note")).toBe(false);
     expect(registry.getCreateInterceptor("note")).toBeUndefined();
+    expect(registry.getCreateCheck("note")).toBeUndefined();
     expect(store.adapters.has("note")).toBe(false);
     expect(store.typeConfigs.has("note")).toBe(false);
   });

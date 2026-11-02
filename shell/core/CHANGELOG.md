@@ -1,5 +1,39 @@
 # @brains/core
 
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/image@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/operation-context@0.2.0-alpha.622
+  - @brains/site-composition@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/recurring-checks@0.2.0-alpha.622
+  - @brains/runtime-state@0.2.0-alpha.622
+  - @brains/scheduler@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- [#798](https://github.com/rizom-ai/brains/pull/798) [`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An older brain's worker no longer runs jobs a newer brain queued. A rolling deploy runs the old and new containers side by side on one job queue, and the old worker could claim the new brain's startup work. Every job now records the version of the brain that queued it; a worker never claims or recovers a job a newer brain queued, and once a newer brain's worker is live, an older worker takes no new work while its in-flight jobs finish. A newer brain asking again for an older brain's pending job hands that job to itself. Each version runs its own worker slot, so the new worker no longer supersedes the old one mid-job. Jobs queued before this release carry no version and stay claimable by any worker; the gate takes effect from the deploy after the one that ships it.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/recurring-checks@0.2.0-alpha.621
+  - @brains/image@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/operation-context@0.2.0-alpha.621
+  - @brains/site-composition@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/runtime-state@0.2.0-alpha.621
+  - @brains/scheduler@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
 ## 0.2.0-alpha.620
 
 ### Patch Changes

@@ -1,4 +1,5 @@
 import type {
+  CreateCheckResult,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -24,7 +25,7 @@ import {
 } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
-import { createPostFromText } from "./lib/create-from-text";
+import { checkPostText, createPostFromText } from "./lib/create-from-text";
 import { createBlogAtprotoProjection } from "./atproto-projection";
 import { createBlogPrintableProvider } from "./attachments/printable-provider";
 import { BLOG_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
@@ -58,6 +59,12 @@ export class BlogPlugin extends EntityPlugin<
       // Read by nothing: not the head, the site, nor ATProto.
       retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
     };
+  }
+
+  protected override async checkCreate(
+    input: CreateInput,
+  ): Promise<CreateCheckResult> {
+    return checkPostText(input);
   }
 
   protected override async interceptCreate(

@@ -196,7 +196,11 @@ export function createShellServices(options: {
 
   const jobServices = initializeJobServices({
     dependencies,
-    jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
+    jobQueueConfig: {
+      ...createDatabaseConfig(config.jobQueueDatabase),
+      // Gates claims across a rolling deploy's overlapping brain versions.
+      brainVersion: config.version,
+    },
     workerConcurrency: config.jobQueue.workerConcurrency,
     messageBus,
     operationContext,
