@@ -1,9 +1,9 @@
 ---
 title: "Customization Guide"
-section: "Customization"
-order: 100
+section: "Extend a brain"
+order: 200
 slug: "customization-guide"
-description: "brains is customized in layers. Prefer the smallest layer that solves the problem:"
+description: "Change bundles, content, themes, sites and plugins, smallest layer first"
 ---
 
 # Customization Guide
@@ -175,7 +175,7 @@ export default defineSite({
       id: "home",
       path: "/",
       title: "Home",
-      sections: [{ id: "hero", template: "home.hero" }],
+      sections: [{ id: "hero", template: "home:hero" }],
     },
   ],
   sections: [sectionGroup("home", { hero })],

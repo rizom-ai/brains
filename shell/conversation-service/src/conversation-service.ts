@@ -29,6 +29,10 @@ import type {
   NewSummaryTracking,
 } from "./schema";
 import { conversations, messages, summaryTracking } from "./schema";
+
+// Timestamps have millisecond precision, so messages added within one
+// millisecond tie; the row's insertion order keeps them in sequence.
+const messageInsertionOrder = sql`"messages"."rowid"`;
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
 import type { MessageBus } from "@brains/messaging-service";
@@ -380,7 +384,7 @@ export class ConversationService implements IConversationService {
         .select()
         .from(messages)
         .where(condition)
-        .orderBy(asc(messages.timestamp))
+        .orderBy(asc(messages.timestamp), asc(messageInsertionOrder))
         .limit(messageLimit)
         .offset(offset);
 
@@ -391,7 +395,7 @@ export class ConversationService implements IConversationService {
         .select()
         .from(messages)
         .where(condition)
-        .orderBy(desc(messages.timestamp))
+        .orderBy(desc(messages.timestamp), desc(messageInsertionOrder))
         .limit(limit);
 
       // Return in chronological order

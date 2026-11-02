@@ -13,6 +13,7 @@ import {
 import { guideSchema, type Guide } from "./schemas/guide";
 import { guideAdapter, type GuideAdapter } from "./adapters/guide-adapter";
 import { GuideDataSource } from "./datasources/guide-datasource";
+import { GuideSectionsDataSource } from "./datasources/guide-sections-datasource";
 import { getTemplates } from "./lib/register-templates";
 import packageJson from "../package.json";
 
@@ -49,6 +50,7 @@ export class GuidesPlugin extends EntityPlugin<
   protected override getDataSources(): DataSource[] {
     return [
       new GuideDataSource(this.logger.child("GuideDataSource"), this.config),
+      new GuideSectionsDataSource(),
     ];
   }
 }

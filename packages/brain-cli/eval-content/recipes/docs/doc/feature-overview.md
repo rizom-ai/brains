@@ -1,9 +1,9 @@
 ---
 title: "Feature Overview"
-section: "Start here"
-order: 15
+section: "Use a brain"
+order: 10
 slug: "feature-overview"
-description: "brains is a self-hosted AI knowledge system built around content you own. A brain can collect and search knowledge, help create durable material, expose that kn"
+description: "What a brain does today, from knowledge and publishing to interfaces and integrations"
 ---
 
 # Feature Overview

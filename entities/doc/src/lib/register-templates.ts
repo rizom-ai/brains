@@ -6,6 +6,7 @@ import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
 import { docsChromeSchema } from "@brains/docs-chrome";
 import { docsHeroSchema } from "../config";
 import {
+  DocHomeHeaderTemplate,
   DocHomeHeroTemplate,
   DocHomeSectionsTemplate,
   DocListTemplate,
@@ -87,6 +88,11 @@ export function getTemplates(): Record<string, Template> {
       "doc-home-hero",
       "Docs home, first part: the header and the hero",
       DocHomeHeroTemplate,
+    ),
+    "doc-home-header": docListTemplate(
+      "doc-home-header",
+      "Docs home, first part when the site draws its own opening: the header alone",
+      DocHomeHeaderTemplate,
     ),
     "doc-home-sections": docListTemplate(
       "doc-home-sections",

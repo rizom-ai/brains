@@ -36,7 +36,7 @@ function readingSite(): ReturnType<typeof defineSite> {
         id: "home",
         path: "/",
         title: "Reading library",
-        sections: [{ id: "hero", template: "library.hero" }],
+        sections: [{ id: "hero", template: "library:hero" }],
       },
     ],
     sections: [sectionGroup("library", { hero })],
@@ -96,7 +96,63 @@ describe("defineSite", () => {
           },
         },
       }),
-    ).toThrow("library.hero");
+    ).toThrow("library:hero");
+  });
+
+  test("rejects a dotted section template and names the colon spelling", () => {
+    const site = readingSite();
+
+    expect(() =>
+      defineSite({
+        ...site,
+        routes: [
+          {
+            id: "home",
+            path: "/",
+            title: "Reading library",
+            sections: [{ id: "hero", template: "library.hero" }],
+          },
+        ],
+      }),
+    ).toThrow(/library\.hero.*is written.*library:hero/);
+  });
+
+  test("places plugin templates as they are, with no content of their own", () => {
+    const site = defineSite({
+      ...readingSite(),
+      routes: [
+        {
+          id: "home",
+          path: "/",
+          title: "Reading library",
+          sections: [
+            { id: "hero", template: "library:hero" },
+            { id: "docs", template: "docs:doc-list", dataQuery: {} },
+          ],
+        },
+      ],
+    });
+    const docs = site.routes[0]?.sections?.[1];
+
+    expect(docs?.template).toBe("docs:doc-list");
+    expect(docs?.content).toBeUndefined();
+  });
+
+  test("keeps the content a placed section already carries", () => {
+    const own = { heading: "Own copy", introduction: "Placed here." };
+    const site = defineSite({
+      ...readingSite(),
+      routes: [
+        {
+          id: "home",
+          path: "/",
+          title: "Reading library",
+          sections: [{ id: "hero", template: "library:hero", content: own }],
+        },
+      ],
+    });
+
+    expect(site.routes[0]?.sections?.[0]?.content).toEqual(own);
   });
 
   test("rejects embedded runtime plugins from the stable definition", () => {

@@ -1,9 +1,31 @@
 import { Fragment, createElement as h, type ReactNode, type JSX } from "react";
-import type { RouteDefinitionInput, SiteDefinition } from "@rizom/site";
+import {
+  defineSite,
+  type RouteDefinitionInput,
+  type SiteDefinition,
+} from "@rizom/site";
+import {
+  DOCS_HOME_SCRIPT_SRC,
+  docsHomeContent,
+  docsHomeCss,
+  docsHomeScript,
+  docsHomeSections,
+} from "./home";
 
 const docsQuery = { entityType: "doc", query: { limit: 100 } };
 
-// The docs home in parts, with the guides band between the hero and the
+// The home: the docs header, then the site's own opening (what a brain is)
+// and door introductions, then each docs section's guides and reference
+// under its door. The opening and the doors start from the copy in
+// `content` below; once edited in Studio, saved site content takes over.
+const homeSections = [
+  { id: "header", template: "docs:doc-home-header", dataQuery: docsQuery },
+  { id: "hero", template: "docs-home:hero" },
+  { id: "doors", template: "docs-home:doors" },
+  { id: "sections", template: "guides:guide-sections", dataQuery: {} },
+];
+
+// The docs index in parts, with the guides band between the hero and the
 // sections. Without the guides plugin or any guide, there is no band.
 const docsSections = [
   { id: "docs-hero", template: "docs:doc-home-hero", dataQuery: docsQuery },
@@ -28,7 +50,7 @@ const docsRoutes: RouteDefinitionInput[] = [
       slot: "primary",
       priority: 10,
     },
-    sections: docsSections,
+    sections: homeSections,
   },
   {
     id: "docs",
@@ -43,11 +65,23 @@ const docsRoutes: RouteDefinitionInput[] = [
 const DocsLayout = ({ sections }: { sections: ReactNode[] }): JSX.Element =>
   h(Fragment, null, ...sections);
 
-export const docsSite: SiteDefinition = {
+// defineSite validates the site and makes the starting copy in `content` the
+// fallback of each section placed as docs-home:hero or docs-home:doors.
+export const docsSite: SiteDefinition = defineSite({
   layouts: {
     default: DocsLayout,
   },
   routes: docsRoutes,
+  sections: docsHomeSections,
+  content: {
+    "docs-home": {
+      hero: docsHomeContent.hero,
+      doors: docsHomeContent.doors,
+    },
+  },
+  themeOverride: docsHomeCss,
+  headScripts: [`<script src="${DOCS_HOME_SCRIPT_SRC}" defer></script>`],
+  staticAssets: { [DOCS_HOME_SCRIPT_SRC]: docsHomeScript },
   entityDisplay: {
     doc: {
       label: "Doc",
@@ -64,6 +98,6 @@ export const docsSite: SiteDefinition = {
       navigation: { show: false },
     },
   },
-};
+});
 
 export default docsSite;

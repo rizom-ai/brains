@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  setSystemTime,
+  spyOn,
+} from "bun:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
@@ -877,6 +885,48 @@ describe("ConversationService", () => {
       expect(result[0]?.content).toBe("First message");
       expect(result[1]?.content).toBe("Second message");
       expect(result[2]?.content).toBe("Third message");
+    });
+
+    describe("messages that share a timestamp", () => {
+      const contents = ["First message", "Second message", "Third message"];
+
+      beforeEach(async () => {
+        // Messages added within one millisecond share their timestamp.
+        setSystemTime(new Date("2026-11-02T12:00:00.000Z"));
+        await service.startConversation({
+          sessionId: "conv-same-instant",
+          interfaceType: "cli",
+          channelId: "test-channel",
+          metadata: testMetadata,
+        });
+        for (const [index, content] of contents.entries()) {
+          await service.addMessage({
+            conversationId: "conv-same-instant",
+            role: index % 2 === 0 ? "user" : "assistant",
+            content,
+          });
+        }
+      });
+
+      afterEach(() => {
+        setSystemTime();
+      });
+
+      it("returns the most recent ones in the order they were added", async () => {
+        const result = await service.getMessages("conv-same-instant");
+
+        expect(result.map((message) => message.content)).toEqual(contents);
+      });
+
+      it("returns a range in the order they were added", async () => {
+        const result = await service.getMessages("conv-same-instant", {
+          range: { start: 2, end: 3 },
+        });
+
+        expect(result.map((message) => message.content)).toEqual(
+          contents.slice(1),
+        );
+      });
     });
 
     it("should limit the number of messages retrieved", async () => {

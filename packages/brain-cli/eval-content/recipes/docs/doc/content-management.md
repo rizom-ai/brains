@@ -1,9 +1,9 @@
 ---
 title: "Content Management"
-section: "Content and entities"
-order: 50
+section: "Use a brain"
+order: 20
 slug: "content-management"
-description: "brains treats content as typed markdown entities. You can work with those entities through chat/MCP tools, the Studio, direct markdown edits, or plugin-owned ge"
+description: "Create, edit, sync and publish markdown content"
 ---
 
 # Content Management Guide

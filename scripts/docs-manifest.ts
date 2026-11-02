@@ -6,6 +6,9 @@ const docsManifestEntrySchema = z.strictObject({
   title: z.string().min(1),
   section: z.string().min(1),
   order: z.number().int(),
+  // The line the doc is listed with. Without it the sync falls back to the
+  // doc's first paragraph.
+  description: z.string().min(1).optional(),
   source: z.string().min(1),
 });
 

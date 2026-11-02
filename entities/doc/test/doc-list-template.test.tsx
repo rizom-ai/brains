@@ -6,6 +6,7 @@ import type { DocWithData } from "../src/schemas/doc";
 import type { DocsHero } from "../src/config";
 import { getTemplates } from "../src/lib/register-templates";
 import {
+  DocHomeHeaderTemplate,
   DocHomeHeroTemplate,
   DocHomeSectionsTemplate,
   DocListTemplate,
@@ -166,10 +167,28 @@ describe("docs home in parts", () => {
     expect(html).not.toContain("Build, run, and publish");
   });
 
-  test("registers both parts as templates over the docs data source", () => {
+  test("the header alone opens a page whose site draws its own opening", () => {
+    const html = render(
+      <DocHomeHeaderTemplate
+        baseUrl={null}
+        docs={docs}
+        pagination={null}
+        hero={hero}
+        chrome={chrome}
+      />,
+    );
+
+    expect(html).toMatch(/docs-header.*?Example docs/);
+    expect(html).toContain("docs-handbook--continued");
+    expect(html).not.toContain("Build, run, and publish");
+    expect(html).not.toContain('id="sections"');
+  });
+
+  test("registers the parts as templates over the docs data source", () => {
     const templates = getTemplates();
 
     expect(templates["doc-home-hero"]?.dataSourceId).toBe("docs:entities");
+    expect(templates["doc-home-header"]?.dataSourceId).toBe("docs:entities");
     expect(templates["doc-home-sections"]?.dataSourceId).toBe("docs:entities");
   });
 });

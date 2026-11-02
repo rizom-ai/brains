@@ -6,6 +6,7 @@ persona: Running your own brain
 for: >-
   You want the brain on your own machine or server, your content in a folder and
   a git repository you control, and the site on your own domain.
+section: Run a brain
 material:
   - from: A folder of Markdown
     where: An Obsidian vault, a notes folder

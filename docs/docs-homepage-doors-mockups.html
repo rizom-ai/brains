@@ -1,0 +1,1700 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docs Homepage — Three Doors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Palette and faces are the live docs.rizom.ai rizom theme
+         (night / cream / brass). Dark is the live default. Mono is used
+         only for real files and commands, never for labels. */
+      :root {
+        --display: "Fraunces", Georgia, serif;
+        --body: "IBM Plex Sans", system-ui, sans-serif;
+        --code: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+        /* Type scale, ratio 1.25 from a 17px body. */
+        --s-1: 14px;
+        --s0: 17px;
+        --s1: 21px;
+        --s2: 26px;
+        --s3: 33px;
+        --s5: clamp(38px, 4.6vw, 60px);
+
+        --gutter: 16px;
+        --measure: 1200px;
+      }
+
+      @media (min-width: 760px) {
+        :root {
+          --gutter: 48px;
+        }
+      }
+
+      [data-theme="dark"] {
+        --bg: #14132b;
+        --bg-deep: #0e0d20;
+        --text: #faf8f3;
+        --muted: rgb(250 248 243 / 0.72);
+        --quiet: rgb(250 248 243 / 0.5);
+        --rule: rgb(250 248 243 / 0.14);
+        --accent: #d4af37;
+        --wash-a: rgb(107 47 160 / 0.22);
+        --wash-b: rgb(212 175 55 / 0.07);
+        --root: rgb(212 175 55 / 0.34);
+        --twig: rgb(250 248 243 / 0.14);
+        --glow: rgb(212 175 55 / 0.28);
+        --node: #faf8f3;
+      }
+
+      [data-theme="light"] {
+        --bg: #faf8f3;
+        --bg-deep: #f1ede2;
+        --text: #23213a;
+        --muted: rgb(35 33 58 / 0.76);
+        --quiet: rgb(35 33 58 / 0.56);
+        --rule: rgb(35 33 58 / 0.16);
+        --accent: #a8821c;
+        --wash-a: rgb(140 130 200 / 0.16);
+        --wash-b: rgb(168 130 28 / 0.08);
+        --root: rgb(168 130 28 / 0.45);
+        --twig: rgb(35 33 58 / 0.16);
+        --glow: rgb(168 130 28 / 0.2);
+        --node: #23213a;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--body);
+        font-size: var(--s0);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      a:focus-visible,
+      button:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+        border-radius: 2px;
+      }
+
+      .wrap {
+        max-width: var(--measure);
+        margin: 0 auto;
+        padding-inline: var(--gutter);
+      }
+
+      code,
+      pre {
+        font-family: var(--code);
+      }
+
+      /* ---------------- Header (as live) ---------------- */
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+        backdrop-filter: blur(8px);
+      }
+
+      .site-header .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-block: 18px;
+      }
+
+      .wordmark {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .wordmark span:nth-child(2) {
+        color: var(--accent);
+      }
+
+      .wordmark span:nth-child(3) {
+        color: var(--muted);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .version {
+        padding: 2px 9px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        font-size: 12.5px;
+        color: var(--quiet);
+        white-space: nowrap;
+      }
+
+      .version:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
+      .site-header nav {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .site-header nav a:hover {
+        color: var(--text);
+      }
+
+      .site-header nav .wide {
+        display: none;
+      }
+
+      @media (min-width: 760px) {
+        .site-header nav .wide {
+          display: inline;
+        }
+      }
+
+      .site-header nav .get {
+        border: 1px solid var(--text);
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .site-header nav .get:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ---------------- Hero: what a brain is ---------------- */
+
+      /* Full-bleed band carrying the rizom atmospheric washes. */
+      .hero-band {
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(
+            ellipse 60% 48% at 52% 58%,
+            var(--wash-a),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 30% 28% at 50% 58%,
+            var(--wash-b),
+            transparent 70%
+          );
+      }
+
+      .hero {
+        padding-block: 48px 72px;
+      }
+
+      @media (min-width: 1000px) {
+        .hero {
+          padding-block: 88px 112px;
+        }
+      }
+
+      .intro {
+        display: grid;
+        gap: 24px;
+      }
+
+      @media (min-width: 1000px) {
+        .intro {
+          gap: 20px;
+        }
+      }
+
+      .kicker {
+        margin: 0 0 20px;
+        font-family: var(--display);
+        font-size: var(--s1);
+        color: var(--muted);
+      }
+
+      .hero h1 {
+        margin: 0;
+        max-width: 14ch;
+        font-family: var(--display);
+        font-size: var(--s5);
+        font-weight: 380;
+        font-variation-settings: "SOFT" 50;
+        line-height: 1.06;
+        letter-spacing: -0.02em;
+      }
+
+      .hero .lede {
+        margin: 0;
+        max-width: 60ch;
+        font-family: var(--display);
+        font-size: var(--s1);
+        font-weight: 340;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .release {
+        margin: 20px 0 0;
+        font-size: var(--s-1);
+        color: var(--quiet);
+      }
+
+      .release a {
+        color: var(--muted);
+        text-decoration: underline;
+        text-decoration-color: var(--rule);
+        text-underline-offset: 3px;
+      }
+
+      .release a:hover {
+        color: var(--text);
+        text-decoration-color: var(--accent);
+      }
+
+      /* ---------- The organism: sources, the brain, where it shows up ---------- */
+
+      .organism {
+        position: relative;
+        margin: 56px 0 0;
+        display: grid;
+        gap: 40px;
+      }
+
+      @media (min-width: 1000px) {
+        .organism {
+          margin-top: 72px;
+          grid-template-columns:
+            minmax(0, 0.9fr) minmax(0, 1.35fr)
+            minmax(0, 0.9fr);
+          column-gap: 56px;
+          align-items: center;
+        }
+      }
+
+      .organism svg {
+        display: none;
+      }
+
+      @media (min-width: 1000px) {
+        .organism svg {
+          display: block;
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+          pointer-events: none;
+        }
+      }
+
+      .organism svg path {
+        transition:
+          stroke 0.3s,
+          stroke-width 0.3s;
+        fill: none;
+        stroke: var(--twig);
+        stroke-width: 1;
+        stroke-linecap: round;
+      }
+
+      .organism svg path.root {
+        stroke: var(--root);
+        stroke-width: 1.3;
+      }
+
+      .organism svg path.lit {
+        stroke: var(--accent);
+        stroke-width: 1.8;
+        filter: drop-shadow(0 0 5px var(--glow));
+      }
+
+      .organism h2 {
+        margin: 0 0 18px;
+        font-size: var(--s-1);
+        font-weight: 600;
+        color: var(--quiet);
+      }
+
+      .ends {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 22px;
+      }
+
+      .ends li {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .ends .t {
+        display: block;
+        line-height: 1.35;
+      }
+
+      .ends .d {
+        display: block;
+        margin-top: 2px;
+        font-size: var(--s-1);
+        line-height: 1.45;
+        color: var(--quiet);
+      }
+
+      .ends .d code {
+        font-size: 13px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .ends li.lit .t {
+        color: var(--accent);
+      }
+
+      .ends li.lit .d {
+        color: var(--muted);
+      }
+
+      @media (min-width: 1000px) {
+        .from h2,
+        .from li {
+          text-align: right;
+        }
+
+        .from li {
+          justify-content: flex-end;
+        }
+
+        .from .dot {
+          order: 2;
+        }
+      }
+
+      /* Nodes: small cream points, brass when on the lit route. */
+      .dot {
+        flex: none;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--node);
+      }
+
+      .lit > .dot {
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--glow);
+      }
+
+      /* The brain: a glowing core with its files around it. */
+      .cluster {
+        position: relative;
+      }
+
+      .core {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .core-dot {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff6d6 0%, var(--accent) 60%);
+        box-shadow:
+          0 0 0 6px var(--glow),
+          0 0 48px 14px var(--glow);
+      }
+
+      .core-label {
+        font-family: var(--display);
+        font-size: var(--s2);
+        line-height: 1.1;
+      }
+
+      @media (min-width: 1000px) {
+        .core-label {
+          padding: 2px 10px 4px;
+          border-radius: 6px;
+          background: color-mix(in srgb, var(--bg) 82%, transparent);
+        }
+      }
+
+      .core-label small {
+        display: block;
+        white-space: nowrap;
+        margin-top: 4px;
+        font-family: var(--code);
+        font-size: 12.5px;
+        color: var(--quiet);
+      }
+
+      .files {
+        margin: 20px 0 0;
+        padding: 0 0 0 4px;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+      }
+
+      .files li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--code);
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .files li.lit {
+        color: var(--text);
+      }
+
+      .files .type {
+        font-family: var(--body);
+        font-size: 12.5px;
+        color: var(--quiet);
+      }
+
+      .files li.lit .type {
+        color: var(--accent);
+      }
+
+      .cluster-note {
+        margin: 20px 0 0;
+        max-width: 34ch;
+        font-size: var(--s-1);
+        line-height: 1.5;
+        color: var(--quiet);
+      }
+
+      @media (min-width: 1000px) {
+        .cluster {
+          height: 380px;
+        }
+
+        .core {
+          position: absolute;
+          left: var(--x);
+          top: var(--y);
+          flex-direction: column;
+          gap: 10px;
+          text-align: center;
+          transform: translate(-50%, -11px);
+        }
+
+        .files {
+          margin: 0;
+          padding: 0;
+          display: block;
+        }
+
+        .files li {
+          position: absolute;
+          left: var(--x);
+          top: var(--y);
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+          transform: translate(-4.5px, -4.5px);
+          white-space: nowrap;
+        }
+
+        .files li.above {
+          flex-direction: column-reverse;
+          transform: translate(-4.5px, calc(-100% + 4.5px));
+        }
+
+        .cluster-note {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -36px;
+          margin: 0 auto;
+          text-align: center;
+        }
+      }
+
+      .organism .caption {
+        margin: 8px 0 0;
+        max-width: 70ch;
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      [data-story] {
+        cursor: pointer;
+        border-radius: 4px;
+      }
+
+      [data-story]:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 6px;
+      }
+
+      .ends li .t,
+      .files li > span:last-child {
+        transition: color 0.3s;
+      }
+
+      .ends li:hover .t,
+      .files li:hover > span:last-child {
+        color: var(--text);
+      }
+
+      .organism .caption .hint {
+        display: block;
+        margin-bottom: 4px;
+        font-size: var(--s-1);
+        color: var(--quiet);
+      }
+
+      .organism .caption .story {
+        color: var(--text);
+      }
+
+      .organism .caption .story::before {
+        content: "";
+        display: inline-block;
+        width: 22px;
+        height: 2px;
+        margin-right: 10px;
+        vertical-align: middle;
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--glow);
+      }
+
+      @media (min-width: 1000px) {
+        .organism .caption {
+          grid-column: 1 / -1;
+          margin-top: 24px;
+        }
+      }
+
+      /* ---------------- Doors ---------------- */
+
+      .doors-head {
+        padding-top: 24px;
+      }
+
+      .doors-head p {
+        margin: 10px 0 0;
+        max-width: 52ch;
+        color: var(--muted);
+      }
+
+      .doors-head h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: var(--s3);
+        font-weight: 400;
+        letter-spacing: -0.012em;
+      }
+
+      .doors {
+        display: grid;
+        padding-block: 32px 96px;
+      }
+
+      @media (min-width: 1000px) {
+        .doors {
+          position: relative;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+          padding-block: 40px 120px;
+        }
+
+        /* Centred on the door nodes: doors padding (40) + door padding (8)
+           + half a node (6). */
+        .doors::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 53px;
+          height: 1.4px;
+          background-image: repeating-linear-gradient(
+            90deg,
+            var(--root) 0 6px,
+            transparent 6px 16px
+          );
+        }
+      }
+
+      .door {
+        padding-block: 32px;
+        border-top: 1px solid var(--rule);
+        scroll-margin-top: 72px;
+      }
+
+      .door:first-child {
+        border-top: 0;
+        padding-top: 8px;
+      }
+
+      @media (min-width: 1000px) {
+        .door,
+        .door:first-child {
+          padding: 8px 36px 0;
+          border-top: 0;
+          border-left: 1px solid var(--rule);
+        }
+
+        .door:first-child {
+          padding-left: 0;
+          border-left: 0;
+        }
+
+        .door:last-child {
+          padding-right: 0;
+        }
+      }
+
+      .door h3::before {
+        content: "";
+        position: relative;
+        display: block;
+        width: 12px;
+        height: 12px;
+        margin-bottom: 20px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 1.6px solid var(--accent);
+        box-shadow: 0 0 0 5px var(--glow);
+      }
+
+      .door h3 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: var(--s2);
+        font-weight: 420;
+        line-height: 1.15;
+      }
+
+      .door .who {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .door h4 {
+        margin: 28px 0 10px;
+        font-size: var(--s-1);
+        font-weight: 600;
+        color: var(--quiet);
+      }
+
+      .first p {
+        margin: 0;
+        line-height: 1.55;
+      }
+
+      .first p + p,
+      .first pre + p,
+      .first ol + p {
+        margin-top: 8px;
+        font-size: var(--s-1);
+        color: var(--quiet);
+      }
+
+      .first code {
+        font-size: 0.9em;
+        color: var(--text);
+      }
+
+      .first pre {
+        margin: 0;
+        padding: 12px 14px;
+        overflow-x: auto;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--bg-deep);
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--text);
+      }
+
+      .first pre .p {
+        color: var(--quiet);
+        user-select: none;
+      }
+
+      .layers {
+        margin: 0;
+        padding-left: 1.4em;
+        line-height: 1.5;
+      }
+
+      .layers li {
+        padding-block: 3px;
+      }
+
+      .layers li::marker {
+        font-family: var(--display);
+        font-style: italic;
+        color: var(--accent);
+      }
+
+      .guides {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .guides li + li {
+        margin-top: 14px;
+      }
+
+      .guides a {
+        display: block;
+      }
+
+      .guides .t {
+        display: block;
+        font-family: var(--display);
+        font-style: italic;
+        font-size: var(--s1);
+        line-height: 1.3;
+        color: var(--accent);
+      }
+
+      .guides .d {
+        display: block;
+        margin-top: 2px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .guides a:hover .t,
+      .guides a:focus-visible .t {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .reference {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 15px;
+      }
+
+      .reference li {
+        border-top: 1px solid var(--rule);
+      }
+
+      .reference a {
+        display: block;
+        padding-block: 8px;
+        color: var(--muted);
+      }
+
+      .reference a:hover,
+      .reference a:focus-visible {
+        color: var(--text);
+      }
+
+      .more summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding-block: 4px;
+        list-style: none;
+        cursor: pointer;
+        font-size: var(--s-1);
+        color: var(--muted);
+      }
+
+      .more summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .more summary::before {
+        content: "+";
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--root);
+        border-radius: 50%;
+        font-size: 13px;
+        line-height: 1;
+        color: var(--accent);
+      }
+
+      .more[open] summary::before {
+        content: "−";
+      }
+
+      .more summary:hover {
+        color: var(--text);
+      }
+
+      .more[open] summary {
+        margin-bottom: 4px;
+      }
+
+      /* ---------------- Footer ---------------- */
+
+      .site-footer {
+        border-top: 1px solid var(--text);
+        padding-block: 40px 56px;
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .site-footer .wrap {
+        display: grid;
+        gap: 24px;
+      }
+
+      @media (min-width: 760px) {
+        .site-footer .wrap {
+          grid-template-columns: 1fr auto;
+          align-items: center;
+        }
+      }
+
+      .site-footer nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 24px;
+      }
+
+      .site-footer nav a:hover {
+        color: var(--text);
+      }
+
+      .site-footer .end {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .theme-toggle {
+        font: inherit;
+        font-size: var(--s-1);
+        color: var(--quiet);
+        background: none;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .theme-toggle:hover {
+        color: var(--text);
+        border-color: var(--text);
+      }
+
+      /* ---------------- Mockup notes (not part of the page) ---------------- */
+
+      .mock-notes {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 20;
+        max-width: min(420px, calc(100vw - 32px));
+        background: var(--bg-deep);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+        box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+      }
+
+      .mock-notes summary {
+        cursor: pointer;
+        padding: 9px 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .mock-notes > div {
+        max-height: 60vh;
+        overflow: auto;
+        padding: 0 14px 14px;
+      }
+
+      .mock-notes p {
+        margin: 0 0 10px;
+      }
+
+      .mock-notes code {
+        font-size: 13px;
+        color: var(--text);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .organism svg path,
+        .ends li .t,
+        .files li > span:last-child {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <div class="brand">
+          <a class="wordmark" href="#top" aria-label="Brains docs"
+            ><span>brains</span><span>.</span><span>docs</span></a
+          >
+          <a
+            class="version"
+            href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+            title="Version 0.2.0 is an alpha. See what stable still needs."
+            >0.2.0 alpha</a
+          >
+        </div>
+        <nav aria-label="Primary">
+          <a class="wide" href="#start">Where to start</a>
+          <a class="wide" href="https://github.com/rizom-ai/brains">GitHub</a>
+          <a class="get" href="https://rizom.ai">Get Brains</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <div class="hero-band">
+        <section class="hero wrap" aria-labelledby="hero-title">
+          <div class="intro">
+            <div>
+              <h1 id="hero-title">A brain is one place for what you know.</h1>
+            </div>
+            <div>
+              <p class="lede">
+                It runs on a server you control, and the code is open source.
+              </p>
+            </div>
+          </div>
+
+          <figure class="organism" id="loop" aria-label="How a brain works">
+            <svg aria-hidden="true"></svg>
+
+            <div class="from">
+              <h2>What you bring</h2>
+              <ul class="ends">
+                <li
+                  data-story="draft"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="in-draft"></span>
+                  <span><span class="t">A draft in Google Docs</span></span>
+                </li>
+                <li
+                  data-story="pdf"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="in-pdf"></span>
+                  <span><span class="t">A paper as a PDF</span></span>
+                </li>
+                <li
+                  data-story="link"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="in-link"></span>
+                  <span><span class="t">A link from your open tabs</span></span>
+                </li>
+                <li
+                  data-story="photo"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="in-photo"></span>
+                  <span><span class="t">A photo of a whiteboard</span></span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="cluster">
+              <div class="core" style="--x: 46%; --y: 40%">
+                <span class="core-dot" data-node="core"></span>
+                <span class="core-label">Your brain</span>
+              </div>
+              <ul class="files" aria-label="Files the brain keeps">
+                <li
+                  class="above"
+                  style="--x: 8%; --y: 6%"
+                  data-story="draft"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="f-note"></span
+                  ><span>on-slowness.md <span class="type">note</span></span>
+                </li>
+                <li
+                  style="--x: 0%; --y: 30%"
+                  data-story="pdf"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="f-paper"></span
+                  ><span>attention.md <span class="type">note</span></span>
+                </li>
+                <li
+                  style="--x: 4%; --y: 62%"
+                  data-story="link"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="f-link"></span
+                  ><span
+                    >link/calm-technology.md
+                    <span class="type">link</span></span
+                  >
+                </li>
+                <li
+                  style="--x: 28%; --y: 86%"
+                  data-story="photo"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="f-image"></span
+                  ><span
+                    >image/whiteboard.png <span class="type">image</span></span
+                  >
+                </li>
+                <li
+                  class="above"
+                  style="--x: 64%; --y: 8%"
+                  data-story="site"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="f-post"></span
+                  ><span
+                    >post/on-slowness.md <span class="type">post</span></span
+                  >
+                </li>
+              </ul>
+            </div>
+
+            <div class="to">
+              <h2>Where it shows up</h2>
+              <ul class="ends">
+                <li
+                  data-story="site"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="out-site"></span>
+                  <span><span class="t">Your site and newsletter</span></span>
+                </li>
+                <li
+                  data-story="chat"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="out-chat"></span>
+                  <span><span class="t">Answers in chat</span></span>
+                </li>
+                <li
+                  data-story="ai"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="out-ai"></span>
+                  <span><span class="t">Claude and ChatGPT</span></span>
+                </li>
+                <li
+                  data-story="brains"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <span class="dot" data-node="out-brains"></span>
+                  <span><span class="t">Other brains you approve</span></span>
+                </li>
+              </ul>
+            </div>
+
+            <p class="caption">
+              <span class="hint"
+                >Pick anything to follow it through the brain.</span
+              >
+              <span class="story" aria-live="polite"
+                >A draft comes in once and becomes on-slowness.md. Ask about it
+                in chat, or turn it into a post for your site.</span
+              >
+            </p>
+          </figure>
+        </section>
+      </div>
+
+      <div class="wrap">
+        <div class="doors-head" id="start">
+          <h2>Where to start</h2>
+          <p>
+            Three ways in. Each begins with one concrete step, then the guides
+            and reference behind it.
+          </p>
+        </div>
+
+        <div class="doors">
+          <!-- Use -->
+          <section class="door" id="use" aria-labelledby="use-title">
+            <h3 id="use-title">Use a brain</h3>
+            <p class="who">Someone has set one up for you, or you will.</p>
+
+            <h4>First step</h4>
+            <div class="first">
+              <p>
+                Open the welcome email from your brain and set up a passkey.
+                Then work wherever suits you: chat, Studio, or your AI tools.
+              </p>
+            </div>
+
+            <h4>Guides</h4>
+            <ul class="guides">
+              <li>
+                <a href="https://docs.rizom.ai/guides/writer"
+                  ><span class="t">The writer</span
+                  ><span class="d"
+                    >Years of essays and a folder of drafts, most of it still in
+                    Google Docs.</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/guides/researcher"
+                  ><span class="t">The researcher</span
+                  ><span class="d"
+                    >Notes, papers and saved links in apps that never talk to
+                    each other.</span
+                  ></a
+                >
+              </li>
+            </ul>
+
+            <h4>Reference</h4>
+            <ul class="reference">
+              <li>
+                <a href="https://docs.rizom.ai/docs/feature-overview"
+                  >Feature Overview</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/content-management"
+                  >Content Management</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/entity-types-reference"
+                  >Entity Types Reference</a
+                >
+              </li>
+            </ul>
+          </section>
+
+          <!-- Run -->
+          <section class="door" id="run" aria-labelledby="run-title">
+            <h3 id="run-title">Run a brain</h3>
+            <p class="who">For yourself, or for the people moving in.</p>
+
+            <h4>First step</h4>
+            <div class="first">
+              <pre><span class="p">$ </span>bun add -g @rizom/brain
+<span class="p">$ </span>brain init my-brain --recipe personal
+<span class="p">$ </span>cd my-brain
+<span class="p">$ </span>brain start</pre>
+              <p>
+                Set <code>AI_API_KEY</code> in <code>.env</code> first. The
+                brain prints a setup link for your passkey.
+              </p>
+            </div>
+
+            <h4>Guides</h4>
+            <ul class="guides">
+              <li>
+                <a href="https://docs.rizom.ai/guides/self-hosting"
+                  ><span class="t">Running your own brain</span
+                  ><span class="d"
+                    >From a recipe to a server, then handing it to the people
+                    who will move in.</span
+                  ></a
+                >
+              </li>
+            </ul>
+
+            <h4>Reference</h4>
+            <ul class="reference">
+              <li>
+                <a href="https://docs.rizom.ai/docs/getting-started"
+                  >Getting Started</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/brain-yaml-reference"
+                  >brain.yaml Reference</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/cli-reference"
+                  >CLI Reference</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/deployment-guide"
+                  >Deployment Guide</a
+                >
+              </li>
+            </ul>
+            <details class="more">
+              <summary>3 more reference docs</summary>
+              <ul class="reference">
+                <li>
+                  <a href="https://docs.rizom.ai/docs/interface-setup"
+                    >Interface Setup</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/directory-sync-git"
+                    >Directory Sync and Git</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/mcp-inspector-guide"
+                    >MCP Inspector Guide</a
+                  >
+                </li>
+              </ul>
+            </details>
+          </section>
+
+          <!-- Extend -->
+          <section class="door" id="extend" aria-labelledby="extend-title">
+            <h3 id="extend-title">Extend a brain</h3>
+            <p class="who">
+              Sites, themes and plugins, or the framework itself.
+            </p>
+
+            <h4>First step</h4>
+            <div class="first">
+              <ol class="layers">
+                <li>Configure the instance in <code>brain.yaml</code></li>
+                <li>Edit content in <code>brain-data/</code></li>
+                <li>Layer CSS in <code>src/theme.css</code></li>
+                <li>Change site structure in <code>src/site.tsx</code></li>
+                <li>Write a plugin when behavior or data must change</li>
+              </ol>
+              <p>Use the smallest layer that solves the problem.</p>
+            </div>
+
+            <h4>Guides</h4>
+            <ul class="guides">
+              <li>
+                <a href="https://docs.rizom.ai/docs/customization-guide"
+                  ><span class="t">Customization Guide</span
+                  ><span class="d"
+                    >Each layer in turn, with the files it touches.</span
+                  ></a
+                >
+              </li>
+            </ul>
+
+            <h4>Reference</h4>
+            <ul class="reference">
+              <li>
+                <a href="https://docs.rizom.ai/docs/site-mockup-migration"
+                  >Site Mockup Migration</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/theming-guide"
+                  >Theming Guide</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/plugin-system"
+                  >Plugin System</a
+                >
+              </li>
+              <li>
+                <a href="https://docs.rizom.ai/docs/plugin-quick-reference"
+                  >Plugin Quick Reference</a
+                >
+              </li>
+            </ul>
+            <details class="more">
+              <summary>7 more reference docs</summary>
+              <ul class="reference">
+                <li>
+                  <a href="https://docs.rizom.ai/docs/external-plugin-authoring"
+                    >External Plugin Authoring</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/external-site-authoring"
+                    >External Site and Theme Authoring</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/entity-model"
+                    >Entity Model</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/architecture-overview"
+                    >Architecture Overview</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/brain-model"
+                    >Brain Models</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/agent-discovery"
+                    >Agent Discovery</a
+                  >
+                </li>
+                <li>
+                  <a href="https://docs.rizom.ai/docs/atproto-lexicons"
+                    >ATProto Lexicons</a
+                  >
+                </li>
+              </ul>
+            </details>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <nav aria-label="Project">
+          <a href="https://github.com/rizom-ai/brains/blob/main/docs/roadmap.md"
+            >Roadmap</a
+          >
+          <a href="https://github.com/rizom-ai/brains/blob/main/STABILITY.md"
+            >Stability</a
+          >
+          <a href="https://github.com/rizom-ai/brains/blob/main/CHANGELOG.md"
+            >Changelog</a
+          >
+          <a href="https://github.com/rizom-ai/brains/blob/main/KNOWN-ISSUES.md"
+            >Known issues</a
+          >
+          <a href="https://github.com/rizom-ai/brains/blob/main/CONTRIBUTING.md"
+            >Contributing</a
+          >
+          <a href="https://github.com/rizom-ai/brains">GitHub</a>
+        </nav>
+        <div class="end">
+          <a class="wordmark" href="https://rizom.ai" style="font-size: 16px"
+            ><span>rizom</span><span>.</span><span>ai</span></a
+          >
+          <button class="theme-toggle" type="button" id="theme">
+            Light theme
+          </button>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Mockup notes: outside the page design, collapsed by default. -->
+    <details class="mock-notes">
+      <summary>About this mockup</summary>
+      <div>
+        <p>
+          The hero says what a brain is, in wording from the team brain's
+          capability menu and one-pagers. The figure shows the whole loop: what
+          you bring, the files the brain keeps, and where they show up. Each
+          intake step is taken from the writer and researcher guides.
+        </p>
+        <p>
+          Each door gives one concrete first step, then its guides, then its
+          reference docs. Every doc appears once, so there is no separate index.
+        </p>
+        <p>
+          Kept in sync from three places: hero, door names and first steps in
+          <code>site.ts</code>; guides from guide frontmatter
+          (<code>door</code>, summary); reference lists from
+          <code>docs-manifest.yaml</code>, which gains <code>door</code> and
+          loses <code>section</code>.
+        </p>
+        <p>
+          Not live yet: the Running your own brain guide (<code
+            >/guides/self-hosting</code
+          >
+          is a 404). Extend uses the Customization Guide as its walkthrough.
+          Roadmap moves to the footer and points at the repo, replacing the 404
+          at <code>/docs/roadmap</code>.
+        </p>
+      </div>
+    </details>
+
+    <script>
+      const root = document.documentElement;
+      const toggle = document.getElementById("theme");
+      toggle.addEventListener("click", () => {
+        const next = root.dataset.theme === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        toggle.textContent = next === "dark" ? "Light theme" : "Dark theme";
+      });
+
+      // Filaments for the hero organism. Edges are drawn when the three
+      // columns sit side by side; each story lights one route in brass.
+      // Point at a node to preview its route, click to keep it.
+      const edges = [
+        ["in-draft", "f-note", "root"],
+        ["in-pdf", "f-paper", "root"],
+        ["in-link", "f-link", "root"],
+        ["in-photo", "f-image", "root"],
+        ["f-note", "core", ""],
+        ["f-paper", "core", ""],
+        ["f-link", "core", ""],
+        ["f-image", "core", ""],
+        ["core", "f-post", ""],
+        ["f-post", "out-site", "root"],
+        ["core", "out-chat", "root"],
+        ["core", "out-ai", "root"],
+        ["core", "out-brains", "root"],
+      ];
+
+      const intake = [
+        "in-draft>f-note",
+        "in-pdf>f-paper",
+        "in-link>f-link",
+        "in-photo>f-image",
+        "f-note>core",
+        "f-paper>core",
+        "f-link>core",
+        "f-image>core",
+      ];
+
+      const stories = {
+        draft: {
+          route: [
+            "in-draft>f-note",
+            "f-note>core",
+            "core>out-chat",
+            "core>f-post",
+            "f-post>out-site",
+          ],
+          text: "A draft comes in once and becomes on-slowness.md. Ask about it in chat, or turn it into a post for your site.",
+        },
+        pdf: {
+          route: [
+            "in-pdf>f-paper",
+            "f-paper>core",
+            "core>out-chat",
+            "core>out-ai",
+          ],
+          text: "The paper's text becomes a note. Ask about it in chat, or from Claude or ChatGPT.",
+        },
+        link: {
+          route: [
+            "in-link>f-link",
+            "f-link>core",
+            "core>out-chat",
+            "core>out-ai",
+          ],
+          text: "The link is kept with a summary, so answers can point back to it.",
+        },
+        photo: {
+          route: [
+            "in-photo>f-image",
+            "f-image>core",
+            "core>f-post",
+            "f-post>out-site",
+          ],
+          text: "The photo is kept as an image, ready to use as the cover of a post.",
+        },
+        chat: {
+          route: [...intake, "core>out-chat"],
+          text: "Chat answers from everything the brain keeps, and cites the files it used.",
+        },
+        ai: {
+          route: [...intake, "core>out-ai"],
+          text: "Claude, ChatGPT and other MCP tools reach the same files you do.",
+        },
+        brains: {
+          route: [...intake, "core>out-brains"],
+          text: "Brains you approve can ask yours questions, within the access you grant them.",
+        },
+        site: {
+          route: [
+            "in-draft>f-note",
+            "f-note>core",
+            "in-photo>f-image",
+            "f-image>core",
+            "core>f-post",
+            "f-post>out-site",
+          ],
+          text: "Posts go out on your site and in the newsletter, with a photo as the cover if you want one.",
+        },
+      };
+
+      const organism = document.getElementById("loop");
+      const svg = organism.querySelector("svg");
+      const storyLine = organism.querySelector(".caption .story");
+      const items = [...organism.querySelectorAll("[data-story]")];
+      const wide = window.matchMedia("(min-width: 1000px)");
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+      let pinned = "draft";
+      let shown = "draft";
+      let grown = false;
+
+      function centre(name, box) {
+        const r = organism
+          .querySelector(`[data-node="${name}"]`)
+          .getBoundingClientRect();
+        return [
+          r.left + r.width / 2 - box.left,
+          r.top + r.height / 2 - box.top,
+        ];
+      }
+
+      function filament(a, b) {
+        const [[x1, y1], [x2, y2]] = a[0] <= b[0] ? [a, b] : [b, a];
+        const bend = Math.max(Math.abs(x2 - x1) * 0.45, 40);
+        return `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`;
+      }
+
+      function show(name) {
+        shown = name;
+        const story = stories[name];
+        const route = new Set(story.route);
+        const nodes = new Set(["core"]);
+        story.route.forEach((key) =>
+          key.split(">").forEach((n) => nodes.add(n)),
+        );
+
+        svg.querySelectorAll("path").forEach((path) => {
+          const lit = route.has(path.dataset.edge);
+          path.classList.toggle("lit", lit);
+          // Lit filaments on top of the rest.
+          if (lit) svg.append(path);
+        });
+        items.forEach((item) => {
+          const node = item.querySelector("[data-node]").dataset.node;
+          item.classList.toggle("lit", nodes.has(node));
+          item.setAttribute(
+            "aria-pressed",
+            String(item.dataset.story === pinned),
+          );
+        });
+        storyLine.textContent = story.text;
+      }
+
+      function grow() {
+        svg.replaceChildren();
+        if (wide.matches) {
+          const box = organism.getBoundingClientRect();
+          const ns = "http://www.w3.org/2000/svg";
+          edges.forEach(([from, to, kind], i) => {
+            const path = document.createElementNS(ns, "path");
+            path.setAttribute(
+              "d",
+              filament(centre(from, box), centre(to, box)),
+            );
+            path.dataset.edge = `${from}>${to}`;
+            if (kind) path.classList.add(kind);
+            svg.append(path);
+
+            // The draw-in runs once, on first load.
+            if (!grown && !still.matches) {
+              const length = path.getTotalLength();
+              path.style.strokeDasharray = `${length}`;
+              path.style.strokeDashoffset = `${length}`;
+              path.getBoundingClientRect();
+              path.style.transition = `stroke-dashoffset 1.1s cubic-bezier(0.3, 0.6, 0.2, 1) ${i * 70}ms`;
+              path.style.strokeDashoffset = "0";
+              setTimeout(
+                () => {
+                  path.style.transition = "";
+                  path.style.strokeDasharray = "";
+                  path.style.strokeDashoffset = "";
+                },
+                1200 + i * 70,
+              );
+            }
+          });
+        }
+        grown = true;
+        show(shown);
+      }
+
+      items.forEach((item) => {
+        const name = item.dataset.story;
+        item.addEventListener("mouseenter", () => show(name));
+        item.addEventListener("focus", () => show(name));
+        item.addEventListener("mouseleave", () => show(pinned));
+        item.addEventListener("blur", () => show(pinned));
+        item.addEventListener("click", () => {
+          pinned = name;
+          show(name);
+        });
+        item.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            pinned = name;
+            show(name);
+          }
+        });
+      });
+
+      new ResizeObserver(() => {
+        if (grown) grow();
+      }).observe(organism);
+      document.fonts.ready.then(grow);
+    </script>
+  </body>
+</html>

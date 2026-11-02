@@ -1,9 +1,9 @@
 ---
 title: "Entity Types Reference"
-section: "Content and entities"
-order: 60
+section: "Use a brain"
+order: 30
 slug: "entity-types-reference"
-description: "brains stores durable knowledge as typed markdown entities. Each entity type is registered by an entity plugin, validated with Zod, indexed for search, exposed "
+description: "The built-in content types and their fields"
 ---
 
 # Entity Types Reference

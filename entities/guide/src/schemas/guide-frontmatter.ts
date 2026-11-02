@@ -30,6 +30,7 @@ export const guideFrontmatterSchema: z.ZodObject<{
   for: z.ZodString;
   recipe: z.ZodDefault<z.ZodNullable<typeof guideRecipeSchema>>;
   brings: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
+  section: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   material: z.ZodArray<typeof guideMaterialSchema>;
 }> = z.object({
   title: z.string(),
@@ -43,6 +44,10 @@ export const guideFrontmatterSchema: z.ZodObject<{
   /** What the guide uses from its recipe, shown in the start section in
    *  place of the recipe's own lines; absent, the recipe's lines show. */
   brings: z.array(z.string().min(1)).min(1).nullable().default(null),
+  /** The docs section the guide is listed with, by the section's name, so a
+   *  docs page can show each section's guides beside its docs. Absent reads
+   *  as null; the guide is then listed on its own. */
+  section: z.string().min(1).nullable().default(null),
   material: z.array(guideMaterialSchema),
 });
 

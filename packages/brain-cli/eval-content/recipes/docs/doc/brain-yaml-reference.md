@@ -1,9 +1,9 @@
 ---
 title: "brain.yaml Reference"
-section: "Start here"
-order: 20
+section: "Run a brain"
+order: 110
 slug: "brain-yaml-reference"
-description: "brain.yaml is the instance-owned configuration for the canonical brain. It selects fixed capability bundles and applies explicit instance overrides. It does not"
+description: "The main configuration file"
 ---
 
 # brain.yaml Reference

@@ -123,7 +123,7 @@ export default defineSite({
       id: "home",
       path: "/",
       title: "Home",
-      sections: [{ id: "hero", template: "home.hero" }],
+      sections: [{ id: "hero", template: "home:hero" }],
       navigation: { show: true, label: "Home", priority: 10 },
     },
   ],
@@ -158,7 +158,7 @@ export default defineSite({
 For `sectionGroup("home", { hero })`:
 
 - content lives at `content.home.hero`;
-- route placement uses `template: "home.hero"`;
+- route placement uses `template: "home:hero"`, the `namespace:name` form every template has at runtime (a dotted `home.hero` is rejected);
 - `id: "hero"` identifies this placement within the route;
 - the component props are inferred from the `hero` schema.
 
@@ -242,7 +242,7 @@ paths during that build.
 | Symptom                                      | Correction                                                                           |
 | -------------------------------------------- | ------------------------------------------------------------------------------------ |
 | Content is accepted by TypeScript but fails  | Keep content under the section group's namespace and satisfy its schema              |
-| A route renders no section                   | Match `template: "namespace.sectionId"` to `sectionGroup(namespace, {...})`          |
+| A route renders no section                   | Match `template: "namespace:sectionId"` to `sectionGroup(namespace, {...})`          |
 | The site imports `@rizom/brain/site`         | Import every structural helper from `@rizom/site`                                    |
 | The site embeds tools or a runtime plugin    | Move backend behavior into a separately composed extension package                   |
 | React warns about a JSX property             | Use `className`, `htmlFor`, style objects, and camel-cased SVG props                 |

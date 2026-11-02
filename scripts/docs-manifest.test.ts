@@ -44,6 +44,23 @@ describe("parseDocsManifest", () => {
     ]);
   });
 
+  it("parses an optional description written for the doc's listing", () => {
+    const manifest = parseDocsManifest(`docs:
+  - id: cli-reference
+    title: CLI Reference
+    section: Run a brain
+    order: 30
+    description: Commands such as brain init, brain start and brain chat
+    source: packages/brain-cli/docs/cli-reference.md
+
+guides: []
+`);
+
+    expect(manifest.docs[0]?.description).toBe(
+      "Commands such as brain init, brain start and brain chat",
+    );
+  });
+
   it("parses guides by id and source; their frontmatter carries the rest", () => {
     expect(parseDocsManifest(fixture).guides).toEqual([
       { id: "writer", source: "docs/guides/writer.md" },
