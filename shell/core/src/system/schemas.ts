@@ -183,7 +183,7 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
     kind: z
       .literal("uploads")
       .describe(
-        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the type extract-markdown files are saved as, such as note or post.",
+        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the note type for extract-markdown files, or another type such as post.",
       ),
     items: z
       .array(
