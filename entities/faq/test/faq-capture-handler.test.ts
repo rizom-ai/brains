@@ -71,6 +71,7 @@ describe("FaqCaptureHandler", () => {
     { limit?: number; range?: { start: number; end: number } } | undefined
   >;
   let distances: DistanceResult[];
+  let signals: Array<AbortSignal | undefined>;
 
   function createHandler(
     messages: Message[] = transcript,
@@ -97,7 +98,9 @@ describe("FaqCaptureHandler", () => {
         generateObject: async <T>(
           prompt: string,
           schema: { parse(value: unknown): T },
+          signal?: AbortSignal,
         ): Promise<{ object: T }> => {
+          signals.push(signal);
           if (prompt.includes(SAME_QUESTION_CHECK)) {
             checks.push(prompt);
             return { object: schema.parse({ same: sameVerdict }) };
@@ -185,6 +188,7 @@ describe("FaqCaptureHandler", () => {
     searches = [];
     fetches = [];
     distances = [];
+    signals = [];
   });
 
   for (const [level, visibility] of [
@@ -273,6 +277,27 @@ describe("FaqCaptureHandler", () => {
     expect(prompts[0]).toContain("how do I publish a draft post?");
     expect(prompts[0]).toContain("Open it in Studio and choose Publish.");
     expect(prompts[0]).not.toContain("hi\n");
+  });
+
+  it("gives every model call the job's signal, so a cancelled job stops", async () => {
+    const seeded = await seed("published-draft", "restricted");
+    distances = [{ entityId: seeded.id, entityType: "faq", distance: 0.05 }];
+    const job = new AbortController();
+
+    await createHandler().process(
+      {
+        conversationId: CONVERSATION_ID,
+        messageId: "m4",
+        userPermissionLevel: "admin",
+        position: 4,
+      },
+      "job-1",
+      createMockProgressReporter(),
+      job.signal,
+    );
+
+    expect(checks).toHaveLength(1);
+    expect(signals).toEqual([job.signal, job.signal]);
   });
 
   it("creates nothing when the pair is not reusable", async () => {

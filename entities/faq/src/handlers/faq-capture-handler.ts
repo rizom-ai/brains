@@ -128,10 +128,12 @@ export async function classifyExchange(
   ai: Pick<EntityPluginContext["ai"], "generateObject">,
   question: string,
   answer: string,
+  signal?: AbortSignal,
 ): Promise<FaqClassification> {
   const { object } = await ai.generateObject(
     buildClassificationPrompt(question, answer),
     faqClassificationSchema,
+    signal,
   );
   return object;
 }
@@ -183,6 +185,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
     data: FaqCaptureJobData,
     _jobId: string,
     _progressReporter: ProgressReporter,
+    signal?: AbortSignal,
   ): Promise<FaqCaptureResult> {
     // Legacy claims cannot distinguish completed captures from interrupted ones.
     // Preserve them: automatic replay could double-count an existing FAQ.
@@ -195,7 +198,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
     }
     // Classification is retryable work, not a durable completion claim.
     // Only a terminal decision or the FAQ write consumes the identity.
-    const result = await this.capture(data, receipt);
+    const result = await this.capture(data, receipt, signal);
     const committed = result.captured
       ? await this.deps.entityService.getEntityMutationReceipt(receipt)
       : await this.deps.entityService.applyEntityMutationOnce({
@@ -220,6 +223,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
     receipt: Parameters<
       EntityPluginContext["entityService"]["getEntityMutationReceipt"]
     >[0],
+    signal?: AbortSignal,
   ): Promise<FaqCaptureResult> {
     const messages = await this.deps.conversations.getMessages(
       data.conversationId,
@@ -258,6 +262,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
       this.deps.ai,
       question.content,
       answer.content,
+      signal,
     );
     if (!classification.reusable) {
       return { captured: false, reason: "not-reusable" };
@@ -277,7 +282,12 @@ export class FaqCaptureHandler extends BaseJobHandler<
       sources,
     );
 
-    const match = await findSameFaq(this.deps, { content, visibility });
+    const match = await findSameFaq(this.deps, {
+      content,
+      visibility,
+      signal,
+    });
+    signal?.throwIfAborted();
     const mergeDeps: FaqStoreDeps = {
       ...this.deps,
       entityService: {
