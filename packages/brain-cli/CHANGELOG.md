@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- [#801](https://github.com/rizom-ai/brains/pull/801) [`c677770`](https://github.com/rizom-ai/brains/commit/c677770733d5d7b12ab8c480388ad9b30292876c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When the AI provider declines a chat turn on content policy, the brain retries that turn once with the same message before any tool has run. If the provider declines again, the reply is "The AI provider declined this request. Try rephrasing your message." instead of a generic error.
+
 ## 0.2.0-alpha.623
 
 ### Patch Changes
