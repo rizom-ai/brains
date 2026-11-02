@@ -137,6 +137,17 @@ interface PreparedTurn {
   agentContextInstructions: ReturnType<typeof buildAgentContextInstructions>;
 }
 
+interface PostConfirmationFollowUpParams {
+  conversationId: string;
+  resultText: string;
+  interfaceType: string;
+  channelId: string | undefined;
+  channelName: string;
+  userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  isAnchor: boolean;
+  signal: AbortSignal | undefined;
+}
+
 export class TurnProcessor {
   private readonly deps: TurnProcessorDeps;
 
@@ -737,8 +748,9 @@ export class TurnProcessor {
     );
     const response = failed
       ? undefined
-      : await this.generatePostConfirmationFollowUp({
+      : await this.followUpAfterConfirmedAction({
           conversationId,
+          toolName: pendingConfirmation.toolName,
           resultText: outcome.resultText,
           interfaceType,
           channelId,
@@ -829,16 +841,30 @@ export class TurnProcessor {
     }
   }
 
-  private async generatePostConfirmationFollowUp(params: {
-    conversationId: string;
-    resultText: string;
-    interfaceType: string;
-    channelId: string | undefined;
-    channelName: string;
-    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
-    isAnchor: boolean;
-    signal: AbortSignal | undefined;
-  }): Promise<AgentResponse | undefined> {
+  /**
+   * The follow-up reply to an action that already ran and succeeded. A reply
+   * that fails leaves the turn with the action's own success result instead
+   * of reporting the action as failed; a stopped turn still stops.
+   */
+  private async followUpAfterConfirmedAction(
+    params: PostConfirmationFollowUpParams & { toolName: string },
+  ): Promise<AgentResponse | undefined> {
+    try {
+      return await this.generatePostConfirmationFollowUp(params);
+    } catch (error) {
+      params.signal?.throwIfAborted();
+      this.deps.logger.warn("Follow-up reply after confirmed action failed", {
+        conversationId: params.conversationId,
+        toolName: params.toolName,
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  private async generatePostConfirmationFollowUp(
+    params: PostConfirmationFollowUpParams,
+  ): Promise<AgentResponse | undefined> {
     params.signal?.throwIfAborted();
     if (!this.deps.agentContextProvider) return undefined;
 

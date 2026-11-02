@@ -3663,6 +3663,138 @@ describe("AgentService", () => {
       );
     });
 
+    const confirmSaveNote = async (
+      followUp: (params: {
+        abortSignal?: AbortSignal;
+      }) => Promise<BrainAgentResult>,
+      signal?: AbortSignal,
+    ): Promise<{
+      response: Promise<AgentResponse>;
+      saveHandler: ReturnType<typeof mock>;
+    }> => {
+      mockGenerate.mockImplementationOnce(async () => ({
+        text: "Confirmation required.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "save_note",
+                input: { title: "Roadmap" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "save_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "save_note",
+                  summary: "Save note 'Roadmap'?",
+                  completionSummary: 'Saved note "Roadmap".',
+                  args: { title: "Roadmap" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      }));
+      mockGenerate.mockImplementationOnce(followUp);
+
+      const saveHandler = mock(async () => ({ success: true as const }));
+      const saveTool: Tool = {
+        name: "save_note",
+        description: "Save note",
+        inputSchema: { title: z.string() },
+        visibility: "trusted",
+        handler: saveHandler,
+      };
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: saveTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          agentContextProvider: mock(async () => [
+            {
+              id: "active-playbook",
+              source: "playbooks",
+              title: "Active playbook",
+              content: "An active playbook is underway.",
+            },
+          ]),
+        },
+      );
+
+      await service.chat("save my note", "test-conversation");
+      return {
+        response: service.confirmPendingAction(
+          "test-conversation",
+          true,
+          "approval:call-save-note",
+          { userPermissionLevel: "admin", interfaceType: "evaluation" },
+          signal,
+        ),
+        saveHandler,
+      };
+    };
+
+    for (const [label, followUpError] of [
+      ["fails", new Error("Provider unavailable")],
+      ["is declined by the provider", new AIProviderDeclinedError("refusal")],
+    ] as const) {
+      it(`reports the confirmed action's success when its follow-up reply ${label}`, async () => {
+        const { response: pending, saveHandler } = await confirmSaveNote(
+          async () => {
+            throw followUpError;
+          },
+        );
+        const response = await pending;
+
+        expect(mockGenerate).toHaveBeenCalledTimes(2);
+        expect(saveHandler).toHaveBeenCalledTimes(1);
+        expect(response.text).toBe('Completed: Saved note "Roadmap".');
+        expect(response.error).toBeUndefined();
+        expect(response.cards).toEqual([
+          expect.objectContaining({
+            kind: "tool-approval",
+            id: "approval:call-save-note",
+            state: "output-available",
+          }),
+        ]);
+        expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            role: "assistant",
+            content: 'Completed: Saved note "Roadmap".',
+          }),
+        );
+      });
+    }
+
+    it("still stops a confirmed action's turn stopped during its follow-up reply", async () => {
+      const controller = new AbortController();
+      const stopReason = new Error("caller disconnected");
+      const { response } = await confirmSaveNote(async (params) => {
+        controller.abort(stopReason);
+        throw params.abortSignal?.reason;
+      }, controller.signal);
+
+      let receivedError: unknown;
+      try {
+        await response;
+      } catch (error) {
+        receivedError = error;
+      }
+      expect(receivedError).toBe(stopReason);
+    });
+
     it("surfaces and saves the confirmed action failure result", async () => {
       setupConfirmationResponse("Deleted.");
 
