@@ -1,19 +1,27 @@
 import type { JSX } from "react";
 import { Head } from "@brains/ui-library";
-import { HomepageAtlas } from "@brains/site-atlas";
+import {
+  HomepageAtlas,
+  HomepageFaqs,
+  type HomepageFaq,
+} from "@brains/site-atlas";
 import type { OrganizationHomepageData } from "../schemas/homepage";
 import { AgentRadarMap } from "./agent-radar";
 
 /**
  * The organization's homepage: its opening over the radar of the people,
- * teams and organizations it works with, in the shared atlas frame.
+ * teams and organizations it works with, in the shared atlas frame, and its
+ * published FAQs under it.
  */
 export function OrganizationHomepage({
   profile,
   opening,
   map,
   askBox,
-}: OrganizationHomepageData): JSX.Element {
+  faqs = [],
+}: Omit<OrganizationHomepageData, "faqs"> & {
+  faqs?: HomepageFaq[] | undefined;
+}): JSX.Element {
   // The map is named by the team's caption when it wrote one.
   const caption =
     opening.mapCaption ?? "Closer to the centre, closer to our work";
@@ -45,6 +53,7 @@ export function OrganizationHomepage({
         owner={profile.name}
         askBox={askBox}
       />
+      <HomepageFaqs heading={opening.faqHeading ?? null} faqs={faqs} />
     </>
   );
 }

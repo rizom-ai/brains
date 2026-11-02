@@ -2,6 +2,7 @@ import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
+import { docsChromeSchema } from "@brains/docs-chrome";
 import { guideMetadataSchema } from "../schemas/guide";
 import { guideFrontmatterSchema } from "../schemas/guide-frontmatter";
 import {
@@ -35,11 +36,13 @@ const guideDisplaySchema = z.object({
 
 const guideListSchema = z.object({
   guides: z.array(guideDisplaySchema),
+  chrome: docsChromeSchema.nullable().default(null),
 });
 
 const guideDetailSchema = z.object({
   guide: guideDisplaySchema,
   otherGuides: z.array(guideDisplaySchema),
+  chrome: docsChromeSchema.nullable().default(null),
 });
 
 export function getTemplates(): Record<string, Template> {

@@ -264,3 +264,69 @@ describe("organization homepage caption", () => {
     expect(legend).not.toContain("Closer to the centre, closer to our work");
   });
 });
+
+describe("organization homepage FAQs", () => {
+  const faq = {
+    id: "guests",
+    question: "Can I bring a guest?",
+    answer: "**Yes**, for up to 4 hours.",
+  };
+  const opening = {
+    ...openingFromProfile(profile),
+    faqHeading: "Asked before",
+  };
+
+  it("carries the published FAQs it was given, and none otherwise", () => {
+    expect(
+      organizationHomepageData({
+        profile,
+        authored: null,
+        map: radar,
+        askBox: false,
+        faqs: [faq],
+      }).faqs,
+    ).toEqual([faq]);
+    expect(
+      organizationHomepageData({
+        profile,
+        authored: null,
+        map: radar,
+        askBox: false,
+      }).faqs,
+    ).toEqual([]);
+  });
+
+  it("places the organization's published FAQs under the atlas, in its words", () => {
+    const page = renderToStaticMarkup(
+      <OrganizationHomepage
+        {...organizationHomepageData({
+          profile,
+          authored: opening,
+          map: radar,
+          askBox: false,
+          faqs: [faq],
+        })}
+      />,
+    );
+    expect(page.indexOf('data-atlas=""')).toBeLessThan(
+      page.indexOf("data-atlas-faqs"),
+    );
+    expect(page).toContain("<h2>Asked before</h2>");
+    expect(page).toContain("<summary>Can I bring a guest?</summary>");
+    expect(page).toContain("<strong>Yes</strong>");
+  });
+
+  it("shows no FAQ band until an FAQ is published", () => {
+    const page = renderToStaticMarkup(
+      <OrganizationHomepage
+        {...organizationHomepageData({
+          profile,
+          authored: opening,
+          map: radar,
+          askBox: false,
+        })}
+      />,
+    );
+    expect(page).not.toContain("data-atlas-faqs");
+  });
+});

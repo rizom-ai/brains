@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- [#796](https://github.com/rizom-ai/brains/pull/796) [`90483cf`](https://github.com/rizom-ai/brains/commit/90483cf788c5b1951879b77ef53db61bf1928c75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Docs and guide pages no longer carry the Brains documentation site's branding on every brain. The docs index opened on "Handbook · Brains docs" and "Build, run, and publish brains.", its head described every brain's docs as "Brains documentation", and every docs and guide page drew a fixed "brains docs" header with Guides, Roadmap, GitHub and "Get Brains" links and a rizom.ai footer — over a site's own header, on sites whose layout brings one. Now the docs index opens on plain "Documentation" and the pages draw no header or footer brand of their own.
+
+  A brain whose docs pages are the whole site sets them in its plugin config: `plugins.docs.hero` (`label`, `title`, `accent`, `lead`), and `plugins.docs.chrome` and `plugins.guides.chrome` (`brand` with an optional `wordmark`, header `links` with an optional `area` marked current on that area's pages, a `cta`, and a `footer` with its own `brand` and `links`). The Brains documentation site keeps its look by setting these to its current copy.
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- [#794](https://github.com/rizom-ai/brains/pull/794) [`29d4a29`](https://github.com/rizom-ai/brains/commit/29d4a290aac28afedd9fbd2c003fa5b0d6828bdd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The organization homepage shows the brain's published public FAQs under the atlas, as the professional homepage does: ranked FAQs first, then the most asked, six at most, each question closed until tapped. The heading is the authored opening's `faqHeading`, or there is none. Organization brains seeded with FAQs had no page that showed them; the band appears once one is published and stays away until then.
+
 ## 0.2.0-alpha.618
 
 ### Patch Changes

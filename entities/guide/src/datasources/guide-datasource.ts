@@ -1,3 +1,5 @@
+import type { DocsChrome } from "@brains/docs-chrome";
+import type { GuidesConfig } from "../config";
 import {
   BaseEntityDataSource,
   parseMarkdownWithFrontmatter,
@@ -20,10 +22,12 @@ import { sortGuides } from "../lib/guide-order";
 interface GuideDetailData {
   guide: GuideWithData;
   otherGuides: GuideWithData[];
+  chrome: DocsChrome | null;
 }
 
 interface GuideListData {
   guides: GuideWithData[];
+  chrome: DocsChrome | null;
 }
 
 export function parseGuideData(entity: Guide): GuideWithData {
@@ -58,8 +62,12 @@ export class GuideDataSource extends BaseEntityDataSource<
     defaultLimit: 100,
   };
 
-  constructor(logger: Logger) {
+  /** The configured chrome, handed to every guide page. */
+  private readonly chrome: DocsChrome | null;
+
+  constructor(logger: Logger, presentation: GuidesConfig = {}) {
     super(logger);
+    this.chrome = presentation.chrome ?? null;
   }
 
   protected transformEntity(entity: Guide): GuideWithData {
@@ -84,6 +92,7 @@ export class GuideDataSource extends BaseEntityDataSource<
       context.entityService,
     );
     const data: GuideDetailData = {
+      chrome: this.chrome,
       guide: detail.item,
       otherGuides: sortGuides(
         list.items.filter((item) => item.id !== detail.item.id),
@@ -93,6 +102,6 @@ export class GuideDataSource extends BaseEntityDataSource<
   }
 
   protected buildListResult(items: GuideWithData[]): GuideListData {
-    return { guides: sortGuides(items) };
+    return { guides: sortGuides(items), chrome: this.chrome };
   }
 }

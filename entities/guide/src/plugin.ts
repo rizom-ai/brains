@@ -4,7 +4,12 @@ import type {
   Plugin,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
+import {
+  guidesConfigSchema,
+  type GuidesConfig,
+  type GuidesConfigInput,
+} from "./config";
 import { guideSchema, type Guide } from "./schemas/guide";
 import { guideAdapter, type GuideAdapter } from "./adapters/guide-adapter";
 import { GuideDataSource } from "./datasources/guide-datasource";
@@ -13,15 +18,15 @@ import packageJson from "../package.json";
 
 export class GuidesPlugin extends EntityPlugin<
   Guide,
-  Record<string, never>,
-  Record<string, never>
+  GuidesConfig,
+  GuidesConfigInput
 > {
   readonly entityType: typeof guideAdapter.entityType = guideAdapter.entityType;
   readonly schema: typeof guideSchema = guideSchema;
   readonly adapter: GuideAdapter = guideAdapter;
 
-  constructor() {
-    super("guides", packageJson, {}, emptyEntityPluginConfigSchema);
+  constructor(config: GuidesConfigInput = {}) {
+    super("guides", packageJson, config, guidesConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -42,10 +47,12 @@ export class GuidesPlugin extends EntityPlugin<
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new GuideDataSource(this.logger.child("GuideDataSource"))];
+    return [
+      new GuideDataSource(this.logger.child("GuideDataSource"), this.config),
+    ];
   }
 }
 
-export function guidesPlugin(): Plugin {
-  return new GuidesPlugin();
+export function guidesPlugin(config?: GuidesConfigInput): Plugin {
+  return new GuidesPlugin(config);
 }
