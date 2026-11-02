@@ -66,11 +66,18 @@ Every processing attempt receives a unique fencing token, worker-session owner,
 and renewable lease. Completion, failure, progress, and heartbeat writes only
 apply while that token still owns the job.
 
-Workers use a stable slot ID and a fresh session ID on every start. Starting a
-new session for the same slot immediately supersedes the previous session and
-makes its attempts reclaimable. Attempts from another slot are reclaimed only
-after both the attempt lease and owner-session heartbeat expire. Reclaims count
-against the job's retry budget.
+Workers run as a stable slot (`workerSlotId`) and start a fresh session on
+every start. Each session holds its own slot, `<slot>@<version>#<session>`, so
+a worker starting beside another one, such as the new container of a redeploy,
+supersedes nothing: the older session keeps renewing its attempts until they
+finish. Of the live sessions of one stable slot and version, only the newest
+claims new work and the older ones drain what they hold, so one process claims
+at a time and handlers keep any serialization they get from running in one
+process. An attempt is reclaimed once its lease expires or its owner session is
+gone; reclaims count against the job's retry budget. A session expired for
+longer than its timeout, with no attempt under a live lease, is removed by the
+next session start or heartbeat, so a crashed worker does not stay behind as a
+stale session.
 
 Queue writes tolerate transient SQLite lock contention with asynchronous,
 jittered retries bounded by the repository's existing two-second write budget.
@@ -96,8 +103,8 @@ that overlap safe:
   new; its in-flight attempts still renew and finish;
 - a newer brain asking again for an older brain's pending job (`skip` or
   `coalesce`) raises that job to its own version;
-- a worker slot is stable per version (`<slot>@<version>`), so the newer
-  worker's session never supersedes the older one.
+- every worker session holds its own slot (`<slot>@<version>#<session>`), so
+  the newer worker's session never supersedes the older one.
 
 Jobs and sessions recorded before versions existed carry none: any worker runs
 those jobs, and those sessions stop nobody. Comparison follows semver
@@ -109,7 +116,8 @@ new runs again.
 
 `JobQueueWorkerConfig` controls the lifecycle:
 
-- `workerSlotId` (or `BRAIN_JOB_WORKER_SLOT_ID`) identifies the stable worker;
+- `workerSlotId` (or `BRAIN_JOB_WORKER_SLOT_ID`, default `default`) names the
+  stable worker its sessions run as;
 - `leaseDurationMs` and `attemptHeartbeatIntervalMs` control attempt leases;
 - `workerHeartbeatIntervalMs` and `workerSessionTimeoutMs` control persisted
   session liveness;

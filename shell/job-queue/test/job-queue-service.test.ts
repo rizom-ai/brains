@@ -469,14 +469,14 @@ describe("JobQueueService", () => {
       expect(job).toMatchObject({
         id: jobId,
         status: "processing",
-        workerSlotId: "worker-a",
+        workerSlotId: "worker-a#session-a",
         workerSessionId: "session-a",
       });
       expect(job?.attemptId).toBeString();
       expect(job?.leaseExpiresAt).toBeGreaterThan(Date.now());
     });
 
-    it("fences an old service attempt after startup supersedes its stable slot", async () => {
+    it("gives each worker session its own slot, so a later session supersedes no earlier one", async () => {
       const jobId = await service.enqueue({
         type: "shell:embedding",
         data: testEntity,
@@ -494,9 +494,47 @@ describe("JobQueueService", () => {
       const first = await service.dequeue(claim);
 
       await service.startWorkerSession("worker-a", "session-b");
+
+      expect(
+        await service.heartbeatWorkerSession("worker-a", "session-a"),
+      ).toBe(true);
+      expect(
+        await service.dequeue({ ...claim, workerSessionId: "session-b" }),
+      ).toBeNull();
+      expect(
+        await service.complete(jobId, { ok: true }, first?.attemptId ?? ""),
+      ).toBe(true);
+      expect(await service.endWorkerSession("worker-a", "session-a")).toBe(
+        true,
+      );
+      expect(await service.endWorkerSession("worker-a", "session-b")).toBe(
+        true,
+      );
+    });
+
+    it("fences an old service attempt after its lease expires and a newer session reclaims it", async () => {
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+      const claim = {
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseDurationMs: 1,
+      };
+      await service.startWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+      );
+      const first = await service.dequeue(claim);
+      await Bun.sleep(5);
+
+      await service.startWorkerSession("worker-a", "session-b");
       const second = await service.dequeue({
         ...claim,
         workerSessionId: "session-b",
+        leaseDurationMs: 60_000,
       });
 
       expect(second?.id).toBe(jobId);
@@ -530,13 +568,14 @@ describe("JobQueueService", () => {
       const claim = {
         workerSlotId: "worker-a",
         workerSessionId: "session-a",
-        leaseDurationMs: 60_000,
+        leaseDurationMs: 1,
       };
       await service.startWorkerSession(
         claim.workerSlotId,
         claim.workerSessionId,
       );
       await service.dequeue(claim);
+      await Bun.sleep(5);
       await service.startWorkerSession("worker-a", "session-b");
       const reclaimed: string[] = [];
 

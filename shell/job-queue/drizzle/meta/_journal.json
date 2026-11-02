@@ -57,6 +57,13 @@
       "when": 1793544284445,
       "tag": "0007_job_brain_version",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793619179456,
+      "tag": "0008_worker_session_slots",
+      "breakpoints": true
     }
   ]
 }
