@@ -1,5 +1,9 @@
 import { Fragment, createElement as h, type ReactNode, type JSX } from "react";
-import type { RouteDefinitionInput, SiteDefinition } from "@rizom/site";
+import {
+  defineSite,
+  type RouteDefinitionInput,
+  type SiteDefinition,
+} from "@rizom/site";
 import {
   DOCS_HOME_SCRIPT_SRC,
   docsHomeContent,
@@ -12,13 +16,12 @@ const docsQuery = { entityType: "doc", query: { limit: 100 } };
 
 // The home: the docs header, then the site's own opening (what a brain is)
 // and door introductions, then each docs section's guides and reference
-// under its door. The opening and the doors start from the package's copy;
-// once edited in Studio, the saved docs-home:hero and docs-home:doors
-// site content takes over.
+// under its door. The opening and the doors start from the copy in
+// `content` below; once edited in Studio, saved site content takes over.
 const homeSections = [
   { id: "header", template: "docs:doc-home-header", dataQuery: docsQuery },
-  { id: "hero", template: "docs-home:hero", content: docsHomeContent.hero },
-  { id: "doors", template: "docs-home:doors", content: docsHomeContent.doors },
+  { id: "hero", template: "docs-home.hero" },
+  { id: "doors", template: "docs-home.doors" },
   { id: "sections", template: "guides:guide-sections", dataQuery: {} },
 ];
 
@@ -62,12 +65,20 @@ const docsRoutes: RouteDefinitionInput[] = [
 const DocsLayout = ({ sections }: { sections: ReactNode[] }): JSX.Element =>
   h(Fragment, null, ...sections);
 
-export const docsSite: SiteDefinition = {
+// defineSite turns the dotted section names into the runtime's and makes the
+// starting copy each placed section's fallback.
+export const docsSite: SiteDefinition = defineSite({
   layouts: {
     default: DocsLayout,
   },
   routes: docsRoutes,
   sections: docsHomeSections,
+  content: {
+    "docs-home": {
+      hero: docsHomeContent.hero,
+      doors: docsHomeContent.doors,
+    },
+  },
   themeOverride: docsHomeCss,
   headScripts: [`<script src="${DOCS_HOME_SCRIPT_SRC}" defer></script>`],
   staticAssets: { [DOCS_HOME_SCRIPT_SRC]: docsHomeScript },
@@ -87,6 +98,6 @@ export const docsSite: SiteDefinition = {
       navigation: { show: false },
     },
   },
-};
+});
 
 export default docsSite;
