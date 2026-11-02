@@ -90,6 +90,11 @@ type JobWorkerSessionsTable = SQLiteTableWithColumns<{
       "brainVersionSortKey",
       false
     >;
+    stableSlotId: SqliteTextColumn<
+      "job_worker_sessions",
+      "stableSlotId",
+      false
+    >;
   };
   dialect: "sqlite";
 }>;
@@ -243,7 +248,10 @@ export const jobQueue: JobQueueTable = sqliteTable(
   }),
 );
 
-/** One live session per stable worker slot. */
+/**
+ * One row per worker session. Each session holds its own slot, so a worker
+ * starting beside another one supersedes nothing.
+ */
 export const jobWorkerSessions: JobWorkerSessionsTable = sqliteTable(
   "job_worker_sessions",
   {
@@ -256,6 +264,10 @@ export const jobWorkerSessions: JobWorkerSessionsTable = sqliteTable(
     // claiming. Null for a worker that predates versions, which stops nobody.
     brainVersion: text("brainVersion"),
     brainVersionSortKey: text("brainVersionSortKey"),
+    // The stable worker this session runs as (`<slot>@<version>`): of the live
+    // sessions sharing it, only the newest claims, the others drain. Null for a
+    // session outside any stable worker, which holds back nobody.
+    stableSlotId: text("stableSlotId"),
   },
   (table) => ({
     heartbeatIdx: index("idx_job_worker_sessions_heartbeat").on(

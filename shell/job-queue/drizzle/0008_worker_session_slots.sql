@@ -1,0 +1,1 @@
+ALTER TABLE `job_worker_sessions` ADD `stableSlotId` text;

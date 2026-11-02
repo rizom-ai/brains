@@ -559,23 +559,29 @@ export class JobQueueRepository {
     return false;
   }
 
-  /** Atomically register a new session, superseding the slot's prior session. */
+  /**
+   * Atomically register a new session, superseding the slot's prior session.
+   * `stableSlotId` names the stable worker the session runs as: of the live
+   * sessions sharing one, only the newest claims work.
+   */
   public async startWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
     now: number = Date.now(),
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
     brainVersion?: BrainVersion,
+    stableSlotId?: string,
   ): Promise<void> {
     const expiresAt = now + workerSessionTimeoutMs;
-    const version = {
+    const identity = {
       brainVersion: brainVersion ?? null,
       brainVersionSortKey: brainVersion
         ? brainVersionSortKey(brainVersion)
         : null,
+      stableSlotId: stableSlotId ?? null,
     };
-    await this.write("start worker session", async () =>
-      this.db
+    await this.write("start worker session", async () => {
+      await this.db
         .insert(jobWorkerSessions)
         .values({
           slotId: workerSlotId,
@@ -583,7 +589,7 @@ export class JobQueueRepository {
           startedAt: now,
           heartbeatAt: now,
           expiresAt,
-          ...version,
+          ...identity,
         })
         .onConflictDoUpdate({
           target: jobWorkerSessions.slotId,
@@ -592,21 +598,22 @@ export class JobQueueRepository {
             startedAt: now,
             heartbeatAt: now,
             expiresAt,
-            ...version,
+            ...identity,
           },
-        }),
-    );
+        });
+      await this.pruneDeadWorkerSessions(now, workerSessionTimeoutMs);
+    });
   }
 
-  /** Update liveness only if this session still owns the stable slot. */
+  /** Update liveness only if this session still owns its slot. */
   public async heartbeatWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
     now: number = Date.now(),
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
-    const result = await this.write("heartbeat worker session", async () =>
-      this.db
+    const result = await this.write("heartbeat worker session", async () => {
+      const renewed = await this.db
         .update(jobWorkerSessions)
         .set({
           heartbeatAt: now,
@@ -618,9 +625,42 @@ export class JobQueueRepository {
             eq(jobWorkerSessions.sessionId, workerSessionId),
           ),
         )
-        .returning({ slotId: jobWorkerSessions.slotId }),
-    );
+        .returning({ slotId: jobWorkerSessions.slotId });
+      await this.pruneDeadWorkerSessions(now, workerSessionTimeoutMs);
+      return renewed;
+    });
     return result.length === 1;
+  }
+
+  /**
+   * Remove sessions whose worker died: expired for longer than `graceMs`,
+   * with no attempt under a live lease. Every attempt such a session owned is
+   * already reclaimable, so removing it releases nothing early; it keeps a
+   * crashed worker from showing as a stale session forever.
+   */
+  private async pruneDeadWorkerSessions(
+    now: number,
+    graceMs: number,
+  ): Promise<void> {
+    const liveAttempt = this.db
+      .select({ id: jobQueue.id })
+      .from(jobQueue)
+      .where(
+        and(
+          eq(jobQueue.workerSlotId, jobWorkerSessions.slotId),
+          eq(jobQueue.workerSessionId, jobWorkerSessions.sessionId),
+          eq(jobQueue.status, JOB_STATUS.PROCESSING),
+          gt(jobQueue.leaseExpiresAt, now),
+        ),
+      );
+    await this.db
+      .delete(jobWorkerSessions)
+      .where(
+        and(
+          lte(jobWorkerSessions.expiresAt, now - graceMs),
+          notExists(liveAttempt),
+        ),
+      );
   }
 
   /** Remove a normally stopped session without touching a replacement. */
@@ -1114,6 +1154,11 @@ export class JobQueueRepository {
           gt(jobWorkerSessions.expiresAt, now),
         ),
       );
+    const noNewerInstance = this.noNewerLiveInstance(
+      workerSlotId,
+      workerSessionId,
+      now,
+    );
     const matchingOwnerSession = this.db
       .select({ slotId: jobWorkerSessions.slotId })
       .from(jobWorkerSessions)
@@ -1194,6 +1239,7 @@ export class JobQueueRepository {
           and(
             inArray(jobQueue.id, candidate),
             exists(claimingSession),
+            noNewerInstance,
             versionGate.noNewerWorker,
           ),
         )
@@ -1211,6 +1257,45 @@ export class JobQueueRepository {
       workerSessionId,
     });
     return claimed;
+  }
+
+  /**
+   * No live session of the claimer's stable slot started after it, ties
+   * broken by slot. Two processes of one stable worker overlap during a
+   * redeploy of the same version: the newest takes new work while the older
+   * one only finishes what it holds, so one process claims at a time.
+   */
+  private noNewerLiveInstance(
+    workerSlotId: string,
+    workerSessionId: string,
+    now: number,
+  ): SQL {
+    const claimer = alias(jobWorkerSessions, "claimer");
+    const peer = alias(jobWorkerSessions, "peer");
+    const newerInstance = this.db
+      .select({ slotId: peer.slotId })
+      .from(peer)
+      .innerJoin(
+        claimer,
+        and(
+          eq(claimer.slotId, workerSlotId),
+          eq(claimer.sessionId, workerSessionId),
+        ),
+      )
+      .where(
+        and(
+          eq(peer.stableSlotId, claimer.stableSlotId),
+          gt(peer.expiresAt, now),
+          or(
+            gt(peer.startedAt, claimer.startedAt),
+            and(
+              eq(peer.startedAt, claimer.startedAt),
+              gt(peer.slotId, claimer.slotId),
+            ),
+          ),
+        ),
+      );
+    return notExists(newerInstance);
   }
 
   /**

@@ -389,7 +389,10 @@ export class JobQueueService implements IJobQueueService {
     const now = Date.now();
     const job = await this.repository.claimNextReady({
       ...ownership,
-      workerSlotId: this.versionedSlotId(ownership.workerSlotId),
+      workerSlotId: this.sessionSlotId(
+        ownership.workerSlotId,
+        ownership.workerSessionId,
+      ),
       brainVersion: this.brainVersion,
       now,
       attemptId: createId(),
@@ -426,11 +429,12 @@ export class JobQueueService implements IJobQueueService {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<void> {
     await this.repository.startWorkerSession(
-      this.versionedSlotId(workerSlotId),
+      this.sessionSlotId(workerSlotId, workerSessionId),
       workerSessionId,
       Date.now(),
       workerSessionTimeoutMs,
       this.brainVersion,
+      this.versionedSlotId(workerSlotId),
     );
   }
 
@@ -440,7 +444,7 @@ export class JobQueueService implements IJobQueueService {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
     return this.repository.heartbeatWorkerSession(
-      this.versionedSlotId(workerSlotId),
+      this.sessionSlotId(workerSlotId, workerSessionId),
       workerSessionId,
       Date.now(),
       workerSessionTimeoutMs,
@@ -452,21 +456,28 @@ export class JobQueueService implements IJobQueueService {
     workerSessionId: string,
   ): Promise<boolean> {
     return this.repository.endWorkerSession(
-      this.versionedSlotId(workerSlotId),
+      this.sessionSlotId(workerSlotId, workerSessionId),
       workerSessionId,
     );
   }
 
   /**
-   * A worker slot is stable per brain version. A rolling deploy overlaps two
-   * versions on one slot name; a shared slot would let the newer worker's
-   * session supersede the older one and take its in-flight jobs away instead
-   * of letting them finish.
+   * The stable worker a slot name runs as on this brain version.
    */
   private versionedSlotId(workerSlotId: string): string {
     return this.brainVersion
       ? `${workerSlotId}@${this.brainVersion}`
       : workerSlotId;
+  }
+
+  /**
+   * Every worker session holds its own slot, `<slot>@<version>#<session>`. A
+   * deploy overlaps two containers on one slot name, of two versions or the
+   * same one; a shared slot would let the newer worker's session supersede the
+   * older one and take its in-flight jobs away instead of letting them finish.
+   */
+  private sessionSlotId(workerSlotId: string, workerSessionId: string): string {
+    return `${this.versionedSlotId(workerSlotId)}#${workerSessionId}`;
   }
 
   public renewAttemptLease(
@@ -526,7 +537,7 @@ export class JobQueueService implements IJobQueueService {
 
   private async getDirectClaimOptions(): Promise<JobClaimOptions> {
     this.directSessionStart ??= this.repository.startWorkerSession(
-      this.versionedSlotId(this.directWorkerSlotId),
+      this.sessionSlotId(this.directWorkerSlotId, this.directWorkerSessionId),
       this.directWorkerSessionId,
       Date.now(),
       this.directLeaseDurationMs,
