@@ -39,6 +39,7 @@ function machineContext(
     pendingConfirmations: [],
     activeConfirmation: null,
     error: null,
+    providerDeclined: false,
     ...overrides,
   };
 }
