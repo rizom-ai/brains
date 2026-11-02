@@ -1,5 +1,19 @@
 # @brains/guide
 
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`37ecfde`](https://github.com/rizom-ai/brains/commit/37ecfde35b89a5f13e522774d93a9ae27ec399cf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guide can name the docs section it is listed with: `section: Use a brain` in its frontmatter, matching a doc section by name, so a docs page can show each section's guides beside its docs. Absent, it reads as null and the guide is listed on its own. The Brains documentation guides set it: the writer, researcher, consultant and team guides with "Use a brain", the self-hosting guide with "Run a brain".
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`ea1cac9`](https://github.com/rizom-ai/brains/commit/ea1cac9c54c55d5448a4b329528d78d131de6261) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guides plugin adds a `guides:guide-sections` template and its `guides:sections` data source: each docs section as a column of the guides listed with it and its reference docs, the first four shown and the rest behind a disclosure. A docs site composes it under its own section introductions, such as a homepage that opens on using, running and extending a brain. The docs landing page is left out, since the sections introduce it.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/docs-chrome@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
 ## 0.2.0-alpha.625
 
 ### Patch Changes

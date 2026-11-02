@@ -1,5 +1,17 @@
 # @brains/doc
 
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`c62a570`](https://github.com/rizom-ai/brains/commit/c62a5703abee44f3878ff80cbc2b01799d426214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The docs plugin adds a `docs:doc-home-header` template: the docs home's first part with the page's head and the configured header but no hero, for a site that draws its own opening below the header and continues the page with later parts.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/docs-chrome@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
 ## 0.2.0-alpha.625
 
 ### Patch Changes

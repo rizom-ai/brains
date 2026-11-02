@@ -1,5 +1,16 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conversation's messages come back in the order they were added, also when several share a timestamp. Messages added within one millisecond tied on their timestamp, so recent messages and message ranges could return them in either order.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/db@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/messaging-service@0.2.0-alpha.626
+
 ## 0.2.0-alpha.625
 
 ### Patch Changes
