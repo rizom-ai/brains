@@ -270,7 +270,6 @@
       "name": "@brains/guide",
       "version": "0.2.0-alpha.620",
       "dependencies": {
-        "@brains/doc": "workspace:*",
         "@brains/docs-chrome": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",

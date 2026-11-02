@@ -1,30 +1,22 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import type { DocWithData } from "@brains/doc";
-import { GuideSectionsTemplate, type GuideSection } from "../src";
+import {
+  GuideSectionsTemplate,
+  type GuideSection,
+  type SectionDoc,
+} from "../src";
 import { getTemplates } from "../src/lib/register-templates";
 import { guideWithData } from "./fixtures";
 
-function doc(slug: string, section: string, order: number): DocWithData {
-  const fields = {
+function doc(slug: string, section: string, order: number): SectionDoc {
+  return {
+    id: slug,
     title: `Doc ${slug}`,
     section,
     order,
-    description: null,
     slug,
-  };
-  return {
-    id: slug,
-    entityType: "doc",
-    content: `# Doc ${slug}`,
-    created: "2026-11-02T00:00:00.000Z",
-    updated: "2026-11-02T00:00:00.000Z",
-    visibility: "public",
-    contentHash: `hash-${slug}`,
-    metadata: fields,
-    frontmatter: fields,
-    body: `# Doc ${slug}`,
+    description: null,
   };
 }
 

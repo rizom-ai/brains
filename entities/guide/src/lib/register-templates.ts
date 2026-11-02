@@ -22,7 +22,7 @@ import {
   GuideSectionsTemplate,
   type GuideSectionsProps,
 } from "../templates/guide-sections";
-import { docWithDataSchema } from "@brains/doc";
+import { sectionDocSchema } from "../datasources/guide-sections-datasource";
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
@@ -49,7 +49,7 @@ const guideSectionsDisplaySchema = z.object({
     z.object({
       name: z.string(),
       guides: z.array(guideDisplaySchema),
-      docs: z.array(docWithDataSchema),
+      docs: z.array(sectionDocSchema),
     }),
   ),
 });

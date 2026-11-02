@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { DocWithData } from "@brains/doc";
+import type { SectionDoc } from "../datasources/guide-sections-datasource";
 import { DocsPageSection } from "@brains/docs-chrome";
 import { guideHref } from "../lib/guide-order";
 import type { GuideSection } from "../datasources/guide-sections-datasource";
@@ -17,11 +17,11 @@ function sectionId(name: string): string {
   return `guide-section-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
 
-const DocLinks = ({ docs }: { docs: DocWithData[] }): JSX.Element => (
+const DocLinks = ({ docs }: { docs: SectionDoc[] }): JSX.Element => (
   <ul className="guide-sections__docs">
     {docs.map((item) => (
       <li key={item.id}>
-        <a href={`/docs/${item.metadata.slug}`}>{item.metadata.title}</a>
+        <a href={`/docs/${item.slug}`}>{item.title}</a>
       </li>
     ))}
   </ul>

@@ -89,7 +89,7 @@ describe("GuideSectionsDataSource", () => {
       "Run a brain",
       "Extend a brain",
     ]);
-    expect(sections[0]?.docs.map((item) => item.metadata.slug)).toEqual([
+    expect(sections[0]?.docs.map((item) => item.slug)).toEqual([
       "feature-overview",
       "content-management",
     ]);
@@ -99,7 +99,7 @@ describe("GuideSectionsDataSource", () => {
     const { sections } = await fetchSections();
 
     const slugs = sections.flatMap((section) =>
-      section.docs.map((item) => item.metadata.slug),
+      section.docs.map((item) => item.slug),
     );
     expect(slugs).not.toContain("index");
   });

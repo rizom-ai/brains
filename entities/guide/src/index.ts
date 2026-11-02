@@ -8,8 +8,10 @@ export {
   GuideSectionsDataSource,
   guideSectionSchema,
   guideSectionsSchema,
+  sectionDocSchema,
   type GuideSection,
   type GuideSectionsData,
+  type SectionDoc,
 } from "./datasources/guide-sections-datasource";
 export { GuideListTemplate, type GuideListProps } from "./templates/guide-list";
 export { GuideBandTemplate } from "./templates/guide-band";
