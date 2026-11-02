@@ -25,20 +25,20 @@ function askingFixture(): ReturnType<typeof uploadFixture> & {
 } {
   const fixture = uploadFixture([draftUpload, essayUpload]);
   const calls: CreateInput[] = [];
+  fixture.services.entityRegistry.registerCreateCheck("note", async (input) =>
+    input.content !== undefined
+      ? {
+          kind: "question",
+          asks: "fields",
+          question: "Which year was this?",
+          answerWith: "Pass the answer as fields { year }.",
+        }
+      : { kind: "ready" },
+  );
   fixture.services.entityRegistry.registerCreateInterceptor(
     "note",
     async (input) => {
       calls.push(input);
-      if (input.content !== undefined) {
-        return {
-          kind: "handled",
-          result: {
-            success: false,
-            error: "Which year was this?",
-            question: "fields",
-          },
-        };
-      }
       return {
         kind: "handled",
         result: {
@@ -54,7 +54,7 @@ function askingFixture(): ReturnType<typeof uploadFixture> & {
 async function askAboutPastedText(
   tool: ReturnType<typeof uploadFixture>["tool"],
 ): Promise<void> {
-  const pending = await tool.handler(
+  const refused = await tool.handler(
     {
       entityType: "note",
       source: {
@@ -62,10 +62,6 @@ async function askAboutPastedText(
         content: "Pasted text the note type asks about.",
       },
     },
-    uploadContext(),
-  );
-  const refused = await tool.handler(
-    expectConfirmationArgs(pending),
     uploadContext(),
   );
   expect(refused).toMatchObject({ success: false });

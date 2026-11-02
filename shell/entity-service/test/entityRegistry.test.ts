@@ -1,6 +1,7 @@
 import { createTestEntity } from "../src/test/index";
 import { describe, expect, test, beforeEach } from "bun:test";
 import type {
+  CreateCheck,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -242,11 +243,13 @@ describe("EntityRegistry", (): void => {
       kind: "continue",
       input,
     }));
+    registry.registerCreateCheck("note", async () => ({ kind: "ready" }));
 
     registry.unregisterEntityType("note");
 
     expect(registry.hasEntityType("note")).toBe(false);
     expect(registry.getCreateInterceptor("note")).toBeUndefined();
+    expect(registry.getCreateCheck("note")).toBeUndefined();
     expect(() => registry.getAdapter("note")).toThrow();
   });
 
@@ -303,6 +306,20 @@ This note has frontmatter metadata.`;
 
   test("getCreateInterceptor returns undefined when none is registered", (): void => {
     expect(registry.getCreateInterceptor("unknown")).toBeUndefined();
+  });
+
+  test("registerCreateCheck stores and retrieves the check by entity type", (): void => {
+    const check: CreateCheck = async () => ({
+      kind: "question",
+      asks: "fields",
+      question: "Which year did this project begin?",
+      answerWith: "Pass the answer as fields { year }.",
+    });
+
+    registry.registerCreateCheck("note", check);
+
+    expect(registry.getCreateCheck("note")).toBe(check);
+    expect(registry.getCreateCheck("unknown")).toBeUndefined();
   });
 
   test("registerUploadSaveHandler stores exact and wildcard media handlers", (): void => {

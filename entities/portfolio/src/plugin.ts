@@ -5,6 +5,7 @@ import type {
   JobHandler,
   Template,
   DataSource,
+  CreateCheckResult,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -52,7 +53,10 @@ import {
 } from "./templates/project-view";
 import { projectGenerationTemplate } from "./templates/generation-template";
 import { projectFromTextTemplate } from "./templates/from-text-template";
-import { createProjectFromText } from "./lib/create-from-text";
+import {
+  checkProjectText,
+  createProjectFromText,
+} from "./lib/create-from-text";
 import {
   buildProjectGenerationPrompt,
   generatedProjectContentSchema,
@@ -131,6 +135,14 @@ export class PortfolioPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { projectionSourceRole: "secondary" };
+  }
+
+  protected override async checkCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateCheckResult> {
+    return checkProjectText(input, context);
   }
 
   protected override async interceptCreate(

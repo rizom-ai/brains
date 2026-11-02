@@ -113,6 +113,26 @@ describe("BlogPlugin create interceptor", () => {
     expect(enqueued).toEqual([]);
   });
 
+  it("asks the user for a title before the save is confirmed", async () => {
+    const createCheck = harness.getEntityRegistry().getCreateCheck("post");
+    expect(
+      await createCheck?.(
+        { entityType: "post", content: "Just a paragraph." },
+        executionContext,
+      ),
+    ).toMatchObject({
+      kind: "question",
+      question: "What should this post be called?",
+    });
+    expect(
+      await createCheck?.(
+        { entityType: "post", content: essay },
+        executionContext,
+      ),
+    ).toEqual({ kind: "ready", title: "On slowness" });
+    expect(enqueued).toEqual([]);
+  });
+
   it("imports an essay already published elsewhere with its date and original address", async () => {
     await intercept({
       entityType: "post",

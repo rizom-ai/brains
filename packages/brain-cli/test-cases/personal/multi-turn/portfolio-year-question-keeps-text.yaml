@@ -1,6 +1,6 @@
 id: multi-turn-portfolio-year-question-keeps-text
 name: Project Saved After the Year Question Keeps the Pasted Text
-description: Verifies that when a pasted project names no year, the brain asks once, and the save after the user's answer stores the originally pasted text byte for byte, whatever source the model resends.
+description: Verifies that when a pasted project names no year, the brain asks once before requesting any approval, in plain words, and the one approval after the user's answer stores the originally pasted text byte for byte, whatever source the model resends.
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -27,12 +27,13 @@ turns:
         - toolName: system_create
           argsContain:
             entityType: project
-  - userMessage: Approve.
-    confirmPendingAction: true
-    successCriteria:
-      expectedTools:
-        - toolName: system_create
-          resultErrorContains: After the user answers, call system_create again with source
+          resultErrorContains: no approval was requested
+      responseNotContains:
+        - "failed"
+        - "system_create"
+        - "fields {"
+      responseContains:
+        - "year"
   - userMessage: It began in 2022.
     successCriteria:
       expectedTools:
@@ -48,6 +49,8 @@ turns:
           resultContains:
             success: true
             data.entityId: night-bus-stories
+      responseNotContains:
+        - "failed"
   - userMessage: Read project 'night-bus-stories' from storage with part body. Do not change anything.
     successCriteria:
       expectedTools:

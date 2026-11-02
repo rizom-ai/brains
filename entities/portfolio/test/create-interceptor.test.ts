@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { CreateInput, CreateInterceptionResult } from "@brains/plugins";
+import type {
+  CreateCheckResult,
+  CreateInput,
+  CreateInterceptionResult,
+} from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { PortfolioPlugin } from "../src/plugin";
 import { projectAdapter } from "../src/adapters/project-adapter";
@@ -14,6 +18,13 @@ const caseStudy =
   "# River Atlas\n\nIn 2019 we mapped the river by canoe with the town's school.\n\n## What we learned\n\nSlow is fast.";
 const body =
   "In 2019 we mapped the river by canoe with the town's school.\n\n## What we learned\n\nSlow is fast.";
+
+/** A question for the user: no tool names, fields or code. */
+function expectUserFacing(question: string): void {
+  for (const toolWord of ["fields", "`", "system_create", "Pass "]) {
+    expect(question).not.toContain(toolWord);
+  }
+}
 
 describe("PortfolioPlugin create interceptor", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -54,6 +65,12 @@ describe("PortfolioPlugin create interceptor", () => {
       .getCreateInterceptor("project");
     if (!interceptor) throw new Error("Expected a project create interceptor");
     return interceptor(input, executionContext);
+  }
+
+  async function check(input: CreateInput): Promise<CreateCheckResult> {
+    const createCheck = harness.getEntityRegistry().getCreateCheck("project");
+    if (!createCheck) throw new Error("Expected a project create check");
+    return createCheck(input, executionContext);
   }
 
   function saved(result: CreateInterceptionResult): {
@@ -108,8 +125,59 @@ describe("PortfolioPlugin create interceptor", () => {
       content: "# River Atlas\n\nWe mapped the river by canoe.",
     });
     expect(refusal(result)).toContain("year");
-    // A question: system_create keeps the text for the retry.
-    expect(result).toMatchObject({ result: { question: "fields" } });
+  });
+
+  it("fills in the title, year and description before the save is confirmed", async () => {
+    expect(await check({ entityType: "project", content: caseStudy })).toEqual({
+      kind: "ready",
+      title: "River Atlas",
+      fields: {
+        year: 2019,
+        description: "A river mapped by canoe with a school.",
+      },
+    });
+  });
+
+  it("asks the user for the year before the save is confirmed", async () => {
+    derived = { description: "A river mapped by canoe.", year: null };
+    const result = await check({
+      entityType: "project",
+      content: "# River Atlas\n\nWe mapped the river by canoe.",
+    });
+    expect(result).toMatchObject({
+      kind: "question",
+      asks: "fields",
+      question: "Which year did this project begin?",
+    });
+    if (result.kind !== "question") throw new Error("Expected a question");
+    expectUserFacing(result.question);
+    expect(result.answerWith).toContain("fields { year }");
+  });
+
+  it("saves what the check filled in without asking the model again", async () => {
+    const checked = await check({ entityType: "project", content: caseStudy });
+    if (checked.kind !== "ready") throw new Error("Expected a ready check");
+    const result = saved(
+      await intercept({
+        entityType: "project",
+        content: caseStudy,
+        ...(checked.title && { title: checked.title }),
+        ...(checked.fields && { fields: checked.fields }),
+      }),
+    );
+    expect(result.body).toBe(body);
+    expect(prompts).toHaveLength(1);
+  });
+
+  it("leaves a complete project document to the confirmation as it is", async () => {
+    expect(
+      await check({
+        entityType: "project",
+        content:
+          "---\ntitle: Done\nstatus: draft\ndescription: Ready.\nyear: 2020\n---\n\nBody",
+      }),
+    ).toEqual({ kind: "ready" });
+    expect(prompts).toEqual([]);
   });
 
   it("does not take a year the text never mentions", async () => {

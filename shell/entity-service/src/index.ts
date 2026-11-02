@@ -161,6 +161,8 @@ export type {
   CreateExecutionContext,
   CreateResult,
   CreateQuestion,
+  CreateCheck,
+  CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,

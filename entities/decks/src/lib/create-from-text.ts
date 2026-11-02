@@ -1,9 +1,12 @@
 import type {
+  CreateCheckResult,
   CreateInput,
   CreateInterceptionResult,
   EntityPluginContext,
+  EntityTextResult,
 } from "@brains/plugins";
 import {
+  checkEntityText,
   continueWithEntityText,
   entityTextError,
   readEntityText,
@@ -28,16 +31,17 @@ const deckTextFieldsSchema = z.object({
   slides: z.enum(["headings", "paragraphs"]).optional(),
 });
 
+type DeckTextFields = z.output<typeof deckTextFieldsSchema>;
+
 /**
- * system_create for a deck from the writer's own text: the text stays as
- * written, split into slides on its headings when it has no --- separators,
- * titled from its first heading (which stays as the title slide), and saved
- * as a draft with a description written from the slides.
+ * The writer's deck text split into slides, with its description: the one
+ * they state, else written from the slides. Text with no separators or
+ * headings to split it on asks where the slides break.
  */
-export async function createDeckFromText(
+async function readDeckText(
   input: CreateInput,
   context: Pick<EntityPluginContext, "ai" | "entityService" | "logger">,
-): Promise<CreateInterceptionResult> {
+): Promise<EntityTextResult<DeckTextFields>> {
   const read = readEntityText(input, {
     noun: "deck",
     fieldsSchema: deckTextFieldsSchema,
@@ -46,23 +50,23 @@ export async function createDeckFromText(
       deckFrontmatterSchema.safeParse(frontmatter).success &&
       hasSlideSeparators(body),
   });
-  if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") {
-    return entityTextError(read.error, read.question);
-  }
+  if (read.kind !== "text") return read;
   const { title, body, fields } = read.text;
 
   const slides = hasSlideSeparators(body)
     ? body
     : splitSlides(body, fields.slides ?? "headings");
   if (!slides) {
-    return entityTextError(
-      'Where should the slides break? The text has no --- separator lines or headings to split it on. For a slide per paragraph, pass fields { slides: "paragraphs" }; for other breaks, insert a line containing only --- at each break the user names, changing nothing else in the text.',
-      "slide-breaks",
-    );
+    return {
+      kind: "question",
+      asks: "slide-breaks",
+      question:
+        "Where should the slides break: one slide per paragraph, or at places you name?",
+      answerWith:
+        'For a slide per paragraph, pass fields { slides: "paragraphs" }. For other breaks, pass the text as source kind "text" with a line containing only --- inserted at each break the user names, changing nothing else in the text.',
+    };
   }
 
-  const status = fields.status ?? "draft";
   const description =
     fields.description ??
     (await describeDeck(context, { title, content: slides }).catch(
@@ -75,6 +79,53 @@ export async function createDeckFromText(
         return undefined;
       },
     ));
+  return {
+    kind: "text",
+    text: {
+      title,
+      body: slides,
+      fields: { ...fields, ...(description !== undefined && { description }) },
+    },
+  };
+}
+
+/**
+ * Before a deck from the writer's text is confirmed: ask where the slides
+ * break when nothing says, and fill in the title and description the
+ * confirmation shows and the confirmed save receives.
+ */
+export async function checkDeckText(
+  input: CreateInput,
+  context: Pick<EntityPluginContext, "ai" | "entityService" | "logger">,
+): Promise<CreateCheckResult> {
+  return checkEntityText(
+    await readDeckText(input, context),
+    ({ title, fields }) => ({
+      title,
+      ...(fields.description !== undefined && {
+        fields: { description: fields.description },
+      }),
+    }),
+  );
+}
+
+/**
+ * system_create for a deck from the writer's own text: the text stays as
+ * written, split into slides on its headings when it has no --- separators,
+ * titled from its first heading (which stays as the title slide), and saved
+ * as a draft with a description written from the slides.
+ */
+export async function createDeckFromText(
+  input: CreateInput,
+  context: Pick<EntityPluginContext, "ai" | "entityService" | "logger">,
+): Promise<CreateInterceptionResult> {
+  const read = await readDeckText(input, context);
+  if (read.kind === "not-text") return { kind: "continue", input };
+  if (read.kind !== "text") return entityTextError(read);
+  const { title, body: slides, fields } = read.text;
+  const { description } = fields;
+
+  const status = fields.status ?? "draft";
 
   return continueWithEntityText(input, {
     title,
