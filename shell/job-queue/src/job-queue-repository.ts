@@ -38,6 +38,7 @@ import {
   JobDeduplicator,
   type DeduplicationCandidate,
 } from "./job-deduplicator";
+import { brainVersionSortKey, type BrainVersion } from "./brain-version";
 
 export interface JobAttemptClaim {
   now: number;
@@ -48,6 +49,12 @@ export interface JobAttemptClaim {
   executableTypes: readonly string[];
   /** Types claimed only while no other job of the type holds a live lease. */
   exclusiveTypes?: readonly string[] | undefined;
+  /**
+   * The claiming worker's brain version. It claims no job a newer brain
+   * queued, and nothing while a live session of a newer brain exists.
+   * Without a version the claim is not gated.
+   */
+  brainVersion?: BrainVersion | undefined;
 }
 
 export interface RetireUnownedActiveJobRequest {
@@ -79,6 +86,8 @@ export interface AtomicJobData {
   source: string | null;
   metadata: JobInfo["metadata"];
   result: unknown;
+  /** The enqueuing brain's version; absent for an unversioned queue. */
+  brainVersion?: BrainVersion | undefined;
 }
 
 export interface AtomicEnqueueRequest {
@@ -265,10 +274,12 @@ export class JobQueueRepository {
     }
 
     if (effectiveStrategy === "skip") {
+      await this.raiseBrainVersion(transaction, duplicate.id, jobData);
       return { kind: "skipped", jobId: duplicate.id };
     }
 
     if (effectiveStrategy === "coalesce") {
+      await this.raiseBrainVersion(transaction, duplicate.id, jobData);
       const updated = await transaction.execute({
         sql: "UPDATE `job_queue` SET `scheduledFor` = ? WHERE `id` = ? AND `status` = ?",
         args: [Date.now(), duplicate.id, duplicate.status],
@@ -367,6 +378,27 @@ export class JobQueueRepository {
     };
   }
 
+  /**
+   * A newer brain asking again for work an older brain queued wants it done by
+   * its own code: the kept job takes the newer version, so no older worker
+   * runs it. An older or equal request leaves the version as it is.
+   */
+  private async raiseBrainVersion(
+    transaction: Transaction,
+    jobId: string,
+    jobData: AtomicJobData,
+  ): Promise<void> {
+    if (!jobData.brainVersion) return;
+    const sortKey = brainVersionSortKey(jobData.brainVersion);
+    await transaction.execute({
+      sql: `UPDATE \`job_queue\`
+            SET \`brainVersion\` = ?, \`brainVersionSortKey\` = ?
+            WHERE \`id\` = ?
+              AND (\`brainVersionSortKey\` IS NULL OR \`brainVersionSortKey\` < ?)`,
+      args: [jobData.brainVersion, sortKey, jobId, sortKey],
+    });
+  }
+
   private async insertJob(
     transaction: Transaction,
     jobData: AtomicJobData,
@@ -376,8 +408,8 @@ export class JobQueueRepository {
               \`id\`, \`type\`, \`data\`, \`result\`, \`source\`, \`metadata\`,
               \`status\`, \`priority\`, \`retryCount\`, \`maxRetries\`,
               \`lastError\`, \`createdAt\`, \`scheduledFor\`, \`startedAt\`,
-              \`completedAt\`
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              \`completedAt\`, \`brainVersion\`, \`brainVersionSortKey\`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         jobData.id,
         jobData.type,
@@ -394,6 +426,8 @@ export class JobQueueRepository {
         jobData.scheduledFor,
         jobData.startedAt,
         jobData.completedAt,
+        jobData.brainVersion ?? null,
+        jobData.brainVersion ? brainVersionSortKey(jobData.brainVersion) : null,
       ],
     });
     if (inserted.rowsAffected !== 1) {
@@ -531,8 +565,15 @@ export class JobQueueRepository {
     workerSessionId: string,
     now: number = Date.now(),
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
+    brainVersion?: BrainVersion,
   ): Promise<void> {
     const expiresAt = now + workerSessionTimeoutMs;
+    const version = {
+      brainVersion: brainVersion ?? null,
+      brainVersionSortKey: brainVersion
+        ? brainVersionSortKey(brainVersion)
+        : null,
+    };
     await this.write("start worker session", async () =>
       this.db
         .insert(jobWorkerSessions)
@@ -542,6 +583,7 @@ export class JobQueueRepository {
           startedAt: now,
           heartbeatAt: now,
           expiresAt,
+          ...version,
         })
         .onConflictDoUpdate({
           target: jobWorkerSessions.slotId,
@@ -550,6 +592,7 @@ export class JobQueueRepository {
             startedAt: now,
             heartbeatAt: now,
             expiresAt,
+            ...version,
           },
         }),
     );
@@ -1055,7 +1098,11 @@ export class JobQueueRepository {
       leaseDurationMs,
       executableTypes,
       exclusiveTypes = [],
+      brainVersion,
     } = claim;
+    const versionGate = brainVersion
+      ? this.brainVersionGate(brainVersion, now)
+      : { admissible: undefined, noNewerWorker: undefined };
 
     const claimingSession = this.db
       .select({ slotId: jobWorkerSessions.slotId })
@@ -1114,6 +1161,7 @@ export class JobQueueRepository {
         and(
           inArray(jobQueue.type, executableTypes),
           exclusiveFree,
+          versionGate.admissible,
           or(
             and(
               eq(jobQueue.status, JOB_STATUS.PENDING),
@@ -1142,7 +1190,13 @@ export class JobQueueRepository {
           attemptHeartbeatAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptHeartbeatAt} ELSE ${now} END`,
           runtimeUpdatedAt: sql`CASE WHEN ${terminalReclaim} THEN ${this.nextRuntimeUpdatedAt(now)} ELSE ${jobQueue.runtimeUpdatedAt} END`,
         })
-        .where(and(inArray(jobQueue.id, candidate), exists(claimingSession)))
+        .where(
+          and(
+            inArray(jobQueue.id, candidate),
+            exists(claimingSession),
+            versionGate.noNewerWorker,
+          ),
+        )
         .returning(),
     );
 
@@ -1157,6 +1211,37 @@ export class JobQueueRepository {
       workerSessionId,
     });
     return claimed;
+  }
+
+  /**
+   * The claim conditions for a worker of `version`: a job is admissible when
+   * an older or equal brain queued it, or it predates versions; the worker
+   * claims nothing while a live session of a newer brain exists. Both hold
+   * inside the claim statement, so a newer job or worker appearing
+   * concurrently is never missed. Reclaiming an expired attempt is a claim
+   * too, so recovery obeys the same gate.
+   */
+  private brainVersionGate(
+    version: BrainVersion,
+    now: number,
+  ): { admissible: SQL | undefined; noNewerWorker: SQL } {
+    const sortKey = brainVersionSortKey(version);
+    const newerLiveSession = this.db
+      .select({ slotId: jobWorkerSessions.slotId })
+      .from(jobWorkerSessions)
+      .where(
+        and(
+          gt(jobWorkerSessions.expiresAt, now),
+          gt(jobWorkerSessions.brainVersionSortKey, sortKey),
+        ),
+      );
+    return {
+      admissible: or(
+        isNull(jobQueue.brainVersionSortKey),
+        lte(jobQueue.brainVersionSortKey, sortKey),
+      ),
+      noNewerWorker: notExists(newerLiveSession),
+    };
   }
 
   /** Allocate a globally increasing cursor value within the serialized write. */

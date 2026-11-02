@@ -418,6 +418,12 @@ export type JobQueueServiceConfig = DbConfig & {
    * Worker-owned claims pass explicit lease and liveness settings.
    */
   claimTimeoutMs?: number;
+  /**
+   * The running brain's semver version. Every job this service queues records
+   * it, and its workers claim no job a newer brain queued and nothing while a
+   * newer brain's worker is live. Omitted, nothing is version-gated.
+   */
+  brainVersion?: string | undefined;
 };
 
 export const DEFAULT_WORKER_SESSION_TIMEOUT_MS = 15_000;
