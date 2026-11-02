@@ -39,6 +39,7 @@ import type { ReasoningEffort } from "./types";
 import { buildAgentInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
+import { retryDeclinedTurnOnce } from "./provider-declined";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
@@ -241,11 +242,16 @@ export function createBrainAgentFactory(
         assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
-          const result = await agent.generate(params);
+          const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
+            (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+          );
           return {
-            text: result.text,
+            text,
             steps: result.steps,
-            usage: turnUsage([result.totalUsage]),
+            usage: turnUsage([
+              ...(retriedAfter ? [retriedAfter.totalUsage] : []),
+              result.totalUsage,
+            ]),
           };
         }
         const last = guestModelMessages(params.messages).at(-1);
@@ -277,16 +283,19 @@ export function createBrainAgentFactory(
             guestSettlement: guestTurnSettlement(judged, options.guestPricing),
             guestScreening: { outcome: "refused", category: judgment.category },
           };
-        const result = await agent.generate(params);
+        const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
+          (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+        );
         return {
-          text: result.text,
+          text,
           steps: result.steps,
           usage: turnUsage([
             ...judged.map((call) => call.usage),
+            ...(retriedAfter ? [retriedAfter.totalUsage] : []),
             result.totalUsage,
           ]),
           guestSettlement: guestTurnSettlement(
-            [...judged, ...result.steps],
+            [...judged, ...(retriedAfter?.steps ?? []), ...result.steps],
             options.guestPricing,
           ),
           guestScreening:

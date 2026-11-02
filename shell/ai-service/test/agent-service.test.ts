@@ -4,6 +4,7 @@ import { expectDefined } from "@brains/utils/expect-defined";
 import { deferred } from "@brains/utils/deferred";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { AgentService } from "../src/agent-service";
+import { AIProviderDeclinedError } from "../src/errors";
 import type { AgentResponse } from "../src";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -2299,6 +2300,27 @@ describe("AgentService", () => {
           },
         ],
       });
+    });
+
+    it("tells the user plainly when the AI provider declined the turn", async () => {
+      mockGenerate.mockImplementation(async () => {
+        throw new AIProviderDeclinedError(new Error("flagged"));
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat("hello", "test-conversation");
+
+      const declined =
+        "The AI provider declined this request. Try rephrasing your message.";
+      expect(response.text).toBe(declined);
+      expect(response.error).toBe(declined);
     });
 
     it("drains queued messages after a turn errors", async () => {

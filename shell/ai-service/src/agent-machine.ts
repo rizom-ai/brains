@@ -26,6 +26,7 @@ import type {
   PendingConfirmation,
 } from "./agent-types";
 import { getErrorMessage } from "@brains/utils/error";
+import { AIProviderDeclinedError } from "./errors";
 
 export interface PendingConfirmationRequester {
   actorKey?: string;
@@ -375,9 +376,11 @@ export const agentMachine: AgentMachine = setup({
             response: {
               error: getErrorMessage(event.error, "Unknown error"),
               text:
-                event.error instanceof Error
-                  ? `Error: ${event.error.message}`
-                  : "An unexpected error occurred.",
+                event.error instanceof AIProviderDeclinedError
+                  ? event.error.message
+                  : event.error instanceof Error
+                    ? `Error: ${event.error.message}`
+                    : "An unexpected error occurred.",
               usage: emptyUsage,
             },
             attachments: [],
