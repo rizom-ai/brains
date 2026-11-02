@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- [#803](https://github.com/rizom-ai/brains/pull/803) [`1a1e0f9`](https://github.com/rizom-ai/brains/commit/1a1e0f9c5ee1a05c01339e3aa75abc62f7bdaaf7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When an approved action succeeds but the reply that follows it fails, including a provider decline, the chat shows the action's success result (for example `Completed: Saved note "Roadmap".`) instead of "Error executing …". Only a failure of the action itself is reported as an error, in web chat, Studio chat, chat platforms and MCP.
+
+- [#804](https://github.com/rizom-ai/brains/pull/804) [`96731d4`](https://github.com/rizom-ai/brains/commit/96731d49e6d04c106150b279012d2592c680943b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guests on the public Ask page now see "The AI provider declined this request. Try rephrasing your message." when the AI provider declines their question twice, instead of a generic unavailable notice. Every other guest failure still shows the generic notice, and a declined guest turn is still recorded and settled as failed.
+
 ## 0.2.0-alpha.624
 
 ### Patch Changes
