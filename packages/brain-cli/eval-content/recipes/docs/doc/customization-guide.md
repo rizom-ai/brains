@@ -175,7 +175,7 @@ export default defineSite({
       id: "home",
       path: "/",
       title: "Home",
-      sections: [{ id: "hero", template: "home.hero" }],
+      sections: [{ id: "hero", template: "home:hero" }],
     },
   ],
   sections: [sectionGroup("home", { hero })],

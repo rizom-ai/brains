@@ -42,7 +42,7 @@ export default defineSite({
       id: "home",
       path: "/",
       title: "Reading library",
-      sections: [{ id: "hero", template: "library.hero" }],
+      sections: [{ id: "hero", template: "library:hero" }],
       navigation: { show: true, label: "Library", priority: 10 },
     },
   ],

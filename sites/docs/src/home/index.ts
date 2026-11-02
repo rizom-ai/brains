@@ -8,7 +8,7 @@ export { DocsHomeHero, type DocsHomeHeroContent } from "./hero";
 export { docsHomeContent } from "./content";
 export { DOCS_HOME_SCRIPT_SRC, docsHomeScript } from "./script";
 
-/** The home's own sections, placed as docs-home.hero and docs-home.doors. */
+/** The home's own sections, placed as docs-home:hero and docs-home:doors. */
 export const docsHomeSections: SiteSectionGroup = sectionGroup("docs-home", {
   hero: docsHomeHeroSection,
   doors: docsHomeDoorsSection,

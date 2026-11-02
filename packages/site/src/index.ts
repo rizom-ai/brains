@@ -728,6 +728,20 @@ export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
           message: `Unknown layout "${layout}"`,
         });
       }
+
+      // Templates are named namespace:name at runtime, sections included; a
+      // dotted name would never resolve, so it fails here instead of
+      // rendering nothing.
+      for (const [sectionIndex, section] of (route.sections ?? []).entries()) {
+        const dotted = /^([^:.\s]+)\.([^:.\s]+)$/.exec(section.template);
+        if (dotted) {
+          context.addIssue({
+            code: "custom",
+            path: ["routes", index, "sections", sectionIndex, "template"],
+            message: `Section template "${section.template}" is written "${dotted[1]}:${dotted[2]}"`,
+          });
+        }
+      }
     }
 
     const groups = Array.isArray(site.sections)
@@ -762,7 +776,7 @@ export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
           context.addIssue({
             code: "custom",
             path: ["content", namespace, sectionId],
-            message: `Content section "${namespace}.${sectionId}" is not defined`,
+            message: `Content section "${namespace}:${sectionId}" is not defined`,
           });
           continue;
         }
@@ -771,7 +785,7 @@ export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
           context.addIssue({
             code: "custom",
             path: ["content", namespace, sectionId],
-            message: `Content does not satisfy the "${namespace}.${sectionId}" schema: ${z.prettifyError(parsed.error)}`,
+            message: `Content does not satisfy the "${namespace}:${sectionId}" schema: ${z.prettifyError(parsed.error)}`,
           });
         }
       }
@@ -786,26 +800,23 @@ function expectSiteDefinition(
 }
 void expectSiteDefinition;
 
-function runtimeTemplateName(template: string): {
-  readonly name: string;
+/** The namespace and name of a `namespace:name` template. */
+function templateParts(template: string): {
   readonly namespace?: string | undefined;
   readonly sectionId?: string | undefined;
 } {
-  const parts = template.split(".");
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    return { name: template };
-  }
+  const separator = template.indexOf(":");
+  if (separator <= 0 || separator === template.length - 1) return {};
   return {
-    name: `${parts[0]}:${parts[1]}`,
-    namespace: parts[0],
-    sectionId: parts[1],
+    namespace: template.slice(0, separator),
+    sectionId: template.slice(separator + 1),
   };
 }
 
 /**
- * Validate and normalize a public site definition. Dotted schema-first
- * template names become the runtime namespace form, and declared initial
- * content becomes the route section's typed fallback.
+ * Validate a public site definition and make each placed section's declared
+ * initial content its typed fallback: `content.home.hero` for the section
+ * placed as `home:hero`. Templates from plugins have no such content.
  */
 export function defineSite(definition: SiteDefinition): SiteDefinition {
   const parsed = siteDefinitionSchema.parse(definition);
@@ -814,14 +825,13 @@ export function defineSite(definition: SiteDefinition): SiteDefinition {
     ...(route.sections
       ? {
           sections: route.sections.map((section): SectionDefinitionInput => {
-            const template = runtimeTemplateName(section.template);
+            const { namespace, sectionId } = templateParts(section.template);
             const initialContent =
-              template.namespace && template.sectionId
-                ? parsed.content?.[template.namespace]?.[template.sectionId]
+              namespace && sectionId
+                ? parsed.content?.[namespace]?.[sectionId]
                 : undefined;
             return {
               ...section,
-              template: template.name,
               ...(section.content === undefined && initialContent !== undefined
                 ? { content: initialContent }
                 : {}),

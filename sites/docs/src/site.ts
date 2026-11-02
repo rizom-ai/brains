@@ -20,8 +20,8 @@ const docsQuery = { entityType: "doc", query: { limit: 100 } };
 // `content` below; once edited in Studio, saved site content takes over.
 const homeSections = [
   { id: "header", template: "docs:doc-home-header", dataQuery: docsQuery },
-  { id: "hero", template: "docs-home.hero" },
-  { id: "doors", template: "docs-home.doors" },
+  { id: "hero", template: "docs-home:hero" },
+  { id: "doors", template: "docs-home:doors" },
   { id: "sections", template: "guides:guide-sections", dataQuery: {} },
 ];
 
@@ -65,8 +65,8 @@ const docsRoutes: RouteDefinitionInput[] = [
 const DocsLayout = ({ sections }: { sections: ReactNode[] }): JSX.Element =>
   h(Fragment, null, ...sections);
 
-// defineSite turns the dotted section names into the runtime's and makes the
-// starting copy each placed section's fallback.
+// defineSite validates the site and makes the starting copy in `content` the
+// fallback of each section placed as docs-home:hero or docs-home:doors.
 export const docsSite: SiteDefinition = defineSite({
   layouts: {
     default: DocsLayout,
