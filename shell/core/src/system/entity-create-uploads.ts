@@ -14,6 +14,8 @@ export interface PreparedUploadItem {
   filename: string;
   entityType: string;
   title: string;
+  /** The frontmatter the user stated for this file, shared and its own. */
+  fields?: Record<string, unknown> | undefined;
   /** The failed entity this save replaces, when it retries one. */
   replacesFailed?: string | undefined;
   /** Save the file; runs only once the user confirmed. */
@@ -26,6 +28,15 @@ export type PreparedUploadResult =
 
 function label(item: { entityType: string; title: string }): string {
   return `${item.entityType} "${item.title}"`;
+}
+
+function fieldsLine(fields: Record<string, unknown>): string {
+  return Object.entries(fields)
+    .map(
+      ([field, value]) =>
+        `${field}: ${typeof value === "string" ? value : JSON.stringify(value)}`,
+    )
+    .join(", ");
 }
 
 function errorText(result: ToolResponse): string {
@@ -57,6 +68,7 @@ function buildConfirmation(
       ...items.map((item, index) =>
         [
           `${index + 1}. ${item.filename} → ${label(item)}`,
+          ...(item.fields ? [`   ${fieldsLine(item.fields)}`] : []),
           ...(item.replacesFailed
             ? [`   Replaces failed ${item.replacesFailed}`]
             : []),
@@ -159,8 +171,10 @@ export async function createFromUploads(params: {
         upload: request.upload,
         transform: request.transform,
         title: items[index]?.title ?? request.title,
+        ...(request.fields && { fields: request.fields }),
       })),
     },
+    ...(input.fields && { fields: input.fields }),
     ...(input.replace ? { replace: input.replace } : {}),
     confirmed: true as const,
     confirmationToken,

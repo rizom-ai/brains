@@ -172,6 +172,7 @@ type UploadsSourceInputSchema = StrictObjectSchema<{
       upload: typeof createUploadInputSchema;
       transform: typeof uploadTransformSchema;
       title: z.ZodOptional<z.ZodString>;
+      fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }>
   >;
 }>;
@@ -182,7 +183,7 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
     kind: z
       .literal("uploads")
       .describe(
-        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the note type for extract-markdown files.",
+        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names what extract-markdown files are saved as: a note imports each file, another type such as post takes each text file's text as its own.",
       ),
     items: z
       .array(
@@ -196,6 +197,12 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
               .string()
               .optional()
               .describe("Only a title the user named for this file."),
+            fields: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe(
+                "Frontmatter the user stated for this file alone, such as the date and address it was first published at: { publishedAt, canonicalUrl }; facts shared by every file go in the top-level fields.",
+              ),
           })
           .strict(),
       )
@@ -270,7 +277,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
       kind: z
         .literal("upload")
         .describe(
-          "Use extract-markdown to import upload text into a note, or preserve only when the user explicitly wants to save the uploaded file/document bytes themselves. Do not use for saving a previous assistant summary about an upload; use prior-response for that.",
+          "Use extract-markdown to import upload text into a note, or to save a text upload's text as another type such as a post, or preserve only when the user explicitly wants to save the uploaded file/document bytes themselves. Do not use for saving a previous assistant summary about an upload; use prior-response for that.",
         ),
       upload: createUploadInputSchema.describe(
         "Exact upload candidate object from the current conversation",
