@@ -12,11 +12,13 @@ const docsQuery = { entityType: "doc", query: { limit: 100 } };
 
 // The home: the docs header, then the site's own opening (what a brain is)
 // and door introductions, then each docs section's guides and reference
-// under its door.
+// under its door. The opening and the doors start from the package's copy;
+// once edited in Studio, the saved docs-home:hero and docs-home:doors
+// site content takes over.
 const homeSections = [
   { id: "header", template: "docs:doc-home-header", dataQuery: docsQuery },
-  { id: "hero", template: "docs-home.hero" },
-  { id: "doors", template: "docs-home.doors" },
+  { id: "hero", template: "docs-home:hero", content: docsHomeContent.hero },
+  { id: "doors", template: "docs-home:doors", content: docsHomeContent.doors },
   { id: "sections", template: "guides:guide-sections", dataQuery: {} },
 ];
 
@@ -66,12 +68,6 @@ export const docsSite: SiteDefinition = {
   },
   routes: docsRoutes,
   sections: docsHomeSections,
-  content: {
-    "docs-home": {
-      hero: docsHomeContent.hero,
-      doors: docsHomeContent.doors,
-    },
-  },
   themeOverride: docsHomeCss,
   headScripts: [`<script src="${DOCS_HOME_SCRIPT_SRC}" defer></script>`],
   staticAssets: { [DOCS_HOME_SCRIPT_SRC]: docsHomeScript },

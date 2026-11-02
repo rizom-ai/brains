@@ -3,7 +3,7 @@ import { createElement as h } from "react";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { defineSite } from "@rizom/site";
 import site from "../src";
-import { DocsHomeDoors, DocsHomeHero } from "../src/home";
+import { DocsHomeDoors, DocsHomeHero, docsHomeSections } from "../src/home";
 import { docsHomeContent } from "../src/home/content";
 
 const docsQuery = { entityType: "doc", query: { limit: 100 } };
@@ -19,8 +19,19 @@ describe("@rizom/site-docs", () => {
     expect(site.entityDisplay["doc"]?.pluralName).toBe("docs");
   });
 
-  test("validates as a site, with its seeded copy", () => {
+  test("validates as a site", () => {
     expect(() => defineSite(site)).not.toThrow();
+  });
+
+  test("starts the opening and the doors from copy their sections accept", () => {
+    const sections = docsHomeSections.sections;
+
+    expect(
+      sections["hero"]?.schema.safeParse(docsHomeContent.hero).success,
+    ).toBe(true);
+    expect(
+      sections["doors"]?.schema.safeParse(docsHomeContent.doors).success,
+    ).toBe(true);
   });
 
   test("displays each guide at /guides/<slug>, out of navigation for now", () => {
@@ -36,8 +47,16 @@ describe("@rizom/site-docs", () => {
   test("the home opens on the header, the brain, then the doors and their guides and docs", () => {
     expect(route("docs-home")?.sections).toEqual([
       { id: "header", template: "docs:doc-home-header", dataQuery: docsQuery },
-      { id: "hero", template: "docs-home.hero" },
-      { id: "doors", template: "docs-home.doors" },
+      {
+        id: "hero",
+        template: "docs-home:hero",
+        content: docsHomeContent.hero,
+      },
+      {
+        id: "doors",
+        template: "docs-home:doors",
+        content: docsHomeContent.doors,
+      },
       { id: "sections", template: "guides:guide-sections", dataQuery: {} },
     ]);
   });

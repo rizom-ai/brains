@@ -56,7 +56,11 @@
       var(--dh-wash-a),
       transparent 70%
     ),
-    radial-gradient(ellipse 30% 28% at 50% 62%, var(--dh-wash-b), transparent 70%);
+    radial-gradient(
+      ellipse 30% 28% at 50% 62%,
+      var(--dh-wash-b),
+      transparent 70%
+    );
 }
 
 .dh-hero__body {
@@ -355,6 +359,21 @@
 
 /* ---------- Doors: a brass root through a node on each ---------- */
 
+.dh-doors__heading {
+  margin: 0;
+  font-family: var(--dh-display);
+  font-size: 33px;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  color: var(--dh-text);
+}
+
+.dh-doors__lede {
+  margin: 10px 0 0;
+  max-width: 52ch;
+  color: var(--dh-muted);
+}
+
 .dh-doors__grid {
   position: relative;
   display: grid;
@@ -431,12 +450,13 @@
   box-shadow: 0 0 0 5px var(--dh-glow);
 }
 
-.dh-door__who {
+/* Scoped under .dh-door so they win over the plain `.dh-door p` below. */
+.dh-door .dh-door__who {
   margin: 8px 0 0;
   color: var(--dh-muted);
 }
 
-.dh-door__label {
+.dh-door .dh-door__label {
   margin: 28px 0 10px;
   font-family: var(--dh-body);
   font-size: 14px;
@@ -464,6 +484,9 @@
   font-family: var(--dh-code);
   font-size: 13px;
   line-height: 1.7;
+  /* A long command wraps rather than hiding behind a scroll. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .dh-door pre .dh-prompt {
@@ -471,9 +494,11 @@
   user-select: none;
 }
 
+/* The site's base styles reset list markers; the steps are numbered. */
 .dh-door ol {
   margin: 0;
   padding-left: 1.4em;
+  list-style: decimal;
   line-height: 1.5;
 }
 

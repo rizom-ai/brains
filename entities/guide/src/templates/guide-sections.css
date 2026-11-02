@@ -40,15 +40,28 @@
   }
 }
 
-/* The site's introduction shows the section name; outline readers get it
-   here. */
+/* On narrow screens the columns stack below the site's introductions, so
+   each names its section. Side by side, the introduction above names it and
+   only outline readers get it here. */
 .guide-sections__name {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  margin: 0 0 18px;
+  font-family: var(--docs-font-display);
+  font-size: 26px;
+  font-weight: 420;
+  line-height: 1.15;
+  color: var(--docs-heading);
+}
+
+@media (min-width: 1000px) {
+  .guide-sections__name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 
 .guide-sections__label {
