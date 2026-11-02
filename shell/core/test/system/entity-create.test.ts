@@ -1255,6 +1255,7 @@ status: draft
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
     services = createSeededSystemServices({
+      runtimeUploads: briefPdfUploads,
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -1309,7 +1310,7 @@ status: draft
     expect(result).toEqual({
       success: false,
       error:
-        'Transform "extract-markdown" requires an upload ref and a type declaring markdownImport. Available: note. Omit transform for raw file promotion.',
+        'A document takes the text of a text upload; brief.pdf (application/pdf) is not text. Import it as a note, or keep the file itself with transform "preserve".',
     });
     expect(interceptorCalled).toBe(false);
   });

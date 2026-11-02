@@ -415,21 +415,59 @@ function formatTextAttachment(
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
 }
 
-/**
- * Several files attached to one message are kept together: the candidate
- * names every one of them, each with the transform that keeps it as itself
- * (a text file as a note), so none is left out of a request to keep them.
- */
-function formatKeepAllCandidate(attachments: ChatAttachment[]): string {
+function isPdfAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType.toLowerCase() === "application/pdf";
+}
+
+function formatKeepAllCandidateLine(
+  label: string,
+  attachments: ChatAttachment[],
+  transform: (attachment: ChatAttachment) => "extract-markdown" | "preserve",
+): string {
   const items = attachments.flatMap((attachment) =>
     attachment.source
       ? [
-          `{ upload: { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }, transform: "${attachment.kind === "text" ? "extract-markdown" : "preserve"}" }`,
+          `{ upload: { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }, transform: "${transform(attachment)}" }`,
         ]
       : [],
   );
-  if (items.length < 2) return "";
-  return `Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [${items.join(", ")}] } }`;
+  return `Available system_create candidate for keeping every file attached to this message${label} (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [${items.join(", ")}] } }`;
+}
+
+/**
+ * Several files attached to one message are kept together: the candidate
+ * names every one of them, each with the transform that keeps it as itself
+ * (a text file as a note, a PDF as a document), so none is left out of a
+ * request to keep them. With a PDF among them, a second candidate keeps them
+ * as notes, the PDF's text extracted the way a single PDF note import does.
+ */
+function formatKeepAllCandidate(attachments: ChatAttachment[]): string[] {
+  const kept = attachments.filter((attachment) => attachment.source);
+  if (kept.length < 2) return [];
+  const hasPdf = kept.some(isPdfAttachment);
+  return [
+    formatKeepAllCandidateLine(
+      hasPdf
+        ? ", each as itself, text files as notes and PDFs as documents"
+        : ", each as itself and text files as notes",
+      kept,
+      (attachment) =>
+        attachment.kind === "text" ? "extract-markdown" : "preserve",
+    ),
+    ...(hasPdf
+      ? [
+          formatKeepAllCandidateLine(
+            " as notes, each PDF's text extracted into its note, when the user asks for notes",
+            kept,
+            (attachment) =>
+              attachment.kind === "text" || isPdfAttachment(attachment)
+                ? "extract-markdown"
+                : "preserve",
+          ),
+        ]
+      : []),
+    "To keep them as another type, such as posts, use this call with that entityType; what the user states about one file, such as its publication date, goes in that file's item fields.",
+  ];
 }
 
 function formatUploadRefs(
@@ -457,7 +495,7 @@ function formatUploadRefs(
   return [
     guidance,
     priorResponseCandidate,
-    formatKeepAllCandidate(attachments),
+    ...formatKeepAllCandidate(attachments),
     ...lines,
   ]
     .filter((line) => line.length > 0)

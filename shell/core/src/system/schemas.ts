@@ -172,6 +172,7 @@ type UploadsSourceInputSchema = StrictObjectSchema<{
       upload: typeof createUploadInputSchema;
       transform: typeof uploadTransformSchema;
       title: z.ZodOptional<z.ZodString>;
+      fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }>
   >;
 }>;
@@ -182,7 +183,7 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
     kind: z
       .literal("uploads")
       .describe(
-        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the note type for extract-markdown files.",
+        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the note type for extract-markdown files, or another type such as post.",
       ),
     items: z
       .array(
@@ -196,6 +197,12 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
               .string()
               .optional()
               .describe("Only a title the user named for this file."),
+            fields: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe(
+                "Frontmatter the user stated for this file alone, such as the date and address it was first published at: { publishedAt, canonicalUrl }; facts shared by every file go in the top-level fields.",
+              ),
           })
           .strict(),
       )

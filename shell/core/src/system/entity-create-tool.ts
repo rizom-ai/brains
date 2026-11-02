@@ -410,21 +410,8 @@ async function resolveCreateSource(
       ? resolvedMessage.content
       : (entitySource?.value.content ?? content);
 
-  if (
-    transform === "extract-markdown" &&
-    (!uploadRef ||
-      !services.entityRegistry.getEntityTypeConfig(input.entityType)
-        .markdownImport)
-  ) {
-    const available = services.entityRegistry
-      .getAllEntityTypes()
-      .filter(
-        (type) =>
-          services.entityRegistry.getEntityTypeConfig(type).markdownImport,
-      );
-    return guardError(
-      `Transform "extract-markdown" requires an upload ref and a type declaring markdownImport. Available: ${available.join(", ") || "none"}. Omit transform for raw file promotion.`,
-    );
+  if (transform === "extract-markdown" && !uploadRef) {
+    return guardError('Transform "extract-markdown" requires an upload ref.');
   }
   if (!resolvedContent && !url && !from) {
     return guardError(
@@ -455,6 +442,9 @@ interface UploadSourceResolution {
   /** What the upload is saved as when the user gives no title. */
   title: string;
   filename: string;
+  mediaType: string;
+  /** A text upload's Markdown, read for transform extract-markdown. */
+  markdown: string | undefined;
   uploadPreserve: PreparedCreate["uploadPreserve"];
 }
 
@@ -518,6 +508,8 @@ async function resolveUploadSource(
         entityType: input.entityType,
         title,
         filename: uploadRecord.filename,
+        mediaType: uploadRecord.mediaType,
+        markdown,
         uploadPreserve: undefined,
       },
     };
@@ -538,6 +530,8 @@ async function resolveUploadSource(
       entityType: registration.entityType,
       title,
       filename: uploadRecord.filename,
+      mediaType: uploadRecord.mediaType,
+      markdown,
       uploadPreserve: {
         upload: input.uploadRef,
         filename: uploadRecord.filename,
@@ -608,6 +602,48 @@ function resolveCreateToolTarget(
   );
 }
 
+type UploadTextSource = Pick<
+  ResolvedCreateSource,
+  "content" | "from" | "transform"
+>;
+
+/**
+ * An upload imported with extract-markdown: a type that imports Markdown
+ * (a note) reads the file itself, so the upload ref goes on; any other type
+ * takes a text upload's text as its own, exactly as it takes pasted text.
+ */
+function resolveUploadText(
+  services: SystemServices,
+  entityType: string,
+  source: UploadTextSource,
+  upload: UploadSourceResolution | undefined,
+): Guarded<UploadTextSource> {
+  const registry = services.entityRegistry;
+  if (
+    source.transform !== "extract-markdown" ||
+    !upload ||
+    registry.getEntityTypeConfig(entityType).markdownImport
+  ) {
+    return { kind: "ok", value: source };
+  }
+  if (upload.markdown === undefined) {
+    const importers = registry
+      .getAllEntityTypes()
+      .filter((type) => registry.getEntityTypeConfig(type).markdownImport);
+    const importAs =
+      importers.length > 0
+        ? `Import it as a ${importers.join(" or ")}, or keep`
+        : "Keep";
+    return guardError(
+      `A ${entityType} takes the text of a text upload; ${upload.filename} (${upload.mediaType}) is not text. ${importAs} the file itself with transform "preserve".`,
+    );
+  }
+  return {
+    kind: "ok",
+    value: { content: upload.markdown, from: undefined, transform: undefined },
+  };
+}
+
 /**
  * Run the type's check of a create before the user is asked to confirm it.
  * A check that fails is a refusal like any other guard's.
@@ -640,13 +676,21 @@ async function runCreateCheck(
 function askUserFirst(
   question: Extract<CreateCheckResult, { kind: "question" }>,
   source: PreferredCreateSource,
+  several: SeveralUploads | undefined,
 ): string {
   return [
     "Nothing was saved and no approval was requested.",
     `Ask the user this question in your reply, as written, without mentioning tools or fields: "${question.question}"`,
-    `When they answer, call system_create again; to save the same text, pass source ${JSON.stringify(retrySourceHint(source))}.`,
+    several
+      ? `When they answer, call system_create again; to save the same files, pass source ${JSON.stringify(several.source)}, with the answer about this file in its item.`
+      : `When they answer, call system_create again; to save the same text, pass source ${JSON.stringify(retrySourceHint(source))}.`,
     question.answerWith,
   ].join(" ");
+}
+
+/** The several-upload save a create is one file of. */
+interface SeveralUploads {
+  source: PreferredCreateSource;
 }
 
 /**
@@ -684,6 +728,7 @@ async function prepareCreate(
   input: CreateToolInput,
   toolContext: CreateToolContext,
   pending: PendingCreateTexts,
+  several?: SeveralUploads,
 ): Promise<
   | { kind: "error"; result: ToolResponse }
   | { kind: "ok"; prepared: PreparedCreate }
@@ -726,8 +771,7 @@ async function prepareCreate(
       }
     : resolvedSource;
   if (source.kind === "error") return source;
-  const { url, from, uploadRef, transform, resolvedMessageId, entitySource } =
-    source.value;
+  const { url, uploadRef, resolvedMessageId, entitySource } = source.value;
   const retry =
     unresolvedRetry ??
     (pendingKey
@@ -737,19 +781,30 @@ async function prepareCreate(
           resolvedMessageId,
         })
       : { kind: "as-given" as const });
-  const content =
-    retry.kind === "pinned" ? retry.content : source.value.content;
-
   const upload = uploadRef
     ? await resolveUploadSource(
         services,
-        { entityType: input.entityType, uploadRef, transform },
+        {
+          entityType: input.entityType,
+          uploadRef,
+          transform: source.value.transform,
+        },
         toolContext,
       )
     : undefined;
   if (upload?.kind === "error") return upload;
   const entityType = upload?.value.entityType ?? input.entityType;
   const uploadPreserve = upload?.value.uploadPreserve;
+  const uploadText = resolveUploadText(
+    services,
+    entityType,
+    source.value,
+    upload?.value,
+  );
+  if (uploadText.kind === "error") return uploadText;
+  const { from, transform } = uploadText.value;
+  const content =
+    retry.kind === "pinned" ? retry.content : uploadText.value.content;
 
   const unregisteredDerivedError = assertEntityTypeRegistered(
     services,
@@ -839,15 +894,15 @@ async function prepareCreate(
             ...(content !== undefined ? { content } : {}),
           });
     // Pin the text, so the save after the answer keeps it unchanged
-    // whatever the model resends.
-    if (pendingKey && content !== undefined) {
+    // whatever the model resends. An upload is read again from its ref.
+    if (pendingKey && content !== undefined && !uploadRef) {
       pending.pin(pendingKey, {
         source: askedSource,
         content,
         question: checked.asks,
       });
     }
-    return guardError(askUserFirst(checked, askedSource));
+    return guardError(askUserFirst(checked, askedSource, several));
   }
   const createInput =
     checked?.kind === "ready"
@@ -951,6 +1006,7 @@ async function prepareUploadItem(
   toolContext: CreateToolContext,
   pending: PendingCreateTexts,
 ): Promise<PreparedUploadResult> {
+  const fields = { ...input.fields, ...item.fields };
   const prep = await prepareCreate(
     services,
     {
@@ -964,10 +1020,13 @@ async function prepareUploadItem(
         upload: item.upload,
         transform: item.transform,
       },
+      ...(Object.keys(fields).length > 0 && { fields }),
       ...(input.replace !== undefined ? { replace: input.replace } : {}),
+      ...(input.confirmed && { confirmed: input.confirmed }),
     },
     toolContext,
     pending,
+    { source: input.source },
   );
   if (prep.kind === "error") return prep;
   const { prepared } = prep;
@@ -977,6 +1036,9 @@ async function prepareUploadItem(
       filename: prepared.uploadFilename ?? item.upload.id,
       entityType: prepared.createInput.entityType,
       title: prepared.createInput.title ?? prepared.uploadFilename ?? "",
+      ...(prepared.createInput.fields && {
+        fields: prepared.createInput.fields,
+      }),
       ...(prepared.replacesFailed && {
         replacesFailed: `${prepared.replacesFailed.entityType} "${prepared.replacesFailed.id}"`,
       }),

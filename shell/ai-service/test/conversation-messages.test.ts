@@ -573,6 +573,66 @@ describe("buildMessageWithAttachments", () => {
     );
   });
 
+  it("offers keeping PDFs as notes with their text extracted beside keeping them as documents", () => {
+    const content = buildMessageWithAttachments("Keep these as notes.", [
+      {
+        kind: "file",
+        filename: "report.pdf",
+        mediaType: "application/pdf",
+        data: new Uint8Array([1]),
+        sizeBytes: 1,
+        source: { kind: "upload", id: "upload-pdf" },
+      },
+      {
+        kind: "text",
+        filename: "draft.md",
+        mediaType: "text/markdown",
+        content: "# Draft",
+        source: { kind: "upload", id: "upload-text" },
+      },
+      {
+        kind: "file",
+        filename: "harbor.png",
+        mediaType: "image/png",
+        data: new Uint8Array([1]),
+        sizeBytes: 1,
+        source: { kind: "upload", id: "upload-image" },
+      },
+    ]);
+    const textPart = Array.isArray(content) ? content[0] : undefined;
+    const text = textPart?.type === "text" ? textPart.text : "";
+
+    expect(text).toContain(
+      'Available system_create candidate for keeping every file attached to this message, each as itself, text files as notes and PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "preserve" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+    );
+    expect(text).toContain(
+      'Available system_create candidate for keeping every file attached to this message as notes, each PDF\'s text extracted into its note, when the user asks for notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+    );
+  });
+
+  it("says how several attached files are kept as another type, with each file's own fields", () => {
+    const content = buildMessageWithAttachments("Make these posts.", [
+      {
+        kind: "text",
+        filename: "one.md",
+        mediaType: "text/markdown",
+        content: "# One",
+        source: { kind: "upload", id: "upload-one" },
+      },
+      {
+        kind: "text",
+        filename: "two.md",
+        mediaType: "text/markdown",
+        content: "# Two",
+        source: { kind: "upload", id: "upload-two" },
+      },
+    ]);
+
+    expect(content).toContain(
+      "To keep them as another type, such as posts, use this call with that entityType; what the user states about one file, such as its publication date, goes in that file's item fields.",
+    );
+  });
+
   it("offers no keep candidate for a single attached file", () => {
     const content = buildMessageWithAttachments("Keep this file.", [
       {
