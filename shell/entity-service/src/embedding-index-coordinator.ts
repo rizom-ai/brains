@@ -63,6 +63,13 @@ interface EmbeddingBackfillCandidates extends EmbeddingIndexStats {
   failedRows: EmbeddingBackfillCandidate[];
 }
 
+/**
+ * Embedding jobs run ahead of default-priority work (0): the readiness gate
+ * holds chat until the index is built, and derivations such as FAQ or topic
+ * passes can take minutes each on a local model.
+ */
+const EMBEDDING_JOB_PRIORITY = -10;
+
 export interface EnqueueEmbeddingInput
   extends Omit<EmbeddingJobData, "id">, EntityJobOptions {
   entityId: string;
@@ -217,7 +224,7 @@ export class EmbeddingIndexCoordinator {
         type: SHELL_CHANNELS.embedding,
         data: jobData,
         options: {
-          ...(priority !== undefined && { priority }),
+          priority: priority ?? EMBEDDING_JOB_PRIORITY,
           ...(maxRetries !== undefined && { maxRetries }),
           source: "entity-service",
           deduplication: "coalesce",

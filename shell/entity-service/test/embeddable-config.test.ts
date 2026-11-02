@@ -201,6 +201,23 @@ describe("EntityTypeConfig embeddable flag", () => {
     );
   });
 
+  test("embedding jobs are claimed ahead of default-priority work", async () => {
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        { title: "Ahead", content: "Indexed before derivations", tags: [] },
+        "ahead-note",
+      ),
+    });
+
+    // The queue claims the lowest priority value first; derivations run at 0.
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        options: expect.objectContaining({ priority: -10 }),
+      }),
+    );
+  });
+
   test("backfillMissingEmbeddings retries an embedding that failed for good", async () => {
     const created = await ctx.entityService.createEntity({
       entity: createNoteInput(
