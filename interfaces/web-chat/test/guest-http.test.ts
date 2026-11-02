@@ -1367,7 +1367,13 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
         .flatMap((event) => (event.type === "text-delta" ? [event.delta] : []))
         .join(""),
     ).toBe(declined);
-    expect(result).toContainEqual({ type: "finish", finishReason: "stop" });
+    // Finished as a failure the visitor can read, never as an answer.
+    expect(result).toContainEqual({ type: "finish", finishReason: "error" });
+    expect(
+      result.some(
+        (event) => event.type === "finish" && event.finishReason === "stop",
+      ),
+    ).toBe(false);
     expect(result.some((event) => event.type === "error")).toBe(false);
     // Settled as before: a failed turn at the answer cap, its cost unknown.
     expect(await (await post(browser, request)).json()).toMatchObject({

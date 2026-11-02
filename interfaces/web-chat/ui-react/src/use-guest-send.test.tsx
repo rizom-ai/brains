@@ -214,6 +214,49 @@ describe("useGuestSend", () => {
     expect(reply?.askedBefore).toEqual({ faqId: "how-does-rizom-keep-memory" });
   });
 
+  it("shows a declined turn's message without calling it an answer", async () => {
+    const reported: ChatCard[][] = [];
+    const declined =
+      "The AI provider declined this request. Try rephrasing your message.";
+    const harness = await render({
+      streamMessages: () =>
+        Promise.resolve(
+          stream([
+            { type: "text-start", id: "answer" },
+            { type: "text-delta", id: "answer", delta: declined },
+            { type: "text-end", id: "answer" },
+            { type: "finish", finishReason: "error" },
+          ]),
+        ),
+      onAnswered: (cards): void => {
+        reported.push(cards);
+      },
+    });
+
+    await act(async () => harness.send().send());
+
+    expect(
+      harness.messages().find((entry) => entry.role === "assistant")?.content,
+    ).toBe(declined);
+    // The message says what happened; no status calls it an answer.
+    expect(harness.gate().status).toBe("");
+    expect(reported).toHaveLength(0);
+    // The turn is over: the visitor can rephrase and ask again.
+    expect(harness.gate().boxState).toBe("complete");
+    expect(harness.send().pending).toBeUndefined();
+  });
+
+  it("treats a failure that finished without words as incomplete", async () => {
+    const harness = await render({
+      streamMessages: () =>
+        Promise.resolve(stream([{ type: "finish", finishReason: "error" }])),
+    });
+
+    await act(async () => harness.send().send());
+
+    expect(harness.gate().boxState).toBe("incomplete");
+  });
+
   it("reports nothing for an answer that never finished", async () => {
     const reported: ChatCard[][] = [];
     const harness = await render({

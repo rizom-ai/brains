@@ -619,7 +619,12 @@ export class GuestHttpHandlers {
             });
           }
           writeTextPart(writer, randomUUID(), response.text);
-          writer.write({ type: "finish", finishReason: "stop" });
+          // A failed turn's words (a provider decline) finish as an error, so
+          // the box never presents them as an answer.
+          writer.write({
+            type: "finish",
+            finishReason: response.error === undefined ? "stop" : "error",
+          });
         } finally {
           signal.removeEventListener("abort", stopWaiting);
         }
