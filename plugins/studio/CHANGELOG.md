@@ -1,5 +1,19 @@
 # @brains/studio
 
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/entity-service@0.2.0-alpha.622
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/operator-view-react@0.2.0-alpha.622
+  - @brains/auth-service@0.2.0-alpha.622
+  - @brains/app-ui-react@0.2.0-alpha.622
+  - @brains/console-theme@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+
 ## 0.2.0-alpha.621
 
 ### Patch Changes

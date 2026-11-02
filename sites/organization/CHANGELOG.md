@@ -1,5 +1,20 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/agent-discovery@0.2.0-alpha.622
+  - @brains/faq@0.2.0-alpha.622
+  - @brains/profile@0.2.0-alpha.622
+  - @brains/site-atlas@0.2.0-alpha.622
+  - @brains/ui-library@0.2.0-alpha.622
+  - @brains/site-composition@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
 ## 0.2.0-alpha.621
 
 ### Patch Changes
