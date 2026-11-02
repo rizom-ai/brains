@@ -1,5 +1,14 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies [[`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534)]:
+  - @brains/job-queue@0.2.0-alpha.621
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+
 ## 0.2.0-alpha.620
 
 ### Patch Changes
