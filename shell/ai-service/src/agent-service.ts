@@ -6,6 +6,7 @@ import {
   isGuestToolAllowed,
   requireGuestExecutionPolicy,
 } from "./guest-execution";
+import { aiProviderDeclinedMessage } from "./errors";
 import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
 import type { IMCPService, Tool } from "@brains/mcp-service";
@@ -442,13 +443,20 @@ export class AgentService implements IAgentService {
         );
         operationSignal.throwIfAborted();
         if (guestExecution && snapshot.context.error) {
-          // The visitor is told only that the answer failed; the owner's log
-          // keeps the reason.
+          // The visitor is told only that the answer failed, or that the
+          // provider declined it and they can rephrase; the owner's log keeps
+          // the reason.
           this.logger.error("Guest turn failed", {
             conversationId,
             error: snapshot.context.error,
           });
-          throw new Error("Guest execution unavailable");
+          if (!snapshot.context.providerDeclined)
+            throw new Error("Guest execution unavailable");
+          return {
+            text: aiProviderDeclinedMessage,
+            error: aiProviderDeclinedMessage,
+            usage: emptyUsage,
+          };
         }
         if (guestExecution && !snapshot.context.response?.text.trim())
           this.logger.warn("Guest turn produced no answer", { conversationId });
