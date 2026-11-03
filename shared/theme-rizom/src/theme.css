@@ -566,30 +566,6 @@
      themed HTML mock uses inline Tailwind for these patterns so the
      component API surfaces naturally during the React port. */
 
-  /* Scroll reveal — elements with .reveal start invisible + offset and
-     fade up when an IntersectionObserver toggles .visible on them. The
-     observer wiring lives in the site-rizom plugin's boot script. */
-  .reveal {
-    opacity: 0;
-    transform: translateY(32px);
-    transition:
-      opacity 0.8s ease,
-      transform 0.8s ease;
-  }
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .reveal-delay-1 {
-    transition-delay: 0.1s;
-  }
-  .reveal-delay-2 {
-    transition-delay: 0.2s;
-  }
-  .reveal-delay-3 {
-    transition-delay: 0.3s;
-  }
-
   /* Hero rise-in animation — h1, subtitle, CTA row fade up in sequence. */
   @keyframes heroRise {
     from {
