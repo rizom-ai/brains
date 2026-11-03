@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- [#809](https://github.com/rizom-ai/brains/pull/809) [`192e9b2`](https://github.com/rizom-ai/brains/commit/192e9b28df271bffbb6b26f9a1460b54a6c00438) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Decks show on sites that use the Rizom theme. The theme's scroll-in utility hid every element with the class `.reveal` until a script added `.visible`, and no site loads that script any more; reveal.js names its presentation container `.reveal`, so every deck rendered as an empty page. The unused scroll-in rules are removed.
+
 ## 0.2.0-alpha.627
 
 ### Patch Changes
