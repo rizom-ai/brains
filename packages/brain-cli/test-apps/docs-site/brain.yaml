@@ -35,26 +35,8 @@ site:
 plugins:
   mcp:
     mode: debug
-  # The docs pages' own header and footer, as docs.rizom.ai sets them.
-  docs:
-    chrome: &chrome
-      brand:
-        label: Brains docs
-        href: /
-        wordmark:
-          ink: brains
-          suffix: docs
-      links:
-        - label: Guides
-          href: /guides
-          area: guides
-        - label: GitHub
-          href: https://github.com/rizom-ai/brains
-      cta:
-        label: Get Brains
-        href: https://rizom.ai
-  guides:
-    chrome: *chrome
+  # No docs chrome: the site's layout draws the header and footer from the
+  # brain's site info, as on docs.rizom.ai.
   directory-sync:
     # What `bun run docs:seed` writes from the docs manifest.
     seedContentPath: ../../eval-content/recipes/docs

@@ -34,13 +34,13 @@ describe("@rizom/site-docs", () => {
     ).toBe(true);
   });
 
-  test("displays each guide at /guides/<slug>, out of navigation for now", () => {
+  test("displays each guide at /guides/<slug>, listed in the navigation", () => {
     expect(site.entityDisplay["guide"]).toEqual({
       label: "Guide",
       pluralName: "guides",
       layout: "default",
       paginate: false,
-      navigation: { show: false },
+      navigation: { show: true, slot: "primary", priority: 20 },
     });
   });
 

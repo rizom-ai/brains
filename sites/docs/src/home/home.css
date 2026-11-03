@@ -64,12 +64,12 @@
 }
 
 .dh-hero__body {
-  padding-block: 128px 72px;
+  padding-block: 56px 72px;
 }
 
 @media (min-width: 1000px) {
   .dh-hero__body {
-    padding-block: 176px 112px;
+    padding-block: 96px 112px;
   }
 }
 
