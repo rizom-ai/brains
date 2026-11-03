@@ -8,6 +8,7 @@ for: >-
   of it sits in apps that never talk to each other.
 recipe: personal
 section: Use a brain
+summary: Notes, papers and saved links
 material:
   - from: Notes and fragments
     where: Obsidian, Apple Notes, a notes app

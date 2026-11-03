@@ -8,6 +8,7 @@ for: >-
   platforms you don't own. Most of it never left Google Docs.
 recipe: professional
 section: Use a brain
+summary: Years of essays and drafts
 material:
   - from: Drafts and fragments
     where: Google Docs, Word, a notes app

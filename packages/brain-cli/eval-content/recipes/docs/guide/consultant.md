@@ -14,6 +14,7 @@ brings:
   - Your own site with your posts, projects and decks
   - An agent card, so other brains can find you
 section: Use a brain
+summary: Client work, decks and a profile
 material:
   - from: What you do
     where: Your bio, a LinkedIn summary, a pitch

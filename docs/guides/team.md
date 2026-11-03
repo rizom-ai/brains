@@ -5,6 +5,7 @@ order: 40
 section: Use a brain
 persona: The team
 for: What your team knows is spread across people, channels and shared drives. It leaves when someone does.
+summary: What a team knows, in one place
 recipe: team
 material:
   - from: Shared documents
