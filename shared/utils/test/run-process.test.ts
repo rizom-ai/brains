@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { realpathSync } from "fs";
 import { runProcess, runProcessOrThrow } from "../src/run-process";
 
 describe("runProcess", () => {
@@ -19,7 +20,8 @@ describe("runProcess", () => {
   it("runs in the requested directory", async () => {
     const result = await runProcess(["pwd"], { cwd: "/tmp" });
 
-    expect(result.stdout.trim()).toBe("/tmp");
+    // `pwd` prints the resolved path; on macOS /tmp is a symlink.
+    expect(result.stdout.trim()).toBe(realpathSync("/tmp"));
   });
 
   it("writes stdin and closes it", async () => {
