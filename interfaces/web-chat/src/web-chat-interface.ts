@@ -4,7 +4,9 @@ import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
   askBoxAvailabilitySchema,
+  SITE_CHANNELS,
   type AskBoxAvailability,
+  type SiteBuildRequestedPayload,
 } from "@brains/contracts";
 import type { IRuntimeStateStore } from "@brains/plugins";
 import {
@@ -306,10 +308,20 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async recordAfterActivation(): Promise<void> {
     try {
       await this.recordAskBoxAvailability();
+      // The site renders the box from that record when it builds.
+      await this.getContext().messaging.send({
+        type: SITE_CHANNELS.buildRequested,
+        payload: {
+          reason: "guest chat was switched",
+        } satisfies SiteBuildRequestedPayload,
+      });
     } catch (error) {
-      // The activation itself succeeded; the next start rewrites the record,
-      // and the atlas keeps the box out of sight until its boot is live.
-      this.logger.warn("Could not record Ask box availability", { error });
+      // The activation itself succeeded; the next start rewrites the record
+      // and builds the site again, and the atlas keeps the box out of sight
+      // until its boot is live.
+      this.logger.warn("Could not update the Ask box after the switch", {
+        error,
+      });
     }
   }
 

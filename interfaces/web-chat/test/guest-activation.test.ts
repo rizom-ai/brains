@@ -15,6 +15,7 @@ import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
   askBoxAvailabilitySchema,
+  SITE_CHANNELS,
   type AskBoxAvailability,
 } from "@brains/contracts";
 import { WebChatInterface } from "../src/web-chat-interface";
@@ -44,6 +45,8 @@ interface Fixture {
   calls(): number;
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
+  /** The Ask box record as each site build request found it. */
+  buildRequests: (AskBoxAvailability | null)[];
   /** Runtime state shared by every process of one deployment, across restarts. */
   state: IRuntimeStateNamespace;
   /** The owner opens guest chat in Studio with this monthly budget. */
@@ -104,6 +107,23 @@ async function fixture(
         return { success: true, data: { workspaceUrl: "/studio" } };
       },
     );
+  const askBox = (): Promise<AskBoxAvailability | null> =>
+    harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({
+        namespace: ASK_BOX_STATE_NAMESPACE,
+        schema: askBoxAvailabilitySchema,
+      })
+      .get(ASK_BOX_STATE_KEY);
+  const buildRequests: (AskBoxAvailability | null)[] = [];
+  harness
+    .getMockShell()
+    .getMessageBus()
+    .subscribe(SITE_CHANNELS.buildRequested, async () => {
+      buildRequests.push(await askBox());
+      return { success: true };
+    });
   await harness.installPlugin(plugin);
   if (options.studio) {
     spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
@@ -177,15 +197,8 @@ async function fixture(
         .parse(await studio({ actionId: "switch-on", input, mode: "prepare" }));
       await studio({ actionId: "switch-on", input, confirmationToken: token });
     },
-    askBox: (): Promise<AskBoxAvailability | null> =>
-      harness
-        .getMockShell()
-        .getRuntimeState()
-        .scoped({
-          namespace: ASK_BOX_STATE_NAMESPACE,
-          schema: askBoxAvailabilitySchema,
-        })
-        .get(ASK_BOX_STATE_KEY),
+    askBox,
+    buildRequests,
     previewPaths: plugin
       .getWebRoutes()
       .filter((r) => r.preview === true)
@@ -208,6 +221,18 @@ describe("Ask box availability for site builds in any process", () => {
     expect(await f.askBox()).toEqual({ public: true, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("asks for a site build after each switch, once the box record follows it", async () => {
+    const f = await fixture();
+    expect(f.buildRequests).toEqual([]);
+    await f.budget(10);
+    expect(f.buildRequests).toEqual([{ public: true, preview: true }]);
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(f.buildRequests).toEqual([
+      { public: true, preview: true },
+      { public: false, preview: false },
+    ]);
   });
 
   it("keeps the box served across a restart that begins before the guest profile is ready", async () => {

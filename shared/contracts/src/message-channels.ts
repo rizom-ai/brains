@@ -132,6 +132,12 @@ export const SITE_BUILDER_CHANNELS = {
 export const SITE_CHANNELS = {
   buildStaging: "site:build:staging",
   buildCompleted: "site:build:completed",
+  /**
+   * Ask the site builder to build every environment it has built again.
+   * Builds follow entity changes; send this when a page renders from other
+   * state that changed, such as whether the homepage offers the Ask box.
+   */
+  buildRequested: "site:build:requested",
 } as const;
 
 export const SOCIAL_CHANNELS = {

@@ -248,6 +248,7 @@ export {
   SITE_BUILD_MANIFEST_FILE,
   SITE_BUILD_MANIFEST_PATH,
   type SiteBuildCompletedPayload,
+  type SiteBuildRequestedPayload,
   type SiteBuildStagingPayload,
 } from "./site-build";
 export {
