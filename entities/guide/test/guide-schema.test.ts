@@ -24,6 +24,7 @@ describe("guideFrontmatterSchema", () => {
       ...frontmatter,
       brings: null,
       section: null,
+      summary: null,
     });
   });
 

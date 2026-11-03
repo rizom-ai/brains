@@ -8,6 +8,7 @@ for: >-
   leaves when someone does.
 recipe: team
 section: Use a brain
+summary: What a team knows, in one place
 material:
   - from: Shared documents
     where: Google Drive, wiki pages, handbooks
