@@ -1,4 +1,3 @@
-import { Fragment, createElement as h, type ReactNode, type JSX } from "react";
 import {
   defineSite,
   type RouteDefinitionInput,
@@ -11,6 +10,8 @@ import {
   docsHomeScript,
   docsHomeSections,
 } from "./home";
+import { DocsSiteLayout } from "./layout";
+import layoutCss from "./layout.css" with { type: "text" };
 
 const docsQuery = { entityType: "doc", query: { limit: 100 } };
 
@@ -62,14 +63,11 @@ const docsRoutes: RouteDefinitionInput[] = [
   },
 ];
 
-const DocsLayout = ({ sections }: { sections: ReactNode[] }): JSX.Element =>
-  h(Fragment, null, ...sections);
-
 // defineSite validates the site and makes the starting copy in `content` the
 // fallback of each section placed as docs-home:hero or docs-home:doors.
 export const docsSite: SiteDefinition = defineSite({
   layouts: {
-    default: DocsLayout,
+    default: DocsSiteLayout,
   },
   routes: docsRoutes,
   sections: docsHomeSections,
@@ -79,7 +77,7 @@ export const docsSite: SiteDefinition = defineSite({
       doors: docsHomeContent.doors,
     },
   },
-  themeOverride: docsHomeCss,
+  themeOverride: layoutCss + docsHomeCss,
   headScripts: [`<script src="${DOCS_HOME_SCRIPT_SRC}" defer></script>`],
   staticAssets: { [DOCS_HOME_SCRIPT_SRC]: docsHomeScript },
   entityDisplay: {
@@ -95,7 +93,7 @@ export const docsSite: SiteDefinition = defineSite({
       pluralName: "guides",
       layout: "default",
       paginate: false,
-      navigation: { show: false },
+      navigation: { show: true, slot: "primary", priority: 20 },
     },
   },
 });
