@@ -1,5 +1,15 @@
 # @brains/action-board
 
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/action-items@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/auth-service@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+
 ## 0.2.0-alpha.628
 
 ### Patch Changes

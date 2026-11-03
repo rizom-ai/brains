@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- [#775](https://github.com/rizom-ai/brains/pull/775) [`5265fbc`](https://github.com/rizom-ai/brains/commit/5265fbca1e1755ef2d5e3b8c587f34cb106229a3) Thanks [@joannalisiak](https://github.com/joannalisiak)! - A Git checkout behind a symlinked folder keeps one identity before and after it is created. Before, the Git broker named a checkout that did not exist yet by its unresolved path, then refused the same checkout once it existed, because it then resolved to a different path. This happened, for example, on macOS, where the temp folder sits behind a symlink.
+
+- [#811](https://github.com/rizom-ai/brains/pull/811) [`b5ff631`](https://github.com/rizom-ai/brains/commit/b5ff6316e9d6de8fc9b8177100f9cc373ae779a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A docs page lists each section's guides as short rows: the persona, and under it the guide's new optional `summary` frontmatter field, a few words on what the reader brings. The longer `for` sentence stays in the guide's own opening. A section with several guides asks "Which one are you?"; a section with one guide offers it as "Walk it through". The rows rule off like the reference docs below them.
+
 ## 0.2.0-alpha.628
 
 ### Patch Changes
