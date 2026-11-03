@@ -50,6 +50,20 @@ describe("organization site", () => {
     });
   });
 
+  it("keeps the publishing archives out of the main navigation", () => {
+    expect(site.entityDisplay).toMatchObject({
+      series: { label: "Series", navigation: { slot: "secondary" } },
+      project: { label: "Project", navigation: { slot: "secondary" } },
+      "social-post": {
+        label: "Social Post",
+        pluralName: "social-posts",
+        navigation: { slot: "secondary" },
+      },
+      newsletter: { label: "Newsletter", navigation: { slot: "secondary" } },
+      summary: { label: "Summary", navigation: { slot: "secondary" } },
+    });
+  });
+
   it("registers the homepage with its datasource and ships the atlas script", async () => {
     const harness = await installed();
     const template = harness.getTemplates().get("organization-site:homepage");
