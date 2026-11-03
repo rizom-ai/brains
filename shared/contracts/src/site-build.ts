@@ -10,6 +10,12 @@ export const SITE_BUILD_MANIFEST_FILE = ".site-build-manifest.json";
 /** The manifest's URL path, reserved by the route registry and webserver. */
 export const SITE_BUILD_MANIFEST_PATH: `/${typeof SITE_BUILD_MANIFEST_FILE}` = `/${SITE_BUILD_MANIFEST_FILE}`;
 
+/** Payload for a SITE_CHANNELS.buildRequested message. */
+export interface SiteBuildRequestedPayload {
+  /** Why the site must be built again, for the build log. */
+  reason: string;
+}
+
 /** Payload for the SITE_CHANNELS.buildCompleted broadcast. */
 export interface SiteBuildCompletedPayload {
   outputDir: string;

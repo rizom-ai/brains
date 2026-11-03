@@ -7,7 +7,11 @@ import type {
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import {
+  SITE_BUILDER_CHANNELS,
+  SITE_CHANNELS,
+  type SiteBuildRequestedPayload,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
@@ -207,10 +211,21 @@ export class SiteBuilderPlugin extends ServicePlugin<
     context.messaging.subscribe(
       SYSTEM_CHANNELS.startupContentSettled,
       async () => {
-        await this.rebuildOutputsAfterStart();
+        await this.rebuildBuiltOutputs();
         return { success: true };
       },
     );
+
+    // Builds follow entity changes on their own; a plugin whose other state a
+    // page renders from asks for one when that state changes.
+    context.messaging.subscribe<
+      SiteBuildRequestedPayload,
+      { success: boolean }
+    >(SITE_CHANNELS.buildRequested, async (message) => {
+      this.logger.info(`Site build requested: ${message.payload.reason}`);
+      await this.rebuildBuiltOutputs();
+      return { success: true };
+    });
 
     // Re-register instructions when site metadata changes so the prompt stays fresh.
     context.messaging.subscribe<SiteMetadata, { success: boolean }>(
@@ -236,10 +251,11 @@ export class SiteBuilderPlugin extends ServicePlugin<
   /**
    * A start, an upgrade included, may bring new renderer code that the input
    * fingerprint cannot see; the renderer identity is fresh per process, so a
-   * requested build renders again. Every environment that already has an
-   * output is built again; one never built stays untouched.
+   * requested build renders again. A plugin whose state a page renders from
+   * asks for the same after that state changes. Every environment that
+   * already has an output is built again; one never built stays untouched.
    */
-  private async rebuildOutputsAfterStart(): Promise<void> {
+  private async rebuildBuiltOutputs(): Promise<void> {
     const outputs = [
       ["production", this.config.productionOutputDir],
       ["preview", this.config.previewOutputDir],
