@@ -53,6 +53,9 @@ describe("professional profile schema", () => {
       expertise: null,
       currentFocus: null,
       availability: null,
+      headline: null,
+      industry: null,
+      location: null,
     });
   });
 
@@ -80,6 +83,9 @@ describe("professional profile schema", () => {
       expertise: ["resilient software systems", "climate tech"],
       currentFocus: "Grid software",
       availability: "Open to advisory work",
+      headline: "Advisor on resilient systems",
+      industry: "Software",
+      location: "Amsterdam, Netherlands",
     });
 
     expect(parsed).toStrictEqual({
@@ -105,6 +111,9 @@ describe("professional profile schema", () => {
       expertise: ["resilient software systems", "climate tech"],
       currentFocus: "Grid software",
       availability: "Open to advisory work",
+      headline: "Advisor on resilient systems",
+      industry: "Software",
+      location: "Amsterdam, Netherlands",
     });
   });
 

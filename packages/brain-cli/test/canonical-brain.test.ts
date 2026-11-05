@@ -52,6 +52,7 @@ const expectedCatalogIds = [
   "obsidian-vault",
   "email-workflows",
   "unified-inbox",
+  "linkedin-import",
   "mcp",
   "email",
   "webserver",

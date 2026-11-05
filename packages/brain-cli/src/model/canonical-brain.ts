@@ -33,6 +33,7 @@ import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import { notePlugin } from "@brains/note";
 import { notificationsPlugin } from "@brains/notifications";
+import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
@@ -172,6 +173,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["email-workflows", emailWorkflows, undefined],
     ["unified-inbox", unifiedInboxPlugin, undefined],
+    ["linkedin-import", linkedInImportPlugin, undefined],
   ],
   interfaces: [
     [
