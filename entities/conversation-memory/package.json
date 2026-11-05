@@ -5,7 +5,6 @@
   "description": "Plugin for deriving durable conversation memory",
   "dependencies": {
     "@brains/action-items": "workspace:*",
-    "@brains/auth-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",

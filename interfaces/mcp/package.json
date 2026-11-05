@@ -3,7 +3,6 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.629",
   "dependencies": {
-    "@brains/auth-service": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",

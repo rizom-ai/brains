@@ -1,7 +1,7 @@
 import type {
   AppendAuthAuditEventInput,
   AuthPrincipal,
-} from "@brains/auth-service";
+} from "@brains/contracts";
 import type { ActorRef } from "@brains/contracts";
 import type {
   ContentVisibility,

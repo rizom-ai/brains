@@ -115,6 +115,8 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export { AuthRegistry } from "./auth-registry";
+export type { AuthBackend, IAuthNamespace } from "./contracts/auth";
 export {
   InboxFollowUpRegistry,
   resolvedInboxFollowUpSchema,

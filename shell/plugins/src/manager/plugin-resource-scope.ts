@@ -159,6 +159,10 @@ function scopeRegistry<T extends object>(
   });
 }
 
+function isUnbind(value: unknown): value is () => void {
+  return typeof value === "function";
+}
+
 function scopePluginRegistry<
   T extends { unregisterPlugin(pluginId: string): void },
 >(
@@ -358,6 +362,14 @@ export function createPluginScopedShell(
       );
     },
   );
+  const scopedAuthRegistry = scopeRegistry(
+    shell.getAuthRegistry(),
+    ["bindBackend"],
+    resources,
+    (_args, unbind): void => {
+      if (isUnbind(unbind)) unbind();
+    },
+  );
   const scopedOperationalHealthRegistry = scopePluginRegistry(
     shell.getOperationalHealthRegistry(),
     ["register"],
@@ -432,6 +444,9 @@ export function createPluginScopedShell(
       }
       if (property === "getAccountSettingsRegistry") {
         return () => scopedAccountSettingsRegistry;
+      }
+      if (property === "getAuthRegistry") {
+        return () => scopedAuthRegistry;
       }
       if (property === "getAnalyticsRegistry") {
         return () => scopedAnalyticsRegistry;

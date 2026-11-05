@@ -4,7 +4,6 @@ import {
   STUDIO_INTERACTION_ID,
   type ConsoleJumpDestination,
 } from "@brains/contracts";
-import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import type {
   StudioOverviewContributionRegistration,
   StudioOverviewContributionUnregistration,
@@ -386,7 +385,7 @@ export class StudioPlugin extends ServicePlugin<
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
       resolveAuthPrincipal: (request) =>
-        getActiveAuthService()?.resolveSession(request) ??
+        this.getContext().auth.get()?.resolveSession(request) ??
         Promise.resolve(undefined),
       getEntityDisplay: () =>
         this.config.entityDisplay ??
@@ -399,11 +398,9 @@ export class StudioPlugin extends ServicePlugin<
           excludedTypes: [],
         },
       recordAuditEvent: async (event) => {
-        const authService = getActiveAuthService();
-        if (authService) await authService.recordAuditEvent(event);
+        await this.getContext().auth.get()?.recordAuditEvent(event);
       },
-      listMembers: async () =>
-        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+      listMembers: () => this.getContext().auth.listAssignableMembers(),
     });
     return [...legacySurfaceRedirects(this.config.routePath), ...editorRoutes];
   }

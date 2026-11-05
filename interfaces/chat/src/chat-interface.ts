@@ -40,7 +40,6 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
-import { getActiveAuthService } from "@brains/auth-service";
 import { CHAT_CHANNELS, spaceNoticeRequestSchema } from "@brains/contracts";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
@@ -153,18 +152,20 @@ export class ChatInterface extends MessageInterfacePlugin<
 
   /**
    * @param identityAccess Overridable so tests can supply a linked principal
-   * directly. Production leaves it alone and reads the auth service mounted at
-   * boot, resolved per call because mounting happens after construction.
+   * directly. Production leaves it alone and reads the context's auth backend,
+   * resolved per call because auth-service binds it after construction.
    */
   constructor(
     config: ChatConfigInput = {},
-    identityAccess: () => ChatIdentityAccess | undefined = getActiveAuthService,
+    identityAccess?: () => ChatIdentityAccess | undefined,
     deps: ChatInterfaceDeps = {},
   ) {
     super("chat", packageJson, config, chatConfigSchema);
     this.deps = deps;
     this.turnController = new ChatTurnController({
-      identityAccess,
+      identityAccess:
+        identityAccess ??
+        ((): ChatIdentityAccess | undefined => this.context?.auth.get()),
       config: this.config,
       host: {
         getContext: (): InterfacePluginContext | undefined => this.context,

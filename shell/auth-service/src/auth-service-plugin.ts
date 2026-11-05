@@ -20,7 +20,7 @@ import {
   type RegisteredWebRoute,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
+import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "@brains/contracts";
 import { AuthService } from "./auth-service";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
@@ -125,12 +125,6 @@ interface PasskeySetupToolResponse {
   data: PasskeySetupToolData;
 }
 
-let activeAuthService: AuthService | undefined;
-
-export function getActiveAuthService(): AuthService | undefined {
-  return activeAuthService;
-}
-
 export function resolveAuthStorageDir(configured: string | undefined): string {
   return configured ?? join(".", "data", "auth");
 }
@@ -207,6 +201,7 @@ export class AuthServicePlugin extends ServicePlugin<
 > {
   private service: AuthService | undefined;
   private unbindAccountSettings: (() => void) | undefined;
+  private unbindAuth: (() => void) | undefined;
   private unsubscribePrincipalResolver: (() => void) | undefined;
 
   constructor(config: AuthServiceConfigInput = {}) {
@@ -279,7 +274,7 @@ export class AuthServicePlugin extends ServicePlugin<
         context.permissions.getConfiguredPrincipalSeeds(),
       );
     context.permissions.replaceRuntimePrincipalState(principalState);
-    activeAuthService = this.service;
+    this.unbindAuth = context.auth.bindBackend(this.service);
 
     this.unsubscribePrincipalResolver = context.messaging.subscribe(
       AUTH_PRINCIPAL_RESOLVE_CHANNEL,
@@ -326,11 +321,10 @@ export class AuthServicePlugin extends ServicePlugin<
   protected override async onShutdown(): Promise<void> {
     this.unsubscribePrincipalResolver?.();
     this.unsubscribePrincipalResolver = undefined;
+    this.unbindAuth?.();
+    this.unbindAuth = undefined;
     this.unbindAccountSettings?.();
     this.unbindAccountSettings = undefined;
-    if (activeAuthService === this.service) {
-      activeAuthService = undefined;
-    }
     await this.service?.close();
     this.service = undefined;
   }

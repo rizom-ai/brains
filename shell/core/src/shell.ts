@@ -36,6 +36,7 @@ import {
   type IInboxRegistry,
   type IOperationalHealthRegistry,
   type AccountSettingsRegistry,
+  type AuthRegistry,
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
@@ -697,6 +698,10 @@ export class Shell implements IShell {
 
   public getAccountSettingsRegistry(): AccountSettingsRegistry {
     return this.services.accountSettingsRegistry;
+  }
+
+  public getAuthRegistry(): AuthRegistry {
+    return this.services.authRegistry;
   }
 
   public getDomain(): string | undefined {

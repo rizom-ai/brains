@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   AUTH_ADMIN_MUTATION_ACTIONS,
   type AuthAdminMutationAction,
-} from "@brains/auth-service/admin-contracts";
+} from "@brains/contracts";
 
 interface AdminCapabilityInventoryEntry {
   currentOwner: "studio" | "retired";

@@ -1,11 +1,11 @@
+import type {
+  AppendAuthAuditEventInput,
+  AuthPrincipal,
+} from "@brains/contracts";
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import type {
-  AppendAuthAuditEventInput,
-  AuthPrincipal,
-} from "@brains/auth-service";
 import type {
   CreateExecutionContext,
   WebRouteDefinition,

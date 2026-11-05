@@ -12,7 +12,6 @@ import {
   type EntityPluginContext,
 } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
-import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -146,8 +145,8 @@ export function registerChannelActionItems(
     new ChannelPickupHandler(options.logger.child("ChannelActionItems"), {
       conversations: context.conversations,
       bookmarks,
-      members: async (): Promise<BrainMember[]> =>
-        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+      members: (): Promise<BrainMember[]> =>
+        context.auth.listAssignableMembers(),
       extractor: new ChannelActionItemExtractor(
         context,
         options.logger.child("ChannelActionItemExtractor"),

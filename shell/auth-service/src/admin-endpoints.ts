@@ -21,7 +21,7 @@ import {
   type AuthInvitationSummary,
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
-} from "./admin-contracts";
+} from "@brains/contracts";
 import type { AuthIdentityType } from "./identity-store";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
 import type { AuthUserRole, AuthUserStatus } from "./user-store";

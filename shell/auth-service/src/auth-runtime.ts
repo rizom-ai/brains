@@ -1,3 +1,4 @@
+import type { A2APrivateJwk, UserPasskeyRegistration } from "@brains/contracts";
 import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
@@ -5,7 +6,7 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { AuthAccountService } from "./account-service";
 import { AuthAccountSettingsStore } from "./account-settings-store";
-import type { AuthBrainAnchorConfigKind } from "./admin-contracts";
+import type { AuthBrainAnchorConfigKind } from "@brains/contracts";
 import { AuthAdministrationService } from "./administration-service";
 import { AuthAuditStore } from "./audit-store";
 import { RuntimeAuthorizationCodeStore } from "./auth-code-store";
@@ -30,10 +31,7 @@ import {
   PasskeyService,
   type PasskeyRegistrationUser,
 } from "./passkey-service";
-import {
-  PasskeySetupCoordinator,
-  type UserPasskeyRegistration,
-} from "./passkey-setup-coordinator";
+import { PasskeySetupCoordinator } from "./passkey-setup-coordinator";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
 import { resolveProfileDisplayNameSafely } from "./profile-display-name";
 import type { OnboardingContext } from "./invitation-service";
@@ -53,7 +51,7 @@ import {
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS, SetupFlow } from "./setup-flow";
 import { RuntimeSetupStateStore } from "./setup-state-store";
 import { TargetedSetupService } from "./targeted-setup-service";
-import type { A2APrivateJwk, JwksResponse } from "./types";
+import type { JwksResponse } from "./types";
 import { AuthUserManagementService } from "./user-management-service";
 import { AuthUserStore } from "./user-store";
 import { WebAuthnEndpoints } from "./webauthn-endpoints";

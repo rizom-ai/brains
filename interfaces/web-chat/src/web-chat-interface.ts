@@ -1,3 +1,4 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { join } from "path";
 import {
   ASK_BOX_SCRIPT_PATH,
@@ -21,11 +22,7 @@ import {
   chatActionRequestSchema,
   chatContextHandoffRequestSchema,
 } from "@brains/contracts/chat";
-import {
-  getActiveAuthService,
-  requireSameOriginJson,
-  type AuthPrincipal,
-} from "@brains/auth-service";
+import { requireSameOriginJson } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   SitePageResponse,
@@ -145,9 +142,6 @@ export interface WebChatDeps {
   guestPolicy?: GuestPolicy;
 }
 
-const defaultResolveAuthPrincipal: BrowserPrincipalResolver = async (request) =>
-  getActiveAuthService()?.resolveSession(request);
-
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
   WebChatConfigInput
@@ -182,7 +176,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.guestConfigured =
       this.injectedGuestPolicy?.enabled ?? this.config.guest !== false;
     this.resolveAuthPrincipal =
-      deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
+      deps.resolveAuthPrincipal ??
+      (async (request): Promise<AuthPrincipal | undefined> =>
+        this.context?.auth.get()?.resolveSession(request));
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
     this.resolveAuthSession =
       deps.resolveAuthSession ??
@@ -1278,7 +1274,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private createAuthLoginRequiredResponse(request: Request): Response {
-    const authService = getActiveAuthService();
+    const authService = this.context?.auth.get();
     if (authService) return authService.createAuthLoginResponse(request);
 
     return new Response("Authentication required", {

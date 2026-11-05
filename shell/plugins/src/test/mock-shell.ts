@@ -1,6 +1,7 @@
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -259,6 +260,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const inboxFollowUpRegistry = new InboxFollowUpRegistry();
   const operationalHealthRegistry = new OperationalHealthRegistry();
   const accountSettingsRegistry = new AccountSettingsRegistry();
+  const authRegistry = new AuthRegistry();
 
   // Stateful backing stores. The entity state is one store shared by the
   // service double, the registry double and the message bus; the names below
@@ -391,6 +393,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getInboxFollowUpRegistry: () => inboxFollowUpRegistry,
     getOperationalHealthRegistry: () => operationalHealthRegistry,
     getAccountSettingsRegistry: () => accountSettingsRegistry,
+    getAuthRegistry: () => authRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,

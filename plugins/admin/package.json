@@ -4,11 +4,12 @@
   "version": "0.2.0-alpha.629",
   "description": "Headless source owner for Admin-gated Studio workspaces",
   "dependencies": {
-    "@brains/auth-service": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/auth-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
