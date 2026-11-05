@@ -93,7 +93,7 @@ export class AIService implements IAIService {
     usage: TokenUsage;
   }> {
     signal?.throwIfAborted();
-    const measurement = this.usage?.begin(this.config.model);
+    const measurement = this.usage?.begin(this.writingModelId());
     if (measurement)
       signal = signal
         ? AbortSignal.any([signal, measurement.signal])
@@ -104,7 +104,7 @@ export class AIService implements IAIService {
 
     try {
       const result = await generateText({
-        model: this.getModel(),
+        model: this.getWritingModel(),
         system: systemPrompt,
         prompt: userPrompt,
         ...(measurement ? { maxRetries: 0 } : {}),
@@ -142,7 +142,7 @@ export class AIService implements IAIService {
     usage: TokenUsage;
   }> {
     signal?.throwIfAborted();
-    const measurement = this.usage?.begin(this.config.model);
+    const measurement = this.usage?.begin(this.writingModelId());
     if (measurement)
       signal = signal
         ? AbortSignal.any([signal, measurement.signal])
@@ -158,7 +158,7 @@ export class AIService implements IAIService {
         this.capabilities.supportsTemperature,
       );
       const result = await generateObject({
-        model: this.getModel(),
+        model: this.getWritingModel(),
         system: systemPrompt,
         prompt: userPrompt,
         schema,
@@ -267,11 +267,23 @@ export class AIService implements IAIService {
     );
   }
 
+  /**
+   * Text and object generation choose no tools, so the answer model writes
+   * them when one is set; the configured model keeps the agent's tool choice.
+   */
+  private getWritingModel(): LanguageModel {
+    return this.getAnswerModel() ?? this.getModel();
+  }
+
+  private writingModelId(): string | undefined {
+    return this.config.answerModel ?? this.config.model;
+  }
+
   private logUsage(operation: string, usage: TokenUsage): void {
     this.logger.info("ai:usage", {
       operation,
       provider: this.capabilities.provider,
-      model: this.config.model,
+      model: this.writingModelId(),
       inputTokens: usage.promptTokens,
       outputTokens: usage.completionTokens,
     });

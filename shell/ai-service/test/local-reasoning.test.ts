@@ -3,7 +3,10 @@ import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { AIService } from "../src/aiService";
 
-const chatRequest = z.object({ reasoning_effort: z.string().optional() });
+const chatRequest = z.object({
+  model: z.string().optional(),
+  reasoning_effort: z.string().optional(),
+});
 
 /** An OpenAI-compatible runtime that records each chat request it answers. */
 function startRuntime(): {
@@ -37,6 +40,33 @@ function startRuntime(): {
 const stops: Array<() => void> = [];
 afterEach(() => {
   for (const stop of stops.splice(0)) stop();
+});
+
+describe("generation with an answer model", () => {
+  it("writes with the answer model, leaving tool choice to the model", async () => {
+    const runtime = startRuntime();
+    stops.push(runtime.stop);
+    const ai = AIService.createFresh(
+      {
+        model: "local:qwen3:30b-a3b",
+        answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+        modelRuntimeUrl: runtime.url,
+      },
+      createSilentLogger(),
+    );
+
+    await ai.generateText("System", "Hello");
+    await ai.generateObject(
+      "System",
+      "Answer",
+      z.object({ answer: z.string() }),
+    );
+
+    expect(runtime.requests.map((request) => request.model)).toEqual([
+      "qwen3:30b-a3b-instruct-2507-q4_K_M",
+      "qwen3:30b-a3b-instruct-2507-q4_K_M",
+    ]);
+  });
 });
 
 describe("reasoning effort on the model runtime", () => {

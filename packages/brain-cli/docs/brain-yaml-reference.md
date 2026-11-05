@@ -180,7 +180,7 @@ Vectors from different models cannot be compared, so changing `embeddingModel` d
 
 ### `answerModel`
 
-A `local:` model that answers tool results while `model` chooses the tools. A reasoning model makes the calls and a fast model writes the answer; on a local runtime this cuts most of a turn's answer time. It must be a `local:` model, and the deploy pulls it with the others.
+A `local:` model that writes while `model` chooses the tools: it answers tool results and runs every generation that chooses no tools, such as background derivations and content drafts. A reasoning model makes the calls and a fast model writes; on a local runtime this cuts most of a turn's time and keeps background work from holding the runtime. It must be a `local:` model, and the deploy pulls it with the others.
 
 ```yaml
 model: local:qwen3:30b-a3b

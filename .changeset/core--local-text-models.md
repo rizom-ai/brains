@@ -15,4 +15,4 @@ Object generation on a local text model sends its JSON schema to the runtime, wh
 
 A local text model thinks while it chooses its tools and answers a tool result without thinking; on a runtime that generates about 20 tokens a second this removes most of a turn's answer time. Its searches return five hits of at most 800 characters each instead of ten of 3,000, so the model reads results in seconds.
 
-`answerModel` in `brain.yaml` names a `local:` model that answers tool results while `model` chooses the tools, so a reasoning model makes the calls and a fast one writes the answer. The deploy pulls it with the other local models.
+`answerModel` in `brain.yaml` names a `local:` model that writes while `model` chooses the tools: it answers tool results and runs text and object generation, such as background derivations, so a reasoning model makes the calls and a fast one writes. The deploy pulls it with the other local models.
