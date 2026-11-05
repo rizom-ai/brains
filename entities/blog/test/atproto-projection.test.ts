@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
   createServicePluginContext,
   generateMarkdownWithFrontmatter,
@@ -8,17 +8,12 @@ import {
   createMockShell,
   createPluginHarness,
 } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";
 import type { BlogPost, BlogPostStatus } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
 describe("blog ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps blog posts to ai.rizom.brain.post records", async () => {
     const projection = createBlogAtprotoProjection();
     const entity = createMockPost(
@@ -176,7 +171,10 @@ describe("blog ATProto projection", () => {
 
     await harness.installPlugin(new BlogPlugin({}));
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("post");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("post");
     expect(projection?.collection).toBe("ai.rizom.brain.post");
   });
 });

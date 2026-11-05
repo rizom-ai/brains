@@ -9,7 +9,6 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
@@ -54,7 +53,6 @@ export class NotePlugin extends EntityPlugin<
   readonly entityType: typeof noteAdapter.entityType = noteAdapter.entityType;
   readonly schema: typeof noteSchema = noteSchema;
   readonly adapter: NoteAdapter = noteAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: NoteConfigInput = {}) {
     super("note", packageJson, config, noteConfigSchema);
@@ -243,19 +241,11 @@ export class NotePlugin extends EntityPlugin<
       },
     );
 
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createNoteAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createNoteAtprotoProjection());
   }
 
   protected override async getInstructions(): Promise<string> {
     return "Note entities are editable markdown notes. Use them for durable text captures, summaries, and imported markdown; raw files remain document or image entities instead of notes.";
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 }
 

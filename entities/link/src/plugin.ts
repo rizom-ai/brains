@@ -13,7 +13,6 @@ import type {
 } from "@brains/plugins";
 import { authenticatedUserId } from "@brains/contracts";
 import { createPendingEntity, EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { type LinkEntity, linkSchema, type LinkSource } from "./schemas/link";
 import { slugify } from "@brains/utils/string-utils";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -56,7 +55,6 @@ export class LinkPlugin extends EntityPlugin<
   readonly schema: typeof linkSchema = linkSchema;
   readonly adapter: typeof linkAdapter = linkAdapter;
   private shell?: IShell;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: LinkConfigInput = {}) {
     super("link", packageJson, config, linkConfigSchema);
@@ -280,10 +278,7 @@ export class LinkPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createLinkAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createLinkAtprotoProjection());
 
     context.eval.registerHandler("extractContent", async (input: unknown) => {
       const { url }: ExtractContentEvalInput =
@@ -383,11 +378,6 @@ export class LinkPlugin extends EntityPlugin<
     }
 
     return undefined;
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 }
 

@@ -4,25 +4,12 @@ import type {
   AtprotoProjection,
 } from "./projection";
 
+/** The AT Protocol projections a brain's entity plugins register, by entity type. */
 export class AtprotoProjectionRegistry {
-  private static instance: AtprotoProjectionRegistry | undefined;
   // Stack per entity type: the newest registration wins, so re-registering
   // plugin instances (with fresh buildRecord/onPublished closures) take
   // effect instead of being silently discarded.
   private readonly projections = new Map<string, AtprotoProjection[]>();
-
-  static getInstance(): AtprotoProjectionRegistry {
-    this.instance ??= new AtprotoProjectionRegistry();
-    return this.instance;
-  }
-
-  static createFresh(): AtprotoProjectionRegistry {
-    return new AtprotoProjectionRegistry();
-  }
-
-  static resetInstance(): void {
-    this.instance = undefined;
-  }
 
   register<TRecord extends Record<string, unknown>>(
     projection: AtprotoProjection<TRecord>,

@@ -16,7 +16,6 @@ import {
   emptyEntityPluginConfigSchema,
 } from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-composition";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
@@ -80,7 +79,6 @@ export class DecksPlugin extends EntityPlugin<
   readonly adapter: typeof deckAdapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(deps: DecksPluginDeps = {}) {
     super("decks", packageJson, {}, emptyEntityPluginConfigSchema);
@@ -139,10 +137,7 @@ export class DecksPlugin extends EntityPlugin<
     this.registerCarouselAttachmentProvider(context);
     this.registerOgImageAttachmentProvider(context);
     this.registerEvalHandlers(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createDeckAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createDeckAtprotoProjection());
 
     this.logger.info("Decks plugin registered");
   }
@@ -152,8 +147,6 @@ export class DecksPlugin extends EntityPlugin<
     this.unregisterCarouselAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 
   private deferPublishRegistration(context: EntityPluginContext): void {

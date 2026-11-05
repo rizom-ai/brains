@@ -1,3 +1,4 @@
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   AIService,
   EmbeddingUsageMeter,
@@ -156,6 +157,7 @@ export function createShellServices(options: {
   const accountSettingsRegistry =
     dependencies?.accountSettingsRegistry ?? new AccountSettingsRegistry();
   const authRegistry = new AuthRegistry();
+  const atprotoProjectionRegistry = new AtprotoProjectionRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -384,6 +386,7 @@ export function createShellServices(options: {
     operationalHealthRegistry,
     accountSettingsRegistry,
     authRegistry,
+    atprotoProjectionRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,
