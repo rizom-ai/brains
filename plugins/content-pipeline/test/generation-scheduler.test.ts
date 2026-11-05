@@ -6,6 +6,7 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { GENERATE_MESSAGES } from "../src/types/messages";
+import { createMockShell } from "@brains/plugins/test";
 import {
   createMockLogger,
   createMockMessagePublisher,
@@ -241,6 +242,37 @@ describe("ContentScheduler - Generation Scheduling", () => {
       expect(executeMessages[0]?.payload).toMatchObject({
         entityType: "newsletter",
       });
+    });
+
+    it("reaches every type's generator when several types are scheduled", async () => {
+      // Each generator answers for the types it does not own, as the
+      // newsletter and social-post plugins do; one of them answering first
+      // must not keep the other from hearing its own type.
+      const bus = createMockShell().getMessageBus();
+      const generated: string[] = [];
+      for (const owned of ["newsletter", "social-post"]) {
+        bus.subscribe<{ entityType: string }, { success: boolean }>(
+          GENERATE_MESSAGES.EXECUTE,
+          async (message) => {
+            if (message.payload.entityType === owned) generated.push(owned);
+            return { success: true };
+          },
+        );
+      }
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          messageBus: bus,
+          generationSchedules: {
+            newsletter: "* * * * *",
+            "social-post": "* * * * *",
+          },
+        }),
+      );
+
+      await scheduler.start();
+      await backend.tick("* * * * *");
+
+      expect(generated.sort()).toEqual(["newsletter", "social-post"]);
     });
 
     it("should call onGenerate callback when triggering generation", async () => {
