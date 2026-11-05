@@ -6,7 +6,6 @@
   "dependencies": {
     "@ai-sdk/react": "^3.0.305",
     "@brains/app-ui-react": "workspace:*",
-    "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",

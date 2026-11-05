@@ -1,3 +1,8 @@
+import {
+  issuerFromRequest,
+  isLoopbackIssuer,
+  normalizeIssuer,
+} from "@brains/plugins";
 import type {
   ResolveAuthIdentityInput,
   VerifiedAccessToken,
@@ -9,7 +14,6 @@ import type {
 } from "@brains/contracts";
 import type { ActorRef } from "@brains/contracts";
 import type { AuthIdentityStore } from "./identity-store";
-import { issuerFromRequest, isLoopbackIssuer, normalizeIssuer } from "./issuer";
 import type { AuthBrainAnchor, AuthUser } from "./runtime-schema";
 import type {
   AuthSessionPersistence,

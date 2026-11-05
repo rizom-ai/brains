@@ -1,3 +1,11 @@
+import {
+  createTemplate,
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+  paginationInfoSchema,
+} from "@brains/plugins";
 import type {
   Plugin,
   EntityPluginContext,
@@ -10,22 +18,14 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import {
-  EntityPlugin,
-  SYSTEM_CHANNELS,
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
 import {
   PUBLISH_CHANNELS,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
 import { PROJECT_CHANNELS } from "./project-channels";
-import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import {
   projectSchema,

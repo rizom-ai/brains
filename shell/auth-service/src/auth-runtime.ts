@@ -1,3 +1,4 @@
+import { isLoopbackIssuer } from "@brains/plugins";
 import type { A2APrivateJwk, UserPasskeyRegistration } from "@brains/contracts";
 import type {
   ChannelDeliveryProvider,
@@ -24,7 +25,6 @@ import {
   DEFAULT_INVITATION_DELIVERY_RECOVERY_INTERVAL_MS,
   InvitationDeliverySupervisor,
 } from "./invitation-delivery-supervisor";
-import { isLoopbackIssuer } from "./issuer";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
 import { OAuthEndpoints } from "./oauth-endpoints";
 import {

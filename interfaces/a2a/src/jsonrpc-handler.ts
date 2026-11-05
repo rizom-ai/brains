@@ -1,6 +1,6 @@
+import { type UserPermissionLevel } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { AgentNamespace, AgentResponse } from "@brains/plugins";
-import type { UserPermissionLevel } from "@brains/templates";
 import type { Artifact, Task } from "@a2a-js/sdk";
 import {
   SOURCES_ARTIFACT_NAME,

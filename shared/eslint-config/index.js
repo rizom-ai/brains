@@ -1,4 +1,42 @@
 /* global module */
+
+/** Shell packages plugins never import; @brains/plugins serves them. */
+const shellServicePackages = [
+  "@brains/core",
+  "@brains/job-queue",
+  "@brains/identity-service",
+  "@brains/entity-service",
+  "@brains/content-service",
+  "@brains/conversation-service",
+  "@brains/messaging-service",
+  "@brains/ai-service",
+];
+
+/** Shell packages the plugin context serves at runtime: auth, MCP tools, runtime state, templates. */
+const contextServedPackages = [
+  "@brains/auth-service",
+  "@brains/mcp-service",
+  "@brains/runtime-state",
+  "@brains/templates",
+];
+
+const shellImportMessage =
+  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.";
+
+function shellImportBan(packages) {
+  return [
+    "error",
+    {
+      paths: packages.map((name) => ({ name, message: shellImportMessage })),
+      patterns: [
+        {
+          group: packages.map((name) => `${name}/*`),
+          message: shellImportMessage,
+        },
+      ],
+    },
+  ];
+}
 /** Syntax banned everywhere; see each entry for why. */
 const restrictedSyntax = [
   {
@@ -93,8 +131,8 @@ module.exports = {
   },
   overrides: [
     {
-      // Enforce import pattern for entities, plugins, and interfaces - shell packages must go through @brains/plugins
-      // Note: This applies to top-level entities/*, plugins/*, and interfaces/*, NOT shell/plugins (the plugins package itself)
+      // Entities, plugins and interfaces reach shell packages through
+      // @brains/plugins only. Not shell/plugins, the plugins package itself.
       files: [
         "**/entities/**/*.ts",
         "**/plugins/**/*.ts",
@@ -102,72 +140,33 @@ module.exports = {
       ],
       excludedFiles: ["**/shell/plugins/**/*.ts"],
       rules: {
-        "no-restricted-imports": [
-          "error",
-          {
-            paths: [
-              {
-                name: "@brains/core",
-                message:
-                  "Import from @brains/plugins instead. Shell internals should not be imported by entity, plugin, or interface packages.",
-              },
-              {
-                name: "@brains/job-queue",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/identity-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/entity-service",
-                // The shared identity codec is a package-level contract, not a
-                // service capability. Keep all other shell imports restricted.
-                allowImportNames: ["decodeEntityIdPath", "encodeEntityIdPath"],
-                message:
-                  "Only the entity-path codec may be imported here; access entity-service capabilities through @brains/plugins.",
-              },
-              {
-                name: "@brains/content-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/conversation-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/messaging-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/ai-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-            ],
-            patterns: [
-              {
-                group: [
-                  "@brains/core/*",
-                  "@brains/job-queue/*",
-                  "@brains/identity-service/*",
-                  "@brains/entity-service/*",
-                  "@brains/content-service/*",
-                  "@brains/conversation-service/*",
-                  "@brains/messaging-service/*",
-                  "@brains/ai-service/*",
-                ],
-                message:
-                  "Import from @brains/plugins instead. Shell internals should not be imported by entity, plugin, or interface packages.",
-              },
-            ],
-          },
-        ],
+        "no-restricted-imports": shellImportBan(shellServicePackages),
+      },
+    },
+    {
+      // Their production code also stays off the shell packages whose
+      // capabilities the plugin context serves; tests may still build them.
+      files: [
+        "**/entities/*/src/**/*.ts",
+        "**/entities/*/src/**/*.tsx",
+        "**/plugins/*/src/**/*.ts",
+        "**/plugins/*/src/**/*.tsx",
+        "**/plugins/*/ui-react/src/**/*.ts",
+        "**/plugins/*/ui-react/src/**/*.tsx",
+        "**/interfaces/*/src/**/*.ts",
+        "**/interfaces/*/src/**/*.tsx",
+      ],
+      excludedFiles: [
+        "**/shell/plugins/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+      ],
+      rules: {
+        "no-restricted-imports": shellImportBan([
+          ...shellServicePackages,
+          ...contextServedPackages,
+        ]),
       },
     },
     {

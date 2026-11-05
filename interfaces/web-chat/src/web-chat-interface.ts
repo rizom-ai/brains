@@ -1,3 +1,23 @@
+import {
+  requireSameOriginJson,
+  MessageInterfacePlugin,
+  SitePageResponse,
+  createScheduledMaintenanceDaemon,
+  type AgentResponse,
+  type EditMessageRequest,
+  type MessageInterfacePluginContext,
+  type JobContext,
+  type JobProgressEvent,
+  type MessageArtifactEntity,
+  type MessageInterfaceOutput,
+  type SendMessageToChannelRequest,
+  type SendMessageWithIdRequest,
+  type WebRouteDefinition,
+  type ToolStatusUpdate,
+  type UserPermissionLevel,
+  type ChatAttachment,
+  coerceConversationMetadata,
+} from "@brains/plugins";
 import type { AuthPrincipal } from "@brains/contracts";
 import { join } from "path";
 import {
@@ -22,26 +42,6 @@ import {
   chatActionRequestSchema,
   chatContextHandoffRequestSchema,
 } from "@brains/contracts/chat";
-import { requireSameOriginJson } from "@brains/auth-service";
-import {
-  MessageInterfacePlugin,
-  SitePageResponse,
-  createScheduledMaintenanceDaemon,
-  type AgentResponse,
-  type EditMessageRequest,
-  type MessageInterfacePluginContext,
-  type JobContext,
-  type JobProgressEvent,
-  type MessageArtifactEntity,
-  type MessageInterfaceOutput,
-  type SendMessageToChannelRequest,
-  type SendMessageWithIdRequest,
-  type WebRouteDefinition,
-  type ToolStatusUpdate,
-  type UserPermissionLevel,
-  type ChatAttachment,
-  coerceConversationMetadata,
-} from "@brains/plugins";
 import {
   handleRemoteAgentChatRequest as handleRemoteAgentChatRoute,
   handleRemoteAgentConfirmRequest as handleRemoteAgentConfirmRoute,

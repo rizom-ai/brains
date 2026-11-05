@@ -8,7 +8,6 @@
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-atlas": "workspace:*",
-    "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"

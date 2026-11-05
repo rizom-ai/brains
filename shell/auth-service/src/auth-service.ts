@@ -1,3 +1,4 @@
+import { isLoopbackIssuer, normalizeIssuer } from "@brains/plugins";
 import type {
   A2APeerTrustRecord,
   AppendAuthAuditEventInput,
@@ -70,7 +71,7 @@ import type {
   AuthSessionRecord,
   CreateAuthSessionResult,
 } from "./session-store";
-import { absoluteUrl, isLoopbackIssuer, normalizeIssuer } from "./issuer";
+import { absoluteUrl } from "./issuer";
 import { unauthorizedHtmlResponse } from "./pages";
 import type { PasskeySetupRequired } from "./setup-flow";
 import type {

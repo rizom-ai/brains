@@ -46,15 +46,16 @@ function violations(code: string): number {
   ).length;
 }
 
-describe("entity-path codec import boundary", () => {
-  test("allows only the named codec functions at the package boundary", () => {
+describe("shell import boundary", () => {
+  test("serves the entity-path codec through @brains/plugins", () => {
     expect(
       violations(
-        'import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";',
+        'import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/plugins";',
       ),
     ).toBe(0);
   });
   test.each([
+    'import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";',
     'import { EntityService } from "@brains/entity-service";',
     'import { decodeEntityIdPath, EntityService } from "@brains/entity-service";',
     'import * as entities from "@brains/entity-service";',

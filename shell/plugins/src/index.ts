@@ -1032,3 +1032,24 @@ export type {
   AnalyticsReportContext,
   AnalyticsReportDefinition,
 } from "./contracts/analytics";
+
+// ============================================================================
+// HTTP: the brain's origin and same-origin guards for browser routes
+// ============================================================================
+export {
+  isLoopbackIssuer,
+  isSameOriginRequest,
+  issuerFromRequest,
+  normalizeIssuer,
+  requireSameOriginJson,
+  requireSameOriginRequest,
+} from "./http/same-origin";
+export { normalizeSameOriginPath } from "./http/same-origin-path";
+
+// Entity id paths, link fields and tool confirmations plugins build with.
+export { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
+export { renderedLinkFields, viewLinkFields } from "@brains/templates";
+export {
+  ConfirmationArgsStore,
+  ToolVisibilitySchema,
+} from "@brains/mcp-service";

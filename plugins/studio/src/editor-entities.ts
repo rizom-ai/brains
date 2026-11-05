@@ -1,15 +1,5 @@
-import type {
-  BaseEntity,
-  EntityIdPath,
-  GetEntityRequest,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { encodeEntityIdPath } from "@brains/entity-service";
 import {
-  DIRECTORY_SYNC_CHANNELS,
-  directorySyncPathResponseSchema,
-} from "@brains/contracts";
-import {
+  encodeEntityIdPath,
   canWriteVisibility,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
@@ -17,6 +7,16 @@ import {
   entityIdPathSchema,
   entityDisplayTitle as sharedEntityDisplayTitle,
 } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntityIdPath,
+  GetEntityRequest,
+  ServicePluginContext,
+} from "@brains/plugins";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
 import {

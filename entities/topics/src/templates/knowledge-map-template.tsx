@@ -1,7 +1,6 @@
+import { createTemplate, type Template } from "@brains/plugins";
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 import { KnowledgeMap, knowledgeMapStyles } from "../widgets/knowledge-map";

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
-import type { AuthAccountSnapshot } from "@brains/auth-service/account-contracts";
+import type { AuthAccountSnapshot } from "@brains/contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AccountApp, type AccountBootstrap } from "./account-view";

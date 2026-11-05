@@ -9,9 +9,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/http-signatures": "workspace:*",
-    "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
