@@ -58,7 +58,7 @@ The Anchor connects their LinkedIn account once from Studio, reviews a field-by-
 - **Merge is fill-and-append.** A scalar field is written only when absent or still a placeholder: the recipe seed's (`Your Name Here`, `https://example.com`, "This is where your story goes.") or the starter profile's from `plugins/profile/src/starter-identity.ts` (`Anchor for <starter name>` and its placeholder story). A list record is appended only when its fingerprint is new; a record matching an owner-written one is left as written. Re-running unchanged data writes nothing.
 - **The surface is a Studio workspace.** `linkedin-import:linkedin` with permission floor `admin`, and an `accessHandler` that also requires `isAnchor` (Admin does not imply Anchor). The view shows connection status and the preview; Import is a `defineWorkspaceAction` with a prepared confirmation bound to the caller, the preview digest and the profile's content hash, with expiry and single use. The old branch's review store is not ported; prepared confirmation replaces it.
 - **OAuth routes are plugin web routes.** Studio cannot carry author URLs into a form post, so the view links to the plugin's own start route. Routes use `getWebRoutes()` with `public: true` and authenticate inside the handler (`context.auth.get()?.resolveSession`, requiring `admin` and `isAnchor`), as Studio and auth admin do today. They move to the operator security kind when `http-route-registry-hardening.md` Phase 2 lands.
-- **The token lives in the Anchor's account settings.** It is encrypted with `ACCOUNT_SETTINGS_ENCRYPTION_KEY`, scoped to the account, and removed when the account is deleted. `defineAccountSettings` today only stores values a person submits through the Account form, so Phase 3 adds an owner-scoped write for a plugin's own definition.
+- **The token lives in the Anchor's account settings.** It is encrypted with `ACCOUNT_SETTINGS_ENCRYPTION_KEY`, scoped to the account, and removed when the account is deleted. The plugin registers its own `defineAccountSettings` definition through `context.accountSettings` and saves, reads and deletes one account's values with the registry's `save`, `getForActor` and `delete`. The setting appears in the Account form as **LinkedIn**, where the token can also be pasted by hand.
 - **Two OAuth modes.** Direct mode (Phase 3) uses the instance's own approved LinkedIn app; it suits self-hosting and a small pilot. Managed mode (Phase 9) routes consent through a central broker so instances never hold the shared app secret.
 
 ## Precondition
@@ -95,11 +95,11 @@ End to end: a token in `brain.yaml`, a Studio preview, a confirmed import into `
 
 ### Phase 3 — Connect LinkedIn from Studio (direct mode)
 
-Replaces the static token; `accessToken` config and `LINKEDIN_PORTABILITY_TOKEN` are removed.
+Replaces the static token; `accessToken` config and `LINKEDIN_PORTABILITY_TOKEN` are removed, and `LINKEDIN_IMPORT_CLIENT_ID` and `LINKEDIN_IMPORT_CLIENT_SECRET` take their place.
 
-- `shell/plugins`: an owner-scoped account-settings write, so a plugin can store and delete values of its own `defineAccountSettings` definition for a given account. Tests: a plugin cannot write another definition; secret values stay encrypted and redacted in forms.
+- The **LinkedIn** account setting (`accessToken` secret, optional `expiresAt`), registered in `onRegister`.
 - Port `linkedin-oauth-client.ts` (authorization URL, server-side code exchange, `r_dma_portability_3rd_party`, validated token response) and `linkedin-oauth-state-store.ts` (process-local, ten-minute, single-use state).
-- Routes: `GET /linkedin/oauth/start` (Anchor session, same-origin, creates state, redirects to LinkedIn) and `GET /linkedin/oauth/callback` (validates and consumes state, exchanges the code, stores the token in the Anchor's account settings, returns to the workspace). The token never reaches the browser.
+- Routes: `GET /linkedin/oauth/start` (Anchor session as the guard, since GET navigations carry no Origin; creates state, redirects to LinkedIn) and `GET /linkedin/oauth/callback` (consumes state only from the session that started it, exchanges the code, stores the token in the Anchor's account settings, returns to the workspace). The token never reaches the browser.
 - Config: `oauth: { clientId, clientSecret, redirectUri }`, secrets through `${…}` interpolation.
 - Workspace: connection status and expiry, a Connect link, and a Disconnect action with static confirmation. Import reads the stored token.
 - Tests: state expiry, replay and cross-session use rejected; denied consent returns to the workspace with an error; expired token shows as disconnected; no token in redirects, view data or logs.

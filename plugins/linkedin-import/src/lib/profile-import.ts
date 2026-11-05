@@ -4,7 +4,7 @@ import {
   type BaseEntity,
   type ServiceEntityService,
 } from "@brains/plugins";
-import type { LinkedInClient } from "./linkedin-client";
+import { LinkedInClient, type LinkedInFetch } from "./linkedin-client";
 import { mapLinkedInProfile } from "./profile-mapper";
 import { mergeProfileImport, type ImportedField } from "./merge-profile";
 
@@ -29,21 +29,21 @@ interface Prepared {
 
 /** Previews and applies a LinkedIn import into the anchor profile. */
 export class ProfileImport {
-  private readonly client: LinkedInClient;
   private readonly entityService: ServiceEntityService;
+  private readonly fetchFn: LinkedInFetch | undefined;
 
-  constructor(client: LinkedInClient, entityService: ServiceEntityService) {
-    this.client = client;
+  constructor(entityService: ServiceEntityService, fetchFn?: LinkedInFetch) {
     this.entityService = entityService;
+    this.fetchFn = fetchFn;
   }
 
-  async preview(): Promise<ProfileImportPreview> {
-    return (await this.prepare()).preview;
+  async preview(accessToken: string): Promise<ProfileImportPreview> {
+    return (await this.prepare(accessToken)).preview;
   }
 
   /** Writes only while the profile is still the one this import read. */
-  async apply(): Promise<ProfileImportResult> {
-    const { profile, content, preview } = await this.prepare();
+  async apply(accessToken: string): Promise<ProfileImportResult> {
+    const { profile, content, preview } = await this.prepare(accessToken);
     const result = {
       filled: preview.fields
         .filter((field) => field.outcome === "fill")
@@ -65,14 +65,15 @@ export class ProfileImport {
     return result;
   }
 
-  private async prepare(): Promise<Prepared> {
+  private async prepare(accessToken: string): Promise<Prepared> {
     const profile = await this.entityService.getEntity({
       entityType: "anchor-profile",
       id: "anchor-profile",
       visibilityScope: internalFullScope("LinkedIn import reads the owner"),
     });
     if (!profile) throw new Error("This brain has no anchor profile yet.");
-    const imported = mapLinkedInProfile(await this.client.fetchProfile());
+    const client = new LinkedInClient(accessToken, this.fetchFn);
+    const imported = mapLinkedInProfile(await client.fetchProfile());
     const merge = mergeProfileImport(profile.content, imported);
     const revision = createHash("sha256")
       .update(JSON.stringify([profile.contentHash, merge.fields]))

@@ -8,6 +8,11 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { LinkedInApiError } from "./lib/linkedin-client";
+import {
+  isExpired,
+  type LinkedInConnections,
+  type StoredConnection,
+} from "./lib/linkedin-connection";
 import type { ImportOutcome } from "./lib/merge-profile";
 import type { ProfileImport } from "./lib/profile-import";
 import type { ProfileImport as ImportedValues } from "./lib/profile-mapper";
@@ -27,6 +32,18 @@ const OUTCOME_LABELS: Record<ImportOutcome, string> = {
   unchanged: "Same",
 };
 
+const CONNECTION_NOTICES = {
+  connected: { tone: "good", text: "LinkedIn is connected." },
+  declined: {
+    tone: "neutral",
+    text: "LinkedIn connection was declined. Connect again when you are ready.",
+  },
+  failed: {
+    tone: "warn",
+    text: "LinkedIn could not be connected. Start the connection again.",
+  },
+} as const;
+
 const CELL_LENGTH = 200;
 
 const importProfile = defineWorkspaceAction({
@@ -38,29 +55,59 @@ const importProfile = defineWorkspaceAction({
   output: z.object({ filled: z.array(z.string()), kept: z.array(z.string()) }),
 });
 
-const outcomeSchema = z.enum(["fill", "preserve", "unchanged"]);
+const disconnect = defineWorkspaceAction({
+  name: "disconnect",
+  label: "Disconnect LinkedIn",
+  permission: "admin",
+  confirmation: {
+    kind: "static",
+    message:
+      "Forget the LinkedIn token? Imported profile values stay; importing again needs a new connection.",
+  },
+  input: z.object({}),
+  output: z.object({ disconnected: z.boolean() }),
+});
+
+const querySchema = z.object({
+  connection: z.enum(["connected", "declined", "failed"]).optional(),
+});
+
+const fieldSchema = z.object({
+  field: z.enum([
+    "name",
+    "headline",
+    "industry",
+    "location",
+    "website",
+    "story",
+  ]),
+  current: z.string().nullable(),
+  imported: z.string(),
+  outcome: z.enum(["fill", "preserve", "unchanged"]),
+});
+
+const connectionSchema = querySchema.shape.connection;
 
 const workspaceDataSchema = z.discriminatedUnion("status", [
   z.object({
-    status: z.literal("ready"),
-    fields: z.array(
-      z.object({
-        field: z.enum([
-          "name",
-          "headline",
-          "industry",
-          "location",
-          "website",
-          "story",
-        ]),
-        current: z.string().nullable(),
-        imported: z.string(),
-        outcome: outcomeSchema,
-      }),
-    ),
+    status: z.literal("disconnected"),
+    expired: z.boolean(),
+    startUrl: z.string(),
+    connection: connectionSchema,
   }),
-  z.object({ status: z.literal("unavailable"), message: z.string() }),
+  z.object({
+    status: z.literal("unavailable"),
+    message: z.string(),
+    startUrl: z.string(),
+    connection: connectionSchema,
+  }),
+  z.object({
+    status: z.literal("ready"),
+    fields: z.array(fieldSchema),
+    connection: connectionSchema,
+  }),
 ]);
+type WorkspaceData = z.output<typeof workspaceDataSchema>;
 
 function cell(value: string | null): string {
   if (value === null) return "—";
@@ -75,6 +122,25 @@ function list(names: readonly string[]): string {
     : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }
 
+function connectLink(
+  startUrl: string,
+  label: string,
+): {
+  type: "links";
+  items: { label: string; target: { external: string } }[];
+} {
+  return { type: "links", items: [{ label, target: { external: startUrl } }] };
+}
+
+function connectionNotice(data: WorkspaceData): {
+  type: "notice";
+  tone: "good" | "neutral" | "warn";
+  text: string;
+}[] {
+  const notice = data.connection ? CONNECTION_NOTICES[data.connection] : null;
+  return notice ? [{ type: "notice", ...notice }] : [];
+}
+
 const linkedInWorkspace = defineStudioWorkspace({
   id: "linkedin",
   label: "LinkedIn",
@@ -82,13 +148,43 @@ const linkedInWorkspace = defineStudioWorkspace({
     "Fill your profile from LinkedIn without touching what you wrote.",
   priority: 70,
   permission: "admin",
+  query: querySchema,
   data: workspaceDataSchema,
-  actions: [importProfile],
+  actions: [importProfile, disconnect],
   view: ({ data }) => {
+    if (data.status === "disconnected") {
+      return {
+        kicker: "Profile import",
+        title: "LinkedIn",
+        description:
+          "Connect your LinkedIn account to fill your profile from it. Only members in the European Economic Area can connect.",
+        status: { label: "Not connected", tone: "neutral" },
+        blocks: [
+          ...connectionNotice(data),
+          ...(data.expired
+            ? [
+                {
+                  type: "notice" as const,
+                  tone: "warn" as const,
+                  text: "Your LinkedIn connection expired. Connect again to import.",
+                },
+              ]
+            : []),
+          connectLink(data.startUrl, "Connect LinkedIn"),
+        ],
+      };
+    }
     if (data.status === "unavailable") {
       return {
+        kicker: "Profile import",
         title: "LinkedIn",
-        blocks: [{ type: "notice", tone: "warn", text: data.message }],
+        status: { label: "Connection needs attention", tone: "warn" },
+        blocks: [
+          ...connectionNotice(data),
+          { type: "notice", tone: "warn", text: data.message },
+          connectLink(data.startUrl, "Connect LinkedIn again"),
+          { type: "action", action: disconnect, input: {} },
+        ],
       };
     }
     const fills = data.fields.some((field) => field.outcome === "fill");
@@ -103,6 +199,7 @@ const linkedInWorkspace = defineStudioWorkspace({
       },
       ...(fills ? { primaryAction: { action: importProfile, input: {} } } : {}),
       blocks: [
+        ...connectionNotice(data),
         {
           type: "table",
           id: "linkedin-fields",
@@ -123,67 +220,101 @@ const linkedInWorkspace = defineStudioWorkspace({
             },
           })),
         },
+        { type: "action", action: disconnect, input: {} },
       ],
     };
   },
 });
 
-function isAnchor(caller: OperatorCaller | null): boolean {
-  return caller?.permission === "admin" && caller.isAnchor;
-}
-
-function requireAnchor(caller: OperatorCaller | null): void {
-  if (!isAnchor(caller)) {
+function anchorId(caller: OperatorCaller | null): string {
+  if (caller?.permission !== "admin" || !caller.isAnchor) {
     throw new Error("The LinkedIn import belongs to the Anchor alone");
   }
+  return caller.actor.id;
 }
 
 function unavailableMessage(error: unknown): string {
   if (error instanceof LinkedInApiError && [401, 403].includes(error.status)) {
-    return "LinkedIn refused the access token. Set a valid token for the linkedin-import plugin in brain.yaml.";
+    return "LinkedIn refused the connection. It may have been revoked; connect again.";
   }
   return `LinkedIn could not be read: ${getErrorMessage(error)}`;
 }
 
-/** Registers the Anchor's LinkedIn workspace when Studio is available. */
+export interface LinkedInWorkspaceDeps {
+  profileImport: ProfileImport;
+  connections: LinkedInConnections;
+  /** Absolute URL of the OAuth start route, for Studio's external link. */
+  startUrl: string;
+}
+
+/**
+ * Registers the Anchor's LinkedIn workspace when Studio is available and
+ * returns its URL, where the OAuth callback sends the owner back.
+ */
 export async function registerLinkedInWorkspace(
   context: ServicePluginContext,
-  profileImport: ProfileImport,
-): Promise<void> {
-  if (context.executionOnly || !context.studio.isAvailable()) return;
+  deps: LinkedInWorkspaceDeps,
+): Promise<string | undefined> {
+  if (context.executionOnly || !context.studio.isAvailable()) return undefined;
+  const connected = async (
+    caller: OperatorCaller | null,
+  ): Promise<StoredConnection> => {
+    const connection = await deps.connections.get(anchorId(caller));
+    if (!connection || isExpired(connection)) {
+      throw new Error("Connect LinkedIn before importing.");
+    }
+    return connection;
+  };
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: linkedInWorkspace,
     bind: (binding) =>
       linkedInWorkspace.bind(binding, {
-        load: async ({ caller }) => {
-          requireAnchor(caller);
+        load: async ({ caller, query }): Promise<WorkspaceData> => {
+          const userId = anchorId(caller);
+          const { connection: outcome } = query.get(querySchema);
+          const connection = await deps.connections.get(userId);
+          if (!connection || isExpired(connection)) {
+            return {
+              status: "disconnected",
+              expired: connection !== null,
+              startUrl: deps.startUrl,
+              connection: outcome,
+            };
+          }
           try {
-            const preview = await profileImport.preview();
-            return { status: "ready" as const, fields: preview.fields };
+            const preview = await deps.profileImport.preview(
+              connection.accessToken,
+            );
+            return {
+              status: "ready",
+              fields: preview.fields,
+              connection: outcome,
+            };
           } catch (error) {
             return {
-              status: "unavailable" as const,
+              status: "unavailable",
               message: unavailableMessage(error),
+              startUrl: deps.startUrl,
+              connection: outcome,
             };
           }
         },
         actions: [
           importProfile.bind(
             binding,
+            async ({ caller }) =>
+              deps.profileImport.apply((await connected(caller)).accessToken),
             async ({ caller }) => {
-              requireAnchor(caller);
-              return profileImport.apply();
-            },
-            async ({ caller }) => {
-              requireAnchor(caller);
-              const preview = await profileImport.preview();
-              const filled = preview.fields
-                .filter((field) => field.outcome === "fill")
-                .map((field) => FIELD_LABELS[field.field].toLowerCase());
-              const kept = preview.fields
-                .filter((field) => field.outcome === "preserve")
-                .map((field) => FIELD_LABELS[field.field].toLowerCase());
+              const preview = await deps.profileImport.preview(
+                (await connected(caller)).accessToken,
+              );
+              const labelled = (outcome: ImportOutcome): string[] =>
+                preview.fields
+                  .filter((field) => field.outcome === outcome)
+                  .map((field) => FIELD_LABELS[field.field].toLowerCase());
+              const filled = labelled("fill");
+              const kept = labelled("preserve");
               if (filled.length === 0) {
                 throw new Error(
                   "Your profile already has everything LinkedIn holds.",
@@ -195,12 +326,17 @@ export async function registerLinkedInWorkspace(
               };
             },
           ),
+          disconnect.bind(binding, async ({ caller }) => {
+            await deps.connections.forget(anchorId(caller));
+            return { disconnected: true };
+          }),
         ],
       }),
   });
-  await context.studio.registerWorkspace({
+  const result = await context.studio.registerWorkspace({
     ...registration,
     accessHandler: async (actor) =>
       actor.isAnchor && (await registration.accessHandler(actor)),
   });
+  return result ? result.workspaceUrl : undefined;
 }
