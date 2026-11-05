@@ -1,5 +1,15 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.631
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/plugins@0.2.0-alpha.631
+
 ## 0.2.0-alpha.630
 
 ### Patch Changes

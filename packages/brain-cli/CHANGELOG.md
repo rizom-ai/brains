@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- [#823](https://github.com/rizom-ai/brains/pull/823) [`d08cfe8`](https://github.com/rizom-ai/brains/commit/d08cfe899c89448956b98e9fb07fb6981f3f5cd4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Scheduled generation reaches every content type again. When a brain schedules both newsletters and social posts, the generation trigger now goes to every type's generator; before, whichever generator subscribed first answered for both and the other type was never generated.
+
 ## 0.2.0-alpha.630
 
 ### Patch Changes

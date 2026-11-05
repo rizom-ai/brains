@@ -1,5 +1,15 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/db@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/messaging-service@0.2.0-alpha.631
+
 ## 0.2.0-alpha.630
 
 ### Patch Changes
