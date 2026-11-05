@@ -53,9 +53,6 @@ export const viewLinkFields: {
   listLabel: z.string().nullable().default(null),
 };
 
-/** @deprecated Use TemplateDataSchema<T>. */
-export type TemplateSchemaParser<T> = TemplateDataSchema<T>;
-
 /**
  * A runtime script that a template depends on. Site-builder collects
  * these per route across all templates rendered on the page, dedupes

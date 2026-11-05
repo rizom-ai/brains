@@ -3,16 +3,7 @@ import type {
   EntityActionPolicyConfig,
   UserPermissionLevel,
 } from "@brains/templates";
-import {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-} from "@brains/contracts";
+import type { DefaultQueryResponse } from "@brains/contracts";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
@@ -335,18 +326,6 @@ export interface IShell {
   // Web routes from plugins
   getPluginWebRoutes(): RegisteredWebRoute[];
 }
-
-// Re-export response schemas for backward compatibility
-export {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-};
 
 // Re-export MCP transport interface
 export type { IMCPTransport } from "@brains/mcp-service";

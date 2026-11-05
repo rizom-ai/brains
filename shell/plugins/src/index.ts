@@ -386,7 +386,6 @@ export type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  DefaultQueryResponse,
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
@@ -407,7 +406,6 @@ export {
   interactionInfoSchema,
   interactionKindSchema,
   interactionStatusSchema,
-  defaultQueryResponseSchema,
   pluginMetadataSchema,
   toolResponseSchema,
 } from "./interfaces";
@@ -438,7 +436,6 @@ export type {
   EntityAdapter,
   EntityInput,
   EntitySchema,
-  EntitySchemaParser,
   EntitySearchRequest,
   GetEntityRequest,
   ListEntitiesRequest,
