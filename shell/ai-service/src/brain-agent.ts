@@ -159,6 +159,16 @@ export function createBrainAgentFactory(
     const agent = new ToolLoopAgent({
       model,
       callOptionsSchema: brainCallOptionsSchema,
+      // A local model thinks to choose its tools, then answers a tool result
+      // without thinking: on a runtime that generates ~20 tokens/s, answer
+      // reasoning cost most of a turn while tool choice is where it pays.
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+      prepareStep: ({ steps }) =>
+        capabilities.provider === "local" &&
+        reasoning &&
+        steps.at(-1)?.toolResults.length
+          ? { providerOptions: { local: { reasoningEffort: "none" } } }
+          : {},
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: async ({ options: callOptions, ...settings }) => {
