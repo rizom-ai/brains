@@ -70,6 +70,7 @@
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
+    "@brains/linkedin-import": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/newsletter": "workspace:*",
